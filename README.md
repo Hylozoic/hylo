@@ -1,4 +1,67 @@
-# Hylo
+# Hylo Monorepo
+
+**THIS REPOS IN ITS CURRENT STATE WAS THE RESULT OF THESE COMMANDS:**
+
+1. Created bare nx monorepo:
+
+```
+npx create-nx-workspace hylo --workspaceType integrated  --preset ts --packageManager yarn --useGitHub --nxCloud skip
+cd hylo
+npx nx add @nx/node
+npx nx add @nx/react
+npx nx add @nx/react-native
+git commit -a -m "Add base nx plugins"
+```
+
+2. Merged in Hylo API, Web, and Mobile keeping history:
+
+Prepared individual repos to be merged, and merged into monorepo using this sequence for each app (https://nx.dev/recipes/adopting-nx/preserving-git-histories):
+
+```
+cd <hylo-node|hylo-evo|HyloReactNative|hylo-shared>
+git pull
+git checkout -b monorepo-setup
+
+# for hylo-shared
+mkdir -p libs/shared
+git ls-files | sed 's!/.*!!' | uniq | xargs -I {} git mv {} libs/shared
+
+# for the apps
+mkdir -p apps/<api|web|mobile>
+git ls-files | sed 's!/.*!!' | uniq | xargs -I {} git mv {} apps/<api|web|mobile>
+
+git commit -m "Move files in preparation for monorepo migration (<api|web|mobile|hylo-shared>)"
+git push -u
+```
+
+Then merged each repo into the new monorepo generated above:
+
+```
+cd hylo
+git remote add <api|web|mobile|shared> <repository url>
+git fetch <api|web|mobile|shared>
+git merge <api|web|mobile|shared>/monorepo-setup --allow-unrelated-histories
+```
+
+3. Tried some yarn workspaces / monorepo stuff:
+
+* Goal: Get `hylo-shared` that is now in `lib/shared` plumbed and working as expected within the apps (use yarn or nx to handle this?)
+* Goal: get `yarn install` ran from root installing for all worksapces (as configured in `package.json#workspaces` which is set to `apps/*` and `libs/*` currently). The only blocker is syncing our node version across all projects, currently hylo-node being on node 16 is currently blocking...
+* Goal: `nx run-many -t dev` to start every app in dev mode at once... This should "just work" if we add `dev` to scripts in each app's `package.json` set to do the right thing.
+* Goal: `nx release prerelease --first-release --dry-run` gives us expected results... MOSTLY DOES now, however needs to configure this to what we really want.
+  - Need to configure versioning for React Native such that more than just `package.json` is updated (like `react-native-version` already does, likely can still use that)
+  - Are we good with moving to Conventional Commits format for all our commits (or standardizing on squash commits and always using CC for our squash commit messages)?
+* Question: pnpm is somewhat the new hotness and shouldn't be difficult to switch to, also pnpm+nx is said to be a great combination. Do we switch to this?
+
+4. Zoom-out blocking issues:
+
+* ⛔️ Mobile needs to be audited to make everything safe for a Public repo (https://github.com/Hylozoic/HyloReactNative/issues/353)
+* ⚠️ Keeping this log of how to re-create this monorepo in-case we can't viably keep merging from the individual repos. At some point this will become unmanageable, if it works at all (I think it does)
+* ⚠️ CircleCI and Bitrise triggers, etc configuration needs updated to get working again. Shouldn't be too bad.
+
+
+----
+*nx-generated README follows*# Hylo
 
 <a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
 

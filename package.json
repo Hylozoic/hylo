@@ -2,11 +2,12 @@
   "name": "@hylo/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
   "private": true,
-  "dependencies": {},
   "devDependencies": {
     "@nx/js": "19.8.4",
+    "@nx/node": "19.8.4",
+    "@nx/react": "19.8.4",
+    "@nx/react-native": "19.8.4",
     "@nx/workspace": "19.8.4",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
@@ -15,5 +16,14 @@
     "prettier": "^2.6.2",
     "tslib": "^2.3.0",
     "typescript": "~5.5.2"
+  },
+  "packageManager": "yarn@4.5.0",
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-native": "0.74.1"
   }
 }
