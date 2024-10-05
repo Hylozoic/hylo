@@ -46,7 +46,7 @@
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
     "html-entities": "^2.5.2",
-    "hylo-shared": "5.2.5",
+    "hylo-shared": "*",
     "i18next": "^23.12.2",
     "intl-pluralrules": "^2.0.1",
     "lodash": "^4.17.21",
@@ -152,9 +152,6 @@
     "typescript": "5.0.4",
     "validator": "^13.12.0"
   },
-  "engines": {
-    "node": "20"
-  },
   "jest": {
     "preset": "@testing-library/react-native",
     "setupFiles": [
@@ -242,6 +239,5 @@
         "webview"
       ]
     }
-  },
-  "packageManager": "yarn@3.6.4"
+  }
 }
