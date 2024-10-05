@@ -1,0 +1,22 @@
+{
+  "extends": "@react-native/typescript-config/tsconfig.json",
+  "compilerOptions": {
+    "target": "es6",
+    "jsx": "react",
+    "checkJs": false,
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "module": "commonjs",
+    "baseUrl": ".",
+    "paths": {
+      "*": ["src/*"],
+      "config": ["config"],
+      "assets": ["assets"]
+    },
+    "outDir": "build"
+  },
+  "exclude": [
+    "node_modules",
+    "build"
+  ]
+}

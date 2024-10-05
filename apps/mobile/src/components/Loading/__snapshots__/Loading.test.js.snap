@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`matches last snapshot 1`] = `
+<View>
+  <ActivityIndicator
+    accessibilityHint="loading"
+    color="#818A88"
+    size="small"
+  />
+</View>
+`;

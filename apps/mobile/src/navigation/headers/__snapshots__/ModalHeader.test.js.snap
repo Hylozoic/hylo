@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`HeaderRightButton matches last snapshot 1`] = `
+<TouchableOpacity
+  disabled={false}
+  hitSlop={
+    {
+      "bottom": 7,
+      "left": 7,
+      "right": 7,
+      "top": 7,
+    }
+  }
+  onPress={[Function]}
+>
+  <Text />
+</TouchableOpacity>
+`;

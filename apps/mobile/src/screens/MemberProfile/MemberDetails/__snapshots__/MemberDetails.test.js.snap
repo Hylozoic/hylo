@@ -1,0 +1,278 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GroupRow handles high member count and moderator role 1`] = `
+<Context.Provider
+  value={
+    {
+      "getServerState": undefined,
+      "noopCheck": "once",
+      "stabilityCheck": "once",
+      "store": {
+        "clearActions": [Function],
+        "dispatch": [Function],
+        "getActions": [Function],
+        "getState": [Function],
+        "replaceReducer": [Function],
+        "subscribe": [Function],
+      },
+      "subscription": {
+        "addNestedSub": [Function],
+        "getListeners": [Function],
+        "handleChangeWrapper": [Function],
+        "isSubscribed": [Function],
+        "notifyNestedSubs": [Function],
+        "trySubscribe": [Function],
+        "tryUnsubscribe": [Function],
+      },
+    }
+  }
+>
+  <GroupRow
+    membership={
+      {
+        "group": {
+          "id": 23,
+          "memberCount": 24495,
+          "name": "Greater Place",
+        },
+        "hasModeratorRole": true,
+      }
+    }
+  />
+</Context.Provider>
+`;
+
+exports[`GroupRow matches the last snapshot 1`] = `
+<Context.Provider
+  value={
+    {
+      "getServerState": undefined,
+      "noopCheck": "once",
+      "stabilityCheck": "once",
+      "store": {
+        "clearActions": [Function],
+        "dispatch": [Function],
+        "getActions": [Function],
+        "getState": [Function],
+        "replaceReducer": [Function],
+        "subscribe": [Function],
+      },
+      "subscription": {
+        "addNestedSub": [Function],
+        "getListeners": [Function],
+        "handleChangeWrapper": [Function],
+        "isSubscribed": [Function],
+        "notifyNestedSubs": [Function],
+        "trySubscribe": [Function],
+        "tryUnsubscribe": [Function],
+      },
+    }
+  }
+>
+  <GroupRow
+    membership={
+      {
+        "group": {
+          "id": 23,
+          "memberCount": 432,
+          "name": "Great Place",
+        },
+        "hasModeratorRole": false,
+      }
+    }
+  />
+</Context.Provider>
+`;
+
+exports[`MemberDetails matches the last snapshot 1`] = `
+<Context.Provider
+  value={
+    {
+      "getServerState": undefined,
+      "noopCheck": "once",
+      "stabilityCheck": "once",
+      "store": {
+        "clearActions": [Function],
+        "dispatch": [Function],
+        "getActions": [Function],
+        "getState": [Function],
+        "replaceReducer": [Function],
+        "subscribe": [Function],
+      },
+      "subscription": {
+        "addNestedSub": [Function],
+        "getListeners": [Function],
+        "handleChangeWrapper": [Function],
+        "isSubscribed": [Function],
+        "notifyNestedSubs": [Function],
+        "trySubscribe": [Function],
+        "tryUnsubscribe": [Function],
+      },
+    }
+  }
+>
+  <MemberDetails
+    goToGroup={[Function]}
+    isFocused={true}
+    navigation={
+      {
+        "setOptions": [Function],
+        "state": {},
+      }
+    }
+    person={
+      {
+        "id": 1,
+      }
+    }
+    route={
+      {
+        "name": "MemberProfile",
+      }
+    }
+    t={[Function]}
+  />
+</Context.Provider>
+`;
+
+exports[`MemberDetails returns Loading when there's no person 1`] = `
+<Context.Provider
+  value={
+    {
+      "getServerState": undefined,
+      "noopCheck": "once",
+      "stabilityCheck": "once",
+      "store": {
+        "clearActions": [Function],
+        "dispatch": [Function],
+        "getActions": [Function],
+        "getState": [Function],
+        "replaceReducer": [Function],
+        "subscribe": [Function],
+      },
+      "subscription": {
+        "addNestedSub": [Function],
+        "getListeners": [Function],
+        "handleChangeWrapper": [Function],
+        "isSubscribed": [Function],
+        "notifyNestedSubs": [Function],
+        "trySubscribe": [Function],
+        "tryUnsubscribe": [Function],
+      },
+    }
+  }
+>
+  <MemberDetails
+    isFocused={true}
+    navigation={
+      {
+        "setOptions": [Function],
+        "state": {},
+      }
+    }
+    route={
+      {
+        "name": "MemberProfile",
+      }
+    }
+    t={[Function]}
+  />
+</Context.Provider>
+`;
+
+exports[`MemberGroups matches the last snapshot 1`] = `
+<Context.Provider
+  value={
+    {
+      "getServerState": undefined,
+      "noopCheck": "once",
+      "stabilityCheck": "once",
+      "store": {
+        "clearActions": [Function],
+        "dispatch": [Function],
+        "getActions": [Function],
+        "getState": [Function],
+        "replaceReducer": [Function],
+        "subscribe": [Function],
+      },
+      "subscription": {
+        "addNestedSub": [Function],
+        "getListeners": [Function],
+        "handleChangeWrapper": [Function],
+        "isSubscribed": [Function],
+        "notifyNestedSubs": [Function],
+        "trySubscribe": [Function],
+        "tryUnsubscribe": [Function],
+      },
+    }
+  }
+>
+  <MemberGroups
+    person={
+      {
+        "memberships": [
+          {
+            "id": 1,
+          },
+          {
+            "id": 2,
+          },
+          {
+            "id": 3,
+          },
+        ],
+      }
+    }
+    t={[Function]}
+  />
+</Context.Provider>
+`;
+
+exports[`MemberSkills matches the last snapshot 1`] = `
+<Context.Provider
+  value={
+    {
+      "getServerState": undefined,
+      "noopCheck": "once",
+      "stabilityCheck": "once",
+      "store": {
+        "clearActions": [Function],
+        "dispatch": [Function],
+        "getActions": [Function],
+        "getState": [Function],
+        "replaceReducer": [Function],
+        "subscribe": [Function],
+      },
+      "subscription": {
+        "addNestedSub": [Function],
+        "getListeners": [Function],
+        "handleChangeWrapper": [Function],
+        "isSubscribed": [Function],
+        "notifyNestedSubs": [Function],
+        "trySubscribe": [Function],
+        "tryUnsubscribe": [Function],
+      },
+    }
+  }
+>
+  <MemberSkills
+    skills={
+      [
+        {
+          "id": 1,
+          "name": "run",
+        },
+        {
+          "id": 2,
+          "name": "all",
+        },
+        {
+          "id": 3,
+          "name": "day",
+        },
+      ]
+    }
+    t={[Function]}
+  />
+</Context.Provider>
+`;

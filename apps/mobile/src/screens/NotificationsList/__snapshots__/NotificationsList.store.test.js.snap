@@ -1,0 +1,186 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`action creators matches the last snapshot from fetchNotifications 1`] = `
+{
+  "graphql": {
+    "query": "query ($first: Int, $offset: Int) {
+        notifications(first: $first, offset: $offset, order: \\"desc\\") {
+          total
+          hasMore
+          items {
+            id
+            createdAt
+            activity {
+              id
+              actor {
+                id
+                name
+                avatarUrl
+              }
+              comment {
+                id
+                text
+              }
+              post {
+                id
+                title
+                details
+                groups {
+                  id
+                  slug
+                }
+              }
+              group {
+                id
+                name
+                slug
+              }
+              meta {
+                reasons
+              }
+              action
+              unread
+            }
+          }
+        }
+      }",
+    "variables": {
+      "first": 20,
+      "offset": 0,
+    },
+  },
+  "meta": {
+    "afterInteractions": true,
+    "extractModel": "Notification",
+    "extractQueryResults": {
+      "getItems": [Function],
+    },
+    "resetCount": true,
+  },
+  "type": "NotificationsList/FETCH_NOTIFICATIONS",
+}
+`;
+
+exports[`action creators matches the last snapshot from markActivityRead 1`] = `
+{
+  "graphql": {
+    "query": "mutation ($id: ID) {
+        markActivityRead(id: $id) {
+          id
+        }
+      }",
+    "variables": {
+      "id": "1",
+    },
+  },
+  "meta": {
+    "id": "1",
+    "optimistic": true,
+  },
+  "type": "NotificationsList/MARK_ACTIVITY_READ",
+}
+`;
+
+exports[`action creators matches the last snapshot from markAllActivitiesRead 1`] = `
+{
+  "graphql": {
+    "query": "mutation {
+        markAllActivitiesRead {
+          success
+        }
+      }",
+  },
+  "meta": {
+    "optimistic": true,
+  },
+  "type": "NotificationsList/MARK_ALL_ACTIVITIES_READ",
+}
+`;
+
+exports[`action creators matches the last snapshot from updateNewNotificationCount 1`] = `
+{
+  "graphql": {
+    "query": "mutation ($changes: MeInput) {
+        updateMe(changes: $changes) {
+          id
+        }
+      }",
+    "variables": {
+      "changes": {
+        "newNotificationCount": 0,
+      },
+    },
+  },
+  "meta": {
+    "optimistic": true,
+  },
+  "type": "NotificationsList/UPDATE_NEW_NOTIFICATION_COUNT",
+}
+`;
+
+exports[`selectors/refiners refineActivity matches the previous ACTION_ANNOUNCEMENT snapshot 1`] = `
+{
+  "body": "wrote: "This post should have a really long title. It should not even come close to …"",
+  "header": "posted an announcement",
+  "nameInHeader": true,
+  "onPress": [Function],
+}
+`;
+
+exports[`selectors/refiners refineActivity matches the previous ACTION_APPROVED_JOIN_REQUEST snapshot 1`] = `
+{
+  "body": "approved your request to join",
+  "group": "Aardvarks Alert",
+  "header": "Join Request Approved",
+  "onPress": [Function],
+}
+`;
+
+exports[`selectors/refiners refineActivity matches the previous ACTION_COMMENT snapshot 1`] = `
+{
+  "body": "wrote: "Rich Churcher"",
+  "header": "New Comment on",
+  "onPress": [Function],
+  "title": "This post should have a really long title. It should not even come close to fitting on a notification header. It should be truncated.",
+}
+`;
+
+exports[`selectors/refiners refineActivity matches the previous ACTION_COMMENT_MENTION snapshot 1`] = `
+{
+  "body": "wrote: Rich Churcher",
+  "header": "mentioned you in a comment on",
+  "nameInHeader": true,
+  "onPress": [Function],
+  "title": "This post should have a really long title. It should not even come close to fitting on a notification header. It should be truncated.",
+}
+`;
+
+exports[`selectors/refiners refineActivity matches the previous ACTION_JOIN_REQUEST snapshot 1`] = `
+{
+  "body": "asked to join",
+  "group": "Aardvarks Alert",
+  "header": "New join request",
+  "nameInHeader": true,
+  "onPress": [Function],
+}
+`;
+
+exports[`selectors/refiners refineActivity matches the previous ACTION_MENTION snapshot 1`] = `
+{
+  "body": "wrote: "So detailed."",
+  "header": "mentioned you",
+  "nameInHeader": true,
+  "onPress": [Function],
+}
+`;
+
+exports[`selectors/refiners refineActivity matches the previous ACTION_TAG snapshot 1`] = `
+{
+  "body": "wrote: "So detailed."",
+  "header": "New Post in",
+  "objectName": "aardvark",
+  "onPress": [Function],
+}
+`;
+
+exports[`selectors/refiners refineNotification matches the last snapshot 1`] = `true`;

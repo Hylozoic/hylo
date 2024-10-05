@@ -1,0 +1,229 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CommentCard matches the last snapshot 1`] = `
+<TouchableOpacity
+  onPress={[Function]}
+>
+  <View>
+    <PostHeader
+      announcement={false}
+      creator={
+        {
+          "id": 3,
+        }
+      }
+      date={123}
+      goToGroup={[Function]}
+      hideMenu={true}
+      pinned={false}
+      postId={2}
+      showMember={[Function]}
+      showTopic={[Function]}
+      smallAvatar={true}
+      type="singalong"
+    />
+    <PostTitle
+      title="Yallow"
+    />
+  </View>
+  <View />
+  <Comment
+    comment={
+      {
+        "id": 1,
+        "post": {
+          "announcement": false,
+          "createdAt": 123,
+          "creator": {
+            "id": 3,
+          },
+          "id": 2,
+          "pinned": false,
+          "title": "Yallow",
+          "type": "singalong",
+        },
+      }
+    }
+    showMember={[Function]}
+    showTopic={[Function]}
+  />
+</TouchableOpacity>
+`;
+
+exports[`PersonCard matches the last snapshot 1`] = `
+<TouchableOpacity
+  onPress={[Function]}
+>
+  <View>
+    <Avatar
+      avatarUrl="jo.png"
+    />
+    <View>
+      <Text>
+        Jo
+      </Text>
+      <Text>
+        Spain
+      </Text>
+    </View>
+  </View>
+</TouchableOpacity>
+`;
+
+exports[`PostCard matches the last snapshot 1`] = `
+<TouchableOpacity
+  onPress={[Function]}
+>
+  <PostCard
+    creator={
+      {
+        "id": 2,
+      }
+    }
+    goToGroup={[Function]}
+    hideDetails={true}
+    hideMenu={true}
+    onPress={[Function]}
+    post={
+      {
+        "creator": {
+          "id": 2,
+        },
+        "id": 1,
+      }
+    }
+    showDetails={[Function]}
+    showGroups={true}
+    showMember={[Function]}
+  />
+</TouchableOpacity>
+`;
+
+exports[`SearchPage matches the last snapshot 1`] = `
+<View>
+  <FlatList
+    ListFooterComponent={<Loading />}
+    ListHeaderComponent={
+      <View>
+        <View>
+          <View>
+            <Icon
+              name="Search"
+            />
+            <TextInput
+              autoCapitalize="none"
+              autoCorrect={false}
+              onChangeText={[Function]}
+              underlineColorAndroid="transparent"
+              value="how"
+            />
+          </View>
+        </View>
+        <TabBar
+          filter="post"
+          setSearchFilter={[Function]}
+        />
+      </View>
+    }
+    data={
+      [
+        1,
+        2,
+        3,
+      ]
+    }
+    keyExtractor={[Function]}
+    onEndReached={[Function]}
+    onRefresh={[Function]}
+    refreshing={false}
+    renderItem={[Function]}
+  />
+</View>
+`;
+
+exports[`SearchResult works with Comment 1`] = `
+<View>
+  <CommentCard
+    comment={
+      {
+        "id": 1,
+      }
+    }
+    expanded={false}
+    goToPost={[Function]}
+  />
+</View>
+`;
+
+exports[`SearchResult works with Person 1`] = `
+<View>
+  <PersonCard
+    goToPerson={[Function]}
+    person={
+      {
+        "id": 1,
+      }
+    }
+  />
+</View>
+`;
+
+exports[`SearchResult works with Post 1`] = `
+<View>
+  <PostCard
+    goToPost={[Function]}
+    post={
+      {
+        "id": 1,
+      }
+    }
+  />
+</View>
+`;
+
+exports[`Tab matches the last snapshot 1`] = `
+<TouchableOpacity
+  hitSlop={
+    {
+      "bottom": 15,
+      "left": 15,
+      "right": 15,
+      "top": 10,
+    }
+  }
+  onPress={[Function]}
+>
+  <Text>
+    Discussions
+  </Text>
+</TouchableOpacity>
+`;
+
+exports[`TabBar matches the last snapshot 1`] = `
+<View>
+  <Tab
+    filter="post"
+    id="all"
+    label="All"
+    setSearchFilter={[Function]}
+  />
+  <Tab
+    filter="post"
+    id="post"
+    label="Discussions"
+    setSearchFilter={[Function]}
+  />
+  <Tab
+    filter="post"
+    id="person"
+    label="People"
+    setSearchFilter={[Function]}
+  />
+  <Tab
+    filter="post"
+    id="comment"
+    label="Comments"
+    setSearchFilter={[Function]}
+  />
+</View>
+`;

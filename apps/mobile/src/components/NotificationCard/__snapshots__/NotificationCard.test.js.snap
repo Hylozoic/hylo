@@ -1,0 +1,210 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NotificationCard matches the last snapshot for a comment 1`] = `
+<View>
+  <View>
+    <Avatar
+      avatarUrl="https://wombat.com/test.jpg"
+    />
+  </View>
+  <View>
+    <Text
+      numberOfLines={2}
+    >
+      <Text>
+        New comment on
+      </Text>
+      <Text
+        numberOfLines={2}
+      >
+         "
+        A post to end all other posts, having an extremely long post title that just seems to go on and on and on and on
+        "
+      </Text>
+    </Text>
+    <Text>
+      <Text>
+        Wombat 
+      </Text>
+      wrote: a fairly long comment that in theory should get truncated by the line limit, and end in elipsis
+    </Text>
+    <Text>
+      1 mo ago
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`NotificationCard matches the last snapshot for a comment mention 1`] = `
+<View>
+  <View>
+    <Avatar
+      avatarUrl="https://wombat.com/test.jpg"
+    />
+  </View>
+  <View>
+    <Text
+      numberOfLines={2}
+    >
+      <Text>
+        Wombat Aardvark
+         
+      </Text>
+      <Text>
+        mentioned you in a comment on
+      </Text>
+      <Text
+        numberOfLines={2}
+      >
+         "
+        A post to end all other posts, having an extremely long post title that just seems to go on and on and on and on
+        "
+      </Text>
+    </Text>
+    <Text>
+      <Text>
+        Wombat 
+      </Text>
+      wrote: a fairly long comment that in theory should get truncated by the line limit, and end in elipsis
+    </Text>
+    <Text>
+      1 mo ago
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`NotificationCard matches the last snapshot for a join approved 1`] = `
+<View>
+  <View>
+    <Avatar
+      avatarUrl="https://wombat.com/test.jpg"
+    />
+  </View>
+  <View>
+    <Text
+      numberOfLines={2}
+    >
+      <Text>
+        Join Request Approved
+      </Text>
+    </Text>
+    <Text>
+      <Text>
+        Wombat 
+      </Text>
+      approved your request to join
+      <Text>
+         
+        Hydroponic Gardening
+      </Text>
+    </Text>
+    <Text>
+      1 mo ago
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`NotificationCard matches the last snapshot for a join request 1`] = `
+<View>
+  <View>
+    <Avatar
+      avatarUrl="https://wombat.com/test.jpg"
+    />
+  </View>
+  <View>
+    <Text
+      numberOfLines={2}
+    >
+      <Text>
+        Wombat Aardvark
+         
+      </Text>
+      <Text>
+        New join request
+      </Text>
+    </Text>
+    <Text>
+      <Text>
+        Wombat 
+      </Text>
+      requested to join
+      <Text>
+         
+        Hydroponic Gardening
+      </Text>
+    </Text>
+    <Text>
+      1 mo ago
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`NotificationCard matches the last snapshot for a mention 1`] = `
+<View>
+  <View>
+    <Avatar
+      avatarUrl="https://wombat.com/test.jpg"
+    />
+  </View>
+  <View>
+    <Text
+      numberOfLines={2}
+    >
+      <Text>
+        Wombat Aardvark
+         
+      </Text>
+      <Text>
+        mentioned you
+      </Text>
+      <Text
+        numberOfLines={2}
+      >
+         "
+        A post to end all other posts, having an extremely long post title that just seems to go on and on and on and on
+        "
+      </Text>
+    </Text>
+    <Text>
+      <Text>
+        Wombat 
+      </Text>
+      wrote: a post that mentions Forgle McWorfle
+    </Text>
+    <Text>
+      1 mo ago
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`NotificationCard matches the last snapshot for a post in topic 1`] = `
+<View>
+  <View>
+    <Avatar
+      avatarUrl="https://wombat.com/test.jpg"
+    />
+  </View>
+  <View>
+    <Text
+      numberOfLines={2}
+    >
+      <Text>
+        New post in
+      </Text>
+    </Text>
+    <Text>
+      <Text>
+        Wombat 
+      </Text>
+      wrote: a fairly long comment that in theory should get truncated by the line limit, and end in elipsis
+    </Text>
+    <Text>
+      1 mo ago
+    </Text>
+  </View>
+</View>
+`;

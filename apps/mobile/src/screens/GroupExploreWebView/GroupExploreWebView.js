@@ -1,0 +1,111 @@
+import React, { useRef, useEffect, useState } from 'react'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
+import { useDispatch, useSelector } from 'react-redux'
+import { URL } from 'react-native-url-polyfill'
+import { WebViewMessageTypes } from 'hylo-shared'
+import { DEFAULT_APP_HOST } from 'navigation/linking'
+import { openURL } from 'hooks/useOpenURL'
+import useIsModalScreen, { modalScreenName } from 'hooks/useIsModalScreen'
+import useRouteParams from 'hooks/useRouteParams'
+import HyloWebView from 'components/HyloWebView'
+import fetchGroupModerators from 'store/actions/fetchGroupModerators'
+import fetchGroupDetails from 'store/actions/fetchGroupDetails'
+import ModalHeaderTransparent from 'navigation/headers/ModalHeaderTransparent'
+import getGroup from 'store/selectors/getGroup'
+
+export default function GroupExploreWebView () {
+  const dispatch = useDispatch()
+  const navigation = useNavigation()
+  const isModalScreen = useIsModalScreen()
+  const webViewRef = useRef(null)
+  const { groupSlug } = useRouteParams()
+  const currentGroup = useSelector(state => getGroup(state, { slug: groupSlug }))
+  const [path, setPath] = useState()
+  const [canGoBack, setCanGoBack] = useState(false)
+
+  useFocusEffect(
+    () => {
+      isModalScreen
+        ? navigation.setOptions(ModalHeaderTransparent({ navigation }))
+        : navigation.setOptions({
+          title: currentGroup?.name,
+          headerLeftOnPress:
+            canGoBack ? webViewRef.current.goBack : navigation.goBack
+        })
+    }
+  )
+
+  // Fetch stewards for "Opportunities to Connect" / Message to all stewards feature
+  useEffect(() => {
+    if (groupSlug) {
+      setPath(`/groups/${groupSlug}/explore`)
+      dispatch(fetchGroupModerators({ slug: groupSlug }))
+    }
+  }, [groupSlug])
+
+  const joinGroup = async groupToJoinSlug => {
+    // Re-fetching CurrentUser fixes some things, but takes too long. Look into reducers
+    // such that the Membership update propagates everywhere, including in Stream if
+    // currently on this group:
+    // await dispatch(fetchCurrentUser())
+    await dispatch(fetchGroupDetails({ slug: groupToJoinSlug }))
+
+    openURL(`/groups/${groupToJoinSlug}`)
+  }
+
+  const messageHandler = ({ type, data }) => {
+    switch (type) {
+      case WebViewMessageTypes.JOINED_GROUP: {
+        const { groupSlug } = data
+
+        return joinGroup(groupSlug)
+      }
+    }
+  }
+
+  const handledWebRoutes = [
+    '(.*)/explore/group/(.*)'
+  ]
+
+  const nativeRouteHandler = ({ pathname, search }) => ({
+    '(.*)/:type(post|members)/:id': ({ routeParams }) => {
+      const { type, id } = routeParams
+
+      switch (type) {
+        case 'post': {
+          navigation.navigate('Post Details', { id })
+          break
+        }
+        case 'members': {
+          navigation.navigate('Member', { id })
+          break
+        }
+      }
+    },
+    '/groups/:groupSlug': ({ routeParams }) => {
+      navigation.navigate(modalScreenName('Group Explore'), routeParams)
+    },
+    '(.*)': () => {
+      openURL(pathname + search)
+    }
+  })
+
+  if (!groupSlug) return null
+
+  return (
+    <HyloWebView
+      ref={webViewRef}
+      path={path}
+      handledWebRoutes={handledWebRoutes}
+      nativeRouteHandler={nativeRouteHandler}
+      messageHandler={messageHandler}
+      // TODO: Consider adding this to the `HyloWebView` standard API
+      onNavigationStateChange={({ url, canGoBack: providedCanGoBack }) => {
+        const { pathname } = new URL(url, DEFAULT_APP_HOST)
+
+        // NOTE: Currently ignores possible changes to querystring (`search`)
+        setCanGoBack(providedCanGoBack && pathname !== path)
+      }}
+    />
+  )
+}

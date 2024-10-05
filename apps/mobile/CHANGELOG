@@ -1,0 +1,150 @@
+# Changelog
+All notable changes to HyloReactNative (the Hylo mobile app) will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+### [5.8.2] - 2024-09-27
+
+- Fix missing function call blocking Apple account login
+- Android icon fix
+
+### [5.8.1] - 2024-09-10
+
+- Fix android push notification icon
+- child/parent group bug-fix
+
+### [5.8.0] - 2024-09-05
+
+- Add code of conduct, contribution guide and full license details
+- i18n bug-fix for location search
+- Update numerous dependencies
+
+### [5.7.0] - 2024-07-15
+
+- Add 'responsibilties' in place of 'moderators'
+
+### [5.6.0] - 2024-07-02
+
+- Add proposal views and voting options to posts
+- Add internationalization support and Spanish
+- Reduce app start-up times
+- Other performance, stability and bug fixes
+
+### [5.5.2] - 2024-06-04
+
+- Fixes #720 Search results sometimes crash app #723
+- Fixes crash on getting user details for a deleted user in header of a Message Thread #721
+- Closes #713 - Adds new post notification #714
+- Fixes #708 - Pressing on emoji doesn't do anything #715
+- Update to React Native 0.72.12 #719
+
+### [5.5.1] - 2023-02-21
+- Redesign Group Welcome
+- Include Agreements into Group Welcome
+- Include Join Questions in Group Welcome
+
+### [5.4.0] - 2023-12-11
+- My Home added to the menu navigation
+- Group Purpose added to group details
+- Notifications load faster
+- Intercom Support added to navigation
+- Users can create Public posts from mobile
+- Chat channels more readily accessible via group navigation menu
+- Bug fixes
+
+### [5.3.0] - 2023-08-22
+#### See related Milestone for more detail: https://github.com/Hylozoic/HyloReactNative/milestone/7?closed=1
+- Upgrades to React Native 0.72.4 #648
+- Adds emojis to posts and comments #616
+- Adds Custom links/views for groups to navigation menu #560
+- Adds toggle on stream to switch between showing child group posts or not #630
+- Displays which posts are coming from child groups #628
+- Makes project fields conditional #642 (Fixes [Issue #637](https://github.com/Hylozoic/HyloReactNative/issues/637))
+- Misc bug fixes...
+
+### [5.2.3] - 2023-03-31
+- Fixes topics not appearing when no image
+
+### [5.2.2] - 2023-02-03
+- Make groupIds be of graphql type ID
+
+### [5.2.0] - 2022-12-20
+- Adds Topic Chatroom Webview
+
+### [5.1.5] - 2022-12-05
+- Partially fixes #510 and #608 by enabling Android autoVerify on AppLinks. https://www.hylo.com/.well-known/assetlinks.json is validated and now being served.
+
+### [5.1.3] - 2022-12-03
+- Members not loading on initial navigation to screen
+
+### [5.1.2] - 2022-12-03
+### Fixed
+- Terms of Service and Privacy Policy links on Login and Signup screens as per Facebook review
+- Comment Editor not expanding height after selecting Mention or Topic #614
+- Initial URL not handled on non-auth when app closed #618
+- Map Saved Search Retrieval changes group, but doesn't keep Map querystring #615
+- New Message > Add Participant search has weird results on adding 2nd participant #613
+- Should forward to Stream on launch #606
+
+### [5.1.1] - 2022-11-17
+### Fixed
+- Amends iOS location permission string to be more specific as per App Store review feedback
+
+### [3.2.x-5.0.2] - 2022-10-24
+### Added
+- `HyloWebViewEditor`: A WebView of `HyloMobileEditor` on Web. Replaces `InlineEditor` and includes rich text and interactive mention and topic suggestions
+- A mostly re-written Post Editor incorporating the new HyloEditor and improved UX throughout. Some new/updated features include: local image loading while being uploaded to server, modal Start and End time selection (vs inline),  updated prompts per Post Type, etc.
+- Refreshed Post Card and Post Details views to better reflect updated UI on Web
+- New WebView'd Topics selector
+- Long Press menus for Comments (delete, reply, etc)
+- New ActionSheet-style menus on Android to replace previous Android default "drop down menu"-style
+
+...
+
+## [3.2.0]
+### Added
+- More advanced type selector for Post Editor
+- Geocoded Location selector to Profile edit
+- Geocoded Location selector to Group settings edit
+- Event RSVP options
+- Pre-requisite groups to Group detail/join page
+### Changed
+- Projects can now be created from the main Post Editor window, not only via New Project
+- Update Post type colors to be consistent between web and mobile
+- Improves Profile view and edit Profile UX
+- Upgrade react-native-data-picker to latest version
+- Update Post Activity on Card and Detail views to be same as web
+### Fixed
+- Keyboard covering Edit Group Settings (in Android) #436
+- Issue with Post Editor such that it would not forward to a newly created project
+
+## [3.1.2]
+### Fixed
+- New Post not appearing in feed
+- "No comments" always showing even when there were comments
+
+## [3.1.0]
+### Added
+- Holonic Architecture (Groups) conversion
+- Public Groups
+- Event type to feed filter
+- Group subnavigation menu
+- Related Groups listing 
+- Related Group detail page including join options
+### Changed
+- Upgraded ReduxORM
+- Drawer and tab navigation redesign (moving Search and Messages to tabs, etc)
+- Updated Event label to match web
+- Updated Group Creation to include Visibility and Accessibility options
+- Updated Group Creation to include related group option
+### Fixed
+- Public and All My Groups now pull the expected posts
+
+## [3.0.3] - 2020-01-31
+### Fixed
+- Sign in with Apple
+
+## [3.0.2] - 2020-01-29
+### Fixed
+- Navigation to "All Communities"

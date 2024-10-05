@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`matches the last snapshot 1`] = `
+<View>
+  <Avatar
+    avatarUrl="https://wombat.com/test.jpg"
+  />
+  <View>
+    <Text />
+    <Memo
+      html="<p>Hi</p>
+"
+    />
+    <Text>
+      1 mo ago
+    </Text>
+  </View>
+</View>
+`;

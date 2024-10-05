@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`checkVersion matches the existing snapshot 1`] = `
+{
+  "payload": {
+    "api": {
+      "method": "get",
+      "path": "/noo/mobile/check-should-update?ios-version=1.0",
+    },
+  },
+  "type": "CHECK_VERSION",
+}
+`;

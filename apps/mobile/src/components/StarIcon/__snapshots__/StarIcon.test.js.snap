@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`StarIcon matches the last snapshot 1`] = `
+<View>
+  <View />
+  <Icon
+    name="Star"
+  />
+</View>
+`;

@@ -1,0 +1,54 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/Hylozoic/HyloReactNative
+    parallelism: 1
+    # CircleCI 2.0 does not support environment variables that refer to each other the same way as 1.0 did.
+    # If any of these refer to each other, rewrite them so that they don't or see https://circleci.com/docs/2.0/env-vars/#interpolating-environment-variables-to-set-other-environment-variables .
+    environment:
+      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
+      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
+    docker:
+    - image: cimg/node:20.15.0
+    shell: /bin/bash --login
+    steps:
+    - checkout
+    # setup self referential env vars
+    - run: echo $HOME
+    - run: echo $CIRCLE_PROJECT_REPONAME
+    - run: echo $PATH
+    - run:
+        name: Update PATH Environment Variable at Runtime
+        command: |
+          export PATH=$PATH:$HOME/$CIRCLE_PROJECT_REPONAME/node_modules/.bin
+    # Prepare for artifact and test results  collection equivalent to how it was done on 1.0.
+    # In many cases you can simplify this from what is generated here.
+    # 'See docs on artifact collection here https://circleci.com/docs/2.0/artifacts/'
+    - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
+    - restore_cache:
+        keys:
+        # This branch if available
+        - v1-dep-{{ .Branch }}-{{ checksum "yarn.lock" }}
+        # # Default branch if not
+        # - v1-dep-master-{{ checksum "yarn.lock" }}
+        # # Any branch if there are none on the default branch - this should be unnecessary if you have your default branch configured correctly
+        # - v1-dep-{{ checksum "yarn.lock" }}
+    - run: yarn global add codecov
+    - run: yarn
+    - save_cache:
+        key: v1-dep-{{ .Branch }}-{{ checksum "yarn.lock" }}-{{ epoch }}
+        paths:
+        - ~/.cache/yarn
+        - ./node_modules
+        - ./ios/Pods
+    - run: yarn test --coverage --runInBand
+    - run: yarn run codecov
+    - store_test_results:
+        path: /tmp/circleci-test-results
+    # Save artifacts
+    - store_artifacts:
+        path: /tmp/circleci-artifacts
+    - store_artifacts:
+        path: coverage
+    - store_artifacts:
+        path: /tmp/circleci-test-results

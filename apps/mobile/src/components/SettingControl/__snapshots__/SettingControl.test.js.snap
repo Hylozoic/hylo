@@ -1,0 +1,125 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`matches last snapshot 1`] = `
+<View>
+  <Text>
+    Name
+  </Text>
+  <TextInput
+    autoCapitalize="words"
+    autoCorrect={true}
+    editable={true}
+    keyboardType="email-address"
+    onChangeText={[Function]}
+    onSubmitEditing={[Function]}
+    returnKeyType="next"
+    secureTextEntry={true}
+    textContentType="oneTimeCode"
+    value="Joe Bloggs"
+  />
+  <View>
+    <TouchableOpacity
+      hitSlop={
+        {
+          "bottom": 10,
+          "left": 10,
+          "right": 10,
+          "top": 10,
+        }
+      }
+      onPress={[Function]}
+    >
+      <Icon
+        allowFontScaling={false}
+        name="eye"
+        size={12}
+      />
+    </TouchableOpacity>
+    <View>
+      <TouchableOpacity
+        hitSlop={
+          {
+            "bottom": 10,
+            "left": 10,
+            "right": 10,
+            "top": 10,
+          }
+        }
+        onPress={[Function]}
+      >
+        <Icon
+          allowFontScaling={false}
+          name="check"
+          size={12}
+        />
+      </TouchableOpacity>
+    </View>
+  </View>
+  <FormattedError
+    error="This is not a real name"
+    syles={
+      {
+        "buttonText": {
+          "color": "#0DC39F",
+          "fontFamily": "Circular-Medium",
+          "fontSize": 16,
+        },
+        "control": {
+          "position": "relative",
+        },
+        "editIcon": {
+          "fontSize": 20,
+          "opacity": 0.5,
+        },
+        "error": {
+          "backgroundColor": "#EE4266",
+          "borderRadius": 100,
+          "paddingHorizontal": 10,
+          "paddingVertical": 8,
+        },
+        "errorText": {
+          "color": "#FFFFFF",
+          "fontSize": 12,
+        },
+        "errorTriangle": {
+          "backgroundColor": "#EE4266",
+        },
+        "errorWrapper": {
+          "alignItems": "center",
+          "marginBottom": 10,
+        },
+        "eyeIcon": {
+          "color": "#6edbc5",
+          "fontSize": 20,
+          "marginRight": 10,
+        },
+        "highlight": {
+          "backgroundColor": "#99EEFF",
+          "borderRadius": 4,
+        },
+        "label": {
+          "color": "#9ee7d9",
+          "fontFamily": "Circular-Bold",
+          "fontSize": 14,
+        },
+        "textInput": {
+          "borderBottomColor": "#6edbc5",
+          "borderBottomWidth": 1,
+          "color": "white",
+          "fontFamily": "Circular-Book",
+          "fontSize": 18,
+          "marginBottom": 15,
+          "paddingBottom": 6,
+        },
+        "toggles": {
+          "flexDirection": "row",
+          "position": "absolute",
+          "right": 0,
+          "top": 20,
+        },
+      }
+    }
+    theme={{}}
+  />
+</View>
+`;
