@@ -1,0 +1,34 @@
+.publicToggleContainer {
+  background-color: $color-rhino-10;
+  color: $color-rhino-50;
+  align-items: center;
+  justify-content: space-between;
+  display: flex;
+  font-size: 12px;
+  padding: 12px;
+}
+
+.publicToggleIcon {
+  font-size: 14px;
+  padding-right: 5px;
+  color: $color-rhino-50;
+}
+
+.postIsPublic {
+  background-color: $color-caribbean-green-20;
+  color: $color-caribbean-green;
+
+  .publicToggleIcon {
+    color: $color-caribbean-green;
+  }
+}
+
+.publicToggle {
+  align-items: center;
+  display: flex;
+  line-height: 14px;
+}
+
+.publicGuidance {
+  margin-left: 10px;
+}

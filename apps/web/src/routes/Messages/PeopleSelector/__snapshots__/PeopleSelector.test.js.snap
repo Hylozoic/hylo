@@ -1,0 +1,38 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PeopleSelector matches the last snapshot 1`] = `
+<div
+  data-stylename="thread-header"
+  tabIndex="0"
+>
+  <div
+    data-stylename="autocomplete-control"
+  >
+    <span
+      data-stylename="to"
+    >
+      With:
+    </span>
+    <div
+      data-stylename="select-people"
+    >
+      <input
+        autoFocus={true}
+        data-stylename="autocomplete"
+        onChange={[Function]}
+        onKeyDown={[Function]}
+        placeholder="+ Add someone"
+        spellCheck={false}
+        type="text"
+        value=""
+      />
+      <PeopleList
+        currentMatch={null}
+        onClick={[Function]}
+        onMouseOver={[Function]}
+        people={Array []}
+      />
+    </div>
+  </div>
+</div>
+`;

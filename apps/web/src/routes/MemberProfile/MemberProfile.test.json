@@ -1,0 +1,260 @@
+{
+  "data": {
+    "person": {
+      "id": "46816",
+      "name": "Rich Churcher",
+      "avatarUrl": "https://www.gravatar.com/avatar/32f7ff34c3b5a8600b79be9a85a5c92f?d=mm&s=140",
+      "bannerUrl": "http://www.axolotl.org/images/tiger/tiger_larva.jpg",
+      "bio": "I like wombats.",
+      "twitterName": "richchurcher",
+      "linkedinUrl": "https://www.linkedin.com/in/richchurcher/",
+      "facebookUrl": "https://www.facebook.com/rich.churcher",
+      "url": "https://eloquentgeek.com",
+      "location": "Auckland, New Zealand",
+      "comments": [
+        {
+          "id": "2",
+          "text": "<p>So much more to say.</p>",
+          "creator": {
+            "id": "46816"
+          },
+          "post": {
+            "id": "30002",
+            "title": "0123456789 0123456789 0123456789"
+          },
+          "createdAt": "2021-05-12T15:00:00.000Z"
+        },
+        {
+          "id": "1",
+          "text": "<p>Here's a comment!</p>",
+          "creator": {
+            "id": "46816"
+          },
+          "post": {
+            "id": "30002",
+            "title": "0123456789 0123456789 0123456789"
+          },
+          "createdAt": "2021-06-12T15:00:00.000Z"
+        }
+      ],
+      "eventsAttending": {
+        "items": [
+          {
+            "id": "1212",
+            "title": "Ceremony",
+            "location": "https://us02web.zoom.us/j/2896940440?pwd=YnB2QWZVVzRhbXNmWWVzZUw2MHcxUT09",
+            "startTime": "2020-12-01T08:00:00.000Z",
+            "eventInvitations": {
+              "items": [
+                {
+                  "response": "yes",
+                  "person": {
+                    "avatarUrl": "https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/29846/userAvatar/29846/shen-shen5.jpg"
+                  }
+                }
+              ]
+            },
+            "groups": [
+              {
+                "slug": "psychedelics"
+              }
+            ]
+          },
+          {
+            "id": "1213",
+            "title": "Chickadees United",
+            "location": "Scotts Valley, California, United States",
+            "startTime": "2020-12-09T08:00:00.000Z",
+            "eventInvitations": {
+              "items": [
+                {
+                  "response": "yes",
+                  "person": {
+                    "avatarUrl": "https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/29846/userAvatar/29846/shen-shen5.jpg"
+                  }
+                },
+                {
+                  "response": "yes",
+                  "person": {
+                    "avatarUrl": "https://www.gravatar.com/avatar/94a2d9255a468695b90d00fa691ee05b?d=mm&s=140"
+                  }
+                }
+              ]
+            },
+            "groups": [
+              {
+                "slug": "bb"
+              }
+            ]
+          }
+        ]
+      },
+      "memberships": [
+        {
+          "id": "3",
+          "role": 1,
+          "group": {
+            "id": "1836",
+            "name": "Wombats",
+            "slug": "wombats"
+          },
+          "person": {
+            "id": "46816"
+          }
+        }
+      ],
+      "membershipsTotal": null,
+      "membershipCommonRoles": [
+        {
+          "id": 1,
+          "commonRoleId": 1,
+          "userId": "46816",
+          "groupId": "1836"
+        }
+      ],
+      "posts": [
+        {
+          "id": "30003",
+          "title": "Some other post",
+          "details": "<p>With nothing of importance in it.</p>",
+          "type": "discussion",
+          "creator": {
+            "id": "46816"
+          },
+          "commenters": [],
+          "commentersTotal": 0,
+          "groups": [
+            {
+              "id": "1836",
+              "name": "Wombats",
+              "slug": "wombats"
+            }
+          ],
+          "createdAt": "2021-07-12T15:00:00.000Z"
+        },
+        {
+          "id": "30002",
+          "title": "0123456789 0123456789 0123456789",
+          "details": "<p><a href=\"https://wombat.life\">https://wombat.life</a></p>\n<p></p>\n<p></p>",
+          "type": "discussion",
+          "creator": {
+            "id": "46816"
+          },
+          "commenters": [
+            {
+              "id": "46816",
+              "name": "Rich Churcher",
+              "avatarUrl": "https://www.gravatar.com/avatar/32f7ff34c3b5a8600b79be9a85a5c92f?d=mm&s=140"
+            }
+          ],
+          "commentersTotal": 1,
+          "groups": [
+            {
+              "id": "1836",
+              "name": "Wombats",
+              "slug": "slug"
+            }
+          ],
+          "createdAt": "2021-08-12T15:00:00.000Z"
+        }
+      ],
+      "postsTotal": 2,
+      "projects": {
+        "items": [
+          {
+            "id":"1210",
+            "title":"Document bird species in Santa Cruz",
+            "createdAt":"2021-04-12T15:00:00.000Z",
+            "creator":{"name":"Test Account"},
+            "members":{
+              "items":[
+                {"avatarUrl":"https://member1.jpg"},
+                {"avatarUrl":"https://member2.jpg"},
+                {"avatarUrl":"https://member3.jpg"},
+                {"avatarUrl":"https://member4.jpg"},
+                {"avatarUrl":"https://member5.jpg"}
+              ]
+            }
+          },
+          {
+            "id":"1211",
+            "title":"Fundraise for Audubon Society",
+            "createdAt":"2022-04-12T15:00:00.000Z",
+            "creator":{"name":"Test Account"},
+            "members":{
+              "items":[
+                {"avatarUrl":"https://member1.jpg"},
+                {"avatarUrl":"https://member2.jpg"},
+                {"avatarUrl":"https://member3.jpg"}
+              ]
+            }
+          }
+        ]
+      },
+      "votes": [
+        {
+          "id": "2",
+          "post": {
+            "id": "30002",
+            "title": "0123456789 0123456789 0123456789",
+            "details": "<p><a href=\"https://wombat.life\">https://wombat.life</a></p>\n<p></p>\n<p></p>",
+            "type": "discussion",
+            "creator": {
+              "id": "46816"
+            },
+            "commenters": [
+              {
+                "id": "46816",
+                "name": "Rich Churcher",
+                "avatarUrl": "https://www.gravatar.com/avatar/32f7ff34c3b5a8600b79be9a85a5c92f?d=mm&s=140"
+              }
+            ],
+            "commentersTotal": 1,
+            "groups": [
+              {
+                "id": "1836",
+                "name": "Wombats",
+                "slug": "wombats"
+              }
+            ],
+            "createdAt": "2023-04-12T15:00:00.000Z"
+          },
+          "voter": {
+            "id": "46816"
+          },
+          "createdAt": "2023-04-12T15:00:00.000Z"
+        },
+        {
+          "id": "1",
+          "post": {
+            "id": "30003",
+            "title": "Some other post",
+            "details": "<p>With nothing of importance in it.</p>",
+            "type": "discussion",
+            "creator": {
+              "id": "46816"
+            },
+            "commenters": [],
+            "commentersTotal": 0,
+            "groups": [
+              {
+                "id": "1836",
+                "name": "Wombats",
+                "slug": "wombats"
+              }
+            ],
+            "createdAt": "2022-07-12T15:00:00.000Z"
+          },
+          "voter": {
+            "id": "46816"
+          },
+          "createdAt": "2022-07-12T15:00:00.000Z"
+        }
+      ],
+      "peopleReactedTotal": 2
+    },
+    "currentUser": {
+      "id": 1
+    }
+  }
+}

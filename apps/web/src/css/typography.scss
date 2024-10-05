@@ -1,0 +1,340 @@
+// Global Typography
+
+blockquote {
+  border-left: solid 2px $color-rhino-30;
+  color: $color-rhino-30;
+  margin-left: 0.25em;
+  padding: 0.5em;
+  padding-bottom: 0.25em;
+}
+
+code {
+  color: $color-white-80;
+  background-color: $color-rhino;
+  border-radius: 0.25em;
+  font-size: 12px;
+  padding: 0.2em;
+}
+
+pre code {
+  border-radius: 0.5em;
+  display: block;
+  overflow: auto;
+  font-size: 12px;
+  padding: 1em 1.25em;
+}
+
+ul li p:last-of-type,
+ol li p:last-of-type {
+  margin-bottom: 0;
+}
+
+ul > ul ,
+ul > ol,
+ol > ul,
+ol > ol {
+  margin-bottom: 0
+}
+
+ul, ol {
+  padding-left: 2em;
+}
+
+strong {
+  @include font-bold;
+  font-weight: 300;
+}
+
+// This should be applied / controlled here
+// Currently getting `1rem` from Bootstrap
+// p {
+//   margin-bottom: 1em;
+// }
+
+a {
+  color: #0275d8
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a:focus,
+  a:hover {
+    color: #014c8c
+  }
+}
+
+/*
+NOTE: There is an issue of an underline appearing under some
+links in mobile, but I've only see it happen in mobile/non-hover
+devices. We don't apparently globally turn-off the browser default
+`text-decoration: underline` here, and it may be that bootstrap
+doesn't turn that off by default either. Doing a global search
+reveals an unusual amount of `text-decoration: none` for link
+styles, which leads me to believe it is not globally turned-off
+and that maybe we should, and remove some of the extra attributes
+down the line.
+
+Forcing the fix here, and probably save to do this
+outside the media query, but leaving it at this for now.
+*/
+@media (hover: none) {
+  a {
+    text-decoration: none !important;
+  }
+}
+
+a.hylo-link,
+.mention,
+.topic
+{
+  color: $color-caribbean-green;
+  cursor: pointer;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      text-decoration: none;
+      color: $color-gossamer;
+    }
+  }
+}
+
+.mention.mention-current-user {
+  color: $color-yellow-orange;
+}
+
+.hdr-display {
+  @include font-bold;
+  font-size: 32px;
+  letter-spacing: -0.5;
+  line-height: 36px;
+  color: $color-rhino;
+}
+
+h1,
+.hdr-headline {
+  @include font-medium;
+  font-size: 24px;
+  letter-spacing: 0;
+  line-height: 28px;
+  color: $color-rhino;
+  word-wrap: break-word;
+}
+
+h2,
+.hdr-subheadline {
+  @include font-regular;
+  font-size: 18px;
+  letter-spacing: 0;
+  line-height: 22px;
+  color: $color-rhino;
+}
+
+h3,
+.hdr-minor {
+  @include font-regular;
+  font-size: 16px;
+  letter-spacing: 0;
+  line-height: 20px;
+  color: $color-rhino;
+}
+
+/* Body */
+
+input,
+textarea {
+  font-family: 'Circular Book';
+}
+
+.bdy-drk-lg {
+  @include font-regular;
+  color: $color-rhino-80;
+  font-size: 18px;
+  letter-spacing: 0;
+  line-height: 24px;
+}
+
+.bdy-lt-lg {
+  @include font-regular;
+  color: rgba(44, 64, 89, 0.7);
+  font-size: 17px;
+  letter-spacing: 0;
+  line-height: 25px;
+}
+
+.bdy-drk-sm {
+  @include font-regular;
+  color: $color-rhino-80;
+  font-size: 15px;
+  letter-spacing: 0;
+  line-height: 22px;
+}
+
+.bdy-lt-sm {
+  @include font-regular;
+  color: rgba(44, 64, 89, 0.7);
+  font-size: 15px;
+  letter-spacing: 0;
+  line-height: 22px;
+}
+
+.caption-drk-lg {
+  @include font-regular;
+  color: $color-rhino-80;
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 18px;
+}
+
+.caption-lt-lg {
+  @include font-regular;
+  color: $color-rhino-60;
+  font-size: 13px;
+  letter-spacing: 0;
+  line-height: 19px;
+}
+
+/* Groups Drawer */
+
+.drawer-inv-bd {
+  @include font-bold;
+  color: $color-white;
+  font-size: 17px;
+}
+
+.drawer-inv-lg {
+  @include font-medium;
+  font-size: 19px;
+  color: $color-white;
+}
+
+.drawer-inv-sm {
+  font-size: 12px;
+  color: $color-white-60;
+}
+
+.drawer-inv-li {
+  font-size: 16px;
+  color: $color-white-80;
+}
+
+/* Misc */
+
+.tag {
+  @include font-bold;
+  color: $color-rhino-60;
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  line-height: 14px;
+  text-transform: uppercase;
+}
+
+.text-button {
+  @include font-medium;
+  color: $color-caribbean-green;
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 20px;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      text-decoration: none;
+      color: $color-gossamer;
+      cursor: pointer;
+    }
+  }
+}
+
+.text-button-sm {
+  @include font-bold;
+  color: $color-caribbean-green;
+  font-size: 10px;
+  letter-spacing: 0.6;
+  line-height: 14px;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      color: $color-gossamer;
+      cursor: pointer;
+    }
+  }
+}
+
+.username-cards {
+  @include font-bold;
+  color: $color-rhino;
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 20px;
+}
+
+.timestamp {
+  @include font-regular;
+  color: $color-rhino-40;
+  font-size: 12px;
+  letter-spacing: 0;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.faint-lt-sm {
+  @include font-regular;
+  color: $color-rhino-30;
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 18px;
+}
+
+.new-messages {
+  @include font-regular;
+  color: $color-caribbean-green;
+  font-size: 12px;
+  letter-spacing: 0.6;
+  line-height: 14px;
+}
+
+.person-name {
+  @include font-bold;
+  color: $color-rhino-80;
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 20px;
+}
+
+@media screen and (max-width: 600px) {
+  h1,
+  .hdr-headline {
+    font-size: 20px;
+  }
+}
+
+@media screen and (max-width: 500px) {
+  h1,
+  .hdr-headline {
+    font-size: 16px;
+    line-height: 20px;
+    padding: 0 5px;
+  }
+
+  .hdr-display {
+    font-size: 20px;
+  }
+
+  .bdy-lt-sm {
+    font-size: 14px;
+    line-height: 20px;
+  }
+}
+
+@media screen and (max-width: 375px) {
+  .bdy-lt-sm {
+    font-size: 12px;
+    line-height: 16px
+  }
+
+  .caption-lt-lg {
+    font-size: 10px;
+    line-height: 12px
+  }
+}
+
+@media screen and (max-width: 320px) {
+  .timestamp {
+    font-size: 10px;
+  }
+}

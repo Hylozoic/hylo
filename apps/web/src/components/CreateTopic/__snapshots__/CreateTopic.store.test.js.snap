@@ -1,0 +1,77 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`matches the last snapshot for createTopic 1`] = `
+Object {
+  "graphql": Object {
+    "query": "mutation ($topicName: String, $groupId: ID, $isDefault: Boolean, $isSubscribing: Boolean) {
+        createTopic(topicName: $topicName, groupId: $groupId, isDefault: $isDefault, isSubscribing: $isSubscribing) {
+          id
+          name
+          groupTopics {
+            items {
+              id
+              group {
+                id
+                slug
+              }
+              isDefault
+              isSubscribed
+              newPostCount
+              postsTotal
+              followersTotal
+              visibility
+            }
+          }
+          followersTotal
+          postsTotal
+        }
+      }",
+    "variables": Object {
+      "groupId": "1",
+      "isDefault": false,
+      "isSubscribing": false,
+      "topicName": "wombats",
+    },
+  },
+  "meta": Object {
+    "analytics": "Topic Created",
+    "data": Object {
+      "groupId": "1",
+      "isDefault": false,
+      "topicName": "wombats",
+    },
+    "extractModel": Array [
+      Object {
+        "getRoot": [Function],
+        "modelName": "Topic",
+      },
+      Object {
+        "getRoot": [Function],
+        "modelName": "GroupTopic",
+      },
+    ],
+  },
+  "type": "CreateTopic/CREATE_TOPIC",
+}
+`;
+
+exports[`matches the last snapshot for fetchGroupTopic 1`] = `
+Object {
+  "graphql": Object {
+    "query": "query ($topicName: String, $groupSlug: String) {
+        groupTopic(groupSlug: $groupSlug, topicName: $topicName) {
+          id
+        }
+      }",
+    "variables": Object {
+      "groupSlug": "wombat-group",
+      "topicName": "wombats",
+    },
+  },
+  "meta": Object {
+    "groupSlug": "wombat-group",
+    "topicName": "wombats",
+  },
+  "type": "CreateTopic/FETCH_GROUP_TOPIC",
+}
+`;

@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`renders 1`] = `
+<div
+  data-stylename="container"
+>
+  <h1>
+    We're working on expanding
+#topics to more places
+  </h1>
+  <p
+    data-stylename="gray-text"
+  >
+    In the meantime, click a topic from an individual
+group to see posts from that group.
+  </p>
+  <Link
+    to="/all"
+  >
+    <Button
+      data-stylename="back-button"
+    >
+      Return to All Groups
+    </Button>
+  </Link>
+  <img
+    data-stylename="axolotl-digging-image"
+    src="/axolotl-digging.svg"
+  />
+</div>
+`;

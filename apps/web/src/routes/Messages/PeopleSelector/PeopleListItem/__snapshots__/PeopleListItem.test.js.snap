@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`matches the last snapshot 1`] = `
+<li
+  data-stylename="person-list-item"
+>
+  <RoundImage
+    data-stylename="avatar"
+    medium={true}
+    url="https://wombat.life"
+  />
+  <div>
+    <span
+      data-stylename="name"
+    >
+      Wombat
+    </span>
+    <span
+      data-stylename="group"
+    />
+  </div>
+</li>
+`;

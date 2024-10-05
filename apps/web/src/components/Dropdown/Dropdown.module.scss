@@ -1,0 +1,136 @@
+$dropdown-border-color: $color-box-shadow;
+
+.dropdown {
+  display: inline-block;
+  position: relative;
+
+  &.has-triangle .dropdown-menu {
+    overflow-y: visible;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.dropdown-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.wrapper {
+  position: absolute;
+  left: 0;
+  z-index: 2;
+  box-shadow: 0px 4px 5px rgb(42 64 89 / 20%);
+  border-radius: 5px;
+}
+
+.wrapper.alignRight {
+  left: auto;
+  right: 0;
+  z-index: 20;
+}
+
+.wrapper.menuAbove {
+  bottom: 15px;
+}
+
+.dropdown-toggle {
+  display: block;
+  transition: all .25s ease;
+}
+
+.dropdown-toggle.toggled {
+  display: none;
+}
+
+.close-dropdown {
+  display: none;
+  position: relative;
+  top: 0;
+  left: 0;
+  transition: all .25s ease;
+}
+
+.close-dropdown.toggled {
+  display: block;
+  cursor: pointer;
+}
+
+.dropdown-menu {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 4px;
+  list-style: none;
+  display: none;
+  padding: 0;
+  z-index: 10;
+
+  &.active {
+    display: block;
+    background-color: white;
+    border: 1px solid $color-black-squeeze;
+    white-space: nowrap;
+    margin-bottom: 0;
+  }
+
+  &.noOverflow {
+    overflow: visible;
+  }
+}
+
+.itemBorder {
+  border-bottom: 1px solid $color-black-squeeze;
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.linkItem {
+  composes: itemBorder;
+  // Extract typography?
+  @include font-regular;
+  color: $color-rhino;
+  padding: $space-2x $space-4x;
+  cursor: pointer;
+  background-color: white;
+  user-select: none;
+  &:hover {
+    background-color: $color-polar;
+  }
+}
+
+.icon {
+  margin-right: 20px;
+  position: relative;
+  top: 4px;
+}
+
+.headerItem {
+  composes: itemBorder;
+  // Extract typography?
+  @include font-bold;
+  color: $color-rhino-60;
+  font-size: 10px;
+  display: inline-block;
+  height: 32px;
+  line-height: 32px;
+  padding: 0 15px;
+  width: 100%;
+  user-select: none;
+}
+
+.redItem {
+  color: $color-amaranth;
+  // get the icon as well
+  span {
+    color: $color-amaranth;
+  }
+}
+
+.triangle {
+  min-width: 0 !important;
+  @include is-top-triangle(#fff, $dropdown-border-color, 7px);
+}
+

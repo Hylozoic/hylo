@@ -1,0 +1,42 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`getSubscribedGroupTopics returns the expected value 1`] = `
+Array [
+  Object {
+    "newPostCount": 7,
+    "topic": SessionBoundModel {
+      "_fields": Object {
+        "id": "3",
+        "name": "criminals",
+      },
+    },
+  },
+  Object {
+    "newPostCount": 5,
+    "topic": SessionBoundModel {
+      "_fields": Object {
+        "id": "1",
+        "name": "fun",
+      },
+    },
+  },
+  Object {
+    "newPostCount": 5,
+    "topic": SessionBoundModel {
+      "_fields": Object {
+        "id": "2",
+        "name": "loving",
+      },
+    },
+  },
+  Object {
+    "newPostCount": 7,
+    "topic": SessionBoundModel {
+      "_fields": Object {
+        "id": "4",
+        "name": "yeah",
+      },
+    },
+  },
+]
+`;

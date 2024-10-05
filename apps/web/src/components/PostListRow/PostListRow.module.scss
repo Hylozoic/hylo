@@ -1,0 +1,267 @@
+.post-row {
+  cursor: pointer;
+  display: flex;
+  position: relative;
+  transition: all .25s ease;
+  margin-left: 0 0;
+  padding: 12px 20px;
+  background-color: white;
+  box-shadow: 0 5px 8px rgb(35 65 91 / 10%);
+  border-bottom: 1px solid rgba(35, 65, 91, .1);
+}
+
+div .post-row:nth-child(1) {
+  border-radius: 5px 5px 0 0;
+}
+
+.icon-container {
+  background: $color-white;
+  box-shadow: 0px 4px 4px rgba(47, 63, 87, 0.2);
+  border-radius: 5px;
+  padding: 2px;
+  height: 24px;
+  margin-left: auto;
+  margin-right: 4px;
+}
+
+.icon {
+  font-size: 12px;
+  position: relative;
+  padding: 2px;
+}
+
+.reactions {
+  padding: 0;
+
+  &> div > div {
+    padding-bottom: 0px;
+
+    &> div:last-child {
+      display: none;
+    }
+  }
+}
+
+.type-author {
+  display: flex;
+  align-items: flex-end;
+
+  .post-type {
+    border-radius: 3px;
+    padding: 2px 4px 0px 4px;
+    font-size: 8px;
+    text-transform: uppercase;
+    margin-right: 5px;
+
+    span {
+      font-size: 14px;
+    }
+
+    &.chat span {
+      color: $color-chats;
+    }
+
+    &.discussion span{
+      color: $color-discussions;
+    }
+
+    &.event span {
+      color: $color-events;
+    }
+
+    &.offer span {
+      color: $color-offers;
+    }
+
+    &.resource span {
+      color: rgba(224, 184, 25, 1);;
+    }
+
+    &.project span {
+      color: $color-projects;
+    }
+
+    &.request span {
+      color: $color-requests;
+    }
+
+    &.proposal span{
+      color: $color-proposals;
+    }
+  }
+
+  .post-type.chat {
+    border: 1px solid rgba(58, 160, 223, .25);
+    color: rgba(58, 160, 223, 1);
+  }
+
+  .post-type.discussion {
+    border: 1px solid rgba(58, 160, 223, .25);
+    color: rgba(58, 160, 223, 1);
+  }
+
+  .post-type.proposal {
+    border: 1px solid rgba(58, 160, 223, .25);
+    color: rgba(58, 160, 223, 1);
+  }
+
+  .post-type.event {
+    border: 1px solid rgba(237, 86, 83, .25);
+    color: rgba(237, 86, 83, 1);
+  }
+
+  .post-type.offer {
+    border: 1px solid rgba(0, 196, 159, .25);
+    color: rgba(0, 196, 159, 1);
+  }
+
+  .post-type.resource {
+    border: 1px solid rgba(254, 214, 55, .25);
+    color: rgba(224, 184, 25, 1);
+  }
+
+  .post-type.project {
+    border: 1px solid rgba(238, 134, 14, .25);
+    color: rgba(238, 134, 14, 1);
+  }
+
+  .post-type.request {
+    border: 1px solid rgba(98, 75, 162, .25);
+    color: rgba(98, 75, 162, 1);
+  }
+
+  .date span {
+    display: inline-block;
+  }
+}
+
+.content-summary {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.participants, .details, .timestamp, .topics {
+  font-size: 12px;
+}
+
+.topics {
+    display: block;
+    margin-bottom: 0px;
+    font-size: 12px;
+    opacity: .5;
+}
+
+.participants {
+  color: $color-grey-keyline;
+
+  div {
+    display: flex;
+    align-items: center;
+
+    span {
+      display: inline-block;
+      margin-left: 3px;
+    }
+  }
+}
+
+.avatar {
+  margin-right: 5px;
+}
+
+.title {
+  color: $color-member;
+  font-size: 16px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+
+  span {
+    font-size: 10px;
+    font-weight: normal;
+  }
+}
+
+.details {
+  color: $color-regent;
+  width: 100%;
+  max-height: 18px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.title, .details p {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.details p:last-child {
+  margin-bottom:0;
+}
+
+.topic {
+  color: $color-caribbean-green;
+  margin-right: 10px;
+}
+
+.timestamp {
+  color: $color-grey-keyline;
+}
+
+.push-to-right {
+  margin-left: auto;
+}
+
+// unread state overrides
+.unread {
+
+}
+
+// active state overrides
+.expanded {
+  margin: -6px -4px -6px -4px;
+  background-color: rgba(255, 255, 255, 1);
+  padding: 17px 20px;
+  z-index: 10;
+  border-radius: 5px;
+  box-shadow: 0 4px 15px rgba(35, 65, 91, .3);
+  border: 1px solid rgba(0, 118, 223, 0.5);
+  border-top: 3px solid rgba(0, 118, 223, 0.5);
+}
+
+.isFlagged {
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.flagIcon {
+  top: 1px;
+  margin-right: 12px;
+  font-size: 24px;
+  color: $color-persimmon;
+  font-weight: bolder;
+}
+
+@media screen and (max-width: 425px) {
+  .participants div span {
+    display: none;
+  }
+
+  .post-type {
+    display: none;
+  }
+
+  .title {
+    font-size: 14px;
+  }
+
+  .details {
+    font-size: 11px;
+  }
+
+  .post-row {
+    padding: 10px;
+  }
+}

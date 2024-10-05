@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`presentPost matches the snapshot 1`] = `
+Object {
+  "attachments": Array [],
+  "clickthrough": undefined,
+  "commenters": Array [],
+  "createdTimestamp": "Posted ",
+  "createdTimestampForGrid": "",
+  "creator": null,
+  "editedTimestamp": null,
+  "eventInvitations": Array [
+    Object {
+      "id": 0,
+      "name": "Mr Person",
+      "response": "yes",
+    },
+  ],
+  "exactCreatedTimestamp": "Tue, Jul 23, 2024 4:30 PM",
+  "exactEditedTimestamp": "Tue, Jul 23, 2024 4:30 PM",
+  "fileAttachments": Array [],
+  "groups": Array [],
+  "id": 324,
+  "imageAttachments": Array [],
+  "isPublic": undefined,
+  "linkPreview": null,
+  "location": undefined,
+  "members": Array [],
+  "pinned": true,
+  "proposalOptions": Array [],
+  "topics": Array [],
+}
+`;

@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`mapStateToProps returns the right keys 1`] = `
+Object {
+  "allGroupsSettings": Object {
+    "sendEmail": true,
+    "sendPushNotifications": true,
+  },
+  "blockedUsers": Array [],
+  "confirm": undefined,
+  "currentUser": undefined,
+  "fetchPending": undefined,
+  "memberships": Array [],
+  "messageSettings": undefined,
+  "queryParams": Object {
+    "registered": undefined,
+  },
+}
+`;

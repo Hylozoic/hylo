@@ -1,0 +1,57 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`matches the latest snapshot 1`] = `
+<div
+  data-stylename="topic-feed-header"
+>
+  <div
+    data-stylename="image"
+    style={
+      Object {
+        "backgroundImage": "url(some.url)",
+      }
+    }
+  >
+    <div
+      data-stylename="topic-info"
+    >
+      <div
+        data-stylename="topic-name"
+      >
+        #
+        Petitions
+      </div>
+      <div
+        data-stylename="meta"
+      >
+        <Icon
+          data-stylename="star-icon"
+          name="Star"
+        />
+        3 subscribers
+      </div>
+    </div>
+    <Button
+      data-stylename="unsubscribe"
+      onClick={[Function]}
+    >
+      <Icon
+        data-stylename="subscribe-star-icon-green"
+        name="Star"
+      />
+      <div
+        data-stylename="subscribe-label"
+      >
+        Unsubscribe
+      </div>
+    </Button>
+    <div
+      data-stylename="fade"
+    >
+      <div
+        data-stylename="fade2"
+      />
+    </div>
+  </div>
+</div>
+`;

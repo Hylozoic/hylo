@@ -1,0 +1,23 @@
+.icon {
+  color: $color-rhino-60;
+  font-size: 24px;
+  position: relative;
+}
+
+.green {
+  color: $color-caribbean-green;
+}
+
+.blue {
+  color: $color-picton-blue;
+}
+
+:global {
+  .icon-More {
+    position: relative;
+    top: 3px;
+  }
+  .icon-Replies {
+    font-size: 17px;
+  }
+}

@@ -1,0 +1,663 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`fetchGroups works for public context 1`] = `
+Object {
+  "graphql": Object {
+    "query": "query (
+  $boundingBox: [PointInput],
+  $context: String,
+  $parentSlugs: [String],
+  $search: String,
+  $sortBy: String,
+  $visibility: Int
+) {
+  groups(
+    boundingBox: $boundingBox,
+    context: $context,
+    parentSlugs: $parentSlugs,
+    search: $search,
+    sortBy: $sortBy,
+    visibility: $visibility
+  ) {
+    items {
+      id
+      avatarUrl
+      description
+      geoShape
+      memberCount
+      name
+      slug
+      locationObject {
+        id
+        addressNumber
+        addressStreet
+        bbox {
+          lat
+          lng
+        }
+        center {
+          lat
+          lng
+        }
+        city
+        country
+        fullText
+        locality
+        neighborhood
+        region
+      }
+    }
+  }
+}",
+    "variables": Object {
+      "boundingBox": Array [
+        Object {
+          "lat": 37.698360551679215,
+          "lng": 122.60387590065002,
+        },
+        Object {
+          "lat": 37.91048712726531,
+          "lng": -121.93892409934989,
+        },
+      ],
+      "context": "public",
+      "parentSlugs": undefined,
+      "search": "food",
+      "sortBy": undefined,
+    },
+  },
+  "meta": Object {
+    "extractModel": "Group",
+    "extractQueryResults": Object {
+      "getItems": [Function],
+    },
+  },
+  "type": "MapExplorer/FETCH_GROUPS_MAP",
+}
+`;
+
+exports[`fetchMembers works for a group 1`] = `
+Object {
+  "graphql": Object {
+    "query": "query (
+  $boundingBox: [PointInput],
+  $slug: String,
+  $sortBy: String,
+  $search: String
+) {
+  group(slug: $slug, updateLastViewed: true) {
+    id
+    slug
+    name
+    avatarUrl
+    bannerUrl
+    postCount
+    
+  members(sortBy: $sortBy, order: \\"asc\\", boundingBox: $boundingBox, search: $search) {
+    items {
+      id
+      name
+      avatarUrl
+      tagline
+      groupRoles {
+        items {
+          id
+          name
+          emoji
+          active
+          groupId
+          responsibilities {
+            items {
+              id
+              title
+              description
+            }
+          }
+        }
+      }
+      membershipCommonRoles {
+        items {
+          id
+          commonRoleId
+          groupId
+          userId
+        }
+      }
+      locationObject {
+        center {
+          lat
+          lng
+        }
+      }
+      skills {
+        hasMore
+        items {
+          id
+          name
+        }
+      }
+    }
+  }
+
+  }
+}",
+    "variables": Object {
+      "boundingBox": Array [
+        Object {
+          "lat": 37.698360551679215,
+          "lng": 122.60387590065002,
+        },
+        Object {
+          "lat": 37.91048712726531,
+          "lng": -121.93892409934989,
+        },
+      ],
+      "context": "groups",
+      "groupSlugs": Array [
+        "foo",
+      ],
+      "search": "food",
+      "slug": "foo",
+      "sortBy": undefined,
+    },
+  },
+  "meta": Object {
+    "extractModel": "Group",
+    "extractQueryResults": Object {
+      "getItems": [Function],
+    },
+  },
+  "type": "MapExplorer/FETCH_MEMBERS_MAP",
+}
+`;
+
+exports[`fetchPostsforDrawer works for a group 1`] = `
+Object {
+  "graphql": Object {
+    "query": "query (
+  $activePostsOnly: Boolean,
+  $afterTime: Date,
+  $beforeTime: Date,
+  $boundingBox: [PointInput]
+  $collectionToFilterOut: ID,
+  $cursor: ID,
+  $filter: String,
+  $first: Int,
+  $forCollection: ID,
+  $isFulfilled: Boolean,
+  $offset: Int,
+  $order: String,
+  $search: String,
+  $slug: String,
+  $sortBy: String,
+  $topic: ID,
+  $topics: [ID],
+  $types: [String]
+) {
+  group(slug: $slug, updateLastViewed: true) {
+    id
+    slug
+    name
+    avatarUrl
+    bannerUrl
+    postCount
+    
+posts: viewPosts(
+  activePostsOnly: $activePostsOnly,
+  afterTime: $afterTime,
+  beforeTime: $beforeTime,
+  boundingBox: $boundingBox,
+  collectionToFilterOut: $collectionToFilterOut,
+  cursor: $cursor,
+  filter: $filter,
+  first: $first,
+  forCollection: $forCollection,
+  isFulfilled: $isFulfilled,
+  offset: $offset,
+  order: $order,
+  sortBy: $sortBy,
+  search: $search,
+  topic: $topic,
+  topics: $topics,
+  types: $types
+) {
+  hasMore
+  total
+  items {
+    
+  id
+  announcement
+  title
+  details
+  type
+  creator {
+    id
+    name
+    avatarUrl
+    groupRoles {
+      items {
+        id
+        name
+        emoji
+        active
+        groupId
+        responsibilities {
+          items {
+            id
+            title
+            description
+          }
+        }
+      }
+    }
+    membershipCommonRoles {
+      items {
+        id
+        commonRoleId
+        groupId
+        userId
+      }
+    }
+  }
+  createdAt
+  clickthrough
+  updatedAt
+  flaggedGroups
+  isAnonymousVote
+  isPublic
+  fulfilledAt
+  startTime
+  endTime
+  timezone
+  donationsLink
+  editedAt
+  projectManagementLink
+  myEventResponse
+  commenters(first: 3) {
+    id
+    name
+    avatarUrl
+  }
+  commentersTotal
+  commentsTotal
+  
+  linkPreview {
+    description
+    id
+    imageUrl
+    title
+    url
+  }
+  linkPreviewFeatured
+  location
+  locationObject {
+    id
+    addressNumber
+    addressStreet
+    bbox {
+      lat
+      lng
+    }
+    center {
+      lat
+      lng
+    }
+    city
+    country
+    fullText
+    locality
+    neighborhood
+    region
+  }
+  peopleReactedTotal
+  proposalStatus
+  proposalOutcome
+  votingMethod
+  quorum
+  proposalOptions {
+    total
+    hasMore
+    items {
+      id
+      text
+      emoji
+    }
+  }
+  proposalVotes {
+      total
+      hasMore
+      items {
+        id
+        optionId
+        user {
+          id
+          name
+          avatarUrl
+        }
+      }
+  }
+  myReactions {
+    emojiFull
+    id
+  }
+  postReactions {
+    emojiFull
+    id
+    user {
+      id
+      name
+    }
+  }
+  groups {
+    id
+    name
+    slug
+  }
+  attachments {
+    type
+    url
+    position
+    id
+  }
+  postMemberships {
+    id
+    pinned
+    group {
+      id
+    }
+  }
+  topics {
+    id
+    name
+  }
+  members {
+    total
+    hasMore
+    items {
+      id
+      name
+      avatarUrl
+      bio
+      tagline
+      location
+    }
+  }
+  eventInvitations {
+    total
+    hasMore
+    items {
+      id
+      response
+      person {
+        id
+        name
+        avatarUrl
+        bio
+        tagline
+        location
+      }
+    }
+  }
+
+  }
+}
+  }
+}",
+    "variables": Object {
+      "activePostsOnly": undefined,
+      "boundingBox": Array [
+        Object {
+          "lat": 37.698360551679215,
+          "lng": 122.60387590065002,
+        },
+        Object {
+          "lat": 37.91048712726531,
+          "lng": -121.93892409934989,
+        },
+      ],
+      "childPostInclusion": "yes",
+      "context": "groups",
+      "filter": undefined,
+      "first": 10,
+      "groupSlugs": Array [
+        "foo",
+      ],
+      "isFulfilled": false,
+      "offset": 0,
+      "search": "food",
+      "slug": "foo",
+      "sortBy": "updated",
+      "topic": null,
+      "topics": null,
+      "types": undefined,
+    },
+  },
+  "meta": Object {
+    "extractModel": "Group",
+    "extractQueryResults": Object {
+      "getItems": [Function],
+      "replace": undefined,
+    },
+  },
+  "type": "MapExplorer/FETCH_POSTS_MAP_DRAWER",
+}
+`;
+
+exports[`fetchPostsforMap works for a group 1`] = `
+Object {
+  "graphql": Object {
+    "query": "query (
+  $activePostsOnly: Boolean,
+  $afterTime: Date,
+  $beforeTime: Date,
+  $boundingBox: [PointInput]
+  $collectionToFilterOut: ID,
+  $cursor: ID,
+  $filter: String,
+  $first: Int,
+  $forCollection: ID,
+  $isFulfilled: Boolean,
+  $offset: Int,
+  $order: String,
+  $search: String,
+  $slug: String,
+  $sortBy: String,
+  $topic: ID,
+  $topics: [ID],
+  $types: [String]
+) {
+  group(slug: $slug, updateLastViewed: true) {
+    id
+    slug
+    name
+    avatarUrl
+    bannerUrl
+    postCount
+    posts: viewPosts(
+      activePostsOnly: $activePostsOnly,
+      afterTime: $afterTime,
+      beforeTime: $beforeTime,
+      boundingBox: $boundingBox,
+      collectionToFilterOut: $collectionToFilterOut,
+      cursor: $cursor,
+      filter: $filter,
+      first: $first,
+      forCollection: $forCollection,
+      isFulfilled: $isFulfilled,
+      offset: $offset,
+      order: $order,
+      sortBy: $sortBy,
+      search: $search,
+      topic: $topic,
+      topics: $topics,
+      types: $types
+    ) {
+      hasMore
+      total
+      items {
+        id
+        title
+        type
+        details
+        createdAt
+        updatedAt
+        locationObject {
+          center {
+            lat
+            lng
+          }
+        }
+        topics {
+          id
+          name
+        }
+      }
+    }
+  }
+}",
+    "variables": Object {
+      "activePostsOnly": undefined,
+      "boundingBox": Array [
+        Object {
+          "lat": 37.698360551679215,
+          "lng": 122.60387590065002,
+        },
+        Object {
+          "lat": 37.91048712726531,
+          "lng": -121.93892409934989,
+        },
+      ],
+      "childPostInclusion": "yes",
+      "context": "groups",
+      "filter": undefined,
+      "first": 500,
+      "groupSlugs": Array [
+        "foo",
+      ],
+      "isFulfilled": false,
+      "search": "gardening",
+      "slug": "foo",
+      "sortBy": undefined,
+      "topic": null,
+      "topics": undefined,
+    },
+  },
+  "meta": Object {
+    "extractModel": "Group",
+    "extractQueryResults": Object {
+      "getItems": [Function],
+    },
+  },
+  "type": "MapExplorer/FETCH_POSTS_MAP",
+}
+`;
+
+exports[`fetchPostsforMap works for all groups 1`] = `
+Object {
+  "graphql": Object {
+    "query": "query (
+  $activePostsOnly: Boolean,
+  $afterTime: Date,
+  $announcementsOnly: Boolean,
+  $beforeTime: Date,
+  $boundingBox: [PointInput],
+  $collectionToFilterOut: ID,
+  $context: String,
+  $createdBy: [ID],
+  $cursor: ID,
+  $filter: String,
+  $first: Int,
+  $forCollection: ID,
+  $groupSlugs: [String]
+  $isFulfilled: Boolean,
+  $interactedWithBy: [ID],
+  $mentionsOf: [ID]
+  $offset: Int,
+  $order: String,
+  $search: String,
+  $sortBy: String,
+  $topic: ID,
+  $topics: [ID],
+  $types: [String]
+) {
+  posts(
+      activePostsOnly: $activePostsOnly,
+      afterTime: $afterTime,
+      announcementsOnly: $announcementsOnly,
+      beforeTime: $beforeTime,
+      boundingBox: $boundingBox,
+      collectionToFilterOut: $collectionToFilterOut,
+      context: $context,
+      createdBy: $createdBy,
+      cursor: $cursor,
+      filter: $filter,
+      first: $first,
+      forCollection: $forCollection,
+      groupSlugs: $groupSlugs,
+      isFulfilled: $isFulfilled,
+      interactedWithBy: $interactedWithBy,
+      mentionsOf: $mentionsOf
+      offset: $offset,
+      order: $order,
+      sortBy: $sortBy,
+      search: $search,
+      topic: $topic,
+      topics: $topics,
+      types: $types
+    ) {
+      hasMore
+      total
+      items {
+        id
+        title
+        type
+        details
+        createdAt
+        updatedAt
+        locationObject {
+          center {
+            lat
+            lng
+          }
+        }
+        topics {
+          id
+          name
+        }
+      }
+    }
+}",
+    "variables": Object {
+      "activePostsOnly": undefined,
+      "boundingBox": Array [
+        Object {
+          "lat": 37.698360551679215,
+          "lng": 122.60387590065002,
+        },
+        Object {
+          "lat": 37.91048712726531,
+          "lng": -121.93892409934989,
+        },
+      ],
+      "childPostInclusion": "yes",
+      "context": "all",
+      "filter": "request",
+      "first": 500,
+      "groupSlugs": undefined,
+      "isFulfilled": false,
+      "search": "graphic design",
+      "slug": undefined,
+      "sortBy": undefined,
+      "topic": null,
+      "topics": undefined,
+    },
+  },
+  "meta": Object {
+    "extractModel": "Post",
+    "extractQueryResults": Object {
+      "getItems": [Function],
+    },
+  },
+  "type": "MapExplorer/FETCH_POSTS_MAP",
+}
+`;

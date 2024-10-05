@@ -1,0 +1,148 @@
+$members-margin-top: 22px;
+$member-spacing: 16px;
+$search-width: 460px;
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  border-radius: 4px;
+  align-items: center;
+  padding: 0 1.5rem;
+  margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.title {
+  composes: hdr-display from 'css/typography.scss';
+}
+
+.total-members {
+  composes: caption-lt-lg from 'css/typography.scss';
+}
+
+.invite {
+  display: none;
+}
+
+.content {
+  padding: 0 $space-6x;
+
+  .controls {
+    display: flex;
+    align-items: center;
+  }
+}
+
+.search {
+  margin-right: 15px;
+  width: 100%;
+
+  input {
+    width: 100%;
+    min-height: 56px;
+    background-color: #FFFFFF;
+    box-shadow: 0px 15px 20px 0px rgb(44 64 89 / 20%);
+    border-radius: 4px;
+    border-top: 1px solid rgba(222, 224, 228, 0.6);
+    border-bottom: 2px solid rgba(38, 68, 93, 0.45);
+    border-right: 1px solid rgba(38, 68, 93, 0.15);
+    border-left: 4px solid rgba(0, 199, 157, 1.0);
+    color: rgba(44, 64, 89, 0.8);
+    font-size: 16px;
+  }
+}
+
+.sort-dropdown {
+  background-color: rgba(255, 255, 255, 1);
+  box-shadow: 0px 15px 20px 0px rgb(44 64 89 / 20%);
+  border-radius: 5px;
+  height: 56px;
+  padding: 0 8px;
+
+  > a {
+    display: block;
+  }
+}
+
+.sort-label {
+  display: flex;
+  line-height: 40px;
+  height: 56px;
+  font-size: 12px;
+  align-items: center;
+  color: rgba(125, 137, 152, 1.0);
+
+  span {
+    white-space: nowrap;
+  }
+}
+
+.sort-icon {
+  margin-left: 8px;
+  font-size: 1.4em;
+}
+
+.members {
+  margin-top: $members-margin-top;
+}
+
+.member-row {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: $member-spacing;
+
+  > * {
+    flex-grow: 1;
+    flex-basis: 100px;
+    display: block;
+  }
+
+  > *:first-child {
+    margin-right: $member-spacing;
+  }
+}
+
+
+@media screen and (max-width: 1050px) {
+  .invite {
+    display: block;
+    height: 40px;
+    line-height: 40px;
+    border-radius: 30px;
+    color: rgb(12, 195, 159);
+    border: none;
+    display: inline-block;
+    font-size: 14px;
+    padding: 0 15px;
+    box-shadow: 0 4px 15px rgb(35 65 91 / 30%);
+    background-color: rgb(255, 255, 255);
+    transition: all 0.25s ease;
+    margin-right: 8px;
+    font-family: 'Circular Bold';
+
+    .invite-icon {
+      color: rgba(12, 195, 159, 1.0);
+      font-size: 18px;
+      position: relative;
+      transition: all .25s ease;
+      top: 2px;
+    }
+  }
+}
+
+@media screen and (max-width: 425px) {
+  .content {
+    padding: 0 10px;
+  }
+}
+
+@media screen and (max-width: 320px) {
+  .member-row {
+    display: block;
+    margin-bottom: 0;
+
+    > *:first-child {
+      margin-right: 0;
+    }
+  }
+}

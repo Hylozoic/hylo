@@ -1,0 +1,314 @@
+.container {
+  height: 100%;
+  width: 40%;
+  min-width: 450px;
+  transition: all .25s ease;
+  overflow-y: auto;
+  z-index: 20;
+  overflow-x: hidden;
+  box-shadow: $box-shadow-default;
+  background: white;
+
+  &.noUser {
+    height: 100%;
+    top: 0;
+  }
+
+  h1 {
+    float: left;
+    margin-bottom: 0;
+    font-size: 16px;
+    color: #2c3f59;
+  }
+}
+
+.header {
+  background: #f5f5f5;
+}
+
+.searchBox {
+  width: calc(100% - 20px);
+  border: 0;
+  outline: 0;
+  margin: 10px 10px 0px 10px;
+  padding: 2px 10px;
+  font-size: 14px;
+  height: 40px;
+  border-radius: 5px;
+  box-shadow: 0px 4px 15px 0px $color-black-30;
+  border: 1px solid rgba(208, 213, 220, .5);
+}
+
+.filterIcon {
+  float: right;
+  position: relative;
+  top: -28px;
+  right: 20px;
+  font-size: 18px;
+}
+
+.searchFilters {
+  position: relative;
+  background: white;
+  top: -2px;
+  box-shadow: 0px 4px 15px 0px $color-black-30;
+  padding: 5px;
+  margin: 0 10px;
+}
+
+.currentFilters {
+  padding: 10px;
+}
+
+.activeToggle {
+  background: $color-picton-blue;
+  color: $color-white;
+}
+
+.toggleIcon {
+  float: right;
+  position: relative;
+  top: -34px;
+  right: 20px;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 3px;
+
+}
+
+.topicButton {
+  border: 1px solid #B6EDE2;
+  color: $color-caribbean-green;
+  background: white;
+  padding: 0 8px 0 0;
+  margin-right: 8px;
+  margin-bottom: 5px;
+  display: inline-block;
+  position: relative;
+  height: 30px;
+  padding: 0 10px 0 40px;
+  border-radius: 3px;
+  font-size: 14px;
+  line-height: 30px;
+}
+
+.topicCount {
+  background: #B6EDE2;
+  display: inline-block;
+  height: 100%;
+  margin: 0 6px 0 0 !important;
+  color: $color-caribbean-green;
+  width: 30px;
+  display: inline-block;
+  border-radius: 3px 0 0 3px;
+  font-size: 14px;
+  text-align: center;
+  line-height: 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 4px;
+  font-weight: bold;
+}
+
+.currentSearchText {
+  cursor: pointer;
+  border: 1px solid rgba(224, 229, 233, 1.000);
+  background: white;
+  border-radius: 3px;
+  padding: 0 10px;
+  color: rgba(125, 140, 157, 1.000);
+  display:inline-block;
+  height: 30px;
+  line-height: 30px;
+  margin: 4px 4px 4px 0px;
+  font-size: 14px;
+}
+
+.filterEx {
+  color: rgba(182, 237, 226, 1.000);
+  font-size: 18px;
+  position: relative;
+  top: 3px;
+}
+
+.textEx {
+  color: rgba(224, 229, 233, 1.000);
+  font-size: 18px;
+  position: relative;
+  top: 3px;
+}
+
+.contentWrapper {
+  clear: both;
+  background: white;
+  padding: 10px 10px 0 10px;
+}
+
+.contentListContainer {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.tab-bar {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  padding: 0;
+  margin: 0 10px;
+}
+
+.tab {
+  composes: caption-lt-lg from 'css/typography.scss';
+  padding: 0 $space-4x;
+  height: $space-7x;
+  line-height: $space-7x;
+  list-style: none;
+  cursor: pointer;
+  @include font-bold;
+  background: white;
+  border-radius: $space-2x $space-2x 0 0;
+  margin-right: 5px;
+  font-size: 14px;
+  opacity: .7;
+}
+
+.tab-active {
+  composes: tab;
+
+  color: $color-rhino;
+  opacity: 1;
+}
+
+.tabCount {
+  color: white;
+  background: #3b95d6;
+  border-radius: 8px;
+  padding: 1px 5px;
+  font-size: 11px;
+}
+
+.postsHeader {
+  width: 100%;
+  text-align: right;
+  composes: caption-lt-lg from 'css/typography.scss';
+
+  > span {
+    margin-right: 10px;
+  }
+}
+
+.sorter {
+  border: 1px solid #bfc5ce;
+  border-radius: 25px;
+  padding: 0 15px;
+  margin-top: 0px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  line-height: 28px;
+  height: 30px;
+}
+
+.sorter-label {
+  color: gray;
+}
+
+.sorterIcon {
+  vertical-align: middle;
+}
+
+.contentCard {
+  position: relative;
+  margin-bottom: 12px;
+  box-shadow: 0px 4px 8px 0px rgb(35 64 91 / 20%);
+
+  &> div:nth-child(3) > div:nth-child(3) {
+    overflow-y: hidden;
+  }
+}
+
+.contentCard.member {
+  padding: 16px;
+  max-width: none;
+}
+
+.contentListContainer .contentCard:nth-child(even) {
+  margin-left: 5px;
+  width: calc(50% - 5px);
+}
+
+.contentListContainer .contentCard:nth-child(odd) {
+  margin-right: 5px;
+  width: calc(50% - 5px);
+}
+
+.loading {
+  display: inline;
+  vertical-align: middle;
+  position: relative;
+  top: 3px;
+
+  div {
+    display: inline;
+  }
+}
+
+.groupCard {
+  width: calc(50% - 10px);
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+@media screen and (max-width: 600px) {
+  .contentListContainer .contentCard:nth-child(even) {
+    margin-left: 5px;
+    margin-right: 5px;
+    width: calc(100% - 10px);
+  }
+
+  .contentListContainer .contentCard:nth-child(odd) {
+    margin-left: 5px;
+    margin-right: 5px;
+    width: calc(100% - 10px);
+  }
+
+  .container {
+    /* Drawer now covers the map instead of sitting next to it */
+    position: fixed;
+    top: 55px;
+    right: 0px;
+    height: calc(100vh - 55px);
+    width: calc(100% - 64px);
+    min-width: auto;
+    padding-bottom: 100px;
+    &.withoutNav {
+      top: 0;
+      height: calc(100vh);
+    }
+  }
+}
+
+@media screen and (max-width: 375px) {
+  .container {
+    width: 100%;
+  }
+
+  .searchBox {
+    margin-left: 54px;
+    width: calc(100% - 60px);
+    margin-top: 10px;
+  }
+
+  .searchFilters {
+    width: calc(100% - 60px);
+    left: 54px;
+  }
+
+  .filterIcon {
+    right: 15px;
+  }
+
+  .container {
+    padding: 10px 10px 100px 10px;
+  }
+}

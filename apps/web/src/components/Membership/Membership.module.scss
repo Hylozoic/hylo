@@ -1,0 +1,89 @@
+.membership {
+  border: 0;
+  font-weight: 100;
+  display: inline-flex;
+  justify-content: left;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 14px;
+  padding-right: 10px;
+
+  &.rowStyle {
+    display: flex;
+    padding: 5px 0px;
+    margin-bottom: 0;
+
+    &.even {
+      background-color: $color-athens-gray;
+    }
+
+    &.odd {
+      background-color: $color-white;
+    }
+  }
+
+  .roles {
+    font-weight: bold;
+    font-family: 'Circular Bold';
+    padding: 0 0 0 10px;
+    color: rgba(41, 64, 90, 1.00);
+    display: flex;
+  }
+
+  .group {
+    margin-left: 5px;
+    display: flex;
+    align-items: center;
+    padding: 6px 10px 4px 6px;
+    width: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 400px;
+    min-width: auto;
+
+    a {
+      color: $color-regent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      text-decoration: none;
+
+      div {
+        position: relative;
+        top: 1px;
+      }
+    }
+  }
+
+  .rowStyle .group {
+    display: block;
+  }
+}
+
+.leave-button {
+  margin-left: auto;
+  composes: text-button from 'css/typography.scss';
+  color: $color-amaranth;
+  border: 1px solid $color-amaranth;
+  padding: 2px 7px;
+  @include font-regular;
+  &:hover {
+    color: $color-white;
+    background-color: $color-amaranth;
+  }
+}
+
+@media screen and (max-width: 375px) {
+  .membership {
+    font-size: 12px;
+
+    .group {
+      font-size: 12px;
+      padding: 0 10px 0 6px;
+    }
+  }
+}

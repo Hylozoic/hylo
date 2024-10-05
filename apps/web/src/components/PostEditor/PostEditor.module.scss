@@ -1,0 +1,532 @@
+// mixins
+
+.section-label {
+  color: $color-rhino-80;
+  white-space: nowrap;
+  margin-right: 28px;
+  font-size: 14px;
+}
+
+// Overall wrapper
+
+$wrapperBorderRadius: 8px;
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  border: solid 1px rgb(0,0,0);
+  border-radius: $wrapperBorderRadius;
+  border: 1px solid $color-cape-cod-10;
+  background: $color-white;
+}
+
+.wrapper-scrollable-inner {
+  max-height: 360px;
+  overflow: scroll;
+}
+
+// Header area
+
+.header {
+  padding: 10px;
+  position: relative;
+}
+
+.initial {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  line-height: normal;
+  margin-bottom: $space-4x;
+}
+
+.initial-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.icon {
+  margin: 0 0 0 8px;
+  color: $color-discussions;
+}
+
+.icon {
+  &-discussion {
+    color: $color-discussions;
+  }
+  &-chat {
+    color: $color-chats;
+  }
+  &-request {
+    color: $color-requests;
+  }
+  &-offer {
+    color: $color-offers;
+  }
+  &-resource {
+    color: $color-resources;
+  }
+  &-project {
+    color: $color-projects;
+  }
+  &-event {
+    color: $color-events;
+  }
+  &-proposal {
+    color: $color-proposals;
+  }
+}
+
+.postTypes {
+  display: flex;
+  flex-wrap: nowrap;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: $space-6x;
+}
+
+.postType {
+  composes: tag from 'css/typography.scss';
+  color: $color-rhino-darker;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  width: 130px;
+  line-height: 40px;
+  display: inline-block;
+  margin: 0;
+  border-bottom: 1px solid rgba(240, 241, 243, 1.00);
+  border-radius: 5px;
+  padding: 0 10px;
+
+  &-discussion {
+    &.selectable:hover, &:active, &.active {
+      color: $color-discussions;
+      border: 1px solid $color-discussions-20;
+    }
+  }
+  &-request {
+    &.selectable:hover, &:active, &.active {
+      color: $color-requests;
+      border: 1px solid $color-requests-20;
+    }
+  }
+  &-offer {
+    &.selectable:hover, &:active, &.active  {
+      color: $color-offers;
+      border: 1px solid $color-offers-20;
+    }
+  }
+  &-resource {
+    &.selectable:hover, &:active, &.active  {
+      color: $color-resources;
+      border: 1px solid $color-resources-20;
+    }
+  }
+  &-project {
+    &.selectable:hover, &:active, &.active  {
+      color: $color-projects;
+      border: 1px solid $color-projects-20;
+    }
+  }
+  &-event {
+    &.selectable:hover, &:active, &.active  {
+      color: $color-events;
+      border: 1px solid $color-events-20;
+    }
+  }
+  &-proposal {
+    &.selectable:hover, &:active, &.active {
+      color: $color-proposals;
+      border: 1px solid $color-proposals-20;
+    }
+  }
+}
+
+.postTypeMenu {
+  background-color: $color-white;
+  -webkit-box-shadow: 0 3px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 3px 4px rgba(0, 0, 0, 0.2);
+  position: absolute;
+  left: 12px;
+  border-radius: 5px;
+  z-index: 999;
+
+  .postType {
+    border-radius: 0;
+    display: block;
+    margin: 0;
+  }
+}
+
+// Body area
+
+.body {
+  padding: 0 $space-5x 0 $space-4x;
+  display: flex;
+  flex-direction: row;
+  &-column:last-child {
+    flex: 1;
+    overflow: hidden;
+  }
+}
+
+.titleAvatar {
+  margin-right: $space-2x;
+  padding: $space-1x;
+  height: $space-9x;
+}
+
+.titleInput {
+  composes: hdr-headline from 'css/typography.scss';
+  margin-bottom: $space-2x;
+  padding: 0;
+  height: $space-9x;
+  width: 100%;
+  outline: none;
+  border: none;
+  &:disabled {
+    color: $color-rhino-80;
+  }
+  &::placeholder {
+    color: $color-rhino-30;
+  }
+}
+
+.editor {
+  padding: 5px;
+  min-height: 100px;
+  max-height: 200px;
+  color: $color-rhino-80;
+  overflow: auto;
+}
+
+// Footer area
+
+.footer {
+  padding: 0;
+}
+
+.footerSection {
+  min-height: 3rem;
+  border-top: solid 1px $color-ghost-30;
+  padding: 0 $space-4x;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  &-prompt {
+    color: $color-rhino-30;
+    font-weight: bold;
+    margin: 15px auto 25px;
+    font-size: 18px;
+  }
+  &-helper {
+    color: $color-grey-keyline;
+    text-transform: uppercase;
+    font-size: 14px;
+    margin: 0 15px;
+  }
+  &-label {
+    composes: section-label;
+  }
+  &-topics {
+    width: 100%;
+  }
+  &-groups {
+    width: 100%;
+  }
+}
+
+.accept-contributions {
+  display: flex;
+  align-items: center;
+}
+
+.accept-contributions-switch {
+  margin-right: 55px;
+}
+
+.alignedLabel {
+  width: 60px;
+}
+
+.locationInput {
+  border-color: transparent;
+  color: $color-rhino-80;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.locationInput::placeholder {
+  color: $color-rhino-30;
+}
+
+.actionsBar {
+  display: flex;
+  flex-wrap: nowrap;
+  background-color: $color-athens-gray;
+  flex-direction: row;
+  padding: $space-3x 18px;
+  border-radius: $wrapperBorderRadius;
+  align-items: center;
+  border-top: solid 1px $color-ghost-30;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: nowrap;
+  flex-direction: row;
+}
+
+.action-icon {
+  font-size: 32px;
+  cursor: pointer;
+  &:hover {
+    color: $color-caribbean-green;
+  }
+}
+
+.highlight-icon {
+  color: $color-caribbean-green;
+  cursor: default;
+}
+
+.postButton {
+  margin-left: auto;
+}
+
+.hide {
+  display: none;
+}
+
+.datepicker-error {
+  color: white;
+  background-color: $color-amaranth;
+  width: 100%;
+  margin-left: 10px;
+  padding-top: 0px;
+  padding-bottom: 2px;
+  padding-right: 10px;
+  padding-left: 10px;
+  border-radius: 7px;
+}
+
+.title-error {
+  color: black;
+  background-color: $color-yellow-orange;
+  width: 100%;
+  position: relative;
+  top: -15px;
+  padding-top: 0px;
+  padding-bottom: 2px;
+  padding-right: 10px;
+  padding-left: 10px;
+  border-radius: 7px;
+}
+
+.accept-contributions-help {
+  composes: caption-lt-lg from 'css/typography.scss';
+}
+
+.datePickerModule {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.warning {
+  color: $color-amaranth;
+}
+
+.textInput {
+  margin-bottom: 0;
+  padding: 0;
+  width: 100%;
+  outline: none;
+  border: none;
+  &:disabled {
+    color: $color-rhino-80;
+  }
+  &::placeholder {
+    color: $color-rhino-30;
+  }
+}
+
+.inputContainer {
+  background-color: #D9EBF8;
+  border-color: transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: bold;
+  line-height: inherit;
+  height: 35px;
+  margin: 10px 0;
+  text-align: center;
+  padding: 0 5px;
+  color: $color-picton-blue;
+}
+
+.optionsContainer{
+  width: 100%;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: bold;
+  line-height: inherit;
+  margin: 10px 0;
+  padding: 0 5px;
+  display: flex;
+  gap: 6px;
+  flex-direction: column;
+}
+
+.proposalOption {
+  background-color: #D9EBF8;
+  border-color: transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: bold;
+  line-height: inherit;
+  height: 34px;
+  padding: 0 5px;
+  color: $color-picton-blue;
+  display: flex;
+  align-items: center;
+}
+
+.dropdown {
+  box-sizing: border-box;
+  color: $color-picton-blue;
+  font-size: 16px;
+  border: 1px solid rgba(224, 229, 233, 1.0);
+  padding: 0px 5px;
+  line-height: 16px;
+  height: 36px;
+  line-height: 36px;
+  width: 100%;
+}
+
+.dropdown-label {
+  composes: bdy-drk-sm from 'css/typography.scss';
+  color: $color-picton-blue;
+  font-size: 15px;
+  padding: 3px;
+  white-space: nowrap;
+
+  span {
+    vertical-align: middle;
+  }
+}
+
+.option-dropdown{
+  border: $color-picton-blue 1px solid;
+  border-radius: 4px;
+  margin-right: 4px;
+}
+
+.option-dropdown-icon{
+  font-size: 16px;
+}
+
+.option-dropdown-label{
+  font-size: 16px;
+}
+
+.emoji-option{
+  font-size: 24px;
+}
+
+.emoji-grid{
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  gap: 8px;
+  padding: 8px;
+  border-radius: 3px;
+}
+
+.icon-plus {
+  font-size: 16px;
+  position: relative;
+  margin-right: 15px;
+}
+
+.optionText{
+  font-size: 16px;
+}
+
+.optionTextInput {
+  font-size: 16px;
+  border: 1px solid rgba(224, 229, 233, 1.0);
+  border-radius: 4px;
+  background-color: transparent;
+  color: $color-picton-blue;
+  padding: 5px;
+  width: 100%;
+}
+
+@media screen and (max-width: 460px) {
+  .inputContainer {
+    input {
+      width: 90px;
+      padding-left: 9px;
+
+      &::placeholder {
+        background-image: none;
+      }
+    }
+  }
+}
+
+
+
+@media screen and (max-width: 600px) {
+
+  .postType {
+    font-size: 10px;
+    line-height: 32px;
+    height: 32px;
+  }
+}
+
+@media screen and (max-width: 425px) {
+  .footerSection-topics, .footerSection-groups {
+    font-size: 14px;
+  }
+
+  .section-label, .footerSection-label, .section-label.footerSection-label {
+    margin-right: 15px;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .postType {
+    margin: 0 2px;
+  }
+
+  .editor {
+    font-size: 14px;
+  }
+}
+
+.warning {
+  color: $color-amaranth;
+  border-color: $color-amaranth;
+  cursor: default;
+}
+
+@media screen and (max-width: 340px) {
+  .footerSection-helper {
+    margin: 0 5px;
+    font-size: 10px;
+  }
+
+}
+
+.quorum-tooltip{
+  font-size: 12px;
+}

@@ -1,0 +1,119 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`mapDispatchToProps returns expected values 1`] = `
+Object {
+  "changeQuerystringParam": [Function],
+  "createMessage": [Function],
+  "fetchMessages": [Function],
+  "fetchPeople": [Function],
+  "fetchRecentContacts": [Function],
+  "fetchThread": [Function],
+  "fetchThreads": [Function],
+  "findOrCreateThread": [Function],
+  "goToThread": [Function],
+  "setContactsSearch": [Function],
+  "setThreadSearch": [Function],
+  "updateMessageText": [Function],
+  "updateThreadReadTime": [Function],
+}
+`;
+
+exports[`mapStateToProps returns expected values 1`] = `
+Object {
+  "contacts": Array [
+    Object {
+      "id": "2",
+      "name": "Bob",
+    },
+  ],
+  "currentUser": SessionBoundModel {
+    "_fields": Object {
+      "id": "1",
+    },
+    "id": "1",
+  },
+  "hasMoreMessages": true,
+  "hasMoreThreads": undefined,
+  "messageCreatePending": false,
+  "messageText": "",
+  "messageThread": Object {
+    "id": "11",
+    "participants": Array [],
+  },
+  "messageThreadId": "11",
+  "messageThreadPending": false,
+  "messages": Array [
+    SessionBoundModel {
+      "_fields": Object {
+        "creator": "1",
+        "id": "4",
+        "messageThread": "11",
+        "text": "hi",
+      },
+    },
+    SessionBoundModel {
+      "_fields": Object {
+        "creator": "1",
+        "id": "5",
+        "messageThread": "11",
+        "text": "how are you",
+      },
+    },
+    SessionBoundModel {
+      "_fields": Object {
+        "creator": "2",
+        "id": "6",
+        "messageThread": "11",
+        "text": "fine thanks",
+      },
+    },
+    SessionBoundModel {
+      "_fields": Object {
+        "creator": "2",
+        "id": "7",
+        "messageThread": "11",
+        "text": "and you?",
+      },
+    },
+  ],
+  "messagesPending": true,
+  "onCloseLocation": "/",
+  "participants": null,
+  "prompt": undefined,
+  "sendIsTyping": [Function],
+  "socket": SailsSocket {
+    "_isConnecting": false,
+    "_mightBeAboutToAutoConnect": true,
+    "eventQueue": Object {
+      "sails:parseError": Array [
+        [Function],
+      ],
+    },
+    "headers": undefined,
+  },
+  "threadSearch": undefined,
+  "threads": Array [],
+  "threadsPending": true,
+}
+`;
+
+exports[`mergeProps returns expected values 1`] = `
+Object {
+  "fetchMessages": [Function],
+  "fetchMoreThreads": [Function],
+  "fetchThread": [Function],
+  "fetchThreads": [Function],
+  "match": Object {
+    "params": Object {
+      "messageThreadId": "8",
+    },
+  },
+  "messages": Array [
+    Object {
+      "id": "1",
+      "text": "hi",
+    },
+  ],
+  "updateThreadReadTime": [Function],
+}
+`;

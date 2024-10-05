@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TopicSelector renders correctly (with min props) 1`] = `
+<ForwardRef
+  classNamePrefix="topic-selector"
+  defaultOptions={Array []}
+  formatOptionLabel={[Function]}
+  getNewOptionData={[Function]}
+  isMulti={true}
+  isValidNewOption={[Function]}
+  loadOptions={[Function]}
+  name="topics"
+  noOptionsMessage={[Function]}
+  onChange={[Function]}
+  placeholder="Enter up to three topics..."
+  styles={
+    Object {
+      "clearIndicator": [Function],
+      "container": [Function],
+      "control": [Function],
+      "dropdownIndicator": [Function],
+      "indicatorSeparator": [Function],
+      "multiValue": [Function],
+      "multiValueRemove": [Function],
+      "placeholder": [Function],
+      "valueContainer": [Function],
+    }
+  }
+  value={Array []}
+/>
+`;

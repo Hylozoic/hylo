@@ -1,0 +1,41 @@
+.container {
+  // empty
+}
+
+.header {
+  background-color: $color-athens-gray;
+}
+
+.title {
+  composes: hdr-display from 'css/typography.scss';
+  margin-bottom: 10px;
+  padding: 0
+}
+
+.subtitle {
+  composes: caption-lt-lg from 'css/typography.scss';
+  margin-bottom: 10px;
+  padding: 0
+}
+
+.help {
+  color: $color-rhino-60;
+  margin-bottom: 16px;
+}
+
+.delete-button {
+  white-space: nowrap;
+  padding: 0 15px;
+  text-align: center;
+  background-color: white;
+  border-color: $color-amaranth;
+  color: $color-amaranth;
+  &:hover, &.hover {
+    background-color: $color-pale-pink;
+  }
+}
+
+.error {
+  color: $color-amaranth;
+}
+

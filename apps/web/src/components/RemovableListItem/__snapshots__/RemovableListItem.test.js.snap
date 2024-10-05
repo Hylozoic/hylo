@@ -1,0 +1,74 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RemovableListItem does not render as links when no URL specified 1`] = `
+<div
+  data-stylename="item"
+>
+  <RoundImage
+    data-stylename="avatar"
+    medium={true}
+    url="zeus.png"
+  />
+  <span>
+    Zeus
+  </span>
+  <span
+    className="remove-button"
+    data-stylename="remove-button"
+    onClick={[Function]}
+  >
+    Remove
+  </span>
+</div>
+`;
+
+exports[`RemovableListItem doesnt render a remove link 1`] = `
+<div
+  data-stylename="item"
+>
+  <Link
+    to="/happy/place"
+  >
+    <RoundImage
+      data-stylename="avatar"
+      medium={true}
+      url="zeus.png"
+    />
+  </Link>
+  <Link
+    data-stylename="name"
+    to="/happy/place"
+  >
+    Zeus
+  </Link>
+</div>
+`;
+
+exports[`RemovableListItem renders correctly 1`] = `
+<div
+  data-stylename="item"
+>
+  <Link
+    to="/happy/place"
+  >
+    <RoundImage
+      data-stylename="avatar"
+      medium={true}
+      url="zeus.png"
+    />
+  </Link>
+  <Link
+    data-stylename="name"
+    to="/happy/place"
+  >
+    Zeus
+  </Link>
+  <span
+    className="remove-button"
+    data-stylename="remove-button"
+    onClick={[Function]}
+  >
+    Remove
+  </span>
+</div>
+`;

@@ -1,0 +1,99 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`matches last snapshot 1`] = `
+<Link
+  data-stylename="group-link"
+  to="/all/group/great-cause"
+>
+  <div
+    data-stylename="card"
+    onClick={[Function]}
+  >
+    <GroupHeader
+      constrained={false}
+      description="the description the description the description the description the description "
+      group={
+        Object {
+          "description": "the description the description the description the description the description ",
+          "groupTopics": Object {
+            "toModelArray": [Function],
+          },
+          "id": 1,
+          "name": "A Great Cause",
+          "slug": "great-cause",
+        }
+      }
+      groupTopics={
+        Object {
+          "toModelArray": [Function],
+        }
+      }
+      highlightProps={Object {}}
+      id={1}
+      name="A Great Cause"
+      routeParams={Object {}}
+      slug="great-cause"
+    />
+    <div
+      data-stylename="group-description"
+    >
+      <ClickCatcher>
+        <HyloHTML
+          element="span"
+          html="<p>the description the description the description the description the description </p>
+"
+        />
+      </ClickCatcher>
+    </div>
+  </div>
+</Link>
+`;
+
+exports[`matches last snapshot with different config 1`] = `
+<Link
+  data-stylename="group-link"
+  to="/all/group/great-cause"
+>
+  <div
+    data-stylename="card constrained"
+    onClick={[Function]}
+  >
+    <GroupHeader
+      constrained={true}
+      description="the description the description the description the description the description "
+      group={
+        Object {
+          "description": "the description the description the description the description the description ",
+          "groupTopics": Object {
+            "toModelArray": [Function],
+          },
+          "id": 1,
+          "name": "A Great Cause",
+          "slug": "great-cause",
+        }
+      }
+      groupTopics={
+        Object {
+          "toModelArray": [Function],
+        }
+      }
+      highlightProps={Object {}}
+      id={1}
+      name="A Great Cause"
+      routeParams={Object {}}
+      slug="great-cause"
+    />
+    <div
+      data-stylename="group-description"
+    >
+      <ClickCatcher>
+        <HyloHTML
+          element="span"
+          html="<p>the description the description the description the description the description </p>
+"
+        />
+      </ClickCatcher>
+    </div>
+  </div>
+</Link>
+`;

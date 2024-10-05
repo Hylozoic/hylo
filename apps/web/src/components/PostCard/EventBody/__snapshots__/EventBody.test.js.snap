@@ -1,0 +1,94 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EventBody matches last snapshot 1`] = `
+<div
+  className="external-class"
+  data-stylename="body eventBody"
+>
+  <div
+    data-stylename="eventTop"
+  >
+    <div
+      data-stylename="calendarDate"
+    >
+      <EventDate
+        endTime={"2019-03-07T00:41:23.315Z"}
+        location="Oakland"
+        startTime={"2019-03-06T21:41:23.315Z"}
+      />
+    </div>
+  </div>
+  <div
+    data-stylename="eventBodyColumn"
+  >
+    <PostTitle
+      endTime={"2019-03-07T00:41:23.315Z"}
+      location="Oakland"
+      startTime={"2019-03-06T21:41:23.315Z"}
+    />
+    <div
+      data-stylename="eventData"
+    >
+      <Icon
+        data-stylename="icon"
+        name="Clock"
+      />
+       
+      Wed, Mar 6, 2019 at 9:41PM - Thu, Mar 7 at 12:41AM GMT
+    </div>
+    <div
+      data-stylename="eventData eventLocation"
+    >
+      <Icon
+        data-stylename="icon"
+        name="Location"
+      />
+       
+      Oakland
+    </div>
+    <div
+      data-stylename="eventDetails"
+    >
+      <PostDetails
+        endTime={"2019-03-07T00:41:23.315Z"}
+        expanded={true}
+        location="Oakland"
+        slug="sluggo"
+        startTime={"2019-03-06T21:41:23.315Z"}
+      />
+    </div>
+  </div>
+  <div
+    data-stylename="eventAttendance"
+  >
+    <div
+      data-stylename="people"
+    >
+      <div
+        data-stylename="fade"
+      />
+      <PeopleInfo
+        people={Array []}
+        peopleTotal={0}
+        phrases={
+          Object {
+            "emptyMessage": "No one is attending yet",
+            "mePhraseSingular": "are attending",
+            "phraseSingular": "is attending",
+            "pluralPhrase": "attending",
+          }
+        }
+      />
+    </div>
+  </div>
+  <EmojiRow
+    post={
+      Object {
+        "endTime": "2019-03-07T00:41:23.315Z",
+        "location": "Oakland",
+        "startTime": "2019-03-06T21:41:23.315Z",
+      }
+    }
+  />
+</div>
+`;

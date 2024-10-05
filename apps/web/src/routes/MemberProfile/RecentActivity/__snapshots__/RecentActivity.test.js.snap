@@ -1,0 +1,120 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RecentActivity renders the same as the last snapshot 1`] = `
+<div>
+  <div
+    data-stylename="activity-item"
+    key="0"
+  >
+    <Connect(CommentCard)
+      comment={
+        Object {
+          "createdAt": "2021-05-12T15:00:00.000Z",
+          "creator": Object {
+            "id": "46816",
+          },
+          "id": "2",
+          "post": Object {
+            "id": "30002",
+            "title": "0123456789 0123456789 0123456789",
+          },
+          "text": "<p>So much more to say.</p>",
+        }
+      }
+      expanded={false}
+      routeParams={Object {}}
+    />
+  </div>
+  <div
+    data-stylename="activity-item"
+    key="1"
+  >
+    <Connect(CommentCard)
+      comment={
+        Object {
+          "createdAt": "2021-06-12T15:00:00.000Z",
+          "creator": Object {
+            "id": "46816",
+          },
+          "id": "1",
+          "post": Object {
+            "id": "30002",
+            "title": "0123456789 0123456789 0123456789",
+          },
+          "text": "<p>Here's a comment!</p>",
+        }
+      }
+      expanded={false}
+      routeParams={Object {}}
+    />
+  </div>
+  <div
+    data-stylename="activity-item"
+    key="2"
+  >
+    <Connect(PostCard)
+      expanded={false}
+      post={
+        Object {
+          "commenters": Array [],
+          "commentersTotal": 0,
+          "createdAt": "2021-07-12T15:00:00.000Z",
+          "creator": Object {
+            "id": "46816",
+          },
+          "details": "<p>With nothing of importance in it.</p>",
+          "groups": Array [
+            Object {
+              "id": "1836",
+              "name": "Wombats",
+              "slug": "wombats",
+            },
+          ],
+          "id": "30003",
+          "title": "Some other post",
+          "type": "discussion",
+        }
+      }
+      routeParams={Object {}}
+    />
+  </div>
+  <div
+    data-stylename="activity-item"
+    key="3"
+  >
+    <Connect(PostCard)
+      expanded={false}
+      post={
+        Object {
+          "commenters": Array [
+            Object {
+              "avatarUrl": "https://www.gravatar.com/avatar/32f7ff34c3b5a8600b79be9a85a5c92f?d=mm&s=140",
+              "id": "46816",
+              "name": "Rich Churcher",
+            },
+          ],
+          "commentersTotal": 1,
+          "createdAt": "2021-08-12T15:00:00.000Z",
+          "creator": Object {
+            "id": "46816",
+          },
+          "details": "<p><a href=\\"https://wombat.life\\">https://wombat.life</a></p>
+<p></p>
+<p></p>",
+          "groups": Array [
+            Object {
+              "id": "1836",
+              "name": "Wombats",
+              "slug": "slug",
+            },
+          ],
+          "id": "30002",
+          "title": "0123456789 0123456789 0123456789",
+          "type": "discussion",
+        }
+      }
+      routeParams={Object {}}
+    />
+  </div>
+</div>
+`;

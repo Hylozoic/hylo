@@ -1,0 +1,25 @@
+@font-face {
+  font-family: 'Circular Book';
+  src: url('/assets/fonts/Circular-Font-Family/lineto-circular-book.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Circular Medium';
+  src: url('/assets/fonts/Circular-Font-Family/lineto-circular-medium.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Circular Bold';
+  src: url('/assets/fonts/Circular-Font-Family/lineto-circular-bold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'hylo-evo-icons';
+  src:  url('/assets/fonts/icons/hylo-evo-icons.eot');
+  src:  url('/assets/fonts/icons/hylo-evo-icons.eot#iefix') format('embedded-opentype'),
+    url('/assets/fonts/icons/hylo-evo-icons.ttf') format('truetype'),
+    url('/assets/fonts/icons/hylo-evo-icons.woff') format('woff'),
+    url('/assets/fonts/icons/hylo-evo-icons.svg#hylo-evo-icons') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}

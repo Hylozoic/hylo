@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`mapDispatchToProps goToPerson is correct for "groups" context 1`] = `
+Object {
+  "payload": Object {
+    "args": Array [
+      "/groups/anything/members/1",
+    ],
+    "method": "push",
+  },
+  "type": "@@router/CALL_HISTORY_METHOD",
+}
+`;

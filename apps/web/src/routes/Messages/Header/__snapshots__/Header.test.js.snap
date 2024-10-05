@@ -1,0 +1,36 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Header should match the latest snapshot 1`] = `
+<div
+  data-stylename="header"
+  id="thread-header"
+>
+  <Link
+    data-stylename="close-thread"
+    to="/messages"
+  >
+    <Icon
+      name="ArrowForward"
+    />
+  </Link>
+  <div
+    data-stylename="header-text"
+  >
+    <div>
+      <Link
+        key="2"
+        to="/all/members/2"
+      >
+        Two
+      </Link>
+      , 
+      <Link
+        key="3"
+        to="/all/members/3"
+      >
+        Three
+      </Link>
+    </div>
+  </div>
+</div>
+`;

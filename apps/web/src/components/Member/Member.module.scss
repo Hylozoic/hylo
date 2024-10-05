@@ -1,0 +1,99 @@
+$member-width: 288px;
+$member-padding: 16px;
+$avatar-size: 120px;
+$skill-vertical-margin: 8px;
+
+.member {
+  position: relative;
+  display: block;
+  padding: $member-padding;
+  padding-bottom: $member-padding - $skill-vertical-margin;
+  text-align: center;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 1);
+  box-shadow: 0px 4px 5px rgb(42 64 89 / 20%);
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+.badgeRow {
+  display: flex;
+  grid-gap: 6px;
+  justify-content: center;
+
+  > span {
+    margin-top: 5px;
+  }
+}
+
+.avatar {
+  @include image($avatar-size);
+  border-radius: calc($avatar-size / 2);
+  box-shadow: 0px 4px 5px rgb(42 64 89 / 20%);
+
+}
+
+.dropdown {
+  position: absolute;
+  top: 10px;
+  right: 0px;
+  padding: 10px;
+}
+
+.name {
+  composes: hdr-headline from 'css/typography.scss';
+  margin-top: $member-padding;
+  word-wrap: break-word;
+}
+
+.location {
+  composes: caption-lt-lg from 'css/typography.scss';
+  word-wrap: break-word;
+}
+
+.tagline {
+  composes: bdy-lt-sm from 'css/typography.scss';
+  margin-top: $member-padding;
+  word-wrap: break-word;
+}
+
+.skills {
+  margin-top: $member-padding;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.skill {
+  margin-left: 4px;
+  margin-right: 4px;
+  margin-bottom: $skill-vertical-margin;
+  font-size: 9px;
+  padding: 3px 8px;
+}
+
+
+@media screen and (max-width: 425px) {
+  .avatar {
+    @include image(100px);
+  }
+}
+
+
+@media screen and (max-width: 320px) {
+  .member {
+    margin-bottom: 10px;
+  }
+
+  .avatar {
+    @include image(50px);
+  }
+
+  .name {
+    margin-top: 0;
+    margin-right: 0;
+  }
+}

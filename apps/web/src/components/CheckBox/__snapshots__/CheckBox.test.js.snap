@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`renders correctly 1`] = `
+<label
+  data-stylename="label"
+>
+  <Icon
+    data-stylename="icon"
+    name="Checkmark"
+  />
+  <input
+    checked={true}
+    className="box"
+    data-stylename="checkbox"
+    disabled={false}
+    onChange={[Function]}
+    type="checkbox"
+  />
+</label>
+`;

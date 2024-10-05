@@ -1,0 +1,33 @@
+.label {
+  display: inline-block;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-family: 'Circular Bold';
+  letter-spacing: 0.6px;
+  text-align: center;
+  border: 1px solid $color-alto;
+  background-color: transparent;
+  padding: 5px 12px;
+  border-radius: 25px;
+}
+
+.dark {
+  color: $color-rhino-60;
+  border-color: $color-alto;
+  &.active {
+    color: $color-rhino-60;
+    border-color: $color-rhino-60;
+  }
+}
+
+.white {
+  color: $color-white;
+  border-color: rgba($color-white, .6);
+  &.active {
+    border-color: $color-white;
+  }
+}
+
+.active {
+  display: inline-block;
+}

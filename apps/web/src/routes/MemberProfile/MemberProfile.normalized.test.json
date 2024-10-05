@@ -1,0 +1,133 @@
+{
+  "person": {
+    "id": "46816",
+    "name": "Rich Churcher",
+    "avatarUrl": "https://www.gravatar.com/avatar/32f7ff34c3b5a8600b79be9a85a5c92f?d=mm&s=140",
+    "bannerUrl": "http://www.axolotl.org/images/tiger/tiger_larva.jpg",
+    "bio": "I like wombats.",
+    "twitterName": "richchurcher",
+    "linkedinUrl": "https://www.linkedin.com/in/richchurcher/",
+    "facebookUrl": "https://www.facebook.com/rich.churcher",
+    "url": "https://eloquentgeek.com",
+    "location": "Auckland, New Zealand",
+    "comments": [ "2", "1" ],
+    "commentsTotal": 2,
+    "memberships": [ "3" ],
+    "membershipsTotal": 1,
+    "membershipCommonRoles": [ "1" ],
+    "posts": [ "30003", "30002" ],
+    "postsTotal": 2,
+    "projects": [
+      {
+        "id":"1210",
+        "title":"Document bird species in Santa Cruz",
+        "createdAt":"2021-04-12T15:00:00.000Z",
+        "creator":{"name":"Test Account"},
+        "members":{
+          "items":[
+            {"avatarUrl":"https://member1.jpg"},
+            {"avatarUrl":"https://member2.jpg"},
+            {"avatarUrl":"https://member3.jpg"},
+            {"avatarUrl":"https://member4.jpg"},
+            {"avatarUrl":"https://member5.jpg"}
+          ]
+        }
+      },
+      {
+        "id":"1211",
+        "title":"Fundraise for Audubon Society",
+        "createdAt":"2022-04-12T15:00:00.000Z",
+        "creator":{"name":"Test Account"},
+        "members":{
+          "items":[
+            {"avatarUrl":"https://member1.jpg"},
+            {"avatarUrl":"https://member2.jpg"},
+            {"avatarUrl":"https://member3.jpg"}
+          ]
+        }
+      }
+    ],
+    "votes": [ "2" ],
+    "peopleReactedTotal": 1
+  },
+  "memberships": [
+    {
+      "id": "3",
+      "person": "46816",
+      "group": "1836"
+    }
+  ],
+  "membershipCommonRoles": [
+    {
+      "id": "1",
+      "commonRolId": "1",
+      "groupId": "1836",
+      "userId": "46816"
+    }
+  ],
+  "comments": [
+    {
+      "id": "2",
+      "text": "<p>So much more to say.</p>",
+      "creator": "46816",
+      "post": "30002",
+      "createdAt": "2021-05-12T15:00:00.000Z"
+    },
+    {
+      "id": "1",
+      "text": "<p>Here's a comment!</p>",
+      "creator": "46816",
+      "post": "30002",
+      "createdAt": "2021-06-12T15:00:00.000Z"
+    }
+  ],
+  "groups": [
+    {
+      "id": "1836",
+      "name": "Wombats",
+      "slug": "wombats"
+    }
+  ],
+  "posts": [
+    {
+      "id": "30003",
+      "title": "Some other post",
+      "details": "<p>With nothing of importance in it.</p>",
+      "type": "discussion",
+      "creator": "46816",
+      "comments": [],
+      "commentsTotal": 0,
+      "commenters": [],
+      "commentersTotal": 0,
+      "groups": [ "1836" ],
+      "createdAt": "2021-07-12T15:00:00.000Z"
+    },
+    {
+      "id": "30002",
+      "title": "0123456789 0123456789 0123456789",
+      "details": "<p><a href=\"https://wombat.life\">https://wombat.life</a></p>\n<p></p>\n<p></p>",
+      "type": "discussion",
+      "creator": "46816",
+      "comments": [ "2", "1" ],
+      "commentsTotal": 0,
+      "commenters": [ "46816" ],
+      "commentersTotal": 1,
+      "groups": [ "1836" ],
+      "createdAt": "2021-08-12T15:00:00.000Z"
+    }
+  ],
+  "votes": [
+    {
+      "id": "2",
+      "post": "30002",
+      "voter": "46816",
+      "createdAt": "2023-04-12T15:00:00.000Z"
+    },
+    {
+      "id": "1",
+      "post": "30003",
+      "voter": "46816",
+      "createdAt": "2022-07-12T15:00:00.000Z"
+    }
+  ]
+}

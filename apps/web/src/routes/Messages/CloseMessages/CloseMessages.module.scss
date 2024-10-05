@@ -1,0 +1,21 @@
+.close-messages {
+  cursor: pointer;
+  padding: $space-2x 0;
+
+  &:hover {
+    text-decoration: none;
+
+    .close-messages-icon {
+      color: $color-rhino-60;
+    }
+  }
+}
+
+@media screen and (max-width: 650px) {
+  .close-messages {
+    position: absolute;
+    left: 7px;
+    z-index: 5;
+    top: 22px;
+  }
+}

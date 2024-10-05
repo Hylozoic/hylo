@@ -1,0 +1,84 @@
+// Footer Height
+$footer-height: 40px;
+
+.footer {
+  padding-left: 8px;
+  padding-right: 0;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  height: $footer-height;
+  border-top: 1px dashed $color-cape-cod-10;
+  background: linear-gradient(180deg, rgba(225, 229, 233, 0.3) 0%, rgba(225, 229, 233, 0) 100%);
+  overflow: hidden;
+
+  .people div {
+    width: 30px;
+    height: 30px;
+  }
+
+  // change avatar sizes
+  > span > div > div {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+.footer.constrained {
+  padding-left: 5px;
+  height: 46px;
+}
+
+.icon-links{
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+.icon {
+  width:30px;
+  height:30px;
+  margin: 5px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.share {
+  margin-left: auto;
+  width: $footer-height;
+  height: $footer-height;
+  line-height: $footer-height;
+  text-align: center;
+  border-left: 1px solid $color-cape-cod-10;
+}
+
+.arrowIcon {
+  position: relative;
+  top: 5px;
+  margin-right: 8px;
+  margin-left: -3px;
+  color: $color-caribbean-green;
+}
+
+.footer-reactions {
+  margin-left: auto;
+  transition: all .25s ease;
+  display: flex;
+  width: 50%;
+  position: relative;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+@media screen and (max-width: 425px) {
+  .footer {
+    height: 40px;
+    padding-left: 10px;
+  }
+
+  .people {
+    margin-right: 10px;
+  }
+}

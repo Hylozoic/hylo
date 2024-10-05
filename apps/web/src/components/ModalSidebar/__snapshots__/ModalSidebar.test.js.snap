@@ -1,0 +1,47 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ModalSidebar renders correctly with a "Previous" button 1`] = `
+<div
+  data-stylename="sidebar"
+>
+  <p
+    data-stylename="gray-text close-button"
+    onClick={[MockFunction]}
+  >
+    CLOSE
+  </p>
+  <p
+    data-stylename="header-theme"
+  >
+    header
+  </p>
+  <p
+    data-stylename="text-theme"
+  >
+    body
+  </p>
+</div>
+`;
+
+exports[`ModalSidebar renders correctly without a theme 1`] = `
+<div
+  data-stylename="sidebar"
+>
+  <p
+    data-stylename="gray-text close-button"
+    onClick={[MockFunction]}
+  >
+    CLOSE
+  </p>
+  <p
+    data-stylename="sidebar-header"
+  >
+    header
+  </p>
+  <p
+    data-stylename="gray-text sidebar-text"
+  >
+    body
+  </p>
+</div>
+`;

@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`deleteGroupTopic should match latest snapshot 1`] = `
+Object {
+  "graphql": Object {
+    "query": "mutation ($id: ID) {
+        deleteGroupTopic(id: $id) {
+          success
+        }
+      }",
+    "variables": Object {
+      "id": 135,
+    },
+  },
+  "meta": Object {
+    "id": 135,
+    "optimistic": true,
+  },
+  "type": "AllTopics/DELETE_GROUP_TOPIC",
+}
+`;

@@ -1,0 +1,149 @@
+.button {
+  height: 39px;
+  line-height: 39px;
+  min-width: max-content;
+  padding: 0px 40px;
+  display: inline-block;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus {
+    outline: 0;
+  }
+}
+
+.small {
+  padding: 0px 30px;
+  height: 32px;
+  line-height: 30px;
+  font-size: 10pt;
+}
+
+.narrow {
+  padding: 0px 25px;
+}
+
+.disabled {
+  cursor: not-allowed !important;
+  background-color: white !important;
+  color: $color-alto !important;
+  border-color: $color-alto !important;
+}
+
+.green {
+  border: 1px solid $color-caribbean-green;
+  background-color: $color-caribbean-green;
+  color: $color-white;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover, &.hover {
+      background-color: lighten($color-caribbean-green, 2%);
+    }
+  }
+  &:active, &.active {
+    background-color: darken($color-caribbean-green, 2%);
+  }
+  &.disabled {
+    border-color: lighten(desaturate($color-caribbean-green, 40%), 35%);
+    background-color: lighten(desaturate($color-caribbean-green, 40%), 35%);
+  }
+}
+
+.purple {
+  background-color: $color-medium-purple;
+  color: $color-white;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover, &.hover {
+      background-color: lighten($color-medium-purple, 3%);
+    }
+  }
+  &:active, &.active {
+    background-color: darken($color-medium-purple, 3%);
+  }
+}
+
+.green-white {
+  color: $color-caribbean-green;
+  background-color: $color-white;
+  border: 1px solid $color-alto;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover, &.hover {
+      background-color: $color-polar;
+      border-color: $color-caribbean-green;
+    }
+  }
+  &:active, &.active {
+    background-color: $color-ziggurat;
+    border-color: transparent;
+  }
+}
+
+.green-white-green-border {
+  composes: green-white;
+  border: 1px solid $color-caribbean-green;
+}
+
+.dark-gray {
+  color: darkgray;
+  border: 1px solid darkgray;
+}
+
+.gray {
+  border: 1px solid $color-regent;
+  background-color: $color-regent;
+  color: $color-white;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover, &.hover {
+      background-color: lighten($color-regent, 2%);
+    }
+  }
+  &:active, &.active {
+    background-color: darken($color-regent, 2%);
+  }
+  &.disabled {
+    border-color: lighten(desaturate($color-regent, 40%), 35%);
+    background-color: lighten(desaturate($color-regent, 40%), 35%);
+  }
+}
+
+.whitegray {
+  border: 1px solid $color-regent;
+  background-color: $color-white;
+  color: $color-regent;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover, &.hover {
+      background-color: lighten($color-white, 2%);
+    }
+  }
+  &:active, &.active {
+    background-color: darken($color-white, 2%);
+  }
+  &.disabled {
+    border-color: lighten(desaturate($color-white, 40%), 35%);
+    background-color: lighten(desaturate($color-white, 40%), 35%);
+  }
+}
+
+.white {
+  color: $color-white;
+  border: 1px solid $color-white;
+  background-color: transparent;
+}
+
+.gray-blank {
+  composes: gray;
+  color: transparent;
+}
+
+.hover, .active {
+  display: inline-block;
+}
+
+
+@media screen and (max-width: 375px) {
+  .button {
+    font-size: 14px;
+    height: 30px;
+    padding: 0 15px;
+    line-height: 30px;
+  }
+}

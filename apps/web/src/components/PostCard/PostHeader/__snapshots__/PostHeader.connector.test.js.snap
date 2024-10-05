@@ -1,0 +1,141 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`mapDispatchToProps calls the right version of removePost 1`] = `
+Array [
+  Array [
+    Object {
+      "graphql": Object {
+        "query": "mutation ($postId: ID, $slug: String) {
+        removePost(postId: $postId, slug: $slug) {
+          success
+        }
+      }",
+        "variables": Object {
+          "postId": 1,
+          "slug": undefined,
+        },
+      },
+      "meta": Object {
+        "optimistic": true,
+        "postId": 1,
+        "slug": undefined,
+      },
+      "type": "REMOVE_POST",
+    },
+  ],
+  Array [
+    Object {
+      "graphql": Object {
+        "query": "mutation ($postId: ID, $slug: String) {
+        removePost(postId: $postId, slug: $slug) {
+          success
+        }
+      }",
+        "variables": Object {
+          "postId": 1,
+          "slug": undefined,
+        },
+      },
+      "meta": Object {
+        "optimistic": true,
+        "postId": 1,
+        "slug": undefined,
+      },
+      "type": "REMOVE_POST",
+    },
+  ],
+]
+`;
+
+exports[`mapDispatchToProps maps the action generators 1`] = `
+Object {
+  "deletePost": [Function],
+  "duplicatePost": [Function],
+  "editPost": [Function],
+  "fulfillPost": [Function],
+  "pinPost": [Function],
+  "removePost": [Function],
+  "unfulfillPost": [Function],
+  "updateProposalOutcome": [Function],
+}
+`;
+
+exports[`mapDispatchToProps maps the action generators 2`] = `
+Array [
+  Array [
+    Object {
+      "graphql": Object {
+        "query": "mutation ($postId: ID, $slug: String) {
+        removePost(postId: $postId, slug: $slug) {
+          success
+        }
+      }",
+        "variables": Object {
+          "postId": 10,
+          "slug": "mygroup",
+        },
+      },
+      "meta": Object {
+        "optimistic": true,
+        "postId": 10,
+        "slug": "mygroup",
+      },
+      "type": "REMOVE_POST",
+    },
+  ],
+  Array [
+    Object {
+      "payload": Object {
+        "args": Array [
+          "/groups/mygroup/post/10/edit",
+        ],
+        "method": "push",
+      },
+      "type": "@@router/CALL_HISTORY_METHOD",
+    },
+  ],
+  Array [
+    Object {
+      "payload": Object {
+        "args": Array [
+          "/groups/mygroup/create/post?fromPostId=10",
+        ],
+        "method": "push",
+      },
+      "type": "@@router/CALL_HISTORY_METHOD",
+    },
+  ],
+  Array [
+    Object {
+      "graphql": Object {
+        "query": "mutation ($postId: ID, $groupId: ID) {
+        pinPost(postId: $postId, groupId: $groupId) {
+          success
+        }
+      }",
+        "variables": Object {
+          "groupId": 3,
+          "postId": 2,
+        },
+      },
+      "meta": Object {
+        "groupId": 3,
+        "optimistic": true,
+        "postId": 2,
+      },
+      "type": "PostHeader/PIN_POST",
+    },
+  ],
+  Array [
+    Object {
+      "payload": Object {
+        "args": Array [
+          "/groups/mygroup/create/post?fromPostId=10",
+        ],
+        "method": "push",
+      },
+      "type": "@@router/CALL_HISTORY_METHOD",
+    },
+  ],
+]
+`;

@@ -1,0 +1,50 @@
+.select-wrapper {
+  overflow: hidden;
+  position: relative;
+}
+
+.select-wrapper:after {
+  content: '\e928';
+  font: normal normal normal 17px/1 'hylo-evo-icons';
+  color: $color-rhino-80;
+  right: 11px;
+  top: 3px;
+  height: 34px;
+  padding: 15px 0px 0px 8px;
+  position: absolute;
+  pointer-events: none;
+}
+
+/* IE11 hide native button */
+select::-ms-expand {
+  display: none;
+}
+
+.select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  display: block;
+  height: 40px;
+  float: right;
+  margin: 5px 0px;
+  padding: 0 34px 0 13px;
+  font-size: 16px;
+  line-height: 1.75;
+  color: $color-rhino-80;
+  background-color: #ffffff;
+  background-image: none;
+  border: 1px solid $color-ghost;
+  -ms-word-break: normal;
+  word-break: normal;
+  border-radius: 4px;
+}
+
+.icon {
+  position: absolute;
+  right: 13px;
+  top: 2px;
+  font-size: 20px;
+  z-index: 1;
+}

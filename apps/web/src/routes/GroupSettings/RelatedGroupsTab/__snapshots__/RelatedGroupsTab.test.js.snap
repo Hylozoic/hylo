@@ -1,0 +1,284 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GroupsCard renders correctly 1`] = `
+<div
+  data-stylename="group-card-wrapper"
+>
+  <div
+    data-stylename="group-card"
+  >
+    <div
+      data-stylename="group-details"
+    >
+      <RoundImage
+        data-stylename="group-image"
+        size="30px"
+        square={true}
+        url="foom.png"
+      />
+      <Link
+        to="/all"
+      >
+        <span
+          data-stylename="group-name"
+        >
+          Foom
+        </span>
+      </Link>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RelatedGroupstab renders correctly 1`] = `
+<div
+  data-stylename="container"
+>
+  <div
+    data-stylename="title"
+  >
+    Parent Groups
+  </div>
+  <div>
+    <div
+      data-stylename="subtitle"
+    >
+      These are the {{length}} groups that {{group.name}} is a member of
+    </div>
+    <div
+      data-stylename="group-list"
+    >
+      <GroupCard
+        actionMenu={
+          <Dropdown
+            data-stylename="relatedGroupDropdown"
+            items={
+              Array [
+                Object {
+                  "icon": "Trash",
+                  "label": "Leave Parent",
+                  "onClick": [Function],
+                  "red": true,
+                },
+              ]
+            }
+            toggleChildren={
+              <Icon
+                name="More"
+              />
+            }
+          />
+        }
+        group={
+          Object {
+            "id": 9,
+          }
+        }
+        key="9"
+      />
+      <GroupCard
+        actionMenu={
+          <Dropdown
+            data-stylename="relatedGroupDropdown"
+            items={
+              Array [
+                Object {
+                  "icon": "Trash",
+                  "label": "Leave Parent",
+                  "onClick": [Function],
+                  "red": true,
+                },
+              ]
+            }
+            toggleChildren={
+              <Icon
+                name="More"
+              />
+            }
+          />
+        }
+        group={
+          Object {
+            "id": 8,
+          }
+        }
+        key="8"
+      />
+      <GroupCard
+        actionMenu={
+          <Dropdown
+            data-stylename="relatedGroupDropdown"
+            items={
+              Array [
+                Object {
+                  "icon": "Trash",
+                  "label": "Leave Parent",
+                  "onClick": [Function],
+                  "red": true,
+                },
+              ]
+            }
+            toggleChildren={
+              <Icon
+                name="More"
+              />
+            }
+          />
+        }
+        group={
+          Object {
+            "id": 7,
+          }
+        }
+        key="7"
+      />
+    </div>
+  </div>
+  <div
+    data-stylename="group-picker-container"
+  >
+    <Button
+      data-stylename="connect-button"
+      onClick={[Function]}
+    >
+      <div>
+        <Icon
+          data-stylename="connect-icon"
+          name="Handshake"
+        />
+        Join {{group.name}} to another group
+      </div>
+      <span
+        data-stylename="connect-label"
+      >
+        REQUEST
+      </span>
+    </Button>
+  </div>
+  <div
+    data-stylename="title"
+  >
+    Child Groups
+  </div>
+  <div>
+    <div
+      data-stylename="subtitle"
+    >
+      These {{childGroups.length}} groups are members of {{group.name}}
+    </div>
+    <div
+      data-stylename="group-list"
+    >
+      <GroupCard
+        actionMenu={
+          <Dropdown
+            data-stylename="relatedGroupDropdown"
+            items={
+              Array [
+                Object {
+                  "icon": "Trash",
+                  "label": "Remove Child",
+                  "onClick": [Function],
+                  "red": true,
+                },
+              ]
+            }
+            toggleChildren={
+              <Icon
+                name="More"
+              />
+            }
+          />
+        }
+        group={
+          Object {
+            "id": 6,
+          }
+        }
+        key="6"
+      />
+      <GroupCard
+        actionMenu={
+          <Dropdown
+            data-stylename="relatedGroupDropdown"
+            items={
+              Array [
+                Object {
+                  "icon": "Trash",
+                  "label": "Remove Child",
+                  "onClick": [Function],
+                  "red": true,
+                },
+              ]
+            }
+            toggleChildren={
+              <Icon
+                name="More"
+              />
+            }
+          />
+        }
+        group={
+          Object {
+            "id": 5,
+          }
+        }
+        key="5"
+      />
+      <GroupCard
+        actionMenu={
+          <Dropdown
+            data-stylename="relatedGroupDropdown"
+            items={
+              Array [
+                Object {
+                  "icon": "Trash",
+                  "label": "Remove Child",
+                  "onClick": [Function],
+                  "red": true,
+                },
+              ]
+            }
+            toggleChildren={
+              <Icon
+                name="More"
+              />
+            }
+          />
+        }
+        group={
+          Object {
+            "id": 4,
+          }
+        }
+        key="4"
+      />
+    </div>
+  </div>
+  <div
+    data-stylename="group-picker-container"
+  >
+    <Button
+      data-stylename="connect-button"
+      onClick={[Function]}
+    >
+      <div>
+        <Icon
+          data-stylename="connect-icon"
+          name="Handshake"
+        />
+        Invite a group to join
+         
+        <strong>
+          Best Group
+        </strong>
+      </div>
+      <span
+        data-stylename="connect-label"
+      >
+        INVITE
+      </span>
+    </Button>
+  </div>
+</div>
+`;

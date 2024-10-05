@@ -1,0 +1,29 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Membership matches last snapshot 1`] = `
+<DocumentFragment>
+  <div
+    data-stylename="membership odd"
+  >
+    <div
+      data-stylename="button green-white"
+      role="button"
+      style="border-radius: 25px;"
+      tabindex="0"
+    >
+      <a
+        href="/groups/bb"
+      >
+        <div
+          data-stylename="image small"
+          style="background-image: url(https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png);"
+        />
+        Backyard Birders
+      </a>
+      <div
+        data-stylename="roles"
+      />
+    </div>
+  </div>
+</DocumentFragment>
+`;

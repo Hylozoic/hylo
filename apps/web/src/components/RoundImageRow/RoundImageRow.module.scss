@@ -1,0 +1,40 @@
+@mixin plus {
+  position: relative;
+  width: $space-9x;
+  height: $space-9x;
+  line-height: $space-7x;
+  border-radius: 50%;
+  border: 3px solid $color-white;
+  text-align: center;
+  display: inline-block;
+}
+
+.plus { 
+  @include plus();
+  margin-top: -$space-4x;
+  background: $color-caribbean-green;
+  color: $color-white;
+}
+
+.plus-inline {
+  @include plus();
+  left: -15px;
+  margin-right: -15px;
+  font-size: 0.8rem;
+  margin-top: 0;
+  background: $color-athens-gray-dark;
+  color: $color-regent;
+}
+
+.blue {
+  background: $color-picton-blue;
+  color: $color-white;
+}
+
+.green {
+  background: $color-caribbean-green;
+}
+
+.image {
+  position: relative;
+}

@@ -1,0 +1,241 @@
+.title {
+  height: 60px;
+  line-height: 60px;
+  text-align: center;
+  border-radius: 4px;
+  margin-bottom: 25px;
+  composes: hdr-display from 'css/typography.scss';
+  border: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  span {
+    font-size: 34px;
+  }
+}
+
+.prompt {
+  composes: bdy-drk-sm from 'css/typography.scss';
+  margin-bottom: 20px;
+}
+
+.help {
+  padding-top: 40px;
+  composes: bdy-lt-sm from 'css/typography.scss';
+  a {
+    color: $color-rhino;
+  }
+  border-top: $light-border;
+}
+
+.help-paragraph {
+  margin-bottom: 20px;
+}
+
+.global-setting {
+  border: 1px dashed rgba(235, 235, 235, 1.0);
+  padding: 20px 20px;
+  margin-bottom: 20px;
+  background-color: rgba(249, 250, 252, 1.0);
+
+  label, label select {
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    margin-top: 0;
+    color: rgba(35, 65, 91, 1.0);
+    display: flex;
+    align-items: center;
+
+    &:after {
+      padding: 0 0 0 0;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      right: 8px;
+    }
+  }
+
+  .setting-select {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    justify-content: center;
+
+    select {
+      font-family: 'Circular Book';
+      padding: 0 10px;
+      padding-right: 26px;
+    }
+
+    .select-explanation {
+      font-size: 16px;
+      margin-right: 10px;
+      color: rgba(35, 65, 91, 1.0);
+    }
+  }
+}
+
+.banner {
+  width: 100%;
+  height: 165px;
+  border-radius: 4px;
+  background-position: center;
+  background-size: cover;
+  padding-top: 5px;
+  padding-left: 5px;
+}
+
+.change-banner-button {
+  /* empty */
+}
+
+.avatar {
+  display: flex;
+  align-items: flex-end;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background-position: center;
+  background-size: cover;
+  margin: -70px auto $space-8x auto;
+}
+
+.individual-groups {
+  color: rgba(129, 140, 155, 1.0);
+  font-size: 12px;
+  margin-top: 25px;
+  margin-bottom: 0;
+}
+
+.setting-controls {
+  display: flex;
+  align-items: center;
+  border: 1px dashed rgba(204, 209, 215, 1.0);
+  border-radius: 5px;
+  margin-right: 8px;
+
+  &:hover {
+    cursor: pointer;
+  }
+
+  &.highlightIcon {
+    border: 1px solid rgba(252, 127, 0, 1.0);
+
+    span {
+      color: rgba(252, 127, 0, 1.0);
+    }
+  }
+
+  span {
+    color: rgba(44, 64, 89, .6)
+  }
+
+  .setting-status {
+    padding-right: 8px;
+  }
+}
+
+.change-avatar-button {
+  margin: 0 auto;
+  width: 30px;
+}
+
+.control-label {
+  display: block;
+  composes: tag from 'css/typography.scss';
+  color: $color-rhino-30;
+  margin-bottom: $space-1x;
+}
+
+.social-label {
+  composes: control-label;
+  margin-top: $space-9x;
+}
+
+.button-row {
+  display: flex;
+  width: 100%;
+  margin-top: $space-9x;
+}
+
+.save-button {
+  margin: 0 auto;
+}
+
+// SettingsRow
+.settingsRow {
+  display: flex;
+  align-items: center;
+  border-bottom: $light-border;
+  height: 65px;
+}
+
+.expanded {
+  height: 112px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-evenly;
+  padding-top: 10px;
+}
+
+.nameRow {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.avatarIcon {
+  font-size: 28px;
+  margin-right: 8px;
+}
+
+.name {
+  /* empty */
+}
+
+.arrowIcon {
+  margin-left: auto;
+}
+
+.iconRow {
+  display: flex;
+}
+
+.groupAvatar {
+  @include image(24px);
+  margin-right: 13px;
+}
+
+// SettingsIcon
+.icon {
+  font-size: 34px;
+  padding: 5px;
+  color: $color-cape-cod-20;
+}
+
+.highlightIcon {
+  color: $color-tree-poppy
+}
+
+@media screen and (max-width: 425px) {
+  .icon {
+    font-size: 24px;
+  }
+
+  .setting-status, .name {
+    font-size: 14px;
+  }
+}
+
+@media screen and (max-width: 320px) {
+  .icon {
+    font-size: 20px;
+  }
+
+  .setting-status, .name {
+    font-size: 12px;
+  }
+}

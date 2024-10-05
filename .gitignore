@@ -1,4 +1,36 @@
-# See http://help.github.com/ignore-files/ for more about ignoring files.
+# nx defaults (some duplication of above)
+
+# dependencies
+node_modules
+
+# testing
+coverage
+
+# production
+build
+build-hc
+es5
+
+# local config
+config/ssl
+
+# misc
+.DS_Store
+.env
+.env.old
+.env.production
+npm-debug.log
+
+.floo
+.flooignore
+
+yarn-error.log
+.idea
+yarn.lock
+.yarn
+.yarnrc.yml
+
+# from web (some duplication of above)
 
 # compiled output
 dist
@@ -109,4 +141,3 @@ yarn-error.log
 
 # testing
 /coverage
-

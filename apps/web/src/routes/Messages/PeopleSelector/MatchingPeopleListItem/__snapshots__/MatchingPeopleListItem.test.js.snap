@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`matches last snapshot 1`] = `
+<div
+  data-stylename="selector-matched-item"
+>
+  <RoundImage
+    data-stylename="avatar"
+    small={true}
+  />
+  <span
+    data-stylename="name"
+  />
+  <span>
+    <Icon
+      data-stylename="delete-match"
+      name="Ex"
+    />
+  </span>
+</div>
+`;

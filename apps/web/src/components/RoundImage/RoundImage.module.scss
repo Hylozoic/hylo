@@ -1,0 +1,67 @@
+// extracted from bootstrap v4 img-thumbnail
+.img-thumbnail {
+  padding: 0.25rem;
+  background-color: #FFFFFF;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  -webkit-transition: all 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
+  max-width: 100%;
+  height: auto;
+}
+
+.image {
+  composes: img-thumbnail;
+  @include image($space-11x);
+  border: solid 3px $color-white;
+  vertical-align: top;
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.overlaps {
+  margin-left: -$space-4x;
+}
+
+.overlaps:first-child {
+  margin-left: 0px;
+}
+
+.overlaps-vertical {
+  margin-top: -$space-4x;
+}
+
+.overlaps-vertical:first-child {
+  margin-top: 0px;
+}
+
+.xlarge {
+  width: $space-20x;
+  height: $space-20x;
+}
+
+.large {
+  width: $space-16x;
+  height: $space-16x;
+}
+
+.medium {
+  width: $space-9x;
+  height: $space-9x;
+}
+
+.small {
+  width: $space-7x;
+  height: $space-7x;
+  min-width: $space-7x;
+}
+
+.tiny {
+  width: calc($space-7x / 2);
+  height: calc($space-7x / 2);
+  border: 0;
+}
+
+.square {
+  border-radius: 8px;
+}
