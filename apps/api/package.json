@@ -6,10 +6,6 @@
   "license": "Apache-2.0",
   "private": true,
   "version": "5.10.0",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/Hylozoic/hylo-node.git"
-  },
   "nyc": {
     "sourceMap": false,
     "instrument": false,
