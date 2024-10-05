@@ -1,0 +1,7 @@
+export const USER_AVATAR = 'userAvatar'
+export const USER_BANNER = 'userBanner'
+export const GROUP_AVATAR = 'groupAvatar'
+export const GROUP_BANNER = 'groupBanner'
+export const POST = 'post'
+export const COMMENT = 'comment'
+export const IMPORT_POSTS = 'importPosts'

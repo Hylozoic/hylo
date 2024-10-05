@@ -1,0 +1,9 @@
+**/.tmp/**
+**/views/**
+**/coverage/**
+**/.git/**
+**/node_modules/**
+**/test/**
+worker.js
+console.js
+npm-debug.log

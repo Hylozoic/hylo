@@ -1,0 +1,58 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/Hylozoic/hylo-node
+    parallelism: 1
+    shell: /bin/bash --login
+    environment:
+      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
+      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
+    docker:
+    - image: cimg/node:20.17.0
+    - image: circleci/postgres:13.4-postgis-ram
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: hylo
+        POSTGRES_DB: hylo_test
+    - image: redis
+    steps:
+    - checkout
+    - run:
+        name: Update PATH Environment Variable at Runtime
+        command: |
+          export PATH=$PATH:$HOME/$CIRCLE_PROJECT_REPONAME/node_modules/.bin
+    - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
+    - restore_cache:
+        key: v1-deps-{{ checksum "package-lock.json" }}
+    - run:
+        name: Check Node.js version
+        command: node --version
+    - run:
+        name: Install dependencies and codecov
+        command: |
+          npm ci
+          npm install codecov --save-dev
+    - save_cache:
+        key: v1-deps-{{ checksum "package-lock.json" }}
+        paths:
+        - ~/.npm
+    - run:
+        name: Run tests with coverage
+        command: npm run cover -- --forbid-only
+    - run:
+        name: Upload coverage to Codecov
+        command: npx codecov
+    - store_test_results:
+        path: /tmp/circleci-test-results
+    - store_artifacts:
+        path: /tmp/circleci-artifacts
+    - store_artifacts:
+        path: coverage
+    - store_artifacts:
+        path: /tmp/circleci-test-results
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - build

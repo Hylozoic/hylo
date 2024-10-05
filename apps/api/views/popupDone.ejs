@@ -1,0 +1,34 @@
+<html>
+<body>
+<script type="text/javascript">
+var message = {
+  type: 'third party auth',
+  provider: '<%= provider %>',
+  context: '<%= context %>',
+  error:   <%- typeof(error) === "undefined" ? 'null' : '"' + error.toString().replace(/"/g, '\\"') + '"' %>
+}
+
+var postMessage = function () {
+  opener.postMessage(message, '<%= returnDomain %>')
+}
+
+try {
+  if (!opener.popupDone) {
+    // hylo-next on safari
+    postMessage()
+  } else {
+    try {
+      // hylo-frontend
+      opener.popupDone(message)
+    } catch (e) {
+      // just in case?
+      postMessage()
+    }
+  }
+} catch (e) {
+  // hylo-next on chrome
+  postMessage()
+}
+</script>
+</body>
+</html>

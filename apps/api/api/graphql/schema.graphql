@@ -1,0 +1,3124 @@
+scalar Date
+scalar JSON
+
+enum LocationDisplayPrecision {
+  precise
+  near
+  region
+}
+
+type Query {
+  # Find an Activity by ID
+  activity(id: ID): Activity
+
+  # Check if a group invitation is still valid
+  checkInvitation(invitationToken: String, accessCode: String): CheckInvitationResult
+
+  # Find an Comment by ID
+  comment(id: ID): Comment
+
+  commonRoles: [CommonRole]
+
+  collection(id: ID): Collection
+
+  # Query for PersonConnections
+  connections(
+    # Number of PersonConnections to load
+    first: Int,
+    # Start loading at this offset
+    offset: Int
+  ): PersonConnectionQuerySet
+
+  # Read a group by id or by slug
+  group(
+    id: ID,
+    slug: String,
+    # Set to true to mark all notifications as read for this group by the current logged in user
+    updateLastViewed: Boolean
+  ): Group
+
+  # Check whether a Group exists by URL slug
+  groupExists(slug: String): GroupExistsOutput
+
+  # Query for groups
+  groups(
+    # Search for groups who's name starts with the autcomplete string
+    autocomplete: String,
+    # Find only groups in this geographic bounding box
+    boundingBox: [PointInput],
+    # If 'all' return only groups that the current logged in user is a member of. If 'public' return only groups with visibility = Public.
+    context: String,
+    """
+    If set to a JSON object then only find 'farm' type groups with group.settings->hideExtensionData not set to true.
+    The possible keys of the JSON are:
+    farmType: Find only farms that have all of the types in this list of comma separated farm types. Possible types include: ....
+    productCategories: Find only farms that have all the products in this comma separate list.
+    certOrManagementPlan: Find only farms with certifications that match the comma separated list, OR with management plans that match the list
+    Example object
+    {
+      farmType: 'wholesale_farm, directsale_farm',
+      productCategories: 'grains', 'vegetables',
+      certOrManagementPlan: 'american_grassfed'
+    }
+    """
+    farmQuery: JSON,
+    # XXX: NOT USED
+    filter: String,
+    # Int of groups to return
+    first: Int,
+    # Only find these groups, by ID
+    groupIds: [ID],
+    # Only return groups of this type. Only valid option right now is 'farm'
+    groupType: String,
+    # Use along with sortBy: 'nearest' to return groups sorted by closeness to this coordinate
+    nearCoord: PointInput,
+    # For pagination, return groups after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Return only groups that are children of any of these parent groups by slug
+    parentSlugs: [String],
+    # Find groups where search text is in the name, description or location
+    search: String,
+    # 'name', 'size', or 'nearest'
+    sortBy: String,
+    # Filter groups by visibility: 0: hidden (only groups logged in user is a member of), 1: Protected, includes groups that are related to groups logged in user is a member of, 2: Public groups only
+    visibility: Int
+  ): GroupQuerySet
+
+  # Query for group extension data by ID
+  groupExtension(
+    id: ID
+  ): GroupExtension
+
+  # Query for group extensions
+  groupExtensions(
+    # Only return extension data with one of these IDs
+    extensionIds: [ID],
+    # Only return extension data for these groups by group ID
+    groupIds: [ID]
+  ): GroupExtensionQuerySet
+
+  # Find a GroupTopic by Group's URL slug and Topic name
+  groupTopic(
+    groupSlug: String,
+    topicName: String
+  ): GroupTopic
+
+  # Query for GroupTopics (relationship between a Group and a Topic)
+  groupTopics(
+    # Return only topics whose name starts with the autocomplete string
+    autocomplete: String,
+    # Int of GroupTopics to return
+    first: Int,
+    # If true only return topics that are set to be a default topic in a group that the current logged in user is a member of
+    isDefault: Boolean,
+    # For pagination, start loading GroupTopics after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Sort by 'name' or 'id'
+    sortBy: String,
+    # If true only return group topics that the current logged in user is subscribed to (following)
+    subscribed: Boolean,
+    # Only return topics that are set to this visibility in a group that the current logged in user is a member of: 0 = hidden in the group, 1 = visible, 2 = pinned
+    visibility: [Int]
+  ): GroupTopicQuerySet
+
+  # Query for JoinRequests representing a user requesting to join a group
+  joinRequests(
+    # Only return JoinRequests for this group by ID
+    groupId: ID,
+    # Only return JoinRequests with this status: 0 = Pending, 1 = Accepted, 2 = Rejected, 3 = Canceled
+    status: Int
+  ): JoinRequestQuerySet
+
+  # Fetch moderation actions
+  moderationActions(
+    # Number of moderation actions to load
+    first: Int,
+    # Start loading moderation actions after this offset
+    offset: Int,
+    # Determines sort order
+    sortBy: String,
+    # Only return moderation actions for this group by URL slug
+    slug: String
+
+  ): ModerationActionQuerySet
+
+  # Get the currently logged in user
+  me: Me
+
+  # Query notifications for the currently logged in user
+  notifications(
+    # Number of notifications to load
+    first: Int,
+    # Start loading notifications after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Reset the count of new notifications on all devices for currently logged in user
+    resetCount: Boolean
+  ): NotificationQuerySet
+
+  # Query for a MessageThread by ID
+  messageThread(id: ID): MessageThread
+
+  # Query for all platform agreements
+  platformAgreements: [PlatformAgreement]
+
+  # Query for people
+  people(
+    # Only return People whose name starts with the autocomplete string
+    autocomplete: String,
+    # Only return People who have a location set that is in this geographic bounding box
+    boundingBox: [PointInput],
+    # NOT USED
+    filter: String,
+    # Number of People to return
+    first: Int,
+    # Only return members of these groups by group ID
+    groupIds: [ID],
+    # For pagination return people after this offset
+    offset: Int,
+    # Number of People to return
+    order: String,
+    # Options are: 'name', 'location', 'join' (join date), 'last_active_at'
+    sortBy: String,
+    # Return People where the search term matches the name, bio or skills on their profile
+    search: String
+  ): PersonQuerySet
+
+  # Find a Person by ID or by email
+  person(id: ID, email: String): Person
+
+  # Query for a Post by ID
+  post(id: ID): Post
+
+  # Query for a set of Posts
+  posts(
+    # Only return posts that have not be fulfilled/completed and that are not past their end time
+    activePostsOnly: Boolean,
+    # Only return posts that end after this time
+    afterTime: Date,
+    # Only return announcements
+    announcementsOnly: Boolean,
+    # Only return posts that end before this time
+    beforeTime: Date,
+    # Only return posts within this geographic bounding box
+    boundingBox: [PointInput],
+    # Only return posts that are not in this collection
+    collectionToFilterOut: ID,
+    # If 'all' only return posts from groups the current logged in user is a member of. If 'public' only return pubic posts
+    context: String,
+    # Return posts from these users
+    createdBy: [ID],
+    # Load posts before or after this ID, depending on sort order
+    cursor: ID,
+    # Only return posts of this type: 'discussion', 'event', 'offer', 'project', 'proposal', 'request' or 'resource'
+    filter: String,
+    # Number of posts to return
+    first: Int,
+    # Only return posts that are in this collection
+    forCollection: ID,
+    # Only return posts from this set of groups by group URL slug
+    groupSlugs: [String],
+    # true = Only return posts that have been marked fulfilled/complete, false = only return posts not marked fulfilled/complete
+    isFulfilled: Boolean,
+    # Return posts that these users have reacted to or commented on
+    interactedWithBy: [ID],
+    # Return posts that mention these users
+    mentionsOf: [ID],
+    # For pagination return posts after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Return posts whose name or description match the search term
+    search: String,
+    # One of 'created' (created datetime), 'updated' (last updated datetime), 'reactions' (number of reactions), 'start_time'
+    sortBy: String,
+    # Return only posts that have this topic by ID
+    topic: ID,
+    # Return only posts that have any of these topics by topic ID
+    topics: [ID],
+    # Return only posts that are one of these types: 'discussion', 'event', 'offer', 'project', 'proposal', 'request' and/or 'resource'
+    types: [String]
+  ): PostQuerySet
+
+  # Query for responsibilities
+  responsibilities(
+    # responsibilties for a group id
+    groupId: ID
+    # responsibilties for a groupRole id
+    groupRoleId: ID
+    # responsibilties for a commonRole id
+    commonRoleId: ID
+  ): [Responsibility]
+
+  # Query for SavedSearches by user ID
+  savedSearches(userId: ID): SavedSearchQuerySet
+
+  # Full text search for posts, people and comments
+  search(
+    # Number of results to return
+    first: Int,
+    # For pagination, return results after this offset
+    offset: Int,
+    # Search term
+    term: String,
+    # ONly search for content of a specific type: 'post', 'person', or 'comment'
+    type: String
+  ): SearchResultQuerySet
+
+  # Query for Skills
+  skills(
+    # Return skills that start with the autocomplete string
+    autocomplete: String,
+    # Number of skills to return
+    first: Int,
+    # For pagination, return results after this offset
+    offset: Int
+  ): SkillQuerySet,
+
+  # Find a Topic by ID or by name (text)
+  topic(id: ID, name: String): Topic
+
+  # Query for Topics
+  topics(
+    # Return only topics whose name starts with the autocomplete string
+    autocomplete: String,
+    # Number of topics to return
+    first: Int,
+    # Only return topics used in this Group by URL slug
+    groupSlug: String,
+    # If true only return topics that are set to be a default topic in a group that the current logged in user is a member of
+    isDefault: Boolean,
+    # For pagination, only return Topics after this offset
+    offset: Int,
+    # Sort by 'name' or 'num_followers'
+    sortBy: String,
+    # Only return topics that are set to this visibility in a group that the current logged in user is a member of: 0 = hidden in the group, 1 = visible, 2 = pinned
+    visibility: [Int]
+  ): TopicQuerySet
+}
+
+# The meta data associated with an Activity
+type ActivityMeta {
+  """
+    The reasons for this activity, options are:
+      'mention' = // you are mentioned in a post or comment
+      'comment' = someone makes a comment on a post you follow
+      'contribution' = someone add you as a contributor to a #request
+      'followAdd' = you are added as a follower
+      'follow' = someone follows your post
+      'unfollow' = someone leaves your post
+      'announcement' = an announcement was posted
+      'approvedJoinRequest' = your request to join a group was approved
+      'joinRequest' = there is a reques to join one of your groups
+      'groupChildGroupInvite' = someone invited a group to join one of your groups
+      'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
+      'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
+      'groupParentGroupJoinRequestAccepted' = a parent group accepted one of your groups into it
+    TODO: turn this into it's own Enum?
+  """
+  reasons: [String]
+}
+
+# An activity that someone may want to be notified about
+type Activity {
+  id: ID
+  """
+    The primary reason this activity occurred:
+      'mention' = // you are mentioned in a post or comment
+      'comment' = someone makes a comment on a post you follow
+      'contribution' = someone add you as a contributor to a #request
+      'followAdd' = you are added as a follower
+      'follow' = someone follows your post
+      'unfollow' = someone leaves your post
+      'announcement' = an announcement was posted
+      'approvedJoinRequest' = your request to join a group was approved
+      'joinRequest' = there is a reques to join one of your groups
+      'groupChildGroupInvite' = someone invited a group to join one of your groups
+      'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
+      'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
+      'groupParentGroupJoinRequestAccepted' = a parent group accepted one of your groups into it
+    TODO: turn this into it's own Enum?
+  """
+  action: String
+  # The Person who carried out this Activity
+  actor: Person
+  # If this activity is related to a comment then this is the Comment
+  comment: Comment
+  # NOT USED RIGHT NOW
+  contributionAmount: Int
+  # Additional metadata about the Activity
+  meta: ActivityMeta
+  # The Group related to the activity
+  group: Group
+  # The other Group related to this activity for ones involving multiple groups
+  otherGroup: Group
+  # If this activity involved a post then this is the Post
+  post: Post
+  # Whether the Notification associated with this Activity has been read by the "reader" of this activity
+  unread: Boolean
+}
+
+# An Affiliation with an organization that someone has added to their profile
+type Affiliation {
+  id: ID
+  createdAt: Date
+  isActive: Boolean
+  # The name of the organization the person is affiliated with
+  orgName: String
+  # Connector word between role and org. e.g. Steward 'of' Terran Collective, or Laywer 'for' Hylo
+  preposition: String
+  # The role this person has in the organization
+  role: String
+  updatedAt: Date
+  user: Person
+  # URL of the affiliated organization
+  url: String
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type AffiliationQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Affiliation]
+}
+
+# An agreement used by a Group
+type Agreement {
+  id: Int
+  createdAt: Date
+  # The content of the agreement
+  description: String
+  # The order of the agreement within a group
+  order: Int
+  # The title/header of the agreement
+  title: String
+  updatedAt: Date
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type AgreementQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Agreement]
+}
+
+# A post attachment, either an image, video or file
+type Attachment {
+  id: ID
+  createdAt: Date
+  # To order how attachments appear in the post
+  position: Int
+  # URL to the thumbnail image
+  thumbnailUrl: String
+  # 'image', 'file' or 'video'
+  type: String
+  # URL of the attachment file
+  url: String
+}
+
+# Return type for the checkInvitation query
+type CheckInvitationResult {
+  # Whether the invitation is still valid or not
+  valid: Boolean
+}
+
+type Collection {
+  id: ID
+  # When the Collection was created
+  createdAt: Date
+  # The Group this Collection is associated with (optional)
+  group: Group
+  # The Posts in this Collection
+  linkedPosts: CollectionsPostQuerySet
+  # The name of the collection
+  name: String
+  # The Posts in this Collection
+  posts: PostQuerySet
+  # Total # of posts in this collection
+  postsTotal: Int
+  # When the Collection was last updated
+  updatedAt: Date
+  # The person who created this Collection
+  user: Person
+}
+
+type CollectionsPost {
+  id: ID
+  # When the CollectionsPost was created
+  createdAt: Date
+  # The order of the post in the collection when manually sorted
+  order: Int
+  # The post
+  post: Post
+  # When the CollectionsPost was last updated
+  updatedAt: Date
+  # The user that added this post to this collection
+  user: Person
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type CollectionsPostQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [CollectionsPost]
+}
+
+# A comment on a post
+type Comment {
+  id: ID
+  # Any Attachments on the comment
+  attachments(type: String): [Attachment]
+  # Number of attachments
+  attachmentsTotal: Int
+  # Child comments
+  childComments(
+    # For pagination, return comments after this ID
+    cursor: ID,
+    # Number of comments to return
+    first: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String
+  ): CommentQuerySet
+  createdAt: Date
+  # 'email' if this comment was created via an email, otherwise null
+  createdFrom: String
+  # The Person who wrote the comment
+  creator: Person
+  # When the text was last edited
+  editedAt: Date
+  # For threaded comments what's the parent of this one
+  parentComment: Comment
+  # The Post this comment is on
+  post: Post
+  # The content of the comment
+  text: String
+  # Not used
+  commentReactionsTotal: Int
+  # All reactions on a comment
+  commentReactions: [Reaction]
+  # The reactions of the logged-in user to this
+  myReactions: [Reaction]
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type CommentQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Comment]
+}
+
+# Common Roles are standard roles that are always available in all groups
+type CommonRole {
+  id: ID
+  # The description of the role
+  description: String
+  # The emoji/icon used for the role
+  emoji: String
+  # The name of the role
+  name: String
+  # The responsiblities attached to the role
+  responsibilities: ResponsibilityQuerySet
+  responsibilitiesTotal: Int
+}
+
+# A CustomView for a Group
+type CustomView {
+  id: ID
+  # Whether this view only displays active posts or not
+  activePostsOnly: Boolean
+  # The id of the Collection associated with this CustomView, for 'collection' type views
+  collectionId: ID
+  # For 'collection' type CustomViews, this is the Collection of posts
+  collection: Collection
+  # How to sort a Post stream or Collection by defaut ('created', updated', or 'reactions')
+  defaultSort: String
+  # The default style of viewing posts in the view ('cards', 'list', 'bigGrid', 'grid')
+  defaultViewMode: String
+  # URL for external link views
+  externalLink: String
+  # Is this view active or not
+  isActive: Boolean
+  # The Group this CustomView is in
+  group: Group
+  # ID of the group this CustomView is attached to
+  groupId: Int
+  # The icon to display for this CustomView
+  icon: String
+  # The label to display for this CustomView
+  name: String
+  # Not used right now, will be used to order views in the navigation menu
+  order: Int
+  # For post stream type views, filter by these post types
+  postTypes: [String]
+  # Not used yet, will be used to filter the post stream by search text
+  searchText: String
+  # For post stream type views, only show posts that have any of these topics
+  topics: [Topic]
+  # Number of topic filters for this CustomView
+  topicsTotal: Int
+  # The type of custom view: 'externalLink', 'stream', or 'collection'
+  type: String
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type CustomViewQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [CustomView]
+}
+
+# An invitation to an Event
+type EventInvitation {
+  id: ID
+  # Who was invited
+  person: Person
+  # 'yes', 'no' or 'interested'
+  response: String
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type EventInvitationQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [EventInvitation]
+}
+
+# A type of data extension that can be added to a group for special group types like farms
+type Extension {
+  id: ID
+  # Only option right now is 'farm-onboarding' for Groups of type 'farm'
+  type: String
+}
+
+# NOT USED RIGHT NOW
+type FeedItem {
+  type: String
+  content: FeedItemContent
+}
+
+# NOT USED RIGHT NOW
+union FeedItemContent = Post | Interstitial
+
+# A Hylo Group
+type Group {
+  id: ID
+  # URL for a video to display at the top of the about text
+  aboutVideoUri: String,
+  # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
+  accessibility: Int
+  # URL to the image of the avatar of the group
+  avatarUrl: String
+  # URL to the image of the banner for the group
+  bannerUrl: String
+  # When the group was created
+  createdAt: Date
+  # Group description text
+  description: String
+  # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
+  geoShape: JSON
+  # The current invite link for this group
+  invitePath: String
+  # A string describing the physical location of this group in the world
+  location: String
+  # The fully geocoded location object
+  locationObject: Location
+  # Number of members in this group
+  memberCount: Int
+  # Word used to describe an admin/moderator of this group. Defaults to "Moderator". TODO: remove once mobile app switches to stewardDescriptor
+  moderatorDescriptor: String
+  # Plural word used to describe admins/moderators of this group. Defaults to "Moderators". TODO: remove once mobile app switches to stewardDescriptor
+  moderatorDescriptorPlural: String
+  # Group name
+  name: String
+  # For the current logged in user how many prerequisite groups must they join before they can join this one
+  numPrerequisitesLeft: Int
+  # Total number of posts in this group
+  postCount: Int
+  # The purpose statement for the group
+  purpose: String
+  # Group settings
+  settings: GroupSettings
+  # Unique URL slug
+  slug: String
+  # Word used to describe any steward of this group. Defaults to "Steward"
+  stewardDescriptor: String
+  # Plural word used to describe stewards of this group. Defaults to "Stewards"
+  stewardDescriptorPlural: String
+  # Right now can either by 'farm' or null
+  type: String
+  # Word used to describe this type of group. Defaults to Group, or if type is set then defaults to the type (e.g. Farm)
+  typeDescriptor: String
+  # Word used to describe this type of groups. Defaults to Groups, or if type is set then defaults to the type (e.g. Farms)
+  typeDescriptorPlural: String
+  # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
+  visibility: Int
+
+  # NOT USED RIGHT NOW. Use `members` query instead
+  activeMembers( # TODO: remove
+    # Return people whose names start with the autocomplete string
+    autocomplete: String
+    # Return only people within the geographic bounding box
+    boundingBox: [PointInput],
+    # Number of people to return
+    first: Int,
+    # For pagination, return people after this offset in the query results
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    search: String,
+    sortBy: String
+  ): PersonQuerySet
+
+  # The agreements required to participate in this Group
+  agreements: AgreementQuerySet
+
+  # Child groups of this group
+  childGroups(
+    # Return groups whose names start with the autocomplete string
+    autocomplete: String,
+    # Return only groups in the geographic bounding box
+    boundingBox: [PointInput],
+    # Number of groups to return
+    first: Int,
+    # For pagination, return only results after this offset in the query results
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # 'name' or 'size'
+    sortBy: String,
+    # Return groups where the search text matches in the name, description or location
+    search: String
+  ): GroupQuerySet
+
+  # CustomViews for this group
+  customViews: CustomViewQuerySet
+
+  # The GroupExtension data for this group if it is a special group type like 'farm'
+  groupExtensions: GroupExtensionQuerySet
+
+  # Requests to join another group from this group
+  groupRelationshipInvitesFrom: GroupRelationshipInviteQuerySet
+
+  # Invitations to join another group sent to this group
+  groupRelationshipInvitesTo: GroupRelationshipInviteQuerySet
+
+  # Questions that a group requesting to join this group must answer
+  groupToGroupJoinQuestions: GroupToGroupJoinQuestionQuerySet
+
+  # Special roles or badges attached to this group
+  groupRoles: GroupRoleQuerySet
+
+  # Topics that have been used in this group
+  groupTopics(
+    # Return only topics whose name starts with the autocomplete string
+    autocomplete: String,
+    # Number of GroupTopics to return
+    first: Int,
+    # If true only return topics that are set to be a default topic in this group
+    isDefault: Boolean,
+    # For pagination, start loading GroupTopics after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Sort by 'name' or 'id'
+    sortBy: String,
+    # If true only return group topics that the current logged in user is subscribed to (following) in this group
+    subscribed: Boolean,
+    # Only return topics that are set to this visibility in this group: 0 = hidden in the group, 1 = visible, 2 = pinned
+    visibility: [Int]
+  ): GroupTopicQuerySet
+
+  # Questions that must be answered when someone requests to join this group
+  joinQuestions: GroupJoinQuestionQuerySet
+
+  # Group members
+  members(
+    # Return people whose names start with the autocomplete string
+    autocomplete: String
+    # Return only people within the geographic bounding box
+    boundingBox: [PointInput],
+    # Return members with a specific groupRole
+    groupRoleId: ID,
+    # Return members with a specific commonRole
+    commonRoleId: ID,
+    # Number of people to return
+    first: Int,
+    # For pagination, return people after this offset in the query results
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Search for members by name, bio or skills
+    search: String,
+    # Sort members by 'name', 'location', 'join' (when joined the group), or 'last_active_at'
+    sortBy: String
+  ): PersonQuerySet
+
+  # Group memberships (returns the membership objects instead of the Person objects of the members)
+  memberships(
+    # If set then return only the memberships for a specific user
+    userId: ID
+  ): MembershipQuerySet
+
+  # This returns any member that has the manage_content responsibility
+  moderators(
+    # For pagination, return stewards after this ID
+    cursor: ID,
+    # Number of stewards to return
+    first: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String
+  ): PersonQuerySet
+
+  # The group stewards - members who have common roles
+  stewards(
+    # For pagination, return stewards after this ID
+    cursor: ID,
+    # Number of stewards to return
+    first: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String
+  ): PersonQuerySet
+
+  # Parent Groups of this Group
+  parentGroups(
+    # Return groups whose names start with the autocomplete string
+    autocomplete: String,
+    # Return only groups in the geographic bounding box
+    boundingBox: [PointInput],
+    # Number of groups to return
+    first: Int,
+    # For pagination, return only results after this offset in the query results
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # 'name' or 'size'
+    sortBy: String,
+    # Return groups where the search text matches in the name, description or location
+    search: String
+  ): GroupQuerySet
+
+  # Pending invitations to people to join this group
+  pendingInvitations(
+    # For pagination, return results after this ID
+    cursor: ID,
+    # Number of invitations to return
+    first: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String
+  ): InvitationQuerySet
+
+  # Groups that must be joined before someone can join this group
+  prerequisiteGroups(
+    # Only return groups that the logged in user is not a member of already
+    onlyNotMember: Boolean
+  ): GroupQuerySet
+
+  posts(
+    # Only return posts that are not past their end date and have not been completed
+    activePostsOnly: Boolean,
+    # Only return posts that were created after this time
+    afterTime: Date,
+    # Only return posts that were created before this time
+    beforeTime: Date,
+    # Only return posts within this geographic bounding box
+    boundingBox: [PointInput],
+    # Only return posts that are not in this collection
+    collectionToFilterOut: ID,
+    # Start loading posts before or after this ID, depending on sort order
+    cursor: ID,
+    # Filter posts by a post type: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
+    #  a value of 'all' will include all above post types
+    #  a value of 'chat' will include all above post types + 'chat'
+    filter: String,
+    # Load this number of posts
+    first: Int,
+    # Only return posts that are in this collection
+    forCollection: ID,
+    # Load only posts from this set of groups by group slug
+    groupSlugs: [String],
+    # Only return posts that are marked as an announcement
+    isAnnouncement: Boolean,
+    # Only return posts that are either completed/fulfilled (true) or not (false)
+    isFulfilled: Boolean,
+    # Start loading posts at this index
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Only load posts whose content matches this search string
+    search: String,
+    # Sort posts by 'created', 'start_time', 'updated', 'reactions'
+    sortBy: String,
+    # Only load posts with this topic by topic id
+    topic: ID,
+    # Only load posts that have one of these topics by topic id
+    topics: [ID],
+    # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
+    types: [String]
+  ): PostQuerySet
+
+  # All responsibilities available to the group
+  responsibilities: [Responsibility]
+
+  # All skills of members in this group
+  skills(
+    # Only return skills whose text starts with the autocomplete string
+    autocomplete: String,
+    # Number of skills to return
+    first: Int,
+    # For pagination, return results after this offset
+    offset: Int
+  ): SkillQuerySet
+
+  # Skills suggested to new users joining this group to see if they want to add to their profile
+  suggestedSkills: SkillQuerySet
+
+  # Posts to display in this group's stream. This includes posts from child groups that the logged in user is a member of
+  viewPosts(
+    # Only return posts that are not past their end date and have not been completed
+    activePostsOnly: Boolean,
+    # Only return posts that were created after this time
+    afterTime: Date,
+    # Only return posts that were created before this time
+    beforeTime: Date,
+    # Only return posts within this geographic bounding box
+    boundingBox: [PointInput],
+    # Only return posts that are not in this collection
+    collectionToFilterOut: ID,
+    # Return posts before or after this post id, depending on sort order
+    cursor: ID,
+    # Filter posts by a post type: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
+    filter: String,
+    # Load this number of posts
+    first: Int,
+    # Only return posts that are in this collection
+    forCollection: ID,
+    # Load only posts from this set of groups by group slug
+    groupSlugs: [String],
+    # Only return posts that are either completed/fulfilled (true) or not (false)
+    isFulfilled: Boolean,
+    # Start loading posts at this index
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Only load posts whose content matches this search string
+    search: String,
+    # Sort posts by 'created', 'start_time', 'reactions', 'updated'
+    sortBy: String,
+    # Only load posts with this topic by topic id
+    topic: ID,
+    # Only load posts that have one of these topics by topic id
+    topics: [ID],
+    # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
+    types: [String]
+  ): PostQuerySet
+
+  # Widgets used on the Explore page
+  widgets: GroupWidgetQuerySet
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Group]
+}
+
+# Results of groupExists query
+type GroupExistsOutput {
+  exists: Boolean
+}
+
+# Extension data for a special group type e.g. farm
+type GroupExtension {
+  id: ID
+  active: Boolean
+  # The extension data
+  data: JSON
+  # The group type of this data
+  type: String
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupExtensionQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [GroupExtension]
+}
+
+# A question that must be answered when requesting to join a group
+type GroupJoinQuestion {
+  id: Int
+  questionId: Int
+  # Content of the question
+  text: String
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupJoinQuestionQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [GroupJoinQuestion]
+}
+
+# An answer to a required question when joining a group
+type GroupJoinQuestionAnswer {
+  id: Int
+  # The answer text
+  answer: String
+  # The group
+  group: Group
+  ## The question's id
+  ## questionId: ID
+  # The question
+  question: Question
+  # The person answering
+  user: Person
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupJoinQuestionAnswerQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [GroupJoinQuestionAnswer]
+}
+
+# Group settings
+type GroupSettings {
+  # The last date/time that the group agreements were updated
+  agreementsLastUpdatedAt: Date
+  # Whether this group allows any member to invite people (not currently used)
+  allowGroupInvites: Boolean
+  # Whether to require questions being answered when a group requests to join this group
+  askGroupToGroupJoinQuestions: Boolean
+  # Whether to require questions being answered when a person requests to join this group
+  askJoinQuestions: Boolean
+  # Whether to display group extension data on the profile for special group types like farms
+  hideExtensionData: Boolean
+  # How precisely to display group locations on the map and the group profile, to enable obfuscating the location
+  locationDisplayPrecision: LocationDisplayPrecision
+  # Whether to display the members of the group to non-members
+  publicMemberDirectory: Boolean
+  # Whether to display suggested skills to new members when they join this group
+  showSuggestedSkills: Boolean
+}
+
+# A relationship between two Groups
+type GroupRelationship {
+  id: ID
+  childGroup: Group
+  createdAt: Date
+  parentGroup: Group
+  # NOT CURRENTLY USED
+  role: Int
+  settings: GroupRelationshipSettings
+  updatedAt: Date
+}
+
+type GroupRelationshipSettings {
+  # Whether the parent group in this relationship must be joined before someone can join the child group
+  isPrerequisite: Boolean
+}
+
+# An invitation or request from a group to connect to another group, either as a parent or a child
+type GroupRelationshipInvite {
+  id: ID
+  createdAt: Date
+  # The Person that initiated the invite or request
+  createdBy: Person
+  # The group doing the inviting or requesting to join
+  fromGroup: Group
+  # When a group is trying to join one that has questions, here are the answers to those questions
+  questionAnswers: [GroupJoinQuestionAnswer]
+  # 0 = Pending, 1 = Accepted, 2 = Rejected, 3 = Canceled
+  status: Int
+  # The group being invited or asked to join
+  toGroup: Group
+  # 0 = ParentToChild, 1 = ChildToParent
+  type: Int
+  updatedAt: Date
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupRelationshipInviteQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [GroupRelationshipInvite]
+}
+
+# Group role
+type GroupRole {
+  active: Boolean
+  color: String
+  createdAt: Date
+  description: String
+  emoji: String
+  id: ID
+  group: Group
+  groupId: ID
+  name: String
+  updatedAt: Date
+  responsibilities: ResponsibilityQuerySet
+  responsibilitiesTotal: Int
+}
+
+# A question required to be answered when a group requests to join this group
+type GroupToGroupJoinQuestion {
+  id: Int
+  questionId: Int
+  # The content of the question
+  text: String
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupToGroupJoinQuestionQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [GroupToGroupJoinQuestion]
+}
+
+# Data related to a Topic within a specific Group
+type GroupTopic {
+  id: ID
+  createdAt: Date
+  # Total number of people following this topic in this group
+  followersTotal(groupSlug: String): Int
+  group: Group
+  # Is this a 'default' topic in this group, meaning all new members are auto subscribed to it and it appears
+  isDefault: Boolean
+  # Whether the current logged in user is subscribed to this topic in this group
+  isSubscribed: Boolean
+  # The most recent post that the user has read in this GroupTopic
+  lastReadPostId: ID
+  # The number of new posts in this topic in this group since the current logged in user looked at the stream for this topic/group
+  newPostCount: Int
+  # Total number of posts using this topic in this group
+  postsTotal(groupSlug: String): Int
+  topic: Topic
+  updatedAt: Date
+  """
+    0: This topic has been hidden by an admin in this group,
+    1: Visible in this group,
+    2: this topic has been pinned by an admin of this group.
+    (pinned topics appear at the top of every member's subscribed topics list if they are subscribed to this topic)
+  """
+  visibility: Int
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupRoleQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [GroupRole]
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type ResponsibilityQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Responsibility]
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type CommonRoleQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [CommonRole]
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupTopicQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [GroupTopic]
+}
+
+# Data related to a widget used on the Explore page in a specific group
+type GroupWidget {
+  id: ID
+  # Where this widget is being displayed. Only option right now is 'landing' which means the group Explore page
+  context: String
+  # Which group this widget is being displayed in
+  group: Group
+  # Whether this widget is to  be displayed or not
+  isVisible: Boolean
+  # Name of the widget
+  name: String
+  # The ordering of widgets displayed in the context
+  order: Int
+  # Settings for this widget in this group/context
+  settings: GroupWidgetSettings
+}
+
+type GroupWidgetSettings {
+  # Text content for this widget if it has some
+  text: String
+  # Title content for this widget if it has one
+  title: String
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupWidgetQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [GroupWidget]
+}
+
+# NOT USED RIGHT NOW
+type Interstitial {
+  text: String
+}
+
+# An invitation to join a group
+type Invitation {
+  id: Int
+  createdAt: Date
+  # Who created this invitation
+  creator: Person
+  # The email address being invited
+  email: String
+  # NOT USED?
+  error: String
+  # Which group they are being invited to
+  group: Group
+  # When this invitation was last sent out via email
+  lastSentAt: Date
+  # The login token for the person receiving the invitation to accept it even if they are not logged into Hylo
+  token: String
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type InvitationQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Invitation]
+}
+
+# A request from a person to join a group
+type JoinRequest {
+  id: Int
+  createdAt: Date
+  # Which group is being requested to join
+  group: Group
+  # Answers to questions required by Restricted groups
+  questionAnswers: [GroupJoinQuestionAnswer]
+  # 0 = Pending, 1 = Accepted, 2 = Rejected, 3 = Canceled
+  status: Int
+  updatedAt: Date
+  # The person who is requesting to join
+  user: Person
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type JoinRequestQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [JoinRequest]
+}
+
+
+# A generated preview of a link in a Post
+type LinkPreview {
+  id: ID
+  # The page description pulled from the URL
+  description: String
+  # Height of the preview image pulled from the URL
+  imageHeight: String
+  # Width of the preview image pulled from the URL
+  imageWidth: String
+  # Height of the preview image pulled from the URL
+  imageUrl: String
+  # NOT USED?
+  status: String
+  # The page title pulled from the URL
+  title: String
+  # The link URL
+  url: String
+}
+
+# A Geocoded location by Mapbox
+type Location {
+  id: ID
+  # Not used right now. Can be 'rooftop', 'parcel', 'point', 'interpolated', 'intersection', or 'street'
+  accuracy: String
+  # Street number like 123
+  addressNumber: String
+  # Street name e.g. Baker Rd
+  addressStreet: String
+  # Geographic bounding box
+  bbox: [Point]
+  # Geographic center point
+  center: Point
+  # City name
+  city: String
+  # Short country code e.g. us
+  countryCode: String
+  # Full country name (not used right now)
+  country: String
+  createdAt: Date
+  # String describing the full address
+  fullText: String
+  # A set of points describing the spatial geometry of the returned feature
+  geometry: [Point]
+  # Sub-city features in countries where this additional admin layer is used in addressing, or where such features are commonly referred to in local parlance. e.g. city districts in Brazil and Chile and arrondissements in France.
+  locality: String
+  # Colloquial neighborhood name
+  neighborhood: String
+  # Top-level sub-national administrative features, such as states in the United States or provinces in Canada or China.
+  region: String
+  # Postal codes used in country-specific national addressing systems.
+  postcode: String
+  updatedAt: Date
+  # Optional. The Wikidata identifier for the returned feature.
+  wikidata: String
+}
+
+# The currently logged-in person.
+type Me {
+  id: ID
+  # Is logged in user active
+  active: Boolean
+  # The URL of logged in user's avatar image
+  avatarUrl: String
+  # The URL of logged in user's banner image on their profile
+  bannerUrl: String
+  # Personal bio of the logged in user
+  bio: String
+  # Number of Users the logged in user has blocked
+  blockedUsersTotal: Int
+  # Email address made visible on the logged in user's profile to people who can see them
+  contactEmail: String
+  # Phone number made visible on the logged in user's profile to people who can see them
+  contactPhone: String
+  # The number of Groups the logged in user is a member of
+  groupsTotal: Int
+  # The email used to log in (not publicly shared in the app)
+  email: String
+  # Whether the logged in user has validated their email address or not
+  emailValidated: Boolean
+  # The URL to the logged in user Facebook profile
+  facebookUrl: String
+  # Whether the logged in user is using the Hylo app on any mobile devices
+  hasDevice: Boolean
+  # False for new users who have not completed the registration process
+  hasRegistered: Boolean
+  # NOT CURRENTLY USED
+  hasStripeAccount: Boolean
+  # IGNORE
+  intercomHash: String
+  # IGNORE
+  isAdmin: Boolean
+  # URL of the logged in user's LinkedIn Profile
+  linkedinUrl: String
+  # String representing the logged in user's physical location
+  location: String
+  # Object with the geocoded details of the logged in user's physical location
+  locationObject: Location
+  # Number of total group memberships
+  membershipsTotal: Int
+  # The number of MessageThreads the logged in user is a part of
+  messageThreadsTotal: Int
+  # The logged in user's full name
+  name: String
+  # The number of unread notifications the logged in user has
+  newNotificationCount: Int
+  # The number of Posts the logged in user has created
+  postsTotal: Int
+  # The logged in user's settings
+  settings: UserSettings
+  # Short tagline
+  tagline: String
+  # Twitter handle
+  twitterName: String
+  # The number of message threads with unread content
+  unseenThreadCount: Int
+  # When this record was last updated
+  updatedAt: Date
+  # A website URL the logged in user has added to their profile
+  url: String
+
+  # Organizational affiliations that are not Hylo Groups
+  affiliations: AffiliationQuerySet
+
+  # Set of Users the logged in user has blocked
+  blockedUsers: [Person]
+
+  # Groups I am a member of
+  groups(
+    # Start loading groups at this group id
+    cursor: ID,
+    # Load this number of groups
+    first: Int,
+    # Starting loading groups at this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'.
+    order: String
+    # 'name', 'size', or 'nearest'. If empty then by default sorted by order they were created.
+    sortBy: String
+  ): [Group]
+
+  groupRoles: GroupRoleQuerySet
+
+  # Set of pending invites to Groups
+  groupInvitesPending: InvitationQuerySet
+
+  # The set of pending requests to join groups
+  joinRequests(
+    # Is set then only look up requests with this status. 0 = Pending, 1 = Accepted, 2 = Rejected, 3 = Canceled
+    status: Int
+  ): JoinRequestQuerySet
+
+  # Group memberships
+  memberships(
+    # Start loading memberships at this id
+    cursor: ID,
+    # Load this number of memberships
+    first: Int,
+    # Determines sort order, either 'ASC' or 'DESC'. Memberships always sorted by order they were created.
+    order: String
+  ): [Membership]
+
+  # Set of common roles I have in groups. Can be filtered by groupId
+  membershipCommonRoles(
+    groupId: ID
+  ): MembershipCommonRoleQuerySet
+
+  # The set of MessageThreads
+  messageThreads(
+    # Load this number of threads
+    first: Int,
+    # Starting at this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # NOT USED RIGHT NOW
+    sortBy: String
+  ): MessageThreadQuerySet
+
+  # The set of Posts the logged in user has created
+  posts(
+    # Start loading posts at this post id
+    cursor: ID,
+    # Load this number of posts
+    first: Int,
+    # Determines sort order, either 'ASC' or 'DESC'. Posts are sorted by order they were created.
+    order: String
+  ): [Post]
+
+  # The set of Skills the logged in user has added to their profile
+  skills(
+    # Start loading skills after this ID
+    cursor: ID,
+    # Number of skills to load
+    first: Int
+  ): SkillQuerySet
+
+  # The set of Skills the logged in user want to learn
+  skillsToLearn(
+    # Start loading skills after this ID
+    cursor: ID,
+    # Number of skills to load
+    first: Int
+  ): SkillQuerySet
+}
+
+# A user's group membership
+type Membership {
+  id: ID
+  # The agreements this user has agreed to (or not) for this group
+  agreements: MembershipAgreementQuerySet
+  createdAt: Date
+  # The common roles this member has in this group
+  commonRoles: CommonRoleQuerySet
+  groupId: ID
+  group: Group
+  # Is this group membership a moderator role. TODO: remove once mobile app has been updated to use new roles
+  hasModeratorRole: Boolean
+  # Answers to the join questions for this group
+  joinQuestionAnswers: GroupJoinQuestionAnswerQuerySet
+  # The last time the current logged in user viewed this group (if they are a member of it)
+  lastViewedAt: String
+  # The common roles this members has in this group - just the join table data
+  membershipCommonRoles: MembershipCommonRoleQuerySet
+  # The group defined roles this members has in this group - just the join table data
+  membershipGroupRoles: MembershipGroupRoleQuerySet
+  # Number of new posts in this group since the current logged in user viewed it (if they are a member of it)
+  newPostCount: Int
+  person: Person
+  # 0: default, 1: moderator. TODO: deprecated, remove once mobile app has been updated to use new roles
+  role: Int
+  settings: MembershipSettings
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type MembershipQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Membership]
+}
+
+# A relationship between a user and a group agreement
+type MembershipAgreement {
+  # The agreement id
+  id: Int
+  # Whether a user has accepted this agreement or not
+  accepted: Boolean
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type MembershipAgreementQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [MembershipAgreement]
+}
+
+# The common roles a user has in a group
+type MembershipCommonRole {
+  id: ID
+  commonRoleId: ID
+  commonRole: CommonRole
+  createdAt: Date
+  group: Group
+  groupId: ID
+  # same as commonRoleId
+  roleId: ID
+  updatedAt: Date
+  user: Person
+  userId: ID
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type MembershipCommonRoleQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [MembershipCommonRole]
+}
+
+# The common roles a user has in a group
+type MembershipGroupRole {
+  id: ID
+  createdAt: Date
+  group: Group
+  groupId: ID
+  groupRoleId: ID
+  groupRole: GroupRole
+  # same as groupRoleId
+  roleId: ID
+  updatedAt: Date
+  user: Person
+  userId: ID
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type MembershipGroupRoleQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [MembershipGroupRole]
+}
+
+# Settinga for a user's group membership
+type MembershipSettings {
+  # When the member last accepted the agreements of the group
+  agreementsAcceptedAt: Date
+  # When the member filled out the join questions
+  joinQuestionsAnsweredAt: Date
+  # Whether the user wants to get email notifications from this group
+  sendEmail: Boolean
+  # Whether this user has yet seen the form that appears when first joining a new group
+  showJoinForm: Boolean
+  # Whether the user wants to get mobile app push notifications from this group
+  sendPushNotifications: Boolean
+}
+
+# A direct message sent in a specific thread
+type Message {
+  id: ID
+  createdAt: Date
+  # The person sending the message
+  creator: Person
+  # The message thread this message is a part of
+  messageThread: MessageThread
+  # The content of the Message
+  text: String
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type MessageQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Message]
+}
+
+# A direct message thread between 2 or more Persons
+type MessageThread {
+  id: ID
+  createdAt: Date
+  # When logged in user last read this thread
+  lastReadAt: String
+  # Total number of people in the thread
+  participantsTotal: Int
+  # Number of unread messages since logged in user last looked at this thread
+  unreadCount: Int
+  updatedAt: Date
+
+  # The set of messages in the thread
+  messages(first: Int, cursor: ID, order: String): MessageQuerySet
+
+  # The set of people in the thread
+  participants(first: Int, cursor: ID, order: String): [Person]
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type MessageThreadQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [MessageThread]
+}
+
+type ModerationAction {
+  id: ID
+  # The agreements that are linked to the moderation action
+  agreements: [Agreement]
+  # junk value, do not use
+  agreementsTotal: Int
+  # Whether the reporter can be seen by all group members or not
+  anonymous: Boolean
+  # The group where the action was taken
+  group: Group
+  # The groupId where the action was taken
+  groupId: ID
+  # Platform agreements that are linked to the moderation action
+  platformAgreements: [PlatformAgreement]
+  # junk value, do not use
+  platformAgreementsTotal: Int
+  # The post that was moderated
+  post: Post
+  # Just the id of the post
+  postId: ID
+   # The person who took the action
+  reporter: Person
+  # The status of moderation action
+  status: String
+  # Description of what the moderation action is about
+  text: String
+  createdAt: Date
+  updatedAt: Date
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type ModerationActionQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [ModerationAction]
+}
+
+# A notification of an activity for a person
+type Notification {
+  id: ID
+  # The activity being notified about
+  activity: Activity
+  createdAt: Date
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type NotificationQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Notification]
+}
+
+# A user of Hylo
+type Person {
+  id: ID
+  # The URL of this person's avatar image
+  avatarUrl: String
+  # The URL of this person's banner image on their profile
+  bannerUrl: String
+  # Personal bio
+  bio: String
+  # Email address made visible on this person's profile
+  contactEmail: String
+  # Phone number made visible on this person's profile
+  contactPhone: String
+  # The URL to this person's Facebook profile
+  facebookUrl: String
+  # False for new users who have not completed the registration process
+  hasRegistered: Boolean
+  # When this person last viewed Hylo
+  lastActiveAt: String
+  # URL of this person's LinkedIn Profile
+  linkedinUrl: String
+  # String representing this person's physical location
+  location: String
+  # Object with the geocoded details of this person's physical location
+  locationObject: Location
+  # Number of total group memberships
+  membershipsTotal: Int
+  # The id of the message thread this person has with the currently logged in user (if any)
+  messageThreadId: ID
+  # Number of groups this person moderates
+  moderatedGroupMembershipsTotal: Int
+  # This person's name
+  name: String
+  # Short tagline
+  tagline: String
+  # This person's twitter handle
+  twitterName: String
+  # A website URL this person has added to their profile
+  url: String
+
+  # Organizational affiliations that are not Hylo Groups
+  affiliations: AffiliationQuerySet
+  # Comments this person has made (that are visible to the logged in user)
+  comments(
+    # Load this number of posts
+    first: Int,
+    # Start loading posts at this index
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'. Posts are sorted by order they were created.
+    order: String
+  ): CommentQuerySet
+  # Common roles that the user has in groups
+  commonRoles(
+    id: ID
+  ): CommonRoleQuerySet
+  # The events this person is attending (that are visible to logged in user)
+  eventsAttending: PostQuerySet
+  # The set of Group Memberships this person has (that are visible to logged in user)
+  memberships(
+    # Start loading memberships at this ID
+    cursor: ID,
+    # Load this number of memberships
+    first: Int,
+    # Determines sort order, either 'ASC' or 'DESC'. Memberships always sorted by order they were created.
+    order: String
+  ): [Membership]
+  # The set of common roles this person has in groups. Can be filtered by groupId
+  membershipCommonRoles(
+    groupId: ID
+  ): MembershipCommonRoleQuerySet
+  # All the member roles for a user
+  groupRoles: GroupRoleQuerySet
+  # The set of Memberships to groups this person moderates (that are visible to logged in user
+  moderatedGroupMemberships(first: Int, cursor: ID, order: String): [Membership]
+  # The set of Posts this person has created (that are visible to logged in user)
+  posts(
+    # Only return posts that are not past their end date and have not been completed
+    activePostsOnly: Boolean,
+    # Only return posts that were created after this time
+    afterTime: Date,
+    # Only return announcements
+    announcementsOnly: Boolean,
+    # Only return posts that were created before this time
+    beforeTime: Date,
+    # Only return posts within this geographic bounding box
+    boundingBox: [PointInput],
+    # Only return posts that are not in this collection
+    collectionToFilterOut: ID,
+    # Only return posts within this context: 'public' = only return posts set to Public. 'all' = only return posts within a group that the current logged in user is a member of
+    context: String,
+    # Return posts from these users
+    createdBy: [ID],
+    # Start loading posts before or after this ID, depending on sort order
+    cursor: ID,
+    # Filter posts by a post type: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
+    filter: String,
+    # Load this number of posts
+    first: Int,
+    # Only return posts that are in this collection
+    forCollection: ID,
+    # Load only posts from this set of groups by group slug
+    groupSlugs: [String],
+    # Only return posts that are either completed/fulfilled (true) or not (false)
+    isFulfilled: Boolean,
+    # Return posts that these users have reacted to or commented on
+    interactedWithBy: [ID],
+    # Return posts that mention these users
+    mentionsOf: [ID],
+    # Start loading posts at this index
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+
+    # Only load posts whose content matches this search string
+    search: String,
+    # Sort posts by 'created', 'start_time', 'reactions', 'updated'
+    sortBy: String,
+    # Only load posts with this topic by topic id
+    topic: ID,
+    # Only load posts that have one of these topics by topic id
+    topics: [ID],
+    # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
+    types: [String]
+  ): PostQuerySet
+
+  # Project posts that this person is a member of
+  projects: PostQuerySet
+
+  # This person's reactions
+  reactions(first: Int, offset: Int, order: String): ReactionQuerySet
+
+  # The set of Skills this person has added to their profile
+  skills(first: Int, cursor: ID): SkillQuerySet
+
+  # The set of Skills this person want to learn
+  skillsToLearn(first: Int, cursor: ID): SkillQuerySet
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type PersonQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Person]
+}
+
+# Only type of connection tracked right now is who has sent a message to who. Also this can only be used to find connections for the current logged in user
+type PersonConnection {
+  id: ID
+  createdAt: Date
+  # Who the current user is connected to
+  person: Person
+  # Only option right now is 'message'
+  type: String
+  updatedAt: Date
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type PersonConnectionQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [PersonConnection]
+}
+
+type PlatformAgreement {
+  id: Int
+  description: String
+  # The text of the agreement
+  text: String
+  # type; either 'public' or 'anywhere'
+  type: String
+}
+
+type Post {
+  id: ID
+  # NOT USED RIGHT NOW. Whether this post can accept financial contributions
+  acceptContributions: Boolean
+  # whether voting is anonymous for this proposal (Only used by proposal type posts)
+  anonymousVoting: Boolean
+  # Was this post marked an announcement by a group moderator?
+  announcement: Boolean
+  # Number of attachments on this post
+  attachmentsTotal: Int
+  # Number of people who have commented on this post
+  commentersTotal: Int
+  # Total number of comments on this post
+  commentsTotal: Int
+  # If this post has been flagged, this tracks whether the user has clicked through the flag-screen
+  clickthrough: Boolean
+  createdAt: Date
+  # The body of the post
+  details: String
+  # Link to a donation page, only used for projects only right now
+  donationsLink: String
+  # When this post was last significantly edited (such as title and details)
+  editedAt: Date
+  # When this post "ends". Used for events, resources, projects, requests and offers right now
+  endTime: Date
+  # List of group ids for groups that have flagged this post
+  flaggedGroups: [ID]
+  # Number of people following this post (when someone comments on or reacts to a post they follow it)
+  followersTotal: Int
+  # When the posr creator marked it as "fulfilled" or "complete"
+  fulfilledAt: Date
+  # Number of groups this has been posted to
+  groupsTotal: Int
+  # Whether who votes on this proposal is visible or not
+  isAnonymousVote: Boolean
+  # Whether this post is publicly visible (outside of the groups it is posted to)
+  isPublic: Boolean
+  # A strict proposal cannot be edited in all the ways a casual proposal can be
+  isStrictProposal: Boolean
+  # Whether LinkPreview appears full size above post or smaller below
+  linkPreviewFeatured: Boolean
+  # Full location string
+  location: String
+  # Object with geocoded location deatils
+  locationObject: Location
+  # Logged in user's attendance response to an event post: 'yes', 'maybe' or 'no'
+  myEventResponse: String
+  # The reactions of the logged-in user to this
+  myReactions: [Reaction]
+  # Number of people that have one or more reactions to a post
+  peopleReactedTotal: Int
+  # Number of total reactions on the post
+  postReactionsTotal: Int
+  # Number of total "members" of the post. Used for Projects only right now
+  postMembershipsTotal: Int
+  # A proposal's outcome: 'cancelled', 'quorum-not-met', 'in-progress', 'successful', 'tie'
+  proposalOutcome: String
+  # The status of a proposal post: 'discussion', 'voting', 'completed'
+  proposalStatus: String
+  # Link to a project management tool or service. Only used for Projects right now
+  projectManagementLink: String
+  # The type of proposal: 'single', 'multiple-unrestricted', 'majority', 'consensus'
+  votingMethod: String
+  # Percentage of all group members that must vote for a proposal to complete
+  quorum: Int
+  # Number of total reactions on the post
+  reactionsTotal: Int
+  # Summary of reactions on the post
+  reactionsSummary: JSON
+  # When this post "starts". Used for events, resources, projects, requests and offers right now
+  startTime: Date
+  # The timezone of the post
+  timezone: String
+  # The title text for the post
+  title: String
+  # Number of topics added to the post
+  topicsTotal: Int
+  # NOT USED RIGHT NOW
+  totalContributions: Int
+  # Post type: 'discussion', 'event', 'offer', 'project', 'proposal', 'request', or 'resource'
+  type: String
+  updatedAt: Date
+
+  # The attachments (images, videos or files) added to the post
+  attachments(type: String): [Attachment]
+
+  # The comments on this post
+  comments(first: Int, cursor: ID, order: String): CommentQuerySet
+
+  # All the people who have commented on this post
+  commenters(first: Int): [Person]
+
+  # The person who created this post
+  creator: Person
+
+  # Invitations to event posts
+  eventInvitations(first: Int, cursor: ID, order: String): EventInvitationQuerySet
+
+  # People following this post (from commenting or voting on it)
+  followers(first: Int, cursor: ID, order: String): [Person]
+
+  # The groups this post has been posted to
+  groups(first: Int, cursor: ID, order: String): [Group]
+
+  # The link preview of the first link in the post that is shown as a card on the post
+  linkPreview: LinkPreview
+
+  # Any moderation actions that are linked to this post
+  moderationActions: [ModerationAction]
+
+  # The members of a project type Post
+  members(first: Int, cursor: ID, order: String): PersonQuerySet
+
+  # The post's "memberships" in the groups it has been posted in
+  postMemberships: [PostMembership]
+
+  # reactions to this post
+  postReactions: [Reaction]
+
+  # For proposal posts, load all the different options that people can vote on.
+  proposalOptions: ProposalOptionQuerySet
+
+  # Load all votes for a proposal post. Note: not a queryset; to avoid paginating votes
+  proposalVotes: ProposalVoteQuerySet
+
+  # The topics that have been added to this post
+  topics: [Topic]
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type PostQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Post]
+}
+
+# The relationship between a Post and a Group
+type PostMembership {
+  id: ID
+  # The group this post was posted in
+  group: Group
+  # Whether this post is set to pinned in the group by a moderator
+  pinned: Boolean
+}
+
+# Relationship of a user to a post, indicating "following the post". Created when a user comments on or reacts to a post
+type PostUser {
+  id: ID
+  post: Post
+  user: Person
+}
+
+# A geographic point by latitude + longitude
+type Point {
+  lat: String
+  lng: String
+}
+
+type ProposalOption {
+  id: ID
+  postId: ID
+  # Required: The text of the proposal option
+  text: String
+  # Optional: The emoji for the proposal option
+  emoji: String
+  # Optional: The color for the proposal option
+  color: String
+}
+
+type ProposalVote {
+  id: ID
+  # The person who voted
+  userId: ID
+  # The post that the vote is for
+  postId: ID
+  # The option that the person voted for
+  optionId: ID
+  # timestamp of when the vote was created
+  createdAt: Date
+  # The person who voted
+  user: Person
+}
+
+# A question asked when someone is trying to join a group
+type Question {
+  id: Int
+  # The question content
+  text: String
+}
+
+# Emoji reactions to posts and comments
+type Reaction {
+  # when the reaction happened
+  createdAt: Date
+  # Just the basic emoji, no modifiers. UTF-16 (JS default) encoding for an emojis code-points (like '\uD83D\uDE00')
+  emojiBase: String
+  # The full emoji, with any modifiers (eg: for skin). UTF-16 (JS default) encoding for an emojis code-points (like '\uD83D\uDE00')
+  emojiFull: String
+  # The EN locale string for an emoji, like :thumbs_up:
+  emojiLabel: String
+  # id for the entity associated with the reactions
+  entityId: ID
+  # What type of entity a reaction is associated with. Currently only 'post' or 'comment'
+  entityType: String
+  # id for the reaction
+  id: ID
+  # id for the user who reacted
+  userId: ID
+
+  # The post associated with a reaction
+  post: Post
+  # The user associated with a reaction
+  user: Person
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type ReactionQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Reaction]
+}
+
+# Responsibilities are either group-level platform powers (such as removing content or inviting new members) or non-platform group-specific responsibilities (such as handles budget, consent team, etc)
+type Responsibility {
+  id: ID
+  # If the responsibility is mapped to a group_role
+  responsibilityId: ID
+  # Description of this responsibility
+  description: String
+  # The name of the responsibility
+  title: String
+  # The type of responsibility: 'system' or 'group'
+  type: String
+}
+
+# A saved set of search/filter parameters for the map that can be reloaded later by a user
+type SavedSearch {
+  id: ID
+  # The geographic bounding box in the formar of [lng, lat, lng, lat...]
+  boundingBox: [Float]
+  createdAt: Date
+  # 'groups' for a Group specific search, 'all' to search for posts in all logged in user's groups, or 'public' to search all public posts
+  context: String
+  # The group to search (optional)
+  group: Group
+  # Whether the saved search is active or not
+  isActive: Boolean
+  # The name of the saves search
+  name: String
+  # New posts since the last time the search was checked for new posts to send in the email digest
+  newPosts: [Post]
+  # Only include posts that match these post types
+  postTypes: [String]
+  # Only include posts that match this search text in title or description
+  searchText: String
+  # Only include posts that match one of these topics
+  topics: [SavedSearchTopic]
+}
+
+# A topic associated with a Saved Search
+type SavedSearchTopic {
+  id: ID
+  # Topic title
+  name: String
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type SavedSearchQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [SavedSearch]
+}
+
+# Search result content item which can be a Person, a Post or a Comment
+union SearchResultContent = Person | Post | Comment
+
+# Search result item which can be a Person, a Post or a Comment
+type SearchResult {
+  id: ID
+  content: SearchResultContent
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type SearchResultQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [SearchResult]
+}
+
+# A skill someone adds to their profile
+type Skill {
+  id: ID
+  # The text content of the skill
+  name: String
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type SkillQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Skill]
+}
+
+# A Topic object represnts a tag on a post
+type Topic {
+  id: ID
+  # The number of followers of this topic in a particular group by slug
+  followersTotal(groupSlug: String): Int
+  # The topic string
+  name: String
+  # The number of posts using this topic in a particular group by slug
+  postsTotal(groupSlug: String): Int
+
+  # The relationships to all groups that this topic has been used in
+  groupTopics(
+    # Load this many groupTopics
+    first: Int,
+    # Filter by a specific group by URL slug
+    groupSlug: String,
+    # If true only load groupTopics that are set to default in their group
+    isDefault: Boolean,
+    # Start loading groupTopics at this offset
+    offset: Int
+    # Filter by visibility: 0: hidden in the group, 1: visible, 2: pinned
+    visibility: [Int]
+  ): GroupTopicQuerySet
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type TopicQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Topic]
+}
+
+# Current user's personal settings
+type UserSettings {
+  # Has this person seen the tour that displays the first time someone logs in
+  alreadySeenTour: Boolean
+  # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
+  commentNotifications: String
+  # How often this person wants to receive the email digest about new posts and comments: daily, weekly, or never
+  digestFrequency: String
+  # How this person wants to receive notifications about Direct Messages: email, push, both, or none
+  dmNotifications: String
+  # When person wants last viewed their Direct Messages
+  lastViewedMessagesAt: String
+  # Locale preferences for the user
+  locale: String
+  # The most recent map base later viewed by this person
+  mapBaseLayer: String
+  # How this person wants to receive notifications for each post in their groups. none, important, or all
+  postNotifications: String
+  # Whether this person has finished viewing the welcome wizard after first signing up
+  signupInProgress: Boolean
+  # Include child group posts in user's stream
+  streamChildPosts: String
+  # The most recent stream view mode used by this person: cards, list, grid, bigGrid
+  streamViewMode: String
+  # The most recent stream sort used by this person: updated, created, reactions
+  streamSortBy: String
+  # The most recent stream post type filter used by this person
+  streamPostType: String
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type ProposalOptionQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [ProposalOption]
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type ProposalVoteQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [ProposalVote]
+}
+
+# A widget is a block of styled content that appears in an Explore page for a group
+type Widget {
+  id: Int
+  # The name of the widget
+  name: String
+}
+
+type ZapierTrigger {
+  id: ID
+  groupId: ID
+  # The Zapier URL to call when this type is triggered
+  targetUrl: String
+  """
+  When this gets triggered. Options:
+    'new_member' = when 1 or more members are added to a group
+    'member_leaves' = when a person leaves or is kicked out of a group
+    'member_updated' = when a member of a group updates their profile
+    'new_post' = when a new post is created
+  """
+  type: String
+}
+
+# The mutations accepted by Hylo
+type Mutation {
+  # For a steward to accept an invitation to one of their groups to be related to another group (either as a parent or a child)
+  acceptGroupRelationshipInvite(groupRelationshipInviteId: ID): AcceptGroupRelationshipInviteResult
+  # For a steward to accept a request from a Person to join a Group
+  acceptJoinRequest(joinRequestId: ID): JoinRequest
+  # For a steward to add a group responsibility to a group
+  addGroupResponsibility(
+    # The description of the responsibility
+    description: String,
+    # The name of the responsibility
+    title: String,
+    groupId: ID
+  ): Responsibility
+  # For a steward to add a badge/role to a group
+  addGroupRole(
+    color: String,
+    description: String,
+    emoji: String,
+    groupId: ID,
+    name: String,
+  ): GroupRole
+  # Add a person to a group. Only a steward of the group can do this.
+  addMember(
+    groupId: ID,
+    userId: ID,
+    # 0 = default, 1 = moderator
+    role: Int
+  ): GenericResult
+  # Add a new moderator to a Group. Only a moderator of the Group can do this.
+  addModerator(personId: ID, groupId: ID): Group
+  # NOT USED RIGHGT NOW. Add one or more people to a Project as a Project member.
+  addPeopleToProjectRole(peopleIds: [ID], projectRoleId: ID): GenericResult
+  # Add a Post to a Collection
+  addPostToCollection(collectionId: ID, postId: ID): GenericResult
+  # Add responsibility to a role
+  addResponsibilityToRole(
+    responsibilityId: ID,
+    roleId: ID,
+    groupId: ID
+  ): Responsibility
+  # Add a rvote to a proposal
+  addProposalVote(postId: ID, optionId: ID): GenericResult
+  # For a steward to add a badge/role to a group to a member of a group
+  addRoleToMember(
+    roleId: ID,
+    groupId: ID,
+    personId: ID,
+    isCommonRole: Boolean
+  ): GroupRole
+  # Add a skill to your profile
+  addSkill(
+    name: String,
+    # 0 = Has this skill already, 1 = a skill I want to learn
+    type: Int
+  ): Skill
+  # Add a skill you want to learn to your profile
+  addSkillToLearn(name: String): Skill
+  # Add a suggested skill to a Group. Only a group steward can do this.
+  addSuggestedSkillToGroup(groupId: ID, name: String): Skill
+  # NOT USED RIGHT NOW. Toggle whether a Group allows non-hosts to invite new people to the Group. Only a group steward can call this.
+  allowGroupInvites(groupId: ID, data: Boolean): Group
+  # For logged in user to block a user, meaning they will no longer see the user's posts and that user can no longer see theirs or message them.
+  blockUser(blockedUserId: ID): GenericResult
+  # For a steward of a group that has invited a group to be in relationship with it, to cancel that invitation.
+  cancelGroupRelationshipInvite(groupRelationshipInviteId: ID): GenericResult
+  # For a Person who has requested to join another group to cancel that request.
+  cancelJoinRequest(joinRequestId: ID): GenericResult
+  # Clear a moderation action; only a 'content manager' or initial reporter can do this.
+  clearModerationAction(postId: ID, groupId: ID, moderationActionId: ID): GenericResult
+  # For logged in user to add an Affiliation to their profile
+  createAffiliation(data: AffiliationInput): Affiliation
+  # Create a new post Collection
+  createCollection(data: CollectionInput): Collection
+  # Add a comment to a Post
+  createComment(data: CommentInput): Comment
+  # Create a new Group
+  createGroup(
+    data: GroupInput,
+    # Create the group as a specific user. Only supported by particular API keys.
+    asUserId: ID
+  ): Group
+  # Invite an email address to join a Group
+  createInvitation(groupId: ID, data: InviteInput): CreatedInvitations
+  # Ask to join a Group
+  createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput]): CreatedRequest
+  # Send a direct message
+  createMessage(data: MessageInput): Message
+  # Create a new moderation action
+  createModerationAction(data: ModerationActionInput): ModerationAction
+  # Create a new Post
+  createPost(data: PostInput): Post
+  # Create a new 'project' type Post NOT USED RIGHT NOW, use createPost instead
+  createProject(data: PostInput): Post
+  # NOT USED RIGHT NOW
+  createProjectRole(projectId: ID, roleName: String): GenericResult
+  # Create a new Saved Search for the map
+  createSavedSearch(data: SavedSearchInput): SavedSearch
+  # Create a new topic within a Group
+  createTopic(topicName: String, groupId: ID, isDefault: Boolean, isSubscribing: Boolean): Topic
+  # Add a new Zapier trigger (called by Zapier)
+  createZapierTrigger(groupIds: [ID], targetUrl: String, type: String, params: JSON): ZapierTrigger
+  # Used by current logged in user to deactivate their account
+  deactivateMe(id: ID): GenericResult
+  # Used by current logged in user to delete their account permanently
+  deleteMe: GenericResult
+  # For group host to decline someone's request to join their Group
+  declineJoinRequest(joinRequestId: ID): JoinRequest
+  # Delete an Affiliation from your profile
+  deleteAffiliation(id: ID): ID
+  # Delete a comment
+  deleteComment(id: ID): GenericResult
+  # Delete a group that you are a steward of
+  deleteGroup(id: ID): GenericResult
+  # Remove the relationship between two groups if you are a steward of one of them
+  deleteGroupRelationship(parentId: ID, childId: ID): GenericResult
+  # Delete a group responsibility from a group
+  deleteGroupResponsibility(
+    responsibilityId: ID,
+     groupId: ID,
+     groupRoleId: ID
+  ): GenericResult
+  # Hide a topic within a group (it will still appear on posts in the group)
+  deleteGroupTopic(id: ID): GenericResult
+  # Delete a post you created
+  deletePost(id: ID): GenericResult
+  # Remove a person as a member from a project Post
+  deleteProjectRole(id: ID): GenericResult
+  # Delete a reaction you created
+  deleteReaction(entityId: ID, data: ReactionInput): Post
+  # Delete a SavedSearch you created
+  deleteSavedSearch(id: ID): ID
+  # Delete a Zapier trigger (called by Zapier)
+  deleteZapierTrigger(id: ID): Boolean
+  # Set an invitation to join a group as expired. Only a group host can call this.
+  expireInvitation(invitationId: ID): GenericResult
+  # Look for a link preview of a URL, or if not found create one
+  findOrCreateLinkPreviewByUrl(data: LinkPreviewInput): LinkPreview
+  # Look for a geocoded location object or if not found create one from the location data
+  findOrCreateLocation(data: LocationInput): Location
+  # Look for an existing direct message thread between participants, or if not yet there, create it
+  findOrCreateThread(data: MessageThreadInput): MessageThread
+  # Flag a post as innapropriate
+  flagInappropriateContent(data: InappropriateContentInput): GenericResult
+  # Mark one of your posts as fulfilled or completed
+  fulfillPost(postId: ID): GenericResult
+  # Invite a group to join one of your groups as a child of it. Only a group steward can call this.
+  inviteGroupToJoinParent(parentId: ID, childId: ID): CreatedGroupRelationshipInvite
+  # Invite one or more people to an event Post
+  invitePeopleToEvent(eventId: ID, inviteeIds: [ID]): Post
+  # Join a group. Will fail if the person does not have permission to join this group.
+  joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput]): Membership
+  # Join a project Post as a member
+  joinProject(id: ID): GenericResult
+  # Leave a group
+  leaveGroup(id: ID): ID
+  # Remove yourself as a member of a project Post
+  leaveProject(id: ID): GenericResult
+  # Login to Hylo on current device using email and password. TODO: add more info about errors, sessions, etc.
+  login(email: String, password: String): SignupResult
+  # Logout from Hylo on the current device
+  logout: GenericResult
+  # Mark a notification as read
+  markActivityRead(id: ID): Activity
+  # Mark all notifications as read
+  markAllActivitiesRead: GenericResult
+  # Send a message to all the stewards of a Group
+  messageGroupStewards(groupId: ID): ID
+  # Pin a post within a Group. Only a group moderator can call this.
+  pinPost(postId: ID, groupId: ID): GenericResult
+  # NOT USED RIGHT NOW
+  processStripeToken(postId: ID, token: String, amount: Int): GenericResult
+  # react to a post or comment
+  reactOn(entityId: ID, data: ReactionInput): Post
+  # For a deactivated user to reactivate their account.
+  reactivateMe(id: ID): GenericResult
+  # Record a click through on a moderated post
+  recordClickthrough(postId: ID): GenericResult
+  # Regenerate the invite URL used to invite people to a Group. Only a group Host can call this.
+  regenerateAccessCode(groupId: ID): Group
+  # Register a new mobile device to the current logged in user account
+  registerDevice(playerId: String, platform: String, version: String): GenericResult
+  # Reinvite all pending invitations to the current group. Only a group Host can call this.
+  reinviteAll(groupId: ID): GenericResult
+  # Create a new user account
+  register(name: String, password: String): SignupResult
+  # NOT USED RIGHT NOW
+  registerStripeAccount(authorizationCode: String): GenericResult
+  # Reject a Group's invite or request to connect to one of your groups. Only a group steward can call this.
+  rejectGroupRelationshipInvite(groupRelationshipInviteId: ID): GenericResult
+  # Remove a Person from a Group. Only a group Moderator can call this.
+  removeMember(personId: ID, groupId: ID): Group
+  # Remove a moderator from a Group.
+  removeModerator(
+    groupId: ID,
+    # Whether to also remove the person from the Group completely
+    isRemoveFromGroup: Boolean,
+    personId: ID
+  ): Group
+  # Remove a Post from a group, by groupId or group slug
+  removePost(postId: ID, slug: String, groupId: ID): GenericResult
+  # Remove a Post from a Collection, if you have permission to
+  removePostFromCollection(collectionId: ID, postId: ID): GenericResult
+  # Remove a group responsibility from a group
+  removeResponsibilityFromRole(
+    roleResponsibilityId: ID, groupId: ID
+  ): GenericResult
+  # Remove a vote from a proposal
+  removeProposalVote(postId: ID, optionId: ID): GenericResult
+  # Remove a badge/role from a member of a group, inititated by that member or by a group Steward
+  removeRoleFromMember(roleId: ID, groupId: ID, personId: ID, isCommonRole: Boolean): GenericResult
+  # Remove a skill from your user profile
+  removeSkill(id: ID, name: String): GenericResult
+  # Remove a skill you want to learn from your user profile
+  removeSkillToLearn(id: ID, name: String): GenericResult
+  # Remove a suggested skill from a Group by skill ID or name/text
+  removeSuggestedSkillFromGroup(groupId: ID, id: ID, name: String): GenericResult
+  # Request to add one one of the groups you moderate to another group as a child group. Only a group steward can call this.
+  requestToAddGroupToParent(
+    childId: ID,
+    # Answers to any required questions to connect to the group
+    questionAnswers: [QuestionAnswerInput],
+    parentId: ID
+  ): CreatedGroupRelationshipInvite
+  # Change a post's order/position in a Collection to newOrderIndex (0 indexed)
+  reorderPostInCollection(
+    collectionId: ID,
+    postId: ID,
+    # Move the post to this index in the collection, 0 indexed
+    newOrderIndex: Int
+  ): GenericResult
+  # Resend an invitation to the invited email address
+  resendInvitation(invitationId: ID): GenericResult
+  # Change your response to an event Post
+  respondToEvent(
+    # The ID of the event Post
+    id: ID,
+    # 'yes', 'maybe' or 'no'
+    response: String
+  ): GenericResult
+  # When a new person signs up, send them an email to verify their email address so they can finish registering
+  sendEmailVerification(email: String!): GenericResult,
+  # Send a password reset email
+  sendPasswordReset(email: String!): GenericResult,
+  # set options for a proposal
+  setProposalOptions(postId: ID, options: [ProposalOptionInput]): [ProposalOption]
+  # Subscribe or unsubscribe to a Topic in a Group
+  subscribe(groupId: ID, topicId: ID, isSubscribing: Boolean): GenericResult
+  # Swap votes on a proposal
+  swapProposalVote(postId: ID, addOptionId: ID, removeOptionId: ID): GenericResult
+  # Unlink profile from previously linked social platform. Provider can be 'facebook', 'twitter', or 'linkedin'
+  unlinkAccount(provider: String): GenericResult
+  # Unblock a user
+  unblockUser(blockedUserId: ID): GenericResult
+  # Mark a post as unfulfilled/uncompleted
+  unfulfillPost(postId: ID): GenericResult
+  # Edit a comment
+  updateComment(id: ID, data: CommentInput): Comment
+  # Update a Group's settings. Only a group steward can call this.
+  updateGroupSettings(id: ID, changes: GroupInput): Group
+  # Update a Group's settings. Only can be called via API key.
+  updateGroup(
+    id: ID,
+    changes: GroupInput,
+    # Update group as a particular User (with permission)
+    asUserId: ID
+  ): Group
+  # Update a group responsibility
+  updateGroupResponsibility(
+    responsibilityId: ID,
+    # The description of the responsibility
+    description: String,
+    # The name of the responsibility
+    title: String
+    # groupId
+    groupId: ID
+  ): Responsibility
+  # Update a badge/role from a group and all associated roles
+  updateGroupRole(
+    groupRoleId: ID
+    color: String,
+    description: String,
+    emoji: String,
+    groupId: ID,
+    name: String,
+    active: Boolean
+  ): GroupRole
+  # Update settings related a Topic in a Group. Only a group steward can call this.
+  updateGroupTopic(id: ID, data: GroupTopicInput): GenericResult
+  # Update settings related to a Person following a Topic in a Group
+  updateGroupTopicFollow(id: ID, data: GroupTopicFollowInput): GenericResult
+  # Update your settings or profile information
+  updateMe(changes: MeInput): Me
+  # Update settings related to your relationship to a particular group by Group ID or slug
+  updateMembership(groupId: ID, slug: String, data: MembershipInput): Membership
+  # Update a post you created
+  updatePost(id: ID, data: PostInput): Post
+  # update options for a proposal
+  updateProposalOptions(postId: ID, options: [ProposalOptionInput]): [ProposalOption]
+  # update the outcome of a proposal
+  updateProposalOutcome(postId: ID, proposalOutcome: String): GenericResult
+  # NOT USED RIGHT NOW
+  updateStripeAccount(accountId: String): GenericResult
+  # Update settings for a GroupWidget
+  updateWidget(id: ID, changes: GroupWidgetInput): GroupWidget
+  # Accept an invitation to a Group
+  useInvitation(
+    # The invite code for the Group
+    accessCode: String,
+    # Your unique invitation token
+    invitationToken: String
+  ): InvitationUseResult
+  # Verify your email address, manually by code or automatically by URL token
+  verifyEmail(
+    # The shortcode sent via email
+    code: String,
+    # Your email address
+    email: String!,
+    # For verifying by clicking on a URL, the unique verification token
+    token: String
+  ): SignupResult
+  # Upvote a post, or remove upvote. DEPRECATED, use reactOn instead
+  vote(postId: ID, isUpvote: Boolean): Post
+}
+
+# Result of acceptGroupRelationshipInvite mutation
+type AcceptGroupRelationshipInviteResult {
+  # Whether the mutation succeeded or not
+  success: Boolean
+  # The new GroupRelationship object if it succeeded
+  groupRelationship: GroupRelationship
+}
+
+# The result of a createInvitation mutation
+type CreatedInvitations {
+  # The invitations created
+  invitations: [Invitation]
+}
+
+# Result of the createJoinRequest mutation
+type CreatedRequest {
+  request: JoinRequest # TODO: why don't we just return the JoinRequest directly instead of this type?
+}
+
+# Result of a mutation that creates a GroupRelationshipInvite
+type CreatedGroupRelationshipInvite {
+  # Whether the mutation succeeded or not
+  success: Boolean
+  # In the case that the invite was from and to a group that the user is a steward of then the invite automatically succeeds and a GroupRelationship is formed and returned
+  groupRelationship: GroupRelationship
+  # If the invite was to a group the user is not a steward of then return the new GroupRelationshipInvite
+  groupRelationshipInvite: GroupRelationshipInvite
+}
+
+# A generic result of a mutation
+type GenericResult {
+  # If the mutation failed this will contain an error string
+  error: String
+  # Did the mutation succeed or not
+  success: Boolean
+}
+
+# Result of a useInvitation mutation
+type InvitationUseResult {
+  # If the mutation failed this will contain an error string
+  error: String
+  # If the mutation succeeded, the new group Membership object
+  membership: Membership
+}
+
+# Result of a login or signup related mutation
+type SignupResult {
+  # If the mutation failed this will contain an error string
+  error: String
+  # If the mutation succeeded return the data for the current user logging in or signup up
+  me: Me
+}
+
+# An Affilation with an organization added to a User profile
+input AffiliationInput {
+  # The name of the organization the person is affiliated with
+  orgName: String
+  # Connector word between role and org. e.g. Steward 'of' Terran Collective, or Laywer 'for' Hylo
+  preposition: String
+  # The role this person has in the organization
+  role: String
+  # URL of the affiliated organization
+  url: String
+}
+
+# A Group Agreement
+input AgreementInput {
+  id: ID
+  # The text of the agreement
+  description: String
+  # To order the display of the agreements in the group
+  order: Int
+  # The title/header of the agreement
+  title: String
+}
+
+# An Attachment on a Post
+input AttachmentInput {
+  # 'image', 'file' or 'video'
+  attachmentType: String
+  # URL to the attachment
+  url: String
+}
+
+# A Collection
+input CollectionInput {
+  id: ID
+  # The Group this Collection is associated with (optional)
+  groupId: ID
+  # The name of the collection
+  name: String
+  # The Posts in this Collection
+  posts: [CollectionsPostInput]
+  # The person who created this Collection
+  userId: ID
+}
+
+input CollectionsPostInput {
+  id: ID
+  collectionId: ID
+  # The order of the post in the collection when manually sorted
+  order: Int
+  postId: ID
+  # The user that added this post to this collection
+  userId: ID
+}
+
+# A Comment
+input CommentInput {
+  # Image or file attachments on the comment
+  attachments: [AttachmentInput]
+  # Add Comment as a thread to this parent Comment
+  parentCommentId: String
+  # Post ID
+  postId: String
+  # Comment content
+  text: String
+}
+
+# For adding or editing an existing CustomView on a Group
+input CustomViewInput {
+  # The ID of an existing CustomView
+  id: ID
+  # Whether this view only displays active posts or not
+  activePostsOnly: Boolean
+  # ID of a Collection for 'collection type' views
+  collectionId: ID
+  # How to sort a Post stream or Collection by defaut ('created', 'reactions', or 'updated')
+  defaultSort: String
+  # The default style of viewing posts in the view ('cards', 'list', 'bigGrid', 'grid')
+  defaultViewMode: String
+  # URL for external link views
+  externalLink: String
+  # ID of the group this view is connected to
+  groupId: Int
+  # The icon to display for this CustomView
+  icon: String
+  # Is this view active or not
+  isActive: Boolean
+  # The label to display for this CustomView
+  name: String
+  # Not used right now, will be used to order views in the navigation menu
+  order: Int
+  # For post stream type views, filter by these post types
+  postTypes: [String]
+  # Not used yet, will be used to filter the post stream by search text
+  searchText: String
+  # For post stream type views, only show posts that have any of these topics
+  topics: [CustomViewTopicInput]
+  # The type of custom view: 'externalLink', 'stream', or 'collection'
+  type: String
+}
+
+# A Topic added to a CustomView
+input CustomViewTopicInput {
+  # Topic ID
+  id: ID
+  # Topic content/text
+  name: String
+}
+
+# For adding a LinkPreview to a Post
+input LinkPreviewInput {
+  # The URL to preview
+  url: String
+}
+
+input LocationInput {
+  # Not used right now. Can be 'rooftop', 'parcel', 'point', 'interpolated', 'intersection', or 'street'
+  accuracy: String
+  # Street number like 123
+  addressNumber: String
+  # Street name e.g. Baker Rd
+  addressStreet: String
+  # Geographic bounding box
+  bbox: [PointInput]
+  # Geographic center point
+  center: PointInput
+  # City name
+  city: String
+  # Short country code e.g. us
+  countryCode: String
+  # Full country name (not used right now)
+  country: String
+  createdAt: Date
+  # String describing the full address
+  fullText: String
+  # A set of points describing the spatial geometry of the returned feature
+  geometry: [PointInput]
+  # Sub-city features in countries where this additional admin layer is used in addressing, or where such features are commonly referred to in local parlance. e.g. city districts in Brazil and Chile and arrondissements in France.
+  locality: String
+  # Colloquial neighborhood name
+  neighborhood: String
+  # Top-level sub-national administrative features, such as states in the United States or provinces in Canada or China.
+  region: String
+  # Postal codes used in country-specific national addressing systems.
+  postcode: String
+  updatedAt: Date
+  # Optional. The Wikidata identifier for the returned feature.
+  wikidata: String
+}
+
+input GroupInput {
+  # URL for a video to display at the top of the about text
+  aboutVideoUri: String
+  # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
+  accessibility: Int
+  # Whether this Group is active or not
+  active: Boolean
+  # The group agreements
+  agreements: [AgreementInput]
+  # URL to the image of the avatar of the group
+  avatarUrl: String
+  # URL to the image of the banner for the group
+  bannerUrl: String
+  # CustomViews for this Group
+  customViews: [CustomViewInput]
+  # Group description text
+  description: String
+  # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
+  geoShape: String
+  # Extension data for special group types like farms
+  groupExtensions: [GroupExtensionInput]
+  # Questions that a group requesting to connect must answer
+  groupToGroupJoinQuestions: [QuestionInput]
+  # The current invite link for this group
+  invitePath: String
+  # Questions a Person must answer when requesting to join this group
+  joinQuestions: [QuestionInput]
+  # A string describing the physical location of this group in the world
+  location: String
+  # ID of the geocoded location object
+  locationId: ID
+  # Word used to describe an admin/moderator of this group. Defaults to "Moderator". TODO: remove once mobile app switches to stewardDescriptor
+  moderatorDescriptor: String
+  # Plural word used to describe admins/moderators of this group. Defaults to "Moderators". TODO: remove once mobile app switches to stewardDescriptor
+  moderatorDescriptorPlural: String
+  # Group name
+  name: String
+  # IDs of parent Groups to add this Group to
+  parentIds: [ID]
+  # IDs of Groups that someone must join before they can join this one
+  prerequisiteGroupIds: [ID]
+  # Purpose statement
+  purpose: String
+  # Group settings
+  settings: GroupSettingsInput
+  # NOT USED RIGHT NOW. For Slack integratiom
+  slackHookUrl: String
+  # NOT USED RIGHT NOW. For Slack integratiom
+  slackTeam: String
+  # NOT USED RIGHT NOW. For Slack integratiom
+  slackConfigureUrl: String
+  # Unique URL slug
+  slug: String
+  # Word used to describe any steward of this group (someone with a Common Role). Defaults to "Steward"
+  stewardDescriptor: String
+  # Word used to describe stewards of this group (people with a Common Role). Defaults to "Stewards"
+  stewardDescriptorPlural: String
+  # Right now can either by 'farm' or empty
+  type: String
+  # Word used to describe this type of group. Defaults to Group, or if type is set then defaults to the type (e.g. Farm)
+  typeDescriptor: String
+  # Word used to describe this type of groups. Defaults to Groups, or if type is set then defaults to the type (e.g. Farms)
+  typeDescriptorPlural: String
+  # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
+  visibility: Int
+}
+
+# Extension data for special group types like farms
+input GroupExtensionInput {
+  data: JSON
+  # Extension type. Only option right now is 'farm-onboarding', for groups of type 'farm'
+  type: String
+}
+
+# Settings for a Topic's connections to a Group
+input GroupTopicInput {
+  # true means this Topic is a default topic in the Group, meaning all new members are auomatically subscribed to it and it appears as a suggested topic when creating a post in the group.
+  isDefault: Boolean
+  # 0 = hidden in the group, 1 = visible, 2 = pinned (will appear at the top of the subscribed topics list for People who have subscribed to it in this Group)
+  visibility: Int
+}
+
+# Data related to a Person following a Topic in a Group
+input GroupTopicFollowInput {
+  # The most recent post that the user has read in this GroupTopic
+  lastReadPostId: ID
+  # Set the count of new posts with this Topic in the Group since the Person last looked a the Topic stream
+  newPostCount: Int
+}
+
+# Group settings
+input GroupSettingsInput {
+  # Whether this group allows non-hosts to invite people (not currently used)
+  allowGroupInvites: Boolean
+  # Whether to require questions being answered when a group requests to join this group
+  askGroupToGroupJoinQuestions: Boolean
+  # Whether to require questions being answered when a person requests to join this group
+  askJoinQuestions: Boolean
+  # Whether to display group extension data on the profile for special group types like farms
+  hideExtensionData: Boolean
+  # How precisely to display group locations on the map and the group profile, to enable obfuscating the location
+  locationDisplayPrecision: LocationDisplayPrecision
+  # Whether to display the members of the group to non-members
+  publicMemberDirectory: Boolean
+  # Whether to display suggested skills to new members when they join this group
+  showSuggestedSkills: Boolean
+}
+
+# Settings for a Widget in a particular Group's explore page
+input GroupWidgetInput {
+  # Whether the widget is visible
+  isVisible: Boolean
+  # Additional Widget data for specific Widgets
+  settings: GroupWidgetSettingsInput
+}
+
+input GroupWidgetSettingsInput {
+  # The text content of the widget, for Widgets that use this
+  text: String
+  # The title of the widget, for Widgets that use this
+  title: String
+}
+
+# Details passed along when Flagging a Post
+input InappropriateContentInput {
+  # 'inappropriate', 'offensive', 'abusive', 'illegal', 'safety', 'spam', or 'other'
+  category: String
+  # Link to the Post
+  linkData: LinkDataInput
+  # The custom text for why someone flagged the post
+  reason: String
+}
+
+input InviteInput {
+  emails: [String]
+  message: String
+}
+
+# A link to a Post or a Person who has been Flagged
+input LinkDataInput {
+  # Person or Post ID
+  id: ID
+  # Group slug
+  slug: String
+  # 'member' or 'post'
+  type: String
+}
+
+# For updating your settings or profile
+input MeInput {
+  # The URL of your avatar image
+  avatarUrl: String
+  # The URL of the banner image on your profile
+  bannerUrl: String
+  # Personal bio text
+  bio: String
+  # Email address made visible on your profile
+  contactEmail: String
+  # Phone number made visible on your profile
+  contactPhone: String
+  # Account email address used to log in
+  email: String
+  # The URL to your Facebook profile
+  facebookUrl: String
+  # The URL to your LinkedIn profile
+  linkedinUrl: String
+  # String representing your physical location
+  location: String
+  # ID of the geocoded location object representing your physical location in the world
+  locationId: ID
+  # Full name
+  name: String
+  # Number of unread notifications
+  newNotificationCount: Int
+  # Login password
+  password: String
+  # User settings
+  settings: UserSettingsInput
+  # Short tagline
+  tagline: String
+  # Twitter handle
+  twitterName: String
+  # A website URL for your profile
+  url: String
+}
+
+# Data related to membership in a Group
+input MembershipInput {
+  # Accept or reject all current agreements of the group
+  acceptAgreements: Boolean
+  # Number of new Posts in the Group since you last looked at it
+  newPostCount: Int
+  # Answers to the join questions for this Group
+  questionAnswers: [QuestionAnswerInput]
+  # Settings related to membership in a Group
+  settings: MembershipSettingsInput
+}
+
+# Personal settings for a User's relationship to a Group
+input MembershipSettingsInput {
+  # When the member filled out the join questions
+  joinQuestionsAnsweredAt: Date
+  # Whether to receive email notifications for this Group
+  sendEmail: Boolean
+  # Whether to show the form displayed upon first viewing a Group this Person just joined
+  showJoinForm: Boolean
+  # Whether to mobile push notifications for this Group
+  sendPushNotifications: Boolean
+}
+
+# Data for updating a message in a direct message thread
+input MessageInput {
+  # When this thread was created
+  createdAt: Date
+  # The ID of the thread to update/edit
+  messageThreadId: String
+  # The content of the message
+  text: String
+}
+
+# Data for a direct MessageThread
+input MessageThreadInput {
+  # The IDs of the participants in the thread
+  participantIds: [String]
+}
+
+# Data for a ModerationAction
+input ModerationActionInput {
+  agreements: [ID]
+  anonymous: Boolean
+  groupId: ID
+  platformAgreements: [ID]
+  postId: ID
+  text: String 
+}
+
+# A geographic point
+input PointInput {
+  lat: Float
+  lng: Float
+}
+
+# A Post
+input PostInput {
+  # NOT USED RIGHT NOW. Whether this post can accept financial contributions
+  acceptContributions: Boolean
+  # Was this post marked an announcement by a group moderator?
+  announcement: Boolean
+  # The body of the post
+  details: String
+  # Link to a donation page, only used for projects only right now
+  donationsLink: String
+  # When this post "ends". Used for events, resources, projects, requests and offers right now
+  endTime: Date
+  # IDs of people to invite to the event
+  eventInviteeIds: [ID]
+  # URLs for file attachments
+  fileUrls: [String]
+  # IDs of the groups to post to
+  groupIds: [ID]
+  # URLs of images in the post
+  imageUrls: [String]
+  # Whether who votes on this proposal is visible or not
+  isAnonymousVote: Boolean
+  # Whether this post is publicly visible (outside of the groups it is posted to)
+  isPublic: Boolean
+  # A strict proposal cannot be edited in all the ways a casual proposal can be
+  isStrictProposal: Boolean
+  # ID of a LinkPreview to show in the post
+  linkPreviewId: String
+  # Whether LinkPreview appears full size above post or smaller below
+  linkPreviewFeatured: Boolean
+  # Full location string
+  location: String
+  # Id to location object with geocoded location deatils
+  locationId: ID
+  # People to add as members to a project type Post
+  memberIds: [ID]
+  # Link to a project management tool or service. Only used for Projects right now
+  projectManagementLink: String
+  # The options for this proposal
+  proposalOptions: [ProposalOptionInput]
+  # The type of proposal: 'poll', 'survey', 'vote', or 'proposal'
+  votingMethod: String
+  # Percentage of all group members that must vote for a proposal to complete
+  quorum: Int
+  # When this post "starts". Used for events, resources, projects, requests and offers right now
+  startTime: Date
+  # The timezone of the post
+  timezone: String
+  # The title text for the post
+  title: String
+  # Topics to add to the post
+  topicNames: [String]
+  # Post type: 'discussion', 'event', 'offer', 'project', 'proposal', 'request', or 'resource'
+  type: String
+}
+
+input ProposalOptionInput {
+  id: ID
+  # Required: Title of the option
+  text: String
+  # Optional: emoji to represent the option
+  emoji: String
+  # Optional: hexcode color to represent the option
+  color: String
+}
+
+# A Question to be asked before joining a Group
+input QuestionInput {
+  id: Int
+  # The ID of the question when editing one
+  questionId: Int
+  # Content of the question
+  text: String
+}
+
+# Answer to a Question
+input QuestionAnswerInput {
+  # Answer content
+  answer: String
+  # Question ID
+  questionId: Int
+}
+
+# Inputs for emoji reactions to posts and comments
+input ReactionInput {
+  # The full emoji, with any modifiers (eg: for skin). UTF-16 (JS default) encoding for an emojis code-points (like '\uD83D\uDE00')
+  emojiFull: String
+  # id for the entity associated with the reactions
+  entityId: ID
+  # What type of entity a reaction is associated with. Currently only 'post' or 'comment'
+  entityType: String
+}
+
+# Input for creating group responsibilities that don't have spceific power on the platform but convey information about a group member
+input ResponsibilityInput {
+  # The name of the responsibility
+  name: String
+  # The description of the responsibility
+  description: String
+}
+
+# A SavedSearch on the Map
+input SavedSearchInput {
+  # The geographic bounding box
+  boundingBox: [PointInput]
+  # 'groups' for a Group specific search, 'all' to search for posts in all logged in user's groups, or 'public' to search all public posts
+  context: String
+  # The group to search (optional)
+  groupSlug: String
+  # The name of the saves search
+  name: String
+  # Only include posts that match these post types
+  postTypes: [String]
+  # Only include posts that match this search text in title or description
+  searchText: String
+  # Only include posts that match one of these topics
+  topicIds: [ID]
+  # The user creating the search
+  userId: ID
+}
+
+input UserSettingsInput {
+  # Has this person seen the tour that displays the first time someone logs in
+  alreadySeenTour: Boolean
+  # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
+  commentNotifications: String
+  # How often this person wants to receive the email digest about new posts and comments: daily, weekly, or never
+  digestFrequency: String
+  # How this person wants to receive notifications about Direct Messages: email, push, both, or none
+  dmNotifications: String
+  # When person wants last viewed their Direct Messages
+  lastViewedMessagesAt: String
+  # Locale preferences for the user
+  locale: String
+  # The most recent map base later viewed by this person
+  mapBaseLayer: String
+  # How this person wants to receive notifications for each post in their groups. none, important, or all
+  postNotifications: String
+  # Whether this person has finished viewing the welcome wizard after first signing up
+  signupInProgress: Boolean
+  # Include child group posts in user's stream
+  streamChildPosts: String
+  # The most recent stream view mode used by this person: cards, list, grid, bigGrid
+  streamViewMode: String
+  # The most recent stream sort used by this person: 'created', 'reactions', or 'updated'
+  streamSortBy: String
+  # The most recent stream post type filter used by this person
+  streamPostType: String
+}
