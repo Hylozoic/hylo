@@ -39,30 +39,23 @@
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/stack": "^6.4.1",
     "@sentry/react-native": "^5.24.1",
-    "babel-core": "*",
     "babel-plugin-import-graphql": "^2.8.1",
-    "concurrently": "*",
-    "coordinate-parser": "*",
     "emoji-datasource-apple": "^15.1.2",
     "emoji-mart": "^5.6.0",
     "emoji-mart-native": "^0.6.5-beta",
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
     "html-entities": "^2.5.2",
-    "html-to-text": "*",
-    "hylo-shared": "*",
+    "hylo-shared": "5.2.5",
     "i18next": "^23.12.2",
     "intl-pluralrules": "^2.0.1",
     "lodash": "^4.17.21",
-    "marked": "*",
     "mixpanel-react-native": "^2.3.1",
     "moment-timezone": "^0.5.45",
     "path-to-regexp": "^6.2.1",
     "prettier": "2.8.8",
-    "pretty-date": "*",
     "prop-types": "^15.8.1",
     "query-string": "^7.1.1",
-    "querystring": "*",
     "re-reselect": "^4.0.1",
     "react": "18.2.0",
     "react-i18next": "^13.0.0",
@@ -91,7 +84,6 @@
     "react-native-reanimated": "3.14.0",
     "react-native-render-html": "patch:react-native-render-html@npm:6.3.4#.yarn/patches/react-native-render-html+6.3.4.patch",
     "react-native-restart": "^0.0.27",
-    "react-native-root-siblings": "*",
     "react-native-root-toast": "^3.6.0",
     "react-native-safe-area-context": "^4.10.8",
     "react-native-screens": "^3.33.0",
@@ -111,8 +103,6 @@
     "sails.io.js": "^1.2.1",
     "socket.io-client": "2.3.1",
     "tinycolor2": "^1.6.0",
-    "trunc-html": "*",
-    "trunc-text": "*",
     "wml": "*"
   },
   "devDependencies": {
@@ -250,5 +240,10 @@
         "webview"
       ]
     }
-  }
+  },
+  "engines": {
+    "node": "^20",
+    "yarn": "^3.6.4"
+  },
+  "packageManager": "yarn@3.6.4"
 }
