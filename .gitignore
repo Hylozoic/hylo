@@ -1,44 +1,49 @@
-# nx defaults (some duplication of above)
+# nx
+.nx/cache
+.nx/workspace-data
 
 # dependencies
-node_modules
+node_modules/
 
 # testing
 coverage
 
 # production
-build
+build/
 build-hc
 es5
 
 # local config
 config/ssl
 
-# misc
-.DS_Store
+# env
 .env
 .env.old
+.env.test
+.env.dev
 .env.production
-npm-debug.log
 
 .floo
 .flooignore
 
-yarn-error.log
-.idea
-yarn.lock
-.yarn
-.yarnrc.yml
+# yarn
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 
-# from web (some duplication of above)
+# logs
+npm-debug.log
+yarn-error.log
+testem.log
 
 # compiled output
 dist
 tmp
-/out-tsc
-
-# dependencies
-node_modules
+out-tsc
 
 # IDEs and editors
 /.idea
@@ -57,87 +62,11 @@ node_modules
 !.vscode/extensions.json
 
 # misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
+.sass-cache
+connect.lock
+libpeerconnection.log
+typings
 
 # System Files
 .DS_Store
 Thumbs.db
-
-.nx/cache
-.nx/workspace-data
-
-# React Native
-
-# OSX
-#
-.DS_Store
-
-# Xcode
-#
-build/
-*.pbxuser
-!default.pbxuser
-*.mode1v3
-!default.mode1v3
-*.mode2v3
-!default.mode2v3
-*.perspectivev3
-!default.perspectivev3
-xcuserdata
-*.xccheckout
-*.moved-aside
-DerivedData
-*.hmap
-*.ipa
-*.xcuserstate
-**/.xcode.env.local
-
-# Android/IntelliJ
-#
-build/
-.idea
-.gradle
-local.properties
-*.iml
-*.hprof
-.cxx/
-*.keystore
-!debug.keystore
-
-# node.js
-#
-node_modules/
-npm-debug.log
-yarn-error.log
-
-# fastlane
-#
-# It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
-# screenshots whenever they are needed.
-# For more information about the recommended setup visit:
-# https://docs.fastlane.tools/best-practices/source-control/
-
-**/fastlane/report.xml
-**/fastlane/Preview.html
-**/fastlane/screenshots
-**/fastlane/test_output
-
-# Bundle artifact
-*.jsbundle
-
-# Ruby / CocoaPods
-**/Pods/
-**/vendor/bundle/
-
-# Temporary files created by Metro to check the health of the file watcher
-.metro-health-check*
-
-# testing
-/coverage

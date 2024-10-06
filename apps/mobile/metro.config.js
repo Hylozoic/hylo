@@ -1,3 +1,4 @@
+const path = require('path');
 const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 
 /**
@@ -22,7 +23,12 @@ const config = {
     // assetExts: ['html', 'css', 'jpg', 'png', 'ttf', 'graphql'],
     assetExts: ['png', 'jpg', 'graphql'],
     sourceExts: ['js', 'json', 'ts', 'tsx', 'cjs', 'svg']
-  }
+  },
+  // Because in a monorepo using some shared code in libs
+  watchFolders: [
+    path.resolve(__dirname, '../..'),
+    path.resolve(__dirname, '../../libs'),  // If you're using shared code from the monorepo
+  ]
 };
 
 module.exports = mergeConfig(getDefaultConfig(__dirname), config);

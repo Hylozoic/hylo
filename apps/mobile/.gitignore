@@ -1,9 +1,4 @@
-# OSX
-#
-.DS_Store
-
 # Xcode
-#
 build/
 *.pbxuser
 !default.pbxuser
@@ -29,16 +24,12 @@ ios/release.xcconfig
 ios/.xcode.env.local
 
 # Ruby Gems / Bundle
-
 /vendor/bundle/
 .bundle/*
 vendor/*
 *.code-workspace
 
 # Android/IntelliJ
-#
-
-build/
 .idea
 .gradle
 local.properties
@@ -50,33 +41,17 @@ local.properties
 android/app/src/debug/res/values/strings.xml
 android/app/src/release/res/values/strings.xml
 
-# node.js
-#
-node_modules/
-npm-debug.log
-
-# yarn
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
-yarn-error.log
-
 # Google login
 google-services.json
 GoogleService-Info.plist
 
 # Bundle artifact
-
 *.jsbundle
 *.jsbundle.map
 
 # Ruby / CocoaPods
-/ios/Pods/
-/vendor/bundle/
+ios/Pods/
+vendor/bundle/
 
 # Android / Android Studio. Just in case you build the project in this foler
 android/gradle/.tmp/**
@@ -88,16 +63,6 @@ android/gradle/kotlin-profile/**
 
 # Temporary files created by Metro to check the health of the file watcher
 .metro-health-check*
-
-# expo
-.expo
-
-# env files
-.env
-.env.development
-.env.production
-
-.vscode/settings.json
 
 ios/codesigndoc_exports
 .bitrise.secrets.yml

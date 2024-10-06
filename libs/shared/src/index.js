@@ -1,5 +1,12 @@
-export * as TextHelpers from './TextHelpers'
-export * as PathHelpers from './PathHelpers'
-export * as Validators from './Validators'
-export * as LocationHelpers from './LocationHelpers'
+import * as TextHelpers from './TextHelpers'
+import * as PathHelpers from './PathHelpers'
+import * as Validators from './Validators'
+import * as LocationHelpers from './LocationHelpers'
 export * from './constants'
+
+export {
+  TextHelpers,
+  PathHelpers,
+  Validators,
+  LocationHelpers
+}
