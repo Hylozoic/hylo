@@ -1,0 +1,21 @@
+{
+  "name": "hylo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "scripts": {
+    "api:dev": "yarn workspace api run dev",
+    "web:dev": "yarn workspace web run dev",
+    "mobile:dev": "yarn workspace web run start",
+    "mobile:android": "yarn workspace mobile run android",
+    "mobile:ios": "yarn workspace mobile run ios"
+  },
+  "engines": {
+    "node": "^20",
+    "yarn": "^3.6.4"
+  },
+  "packageManager": "yarn@3.6.4",
+  "dependencies": {}
+}
