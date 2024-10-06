@@ -11,12 +11,13 @@
     "ios": "react-native run-ios",
     "lint": "standard",
     "version": "react-native-version --never-amend; git add .",
-    "start": "node node_modules/react-native/local-cli/cli.js start",
+    "start": "react-native start",
     "test": "node scripts/test.js",
     "clean": "react-native-clean-project",
     "clean-auto": "react-native clean-project-auto",
     "check-dependencies": "rnx-align-deps",
-    "fix-dependencies": "rnx-align-deps --write"
+    "fix-dependencies": "rnx-align-deps --write",
+    "pod-install": "cd ios && pod install"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",

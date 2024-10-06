@@ -26,8 +26,9 @@ const config = {
   },
   // Because in a monorepo using some shared code in libs
   watchFolders: [
-    path.resolve(__dirname, '../..'),
-    path.resolve(__dirname, '../../libs'),  // If you're using shared code from the monorepo
+    path.resolve(__dirname, '../../node_modules')
+    // path.resolve(__dirname, '../..'),
+    // path.resolve(__dirname, '../../libs'),  // If you're using shared code from the monorepo
   ]
 };
 
