@@ -1,5 +1,5 @@
 {
-  "name": "@hylo/web",
+  "name": "web",
   "description": "Hylo Frontend",
   "version": "5.10.0",
   "private": true,
