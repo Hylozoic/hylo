@@ -13269,9 +13269,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hylo-shared@npm:5.2.5":
-  version: 5.2.5
-  resolution: "hylo-shared@npm:5.2.5"
+"hylo-shared@npm:5.2.2":
+  version: 5.2.2
+  resolution: "hylo-shared@npm:5.2.2"
   dependencies:
     coordinate-parser: ^1.0.7
     html-to-text: ^8.1.0
@@ -13284,7 +13284,7 @@ __metadata:
     validator: ^13.7.0
   peerDependencies:
     moment-timezone: ^0.5.37
-  checksum: c1b6ce7c94088073cdca76c90baeacae479172ac31faa3ccc288edfbf53a003b11eb8523e42c076b4c319ec7e11d522dd72b77215e525dc3bebb37def0903d86
+  checksum: 4b4db6fb03aae3798494e8ff2c6b7e6c587fe894eb26e187673df0da8d46ba45ddae2f4d3065f5fca0b1e36f0ec736760fc0fb44b7ab8810a29bd2b337c178c0
   languageName: node
   linkType: hard
 
@@ -23881,7 +23881,7 @@ __metadata:
     html-webpack-plugin: ^5.6.0
     http-proxy-middleware: 0.17.4
     husky: ^7.0.4
-    hylo-shared: 5.2.5
+    hylo-shared: 5.2.2
     i18next: ^22.0.5
     i18next-browser-languagedetector: ^7.0.1
     i18next-http-backend: ^2.0.1
