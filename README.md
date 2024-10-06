@@ -47,7 +47,7 @@ git merge <api|web|mobile|shared>/monorepo-setup --allow-unrelated-histories
 Remaining work:
 * Get apps/api (hylo-node) working in a modules environment as it is a blended CommonJS and ESM project currently
 * Get apps/mobile issues resolved around babel parsing emoji data, etc
-* CircleCI configuration to work with yarn berry, and new directory structure
+* Update CircleCI configuration for web and api, including getting yarn berry working there
 * CircleCI and Bitrise triggers, etc configuration update for new paths
 
 ----
