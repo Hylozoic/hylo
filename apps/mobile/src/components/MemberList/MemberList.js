@@ -18,7 +18,6 @@ import CondensingBadgeRow from '../CondensingBadgeRow/CondensingBadgeRow'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import { useSelector } from 'react-redux'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { RESP_ADMINISTRATION } from 'store/constants'
 
 export class MemberList extends React.Component {
   static defaultProps = {

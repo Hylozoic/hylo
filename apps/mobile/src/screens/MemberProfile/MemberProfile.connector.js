@@ -3,15 +3,15 @@ import { get } from 'lodash/fp'
 import fetchPerson from 'store/actions/fetchPerson'
 import { openURL } from 'hooks/useOpenURL'
 import blockUser from 'store/actions/blockUser'
-import getMe from 'store/selectors/getMe'
 import getPerson from 'store/selectors/getPerson'
 import getBlockedUsers from 'store/selectors/getBlockedUsers'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import logout from 'store/actions/logout'
+import { getCurrentUserFromCache } from 'urql-shared/hooks/useCurrentUser'
 
 export function mapStateToProps (state, props) {
-  const currentUser = getMe(state, props)
+  const currentUser = getCurrentUserFromCache()
   const currentGroup = getCurrentGroup(state, props)
   const id = get('route.params.id', props)
   const person = id

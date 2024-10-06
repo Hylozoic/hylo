@@ -1,5 +1,5 @@
 export default
-`query PersonDetails ($id: ID) {
+`query PersonQuery ($id: ID) {
   person (id: $id) {
     id
     name
@@ -87,6 +87,14 @@ export default
             avatarUrl
           }
         }
+      }
+    }
+    membershipCommonRoles {
+      items {
+        id
+        commonRoleId
+        groupId
+        userId
       }
     }
     skills (first: 100) {

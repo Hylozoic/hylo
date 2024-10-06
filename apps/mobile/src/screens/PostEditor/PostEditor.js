@@ -47,6 +47,7 @@ import styles, { typeSelectorStyles } from './PostEditor.styles'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
 import { caribbeanGreen, rhino30, rhino80, white } from 'style/colors'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 
 const titlePlaceholders = {
   discussion: 'Create a post',
@@ -61,7 +62,11 @@ const titlePlaceholders = {
 export default function (props) {
   const isFocused = useIsFocused()
   const { t } = useTranslation()
-  return <PostEditor {...props} isFocused={isFocused} t={t} />
+  const currentUser = useCurrentUser()
+  const groupOptions = props.groupOptions ||
+    (currentUser && currentUser.memberships.map(m => m.group))
+
+  return <PostEditor {...props} currentUser={currentUser} groupOptions={groupOptions} isFocused={isFocused} t={t} />
 }
 
 export class PostEditor extends React.Component {

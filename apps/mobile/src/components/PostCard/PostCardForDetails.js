@@ -9,7 +9,7 @@ import { openURL } from 'hooks/useOpenURL'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import useGoToMember from 'hooks/useGoToMember'
 import useGoToTopic from 'hooks/useGoToTopic'
-import getMe from 'store/selectors/getMe'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import joinProjectAction from 'store/actions/joinProject'
 import leaveProjectAction from 'store/actions/leaveProject'
 import respondToEventAction from 'store/actions/respondToEvent'
@@ -32,7 +32,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigation = useNavigation
-  const currentUser = useSelector(getMe)
+  const currentUser = useCurrentUser()
   const changeToGroup = useChangeToGroup()
   const goToMember = useGoToMember()
   const goToTopic = useGoToTopic()
@@ -54,7 +54,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
   const openProjectMembersModal = () => navigation.navigate('Project Members', { id: post.id, members: get('members', post) })
 
   const isProject = get('type', post) === 'project'
-  const isProjectMember = find(member => member.id === currentUser.id, post.members)
+  const isProjectMember = find(member => member.id === currentUser.id, post.members?.items)
   const locationText = LocationHelpers.generalLocationString(post.locationObject, post.location)
   const images = post.imageUrls && post.imageUrls.map(uri => ({ uri }))
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(groupId)
@@ -197,13 +197,13 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
         />
       )}
       <PostFooter
-        commenters={post.commenters}
-        commentersTotal={post.commentersTotal}
+        commenters={post.commenters?.items}
+        commentersTotal={post.commenters?.total}
         currentUser={currentUser}
         eventInvitations={post.eventInvitations}
         forDetails
         postId={post.id}
-        members={post.members}
+        members={post.members?.items}
         peopleReactedTotal={post.peopleReactedTotal}
         style={styles.postFooter}
         type={post.type}

@@ -1,5 +1,5 @@
 export default
-`query {
+`query MyInvitesAndRequestsQuery {
   me {
     id
     joinRequests {

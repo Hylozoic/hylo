@@ -1,9 +1,10 @@
+import { gql } from 'urql'
 import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
 
 export const DEFAULT_INITIAL_COMMENTS = 10
 export const DEFAULT_INITIAL_SUBCOMMENTS = 2
 
-export default `
+export default gql`
 query CommentsQuery (
   $postId: ID,
   $cursor: ID

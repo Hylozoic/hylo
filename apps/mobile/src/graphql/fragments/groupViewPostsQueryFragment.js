@@ -25,7 +25,7 @@ ${includeChildGroupPosts ? 'posts: viewPosts(' : 'posts('}
   hasMore
   total
   items {
-    ${postFieldsFragment(false)}
+    ${postFieldsFragment()}
   }
 }`
 

@@ -1,17 +1,19 @@
 import React, { Component } from 'react'
 import { FlatList, TouchableOpacity, View, Text } from 'react-native'
 import { useIsFocused } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash/fp'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import { getSocket } from 'util/websockets'
 import ThreadCard from 'components/ThreadCard'
 import styles from './ThreadList.styles'
 import Loading from 'components/Loading'
-import { useTranslation } from 'react-i18next'
 
 export default function (props) {
   const isFocused = useIsFocused()
   const { t } = useTranslation()
-  return <ThreadList {...props} isFocused={isFocused} t={t} />
+  const currentUser = useCurrentUser()
+  return <ThreadList {...props} currentUser={currentUser} isFocused={isFocused} t={t} />
 }
 
 export class ThreadList extends Component {

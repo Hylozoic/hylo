@@ -4,11 +4,13 @@ import React, { useEffect, useState } from 'react'
 import Config from 'react-native-config'
 // Required for react-native-root-toast
 import { RootSiblingParent } from 'react-native-root-siblings'
+import { Provider as UrqlProvider } from 'urql'
 import { Provider } from 'react-redux'
-import { AppRegistry, Platform, AppState, UIManager } from 'react-native'
+import { AppRegistry, Platform, AppState, UIManager, LogBox } from 'react-native'
 import Timer from 'react-native-background-timer'
 import * as Sentry from '@sentry/react-native'
 import { OneSignal } from 'react-native-onesignal'
+import client from 'urql-shared/client'
 import { sentryConfig } from 'config'
 import store from 'store'
 import { name as appName } from './app.json'
@@ -21,6 +23,7 @@ import './i18n'
 import 'intl-pluralrules'
 import { ActionSheetProvider } from '@expo/react-native-action-sheet'
 import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
+
 // import FastImage from 'react-native-fast-image'
 
 Sentry.init(sentryConfig)
@@ -45,6 +48,41 @@ if (Platform.OS === 'android') {
 }
 
 AppRegistry.registerComponent(appName, () => App)
+
+if (__DEV__) {
+  const suppressedMessages = [
+    'Selector unknown returned a different result when called with the same parameters',
+    'Support for defaultProps will be removed from memo components',
+    'Sending `onAnimatedValueUpdate` with no listeners registered.'
+  ]
+  console.log()
+  console.log('🗒️ NOTE: Logging and warnings suppressed for these known messages/issues:')
+  suppressedMessages.forEach(message => console.log(`⚠️ ${message}`))
+  console.log()
+
+  LogBox.ignoreLogs(suppressedMessages)
+
+  const connectConsoleTextFromArgs = (arrayOfStrings) =>
+    arrayOfStrings
+      .slice(1)
+      .reduce(
+        (baseString, currentString) => baseString.replace('%s', currentString),
+        arrayOfStrings[0]
+      )
+
+  const filterIgnoredMessages = (logger) => (...args) => {
+    const output = connectConsoleTextFromArgs(args)
+
+    if (output && !suppressedMessages.some((log) => output.includes(log))) {
+      logger(...args)
+    }
+  }
+
+  console.log = filterIgnoredMessages(console.log)
+  console.info = filterIgnoredMessages(console.info)
+  console.warn = filterIgnoredMessages(console.warn)
+  console.error = filterIgnoredMessages(console.error)
+}
 
 enableScreens()
 
@@ -101,8 +139,10 @@ export default function App () {
               systemFonts={[...defaultSystemFonts, 'Circular-Book']}
             >
               <Provider store={store}>
-                <VersionCheck />
-                <RootNavigator />
+                <UrqlProvider value={client}>
+                  <VersionCheck />
+                  <RootNavigator />
+                </UrqlProvider>
               </Provider>
             </TRenderEngineProvider>
           </RootSiblingParent>

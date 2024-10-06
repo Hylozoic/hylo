@@ -1,14 +1,17 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import { OneSignal } from 'react-native-onesignal'
 import registerDevice from 'store/actions/registerDevice'
+import { useMutation, useQuery } from 'urql'
 import { useDispatch } from 'react-redux'
 import i18n from '../../i18n'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import useHyloQuery from 'urql-shared/hooks/useHyloQuery'
+import useUrqlQueryAction from 'urql-shared/hooks/useUrqlQueryAction'
 import fetchCurrentUser from 'store/actions/fetchCurrentUser'
-import { fetchNotifications, updateNewNotificationCount } from 'screens/NotificationsList/NotificationsList.store'
+// import { updateNewNotificationCount as resetNotificationCountAction } from 'screens/NotificationsList/NotificationsList.store'
+import resetNotificationsCountMutation from 'graphql/mutations/resetNotificationsCountMutation'
+import fetchNotificationsQuery, { NOTIFICATIONS_PAGE_SIZE } from 'graphql/queries/notificationsQuery'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import CreateGroupTabsNavigator from 'navigation/CreateGroupTabsNavigator'
 import DrawerNavigator from 'navigation/DrawerNavigator'
@@ -21,26 +24,37 @@ import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import { white } from 'style/colors'
-import fetchCommonRoles from 'store/actions/fetchCommonRoles'
+// import MeQuery from 'graphql/queries/MeQuery'
+// import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchPlatformAgreements from 'store/actions/fetchPlatformAgreements'
+import useHyloQuery from 'urql-shared/hooks/useHyloQuery'
 
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
   const dispatch = useDispatch()
-  const [{ fetching, data, error }] = useHyloQuery({ action: fetchCurrentUser })
+  // TODO: Need to figure-out roles and getResponsibilitiesForGroup selection before switching to useQuery({ query: MeQuery })
+  const [{ fetching, data, error }] = useUrqlQueryAction({ action: fetchCurrentUser() })
+  const [loading, setLoading] = useState(true)
   const currentUser = data?.me
 
-  useHyloQuery({ action: fetchNotifications })
-  useHyloQuery({ action: updateNewNotificationCount })
-  useHyloQuery({ action: fetchCommonRoles })
+  useQuery({ query: fetchNotificationsQuery, variables: { first: NOTIFICATIONS_PAGE_SIZE, offset: 0 } })
+  const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
+
+  useEffect(() => {
+    resetNotificationsCount()
+  }, [])
+  // TODO: Why is this pre-fetch needed?
+  // useQuery(fetchCommonRoles().graphql)
+  // useHyloQuery({ action: fetchCommonRoles })
   useHyloQuery({ action: fetchPlatformAgreements })
 
   useEffect(() => {
     (async function () {
-      if (!fetching && !error) {
+      if (currentUser && !fetching && !error) {
         const onesignalPushSubscriptionId = await OneSignal.User.pushSubscription.getIdAsync()
 
         const locale = currentUser?.settings?.locale || 'en'
+
         i18n.changeLanguage(locale)
 
         if (onesignalPushSubscriptionId) {
@@ -50,11 +64,12 @@ export default function AuthRootNavigator () {
         } else {
           console.warn('Not registering to OneSignal for push notifications. OneSignal did not successfully retrieve a userId')
         }
+        setLoading(false)
       }
     })()
   }, [fetching, error])
 
-  if (fetching) return <LoadingScreen />
+  if (loading) return <LoadingScreen />
   // TODO: What do we want to happen if there is an error loading the current user?
   if (error) console.error(error)
 

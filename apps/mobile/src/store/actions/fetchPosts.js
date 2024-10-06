@@ -1,9 +1,7 @@
-import { get } from 'lodash/fp'
 import { FETCH_POSTS } from 'store/constants'
 import postsQueryFragment from 'graphql/fragments/postsQueryFragment'
 import groupViewPostsQueryFragment from 'graphql/fragments/groupViewPostsQueryFragment'
 
-// NOTE: All of the below is currently (as of 10/23) tracking `hylo-evo/src/routes/Stream.store.js`
 export default function fetchPosts ({
   activePostsOnly,
   afterTime,
@@ -29,16 +27,12 @@ export default function fetchPosts ({
   topics,
   types
 }) {
-  let query, extractModel, getItems
+  let query
 
   if (context === 'groups') {
     query = groupQuery(childPostInclusion === 'yes')
-    extractModel = 'Group'
-    getItems = get('payload.data.group.posts')
   } else if (context === 'all' || context === 'public' || context === 'my') {
     query = postsQuery
-    extractModel = 'Post'
-    getItems = get('payload.data.posts')
   } else {
     throw new Error(`FETCH_POSTS with context=${context} is not implemented`)
   }
@@ -70,14 +64,6 @@ export default function fetchPosts ({
         topic,
         topics,
         types
-      }
-    },
-    meta: {
-      afterInteractions: false,
-      slug,
-      extractModel,
-      extractQueryResults: {
-        getItems
       }
     }
   }

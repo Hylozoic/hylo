@@ -1,17 +1,17 @@
 import React, { useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { white80onCaribbeanGreen } from 'style/colors'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import updateUserSettings from 'store/actions/updateUserSettings'
-import getMe from 'store/selectors/getMe'
-import { useDispatch, useSelector } from 'react-redux'
+import { white80onCaribbeanGreen } from 'style/colors'
 
 const LocaleSelector = ({ small, dark }) => {
   const dispatch = useDispatch()
   const { t, i18n } = useTranslation()
   const selectedLocale = i18n.language
   const [dropdownVisible, setDropdownVisible] = useState(false)
-  const currentUser = useSelector(getMe)
+  const currentUser = useCurrentUser()
 
   const handleSelectLocale = (locale) => {
     i18n.changeLanguage(locale)

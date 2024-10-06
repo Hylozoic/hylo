@@ -43,5 +43,5 @@ export default
     location: $location,
     locationId: $locationId,
     isPublic: $isPublic
-  }) {${postFieldsFragment(false)}}
+  }) {${postFieldsFragment()}}
 }`

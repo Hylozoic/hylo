@@ -8,7 +8,7 @@ import { get } from 'lodash/fp'
 import { isIOS } from 'util/platform'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import getCurrentGroup from 'store/selectors/getCurrentGroup'
-import getMe from 'store/selectors/getMe'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import BadgedIcon from 'components/BadgedIcon'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 import Icon from 'components/Icon'
@@ -93,7 +93,7 @@ export default function TabStackHeader ({
 }
 
 export function NotificationsIcon ({ showNotifications }) {
-  const currentUser = useSelector(getMe)
+  const currentUser = useCurrentUser()
   const showBadge = !!get('newNotificationCount', currentUser)
 
   return (

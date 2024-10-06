@@ -8,7 +8,7 @@ import Clipboard from '@react-native-clipboard/clipboard'
 import { AnalyticsEvents } from 'hylo-shared'
 import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import useMixpanelTrack from 'hooks/useMixpanelTrack'
-import getMe from 'store/selectors/getMe'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import {
   removePost as removePostAction,
@@ -38,7 +38,7 @@ export default function usePostActionSheet ({
   const mixpanelTrack = useMixpanelTrack()
   const dispatch = useDispatch()
   const currentGroup = useSelector(getCurrentGroup)
-  const currentUser = useSelector(getMe)
+  const currentUser = useCurrentUser()
   const canModerate = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: currentGroup?.id }))
   const createActionSheetActions = () => {
     const isCreator = currentUser && creator && currentUser.id === creator.id

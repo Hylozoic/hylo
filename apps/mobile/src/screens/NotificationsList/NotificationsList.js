@@ -1,26 +1,23 @@
 import React, { useEffect, useState } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
+import { useMutation, useQuery } from 'urql'
 import { FlatList, TouchableOpacity, View, Text, StyleSheet } from 'react-native'
 import { useIsFocused, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
+import { isEmpty } from 'lodash'
+import getMemberships from 'store/selectors/getMemberships'
+import {
+  markActivityReadMutation,
+  markAllActivitiesReadMutation,
+  refineNotifications
+} from './NotificationsList.store'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import NotificationCard from 'components/NotificationCard'
 import CreateGroupNotice from 'components/CreateGroupNotice'
 import Loading from 'components/Loading'
 import cardStyles from 'components/NotificationCard/NotificationCard.styles'
-import {
-  FETCH_NOTIFICATIONS,
-  fetchNotifications,
-  getNotifications,
-  getHasMoreNotifications,
-  markActivityRead,
-  markAllActivitiesRead,
-  updateNewNotificationCount
-} from './NotificationsList.store'
-import getMemberships from 'store/selectors/getMemberships'
-import { isEmpty } from 'lodash'
-
-const NOTIFICATIONS_PAGE_SIZE = 20
+import notificationsQuery, { NOTIFICATIONS_PAGE_SIZE } from 'graphql/queries/notificationsQuery'
+import resetNotificationsCountMutation from 'graphql/mutations/resetNotificationsCountMutation'
 
 const styles = StyleSheet.create({
   notificationsList: {
@@ -32,27 +29,22 @@ const styles = StyleSheet.create({
   }
 })
 
-export const NotificationsList = props => {
-  const { t } = useTranslation()
+export default function NotificationsList (props) {
   const navigation = useNavigation()
-  const dispatch = useDispatch()
   const isFocused = useIsFocused()
+  const { t } = useTranslation()
+  const [offset, setOffset] = useState(0)
+  const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
+  const [, markActivityRead] = useMutation(markActivityReadMutation)
+  // TODO: markAllActivitiesRead needs to optimistically updated
+  const [, markAllActivitiesRead] = useMutation(markAllActivitiesReadMutation)
+  const response = useQuery({ query: notificationsQuery, variables: { first: NOTIFICATIONS_PAGE_SIZE, offset } })
+  const [{ data, error, fetching }] = response
 
-  const [ready, setReady] = useState(false)
-
-  const hasMore = useSelector(getHasMoreNotifications)
-  const pending = useSelector(state => state.pending[FETCH_NOTIFICATIONS])
-  const notifications = useSelector(state => getNotifications(state, props))
-  const currentUserHasMemberships = useSelector(state => !isEmpty(getMemberships(state)))
-
-  const fetchNotificationsHandler = () => dispatch(fetchNotifications(NOTIFICATIONS_PAGE_SIZE))
-  const fetchMoreHandler = offset => dispatch(fetchNotifications(NOTIFICATIONS_PAGE_SIZE, offset))
-  const markAllActivitiesReadHandler = () => dispatch(markAllActivitiesRead())
-  const markActivityReadHandler = id => dispatch(markActivityRead(id))
-  const updateNewNotificationCountHandler = () => dispatch(updateNewNotificationCount())
-
-  const goToCreateGroupHandler = () => navigation.navigate('Create Group')
-
+  const notifications = refineNotifications(data?.notifications?.items, navigation)
+  const hasMore = notifications?.hasMore
+  const memberships = useSelector(getMemberships)
+  const currentUserHasMemberships = !isEmpty(memberships)
   const setHeader = () => {
     navigation.setOptions({
       title: t('Notifications'),
@@ -60,48 +52,44 @@ export const NotificationsList = props => {
         <ModalHeader
           {...props}
           headerRightButtonLabel={t('Mark as read')}
-          headerRightButtonOnPress={markAllActivitiesReadHandler}
+          headerRightButtonOnPress={() => markAllActivitiesRead()}
         />
       )
     })
   }
 
+  const goToCreateGroup = () => navigation.navigate('Create Group')
+
   useEffect(() => {
     setHeader()
-    fetchNotificationsHandler()
-    updateNewNotificationCountHandler()
+    resetNotificationsCount()
   }, [])
 
   useEffect(() => {
     if (isFocused) {
       setHeader()
-      fetchNotificationsHandler()
-      updateNewNotificationCountHandler()
+      resetNotificationsCount()
     }
   }, [isFocused])
 
-  useEffect(() => {
-    if (!pending) {
-      setReady(true)
-    }
-  }, [pending])
+  const keyExtractor = item => item.id
 
   if (!currentUserHasMemberships) {
     return (
       <CreateGroupNotice
-        goToCreateGroup={goToCreateGroupHandler}
+        goToCreateGroup={goToCreateGroup}
         text={t('No notifications here, try creating your own Group!')}
       />
     )
   }
 
-  if (ready && !pending && notifications.length === 0) {
+  if (!fetching && notifications.length === 0) {
     return <Text style={styles.center}>{t('Nothing new for you!')}</Text>
   }
 
   return (
     <View style={styles.notificationsList}>
-      {pending && (
+      {fetching && (
         <View style={cardStyles.container}>
           <View style={cardStyles.content}>
             <Loading />
@@ -110,25 +98,25 @@ export const NotificationsList = props => {
       )}
       <FlatList
         data={notifications}
-        keyExtractor={item => item.id}
-        onEndReached={hasMore ? () => fetchMoreHandler(notifications.length) : null}
-        renderItem={({ item }) => (
+        keyExtractor={keyExtractor}
+        onEndReached={hasMore ? () => setOffset(notifications?.length) : null}
+        renderItem={({ item }) =>
           <NotificationRow
-            markActivityRead={markActivityReadHandler}
+            markActivityRead={markActivityRead}
             notification={item}
-          />
-        )}
+          />}
       />
     </View>
   )
 }
 
-export const NotificationRow = ({ markActivityRead, notification }) => {
+export function NotificationRow ({ markActivityRead, notification }) {
   return (
     <View>
       <TouchableOpacity
         onPress={() => {
-          if (notification.unread) markActivityRead(notification.activityId)
+          if (notification.unread) markActivityRead({ id: notification.activityId })
+          console.log('!! notification', notification)
           notification.onPress()
         }}
       >
@@ -137,5 +125,3 @@ export const NotificationRow = ({ markActivityRead, notification }) => {
     </View>
   )
 }
-
-export default NotificationsList

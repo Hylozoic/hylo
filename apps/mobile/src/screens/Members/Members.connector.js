@@ -1,6 +1,5 @@
 import { connect } from 'react-redux'
 import { omit, get } from 'lodash/fp'
-import getMe from 'store/selectors/getMe'
 import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import {
   FETCH_MEMBERS,
@@ -37,7 +36,6 @@ export function sortKeysFactory () {
 }
 
 export function mapStateToProps (state, props) {
-  const currentUser = getMe(state, props)
   const group = getCurrentGroup(state, props)
   const canInvite = hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group.id })
   const search = getSearch(state)
@@ -47,7 +45,6 @@ export function mapStateToProps (state, props) {
   const getOpts = fetchOpts
 
   return {
-    currentUser,
     group,
     canInvite,
     fetchOpts,

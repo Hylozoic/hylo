@@ -5,10 +5,10 @@ import Clipboard from '@react-native-clipboard/clipboard'
 import { TextHelpers } from 'hylo-shared'
 import { useDispatch, useSelector } from 'react-redux'
 import useHyloActionSheet from 'hooks/useHyloActionSheet'
-import useReactionActions from 'hooks/useReactionActions'
+import useReactOnEntity from 'urql-shared/hooks/useReactOnEntity'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import deleteCommentAction from 'store/actions/deleteComment'
 import getGroup from 'store/selectors/getGroup'
-import getMe from 'store/selectors/getMe'
 import { getPresentedPost } from 'store/selectors/getPost'
 import Avatar from 'components/Avatar'
 import EmojiRow from 'components/EmojiRow'
@@ -39,9 +39,9 @@ export default function Comment ({
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const { showHyloActionSheet } = useHyloActionSheet()
-  const { reactOnEntity, removeReactOnFromEntity } = useReactionActions()
+  const { reactOnEntity, deleteReactionFromEntity } = useReactOnEntity()
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const currentUser = useSelector(getMe)
+  const currentUser = useCurrentUser()
   const group = useSelector(state => getGroup(state, { slug }))
   const canModerate = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: group?.id }))
   const isCreator = currentUser && (comment.creator.id === currentUser.id)
@@ -52,8 +52,8 @@ export default function Comment ({
   const myEmojis = myReactions.map((reaction) => reaction.emojiFull)
   const groupIds = post?.groups.map(g => g.id)
 
-  const handleReaction = (emojiFull) => reactOnEntity({ commentId: comment?.id, emojiFull, entityType: 'comment', groupIds, postId: post })
-  const handleRemoveReaction = (emojiFull) => removeReactOnFromEntity({ commentId: comment?.id, emojiFull, entityType: 'comment', postId: post })
+  const handleReaction = (emojiFull) => reactOnEntity('comment', comment?.id, emojiFull, postId)
+  const handleRemoveReaction = (emojiFull) => deleteReactionFromEntity('comment', comment?.id, emojiFull, postId)
   const handleReply = onReply && (() => onReply(comment))
   const handleRemove = (!isCreator && canModerate) && (
     () => Alert.alert(

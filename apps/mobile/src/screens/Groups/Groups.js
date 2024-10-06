@@ -3,11 +3,10 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import { View, Text, SectionList, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
+import useRouteParams from 'hooks/useRouteParams'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import { visibilityIcon, accessibilityIcon } from 'store/models/Group'
-import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import getMemberships from 'store/selectors/getMemberships'
 import getMyJoinRequests from 'store/selectors/getMyJoinRequests'
 import fetchGraphQL from 'store/actions/fetchGraphQL'
@@ -21,26 +20,25 @@ export default function Groups () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigation = useNavigation()
-  const currentGroup = useSelector(getCurrentGroup)
-  const queryProps = { groupSlug: currentGroup.slug }
+  const { group: currentGroup } = useRouteParams()
   const memberships = useSelector(getMemberships)
   const joinRequests = useSelector(getMyJoinRequests)
-  const childGroups = useSelector(state => getChildGroups(state, queryProps).map(g => {
+  const childGroups = currentGroup?.childGroups?.items?.map(g => {
     g.memberStatus = memberships.find(m => m.group.id === g.id)
       ? 'member'
       : joinRequests.find(jr => jr.group.id === g.id)
         ? 'requested'
         : 'not'
     return g
-  }))
-  const parentGroups = useSelector(state => getParentGroups(state, queryProps).map(g => {
+  })
+  const parentGroups = currentGroup?.parentGroups?.items.map(g => {
     g.memberStatus = memberships.find(m => m.group.id === g.id)
       ? 'member'
       : joinRequests.find(jr => jr.group.id === g.id)
         ? 'requested'
         : 'not'
     return g
-  }))
+  })
   const [loading, setLoading] = useState(true)
   const changeToGroup = useChangeToGroup()
   const goToGroupExplore = groupSlug =>

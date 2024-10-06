@@ -4,7 +4,6 @@ import { bindActionCreators } from 'redux'
 import { getPresentedPost } from 'store/selectors/getPost'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getCurrentGroup from 'store/selectors/getCurrentGroup'
-import getMe from 'store/selectors/getMe'
 import upload from 'store/actions/upload'
 import fetchPost from 'store/actions/fetchPost'
 import createPost from 'store/actions/createPost'
@@ -21,9 +20,6 @@ export function getRouteParam (key, route = {}) {
 
 export function mapStateToProps (state, props) {
   const currentGroup = get('ref', getCurrentGroup(state))
-  const currentUser = getMe(state, props)
-  const groupOptions = props.groupOptions ||
-    (currentUser && currentUser.memberships.toModelArray().map(m => m.group.ref))
   const postId = getRouteParam('id', props?.route)
   const post = getPresentedPost(state, { postId })
   // Setup new post with defaults from routing
@@ -46,7 +42,6 @@ export function mapStateToProps (state, props) {
   return {
     post: post || defaultPost,
     mapCoordinate,
-    groupOptions,
     postLoading: isPendingFor(fetchPost, state)
   }
 }
