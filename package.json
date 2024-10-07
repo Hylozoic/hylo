@@ -1,37 +1,21 @@
 {
-  "name": "@hylo/source",
-  "version": "0.0.0",
-  "license": "MIT",
+  "name": "hylo",
   "private": true,
   "workspaces": [
-    "libs/*",
     "apps/*"
   ],
-  "devDependencies": {
-    "@nx/js": "19.8.4",
-    "@nx/node": "19.8.4",
-    "@nx/react": "19.8.4",
-    "@nx/react-native": "19.8.4",
-    "@nx/workspace": "19.8.4",
-    "@swc-node/register": "~1.9.1",
-    "@swc/core": "~1.5.7",
-    "@swc/helpers": "~0.5.11",
-    "nx": "19.8.4",
-    "prettier": "^2.6.2",
-    "tslib": "^2.3.0",
-    "typescript": "~5.5.2"
-  },
-  "dependencies": {
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-native": "0.74.1"
+  "scripts": {
+    "api:dev": "yarn workspace api run dev",
+    "web:dev": "yarn workspace web run dev",
+    "mobile:dev": "yarn workspace mobile start",
+    "mobile:pod-install": "yarn workspace mobile pod-install",
+    "mobile:android": "yarn workspace mobile run android",
+    "mobile:clean": "yarn workspace mobile run clean",
+    "mobile:ios": "yarn workspace mobile run ios"
   },
   "engines": {
     "node": "^20",
-    "yarn": "^3.6.4"
+    "yarn": "^4.5.0"
   },
-  "packageManager": "yarn@3.6.4",
-  "scripts": {
-    "reset": "rm -rf node_modules **/node_modules .yarn **/.yarn **/yarn.lock yarn.lock && yarn install"
-  }
+  "packageManager": "yarn@4.5.0"
 }

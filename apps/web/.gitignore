@@ -1,0 +1,74 @@
+#  FROM ROOT .gitignore
+
+# nx
+.nx/cache
+.nx/workspace-data
+
+# dependencies
+node_modules/
+
+# testing
+coverage
+
+# production
+build/
+build-hc
+es5
+
+# local config
+config/ssl
+
+# env
+.env
+.env.old
+.env.test
+.env.dev
+.env.production
+
+.floo
+.flooignore
+
+# yarn
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# logs
+npm-debug.log
+yarn-error.log
+testem.log
+
+# compiled output
+dist
+tmp
+out-tsc
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# misc
+.sass-cache
+connect.lock
+libpeerconnection.log
+typings
+
+# System Files
+.DS_Store
+Thumbs.db
