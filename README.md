@@ -23,7 +23,7 @@ git pull
 git checkout -b monorepo-setup
 
 # assuming this repo is checked out at ../hylo relative to the legacy repo root,
-# where apps/web could be apps/<web|api|mobile> or libs/shared
+# where apps/web could be apps/<web|api|mobile> or libs/hylo-shared
 ../hylo/move-mono.sh
 
 git commit -m "Move files in preparation for monorepo migration (<api|web|mobile|hylo-shared>)"

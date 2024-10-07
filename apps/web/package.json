@@ -12,7 +12,7 @@
   "proxy": "localhost:3001",
   "scripts": {
     "viteDev": "vite serve",
-    "dev": "yarn start",
+    "dev": "concurrently \"yarn workspace hylo-shared start\" \"yarn start\"",
     "start": "rm -rf ./node_modules/.cache/babel-loader && node --preserve-symlinks scripts/start.js",
     "build": "node --max-old-space-size=4000 scripts/build.js --stats && scripts/build-es5.sh",
     "test": "TZ=UTC node scripts/test.js",
@@ -144,7 +144,6 @@
     "html-webpack-plugin": "^5.6.0",
     "http-proxy-middleware": "0.17.4",
     "husky": "^7.0.4",
-    "hylo-shared": "5.2.2",
     "i18next": "^22.0.5",
     "i18next-browser-languagedetector": "^7.0.1",
     "i18next-http-backend": "^2.0.1",

@@ -14,6 +14,9 @@
     ]
   },
   "main": "app.js",
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
   "scripts": {
     "start": "node --optimize_for_size --max_old_space_size=$MAX_OLD_SPACE_SIZE --gc_interval=100 app.js",
     "console": "node console.js",
@@ -97,7 +100,6 @@
     "hast-util-to-string": "^1.0.1",
     "hastscript": "^3.1.0",
     "he": "^1.2.0",
-    "hylo-shared": "5.2.5",
     "image-size": "^0.3.5",
     "insane": "^2.6.2",
     "jade": "^1.11.0",
