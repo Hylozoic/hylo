@@ -1,5 +1,5 @@
 import React from 'react'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import useEnsureCurrentGroup from 'hooks/useEnsureCurrentGroup'
 import useEnsurePosts from 'hooks/useEnsurePosts'
 import Widget from 'components/Widget'

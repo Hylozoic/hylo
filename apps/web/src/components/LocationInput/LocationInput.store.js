@@ -1,5 +1,5 @@
 import { get } from 'lodash/fp'
-import { LocationHelpers } from 'hylo-shared'
+import { LocationHelpers } from '@hylo/shared'
 
 export const MODULE_NAME = 'LocationInput'
 export const FETCH_LOCATION = `${MODULE_NAME}/FETCH_LOCATION`

@@ -3,7 +3,7 @@ import { withTranslation } from 'react-i18next'
 import AsyncCreatableSelect from 'react-select/async-creatable'
 import styles from './TopicSelector.module.scss'
 import { isEmpty, sortBy } from 'lodash/fp'
-import { Validators } from 'hylo-shared'
+import { Validators } from '@hylo/shared'
 import Icon from 'components/Icon'
 import connector from './TopicSelector.connector'
 

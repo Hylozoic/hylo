@@ -1,8 +1,8 @@
 {
-  "name": "hylo",
   "private": true,
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
     "api:dev": "yarn workspace api run dev",
@@ -11,7 +11,8 @@
     "mobile:pod-install": "yarn workspace mobile pod-install",
     "mobile:android": "yarn workspace mobile run android",
     "mobile:clean": "yarn workspace mobile run clean",
-    "mobile:ios": "yarn workspace mobile run ios"
+    "mobile:ios": "yarn workspace mobile run ios",
+    "reset": "rm -rf **/node_modules **/.yarn/cache **/yarn.lock && yarn install"
   },
   "engines": {
     "node": "^20",

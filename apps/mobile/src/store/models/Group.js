@@ -1,6 +1,6 @@
 import { Image } from 'react-native'
 import { attr, many, Model, fk } from 'redux-orm'
-import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from 'hylo-shared'
+import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 import allGroupsBannerImage from 'assets/all-groups-banner.png'
 import allGroupsAvatarUrl from 'assets/All_Groups2.png'
 import myHomeAvatarUrl from 'assets/my-home.png'

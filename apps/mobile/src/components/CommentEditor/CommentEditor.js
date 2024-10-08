@@ -7,7 +7,7 @@ import { KeyboardAccessoryView } from '@flyerhq/react-native-keyboard-accessory-
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons'
 import { isEmpty } from 'lodash/fp'
 import { isIOS } from 'util/platform'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import createComment from 'store/actions/createComment'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import styles from './CommentEditor.styles'

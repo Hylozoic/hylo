@@ -1,6 +1,6 @@
 import { get } from 'lodash/fp'
 import { USE_INVITATION } from 'store/constants'
-import { AnalyticsEvents } from 'hylo-shared'
+import { AnalyticsEvents } from '@hylo/shared'
 
 export default function useInvitation (inviteCodes = {}) {
   const { invitationToken, accessCode } = inviteCodes

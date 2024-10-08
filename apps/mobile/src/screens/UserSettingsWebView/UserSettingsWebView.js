@@ -1,6 +1,6 @@
 import React, { useRef } from 'react'
 import { useDispatch } from 'react-redux'
-import { WebViewMessageTypes } from 'hylo-shared'
+import { WebViewMessageTypes } from '@hylo/shared'
 import useRouteParams from 'hooks/useRouteParams'
 import logout from 'store/actions/logout'
 import { LEAVE_GROUP } from 'store/constants'

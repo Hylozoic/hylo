@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import React, { useEffect, useState } from 'react'
 import { pick } from 'lodash/fp'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import ReactPlayer from 'react-player'
 import Highlight from 'components/Highlight'
 import HyloHTML from 'components/HyloHTML'

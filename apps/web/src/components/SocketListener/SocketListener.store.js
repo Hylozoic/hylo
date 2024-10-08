@@ -1,4 +1,4 @@
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import { bodyForNotification, titleForNotification } from 'store/models/Notification'
 
 const MODULE_NAME = 'SocketListener'

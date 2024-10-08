@@ -1,5 +1,5 @@
 import { REMOVE_REACT_ON_POST, REMOVE_REACT_ON_COMMENT } from 'store/constants'
-import { AnalyticsEvents } from 'hylo-shared'
+import { AnalyticsEvents } from '@hylo/shared'
 
 export default function removeReactOnEntity ({ commentId, emojiFull, entityType, postId }) {
   const data = { emojiFull, entityType }

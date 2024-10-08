@@ -3,6 +3,9 @@
   "description": "Hylo Frontend",
   "version": "5.10.0",
   "private": true,
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
   "license": "Apache-2.0",
   "author": "Hylo <hello@hylo.com>",
   "type": "module",
@@ -13,7 +16,7 @@
   "scripts": {
     "viteDev": "vite serve",
     "dev": "yarn start",
-    "start": "rm -rf ./node_modules/.cache/babel-loader && node --preserve-symlinks scripts/start.js",
+    "start": "rm -rf ../../node_modules/.cache/babel-loader && node --preserve-symlinks scripts/start.js",
     "build": "node --max-old-space-size=4000 scripts/build.js --stats && scripts/build-es5.sh",
     "test": "TZ=UTC node scripts/test.js",
     "lint": "yarn exec standard",
@@ -60,6 +63,7 @@
     "@dnd-kit/sortable": "^7.0.2",
     "@emoji-mart/react": "^1.0.1",
     "@faker-js/faker": "^6.0.0-alpha.5",
+    "@hylo/shared": "workspace:*",
     "@loaders.gl/core": "^4.2.4",
     "@loaders.gl/loader-utils": "^4.2.4",
     "@luma.gl/core": "~9.0.0",
@@ -144,7 +148,6 @@
     "html-webpack-plugin": "^5.6.0",
     "http-proxy-middleware": "0.17.4",
     "husky": "^7.0.4",
-    "hylo-shared": "5.2.2",
     "i18next": "^22.0.5",
     "i18next-browser-languagedetector": "^7.0.1",
     "i18next-http-backend": "^2.0.1",

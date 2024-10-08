@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux'
-import { ALL_GROUPS_CONTEXT_SLUG } from 'hylo-shared'
+import { ALL_GROUPS_CONTEXT_SLUG } from '@hylo/shared'
 import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
 import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'

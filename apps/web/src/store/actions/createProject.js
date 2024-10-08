@@ -1,5 +1,5 @@
 import { get } from 'lodash/fp'
-import { TextHelpers, AnalyticsEvents } from 'hylo-shared'
+import { TextHelpers, AnalyticsEvents } from '@hylo/shared'
 import postFieldsFragment from '@graphql/fragments/postFieldsFragment'
 import { CREATE_PROJECT } from 'store/constants'
 

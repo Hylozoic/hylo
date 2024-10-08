@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import React, { Component, useState } from 'react'
 import { withTranslation, useTranslation } from 'react-i18next'
 import get from 'lodash/get'
-import { WebViewMessageTypes } from 'hylo-shared'
+import { WebViewMessageTypes } from '@hylo/shared'
 import isWebView, { sendMessageToWebView } from 'util/webView'
 import {
   CREATE_AFFILIATION,

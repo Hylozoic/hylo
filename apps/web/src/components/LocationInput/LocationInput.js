@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
-import { LocationHelpers } from 'hylo-shared'
+import { LocationHelpers } from '@hylo/shared'
 import Geocoder from 'components/GeocoderAutocomplete'
 import { mapbox } from 'config/index'
 import styles from './LocationInput.module.scss'

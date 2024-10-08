@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PathHelpers, HYLO_URL_REGEX } from 'hylo-shared'
+import { PathHelpers, HYLO_URL_REGEX } from '@hylo/shared'
 
 export default function ClickCatcher ({ handleMouseOver, groupSlug = 'all', onClick, ...props }) {
   const navigate = useNavigate()

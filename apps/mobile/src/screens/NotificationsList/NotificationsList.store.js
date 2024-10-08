@@ -1,6 +1,6 @@
 import { find, pick } from 'lodash/fp'
 import { gql } from 'urql'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 
 export const ACTION_ANNOUNCEMENT = 'announcement'
