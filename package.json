@@ -19,6 +19,6 @@
   },
   "packageManager": "yarn@4.5.0",
   "dependencies": {
-    "@hylo/shared": "*"
+    "@hylo/shared": "workspace:*"
   }
 }
