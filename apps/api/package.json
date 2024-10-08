@@ -6,6 +6,9 @@
   "license": "Apache-2.0",
   "private": true,
   "version": "5.10.0",
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
   "nyc": {
     "sourceMap": false,
     "instrument": false,

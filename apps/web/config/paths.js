@@ -70,7 +70,7 @@ export default {
   servedPath: getServedPath(),
   rootPath: resolveApp('.'),
   babelConfigFile: resolveApp('babel.config.cjs'),
-  yarnLockFile: resolveApp('yarn.lock'),
+  yarnLockFile: resolveApp('../../yarn.lock'),
   nodeModules: resolveApp('node_modules'),
   nodePaths: nodePaths
 };
