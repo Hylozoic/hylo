@@ -9776,9 +9776,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"api@workspace:apps/api":
+"api@workspace:apps/backend":
   version: 0.0.0-use.local
-  resolution: "api@workspace:apps/api"
+  resolution: "api@workspace:apps/backend"
   dependencies:
     "@airbnb/node-memwatch": "npm:^2.0.0"
     "@babel/cli": "npm:^7.17.6"
