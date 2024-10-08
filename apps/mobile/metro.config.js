@@ -22,7 +22,11 @@ const config = {
     // * May need to makes-sure to carry-over defaults
     // assetExts: ['html', 'css', 'jpg', 'png', 'ttf', 'graphql'],
     assetExts: ['png', 'jpg', 'graphql'],
-    sourceExts: ['js', 'json', 'ts', 'tsx', 'cjs', 'svg']
+    sourceExts: ['js', 'json', 'ts', 'tsx', 'cjs', 'svg'],
+    // Add paths where Metro can look for peer dependencies
+    extraNodeModules: {
+      'moment-timezone': path.resolve(__dirname, 'node_modules/moment-timezone')
+    }
   },
   // Hoisted monorepo deps, and shared packages
   watchFolders: [

@@ -1,16 +1,16 @@
-import { host } from 'config/index'
 import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
-import qs from 'querystring'
+import qs from 'query-string'
+import { host } from 'config/index'
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
 const GROUP_SLUG_MATCH = '[^\\\\]+'
 // TODO: do this validation elsewhere?
-export const OPTIONAL_POST_MATCH = `:detail(post)?/:postId?/:action(new|edit)?`
+export const OPTIONAL_POST_MATCH = ':detail(post)?/:postId?/:action(new|edit)?'
 export const OPTIONAL_NEW_POST_MATCH = ':detail(post)?/:action(new)?' // TODO: need this?
-export const POST_DETAIL_MATCH = `post/:postId/*`
+export const POST_DETAIL_MATCH = 'post/:postId/*'
 
-export const REQUIRED_EDIT_POST_MATCH = `:detail(post)/:postId/:action(edit)`
+export const REQUIRED_EDIT_POST_MATCH = ':detail(post)/:postId/:action(edit)'
 
 export const GROUP_DETAIL_MATCH = 'group/:detailGroupSlug'
 export const OPTIONAL_GROUP_MATCH = ':detail(group)?/(:detailGroupSlug)?'
