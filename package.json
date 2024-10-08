@@ -2,7 +2,7 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "libs/shared"
+    "packages/shared"
   ],
   "scripts": {
     "api:dev": "yarn workspace api run dev",
