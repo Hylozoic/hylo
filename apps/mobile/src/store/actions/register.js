@@ -1,5 +1,5 @@
 import { get } from 'lodash/fp'
-import { AnalyticsEvents } from 'hylo-shared'
+import { AnalyticsEvents } from '@hylo/shared'
 import { REGISTER } from 'store/constants'
 
 export default function register (name, password) {

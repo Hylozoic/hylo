@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { Text, View } from 'react-native'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import HyloHTML from 'components/HyloHTML'
 import Avatar from 'components/Avatar'
 import styles from './MessageCard.style'

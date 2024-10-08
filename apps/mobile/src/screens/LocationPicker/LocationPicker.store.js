@@ -1,6 +1,6 @@
 import { fetchMapboxLocations, convertMapboxToLocation } from 'services/mapbox'
 import { get } from 'lodash/fp'
-import { LocationHelpers } from 'hylo-shared'
+import { LocationHelpers } from '@hylo/shared'
 import { SET_SEARCH_SUGGESTIONS } from 'screens/ItemChooser/ItemChooser.store'
 
 export const FIND_OR_CREATE_LOCATION = 'FIND_OR_CREATE_LOCATION'

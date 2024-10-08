@@ -1,7 +1,7 @@
 import { createSelector } from 'reselect'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { get, find, pick } from 'lodash/fp'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import orm from 'store/models'
 import { makeGetQueryResults } from 'store/reducers/queryResults'
 import { modalScreenName } from 'hooks/useIsModalScreen'

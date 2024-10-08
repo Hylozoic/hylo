@@ -1,5 +1,5 @@
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { Validators } from 'hylo-shared'
+import { Validators } from '@hylo/shared'
 import orm from 'store/models'
 
 // FIXME this could return topics that are not in the current group

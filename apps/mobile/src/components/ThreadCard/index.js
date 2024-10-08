@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text } from 'react-native'
 import { filter, get, map, find, isEmpty } from 'lodash/fp'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import styles from './ThreadCard.styles'
 import { useTranslation } from 'react-i18next'

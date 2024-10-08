@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useImperativeHandle } from 'react'
 import { Dimensions } from 'react-native'
-import { WebViewMessageTypes } from 'hylo-shared'
+import { WebViewMessageTypes } from '@hylo/shared'
 import { isIOS } from 'util/platform'
 import HyloWebView, { sendMessageFromWebView } from 'components/HyloWebView'
 

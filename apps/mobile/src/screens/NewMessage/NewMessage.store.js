@@ -1,5 +1,5 @@
 import { uniqueId } from 'lodash/fp'
-import { AnalyticsEvents } from 'hylo-shared'
+import { AnalyticsEvents } from '@hylo/shared'
 import FindOrCreateThreadMutation from 'graphql/mutations/FindOrCreateThreadMutation.graphql'
 import CreateMessageMutation from 'graphql/mutations/CreateMessageMutation.graphql'
 

@@ -1,5 +1,5 @@
 import { get } from 'lodash/fp'
-import { AnalyticsEvents } from 'hylo-shared'
+import { AnalyticsEvents } from '@hylo/shared'
 import { SEND_EMAIL_VERIFICATION } from 'store/constants'
 
 export default function sendEmailVerification (email) {
