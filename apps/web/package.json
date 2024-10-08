@@ -3,9 +3,6 @@
   "description": "Hylo Frontend",
   "version": "5.10.0",
   "private": true,
-  "installConfig": {
-    "hoistingLimits": "workspaces"
-  },
   "license": "Apache-2.0",
   "author": "Hylo <hello@hylo.com>",
   "type": "module",
