@@ -3,7 +3,7 @@
   "private": true,
   "description": "Code shared across Hylo applications for consistency of results",
   "type": "module",
-  "main": "src/index.js",
+  "main": "index.js",
   "scripts": {
     "start:native": "concurrently 'yarn start' 'wml start'",
     "test": "jest"
