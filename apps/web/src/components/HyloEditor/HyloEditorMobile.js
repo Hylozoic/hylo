@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { pickBy } from 'lodash/fp'
-import { WebViewMessageTypes } from 'hylo-shared'
+import { WebViewMessageTypes } from '@hylo/shared'
 import { sendMessageToWebView } from 'util/webView'
 import HyloEditor from 'components/HyloEditor'
 import classes from './HyloEditorMobile.module.scss'

@@ -1,7 +1,7 @@
 import { attr, fk, Model } from 'redux-orm'
 import { find, get } from 'lodash/fp'
 import { t as translate } from 'i18next'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import {
   postCommentUrl,
   postUrl,

@@ -1,4 +1,4 @@
-import { AnalyticsEvents } from 'hylo-shared'
+import { AnalyticsEvents } from '@hylo/shared'
 import { RESPOND_TO_EVENT } from 'store/constants'
 
 export default function respondToEvent (post, response) {

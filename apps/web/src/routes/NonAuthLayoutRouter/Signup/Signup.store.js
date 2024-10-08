@@ -1,5 +1,5 @@
 import { get } from 'lodash/fp'
-import { AnalyticsEvents } from 'hylo-shared'
+import { AnalyticsEvents } from '@hylo/shared'
 
 export const MODULE_NAME = 'Signup'
 export const REGISTER = `${MODULE_NAME}/REGISTER`

@@ -1,5 +1,5 @@
 import React from 'react'
-import { LocationHelpers } from 'hylo-shared'
+import { LocationHelpers } from '@hylo/shared'
 import Highlight from 'components/Highlight'
 import cx from 'classnames'
 import Icon from 'components/Icon'

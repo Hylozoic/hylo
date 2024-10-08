@@ -5,7 +5,7 @@ import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import { personUrl } from 'util/navigation'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import classes from './Message.module.scss'
 
 export default function Message ({ message, isHeader }) {

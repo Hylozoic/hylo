@@ -1,5 +1,5 @@
 import cx from 'classnames'
-import { AnalyticsEvents } from 'hylo-shared'
+import { AnalyticsEvents } from '@hylo/shared'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import LocationInput from 'components/LocationInput'

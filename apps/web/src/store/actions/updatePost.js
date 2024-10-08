@@ -1,5 +1,5 @@
 import { get } from 'lodash/fp'
-import { TextHelpers, AnalyticsEvents } from 'hylo-shared'
+import { TextHelpers, AnalyticsEvents } from '@hylo/shared'
 import updatePostMutation from '@graphql/mutations/updatePostMutation'
 import { UPDATE_POST } from 'store/constants'
 

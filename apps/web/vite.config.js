@@ -116,8 +116,8 @@ export default defineConfig({
       router: path.resolve(__dirname, 'src/router'),
       routes: path.resolve(__dirname, 'src/routes'),
       store: path.resolve(__dirname, 'src/store'),
-      util: path.resolve(__dirname, 'src/util')
-      // 'hylo-shared': path.resolve(__dirname, '../../libs/shared')
+      util: path.resolve(__dirname, 'src/util'),
+      '@hylo/shared': path.resolve(__dirname, '../../packages/shared')
     }
   },
   css: {

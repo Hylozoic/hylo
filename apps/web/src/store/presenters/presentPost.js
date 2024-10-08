@@ -1,6 +1,6 @@
 import moment from 'moment-timezone'
 import presentTopic from 'store/presenters/presentTopic'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 
 export default function presentPost (post, groupId) {
   if (!post) return null

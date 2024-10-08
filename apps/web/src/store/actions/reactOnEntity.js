@@ -1,5 +1,5 @@
 import { REACT_ON_POST, REACT_ON_COMMENT } from 'store/constants'
-import { AnalyticsEvents } from 'hylo-shared'
+import { AnalyticsEvents } from '@hylo/shared'
 
 export default function reactOnEntity ({ commentId, emojiFull, entityType, postId, groupIds }) {
   const data = { emojiFull, entityType }

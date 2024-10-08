@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import { groupUrl, groupDetailUrl } from 'util/navigation'
 import ClickCatcher from 'components/ClickCatcher'
 import GroupHeader from './GroupHeader'

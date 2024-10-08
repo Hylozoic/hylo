@@ -7,7 +7,7 @@ import CopyToClipboard from 'react-copy-to-clipboard'
 import { Tooltip } from 'react-tooltip'
 import { Helmet } from 'react-helmet'
 import { useParams, useNavigate } from 'react-router-dom'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
 import { bgImageStyle } from 'util/index'
 import {
