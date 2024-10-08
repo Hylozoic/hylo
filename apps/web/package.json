@@ -3,6 +3,9 @@
   "description": "Hylo Frontend",
   "version": "5.10.0",
   "private": true,
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
   "license": "Apache-2.0",
   "author": "Hylo <hello@hylo.com>",
   "type": "module",
@@ -60,6 +63,7 @@
     "@dnd-kit/sortable": "^7.0.2",
     "@emoji-mart/react": "^1.0.1",
     "@faker-js/faker": "^6.0.0-alpha.5",
+    "@hylo/shared": "workspace:*",
     "@loaders.gl/core": "^4.2.4",
     "@loaders.gl/loader-utils": "^4.2.4",
     "@luma.gl/core": "~9.0.0",

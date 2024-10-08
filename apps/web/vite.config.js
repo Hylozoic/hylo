@@ -61,7 +61,8 @@ export default defineConfig({
         '.js': 'jsx'
       }
     },
-    include: ['**/*.scss'] // Include all .scss files
+    exclude: ['@hylo/shared'],
+    include: ['**/*.scss']
   },
   server: {
     // XXX: fix issues finding aliases?
