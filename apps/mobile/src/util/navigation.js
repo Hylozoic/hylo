@@ -1,7 +1,7 @@
 // NOTE: Entire file tracks `hylo-evo/util/navigation.js`
 import { host } from 'config'
 import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
-import qs from 'querystring'
+import qs from 'query-string'
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
