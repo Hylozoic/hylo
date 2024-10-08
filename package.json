@@ -16,10 +16,10 @@
   },
   "engines": {
     "node": "^20",
-    "yarn": "^3.6.4"
+    "yarn": "^4.5.0"
   },
-  "packageManager": "yarn@3.6.4",
   "dependencies": {
     "@hylo/shared": "workspace:*"
-  }
+  },
+  "packageManager": "yarn@4.5.0"
 }
