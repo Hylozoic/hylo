@@ -1,8 +1,8 @@
 {
-  "name": "hylo",
   "private": true,
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "libs/shared"
   ],
   "scripts": {
     "api:dev": "yarn workspace api run dev",
@@ -17,5 +17,8 @@
     "node": "^20",
     "yarn": "^4.5.0"
   },
-  "packageManager": "yarn@4.5.0"
+  "packageManager": "yarn@4.5.0",
+  "dependencies": {
+    "@hylo/shared": "*"
+  }
 }
