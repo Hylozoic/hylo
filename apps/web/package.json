@@ -170,7 +170,7 @@
     "mixpanel-browser": "^2.45.0",
     "mock-fs": "^4.2.0",
     "moment-locales-webpack-plugin": "^1.2.0",
-    "moment-timezone": "^0.5.45",
+    "moment-timezone": "^0.5.46",
     "msw": "^0.36.8",
     "newrelic": "^7.0.2",
     "normalize.css": "^7.0.0",

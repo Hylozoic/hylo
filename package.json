@@ -5,7 +5,7 @@
     "packages/*"
   ],
   "scripts": {
-    "api:dev": "yarn workspace api run dev",
+    "backend:dev": "yarn workspace api run dev",
     "web:dev": "yarn workspace web run dev",
     "mobile:dev": "yarn workspace mobile start",
     "mobile:pod-install": "yarn workspace mobile pod-install",

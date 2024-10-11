@@ -3621,6 +3621,7 @@ __metadata:
     jest: "npm:^27.5.0"
     lodash: "npm:~4.17.21"
     marked: "npm:^4.2.1"
+    moment-timezone: "npm:^0.5.46"
     pretty-date: "npm:^0.2.0"
     querystring: "npm:^0.2.1"
     standard: "npm:^16.0.4"
@@ -3628,8 +3629,6 @@ __metadata:
     trunc-text: "npm:^1.0.2"
     validator: "npm:^13.7.0"
     wml: "npm:^0.0.83"
-  peerDependencies:
-    moment-timezone: ^0.5.37
   languageName: unknown
   linkType: soft
 
@@ -9777,9 +9776,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"api@workspace:apps/api":
+"api@workspace:apps/backend":
   version: 0.0.0-use.local
-  resolution: "api@workspace:apps/api"
+  resolution: "api@workspace:apps/backend"
   dependencies:
     "@airbnb/node-memwatch": "npm:^2.0.0"
     "@babel/cli": "npm:^7.17.6"
@@ -9854,7 +9853,7 @@ __metadata:
     mixpanel: "npm:^0.17.0"
     mocha: "npm:^9.0.0"
     mock-require: "npm:^2.0.2"
-    moment-timezone: "npm:^0.5.37"
+    moment-timezone: "npm:^0.5.46"
     newrelic: "npm:^7.0.0"
     nock: "npm:^13.5.5"
     node-fetch: "npm:^2"
@@ -26566,7 +26565,7 @@ __metadata:
     jest-watch-typeahead: "npm:^2.2.2"
     lodash: "npm:^4.17.21"
     mixpanel-react-native: "npm:^2.3.1"
-    moment-timezone: "npm:^0.5.45"
+    moment-timezone: "npm:^0.5.46"
     path-to-regexp: "npm:^6.2.1"
     postinstall-postinstall: "npm:^2.1.0"
     prettier: "npm:2.8.8"
@@ -26696,7 +26695,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"moment-timezone@npm:^0.5.37, moment-timezone@npm:^0.5.45":
+"moment-timezone@npm:^0.5.46":
   version: 0.5.46
   resolution: "moment-timezone@npm:0.5.46"
   dependencies:
@@ -39437,7 +39436,7 @@ __metadata:
     mixpanel-browser: "npm:^2.45.0"
     mock-fs: "npm:^4.2.0"
     moment-locales-webpack-plugin: "npm:^1.2.0"
-    moment-timezone: "npm:^0.5.45"
+    moment-timezone: "npm:^0.5.46"
     msw: "npm:^0.36.8"
     newrelic: "npm:^7.0.2"
     normalize.css: "npm:^7.0.0"

@@ -13,7 +13,7 @@ npx nx add @nx/react-native
 git commit -a -m "Add base nx plugins"
 ```
 
-2. Merged in Hylo API, Web, and Mobile keeping history:
+2. Merged in Hylo Backend, Web, and Mobile keeping history:
 
 Prepare individual legacy repos to be merged, and then merge into the monorepo using this sequence for each app (https://nx.dev/recipes/adopting-nx/preserving-git-histories):
 
@@ -23,17 +23,17 @@ git pull
 git checkout -b monorepo-setup
 
 # assuming this repo is checked out at ../hylo relative to the legacy repo root,
-# where apps/web could be apps/<web|api|mobile> or libs/shared
+# where apps/web could be apps/<web|backend|mobile> or libs/shared
 ../hylo/move-mono.sh
 
-git commit -m "Move files in preparation for monorepo migration (<api|web|mobile|hylo-shared>)"
+git commit -m "Move files in preparation for monorepo migration (<backend|web|mobile|hylo-shared>)"
 git push -u
 
 # then merge each repo into the new monorepo generated above
 cd ../hylo
-git remote add <api|web|mobile|shared> <repository url>
-git fetch <api|web|mobile|shared>
-git merge <api|web|mobile|shared>/monorepo-setup --allow-unrelated-histories
+git remote add <backend|web|mobile|shared> <repository url>
+git fetch <backend|web|mobile|shared>
+git merge <backend|web|mobile|shared>/monorepo-setup --allow-unrelated-histories
 ```
 
 1. Tried some yarn workspaces / monorepo stuff:
@@ -45,9 +45,9 @@ git merge <api|web|mobile|shared>/monorepo-setup --allow-unrelated-histories
 * Question: pnpm is somewhat the new hotness and shouldn't be difficult to switch to, also pnpm+nx is said to be a great combination. Do we switch to this?
 
 Remaining work:
-* Get apps/api (hylo-node) working in a modules environment as it is a blended CommonJS and ESM project currently
+* Get apps/backend (hylo-node) working in a modules environment as it is a blended CommonJS and ESM project currently
 * Get apps/mobile issues resolved around babel parsing emoji data, etc
-* Update CircleCI configuration for web and api, including getting yarn berry working there
+* Update CircleCI configuration for web and backend, including getting yarn berry working there
 * CircleCI and Bitrise triggers, etc configuration update for new paths
 
 ----
