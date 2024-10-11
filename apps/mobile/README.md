@@ -17,7 +17,7 @@
 
 Please review our [Contribution Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) to step into co-creative stewardship with us.
 
-## Additional Docs for Hylo App Dev
+## Additional Docs for Hylo Mobile App Dev
 
 ## Boot Splash Screen
 
@@ -32,7 +32,7 @@ yarn react-native generate-bootsplash ./bootsplash_logo.png \
   --logo-width=160
 ```
 
-#### Release checklist
+#### Release Checklist
 
 - Merge changes to `dev`
 - Make sure tests are passing
