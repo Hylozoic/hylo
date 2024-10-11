@@ -1,4 +1,4 @@
-# HyloReactNative
+# Hylo Mobile App
 
 ## Quick Start
 
