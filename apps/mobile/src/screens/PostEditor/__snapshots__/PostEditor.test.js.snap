@@ -348,6 +348,7 @@ exports[`PostEditor renders correctly while saving 1`] = `
             >
               <View
                 collapsable={false}
+                enabled={false}
                 handlerTag={1}
                 handlerType="PanGestureHandler"
                 needsOffscreenAlphaCompositing={false}
@@ -1258,6 +1259,7 @@ exports[`PostEditor renders correctly while saving 1`] = `
             >
               <View
                 collapsable={false}
+                enabled={false}
                 handlerTag={2}
                 handlerType="PanGestureHandler"
                 needsOffscreenAlphaCompositing={false}
@@ -1826,6 +1828,7 @@ exports[`TypeButton renders correctly 1`] = `
   <RNPickerSelect
     Icon={[Function]}
     InputAccessoryView={null}
+    activeItemStyle={{}}
     darkTheme={false}
     disabled={false}
     doneText="Done"

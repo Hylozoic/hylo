@@ -498,6 +498,7 @@ exports[`default render matches snapshot 1`] = `
             >
               <View
                 collapsable={false}
+                enabled={false}
                 handlerTag={1}
                 handlerType="PanGestureHandler"
                 needsOffscreenAlphaCompositing={false}
@@ -790,6 +791,7 @@ exports[`default render matches snapshot 1`] = `
             >
               <View
                 collapsable={false}
+                enabled={true}
                 handlerTag={2}
                 handlerType="PanGestureHandler"
                 needsOffscreenAlphaCompositing={false}
