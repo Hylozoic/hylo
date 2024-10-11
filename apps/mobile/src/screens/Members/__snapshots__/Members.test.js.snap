@@ -264,6 +264,7 @@ exports[`renders correctly with no group (all groups default) 1`] = `
             >
               <View
                 collapsable={false}
+                enabled={false}
                 handlerTag={1}
                 handlerType="PanGestureHandler"
                 needsOffscreenAlphaCompositing={false}
@@ -1192,6 +1193,7 @@ exports[`renders with invite button when a moderator 1`] = `
             >
               <View
                 collapsable={false}
+                enabled={false}
                 handlerTag={2}
                 handlerType="PanGestureHandler"
                 needsOffscreenAlphaCompositing={false}
