@@ -17,10 +17,10 @@ export default function WelcomeWizardRouter () {
         <div className={cx(classes.background, classes.background)} />
         <div className={cx(classes.wrapper, classes.wrapper)}>
           <Routes>
-            <Route path='/welcome/upload-photo' element={<UploadPhoto />} />
-            <Route path='/welcome/add-location' element={<AddLocation />} />
-            <Route path='/welcome/explore' element={<WelcomeExplore />} />
-            <Route render={props => <Navigate to='/welcome/upload-photo' replace />} />
+            <Route path='upload-photo' element={<UploadPhoto />} />
+            <Route path='add-location' element={<AddLocation />} />
+            <Route path='explore' element={<WelcomeExplore />} />
+            <Route path='' element={<Navigate to='/welcome/upload-photo' replace />} />
           </Routes>
         </div>
       </div>

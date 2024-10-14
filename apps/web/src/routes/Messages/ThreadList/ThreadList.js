@@ -29,7 +29,7 @@ class ThreadList extends Component {
       threads,
       threadSearch,
       onScrollBottom,
-      match: { params: { messageThreadId } },
+      messageThreadId,
       className,
       t
     } = this.props

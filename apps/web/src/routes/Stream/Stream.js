@@ -73,8 +73,9 @@ export default function Stream (props) {
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id || 0
   const topic = useSelector(state => getTopicForCurrentRoute(state, { match: { params } }))
+
   const groupTopic = useSelector(state => {
-    const gt = getGroupTopicForCurrentRoute(state, { match: { params } })
+    const gt = getGroupTopicForCurrentRoute(state, groupSlug, topicName)
     return gt && { ...gt.ref, group: gt.group, topic: gt.topic }
   })
   const customView = useSelector(state => getCustomView(state, customViewId))
@@ -88,7 +89,7 @@ export default function Stream (props) {
   const defaultPostType = get('settings.streamPostType', currentUser) || undefined
   const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || 'yes'
 
-  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search'], { location })
+  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search'], location)
   const determinePostTypeFilter = () => {
     if (view === 'projects') return 'project'
     if (view === 'proposals') return 'proposal'
@@ -129,7 +130,7 @@ export default function Stream (props) {
   const pending = useSelector(state => state.pending[FETCH_POSTS])
   const pendingModerationActions = useSelector(state => state.pending[FETCH_MODERATION_ACTIONS])
 
-  const decisionView = getQuerystringParam('d', { location }) || 'proposals'
+  const decisionView = getQuerystringParam('d', location) || 'proposals'
   let moderationActions, hasMoreModerationActions
   const fetchModerationActionParam = {
     slug: groupSlug,
@@ -170,30 +171,30 @@ export default function Stream (props) {
 
   const changeTab = useCallback(tab => {
     dispatch(updateUserSettings({ settings: { streamPostType: tab || '' } }))
-    dispatch(changeQuerystringParam({ location }, 't', tab, 'all'))
+    dispatch(changeQuerystringParam(location, 't', tab, 'all'))
   }, [location])
 
   const changeSort = useCallback(sort => {
     dispatch(updateUserSettings({ settings: { streamSortBy: sort } }))
-    dispatch(changeQuerystringParam({ location }, 's', sort, 'all'))
+    dispatch(changeQuerystringParam(location, 's', sort, 'all'))
   }, [location])
 
   const changeView = useCallback(view => {
     dispatch(updateUserSettings({ settings: { streamViewMode: view } }))
-    dispatch(changeQuerystringParam({ location }, 'v', view, 'all'))
+    dispatch(changeQuerystringParam(location, 'v', view, 'all'))
   }, [location])
 
   const changeChildPostInclusion = useCallback(childPostsBool => {
     dispatch(updateUserSettings({ settings: { streamChildPosts: childPostsBool } }))
-    dispatch(changeQuerystringParam({ location }, 'c', childPostsBool, 'yes'))
+    dispatch(changeQuerystringParam(location, 'c', childPostsBool, 'yes'))
   }, [location])
 
   const changeSearch = useCallback(search => {
-    dispatch(changeQuerystringParam({ location }, 'search', search, 'all'))
+    dispatch(changeQuerystringParam(location, 'search', search, 'all'))
   }, [location])
 
   const changeDecisionView = useCallback(view => {
-    dispatch(changeQuerystringParam({ location }, 'd', view, 'proposals'))
+    dispatch(changeQuerystringParam(location, 'd', view, 'proposals'))
   }, [location])
 
   const newPost = () => dispatch(push(createPostUrl(params, querystringParams)))

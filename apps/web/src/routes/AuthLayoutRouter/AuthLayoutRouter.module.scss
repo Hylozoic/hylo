@@ -354,7 +354,7 @@ $drawer-z-index: 51;
   max-width: 50%;
   overflow-y: auto;
   overflow-x: hidden;
-  transition: all .45s ease;
+  // transition: all .45s ease; // Took this out because it was causing issues with the width of the map
 
   &.full-width {
     max-width: $center-column-full-width;
@@ -576,7 +576,7 @@ $drawer-z-index: 51;
     max-width: 100%;
     padding: 0 0 0 0;
   }
-  
+
   .detail {
     z-index: 110;
   }

@@ -5,7 +5,7 @@ const defaultGroupUrl = '/assets/default_group_avatar.png'
 
 // Icon Layer for Groups
 export function createIconLayerFromGroups ({ boundingBox, groups, onHover, onClick }) {
-  let data = groups.filter(group => group.locationObject && group.locationObject.center)
+  const data = groups.filter(group => group.locationObject && group.locationObject.center)
     .map(group => {
       return {
         id: group.id,
@@ -23,7 +23,7 @@ export function createIconLayerFromGroups ({ boundingBox, groups, onHover, onCli
         mode: 'no-cors',
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Authorization': 'yes'
+          Authorization: 'yes'
           // 'Origin': 'bloop'
         }
       }

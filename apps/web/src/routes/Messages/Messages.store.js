@@ -185,9 +185,9 @@ export function updateThreadReadTime (id) {
 
 export const getParticipantsFromQuerystring = ormCreateSelector(
   orm,
-  (_, props) => props,
-  ({ Person }, props) => {
-    const participantsQuerystringParam = getQuerystringParam('participants', props)
+  (_, location) => location,
+  ({ Person }, location) => {
+    const participantsQuerystringParam = getQuerystringParam('participants', location)
     if (!isEmpty(participantsQuerystringParam)) {
       const participantIds = participantsQuerystringParam.split(',')
       const participants = Person
@@ -257,7 +257,7 @@ export const getContactsList = ormCreateSelector(
 
 // Threads and Messages
 
-export const getCurrentMessageThreadId = (_, { match }) => match.params.messageThreadId
+export const getCurrentMessageThreadId = (_, routeParams) => routeParams.messageThreadId
 
 export const getTextForCurrentMessageThread = createSelector(
   moduleSelector,
@@ -317,9 +317,10 @@ export const getMessagesHasMore = createSelector(
 
 export function presentPersonListItem (person) {
   return {
-    ...pick([ 'id', 'name', 'avatarUrl' ], person.ref),
+    ...pick(['id', 'name', 'avatarUrl'], person.ref),
     group: person.memberships.first()
-      ? person.memberships.first().group.name : null
+      ? person.memberships.first().group.name
+      : null
   }
 }
 

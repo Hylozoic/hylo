@@ -77,19 +77,23 @@ export default function AuthLayoutRouter (props) {
   const pathMatchParams = useMemo(() => {
     const matches = [
       { path: `${POST_DETAIL_MATCH}` },
-      { path: 'groups/:joinGroupSlug/join/:accessCode' },
-      { path: 'groups/:groupSlug/:view/*' },
-      { path: 'groups/:groupSlug/*' },
-      { path: 'all' },
-      { path: 'public' },
-      { path: 'welcome' },
-      { path: 'my/*' },
-      { path: 'all/:view/*' },
-      { path: 'public/:view/*' }
+      { path: 'groups/:joinGroupSlug/join/:accessCode', context: 'groups' },
+      { path: 'groups/:groupSlug/:view/*', context: 'groups' },
+      { path: 'groups/:groupSlug/*', context: 'groups' },
+      { path: 'all/:view/*', context: 'all' },
+      { path: 'public/:view/*', context: 'public' },
+      { path: 'all/*', context: 'all' },
+      { path: 'public/*', context: 'public' },
+      { path: 'welcome/*', context: 'welcome' },
+      { path: 'my/*', context: 'my' }
     ]
     const match = matches.find(match => matchPath(match, location.pathname))
     const matchResult = match ? matchPath(match, location.pathname) : null
-    return matchResult?.params || { context: 'all' }
+    if (matchResult) {
+      matchResult.params.context = match.context // XXX: kinda hacky, there's probably a better way to track "context"
+      return matchResult.params
+    }
+    return { context: 'all' }
   }, [location.pathname])
 
   const hasDetail = useMemo(() => {
@@ -241,23 +245,28 @@ export default function AuthLayoutRouter (props) {
 
       <Routes>
         {/* Redirects for switching into global contexts, since these pages don't exist yet */}
-        <Route path='/:context(public)/(members|settings)' element={<Navigate to='/public' replace />} />
-        <Route path='/:context(all)/(members|settings)' element={<Navigate to='/all' replace />} />
+        <Route path='public/members' element={<Navigate to='/public' replace />} />
+        <Route path='public/settings' element={<Navigate to='/public' replace />} />
+        <Route path='all/members' element={<Navigate to='/all' replace />} />
+        <Route path='all/settings' element={<Navigate to='/all' replace />} />
         {/* Redirect manage notifications page to settings page when logged in */}
-        <Route path='/notifications)' element={<Navigate to='/settings/notifications' replace />} />
+        <Route path='notifications)' element={<Navigate to='/settings/notifications' replace />} />
 
         {/* First time viewing a group redirect to explore page */}
         {currentGroupMembership && !get('lastViewedAt', currentGroupMembership) && (
-          <Route path='/:context(groups)/:groupSlug' element={<Navigate to={`/groups/${currentGroupSlug}/explore`} replace />} />
+          <Route path='groups/:groupSlug' element={<Navigate to={`/groups/${currentGroupSlug}/explore`} replace />} />
         )}
 
         {!isWebView() && (
           <>
-            <Route path='/:context(groups)/:groupSlug/*' element={<GroupWelcomeModal />} />
+            <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
 
             {showTourPrompt && (
-              <Route path='/:context(all|public|groups)/*' element={<SiteTour windowWidth={width} />} />
-            )}
+              <>
+                <Route path='all/*' element={<SiteTour windowWidth={width} />} />
+                <Route path='public/*' element={<SiteTour windowWidth={width} />} />
+                <Route path='groups/*' element={<SiteTour windowWidth={width} />} />
+              </>)}
           </>
         )}
       </Routes>
@@ -271,17 +280,16 @@ export default function AuthLayoutRouter (props) {
       )}
 
       <Routes>
-        <Route path='/groups/:groupSlug/topics/:topicName/create' element={<CreateModal />} />
-        <Route path='/groups)/:groupSlug/:view(map|events|projects|proposals)/create' element={<CreateModal />} />
-        <Route path='/groups)/:groupSlug/create' element={<CreateModal />} />
-        <Route path='/groups)/:groupSlug/*' element={<CreateModal />} />
-        <Route path='/public/topics/:topicName/create' element={<CreateModal />} />
-        <Route path='/all/topics/:topicName/create' element={<CreateModal />} />
-        <Route path='/public/:view/create' element={<CreateModal />} />
-        <Route path='/all)/:view/create' element={<CreateModal />} />
-        <Route path='/my/:view/create' element={<CreateModal />} />
-        <Route path='/public/create' element={<CreateModal />} />
-        <Route path='/all/create' element={<CreateModal />} />
+        <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/create/*' element={<CreateModal context='groups' />} />
+        <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
+        <Route path='all/topics/:topicName/create/*' element={<CreateModal context='all' />} />
+        <Route path='public/:view/create/*' element={<CreateModal context='public' />} />
+        <Route path='all/:view/create/*' element={<CreateModal context='all' />} />
+        <Route path='my/:view/create/*' element={<CreateModal context='my' />} />
+        <Route path='public/create/*' element={<CreateModal context='public' />} />
+        <Route path='all/create/*' element={<CreateModal context='all' />} />
         {/* <Route path='/:context(public|all)/*' element={<CreateModal />} /> */}
         {/* TODO route: how? <Route path={`(.*)/${REQUIRED_EDIT_POST_MATCH}`} element={<CreateModal />} /> */}
       </Routes>
@@ -341,8 +349,8 @@ export default function AuthLayoutRouter (props) {
             {/* NOTE: It could be more clear to group the following switched routes by component  */}
             <Routes>
               {/* **** Member Routes **** */}
-              <Route path='/members/:personId/*' element={<MemberProfile isSingleColumn={isSingleColumn} />} />
-              <Route path='/all/members/:personId/*' element={<MemberProfile />} />
+              <Route path='members/:personId/*' element={<MemberProfile isSingleColumn={isSingleColumn} />} />
+              <Route path='all/members/:personId/*' element={<MemberProfile />} />
               {/* **** All and Public Routes **** */}
               <Route path='all/stream/*' element={<Stream context='all' />} />
               <Route path='public/stream/*' element={<Stream context='public' />} />
@@ -383,16 +391,16 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/members' element={<Members context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/*' element={<ChatRoom context='groups' />} />
               <Route path='groups/:groupSlug/topics' element={<AllTopics context='groups' />} />
-              <Route path='groups/:groupSlug/settings' element={<GroupSettings context='groups' />} />
+              <Route path='groups/:groupSlug/settings/*' element={<GroupSettings context='groups' />} />
               <Route path='groups/:groupSlug/*' element={returnDefaultView('groups', currentGroup)} />
               <Route path='post/:postId/*' element={<PostDetail />} />
               {/* **** My Routes **** */}
               <Route path='my/:view' element={<Stream />} />
               <Route path='my' render={props => <Navigate to='/my/posts' replace />} />
               {/* **** Other Routes **** */}
-              <Route path='welcome' element={<WelcomeWizardRouter />} />
+              <Route path='welcome/*' element={<WelcomeWizardRouter />} />
               <Route path='messages/:messageThreadId' element={<Messages />} />
-              <Route path='settings' element={<UserSettings />} />
+              <Route path='settings/*' element={<UserSettings />} />
               <Route path='search' element={<Search />} />
               {/* **** Default Route (404) **** */}
               <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />

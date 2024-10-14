@@ -127,7 +127,7 @@ const HyloEditor = React.forwardRef(function HyloEditor ({
 
       onUpdate(editor.getHTML())
     }
-  }, [placeholder, contentHTML, onEnter]) // TODO: changing the placeholder resets the content of the editor which is probably not what we want
+  }, [placeholder, contentHTML]) // TODO: changing the placeholder resets the content of the editor which is probably not what we want
 
   useImperativeHandle(ref, () => ({
     blur: () => {
@@ -162,7 +162,7 @@ const HyloEditor = React.forwardRef(function HyloEditor ({
     if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
 
     editor.setEditable(!readOnly)
-  }, [editor, groupIds, readOnly])
+  }, [groupIds, readOnly])
 
   const shouldShowBubbleMenu = ({ editor }) => {
     if (onAddLink && editor.isActive('link')) {

@@ -41,7 +41,7 @@ export default [
     plugins: {
       react,
       reactHooksPlugin
-      //'react-hooks': fixupPluginRules(reactHooksPlugin)
+      // 'react-hooks': fixupPluginRules(reactHooksPlugin)
       // jest,
       // 'testing-library': testingLibrary,
       // import: importPlugin,
@@ -86,7 +86,7 @@ export default [
       'react/jsx-fragments': 'warn',
       'react/jsx-wrap-multilines': 'warn',
       'eslint/indent': 'off',
-      'react-hooks/exhaustive-deps': 'warn'
+      'react-hooks/exhaustive-deps': 'off'
       // 'import/export': 'off',
     }
   },

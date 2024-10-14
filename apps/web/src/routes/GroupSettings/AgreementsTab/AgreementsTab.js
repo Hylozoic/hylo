@@ -263,7 +263,7 @@ const AgreementRow = forwardRef(({ children, ...props }, ref) => {
         placeholder={t('Describe the agreement and what the group expects from its members')}
         type='textarea'
         value={description}
-        style={{ minHeight: '60px' }}
+        minRows={3}
       />
     </div>
   )

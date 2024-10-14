@@ -1,6 +1,5 @@
 import orm from 'store/models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import getRouteParam from './getRouteParam'
 import presentTopic from 'store/presenters/presentTopic'
 
 const getTopicForCurrentRoute = ormCreateSelector(

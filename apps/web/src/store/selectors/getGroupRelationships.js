@@ -7,7 +7,7 @@ export const getChildGroups = ormCreateSelector(
   orm,
   (state, group) => group,
   (session, group) => {
-    return group.childGroups?.toModelArray().sort((a, b) => a.name.localeCompare(b.name)) || []
+    return group?.childGroups?.toModelArray().sort((a, b) => a.name.localeCompare(b.name)) || []
   }
 )
 
@@ -15,7 +15,7 @@ export const getParentGroups = ormCreateSelector(
   orm,
   (state, group) => group,
   (session, group) => {
-    return group.parentGroups?.toModelArray().sort((a, b) => a.name.localeCompare(b.name)) || []
+    return group?.parentGroups?.toModelArray().sort((a, b) => a.name.localeCompare(b.name)) || []
   }
 )
 

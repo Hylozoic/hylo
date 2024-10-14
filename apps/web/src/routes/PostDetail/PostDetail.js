@@ -38,6 +38,7 @@ import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { DETAIL_COLUMN_ID, position } from 'util/scrolling'
 
 import classes from './PostDetail.module.scss'
@@ -51,7 +52,7 @@ function PostDetail() {
   const navigate = useNavigate()
   const location = useLocation()
   const routeParams = useParams()
-  const postId = routeParams.postId || getQuerystringParam('fromPostId', { location })
+  const postId = routeParams.postId || getQuerystringParam('fromPostId', location)
   const { groupSlug, commentId } = routeParams
 
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
