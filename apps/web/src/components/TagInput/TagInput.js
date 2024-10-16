@@ -19,7 +19,6 @@ const creationKeyCodes = [keyMap.ENTER, keyMap.SPACE, keyMap.COMMA]
 class TagInput extends Component {
   static propTypes = {
     tags: array,
-    type: string,
     suggestions: array,
     handleInputChange: func.isRequired,
     handleAddition: func,
@@ -63,7 +62,7 @@ class TagInput extends Component {
   }
 
   handleKeys = event => {
-    let { allowNewTags, handleAddition, handleInputChange, filter } = this.props
+    const { allowNewTags, handleAddition, handleInputChange, filter } = this.props
     const keyCode = getKeyCode(event)
     const keyWasHandled = this.list.current && this.list.current.handleKeys(event)
 
@@ -79,7 +78,7 @@ class TagInput extends Component {
       // selected yet, you can also press any key listed in creationKeyCodes to
       // create a tag based on what you've typed so far.
       if (includes(creationKeyCodes, keyCode)) {
-        let { value } = event.target
+        const { value } = event.target
         if (!value) return
         handleAddition({ id: value, name: value })
         this.resetInput()
@@ -122,20 +121,22 @@ class TagInput extends Component {
         {t.avatarUrl && <RoundImage url={t.avatarUrl} small className={theme.selectedTagImage} />}
         <span className={theme.selectedTagName}>
           {optionalHashtag}{t.label || t.name}
-          {tagType && tagType === 'groups' && this.props.groupSettings && <span>
-            <span className={styles.privacyIcon}>
-              <Icon name={accessibilityIcon(t.accessibility)} className={styles.tagInputPrivacyIcon} />
-              <div className={styles.privacyTooltip}>
-                <div><strong>{this.props.t(accessibilityString(t.accessibility))}</strong> - {this.props.t(accessibilityDescription(t.accessibility))}</div>
-              </div>
+          {tagType && tagType === 'groups' && this.props.groupSettings && (
+            <span>
+              <span className={styles.privacyIcon}>
+                <Icon name={accessibilityIcon(t.accessibility)} className={styles.tagInputPrivacyIcon} />
+                <div className={styles.privacyTooltip}>
+                  <div><strong>{this.props.t(accessibilityString(t.accessibility))}</strong> - {this.props.t(accessibilityDescription(t.accessibility))}</div>
+                </div>
+              </span>
+              <span className={styles.privacyIcon}>
+                <Icon name={visibilityIcon(t.visibility)} className={styles.tagInputPrivacyIcon} />
+                <div className={styles.privacyTooltip}>
+                  <div><strong>{this.props.t(visibilityString(t.visibility))}</strong> - {this.props.t(visibilityDescription(t.visibility))}</div>
+                </div>
+              </span>
             </span>
-            <span className={styles.privacyIcon}>
-              <Icon name={visibilityIcon(t.visibility)} className={styles.tagInputPrivacyIcon} />
-              <div className={styles.privacyTooltip}>
-                <div><strong>{this.props.t(visibilityString(t.visibility))}</strong> - {this.props.t(visibilityDescription(t.visibility))}</div>
-              </div>
-            </span>
-          </span>}
+          )}
         </span>
         <a onClick={!readOnly ? this.remove(t) : undefined} className={theme.selectedTagRemove}>&times;</a>
       </li>
@@ -157,7 +158,7 @@ class TagInput extends Component {
         <div className={cx(theme.search, { 'tags-empty': selectedItems.length === 0 })}>
           <div className={theme.searchInput}>
             <input
-              className={cx(theme.searchInput, { 'error': maxReached, 'tags-empty': selectedItems.length === 0 })}
+              className={cx(theme.searchInput, { error: maxReached, tagsEmpty: selectedItems.length === 0 })}
               ref={this.input}
               type='text'
               placeholder={placeholder}
@@ -169,7 +170,8 @@ class TagInput extends Component {
               }}
               onChange={event => this.handleChange(event.target.value)}
               onKeyDown={this.handleKeys}
-              disabled={readOnly} />
+              disabled={readOnly}
+            />
           </div>
           {!isEmpty(suggestionsOrError) &&
             <div className={theme.suggestions}>
@@ -181,11 +183,11 @@ class TagInput extends Component {
                 theme={{
                   items: theme.suggestions,
                   item: cx(theme.suggestion, { [styles.error]: maxReached }),
-                  'item-active': theme['suggestion-active']
+                  itemActive: theme.suggestionActive
                 }}
-                ref={this.list} />
-            </div>
-          }
+                ref={this.list}
+              />
+            </div>}
         </div>
       </div>
     )

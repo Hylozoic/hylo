@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import { isEmpty, trim } from 'lodash'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { CSSTransition } from 'react-transition-group'
@@ -33,7 +33,7 @@ export default function GroupWelcomeModal (props) {
   const membershipAgreements = currentMembership?.agreements.toModelArray()
   const { agreementsAcceptedAt, joinQuestionsAnsweredAt } = currentMembership?.settings || {}
   const [page, setPage] = useState(1)
-
+  const welcomeModalRef = useRef(null)
   const numAgreements = group?.agreements?.length || 0
   const [currentAgreements, setCurrentAgreements] = useState(Array(numAgreements).fill(false))
 
@@ -126,8 +126,9 @@ export default function GroupWelcomeModal (props) {
       appear
       in
       timeout={{ appear: 400, enter: 400, exit: 300 }}
+      nodeRef={welcomeModalRef}
     >
-      <div className={classes.welcomeModalWrapper} key='welcome-modal'>
+      <div className={classes.welcomeModalWrapper} key='welcome-modal' ref={welcomeModalRef}>
         <div className={cx(classes.welcomeModal, classes[`viewingPage${page}`])}>
           <div style={bgImageStyle(group.bannerUrl || DEFAULT_BANNER)} className={classes.banner}>
             <div className={classes.bannerContent}>

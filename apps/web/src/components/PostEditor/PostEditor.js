@@ -1,14 +1,12 @@
-/* eslint-disable react/jsx-curly-brace-presence */
-import PropTypes from 'prop-types'
-import React, { useState, useRef, useEffect } from 'react'
+import cx from 'classnames'
+import { debounce, get, isEqual, isEmpty } from 'lodash/fp'
+import Moment from 'moment-timezone'
+import React, { useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
-import { debounce, get, isEqual } from 'lodash/fp'
-import cx from 'classnames'
-import Moment from 'moment-timezone'
-import { POST_PROP_TYPES, POST_TYPES, PROPOSAL_ADVICE, PROPOSAL_CONSENSUS, PROPOSAL_CONSENT, PROPOSAL_GRADIENT, PROPOSAL_MULTIPLE_CHOICE, PROPOSAL_POLL_SINGLE, PROPOSAL_TEMPLATES, VOTING_METHOD_MULTI_UNRESTRICTED, VOTING_METHOD_SINGLE, PROPOSAL_YESNO } from 'store/models/Post'
+import { createSelector } from 'reselect'
 import AttachmentManager from 'components/AttachmentManager'
 import Icon from 'components/Icon'
 import LocationInput from 'components/LocationInput'
@@ -27,19 +25,28 @@ import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
 import Dropdown from 'components/Dropdown/Dropdown'
-import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
-import { MAX_POST_TOPICS } from 'util/constants'
-import { setQuerystringParam } from 'util/navigation'
-import { sanitizeURL } from 'util/url'
 import Tooltip from 'components/Tooltip'
-import generateTempID from 'util/generateTempId'
-import { postUrl } from 'util/navigation'
+import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
+import {
+  POST_TYPES,
+  PROPOSAL_ADVICE,
+  PROPOSAL_CONSENSUS,
+  PROPOSAL_CONSENT,
+  PROPOSAL_GRADIENT,
+  PROPOSAL_MULTIPLE_CHOICE,
+  PROPOSAL_POLL_SINGLE,
+  PROPOSAL_TEMPLATES,
+  VOTING_METHOD_MULTI_UNRESTRICTED,
+  VOTING_METHOD_SINGLE,
+  PROPOSAL_YESNO
+} from 'store/models/Post'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
 import presentPost from 'store/presenters/presentPost'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { fetchLocation, ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import {
@@ -56,121 +63,121 @@ import {
   getUploadAttachmentPending
 } from 'components/AttachmentManager/AttachmentManager.store'
 import {
-  MODULE_NAME,
   FETCH_LINK_PREVIEW,
   pollingFetchLinkPreview,
   removeLinkPreview,
   clearLinkPreview,
-  getLinkPreview,
-  setAnnouncement
+  getLinkPreview
 } from './PostEditor.store'
+import { MAX_POST_TOPICS } from 'util/constants'
+import generateTempID from 'util/generateTempId'
+import { postUrl, setQuerystringParam } from 'util/navigation'
+import { sanitizeURL } from 'util/url'
 
 import styles from './PostEditor.module.scss'
 
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
 export const MAX_TITLE_LENGTH = 80
 
-function deepCompare (arr1, arr2) {
-  if (arr1.length !== arr2.length) {
-    return false
+const getMyAdminGroups = createSelector(
+  [
+    state => state,
+    state => getMe(state),
+    (state, groupOptions) => groupOptions
+  ],
+  (state, currentUser, groupOptions) => {
+    if (!currentUser) return []
+    return groupOptions.filter(g => hasResponsibilityForGroup(state, { person: currentUser, groupId: g.id, responsibility: RESP_ADMINISTRATION }))
   }
+)
 
-  for (let i = 0; i < arr1.length; i++) {
-    if (!isEqual(arr1[i], arr2[i])) {
-      return false
-    }
-  }
-  return true
-}
-
-function PostEditor (props) {
+function PostEditor ({
+  context,
+  post: propsPost = {
+    type: 'discussion',
+    title: '',
+    details: '',
+    groups: [],
+    location: '',
+    timezone: Moment.tz.guess()
+  },
+  postTypes = Object.keys(POST_TYPES).filter(t => t !== 'chat'),
+  editing = false,
+  setIsDirty = () => {},
+  onCancel,
+  onClose,
+  selectedLocation
+}) {
   const dispatch = useDispatch()
-  const location = useLocation()
-  const params = useParams()
+  const urlLocation = useLocation()
+  const routeParams = useParams()
   const navigate = useNavigate()
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
-  const currentGroup = useSelector(state => getGroupForCurrentRoute(state, props))
-  const groupOptions = useSelector(state =>
-    currentUser && currentUser.memberships.toModelArray().map((m) => m.group).sort((a, b) => a.name.localeCompare(b.name))
-  )
-  const myAdminGroups = useSelector(state =>
-    currentUser && groupOptions.filter(g => hasResponsibilityForGroup(state, { person: currentUser, groupId: g.id, responsibility: RESP_ADMINISTRATION }))
-  )
-  const linkPreview = useSelector(state => getLinkPreview(state, props))
-  const linkPreviewStatus = useSelector(state => get('linkPreviewStatus', state[MODULE_NAME]))
+  const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const groupOptions = useMemo(() =>
+    currentUser ? currentUser.memberships.toModelArray().map((m) => m.group).sort((a, b) => a.name.localeCompare(b.name)) : []
+  , [currentUser?.memberships])
+  const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
+
+  const editingPostId = routeParams.postId
+  const fromPostId = getQuerystringParam('fromPostId', location)
+
+  const postType = getQuerystringParam('newPostType', urlLocation)
+  const topicName = routeParams.topicName
+  const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
+
+  const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
+  // const [linkPreview, setLinkPreview] = useState(null)
+  // const linkPreviewStatus = useSelector(state => get('linkPreviewStatus', state[MODULE_NAME]))
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
   const uploadAttachmentPending = useSelector(getUploadAttachmentPending)
-  const fromPostId = new URLSearchParams(location.search).get('fromPostId')
-  const editingPostId = params.postId
+
   const attachmentPostId = (editingPostId || fromPostId)
   const uploadFileAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }))
   const uploadImageAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }))
+  const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
+  const fileAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
   const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT], state))
   const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending || postPending
+
+  let post = propsPost
+  const editingPost = useSelector(state => presentPost(getPost(state, editingPostId)))
+  const fromPost = useSelector(state => presentPost(getPost(state, fromPostId)))
+
+  if (routeParams.action === 'edit') {
+    post = propsPost || editingPost
+    editing = !!post || loading
+  } else if (fromPostId) {
+    post = propsPost || fromPost
+    post.title = `Copy of ${post.title.slice(0, MAX_TITLE_LENGTH - 8)}`
+  }
+
+  const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending
+  const showFiles = !isEmpty(fileAttachments) || uploadFileAttachmentPending
 
   const titleInputRef = useRef()
   const editorRef = useRef()
   const groupsSelectorRef = useRef()
 
-  const [post, setPost] = useState(buildStateFromProps(props))
-  const [titlePlaceholder, setTitlePlaceholder] = useState(titlePlaceholderForPostType(post.type))
-  const [detailPlaceholder, setDetailPlaceholder] = useState(detailPlaceholderForPostType(post.type))
-  const [valid, setValid] = useState(props.editing === true || !!post.title)
-  const [announcementSelected, setAnnouncementSelected] = useState(props.announcementSelected)
-  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
-  const [showPostTypeMenu, setShowPostTypeMenu] = useState(false)
-  const [titleLengthError, setTitleLengthError] = useState(post.title?.length >= MAX_TITLE_LENGTH)
-  const [dateError, setDateError] = useState(false)
-  const [allowAddTopic, setAllowAddTopic] = useState(true)
-
-  useEffect(() => {
-    setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
-  }, [])
-
-  useEffect(() => {
-    if (linkPreview !== prevProps.linkPreview) {
-      onUpdateLinkPreview()
-    }
-  }, [linkPreview])
-
-  useEffect(() => {
-    return () => {
-      dispatch(clearLinkPreview())
-    }
-  }, [])
-
-  const onUpdateLinkPreview = () => {
-    setPost({ ...post, linkPreview })
-  }
-
-  const reset = (props) => {
-    editorRef.current.clearContent()
-    groupsSelectorRef.current.reset()
-    setPost(buildStateFromProps(props))
-  }
-
-  const focus = () => editorRef.current.focus()
-
-  const handlePostTypeSelection = (type) => (event) => {
-    setIsDirty(true)
-    navigate({
-      pathname: location.pathname,
-      search: setQuerystringParam('newPostType', type, location)
-    }, { replace: true })
-
-    const showPostTypeMenu = this.state.showPostTypeMenu
-    setPost({ ...post, type })
-    setTitlePlaceholder(titlePlaceholderForPostType(type))
-    setDetailPlaceholder(detailPlaceholderForPostType(type))
-    setValid(isValid({ type }))
-    setShowPostTypeMenu(!showPostTypeMenu)
-  }
+  const defaultPostWithGroupsAndTopic = useMemo(() => ({
+    ...post,
+    type: postType || post.type,
+    groups: currentGroup ? [currentGroup] : [],
+    topics: topic ? [topic] : [],
+    acceptContributions: false,
+    isPublic: context === 'public',
+    isAnonymousVote: false,
+    isStrictProposal: false,
+    locationId: post?.locationObject?.id || null,
+    proposalOptions: post?.proposalOptions || [],
+    startTime: Moment(post.startTime),
+    endTime: Moment(post.endTime),
+    votingMethod: VOTING_METHOD_SINGLE
+  }), [post?.id, postType, currentGroup, topic, context])
 
   const titlePlaceholderForPostType = (type) => {
-    const { t } = this.props
-
     const titlePlaceHolders = {
       offer: t('Add a title'),
       request: t('Add a title'),
@@ -188,7 +195,6 @@ function PostEditor (props) {
   }
 
   const detailPlaceholderForPostType = (type) => {
-    const { t } = this.props
     // XXX: right now we can't change these for post types otherwise changing post type will reset the HyloEditor content and lose content
     const detailPlaceHolders = {
       offer: t('Add a description'),
@@ -205,13 +211,62 @@ function PostEditor (props) {
     )
   }
 
+  const [currentPost, setCurrentPost] = useState(defaultPostWithGroupsAndTopic)
+  const [titlePlaceholder, setTitlePlaceholder] = useState(titlePlaceholderForPostType(defaultPostWithGroupsAndTopic.type))
+  const [detailPlaceholder, setDetailPlaceholder] = useState(detailPlaceholderForPostType(defaultPostWithGroupsAndTopic.type))
+  const [valid, setValid] = useState(editing === true || !!post.title)
+  const [announcementSelected, setAnnouncementSelected] = useState(false)
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
+  const [showPostTypeMenu, setShowPostTypeMenu] = useState(false)
+  const [titleLengthError, setTitleLengthError] = useState(post.title?.length >= MAX_TITLE_LENGTH)
+  const [dateError, setDateError] = useState(false)
+  const [allowAddTopic, setAllowAddTopic] = useState(true)
+
+  useEffect(() => {
+    setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+  }, [])
+
+  useEffect(() => {
+    editorRef.current.clearContent()
+    groupsSelectorRef.current.reset()
+    setCurrentPost(defaultPostWithGroupsAndTopic)
+    editorRef.current.focus()
+  }, [post.id, post.details])
+
+  useEffect(() => {
+    onUpdateLinkPreview()
+  }, [linkPreview])
+
+  useEffect(() => {
+    return () => {
+      dispatch(clearLinkPreview())
+    }
+  }, [])
+
+  const onUpdateLinkPreview = () => {
+    setCurrentPost({ ...currentPost, linkPreview })
+  }
+
+  const handlePostTypeSelection = (type) => (event) => {
+    setIsDirty(true)
+    navigate({
+      pathname: urlLocation.pathname,
+      search: setQuerystringParam('newPostType', type, urlLocation)
+    }, { replace: true })
+
+    setCurrentPost({ ...currentPost, type })
+    setTitlePlaceholder(titlePlaceholderForPostType(type))
+    setDetailPlaceholder(detailPlaceholderForPostType(type))
+    setValid(isValid({ type }))
+    setShowPostTypeMenu(!showPostTypeMenu)
+  }
+
   const postTypeButtonProps = (forPostType) => {
-    const { loading, t } = this.props
-    const { type } = post
+    const { type } = currentPost
     const active = type === forPostType
     const className = cx(
       styles.postType,
-      styles[`postType-${forPostType}`],
+      styles[`postType${forPostType.charAt(0).toUpperCase() + forPostType.slice(1)}`],
       {
         [styles.active]: active,
         [styles.selectable]: !loading && !active
@@ -223,28 +278,28 @@ function PostEditor (props) {
           <span>{t(forPostType)}</span>{' '}
           <Icon className={cx('icon', `icon-${forPostType}`)} name='ArrowDown' />
         </span>
-      ) : t(forPostType)
+        )
+      : t(forPostType)
     return {
       borderRadius: '5px',
       label,
-      onClick: active ? this.togglePostTypeMenu : this.handlePostTypeSelection(forPostType),
+      onClick: active ? togglePostTypeMenu : handlePostTypeSelection(forPostType),
       disabled: loading,
       color: '',
-      className,
-      key: forPostType
+      className
     }
   }
 
   const handleTitleChange = (event) => {
     const title = event.target.value
-    title.length >= MAX_TITLE_LENGTH
-      ? setTitleLengthError(true)
-      : setTitleLengthError(false)
-    if (title !== post.title) {
+    if (title !== currentPost.title) {
+      title.length >= MAX_TITLE_LENGTH
+        ? setTitleLengthError(true)
+        : setTitleLengthError(false)
       setIsDirty(true)
+      setCurrentPost({ ...currentPost, title })
+      setValid(isValid({ title }))
     }
-    setPost({ ...post, title })
-    setValid(isValid({ title }))
   }
 
   const handleDetailsChange = () => {
@@ -252,35 +307,30 @@ function PostEditor (props) {
   }
 
   const handleToggleContributions = () => {
-    const {
-      acceptContributions
-    } = post
-    setPost({ ...post, acceptContributions: !acceptContributions })
+    setCurrentPost({ ...currentPost, acceptContributions: !currentPost.acceptContributions })
   }
 
   const handleStartTimeChange = (startTime) => {
-    validateTimeChange(startTime, post.endTime)
-
-    setPost({ ...post, startTime })
+    validateTimeChange(startTime, currentPost.endTime)
+    setCurrentPost({ ...currentPost, startTime })
     setValid(isValid({ startTime }))
   }
 
   const handleEndTimeChange = (endTime) => {
-    validateTimeChange(post.startTime, endTime)
-
-    setPost({ ...post, endTime })
+    validateTimeChange(currentPost.startTime, endTime)
+    setCurrentPost({ ...currentPost, endTime })
     setValid(isValid({ endTime }))
   }
 
   const handledonationsLinkChange = (evt) => {
     const donationsLink = evt.target.value
-    setPost({ ...post, donationsLink })
+    setCurrentPost({ ...currentPost, donationsLink })
     setValid(isValid({ donationsLink }))
   }
 
   const handleProjectManagementLinkChange = (evt) => {
     const projectManagementLink = evt.target.value
-    setPost({ ...post, projectManagementLink })
+    setCurrentPost({ ...currentPost, projectManagementLink })
     setValid(isValid({ projectManagementLink }))
   }
 
@@ -293,8 +343,8 @@ function PostEditor (props) {
   }
 
   const handleLocationChange = (locationObject) => {
-    setPost({
-      ...post,
+    setCurrentPost({
+      ...currentPost,
       location: locationObject.fullText,
       locationId: locationObject.id
     })
@@ -303,42 +353,39 @@ function PostEditor (props) {
 
   // Checks for linkPreview every 1/2 second
   const handleAddLinkPreview = debounce(500, (url, force) => {
-    const { pollingFetchLinkPreview } = this.props
     const { linkPreview } = post
-
     if (linkPreview && !force) return
-
     pollingFetchLinkPreview(url)
   })
 
   const handleTopicSelectorOnChange = topics => {
-    setPost({ ...post, topics })
+    setCurrentPost({ ...currentPost, topics })
     setAllowAddTopic(false)
     setIsDirty(true)
   }
 
   const handleAddTopic = topic => {
-    const { topics } = post
+    const { topics } = currentPost
 
     if (!allowAddTopic || topics?.length >= MAX_POST_TOPICS) return
 
-    setPost({ ...post, topics: [...topics, topic] })
+    setCurrentPost({ ...currentPost, topics: [...topics, topic] })
     setIsDirty(true)
   }
 
   const handleFeatureLinkPreview = featured => {
-    setPost({ ...post, linkPreviewFeatured: featured })
+    setCurrentPost({ ...currentPost, linkPreviewFeatured: featured })
   }
 
   const handleRemoveLinkPreview = () => {
     dispatch(removeLinkPreview())
-    setPost({ ...post, linkPreview: null, linkPreviewFeatured: false })
+    setCurrentPost({ ...currentPost, linkPreview: null, linkPreviewFeatured: false })
   }
 
   const handleSetSelectedGroups = (groups) => {
     const hasChanged = !isEqual(post.groups, groups)
 
-    setPost({ ...post, groups })
+    setCurrentPost({ ...currentPost, groups })
     setValid(isValid({ groups }))
 
     if (hasChanged) {
@@ -347,32 +394,32 @@ function PostEditor (props) {
   }
 
   const togglePublic = () => {
-    const { isPublic } = post
-    setPost({ ...post, isPublic: !isPublic })
+    const { isPublic } = currentPost
+    setCurrentPost({ ...currentPost, isPublic: !isPublic })
   }
 
   const toggleAnonymousVote = () => {
-    const { isAnonymousVote } = post
-    setPost({ ...post, isAnonymousVote: !isAnonymousVote })
+    const { isAnonymousVote } = currentPost
+    setCurrentPost({ ...currentPost, isAnonymousVote: !isAnonymousVote })
   }
 
-  const toggleStrictProposal = () => {
-    const { isStrictProposal } = post
-    setPost({ ...post, isStrictProposal: !isStrictProposal })
-  }
+  // const toggleStrictProposal = () => {
+  //   const { isStrictProposal } = currentPost
+  //   setCurrentPost({ ...currentPost, isStrictProposal: !isStrictProposal })
+  // }
 
   const handleUpdateProjectMembers = (members) => {
-    setPost({ ...post, members })
+    setCurrentPost({ ...currentPost, members })
   }
 
   const handleUpdateEventInvitations = (eventInvitations) => {
-    setPost({ ...post, eventInvitations })
+    setCurrentPost({ ...currentPost, eventInvitations })
   }
 
   const isValid = (postUpdates = {}) => {
     const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions } = Object.assign(
       {},
-      post,
+      currentPost,
       postUpdates
     )
 
@@ -398,30 +445,14 @@ function PostEditor (props) {
     )
   }
 
-  const setIsDirty = isDirty => props.setIsDirty && props.setIsDirty(isDirty)
-
   const handleCancel = () => {
-    if (props.onCancel) {
-      props.onCancel()
-
+    if (onCancel) {
+      onCancel()
       return true
     }
   }
 
   const save = async () => {
-    const {
-      editing,
-      createPost,
-      updatePost,
-      onClose,
-      goToPost,
-      setAnnouncement,
-      announcementSelected,
-      imageAttachments,
-      fileAttachments,
-      fetchLocation,
-      ensureLocationIdIfCoordinate
-    } = props
     const {
       acceptContributions,
       donationsLink,
@@ -455,10 +486,10 @@ function PostEditor (props) {
       imageAttachments && imageAttachments.map((attachment) => attachment.url)
     const fileUrls =
       fileAttachments && fileAttachments.map((attachment) => attachment.url)
-    const location = post.location || props.selectedLocation
+    const postLocation = currentPost.location || selectedLocation
     const actualLocationId = await ensureLocationIdIfCoordinate({
       fetchLocation,
-      location,
+      postLocation,
       locationId
     })
 
@@ -477,7 +508,7 @@ function PostEditor (props) {
       isStrictProposal,
       linkPreview,
       linkPreviewFeatured,
-      location,
+      location: postLocation,
       locationId: actualLocationId,
       memberIds,
       projectManagementLink: sanitizeURL(projectManagementLink),
@@ -494,7 +525,7 @@ function PostEditor (props) {
       type
     }
     const saveFunc = editing ? updatePost : createPost
-    dispatch(setAnnouncement(false))
+    setAnnouncementSelected(false)
     const action = await dispatch(saveFunc(postToSave))
     goToPost(action)
   }
@@ -502,13 +533,12 @@ function PostEditor (props) {
   const goToPost = (createPostAction) => {
     const id = get('payload.data.createPost.id', createPostAction)
     const querystringWhitelist = ['s', 't', 'q', 'search', 'zoom', 'center', 'lat', 'lng']
-    const querystringParams = new URLSearchParams(location.search)
-    const postPath = postUrl(id, params, querystringParams)
-    history.push(postPath)
+    const querystringParams = urlLocation && getQuerystringParam(querystringWhitelist, urlLocation)
+    const postPath = postUrl(id, routeParams, querystringParams)
+    navigate(postPath)
   }
 
   const buttonLabel = () => {
-    const { postPending, editing, t } = props
     if (postPending) return t('Posting...')
     if (editing) return t('Save')
     return t('Post')
@@ -523,19 +553,19 @@ function PostEditor (props) {
   }
 
   const handleSetQuorum = (quorum) => {
-    setPost({ ...post, quorum })
+    setCurrentPost({ ...currentPost, quorum })
   }
 
   const handleSetProposalType = (votingMethod) => {
-    setPost({ ...post, votingMethod })
+    setCurrentPost({ ...currentPost, votingMethod })
   }
 
   const handleUseTemplate = (template) => {
     const templateData = PROPOSAL_TEMPLATES[template]
-    setPost({
-      ...post,
+    setCurrentPost({
+      ...currentPost,
       proposalOptions: templateData.form.proposalOptions.map(option => { return { ...option, tempId: generateTempID() } }),
-      title: post.title.length > 0 ? post.title : templateData.form.title,
+      title: currentPost.title.length > 0 ? currentPost.title : templateData.form.title,
       quorum: templateData.form.quorum,
       votingMethod: templateData.form.votingMethod
     })
@@ -543,15 +573,14 @@ function PostEditor (props) {
   }
 
   const handleAddOption = () => {
-    const { proposalOptions } = post
+    const { proposalOptions } = currentPost
     const newOptions = [...proposalOptions, { text: '', emoji: '', color: '', tempId: generateTempID() }]
-    setPost({ ...post, proposalOptions: newOptions })
+    setCurrentPost({ ...currentPost, proposalOptions: newOptions })
     setValid(isValid({ proposalOptions: newOptions }))
   }
 
   const canMakeAnnouncement = () => {
-    const { myAdminGroups = [] } = props
-    const { groups = [] } = post
+    const { groups = [] } = currentPost
     const myAdminGroupsSlugs = myAdminGroups.map(group => group.slug)
     for (let index = 0; index < groups.length; index++) {
       if (!myAdminGroupsSlugs.includes(groups[index].slug)) return false
@@ -559,16 +588,23 @@ function PostEditor (props) {
     return true
   }
 
+  const canHaveTimes = currentPost.type !== 'discussion'
+  const hasLocation = currentPost.type !== 'chat'
+  const postLocation = currentPost.location || selectedLocation
+  const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
+  const hasStripeAccount = get('hasStripeAccount', currentUser)
+  const invalidPostWarning = currentPost.type === 'proposal' ? t('You need a title, a group and at least one option for a proposal') : t('You need a title and at least one group to post')
+
   return (
     <div className={cx(styles.wrapper, { [styles.hide]: showAnnouncementModal })}>
       <div className={styles.header}>
         <div className={styles.initial}>
           <div>
-            {type && <Button noDefaultStyles {...postTypeButtonProps(type)} />}
+            {currentPost.type && <Button noDefaultStyles {...postTypeButtonProps(currentPost.type)} />}
             {showPostTypeMenu && (
               <div className={styles.postTypeMenu}>
                 {postTypes
-                  .filter((postType) => postType !== type)
+                  .filter((postType) => postType !== currentPost.type)
                   .map((postType) => (
                     <Button noDefaultStyles {...postTypeButtonProps(postType)} key={postType} />
                   ))}
@@ -590,7 +626,7 @@ function PostEditor (props) {
             type='text'
             className={styles.titleInput}
             placeholder={titlePlaceholder}
-            value={title || ''}
+            value={currentPost.title || ''}
             onChange={handleTitleChange}
             disabled={loading}
             ref={titleInputRef}
@@ -607,25 +643,25 @@ function PostEditor (props) {
             // onEscape={handleCancel}
             onAddTopic={handleAddTopic}
             onAddLink={handleAddLinkPreview}
-            contentHTML={details}
+            contentHTML={currentPost.details}
             showMenu
             readOnly={loading}
             ref={editorRef}
           />
         </div>
       </div>
-      {(linkPreview || fetchLinkPreviewPending) && (
+      {(currentPost.linkPreview || fetchLinkPreviewPending) && (
         <LinkPreview
           loading={fetchLinkPreviewPending}
-          linkPreview={linkPreview}
-          featured={linkPreviewFeatured}
+          linkPreview={currentPost.linkPreview}
+          featured={currentPost.linkPreviewFeatured}
           onFeatured={handleFeatureLinkPreview}
           onClose={handleRemoveLinkPreview}
         />
       )}
       <AttachmentManager
         type='post'
-        id={id}
+        id={currentPost.id}
         attachmentType='image'
         showAddButton
         showLabel
@@ -633,21 +669,21 @@ function PostEditor (props) {
       />
       <AttachmentManager
         type='post'
-        id={id}
+        id={currentPost.id}
         attachmentType='file'
         showAddButton
         showLabel
         showLoading
       />
       <div className={styles.footer}>
-        {isProject && (
+        {currentPost.type === 'project' && (
           <div className={styles.footerSection}>
             <div className={styles.footerSectionLabel}>{t('Project Members')}</div>
             <div className={styles.footerSectionGroups}>
               <MemberSelector
-                initialMembers={members || []}
+                initialMembers={currentPost.members || []}
                 onChange={handleUpdateProjectMembers}
-                forGroups={groups}
+                forGroups={currentPost.groups}
                 readOnly={loading}
               />
             </div>
@@ -657,8 +693,8 @@ function PostEditor (props) {
           <div className={styles.footerSectionLabel}>{t('Topics')}</div>
           <div className={styles.footerSectionTopics}>
             <TopicSelector
-              forGroups={post?.groups || [currentGroup]}
-              selectedTopics={topics}
+              forGroups={currentPost?.groups || [currentGroup]}
+              selectedTopics={currentPost.topics}
               onChange={handleTopicSelectorOnChange}
             />
           </div>
@@ -668,7 +704,7 @@ function PostEditor (props) {
           <div className={styles.footerSectionGroups}>
             <GroupsSelector
               options={groupOptions}
-              selected={groups}
+              selected={currentPost.groups}
               onChange={handleSetSelectedGroups}
               readOnly={loading}
               ref={groupsSelectorRef}
@@ -677,9 +713,9 @@ function PostEditor (props) {
         </div>
         <PublicToggle
           togglePublic={togglePublic}
-          isPublic={!!post.isPublic}
+          isPublic={!!currentPost.isPublic}
         />
-        {isProposal && proposalOptions.length === 0 && (
+        {currentPost.type === 'proposal' && currentPost.proposalOptions.length === 0 && (
           <div className={styles.footerSection}>
             <div className={styles.footerSectionLabel}>{t('Proposal template')}</div>
 
@@ -705,13 +741,13 @@ function PostEditor (props) {
             </div>
           </div>
         )}
-        {isProposal && proposalOptions && (
+        {currentPost.type === 'proposal' && currentPost.proposalOptions && (
           <div className={styles.footerSection}>
             <div className={styles.footerSectionLabel}>
               {t('Proposal options')}*
             </div>
             <div className={styles.optionsContainer}>
-              {proposalOptions.map((option, index) => (
+              {currentPost.proposalOptions.map((option, index) => (
                 <div className={styles.proposalOption} key={index}>
                   {/* emojiPicker dropdown */}
                   <Dropdown
@@ -729,9 +765,9 @@ function PostEditor (props) {
                           key={i}
                           className={styles.emojiOption}
                           onClick={() => {
-                            const newOptions = [...proposalOptions]
+                            const newOptions = [...currentPost.proposalOptions]
                             newOptions[index].emoji = emoji
-                            setPost({ ...post, proposalOptions: newOptions })
+                            setCurrentPost({ ...currentPost, proposalOptions: newOptions })
                           }}
                         >
                           {emoji}
@@ -745,9 +781,9 @@ function PostEditor (props) {
                     placeholder={t('Describe option')}
                     value={option.text}
                     onChange={(evt) => {
-                      const newOptions = [...proposalOptions]
+                      const newOptions = [...currentPost.proposalOptions]
                       newOptions[index].text = evt.target.value
-                      setPost({ ...post, proposalOptions: newOptions })
+                      setCurrentPost({ ...currentPost, proposalOptions: newOptions })
                     }}
                     disabled={loading}
                   />
@@ -755,14 +791,12 @@ function PostEditor (props) {
                     name='Ex'
                     className={styles.icon}
                     onClick={() => {
-                      const newOptions = proposalOptions.filter(element => {
+                      const newOptions = currentPost.proposalOptions.filter(element => {
                         if (option.id) return element.id !== option.id
                         return element.tempId !== option.tempId
                       })
 
-                      console.log(proposalOptions, option, 'ahahahadd')
-
-                      setPost({ ...post, proposalOptions: newOptions })
+                      setCurrentPost({ ...currentPost, proposalOptions: newOptions })
                       setValid(isValid({ proposalOptions: newOptions }))
                     }}
                   />
@@ -772,13 +806,13 @@ function PostEditor (props) {
                 <Icon name='Plus' className={styles.iconPlus} blue />
                 <span className={styles.optionText}>{t('Add an option to vote on...')}</span>
               </div>
-              {props.post && !deepCompare(proposalOptions, props.post.proposalOptions) && (
+              {currentPost && !isEqual(currentPost.proposalOptions, post.proposalOptions) && (
                 <div className={cx(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
                   <Icon name='Hand' className={styles.iconPlus} />
                   <span className={styles.optionText}>{t('If you save changes to options, all votes will be discarded')}</span>
                 </div>
               )}
-              {proposalOptions.length === 0 && (
+              {currentPost.proposalOptions.length === 0 && (
                 <div className={cx(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
                   <Icon name='Hand' className={styles.iconPlus} />
                   <span className={styles.optionText}>{t('Proposals require at least one option')}</span>
@@ -787,7 +821,7 @@ function PostEditor (props) {
             </div>
           </div>
         )}
-        {isProposal && (
+        {currentPost.type === 'proposal' && (
           <div className={styles.footerSection}>
             <div className={styles.footerSectionLabel}>{t('Voting method')}</div>
 
@@ -796,7 +830,7 @@ function PostEditor (props) {
                 className={styles.dropdown}
                 toggleChildren={
                   <span className={styles.dropdownLabel}>
-                    {votingMethod === VOTING_METHOD_SINGLE ? t('Single vote per person') : t('Multiple votes allowed')}
+                    {currentPost.votingMethod === VOTING_METHOD_SINGLE ? t('Single vote per person') : t('Multiple votes allowed')}
                     <Icon name='ArrowDown' blue />
                   </span>
                 }
@@ -808,10 +842,10 @@ function PostEditor (props) {
             </div>
           </div>
         )}
-        {isProposal && (
+        {currentPost.type === 'proposal' && (
           <div className={styles.footerSection}>
             <div className={styles.footerSectionLabel}>{t('Quorum')} <Icon name='Info' className={cx(styles.quorumTooltip)} data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
-            <SliderInput percentage={post.quorum} setPercentage={handleSetQuorum} />
+            <SliderInput percentage={currentPost.quorum} setPercentage={handleSetQuorum} />
             <ReactTooltip
               backgroundColor='rgba(35, 65, 91, 1.0)'
               effect='solid'
@@ -820,9 +854,9 @@ function PostEditor (props) {
             />
           </div>
         )}
-        {isProposal && (
+        {currentPost.type === 'proposal' && (
           <AnonymousVoteToggle
-            isAnonymousVote={!!post.isAnonymousVote}
+            isAnonymousVote={!!currentPost.isAnonymousVote}
             toggleAnonymousVote={toggleAnonymousVote}
           />
         )}
@@ -834,16 +868,16 @@ function PostEditor (props) {
         )} */}
         {canHaveTimes && (
           <div className={styles.footerSection}>
-            <div className={styles.footerSectionLabel}>{isProposal ? t('Voting window') : t('Timeframe')}</div>
+            <div className={styles.footerSectionLabel}>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
             <div className={styles.datePickerModule}>
               <DatePicker
-                value={startTime}
+                value={currentPost.startTime}
                 placeholder={t('Select Start')}
                 onChange={handleStartTimeChange}
               />
               <div className={styles.footerSectionHelper}>{t('To')}</div>
               <DatePicker
-                value={endTime}
+                value={currentPost.endTime}
                 placeholder={t('Select End')}
                 onChange={handleEndTimeChange}
               />
@@ -860,27 +894,27 @@ function PostEditor (props) {
             <div className={cx(styles.footerSectionLabel, styles.alignedLabel)}>{t('Location')}</div>
             <LocationInput
               saveLocationToDB
-              locationObject={locationObject}
-              location={location}
+              locationObject={currentPost.locationObject}
+              location={postLocation}
               onChange={handleLocationChange}
               placeholder={locationPrompt}
             />
           </div>
         )}
-        {isEvent && (
+        {currentPost.type === 'event' && (
           <div className={styles.footerSection}>
             <div className={styles.footerSectionLabel}>{t('Invite People')}</div>
             <div className={styles.footerSectionGroups}>
               <MemberSelector
-                initialMembers={eventInvitations || []}
+                initialMembers={currentPost.eventInvitations || []}
                 onChange={handleUpdateEventInvitations}
-                forGroups={groups}
+                forGroups={currentPost.groups}
                 readOnly={loading}
               />
             </div>
           </div>
         )}
-        {isProject && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
+        {currentPost.type === 'project' && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
           <div className={styles.footerSection}>
             <div className={styles.footerSectionLabel}>{t('Accept Contributions')}</div>
             {hasStripeAccount && (
@@ -888,11 +922,11 @@ function PostEditor (props) {
                 className={cx(styles.footerSectionGroups, styles.acceptContributions)}
               >
                 <Switch
-                  value={acceptContributions}
+                  value={currentPost.acceptContributions}
                   onClick={handleToggleContributions}
                   className={styles.acceptContributionsSwitch}
                 />
-                {!acceptContributions && (
+                {!currentPost.acceptContributions && (
                   <div className={styles.acceptContributionsHelp}>
                     {t(`If you turn 'Accept Contributions' on, people will be able
                     to send money to your Stripe connected account to support
@@ -916,30 +950,30 @@ function PostEditor (props) {
             )}
           </div>
         )}
-        {isProject && (
+        {currentPost.type === 'project' && (
           <div className={styles.footerSection}>
-            <div className={cx(styles.footerSectionLabel, { [styles.warning]: !!donationsLink && !sanitizeURL(donationsLink) })}>{t('Donation Link')}</div>
+            <div className={cx(styles.footerSectionLabel, { [styles.warning]: !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
             <div className={styles.footerSectionGroups}>
               <input
                 type='text'
                 className={styles.textInput}
-                placeholder={donationsLinkPlaceholder}
-                value={donationsLink || ''}
+                placeholder={t('Add a donation link (must be valid URL)')}
+                value={currentPost.donationsLink || ''}
                 onChange={handledonationsLinkChange}
                 disabled={loading}
               />
             </div>
           </div>
         )}
-        {isProject && (
+        {currentPost.type === 'project' && (
           <div className={styles.footerSection}>
-            <div className={cx(styles.footerSectionLabel, { [styles.warning]: !!projectManagementLink && !sanitizeURL(projectManagementLink) })}>{t('Project Management')}</div>
+            <div className={cx(styles.footerSectionLabel, { [styles.warning]: !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
             <div className={styles.footerSectionGroups}>
               <input
                 type='text'
                 className={styles.textInput}
-                placeholder={projectManagementLinkPlaceholder}
-                value={projectManagementLink || ''}
+                placeholder={t('Add a project management link (must be valid URL)')}
+                value={currentPost.projectManagementLink || ''}
                 onChange={handleProjectManagementLinkChange}
                 disabled={loading}
               />
@@ -947,7 +981,7 @@ function PostEditor (props) {
           </div>
         )}
         <ActionsBar
-          id={id}
+          id={currentPost.id}
           addAttachment={addAttachment}
           showImages={showImages}
           showFiles={showFiles}
@@ -955,7 +989,7 @@ function PostEditor (props) {
           loading={loading}
           submitButtonLabel={buttonLabel()}
           save={() => {
-            if (isProposal && props.post && !deepCompare(proposalOptions, props.post.proposalOptions)) {
+            if (currentPost.type === 'proposal' && !isEqual(currentPost.proposalOptions, post.proposalOptions)) {
               if (window.confirm(t('Changing proposal options will reset the votes. Are you sure you want to continue?'))) {
                 save()
               }
@@ -963,7 +997,7 @@ function PostEditor (props) {
               save()
             }
           }}
-          setAnnouncement={setAnnouncement}
+          setAnnouncementSelected={setAnnouncementSelected}
           announcementSelected={announcementSelected}
           canMakeAnnouncement={canMakeAnnouncement()}
           toggleAnnouncementModal={toggleAnnouncementModal}
@@ -988,7 +1022,7 @@ export function ActionsBar ({
   loading,
   submitButtonLabel,
   save,
-  setAnnouncement,
+  setAnnouncementSelected,
   announcementSelected,
   toggleAnnouncementModal,
   showAnnouncementModal,
@@ -1032,13 +1066,13 @@ export function ActionsBar ({
           <span data-tooltip-content='Send Announcement' data-tooltip-id='announcement-tt'>
             <Icon
               name='Announcement'
-              onClick={() => setAnnouncement(!announcementSelected)}
+              onClick={() => setAnnouncementSelected(!announcementSelected)}
               className={cx(styles.actionIcon, {
                 [styles.highlightIcon]: announcementSelected
               })}
             />
             <ReactTooltip
-              effect={'solid'}
+              effect='solid'
               delayShow={550}
               id='announcement-tt'
             />

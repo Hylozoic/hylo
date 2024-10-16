@@ -1,5 +1,5 @@
 import cx from 'classnames'
-import React from 'react'
+import React, { useRef } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { CSSTransition } from 'react-transition-group'
 import AddLocation from './AddLocation'
@@ -8,12 +8,15 @@ import WelcomeExplore from './WelcomeExplore'
 import classes from './WelcomeWizard.module.scss'
 
 export default function WelcomeWizardRouter () {
+  const welcomeWizardRef = useRef(null)
+
   return (
     <CSSTransition
       classNames='welcome-wizard'
       timeout={{ enter: 400, exit: 300 }}
+      nodeRef={welcomeWizardRef}
     >
-      <div className={classes.modal}>
+      <div className={classes.modal} ref={welcomeWizardRef}>
         <div className={cx(classes.background, classes.background)} />
         <div className={cx(classes.wrapper, classes.wrapper)}>
           <Routes>

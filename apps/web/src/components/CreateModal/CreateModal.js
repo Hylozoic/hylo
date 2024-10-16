@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { Route, Routes, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -17,6 +17,7 @@ const CreateModal = (props) => {
   const [returnToLocation] = useState(previousLocation)
   const [isDirty, setIsDirty] = useState()
   const { t } = useTranslation()
+  const modalRef = useRef(null)
 
   const querystringParams = new URLSearchParams(location.search)
   const mapLocation = (querystringParams.has('lat') && querystringParams.has('lng'))
@@ -44,8 +45,9 @@ const CreateModal = (props) => {
       appear
       in
       timeout={{ appear: 400, enter: 400, exit: 300 }}
+      nodeRef={modalRef}
     >
-      <div className={classes.createModal}>
+      <div className={classes.createModal} ref={modalRef}>
         <div className={classes.createModalWrapper}>
           <span className={classes.closeButton} onClick={confirmClose}>
             <Icon name='Ex' />

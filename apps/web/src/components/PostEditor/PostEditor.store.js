@@ -6,9 +6,6 @@ export const MODULE_NAME = 'PostEditor'
 export const FETCH_LINK_PREVIEW = `${MODULE_NAME}/FETCH_LINK_PREVIEW`
 export const REMOVE_LINK_PREVIEW = `${MODULE_NAME}/REMOVE_LINK_PREVIEW`
 export const CLEAR_LINK_PREVIEW = `${MODULE_NAME}/CLEAR_LINK_PREVIEW`
-export const ANNOUNCEMENT = `${MODULE_NAME}/ANNOUNCEMENT`
-export const SHOW_ANNOUNCEMENT_CONFIRMATION = `${MODULE_NAME}/SHOW_ANNOUNCEMENT_CONFIRMATION`
-export const SET_ANNOUNCEMENT = `${MODULE_NAME}/SET_ANNOUNCEMENT`
 
 // Actions
 
@@ -74,20 +71,6 @@ export function clearLinkPreview () {
   return { type: CLEAR_LINK_PREVIEW }
 }
 
-export function showAnnouncementConfirmation (bool) {
-  return {
-    type: SHOW_ANNOUNCEMENT_CONFIRMATION,
-    payload: bool
-  }
-}
-
-export function setAnnouncement (bool) {
-  return {
-    type: SET_ANNOUNCEMENT,
-    payload: bool
-  }
-}
-
 // Selectors
 
 export const getLinkPreview = ormCreateSelector(
@@ -123,12 +106,6 @@ export default function reducer (state = defaultState, action) {
     }
     case CLEAR_LINK_PREVIEW: {
       return { ...state, linkPreviewId: null, linkPreviewStatus: 'cleared' }
-    }
-    case SHOW_ANNOUNCEMENT_CONFIRMATION: {
-      return { ...state, showAnnouncementConfirmation: payload }
-    }
-    case SET_ANNOUNCEMENT: {
-      return { ...state, announcement: payload }
     }
     default: {
       return state

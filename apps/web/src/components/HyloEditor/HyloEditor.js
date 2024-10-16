@@ -12,7 +12,7 @@ import HyloEditorMenuBar from './HyloEditorMenuBar'
 import 'tippy.js/dist/tippy.css'
 import classes from './HyloEditor.module.scss'
 
-const HyloEditor = React.forwardRef(function HyloEditor ({
+const HyloEditor = React.forwardRef(({
   className,
   containerClassName = 'hyloEditor',
   contentHTML,
@@ -30,7 +30,7 @@ const HyloEditor = React.forwardRef(function HyloEditor ({
   readOnly,
   showMenu = false,
   suggestionsThemeName = 'suggestions'
-}, ref) {
+}, ref) => {
   const { t } = useTranslation()
   const editorRef = useRef(null)
   const [selectedLink, setSelectedLink] = useState()
