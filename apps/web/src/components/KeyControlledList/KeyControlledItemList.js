@@ -1,78 +1,101 @@
-import React from 'react'
-import { withTranslation } from 'react-i18next'
+import React, { forwardRef, useImperativeHandle, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
 import { indexOf, omit } from 'lodash/fp'
 import Icon from 'components/Icon'
 import { accessibilityIcon, visibilityIcon } from 'store/models/Group'
 import KeyControlledList from './KeyControlledList'
 import classes from './KeyControlledItemList.module.scss'
-import cx from 'classnames'
 
 const { array, func, object, bool, string } = PropTypes
 
-class KeyControlledItemList extends React.Component {
-  static propTypes = {
-    onChange: func.isRequired,
-    items: array,
-    selected: object,
-    tabChooses: bool,
-    theme: object,
-    className: string,
-    renderListItem: func
-  }
+const KeyControlledItemList = forwardRef(({
+  onChange,
+  items,
+  selected,
+  tabChooses,
+  theme = {
+    items: null,
+    item: null,
+    itemActive: null
+  },
+  className,
+  renderListItem,
+  tagType,
+  ...props
+}, ref) => {
+  const { t } = useTranslation()
+  const kclRef = useRef()
 
-  static defaultProps = {
-    theme: {
-      items: null,
-      item: null,
-      'item-active': null
+  useImperativeHandle(ref, () => ({
+    handleKeys: (event) => {
+      return kclRef.current.handleKeys(event)
     }
-  }
+  }))
 
-  // this method is called from other components
-  handleKeys = event => {
-    return this.refs.kcl.handleKeys(event)
-  }
-
-  change = (choice, event) => {
+  const change = (choice, event) => {
     event.preventDefault()
-    this.props.onChange(choice, event)
+    onChange(choice, event)
   }
 
-  onChangeExtractingItem = (element, node, event) => {
-    const item = this.props.items[element.ref]
-    this.change(item, event)
+  const onChangeExtractingItem = (element, node, event) => {
+    const item = items[node.getAttribute('data-index')]
+    change(item, event)
   }
 
-  // FIXME use more standard props e.g. {label, value} instead of {id, name}, or
-  // provide an API for configuring them
-  render () {
-    const { items, selected, theme, tagType } = this.props
-    const selectedIndex = indexOf(selected, items)
-
-    const renderListItem = this.props.renderListItem
-      ? item => this.props.renderListItem({ item, handleChoice: this.change })
-      : item => <li className={theme.item} key={item.id || 'blank'}>
-        <a onClick={event => this.change(item, event)}>
-          <div>
-            <span>{item.name || item.title}</span>
+  const defaultRenderListItem = item => (
+    <li className={theme.item} key={item.id || 'blank'}>
+      <a onClick={event => change(item, event)}>
+        <div>
+          <span>{item.name || item.title}</span>
+        </div>
+        {tagType && tagType === 'groups' && (
+          <div className={classes.keyListMemberCount}>
+            <div>
+              <Icon name='Members' className={classes.keyListPrivacyIcon} /> {item.memberCount} {t('Member', { count: item.memberCount })}
+            </div>
+            <div>
+              <Icon name={accessibilityIcon(item.accessibility)} className={classes.keyListPrivacyIcon} />
+              <Icon name={visibilityIcon(item.visibility)} className={classes.keyListPrivacyIcon} />
+            </div>
           </div>
-          {tagType && tagType === 'groups' && <div className={classes.keyListMemberCount}><div><Icon name='Members' className={classes.keyListPrivacyIcon} /> {item.memberCount} {this.props.t('Member', { count: item.memberCount })}</div><div><Icon name={accessibilityIcon(item.accessibility)} className={classes.keyListPrivacyIcon} /> <Icon name={visibilityIcon(item.visibility)} className={classes.keyListPrivacyIcon} /></div></div>}
-        </a>
-      </li>
+        )}
+      </a>
+    </li>
+  )
 
-    const listItems = items.map(renderListItem)
+  const renderItem = renderListItem
+    ? item => renderListItem({ item, handleChoice: change })
+    : defaultRenderListItem
 
-    return <KeyControlledList
-      theme={theme}
-      tagType={tagType}
-      children={listItems}
-      ref='kcl'
-      tabChooses
-      selectedIndex={selectedIndex}
-      onChange={this.onChangeExtractingItem}
-      {...omit('onChange', this.props)} />
-  }
+  const listItems = items.map(renderItem)
+  const selectedIndex = indexOf(selected, items)
+
+  return (
+    <div ref={ref}>
+      <KeyControlledList
+        theme={theme}
+        tagType={tagType}
+        ref={kclRef}
+        tabChooses
+        selectedIndex={selectedIndex}
+        onChange={onChangeExtractingItem}
+        {...omit('onChange', props)}
+      >
+        {listItems}
+      </KeyControlledList>
+    </div>
+  )
+})
+
+KeyControlledItemList.propTypes = {
+  onChange: func.isRequired,
+  items: array,
+  selected: object,
+  tabChooses: bool,
+  theme: object,
+  className: string,
+  renderListItem: func
 }
 
-export default withTranslation()(KeyControlledItemList)
+export default KeyControlledItemList

@@ -9,7 +9,7 @@ import { get, throttle, find } from 'lodash/fp'
 import { Helmet } from 'react-helmet'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
-import { editPostUrl, removePostFromUrl } from 'util/navigation'
+import { removePostFromUrl } from 'util/navigation'
 import CardImageAttachments from 'components/CardImageAttachments'
 import {
   PostBody,
@@ -47,7 +47,7 @@ import classes from './PostDetail.module.scss'
 const STICKY_HEADER_SCROLL_OFFSET = 70
 const MAX_DETAILS_LENGTH = 144
 
-function PostDetail() {
+function PostDetail () {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
@@ -59,7 +59,7 @@ function PostDetail() {
   const postSelector = useSelector(state => getPost(state, postId))
   const post = useMemo(() => {
     return postSelector ? presentPost(postSelector, get('id', currentGroup)) : null
-  }, [postId, currentGroup])
+  }, [postSelector, currentGroup])
   const currentUser = useSelector(getMe)
   const pending = useSelector(state => state.pending[FETCH_POST])
   const isProjectMember = find(({ id }) => id === get('id', currentUser), get('members', post))
@@ -93,7 +93,7 @@ function PostDetail() {
     }))
   }
 
-  const { width, ref } = useResizeDetector({ handleHeight: false, onResize: handleSetComponentPositions })
+  const { ref } = useResizeDetector({ handleHeight: false, onResize: handleSetComponentPositions })
 
   const onPostIdChange = () => {
     dispatch(fetchPost(postId))
@@ -251,25 +251,25 @@ function PostDetail() {
           {post.projectManagementLink && projectManagementTool && (
             <div className={classes.projectManagementTool}>
               <div>{t('This project is being managed on')} <img src={`/assets/pm-tools/${projectManagementTool}.svg`} /></div>
-              <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank'>{t('View tasks')}</a></div>
+              <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
             </div>
           )}
           {post.projectManagementLink && !projectManagementTool && (
             <div className={classes.projectManagementTool}>
               <div>{t('View project management tool')}</div>
-              <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank'>{t('View tasks')}</a></div>
+              <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
             </div>
           )}
           {post.donationsLink && donationService && (
             <div className={classes.donate}>
               <div>{t('Support this project on')} <img src={`/assets/payment-services/${donationService}.svg`} /></div>
-              <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank'>{t('Contribute')}</a></div>
+              <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
             </div>
           )}
           {post.donationsLink && !donationService && (
             <div className={classes.donate}>
               <div>{t('Support this project')}</div>
-              <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank'>{t('Contribute')}</a></div>
+              <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
             </div>
           )}
         </div>

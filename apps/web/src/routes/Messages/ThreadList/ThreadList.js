@@ -34,52 +34,58 @@ class ThreadList extends Component {
       t
     } = this.props
 
-    return <div className={cx(classes.threadList, className)}>
-      <div className={classes.header}>
-        <div className={classes.search}>
-          <div className={classes.searchIcon}>
-            <Icon name='Search' />
+    return (
+      <div className={cx(classes.threadList, className)}>
+        <div className={classes.header}>
+          <div className={classes.search}>
+            <div className={classes.searchIcon}>
+              <Icon name='Search' />
+            </div>
+            <TextInput
+              placeholder={t('Search for people...')}
+              value={threadSearch}
+              onChange={this.onSearchChange}
+              onFocus={this.props.onFocus}
+              noClearButton
+            />
           </div>
-          <TextInput
-            placeholder={t('Search for people...')}
-            value={threadSearch}
-            onChange={this.onSearchChange}
-            onFocus={this.props.onFocus}
-            noClearButton
-          />
+          <Link className={classes.newMessage} to='/messages/new'>
+            <span>{t('New')}</span>
+            <Icon name='Messages' className={classes.messagesIcon} />
+          </Link>
         </div>
-        <Link className={classes.newMessage} to='/messages/new'>
-          <span>{t('New')}</span>
-          <Icon name='Messages' className={classes.messagesIcon} />
-        </Link>
-      </div>
-      <ul className={classes.list} id={'thread-list-list'}>
-        {!isEmpty(threads) && threads.map(t => {
-          const messages = itemsToArray(toRefArray(t.messages))
-          const isUnread = t.unreadCount > 0
-          const latestMessage = orderBy(m => Date.parse(m.createdAt), 'desc', messages)[0]
+        <ul className={classes.list} id='thread-list-list'>
+          {!isEmpty(threads) && threads.map(t => {
+            const messages = itemsToArray(toRefArray(t.messages))
+            const isUnread = t.unreadCount > 0
+            const latestMessage = orderBy(m => Date.parse(m.createdAt), 'desc', messages)[0]
 
-          return <ThreadListItem
-            id={t.id}
-            active={t.id === messageThreadId}
-            thread={t}
-            latestMessage={latestMessage}
-            currentUser={currentUser}
-            unreadCount={t.unreadCount}
-            key={`thread-li-${t.id}`}
-            isUnread={isUnread} />
-        })}
-        {threadsPending &&
-          <Loading type='bottom' />}
-        {!threadsPending && isEmpty(threads) && !threadSearch &&
-          <div className={classes.noConversations}>{t('You have no active messages')}</div>}
-        {!threadsPending && isEmpty(threads) && threadSearch &&
-          <div className={classes.noConversations}>{t('No messages found')}</div>}
-      </ul>
-      <ScrollListener
-        elementId={'thread-list-list'}
-        onBottom={onScrollBottom} />
-    </div>
+            return (
+              <ThreadListItem
+                id={t.id}
+                active={t.id === messageThreadId}
+                thread={t}
+                latestMessage={latestMessage}
+                currentUser={currentUser}
+                unreadCount={t.unreadCount}
+                key={`thread-li-${t.id}`}
+                isUnread={isUnread}
+              />
+            )
+          })}
+          {threadsPending &&
+            <Loading type='bottom' />}
+          {!threadsPending && isEmpty(threads) && !threadSearch &&
+            <div className={classes.noConversations}>{t('You have no active messages')}</div>}
+          {!threadsPending && isEmpty(threads) && threadSearch &&
+            <div className={classes.noConversations}>{t('No messages found')}</div>}
+        </ul>
+        <ScrollListener
+          elementId='thread-list-list'
+          onBottom={onScrollBottom}
+        />
+      </div>
+    )
   }
 }
 
@@ -87,7 +93,6 @@ ThreadList.propTypes = {
   className: PropTypes.string,
   currentUser: PropTypes.object,
   onScrollBottom: PropTypes.func,
-  match: PropTypes.object,
   setThreadSearch: PropTypes.func,
   threadSearch: PropTypes.string,
   threads: PropTypes.array,
@@ -102,20 +107,22 @@ export function ThreadListItem ({
   const latestMessagePreview = TextHelpers.presentHTMLToText(latestMessage?.text, { truncate: MAX_THREAD_PREVIEW_LENGTH })
   const { names, avatarUrls } = participantAttributes(thread, currentUser, 2)
 
-  return <li className={cx(classes.listItem, { [classes.unreadListItem]: isUnread, [classes.active]: active })}>
-    <Link to={`/messages/${id}`}>
-      {active && <div className={classes.activeThread} />}
-      <ThreadAvatars avatarUrls={avatarUrls} />
-      <div className={classes.liCenterContent}>
-        <ThreadNames names={names} />
-        <div className={classes.threadMessageText}>{latestMessagePreview}</div>
-      </div>
-      <div className={classes.liRightContent}>
-        <div className={classes.messageTime}>{TextHelpers.humanDate(get('createdAt', latestMessage))}</div>
-        {unreadCount > 0 && <Badge number={unreadCount} expanded />}
-      </div>
-    </Link>
-  </li>
+  return (
+    <li className={cx(classes.listItem, { [classes.unreadListItem]: isUnread, [classes.active]: active })}>
+      <Link to={`/messages/${id}`}>
+        {active && <div className={classes.activeThread} />}
+        <ThreadAvatars avatarUrls={avatarUrls} />
+        <div className={classes.liCenterContent}>
+          <ThreadNames names={names} />
+          <div className={classes.threadMessageText}>{latestMessagePreview}</div>
+        </div>
+        <div className={classes.liRightContent}>
+          <div className={classes.messageTime}>{TextHelpers.humanDate(get('createdAt', latestMessage))}</div>
+          {unreadCount > 0 && <Badge number={unreadCount} expanded />}
+        </div>
+      </Link>
+    </li>
+  )
 }
 
 ThreadListItem.propTypes = {
@@ -125,7 +132,6 @@ ThreadListItem.propTypes = {
   latestMessage: PropTypes.shape({
     text: PropTypes.string.isRequired
   }),
-  onFocus: PropTypes.func,
   thread: PropTypes.object,
   unreadCount: PropTypes.number
 }
@@ -134,21 +140,21 @@ function ThreadAvatars ({ avatarUrls }) {
   const count = avatarUrls.length
   const style = `avatar${count < 4 ? count : 'More'}`
   const plusStyle = cx(`avatar${count < 4 ? count : 'More'}`, { [classes.plusCount]: count > 4 })
-  return <div className={classes.threadAvatars}>
-    {(count === 1 || count === 2) && <RoundImage url={avatarUrls[0]} />}
-    {count === 2 && <RoundImage url={avatarUrls[1]} medium className={classes[style]} />}
-    {count > 2 && <RoundImage url={avatarUrls[0]} medium className={classes[style]} />}
-    {count > 2 && <RoundImage url={avatarUrls[1]} medium className={classes[style]} />}
-    {count > 2 && <RoundImage url={avatarUrls[2]} medium className={classes[style]} />}
-    {count === 4 && <RoundImage url={avatarUrls[3]} medium className={classes[style]} />}
-    {count > 4 && <div className={plusStyle}>+{count - 4}</div>}
-  </div>
+  return (
+    <div className={classes.threadAvatars}>
+      {(count === 1 || count === 2) && <RoundImage url={avatarUrls[0]} />}
+      {count === 2 && <RoundImage url={avatarUrls[1]} medium className={classes[style]} />}
+      {count > 2 && <RoundImage url={avatarUrls[0]} medium className={classes[style]} />}
+      {count > 2 && <RoundImage url={avatarUrls[1]} medium className={classes[style]} />}
+      {count > 2 && <RoundImage url={avatarUrls[2]} medium className={classes[style]} />}
+      {count === 4 && <RoundImage url={avatarUrls[3]} medium className={classes[style]} />}
+      {count > 4 && <div className={plusStyle}>+{count - 4}</div>}
+    </div>
+  )
 }
 
 function ThreadNames ({ names }) {
-  return <div className={classes.threadNames}>
-    {names}
-  </div>
+  return <div className={classes.threadNames}>{names}</div>
 }
 
 export default withTranslation()(ThreadList)

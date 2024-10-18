@@ -1,5 +1,5 @@
 import cx from 'classnames'
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import { Link, useLocation, useParams } from 'react-router-dom'
@@ -56,13 +56,16 @@ const Messages = () => {
   const location = useLocation()
   const routeParams = useParams()
   const { messageThreadId } = routeParams
-  console.log('messageThreadId', messageThreadId)
 
   // State from mapStateToProps
   const contacts = useSelector(state => getContactsList(state))
   const forParticipants = useSelector(state => getParticipantsFromQuerystring(state, location))
   const prompt = getQuerystringParam('prompt', location)
-  const onCloseLocation = useSelector(state => getPreviousLocation(state)?.pathname) || '/'
+  const previousLocation = useSelector(state => getPreviousLocation(state))
+  const onCloseLocation = useMemo(() => {
+    // Only set once, on first load of Messages component
+    return previousLocation?.pathname || '/'
+  }, [])
   const currentUser = useSelector(getMe)
   // const messageThreadPending = useSelector(state => isPendingFor(fetchThread, state))
   const messageThread = useSelector(state => getCurrentMessageThread(state, routeParams))
@@ -82,10 +85,10 @@ const Messages = () => {
   const socket = getSocket()
 
   // Actions from mapDispatchToProps
-  const setContactsSearchAction = useCallback((search) => dispatch(setContactsSearch(search)), [dispatch])
-  const setThreadSearchAction = useCallback((search) => dispatch(setThreadSearch(search)), [dispatch])
-  const updateMessageTextAction = useCallback((text) => dispatch(updateMessageText(text)), [dispatch])
-  const fetchThreadsAction = useCallback(() => dispatch(fetchThreads(20, 0)), [dispatch])
+  const setContactsSearchAction = useCallback((search) => dispatch(setContactsSearch(search)), [])
+  const setThreadSearchAction = useCallback((search) => dispatch(setThreadSearch(search)), [])
+  const updateMessageTextAction = useCallback((text) => dispatch(updateMessageText(messageThreadId, text)), [messageThreadId])
+  const fetchThreadsAction = useCallback(() => dispatch(fetchThreads(20, 0)), [])
   const fetchMoreThreadsAction = useCallback(() => hasMoreThreads && dispatch(fetchThreads(20, 0)), [hasMoreThreads])
   const fetchMessagesAction = useCallback(() => {
     const fetchMessagesCursor = !isEmpty(messages) && messages[0].id
@@ -104,7 +107,7 @@ const Messages = () => {
   const [loading, setLoading] = useState(true)
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
   const [participants, setParticipants] = useState([])
-  const form = useRef(null)
+  const formRef = useRef(null)
 
   useEffect(() => {
     const init = async () => {
@@ -178,7 +181,7 @@ const Messages = () => {
     )
   }
 
-  const focusForm = () => form.current && form.current.focus()
+  const focusForm = () => formRef.current && formRef.current.focus()
 
   return (
     <div className={cx(classes.modal, { [classes.messagesOpen]: messageThreadId })}>
@@ -192,10 +195,9 @@ const Messages = () => {
           </div>
           <div className={classes.messagesTitle}>
             <Icon name='Messages' />
-            { !forNewThread
+            {!forNewThread
               ? <h3>{t('Messages')}</h3>
-              : <h3>{t('New Message')}</h3>
-            }
+              : <h3>{t('New Message')}</h3>}
           </div>
         </div>
         {loading
@@ -263,11 +265,12 @@ const Messages = () => {
                           onSubmit={sendMessage}
                           onFocus={() => setPeopleSelectorOpen(false)}
                           currentUser={currentUser}
-                          formRef={form}
+                          ref={formRef}
                           updateMessageText={updateMessageTextAction}
                           messageText={messageText}
                           sendIsTyping={sendIsTyping}
-                          pending={messageCreatePending} />
+                          pending={messageCreatePending}
+                        />
                       </div>}
                     <PeopleTyping className={classes.peopleTyping} />
                     {socket && <SocketSubscriber type='post' id={messageThreadId} />}

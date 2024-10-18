@@ -38,7 +38,6 @@ export default function GroupBanner ({
   const view = routeParams.view
   const isAboutOpen = !!routeParams.detailGroupSlug
 
-  console.log('group banner', context, group)
   if (context === 'all') {
     name = t('All My Groups')
     avatarUrl = whiteMerkaba

@@ -1,9 +1,9 @@
 import cx from 'classnames'
-import React, { useState } from 'react'
+import React, { forwardRef, useState } from 'react'
 import Icon from 'components/Icon'
 import classes from './Pill.module.scss'
 
-export default function Pill ({
+const Pill = forwardRef(({
   id,
   label,
   onRemove,
@@ -11,7 +11,7 @@ export default function Pill ({
   editable,
   darkText = false,
   onClick
-}) {
+}, ref) => {
   const [removing, setRemoving] = useState(false)
   const deletePill = () => {
     if (editable && onRemove) {
@@ -38,6 +38,7 @@ export default function Pill ({
     <div
       className={cx(pillStyles, className)}
       onMouseLeave={mouseOut}
+      ref={ref}
     >
       <span
         data-tooltip-content='Click to Search'
@@ -57,4 +58,6 @@ export default function Pill ({
         />}
     </div>
   )
-}
+})
+
+export default Pill

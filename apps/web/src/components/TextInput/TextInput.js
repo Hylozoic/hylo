@@ -31,9 +31,9 @@ export default function TextInput (props) {
   }
 
   return (
-    <div className={cx(theme.wrapper || className, styles.wrapper)}>
+    <div className={cx(styles[theme.wrapperStyle] || 'wrapper', styles[theme.wrapper] || className)}>
       <input
-        className={cx(theme.input, styles.input)}
+        className={cx(styles[theme.inputStyle] || styles.input, theme.input)}
         {...{ onKeyDown, ...otherProps }}
         ref={inputRef}
         aria-label={label || internalLabel}

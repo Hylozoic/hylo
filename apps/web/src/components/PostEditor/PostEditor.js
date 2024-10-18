@@ -445,12 +445,12 @@ function PostEditor ({
     )
   }
 
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel()
-      return true
-    }
-  }
+  // const handleCancel = () => {
+  //   if (onCancel) {
+  //     onCancel()
+  //     return true
+  //   }
+  // }
 
   const save = async () => {
     const {

@@ -1,8 +1,8 @@
 import cx from 'classnames'
-import React from 'react'
-import Clamp from 'react-multiline-clamp'
+import React, { useCallback } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import Avatar from 'components/Avatar'
 import EmojiRow from 'components/EmojiRow'
 import EventDate from 'components/PostCard/EventDate'
@@ -10,20 +10,20 @@ import EventRSVP from 'components/PostCard/EventRSVP'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
-import { personUrl } from 'util/navigation'
+import respondToEvent from 'store/actions/respondToEvent'
+import getMe from 'store/selectors/getMe'
+import { personUrl, postUrl } from 'util/navigation'
 
 import classes from './PostBigGridItem.module.scss'
 
-export default function PostBigGridItem (props) {
-  const {
-    childPost,
-    currentGroupId,
-    post,
-    respondToEvent,
-    showDetails,
-    expanded,
-    currentUser
-  } = props
+export default function PostBigGridItem ({
+  childPost,
+  currentGroupId,
+  post,
+  expanded,
+  locationParams,
+  querystringParams
+}) {
   const {
     title,
     details,
@@ -33,13 +33,24 @@ export default function PostBigGridItem (props) {
   } = post
   const { t } = useTranslation()
   const routeParams = useParams()
-
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
   const numAttachments = attachments.length || 0
   const firstAttachment = attachments[0] || 0
   // XXX: we should figure out what to actually do with 'video' type attachments, which are almost never used
   const attachmentType = (firstAttachment.type === 'video' ? 'file' : firstAttachment.type) || 0
   const attachmentUrl = firstAttachment.url || 0
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+
+  const currentUser = useSelector(getMe)
+
+  const showDetails = useCallback(() => {
+    navigate(postUrl(post.id, routeParams, { ...locationParams, ...querystringParams }))
+  }, [post.id, routeParams, locationParams, querystringParams])
+
+  const handleRespondToEvent = useCallback((response) => {
+    dispatch(respondToEvent(post, response))
+  }, [post])
 
   const detailLength = details.length
   let detailClass = null
@@ -94,8 +105,7 @@ export default function PostBigGridItem (props) {
 
         {attachmentType === 'image'
           ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={classes.firstImage} onClick={showDetails} />
-          : null
-        }
+          : null}
         {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
         <HyloHTML className={classes.details} html={details} onClick={showDetailsTargeted} />
         <div className={classes.gridMeta}>
@@ -107,9 +117,7 @@ export default function PostBigGridItem (props) {
             )}
             <h3 className={classes.title} onClick={showDetails}>{title}</h3>
             <div className={classes.contentSnippet}>
-              <Clamp lines={2}>
-                <HyloHTML className={classes.details} html={details} onClick={showDetailsTargeted} />
-              </Clamp>
+              <HyloHTML className={classes.details} html={details} onClick={showDetailsTargeted} />
               <div className={classes.fade} />
             </div>
             <div className={classes.projectActions}>
@@ -127,9 +135,9 @@ export default function PostBigGridItem (props) {
               )}
               {attachmentType === 'file' && (
                 <div className={classes.fileAttachment}>
-                  {numAttachments > 1 ? (
-                    <div className={classes.attachmentNumber}>{numAttachments} {t('attachments')}</div>
-                  ) : null}
+                  {numAttachments > 1
+                    ? <div className={classes.attachmentNumber}>{numAttachments} {t('attachments')}</div>
+                    : null}
                   <div className={classes.attachment}>
                     <Icon name='Document' className={classes.fileIcon} />
                     <div className={classes.attachmentName}>{attachmentUrl.substring(firstAttachment.url.lastIndexOf('/') + 1)}</div>
@@ -139,7 +147,7 @@ export default function PostBigGridItem (props) {
               {post.type === 'event' && (
                 <div className={classes.eventResponse}>
                   <div>{t('Can you go?')}</div>
-                  <EventRSVP {...post} respondToEvent={respondToEvent(post)} position='top' />
+                  <EventRSVP {...post} respondToEvent={handleRespondToEvent} position='top' />
                 </div>
               )}
             </div>

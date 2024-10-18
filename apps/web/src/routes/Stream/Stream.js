@@ -3,7 +3,6 @@ import { get, isEmpty } from 'lodash/fp'
 import React, { useCallback, useEffect, useMemo } from 'react'
 import { Helmet } from 'react-helmet'
 import { useSelector, useDispatch } from 'react-redux'
-import { createSelector } from 'reselect'
 import { useParams, useLocation } from 'react-router-dom'
 import { push } from 'redux-first-history'
 import { createSelector as ormCreateSelector } from 'redux-orm'
@@ -25,7 +24,6 @@ import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 import { fetchModerationActions, clearModerationAction } from 'store/actions/moderationActions'
-import respondToEvent from 'store/actions/respondToEvent'
 import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import { FETCH_MODERATION_ACTIONS, FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS } from 'store/constants'
 import orm from 'store/models'
@@ -65,8 +63,6 @@ export default function Stream (props) {
   const context = props.context
 
   const view = props.view || params.view
-
-  console.log('Stream', context, view)
 
   const currentUser = useSelector(getMe)
   const currentUserHasMemberships = useSelector(state => !isEmpty(getMyMemberships(state)))
@@ -131,18 +127,23 @@ export default function Stream (props) {
   const pendingModerationActions = useSelector(state => state.pending[FETCH_MODERATION_ACTIONS])
 
   const decisionView = getQuerystringParam('d', location) || 'proposals'
-  let moderationActions, hasMoreModerationActions
   const fetchModerationActionParam = {
     slug: groupSlug,
     groupId,
     sortBy
   }
-  if (decisionView === 'moderation') {
-    moderationActions = getModerationActions(state, fetchModerationActionParam)
-    hasMoreModerationActions = getHasMoreModerationActions(state, fetchModerationActionParam)
-  }
+  const moderationActions = useSelector(state => decisionView === 'moderation' ? getModerationActions(state, fetchModerationActionParam) : [], (prevModerationActions, nextModerationActions) => {
+    if (prevModerationActions.length !== nextModerationActions.length) return false
+    return prevModerationActions.every((item, index) => item.id === nextModerationActions[index].id)
+  })
+  const hasMoreModerationActions = useSelector(state => decisionView === 'moderation' ? getHasMoreModerationActions(state, fetchModerationActionParam) : false)
 
   const ViewComponent = viewComponent[viewMode]
+
+  const fetchModerationActionsAction = offset => {
+    if (pendingModerationActions || hasMoreModerationActions === false) return
+    return dispatch(fetchModerationActions({ offset, ...fetchModerationActionParam }))
+  }
 
   useEffect(() => {
     if (topicName) {
@@ -153,7 +154,7 @@ export default function Stream (props) {
       }
     }
     if (decisionView === 'moderation') {
-      fetchModerationActions(0)
+      fetchModerationActionsAction(0)
     } else {
       fetchPostsFrom(0)
     }
@@ -162,11 +163,6 @@ export default function Stream (props) {
   const fetchPostsFrom = (offset) => {
     if (pending || hasMore === false) return
     dispatch(fetchPosts({ offset, ...fetchPostsParam }))
-  }
-
-  const fetchModerationActions = offset => {
-    if (pendingModerationActions || hasMoreModerationActions === false) return
-    return dispatch(fetchModerationActions({ offset, ...fetchModerationActionParam }))
   }
 
   const changeTab = useCallback(tab => {
@@ -225,7 +221,8 @@ export default function Stream (props) {
             bannerUrl={group && group.bannerUrl}
             newPost={newPost}
           />
-        ) : (
+          )
+        : (
           <GroupBanner
             customPostTypes={customView?.type === 'stream' ? customView?.postTypes : null}
             customActivePostsOnly={customView?.type === 'stream' ? customView?.activePostsOnly : false}
@@ -243,7 +240,7 @@ export default function Stream (props) {
             icon={customView?.icon}
             label={customView?.name}
           />
-        )}
+          )}
       <ViewControls
         routeParams={params} view={view} customPostTypes={customView?.type === 'stream' ? customView?.postTypes : null} customViewType={customView?.type}
         postTypeFilter={postTypeFilter} sortBy={sortBy} viewMode={viewMode} searchValue={search}
@@ -251,28 +248,32 @@ export default function Stream (props) {
         changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
         decisionView={decisionView} changeDecisionView={changeDecisionView}
       />
-      {decisionView !== 'moderation' && <div className={cx(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
-        {!pending && posts.length === 0 ? <NoPosts /> : ''}
-        {posts.map(post => {
-          const expanded = selectedPostId === post.id
-          const groupSlugs = post.groups.map(group => group.slug)
-          return (
-            <ViewComponent
-              className={cx({ [styles.cardItem]: viewMode === 'cards', [styles.expanded]: expanded })}
-              expanded={expanded}
-              routeParams={params}
-              post={post}
-              key={post.id}
-              currentUser={currentUser}
-              respondToEvent={(post) => (response) => dispatch(respondToEvent(post, response))}
-              querystringParams={querystringParams}
-              childPost={![CONTEXT_MY, 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
-            />
-          )})}
-      </div>}
-      {decisionView === 'moderation' && (<div className='streamItems'>
-        {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
-        {moderationActions.map(modAction => {
+      {decisionView !== 'moderation' && (
+        <div className={cx(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
+          {!pending && posts.length === 0 ? <NoPosts /> : ''}
+          {posts.map(post => {
+            const expanded = selectedPostId === post.id
+            const groupSlugs = post.groups.map(group => group.slug)
+            return (
+              <ViewComponent
+                className={cx({ [styles.cardItem]: viewMode === 'cards', [styles.expanded]: expanded })}
+                expanded={expanded}
+                routeParams={params}
+                post={post}
+                key={post.id}
+                currentGroupId={group && group.id}
+                currentUser={currentUser}
+                querystringParams={querystringParams}
+                childPost={![CONTEXT_MY, 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
+              />
+            )
+          })}
+        </div>
+      )}
+      {decisionView === 'moderation' && (
+        <div className='streamItems'>
+          {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
+          {moderationActions.map(modAction => {
             return (
               <ModerationListItem
                 group={group}
@@ -282,9 +283,10 @@ export default function Stream (props) {
               />
             )
           })}
-        </div>)}
+        </div>
+      )}
       <ScrollListener
-        onBottom={() => fetchPosts(posts.length)}
+        onBottom={() => fetchPostsFrom(posts.length)}
         elementId={CENTER_COLUMN_ID}
       />
       {pending && <Loading />}

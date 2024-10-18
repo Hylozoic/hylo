@@ -82,7 +82,7 @@ export default [
       'prettier/prettier': 'off',
       'react/prop-types': 'off',
       'react/no-children-prop': 'warn',
-      'react/jsx-handler-names': 'warn',
+      'react/jsx-handler-names': 'off',
       'react/jsx-fragments': 'warn',
       'react/jsx-wrap-multilines': 'warn',
       'eslint/indent': 'off',

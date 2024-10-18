@@ -15,8 +15,6 @@ import getMyMemberships from 'store/selectors/getMyMemberships'
 import { getPosts } from 'store/selectors/getPosts'
 import { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 
-// import classes from './LandingPage.module.scss'
-
 const LandingPage = () => {
   const dispatch = useDispatch()
   const params = useParams()
@@ -27,16 +25,16 @@ const LandingPage = () => {
   const group = useMemo(() => presentGroup(groupSelector), [groupSelector])
   // const isAboutOpen = !!params.detailGroupSlug
   const canEdit = useSelector(state => hasResponsibilityForGroup(state, { groupId: group.id, responsibility: [RESP_ADMINISTRATION, RESP_MANAGE_CONTENT] }))
-  const posts = useSelector(state => getPosts(state, fetchPostsParam).map(p => presentPost(p, group.id)))
+  const _posts = useSelector(state => getPosts(state, fetchPostsParam))
+  const posts = useMemo(() => _posts.map(p => presentPost(p, group.id)), [_posts, group.id])
   const widgets = ((group && group.widgets) || []).filter(w => w.name !== 'map' && w.context === 'landing')
   const memberships = useSelector(state => getMyMemberships(state))
   const joinRequests = useGetJoinRequests()
-  const childGroups = useSelector(state =>
-    getChildGroups(state, group).map(g => ({
-      ...g,
-      memberStatus: memberships.find(m => m.group.id === g.id) ? 'member' : joinRequests.find(jr => jr.group.id === g.id) ? 'requested' : 'not'
-    }))
-  )
+  const _childGroups = useSelector(state => getChildGroups(state, group))
+  const childGroups = useMemo(() => _childGroups.map(g => ({
+    ...g,
+    memberStatus: memberships.find(m => m.group.id === g.id) ? 'member' : joinRequests.find(jr => jr.group.id === g.id) ? 'requested' : 'not'
+  })), [_childGroups, memberships, joinRequests])
 
   useEffect(() => {
     dispatch(fetchPosts(fetchPostsParam))

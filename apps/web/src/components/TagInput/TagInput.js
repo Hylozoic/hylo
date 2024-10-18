@@ -155,7 +155,7 @@ class TagInput extends Component {
         <ul className={theme.selected}>
           {selectedItems}
         </ul>
-        <div className={cx(theme.search, { 'tags-empty': selectedItems.length === 0 })}>
+        <div className={cx(theme.search, { tagsEmpty: selectedItems.length === 0 })}>
           <div className={theme.searchInput}>
             <input
               className={cx(theme.searchInput, { error: maxReached, tagsEmpty: selectedItems.length === 0 })}

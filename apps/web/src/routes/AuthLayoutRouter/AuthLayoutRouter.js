@@ -26,8 +26,7 @@ import { getSignupInProgress } from 'store/selectors/getAuthState'
 import { toggleDrawer as toggleDrawerAction } from './AuthLayoutRouter.store'
 import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
 import {
-  OPTIONAL_POST_MATCH, OPTIONAL_GROUP_MATCH, OPTIONAL_NEW_POST_MATCH,
-  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, REQUIRED_EDIT_POST_MATCH, postUrl
+  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl
 } from 'util/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import AllTopics from 'routes/AllTopics'
@@ -172,7 +171,7 @@ export default function AuthLayoutRouter (props) {
         setCurrentGroupLoading(false)
       }
     })()
-  }, [dispatch, currentGroupSlug])
+  }, [currentGroupSlug])
 
   // Scroll to top of center column when context, groupSlug, or view changes (from `pathMatchParams`)
   useEffect(() => {
