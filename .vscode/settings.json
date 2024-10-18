@@ -1,0 +1,8 @@
+{
+  "i18n-ally.localesPaths": [
+    "apps/mobile/locales",
+    "apps/backend/config/locales",
+    "apps/backend/lib/i18n",
+    "apps/web/public/locales"
+  ]
+}
