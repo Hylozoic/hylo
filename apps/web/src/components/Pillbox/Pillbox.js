@@ -1,7 +1,5 @@
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
-import { Tooltip } from 'react-tooltip'
-import isMobile from 'ismobilejs'
 import { TransitionGroup, CSSTransition } from 'react-transition-group'
 import { debounce, includes, isEmpty, delay } from 'lodash'
 import { getKeyCode, keyMap } from 'util/textInput'
@@ -97,9 +95,9 @@ class Pillbox extends Component {
                 key={pill.id}
                 classNames={{
                   enter: styles.enter,
-                  enterActive: styles['enter-active'],
+                  enterActive: styles.enterActive,
                   exit: styles.exit,
-                  exitActive: styles['exit-active']
+                  exitActive: styles.exitActive
                 }}
                 timeout={{ enter: 400, exit: 300 }}
                 nodeRef={this.pillTransitionRef}
@@ -146,16 +144,6 @@ class Pillbox extends Component {
               />
             }
           </div>
-        )}
-        {!isMobile.any && (
-          <Tooltip
-            place='top'
-            type='dark'
-            id='pill-label'
-            effect='solid'
-            disable={!editable}
-            delayShow={500}
-          />
         )}
       </div>
     )
