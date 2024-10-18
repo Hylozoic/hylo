@@ -81,8 +81,7 @@ const StreamViewControls = (props) => {
             data-tooltip-id='childgroup-toggle-tt'
           >
             <Icon name='Subgroup' className={cx(classes.toggleIcon, classes.subgroupIcon, { [classes.active]: childPostInclusion === 'yes' })} />
-          </div>
-        }
+          </div>}
         <Tooltip
           delay={250}
           id='childgroup-toggle-tt'
@@ -92,7 +91,8 @@ const StreamViewControls = (props) => {
           <div
             className={cx({ [classes.modeActive]: viewMode === 'cards' })}
             onClick={() => changeView('cards')}
-            data-tooltip-content={t('Card view')} data-tooltip-id='stream-viewmode-tip'
+            data-tooltip-content={t('Card view')}
+            data-tooltip-id='stream-viewmode-tip'
           >
             <Icon name='CardView' />
           </div>
@@ -100,7 +100,8 @@ const StreamViewControls = (props) => {
           <div
             className={cx({ [classes.modeActive]: viewMode === 'list' })}
             onClick={() => changeView('list')}
-            data-tooltip-content={t('List view')} data-tooltip-id='stream-viewmode-tip'
+            data-tooltip-content={t('List view')}
+            data-tooltip-id='stream-viewmode-tip'
           >
             <Icon name='ListView' />
           </div>
@@ -108,7 +109,8 @@ const StreamViewControls = (props) => {
           <div
             className={cx({ [classes.modeActive]: viewMode === 'bigGrid' })}
             onClick={() => changeView('bigGrid')}
-            data-tooltip-content={t('Large Grid')} data-tooltip-id='stream-viewmode-tip'
+            data-tooltip-content={t('Large Grid')}
+            data-tooltip-id='stream-viewmode-tip'
           >
             <Icon name='GridView' className={classes.gridViewIcon} />
           </div>
@@ -116,7 +118,8 @@ const StreamViewControls = (props) => {
           <div
             className={cx({ [classes.modeActive]: viewMode === 'grid' }, classes.smallGrid)}
             onClick={() => changeView('grid')}
-            data-tooltip-content={t('Small Grid')} data-tooltip-id='stream-viewmode-tip'
+            data-tooltip-content={t('Small Grid')}
+            data-tooltip-id='stream-viewmode-tip'
           >
             <Icon name='SmallGridView' className={classes.gridViewIcon} />
           </div>

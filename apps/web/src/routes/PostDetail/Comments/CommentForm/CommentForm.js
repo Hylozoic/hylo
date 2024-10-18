@@ -96,13 +96,15 @@ class CommentForm extends Component {
           />
 
           {!currentUser
-            ? <Link
-              to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname)}`}
-              target={inIframe() ? '_blank' : ''}
-              className={classes.signupButton}
-            >
-              {this.prop.t('Sign up to reply')}
-            </Link>
+            ? (
+              <Link
+                to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname)}`}
+                target={inIframe() ? '_blank' : ''}
+                className={classes.signupButton}
+              >
+                {this.prop.t('Sign up to reply')}
+              </Link>
+              )
             : (
               <>
                 <div className={classes.sendMessageContainer}>
@@ -118,7 +120,6 @@ class CommentForm extends Component {
                   <Tooltip
                     delay={150}
                     position='top'
-                    offset={{ bottom: 0 }}
                     id='comment-submit-tt'
                   />
                 </div>
@@ -132,8 +133,7 @@ class CommentForm extends Component {
                   )}
                 />
               </>
-            )
-          }
+              )}
         </div>
       </div>
     )

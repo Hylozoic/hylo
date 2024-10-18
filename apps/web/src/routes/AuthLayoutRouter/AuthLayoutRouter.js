@@ -280,15 +280,25 @@ export default function AuthLayoutRouter (props) {
 
       <Routes>
         <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
         <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
+        <Route path='public/topics/:topicName/post/:postId/create/*' element={<CreateModal context='public' />} />
         <Route path='all/topics/:topicName/create/*' element={<CreateModal context='all' />} />
-        <Route path='public/:view/create/*' element={<CreateModal context='public' />} />
+        <Route path='all/topics/:topicName/post/:postId/create/*' element={<CreateModal context='all' />} />
         <Route path='all/:view/create/*' element={<CreateModal context='all' />} />
+        <Route path='all/:view/post/:postId/create/*' element={<CreateModal context='all' />} />
+        <Route path='public/:view/create/*' element={<CreateModal context='public' />} />
+        <Route path='public/:view/post/:postId/create/*' element={<CreateModal context='public' />} />
         <Route path='my/:view/create/*' element={<CreateModal context='my' />} />
+        <Route path='my/:view/post/:postId/create/*' element={<CreateModal context='my' />} />
         <Route path='public/create/*' element={<CreateModal context='public' />} />
+        <Route path='public/post/:postId/create/*' element={<CreateModal context='public' />} />
         <Route path='all/create/*' element={<CreateModal context='all' />} />
+        <Route path='all/post/:postId/create/*' element={<CreateModal context='all' />} />
         {/* <Route path='/:context(public|all)/*' element={<CreateModal />} /> */}
         {/* TODO route: how? <Route path={`(.*)/${REQUIRED_EDIT_POST_MATCH}`} element={<CreateModal />} /> */}
       </Routes>

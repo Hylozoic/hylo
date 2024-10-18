@@ -29,7 +29,6 @@ export default function Badge ({ emoji, expanded, className, common, border, onC
       <Tooltip
         delay={150}
         position='bottom'
-        offset={{ top: 0, right: 3 }}
         id={`${id}-${name}-badge-tt`}
         content={() => (
           <div className={classes.tipContent}>

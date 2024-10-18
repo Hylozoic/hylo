@@ -143,8 +143,10 @@ function PostEditor ({
   const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending || postPending
 
   let post = propsPost
-  const editingPost = useSelector(state => presentPost(getPost(state, editingPostId)))
-  const fromPost = useSelector(state => presentPost(getPost(state, fromPostId)))
+  const _editingPost = useSelector(state => getPost(state, editingPostId))
+  const editingPost = useMemo(() => presentPost(_editingPost), [_editingPost])
+  const _fromPost = useSelector(state => getPost(state, fromPostId))
+  const fromPost = useMemo(() => presentPost(_fromPost), [_fromPost])
 
   if (routeParams.action === 'edit') {
     post = propsPost || editingPost
@@ -1100,7 +1102,6 @@ export function ActionsBar ({
       <Tooltip
         delay={150}
         position='bottom'
-        offset={{ top: 0 }}
         id='submit-tt'
       />
     </div>
