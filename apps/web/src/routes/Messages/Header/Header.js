@@ -35,7 +35,7 @@ export default class Header extends React.Component {
     })
   }
 
-  componentWillReceiveProps = () => {
+  componentDidUpdate (prevProps) {
     const messageThreadId = get('id', this.props.messageThread)
 
     if (this.state.messageThreadId !== messageThreadId) {
@@ -60,19 +60,23 @@ export default class Header extends React.Component {
     const { displayNames, andOthers } = generateDisplayNames(maxShown, participants, currentUser)
     const showArrow = !!andOthers
 
-    return <div className={cx(classes.header)} id='thread-header'>
-      <Link to='/messages' className={classes.closeThread}>
-        <Icon name='ArrowForward' />
-      </Link>
-      <div className={classes.headerText}>
-        {!pending && <React.Fragment>
-          <div>{displayNames}</div>
-          {andOthers && 'and' && <span className={classes.toggleLink} onClick={this.toggleShowAll}>{andOthers}</span>}
-        </React.Fragment>}
+    return (
+      <div className={cx(classes.header)} id='thread-header'>
+        <Link to='/messages' className={classes.closeThread}>
+          <Icon name='ArrowForward' />
+        </Link>
+        <div className={classes.headerText}>
+          {!pending && (
+            <>
+              <div>{displayNames}</div>
+              {andOthers && 'and' && <span className={classes.toggleLink} onClick={this.toggleShowAll}>{andOthers}</span>}
+            </>
+          )}
+        </div>
+        {showArrow && !showAll && <Icon name='ArrowDown' className={classes.arrowDown} onClick={this.toggleShowAll} />}
+        {showAll && <Icon name='ArrowUp' className={classes.arrowUp} onClick={this.toggleShowAll} />}
       </div>
-      {showArrow && !showAll && <Icon name='ArrowDown' className={classes.arrowDown} onClick={this.toggleShowAll} />}
-      {showAll && <Icon name='ArrowUp' className={classes.arrowUp} onClick={this.toggleShowAll} />}
-    </div>
+    )
   }
 }
 

@@ -1,12 +1,16 @@
 import cx from 'classnames'
 import { get } from 'lodash/fp'
 import React, { useCallback, useEffect, useRef } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
+import { useSelector, useDispatch } from 'react-redux'
 import CardImageAttachments from 'components/CardImageAttachments'
 import Icon from 'components/Icon'
 import { POST_PROP_TYPES } from 'store/models/Post'
+import { postUrl, editPostUrl } from 'util/navigation'
+import respondToEvent from 'store/actions/respondToEvent'
+import getMe from 'store/selectors/getMe'
 import EventBody from './EventBody'
 import PostBody from './PostBody'
 import PostFooter from './PostFooter'
@@ -23,20 +27,33 @@ export default function PostCard (props) {
     className,
     constrained,
     currentGroupId,
-    currentUser,
-    editPost,
     expanded,
-    forwardedRef,
     highlightProps,
     intersectionObserver,
     post,
-    respondToEvent,
-    showDetails
+    locationParams,
+    querystringParams
   } = props
 
-  const postCardRef = forwardedRef || useRef()
+  const postCardRef = useRef()
   const { t } = useTranslation()
   const routeParams = useParams()
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+
+  const currentUser = useSelector(getMe)
+
+  const showDetails = useCallback(() => {
+    navigate(postUrl(post.id, routeParams, { ...locationParams, ...querystringParams }))
+  }, [post.id, routeParams, locationParams, querystringParams])
+
+  const editPost = useCallback(() => {
+    navigate(editPostUrl(post.id, routeParams, querystringParams))
+  }, [post.id, routeParams, querystringParams])
+
+  const handleRespondToEvent = useCallback((response) => {
+    dispatch(respondToEvent(post, response))
+  }, [post])
 
   // TODO: dupe of clickcatcher?
   const shouldShowDetails = useCallback(element => {
@@ -57,12 +74,12 @@ export default function PostCard (props) {
     if (shouldShowDetails(event.target)) showDetails()
   })
 
-  if (intersectionObserver) {
-    useEffect(() => {
+  useEffect(() => {
+    if (intersectionObserver) {
       intersectionObserver.observe(postCardRef.current)
       return () => { intersectionObserver.disconnect() }
-    })
-  }
+    }
+  }, [intersectionObserver])
 
   const postType = get('type', post)
   const isEvent = postType === 'event'
@@ -111,7 +128,7 @@ export default function PostCard (props) {
               currentUser={currentUser}
               event={post}
               slug={routeParams.groupSlug}
-              respondToEvent={respondToEvent}
+              respondToEvent={handleRespondToEvent}
               constrained={constrained}
               isFlagged={isFlagged}
             />
@@ -153,10 +170,10 @@ PostCard.propTypes = {
   childPost: PropTypes.bool,
   routeParams: PropTypes.object,
   post: PropTypes.shape(POST_PROP_TYPES),
-  editPost: PropTypes.func,
-  showDetails: PropTypes.func,
   highlightProps: PropTypes.object,
   expanded: PropTypes.bool,
   constrained: PropTypes.bool,
-  className: PropTypes.string
+  className: PropTypes.string,
+  locationParams: PropTypes.object,
+  querystringParams: PropTypes.object
 }

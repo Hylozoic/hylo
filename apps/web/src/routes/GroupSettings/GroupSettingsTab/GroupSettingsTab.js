@@ -8,8 +8,8 @@ import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
-import EditableMap from 'components/Map/EditableMap/EditableMap'
-import EditableMapModal from 'components/Map/EditableMap/EditableMapModal'
+// import EditableMap from 'components/Map/EditableMap/EditableMap'
+// import EditableMapModal from 'components/Map/EditableMap/EditableMapModal'
 import SettingsControl from 'components/SettingsControl'
 import SkillsSection from 'components/SkillsSection'
 import SwitchStyled from 'components/SwitchStyled'
@@ -22,8 +22,8 @@ import {
 import { bgImageStyle } from 'util/index'
 import SettingsSection from '../SettingsSection'
 
-import general from '../GroupSettings.module.scss' // eslint-disable-line no-unused-vars
-import styles from './GroupSettingsTab.module.scss' // eslint-disable-line no-unused-vars
+import general from '../GroupSettings.module.scss'
+import styles from './GroupSettingsTab.module.scss'
 
 const { object, func } = PropTypes
 
@@ -192,10 +192,12 @@ class GroupSettingsTab extends Component {
         <label className={styles.label}>{t('Location Privacy:')}</label>
         <Dropdown
           className={styles.locationObfuscationDropdown}
-          toggleChildren={<span className={styles.locationObfuscationDropdownLabel}>
-            {LOCATION_PRECISION[locationDisplayPrecision || 'precise']}
-            <Icon name='ArrowDown' />
-          </span>}
+          toggleChildren={(
+            <span className={styles.locationObfuscationDropdownLabel}>
+              {LOCATION_PRECISION[locationDisplayPrecision || 'precise']}
+              <Icon name='ArrowDown' />
+            </span>
+          )}
           items={Object.keys(LOCATION_PRECISION).map(value => ({
             label: t(LOCATION_PRECISION[value]),
             onClick: () => this.updateSettingDirectly('settings.locationDisplayPrecision')(value)
@@ -242,7 +244,7 @@ class GroupSettingsTab extends Component {
 
         <br />
 
-        <SettingsControl
+        {/* <SettingsControl
           label={t('What area does your group cover?')}
           onChange={this.updateSetting('geoShape')}
           placeholder={t('For place based groups, draw the area where your group is active (or paste in GeoJSON here)')}
@@ -266,7 +268,7 @@ class GroupSettingsTab extends Component {
               toggleModal={this.toggleModal}
             /> }
         </div>
-        <br />
+        <br /> */}
 
         <div className={general.saveChanges}>
           <span className={this.saveButtonContent().style}>{this.saveButtonContent().text}</span>

@@ -81,7 +81,7 @@ export default function UploadAttachmentButton ({
 
 UploadAttachmentButton.propTypes = {
   type: PropTypes.string.isRequired,
-  id: PropTypes.string.isRequired,
+  id: PropTypes.string,
   attachmentType: PropTypes.string, // for useFilestackLibrary
   onSuccess: PropTypes.func.isRequired,
   onError: PropTypes.func,
@@ -102,8 +102,10 @@ export function UploadButton ({
 }) {
   const loadingIconName = loading ? 'Clock' : iconName
 
-  return <div onClick={onClick} className={className}>
-    {children && children}
-    {!children && <Icon name={loadingIconName} className={cx(classes.icon)} />}
-  </div>
+  return (
+    <div onClick={onClick} className={className}>
+      {children && children}
+      {!children && <Icon name={loadingIconName} className={cx(classes.icon)} />}
+    </div>
+  )
 }

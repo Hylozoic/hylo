@@ -1,10 +1,7 @@
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
-import { Tooltip } from 'react-tooltip'
-import isMobile from 'ismobilejs'
 import { TransitionGroup, CSSTransition } from 'react-transition-group'
 import { debounce, includes, isEmpty, delay } from 'lodash'
-import cx from 'classnames'
 import { getKeyCode, keyMap } from 'util/textInput'
 import KeyControlledItemList from 'components/KeyControlledList/KeyControlledItemList'
 import Pill from 'components/Pill'
@@ -22,6 +19,7 @@ class Pillbox extends Component {
     }
     this.input = React.createRef()
     this.list = React.createRef()
+    this.pillTransitionRef = React.createRef()
   }
 
   resetInput () {
@@ -31,7 +29,7 @@ class Pillbox extends Component {
   }
 
   handleKeys = event => {
-    let { handleAddition, filter } = this.props
+    const { handleAddition, filter } = this.props
     const keyCode = getKeyCode(event)
     const keyWasHandled = this.list.current && this.list.current.handleKeys(event)
 
@@ -47,7 +45,7 @@ class Pillbox extends Component {
       // selected yet, you can also press any key listed in creationKeyCodes to
       // create a tag based on what you've typed so far.
       if (includes(creationKeyCodes, keyCode)) {
-        let { value } = event.target
+        const { value } = event.target
         if (!value) return
         handleAddition({ id: value, name: value })
         this.resetInput()
@@ -75,9 +73,9 @@ class Pillbox extends Component {
   render () {
     const { addLabel = this.props.t('Add'), editable, handleClick, handleDelete } = this.props
 
-    let { pills, placeholder = this.props.t('type here'), suggestions } = this.props
+    const { pills, placeholder = this.props.t('type here'), suggestions } = this.props
 
-    let { adding } = this.state
+    const { adding } = this.state
 
     const addOnClick = () => {
       this.setState({ adding: true })
@@ -88,69 +86,67 @@ class Pillbox extends Component {
       this.resetInput()
     }
 
-    return <div className={styles.root}>
-      <div className={styles.pillContainer}>
-        <TransitionGroup>
-          {pills.map(pill =>
-            <CSSTransition
-              key={pill.id}
-              classNames={{
-                enter: styles['enter'],
-                enterActive: styles['enter-active'],
-                exit: styles['exit'],
-                exitActive: styles['exit-active']
-              }}
-              timeout={{ enter: 400, exit: 300 }}
-            >
-              <Pill
+    return (
+      <div className={styles.root}>
+        <div className={styles.pillContainer}>
+          <TransitionGroup>
+            {pills.map(pill =>
+              <CSSTransition
                 key={pill.id}
-                {...pill}
-                onClick={handleClick}
-                editable={editable}
-                onRemove={handleDelete}
-              />
-            </CSSTransition>
-          )}
-        </TransitionGroup>
-        {editable && <span className={styles.addBtn} onClick={addOnClick}>
-          {addLabel}
-        </span>}
-      </div>
-      {adding && <div className={styles.addingRoot}>
-        <div className={styles.searchWrapper}>
-          <input
-            ref={this.input}
-            type='text'
-            className={styles.search}
-            maxLength='30'
-            placeholder={placeholder}
-            spellCheck={false}
-            onChange={event => this.handleChange(event.target.value)}
-            onKeyDown={this.handleKeys} />
-          <button className={styles.closeIcon} onClick={reset} type='reset' />
+                classNames={{
+                  enter: styles.enter,
+                  enterActive: styles.enterActive,
+                  exit: styles.exit,
+                  exitActive: styles.exitActive
+                }}
+                timeout={{ enter: 400, exit: 300 }}
+                nodeRef={this.pillTransitionRef}
+              >
+                <Pill
+                  key={pill.id}
+                  {...pill}
+                  onClick={handleClick}
+                  editable={editable}
+                  onRemove={handleDelete}
+                  ref={this.pillTransitionRef}
+                />
+              </CSSTransition>
+            )}
+          </TransitionGroup>
+          {editable && <span className={styles.addBtn} onClick={addOnClick}>{addLabel}</span>}
         </div>
-        {!isEmpty(suggestions) &&
-        <KeyControlledItemList
-          spaceChooses={false}
-          items={suggestions}
-          theme={{
-            items: styles.suggestions,
-            item: styles.suggestion,
-            'item-active': styles['suggestion-active']
-          }}
-          onChange={this.select}
-          ref={this.list} />
-        }
-      </div>}
-      {!isMobile.any && (
-        <Tooltip place='top'
-          type='dark'
-          id='pill-label'
-          effect='solid'
-          disable={!editable}
-          delayShow={500} />
-      )}
-    </div>
+        {adding && (
+          <div className={styles.addingRoot}>
+            <div className={styles.searchWrapper}>
+              <input
+                ref={this.input}
+                type='text'
+                className={styles.search}
+                maxLength='30'
+                placeholder={placeholder}
+                spellCheck={false}
+                onChange={event => this.handleChange(event.target.value)}
+                onKeyDown={this.handleKeys}
+              />
+              <button className={styles.closeIcon} onClick={reset} type='reset' />
+            </div>
+            {!isEmpty(suggestions) &&
+              <KeyControlledItemList
+                spaceChooses={false}
+                items={suggestions}
+                theme={{
+                  items: styles.suggestions,
+                  item: styles.suggestion,
+                  itemActive: styles.suggestionActive
+                }}
+                onChange={this.select}
+                ref={this.list}
+              />
+            }
+          </div>
+        )}
+      </div>
+    )
   }
 }
 export default withTranslation()(Pillbox)

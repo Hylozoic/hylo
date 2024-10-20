@@ -77,7 +77,6 @@ describe('PostEditor', () => {
         },
         createPost: jest.fn(() => new Promise(() => {})),
         fetchLocation: jest.fn().mockReturnValue('8778'),
-        setAnnouncement: jest.fn(),
         ensureLocationIdIfCoordinate: async () => {
           return '666'
         }
@@ -134,7 +133,6 @@ describe('PostEditor', () => {
       updatePost: jest.fn(() => new Promise(() => {})),
       showImagePreviews: true,
       ensureLocationIdIfCoordinate: jest.fn().mockResolvedValue('555'),
-      setAnnouncement: jest.fn(),
       setIsDirty: jest.fn()
     }
 
@@ -544,7 +542,6 @@ describe('PostEditor', () => {
         endTime: new Date(1551908483315)
       },
       updatePost: jest.fn(() => new Promise(() => {})),
-      setAnnouncement: jest.fn(),
       ensureLocationIdIfCoordinate: jest.fn().mockResolvedValue('555')
     }
     const editorMock = {

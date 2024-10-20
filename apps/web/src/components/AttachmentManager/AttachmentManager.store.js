@@ -1,5 +1,6 @@
 import update from 'immutability-helper'
 import { get, getOr, filter, reject, pick } from 'lodash/fp'
+import { createSelector } from 'reselect'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import orm from 'store/models'
 import { UPLOAD_ATTACHMENT } from 'store/constants'
@@ -65,17 +66,13 @@ export function moveAttachment (type, id, attachmentType, position1, position2) 
 
 // selectors
 
-export function getAttachments (state, {
-  type,
-  id = ID_FOR_NEW,
-  attachmentType
-}) {
-  const allAttachments = getOr([], [MODULE_NAME, makeAttachmentKey(type, id)], state)
-
-  if (attachmentType) return filter({ attachmentType }, allAttachments)
-
-  return allAttachments
-}
+export const getAttachments = createSelector(
+  (state, { type, id = ID_FOR_NEW }) => getOr([], [MODULE_NAME, makeAttachmentKey(type, id)], state),
+  (state, { attachmentType }) => attachmentType,
+  (attachments, attachmentType) => {
+    return attachmentType ? filter({ attachmentType }, attachments) : attachments
+  }
+)
 
 // Gets Attachments for any ReduxORM object matching
 // the provided type and id pair

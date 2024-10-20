@@ -50,20 +50,20 @@ const ModerationListItem = ({
   t('status-cleared')
 
   return (
-    <div className='moderation-action-card'>
-      <div className='card-header'>
-        <span className='userName' style={{ marginRight: '8px' }}>{t('Reported by')}:</span>
+    <div className={classes.moderationActionCard}>
+      <div className={classes.cardHeader}>
+        <span className={classes.userName} style={{ marginRight: '8px' }}>{t('Reported by')}:</span>
         {anonymous && !canModerate
           ? (<span>{t('Anonymous')}</span>)
           : (
-            <div className='reporter-info'>
-              <Avatar avatarUrl={reporter.avatarUrl} url={reporterUrl} className='avatar' />
-              <Link to={reporterUrl} className='userName'>{reporter.name}</Link>
+            <div className={classes.reporterInfo}>
+              <Avatar avatarUrl={reporter.avatarUrl} url={reporterUrl} className={classes.avatar} />
+              <Link to={reporterUrl} className={classes.userName}>{reporter.name}</Link>
             </div>)}
       </div>
 
-      <div className='card-body'>
-        <span className={status}>{t('status-' + status)}</span>
+      <div className={classes.cardBody}>
+        <span className={classes[status]}>{t('status-' + status)}</span>
         <h3>{t('Complaint')}:</h3>
         <p>{text}</p>
         <h3>{t('Reported content')}:</h3>
@@ -74,24 +74,24 @@ const ModerationListItem = ({
           routeParams={routeParams}
           querystringParams={querystringParams}
         />
-        <div className='agreements'>
+        <div className={classes.agreements}>
           {agreements.length > 0 && (
             <>
               <h3>{t('Group Agreements broken')}:</h3>
               <MultiSelect items={agreements} />
-              <a href={groupAgreementsUrl} target='_blank' rel='noopener noreferrer' className='agreements-link'>{t('Link to group agreements')}</a>
+              <a href={groupAgreementsUrl} target='_blank' rel='noopener noreferrer' className={classes.agreementsLink}>{t('Link to group agreements')}</a>
             </>)}
           {platformAgreements.length > 0 && (
             <>
               <p>----</p>
               <h3>{t('Platform Agreements broken')}:</h3>
               <MultiSelect items={platformAgreements} />
-              <a href={agreementsURL} target='_blank' rel='noopener noreferrer' className='agreements-link'>{t('Link to platform agreements')}</a>
+              <a href={agreementsURL} target='_blank' rel='noopener noreferrer' className={classes.agreementsLink}>{t('Link to platform agreements')}</a>
             </>)}
         </div>
       </div>
 
-      <div className='card-footer'>
+      <div className={classes.cardFooter}>
         {(canModerate || currentUserIsReporter) && status !== 'cleared' && (
           <Button
             onClick={handleClearModerationAction}

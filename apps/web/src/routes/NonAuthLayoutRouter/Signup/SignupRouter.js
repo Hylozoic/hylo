@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
-import { Route, useLocation, useNavigate } from 'react-router-dom'
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import getAuthState, { AuthState } from 'store/selectors/getAuthState'
 import Signup from './Signup'
 import VerifyEmail from './VerifyEmail'
 import FinishRegistration from './FinishRegistration'
-import classes from './Signup.module.scss'
 import Loading from 'components/Loading'
 
 export default function SignupRouter (props) {
@@ -57,15 +56,15 @@ export default function SignupRouter (props) {
   return (
     <Routes>
       <Route
-        path='/signup'
+        path=''
         element={<Signup {...props} />}
       />
       <Route
-        path='/signup/verify-email'
+        path='verify-email'
         element={<VerifyEmail {...props} />}
       />
       <Route
-        path='/signup/finish'
+        path='finish'
         element={<FinishRegistration {...props} />}
       />
     </Routes>

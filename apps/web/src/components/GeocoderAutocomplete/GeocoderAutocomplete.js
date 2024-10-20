@@ -50,7 +50,7 @@ const GeocoderAutocomplete = ({
     if (defaultInputValue !== state.inputValue) {
       setState(prevState => ({ ...prevState, inputValue: defaultInputValue }))
     }
-  }, [defaultInputValue, state.inputValue])
+  }, [defaultInputValue])
 
   const search = (
     endpoint,
@@ -227,7 +227,7 @@ const GeocoderAutocomplete = ({
       placeholder={inputPlaceholder}
       onBlur={handleBlur}
       type='text'
-      value={state.inputValue || undefined}
+      value={state.inputValue}
       onChange={onInput}
     />
   )

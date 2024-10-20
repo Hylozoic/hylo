@@ -1,9 +1,8 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { Route, Routes, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CSSTransition } from 'react-transition-group'
-import cx from 'classnames'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import CreateModalChooser from './CreateModalChooser'
 import CreateGroup from 'components/CreateGroup'
@@ -14,10 +13,11 @@ import classes from './CreateModal.module.scss'
 const CreateModal = (props) => {
   const location = useLocation()
   const navigate = useNavigate()
-  const previousLocation = useSelector(getPreviousLocation)
+  const previousLocation = useSelector(getPreviousLocation) || { pathname: '/' }
   const [returnToLocation] = useState(previousLocation)
   const [isDirty, setIsDirty] = useState()
   const { t } = useTranslation()
+  const modalRef = useRef(null)
 
   const querystringParams = new URLSearchParams(location.search)
   const mapLocation = (querystringParams.has('lat') && querystringParams.has('lng'))
@@ -41,19 +41,20 @@ const CreateModal = (props) => {
 
   return (
     <CSSTransition
-      classNames="createModal"
+      classNames='createModal'
       appear
       in
       timeout={{ appear: 400, enter: 400, exit: 300 }}
+      nodeRef={modalRef}
     >
-      <div className={classes.createModal}>
+      <div className={classes.createModal} ref={modalRef}>
         <div className={classes.createModalWrapper}>
           <span className={classes.closeButton} onClick={confirmClose}>
             <Icon name='Ex' />
           </span>
           <Routes>
             <Route
-              path={'edit'}
+              path='edit'
               element={
                 <PostEditor
                   {...props}
@@ -65,7 +66,7 @@ const CreateModal = (props) => {
               }
             />
             <Route
-              path={'create/post'}
+              path='post'
               element={
                 <PostEditor
                   {...props}
@@ -76,8 +77,8 @@ const CreateModal = (props) => {
                 />
               }
             />
-            <Route path='create/group' element={<CreateGroup {...props} />} />
-            <Route element={<CreateModalChooser {...props} />} />
+            <Route path='group' element={<CreateGroup {...props} />} />
+            <Route path='*' element={<CreateModalChooser {...props} />} />
           </Routes>
         </div>
         <div className={classes.createModalBg} onClick={confirmClose} />

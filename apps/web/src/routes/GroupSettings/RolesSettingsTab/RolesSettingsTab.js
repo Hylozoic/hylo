@@ -537,7 +537,7 @@ export function RoleList ({ slug, fetchStewardSuggestions, addRoleToMember, sugg
       <div>
         <h4>Responsibilities</h4>
         {isCommonRole && (
-          <div className={styles.help-text}>{t('Common roles cannot have their responsibilities edited')}</div>
+          <div className={styles.helpText}>{t('Common roles cannot have their responsibilities edited')}</div>
         )}
         {responsibilitiesForRole.map(r =>
           <RemovableListItem

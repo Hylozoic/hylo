@@ -41,7 +41,7 @@ export default [
     plugins: {
       react,
       reactHooksPlugin
-      //'react-hooks': fixupPluginRules(reactHooksPlugin)
+      // 'react-hooks': fixupPluginRules(reactHooksPlugin)
       // jest,
       // 'testing-library': testingLibrary,
       // import: importPlugin,
@@ -82,11 +82,11 @@ export default [
       'prettier/prettier': 'off',
       'react/prop-types': 'off',
       'react/no-children-prop': 'warn',
-      'react/jsx-handler-names': 'warn',
+      'react/jsx-handler-names': 'off',
       'react/jsx-fragments': 'warn',
       'react/jsx-wrap-multilines': 'warn',
       'eslint/indent': 'off',
-      'react-hooks/exhaustive-deps': 'warn'
+      'react-hooks/exhaustive-deps': 'off'
       // 'import/export': 'off',
     }
   },

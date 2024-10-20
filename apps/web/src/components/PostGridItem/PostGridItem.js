@@ -1,22 +1,23 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import cx from 'classnames'
 import Tooltip from 'components/Tooltip'
 import { useTranslation } from 'react-i18next'
-import { personUrl } from 'util/navigation'
+import { useNavigate } from 'react-router-dom'
+import { personUrl, postUrl } from 'util/navigation'
 import Avatar from 'components/Avatar'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import classes from './PostGridItem.module.scss'
 
-export default function PostGridItem (props) {
-  const {
-    childPost,
-    currentGroupId,
-    routeParams,
-    post,
-    showDetails,
-    expanded
-  } = props
+export default function PostGridItem ({
+  childPost,
+  currentGroupId,
+  routeParams,
+  post,
+  expanded,
+  locationParams,
+  querystringParams
+}) {
   const {
     title,
     details,
@@ -25,19 +26,22 @@ export default function PostGridItem (props) {
     attachments
   } = post
 
+  const navigate = useNavigate()
+
   const numAttachments = attachments.length || 0
   const firstAttachment = attachments[0] || 0
   const attachmentType = firstAttachment.type || 0
   const attachmentUrl = firstAttachment.url || 0
-  if (!creator) { // PostCard guards against this, so it must be important? ;P
-    return null
-  }
   const { t } = useTranslation()
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
   const creatorUrl = personUrl(creator.id, routeParams.slug)
   const unread = false
   // will reintegrate once I have attachment vars
   /* const startTimeMoment = Moment(post.startTime) */
+
+  const showDetails = useCallback(() => {
+    navigate(postUrl(post.id, routeParams, { ...locationParams, ...querystringParams }))
+  }, [post.id, routeParams, locationParams, querystringParams])
 
   return (
     <div className={cx(classes.postGridItemContainer, { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType])} onClick={showDetails}>
@@ -61,16 +65,16 @@ export default function PostGridItem (props) {
         {attachmentType === 'image'
           ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cx(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} />
           : attachmentType === 'file'
-            ? <div className={classes.fileAttachment}>
-              {numAttachments > 1
-                ? <div className={classes.attachmentNumber}>{numAttachments} attachments</div>
-                : ' '
-              }
-              <Icon name='Document' className={classes.fileIcon} />
-              <div className={classes.attachmentName}>{attachmentUrl.substring(firstAttachment.url.lastIndexOf('/') + 1)}</div>
-            </div>
-            : ' '
-        }
+            ? (
+              <div className={classes.fileAttachment}>
+                {numAttachments > 1
+                  ? <div className={classes.attachmentNumber}>{numAttachments} attachments</div>
+                  : ' '}
+                <Icon name='Document' className={classes.fileIcon} />
+                <div className={classes.attachmentName}>{attachmentUrl.substring(firstAttachment.url.lastIndexOf('/') + 1)}</div>
+              </div>
+              )
+            : ' '}
         {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
 
         <HyloHTML className={classes.details} html={details} />
