@@ -44,7 +44,7 @@ import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import getMe from 'store/selectors/getMe'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import fetchPerson from 'store/actions/fetchPerson'
 import {
   FETCH_RECENT_ACTIVITY,
@@ -53,7 +53,6 @@ import {
   FETCH_MEMBER_VOTES, // TODO REACTIONS: switch this to reactions
   getPresentedPerson
 } from './MemberProfile.store'
-import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
 const GROUPS_DIV_HEIGHT = 200
 
@@ -77,10 +76,10 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   ], state))
   const personLoading = useSelector(state => isPendingFor(fetchPerson, state))
   const groupSlug = routeParams.groupSlug
-  const group = groupSlug ? useSelector(state => getGroupForSlug(state, groupSlug)) : null
+  const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const roles = useSelector(state => getRolesForGroup(state, { person, groupId: group?.id }))
   const currentUser = useSelector(getMe)
-  const previousLocation = useSelector(getPreviousLocation)
+  const previousLocation = useSelector(getPreviousLocation) || { pathname: '/' }
 
   const fetchPersonAction = (id) => dispatch(fetchPerson(id))
   const blockUserAction = (id) => dispatch(blockUser(id))

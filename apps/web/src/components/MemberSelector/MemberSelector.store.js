@@ -71,7 +71,7 @@ export const getMemberMatches = createSelector(
       reject(p => memberIds.includes(p.id)),
       reject(p => currentUser ? currentUser.id === p.id : false),
       filter(autocompleteFilter),
-      map(pick([ 'id', 'name', 'avatarUrl' ])),
+      map(pick(['id', 'name', 'avatarUrl'])),
       orderBy('name', 'asc')
     ]
 
@@ -98,7 +98,7 @@ export default function reducer (state = defaultState, action) {
     case ADD_MEMBER:
       return {
         ...state,
-        members: [ ...state.members, payload ]
+        members: [...state.members, payload]
       }
 
     case REMOVE_MEMBER:

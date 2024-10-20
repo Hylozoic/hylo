@@ -51,9 +51,11 @@ export default function PostDetails ({
             <HyloHTML className={classes.details} html={details} />
           </ClickCatcher>
         )}
-        {editedTimestamp && (<div className={classes.timestamp} data-for={`editedTip-${post.id}`} data-tip={exactEditedTimestamp}>
-          {editedTimestamp}
-        </div>)}
+        {editedTimestamp && (
+          <div className={classes.timestamp} data-for={`editedTip-${post.id}`} data-tip={exactEditedTimestamp}>
+            {editedTimestamp}
+          </div>
+        )}
         {linkPreview && !linkPreviewFeatured && (
           <LinkPreview {...pick(['title', 'description', 'url', 'imageUrl'], linkPreview)} />
         )}

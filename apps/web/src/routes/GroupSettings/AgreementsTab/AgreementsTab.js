@@ -6,7 +6,6 @@ import React, { forwardRef, useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import PropTypes from 'prop-types'
-import cx from 'classnames'
 import Button from 'components/Button'
 import Icon, { IconWithRef } from 'components/Icon'
 import Loading from 'components/Loading'
@@ -263,7 +262,7 @@ const AgreementRow = forwardRef(({ children, ...props }, ref) => {
         placeholder={t('Describe the agreement and what the group expects from its members')}
         type='textarea'
         value={description}
-        style={{ minHeight: '60px' }}
+        minRows={3}
       />
     </div>
   )

@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import classes from './datePicker.module.scss'
 import Datetime from 'react-datetime'
 import React from 'react'
@@ -12,10 +13,9 @@ function DatePicker (props) {
   return (
     <Datetime
       {...props}
-      className={classes.datePicker}
+      className={cx(classes.datePicker, props.className)}
       isValidDate={isValidDate}
       inputProps={{ placeholder }}
-      className={props.className}
     />
   )
 }

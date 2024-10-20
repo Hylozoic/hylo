@@ -1,20 +1,26 @@
-import React, { useState, useEffect } from 'react'
+import React, { forwardRef, useState, useRef } from 'react'
 import PropTypes from 'prop-types'
-import MapGL, { NavigationControl } from 'react-map-gl'
-import DeckGL from '@deck.gl/react'
+import MapGL, { NavigationControl, useControl } from 'react-map-gl'
+import { MapboxOverlay } from '@deck.gl/mapbox'
 import { mapbox } from 'config/index'
 import NativeTerritoriesLayer from './NativeTerritoriesLayers'
 
-function Map ({
+function DeckGLOverlay (props) {
+  const overlay = useControl(() => new MapboxOverlay(props))
+  overlay.setProps(props)
+  return null
+}
+
+const Map = forwardRef(({
   afterViewportUpdate = () => {},
   baseLayerStyle = 'light-v11',
   children = {},
   hyloLayers,
   isAddingItemToMap,
   layers = [],
-  mapRef,
   onMouseDown,
   onMouseUp,
+  onLoad,
   otherLayers,
   setViewport,
   viewport = {
@@ -24,30 +30,23 @@ function Map ({
     bearing: 0,
     pitch: 0
   }
-}) {
+}, forwardedRef) => {
   const [isOverHyloFeature, setIsOverHyloFeature] = useState(false)
 
-  const ref = mapRef || useRef(null)
-
-  // XXX: Have to do this because onViewPortChange gets called before ref gets set
-  //   and we need the ref to get the bounds in the parent component
-  useEffect(() => {
-    console.log('map.js viewport useEffect', viewport)
-    afterViewportUpdate(viewport)
-  }, [viewport])
+  const ref = useRef(null)
+  const mapRef = forwardedRef || ref
 
   const [hoveredLayerFeatures, setHoveredLayerFeatures] = useState([])
   const [cursorLocation, setCursorLocation] = useState({ x: 0, y: 0 })
 
   const onMouseEnter = event => {
     const { features } = event
-    console.log('mouse enter', event)
     setHoveredLayerFeatures(features)
   }
 
   const onMouseMove = event => {
     const {
-      srcEvent: { offsetX, offsetY }
+      originalEvent: { offsetX, offsetY }
     } = event
 
     if (event.target.id === 'deckgl-overlay') {
@@ -56,54 +55,25 @@ function Map ({
   }
 
   return (
-
     <MapGL
       {...viewport}
-      style={{ width: '100%', height: '100%' }}
       attributionControl={false}
       interactiveLayerIds={otherLayers}
       mapboxAccessToken={mapbox.token}
       mapOptions={{ logoPosition: 'bottom-right' }}
       mapStyle={`mapbox://styles/mapbox/${baseLayerStyle}`}
-      // onMouseEnter={onMouseEnter}
-      // onMouseDown={onMouseDown}
-      // onTouchStart={onMouseDown}
-      // onMouseMove={onMouseMove}
-      // onMouseLeave={() => { setHoveredLayerFeatures([]) }}
-      // onMouseOut={() => { setHoveredLayerFeatures([]) }}
-      // onMouseUp={onMouseUp}
-      // onTouchEnd={onMouseUp}
-      onMove={evt => { console.log('onMove', evt); setViewport(evt.viewState) }}
-      onResize={dimensions => {
-        // XXX: hack needed because onViewportChange doesn't fire when map width changes
-        //      https://github.com/visgl/react-map-gl/issues/1157
-        if (ref.current) {
-          console.log('onResize', dimensions)
-          const center = ref.current.getCenter()
-          const bounds = ref.current.getBounds()
-          setViewport({
-            bearing: ref.current.getBearing(),
-            height: dimensions.height,
-            latitude: center.lat,
-            longitude: center.lng,
-            pitch: ref.current.getPitch(),
-            width: dimensions.width,
-            zoom: ref.current.getZoom(),
-            mapBoundingBox: [bounds._sw.lng, bounds._sw.lat, bounds._ne.lng, bounds._ne.lat] // for use with maps that don't share their bounds in the site URL
-          })
-        }
-      }}
-      // onViewportChange={nextViewport => {
-      //   const bounds = ref.current.getBounds()
-      //   return onViewportUpdate(
-      //     {
-      //       ...nextViewport,
-      //       mapBoundingBox: [bounds._sw.lng, bounds._sw.lat, bounds._ne.lng, bounds._ne.lat] // for use with maps that don't share their bounds in the site URL
-      //     },
-      //     ref.current
-      //   )
-      // }}
-      ref={r => { ref.current = r && r.getMap(); return r }}
+      onLoad={(map) => { map.target.resize(); onLoad && onLoad(map) }}
+      onMouseEnter={onMouseEnter}
+      onMouseDown={onMouseDown}
+      onTouchStart={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseLeave={() => { setHoveredLayerFeatures([]) }}
+      onMouseOut={() => { setHoveredLayerFeatures([]) }}
+      onMouseUp={onMouseUp}
+      onTouchEnd={onMouseUp}
+      onMove={evt => { setViewport(evt.viewState) }}
+      onMoveEnd={afterViewportUpdate}
+      ref={r => { mapRef.current = r && r.getMap(); return r }}
       reuseMaps
     >
       <NavigationControl style={{ position: 'absolute', top: 50, right: 15 }} />
@@ -114,10 +84,10 @@ function Map ({
         visibility={otherLayers && otherLayers.includes('native_territories')}
       />
 
-  {/*}
-      <DeckGL
-        viewState={viewport}
+      <DeckGLOverlay
+        initialViewState={viewport}
         layers={hyloLayers}
+        interleaved
         onHover={({ object }) => {
           setIsOverHyloFeature(Boolean(object))
           // if hovering over DeckGL object then turn off hover state of MapGL
@@ -128,11 +98,11 @@ function Map ({
         getCursor={() => isOverHyloFeature ? 'pointer' : isAddingItemToMap ? 'url(/assets/create-post-pin.png) 12 31, pointer' : 'grab'}
       >
         {children}
-      </DeckGL> */}
+      </DeckGLOverlay>
 
     </MapGL>
   )
-}
+})
 
 Map.propTypes = {
   center: PropTypes.object,

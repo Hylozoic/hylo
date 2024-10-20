@@ -34,12 +34,14 @@ export default function PostBody (props) {
         </div>}
 
       <div className={cx(classes.body, { [classes.smallMargin]: !expanded, [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !post.clickthrough }, className)}>
-        {post.type !== 'chat' && <PostTitle
-          {...post}
-          highlightProp={highlightProps}
-          constrained={constrained}
-          onClick={onClick}
-        />}
+        {post.type !== 'chat' && (
+          <PostTitle
+            {...post}
+            highlightProp={highlightProps}
+            constrained={constrained}
+            onClick={onClick}
+          />
+        )}
 
         <PostDetails
           {...post}

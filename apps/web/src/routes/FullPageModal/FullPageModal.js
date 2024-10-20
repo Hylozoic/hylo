@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import React, { useState } from 'react'
-import { NavLink, Route } from 'react-router-dom'
+import { NavLink, Route, Routes } from 'react-router-dom'
 import isWebView from 'util/webView'
 import Icon from 'components/Icon'
 
@@ -29,14 +29,16 @@ export default function FullPageModal ({
   if (isWebView()) {
     return (
       <div className={styles.modalSettingsLayout}>
-        {multipleTabs && content.map(tab => (
-          <Route
-            path={tab.path}
-            element={tab.render ? tab.render() : tab.component}
-            key={tab.path}
-          />
-        ))}
-        {!multipleTabs && (content || children)}
+        <Routes>
+          {multipleTabs && content.map(tab => (
+            <Route
+              path={tab.path}
+              element={tab.render ? tab.render() : tab.component}
+              key={tab.path}
+            />
+          ))}
+          {!multipleTabs && (content || children)}
+        </Routes>
       </div>
     )
   } else {
@@ -50,8 +52,9 @@ export default function FullPageModal ({
                   to={tab.path}
                   end
                   replace
-                  className={({ isActive }) => cx("navLink", { [styles.active]: isActive })}
-                  key={tab.path}>
+                  className={({ isActive }) => cx(styles.navLink, { [styles.active]: isActive })}
+                  key={tab.path}
+                >
                   {tab.name}
                 </NavLink>
               ))}
@@ -60,12 +63,14 @@ export default function FullPageModal ({
           </div>
           {multipleTabs && (
             <div className={cx(styles.center, styles.narrow)}>
-              {content.map(tab =>
-                <Route
-                  path={tab.path}
-                  element={tab.render ? tab.render() : tab.component}
-                  key={tab.path}
-                />)}
+              <Routes>
+                {content.map(tab =>
+                  <Route
+                    path={tab.path}
+                    element={tab.render ? tab.render() : tab.component}
+                    key={tab.path}
+                  />)}
+              </Routes>
             </div>
           )}
           {!multipleTabs && <div className={cx(styles.center, { [styles.narrow]: narrow })}>{content || children}</div>}

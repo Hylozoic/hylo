@@ -1,17 +1,21 @@
 import cx from 'classnames'
-import React, { useState } from 'react'
+import isMobile from 'ismobilejs'
+import { uniqueId } from 'lodash'
+import React, { forwardRef, useState } from 'react'
+import { Tooltip } from 'react-tooltip'
 import Icon from 'components/Icon'
 import classes from './Pill.module.scss'
 
-export default function Pill ({
+const Pill = forwardRef(({
   id,
   label,
   onRemove,
   className,
   editable,
   darkText = false,
-  onClick
-}) {
+  onClick,
+  tooltipContent = 'Click to Search'
+}, ref) => {
   const [removing, setRemoving] = useState(false)
   const deletePill = () => {
     if (editable && onRemove) {
@@ -34,14 +38,17 @@ export default function Pill ({
     darkText ? classes.darkText : classes.grayText
   )
 
+  const tooltipId = uniqueId(`pill-label-${id}-`)
+
   return (
     <div
       className={cx(pillStyles, className)}
       onMouseLeave={mouseOut}
+      ref={ref}
     >
       <span
-        data-tooltip-content='Click to Search'
-        data-tooltip-id='pill-label'
+        data-tooltip-html={tooltipContent}
+        data-tooltip-id={tooltipId}
         className={classes.displayLabel}
         onClick={providedOnClick}
       >
@@ -51,10 +58,24 @@ export default function Pill ({
         <Icon
           className={classes.removeLabel}
           tooltipContent='Double click to delete'
-          tooltipId='pill-label'
+          tooltipId={tooltipId}
           name='Ex'
           onClick={deletePill}
         />}
+      {!isMobile.any && (
+        <Tooltip
+          place='top'
+          type='dark'
+          id={tooltipId}
+          effect='solid'
+          disable={!editable}
+          delayShow={200}
+          multiline
+          style={{ zIndex: 1000 }}
+        />
+      )}
     </div>
   )
-}
+})
+
+export default Pill

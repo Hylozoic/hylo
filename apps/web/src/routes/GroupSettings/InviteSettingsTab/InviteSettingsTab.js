@@ -10,7 +10,7 @@ import { isEmpty } from 'lodash'
 import { TransitionGroup, CSSTransition } from 'react-transition-group'
 import Icon from 'components/Icon'
 import isMobile from 'ismobilejs'
-import { Tooltip} from 'react-tooltip'
+import { Tooltip } from 'react-tooltip'
 import cx from 'classnames'
 
 import classes from './InviteSettingsTab.module.scss'
@@ -76,7 +76,7 @@ I'm inviting you to join {{name}} on Hylo.
         }
         const numGood = invitations.length - badEmails.length
         if (numGood > 0) {
-          successMessage = t(`Sent {{numGood}} {{email}}`, { numGood, email: numGood === 1 ? 'email' : 'emails' })
+          successMessage = t('Sent {{numGood}} {{email}}', { numGood, email: numGood === 1 ? 'email' : 'emails' })
           trackAnalyticsEvent('Group Invitations Sent', { numGood })
         }
         this.setState({
@@ -101,6 +101,7 @@ I'm inviting you to join {{name}} on Hylo.
       t
     } = this.props
     const { copied, reset, emails, errorMessage, successMessage } = this.state
+    const pendingInvitesTransitionRef = React.createRef(null)
 
     const onReset = () => {
       if (window.confirm(t("Are you sure you want to create a new join link? The current link won't work anymore if you do."))) {
@@ -240,8 +241,9 @@ I'm inviting you to join {{name}} on Hylo.
                     }}
                     timeout={{ enter: 400, exit: 500 }}
                     key={index}
+                    nodeRef={pendingInvitesTransitionRef}
                   >
-                    <div className={classes.row} key={invite.id}>
+                    <div className={classes.row} key={invite.id} ref={pendingInvitesTransitionRef}>
                       <div style={{ flex: 1 }}>
                         <span>{invite.email}</span>
                         <span className={classes.inviteDate}>{TextHelpers.humanDate(invite.lastSentAt)}</span>

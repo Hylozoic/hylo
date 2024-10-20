@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import isWebView from 'util/webView'
 import { POST_TYPES } from 'store/models/Post'
 import Icon from 'components/Icon'
@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next'
 
 const postTypes = Object.keys(POST_TYPES).filter(t => t !== 'chat')
 
-export default function CreateModalChooser ({ location }) {
+export default function CreateModalChooser () {
+  const location = useLocation()
   const querystringParams = new URLSearchParams(location.search)
   const hasLocation = querystringParams.has('lat') && querystringParams.has('lng')
   const { t } = useTranslation()

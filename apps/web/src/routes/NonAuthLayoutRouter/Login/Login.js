@@ -17,9 +17,8 @@ export default function Login (props) {
   const [email, setEmail] = useState()
   const [password, setPassword] = useState()
   const location = useLocation()
-  const [error, setError] = useState(getQuerystringParam('error', { location }))
+  const [error, setError] = useState(getQuerystringParam('error', location))
   const { t } = useTranslation()
-  const params = useParams()
   const DEFAULT_LOGIN_ERROR = t('Sorry, that Email and Password combination didn\'t work.')
 
   const handleEmailChange = event => {

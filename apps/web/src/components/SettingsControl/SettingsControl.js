@@ -19,6 +19,7 @@ export default function SettingsControl (props) {
             minRows={1}
             maxRows={100}
             onChange={onChange}
+            readOnly={!onChange}
             className={classes.controlInput}
             value={value}
             {...otherProps}
@@ -44,6 +45,7 @@ export default function SettingsControl (props) {
             className={classes.controlInput}
             type='password'
             value={value}
+            readOnly={!onChange}
             {...otherProps}
           />
         )
@@ -52,6 +54,7 @@ export default function SettingsControl (props) {
         control = (
           <LocationInput
             onChange={onChange}
+            readOnly={!onChange}
             saveLocationToDB
             {...otherProps}
           />
@@ -61,6 +64,7 @@ export default function SettingsControl (props) {
         control = (
           <input
             onChange={onChange}
+            readOnly={!onChange}
             className={classes.controlInput}
             type='text'
             value={value}
