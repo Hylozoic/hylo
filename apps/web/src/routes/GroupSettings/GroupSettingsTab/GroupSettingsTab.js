@@ -8,8 +8,8 @@ import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
-// import EditableMap from 'components/Map/EditableMap/EditableMap'
-// import EditableMapModal from 'components/Map/EditableMap/EditableMapModal'
+import EditableMap from 'components/Map/EditableMap/EditableMap'
+import EditableMapModal from 'components/Map/EditableMap/EditableMapModal'
 import SettingsControl from 'components/SettingsControl'
 import SkillsSection from 'components/SkillsSection'
 import SwitchStyled from 'components/SwitchStyled'
@@ -81,8 +81,8 @@ class GroupSettingsTab extends Component {
     const { edits, changed } = this.state
 
     if (key === 'location') {
-      edits['location'] = event.target.value.fullText
-      edits['locationId'] = event.target.value.id
+      edits.location = event.target.value.fullText
+      edits.locationId = event.target.value.id
     } else {
       set(edits, key, event.target.value)
     }
@@ -100,7 +100,7 @@ class GroupSettingsTab extends Component {
     const { edits } = this.state
     this.setState({
       changed: true,
-      edits: { ...edits, geoShape: polygon ? JSON.stringify(polygon.geometry) : null }
+      edits: { ...edits, geoShape: polygon?.features?.length > 0 ? JSON.stringify(polygon.features[polygon.features.length - 1].geometry) : null }
     })
   }
 
@@ -244,7 +244,7 @@ class GroupSettingsTab extends Component {
 
         <br />
 
-        {/* <SettingsControl
+        <SettingsControl
           label={t('What area does your group cover?')}
           onChange={this.updateSetting('geoShape')}
           placeholder={t('For place based groups, draw the area where your group is active (or paste in GeoJSON here)')}
@@ -252,23 +252,27 @@ class GroupSettingsTab extends Component {
           value={geoShape || ''}
         />
         <div className={styles.editableMapContainer}>
-          { this.state.isModal
-            ? <EditableMapModal group={group} toggleModal={this.toggleModal}>
+          {this.state.isModal
+            ? (
+              <EditableMapModal group={group} toggleModal={this.toggleModal}>
+                <EditableMap
+                  locationObject={editableMapLocation}
+                  polygon={geoShape}
+                  savePolygon={this.savePolygon}
+                  toggleModal={this.toggleModal}
+                />
+              </EditableMapModal>
+              )
+            : (
               <EditableMap
                 locationObject={editableMapLocation}
                 polygon={geoShape}
                 savePolygon={this.savePolygon}
                 toggleModal={this.toggleModal}
               />
-            </EditableMapModal>
-            : <EditableMap
-              locationObject={editableMapLocation}
-              polygon={geoShape}
-              savePolygon={this.savePolygon}
-              toggleModal={this.toggleModal}
-            /> }
+              )}
         </div>
-        <br /> */}
+        <br />
 
         <div className={general.saveChanges}>
           <span className={this.saveButtonContent().style}>{this.saveButtonContent().text}</span>

@@ -1,112 +1,123 @@
+import cx from 'classnames'
+import DeckGL from '@deck.gl/react'
+import {
+  EditableGeoJsonLayer,
+  ViewMode,
+  DrawPolygonMode
+} from '@deck.gl-community/editable-layers'
 import { isEqual } from 'lodash/fp'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import MapGL from 'react-map-gl'
-import { Editor, DrawPolygonMode, EditingMode } from 'react-map-gl-draw'
 import centroid from '@turf/centroid'
 import Icon from 'components/Icon'
 import { mapbox } from 'config/index'
-import cx from 'classnames'
 
-import { getEditHandleStyle, getFeatureStyle } from './EditableMapStyles'
+import 'mapbox-gl/dist/mapbox-gl.css'
+
 import classes from './EditableMap.module.scss'
 
 export default function EditableMap (props) {
   const { locationObject, polygon, savePolygon, toggleModal } = props
-  const [isPolygonSelected, setIsPolygonSelected] = useState(false)
 
   const fallbackCoords = {
     latitude: 35.442845,
     longitude: 7.916598,
     zoom: 12
   }
-  const emptyGeoJsonObject = [{
-    geometry: {},
-    properties: {},
-    type: 'Feature'
-  }]
+  const emptyFeatures = {
+    type: 'FeatureCollection',
+    features: []
+  }
   const parsePolygon = (polygonToParse) => {
     try {
       return JSON.parse(polygonToParse)
     } catch (e) {
-      return emptyGeoJsonObject
+      return emptyFeatures
     }
   }
   const getFormattedPolygon = (polygonToFormat) => {
     const parsedPolygon = polygonToFormat && typeof polygonToFormat === 'string' ? parsePolygon(polygonToFormat) : polygonToFormat || null
-    if (parsedPolygon?.type === 'Feature') {
+    if (parsedPolygon?.type === 'FeatureCollection') {
       return parsedPolygon
+    } else if (parsedPolygon?.type === 'Feature') {
+      return {
+        type: 'FeatureCollection',
+        features: [parsedPolygon]
+      }
     } else if (parsedPolygon?.type === 'Polygon') {
-      return [{
-        geometry: parsedPolygon,
-        properties: {},
-        type: 'Feature'
-      }]
+      return {
+        type: 'FeatureCollection',
+        features: [{
+          geometry: parsedPolygon,
+          properties: {},
+          type: 'Feature'
+        }]
+      }
     } else {
-      return emptyGeoJsonObject
+      return emptyFeatures
     }
   }
 
   const [viewport, setViewport] = useState(fallbackCoords)
-  const [mode, setMode] = useState(new EditingMode())
-  const [selectedFeatureIndex, setSelectedFeatureIndex] = useState(null)
-  const [isModeDrawing, setIsModeDrawing] = useState(false)
-  const [displayPolygon, setDisplayPolygon] = useState(getFormattedPolygon(polygon))
+  const [mode, setMode] = useState(() => ViewMode)
+  const [selectedFeatureIndexes, setSelectedFeatureIndexes] = useState([])
+  const [features, setFeatures] = React.useState(getFormattedPolygon(polygon))
 
   const centerAt = locationObject?.center
   const editorRef = useRef(null)
 
   useEffect(() => {
-    setDisplayPolygon(getFormattedPolygon(polygon))
+    setFeatures(getFormattedPolygon(polygon))
   }, [polygon])
 
   useEffect(() => {
-    const polygonCenter = !isEqual(displayPolygon, emptyGeoJsonObject) ? centroid(displayPolygon[0]).geometry.coordinates : null
-    const viewportLocation = polygonCenter?.length > 0 ? {
-      longitude: polygonCenter[0],
-      latitude: polygonCenter[1],
-      zoom: 12
-    } : centerAt ? {
-      longitude: parseFloat(centerAt.lng),
-      latitude: parseFloat(centerAt.lat),
-      zoom: 12
-    } : fallbackCoords
+    const polygonCenter = !isEqual(features, emptyFeatures) ? centroid(features.features[0]).geometry.coordinates : null
+    const viewportLocation = polygonCenter?.length > 0
+      ? {
+          longitude: polygonCenter[0],
+          latitude: polygonCenter[1],
+          zoom: 12
+        }
+      : centerAt
+        ? {
+            longitude: parseFloat(centerAt.lng),
+            latitude: parseFloat(centerAt.lat),
+            zoom: 12
+          }
+        : fallbackCoords
     setViewport(viewportLocation)
-  }, [displayPolygon])
-
-  useEffect(() => {
-    editorRef.current && console.log({ editorFeatures: editorRef.current.getFeatures() })
-  }, [isModeDrawing, mode])
+  }, [features])
 
   const toggleMode = () => {
-    setMode(!isModeDrawing ? new DrawPolygonMode() : new EditingMode())
-    setIsModeDrawing(!isModeDrawing)
+    setMode(mode === ViewMode ? () => DrawPolygonMode : () => ViewMode)
   }
 
-  const onSelect = useCallback(options => {
-    setIsPolygonSelected(!!options.selectedFeature)
-    setSelectedFeatureIndex(options?.selectedFeatureIndex || 0)
-  }, [])
+  const onClick = useCallback((e) => {
+    if (mode === ViewMode) {
+      if (e.index !== undefined) {
+        setSelectedFeatureIndexes([e.index])
+      } else {
+        setSelectedFeatureIndexes([])
+      }
+    }
+  }, [mode])
 
   const onDelete = useCallback(() => {
-    setIsPolygonSelected(false)
-    if (selectedFeatureIndex !== null && selectedFeatureIndex >= 0) {
-      editorRef.current.deleteFeatures(selectedFeatureIndex)
+    if (selectedFeatureIndexes.length > 0) {
       savePolygon(null)
-      setDisplayPolygon(emptyGeoJsonObject)
+      setFeatures(emptyFeatures)
     } else {
-      setMode(new EditingMode())
-      setIsModeDrawing(false)
+      setMode(() => ViewMode)
     }
-  }, [selectedFeatureIndex])
+  }, [selectedFeatureIndexes])
 
   const onUpdate = useCallback((payload) => {
-    const { editType, data } = payload
+    const { editType, updatedData } = payload
     if (editType === 'addFeature') {
-      const polygonToSave = getFormattedPolygon(data[data.length - 1])
-      setMode(new EditingMode())
-      setIsModeDrawing(false)
+      const polygonToSave = getFormattedPolygon(updatedData.features[updatedData.features.length - 1])
+      setMode(() => ViewMode)
       savePolygon(polygonToSave)
-      setDisplayPolygon([polygonToSave])
+      setFeatures(polygonToSave)
     }
   }, [])
 
@@ -122,19 +133,21 @@ export default function EditableMap (props) {
 
   const drawTools = (
     <div className='mapboxgl-ctrl-top-left'>
-      <div className={cx(classes.mapboxglCtrlGroup, classes.mapboxglCtrl, classes.mapControl)}>
+      <div className={cx('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
         <button
-          className={cx(classes.mapboxGlGrawPolygon, { active: isModeDrawing })}
+          className={cx(classes.mapboxGlGrawPolygon, { active: mode === DrawPolygonMode })}
           title='New Polygon'
           onClick={toggleMode}
-        ><Icon name='Drawing' /></button>
+        >
+          <Icon name='Drawing' />
+        </button>
       </div>
-      <div className={cx(classes.mapboxglCtrlGroup, classes.mapboxglCtrl, classes.mapControl)}>
+      <div className={cx('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
         <button
           className={classes.mapboxGlDrawCircleEx}
           title='Delete selected polygon, click polygon to select'
           onClick={onDelete}
-          disabled={!isPolygonSelected}
+          disabled={selectedFeatureIndexes.length === 0}
         >
           <Icon name='CircleEx' />
         </button>
@@ -152,7 +165,7 @@ export default function EditableMap (props) {
 
   const zoomTools = (
     <div className='mapboxgl-ctrl-top-right'>
-      <div className={cx(classes.mapboxglCtrlGroup, classes.mapboxglCtrl, classes.mapControl)}>
+      <div className={cx('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
         <button
           className={classes.mapboxGlDrawPlus}
           title='Zoom In'
@@ -173,7 +186,7 @@ export default function EditableMap (props) {
 
   const expandTools = (
     <div className='mapboxgl-ctrl-bottom-left'>
-      <div className={cx(classes.mapboxglCtrlGroup, classes.mapboxglCtrl, classes.mapControl)}>
+      <div className={cx('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
         <button
           className={classes.mapboxGlExpand}
           title='Expand'
@@ -185,32 +198,35 @@ export default function EditableMap (props) {
     </div>
   )
 
+  const layer = new EditableGeoJsonLayer({
+    data: features,
+    mode,
+    selectedFeatureIndexes,
+    onEdit: onUpdate
+  })
+
   return (
-    <MapGL
-      {...viewport}
-      attributionControl={false}
-      height='100%'
-      mapboxApiAccessToken={mapbox.token}
-      mapOptions={{ logoPosition: 'bottom-right' }}
-      mapStyle='mapbox://styles/mapbox/satellite-v9'
-      onViewportChange={setViewport}
-      width='100%'
-    >
-      <span className={cx(classes.editableMap, { [classes.drawingMode]: isModeDrawing })}>
-        <Editor
-          clickRadius={12}
-          editHandleShape={'circle'}
-          editHandleStyle={getEditHandleStyle}
-          featureStyle={getFeatureStyle}
-          features={displayPolygon}
-          mode={mode}
-          onSelect={onSelect}
-          onUpdate={onUpdate}
-          ref={editorRef}
-          style={{ width: '100%', height: '100%' }}
+    <>
+      <DeckGL
+        initialViewState={viewport}
+        controller={{
+          doubleClickZoom: false
+        }}
+        layers={[layer]}
+        getCursor={layer.getCursor.bind(layer)} // eslint-disable-line
+        style={{ position: 'relative' }}
+        onClick={onClick}
+        ref={editorRef}
+      >
+        <MapGL
+          {...viewport}
+          mapStyle='mapbox://styles/mapbox/light-v9'
+          mapboxAccessToken={mapbox.token}
+          attributionControl={false}
         />
-      </span>
-      {drawTools}{zoomTools}{expandTools}
-    </MapGL>
+        {drawTools}{zoomTools}{expandTools}
+      </DeckGL>
+    </>
+
   )
 }
