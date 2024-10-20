@@ -83,8 +83,7 @@ class CommentForm extends Component {
         <div className={cx(classes.prompt, { [classes.disabled]: !currentUser })}>
           {currentUser
             ? <RoundImage url={currentUser.avatarUrl} small className={classes.image} />
-            : <Icon name='Person' className={classes.anonymousImage} />
-          }
+            : <Icon name='Person' className={classes.anonymousImage} />}
           <HyloEditor
             contentHTML={editorContent}
             onEnter={this.handleOnEnter}
