@@ -1,9 +1,10 @@
 import React, { Component } from 'react'
 import TagInput from 'components/TagInput'
 import RoundImage from 'components/RoundImage'
-import styles from './MemberSelector.module.scss'
 import { isEmpty, isEqual } from 'lodash/fp'
 import { withTranslation } from 'react-i18next'
+
+import classes from './MemberSelector.module.scss'
 
 class MemberSelector extends Component {
   componentDidMount () {
@@ -51,7 +52,7 @@ class MemberSelector extends Component {
         handleAddition={this.handleAddition}
         handleDelete={this.handleDelete}
         readOnly={readOnly}
-        theme={styles}
+        theme={classes}
         renderSuggestion={Suggestion}
       />
     )
@@ -60,12 +61,14 @@ class MemberSelector extends Component {
 
 export function Suggestion ({ item, handleChoice }) {
   const { id, name, avatarUrl } = item
-  return <li key={id || 'blank'}>
-    <a onClick={event => handleChoice(item, event)} className={classes.suggestionLink}>
-      <RoundImage url={avatarUrl} className={classes.suggestionAvatar} small />
-      <div className={classes.suggestionName}>{name}</div>
-    </a>
-  </li>
+  return (
+    <li key={id || 'blank'}>
+      <a onClick={event => handleChoice(item, event)} className={classes.suggestionLink}>
+        <RoundImage url={avatarUrl} className={classes.suggestionAvatar} small />
+        <div className={classes.suggestionName}>{name}</div>
+      </a>
+    </li>
+  )
 }
 
 export default withTranslation()(MemberSelector)

@@ -539,6 +539,7 @@ exports[`MemberList server search fetches new results when search provided 1`] =
             >
               <View
                 collapsable={false}
+                enabled={false}
                 handlerTag={1}
                 handlerType="PanGestureHandler"
                 needsOffscreenAlphaCompositing={false}

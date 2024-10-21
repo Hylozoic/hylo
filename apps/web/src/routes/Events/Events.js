@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import { get, isEmpty } from 'lodash/fp'
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
@@ -52,7 +52,8 @@ function Events (props) {
     sortBy: 'start_time'
   }
 
-  const posts = useSelector(state => getPosts(state, fetchPostsParam).map(p => presentPost(p, get('id', group))))
+  const _posts = useSelector(state => getPosts(state, fetchPostsParam))
+  const posts = useMemo(() => _posts.map(p => presentPost(p, get('id', group))), [_posts, group])
   const hasMore = useSelector(state => getHasMorePosts(state, fetchPostsParam))
   const membershipsPending = useSelector(state => state.pending[FETCH_FOR_CURRENT_USER])
   const pending = useSelector(state => state.pending[FETCH_POSTS])

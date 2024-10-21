@@ -61,7 +61,7 @@ class LocationInput extends Component {
       <div className={styles.wrapper}>
         <Geocoder
           accessToken={mapboxToken}
-          defaultInputValue={location}
+          defaultInputValue={location || ''}
           onInputChange={this.handleInputChange}
           onSelect={this.handleSelectLocation}
           onSuggest={this.handleSuggest}

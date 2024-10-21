@@ -3,7 +3,14 @@ import cx from 'classnames'
 import classes from './VisibilityToggle.module.scss'
 import Icon from 'components/Icon'
 
-function VisibilityToggle ({ id, onChange, checked, disabled, backgroundColor, name }) {
+function VisibilityToggle ({
+  id,
+  onChange = () => {},
+  checked = false,
+  disabled = false,
+  backgroundColor,
+  name
+}) {
   const handleToggle = () => {
     onChange({ id, isVisible: checked, name })
   }
@@ -16,12 +23,6 @@ function VisibilityToggle ({ id, onChange, checked, disabled, backgroundColor, n
       <Icon name='Hidden' className={classes.hiddenIcon} />
     </div>
   )
-}
-
-VisibilityToggle.defaultProps = {
-  checked: false,
-  disabled: false,
-  onChange: (checked, name) => { console.log(checked, name) }
 }
 
 export default VisibilityToggle

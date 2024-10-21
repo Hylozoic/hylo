@@ -1,11 +1,10 @@
 import orm from 'store/models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import getRouteParam from './getRouteParam'
 
 const getGroupTopicForCurrentRoute = ormCreateSelector(
   orm,
-  // (state, props) => getRouteParam('groupSlug', props),
-  // (state, props) => getRouteParam('topicName', props),
+  (state, slug, topicName) => slug,
+  (state, slug, topicName) => topicName,
   (session, slug, topicName) => {
     const group = session.Group.get({ slug })
     const topic = session.Topic.get({ name: topicName })

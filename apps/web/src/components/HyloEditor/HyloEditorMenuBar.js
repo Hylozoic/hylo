@@ -25,26 +25,26 @@ export default function HyloEditorMenuBar ({ editor }) {
     <div className={classes.topMenuBar}>
       <button
         onClick={() => editor.chain().focus().toggleBold().run()}
-        className={cx({ isActive: editor.isActive('bold') })}
+        className={cx({ [classes.isActive]: editor.isActive('bold') })}
       >
         <RiBold />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleItalic().run()}
-        className={cx({ isActive: editor.isActive('italic') })}
+        className={cx({ [classes.isActive]: editor.isActive('italic') })}
       >
         <RiItalic />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleStrike().run()}
-        className={cx({ isActive: editor.isActive('strike') })}
+        className={cx({ [classes.isActive]: editor.isActive('strike') })}
       >
         <RiStrikethrough />
       </button>
 
       <button
         onClick={() => editor.chain().focus().toggleCode().run()}
-        className={cx({ isActive: editor.isActive('code') })}
+        className={cx({ [classes.isActive]: editor.isActive('code') })}
       >
         <RiCodeView />
       </button>
@@ -53,13 +53,13 @@ export default function HyloEditorMenuBar ({ editor }) {
 
       <button
         onClick={() => editor.chain().focus().toggleBulletList().run()}
-        className={cx({ isActive: editor.isActive('bulletList') })}
+        className={cx({ [classes.isActive]: editor.isActive('bulletList') })}
       >
         <RiListUnordered />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        className={cx({ isActive: editor.isActive('orderedList') })}
+        className={cx({ [classes.isActive]: editor.isActive('orderedList') })}
       >
         <RiListOrdered />
       </button>
@@ -120,14 +120,14 @@ export default function HyloEditorMenuBar ({ editor }) {
 
       <button
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        className={cx({ isActive: editor.isActive('blockquote') })}
+        className={cx({ [classes.isActive]: editor.isActive('blockquote') })}
       >
         <RiIndentIncrease />
       </button>
 
       <button
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-        className={cx({ isActive: editor.isActive('codeBlock') })}
+        className={cx({ [classes.isActive]: editor.isActive('codeBlock') })}
       >
         <RiCodeBoxLine />
       </button>

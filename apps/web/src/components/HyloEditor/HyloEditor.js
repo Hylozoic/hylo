@@ -12,7 +12,7 @@ import HyloEditorMenuBar from './HyloEditorMenuBar'
 import 'tippy.js/dist/tippy.css'
 import classes from './HyloEditor.module.scss'
 
-const HyloEditor = React.forwardRef(function HyloEditor ({
+const HyloEditor = React.forwardRef(({
   className,
   containerClassName = 'hyloEditor',
   contentHTML,
@@ -30,7 +30,7 @@ const HyloEditor = React.forwardRef(function HyloEditor ({
   readOnly,
   showMenu = false,
   suggestionsThemeName = 'suggestions'
-}, ref) {
+}, ref) => {
   const { t } = useTranslation()
   const editorRef = useRef(null)
   const [selectedLink, setSelectedLink] = useState()
@@ -127,7 +127,7 @@ const HyloEditor = React.forwardRef(function HyloEditor ({
 
       onUpdate(editor.getHTML())
     }
-  }, [placeholder, contentHTML, onEnter]) // TODO: changing the placeholder resets the content of the editor which is probably not what we want
+  }, [placeholder, contentHTML]) // TODO: changing the placeholder resets the content of the editor which is probably not what we want
 
   useImperativeHandle(ref, () => ({
     blur: () => {
@@ -162,7 +162,7 @@ const HyloEditor = React.forwardRef(function HyloEditor ({
     if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
 
     editor.setEditable(!readOnly)
-  }, [editor, groupIds, readOnly])
+  }, [groupIds, readOnly])
 
   const shouldShowBubbleMenu = ({ editor }) => {
     if (onAddLink && editor.isActive('link')) {

@@ -37,7 +37,7 @@ export default function NonAuthLayoutRouter (props) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const isAuthenticated = useSelector(getAuthenticated)
-  const returnToPathFromQueryString = getQuerystringParam('returnToUrl', { location })
+  const returnToPathFromQueryString = getQuerystringParam('returnToUrl', location)
   const returnToNavigationState = props.location?.state?.from
   const returnToPath = returnToNavigationState
     ? returnToNavigationState.pathname + returnToNavigationState.search
@@ -79,32 +79,32 @@ export default function NonAuthLayoutRouter (props) {
         <div className={classes.signupRow}>
           <Routes>
             <Route
-              path='/login'
+              path='login'
               element={<Login {...props} className={classes.form} />}
             />
             <Route
-              path='/signup'
+              path='signup/*'
               element={<SignupRouter {...props} className={classes.form} />}
             />
             <Route
-              path='/reset-password'
+              path='reset-password'
               element={<PasswordReset {...props} className={classes.form} />}
             />
             <Route
-              path='/notifications'
+              path='notifications'
               element={<ManageNotifications {...props} className={classes.form} />}
             />
             <Route
-              path='/:context(groups)/:groupSlug/join/:accessCode'
+              path='groups/:groupSlug/join/:accessCode'
               element={<JoinGroup />}
             />
             <Route
-              path='/h/use-invitation'
+              path='h/use-invitation'
               element={<JoinGroup />}
             />
-            <Route path='/oauth/login/:uid' element={<OAuthLogin className={classes.form} />} />
+            <Route path='oauth/login/:uid' element={<OAuthLogin className={classes.form} />} />
             <Route
-              path='/oauth/consent/:uid'
+              path='oauth/consent/:uid'
               element={<OAuthConsent {...props} className={classes.form} />}
             />
             {/*
@@ -122,7 +122,7 @@ export default function NonAuthLayoutRouter (props) {
         {/* The below-container content for each route */}
         <Routes>
           <Route
-            path='/signup'
+            path='signup/*'
             element={
               <div className={classes.belowContainer}>
                 <Link to='/login'>
@@ -132,7 +132,7 @@ export default function NonAuthLayoutRouter (props) {
             }
           />
           <Route
-            path='/reset-password'
+            path='reset-password'
             element={
               <div className={classes.belowContainer}>
                 <div className={classes.resetPasswordBottom}>
@@ -158,18 +158,18 @@ export default function NonAuthLayoutRouter (props) {
             }
           />
           <Route
-            path='/oauth/login'
+            path='oauth/login'
             element={
               <div className={classes.belowContainer}>
-                <p>{t(`Use your Hylo account to access {{name}}.`, { name: getQuerystringParam('name', { location }) || thisApplicationText })}</p>
+                <p>{t('Use your Hylo account to access {{name}}.', { name: getQuerystringParam('name', location) || thisApplicationText })}</p>
               </div>
             }
           />
           <Route
-            path='/oauth/consent'
+            path='oauth/consent'
             element={
               <div className={classes.belowContainer}>
-                <p>{t(`Make sure you trust {{name}} with your information.`, { name: getQuerystringParam('name', { location }) || thisApplicationText })}</p>
+                <p>{t('Make sure you trust {{name}} with your information.', { name: getQuerystringParam('name', location) || thisApplicationText })}</p>
               </div>
             }
           />

@@ -50,19 +50,21 @@ class SkillsSection extends Component {
       skillSuggestions
     } = this.props
 
-    return <div className={cx(classes.pillContainer, classes.expanded)}>
-      <Pillbox
-        pills={map(skills, skill => ({ ...skill, label: skill.name }))}
-        handleInputChange={this.handleInputChange}
-        handleClick={this.handleClick}
-        handleAddition={this.handleAddition}
-        handleDelete={this.handleDelete}
-        editable={editable && (isMe || group)}
-        addLabel={label}
-        placeholder={placeholder}
-        suggestions={skillSuggestions}
-      />
-    </div>
+    return (
+      <div className={cx(classes.pillContainer, classes.expanded)}>
+        <Pillbox
+          pills={map(skills, skill => ({ ...skill, label: skill.name }))}
+          handleInputChange={this.handleInputChange}
+          handleClick={this.handleClick}
+          handleAddition={this.handleAddition}
+          handleDelete={this.handleDelete}
+          editable={editable && (isMe || group)}
+          addLabel={label}
+          placeholder={placeholder}
+          suggestions={skillSuggestions}
+        />
+      </div>
+    )
   }
 }
 export default withTranslation()(SkillsSection)

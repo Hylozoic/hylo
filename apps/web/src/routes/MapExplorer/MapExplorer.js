@@ -100,16 +100,15 @@ function MapExplorer (props) {
   const groupSlug = routeParams.groupSlug
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id
-  const queryGroupSlugs = getQuerystringParam('group', { location })
+  const queryGroupSlugs = getQuerystringParam('group', location)
   const groupSlugs = group ? (queryGroupSlugs || []).concat(groupSlug) : queryGroupSlugs
 
   const currentUser = useSelector(state => getMe(state, { location }))
   const defaultChildPostInclusion = currentUser?.settings?.streamChildPosts || 'yes'
-  const childPostInclusion = getQuerystringParam('c', { location }) || defaultChildPostInclusion
+  const childPostInclusion = getQuerystringParam('c', location) || defaultChildPostInclusion
 
-  const [hideDrawer, setHideDrawer] = useState(getQuerystringParam('hideDrawer', { location }) === 'true')
-  console.log('hideDrawer mapexplorer', hideDrawer)
-  const queryParams = getQuerystringParam(['search', 'sortBy', 'hide', 'topics', 'group'], { location })
+  const [hideDrawer, setHideDrawer] = useState(getQuerystringParam('hideDrawer', location) === 'true')
+  const queryParams = getQuerystringParam(['search', 'sortBy', 'hide', 'topics', 'group'], location)
 
   const reduxState = useSelector(state => state.MapExplorer)
 
@@ -186,7 +185,7 @@ function MapExplorer (props) {
     )
   )
 
-  const centerParam = getQuerystringParam('center', { location })
+  const centerParam = getQuerystringParam('center', location)
   let centerLocation = useMemo(() => {
     if (centerParam) {
       const decodedCenter = decodeURIComponent(centerParam).split(',')
@@ -208,10 +207,10 @@ function MapExplorer (props) {
     defaultZoom = 0
   }
 
-  const zoomParam = getQuerystringParam('zoom', { location })
+  const zoomParam = getQuerystringParam('zoom', location)
   const zoom = zoomParam ? parseFloat(zoomParam) : reduxState.zoom || defaultZoom
 
-  const baseStyleParam = getQuerystringParam('style', { location })
+  const baseStyleParam = getQuerystringParam('style', location)
   const [baseLayerStyle, setBaseLayerStyle] = useState(baseStyleParam || reduxState.baseLayerStyle || currentUser?.settings?.mapBaseLayer || 'light-v11')
   if (!MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle)) {
     setBaseLayerStyle('light-v11')
@@ -255,8 +254,7 @@ function MapExplorer (props) {
   })
 
   const updateUrlFromStore = useCallback((params, replace) => {
-    const querystringParams = getQuerystringParam(['sortBy', 'search', 'hide', 'topics'], { location })
-    console.log('updateUrlFromStore', params)
+    const querystringParams = getQuerystringParam(['sortBy', 'search', 'hide', 'topics'], location)
 
     let newQueryParams = { ...pick(['search', 'sortBy'], params) }
     if (params.featureTypes) {
@@ -270,13 +268,13 @@ function MapExplorer (props) {
     }, newQueryParams)
 
     if (!isEmpty(newQueryParams)) {
-      dispatch(changeQuerystringParams({ location }, newQueryParams, replace))
+      dispatch(changeQuerystringParams(location, newQueryParams, replace))
     }
   }, [dispatch, location])
 
   const changeChildPostInclusion = useCallback(childPostsBool => {
     dispatch(updateUserSettings({ settings: { streamChildPosts: childPostsBool } }))
-    return dispatch(changeQuerystringParam({ location }, 'c', childPostsBool, 'yes'))
+    return dispatch(changeQuerystringParam(location, 'c', childPostsBool, 'yes'))
   }, [dispatch, location])
 
   const doFetchPostsForDrawer = useCallback((offset = 0, replace = true) => dispatch(fetchPostsForDrawer({ ...fetchPostsForDrawerParams, offset, replace })), [dispatch])
@@ -303,22 +301,20 @@ function MapExplorer (props) {
     dispatch(saveSearch(attributes))
   }, [context, currentBoundingBox, currentUser.id, dispatch, filters, groupSlug])
 
-  const showDetails = useCallback((postId) => dispatch(navigate(postUrl(postId, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], { location })))), [dispatch, navigate, routeParams, location])
+  const showDetails = useCallback((postId) => dispatch(navigate(postUrl(postId, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location)))), [dispatch, navigate, routeParams, location])
 
-  const showGroupDetails = useCallback((groupSlug) => dispatch(navigate(groupDetailUrl(groupSlug, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], { location })))), [dispatch, navigate, routeParams, location])
+  const showGroupDetails = useCallback((groupSlug) => dispatch(navigate(groupDetailUrl(groupSlug, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location)))), [dispatch, navigate, routeParams, location])
 
   const showCreateModal = useCallback((location) => dispatch(navigate(createUrl(routeParams, location))), [dispatch, navigate, routeParams])
 
   const gotoMember = useCallback((memberId) => dispatch(navigate(personUrl(memberId, groupSlug))), [dispatch, groupSlug, navigate])
 
   const toggleDrawer = useCallback(() => {
-    dispatch(changeQuerystringParam({ location }, 'hideDrawer', !hideDrawer))
-    console.log('toggleDrawer', !hideDrawer)
+    dispatch(changeQuerystringParam(location, 'hideDrawer', !hideDrawer))
     setHideDrawer(!hideDrawer)
   }, [dispatch, hideDrawer, location])
 
   const doStoreClientFilterParams = useCallback(params => {
-    console.log('doStoreClientFilterParams', params)
     return dispatch(storeClientFilterParams(params)).then(() => {
       updateUrlFromStore(params, true)
     })
@@ -328,7 +324,7 @@ function MapExplorer (props) {
     if (currentUser) {
       dispatch(updateUserSettings({ settings: { mapBaseLayer: style } }))
     }
-    dispatch(changeQuerystringParams({ location }, { style }, true))
+    dispatch(changeQuerystringParams(location, { style }, true))
     setBaseLayerStyle(style)
   }, [dispatch, currentUser, location])
 
@@ -337,12 +333,11 @@ function MapExplorer (props) {
   const updateQueryParams = useCallback((params, replace) => updateUrlFromStore(params, replace), [updateUrlFromStore])
 
   const updateView = useCallback(({ centerLocation, zoom }) => {
-    console.log('updateView', centerLocation, zoom)
     const newUrlParams = {
       zoom
     }
     newUrlParams.center = encodeURIComponent(centerLocation.lat + ',' + centerLocation.lng)
-    dispatch(updateState({ centerLocation, zoom })).then(() => dispatch(changeQuerystringParams({ location }, newUrlParams, true)))
+    dispatch(updateState({ centerLocation, zoom })).then(() => dispatch(changeQuerystringParams(location, newUrlParams, true)))
   }, [dispatch, location])
 
   const handleViewSavedSearch = useCallback((search) => {
@@ -350,6 +345,12 @@ function MapExplorer (props) {
     dispatch(viewSavedSearch(search))
     dispatch(navigate(mapPath))
   }, [dispatch, navigate])
+
+  const onMapLoad = (map) => {
+    let bounds = map.target.getBounds()
+    bounds = [bounds._sw.lng, bounds._sw.lat, bounds._ne.lng, bounds._ne.lat]
+    updateBoundingBoxQuery(bounds)
+  }
 
   const onMapHover = useCallback((info) => {
     setHoveredObject(info.objects || info.object)
@@ -411,7 +412,6 @@ function MapExplorer (props) {
   }, [creatingPost])
 
   const updatedMapFeatures = useCallback((boundingBox) => {
-    console.log('updatedMapFeatures', boundingBox)
     const bbox = bboxPolygon(boundingBox)
     const viewMembers = members.filter(member => {
       const locationObject = member.locationObject
@@ -476,13 +476,11 @@ function MapExplorer (props) {
   }, [members, postsForMap, groups, group, onMapHover, onMapClick, context])
 
   const updateViewportWithBbox = useCallback((bbox) => {
-    console.log('updateViewportWithBbox', bbox)
     setViewport(locationObjectToViewport(viewport, { bbox }))
   }, [viewport])
 
   useEffect(() => {
     if (!groupPending && centerLocation) {
-      console.log('useEffect !groupPending && centerLocation')
       setViewport({
         ...viewport,
         latitude: centerLocation.lat,
@@ -494,7 +492,6 @@ function MapExplorer (props) {
 
   /* Lifecycle methods */
   useEffect(() => {
-    console.log('useEffect first time is mobile')
     if (isMobileDevice()) {
       setHideDrawer(true)
     }
@@ -519,7 +516,6 @@ function MapExplorer (props) {
   }, [])
 
   useEffect(() => {
-    console.log('useEffect totalBoundingBoxLoaded', totalBoundingBoxLoaded)
     if (totalBoundingBoxLoaded) {
       doFetchPostsForDrawer()
       dispatch(fetchMembers({ ...fetchMemberParams }))
@@ -530,14 +526,12 @@ function MapExplorer (props) {
 
   useEffect(() => {
     if (currentBoundingBox) {
-      console.log('useEffect currentBoundingBox')
       updatedMapFeatures(currentBoundingBox)
     }
-  }, [currentBoundingBox])
+  }, [currentBoundingBox, postsForMap.length, members.length, groups.length])
 
   useEffect(() => {
     if (selectedSearch) {
-      console.log('useEffect selectedSearch')
       const { boundingBox, featureTypes, searchText, topics } = generateViewParams(selectedSearch)
       // updateQueryParams({ boundingBox, featureTypes, search: searchText, topics })
       updateBoundingBoxQuery(boundingBox)
@@ -552,16 +546,10 @@ function MapExplorer (props) {
         ? updateViewportWithBbox(value.bbox)
         : setViewport({ ...viewport, latitude: value.center.lat, longitude: value.center.lng, zoom: 12 })
     }
-  }, [updateViewportWithBbox, viewport])
+  }, [viewport])
 
-  // const mapViewPortUpdate = useCallback((update) => {
-  //   setViewport(update)
-  //   setCreatingPost(false)
-  // }, [])
-
-  const updateBoundingBoxQuery = debounce((newBoundingBox) => {
+  const updateBoundingBoxQuery = (newBoundingBox) => {
     let finalBbox
-    console.log('updateBoundingBoxQuery', newBoundingBox)
     if (totalBoundingBoxLoaded) {
       const curBbox = bboxPolygon(totalBoundingBoxLoaded)
       const newBbox = bboxPolygon(newBoundingBox)
@@ -581,20 +569,19 @@ function MapExplorer (props) {
     }
 
     updatedMapFeatures(newBoundingBox)
-  }, 200)
+  }
 
-  const afterViewportUpdate = useCallback((update) => {
-    console.log('afterViewportUpdate', update)
-    if (mapRef.current) {
-      let bounds = mapRef.current.getBounds()
-      bounds = [bounds._sw.lng, bounds._sw.lat, bounds._ne.lng, bounds._ne.lat]
-      updateBoundingBoxQuery(bounds)
-      const newCenter = { lat: update.latitude, lng: update.longitude }
-      if (!isEqual(centerLocation, newCenter) || !isEqual(zoom, update.zoom)) {
-        updateView({ centerLocation: newCenter, zoom: update.zoom })
-      }
+  const afterViewportUpdate = useRef(debounce((update) => {
+    let bounds = mapRef.current.getBounds()
+    bounds = [bounds._sw.lng, bounds._sw.lat, bounds._ne.lng, bounds._ne.lat]
+    updateBoundingBoxQuery(bounds)
+    const newCenter = mapRef.current.getCenter()
+    const newZoom = mapRef.current.getZoom()
+    if (!isEqual(centerLocation, newCenter) || !isEqual(zoom, newZoom)) {
+      updateView({ centerLocation: newCenter, zoom: newZoom })
     }
-  }, [updateBoundingBoxQuery, centerLocation, zoom, updateView])
+    setCreatingPost(false)
+  }, 300)).current
 
   const toggleFeatureType = useCallback((type, checked) => {
     const newFeatureTypes = { ...filters.featureTypes }
@@ -657,7 +644,7 @@ function MapExplorer (props) {
   const { hideNavLayout } = layoutFlags
   const withoutNav = isWebView() || hideNavLayout
 
-  const locationParams = location !== undefined ? getQuerystringParam(['zoom', 'center', 'lat', 'lng'], { location }) : null
+  const locationParams = location !== undefined ? getQuerystringParam(['zoom', 'center', 'lat', 'lng'], location) : null
 
   return (
     <div className={cx(classes.container, { [classes.noUser]: !currentUser, [classes.withoutNav]: withoutNav })}>
@@ -667,19 +654,19 @@ function MapExplorer (props) {
 
       <div className={classes.mapContainer}>
         <Map
-          afterViewportUpdate={afterViewportUpdate}
           baseLayerStyle={baseLayerStyle}
           hyloLayers={[polygonLayer, groupIconLayer, clusterLayer]}
           isAddingItemToMap={isAddingItemToMap}
           otherLayers={Object.keys(otherLayers)}
-          mapRef={mapRef}
+          ref={mapRef}
           onMouseDown={onMapMouseDown}
           onMouseUp={onMapMouseUp}
+          onLoad={onMapLoad}
+          afterViewportUpdate={afterViewportUpdate}
           setViewport={setViewport}
           viewport={viewport}
-        >
-          {renderTooltip()}
-        </Map>
+        />
+        {renderTooltip()}
         {pendingPostsMap && <Loading className={classes.loading} />}
       </div>
       <button

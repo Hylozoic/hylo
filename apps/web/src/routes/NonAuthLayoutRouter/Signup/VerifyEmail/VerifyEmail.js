@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import ReactCodeInput from 'react-code-input'
 import { formatError } from '../../util'
@@ -13,8 +13,9 @@ import classes from '../Signup.module.scss'
 export default function VerifyEmail (props) {
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
-  const email = currentUser?.email || getQuerystringParam('email', props)
-  const token = getQuerystringParam('token', props)
+  const location = useLocation()
+  const email = currentUser?.email || getQuerystringParam('email', location)
+  const token = getQuerystringParam('token', location)
   const [error, setError] = useState()
   const [code, setCode] = useState('')
   const [redirectTo, setRedirectTo] = useState()
@@ -69,7 +70,7 @@ export default function VerifyEmail (props) {
       <Link to='/signup' className={classes.backButton}>&#8592; {t('back')}</Link>
       <div className={classes.formWrapper}>
         <h1 className={classes.title}>{t('Check your email')}</h1>
-        <p className={classes.sub-header}>{t("We've sent a 6 digit code to {{email}}. The code will expire shortly, so please enter it here soon.", { email })}</p>
+        <p className={classes.subHeader}>{t("We've sent a 6 digit code to {{email}}. The code will expire shortly, so please enter it here soon.", { email })}</p>
         {error && formatError(error, 'Signup', t)}
         <div className={classes.codeWrapper}>
           <ReactCodeInput type='text' fields={6} onChange={handleChange} />

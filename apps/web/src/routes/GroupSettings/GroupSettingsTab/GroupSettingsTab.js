@@ -22,8 +22,8 @@ import {
 import { bgImageStyle } from 'util/index'
 import SettingsSection from '../SettingsSection'
 
-import general from '../GroupSettings.module.scss' // eslint-disable-line no-unused-vars
-import styles from './GroupSettingsTab.module.scss' // eslint-disable-line no-unused-vars
+import general from '../GroupSettings.module.scss'
+import styles from './GroupSettingsTab.module.scss'
 
 const { object, func } = PropTypes
 
@@ -81,8 +81,8 @@ class GroupSettingsTab extends Component {
     const { edits, changed } = this.state
 
     if (key === 'location') {
-      edits['location'] = event.target.value.fullText
-      edits['locationId'] = event.target.value.id
+      edits.location = event.target.value.fullText
+      edits.locationId = event.target.value.id
     } else {
       set(edits, key, event.target.value)
     }
@@ -100,7 +100,7 @@ class GroupSettingsTab extends Component {
     const { edits } = this.state
     this.setState({
       changed: true,
-      edits: { ...edits, geoShape: polygon ? JSON.stringify(polygon.geometry) : null }
+      edits: { ...edits, geoShape: polygon?.features?.length > 0 ? JSON.stringify(polygon.features[polygon.features.length - 1].geometry) : null }
     })
   }
 
@@ -192,10 +192,12 @@ class GroupSettingsTab extends Component {
         <label className={styles.label}>{t('Location Privacy:')}</label>
         <Dropdown
           className={styles.locationObfuscationDropdown}
-          toggleChildren={<span className={styles.locationObfuscationDropdownLabel}>
-            {LOCATION_PRECISION[locationDisplayPrecision || 'precise']}
-            <Icon name='ArrowDown' />
-          </span>}
+          toggleChildren={(
+            <span className={styles.locationObfuscationDropdownLabel}>
+              {LOCATION_PRECISION[locationDisplayPrecision || 'precise']}
+              <Icon name='ArrowDown' />
+            </span>
+          )}
           items={Object.keys(LOCATION_PRECISION).map(value => ({
             label: t(LOCATION_PRECISION[value]),
             onClick: () => this.updateSettingDirectly('settings.locationDisplayPrecision')(value)
@@ -250,21 +252,25 @@ class GroupSettingsTab extends Component {
           value={geoShape || ''}
         />
         <div className={styles.editableMapContainer}>
-          { this.state.isModal
-            ? <EditableMapModal group={group} toggleModal={this.toggleModal}>
+          {this.state.isModal
+            ? (
+              <EditableMapModal group={group} toggleModal={this.toggleModal}>
+                <EditableMap
+                  locationObject={editableMapLocation}
+                  polygon={geoShape}
+                  savePolygon={this.savePolygon}
+                  toggleModal={this.toggleModal}
+                />
+              </EditableMapModal>
+              )
+            : (
               <EditableMap
                 locationObject={editableMapLocation}
                 polygon={geoShape}
                 savePolygon={this.savePolygon}
                 toggleModal={this.toggleModal}
               />
-            </EditableMapModal>
-            : <EditableMap
-              locationObject={editableMapLocation}
-              polygon={geoShape}
-              savePolygon={this.savePolygon}
-              toggleModal={this.toggleModal}
-            /> }
+              )}
         </div>
         <br />
 

@@ -17,6 +17,7 @@
   display: inline;
   list-style: none;
   padding: 0px;
+  vertical-align: middle;
 }
 
 .selectedTag {
@@ -60,6 +61,7 @@
   /* prevent autoresize overflowing the container */
   max-width: 100%;
   line-height: 1;
+  vertical-align: middle;
 }
 
 @media screen and (min-width: 30em) {

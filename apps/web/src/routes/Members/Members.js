@@ -35,8 +35,8 @@ function Members (props) {
 
   // State selectors
   const group = useSelector(state => getGroupForSlug(state, slug))
-  const sortBy = useSelector(state => getQuerystringParam('s', { location }) || defaultSortBy)
-  const search = useSelector(state => getQuerystringParam('q', { location }))
+  const sortBy = getQuerystringParam('s', location) || defaultSortBy
+  const search = getQuerystringParam('q', location)
   const memberCount = useSelector(state => get('memberCount', group))
   const members = useSelector(state => getMembers(state, { slug, search, sortBy }))
   const hasMore = useSelector(state => getHasMoreMembers(state, { slug, search, sortBy }))
@@ -46,9 +46,9 @@ function Members (props) {
 
   // Action creators
   const changeSearch = useCallback(term =>
-    dispatch(changeQuerystringParam({ slug }, 'q', term)), [dispatch, slug])
+    dispatch(changeQuerystringParam(location, 'q', term)), [location])
   const changeSort = useCallback(sort =>
-    dispatch(changeQuerystringParam({ slug }, 's', sort, 'name')), [dispatch, slug])
+    dispatch(changeQuerystringParam(location, 's', sort, 'name')), [location])
   const removeMemberAction = useCallback((id) =>
     dispatch(removeMember(id, group.id)), [dispatch, group.id])
   const fetchMembersAction = useCallback((offset = 0) =>
