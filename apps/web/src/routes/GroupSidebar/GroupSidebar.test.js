@@ -1,65 +1,72 @@
-import
-GroupSidebar,
-{
+import React from 'react'
+import { faker } from '@faker-js/faker'
+import extractModelsForTest from 'util/testing/extractModelsForTest'
+import { fakePerson } from 'util/testing/testData'
+import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { createStore } from 'redux'
+import { Provider } from 'react-redux'
+import Router, { Route, Routes, useParams } from 'react-router-dom'
+import GroupSidebar, {
   MemberSection,
   GroupStewardsSection,
   GroupSteward
 } from './GroupSidebar'
-// import AboutSection from './AboutSection'
-import { shallow } from 'enzyme'
-import React from 'react'
-import faker from '@faker-js/faker'
-import { fakePerson } from 'util/testing/testData'
-import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_REMOVE_MEMBERS } from 'store/constants'
+import orm from 'store/models'
 
-const group = {
-  id: 1,
-  name: 'A Great Cause',
-  slug: 'great-cause',
-  description: 'the description, which is long enough to add a "Read More" button, ' +
-    'the description, which is long enough to add a "Read More" button, ' +
-    'the description, which is long enough to add a "Read More" button, ' +
-    'the description, which is long enough to add a "Read More" button, ' +
-    'the description, which is long enough to add a "Read More" button, '
+function testProviders () {
+  const session = orm.session(orm.getEmptyState())
+  session.CommonRole.create({ id: '1', title: 'Coordinator', responsibilities: { items: [{ id: '1', title: 'Administration' }, { id: '2', title: 'Manage Content' }] } })
+  const me = session.Me.create({
+    id: '1',
+    membershipCommonRoles: { items: [{ commonRoleId: '1', groupId: '1' }] } ,
+    memberships: [
+      session.Membership.create({
+        id: '1',
+        group: '1'
+      })
+    ]
+  })
+  session.Person.create({
+    id: '1',
+    membershipCommonRoles: [{ commonRoleId: '1', groupId: '1' }],
+    memberships: [
+      session.Membership.create({
+        id: '1',
+        group: '1'
+      })
+    ]
+  })
+
+  session.Group.create({
+    id: '1',
+    name: 'A Great Cause',
+    slug: 'great-cause',
+    description: 'the description, which is long enough to add a "Read More" button, '.repeat(5),
+    purpose: 'To do great things',
+    memberCount: 56,
+    members: [me],
+    stewards: ['1']
+  })
+
+  const reduxState = { orm: session.state }
+
+  return AllTheProviders(reduxState)
 }
 
-const responsibilities = ['RESP_ADD_MEMBERS', 'RESP_ADMINISTRATION', 'RESP_REMOVE_MEMBERS']
-
 describe('GroupSidebar', () => {
-  const members = [{ id: 1 }, { id: 2 }, { id: 3 }]
-  const stewards = [{ id: 4 }, { id: 5 }, { id: 6 }]
-  const memberCount = 56
-  const currentUser = { memberships: { toRefArray: () => [{ commonRoles: { items: [] } }] } }
-
   it('renders correctly', () => {
-    const { asFragment } = render(
-      <GroupSidebar
-        group={{ ...group, memberCount }}
-        currentUser={currentUser}
-        members={members}
-        stewards={stewards}
-        myResponsibilities={responsibilities}
-      />,
-      { wrapper: AllTheProviders() }
+    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'great-cause' })
+
+    render(
+      <GroupSidebar />,
+      { wrapper: testProviders() }
     )
-    expect(asFragment()).toMatchSnapshot()
+
+    expect(screen.getByText('Members')).toBeInTheDocument()
+    expect(screen.getByText('Group Settings')).toBeInTheDocument()
   })
 })
-
-// describe('AboutSection', () => {
-// TODO: Fix this test
-//
-//   it('renders correctly', () => {
-//     const wrapper = shallow(
-//       <AboutSection
-//         name={group.name}
-//         description={group.description} />)
-//     expect(wrapper.find('div').at(1).text()).toEqual(`About ${group.name}`)
-//     expect(wrapper.find('span').at(0).text()).toEqual('Read More')
-//     expect(wrapper.find('span').at(0).text()).toEqual('Show Less')
-//     wrapper.setState({ expanded: true })
-//   })
-// })
 
 describe('MemberSection', () => {
   faker.seed(33)
@@ -67,30 +74,45 @@ describe('MemberSection', () => {
   const members = fakePerson(n)
 
   it("Doesn't show total if it's < 1", () => {
-    const wrapper = shallow(<MemberSection
-      slug='foo'
-      members={members}
-      memberCount={n}
-      responsibilities={responsibilities}
-    />)
-    expect(wrapper).toMatchSnapshot()
+    render(
+      <MemberSection
+        slug='foo'
+        members={members}
+        memberCount={n}
+        canInvite={true}
+      />,
+      { wrapper: AllTheProviders() }
+    )
+
+    expect(screen.getByText('Members')).toBeInTheDocument()
+    expect(screen.queryByText('+')).not.toBeInTheDocument()
   })
 
   it("Formats total correctly if it's > 999", () => {
-    const wrapper = shallow(<MemberSection
-      slug='foo'
-      members={members}
-      memberCount={5600} />)
-    expect(wrapper).toMatchSnapshot()
+    render(
+      <MemberSection
+        slug='foo'
+        members={members}
+        memberCount={5600}
+      />,
+      { wrapper: AllTheProviders() }
+    )
+
+    expect(screen.getByText('+5.6k')).toBeInTheDocument()
   })
 
   it('Shows invite link if has responsibility ADD_MEMBERS is true', () => {
-    const wrapper = shallow(<MemberSection
-      slug='foo'
-      members={members}
-      memberCount={5600}
-      responsibilities={responsibilities} />)
-    expect(wrapper).toMatchSnapshot()
+    render(
+      <MemberSection
+        slug='foo'
+        members={members}
+        memberCount={5600}
+        canInvite={true}
+      />,
+      { wrapper: AllTheProviders() }
+    )
+
+    expect(screen.getByText('Invite People')).toBeInTheDocument()
   })
 })
 
@@ -98,8 +120,12 @@ describe('GroupStewardsSection', () => {
   it('renders correctly', async () => {
     const n = 5
     const stewards = fakePerson(n)
-    render(<GroupStewardsSection stewards={stewards} descriptor='Wizard' />, { wrapper: AllTheProviders() })
+    render(
+      <GroupStewardsSection stewards={stewards} descriptor='Wizard' />,
+      { wrapper: AllTheProviders() }
+    )
 
+    // TODO: figure out how to test the translation named values working
     expect(await screen.findByText('Group {{locationDescriptor}}')).toBeInTheDocument()
   })
 })
@@ -113,7 +139,10 @@ describe('GroupSteward', () => {
       commonRoles: { items: [] },
       groupRoles: { items: [] }
     }
-    render(<GroupSteward steward={steward} />, { wrapper: AllTheProviders() })
+    render(
+      <GroupSteward steward={steward} />,
+      { wrapper: AllTheProviders() }
+    )
     expect(await screen.findByText(steward.name)).toBeInTheDocument()
   })
 })

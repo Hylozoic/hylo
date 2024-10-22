@@ -1,11 +1,10 @@
-import { shallow } from 'enzyme'
 import React from 'react'
-import orm from 'store/models'
 import { graphql } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
 import denormalized from './MemberProfile.test.json'
 import MemberProfile from './MemberProfile.js'
+import orm from 'store/models'
 
 function testWrapper (providedState) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
@@ -22,18 +21,17 @@ describe('MemberProfile', () => {
     roles: []
   }
 
-  it('renders the same as the last snapshot', () => {
-    const wrapper = shallow(<MemberProfile {...defaultTestProps} />)
-    expect(wrapper).toMatchSnapshot()
+  it('renders the member name', () => {
+    render(<MemberProfile {...defaultTestProps} />, { wrapper: testWrapper() })
+    expect(screen.getByRole('heading', { name: denormalized.data.person.name })).toBeInTheDocument()
   })
 
-  it('displays an error if one is present', () => {
+  it('displays an error if can\'t find person', () => {
     const props = {
       ...defaultTestProps,
-      error: 'WOMBAT-TYPE INVALID'
     }
-    const wrapper = shallow(<MemberProfile {...props} />)
-    expect(wrapper.text().includes('Error')).toBe(true)
+    render(<MemberProfile {...props} />, { wrapper: testWrapper() })
+    expect(screen.getByText('That doesn\'t seem to be a valid person ID.')).toBeInTheDocument()
   })
 
   it('displays bio on the Overview tab', async () => {
@@ -108,8 +106,8 @@ describe('MemberProfile', () => {
       bio: 'WOMBATS',
       votes: []
     }
-    const wrapper = shallow(<MemberProfile {...props} />)
-    expect(wrapper.contains('WOMBATS')).toBe(false)
+    render(<MemberProfile {...props} />, { wrapper: testWrapper() })
+    expect(screen.queryByText('WOMBATS')).not.toBeInTheDocument()
   })
 
   it('renders RecentActivity on Overview', () => {
@@ -117,8 +115,8 @@ describe('MemberProfile', () => {
       ...defaultTestProps,
       currentTab: 'Overview'
     }
-    const wrapper = shallow(<MemberProfile {...props} />)
-    expect(wrapper.text().includes('recent activity')).toBe(true)
+    render(<MemberProfile {...props} />, { wrapper: testWrapper() })
+    expect(screen.getByText(`${denormalized.data.person.name}s recent activity`)).toBeInTheDocument()
   })
 
   it('renders MemberPosts on Posts', () => {
@@ -126,8 +124,8 @@ describe('MemberProfile', () => {
       ...defaultTestProps,
       currentTab: 'Posts'
     }
-    const wrapper = shallow(<MemberProfile {...props} />)
-    expect(wrapper.text().includes('{{name}}s posts')).toBe(true)
+    render(<MemberProfile {...props} />, { wrapper: testWrapper() })
+    expect(screen.getByText(`${denormalized.data.person.name}s posts`)).toBeInTheDocument()
   })
 
   it('renders MemberComments on Comments', () => {
@@ -135,8 +133,8 @@ describe('MemberProfile', () => {
       ...defaultTestProps,
       currentTab: 'Comments'
     }
-    const wrapper = shallow(<MemberProfile {...props} />)
-    expect(wrapper.text().includes('{{name}}s comments')).toBe(true)
+    render(<MemberProfile {...props} />, { wrapper: testWrapper() })
+    expect(screen.getByText(`${denormalized.data.person.name}s comments`)).toBeInTheDocument()
   })
 
   it('renders MemberVotes on reactions', () => {
@@ -145,7 +143,7 @@ describe('MemberProfile', () => {
       currentTab: 'Reactions',
       roles: [{ id: 1, common: true, responsibilities: { items: [{ id: 1, title: 'Manage Content' }] } }]
     }
-    const wrapper = shallow(<MemberProfile {...props} />)
-    expect(wrapper.text().includes('{{name}}s reactions')).toBe(true)
+    render(<MemberProfile {...props} />, { wrapper: testWrapper() })
+    expect(screen.getByText(`${denormalized.data.person.name}s reactions`)).toBeInTheDocument()
   })
 })

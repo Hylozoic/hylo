@@ -1,13 +1,18 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import Pillbox from './Pillbox'
 
 describe('Pillbox', () => {
-  it('renders', () => {
-    const wrapper = shallow(<Pillbox pills={[
+  it('renders pills correctly', () => {
+    const pills = [
       { id: 1, label: 'a pill' },
       { id: 2, label: 'another pill' }
-    ]} />)
-    expect(wrapper).toMatchSnapshot()
+    ]
+
+    render(<Pillbox pills={pills} />)
+
+    // Check if both pills are rendered
+    expect(screen.getByText('a pill')).toBeInTheDocument()
+    expect(screen.getByText('another pill')).toBeInTheDocument()
   })
 })

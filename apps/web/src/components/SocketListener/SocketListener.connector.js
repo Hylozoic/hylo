@@ -13,11 +13,11 @@ import {
   clearUserTyping
 } from 'components/PeopleTyping/PeopleTyping.store'
 import getMe from 'store/selectors/getMe'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
 function mapStateToProps (state, props) {
   return {
-    group: getGroupForCurrentRoute(state, props),
+    group: getGroupForSlug(state, props),
     currentUser: getMe(state)
   }
 }

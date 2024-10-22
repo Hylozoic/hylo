@@ -1,14 +1,15 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import EventBody from './EventBody'
 import moment from 'moment-timezone'
 
 describe('EventBody', () => {
-  it('matches last snapshot', () => {
+  it('renders event details correctly', () => {
     const event = {
-      startTime: moment(1551908483315),
-      endTime: moment(1551919283315),
-      location: 'Oakland'
+      startTime: moment('2023-03-06T12:00:00Z'),
+      endTime: moment('2023-03-06T15:00:00Z'),
+      location: 'Oakland',
+      title: 'Test Event'
     }
 
     const props = {
@@ -16,9 +17,26 @@ describe('EventBody', () => {
       slug: 'sluggo',
       expanded: true,
       className: 'external-class',
-      respondToEvent: () => {}
+      respondToEvent: jest.fn()
     }
-    const wrapper = shallow(<EventBody {...props} />)
-    expect(wrapper).toMatchSnapshot()
+
+    render(<EventBody {...props} />)
+
+    // Check for event title
+    expect(screen.getByText('Test Event')).toBeInTheDocument()
+
+    // Check for event time
+    expect(screen.getByText(/12:00 PM - 3:00 PM/)).toBeInTheDocument()
+
+    // Check for event location
+    expect(screen.getByText('Oakland')).toBeInTheDocument()
+
+    // Check for RSVP button
+    expect(screen.getByText('RSVP')).toBeInTheDocument()
+
+    // Check for Invite button
+    expect(screen.getByText('Invite')).toBeInTheDocument()
   })
+
+  // Add more tests as needed
 })

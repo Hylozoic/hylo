@@ -1,78 +1,82 @@
-import RemovableListItem from './RemovableListItem'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import RemovableListItem from './RemovableListItem'
 
 describe('RemovableListItem', () => {
-  it('renders correctly', () => {
-    const item = {
-      id: 7,
-      name: 'Zeus',
-      avatarUrl: 'zeus.png'
-    }
-    const wrapper = shallow(<RemovableListItem item={item} url={'/happy/place'} removeItem={() => {}} />)
-    expect(wrapper).toMatchSnapshot()
+  const defaultItem = {
+    id: 7,
+    name: 'Zeus',
+    avatarUrl: 'zeus.png'
+  }
+
+  it('renders correctly with URL', () => {
+    render(
+      <RemovableListItem item={defaultItem} url="/happy/place" removeItem={() => {}} />
+    )
+
+    expect(screen.getByText('Zeus')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Zeus' })).toHaveAttribute('href', '/happy/place')
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'zeus.png')
+    expect(screen.getByText('Remove')).toBeInTheDocument()
   })
 
   it('does not render as links when no URL specified', () => {
-    const item = {
-      id: 7,
-      name: 'Zeus',
-      avatarUrl: 'zeus.png'
-    }
-    const wrapper = shallow(<RemovableListItem item={item} removeItem={() => {}} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<RemovableListItem item={defaultItem} removeItem={() => {}} />)
+
+    expect(screen.getByText('Zeus')).toBeInTheDocument()
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'zeus.png')
   })
 
-  it('doesnt render a remove link', () => {
-    const item = {
-      id: 7,
-      name: 'Zeus',
-      avatarUrl: 'zeus.png'
-    }
-    const wrapper = shallow(<RemovableListItem item={item} url={'/happy/place'} />)
-    expect(wrapper).toMatchSnapshot()
+  it('doesnt render a remove link when removeItem is not provided', () => {
+    render(
+      <RemovableListItem item={defaultItem} url="/happy/place" />
+    )
+
+    expect(screen.getByText('Zeus')).toBeInTheDocument()
+    expect(screen.queryByText('Remove')).not.toBeInTheDocument()
   })
 
   describe('remove item', () => {
-    it('calls remove', () => {
-      const props = {
-        item: {
-          id: 7,
-          name: 'Zeus',
-          avatarUrl: 'zeus.png'
-        },
-        url: '/happy/place',
-        removeItem: jest.fn(),
-        confirmMessage: 'Are you sure?'
-      }
+    it('calls remove with confirmation', () => {
+      const removeItem = jest.fn()
+      const confirmMessage = 'Are you sure?'
 
-      global.confirm = jest.fn(() => true)
+      window.confirm = jest.fn(() => true)
 
-      const wrapper = shallow(<RemovableListItem {...props} />)
-      wrapper.find('[data-stylename="remove-button"]').simulate('click')
-      expect(global.confirm).toHaveBeenCalledWith(props.confirmMessage)
-      expect(props.removeItem).toHaveBeenCalledWith(props.item.id)
+      render(
+        <RemovableListItem
+          item={defaultItem}
+          url="/happy/place"
+          removeItem={removeItem}
+          confirmMessage={confirmMessage}
+        />
+      )
+
+      fireEvent.click(screen.getByText('Remove'))
+
+      expect(window.confirm).toHaveBeenCalledWith(confirmMessage)
+      expect(removeItem).toHaveBeenCalledWith(defaultItem.id)
     })
 
-    it('skips confirm', () => {
-      const props = {
-        item: {
-          id: 7,
-          name: 'Zeus',
-          avatarUrl: 'zeus.png'
-        },
-        skipConfirm: true,
-        url: '/happy/place',
-        removeItem: jest.fn(),
-        confirmMessage: 'Are you sure?'
-      }
+    it('skips confirm when skipConfirm is true', () => {
+      const removeItem = jest.fn()
 
-      global.confirm = jest.fn(() => true)
+      window.confirm = jest.fn()
 
-      const wrapper = shallow(<RemovableListItem {...props} />)
-      wrapper.find('[data-stylename="remove-button"]').simulate('click')
-      expect(global.confirm).not.toHaveBeenCalledWith(props.confirmMessage)
-      expect(props.removeItem).toHaveBeenCalledWith(props.item.id)
+      render(
+        <RemovableListItem
+          item={defaultItem}
+          skipConfirm={true}
+          url="/happy/place"
+          removeItem={removeItem}
+        />
+      )
+
+      fireEvent.click(screen.getByText('Remove'))
+
+      expect(window.confirm).not.toHaveBeenCalled()
+      expect(removeItem).toHaveBeenCalledWith(defaultItem.id)
     })
   })
 })

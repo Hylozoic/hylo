@@ -1,52 +1,84 @@
-import UserSettings from './UserSettings'
-import { shallow } from 'enzyme'
 import React from 'react'
-
-jest.mock('react-i18next', () => ({
-  ...jest.requireActual('react-i18next'),
-  withTranslation: () => Component => {
-    Component.defaultProps = { ...Component.defaultProps, t: (str) => str }
-    return Component
-  },
-  useTranslation: () => {
-    return {
-      t: (str) => str,
-      i18n: {
-        changeLanguage: () => new Promise(() => {})
-      }
-    }
-  },
-  initReactI18next: {
-    type: '3rdParty',
-    init: () => {}
-  }
-}))
+import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
+import extractModelsForTest from 'util/testing/extractModelsForTest'
+import orm from 'store/models'
+import UserSettings from './UserSettings'
 
 describe('UserSettings', () => {
-  it('renders correctly', () => {
-    const currentUser = { id: 1, hasFeature: () => true, blockedUsers: { toRefArray: () => ['a user'] } }
-    const memberships = [{ id: 2 }, { id: 3 }]
-    const updateUserSettings = () => {}
-    const leaveGroup = () => {}
-    const loginWithService = () => {}
-    const unlinkAccount = () => {}
-    const setConfirm = () => {}
-    const updateMembershipSettings = () => {}
-    const fetchSavedSearches = () => {}
-    const fetchPending = true
+  let reduxState
 
-    const wrapper = shallow(<UserSettings
-      currentUser={currentUser}
-      memberships={memberships}
-      updateUserSettings={updateUserSettings}
-      leaveGroup={leaveGroup}
-      loginWithService={loginWithService}
-      unlinkAccount={unlinkAccount}
-      setConfirm={setConfirm}
-      fetchForCurrentUser={jest.fn()}
-      updateMembershipSettings={updateMembershipSettings}
-      fetchSavedSearches={fetchSavedSearches}
-      fetchPending={fetchPending} />)
-    expect(wrapper).toMatchSnapshot()
+  beforeAll(() => {
+    const currentUser = {
+      id: '1',
+      hasFeature: () => true,
+      blockedUsers: ['a user'],
+      settings: {}
+    }
+    const memberships = [
+      { id: '2', settings: {}, person: currentUser },
+      { id: '3', settings: {}, person: currentUser }
+    ]
+
+    const ormSession = orm.session(orm.getEmptyState())
+    extractModelsForTest({
+      me: currentUser,
+      memberships: memberships
+    }, ['Me', 'Membership'], ormSession)
+
+    reduxState = {
+      orm: ormSession.state,
+      Authentication: { isLoggedIn: true },
+      FullPageModal: { confirm: false },
+      pending: { FETCH_FOR_CURRENT_USER: false }
+    }
+  })
+
+  it('renders correctly', () => {
+    render(
+      <UserSettings />,
+      { wrapper: AllTheProviders(reduxState) }
+    )
+
+    // Check if main sections are rendered
+    expect(screen.getByText('Edit Profile')).toBeInTheDocument()
+    expect(screen.getByText('Groups & Affiliations')).toBeInTheDocument()
+    expect(screen.getByText('Invites & Requests')).toBeInTheDocument()
+    expect(screen.getByText('Notifications')).toBeInTheDocument()
+    expect(screen.getByText('Account')).toBeInTheDocument()
+    expect(screen.getByText('Saved Searches')).toBeInTheDocument()
+    expect(screen.getByText('Blocked Users')).toBeInTheDocument()
+    expect(screen.getByText('Payment')).toBeInTheDocument()
+  })
+
+  it('does not render Blocked Users tab when user has no blocked users', () => {
+    // Update the currentUser to have no blocked users
+    const currentUserWithNoBlockedUsers = {
+      ...reduxState.orm.Me.itemsById['1'],
+      blockedUsers: []
+    }
+    reduxState.orm.Me.withId('1').update(currentUserWithNoBlockedUsers)
+
+    render(
+      <UserSettings />,
+      { wrapper: AllTheProviders(reduxState) }
+    )
+
+    expect(screen.queryByText('Blocked Users')).not.toBeInTheDocument()
+  })
+
+  it('does not render Payment tab when user does not have PROJECT_CONTRIBUTIONS feature', () => {
+     // Update the currentUser to have no blocked users
+     const currentUserWithNoBlockedUsers = {
+      ...reduxState.orm.Me.itemsById['1'],
+      hasFeature: () => false
+    }
+    reduxState.orm.Me.withId('1').update(currentUserWithNoBlockedUsers)
+
+    render(
+      <UserSettings />,
+      { wrapper: AllTheProviders(reduxState) }
+    )
+
+    expect(screen.queryByText('Payment')).not.toBeInTheDocument()
   })
 })

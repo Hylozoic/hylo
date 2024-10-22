@@ -1,136 +1,92 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import MemberSelector, { Suggestion } from './MemberSelector'
 
 describe('MemberSelector', () => {
   const defaultMinProps = {
-    setMembers: () => {},
-    members: []
+    setMembers: jest.fn(),
+    members: [],
+    setAutocomplete: jest.fn(),
+    fetchPeople: jest.fn(),
+    addMember: jest.fn(),
+    removeMember: jest.fn(),
+    onChange: jest.fn(),
+    memberMatches: []
   }
 
-  function renderComponent (renderFunc, props = {}) {
-    return renderFunc(
-      <MemberSelector {...{ ...defaultMinProps, ...props }} />
-    )
+  function renderComponent(props = {}) {
+    return render(<MemberSelector {...{ ...defaultMinProps, ...props }} />)
   }
 
   it('renders correctly (with min props)', () => {
-    const wrapper = renderComponent(shallow)
-    expect(wrapper).toMatchSnapshot()
+    renderComponent()
+    expect(screen.getByPlaceholderText('Type persons name...')).toBeInTheDocument()
   })
 
-  describe('componentDidMount', () => {
-    it('calls setMembers', () => {
-      const setMembers = jest.fn()
-      renderComponent(shallow, {
-        selectedTopics: [{ name: 'one' }],
-        detailsTopics: [{ name: 'two' }],
-        setMembers
-      })
-      // expect(wrapper.instance().state.selected).toEqual([{name: 'one'}, {name: 'two'}])
-      expect(setMembers).toHaveBeenCalled()
+  it('calls setMembers on mount', () => {
+    renderComponent()
+    expect(defaultMinProps.setMembers).toHaveBeenCalled()
+  })
+
+  it('calls onChange when members change', async () => {
+    const { rerender } = renderComponent()
+    rerender(<MemberSelector {...defaultMinProps} members={[{ id: 1 }]} />)
+    await waitFor(() => expect(defaultMinProps.onChange).toHaveBeenCalledWith([{ id: 1 }]))
+  })
+
+  it('calls setMembers when initialMembers change', async () => {
+    const { rerender } = renderComponent({ initialMembers: [{ id: 1 }] })
+    defaultMinProps.setMembers.mockClear()
+    rerender(<MemberSelector {...defaultMinProps} initialMembers={[{ id: 1 }, { id: 2 }]} />)
+    await waitFor(() => expect(defaultMinProps.setMembers).toHaveBeenCalled())
+  })
+
+  it('handles input change', async () => {
+    renderComponent()
+    fireEvent.change(screen.getByPlaceholderText('Type persons name...'), { target: { value: 'John' } })
+    await waitFor(() => {
+      expect(defaultMinProps.setAutocomplete).toHaveBeenCalledWith('John')
+      expect(defaultMinProps.fetchPeople).toHaveBeenCalledWith({ autocomplete: 'John', groupIds: null })
     })
   })
 
-  describe('componentDidUpdate', () => {
-    it('calls onChange if members changed', () => {
-      const onChange = jest.fn()
-      const props = {
-        ...defaultMinProps,
-        members: [{ id: 1 }, { id: 2 }, { id: 3 }],
-        onChange
-      }
-      const prevProps = {
-        ...defaultMinProps,
-        members: [{ id: 1 }, { id: 2 }]
-      }
-      const wrapper = renderComponent(shallow, props)
-      wrapper.instance().componentDidUpdate(prevProps)
-      expect(onChange).toHaveBeenCalledWith(props.members)
-    })
-
-    it('calls setMembers when it should', () => {
-      const setMembers = jest.fn()
-      const props = {
-        ...defaultMinProps,
-        initialMembers: [{ id: 1 }, { id: 2 }, { id: 3 }],
-        setMembers
-      }
-      const noChangePrevProps = {
-        ...defaultMinProps,
-        initialMembers: [{ id: 1 }, { id: 2 }, { id: 3 }]
-      }
-
-      const yesChangePrevProps = {
-        ...defaultMinProps,
-        initialMembers: [{ id: 1 }, { id: 2 }]
-      }
-      const wrapper = renderComponent(shallow, props)
-      setMembers.mockClear()
-      wrapper.instance().componentDidUpdate(noChangePrevProps)
-      expect(setMembers).not.toHaveBeenCalled()
-      wrapper.instance().componentDidUpdate(yesChangePrevProps)
-      expect(setMembers).toHaveBeenCalled()
+  it('handles member addition', async () => {
+    renderComponent({ memberMatches: [{ id: 1, name: 'John Doe' }] })
+    fireEvent.change(screen.getByPlaceholderText('Type persons name...'), { target: { value: 'John' } })
+    await waitFor(() => {
+      fireEvent.click(screen.getByText('John Doe'))
+      expect(defaultMinProps.addMember).toHaveBeenCalledWith({ id: 1, name: 'John Doe' })
     })
   })
 
-  describe('handleInputChange', () => {
-    it('calls setAutocomplete and fetches people', () => {
-      const setAutocomplete = jest.fn()
-      const fetchPeople = jest.fn()
-      const wrapper = renderComponent(shallow, { setAutocomplete, fetchPeople })
-      const theInput = 'hithere'
-      wrapper.instance().handleInputChange(theInput)
-      expect(setAutocomplete).toHaveBeenCalledWith(theInput)
-      expect(fetchPeople).toHaveBeenCalledWith({ autocomplete: 'hithere', groupIds: null })
-    })
-  })
-
-  describe('handleAddition', () => {
-    it('calls addMember', () => {
-      const addMember = jest.fn()
-      const wrapper = renderComponent(shallow, { addMember })
-      const person = { name: 'one' }
-      wrapper.instance().handleAddition(person)
-      expect(addMember).toHaveBeenCalledWith(person)
-    })
-  })
-
-  describe('handleDelete', () => {
-    it('calls removeMember', () => {
-      const removeMember = jest.fn()
-      const wrapper = renderComponent(shallow, { removeMember })
-      const person = { name: 'one' }
-      wrapper.instance().handleDelete(person)
-      expect(removeMember).toHaveBeenCalledWith(person)
+  it('handles member deletion', async () => {
+    renderComponent({ members: [{ id: 1, name: 'John Doe' }] })
+    fireEvent.click(screen.getByText('×'))
+    await waitFor(() => {
+      expect(defaultMinProps.removeMember).toHaveBeenCalledWith({ id: 1, name: 'John Doe' })
     })
   })
 })
 
 describe('Suggestion', () => {
   const defaultMinProps = {
-    item: {},
-    handleChoice: () => {}
+    item: { id: 1, name: 'John Doe', avatarUrl: 'face.png' },
+    handleChoice: jest.fn()
   }
 
-  function renderComponent (renderFunc, props = {}) {
-    return renderFunc(
-      <Suggestion {...{ ...defaultMinProps, ...props }} />
-    )
+  function renderComponent(props = {}) {
+    return render(<Suggestion {...{ ...defaultMinProps, ...props }} />)
   }
 
-  it('renders correctly (with min props)', () => {
-    const wrapper = renderComponent(shallow)
-    expect(wrapper).toMatchSnapshot()
+  it('renders correctly', () => {
+    renderComponent()
+    expect(screen.getByText('John Doe')).toBeInTheDocument()
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'face.png')
   })
 
-  it('renders correctly (with a user)', () => {
-    const item = {
-      id: 1,
-      name: 'Joe Joe',
-      avatarUrl: 'face.png'
-    }
-    const wrapper = renderComponent(shallow, { item })
-    expect(wrapper).toMatchSnapshot()
+  it('calls handleChoice when clicked', () => {
+    renderComponent()
+    fireEvent.click(screen.getByText('John Doe'))
+    expect(defaultMinProps.handleChoice).toHaveBeenCalledWith(defaultMinProps.item, expect.any(Object))
   })
 })

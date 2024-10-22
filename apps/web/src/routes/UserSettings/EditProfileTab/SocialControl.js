@@ -13,14 +13,12 @@ class SocialControl extends Component {
     provider: string,
     value: string,
     updateSettingDirectly: func,
-    handleUnlinkAccount: func,
-    onLink: func,
-    fetchLocation: func
+    handleUnlinkAccount: func
   }
 
   windowPrompt (network, urlPattern) {
-    const promptText = this.props.t(`Please enter the full url for your {{network}} page.`, { network })
-    const invalidUrlText = this.props.t(`Invalid url. Please enter the full url for your {{network}} page.`, { network })
+    const promptText = this.props.t('Please enter the full url for your {{network}} page.', { network })
+    const invalidUrlText = this.props.t('Invalid url. Please enter the full url for your {{network}} page.', { network })
 
     let url = window.prompt(promptText)
 

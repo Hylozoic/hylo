@@ -1,6 +1,7 @@
-import NotificationsDropdown, { Notification } from './NotificationsDropdown'
-import { shallow } from 'enzyme'
 import React from 'react'
+import mockGraphqlServer from 'util/testing/mockGraphqlServer'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import NotificationsDropdown, { Notification } from './NotificationsDropdown'
 import {
   ACTION_NEW_COMMENT,
   ACTION_TAG,
@@ -146,65 +147,95 @@ const notifications = [
 // }
 
 describe('NotificationsDropdown', () => {
+  mockGraphqlServer.resetHandlers(
+    graphql.query('NotificationsQuery', (req, res, ctx) => {
+      return res(
+        ctx.data({
+          notifications: null
+        })
+      )
+    })
+  )
+
   it('renders correctly with an empty list', () => {
-    const wrapper = shallow(<NotificationsDropdown
-      renderToggleChildren={() => <span>click me</span>}
-      notifications={[]}
-      currentUser={u1}
-      fetchNotifications={jest.fn()}
-    />)
-    expect(wrapper).toMatchSnapshot()
+    render(
+      <NotificationsDropdown
+        renderToggleChildren={() => <span>click me</span>}
+        notifications={[]}
+        currentUser={u1}
+        fetchNotifications={jest.fn()}
+      />
+    )
+
+    expect(screen.getByText('click me')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('click me'))
+    expect(screen.getByText('No notifications')).toBeInTheDocument()
   })
 
-  it('renders correctly with a list of threads', () => {
-    const wrapper = shallow(<NotificationsDropdown
-      renderToggleChildren={() => <span>click me</span>}
-      notifications={notifications}
-      currentUser={u1}
-      fetchNotifications={jest.fn()}
-    />)
-    expect(wrapper).toMatchSnapshot()
+  it('renders correctly with a list of notifications', () => {
+    render(
+      <NotificationsDropdown
+        renderToggleChildren={() => <span>click me</span>}
+        notifications={notifications}
+        currentUser={u1}
+        fetchNotifications={jest.fn()}
+      />
+    )
+
+    expect(screen.getByText('click me')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('click me'))
+    expect(screen.getByText('Recent')).toBeInTheDocument()
+    expect(screen.getByText('Unread')).toBeInTheDocument()
+    expect(screen.getByText('Mark all as read')).toBeInTheDocument()
   })
 })
 
 describe('Notification', () => {
   it('renders correctly with a comment notification', () => {
-    const wrapper = shallow(<Notification notification={commentNotification} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<Notification notification={commentNotification} />)
+    expect(screen.getByText(/commented on/i)).toBeInTheDocument()
+    expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
   })
 
   it('renders correctly with a tag notification', () => {
-    const wrapper = shallow(<Notification notification={tagNotification} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<Notification notification={tagNotification} />)
+    expect(screen.getByText(/tagged you in a post/i)).toBeInTheDocument()
+    expect(screen.getByText(/I have so many things I need!/i)).toBeInTheDocument()
   })
 
   it('renders correctly with a join request notification', () => {
-    const wrapper = shallow(<Notification notification={joinRequestNotification} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<Notification notification={joinRequestNotification} />)
+    expect(screen.getByText(/asked to join/i)).toBeInTheDocument()
+    expect(screen.getByText(/Foomunity/i)).toBeInTheDocument()
   })
 
   it('renders correctly with an approved join request notification', () => {
-    const wrapper = shallow(<Notification notification={approvedJoinRequestNotification} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<Notification notification={approvedJoinRequestNotification} />)
+    expect(screen.getByText(/approved your request to join/i)).toBeInTheDocument()
+    expect(screen.getByText(/Foomunity/i)).toBeInTheDocument()
   })
 
   it('renders correctly with a mention notification', () => {
-    const wrapper = shallow(<Notification notification={mentionNotification} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<Notification notification={mentionNotification} />)
+    expect(screen.getByText(/mentioned you in/i)).toBeInTheDocument()
+    expect(screen.getByText(/Heads up/i)).toBeInTheDocument()
   })
 
   it('renders correctly with a donation to notification', () => {
-    const wrapper = shallow(<Notification notification={donationToNotification} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<Notification notification={donationToNotification} />)
+    expect(screen.getByText(/donated to your project/i)).toBeInTheDocument()
+    expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
   })
 
-  it('renders correctly with a donation to notification', () => {
-    const wrapper = shallow(<Notification notification={donationFromNotification} />)
-    expect(wrapper).toMatchSnapshot()
+  it('renders correctly with a donation from notification', () => {
+    render(<Notification notification={donationFromNotification} />)
+    expect(screen.getByText(/thanked you for your donation to/i)).toBeInTheDocument()
+    expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
   })
 
   it('renders correctly with a comment mention notification', () => {
-    const wrapper = shallow(<Notification notification={commentMentionNotification} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<Notification notification={commentMentionNotification} />)
+    expect(screen.getByText(/mentioned you in a comment on/i)).toBeInTheDocument()
+    expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
   })
 })

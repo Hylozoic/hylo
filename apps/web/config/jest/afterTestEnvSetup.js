@@ -1,5 +1,3 @@
-import { configure } from 'enzyme'
-import Adapter from 'enzyme-adapter-react-16'
 import mockGraphqlServer from '../../src/util/testing/mockGraphqlServer'
 // Adds additional jest expecations for React Testing Library
 //  https://github.com/testing-library/jest-dom
@@ -10,9 +8,20 @@ import '@testing-library/jest-dom'
 //       You Has access to installed test environment, methods like describe, expect and other globals.
 //       You can for example add your custom matchers here.
 
-configure({ adapter: new Adapter() })
 
 // import { IntercomProvider } from 'react-use-intercom'
+
+// ref: https://jestjs.io/docs/manual-mocks#mocking-methods-which-are-not-implemented-in-jsdom
+// ref: https://github.com/jsdom/jsdom/issues/2524
+import * as util from 'util'
+Object.defineProperty(window, 'TextEncoder', {
+  writable: true,
+  value: util.TextEncoder
+})
+Object.defineProperty(window, 'TextDecoder', {
+  writable: true,
+  value: util.TextDecoder
+})
 
 // Keep the mockGraphqlServer (msw) tidy between tests
 beforeAll(() => mockGraphqlServer.listen({ onUnhandledRequest: 'error' }))
@@ -49,3 +58,8 @@ jest.mock('react-i18next', () => ({
     init: () => {}
   }
 }))
+
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
+  useParams: jest.fn(),
+}));

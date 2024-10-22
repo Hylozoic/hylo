@@ -1,6 +1,6 @@
-import PrivacySettingsTab from './PrivacySettingsTab'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import PrivacySettingsTab from './PrivacySettingsTab'
 
 describe('PrivacySettingsTab', () => {
   it('renders correctly', () => {
@@ -15,7 +15,21 @@ describe('PrivacySettingsTab', () => {
       accessibility: 1,
       visibility: 1
     }
-    const wrapper = shallow(<PrivacySettingsTab group={group} />)
-    expect(wrapper).toMatchSnapshot()
+
+    render(<PrivacySettingsTab group={group} />)
+
+    // Check for key elements
+    expect(screen.getByText('Visibility')).toBeInTheDocument()
+    expect(screen.getByText('Access')).toBeInTheDocument()
+    expect(screen.getByText('Join Questions')).toBeInTheDocument()
+    expect(screen.getByText('Prerequisite Groups')).toBeInTheDocument()
+    expect(screen.getByText('Group Access Questions')).toBeInTheDocument()
+
+    // Check for group name in the rendered content
+    expect(screen.getByText(`Who is able to see ${group.name}?`)).toBeInTheDocument()
+    expect(screen.getByText(`How can people become members of ${group.name}`)).toBeInTheDocument()
+
+    // Check for the save button
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument()
   })
 })

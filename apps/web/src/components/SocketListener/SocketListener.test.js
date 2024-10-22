@@ -1,9 +1,9 @@
-import SocketListener from './SocketListener'
-import { mount } from 'enzyme'
 import React from 'react'
-import { getSocket, setSocket } from 'client/websockets.mjs'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import SocketListener from './SocketListener'
+import { getSocket, setSocket } from 'client/websockets'
 
-var realSocket, mockSocket, listens
+let realSocket, mockSocket, listens
 
 beforeEach(() => {
   realSocket = getSocket()
@@ -23,20 +23,63 @@ afterEach(() => {
 })
 
 it('sets up event handlers and subscribes', () => {
-  const wrapper = mount(<SocketListener
-    receiveComment={() => {}}
-    receiveMessage={() => {}}
-    receiveNotification={() => {}}
-    receivePost={() => {}}
-    receiveThread={() => {}} />)
-  const handlers = Object.keys(wrapper.instance().handlers)
-  handlers.forEach(name => {
-    const listen = listens.find(x => x[0] === name)
+  const mockHandlers = {
+    receiveComment: jest.fn(),
+    receiveMessage: jest.fn(),
+    receiveNotification: jest.fn(),
+    receivePost: jest.fn(),
+    receiveThread: jest.fn(),
+    addUserTyping: jest.fn(),
+    clearUserTyping: jest.fn()
+  }
+
+  render(<SocketListener {...mockHandlers} />)
+
+  // Check if all event handlers are set up
+  const expectedHandlers = [
+    'commentAdded',
+    'messageAdded',
+    'newNotification',
+    'newPost',
+    'newThread',
+    'userTyping'
+  ]
+
+  expectedHandlers.forEach(handlerName => {
+    const listen = listens.find(x => x[0] === handlerName)
     expect(listen).toBeTruthy()
     expect(typeof listen[1]).toEqual('function')
   })
 
-  expect(mockSocket.post).toBeCalled()
-  expect(mockSocket.post.mock.calls[0][0])
-    .toBe(`${process.env.SOCKET_HOST}/noo/threads/subscribe`)
+  // Check if the component subscribes to the socket
+  expect(mockSocket.post).toHaveBeenCalledWith(
+    `${process.env.SOCKET_HOST}/noo/threads/subscribe`,
+    expect.any(Function)
+  )
 })
+
+it('unsubscribes and removes event handlers on unmount', () => {
+  const { unmount } = render(<SocketListener />)
+
+  unmount()
+
+  expect(mockSocket.post).toHaveBeenCalledWith(
+    `${process.env.SOCKET_HOST}/noo/threads/unsubscribe`
+  )
+
+  // Check if all event handlers are removed
+  const expectedHandlers = [
+    'commentAdded',
+    'messageAdded',
+    'newNotification',
+    'newPost',
+    'newThread',
+    'userTyping'
+  ]
+
+  expectedHandlers.forEach(handlerName => {
+    expect(mockSocket.off).toHaveBeenCalledWith(handlerName, expect.any(Function))
+  })
+})
+
+// Add more specific tests as needed

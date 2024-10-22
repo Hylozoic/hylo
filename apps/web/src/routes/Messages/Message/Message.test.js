@@ -1,45 +1,44 @@
-import Message from './Message'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import Message from './Message'
 
-it('to match the latest snapshot', () => {
-  const message = {
+describe('Message', () => {
+  const defaultMessage = {
     id: '1',
-    text: 'test',
+    text: 'test message',
+    createdAt: '2023-04-15T12:00:00Z',
     creator: {
       id: '1',
       name: 'Good Person',
       avatarUrl: 'http://avatar.com/i.png'
     }
   }
-  const wrapper = shallow(<Message message={message} isHeader />)
-  expect(wrapper).toMatchSnapshot()
-})
 
-it('to match the latest non-header snapshot', () => {
-  const message = {
-    id: '1',
-    text: 'test',
-    creator: {
-      id: '1',
-      name: 'Good Person',
-      avatarUrl: 'http://avatar.com/i.png'
-    }
-  }
-  const wrapper = shallow(<Message message={message} />)
-  expect(wrapper).toMatchSnapshot()
-})
+  it('renders a header message correctly', () => {
+    render(<Message message={defaultMessage} isHeader />)
 
-it('to display sending... when message is still in optimistic state', () => {
-  const message = {
-    id: 'messageThread12_1',
-    text: 'test',
-    creator: {
-      id: '1',
-      name: 'Good Person',
-      avatarUrl: 'http://avatar.com/i.png'
+    expect(screen.getByText('Good Person')).toBeInTheDocument()
+    expect(screen.getByText('test message')).toBeInTheDocument()
+    expect(screen.getByRole('img')).toBeInTheDocument()
+    expect(screen.getByText(/Apr 15, 2023/)).toBeInTheDocument()
+  })
+
+  it('renders a non-header message correctly', () => {
+    render(<Message message={defaultMessage} />)
+
+    expect(screen.queryByText('Good Person')).not.toBeInTheDocument()
+    expect(screen.getByText('test message')).toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('displays "sending..." when message is in optimistic state', () => {
+    const optimisticMessage = {
+      ...defaultMessage,
+      id: 'messageThread12_1'
     }
-  }
-  const wrapper = shallow(<Message message={message} isHeader />)
-  expect(wrapper).toMatchSnapshot()
+    render(<Message message={optimisticMessage} isHeader />)
+
+    expect(screen.getAllByText('sending...')).toHaveLength(2)
+    expect(screen.queryByText(/Apr 15, 2023/)).not.toBeInTheDocument()
+  })
 })

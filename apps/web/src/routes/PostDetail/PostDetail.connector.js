@@ -10,7 +10,7 @@ import respondToEvent from 'store/actions/respondToEvent'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { FETCH_POST } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
 import getRouteParam from 'store/selectors/getRouteParam'
@@ -22,7 +22,7 @@ export function mapStateToProps (state, props) {
   const id = getRouteParam('postId', props)
   const routeParams = props.match.params
   // everything else
-  const currentGroup = getGroupForCurrentRoute(state, props)
+  const currentGroup = getGroupForSlug(state, props)
   const post = presentPost(getPost(state, props), get('id', currentGroup))
   const currentUser = getMe(state)
   const isProjectMember = find(({ id }) => id === get('id', currentUser), get('members', post))

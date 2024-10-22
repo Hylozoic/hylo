@@ -1,31 +1,39 @@
-import { mount, shallow } from 'enzyme'
 import React from 'react'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import userEvent from '@testing-library/user-event'
 
 import SimpleTabBar from './SimpleTabBar'
 
 const tabNames = ['Wombats', 'Aardvarks', 'Ocelots']
 
-it('renders the same as the last snapshot', () => {
-  const wrapper = shallow(
-    <SimpleTabBar currentTab='Wombats' tabNames={tabNames} />
-  )
-  expect(wrapper).toMatchSnapshot()
+it('renders all tab names', () => {
+  render(<SimpleTabBar tabNames={tabNames} />)
+
+  tabNames.forEach(name => {
+    expect(screen.getByText(name)).toBeInTheDocument()
+  })
 })
 
 it('renders the correct number of tabs', () => {
-  const wrapper = shallow(
-    <SimpleTabBar tabNames={tabNames} />
-  )
-  expect(wrapper.find('li').length).toBe(3)
+  render(<SimpleTabBar tabNames={tabNames} />)
+
+  const tabs = screen.getAllByRole('listitem')
+  expect(tabs).toHaveLength(3)
 })
 
-it('calls selectTab with the correct value when tab is clicked', () => {
+it('calls selectTab with the correct value when tab is clicked', async () => {
   const selectTab = jest.fn()
-  const wrapper = mount(
-    <SimpleTabBar tabNames={tabNames} selectTab={selectTab} />
-  )
-  wrapper.find('li').last().simulate('click')
-  const expected = tabNames[2]
-  const actual = selectTab.mock.calls[0][0]
-  expect(actual).toBe(expected)
+  render(<SimpleTabBar tabNames={tabNames} selectTab={selectTab} />)
+
+  const lastTab = screen.getByText('Ocelots')
+  await userEvent.click(lastTab)
+
+  expect(selectTab).toHaveBeenCalledWith('Ocelots')
+})
+
+it('applies active class to the current tab', () => {
+  render(<SimpleTabBar currentTab='Wombats' tabNames={tabNames} />)
+
+  const activeTab = screen.getByText('Wombats')
+  expect(activeTab).toHaveClass('tabActive')
 })

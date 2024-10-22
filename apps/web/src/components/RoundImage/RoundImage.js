@@ -19,7 +19,7 @@ export default function RoundImage ({
   onClick,
   withBorder = true
 }) {
-  let imageClasses = cx(
+  const imageClasses = cx(
     classes.image,
     {
       [classes.square]: square,
@@ -32,19 +32,23 @@ export default function RoundImage ({
       [classes.overlapsVertical]: overlapsVertical
     }
   )
-  var style = bgImageStyle(url)
+  let style = bgImageStyle(url)
   if (size) {
     style = { ...style, width: size, height: size }
   }
   if (!withBorder) {
     style = { ...style, borderWidth: 0 }
   }
-  return <div
-    style={style}
-    className={cx(imageClasses, className)}
-    onClick={onClick}
-  />
+  return (
+    <div
+      role='img'
+      style={style}
+      className={cx(imageClasses, className)}
+      onClick={onClick}
+    />
+  )
 }
+
 RoundImage.propTypes = {
   url: string,
   tiny: bool,

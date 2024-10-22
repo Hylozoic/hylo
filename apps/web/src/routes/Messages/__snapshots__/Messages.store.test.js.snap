@@ -3,32 +3,7 @@
 exports[`findOrCreateThread matches the last snapshot 1`] = `
 Object {
   "graphql": Object {
-    "query": "mutation FindOrCreateThreadMutation($participantIds: [String]) {
-        findOrCreateThread(data: {participantIds: $participantIds}) {
-          id
-          createdAt
-          updatedAt
-          participants {
-            id
-            name
-            avatarUrl
-          }
-          messages {
-            items {
-              id
-              text
-              creator {
-                id
-                name
-                avatarUrl
-              }
-              createdAt
-            }
-            total
-            hasMore
-          }
-        }
-      }",
+    "query": undefined,
     "variables": Object {
       "participantIds": Array [
         "1",

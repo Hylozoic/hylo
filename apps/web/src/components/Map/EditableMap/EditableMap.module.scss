@@ -1,4 +1,4 @@
-div.map-control { 
+div.map-control {
   &:not(:empty) {
     box-shadow: 0px 5px 15px rgba(42, 64, 89, 0.15);;
   }
@@ -31,12 +31,12 @@ div.map-control {
     cursor: crosshair;
   }
 }
-.mapbox-gl-draw_polygon,
-.mapbox-gl-draw_circle-ex,
-.mapbox-gl-draw_plus,
-.mapbox-gl-draw_minus,
+.mapbox-gl-draw-polygon,
+.mapbox-gl-draw-circle-ex,
+.mapbox-gl-draw-plus,
+.mapbox-gl-draw-minus,
 .mapbox-gl-expand,
-.mapbox-gl-draw_reset {
+.mapbox-gl-draw-reset {
   span {
     display: inline-block;
     vertical-align: middle;

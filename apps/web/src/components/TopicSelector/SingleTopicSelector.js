@@ -1,11 +1,12 @@
+import { isEmpty, sortBy } from 'lodash/fp'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import AsyncCreatableSelect from 'react-select/async-creatable'
-import styles from './TopicSelector.module.scss'
-import { isEmpty, sortBy } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
 import Icon from 'components/Icon'
 import connector from './TopicSelector.connector'
+
+import classes from './TopicSelector.module.scss'
 
 const inputStyles = {
   container: styles => ({
@@ -105,13 +106,15 @@ class SingleTopicSelector extends Component {
               ? count
               : (count / 1000).toFixed(1) + 'k'
 
-          return <div className={styles.item}>
-            <div className={classes.menuTopicLabel}>#{name}</div>
-            <div className={classes.suggestionMeta}>
-              <span className={classes.column}><Icon name='Star' className={classes.icon} />{formatCount(followersTotal)} {t('subscribers')}</span>
-              <span className={classes.column}><Icon name='Events' className={classes.icon} />{formatCount(postsTotal)} {t('posts')}</span>
+          return (
+            <div className={classes.item}>
+              <div className={classes.menuTopicLabel}>#{name}</div>
+              <div className={classes.suggestionMeta}>
+                <span className={classes.column}><Icon name='Star' className={classes.icon} />{formatCount(followersTotal)} {t('subscribers')}</span>
+                <span className={classes.column}><Icon name='Events' className={classes.icon} />{formatCount(postsTotal)} {t('posts')}</span>
+              </div>
             </div>
-          </div>
+          )
         }}
       />
     )

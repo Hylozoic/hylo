@@ -1,18 +1,20 @@
-import { mount, shallow } from 'enzyme'
 import React from 'react'
-
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import MatchingPeopleListItem from './MatchingPeopleListItem'
 
-it('matches last snapshot', () => {
-  const wrapper = shallow(<MatchingPeopleListItem />)
-  expect(wrapper).toMatchSnapshot()
-})
+describe('MatchingPeopleListItem', () => {
+  it('renders name and avatar', () => {
+    render(<MatchingPeopleListItem name="John Doe" avatarUrl="https://example.com/avatar.jpg" />)
 
-it('calls onClick when close button clicked', () => {
-  const onClick = jest.fn()
-  const wrapper = mount(
-    <MatchingPeopleListItem onClick={onClick} />
-  )
-  wrapper.find('span').last().simulate('click')
-  expect(onClick).toHaveBeenCalled()
+    expect(screen.getByText('John Doe')).toBeInTheDocument()
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'https://example.com/avatar.jpg')
+  })
+
+  it('calls onClick when close button clicked', () => {
+    const onClick = jest.fn()
+    render(<MatchingPeopleListItem name="John Doe" onClick={onClick} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /ex/i }))
+    expect(onClick).toHaveBeenCalled()
+  })
 })

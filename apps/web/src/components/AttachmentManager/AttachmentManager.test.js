@@ -1,16 +1,17 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react'
-import { shallow } from 'enzyme'
+import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
+import userEvent from '@testing-library/user-event'
 import AttachmentManager, { ImageManager, ImagePreview, FileManager, FilePreview } from './AttachmentManager'
 
 const minDefaultProps = {
   type: 'anything',
-  loadAttachments: () => {},
-  addAttachment: () => {},
-  removeAttachment: () => {},
-  moveAttachment: () => {},
-  clearAttachments: () => {},
-  setAttachments: () => {}
+  loadAttachments: jest.fn(),
+  addAttachment: jest.fn(),
+  removeAttachment: jest.fn(),
+  moveAttachment: jest.fn(),
+  clearAttachments: jest.fn(),
+  setAttachments: jest.fn()
 }
 
 const postEditorCaseDefaultProps = {
@@ -42,151 +43,125 @@ const attachments = [
 ]
 
 describe('AttachmentManager', () => {
-  it('renders with minProps', () => {
-    expect(shallow(
-      <AttachmentManager {...minDefaultProps} />
-    ).text()).toBe('')
+  it('renders nothing with minProps', () => {
+    render(<AttachmentManager {...minDefaultProps} />)
+    expect(screen.queryByText(/Images/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Files/)).not.toBeInTheDocument()
   })
 
-  describe('as used with PostEditor (showLabel, showLoading, showAddButtons)', () => {
+  describe('as used with PostEditor', () => {
     test('when empty', () => {
-      expect(shallow(
-        <AttachmentManager {...postEditorCaseDefaultProps} />
-      )).toMatchSnapshot()
+      render(<AttachmentManager {...postEditorCaseDefaultProps} />)
+      expect(screen.queryByText(/Images/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Files/)).not.toBeInTheDocument()
     })
 
     test('with attachments', () => {
-      expect(shallow(
-        <AttachmentManager attachments={attachments} {...postEditorCaseDefaultProps} />
-      )).toMatchSnapshot()
+      render(<AttachmentManager attachments={attachments} {...postEditorCaseDefaultProps} />)
+      expect(screen.getByText('Images')).toBeInTheDocument()
+      expect(screen.getByText('Files')).toBeInTheDocument()
+      expect(screen.getAllByRole('img')).toHaveLength(2)
+      expect(screen.getAllByText(/thing\d\./).length).toBe(2)
     })
 
     test('when loading', () => {
-      expect(shallow(
-        <AttachmentManager uploadAttachmentPending {...postEditorCaseDefaultProps} />
-      )).toMatchSnapshot()
-    })
-
-    test('when loading, with attachments', () => {
-      expect(shallow(
-        <AttachmentManager attachments={attachments} uploadAttachmentPending {...postEditorCaseDefaultProps} />
-      )).toMatchSnapshot()
+      render(<AttachmentManager uploadAttachmentPending {...postEditorCaseDefaultProps} />)
+      expect(screen.getByText('Loading...')).toBeInTheDocument()
     })
   })
 
-  describe('as used with CommentForm (default case)', () => {
+  describe('as used with CommentForm', () => {
     test('when empty', () => {
-      expect(shallow(
-        <AttachmentManager {...commentFormCaseDefaultProps} />
-      )).toMatchSnapshot()
+      render(<AttachmentManager {...commentFormCaseDefaultProps} />)
+      expect(screen.queryByText(/Images/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Files/)).not.toBeInTheDocument()
     })
 
     test('with attachments', () => {
-      expect(shallow(
-        <AttachmentManager attachments={attachments} {...commentFormCaseDefaultProps} />
-      )).toMatchSnapshot()
-    })
-
-    test('when loading', () => {
-      expect(shallow(
-        <AttachmentManager uploadAttachmentPending {...commentFormCaseDefaultProps} />
-      )).toMatchSnapshot()
-    })
-
-    test('when loading, with attachments', () => {
-      expect(shallow(
-        <AttachmentManager attachments={attachments} uploadAttachmentPending {...commentFormCaseDefaultProps} />
-      )).toMatchSnapshot()
+      render(<AttachmentManager attachments={attachments} {...commentFormCaseDefaultProps} />)
+      expect(screen.getAllByRole('img')).toHaveLength(2)
+      expect(screen.getAllByText(/thing\d\./).length).toBe(2)
     })
   })
 
   describe('when attachmentType', () => {
-    describe('"image"', () => {
-      test('with attachments (of both types), when loading', () => {
-        expect(shallow(
-          <AttachmentManager attachmentType='image' attachments={attachments} uploadAttachmentPending {...minDefaultProps} />
-        )).toMatchSnapshot()
-      })
+    test('"image" with attachments', () => {
+      render(<AttachmentManager attachmentType='image' attachments={attachments} {...minDefaultProps} />)
+      expect(screen.getAllByRole('img')).toHaveLength(2)
+      expect(screen.queryByText(/thing\d\./)).not.toBeInTheDocument()
     })
-    describe('"file"', () => {
-      test('with attachments (of both types), when loading', () => {
-        expect(shallow(
-          <AttachmentManager attachmentType='file' attachments={attachments} uploadAttachmentPending {...minDefaultProps} />
-        )).toMatchSnapshot()
-      })
-    })
-    describe('not provided', () => {
-      test('with attachments (of both types), when loading', () => {
-        expect(shallow(
-          <AttachmentManager attachments={attachments} uploadAttachmentPending {...minDefaultProps} />
-        )).toMatchSnapshot()
-      })
+
+    test('"file" with attachments', () => {
+      render(<AttachmentManager attachmentType='file' attachments={attachments} {...minDefaultProps} />)
+      expect(screen.queryByRole('img')).not.toBeInTheDocument()
+      expect(screen.getAllByText(/thing\d\./).length).toBe(2)
     })
   })
 })
 
 describe('ImageManager', () => {
-  it('matches last snapshot', () => {
+  it('renders correctly', () => {
     const props = {
       type: 'post',
-      id: 1,
+      id: '1',
       showLabel: true,
       showAddButton: true,
       showLoading: true,
       uploadAttachmentPending: true,
       attachments: imageAttachments,
-      addAttachment: () => {},
-      removeAttachment: () => {},
-      moveAttachment: () => {}
+      addAttachment: jest.fn(),
+      removeAttachment: jest.fn(),
+      moveAttachment: jest.fn()
     }
-    const wrapper = shallow(<ImageManager {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<ImageManager {...props} />)
+    expect(screen.getByText('Images')).toBeInTheDocument()
+    expect(screen.getAllByRole('img')).toHaveLength(2)
+    expect(screen.getByText('+')).toBeInTheDocument()
   })
 })
 
 describe('ImagePreview', () => {
-  it('matches last snapshot', () => {
+  it('renders correctly', () => {
     const props = {
-      attachment: { url: 'https://nowhere/foo.zng', attachmentType: 'file' },
-      attachments: [
-        { attachmentType: 'image', url: 'https://nowhere/foo.png' },
-        { attachmentType: 'image', url: 'https://nowhere/foo.png' }
-      ],
-      position: 1,
-      removeImage: () => {}
+      attachment: { url: 'https://nowhere/foo.png', attachmentType: 'image' },
+      removeImage: jest.fn()
     }
-    const wrapper = shallow(<ImagePreview {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<ImagePreview {...props} />)
+    expect(screen.getByRole('img')).toBeInTheDocument()
+    expect(screen.getByRole('button')).toBeInTheDocument()
   })
 })
 
 describe('FileManager', () => {
-  it('matches last snapshot', () => {
+  it('renders correctly', () => {
     const props = {
       type: 'post',
-      id: 1,
+      id: '1',
       showLabel: true,
       showAddButton: true,
       showLoading: true,
       uploadAttachmentPending: true,
       attachments: fileAttachments,
-      addAttachment: () => {},
-      removeAttachment: () => {}
+      addAttachment: jest.fn(),
+      removeAttachment: jest.fn()
     }
-    const wrapper = shallow(<FileManager {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<FileManager {...props} />)
+    expect(screen.getByText('Files')).toBeInTheDocument()
+    expect(screen.getAllByText(/thing\d\./).length).toBe(2)
+    expect(screen.getByText('Add File')).toBeInTheDocument()
   })
 })
 
 describe('FilePreview', () => {
-  it('matches last snapshot', () => {
+  it('renders correctly', () => {
     const props = {
       attachment: { url: 'https://nowhere/foo.pdf', attachmentType: 'file' },
-      position: 1,
-      fileSize: '23.3mb',
-      removeFile: () => {}
+      removeFile: jest.fn(),
+      fileSize: '23.3mb'
     }
-    const wrapper = shallow(<FilePreview {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<FilePreview {...props} />)
+    expect(screen.getByText('foo.pdf')).toBeInTheDocument()
+    expect(screen.getByText('23.3mb')).toBeInTheDocument()
+    expect(screen.getByRole('button')).toBeInTheDocument()
   })
 })

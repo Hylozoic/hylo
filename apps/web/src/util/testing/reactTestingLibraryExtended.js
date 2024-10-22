@@ -3,10 +3,11 @@ import React from 'react'
 import { MemoryRouter } from 'react-router'
 import { Provider } from 'react-redux'
 import { createStore } from 'redux'
+import { createReduxHistoryContext } from "redux-first-history"
 import { render } from '@testing-library/react'
+import { history, getEmptyState } from 'store'
 import createRootReducer from 'store/reducers'
 import createMiddleware from 'store/middleware'
-import { history, getEmptyState } from 'store'
 import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
 
 // Note: This is ran by default via `customRender` below, but it's necessary to manually
