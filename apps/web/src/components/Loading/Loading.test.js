@@ -1,8 +1,30 @@
-import Loading from './Loading'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import Loading from './Loading'
 
-it('does something', () => {
-  shallow(<Loading />)
-  // expect(wrapper.find('element')).toBeTruthy()
+describe('Loading component', () => {
+  it('renders the loading indicator', () => {
+    render(<Loading />)
+    const loadingElement = screen.getByRole('img', { name: /loading/i })
+    expect(loadingElement).toBeInTheDocument()
+  })
+
+  it('applies the correct class for fullscreen type', () => {
+    render(<Loading type="fullscreen" />)
+    const loadingElement = screen.getByRole('img', { name: /loading/i })
+    expect(loadingElement.parentElement).toHaveClass('loadingFullscreen')
+  })
+
+  it('applies the correct class for inline type and sets the correct size', () => {
+    render(<Loading type="inline" />)
+    const loadingElement = screen.getByRole('img', { name: /loading/i })
+    expect(loadingElement.parentElement).toHaveClass('loadingInline')
+    expect(loadingElement).toHaveAttribute('width', '25px')
+  })
+
+  it('allows custom size to be set', () => {
+    render(<Loading size={60} />)
+    const loadingElement = screen.getByRole('img', { name: /loading/i })
+    expect(loadingElement).toHaveAttribute('width', '60px')
+  })
 })

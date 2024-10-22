@@ -1,32 +1,47 @@
 import React from 'react'
-import { shallow } from 'enzyme'
-import PostBody from './index'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import PostTitle from './index'
 
-it('matches last snapshot', () => {
-  const props = {
-    id: 1,
-    title: 'hello there',
-    details: 'the details',
-    linkPreview: {
-      title: 'a walk in the park',
-      url: 'www.hylo.com/awitp',
-      imageUrl: 'foo.png'
-    },
-    slug: 'foomunity',
-    expanded: true,
-    className: 'classy',
-    highlightProps: { term: 'foo' },
-    fileAttachments: [
-      {
-        id: 1,
-        url: 'https://www.hylo.com/awitp.pdf'
-      },
-      {
-        id: 1,
-        url: 'http://www.google.com/lalala.zip'
-      }
-    ]
+describe('PostTitle', () => {
+  const defaultProps = {
+    title: 'Hello there',
+    location: 'New York, NY',
+    locationObject: { city: 'New York', state: 'NY' },
+    type: 'post',
+    onClick: jest.fn(),
+    highlightProps: { term: 'Hello' }
   }
-  const wrapper = shallow(<PostBody {...props} />)
-  expect(wrapper).toMatchSnapshot()
+
+  it('renders the title correctly', () => {
+    render(<PostTitle {...defaultProps} />)
+    expect(screen.getByText('Hello there')).toBeInTheDocument()
+  })
+
+  it('renders the location for non-event posts', () => {
+    render(<PostTitle {...defaultProps} />)
+    expect(screen.getByText('New York, NY')).toBeInTheDocument()
+    expect(screen.getByTestId('icon-Location')).toBeInTheDocument()
+  })
+
+  it('does not render location for event posts', () => {
+    render(<PostTitle {...defaultProps} type="event" />)
+    expect(screen.queryByText('New York, NY')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('icon-Location')).not.toBeInTheDocument()
+  }
+
+  it('applies constrained class when constrained prop is true', () => {
+    render(<PostTitle {...defaultProps} constrained={true} />)
+    expect(screen.getByText('Hello there')).toHaveClass('constrained')
+  })
+
+  it('calls onClick when title is clicked', () => {
+    render(<PostTitle {...defaultProps} />)
+    screen.getByText('Hello there').click()
+    expect(defaultProps.onClick).toHaveBeenCalled()
+  })
+
+  it('applies highlight to the title', () => {
+    render(<PostTitle {...defaultProps} />)
+    expect(screen.getByText('Hello')).toHaveClass('highlight')
+  })
 })

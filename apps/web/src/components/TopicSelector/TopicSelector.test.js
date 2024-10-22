@@ -1,107 +1,83 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import TopicSelector from './TopicSelector'
 
 describe('TopicSelector', () => {
-  const defaultMinProps = {
-    fetchDefaultTopics: () => {}
+  const defaultProps = {
+    fetchDefaultTopics: jest.fn(),
+    findTopics: jest.fn(),
+    onChange: jest.fn(),
   }
 
-  function renderComponent (renderFunc, props = {}) {
-    return renderFunc(
-      <TopicSelector {...{ ...defaultMinProps, ...props }} />
-    )
+  const renderComponent = (props = {}) => {
+    return render(<TopicSelector {...defaultProps} {...props} />)
   }
 
-  it('renders correctly (with min props)', () => {
-    const wrapper = renderComponent(shallow)
-    expect(wrapper).toMatchSnapshot()
+  it('renders correctly (with default props)', () => {
+    renderComponent()
+    expect(screen.getByPlaceholderText('Enter up to three topics...')).toBeInTheDocument()
   })
 
-  describe('componentDidMount', () => {
-    it('calls updateSelected', () => {
-      const wrapper = renderComponent(shallow, {
-        selectedTopics: [{ name: 'one' }]
-      })
-      expect(wrapper.instance().state.selected).toEqual([{ name: 'one' }])
-    })
+  it('calls fetchDefaultTopics on mount', () => {
+    renderComponent({ forGroups: [{ slug: 'test-group' }] })
+    expect(defaultProps.fetchDefaultTopics).toHaveBeenCalledWith({ groupSlug: 'test-group' })
   })
 
-  describe('componentDidUpdate', () => {
-    it('calls updateSelected if selectedTopics has changed', () => {
-      const props = {
-        selectedTopics: [{ name: 'one' }],
-        detailsTopics: [{ name: 'two' }]
-      }
-      const wrapper = renderComponent(shallow, props)
-      wrapper.instance().updateSelected = jest.fn()
-      wrapper.instance().componentDidUpdate({ ...defaultMinProps, ...props })
-      expect(wrapper.instance().updateSelected).not.toHaveBeenCalled()
-      wrapper.instance().componentDidUpdate({ ...defaultMinProps, ...props, selectedTopics: [] })
-      expect(wrapper.instance().updateSelected).toHaveBeenCalled()
+  it('updates selected topics when props change', async () => {
+    const { rerender } = renderComponent()
+    rerender(<TopicSelector {...defaultProps} selectedTopics={[{ name: 'one' }]} />)
+    await waitFor(() => {
+      expect(screen.getByText('#one')).toBeInTheDocument()
     })
   })
 
-  describe('updateSelected', () => {
-    it('does nothing if topicsEdited = true', () => {
-      const props = {
-        selectedTopics: [{ name: 'one' }],
-        detailsTopics: [{ name: 'two' }]
-      }
-      const wrapper = renderComponent(shallow, props)
-      wrapper.instance().setState({ topicsEdited: true, selected: [] })
-      wrapper.instance().updateSelected()
-      expect(wrapper.instance().state.selected).toEqual([])
+  it('allows selecting topics', async () => {
+    defaultProps.findTopics.mockResolvedValue({
+      payload: { getData: () => ({ items: [{ topic: { name: 'test-topic' } }] }) }
+    })
+    renderComponent()
+
+    const input = screen.getByPlaceholderText('Enter up to three topics...')
+    fireEvent.change(input, { target: { value: 'test' } })
+
+    await waitFor(() => {
+      expect(screen.getByText('test-topic')).toBeInTheDocument()
     })
 
-    it('combines selected, props.selectedTopics and props.detailsTopics, truncating at 3', () => {
-      const props = {
-        selectedTopics: [{ name: 'one' }, { name: 'two' }, { name: 'three' }]
-      }
-      const wrapper = renderComponent(shallow, props)
-      wrapper.instance().setState({ selected: [{ name: 'zero' }] })
-      wrapper.instance().updateSelected()
-      expect(wrapper.instance().state.selected).toEqual([{ name: 'zero' }, { name: 'one' }, { name: 'two' }])
+    fireEvent.click(screen.getByText('test-topic'))
+    expect(screen.getByText('#test-topic')).toBeInTheDocument()
+    expect(defaultProps.onChange).toHaveBeenCalledWith([{ name: 'test-topic' }])
+  })
+
+  it('limits selection to 3 topics', async () => {
+    renderComponent({ selectedTopics: [{ name: 'one' }, { name: 'two' }, { name: 'three' }] })
+
+    await waitFor(() => {
+      expect(screen.getByText('#one')).toBeInTheDocument()
+      expect(screen.getByText('#two')).toBeInTheDocument()
+      expect(screen.getByText('#three')).toBeInTheDocument()
+    })
+
+    const input = screen.getByPlaceholderText('Enter up to three topics...')
+    fireEvent.change(input, { target: { value: 'four' } })
+
+    await waitFor(() => {
+      expect(screen.getByText('You can only select up to 3 topics')).toBeInTheDocument()
     })
   })
 
-  describe('getSelected', () => {
-    it('returns state.selected', () => {
-      const wrapper = renderComponent(shallow)
-      const selected = ['one', 'two']
-      wrapper.instance().setState({ selected })
-      expect(wrapper.instance().getSelected()).toEqual(selected)
-    })
-  })
+  it('allows creating new topics', async () => {
+    renderComponent()
 
-  describe('reset', () => {
-    it('resets the state to defaultState', () => {
-      const wrapper = renderComponent(shallow)
-      wrapper.instance().setState({ topicsEdited: true, selected: [{ name: 'one' }] })
-      wrapper.instance().reset()
-      expect(wrapper.instance().state).toEqual(TopicSelector.defaultState)
-    })
-  })
+    const input = screen.getByPlaceholderText('Enter up to three topics...')
+    fireEvent.change(input, { target: { value: 'new-topic' } })
 
-  describe('loadOptions', () => {
-    it('sets state and calls findTopics on a non empty input', () => {
-      const findTopics = jest.fn(() => ({ payload: { getData: () => ({ items: [] }) } }))
-      const wrapper = renderComponent(shallow, { findTopics })
-      const theInput = 'hithere'
-      wrapper.instance().loadOptions(theInput)
-      expect(findTopics).toHaveBeenCalledWith({ autocomplete: theInput })
+    await waitFor(() => {
+      expect(screen.getByText('Create topic "#new-topic"')).toBeInTheDocument()
     })
-  })
 
-  describe('handleTopicsChange', () => {
-    it('sets state and calls clearTopics', () => {
-      const clearTopics = jest.fn()
-      const wrapper = renderComponent(shallow, { clearTopics })
-      const topics = [{ name: 'one' }]
-      wrapper.setState({ selected: [{ name: 'zero' }] })
-      wrapper.instance().handleTopicsChange(topics)
-      expect(wrapper.instance().state.selected).toEqual([{ name: 'one' }])
-      // expect(clearTopics).toHaveBeenCalledWith()
-    })
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' })
+    expect(screen.getByText('#new-topic')).toBeInTheDocument()
+    expect(defaultProps.onChange).toHaveBeenCalledWith([{ name: 'new-topic', value: 'new-topic', __isNew__: true }])
   })
 })

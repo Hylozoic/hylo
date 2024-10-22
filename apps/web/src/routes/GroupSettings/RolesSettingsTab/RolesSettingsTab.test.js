@@ -1,17 +1,18 @@
 import React from 'react'
-import { shallow } from 'enzyme'
 import { graphql } from 'msw'
 import userEvent from '@testing-library/user-event'
-import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
-import { act } from '@testing-library/react'
+import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import RolesSettingsTab, { AddMemberToRole, RoleList } from './RolesSettingsTab'
 
 describe('RolesSettingsTab', () => {
   it('clears suggestions on unmount', () => {
     const clearStewardSuggestions = jest.fn()
-    const wrapper = shallow(<RolesSettingsTab clearStewardSuggestions={clearStewardSuggestions} commonRoles={[]} />)
-    wrapper.unmount()
+    const { unmount } = render(
+      <RolesSettingsTab clearStewardSuggestions={clearStewardSuggestions} commonRoles={[]} />,
+      { wrapper: AllTheProviders() }
+    )
+    unmount()
     expect(clearStewardSuggestions).toHaveBeenCalled()
   })
 })
@@ -19,37 +20,32 @@ describe('RolesSettingsTab', () => {
 describe('RoleList', () => {
   it('renders correctly', async () => {
     const props = {
-      clearStewardSuggestions: () => {},
-      fetchStewardSuggestions: () => {},
+      clearStewardSuggestions: jest.fn(),
+      fetchStewardSuggestions: jest.fn(),
       roleId: '1',
       slug: 'foogroup',
       suggestions: [],
       isCommonRole: true,
       group: { id: 1 },
-      fetchMembersForCommonRole: () => Promise.resolve({ response: { payload: { data: { group: { members: { items: [] } } } } } }),
+      fetchMembersForCommonRole: jest.fn().mockResolvedValue({ response: { payload: { data: { group: { members: { items: [] } } } } } }),
       t: (str) => str
     }
 
     mockGraphqlServer.resetHandlers(
       graphql.query('fetchResponsibilitiesForCommonRole', (req, res, ctx) => {
-        return res(
-          ctx.data({
-            responsibilities: []
-          })
-        )
+        return res(ctx.data({ responsibilities: [] }))
       }),
       graphql.query('fetchResponsibiltiesForGroup', (req, res, ctx) => {
-        return res(
-          ctx.data({
-            responsibilities: []
-          })
-        )
+        return res(ctx.data({ responsibilities: [] }))
       })
     )
 
-    await act(async () => {
-      const { asFragment } = render(<RoleList {...props} />, { wrapper: AllTheProviders() })
-      expect(asFragment()).toMatchSnapshot()
+    render(<RoleList {...props} />, { wrapper: AllTheProviders() })
+
+    await waitFor(() => {
+      expect(screen.getByText('Responsibilities')).toBeInTheDocument()
+      expect(screen.getByText('Members')).toBeInTheDocument()
+      expect(screen.getByText('Common roles cannot have their responsibilities edited')).toBeInTheDocument()
     })
   })
 })
@@ -57,32 +53,41 @@ describe('RoleList', () => {
 describe('AddMemberToRole', () => {
   it('renders correctly, and transitions from not adding to adding', async () => {
     const props = {
-      fetchSuggestions: () => {},
-      clearSuggestions: () => {}
+      fetchSuggestions: jest.fn(),
+      clearSuggestions: jest.fn()
     }
-    const { asFragment } = render(<AddMemberToRole {...props} />, { wrapper: AllTheProviders() }) // shallow(<TestWrapper><AddMemberToRole /></TestWrapper>)
-    expect(asFragment()).toMatchSnapshot()
+
+    render(<AddMemberToRole {...props} />, { wrapper: AllTheProviders() })
+
+    expect(screen.getByText('Add Member to Role')).toBeInTheDocument()
+
     const user = userEvent.setup()
     await user.click(screen.getByTestId('add-new'))
-    expect(asFragment()).toMatchSnapshot()
+
+    expect(screen.getByPlaceholderText('Type...')).toBeInTheDocument()
+    expect(screen.getByText('Cancel')).toBeInTheDocument()
+    expect(screen.getByText('Add')).toBeInTheDocument()
   })
 
   it('renders correctly when adding with suggestions', async () => {
     const props = {
-      fetchSuggestions: () => {},
-      clearSuggestions: () => {},
+      fetchSuggestions: jest.fn(),
+      clearSuggestions: jest.fn(),
       suggestions: [
         { id: 1, name: 'Demeter' },
         { id: 2, name: 'Ares' },
-        { id: 1, name: 'Hermes' }
+        { id: 3, name: 'Hermes' }
       ]
     }
 
-    const { asFragment } = render(<AddMemberToRole {...props} />, { wrapper: AllTheProviders() })
+    render(<AddMemberToRole {...props} />, { wrapper: AllTheProviders() })
+
     const user = userEvent.setup()
     await user.click(screen.getByTestId('add-new'))
 
-    expect(asFragment()).toMatchSnapshot()
+    expect(screen.getByText('Demeter')).toBeInTheDocument()
+    expect(screen.getByText('Ares')).toBeInTheDocument()
+    expect(screen.getByText('Hermes')).toBeInTheDocument()
   })
 
   it('handles interactions correctly', async () => {
@@ -93,33 +98,37 @@ describe('AddMemberToRole', () => {
       <AddMemberToRole
         fetchSuggestions={fetchStewardSuggestions}
         clearSuggestions={clearStewardSuggestions}
-      />
-      , { wrapper: AllTheProviders() }
+      />,
+      { wrapper: AllTheProviders() }
     )
 
     const user = userEvent.setup()
 
     await user.click(screen.getByTestId('add-new'))
     expect(clearStewardSuggestions).toHaveBeenCalledTimes(1)
+
     const input = screen.getByTestId('add-member-input')
     fetchStewardSuggestions.mockClear()
     clearStewardSuggestions.mockClear()
+
     await user.type(input, 'Artem')
     expect(fetchStewardSuggestions).toHaveBeenCalledWith('Artem')
     expect(clearStewardSuggestions).not.toHaveBeenCalled()
+
     fetchStewardSuggestions.mockClear()
     clearStewardSuggestions.mockClear()
+
     await user.clear(input)
     expect(clearStewardSuggestions).toHaveBeenCalledTimes(1)
     expect(fetchStewardSuggestions).not.toHaveBeenCalled()
+
     fetchStewardSuggestions.mockClear()
     clearStewardSuggestions.mockClear()
-    await input.focus()
+
     await user.keyboard('{Enter}')
-    clearStewardSuggestions.mockClear()
-    await userEvent.keyboard('{Enter}')
     expect(clearStewardSuggestions).not.toHaveBeenCalled()
-    await userEvent.keyboard('{Escape}')
+
+    await user.keyboard('{Escape}')
     expect(clearStewardSuggestions).toHaveBeenCalled()
   })
 })

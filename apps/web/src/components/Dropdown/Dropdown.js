@@ -36,8 +36,11 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
     }
 
     let menuItems = children || items.map(item =>
-      <li className={cx(classes.linkItem, { [classes.redItem]: item.red })}
-        onClick={item.onClick} key={item.key || item.label}>
+      <li
+        className={cx(classes.linkItem, { [classes.redItem]: item.red })}
+        onClick={item.onClick}
+        key={item.key || item.label}
+      >
         {item.icon && <Icon className={classes.icon} name={item.icon} />}
         {item.label}
       </li>)
@@ -58,8 +61,10 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
       </span>
       <span className={cx(classes.closeDropdown, { [classes.toggled]: active })} onClick={toggle}><Icon name='Ex' /></span>
       <div className={cx(classes.wrapper, { [classes.alignRight]: alignRight, [classes.menuAbove]: menuAbove })}>
-        <ul className={cx(classes.dropdownMenu, { [classes.active]: active, [classes.alignRight]: alignRight, [classes.noOverflow]: noOverflow })}
-          onClick={toggle}>
+        <ul
+          className={cx(classes.dropdownMenu, { [classes.active]: active, [classes.alignRight]: alignRight, [classes.noOverflow]: noOverflow })}
+          onClick={toggle}
+        >
           {renderMenuItems()}
         </ul>
       </div>

@@ -1,118 +1,86 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import GroupsList, { GroupRow, GroupCell } from './GroupsList'
 
 describe('GroupsList', () => {
-  it('matches last snapshot with 1 group', () => {
+  it('renders correct number of groups', () => {
     const props = {
       groups: [
-        {
-          id: 1,
-          name: 'One',
-          slug: 'one'
-        }
+        { id: 1, name: 'One', slug: 'one' },
+        { id: 2, name: 'Two', slug: 'two' },
+        { id: 3, name: 'Three', slug: 'three' },
       ],
-      expandFunc: () => {}
     }
 
-    const wrapper = shallow(<GroupsList {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<GroupsList {...props} />)
+    const groupLinks = screen.getAllByRole('link')
+    expect(groupLinks).toHaveLength(3)
   })
 
-  it('matches last snapshot with 2 groups', () => {
+  it('renders groups in rows of two', () => {
     const props = {
       groups: [
-        {
-          id: 1,
-          name: 'One',
-          slug: 'one'
-        },
-        {
-          id: 2,
-          name: 'Two',
-          slug: 'two'
-        }
+        { id: 1, name: 'One', slug: 'one' },
+        { id: 2, name: 'Two', slug: 'two' },
+        { id: 3, name: 'Three', slug: 'three' },
       ],
-      expandFunc: () => {}
     }
 
-    const wrapper = shallow(<GroupsList {...props} />)
-    expect(wrapper).toMatchSnapshot()
-  })
-
-  it('matches last snapshot with 5 group', () => {
-    const props = {
-      groups: [
-        {
-          id: 1,
-          name: 'One',
-          slug: 'one'
-        },
-        {
-          id: 2,
-          name: 'Two',
-          slug: 'two'
-        },
-        {
-          id: 3,
-          name: 'Three',
-          slug: 'three'
-        },
-        {
-          id: 4,
-          name: 'Four',
-          slug: 'four'
-        },
-        {
-          id: 5,
-          name: 'Five',
-          slug: 'five'
-        }
-      ],
-      expandFunc: () => {}
-    }
-
-    const wrapper = shallow(<GroupsList {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    const { container } = render(<GroupsList {...props} />)
+    const rows = container.querySelectorAll('.groupRow')
+    expect(rows).toHaveLength(2)
   })
 })
 
 describe('GroupRow', () => {
-  it('matches last snapshot with 1 group', () => {
+  it('renders correct number of groups in a row', () => {
     const props = {
       groups: [
-        {
-          id: 1,
-          name: 'One',
-          slug: 'one'
-        },
-        {
-          id: 2,
-          name: 'Two',
-          slug: 'two'
-        }
-      ]
+        { id: 1, name: 'One', slug: 'one' },
+        { id: 2, name: 'Two', slug: 'two' },
+      ],
     }
 
-    const wrapper = shallow(<GroupRow {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<GroupRow {...props} />)
+    const groupLinks = screen.getAllByRole('link')
+    expect(groupLinks).toHaveLength(2)
   })
 })
 
 describe('GroupCell', () => {
-  it('matches last snapshot with 1 group', () => {
+  it('renders group name and link', () => {
     const props = {
-      group: [
-        {
-          id: 1,
-          name: 'One',
-          slug: 'one',
-          avatarUrl: 'one.png'
-        }
-      ]
+      group: {
+        id: 1,
+        name: 'Test Group',
+        slug: 'test-group',
+        avatarUrl: 'test.png',
+      },
     }
 
-    const wrapper = shallow(<GroupCell {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(
+      <GroupCell {...props} />
+    )
+
+    const groupLink = screen.getByRole('link', { name: 'Test Group' })
+    expect(groupLink).toBeInTheDocument()
+    expect(groupLink).toHaveAttribute('href', '/groups/test-group')
+  })
+
+  it('renders default avatar when avatarUrl is not provided', () => {
+    const props = {
+      group: {
+        id: 1,
+        name: 'Test Group',
+        slug: 'test-group',
+      },
+    }
+
+    render(
+      <GroupCell {...props} />
+    )
+
+    const avatar = screen.getByTestId('group-avatar')
+    expect(avatar).toHaveStyle({ backgroundImage: `url(${DEFAULT_AVATAR})` })
   })
 })

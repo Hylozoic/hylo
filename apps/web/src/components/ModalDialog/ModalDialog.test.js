@@ -1,5 +1,5 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import ModalDialog from './ModalDialog'
 
 describe('ModalDialog', () => {
@@ -22,79 +22,77 @@ describe('ModalDialog', () => {
     }
   })
 
-  it('matches the last snapshot', () => {
-    const wrapper = shallow(
-      <ModalDialog {...props}>
-        <div>Describe how awesome wombats are:</div>
-        <input autofocus />
-      </ModalDialog>
-    )
-
-    expect(wrapper).toMatchSnapshot()
+  it('renders the modal title', () => {
+    render(<ModalDialog {...props} />)
+    expect(screen.getByText('Wombats')).toBeInTheDocument()
   })
 
-  it('matches the last snapshot (useNotificationFormat)', () => {
+  it('renders children content', () => {
+    render(
+      <ModalDialog {...props}>
+        <div>Describe how awesome wombats are:</div>
+        <input />
+      </ModalDialog>
+    )
+    expect(screen.getByText('Describe how awesome wombats are:')).toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
+  })
+
+  it('renders in notification format', () => {
     props.useNotificationFormat = true
-    const wrapper = shallow(
+    render(
       <ModalDialog {...props}>
         <div>Yep, they're awesome alright.</div>
       </ModalDialog>
     )
-
-    expect(wrapper).toMatchSnapshot()
+    expect(screen.getByText('Yep, they're awesome alright.')).toBeInTheDocument()
+    expect(screen.getByTestId('icon-Star')).toBeInTheDocument()
   })
 
-  it('invokes cancelButtonAction', () => {
-    // Disable submit button to make node selection easier
-    props.showSubmitButton = false
-    const wrapper = shallow(<ModalDialog {...props} />)
-    wrapper.find('Button').simulate('click')
+  it('invokes cancelButtonAction when cancel button is clicked', () => {
+    render(<ModalDialog {...props} />)
+    fireEvent.click(screen.getByText('Cancel'))
     expect(props.cancelButtonAction).toHaveBeenCalled()
+    expect(props.closeModal).toHaveBeenCalled()
   })
 
-  it('invokes submitButtonAction', () => {
-    props.showCancelButton = false
-    const wrapper = shallow(<ModalDialog {...props} />)
-    wrapper.find('Button').simulate('click')
+  it('invokes submitButtonAction when submit button is clicked', () => {
+    render(<ModalDialog {...props} />)
+    fireEvent.click(screen.getByText('Square Poop'))
     expect(props.submitButtonAction).toHaveBeenCalled()
-  })
-
-  it('closes the dialog', () => {
-    props.showCancelButton = false
-    const wrapper = shallow(<ModalDialog {...props} />)
-    wrapper.find('Button').simulate('click')
     expect(props.closeModal).toHaveBeenCalled()
   })
 
   it('does not close if closeOnSubmit is false', () => {
     props.closeOnSubmit = false
-    props.showCancelButton = false
-    const wrapper = shallow(<ModalDialog {...props} />)
-    wrapper.find('Button').simulate('click')
+    render(<ModalDialog {...props} />)
+    fireEvent.click(screen.getByText('Square Poop'))
+    expect(props.submitButtonAction).toHaveBeenCalled()
     expect(props.closeModal).not.toHaveBeenCalled()
   })
 
   it('does not show an icon without useNotificationFormat', () => {
-    const wrapper = shallow(<ModalDialog {...props} />)
-    expect(wrapper.find('Icon[name="Star"]').length).toBe(0)
+    render(<ModalDialog {...props} />)
+    expect(screen.queryByTestId('icon-Star')).not.toBeInTheDocument()
   })
 
   it('shows an icon with useNotificationFormat', () => {
     props.useNotificationFormat = true
-    const wrapper = shallow(<ModalDialog {...props} />)
-    expect(wrapper.find('Icon[name="Star"]').length).toBe(1)
+    render(<ModalDialog {...props} />)
+    expect(screen.getByTestId('icon-Star')).toBeInTheDocument()
   })
 
-  it('does not show an image without useNotificationFormat', () => {
-    const wrapper = shallow(<ModalDialog {...props} />)
-    const { style } = wrapper.find('[data-stylename="popup-inner"]').first().props()
-    expect(style).toEqual(props.style)
+  it('applies custom style', () => {
+    props.style = { backgroundColor: 'red' }
+    render(<ModalDialog {...props} />)
+    const popupInner = screen.getByTestId('popup-inner')
+    expect(popupInner).toHaveStyle('background-color: red')
   })
 
-  it('shows an image with useNotificationFormat', () => {
+  it('applies background image style when useNotificationFormat is true', () => {
     props.useNotificationFormat = true
-    const wrapper = shallow(<ModalDialog {...props} />)
-    const { style } = wrapper.find('[data-stylename="popup-inner"]').first().props()
-    expect(style.backgroundImage).toMatch(/foo.png/)
+    render(<ModalDialog {...props} />)
+    const popupInner = screen.getByTestId('popup-inner')
+    expect(popupInner).toHaveStyle('background-image: url(/assets/foo.png)')
   })
 })

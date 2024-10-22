@@ -1,70 +1,66 @@
-import Dropdown from './Dropdown'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import Dropdown from './Dropdown'
 
 const sampleItems = [
   { label: 'item 1' },
   { label: 'item 2' }
 ]
 
-it('renders with no items', () => {
-  const wrapper = shallow(<Dropdown toggleChildren={<span>click me</span>} />)
-  expect(wrapper.children()).toHaveLength(3)
-  expect(wrapper.find('span span').text()).toBe('click me')
-  expect(wrapper.find('ul')).toBeTruthy()
-})
+describe('Dropdown', () => {
+  it('renders with no items', () => {
+    render(<Dropdown toggleChildren={<span>click me</span>} />)
+    expect(screen.getByText('click me')).toBeInTheDocument()
+    expect(screen.getByRole('list')).toBeInTheDocument()
+  })
 
-it('renders with items', () => {
-  const wrapper = shallow(<Dropdown
-    toggleChildren={<span>click me</span>}
-    items={sampleItems} />)
+  it('renders with items', () => {
+    render(<Dropdown toggleChildren={<span>click me</span>} items={sampleItems} />)
 
-  wrapper.find('[data-stylename="dropdown-toggle"]').simulate('click')
+    fireEvent.click(screen.getByText('click me'))
 
-  const list = wrapper.find('ul li')
-  expect(list).toHaveLength(2)
-  expect(list.at(0).text()).toEqual('item 1')
-  expect(list.at(1).text()).toEqual('item 2')
-})
+    expect(screen.getByText('item 1')).toBeInTheDocument()
+    expect(screen.getByText('item 2')).toBeInTheDocument()
+  })
 
-it('renders with a triangle', () => {
-  const wrapper = shallow(<Dropdown
-    toggleChildren={<span>hi</span>}
-    items={sampleItems}
-    triangle />)
+  it('renders with a triangle', () => {
+    render(<Dropdown toggleChildren={<span>hi</span>} items={sampleItems} triangle />)
 
-  wrapper.find('[data-stylename="dropdown-toggle"]').simulate('click')
+    fireEvent.click(screen.getByText('hi'))
 
-  const list = wrapper.find('ul li')
-  expect(list).toHaveLength(3)
-  expect(list.at(1).text()).toEqual('item 1')
-  expect(list.at(2).text()).toEqual('item 2')
-})
+    const listItems = screen.getAllByRole('listitem')
+    expect(listItems).toHaveLength(3) // Including the triangle
+    expect(listItems[1]).toHaveTextContent('item 1')
+    expect(listItems[2]).toHaveTextContent('item 2')
+  })
 
-it('renders with passed-in children', () => {
-  const wrapper = shallow(<Dropdown toggleChildren={<span>hi</span>}>
-    <li>foo</li>
-    <li>bar</li>
-  </Dropdown>)
+  it('renders with passed-in children', () => {
+    render(
+      <Dropdown toggleChildren={<span>hi</span>}>
+        <li>foo</li>
+        <li>bar</li>
+      </Dropdown>
+    )
 
-  wrapper.find('[data-stylename="dropdown-toggle"]').simulate('click')
+    fireEvent.click(screen.getByText('hi'))
 
-  const list = wrapper.find('ul li')
-  expect(list).toHaveLength(2)
-  expect(list.at(0).text()).toEqual('foo')
-  expect(list.at(1).text()).toEqual('bar')
-})
+    expect(screen.getByText('foo')).toBeInTheDocument()
+    expect(screen.getByText('bar')).toBeInTheDocument()
+  })
 
-it('renders with passed-in children and a triangle', () => {
-  const wrapper = shallow(<Dropdown triangle toggleChildren={<span>hi</span>}>
-    <li>foo</li>
-    <li>bar</li>
-  </Dropdown>)
+  it('renders with passed-in children and a triangle', () => {
+    render(
+      <Dropdown triangle toggleChildren={<span>hi</span>}>
+        <li>foo</li>
+        <li>bar</li>
+      </Dropdown>
+    )
 
-  wrapper.find('[data-stylename="dropdown-toggle"]').simulate('click')
+    fireEvent.click(screen.getByText('hi'))
 
-  const list = wrapper.find('ul li')
-  expect(list).toHaveLength(3)
-  expect(list.at(1).text()).toEqual('foo')
-  expect(list.at(2).text()).toEqual('bar')
+    const listItems = screen.getAllByRole('listitem')
+    expect(listItems).toHaveLength(3) // Including the triangle
+    expect(listItems[1]).toHaveTextContent('foo')
+    expect(listItems[2]).toHaveTextContent('bar')
+  })
 })

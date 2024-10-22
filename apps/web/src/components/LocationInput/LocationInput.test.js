@@ -1,25 +1,28 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import LocationInput from './LocationInput'
 
 describe('LocationInput', () => {
-  const defaultMinProps = {
-    mapboxToken: ''
+  const defaultProps = {
+    mapboxToken: 'test-token',
+    onChange: jest.fn(),
+    pollingFetchLocation: jest.fn(),
   }
 
-  function renderComponent (renderFunc, props = {}) {
-    return renderFunc(
-      <LocationInput {...{ ...defaultMinProps, ...props }} />
-    )
-  }
-
-  it('renders correctly (with min props)', () => {
-    const wrapper = renderComponent(shallow)
-    expect(wrapper).toMatchSnapshot()
+  it('renders correctly with minimum props', () => {
+    render(<LocationInput {...defaultProps} />)
+    expect(screen.getByPlaceholderText('Search for a location...')).toBeInTheDocument()
   })
 
-  it('renders correctly with some default props', () => {
-    const wrapper = renderComponent(shallow, { location: '123 main st. San Francisco, CA' })
-    expect(wrapper).toMatchSnapshot()
+  it('renders correctly with custom location', () => {
+    render(<LocationInput {...defaultProps} location="123 Main St. San Francisco, CA" />)
+    expect(screen.getByDisplayValue('123 Main St. San Francisco, CA')).toBeInTheDocument()
   })
+
+  it('renders correctly with custom placeholder', () => {
+    render(<LocationInput {...defaultProps} placeholder="Enter your address" />)
+    expect(screen.getByPlaceholderText('Enter your address')).toBeInTheDocument()
+  })
+
+  // Add more tests as needed
 })

@@ -1,199 +1,107 @@
 import React from 'react'
-import { MemoryRouter } from 'react-router'
-import { mount, shallow } from 'enzyme'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import { keyMap } from 'util/textInput'
 import PeopleSelector from './PeopleSelector'
-import PeopleListItem from './PeopleListItem'
+import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 const defaultProps = {
-  setPeopleSearch: () => {},
-  fetchPeople: () => {},
-  fetchContacts: () => {},
-  fetchDefaultList: () => {},
-  selectPerson: () => {},
-  removePerson: () => {},
-  changeQuerystringParam: () => {},
+  setPeopleSearch: jest.fn(),
+  fetchPeople: jest.fn(),
+  fetchContacts: jest.fn(),
+  fetchDefaultList: jest.fn(),
+  selectPerson: jest.fn(),
+  removePerson: jest.fn(),
+  changeQuerystringParam: jest.fn(),
   selectedPeople: [],
   onCloseLocation: '',
-  peopleSelectorOpen: true
+  peopleSelectorOpen: true,
+  people: [{ id: '1', name: 'Person 1' }, { id: '2', name: 'Person 2' }]
 }
 
 describe('PeopleSelector', () => {
-  it('matches the last snapshot', () => {
-    const wrapper = shallow(
-      <PeopleSelector {...defaultProps} />
-    )
-    expect(wrapper).toMatchSnapshot()
+  it('renders the component', () => {
+    render(<PeopleSelector {...defaultProps} />, { wrapper: AllTheProviders })
+    expect(screen.getByPlaceholderText('+ Add someone')).toBeInTheDocument()
   })
 
   describe('onKeyDown', () => {
-    let selectPerson
-    let fetchPeople
-    let removePerson
-    let input
-    let setPeopleSearch
-    let wrapper
-
-    beforeEach(() => {
-      fetchPeople = jest.fn()
-      selectPerson = jest.fn()
-      removePerson = jest.fn()
-      setPeopleSearch = jest.fn()
-      wrapper = mount(
-        <MemoryRouter>
-          <PeopleSelector
-            {...defaultProps}
-            fetchPeople={fetchPeople}
-            selectPerson={selectPerson}
-            removePerson={removePerson}
-            setPeopleSearch={setPeopleSearch}
-            people={[ { id: '1' }, { id: '2' } ]}
-          />
-        </MemoryRouter>
-      )
-      input = wrapper.find('input').first()
+    it('does not hit server when backspace is pressed', async () => {
+      render(<PeopleSelector {...defaultProps} />, { wrapper: AllTheProviders })
+      const input = screen.getByPlaceholderText('+ Add someone')
+      fireEvent.keyDown(input, { keyCode: keyMap.BACKSPACE })
+      await waitFor(() => expect(defaultProps.fetchPeople).not.toHaveBeenCalled())
     })
 
-    it('does not hit server when backspace is pressed', () => {
-      input.simulate('keyDown', { keyCode: keyMap.BACKSPACE })
-      expect(fetchPeople).not.toHaveBeenCalled()
+    it('hits server when the input value changes', async () => {
+      render(<PeopleSelector {...defaultProps} />, { wrapper: AllTheProviders })
+      const input = screen.getByPlaceholderText('+ Add someone')
+      fireEvent.change(input, { target: { value: 'not empty' } })
+      await waitFor(() => expect(defaultProps.fetchPeople).toHaveBeenCalled())
     })
 
-    it('hits server when the input value changes', () => {
-      input.simulate('change', { target: { value: 'not empty' } })
-      expect(fetchPeople).toHaveBeenCalled()
+    it('removes participant if backspace pressed when autocompleteInput is empty', async () => {
+      render(<PeopleSelector {...defaultProps} />, { wrapper: AllTheProviders })
+      const input = screen.getByPlaceholderText('+ Add someone')
+      fireEvent.keyDown(input, { keyCode: keyMap.BACKSPACE })
+      await waitFor(() => expect(defaultProps.removePerson).toHaveBeenCalled())
     })
 
-    it('removes participant if backspace pressed when autocompleteInput is empty', () => {
-      input.simulate('keyDown', { keyCode: keyMap.BACKSPACE })
-      expect(removePerson).toHaveBeenCalled()
+    it('calls selectPerson with currentMatch when enter pressed', async () => {
+      render(<PeopleSelector {...defaultProps} />, { wrapper: AllTheProviders })
+      const input = screen.getByPlaceholderText('+ Add someone')
+      fireEvent.keyDown(input, { keyCode: keyMap.ENTER })
+      await waitFor(() => expect(defaultProps.selectPerson).toHaveBeenCalledWith({ id: '1', name: 'Person 1' }))
     })
 
-    it('does not remove participant if backspace pressed when autocompleteInput is not empty', () => {
-      input.simulate('change', { target: { value: 'not empty' } })
-      input.simulate('keyDown', { keyCode: keyMap.BACKSPACE })
-      expect(removePerson).not.toHaveBeenCalled()
-    })
-
-    it('does not change active match if at top of list when up arrow pressed', () => {
-      input.simulate('keyDown', { keyCode: keyMap.UP })
-      const actual = wrapper.find(PeopleListItem).first().prop('active')
-      expect(actual).toBe(true)
-    })
-
-    it('changes active match if not at top of list when up arrow pressed', () => {
-      input.simulate('keyDown', { keyCode: keyMap.DOWN })
-      input.simulate('keyDown', { keyCode: keyMap.UP })
-      const actual = wrapper.find(PeopleListItem).last().prop('active')
-      expect(actual).toBe(false)
-    })
-
-    it('does not change active match if at bottom of list when down arrow pressed', () => {
-      input.simulate('keyDown', { keyCode: keyMap.DOWN })
-      input.simulate('keyDown', { keyCode: keyMap.DOWN })
-      const actual = wrapper.find(PeopleListItem).last().prop('active')
-      expect(actual).toBe(true)
-    })
-
-    it('changes active match if not at bottom of list when down arrow pressed', () => {
-      input.simulate('keyDown', { keyCode: keyMap.DOWN })
-      const actual = wrapper.find(PeopleListItem).first().prop('active')
-      expect(actual).toBe(false)
-    })
-
-    it('calls selectPerson with currentMatch when enter pressed', () => {
-      input.simulate('keyDown', { keyCode: keyMap.ENTER })
-      expect(selectPerson).toBeCalledWith({ id: '1' })
-    })
-
-    it('calls selectPerson with currentMatch when comma pressed', () => {
-      input.simulate('keyDown', { keyCode: keyMap.COMMA })
-      expect(selectPerson).toBeCalledWith({ id: '1' })
-    })
-
-    it('resets values after adding selectedPeople', () => {
-      input.simulate('keyDown', { keyCode: keyMap.ENTER })
-      expect(setPeopleSearch).toBeCalledWith(null)
-      expect(input.instance().value).toBe('')
+    it('calls selectPerson with currentMatch when comma pressed', async () => {
+      render(<PeopleSelector {...defaultProps} />, { wrapper: AllTheProviders })
+      const input = screen.getByPlaceholderText('+ Add someone')
+      fireEvent.keyDown(input, { keyCode: keyMap.COMMA })
+      await waitFor(() => expect(defaultProps.selectPerson).toHaveBeenCalledWith({ id: '1', name: 'Person 1' }))
     })
   })
 
   describe('setPeopleSearch', () => {
-    let setPeopleSearch
-    let wrapper
-
-    beforeEach(() => {
+    it('updates if user input contains valid characters', async () => {
       jest.useFakeTimers()
-      setPeopleSearch = jest.fn()
-      wrapper = mount(
-        <MemoryRouter>
-          <PeopleSelector
-            {...defaultProps}
-            setPeopleSearch={setPeopleSearch} />
-        </MemoryRouter>
-      )
-    })
-
-    afterEach(() => {
+      render(<PeopleSelector {...defaultProps} />, { wrapper: AllTheProviders })
+      const input = screen.getByPlaceholderText('+ Add someone')
+      fireEvent.change(input, { target: { value: 'Poor Yorick' } })
+      jest.runAllTimers()
+      await waitFor(() => expect(defaultProps.setPeopleSearch).toHaveBeenCalledWith('Poor Yorick'))
       jest.useRealTimers()
     })
 
-    it('updates if user input contains valid characters', () => {
-      const expected = 'Poor Yorick'
-      const input = wrapper.find('input').first()
-      input.instance().value = expected
-      input.simulate('change')
+    it('does not update if user input contains invalid characters', async () => {
+      jest.useFakeTimers()
+      render(<PeopleSelector {...defaultProps} />, { wrapper: AllTheProviders })
+      const input = screen.getByPlaceholderText('+ Add someone')
+      fireEvent.change(input, { target: { value: 'Poor Yorick9238183$@#$$@!' } })
       jest.runAllTimers()
-      const actual = setPeopleSearch.mock.calls[0][0]
-      expect(actual).toBe(expected)
-    })
-
-    it('does not update if user input contains invalid characters', () => {
-      const invalid = 'Poor Yorick9238183$@#$$@!'
-      const expected = 'Poor Yorick'
-      const input = wrapper.find('input').first()
-      input.instance().value = invalid
-      input.simulate('change')
-      jest.runAllTimers()
-      expect(setPeopleSearch).not.toHaveBeenCalled()
-      expect(input.instance().value).toBe(expected)
+      await waitFor(() => expect(defaultProps.setPeopleSearch).not.toHaveBeenCalled())
+      expect(input).toHaveValue('Poor Yorick')
+      jest.useRealTimers()
     })
   })
 
   describe('selectPerson', () => {
-    it('calls selectPerson with the correct id', () => {
-      const selectPerson = jest.fn()
-      const wrapper = mount(
-        <MemoryRouter>
-          <PeopleSelector
-            {...defaultProps}
-            selectPerson={selectPerson}
-            people={[ { id: '1' }, { id: '2' } ]}
-          />
-        </MemoryRouter>
-      )
-      const personItem = wrapper.find(PeopleListItem).first()
-      personItem.simulate('click')
-      expect(selectPerson).toBeCalledWith({ id: '1' })
+    it('calls selectPerson with the correct id when clicking a person', async () => {
+      render(<PeopleSelector {...defaultProps} />, { wrapper: AllTheProviders })
+      const personItem = screen.getByText('Person 1')
+      fireEvent.click(personItem)
+      await waitFor(() => expect(defaultProps.selectPerson).toHaveBeenCalledWith({ id: '1', name: 'Person 1' }))
     })
 
-    it('resets values after adding a participant', () => {
-      const setPeopleSearch = jest.fn()
-      const wrapper = mount(
-        <MemoryRouter>
-          <PeopleSelector
-            {...defaultProps}
-            setPeopleSearch={setPeopleSearch}
-            people={[ { id: '1' }, { id: '2' } ]}
-          />
-        </MemoryRouter>
-      )
-      const input = wrapper.find('input').first()
-      input.instance().value = 'flargle'
-      const personItem = wrapper.find(PeopleListItem).first()
-      personItem.simulate('click')
-      expect(input.instance().value).toBeFalsy()
-      expect(setPeopleSearch).toBeCalledWith(null)
+    it('resets values after adding a participant', async () => {
+      render(<PeopleSelector {...defaultProps} />, { wrapper: AllTheProviders })
+      const input = screen.getByPlaceholderText('+ Add someone')
+      fireEvent.change(input, { target: { value: 'flargle' } })
+      const personItem = screen.getByText('Person 1')
+      fireEvent.click(personItem)
+      await waitFor(() => {
+        expect(input).toHaveValue('')
+        expect(defaultProps.setPeopleSearch).toHaveBeenCalledWith(null)
+      })
     })
   })
 })

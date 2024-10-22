@@ -1,48 +1,65 @@
-import EventInviteDialog, { InviteeRow, Search } from './EventInviteDialog'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import EventInviteDialog, { InviteeRow, Search } from './EventInviteDialog'
 
 describe('EventInviteDialog', () => {
   it('renders correctly', () => {
     const props = {
-      onClose: () => {},
+      onClose: jest.fn(),
       eventInvitations: [{ id: 1 }, { id: 2 }, { id: 3 }],
-      people: [{ id: 1, name: 'a' }, { id: 4, name: 'b' }, { id: 5, name: 'c' }]
+      people: [{ id: 1, name: 'Alice' }, { id: 4, name: 'Bob' }, { id: 5, name: 'Charlie' }],
+      forGroups: [],
+      fetchPeople: jest.fn(),
+      eventId: '123',
+      invitePeopleToEvent: jest.fn(),
+      pending: false
     }
-    const wrapper = shallow(<EventInviteDialog {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<EventInviteDialog {...props} />)
+
+    expect(screen.getByText('Invite')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Search members')).toBeInTheDocument()
+    expect(screen.getByText('Already Invited')).toBeInTheDocument()
+    expect(screen.getByText('Select people to invite')).toBeInTheDocument()
   })
 })
 
 describe('InviteeRow', () => {
   it('renders correctly', () => {
     const props = {
-      person: { id: 1, name: 'j', avatarUrl: 'j.png', response: 'not needed' },
+      person: { id: 1, name: 'John', avatarUrl: 'john.png', response: 'not needed' },
       selected: true,
-      onClick: () => {}
+      onClick: jest.fn()
     }
-    const wrapper = shallow(<InviteeRow {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<InviteeRow {...props} />)
+
+    expect(screen.getByText('John')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox')).toBeChecked()
   })
 
-  it('renders correctly with showResposne', () => {
+  it('renders correctly with showResponse', () => {
     const props = {
-      person: { id: 1, name: 'j', avatarUrl: 'j.png', response: 'needed!' },
+      person: { id: 1, name: 'Jane', avatarUrl: 'jane.png', response: 'needed!' },
       selected: true,
-      onClick: () => {},
+      onClick: jest.fn(),
       showResponse: true
     }
-    const wrapper = shallow(<InviteeRow {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<InviteeRow {...props} />)
+
+    expect(screen.getByText('Jane')).toBeInTheDocument()
+    expect(screen.getByText('needed!')).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
   })
 })
 
 describe('Search', () => {
-  it('renders correctly', () => {
-    const props = {
-      onChange: () => {}
-    }
-    const wrapper = shallow(<Search {...props} />)
-    expect(wrapper).toMatchSnapshot()
+  it('renders correctly and handles input', () => {
+    const onChange = jest.fn()
+    render(<Search onChange={onChange} />)
+
+    const input = screen.getByPlaceholderText('Search members')
+    expect(input).toBeInTheDocument()
+
+    fireEvent.change(input, { target: { value: 'test' } })
+    expect(onChange).toHaveBeenCalledTimes(1)
   })
 })

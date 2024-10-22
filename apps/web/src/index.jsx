@@ -2,7 +2,7 @@ import React, { Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { rootDomId } from './client/util'
 import Loading from 'components/Loading'
-import './client/websockets.mjs'
+import './client/websockets.js'
 import './css/global/index.scss'
 import './i18n.mjs'
 

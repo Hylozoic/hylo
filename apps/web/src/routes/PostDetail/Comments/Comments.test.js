@@ -1,13 +1,18 @@
+import React from 'react'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import Comments from './Comments'
 import ShowMore from './ShowMore'
-import { shallow } from 'enzyme'
-import React from 'react'
+import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('Comments', () => {
   it('renders correctly', () => {
     const props = {
       currentUser: { id: 1 },
-      comments: [{ id: 1, parentComment: null }, { id: 2, parentComment: null }, { id: 3, parentComment: null }],
+      comments: [
+        { id: 1, parentComment: null, text: 'Comment 1' },
+        { id: 2, parentComment: null, text: 'Comment 2' },
+        { id: 3, parentComment: null, text: 'Comment 3' }
+      ],
       total: 9,
       hasMore: true,
       post: {
@@ -16,34 +21,53 @@ describe('Comments', () => {
       },
       slug: 'foo'
     }
-    const wrapper = shallow(<Comments {...props} />, { disableLifecycleMethods: true })
-    expect(wrapper.find('ShowMore').length).toEqual(1)
-    expect(wrapper.find('ShowMore').prop('commentsLength')).toEqual(3)
-    expect(wrapper.find('Connect(CommentWithReplies)').length).toEqual(3)
-    const comment = wrapper.find('Connect(CommentWithReplies)').at(0)
-    expect(comment.prop('comment')).toEqual(props.comments[0])
-    expect(comment.prop('slug')).toEqual(props.slug)
-    expect(wrapper.find('Connect(CommentForm)').length).toEqual(1)
+
+    render(<Comments {...props} />, { wrapper: AllTheProviders })
+
+    expect(screen.getByText('View 6 previous comments')).toBeInTheDocument()
+    expect(screen.getByText('Comment 1')).toBeInTheDocument()
+    expect(screen.getByText('Comment 2')).toBeInTheDocument()
+    expect(screen.getByText('Comment 3')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Write a comment...')).toBeInTheDocument()
+  })
+
+  it('renders login link when user is not logged in', () => {
+    const props = {
+      comments: [],
+      total: 0,
+      hasMore: false,
+      post: { id: '91', groups: [{ id: '100' }] },
+      slug: 'foo'
+    }
+
+    render(<Comments {...props} />, { wrapper: AllTheProviders })
+
+    expect(screen.getByText('Join Hylo to respond')).toBeInTheDocument()
   })
 })
 
 describe('ShowMore', () => {
-  it('returns null when hasMore is false', () => {
+  it('does not render when hasMore is false', () => {
     const props = {
-      hasMore: false
+      hasMore: false,
+      commentsLength: 4,
+      total: 4
     }
-    const wrapper = shallow(<ShowMore {...props} />)
-    expect(wrapper.find('div').length).toEqual(0)
+
+    render(<ShowMore {...props} />)
+
+    expect(screen.queryByText(/View .* previous comments/)).not.toBeInTheDocument()
   })
 
-  it('renders correctly', () => {
+  it('renders correctly when there are more comments to show', () => {
     const props = {
       commentsLength: 4,
       total: 11,
       hasMore: true
     }
-    const wrapper = shallow(<ShowMore {...props} />)
-    expect(wrapper.find('div').length).toEqual(1)
-    expect(wrapper.find('div').text()).toEqual('View 7 previous comments')
+
+    render(<ShowMore {...props} />)
+
+    expect(screen.getByText('View 7 previous comments')).toBeInTheDocument()
   })
 })

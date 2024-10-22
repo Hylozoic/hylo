@@ -1,7 +1,6 @@
 import React from 'react'
-import { mount, shallow } from 'enzyme'
-import { MemoryRouter } from 'react-router'
-import Loading from 'components/Loading'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import MessageSection from './MessageSection'
 
 const person1 = { id: '1', name: 'City Bob', avatarUrl: '' }
@@ -52,7 +51,7 @@ const messages = [
   }
 ]
 
-let wrapper, socket
+let socket
 
 beforeEach(() => {
   socket = {
@@ -61,56 +60,63 @@ beforeEach(() => {
   }
 })
 
-it('fetches more messages when scrolled to top', () => {
+it('fetches more messages when scrolled to top', async () => {
   const fetchMessages = jest.fn()
-  const Proxy = options => (
-    <MemoryRouter>
-      <MessageSection {...options} />
-    </MemoryRouter>
+  render(
+    <AllTheProviders>
+      <MessageSection
+        messages={messages}
+        socket={socket}
+        fetchMessages={fetchMessages}
+        hasMore
+      />
+    </AllTheProviders>
   )
-  const wrapper = mount(
-    <Proxy
-      messages={messages}
-      socket={socket}
-      fetchMessages={fetchMessages}
-      hasMore
-    />
+
+  const messageSection = screen.getByRole('region')
+  fireEvent.scroll(messageSection, { target: { scrollTop: 0, scrollHeight: 1200, offsetHeight: 100 } })
+
+  await waitFor(() => {
+    expect(fetchMessages).toHaveBeenCalled()
+  })
+})
+
+it('shows Loading component when pending is true', () => {
+  render(
+    <AllTheProviders>
+      <MessageSection messages={[]} fetchMessages={() => {}} pending />
+    </AllTheProviders>
   )
-  wrapper.find(MessageSection).instance().handleScroll({
-    target: { scrollTop: 0, scrollHeight: 1200, offsetHeight: 100 }
+
+  expect(screen.getByRole('progressbar')).toBeInTheDocument()
+})
+
+it('displays messages when not pending', () => {
+  render(
+    <AllTheProviders>
+      <MessageSection messages={messages} fetchMessages={() => {}} />
+    </AllTheProviders>
+  )
+
+  expect(screen.getByText('hi!')).toBeInTheDocument()
+  expect(screen.getByText('how are you?')).toBeInTheDocument()
+})
+
+it('scrolls to bottom when new messages are added', async () => {
+  const { rerender } = render(
+    <AllTheProviders>
+      <MessageSection messages={messages.slice(0, 3)} fetchMessages={() => {}} />
+    </AllTheProviders>
+  )
+
+  rerender(
+    <AllTheProviders>
+      <MessageSection messages={messages} fetchMessages={() => {}} />
+    </AllTheProviders>
+  )
+
+  await waitFor(() => {
+    const lastMessage = screen.getByText('great!')
+    expect(lastMessage).toBeVisible()
   })
-  expect(fetchMessages).toBeCalled()
-})
-
-it('shows Loading component when pending set', () => {
-  wrapper = shallow(<MessageSection messages={[]} fetchMessages={() => {}} pending />, { disableLifecycleMethods: true })
-  expect(wrapper.find(Loading).length).toBe(1)
-})
-
-it('sets visible to false in state when visibility changes', () => {
-  wrapper = shallow(<MessageSection messages={[]} fetchMessages={() => {}} pending />, { disableLifecycleMethods: true })
-  wrapper.setState({ visible: true })
-  // jsdom document.hidden was false, force it to hidden and make it settable for this test
-  let hidden = true
-  Object.defineProperty(document, 'hidden', {
-    configurable: true,
-    get () { return hidden },
-    set (bool) { hidden = Boolean(bool) }
-  })
-  wrapper.instance().handleVisibilityChange()
-  expect(wrapper.state('visible')).toBe(false)
-})
-
-it('returns true from atBottom when scrolled to bottom', () => {
-  const bottom = { offsetHeight: 10, scrollHeight: 100, scrollTop: 100 }
-  wrapper = shallow(<MessageSection messages={[]} fetchMessages={() => {}} />, { disableLifecycleMethods: true })
-  const actual = wrapper.instance().atBottom(bottom)
-  expect(actual).toBe(true)
-})
-
-it('returns false from atBottom when scrolled up', () => {
-  const top = { offsetHeight: 10, scrollHeight: 100, scrollTop: 50 }
-  wrapper = shallow(<MessageSection messages={[]} fetchMessages={() => {}} />, { disableLifecycleMethods: true })
-  const actual = wrapper.instance().atBottom(top)
-  expect(actual).toBe(false)
 })

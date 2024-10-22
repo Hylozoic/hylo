@@ -1,34 +1,41 @@
-import ScrollListener from './ScrollListener'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import ScrollListener from './ScrollListener'
 
-it('will call onLeaveTop', () => {
-  const props = {
-    element: {
-      scrollTop: 1
-    },
-    onLeaveTop: jest.fn()
-  }
-  const wrapper = shallow(<ScrollListener {...props} />, { disableLifecycleMethods: true })
-  const simEvent = {
-    preventDefault: jest.fn()
-  }
-  wrapper.instance().handleScrollEvents(simEvent)
-  expect(props.onLeaveTop).toHaveBeenCalled()
-})
+describe('ScrollListener', () => {
+  it('calls onLeaveTop when scrolling down', () => {
+    const onLeaveTop = jest.fn()
+    const element = { scrollTop: 0 }
 
-it('will call onTop', () => {
-  const props = {
-    element: {
-      scrollTop: 0
-    },
-    onTop: jest.fn()
-  }
-  const wrapper = shallow(<ScrollListener {...props} />, { disableLifecycleMethods: true })
-  wrapper.setState({ hitTop: false })
-  const simEvent = {
-    preventDefault: jest.fn()
-  }
-  wrapper.instance().handleScrollEvents(simEvent)
-  expect(props.onTop).toHaveBeenCalled()
+    const { getByTestId } = render(
+      <div data-testid="scroll-container">
+        <ScrollListener element={element} onLeaveTop={onLeaveTop} />
+      </div>
+    )
+
+    const container = getByTestId('scroll-container')
+    element.scrollTop = 1
+    fireEvent.scroll(container)
+
+    expect(onLeaveTop).toHaveBeenCalled()
+  })
+
+  it('calls onTop when scrolling to the top', () => {
+    const onTop = jest.fn()
+    const element = { scrollTop: 1 }
+
+    const { getByTestId } = render(
+      <div data-testid="scroll-container">
+        <ScrollListener element={element} onTop={onTop} />
+      </div>
+    )
+
+    const container = getByTestId('scroll-container')
+    element.scrollTop = 0
+    fireEvent.scroll(container)
+
+    expect(onTop).toHaveBeenCalled()
+  })
+
+  // Add more tests for onBottom, onLeaveBottom, etc.
 })

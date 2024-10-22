@@ -1,7 +1,7 @@
 import { get } from 'lodash/fp'
 import { connect } from 'react-redux'
 import presentGroup from 'store/presenters/presentGroup'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getParentGroups } from 'store/selectors/getGroupRelationships'
 import getRouteParam from 'store/selectors/getRouteParam'
 import getCommonRoles from 'store/selectors/getCommonRoles'
@@ -23,7 +23,7 @@ import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 
 export function mapStateToProps (state, props) {
   const slug = getRouteParam('groupSlug', props, false)
-  const group = getGroupForCurrentRoute(state, props)
+  const group = getGroupForSlug(state, props)
   const currentUser = getMe(state)
   const parentGroups = group ? getParentGroups(state, { groupSlug: group.slug }) : []
   const commonRoles = getCommonRoles(state)

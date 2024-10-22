@@ -1,18 +1,18 @@
+import cx from 'classnames'
 import { isEmpty } from 'lodash'
 import React, { useEffect, useRef, useState } from 'react'
 import { string } from 'prop-types'
-import { withTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import { TextHelpers } from '@hylo/shared'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
-import cx from 'classnames'
 import classes from './GroupSidebar.module.scss'
 
-function AboutSection (props) {
-  const { description, purpose, t } = props
+function AboutSection ({ description, purpose }) {
   const [showExpandButton, setShowExpandButton] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const containerRef = useRef(null)
+  const { t } = useTranslation()
 
   useEffect(() => {
     const container = containerRef.current
@@ -53,4 +53,4 @@ AboutSection.propTypes = {
   purpose: string
 }
 
-export default withTranslation()(AboutSection)
+export default AboutSection

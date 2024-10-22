@@ -1,6 +1,6 @@
 import { connect } from 'react-redux'
 import { get } from 'lodash/fp'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
 import getMe from 'store/selectors/getMe'
 import resetNewPostCount from 'store/actions/resetNewPostCount'
@@ -15,7 +15,7 @@ import { makeDropQueryResults } from 'store/reducers/queryResults'
 
 export function mapStateToProps (state, props) {
   const routeParams = props.match.params
-  const group = getGroupForCurrentRoute(state, props)
+  const group = getGroupForSlug(state, props)
   const rootPath = baseUrl({ ...routeParams, view: null })
   const isAllOrPublicPath = ['/all', '/public'].includes(rootPath)
   let badge, groupMembership, hasRelatedGroups
