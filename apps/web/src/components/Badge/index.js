@@ -1,3 +1,3 @@
-import component from './component'
+import component from './Badge'
 
 export default component

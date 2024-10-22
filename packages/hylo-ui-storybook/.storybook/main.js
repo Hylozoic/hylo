@@ -1,5 +1,9 @@
 import { join, dirname } from "path";
-import { mergeConfig } from 'vite';
+import { mergeConfig, defineConfig, transformWithEsbuild } from 'vite';
+import react from '@vitejs/plugin-react'
+import tailwindcss from 'tailwindcss'
+import autoprefixer from 'autoprefixer'
+import { patchCssModules } from 'vite-css-modules'
 
 /**
  * This function is used to resolve the absolute path of a package.
@@ -40,14 +44,53 @@ const config = {
         },
       },
       css: {
+        // preprocessorOptions: {
+        //   scss: {
+        //     additionalData: `@import "../../../apps/web/src/css/global/sass_resources.scss";`,
+        //   },
+        // },
         preprocessorOptions: {
           scss: {
-            additionalData: `@import "../../../apps/web/src/css/global/index.scss";`,
-          },
+            additionalData: '@import "../../../apps/web/src/styles/global.scss";'
+          }
+        },
+        modules: {
+          localsConvention: 'camelCaseOnly',
+          generateScopedName: '[name]_[local]_[hash:base64:5]'
+        },
+        postcss: {
+          plugins: [
+            tailwindcss,
+            autoprefixer,
+          ],
         },
       },
+      optimizeDeps: {
+        force: true,
+        esbuildOptions: {
+          loader: {
+            '.js': 'jsx'
+          }
+        },
+        exclude: ['@hylo/shared'],
+        include: ['**/*.scss']
+      },
       plugins: [
-        // Add any necessary Vite plugins here
+        patchCssModules(),
+        react(),
+        {
+          name: 'treat-js-files-as-jsx',
+          async transform (code, id) {
+            if (!id.match(/src\/.*\.js$/)) return null
+    
+            // Use the exposed transform from vite, instead of directly
+            // transforming with esbuild
+            return transformWithEsbuild(code, id, {
+              loader: 'jsx',
+              jsx: 'automatic'
+            })
+          }
+        },
       ],
     });
   },

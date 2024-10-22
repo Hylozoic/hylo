@@ -69,6 +69,7 @@
     "@luma.gl/engine": "~9.0.0",
     "@math.gl/web-mercator": "^4.1.0",
     "@playlyfe/gql": "^2.6.2",
+    "@radix-ui/react-slot": "^1.1.0",
     "@rollbar/react": "^0.12.0-beta",
     "@svgr/webpack": "8.1.0",
     "@testing-library/jest-dom": "^6.4.6",

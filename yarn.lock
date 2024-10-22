@@ -5784,6 +5784,34 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@radix-ui/react-compose-refs@npm:1.1.0":
+  version: 1.1.0
+  resolution: "@radix-ui/react-compose-refs@npm:1.1.0"
+  peerDependencies:
+    "@types/react": "*"
+    react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+  checksum: 10/047a4ed5f87cb848be475507cd62836cf5af5761484681f521ea543ea7c9d59d61d42806d6208863d5e2380bf38cdf4cff73c2bbe5f52dbbe50fb04e1a13ac72
+  languageName: node
+  linkType: hard
+
+"@radix-ui/react-slot@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "@radix-ui/react-slot@npm:1.1.0"
+  dependencies:
+    "@radix-ui/react-compose-refs": "npm:1.1.0"
+  peerDependencies:
+    "@types/react": "*"
+    react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+  checksum: 10/95e190868418b1c83adf6627256f6b664b0dcbea95d7215de9c64ac2c31102fc09155565d9ca27be6abd20fc63d0b0bacfe1b67d78b2de1d198244c848e1a54e
+  languageName: node
+  linkType: hard
+
 "@react-native-async-storage/async-storage@npm:^1.24.0":
   version: 1.24.0
   resolution: "@react-native-async-storage/async-storage@npm:1.24.0"
@@ -12219,7 +12247,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"autoprefixer@npm:10.4.20, autoprefixer@npm:^10.4.19":
+"autoprefixer@npm:10.4.20, autoprefixer@npm:^10.4.19, autoprefixer@npm:^10.4.20":
   version: 10.4.20
   resolution: "autoprefixer@npm:10.4.20"
   dependencies:
@@ -22986,6 +23014,7 @@ __metadata:
     "@vitejs/plugin-react": "npm:4.3.2"
     ansi-styles: "npm:^3.2.1"
     app-module-path: "npm:^2.2.0"
+    autoprefixer: "npm:^10.4.20"
     autoproxy: "npm:^1.0.1"
     babel-core: "npm:7.0.0-bridge.0"
     babel-jest: "npm:^29.7.0"
@@ -23145,6 +23174,8 @@ __metadata:
     strip-ansi: "npm:4.0.0"
     style-loader: "npm:4.0.0"
     supercluster: "npm:^7.0.0"
+    tailwindcss: "npm:^3.4.14"
+    tailwindcss-animate: "npm:^1.0.7"
     terser-webpack-plugin: "npm:^5.3.10"
     tether: "npm:^1.4.0"
     timezone-mock: "npm:^0.0.7"
@@ -23159,6 +23190,7 @@ __metadata:
     validator: "npm:^13.7.0"
     velocity-react: "npm:^1.3.3"
     vite: "npm:5.4.9"
+    vite-css-modules: "npm:1.5.2"
     webpack: "npm:^5.94.0"
     webpack-bundle-analyzer: "npm:^4.10.2"
     webpack-cli: "npm:^5.1.4"
@@ -42033,7 +42065,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite-css-modules@npm:^1.4.2":
+"vite-css-modules@npm:1.5.2, vite-css-modules@npm:^1.4.2":
   version: 1.5.2
   resolution: "vite-css-modules@npm:1.5.2"
   dependencies:
@@ -42320,6 +42352,7 @@ __metadata:
     "@luma.gl/engine": "npm:~9.0.0"
     "@math.gl/web-mercator": "npm:^4.1.0"
     "@playlyfe/gql": "npm:^2.6.2"
+    "@radix-ui/react-slot": "npm:^1.1.0"
     "@rollbar/react": "npm:^0.12.0-beta"
     "@storybook/react": "npm:^8.3.5"
     "@svgr/webpack": "npm:8.1.0"
