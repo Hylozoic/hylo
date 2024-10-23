@@ -1,6 +1,6 @@
 import React from 'react'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import TopicNavigation from './TopicNavigation'
-import { shallow } from 'enzyme'
 
 const topics = [
   { name: 't1', url: '/t1', newPostCount: 3 },
@@ -9,33 +9,53 @@ const topics = [
   { name: 't4', url: '/t4', newPostCount: 2 }
 ]
 
-const group = {
-  slug: 'foo'
-}
-
 const requiredProps = {
   topics,
   location: { pathname: '/' },
   backUrl: '/return-here',
   seeAllUrl: '/seeAllTopics',
   routeParams: {
-    slug: group.slug
+    slug: 'foo'
   }
 }
 
-it('renders correctly for a group', () => {
-  const wrapper = shallow(<TopicNavigation {...requiredProps} />)
-  expect(wrapper).toMatchSnapshot()
-})
+const renderComponent = (props = {}) => {
+  return render(
+    <TopicNavigation {...requiredProps} {...props} />
+  )
+}
 
-it('renders correctly for All Groups', () => {
-  const wrapper = shallow(<TopicNavigation {...requiredProps} />)
-  expect(wrapper).toMatchSnapshot()
-})
+describe('TopicNavigation', () => {
+  it('renders correctly for a group', () => {
+    renderComponent()
+    expect(screen.getByText('Topics')).toBeInTheDocument()
+    expect(screen.getByText('#t1')).toBeInTheDocument()
+    expect(screen.getByText('#t2')).toBeInTheDocument()
+    expect(screen.getByText('#t3')).toBeInTheDocument()
+    expect(screen.getByText('#t4')).toBeInTheDocument()
+    expect(screen.getByText('All topics')).toBeInTheDocument()
+  })
 
-it('can be clicked to expand the left nav', () => {
-  const expand = jest.fn()
-  const wrapper = shallow(<TopicNavigation {...requiredProps} collapsed expand={expand} />)
-  wrapper.find('[data-stylename="s.header s.header-link"]').first().simulate('click')
-  expect(expand).toBeCalled()
+  it('renders badges for topics with new posts', () => {
+    renderComponent()
+    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+    expect(screen.queryByText('0')).not.toBeInTheDocument()
+  })
+
+  it('can be clicked to expand the left nav when collapsed', () => {
+    const expand = jest.fn()
+    renderComponent({ collapsed: true, expand })
+
+    fireEvent.click(screen.getByText('Topics'))
+    expect(expand).toHaveBeenCalled()
+  })
+
+  it('does not call expand when clicked if not collapsed', () => {
+    const expand = jest.fn()
+    renderComponent({ expand })
+
+    fireEvent.click(screen.getByText('Topics'))
+    expect(expand).not.toHaveBeenCalled()
+  })
 })

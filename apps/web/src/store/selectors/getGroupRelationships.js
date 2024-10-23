@@ -1,7 +1,7 @@
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import orm from 'store/models'
 import { GROUP_RELATIONSHIP_TYPE } from 'store/models/GroupRelationshipInvite'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
 export const getChildGroups = ormCreateSelector(
   orm,
@@ -21,7 +21,7 @@ export const getParentGroups = ormCreateSelector(
 
 export const getGroupInvitesFrom = ormCreateSelector(
   orm,
-  getGroupForCurrentRoute,
+  getGroupForSlug,
   (session, group) => {
     return session.GroupRelationshipInvite.filter(i => i.fromGroup === group.id).toModelArray()
   }
@@ -29,7 +29,7 @@ export const getGroupInvitesFrom = ormCreateSelector(
 
 export const getGroupInvitesTo = ormCreateSelector(
   orm,
-  getGroupForCurrentRoute,
+  getGroupForSlug,
   (session, group) => {
     return session.GroupRelationshipInvite.filter(i => i.toGroup === group.id).toModelArray()
   }

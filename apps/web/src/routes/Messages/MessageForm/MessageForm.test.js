@@ -1,7 +1,8 @@
+import React from 'react'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import MessageForm from './MessageForm'
 import { keyMap } from 'util/textInput'
-import { shallow, mount } from 'enzyme'
-import React from 'react'
 
 const messageThreadId = '1'
 const currentUser = {
@@ -10,40 +11,54 @@ const currentUser = {
 }
 
 const defaultProps = {
-  focusForm: () => {},
+  focusForm: jest.fn(),
   messageThreadId,
   messageText: 'hey you',
   currentUser,
   participants: [],
-  updateMessageText: () => {},
-  onSubmit: () => {}
+  updateMessageText: jest.fn(),
+  onSubmit: jest.fn(),
+  sendIsTyping: jest.fn()
 }
 
-describe('component', () => {
-  const mockOnSubmit = jest.fn(() => Promise.resolve())
-  const sendIsTyping = jest.fn()
-  const wrapper = mount(<MessageForm
-    {...defaultProps}
-    onSubmit={mockOnSubmit}
-    sendIsTyping={sendIsTyping} />)
+describe('MessageForm', () => {
+  it('renders the message form with textarea and send button', () => {
+    render(<MessageForm {...defaultProps} />, { wrapper: AllTheProviders })
 
-  it('matches the latest snapshot', () => {
-    const wrapper = shallow(<MessageForm {...defaultProps} />)
-    expect(wrapper).toMatchSnapshot()
+    expect(screen.getByPlaceholderText('Write something...')).toBeInTheDocument()
+    expect(screen.getByRole('button')).toBeInTheDocument()
   })
 
-  it('calls startTyping when typing happens', () => {
-    wrapper.find('textarea').simulate('keydown')
-    expect(sendIsTyping).toHaveBeenCalledWith(true)
+  it('displays the current message text', () => {
+    render(<MessageForm {...defaultProps} />, { wrapper: AllTheProviders })
+
+    expect(screen.getByDisplayValue('hey you')).toBeInTheDocument()
+  })
+
+  it('calls sendIsTyping when typing happens', () => {
+    render(<MessageForm {...defaultProps} />, { wrapper: AllTheProviders })
+
+    fireEvent.keyDown(screen.getByPlaceholderText('Write something...'))
+    expect(defaultProps.sendIsTyping).toHaveBeenCalledWith(true)
   })
 
   it('does not run onSubmit when shift-enter is pressed', () => {
-    wrapper.find('textarea').simulate('keydown', { which: keyMap.ENTER, shiftKey: true })
-    expect(mockOnSubmit).not.toHaveBeenCalled()
+    render(<MessageForm {...defaultProps} />, { wrapper: AllTheProviders })
+
+    fireEvent.keyDown(screen.getByPlaceholderText('Write something...'), { key: 'Enter', shiftKey: true })
+    expect(defaultProps.onSubmit).not.toHaveBeenCalled()
   })
 
-  it('does onSubmit when enter is pressed', () => {
-    wrapper.find('textarea').simulate('keydown', { which: keyMap.ENTER })
-    expect(mockOnSubmit).toHaveBeenCalled()
+  it('runs onSubmit when enter is pressed', () => {
+    render(<MessageForm {...defaultProps} />, { wrapper: AllTheProviders })
+
+    fireEvent.keyDown(screen.getByPlaceholderText('Write something...'), { key: 'Enter' })
+    expect(defaultProps.onSubmit).toHaveBeenCalled()
+  })
+
+  it('shows loading state when pending', () => {
+    render(<MessageForm {...defaultProps} pending={true} />, { wrapper: AllTheProviders })
+
+    expect(screen.getByText('Loading...')).toBeInTheDocument()
   })
 })

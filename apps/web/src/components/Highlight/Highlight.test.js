@@ -1,5 +1,5 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import Highlight from './Highlight'
 
 describe('Highlight', () => {
@@ -7,30 +7,30 @@ describe('Highlight', () => {
   const componentClassName = 'highlight-component'
   const terms = ['cat', 'dog']
 
-  it('works with react tree', () => {
-    const markup = <div className='cat'>
-      <span>one cat and one dog</span>
-      <span className='dog'>
-        <ul>another cat and another cat</ul>
-      </span>
-    </div>
+  it('highlights terms in a react tree', () => {
+    const markup = (
+      <div className='cat'>
+        <span>one cat and one dog</span>
+        <span className='dog'>
+          <ul>another cat and another cat</ul>
+        </span>
+      </div>
+    )
 
-    const expected = <span className={componentClassName}><div className='cat'>
-      <span>
-        one <span className={highlightClassName}>cat</span> and one <span className={highlightClassName}>dog</span>
-      </span>
-      <span className='dog'>
-        <ul>another <span className={highlightClassName}>cat</span> and another <span className={highlightClassName}>cat</span></ul>
-      </span>
-    </div></span>
+    render(
+      <Highlight
+        className={componentClassName}
+        terms={terms}
+        highlightClassName={highlightClassName}
+      >
+        {markup}
+      </Highlight>
+    )
 
-    const wrapper = shallow(<Highlight
-      className={componentClassName}
-      terms={terms}
-      highlightClassName={highlightClassName}
-    >{markup}</Highlight>)
-
-    expect(wrapper.html()).toEqual(shallow(expected).html())
+    expect(screen.getAllByText('cat', { exact: false })).toHaveLength(3)
+    expect(screen.getAllByText('dog', { exact: false })).toHaveLength(1)
+    expect(screen.getByText('one cat and one dog')).toBeInTheDocument()
+    expect(screen.getByText('another cat and another cat')).toBeInTheDocument()
   })
 
   it('works with dangerouslySetInnerHTML (simple)', () => {
@@ -38,21 +38,23 @@ describe('Highlight', () => {
       <span>one cat</span>
     </div> ends with a dog`
 
-    const wrapper = shallow(<Highlight
-      className={componentClassName}
-      terms={terms}
-      highlightClassName={highlightClassName}>
-      <div className='outer' dangerouslySetInnerHTML={{ __html: html }} />
-    </Highlight>)
+    render(
+      <Highlight
+        className={componentClassName}
+        terms={terms}
+        highlightClassName={highlightClassName}
+      >
+        <div className='outer' dangerouslySetInnerHTML={{ __html: html }} />
+      </Highlight>
+    )
 
-    const expected = `<span>starts with a <span class="highlight-span">cat</span> <div>
-      <span>one <span class="highlight-span">cat</span></span>
-    </div> ends with a <span class="highlight-span">dog</span></span>`
-
-    expect(wrapper.find('.outer').prop('dangerouslySetInnerHTML').__html).toEqual(expected)
+    expect(screen.getAllByText('cat', { exact: false })).toHaveLength(2)
+    expect(screen.getByText('dog', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('starts with a', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('ends with a', { exact: false })).toBeInTheDocument()
   })
 
-  it('works with dangerouslySetInnerHTML', () => {
+  it('works with dangerouslySetInnerHTML (complex)', () => {
     const html = `starts with a cat <div className='cat'>
       <span>one cat and one dog</span>
       <span className='dog'>
@@ -60,39 +62,38 @@ describe('Highlight', () => {
       </span>
     </div> ends with a dog`
 
-    const wrapper = shallow(<Highlight
-      className={componentClassName}
-      terms={terms}
-      highlightClassName={highlightClassName}>
-      <div className='outer' dangerouslySetInnerHTML={{ __html: html }} />
-    </Highlight>)
+    render(
+      <Highlight
+        className={componentClassName}
+        terms={terms}
+        highlightClassName={highlightClassName}
+      >
+        <div className='outer' dangerouslySetInnerHTML={{ __html: html }} />
+      </Highlight>
+    )
 
-    const expected = `<span>starts with a <span class="highlight-span">cat</span> <div classname="cat">
-      <span>one <span class="highlight-span">cat</span> and one <span class="highlight-span">dog</span></span>
-      <span classname="dog">
-        <ul>another <span class="highlight-span">cat</span> and another <span class="highlight-span">cat</span></ul>
-      </span>
-    </div> ends with a <span class="highlight-span">dog</span></span>`
-
-    expect(wrapper.find('.outer').prop('dangerouslySetInnerHTML').__html).toEqual(expected)
+    expect(screen.getAllByText('cat', { exact: false })).toHaveLength(4)
+    expect(screen.getAllByText('dog', { exact: false })).toHaveLength(2)
+    expect(screen.getByText('one cat and one dog')).toBeInTheDocument()
+    expect(screen.getByText('another cat and another cat')).toBeInTheDocument()
   })
 
   it('removes non word characters from search terms', () => {
     const terms = ['$%&^<dog>.,/.>']
-
     const markup = <div>just a solitary dog</div>
 
-    const expected = <span className={componentClassName}>
-      <div>just a solitary <span className={highlightClassName}>dog</span></div>
-    </span>
+    render(
+      <Highlight
+        className={componentClassName}
+        terms={terms}
+        highlightClassName={highlightClassName}
+      >
+        {markup}
+      </Highlight>
+    )
 
-    const wrapper = shallow(<Highlight
-      className={componentClassName}
-      terms={terms}
-      highlightClassName={highlightClassName}
-    >{markup}</Highlight>)
-
-    expect(wrapper.html()).toEqual(shallow(expected).html())
+    const highlightedDog = screen.getByText('dog')
+    expect(highlightedDog).toHaveClass(highlightClassName)
   })
 
   it('only matches complete words (simple)', () => {
@@ -100,21 +101,22 @@ describe('Highlight', () => {
       <span>one cat and one doge</span>
     </div>`
 
-    const wrapper = shallow(<Highlight
-      className={componentClassName}
-      terms={terms}
-      highlightClassName={highlightClassName}>
-      <div className='outer' dangerouslySetInnerHTML={{ __html: html }} />
-    </Highlight>)
+    render(
+      <Highlight
+        className={componentClassName}
+        terms={terms}
+        highlightClassName={highlightClassName}
+      >
+        <div className='outer' dangerouslySetInnerHTML={{ __html: html }} />
+      </Highlight>
+    )
 
-    const expected = `<div>
-      <span>one <span class="highlight-span">cat</span> and one doge</span>
-    </div>`
-
-    expect(wrapper.find('.outer').prop('dangerouslySetInnerHTML').__html).toEqual(expected)
+    const highlightedCat = screen.getByText('cat')
+    expect(highlightedCat).toHaveClass(highlightClassName)
+    expect(screen.queryByText('doge')).not.toHaveClass(highlightClassName)
   })
 
-  it('only matches complete words', () => {
+  it('only matches complete words (complex)', () => {
     const html = `<div>
       <span>one cat and one doge</span>
       <span>
@@ -122,20 +124,21 @@ describe('Highlight', () => {
       </span>
     </div>`
 
-    const wrapper = shallow(<Highlight
-      className={componentClassName}
-      terms={terms}
-      highlightClassName={highlightClassName}>
-      <div className='outer' dangerouslySetInnerHTML={{ __html: html }} />
-    </Highlight>)
+    render(
+      <Highlight
+        className={componentClassName}
+        terms={terms}
+        highlightClassName={highlightClassName}
+      >
+        <div className='outer' dangerouslySetInnerHTML={{ __html: html }} />
+      </Highlight>
+    )
 
-    const expected = `<div>
-      <span>one <span class="highlight-span">cat</span> and one doge</span>
-      <span>
-        <ul>a caterpillar and a <span class="highlight-span">dog</span></ul>
-      </span>
-    </div>`
-
-    expect(wrapper.find('.outer').prop('dangerouslySetInnerHTML').__html).toEqual(expected)
+    const highlightedCat = screen.getByText('cat')
+    const highlightedDog = screen.getByText('dog')
+    expect(highlightedCat).toHaveClass(highlightClassName)
+    expect(highlightedDog).toHaveClass(highlightClassName)
+    expect(screen.queryByText('doge')).not.toHaveClass(highlightClassName)
+    expect(screen.queryByText('caterpillar')).not.toHaveClass(highlightClassName)
   })
 })

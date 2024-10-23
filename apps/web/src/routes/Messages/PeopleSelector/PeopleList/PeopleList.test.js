@@ -1,9 +1,9 @@
-import { shallow } from 'enzyme'
 import React from 'react'
-
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import PeopleList from './PeopleList'
 
-it('does something', () => {
+describe('PeopleList', () => {
   const people = [
     {
       id: '1',
@@ -24,6 +24,50 @@ it('does something', () => {
       group: 'Ocelots'
     }
   ]
-  const wrapper = shallow(<PeopleList people={people} onMouseOver={jest.fn()} />)
-  expect(wrapper).toMatchSnapshot()
+
+  it('renders a list of people', () => {
+    render(
+      <PeopleList people={people} onMouseOver={() => {}} />,
+      { wrapper: AllTheProviders }
+    )
+
+    expect(screen.getByText('Wombat')).toBeInTheDocument()
+    expect(screen.getByText('Aardvark')).toBeInTheDocument()
+    expect(screen.getByText('Ocelot')).toBeInTheDocument()
+  })
+
+  it('renders nothing when people array is empty', () => {
+    render(
+      <PeopleList people={[]} onMouseOver={() => {}} />,
+      { wrapper: AllTheProviders }
+    )
+
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  it('calls onMouseOver when hovering over a person', () => {
+    const onMouseOver = jest.fn()
+    render(
+      <PeopleList people={people} onMouseOver={onMouseOver} />,
+      { wrapper: AllTheProviders }
+    )
+
+    screen.getByText('Wombat').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
+    expect(onMouseOver).toHaveBeenCalledWith(people[0])
+  })
+
+  it('highlights the current match', () => {
+    render(
+      <PeopleList
+        people={people}
+        onMouseOver={() => {}}
+        currentMatch={people[1]}
+        onClick={() => {}}
+      />,
+      { wrapper: AllTheProviders }
+    )
+
+    const activeItem = screen.getByText('Aardvark').closest('li')
+    expect(activeItem).toHaveClass('active') // Assuming the active class is applied to the li element
+  })
 })

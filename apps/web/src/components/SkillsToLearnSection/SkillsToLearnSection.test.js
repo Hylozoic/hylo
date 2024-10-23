@@ -1,18 +1,25 @@
-import SkillsToLearnSection from './SkillsToLearnSection'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import SkillsToLearnSection from './SkillsToLearnSection'
 
-it('shows basic pills', () => {
-  const skills = [{ id: 1, name: 'test' }, { id: 2, name: 'unclickable' }]
+describe('SkillsToLearnSection', () => {
+  const mockSkills = [{ id: 1, name: 'test' }, { id: 2, name: 'unclickable' }]
+  const mockFetchMemberSkills = jest.fn()
 
-  const wrapper = shallow(<SkillsToLearnSection skills={skills} fetchMemberSkills={jest.fn()} />)
-  expect(wrapper).toMatchSnapshot()
-})
+  it('shows basic pills', () => {
+    render(<SkillsToLearnSection skills={mockSkills} fetchMemberSkills={mockFetchMemberSkills} />)
 
-it('shows editable fields when isMe = true', () => {
-  const skills = [{ id: 1, name: 'test' }, { id: 2, name: 'unclickable' }]
-  const isMe = true
+    expect(screen.getByText('Add a skill you want to learn')).toBeInTheDocument()
+    expect(screen.getByText('test')).toBeInTheDocument()
+    expect(screen.getByText('unclickable')).toBeInTheDocument()
+  })
 
-  const wrapper = shallow(<SkillsToLearnSection skills={skills} fetchMemberSkills={jest.fn()} isMe={isMe} />)
-  expect(wrapper).toMatchSnapshot()
+  it('shows editable fields when isMe = true', () => {
+    render(<SkillsToLearnSection skills={mockSkills} fetchMemberSkills={mockFetchMemberSkills} isMe={true} />)
+
+    expect(screen.getByText('Add a skill you want to learn')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('What skills do you want to learn?')).toBeInTheDocument()
+    expect(screen.getByText('test')).toBeInTheDocument()
+    expect(screen.getByText('unclickable')).toBeInTheDocument()
+  })
 })

@@ -78,33 +78,3 @@ exports[`AddMemberToRole renders correctly, and transitions from not adding to a
   </div>
 </DocumentFragment>
 `;
-
-exports[`RoleList renders correctly 1`] = `
-<DocumentFragment>
-  <div>
-    <div>
-      <h4>
-        Responsibilities
-      </h4>
-      <div
-        data-stylename="styles.help-text"
-      >
-        Common roles cannot have their responsibilities edited
-      </div>
-    </div>
-    <div
-      style="margin-top: 20px;"
-    >
-      <h4>
-        Members
-      </h4>
-    </div>
-    <div
-      data-stylename="styles.add-new"
-      data-testid="add-new"
-    >
-      + Add Member to Role
-    </div>
-  </div>
-</DocumentFragment>
-`;

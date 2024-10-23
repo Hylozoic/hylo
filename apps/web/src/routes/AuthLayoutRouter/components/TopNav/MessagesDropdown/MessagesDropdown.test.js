@@ -1,7 +1,11 @@
-import MessagesDropdown, { MessagesDropdownItem, lastMessageCreator } from './MessagesDropdown'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import MessagesDropdown, { MessagesDropdownItem, lastMessageCreator } from './MessagesDropdown'
 import orm from 'store/models'
+import { Provider } from 'react-redux'
+import configureStore from 'redux-mock-store'
+
+const mockStore = configureStore([])
 
 const session = orm.mutableSession(orm.getEmptyState())
 const { MessageThread, Message, Person } = session
@@ -32,29 +36,54 @@ const threads = [
 
 describe('MessagesDropdown', () => {
   it('renders correctly with an empty list', () => {
-    const wrapper = shallow(<MessagesDropdown
-      fetchThreads={jest.fn()}
-      renderToggleChildren={() => <span>click me</span>}
-      threads={[]}
-      currentUser={u1} />)
-    expect(wrapper).toMatchSnapshot()
+    const store = mockStore({
+      pending: {},
+      orm: orm.getEmptyState()
+    })
+
+    render(
+      <Provider store={store}>
+        <MessagesDropdown
+          fetchThreads={jest.fn()}
+          renderToggleChildren={() => <span>click me</span>}
+          threads={[]}
+          currentUser={u1}
+        />
+      </Provider>
+    )
+
+    expect(screen.getByText('click me')).toBeInTheDocument()
+    expect(screen.getByText("You don't have any messages yet")).toBeInTheDocument()
   })
 
   it('renders correctly with a list of threads', () => {
-    const wrapper = shallow(<MessagesDropdown
-      fetchThreads={jest.fn()}
-      renderToggleChildren={() => <span>click me</span>}
-      threads={threads}
-      currentUser={u1} />)
-    expect(wrapper).toMatchSnapshot()
+    const store = mockStore({
+      pending: {},
+      orm: session.state
+    })
+
+    render(
+      <Provider store={store}>
+        <MessagesDropdown
+          fetchThreads={jest.fn()}
+          renderToggleChildren={() => <span>click me</span>}
+          threads={threads}
+          currentUser={u1}
+        />
+      </Provider>
+    )
+
+    expect(screen.getByText('click me')).toBeInTheDocument()
+    expect(screen.getByText('Marie Curie and Arthur Fonzarelli')).toBeInTheDocument()
+    expect(screen.getByText('Marie Curie: hi')).toBeInTheDocument()
   })
 })
 
 describe('MessagesDropdownItem', () => {
   it('renders correctly with an empty thread', () => {
     const thread = new MessageThread({})
-    const wrapper = shallow(<MessagesDropdownItem thread={thread} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<MessagesDropdownItem thread={thread} />)
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
   })
 
   it('renders correctly with no other participants', () => {
@@ -62,24 +91,25 @@ describe('MessagesDropdownItem', () => {
     const thread = new MessageThread({
       participants: [currentUser]
     })
-    const wrapper = shallow(<MessagesDropdownItem thread={thread} currentUser />)
-    expect(wrapper).toMatchSnapshot()
+    render(<MessagesDropdownItem thread={thread} currentUser={currentUser} />)
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
   })
 
   it('renders correctly with a message', () => {
     const mockNavigate = jest.fn()
     const goToThread = i => mockNavigate(i)
-    const wrapper = shallow(
+    render(
       <MessagesDropdownItem
         thread={threads[0]}
         currentUser={u1}
         onClick={() => goToThread(threads[0].id)}
       />
     )
-    expect(wrapper.find('RoundImageRow').prop('imageUrls')).toEqual(['bar.png', 'baz.png'])
-    expect(wrapper.find('div').at(2).text()).toEqual('Marie Curie and Arthur Fonzarelli')
-    expect(wrapper.find('div').at(3).text()).toEqual('Marie Curie: hi')
-    wrapper.simulate('click')
+
+    expect(screen.getByText('Marie Curie and Arthur Fonzarelli')).toBeInTheDocument()
+    expect(screen.getByText('Marie Curie: hi')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('listitem'))
     expect(mockNavigate).toHaveBeenCalledWith(threads[0].id)
   })
 })

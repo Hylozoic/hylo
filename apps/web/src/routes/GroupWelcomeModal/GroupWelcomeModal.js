@@ -8,7 +8,7 @@ import { useLocation } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import { bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import presentGroup from 'store/presenters/presentGroup'
 import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'store/models/Group'
@@ -27,7 +27,7 @@ export default function GroupWelcomeModal (props) {
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
   const location = useLocation()
-  const currentGroup = useSelector(state => getGroupForCurrentRoute(state, location))
+  const currentGroup = useSelector(state => getGroupForSlug(state, location))
   const group = presentGroup(currentGroup)
   const currentMembership = useSelector(state => getMyGroupMembership(state, location))
   const membershipAgreements = currentMembership?.agreements.toModelArray()

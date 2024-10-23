@@ -27,7 +27,6 @@ const fooGroup = {
 
 describe('AgreementsTab', () => {
   it('renders nicely', async () => {
-    // const wrapper = shallow(<AgreementsTab group={fooGroup} />)
     render(
       <AgreementsTab group={fooGroup} />,
       { wrapper: testProviders() }

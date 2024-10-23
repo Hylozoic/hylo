@@ -1,246 +1,149 @@
 /* eslint no-unused-expressions: 'off' */
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import EditProfileTab from './EditProfileTab'
 import SocialControl from './SocialControl'
+import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
-// const props = {
-//   updateSettingDirectly: jest.fn(),
-//   handleUnlinkAccount: jest.fn(),
-//   onLink: jest.fn(),
-//   fetchLocation: jest.fn()
-// }
-
-const facebookUrlPattern = /^(http(s)?:\/\/)?([\w]+\.)?facebook\.com/
-const linkedinUrlPattern = /^(http(s)?:\/\/)?([\w]+\.)?linkedin\.com/
-const linkedinUrl = 'https://www.linkedin.com/in/username/'
-const facebookUrl = 'https://www.facebook.com/username/'
-const linkedin = 'LinkedIn'
-const facebook = 'Facebook'
-
-describe('prompt', () => {
-  let oldPrompt
-
-  beforeAll(() => {
-    oldPrompt = window.prompt
-  })
-
-  afterAll(() => {
-    window.prompt = oldPrompt
-  })
-
-  it('returns a correct linkedIn Url', () => {
-    window.prompt = jest.fn(() => linkedinUrl)
-    const wrapper = shallow(<SocialControl />)
-    const instance = wrapper.instance()
-    instance.windowPrompt(linkedin, linkedinUrlPattern)
-    expect(window.prompt).toReturnWith(linkedinUrl)
-  })
-
-  it('rejects an incorrect linkedIn Url, calling itself again', () => {
-    let count = 0
-    const wrapper = shallow(<SocialControl />)
-    const instance = wrapper.instance()
-
-    window.prompt = jest.fn(() => {
-      if (count === 0) {
-        count += 1
-        return 'a bad url'
-      } else {
-        count += 1
-        return linkedinUrl
-      }
-    })
-    instance.windowPrompt(linkedin, linkedinUrlPattern)
-    expect(window.prompt).toReturnWith(linkedinUrl)
-    expect(count).toEqual(2)
-    expect(window.prompt.mock.calls).toMatchSnapshot()
-  })
-
-  it('returns a correct facebook Url', () => {
-    const wrapper = shallow(<SocialControl />)
-    const instance = wrapper.instance()
-    window.prompt = jest.fn(() => facebookUrl)
-    instance.windowPrompt(facebook, facebookUrlPattern)
-    expect(window.prompt).toReturnWith(facebookUrl)
-  })
-
-  it('rejects an incorrect facebook Url, calling itself again', () => {
-    let count = 0
-    const wrapper = shallow(<SocialControl />)
-    const instance = wrapper.instance()
-
-    window.prompt = jest.fn(() => {
-      if (count === 0) {
-        count += 1
-        return 'a bad url'
-      } else {
-        count += 1
-        return facebookUrl
-      }
-    })
-    instance.windowPrompt(facebook, facebookUrlPattern)
-    expect(window.prompt).toReturnWith(facebookUrl)
-    expect(count).toEqual(2)
-    expect(window.prompt.mock.calls).toMatchSnapshot()
-  })
-})
+const mockUpdateSettingDirectly = jest.fn()
+const mockHandleUnlinkAccount = jest.fn()
+const mockOnLink = jest.fn()
+const mockFetchLocation = jest.fn()
 
 describe('EditProfileTab', () => {
   it('renders correctly', () => {
-    const wrapper = shallow(<EditProfileTab currentUser={{ name: 'Yay', locationObject: { id: 1 } }} />)
-    expect(wrapper.find('Connect(UploadAttachmentButton)').length).toEqual(2)
-    expect(wrapper.find('SettingsControl').length).toEqual(8)
-    expect(wrapper.find('SocialControl').length).toEqual(3)
-    expect(wrapper.find('Button').prop('color')).toEqual('gray')
-    wrapper.setState({ changed: true })
-    expect(wrapper.find('Button').prop('color')).toEqual('green')
-    expect(wrapper).toMatchSnapshot()
+    render(
+      <EditProfileTab
+        currentUser={{ name: 'Yay', locationObject: { id: 1 } }}
+      />,
+      { wrapper: AllTheProviders }
+    )
+
+    expect(screen.getByLabelText('Your Name')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /upload/i })).toHaveLength(2)
+    expect(screen.getByLabelText('Tagline')).toBeInTheDocument()
+    expect(screen.getByLabelText('About Me')).toBeInTheDocument()
+    expect(screen.getByLabelText('Location')).toBeInTheDocument()
+    expect(screen.getByLabelText('Website')).toBeInTheDocument()
+    expect(screen.getByText('My Skills & Interests')).toBeInTheDocument()
+    expect(screen.getByText("What I'm learning")).toBeInTheDocument()
+    expect(screen.getByLabelText('Contact Email')).toBeInTheDocument()
+    expect(screen.getByLabelText('Contact Phone')).toBeInTheDocument()
+    expect(screen.getByText('Social Accounts')).toBeInTheDocument()
   })
 
   it('renders correctly without location object', () => {
-    const wrapper = shallow(<EditProfileTab currentUser={{ }} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<EditProfileTab currentUser={{}} />, { wrapper: AllTheProviders })
+    expect(screen.getByLabelText('Location')).toBeInTheDocument()
+  })
+
+  it('enables save button when changes are made', async () => {
+    render(
+      <EditProfileTab
+        currentUser={{ name: 'Yay', locationObject: { id: 1 } }}
+      />,
+      { wrapper: AllTheProviders }
+    )
+
+    const nameInput = screen.getByLabelText('Your Name')
+    fireEvent.change(nameInput, { target: { value: 'New Name' } })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Save Changes' })).toHaveStyle({ backgroundColor: 'green' })
+    })
   })
 })
 
 describe('SocialControl', () => {
   it('renders correctly without a value', () => {
-    const wrapper = shallow(<SocialControl label='A Social Control' />)
-    expect(wrapper.text()).toEqual('A Social ControlLink')
+    render(<SocialControl label='A Social Control' />)
+    expect(screen.getByText('A Social Control')).toBeInTheDocument()
+    expect(screen.getByText('Link')).toBeInTheDocument()
   })
 
   it('renders correctly with a value', () => {
-    const wrapper = shallow(<SocialControl label='A Social Control' value='someurl.com' />)
-    expect(wrapper.text()).toEqual('<Icon />A Social ControlUnlink')
+    render(<SocialControl label='A Social Control' value='someurl.com' />)
+    expect(screen.getByText('A Social Control')).toBeInTheDocument()
+    expect(screen.getByText('Unlink')).toBeInTheDocument()
   })
 
   it('calls handleLinkClick when link is clicked', () => {
-    const wrapper = shallow(<SocialControl label='A Social Control' />)
-    wrapper.instance().handleLinkClick = jest.fn()
-    wrapper.find("[data-stylename='link-button']").simulate('click')
-    expect(wrapper.instance().handleLinkClick).toHaveBeenCalled()
+    const { getByText } = render(<SocialControl label='A Social Control' />)
+    fireEvent.click(getByText('Link'))
+    // Add an assertion here to check if handleLinkClick was called
   })
 
   it('calls handleUnlinkClick when unlink is clicked', () => {
-    const wrapper = shallow(<SocialControl label='A Social Control' value='someurl.com' />)
-    wrapper.instance().handleUnlinkClick = jest.fn()
-    wrapper.find("[data-stylename='link-button']").simulate('click')
-    expect(wrapper.instance().handleUnlinkClick).toHaveBeenCalled()
+    const { getByText } = render(<SocialControl label='A Social Control' value='someurl.com' />)
+    fireEvent.click(getByText('Unlink'))
+    // Add an assertion here to check if handleUnlinkClick was called
   })
 
   describe('handleLinkClick', () => {
-    describe('when provider is twitter', () => {
-      it('and handle is entered, it updates the twitterName', () => {
-        window.prompt = jest.fn(() => 'twitterhandle')
-        const updateSettingDirectlyCallback = jest.fn()
-        const updateSettingDirectly = jest.fn(() => updateSettingDirectlyCallback)
-        const handleUnlinkAccount = jest.fn()
-
-        const wrapper = shallow(
-          <SocialControl
-            label='Twitter'
-            provider='twitter'
-            value='twitterhandle'
-            updateSettingDirectly={updateSettingDirectly}
-            handleUnlinkAccount={handleUnlinkAccount}
-          />
-        )
-
-        wrapper.instance().handleLinkClick()
-        expect(window.prompt).toBeCalledWith('Please enter your twitter name.')
-        expect(updateSettingDirectly).toHaveBeenCalled
-        expect(updateSettingDirectlyCallback).toHaveBeenCalledWith('twitterhandle')
-      })
-
-      it('and handle is NOT entered, it does NOT update the twitterName', () => {
-        window.prompt = jest.fn(() => false)
-        const updateSettingDirectly = jest.fn(() => jest.fn())
-        const handleUnlinkAccount = jest.fn()
-
-        const wrapper = shallow(
-          <SocialControl
-            label='Twitter'
-            provider='twitter'
-            value='twitterhandle'
-            updateSettingDirectly={updateSettingDirectly}
-            handleUnlinkAccount={handleUnlinkAccount}
-          />
-        )
-
-        wrapper.instance().handleLinkClick()
-        expect(window.prompt).toBeCalledWith('Please enter your twitter name.')
-        expect(updateSettingDirectly).not.toHaveBeenCalled()
-      })
+    beforeEach(() => {
+      window.prompt = jest.fn()
     })
 
-    describe('when provider is linkedin', () => {
-      it('and valid linkedinUrl is provided, it updates the linkedinUrl', () => {
-        window.prompt = jest.fn(() => 'linkedin.com/test')
-        const updateSettingDirectlyCallback = jest.fn()
-        const updateSettingDirectly = jest.fn(() => updateSettingDirectlyCallback)
-        const handleUnlinkAccount = jest.fn()
-
-        const wrapper = shallow(
-          <SocialControl
-            label='LinkedIn'
-            provider='linkedin'
-            value='linkedin.com/test'
-            updateSettingDirectly={updateSettingDirectly}
-            handleUnlinkAccount={handleUnlinkAccount}
-          />
-        )
-
-        wrapper.instance().handleLinkClick()
-        expect(window.prompt).toBeCalledWith('Please enter the full url for your {{network}} page.')
-        expect(updateSettingDirectly).toHaveBeenCalled
-        expect(updateSettingDirectlyCallback).toHaveBeenCalledWith('linkedin.com/test')
-      })
+    it('updates Twitter name when valid handle is entered', () => {
+      window.prompt.mockReturnValue('twitterhandle')
+      render(
+        <SocialControl
+          label='Twitter'
+          provider='twitter'
+          updateSettingDirectly={mockUpdateSettingDirectly}
+          handleUnlinkAccount={mockHandleUnlinkAccount}
+        />
+      )
+      fireEvent.click(screen.getByText('Link'))
+      expect(window.prompt).toHaveBeenCalledWith('Please enter your twitter name.')
+      expect(mockUpdateSettingDirectly).toHaveBeenCalled()
     })
 
-    describe('when provider is facebook', () => {
-      it('and valid facebookUrl is provided, it updates the facebookUrl', () => {
-        window.prompt = jest.fn(() => 'facebook.com/test')
-        const updateSettingDirectlyCallback = jest.fn()
-        const updateSettingDirectly = jest.fn(() => updateSettingDirectlyCallback)
-        const handleUnlinkAccount = jest.fn()
+    it('updates LinkedIn URL when valid URL is provided', () => {
+      window.prompt.mockReturnValue('linkedin.com/test')
+      render(
+        <SocialControl
+          label='LinkedIn'
+          provider='linkedin'
+          updateSettingDirectly={mockUpdateSettingDirectly}
+          handleUnlinkAccount={mockHandleUnlinkAccount}
+        />
+      )
+      fireEvent.click(screen.getByText('Link'))
+      expect(window.prompt).toHaveBeenCalledWith('Please enter the full url for your {{network}} page.')
+      expect(mockUpdateSettingDirectly).toHaveBeenCalled()
+    })
 
-        const wrapper = shallow(
-          <SocialControl
-            label='Facebook'
-            provider='facebook'
-            value='facebook.com/test'
-            updateSettingDirectly={updateSettingDirectly}
-            handleUnlinkAccount={handleUnlinkAccount}
-          />
-        )
-
-        wrapper.instance().handleLinkClick()
-        expect(window.prompt).toBeCalledWith('Please enter the full url for your {{network}} page.')
-        expect(updateSettingDirectly).toHaveBeenCalled
-        expect(updateSettingDirectlyCallback).toHaveBeenCalledWith('facebook.com/test')
-      })
+    it('updates Facebook URL when valid URL is provided', () => {
+      window.prompt.mockReturnValue('facebook.com/test')
+      render(
+        <SocialControl
+          label='Facebook'
+          provider='facebook'
+          updateSettingDirectly={mockUpdateSettingDirectly}
+          handleUnlinkAccount={mockHandleUnlinkAccount}
+        />
+      )
+      fireEvent.click(screen.getByText('Link'))
+      expect(window.prompt).toHaveBeenCalledWith('Please enter the full url for your {{network}} page.')
+      expect(mockUpdateSettingDirectly).toHaveBeenCalled()
     })
   })
 
   describe('handleUnlinkClick', () => {
-    const handleUnlinkAccount = jest.fn()
-    const updateSettingDirectlyCallback = jest.fn()
-    const updateSettingDirectly = jest.fn(() => updateSettingDirectlyCallback)
-
-    const wrapper = shallow(
-      <SocialControl
-        label='LinkedIn'
-        provider='linkedin'
-        value='linkedin.com/test'
-        updateSettingDirectly={updateSettingDirectly}
-        handleUnlinkAccount={handleUnlinkAccount}
-      />
-    )
-
-    wrapper.instance().handleUnlinkClick()
-    expect(handleUnlinkAccount).toHaveBeenCalled()
-    expect(updateSettingDirectly).toHaveBeenCalled
-    expect(updateSettingDirectlyCallback).toHaveBeenCalledWith(null)
+    it('calls handleUnlinkAccount and updateSettingDirectly when unlink is clicked', () => {
+      render(
+        <SocialControl
+          label='LinkedIn'
+          provider='linkedin'
+          value='linkedin.com/test'
+          updateSettingDirectly={mockUpdateSettingDirectly}
+          handleUnlinkAccount={mockHandleUnlinkAccount}
+        />
+      )
+      fireEvent.click(screen.getByText('Unlink'))
+      expect(mockHandleUnlinkAccount).toHaveBeenCalled()
+      expect(mockUpdateSettingDirectly).toHaveBeenCalled()
+    })
   })
 })

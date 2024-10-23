@@ -7,7 +7,7 @@ import locationHistory from './locationHistory'
 import resetStore from './resetStore'
 import mixpanel from './mixpanel'
 import queryResults from './queryResults'
-import { handleSetState, composeReducers } from './util'
+import { composeReducers, handleSetState } from './util'
 
 // Local store
 // generator-marker-local-store-import

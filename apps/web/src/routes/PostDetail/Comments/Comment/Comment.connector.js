@@ -1,7 +1,7 @@
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
 import { isEmpty } from 'lodash/fp'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import createComment from 'store/actions/createComment'
 import updateComment from 'store/actions/updateComment'
 import deleteComment from 'store/actions/deleteComment'
@@ -14,7 +14,7 @@ import { RESP_MANAGE_CONTENT } from 'store/constants'
 export function mapStateToProps (state, props) {
   const { comment, post } = props
   const currentUser = getMe(state, props)
-  const group = getGroupForCurrentRoute(state, props)
+  const group = getGroupForSlug(state, props)
   const isCreator = currentUser && (comment.creator.id === currentUser.id)
   const responsibilities = group && getResponsibilitiesForGroup(state, { person: currentUser, groupId: group.id }).map(r => r.title)
   const canModerate = currentUser && responsibilities && responsibilities.includes(RESP_MANAGE_CONTENT)

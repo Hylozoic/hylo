@@ -1,29 +1,30 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import TagInput from './TagInput'
 
 const defaultMinProps = {
-  handleInputChange: () => {}
+  handleInputChange: jest.fn()
 }
 
-function renderComponent (renderFunc, props = {}) {
-  return renderFunc(
+function renderComponent(props = {}) {
+  return render(
     <TagInput {...{ ...defaultMinProps, ...props }} />
   )
 }
 
 describe('TagInput', () => {
   it('renders correctly (with min props)', () => {
-    const wrapper = renderComponent(shallow)
-    expect(wrapper).toMatchSnapshot()
+    renderComponent()
+    expect(screen.getByPlaceholderText('Type...')).toBeInTheDocument()
   })
 
   it('renders correctly with tags', () => {
     const props = {
       tags: [{ name: 'one', id: 1 }, { name: 'two', id: 2 }]
     }
-    const wrapper = renderComponent(shallow, props)
-    expect(wrapper).toMatchSnapshot()
+    renderComponent(props)
+    expect(screen.getByText('one')).toBeInTheDocument()
+    expect(screen.getByText('two')).toBeInTheDocument()
   })
 
   it('adds leading hashtags when flag is set', () => {
@@ -31,18 +32,21 @@ describe('TagInput', () => {
       addLeadingHashtag: true,
       tags: [{ name: 'one', id: 1 }, { name: 'two', id: 2 }]
     }
-    const wrapper = renderComponent(shallow, props)
-    expect(wrapper).toMatchSnapshot()
+    renderComponent(props)
+    expect(screen.getByText('#one')).toBeInTheDocument()
+    expect(screen.getByText('#two')).toBeInTheDocument()
   })
 
   describe('resetInput', () => {
-    it("sets input.value to '' and calls handleInputChange", () => {
+    it("sets input value to '' and calls handleInputChange", () => {
       const handleInputChange = jest.fn()
-      const wrapper = renderComponent(shallow, { handleInputChange })
-      const input = { current: { value: 'old' } }
-      wrapper.instance().input = input
-      wrapper.instance().resetInput()
-      expect(input.current.value).toEqual('')
+      const { container } = renderComponent({ handleInputChange })
+
+      const input = container.querySelector('input')
+      fireEvent.change(input, { target: { value: 'test' } })
+      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' })
+
+      expect(input.value).toBe('')
       expect(handleInputChange).toHaveBeenCalledWith('')
     })
   })

@@ -6,6 +6,8 @@ import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import orm from 'store/models'
 import extractModelsForTest from 'util/testing/extractModelsForTest'
 import GroupWelcomeModal from './GroupWelcomeModal'
+import * as reactRouterDom from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 it('selects group, displays agreements and suggested skills, and renders nothing when showJoinForm is false', async () => {
   const testGroup = {
@@ -36,8 +38,9 @@ it('selects group, displays agreements and suggested skills, and renders nothing
         memberships: {
           items: [testMembership]
         }
-      }
-    }, 'Me', ormSession)
+      },
+      groups: [testGroup]
+    }, ['Me', 'Group'], ormSession)
 
     return AllTheProviders(reduxState)
   }
@@ -71,8 +74,10 @@ it('selects group, displays agreements and suggested skills, and renders nothing
     })
   )
 
+  jest.spyOn(reactRouterDom, 'useParams').mockReturnValue({ groupSlug: testGroup.slug })
+
   const { container } = render(
-    <GroupWelcomeModal group={testGroup} match={{ params: { groupSlug: testGroup.slug } }} />,
+    <GroupWelcomeModal />,
     { wrapper: testProviders() }
   )
 

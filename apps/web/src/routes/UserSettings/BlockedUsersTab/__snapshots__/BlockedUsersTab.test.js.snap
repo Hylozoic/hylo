@@ -36,25 +36,3 @@ exports[`BlockedUsersTab renders a list of UnBlockUserControls 1`] = `
   />
 </div>
 `;
-
-exports[`UnBlockUserControl renders correctly 1`] = `
-<div
-  data-stylename="unblock-user-control"
->
-  <div
-    data-stylename="row"
-  >
-    <div
-      data-stylename="name"
-    >
-      Test User
-    </div>
-    <div
-      data-stylename="unblock-button"
-      onClick={[Function]}
-    >
-      Unblock
-    </div>
-  </div>
-</div>
-`;

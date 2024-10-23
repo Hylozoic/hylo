@@ -5,7 +5,7 @@ import presentGroup from 'store/presenters/presentGroup'
 import presentPost from 'store/presenters/presentPost'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { getChildGroups } from 'store/selectors/getGroupRelationships'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyJoinRequests from 'store/selectors/getMyJoinRequests'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import { getPosts } from 'store/selectors/getPosts'
@@ -15,7 +15,7 @@ import { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 export function mapStateToProps (state, props) {
   const groupSlug = getRouteParam('groupSlug', props)
   const fetchPostsParam = { slug: groupSlug, context: 'groups', sortBy: 'created' }
-  const group = presentGroup(getGroupForCurrentRoute(state, props))
+  const group = presentGroup(getGroupForSlug(state, props))
   const isAboutOpen = getRouteParam('detailGroupSlug', props)
   const canEdit = hasResponsibilityForGroup(state, { groupId: group.id, responsibility: [RESP_ADMINISTRATION, RESP_MANAGE_CONTENT] })
   const posts = getPosts(state, fetchPostsParam).map(p => presentPost(p, group.id))

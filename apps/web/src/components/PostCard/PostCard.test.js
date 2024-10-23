@@ -1,5 +1,5 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import PostCard from './PostCard'
 import { fakePost } from 'util/testing/testData'
 import faker from '@faker-js/faker'
@@ -15,11 +15,20 @@ afterEach(() => {
   timezoneMock.unregister()
 })
 
-it('renders as expected', () => {
+it('renders post content correctly', () => {
   const post = {
     ...fakePost(),
-    updatedAt: new Date('2014-01-17').toISOString()
+    updatedAt: new Date('2014-01-17').toISOString(),
+    title: 'Test Post Title',
+    details: 'Test post content'
   }
-  const wrapper = shallow(<PostCard post={post} routeParams={{ slug: 'foom' }} />)
-  expect(wrapper).toMatchSnapshot()
+
+  jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'foom' })
+  render(
+    <PostCard post={post} />
+  )
+
+  expect(screen.getByText('Test Post Title')).toBeInTheDocument()
+  expect(screen.getByText('Test post content')).toBeInTheDocument()
+  expect(screen.getByText('Jan 17, 2014')).toBeInTheDocument()
 })

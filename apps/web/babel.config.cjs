@@ -1,5 +1,3 @@
-// const sharedConfig = require('./config/webpack.config.shared')
-// const paths = require('./config/paths')
 
 module.exports = function (api) {
   if (api) {
@@ -26,16 +24,24 @@ module.exports = function (api) {
         '@babel/preset-env',
         { targets: { node: 'current' } }
       ],
-      '@babel/preset-react'
+      '@babel/preset-react',
+      [
+        'babel-preset-vite',
+        {
+          env: true,
+          glob: false
+        }
+      ]
     ],
     plugins: [
       '@babel/plugin-transform-runtime',
       '@babel/plugin-proposal-class-properties',
       '@babel/plugin-proposal-optional-chaining',
+      '@babel/plugin-transform-private-methods',
       [
         'module-resolver',
         {
-          root: ['src'],
+          root: ['./src'],
           extensions: ['.graphql']
         }
       ],
@@ -61,11 +67,6 @@ module.exports = function (api) {
     //   paths.resolveApp('scripts/templates/*')
     // ],
     env: {
-      test: {
-        plugins: [
-          'data-stylename'
-        ]
-      },
       development: {
         plugins: [
           // [

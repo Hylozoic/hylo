@@ -1,28 +1,41 @@
-import Search, { PersonCard } from './Search'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import Search, { PersonCard } from './Search'
 
 describe('Search', () => {
-  it('matches the latest snapshot', () => {
+  it('renders search input and tabs', () => {
     const props = {
       searchForInput: 'cat',
-      fetchMoreSearchResults: () => {},
-      setSearchTerm: () => {},
-      updateQueryParam: () => {},
-      setSearchFilter: () => {},
-      showPerson: () => {},
+      fetchMoreSearchResults: jest.fn(),
+      setSearchTerm: jest.fn(),
+      updateQueryParam: jest.fn(),
+      setSearchFilter: jest.fn(),
+      showPerson: jest.fn(),
       filter: 'person',
       pending: true,
       searchResults: [
         {
-          id: '1'
+          id: '1',
+          type: 'Person',
+          content: {
+            id: 1,
+            name: 'Test Person',
+            avatarUrl: 'test.png',
+            location: 'Test Location'
+          }
         }
       ]
     }
 
-    const wrapper = shallow(<Search {...props} />)
+    render(<Search {...props} />, { wrapper: AllTheProviders })
 
-    expect(wrapper).toMatchSnapshot()
+    expect(screen.getByPlaceholderText('Search by keyword for people, posts and groups')).toBeInTheDocument()
+    expect(screen.getByText('All')).toBeInTheDocument()
+    expect(screen.getByText('Discussions')).toBeInTheDocument()
+    expect(screen.getByText('People')).toBeInTheDocument()
+    expect(screen.getByText('Comments')).toBeInTheDocument()
+    expect(screen.getByText('Test Person')).toBeInTheDocument()
   })
 })
 
@@ -38,21 +51,29 @@ describe('PersonCard', () => {
     highlightProps: {
       terms: ['cat']
     },
-    showPerson: () => {}
+    showPerson: jest.fn()
   }
 
-  it('renders correctly', () => {
-    const wrapper = shallow(<PersonCard {...props} />)
+  it('renders person details correctly', () => {
+    render(<PersonCard {...props} />)
 
-    expect(wrapper).toMatchSnapshot()
+    expect(screen.getByText('Joe Person')).toBeInTheDocument()
+    expect(screen.getByText('home')).toBeInTheDocument()
   })
 
   it('renders a skill when the search terms match a skill', () => {
     const highlightProps = {
       terms: ['walking']
     }
-    const wrapper = shallow(<PersonCard {...{ ...props, highlightProps }} />)
+    render(<PersonCard {...{ ...props, highlightProps }} />)
 
-    expect(wrapper).toMatchSnapshot()
+    expect(screen.getByText('walking')).toBeInTheDocument()
+  })
+
+  it('calls showPerson when clicked', () => {
+    render(<PersonCard {...props} />)
+
+    fireEvent.click(screen.getByText('Joe Person'))
+    expect(props.showPerson).toHaveBeenCalledWith(77)
   })
 })

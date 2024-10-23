@@ -1,16 +1,42 @@
-import DeleteSettingsTab from './DeleteSettingsTab'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import DeleteSettingsTab from './DeleteSettingsTab'
 
-it('renders correctly', () => {
+describe('DeleteSettingsTab', () => {
   const group = {
     id: 1,
     name: 'Hylo'
   }
 
-  const wrapper = shallow(<DeleteSettingsTab
-    group={group}
-    deleteGroup={() => {}}
-  />)
-  expect(wrapper).toMatchSnapshot()
+  const deleteGroup = jest.fn()
+
+  it('renders correctly', () => {
+    render(<DeleteSettingsTab group={group} deleteGroup={deleteGroup} />)
+
+    expect(screen.getByText('Delete {{groupName}}', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('If you delete this group', { exact: false })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete Group' })).toBeInTheDocument()
+  })
+
+  it('calls deleteGroup when confirmed', () => {
+    window.confirm = jest.fn(() => true)
+
+    render(<DeleteSettingsTab group={group} deleteGroup={deleteGroup} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Group' }))
+
+    expect(window.confirm).toHaveBeenCalledWith('Are you sure you want to delete the group Hylo?')
+    expect(deleteGroup).toHaveBeenCalled()
+  })
+
+  it('does not call deleteGroup when not confirmed', () => {
+    window.confirm = jest.fn(() => false)
+
+    render(<DeleteSettingsTab group={group} deleteGroup={deleteGroup} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Group' }))
+
+    expect(window.confirm).toHaveBeenCalledWith('Are you sure you want to delete the group Hylo?')
+    expect(deleteGroup).not.toHaveBeenCalled()
+  })
 })

@@ -2,7 +2,7 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import { matchPath } from 'react-router-dom'
 import { flow, groupBy, map, omit, pick, reduce, sortBy, values } from 'lodash/fp'
 import orm from 'store/models'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { topicUrl } from 'util/navigation'
 
 const getTopicName = ({ topic: { name } }) => name.toLowerCase()
@@ -29,7 +29,7 @@ export const getTopicsFromSubscribedGroupTopics = (state, props) => {
 
 export const getSubscribedGroupTopics = ormCreateSelector(
   orm,
-  getGroupForCurrentRoute,
+  getGroupForSlug,
   (session, group) => {
     let groupTopics
 

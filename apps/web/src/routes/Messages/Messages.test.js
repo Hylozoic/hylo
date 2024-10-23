@@ -1,10 +1,14 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import Messages from './Messages'
 
+const mockFetchMessages = jest.fn()
+const mockCreateMessage = jest.fn()
+
 const testProps = {
-  fetchMessages: () => {},
-  createMessage: () => {},
+  fetchMessages: mockFetchMessages,
+  createMessage: mockCreateMessage,
   match: {
     params: {
       threadId: '1'
@@ -12,16 +16,39 @@ const testProps = {
   }
 }
 
-it('renders loading when in loading state', () => {
-  const wrapper = shallow(<Messages {...testProps} />, { disableLifecycleMethods: true })
-  wrapper.setState({ loading: true })
+describe('Messages component', () => {
+  it('renders loading state', () => {
+    render(
+      <Messages {...testProps} />,
+      { wrapper: AllTheProviders()}
+    )
 
-  expect(wrapper).toMatchSnapshot()
-})
+    expect(screen.getByText(/loading/i)).toBeInTheDocument()
+  })
 
-it('renders entire component when not loading', () => {
-  const wrapper = shallow(<Messages {...testProps} />, { disableLifecycleMethods: true })
-  wrapper.setState({ loading: false })
+  it('renders messages title when not loading', async () => {
+    render(
+      <Messages {...testProps} />,
+      { wrapper: AllTheProviders() }
+    )
 
-  expect(wrapper).toMatchSnapshot()
+    // Wait for the loading state to finish
+    await screen.findByText(/Messages/i)
+
+    expect(screen.getByText(/Messages/i)).toBeInTheDocument()
+  })
+
+  it('renders thread list when not loading', async () => {
+    render(
+      <Messages {...testProps} />,
+      { wrapper: AllTheProviders() }
+    )
+
+    // Wait for the loading state to finish
+    await screen.findByText(/Messages/i)
+
+    expect(screen.getByRole('list')).toBeInTheDocument()
+  })
+
+  // Add more tests as needed for specific functionality
 })
