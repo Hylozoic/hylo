@@ -103,17 +103,15 @@ export default function StreamList (props) {
     sortBy,
     timeframe,
     topicName
-  })
+  })  
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
   const [offset, setOffset] = useState(0)
-  const [{ data, fetching }] = useQuery({
-    ...fetchPostParam
-      ? fetchPostsAction({ ...fetchPostParam, first: 20, offset })?.graphql
-      // TODO: This is a temporary hack. How to handle initial laod with an empty query? Or ammend fetchPostParam to be available on initial load
-      : { query: 'query test { me { id } }' },
-    pause: !fetchPostParam
-  })
+  const queryParams = fetchPostParam
+    ? fetchPostsAction({ ...fetchPostParam, first: 20, offset }).graphql
+    // URQL useQuery doesn't allow a null query
+    : { query: 'query EmptyQuery { __typename }', pause: true }
+  const [{ data, fetching }] = useQuery(queryParams)
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore
   const posts = postsQuerySet?.items
