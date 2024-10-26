@@ -1,5 +1,5 @@
 /* eslint-disable react/no-unstable-nested-components */
-import React, { useState } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import {
   Alert,
   KeyboardAvoidingView,
@@ -10,15 +10,26 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
+import { useDispatch, useSelector } from 'react-redux'
 import RNPickerSelect from 'react-native-picker-select'
-import { useIsFocused } from '@react-navigation/native'
+import { useIsFocused, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { get, uniq, uniqBy, isEmpty } from 'lodash/fp'
 import moment from 'moment-timezone'
 import { Validators, TextHelpers } from '@hylo/shared'
 import { isIOS } from 'util/platform'
 import { showToast, hideToast } from 'util/toast'
-import { MAX_TITLE_LENGTH } from './PostEditor.store'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentGroup from 'hooks/useCurrentGroup'
+import fetchPostAction from 'store/actions/fetchPost'
+import createPostAction from 'store/actions/createPost'
+import createProjectAction from 'store/actions/createProject'
+import updatePostAction from 'store/actions/updatePost'
+import uploadAction from 'store/actions/upload'
+import { pollingFindOrCreateLocation as providedPollingFindOrCreateLocation } from 'screens/LocationPicker/LocationPicker.store'
+import isPendingFor from 'store/selectors/isPendingFor'
+import { getPresentedPost } from 'store/selectors/getPost'
+// Components
 import LocationPicker from 'screens/LocationPicker/LocationPicker'
 // TODO: Convert all 3 of the below to LocationPicker style calls
 // ProjectMembers Chooser
@@ -31,7 +42,6 @@ import TopicRow from 'screens/TopicList/TopicRow'
 // Group Chooser
 import GroupChooserItemRow from 'screens/ItemChooser/GroupChooserItemRow'
 import GroupsList from 'components/GroupsList'
-// Components
 import DatePicker from 'react-native-date-picker'
 import Button from 'components/Button'
 import FileSelector, { showFilePicker as fileSelectorShowFilePicker } from './FileSelector'
@@ -47,7 +57,9 @@ import styles, { typeSelectorStyles } from './PostEditor.styles'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
 import { caribbeanGreen, rhino30, rhino80, white } from 'style/colors'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useRouteParams from 'hooks/useRouteParams'
+
+export const MAX_TITLE_LENGTH = 50
 
 const titlePlaceholders = {
   discussion: 'Create a post',
@@ -59,20 +71,80 @@ const titlePlaceholders = {
   event: 'What is your event called?'
 }
 
-export default function (props) {
-  const isFocused = useIsFocused()
+export default function PostEditorContainer(props) {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const navigation = useNavigation()
+  const isFocused = useIsFocused()
   const currentUser = useCurrentUser()
-  const groupOptions = props.groupOptions ||
-    (currentUser && currentUser.memberships.map(m => m.group))
+  const [currentGroup] = useCurrentGroup()
+  const routeParams = useRouteParams()
+  
+  const {
+    id: postId,
+    lat: mapCoordinateLat,
+    lng: mapCoordinateLng,
+    topicName: selectedTopicName,
+    type: providedType
+  } = routeParams
 
-  return <PostEditor {...props} currentUser={currentUser} groupOptions={groupOptions} isFocused={isFocused} t={t} />
+  const post = useSelector(state => getPresentedPost(state, { postId }))
+  const postLoading = useSelector(state => isPendingFor(fetchPostAction, state))
+
+  const groupOptions = useMemo(() => {
+    return props.groupOptions || (currentUser?.memberships.map(m => m.group) || [])
+  }, [props.groupOptions, currentUser])
+
+  const mapCoordinate = useMemo(() => {
+    return mapCoordinateLat && mapCoordinateLng ? { lat: mapCoordinateLat, lng: mapCoordinateLng } : null
+  }, [mapCoordinateLat, mapCoordinateLng])
+
+  const defaultPost = useMemo(() => {
+    const basePost = selectedTopicName
+      ? { topics: [{ name: selectedTopicName }], groups: currentGroup ? [currentGroup] : [] }
+      : { groups: currentGroup ? [currentGroup] : [] }
+    if (providedType) basePost.type = providedType
+    return basePost
+  }, [selectedTopicName, currentGroup, providedType])
+
+  const fetchPost = useCallback(params => dispatch(fetchPostAction(params)), [dispatch])
+  const createPost = useCallback(params => dispatch(createPostAction(params)), [dispatch])
+  const createProject = useCallback(params => dispatch(createProjectAction(params)), [dispatch])
+  const updatePost = useCallback(params => dispatch(updatePostAction(params)), [dispatch])
+  const upload = useCallback(params => dispatch(uploadAction(params)), [dispatch])
+
+  const pollingFindOrCreateLocation = useCallback((locationData, callback) => {
+    return providedPollingFindOrCreateLocation(dispatch, locationData, locationObject => callback(locationObject))
+  }, [dispatch])
+
+  return (
+    <PostEditor 
+      {...props}
+      currentUser={currentUser}
+      currentGroup={currentGroup}
+      groupOptions={groupOptions}
+      isFocused={isFocused}
+      mapCoordinate={mapCoordinate}
+      navigation={navigation}
+      post={post || defaultPost}
+      fetchPost={fetchPost}
+      createPost={createPost}
+      createProject={createProject}
+      updatePost={updatePost}
+      upload={upload}
+      pollingFindOrCreateLocation={pollingFindOrCreateLocation}
+      postLoading={postLoading}
+      t={t}
+    />
+  )
 }
 
 export class PostEditor extends React.Component {
   constructor (props) {
     super(props)
+
     const { post } = props
+
     this.scrollViewRef = React.createRef()
     this.detailsEditorRef = React.createRef()
     this.state = {
@@ -381,6 +453,7 @@ export class PostEditor extends React.Component {
   }
 
   handleShowTopicsPicker = () => {
+    console.log('!!! here')
     const { navigation, t } = this.props
     const screenTitle = t('Pick a Topic')
     navigation.navigate('ItemChooser', {
@@ -551,7 +624,7 @@ export class PostEditor extends React.Component {
               ref={this.detailsEditorRef}
               widthOffset={0}
               customEditorCSS={`
-                min-height: 90px;
+                min-height: 90px
               `}
             />
           </View>
