@@ -30,6 +30,8 @@ import { pollingFindOrCreateLocation as providedPollingFindOrCreateLocation } fr
 import isPendingFor from 'store/selectors/isPendingFor'
 import { getPresentedPost } from 'store/selectors/getPost'
 // Components
+import DatePickerWithLabel from './DatePickerWithLabel'
+import TypeSelector from './TypeSelector'
 import LocationPicker from 'screens/LocationPicker/LocationPicker'
 // TODO: Convert all 3 of the below to LocationPicker style calls
 // ProjectMembers Chooser
@@ -929,98 +931,4 @@ export class PostEditor extends React.Component {
       </KeyboardAvoidingView>
     )
   }
-}
-
-export function TypeSelector (props) {
-  const { t } = useTranslation()
-  // explicit invocation of dynamic labels
-  t('Discussion')
-  t('Request')
-  t('Offer')
-  t('Resource')
-  t('Project')
-  t('Event')
-  return (
-    <View style={styles.typeSelectorWrapper}>
-      <RNPickerSelect
-        {...props}
-        style={typeSelectorStyles(props.value)}
-        useNativeAndroidPickerStyle={false}
-        pickerProps={{ itemStyle: { backgroundColor: white, letterSpacing: 2, fontWeight: 'bold', fontSize: 20 } }}
-        items={
-          ['Discussion', 'Request', 'Offer', 'Resource', 'Project', 'Event'].map(type => ({
-            label: t(type).toUpperCase(),
-            value: type.toLowerCase(),
-            color: typeSelectorStyles(type.toLowerCase()).inputIOS.color
-          }))
-        }
-        Icon={() => (
-          <Icon name='ArrowDown' style={typeSelectorStyles(props.value).icon} />
-        )}
-      />
-    </View>
-  )
-}
-
-export function DatePickerWithLabel ({
-  date,
-  minimumDate,
-  label,
-  onSelect,
-  disabled,
-  style,
-  styleTemplate = {
-    disabled: styles.pressDisabled,
-    expandIconWrapper: styles.pressSelectionRight,
-    expandIcon: styles.pressSelectionRightIcon,
-    labelText: styles.pressSelectionLeftText,
-    labelWrapper: styles.pressSelection,
-    valueText: styles.pressSelectionValue
-  },
-  dateFormat = 'MM/DD/YYYY LT z'
-}) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const handleOnPress = () => {
-    !disabled && setOpen(true)
-  }
-  const handleOnConfirm = newDate => {
-    onSelect(newDate)
-    setOpen(false)
-  }
-  const handleOnCancel = () => {
-    onSelect(null)
-    setOpen(false)
-  }
-
-  return (
-    <>
-      <TouchableOpacity style={style} onPress={handleOnPress}>
-        <View style={styleTemplate.labelWrapper}>
-          <Text style={[styleTemplate.labelText, disabled && styleTemplate.disabled]}>
-            {label}
-          </Text>
-          <View style={[styleTemplate.expandIconWrapper, disabled && styleTemplate.disabled]}>
-            <Icon name='ArrowDown' style={[styleTemplate.expandIcon, disabled && styleTemplate.disabled]} />
-          </View>
-        </View>
-        {date && !open && (
-          <Text style={styleTemplate.valueText}>{moment.tz(date, moment.tz.guess()).format(dateFormat)}</Text>
-        )}
-      </TouchableOpacity>
-      <DatePicker
-        modal
-        open={open}
-        minimumDate={minimumDate}
-        minuteInterval={5}
-        date={date || new Date()}
-        mode='datetime'
-        title={label}
-        confirmText={t('Set')}
-        cancelText={t('Clear')}
-        onConfirm={handleOnConfirm}
-        onCancel={handleOnCancel}
-      />
-    </>
-  )
 }
