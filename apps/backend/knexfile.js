@@ -5,8 +5,8 @@ if (!process.env.DATABASE_URL) {
   throw new Error('process.env.DATABASE_URL must be set')
 }
 
-const url = require('url').parse(process.env.DATABASE_URL)
-var user, password
+const url = new URL(process.env.DATABASE_URL)
+let user, password
 if (url.auth) {
   const i = url.auth.indexOf(':')
   user = url.auth.slice(0, i)
