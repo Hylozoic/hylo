@@ -27,7 +27,8 @@ const defaults = {
     min: 5, // default 2
     max: 30, // default 10
     // https://github.com/knex/knex/issues/2820#issuecomment-481710112
-    propagateCreateError: false // default true (false NOT recommended)
+    propagateCreateError: false, // default true (false NOT recommended),
+    idleTimeoutMillis: 60000
   },
   migrations: {
     tableName: 'knex_migrations'
