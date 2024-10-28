@@ -195,6 +195,7 @@
       "Email",
       "EventInvitation",
       "EventResponse",
+      "ExportService",
       "Extension",
       "FlaggedItem",
       "Frontend",
