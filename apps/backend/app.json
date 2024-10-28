@@ -1,13 +1,16 @@
 {
   "name": "hylo-node",
   "description": "The back-end/API server for Hylo - the Social Coordination Platform for a Thriving Planet",
-  "stack": "heroku-20",
+  "stack": "heroku-24",
   "addons": [
     "redisgreen",
     "scheduler",
     "heroku-postgresql:standard-0"
   ],
   "buildpacks": [
+    {
+      "url": "https://github.com/lstoll/heroku-buildpack-monorepo"
+    },
     {
       "url": "https://github.com/mcollina/heroku-buildpack-graphicsmagick"
     },
