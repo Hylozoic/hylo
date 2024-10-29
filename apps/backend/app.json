@@ -1,13 +1,16 @@
 {
   "name": "hylo-node",
   "description": "The back-end/API server for Hylo - the Social Coordination Platform for a Thriving Planet",
-  "stack": "heroku-20",
+  "stack": "heroku-24",
   "addons": [
     "redisgreen",
     "scheduler",
     "heroku-postgresql:standard-0"
   ],
   "buildpacks": [
+    {
+      "url": "https://github.com/lstoll/heroku-buildpack-monorepo"
+    },
     {
       "url": "https://github.com/mcollina/heroku-buildpack-graphicsmagick"
     },
@@ -19,6 +22,7 @@
     }
   ],
   "env": {
+    "APP_BASE": "apps/backend",
     "COOKIE_DOMAIN": ".hylo.com",
     "COOKIE_NAME": "hylo.sid2",
     "COOKIE_SECRET": {
@@ -55,6 +59,9 @@
       ],
       "buildpacks": [
         {
+          "url": "https://github.com/lstoll/heroku-buildpack-monorepo"
+        },
+        {
           "url": "https://github.com/mcollina/heroku-buildpack-graphicsmagick"
         },
         {
@@ -62,6 +69,7 @@
         }
       ],
       "env": {
+        "APP_BASE": "apps/backend",
         "COOKIE_DOMAIN": ".hylo.com",
         "COOKIE_NAME": "hylo.review.sid2",
         "EMAIL_SENDER": "dev+review@hylo.com",
