@@ -18,70 +18,44 @@ module.exports = {
     const results = []
     const questions = {}
 
-    // iterate over all group members
-    await Promise.all(users.map((u, idx) => {
-      // pluck core user data into results
-      results.push(u.pick([
+    for (const u of users) {
+      const userData = u.pick([
         'id', 'name', 'contact_email', 'contact_phone', 'avatar_url', 'tagline', 'bio',
         'url', 'twitter_name', 'facebook_url', 'linkedin_url'
-      ]))
-
-      // return combined promise to load all dependent user data and
-      // assign final child query results back onto matching result objects upon completion
-      return Promise.all([
-
-        // location (full details)
-        u.locationObject().fetch()
-          .then(location => {
-            results[idx].location = renderLocation(location)
-          }),
-
-        // affiliations
-        u.affiliations().fetch()
-          .then(affils => {
-            results[idx].affiliations = accumulatePivotCell(affils, renderAffiliation)
-          }),
-
-        // skills
-        u.skills().fetch()
-          .then(skills => {
-            results[idx].skills = accumulatePivotCell(skills, renderSkill)
-          }),
-
-        // skills to learn
-        u.skillsToLearn().fetch()
-          .then(skills => {
-            results[idx].skills_to_learn = accumulatePivotCell(skills, renderSkill)
-          }),
-
-        // Join questions & answers
-        // TODO: pull direectly from groupJoinQuestionAnswers. how to sort by latest of each question within that group?
-        // https://stackoverflow.com/questions/12245289/select-unique-values-sorted-by-date
-        u.groupJoinQuestionAnswers()
-          .where({ group_id: parseInt(groupId) })
-          .orderBy('created_at', 'DESC')
-          .fetch({ withRelated: ['question'] })
-          .then(answers => {
-            return Promise.all(answers.map(qa =>
-              Promise.all([
-                qa.load(['question']),
-                Promise.resolve(qa)
-              ])
-            ))
-          })
-          .then(data => {
-            if (!data) return
-            results[idx].join_question_answers = accumulateJoinQA(data, questions)
-          }),
-
-        // other groups the requesting member has acccess to
-        groupFilter(userId)(u.groups()).fetch()
-          .then(groups => {
-            results[idx].groups = accumulatePivotCell(groups, renderGroup)
-          })
-
       ])
-    }))
+
+      const locationObject = await u.locationObject().fetch()
+      userData.location = renderLocation(locationObject)
+
+      const affiliations = await u.affiliations().fetch()
+      userData.affiliations = accumulatePivotCell(affiliations, renderAffiliation)
+
+      const skills = await u.skills().fetch()
+      userData.skills = accumulatePivotCell(skills, renderSkill)
+
+      const skillsToLearn = await u.skillsToLearn().fetch()
+      userData.skills_to_learn = accumulatePivotCell(skillsToLearn, renderSkill)
+
+      const joinQuestionAnswers = await u.groupJoinQuestionAnswers()
+        .where({ group_id: parseInt(groupId) })
+        .orderBy('created_at', 'DESC')
+        .fetch({ withRelated: ['question'] })
+
+      const answers = joinQuestionAnswers.map(qa =>
+        [
+          qa.relations.question,
+          qa
+        ]
+      )
+
+      userData.join_question_answers = accumulateJoinQA(answers, questions)
+
+      // other groups the requesting member has acccess to
+      const groups = await groupFilter(userId)(u.groups()).fetch()
+      userData.groups = accumulatePivotCell(groups, renderGroup)
+
+      results.push(userData)
+    }
 
     // send data as CSV response
     output(results, [
@@ -100,20 +74,21 @@ function output (data, columns, email, groupName, questions) {
   // Add each question as a column in the results
   const questionsArray = Object.values(questions)
   questionsArray.forEach((question) => {
-    columns.push(`${question.text}`)
+    columns.push(`${question.get('text')}`)
   })
 
   // Add rows for each user to match their answers with the added question colums
   const transformedData = data.map((user) => {
     const answers = user.join_question_answers
     questionsArray.forEach((question) => {
+      const questionText = question.get('text')
       if (!answers) {
-        user[`${question.text}`] = '-'
+        user[`${questionText}`] = '-'
       } else {
         const foundAnswer = answers.find((answer) => `${question.id}` === `${answer.question_id}`)
-        user[`${question.text}`] = foundAnswer
-          ? user[`${question.text}`] = foundAnswer.answer
-          : user[`${question.text}`] = '-'
+        user[`${questionText}`] = foundAnswer
+          ? user[`${questionText}`] = foundAnswer.answer
+          : user[`${questionText}`] = '-'
       }
     })
     return user
@@ -152,7 +127,7 @@ const accumulateJoinQA = (records, questions) => {
   // an array of question/answer pairs
   if (records[0] && records[0][0]) {
     records.forEach((record) => {
-      const question = record[0].toJSON().question
+      const question = record[0]
       questions[question.id] = question
     })
   }

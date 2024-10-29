@@ -42,7 +42,7 @@ module.exports = {
   farmdev: Object.assign({}, defaults, { seeds: { directory: './seeds/farm-dev' } }),
   farmdemo: Object.assign({}, defaults, { seeds: { directory: './seeds/farm-demo' } }),
   staging: defaults,
-  production: merge({connection: {ssl: { rejectUnauthorized: false }}}, defaults),
+  production: merge({ connection: { ssl: { rejectUnauthorized: false } } }, defaults),
   docker: Object.assign({},
     defaults,
     {
