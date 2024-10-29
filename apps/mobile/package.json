@@ -11,7 +11,7 @@
     "ios": "react-native run-ios",
     "lint": "standard",
     "postversion": "react-native-version --never-amend; git add .",
-    "start": "react-native start",
+    "start": "rm -f node_modules/react-native-config/ios/ReactNativeConfig/GeneratedDotEnv.m node_modules/react-native-config/android/build/generated/source/buildConfig/debug/com/lugg/RNCConfig/BuildConfig.java node_modules/react-native-config/android/build/generated/source/buildConfig/release/com/lugg/RNCConfig/BuildConfig.java && react-native start",
     "test": "node scripts/test.js",
     "clean": "react-native-clean-project",
     "clean-auto": "react-native clean-project-auto",
