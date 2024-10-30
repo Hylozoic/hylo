@@ -3667,7 +3667,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@invertase/react-native-apple-authentication@npm:^2.3.0":
+"@invertase/react-native-apple-authentication@npm:^2.4.0":
   version: 2.4.0
   resolution: "@invertase/react-native-apple-authentication@npm:2.4.0"
   checksum: 10/f9d42eda104e55fb5f3f405e8771e401a6ae2c2ca2e54ace29164794f43dbfa347d34856513575c67883f5c42da284108151ada07ea0bf5df065bb03989ec3cf
@@ -5422,14 +5422,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-native-async-storage/async-storage@npm:^1.24.0":
-  version: 1.24.0
-  resolution: "@react-native-async-storage/async-storage@npm:1.24.0"
+"@react-native-async-storage/async-storage@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@react-native-async-storage/async-storage@npm:2.0.0"
   dependencies:
     merge-options: "npm:^3.0.4"
   peerDependencies:
-    react-native: ^0.0.0-0 || >=0.60 <1.0
-  checksum: 10/5a6b7ac8bd7a9e537a53a3f2301530c284fd885a45ce4a4e0014859bc0f7c89bee5c4b5a6b3740b8d83751561159b237474d18f32fad75ea7d56d4ddb2180d91
+    react-native: ^0.0.0-0 || >=0.65 <1.0
+  checksum: 10/cd00a7fac584bfce350c0ad56a542e19c5aa77bec41a211f004c87343e971819d38c5483470fd11116e0271a5e1321ce656cc0bb66d2aa0852f74bc23be61a77
   languageName: node
   linkType: hard
 
@@ -26821,9 +26821,9 @@ __metadata:
     "@flyerhq/react-native-keyboard-accessory-view": "npm:^2.4.0"
     "@hylo/shared": "workspace:*"
     "@intercom/intercom-react-native": "npm:^6.8.1"
-    "@invertase/react-native-apple-authentication": "npm:^2.3.0"
+    "@invertase/react-native-apple-authentication": "npm:^2.4.0"
     "@native-html/iframe-plugin": "npm:^2.6.1"
-    "@react-native-async-storage/async-storage": "npm:^1.24.0"
+    "@react-native-async-storage/async-storage": "npm:^2.0.0"
     "@react-native-clipboard/clipboard": "npm:^1.14.1"
     "@react-native-community/checkbox": "npm:^0.5.17"
     "@react-native-community/eslint-config": "npm:^3.2.0"
@@ -26896,7 +26896,7 @@ __metadata:
     react-native-config: "npm:^1.5.3"
     react-native-confirmation-code-field: "npm:^7.4.0"
     react-native-date-picker: "npm:^4.2.6"
-    react-native-device-info: "npm:^10.3.0"
+    react-native-device-info: "npm:^14.0.0"
     react-native-document-picker: "npm:^8.1.2"
     react-native-fast-image: "npm:^8.6.3"
     react-native-geolocation-service: "npm:^5.3.1"
@@ -32522,12 +32522,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-device-info@npm:^10.3.0":
-  version: 10.14.0
-  resolution: "react-native-device-info@npm:10.14.0"
+"react-native-device-info@npm:^14.0.0":
+  version: 14.0.0
+  resolution: "react-native-device-info@npm:14.0.0"
   peerDependencies:
     react-native: "*"
-  checksum: 10/61cfbb4d0e61eae61ba026c443ca22c7812e7ba632f812d32593de58d8c4553b8b6ff92b3fd07616dc78266f935756e0a5c657999b421d3ece0f64a38ac359a3
+  checksum: 10/7fb7b21e43940793fa5cc5fe55237e383403b44fc31b2b47ba93f31624a616bc0d24320a3eb23f25cb0ad31ee6dba6372febb88857e38c33a677181b9e719c10
   languageName: node
   linkType: hard
 
