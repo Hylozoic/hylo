@@ -1320,7 +1320,7 @@ PODS:
     - React-Core
   - RNBootSplash (6.1.0):
     - React-Core
-  - RNCAsyncStorage (1.24.0):
+  - RNCAsyncStorage (2.0.0):
     - React-Core
   - RNCCheckbox (0.5.17):
     - BEMCheckBox (~> 1.4)
@@ -1329,7 +1329,7 @@ PODS:
     - React-Core
   - RNCPicker (2.8.1):
     - React-Core
-  - RNDeviceInfo (10.14.0):
+  - RNDeviceInfo (14.0.0):
     - React-Core
   - RNFastImage (8.6.3):
     - React-Core
@@ -1804,11 +1804,11 @@ SPEC CHECKSUMS:
   ReactNativeLocalization: fb171138cdc80d5d0d4f20243d2fc82c2b3cc48f
   RNAppleAuthentication: e00c76acb03351f5544373c78fa7f359bef6d5d3
   RNBootSplash: 7abfdb0e67dd2316dde619a54d5ef68b13e39b5f
-  RNCAsyncStorage: ec53e44dc3e75b44aa2a9f37618a49c3bc080a7a
+  RNCAsyncStorage: d35c79ffba52c1013013e16b1fc295aec2feabb6
   RNCCheckbox: a3ca9978cb0846b981d28da4e9914bd437403d77
   RNCClipboard: 5e503962f0719ace8f7fdfe9c60282b526305c85
   RNCPicker: 0b6860a6b208d4046227d2f626ad0722f99a969c
-  RNDeviceInfo: 59344c19152c4b2b32283005f9737c5c64b42fba
+  RNDeviceInfo: 6192a9c9167e256803e554038b22b3b2b40163dc
   RNFastImage: 5c9c9fed9c076e521b3f509fe79e790418a544e8
   RNGestureHandler: d965a561d5458dd1e10617602f55726e04e4aac5
   RNGoogleSignin: 81521697b2c8f97f9a586ac7257b1a1d9b51b115
