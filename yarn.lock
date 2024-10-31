@@ -6353,13 +6353,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sailshq/connect-redis@npm:^3.2.1":
-  version: 3.2.1
-  resolution: "@sailshq/connect-redis@npm:3.2.1"
-  dependencies:
-    debug: "npm:^2.2.0"
-    redis: "npm:^2.1.0"
-  checksum: 10/a8f8e969a77bf062aa7db5b25c6f2f2f751d8d9e109483ccebb800e30a86b3a614a7dc758d294f02a4961fe31008927712942e4565f61226b5b907cd8773f2f2
+"@sailshq/connect-redis@npm:^6.1.3":
+  version: 6.1.3
+  resolution: "@sailshq/connect-redis@npm:6.1.3"
+  checksum: 10/5ab898eb7ccd2e0bf8c97004823670b51ea282815c176aac2f4bd6766fb0705accd6393eb60518de8ca2592a31daea1e96902668c3a8920b7e9a2d01c4dec53b
   languageName: node
   linkType: hard
 
@@ -6385,16 +6382,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sailshq/socket.io-redis@npm:^5.2.0":
-  version: 5.2.1
-  resolution: "@sailshq/socket.io-redis@npm:5.2.1"
+"@sailshq/socket.io-redis@npm:^6.1.2":
+  version: 6.1.2
+  resolution: "@sailshq/socket.io-redis@npm:6.1.2"
   dependencies:
-    debug: "npm:~2.6.8"
-    notepack.io: "npm:~2.1.2"
-    redis: "npm:3.1.1"
-    socket.io-adapter: "npm:~1.1.0"
+    debug: "npm:~4.3.1"
+    notepack.io: "npm:~2.2.0"
+    redis: "npm:^3.0.0"
+    socket.io-adapter: "npm:~2.2.0"
     uid2: "npm:0.0.3"
-  checksum: 10/9aadf4b320f0a32e9aac9f861fe1190caee07cc89fa9404a911006898388e28d4eb010fad023aefba4f44dad0400167d89bc96328dfd6e2cecc2fa75da54c844
+  checksum: 10/3074f975522b83d6abcf4645779a12bff448be58f1a3b65eae6fcb418471f9bedfdce8abcecf09e0234ee741dedaee4ca863286ef9d7c8823f7b16dec086f75a
   languageName: node
   linkType: hard
 
@@ -11243,8 +11240,8 @@ __metadata:
     "@faker-js/faker": "npm:^6.3.1"
     "@graphql-yoga/node": "npm:^2.13.13"
     "@mapbox/mapbox-sdk": "npm:^0.13.3"
-    "@sailshq/connect-redis": "npm:^3.2.1"
-    "@sailshq/socket.io-redis": "npm:^5.2.0"
+    "@sailshq/connect-redis": "npm:^6.1.3"
+    "@sailshq/socket.io-redis": "npm:^6.1.2"
     analytics-node: "npm:^1.2.0"
     apple-signin-auth: "npm:^1.2.1"
     async-repl: "npm:0.4.0"
@@ -11338,8 +11335,8 @@ __metadata:
     root-path: "npm:^0.2.1"
     rsa-pem-to-jwk: "npm:^1.1.3"
     s3-upload-stream: "npm:^1.0.7"
-    sails: "npm:^1.4.0"
-    sails-hook-sockets: "npm:^2.0.1"
+    sails: "npm:^1.5.12"
+    sails-hook-sockets: "npm:^3.0.1"
     sanitize-filename: "npm:^1.6.1"
     semver: "npm:^5.4.1"
     sendwithus: "npm:^2.8.0"
@@ -16440,19 +16437,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"engine.io-client@npm:~6.5.2":
-  version: 6.5.4
-  resolution: "engine.io-client@npm:6.5.4"
-  dependencies:
-    "@socket.io/component-emitter": "npm:~3.1.0"
-    debug: "npm:~4.3.1"
-    engine.io-parser: "npm:~5.2.1"
-    ws: "npm:~8.17.1"
-    xmlhttprequest-ssl: "npm:~2.0.0"
-  checksum: 10/a91b97cd80e6b048e24887ccac53b143d08ea91c76335870a4aee1427394ba01a7e78ed8d64e518a42fdb297b331ffa80e50fdd26dbc5a08364ea715bf367c59
-  languageName: node
-  linkType: hard
-
 "engine.io-parser@npm:~2.2.0":
   version: 2.2.1
   resolution: "engine.io-parser@npm:2.2.1"
@@ -16473,17 +16457,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"engine.io@npm:~3.6.0":
-  version: 3.6.2
-  resolution: "engine.io@npm:3.6.2"
+"engine.io@npm:~6.5.2":
+  version: 6.5.5
+  resolution: "engine.io@npm:6.5.5"
   dependencies:
+    "@types/cookie": "npm:^0.4.1"
+    "@types/cors": "npm:^2.8.12"
+    "@types/node": "npm:>=10.0.0"
     accepts: "npm:~1.3.4"
     base64id: "npm:2.0.0"
     cookie: "npm:~0.4.1"
-    debug: "npm:~4.1.0"
-    engine.io-parser: "npm:~2.2.0"
-    ws: "npm:~7.5.10"
-  checksum: 10/98fbe92314f4dc1a1c3ac2d7cf01a2ece3a0c8042c612d7d557ec2d58f3c5213bb50399b081f32e1176b7a4f5fea129f7df8a6a5e45024ec530a8602ca4eeccf
+    cors: "npm:~2.8.5"
+    debug: "npm:~4.3.1"
+    engine.io-parser: "npm:~5.2.1"
+    ws: "npm:~8.17.1"
+  checksum: 10/df8562e5249cf122efad77b909fe804b36ac5769676f963c997d4d18c91e014c68bb40661ff92f641b978baa0297be4000c2f3c3d1ce237cd1771952ccc5f38a
   languageName: node
   linkType: hard
 
@@ -33574,7 +33562,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"redis-parser@npm:^2.0.0, redis-parser@npm:^2.6.0":
+"redis-parser@npm:^2.0.0":
   version: 2.6.0
   resolution: "redis-parser@npm:2.6.0"
   checksum: 10/79786a19680eed2d8d05055f9942f8b5ad52bbc901943dd557b2032f2fffe545e03bf24e7c903d68a89586adaaa70421f7d52f432dd0992503fc6c3ba5523f1b
@@ -33620,14 +33608,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"redis@npm:^2.1.0":
-  version: 2.8.0
-  resolution: "redis@npm:2.8.0"
+"redis@npm:^3.0.0":
+  version: 3.1.2
+  resolution: "redis@npm:3.1.2"
   dependencies:
-    double-ended-queue: "npm:^2.1.0-0"
-    redis-commands: "npm:^1.2.0"
-    redis-parser: "npm:^2.6.0"
-  checksum: 10/2ce08ac5fd1ee7a0a48dedf3a886e878c208391cbe65f3d36df9e32e06dca161c5b0a1e922a877221b17c30bc1c31ca96947aaee1bddeaea9a0fe53c3494d96e
+    denque: "npm:^1.5.0"
+    redis-commands: "npm:^1.7.0"
+    redis-errors: "npm:^1.2.0"
+    redis-parser: "npm:^3.0.0"
+  checksum: 10/a8a2973bbfe98b4fd295f4e560d212106887e7adecfa23f9ee3207cefac080f261a06027a867293f8ed78ebc18e2541e132eea8642af7283e75ef7aa61c2a83a
   languageName: node
   linkType: hard
 
@@ -34864,9 +34853,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sails-hook-sockets@npm:^2.0.1":
-  version: 2.0.4
-  resolution: "sails-hook-sockets@npm:2.0.4"
+"sails-hook-sockets@npm:^3.0.1":
+  version: 3.0.1
+  resolution: "sails-hook-sockets@npm:3.0.1"
   dependencies:
     "@sailshq/lodash": "npm:^3.10.2"
     async: "npm:2.6.4"
@@ -34875,9 +34864,9 @@ __metadata:
     machinepack-urls: "npm:^6.0.2-0"
     proxy-addr: "npm:1.1.5"
     semver: "npm:7.5.2"
-    socket.io: "npm:2.5.0"
+    socket.io: "npm:4.7.5"
     uid2: "npm:0.0.3"
-  checksum: 10/5622e8e0d3f79ea097e92bd6867e9bab4ea4372ddb4d2e2b5c67aa05d6465ba64dd410bff6a8c2c1c9422b75001788e91d052917cb75896fc710515923e37856
+  checksum: 10/409c9dd581b33d3937c29d4b191eca1b90c8af81c1f0fa0730a4c342ad4802a2bb5738f2f78229fbcf99b45401efba44416e44cd8f962222591a807a8ca643ab
   languageName: node
   linkType: hard
 
@@ -34905,7 +34894,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sails@npm:^1.4.0":
+"sails@npm:^1.5.12":
   version: 1.5.12
   resolution: "sails@npm:1.5.12"
   dependencies:
@@ -39981,7 +39970,7 @@ __metadata:
     sass-resources-loader: "npm:^2.2.5"
     scroll-into-view-if-needed: "npm:^2.2.29"
     slick-carousel: "npm:^1.8.1"
-    socket.io-client: "npm:4.7.5"
+    socket.io-client: "npm:2.3.1"
     standard: "npm:17.1.2"
     standard-loader: "npm:^7.0.0"
     streamifier: "npm:^0.1.1"

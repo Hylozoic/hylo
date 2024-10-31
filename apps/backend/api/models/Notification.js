@@ -1,4 +1,3 @@
-import url from 'url'
 import { isEmpty } from 'lodash'
 import { get, includes } from 'lodash/fp'
 import decode from 'ent/decode'

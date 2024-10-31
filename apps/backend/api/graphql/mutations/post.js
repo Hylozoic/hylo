@@ -1,33 +1,32 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
-
 import validatePostData from '../../models/post/validatePostData'
 import underlyingCreatePost from '../../models/post/createPost'
 import underlyingUpdatePost from '../../models/post/updatePost'
+const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export function createPost (userId, data) {
   return convertGraphqlPostData(data)
-  .tap(convertedData => validatePostData(userId, convertedData))
-  .then(validatedData => underlyingCreatePost(userId, validatedData))
+    .tap(convertedData => validatePostData(userId, convertedData))
+    .then(validatedData => underlyingCreatePost(userId, validatedData))
 }
 
 export function deletePost (userId, postId) {
   return Post.find(postId)
-  .then(post => {
-    if (!post) {
-      throw new GraphQLYogaError("Post does not exist")
-    }
-    if (post.get('user_id') !== userId) {
-      throw new GraphQLYogaError("You don't have permission to modify this post")
-    }
-    return Post.deactivate(postId)
-  })
-  .then(() => ({success: true}))
+    .then(post => {
+      if (!post) {
+        throw new GraphQLYogaError('Post does not exist')
+      }
+      if (post.get('user_id') !== userId) {
+        throw new GraphQLYogaError("You don't have permission to modify this post")
+      }
+      return Post.deactivate(postId)
+    })
+    .then(() => ({ success: true }))
 }
 
 export function updatePost (userId, { id, data }) {
   return convertGraphqlPostData(data)
-  .tap(convertedData => validatePostData(userId, convertedData))
-  .then(validatedData => underlyingUpdatePost(userId, id, validatedData))
+    .tap(convertedData => validatePostData(userId, convertedData))
+    .then(validatedData => underlyingUpdatePost(userId, id, validatedData))
 }
 
 export function fulfillPost (userId, postId) {
@@ -38,7 +37,7 @@ export function fulfillPost (userId, postId) {
       }
       return post.fulfill()
     })
-    .then(() => ({success: true}))
+    .then(() => ({ success: true }))
 }
 
 export function unfulfillPost (userId, postId) {
@@ -49,7 +48,7 @@ export function unfulfillPost (userId, postId) {
       }
       return post.unfulfill()
     })
-    .then(() => ({success: true}))
+    .then(() => ({ success: true }))
 }
 
 export async function addProposalVote ({ userId, postId, optionId }) {
@@ -83,15 +82,13 @@ export async function removeProposalVote ({ userId, postId, optionId }) {
 }
 
 export async function setProposalOptions ({ userId, postId, options }) {
-  console.log('entering setProposalOptions')
   if (!userId || !postId || !options) throw new GraphQLYogaError(`Missing required parameters: ${JSON.stringify({ userId, postId, options })}`)
   const authorized = await Post.isVisibleToUser(postId, userId)
   if (!authorized) throw new GraphQLYogaError("You don't have permission to modify this post")
   return Post.find(postId)
     .then(post => {
       if (post.get('proposal_status') !== Post.Proposal_Status.DISCUSSION) throw new GraphQLYogaError("Proposal options cannot be changed unless the proposal is in 'discussion'")
-      console.log('setting options')
-        return post.setProposalOptions({ options })
+      return post.setProposalOptions({ options })
     })
     .catch((err) => { throw new GraphQLYogaError(`setting of options failed: ${err}`) })
     .then(() => ({ success: true }))
@@ -143,15 +140,15 @@ export function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
 export async function pinPost (userId, postId, groupId) {
   const group = await Group.find(groupId)
   return GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_CONTENT)
-  .then(isModerator => {
-    if (!isModerator) throw new GraphQLYogaError("You don't have permission to modify this group")
-    return PostMembership.find(postId, groupId)
-    .then(postMembership => {
-      if (!postMembership) throw new GraphQLYogaError("Couldn't find postMembership")
-      return postMembership.togglePinned()
+    .then(isModerator => {
+      if (!isModerator) throw new GraphQLYogaError("You don't have permission to modify this group")
+      return PostMembership.find(postId, groupId)
+        .then(postMembership => {
+          if (!postMembership) throw new GraphQLYogaError("Couldn't find postMembership")
+          return postMembership.togglePinned()
+        })
+        .then(() => ({ success: true }))
     })
-    .then(() => ({success: true}))
-  })
 }
 
 // converts input data from the way it's received in GraphQL to the format that
