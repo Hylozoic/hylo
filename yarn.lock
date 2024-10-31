@@ -8193,6 +8193,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/cors@npm:^2.8.12":
+  version: 2.8.17
+  resolution: "@types/cors@npm:2.8.17"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10/469bd85e29a35977099a3745c78e489916011169a664e97c4c3d6538143b0a16e4cc72b05b407dc008df3892ed7bf595f9b7c0f1f4680e169565ee9d64966bde
+  languageName: node
+  linkType: hard
+
 "@types/crypto-js@npm:^4.0.2":
   version: 4.2.2
   resolution: "@types/crypto-js@npm:4.2.2"
@@ -8531,6 +8540,15 @@ __metadata:
   dependencies:
     undici-types: "npm:~6.19.2"
   checksum: 10/22a7cb6da6a1cf914016bdcfb1d20399ec549a6220a9fd03253dc995848fa328c9dbeaf291b63bd60b0cf44387044adc80fc8d97401c647711b0b839d0ed4fe5
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:>=10.0.0":
+  version: 22.8.6
+  resolution: "@types/node@npm:22.8.6"
+  dependencies:
+    undici-types: "npm:~6.19.8"
+  checksum: 10/27bb73f033eeec05b4ed52dbc521cac28fb7ac14af267119c9bae0318c97848cd790ac7f0a65924ace7ea717eae62e91bd227da4bd6c0217d0016a7a6cd0a156
   languageName: node
   linkType: hard
 
@@ -11448,7 +11466,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"base64id@npm:2.0.0":
+"base64id@npm:2.0.0, base64id@npm:~2.0.0":
   version: 2.0.0
   resolution: "base64id@npm:2.0.0"
   checksum: 10/e3312328429e512b0713469c5312f80b447e71592cae0a5bddf3f1adc9c89d1b2ed94156ad7bb9f529398f310df7ff6f3dbe9550735c6a759f247c088ea67364
@@ -13880,7 +13898,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cors@npm:^2.8.5":
+"cors@npm:^2.8.5, cors@npm:~2.8.5":
   version: 2.8.5
   resolution: "cors@npm:2.8.5"
   dependencies:
@@ -15185,7 +15203,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:*, debug@npm:4, debug@npm:^4.0.1, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.4, debug@npm:~4.3.1, debug@npm:~4.3.2":
+"debug@npm:*, debug@npm:4, debug@npm:^4.0.1, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.4, debug@npm:~4.3.1, debug@npm:~4.3.2, debug@npm:~4.3.4":
   version: 4.3.7
   resolution: "debug@npm:4.3.7"
   dependencies:
@@ -15197,7 +15215,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:2, debug@npm:2.6.9, debug@npm:^2.2.0, debug@npm:^2.3.3, debug@npm:^2.6.0, debug@npm:^2.6.8, debug@npm:^2.6.9, debug@npm:~2.6.4, debug@npm:~2.6.8":
+"debug@npm:2, debug@npm:2.6.9, debug@npm:^2.2.0, debug@npm:^2.3.3, debug@npm:^2.6.0, debug@npm:^2.6.8, debug@npm:^2.6.9, debug@npm:~2.6.4":
   version: 2.6.9
   resolution: "debug@npm:2.6.9"
   dependencies:
@@ -17410,6 +17428,15 @@ __metadata:
   peerDependencies:
     eslint: ^3.17.0 || ^4 || ^5 || ^6 || ^7 || ^8
   checksum: 10/fb2d65a3faca9bf775a0fa430eb7e86b7c27d0b256916d4f79a94def9ad353c8a10605f1f0dc9a5fb10e446b003341d53af9d8cbca4dd7ba394350355efa30c6
+  languageName: node
+  linkType: hard
+
+"eslint-plugin-react-refresh@npm:^0.4.13":
+  version: 0.4.14
+  resolution: "eslint-plugin-react-refresh@npm:0.4.14"
+  peerDependencies:
+    eslint: ">=7"
+  checksum: 10/295ddf50cbe03187133f855f76baf88c92ce487971cdbc0ab33e037dc5d3d187fe2f809633eaa94da2769859963664b8c5b745db4812c644a1c535fe8823a045
   languageName: node
   linkType: hard
 
@@ -27766,10 +27793,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"notepack.io@npm:~2.1.0, notepack.io@npm:~2.1.2":
+"notepack.io@npm:~2.1.0":
   version: 2.1.3
   resolution: "notepack.io@npm:2.1.3"
   checksum: 10/76f1b98cc1f6a9c56a3c2bf75095b6f3e456d448470d46eee22f13a71c80e703ab31230834fdabc50b819fcffbcf1005e5027b1cd1d2a87d8e99f51dc0e6194c
+  languageName: node
+  linkType: hard
+
+"notepack.io@npm:~2.2.0":
+  version: 2.2.0
+  resolution: "notepack.io@npm:2.2.0"
+  checksum: 10/172a25ba48f79dc49e60c5e223361a15f71083624bd8543189a7c1b48b4abf15fcff658a894aab986c045d4d2740505c41db39de372fdaf809e0957cf3f2bd0e
   languageName: node
   linkType: hard
 
@@ -38705,7 +38739,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici-types@npm:~6.19.2":
+"undici-types@npm:~6.19.2, undici-types@npm:~6.19.8":
   version: 6.19.8
   resolution: "undici-types@npm:6.19.8"
   checksum: 10/cf0b48ed4fc99baf56584afa91aaffa5010c268b8842f62e02f752df209e3dea138b372a60a963b3b2576ed932f32329ce7ddb9cb5f27a6c83040d8cd74b7a70
@@ -39842,6 +39876,7 @@ __metadata:
     eslint-plugin-promise: "npm:^7.1.0"
     eslint-plugin-react: "npm:^7.36.1"
     eslint-plugin-react-hooks: "npm:^5.1.0-rc-206df66e-20240912"
+    eslint-plugin-react-refresh: "npm:^0.4.13"
     eslint-plugin-testing-library: "npm:^6.3.0"
     express: "npm:^4.15.5"
     file-loader: "npm:6.2.0"
@@ -40940,13 +40975,6 @@ __metadata:
   version: 1.6.3
   resolution: "xmlhttprequest-ssl@npm:1.6.3"
   checksum: 10/525dc9ecc7ce11c0404284e3580ea594d5414588adb3e4e52cd9b3c1a892b1f9f27e2cfb2299868de10aba57ca68ee476d6b26f9ba287dec48cc960f2f811cb3
-  languageName: node
-  linkType: hard
-
-"xmlhttprequest-ssl@npm:~2.0.0":
-  version: 2.0.0
-  resolution: "xmlhttprequest-ssl@npm:2.0.0"
-  checksum: 10/3c2edfce0c49c7a494ed16c87e6897c9e3eba29763a5505526de83ddefd195d224fa5cdf41092298c99cd6ee473c9f259a0679f6ff3b8a9535dcd09900db91f9
   languageName: node
   linkType: hard
 
