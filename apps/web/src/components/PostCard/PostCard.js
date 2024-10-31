@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import { get } from 'lodash/fp'
 import React, { useCallback, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -29,10 +29,8 @@ export default function PostCard (props) {
     currentGroupId,
     expanded,
     highlightProps,
-    intersectionObserver,
     post,
-    locationParams,
-    querystringParams
+    locationParams
   } = props
 
   const postCardRef = useRef()
@@ -40,6 +38,8 @@ export default function PostCard (props) {
   const routeParams = useParams()
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const location = useLocation()
+  const querystringParams = new URLSearchParams(location.search)
 
   const currentUser = useSelector(getMe)
 
@@ -74,18 +74,11 @@ export default function PostCard (props) {
     if (shouldShowDetails(event.target)) showDetails()
   })
 
-  useEffect(() => {
-    if (intersectionObserver) {
-      intersectionObserver.observe(postCardRef.current)
-      return () => { intersectionObserver.disconnect() }
-    }
-  }, [intersectionObserver])
-
   const postType = get('type', post)
   const isEvent = postType === 'event'
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
-  const hasImage = post.attachments.find(a => a.type === 'image') || false
+  const hasImage = post.attachments?.find(a => a.type === 'image') || false
 
   return (
     <>
@@ -119,7 +112,7 @@ export default function PostCard (props) {
           />
         </div>
         <div onClick={onClick}>
-          <CardImageAttachments attachments={post.attachments} className='post-card' isFlagged={isFlagged && !post.clickthrough} />
+          <CardImageAttachments attachments={post.attachments || []} className='post-card' isFlagged={isFlagged && !post.clickthrough} />
         </div>
         {isEvent && (
           <div className={classes.bodyWrapper}>
@@ -168,12 +161,10 @@ export default function PostCard (props) {
 
 PostCard.propTypes = {
   childPost: PropTypes.bool,
-  routeParams: PropTypes.object,
   post: PropTypes.shape(POST_PROP_TYPES),
   highlightProps: PropTypes.object,
   expanded: PropTypes.bool,
   constrained: PropTypes.bool,
   className: PropTypes.string,
-  locationParams: PropTypes.object,
-  querystringParams: PropTypes.object
+  locationParams: PropTypes.object
 }
