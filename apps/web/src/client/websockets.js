@@ -3,15 +3,12 @@ import socketIOClient from 'socket.io-client'
 import sailsIOClient from 'sails.io.js'
 
 const environment = import.meta.env.PROD || 'development'
-const socketHost = import.meta.env.SOCKET_HOST
+const socketHost = import.meta.env.VITE_SOCKET_HOST
 const isClient = typeof window !== 'undefined' && !window.isMock
 
 let socket // client-side singleton
 
 if (isClient) {
-  // const socketIOClient = require('socket.io-client')
-  // const sailsIOClient = require('sails.io.js')
-  // const io = sailsIOClient(socketIOClient)
   const io = sailsIOClient(socketIOClient)
 
   // Configure the connection URL

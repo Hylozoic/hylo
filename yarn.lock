@@ -35906,10 +35906,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"socket.io-adapter@npm:~1.1.0":
-  version: 1.1.2
-  resolution: "socket.io-adapter@npm:1.1.2"
-  checksum: 10/50a3c0fe9bf5aab77a260174ebe41fea20a5d31857e229b49b3cd677489915409a84736a869beb4b20cdf73a4385a2aa24e445d3a09e0fb581e144bf42c4eda2
+"socket.io-adapter@npm:~2.2.0":
+  version: 2.2.0
+  resolution: "socket.io-adapter@npm:2.2.0"
+  checksum: 10/751d161f973ec8d8112ebce5715daf06f79c5ed1d9388f4856c62094cf9eecfbd917142add339517eb1c6f84ee8b04377a799888a1e3207567d28d516088e656
+  languageName: node
+  linkType: hard
+
+"socket.io-adapter@npm:~2.5.2":
+  version: 2.5.5
+  resolution: "socket.io-adapter@npm:2.5.5"
+  dependencies:
+    debug: "npm:~4.3.4"
+    ws: "npm:~8.17.1"
+  checksum: 10/e364733a4c34ff1d4a02219e409bd48074fd614b7f5b0568ccfa30dd553252a5b9a41056931306a276891d13ea76a19e2c6f2128a4675c37323f642896874d80
   languageName: node
   linkType: hard
 
@@ -35932,7 +35942,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"socket.io-client@npm:2.5.0, socket.io-client@npm:^2.3.1":
+"socket.io-client@npm:^2.3.1":
   version: 2.5.0
   resolution: "socket.io-client@npm:2.5.0"
   dependencies:
@@ -35948,18 +35958,6 @@ __metadata:
     socket.io-parser: "npm:~3.3.0"
     to-array: "npm:0.1.4"
   checksum: 10/c0587528782992337654ae8be424a6c2ddb3619aa8b43ebbd4fd5d9151817fa530d9f5f5389bc22dfb821ae7f7b59f8568064ed9dc26dfe55cf35e17a1e5762a
-  languageName: node
-  linkType: hard
-
-"socket.io-client@npm:4.7.5":
-  version: 4.7.5
-  resolution: "socket.io-client@npm:4.7.5"
-  dependencies:
-    "@socket.io/component-emitter": "npm:~3.1.0"
-    debug: "npm:~4.3.2"
-    engine.io-client: "npm:~6.5.2"
-    socket.io-parser: "npm:~4.2.4"
-  checksum: 10/a9e118081dc1669a63af3abd9defce94f85c8ed8d9146cd7a77665b5f1f78baf0b9f4155cf0fce7770856f97493416551abcba686f02778045f4768ceaafed5c
   languageName: node
   linkType: hard
 
@@ -35998,17 +35996,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"socket.io-parser@npm:~3.4.0":
-  version: 3.4.3
-  resolution: "socket.io-parser@npm:3.4.3"
-  dependencies:
-    component-emitter: "npm:1.2.1"
-    debug: "npm:~4.1.0"
-    isarray: "npm:2.0.1"
-  checksum: 10/8fee93afdf7bbe3c3d09e0e9b81019a133077e75af4569d38bf147f979bf4510607844f4ccd8ced6b530577f10cd827302e02b9ceaf6c36f5105ec2df77b68fa
-  languageName: node
-  linkType: hard
-
 "socket.io-parser@npm:~4.2.4":
   version: 4.2.4
   resolution: "socket.io-parser@npm:4.2.4"
@@ -36019,17 +36006,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"socket.io@npm:2.5.0":
-  version: 2.5.0
-  resolution: "socket.io@npm:2.5.0"
+"socket.io@npm:4.7.5":
+  version: 4.7.5
+  resolution: "socket.io@npm:4.7.5"
   dependencies:
-    debug: "npm:~4.1.0"
-    engine.io: "npm:~3.6.0"
-    has-binary2: "npm:~1.0.2"
-    socket.io-adapter: "npm:~1.1.0"
-    socket.io-client: "npm:2.5.0"
-    socket.io-parser: "npm:~3.4.0"
-  checksum: 10/c418e062adf1f8682b2f195cd2d94738beefe9a4ff5c9bda7c0ff78b0c8e9c150c0a20f8238df32ea1081c341f135f84ba71ce916cd2a5ea3b61d306b0d4cc21
+    accepts: "npm:~1.3.4"
+    base64id: "npm:~2.0.0"
+    cors: "npm:~2.8.5"
+    debug: "npm:~4.3.2"
+    engine.io: "npm:~6.5.2"
+    socket.io-adapter: "npm:~2.5.2"
+    socket.io-parser: "npm:~4.2.4"
+  checksum: 10/911528f5bfdf83dbe2b154866884b736a7498f112f294a6f8420418fa11baadf08578869dab3e220c943094ff0d17b7f4587de3b1ad39679d9c12ed4cb226900
   languageName: node
   linkType: hard
 
