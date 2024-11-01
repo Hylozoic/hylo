@@ -1,5 +1,4 @@
 import { createSelector } from 'reselect'
-import { isUndefined } from 'lodash'
 import { CHECK_LOGIN, LOGOUT } from 'store/constants'
 import getMe from 'store/selectors/getMe'
 

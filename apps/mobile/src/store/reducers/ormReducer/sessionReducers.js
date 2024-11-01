@@ -15,7 +15,3 @@ export {
 export {
   default as pushNotificationReducer
 } from './pushNotifications'
-
-export {
-  ormSessionReducer as postEditorReducer
-} from 'screens/PostEditor/PostEditor.store'

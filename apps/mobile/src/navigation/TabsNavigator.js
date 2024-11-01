@@ -1,10 +1,9 @@
 import React from 'react'
-import { useSelector } from 'react-redux'
 import { StyleSheet, Text } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import Intercom from '@intercom/intercom-react-native'
 import { isIOS } from 'util/platform'
-import getMe from 'store/selectors/getMe'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 // Helper Components
 import Icon from 'components/Icon'
 import Avatar from 'components/Avatar'
@@ -47,7 +46,7 @@ export default function TabsNavigator () {
       headerShown: false
     })
   }
-  const currentUser = useSelector(getMe)
+  const currentUser = useCurrentUser()
 
   const handleSupportTabPress = () => {
     Intercom.present()

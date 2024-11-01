@@ -1,63 +1,4 @@
-export const INITIAL_SUBCOMMENTS_DISPLAYED = 4
-
-// :TODO: clean this up and use proper query fragments?
-const CommentFieldsFragment = `
-  id
-  text
-  creator {
-    id
-    name
-    avatarUrl
-    groupRoles {
-      items {
-        id
-        name
-        emoji
-        active
-        groupId
-        responsibilities {
-          items {
-            id
-            title
-            description
-          }
-        }
-      }
-    }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
-  }
-  attachments {
-    id
-    position
-    type
-    url
-  }
-  parentComment {
-    id
-  }
-  myReactions {
-    emojiFull
-    id
-  }
-  commentReactions {
-    emojiFull
-    id
-    user {
-      id
-      name
-    }
-  }
-  createdAt
-`
-
-const postFieldsFragment = withComments => `
+const postFieldsFragment = () => `
   id
   announcement
   title
@@ -111,23 +52,6 @@ const postFieldsFragment = withComments => `
   }
   commentersTotal
   commentsTotal
-  ${withComments ? `comments(first: 10, order: "desc") {
-    items {
-      ${CommentFieldsFragment}
-      childComments(first: ${INITIAL_SUBCOMMENTS_DISPLAYED}, order: "desc") {
-        items {
-          ${CommentFieldsFragment}
-          post {
-            id
-          }
-        }
-        total
-        hasMore
-      }
-    }
-    total
-    hasMore
-  }` : ''}
   linkPreview {
     description
     id

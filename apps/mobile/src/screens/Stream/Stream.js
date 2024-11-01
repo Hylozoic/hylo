@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import LinearGradient from 'react-native-linear-gradient'
 import { isUndefined } from 'lodash'
 import useChangeToGroup from 'hooks/useChangeToGroup'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import useGoToTopic from 'hooks/useGoToTopic'
 import { useTranslation } from 'react-i18next'
 import { PUBLIC_GROUP_ID } from 'store/models/Group'
@@ -14,10 +15,10 @@ import useRouteParams from 'hooks/useRouteParams'
 import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import getCustomView from 'store/selectors/getCustomView'
 import getGroupTopic from 'store/selectors/getGroupTopic'
-import getMe from 'store/selectors/getMe'
 import getMemberships from 'store/selectors/getMemberships'
 import toggleGroupTopicSubscribeAction from 'store/actions/toggleGroupTopicSubscribe'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
+import { firstName } from 'store/models/Person'
 import Avatar from 'components/Avatar'
 import Button from 'components/Button'
 import CreateGroupNotice from 'components/CreateGroupNotice'
@@ -59,7 +60,7 @@ export default function Stream ({ topicName: providedTopicName }) {
   // Note: Custom View Mode = grid, etc. Not implemented in App
   // const customViewMode = customView?.defaultViewMode
 
-  const currentUser = useSelector(getMe)
+  const currentUser = useCurrentUser()
   const memberships = useSelector(getMemberships)
   const currentUserHasMemberships = !isEmpty(memberships)
   const currentGroup = useSelector(getCurrentGroup)
@@ -244,7 +245,7 @@ export function PostPrompt ({ currentUser, forGroup, currentType, currentTopicNa
     <View style={styles.postPrompt}>
       <TouchableOpacity onPress={handleOpenPostEditor} style={styles.promptButton}>
         <Avatar avatarUrl={avatarUrl} style={styles.avatar} />
-        <Text style={styles.promptText}>{postPromptString(checkedCurrentType, { firstName: currentUser.firstName() }, t)}</Text>
+        <Text style={styles.promptText}>{postPromptString(currentType, { firstName: firstName(currentUser) }, t)}</Text>
       </TouchableOpacity>
     </View>
   )

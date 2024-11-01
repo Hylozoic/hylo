@@ -57,9 +57,6 @@ import {
 import {
   CREATE_GROUP
 } from 'screens/CreateGroupFlow/CreateGroupFlow.store'
-import {
-  MARK_ACTIVITY_READ, MARK_ALL_ACTIVITIES_READ, UPDATE_NEW_NOTIFICATION_COUNT_PENDING
-} from 'screens/NotificationsList/NotificationsList.store'
 
 import orm from 'store/models'
 import clearCacheFor from './clearCacheFor'
@@ -74,7 +71,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
   if (error) return state
 
   const {
-    Activity,
     Comment,
     EventInvitation,
     Group,
@@ -349,18 +345,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
-    case MARK_ACTIVITY_READ: {
-      if (Activity.idExists(meta.id)) {
-        Activity.withId(meta.id).update({ unread: false })
-      }
-      break
-    }
-
-    case MARK_ALL_ACTIVITIES_READ: {
-      Activity.all().update({ unread: false })
-      break
-    }
-
     case PROCESS_STRIPE_TOKEN_PENDING: {
       post = Post.withId(meta.postId)
       const totalContributions = Number(post.totalContributions) + Number(meta.amount)
@@ -503,12 +487,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case UPDATE_LAST_VIEWED_PENDING: {
       const me = Me.first()
       me.update({ unseenThreadCount: 0 })
-      break
-    }
-
-    case UPDATE_NEW_NOTIFICATION_COUNT_PENDING: {
-      const me = Me.first()
-      me.update({ newNotificationCount: 0 })
       break
     }
 

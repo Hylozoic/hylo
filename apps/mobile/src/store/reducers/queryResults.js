@@ -10,7 +10,6 @@ import { mapValues, camelCase } from 'lodash'
 import orm from 'store/models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import {
-  FETCH_POST,
   FETCH_POSTS,
   FETCH_TOPICS,
   FETCH_DEFAULT_TOPICS,
@@ -19,8 +18,7 @@ import {
   DROP_QUERY_RESULTS,
   FIND_OR_CREATE_THREAD,
   FETCH_THREADS,
-  FETCH_CHILD_COMMENTS,
-  FETCH_COMMENTS
+  FETCH_CHILD_COMMENTS
 } from 'store/constants'
 import {
   RECEIVE_POST,
@@ -36,12 +34,6 @@ export default function (state = {}, action) {
   const { type, payload, error, meta } = action
   if (error) return state
   let root
-
-  // Special case for post query- needs to extract subcomments as well.
-  // Toplevel comments are handled by standard extractQueryResults (below).
-  if (type === FETCH_POST || type === FETCH_COMMENTS) {
-    state = matchSubCommentsIntoQueryResults(state, payload)
-  }
 
   const { extractQueryResults } = meta || {}
   if (extractQueryResults && payload) {
@@ -175,7 +167,7 @@ export function matchNewThreadIntoQueryResults (state, { id, type }) {
   return prependIdForCreate(state, FETCH_THREADS, null, id)
 }
 
-export function matchSubCommentsIntoQueryResults (state, { data }) {
+export function matchChildCommentsIntoQueryResults (state, { data }) {
   const toplevelComments = get('post.comments.items', data)
 
   if (toplevelComments) {

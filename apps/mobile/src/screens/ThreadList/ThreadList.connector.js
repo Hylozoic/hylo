@@ -2,12 +2,10 @@ import { connect } from 'react-redux'
 import { get, isUndefined } from 'lodash/fp'
 import fetchThreads from 'store/actions/fetchThreads'
 import { FETCH_THREADS } from 'store/constants'
-import getMe from 'store/selectors/getMe'
 import { getThreads, getThreadsHasMore, updateLastViewed } from './ThreadList.store'
 
 export function mapStateToProps (state, props) {
   const threads = getThreads(state, props)
-  const currentUser = getMe(state)
   const hasMore = getThreadsHasMore(state, props)
   const pending = state.pending[FETCH_THREADS] || isUndefined(state.pending[FETCH_THREADS])
   const showThread = threadOrId => props.navigation.navigate('Thread', {
@@ -15,7 +13,6 @@ export function mapStateToProps (state, props) {
   })
 
   return {
-    currentUser,
     hasMore,
     isConnected: state.SocketListener.connected,
     pending,

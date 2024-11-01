@@ -1,9 +1,10 @@
 import orm from 'store/models'
 import { createSelector } from 'reselect'
 import { createSelector as ormCreateSelector } from 'redux-orm'
+import { get, isEmpty, includes } from 'lodash/fp'
+import gql from 'graphql-tag'
 import { makeGetQueryResults } from 'store/reducers/queryResults'
 import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
-import { get, isEmpty, includes } from 'lodash/fp'
 
 export const MODULE_NAME = 'SearchPage'
 
@@ -63,58 +64,60 @@ export function fetchSearchResults ({ search, offset = 0, filter }) {
   return {
     type: FETCH_SEARCH,
     graphql: {
-      query: `query ($search: String, $type: String, $offset: Int) {
-        search(term: $search, first: 10, type: $type, offset: $offset) {
-          total
-          hasMore
-          items {
-            id
-            content {
-              __typename
-              ... on Person {
-                id
-                name
-                location
-                avatarUrl
-                skills {
-                  items {
-                    id
-                    name
-                  }
-                }
-              }
-              ... on Post {
-                ${postFieldsFragment(false)}
-              }
-              ... on Comment {
-                id
-                text
-                createdAt
-                creator {
+      query: gql`
+        query ($search: String, $type: String, $offset: Int) {
+          search(term: $search, first: 10, type: $type, offset: $offset) {
+            total
+            hasMore
+            items {
+              id
+              content {
+                contentTypeName: __typename
+                ... on Person {
                   id
                   name
+                  location
                   avatarUrl
+                  skills {
+                    items {
+                      id
+                      name
+                    }
+                  }
                 }
-                post {
+                ... on Post {
+                  ${postFieldsFragment(false)}
+                }
+                ... on Comment {
                   id
-                  title
-                  type
+                  text
+                  createdAt
                   creator {
                     id
                     name
                     avatarUrl
                   }
-                }
-                attachments {
-                  id
-                  url
-                  type
+                  post {
+                    id
+                    title
+                    type
+                    creator {
+                      id
+                      name
+                      avatarUrl
+                    }
+                  }
+                  attachments {
+                    id
+                    url
+                    type
+                  }
                 }
               }
             }
           }
         }
-      }`,
+      `,
       variables: {
         search,
         offset,

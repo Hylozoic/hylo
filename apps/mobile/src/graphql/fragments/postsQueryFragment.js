@@ -28,7 +28,7 @@ posts(
   hasMore
   total
   items {
-    ${postFieldsFragment(false)}
+    ${postFieldsFragment()}
   }
 }`
 

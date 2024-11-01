@@ -1,17 +1,17 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { isEmpty, trim } from 'lodash'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
 import { Text, View, ImageBackground, ScrollView, TouchableOpacity, TextInput } from 'react-native'
 import CheckBox from 'react-native-bouncy-checkbox'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import presentGroup from 'store/presenters/presentGroup'
 import getGroup from 'store/selectors/getGroup'
 import { updateMembershipSettings } from 'store/actions/updateMembershipSettings'
 import { addSkill as addSkillAction, removeSkill as removeSkillAction } from 'store/actions/skills'
 import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'store/models/Group'
 import getMyMemberships from 'store/selectors/getMyMemberships'
-import getMe from 'store/selectors/getMe'
 import styles from './GroupWelcomeFlow.styles'
 import GroupWelcomeTabBar from './GroupWelcomeTabBar'
 import { caribbeanGreen, rhino } from 'style/colors'
@@ -28,7 +28,7 @@ export default function GroupWelcomeLanding ({ route }) {
   const currentGroup = useSelector(state => getGroup(state, { id: groupId }))
   const group = presentGroup(currentGroup)
   const currentStepIndex = useSelector(getCurrentStepIndex)
-  const currentUser = useSelector(getMe)
+  const currentUser = useCurrentUser()
   const currentMemberships = useSelector(state => getMyMemberships(state))
   const currentMembership = currentMemberships.find(m => m.group.id === groupId)
   const routeNames = getRouteNames(group, currentMembership)

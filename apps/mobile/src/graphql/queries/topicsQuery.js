@@ -1,4 +1,4 @@
-export default `query (
+export default `query TopicsQuery (
   $groupSlug: String,
   $autocomplete: String,
   $isDefault: Boolean,
