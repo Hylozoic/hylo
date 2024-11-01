@@ -1,22 +1,22 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import KeyControlledItemList from './KeyControlledItemList'
 
 describe('KeyControlledItemList', () => {
   const defaultMinProps = {
-    onChange: () => {},
+    onChange: jest.fn(),
     items: []
   }
 
-  function renderComponent (renderFunc, props = {}) {
-    return renderFunc(
+  function renderComponent(props = {}) {
+    return render(
       <KeyControlledItemList {...{ ...defaultMinProps, ...props }} />
     )
   }
 
   it('renders correctly (with min props)', () => {
-    const wrapper = renderComponent(shallow)
-    expect(wrapper).toMatchSnapshot()
+    renderComponent()
+    expect(screen.getByRole('list')).toBeInTheDocument()
   })
 
   it('renders correctly (with items)', () => {
@@ -32,8 +32,9 @@ describe('KeyControlledItemList', () => {
         }
       ]
     }
-    const wrapper = renderComponent(shallow, props)
-    expect(wrapper).toMatchSnapshot()
+    renderComponent(props)
+    expect(screen.getByText('one')).toBeInTheDocument()
+    expect(screen.getByText('two')).toBeInTheDocument()
   })
 
   it('renders correctly (with items and renderListItem func)', () => {
@@ -48,9 +49,10 @@ describe('KeyControlledItemList', () => {
           title: 'two'
         }
       ],
-      renderListItem: ({ item }) => <span>{item.title}</span>
+      renderListItem: ({ item }) => <span key={item.id}>{item.title}</span>
     }
-    const wrapper = renderComponent(shallow, props)
-    expect(wrapper).toMatchSnapshot()
+    renderComponent(props)
+    expect(screen.getByText('one')).toBeInTheDocument()
+    expect(screen.getByText('two')).toBeInTheDocument()
   })
 })

@@ -315,25 +315,3 @@ exports[`EditProfileTab renders correctly without location object 1`] = `
   </div>
 </div>
 `;
-
-exports[`prompt rejects an incorrect facebook Url, calling itself again 1`] = `
-Array [
-  Array [
-    "Please enter the full url for your {{network}} page.",
-  ],
-  Array [
-    "Invalid url. Please enter the full url for your {{network}} page.",
-  ],
-]
-`;
-
-exports[`prompt rejects an incorrect linkedIn Url, calling itself again 1`] = `
-Array [
-  Array [
-    "Please enter the full url for your {{network}} page.",
-  ],
-  Array [
-    "Invalid url. Please enter the full url for your {{network}} page.",
-  ],
-]
-`;

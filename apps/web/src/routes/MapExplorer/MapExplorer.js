@@ -5,7 +5,8 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { createSelector } from 'reselect'
-import { debounce, get, groupBy, isEqual, isEmpty, pick, pickBy } from 'lodash'
+import { debounce, get, isEqual, isEmpty } from 'lodash'
+import { pick, pickBy } from 'lodash/fp'
 import bbox from '@turf/bbox'
 import bboxPolygon from '@turf/bbox-polygon'
 import booleanWithin from '@turf/boolean-within'
@@ -71,7 +72,7 @@ const MAP_BASE_LAYERS = [
   { id: 'satellite-streets-v12', label: 'Satellite + Streets' }
 ]
 
-export function presentMember (person, groupId) {
+function presentMember (person, groupId) {
   return {
     ...pick(['id', 'name', 'avatarUrl', 'groupRoles', 'locationObject', 'tagline', 'skills'], person.ref),
     type: 'member',
@@ -82,7 +83,7 @@ export function presentMember (person, groupId) {
   }
 }
 
-export function presentGroup (group) {
+function presentGroup (group) {
   return group.ref
 }
 

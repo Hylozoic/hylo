@@ -1,6 +1,5 @@
 import React from 'react'
-import { MemoryRouter } from 'react-router'
-import { mount } from 'enzyme'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import GroupsWidget from './GroupsWidget'
 
 const defaultMinProps = {
@@ -8,26 +7,33 @@ const defaultMinProps = {
   items: []
 }
 
-function renderComponent (renderFunc, props = {}) {
-  return renderFunc(
-    <MemoryRouter initialEntries={['/']} keyLength={0}><GroupsWidget {...{ ...defaultMinProps, ...props }} /></MemoryRouter>
+function renderComponent(props = {}) {
+  return render(
+    <GroupsWidget {...{ ...defaultMinProps, ...props }} />
   )
 }
 
 describe('GroupsWidget', () => {
-  it('renders correctly (with min props)', () => {
-    const wrapper = renderComponent(mount)
-    expect(wrapper).toMatchSnapshot()
+  it('renders correctly with minimum props', () => {
+    renderComponent()
+    expect(screen.getByText('+ Create Group')).toBeInTheDocument()
   })
 
   it('renders correctly with items', () => {
     const props = {
       items: [
-        { id: 1, slug: 'slug2', name: 'group one', avatarUrl: 'https://google.com', description: 'yo', memberCount: 1 },
+        { id: 1, slug: 'slug1', name: 'group one', avatarUrl: 'https://google.com', description: 'yo', memberCount: 1 },
         { id: 2, slug: 'slug2', name: 'group 2', avatarUrl: 'https://google.com', description: 'oy', memberCount: 10 }
       ]
     }
-    const wrapper = renderComponent(mount, props)
-    expect(wrapper).toMatchSnapshot()
+    renderComponent(props)
+
+    expect(screen.getByText('group one')).toBeInTheDocument()
+    expect(screen.getByText('group 2')).toBeInTheDocument()
+    expect(screen.getByText('1 member')).toBeInTheDocument()
+    expect(screen.getByText('10 members')).toBeInTheDocument()
+    expect(screen.getByText('yo')).toBeInTheDocument()
+    expect(screen.getByText('oy')).toBeInTheDocument()
+    expect(screen.getAllByText('View').length).toBe(4) // Two "View" texts per group
   })
 })

@@ -25,29 +25,3 @@ exports[`ContextRow renders with new posts 1`] = `
   </Link>
 </li>
 `;
-
-exports[`ContextRow renders with zero new posts 1`] = `
-<li
-  data-stylename="s.contextRow"
->
-  <Link
-    data-stylename="s.contextRowLink"
-    title="Foomunity"
-    to="/groups/foo"
-  >
-    <div
-      data-stylename="s.contextRowAvatar"
-      style={
-        Object {
-          "backgroundImage": "url(/foo.png)",
-        }
-      }
-    />
-    <span
-      data-stylename="s.group-name"
-    >
-      Foomunity
-    </span>
-  </Link>
-</li>
-`;

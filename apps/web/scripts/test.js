@@ -5,9 +5,10 @@ process.env.PUBLIC_URL = ''
 // if this file is missing. dotenv will never modify any environment variables
 // that have already been set.
 // https://github.com/motdotla/dotenv
-require('dotenv').config({ silent: true })
+import dotenv from 'dotenv'
+dotenv.config({ silent: true })
 
-const jest = require('jest')
+import jest from 'jest'
 const argv = process.argv.slice(2)
 
 // Custom config file location

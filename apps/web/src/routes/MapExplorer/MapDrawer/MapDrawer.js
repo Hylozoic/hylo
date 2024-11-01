@@ -195,8 +195,6 @@ function MapDrawer ({
                     key={p.id}
                     locationParams={locationParams}
                     post={p}
-                    querystringParams={queryParams}
-                    routeParams={routeParams}
                     className={styles.contentCard}
                   />
                 )

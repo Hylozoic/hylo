@@ -1,11 +1,12 @@
-const paths = require('./paths')
+import paths from './paths.js'
 
-module.exports = {
+export default {
   rootDir: paths.rootPath,
   transform: {
     '\\.(gql|graphql)$': 'jest-transform-graphql',
-    '^.+\\.jsx?$': '<rootDir>/config/jest/transformer.js'
+    '^.+\\.(js|jsx)$': 'babel-jest'
   },
+  transformIgnorePatterns: ['/!node_modules\\/lodash/*'],
   collectCoverageFrom: [
     '<rootDir>/src/**/*.{js,jsx}'
   ],
@@ -28,16 +29,33 @@ module.exports = {
     'node_modules',
     'src'
   ],
+  snapshotFormat: {
+    escapeString: true,
+    printBasicPrototype: true
+  },
   snapshotSerializers: [
-    'enzyme-to-json/serializer',
     'jest-serializer-graphql'
   ],
-  testEnvironment: 'jsdom',
-  testURL: 'http://localhost',
+  testEnvironment: 'jest-environment-jsdom',
+  testEnvironmentOptions: {
+    url: 'http://localhost'
+  },
+  roots: ['<rootDir>'],
+  modulePaths: ['<rootDir>'],
   moduleNameMapper: {
     '^react-native$': 'react-native-web',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': '<rootDir>/config/jest/__mocks__/fileMock.js',
-    '\\.(css|less|scss)$': '<rootDir>/config/jest/__mocks__/styleMock.js'
+    '\\.(css|less|scss)$': '<rootDir>/config/jest/__mocks__/styleMock.js',
+    '^client/(.*)$': '<rootDir>/src/client/$1',
+    '^components/(.*)$': '<rootDir>/src/components/$1',
+    '^contexts/(.*)$': '<rootDir>/src/contexts/$1',
+    '^css/(.*)$': '<rootDir>/src/css/$1',
+    '^hooks/(.*)$': '<rootDir>/src/hooks/$1',
+    '^@graphql/(.*)$': '<rootDir>/src/graphql/$1',
+    '^router/(.*)$': '<rootDir>/src/router/$1',
+    '^routes/(.*)$': '<rootDir>/src/routes/$1',
+    '^store/(.*)$': '<rootDir>/src/store/$1',
+    '^util/(.*)$': '<rootDir>/src/util/$1'
   },
   watchPlugins: [
     'jest-watch-typeahead/filename',

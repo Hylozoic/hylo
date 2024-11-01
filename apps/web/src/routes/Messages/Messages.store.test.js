@@ -69,33 +69,21 @@ describe('getMessages', () => {
       id: '200',
       messageThread: '1'
     })
-    const props = {
-      match: {
-        params: {
-          messageThreadId: '1'
-        }
-      }
-    }
+    const routeParams = { messageThreadId: '1' }
     const state = {
       orm: session.state
     }
-    const actual = getMessages(state, props)
+    const actual = getMessages(state, routeParams)
     expect(actual.map(m => m.id)).toEqual(['1', '4', '10', '200'])
   })
 
   it('should return empty array if the messageThread is not found', () => {
     const session = orm.mutableSession(orm.getEmptyState())
-    const props = {
-      match: {
-        params: {
-          messageThreadId: '1'
-        }
-      }
-    }
+    const routeParams = { messageThreadId: '1' }
     const state = {
       orm: session.state
     }
-    const actual = getMessages(state, props)
+    const actual = getMessages(state, routeParams)
     expect(actual).toEqual([])
   })
 })
@@ -256,12 +244,12 @@ describe('getParticipantsFromQuerystring', () => {
   it('returns the correct id', () => {
     const location = { search: '?participants=72297' }
     const expected = session.Person.filter(p => p.id === '72297').toRefArray()
-    const actual = getParticipantsFromQuerystring(state, { location })
+    const actual = getParticipantsFromQuerystring(state, location)
     expect(actual).toEqual(expected)
   })
 
   it('returns null if no search', () => {
-    const actual = getParticipantsFromQuerystring(state, { location: { search: '' } })
+    const actual = getParticipantsFromQuerystring(state, { search: '' })
     expect(actual).toBe(null)
   })
 
@@ -269,7 +257,7 @@ describe('getParticipantsFromQuerystring', () => {
     const participantIds = people.map(p => p.id)
     const location = { search: `?participants=${participantIds.join(',')}` }
     const expected = session.Person.all().toRefArray()
-    const actual = getParticipantsFromQuerystring(state, { location })
+    const actual = getParticipantsFromQuerystring(state, location)
     expect(actual).toEqual(expected)
   })
 })

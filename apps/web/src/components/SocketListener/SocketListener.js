@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types'
 import { Component } from 'react'
-import { getSocket, socketUrl } from 'client/websockets.mjs'
+import { getSocket, socketUrl } from 'client/websockets.js'
 import { isEqual } from 'lodash'
 import rollbar from 'client/rollbar'
 const { func, object } = PropTypes

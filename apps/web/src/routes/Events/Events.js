@@ -127,7 +127,6 @@ function Events (props) {
           return (
             <PostCard
               childPost={!groupSlugs.includes(groupSlug)}
-              routeParams={routeParams}
               post={post}
               className={cx(s.eventCard, { [s.expanded]: expanded })}
               expanded={expanded}

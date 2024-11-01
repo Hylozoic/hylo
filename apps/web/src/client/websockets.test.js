@@ -1,4 +1,4 @@
-import { getSocket, sendIsTyping, setSocket } from './websockets.mjs'
+import { getSocket, sendIsTyping, setSocket } from './websockets.js'
 
 describe('sendIsTyping', () => {
   var realSocket

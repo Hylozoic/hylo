@@ -42,24 +42,7 @@ Object {
   },
   "fetchCollectionPostsPending": undefined,
   "fetchPending": undefined,
-  "group": Object {
-    "activeProjects": Array [],
-    "agreements": Array [],
-    "announcements": Array [],
-    "customViews": Array [],
-    "groupToGroupJoinQuestions": Array [],
-    "groupTopics": Array [],
-    "id": "99",
-    "joinQuestions": Array [],
-    "members": Array [],
-    "openOffersAndRequests": Array [],
-    "prerequisiteGroups": Array [],
-    "slug": "foo",
-    "stewards": Array [],
-    "suggestedSkills": Array [],
-    "upcomingEvents": Array [],
-    "widgets": Array [],
-  },
+  "group": null,
   "parentGroups": Array [],
   "slug": "foo",
 }
@@ -226,83 +209,7 @@ Object {
 }
 `;
 
-exports[`mergeProps merges the props 2`] = `
-Object {
-  "graphql": Object {
-    "query": "mutation ($id: ID, $changes: GroupInput) {
-        updateGroupSettings(id: $id, changes: $changes) {
-          id
-          agreements {
-            items {
-              id
-              description
-              order
-              title
-            }
-          }
-          customViews {
-            items {
-              id
-              activePostsOnly
-              collectionId
-              collection {
-                id
-              }
-              defaultSort
-              defaultViewMode
-              externalLink
-              groupId
-              isActive
-              icon
-              name
-              postTypes
-              order
-              topics {
-                id
-                name
-              }
-              type
-            }
-          }
-          groupToGroupJoinQuestions {
-            items {
-              id
-              questionId
-              text
-            }
-          }
-          joinQuestions {
-            items {
-              id
-              questionId
-              text
-            }
-          }
-          prerequisiteGroups {
-            items {
-              id
-              avatarUrl
-              geoShape
-              name
-              slug
-            }
-          }
-        }
-      }",
-    "variables": Object {
-      "changes": 1,
-      "id": "99",
-    },
-  },
-  "meta": Object {
-    "changes": 1,
-    "extractModel": "Group",
-    "id": "99",
-    "optimistic": true,
-  },
-  "type": "GroupSettings/UPDATE_GROUP_SETTINGS",
-}
-`;
+exports[`mergeProps merges the props 2`] = `undefined`;
 
 exports[`mergeProps merges the props 3`] = `
 Object {
@@ -353,24 +260,7 @@ Object {
   "fetchGroupSettingsMaker": [Function],
   "fetchLocation": [Function],
   "fetchPending": undefined,
-  "group": Object {
-    "activeProjects": Array [],
-    "agreements": Array [],
-    "announcements": Array [],
-    "customViews": Array [],
-    "groupToGroupJoinQuestions": Array [],
-    "groupTopics": Array [],
-    "id": "99",
-    "joinQuestions": Array [],
-    "members": Array [],
-    "openOffersAndRequests": Array [],
-    "prerequisiteGroups": Array [],
-    "slug": "foo",
-    "stewards": Array [],
-    "suggestedSkills": Array [],
-    "upcomingEvents": Array [],
-    "widgets": Array [],
-  },
+  "group": null,
   "parentGroups": Array [],
   "removePostFromCollection": [Function],
   "reorderPostInCollection": [Function],

@@ -1,74 +1,59 @@
 import React from 'react'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import PostGroups from './PostGroups'
-import { shallow } from 'enzyme'
 
 describe('PostGroups', () => {
-  it('matches last snapshot', () => {
-    const props = {
-      groups: [
-        {
-          id: 1,
-          name: 'One',
-          slug: 'one'
-        },
-        {
-          id: 2,
-          name: 'Two',
-          slug: 'two'
-        },
-        {
-          id: 3,
-          name: 'Three',
-          slug: 'three'
-        }
-      ],
-      slug: 'hylo'
-    }
+  const defaultProps = {
+    groups: [
+      { id: 1, name: 'One', slug: 'one' },
+      { id: 2, name: 'Two', slug: 'two' },
+      { id: 3, name: 'Three', slug: 'three' }
+    ],
+    slug: 'hylo'
+  }
 
-    const wrapper = shallow(<PostGroups {...props} />)
-    expect(wrapper).toMatchSnapshot()
+  it('renders group names and "Posted In:" text', () => {
+    render(<PostGroups {...defaultProps} />)
+
+    expect(screen.getByText('Posted In:')).toBeInTheDocument()
+    expect(screen.getByText('One')).toBeInTheDocument()
+    expect(screen.getByText('Two')).toBeInTheDocument()
+    expect(screen.getByText('and 1 other')).toBeInTheDocument()
   })
 
-  it('matches last snapshot when expanded', () => {
-    const props = {
-      groups: [
-        {
-          id: 1,
-          name: 'One',
-          slug: 'one'
-        },
-        {
-          id: 2,
-          name: 'Two',
-          slug: 'two'
-        },
-        {
-          id: 3,
-          name: 'Three',
-          slug: 'three'
-        }
-      ],
-      slug: 'hylo'
-    }
-    const wrapper = shallow(<PostGroups {...props} />)
-    wrapper.instance().toggleExpanded()
-    wrapper.update()
-    expect(wrapper).toMatchSnapshot()
+  it('expands to show all groups when clicked', () => {
+    render(<PostGroups {...defaultProps} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /expand/i }))
+
+    expect(screen.getByText('One')).toBeInTheDocument()
+    expect(screen.getByText('Two')).toBeInTheDocument()
+    expect(screen.getByText('Three')).toBeInTheDocument()
+    expect(screen.queryByText('and 1 other')).not.toBeInTheDocument()
   })
 
   it('returns null when in the only group', () => {
-    const props = {
-      groups: [
-        {
-          id: 1,
-          name: 'One',
-          slug: 'one'
-        }
-      ],
+    const singleGroupProps = {
+      groups: [{ id: 1, name: 'One', slug: 'one' }],
       slug: 'one'
     }
 
-    const wrapper = shallow(<PostGroups {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    const { container } = render(<PostGroups {...singleGroupProps} />)
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('renders "Public" icon for public groups', () => {
+    const propsWithPublicGroup = {
+      ...defaultProps,
+      groups: [...defaultProps.groups, { id: 4, name: 'Public', slug: 'public' }]
+    }
+
+    render(<PostGroups {...propsWithPublicGroup} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /expand/i }))
+
+    const publicIcon = screen.getByTestId('icon-Public')
+    expect(publicIcon).toBeInTheDocument()
+    expect(publicIcon.closest('a')).toHaveTextContent('Public')
   })
 })

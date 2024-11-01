@@ -14,7 +14,7 @@ import Icon from 'components/Icon'
 import AboutSection from './AboutSection'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 
 import classes from './GroupSidebar.module.scss'
@@ -22,12 +22,11 @@ import classes from './GroupSidebar.module.scss'
 function GroupSidebar (props) {
   const params = useParams()
   const slug = params.groupSlug
-  const group = useSelector(state => getGroupForCurrentRoute(state, slug))
+  const group = useSelector(state => getGroupForSlug(state, slug))
   const members = group ? group.members.toModelArray().slice(0, 8) : []
   const stewards = group ? group.stewards.toModelArray() : []
   const responsibilities = useSelector(state => getResponsibilitiesForGroup(state, { groupId: group?.id }))
   const myResponsibilities = useMemo(() => responsibilities.map(r => r.title), [responsibilities])
-
   if (!group || isEmpty(members)) return <Loading />
 
   const { description, memberCount, stewardDescriptorPlural, purpose } = group.ref

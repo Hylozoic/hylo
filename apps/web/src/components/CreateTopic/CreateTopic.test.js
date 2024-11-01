@@ -1,166 +1,103 @@
 import React from 'react'
-import { shallow, mount } from 'enzyme'
+import { fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import CreateTopic from './CreateTopic'
 
 describe('CreateTopic', () => {
-  let instance, props, wrapper
-
-  beforeEach(() => {
-    props = {
-      groupId: '1',
-      groupSlug: 'wombat-group',
-      groupTopicExists: {
-        wombats: {
-          'wombat-group': false,
-          'other-group': true
-        },
-        xylophones: {
-          'wombat-group': true
-        }
+  const defaultProps = {
+    groupId: '1',
+    groupSlug: 'wombat-group',
+    groupTopicExists: {
+      wombats: {
+        'wombat-group': false,
+        'other-group': true
       },
-      subscribeAfterCreate: true,
-      topics: [
-        {
-          id: '3',
-          name: 'flarglebargles',
-          value: 'flarglebargles'
-        }
-      ],
-      createTopic: () => {},
-      fetchGroupTopic: jest.fn()
-    }
-    wrapper = shallow(
-      <CreateTopic {...props}>
-        <div>Describe how awesome wombats are:</div>
-        <input autofocus />
-      </CreateTopic>
-    )
-    instance = wrapper.instance()
+      xylophones: {
+        'wombat-group': true
+      }
+    },
+    subscribeAfterCreate: true,
+    topics: [
+      {
+        id: '3',
+        name: 'flarglebargles',
+        value: 'flarglebargles'
+      }
+    ],
+    createTopic: jest.fn(),
+    fetchGroupTopic: jest.fn()
+  }
+
+  it('renders create topic button when buttonText is provided', () => {
+    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    expect(screen.getByText('Create a Topic')).toBeInTheDocument()
   })
 
-  describe('snapshots (various states)', () => {
-    it('matches the last snapshot for no buttonText', () => {
-      expect(wrapper).toMatchSnapshot()
-    })
+  it('renders create topic icon when buttonText is not provided', () => {
+    render(<CreateTopic {...defaultProps} />)
+    expect(screen.getByTestId('icon-Plus')).toBeInTheDocument()
+  })
 
-    it('matches the last snapshot with buttonText', () => {
-      props.buttonText = 'Create a Topic'
-      wrapper = shallow(
-        <CreateTopic {...props}>
-          <div>Describe how awesome wombats are:</div>
-          <input autofocus />
-        </CreateTopic>
-      )
+  it('opens modal when create button is clicked', () => {
+    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    fireEvent.click(screen.getByText('Create a Topic'))
+    expect(screen.getByText('Create a Topic')).toBeInTheDocument()
+    expect(screen.getByLabelText('topic-name')).toBeInTheDocument()
+  })
 
-      expect(wrapper).toMatchSnapshot()
-    })
+  it('disables submit button when topic name is empty', () => {
+    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    fireEvent.click(screen.getByText('Create a Topic'))
+    expect(screen.getByText('Add Topic')).toBeDisabled()
+  })
 
-    // One of the rare instances we need wrapper.setState
-    it('matches the last snapshot for a redirect', () => {
-      wrapper.setState({ redirectTopic: 'ecological-implications-wombat-migration' })
-      expect(wrapper).toMatchSnapshot()
-    })
+  it('enables submit button when topic name is not empty', () => {
+    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    fireEvent.click(screen.getByText('Create a Topic'))
+    fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: 'New Topic' } })
+    expect(screen.getByText('Add Topic')).not.toBeDisabled()
+  })
 
-    it('matches the last snapshot (modal visible)', () => {
-      wrapper.instance().toggleTopicModal()
-      wrapper.update()
+  it('calls createTopic when submitting a new topic', async () => {
+    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    fireEvent.click(screen.getByText('Create a Topic'))
+    fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: 'New Topic' } })
+    fireEvent.click(screen.getByText('Add Topic'))
 
-      expect(wrapper).toMatchSnapshot()
-    })
-
-    it('matches the last snapshot for notification (modal visible)', () => {
-      const instance = wrapper.instance()
-      instance.toggleTopicModal()
-      instance.createAndNotify('floof')
-      wrapper.update()
-
-      expect(wrapper).toMatchSnapshot()
+    await waitFor(() => {
+      expect(defaultProps.createTopic).toHaveBeenCalledWith('New Topic', '1', false, true)
     })
   })
 
-  describe('topic name behaviour', () => {
-    let instance, wrapper
+  it('shows error message for invalid topic name', async () => {
+    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    fireEvent.click(screen.getByText('Create a Topic'))
+    fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: 'Invalid@Topic' } })
 
-    beforeEach(() => {
-      wrapper = mount(<CreateTopic {...props} />)
-      instance = wrapper.instance()
-      instance.subscribeAndRedirect = jest.fn()
-      instance.createAndNotify = jest.fn()
-      instance.updateTopicName({ target: { value: 'aardvark' } })
-    })
-
-    it('subscribes and redirects to existing topics', () => {
-      wrapper.setProps({
-        subscribeAfterCreate: true,
-        groupTopicExists: {
-          aardvark: {
-            'wombat-group': true
-          }
-        }
-      })
-      expect(instance.subscribeAndRedirect).toHaveBeenCalled()
-    })
-
-    it('creates a topic if it does not exist', () => {
-      wrapper.setProps({
-        groupTopicExists: {
-          aardvark: {
-            'wombat-group': false
-          }
-        }
-      })
-      expect(instance.createAndNotify).toHaveBeenCalled()
-    })
-
-    // Most validation testing is done in hylo-shared, but this is a
-    // case specifically handled in the component
-    it('allows leading `#` characters', () => {
-      instance.updateTopicName({ target: { value: '#flargle' } })
-      wrapper.setProps({
-        groupTopicExists: {
-          flargle: {
-            'wombat-group': false
-          }
-        }
-      })
-      expect(instance.createAndNotify).toHaveBeenCalledWith('flargle')
+    await waitFor(() => {
+      expect(screen.getByText(/Topic names can only contain/)).toBeInTheDocument()
     })
   })
 
-  describe('submitButtonAction', () => {
-    it('requires a non-empty topic name', () => {
-      instance.submitButtonAction('')
-      expect(wrapper.state().nameError).toMatch(/name is required/)
-    })
+  it('allows leading `#` characters in topic name', async () => {
+    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    fireEvent.click(screen.getByText('Create a Topic'))
+    fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: '#ValidTopic' } })
+    fireEvent.click(screen.getByText('Add Topic'))
 
-    it('redirects for an existing topic on the client', () => {
-      const subscribeAndRedirect = jest.spyOn(instance, 'subscribeAndRedirect')
-      instance.updateTopicName({ target: { value: 'flarglebargles' } })
-      instance.submitButtonAction()
-      expect(subscribeAndRedirect).toHaveBeenCalled()
-      expect(props.fetchGroupTopic).not.toHaveBeenCalled()
-    })
-
-    it('goes looking on the server if topic not in client', () => {
-      instance.updateTopicName({ target: { value: 'florfle' } })
-      instance.submitButtonAction()
-      expect(props.fetchGroupTopic).toHaveBeenCalled()
+    await waitFor(() => {
+      expect(defaultProps.createTopic).toHaveBeenCalledWith('ValidTopic', '1', false, true)
     })
   })
 
-  describe('submitButtonIsDisabled', () => {
-    it('disables when nameError set', () => {
-      wrapper.setState({ nameError: 'No. Just no.' })
-      expect(instance.submitButtonIsDisabled()).toBe(true)
-    })
+  it('shows success message after creating a topic', async () => {
+    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    fireEvent.click(screen.getByText('Create a Topic'))
+    fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: 'NewTopic' } })
+    fireEvent.click(screen.getByText('Add Topic'))
 
-    it('disables when name is empty', () => {
-      expect(instance.submitButtonIsDisabled()).toBe(true)
-    })
-
-    it('enables when name is not empty and nameError cleared', () => {
-      instance.updateTopicName({ target: { value: 'florfle' } })
-      expect(instance.submitButtonIsDisabled()).toBe(false)
+    await waitFor(() => {
+      expect(screen.getByText('Topic Created')).toBeInTheDocument()
+      expect(screen.getByText("you're subscribed to #NewTopic")).toBeInTheDocument()
     })
   })
 })

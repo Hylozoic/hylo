@@ -3,7 +3,7 @@ import { goBack, push } from 'redux-first-history'
 import { get } from 'lodash/fp'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import { GROUP_ACCESSIBILITY } from 'store/models/Group'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -12,7 +12,7 @@ import { createGroup, fetchGroupExists } from './CreateGroup.store'
 
 export function mapStateToProps (state, props) {
   const currentUser = getMe(state)
-  const currentGroup = getGroupForCurrentRoute(state, props)
+  const currentGroup = getGroupForSlug(state, props)
 
   // Current user can add as parents groups ones that they are a Coordinator of or that are Open access
   const parentGroupOptions = (currentUser && currentUser.memberships.toModelArray()

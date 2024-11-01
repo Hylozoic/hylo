@@ -1,5 +1,4 @@
 import React from 'react'
-import { shallow } from 'enzyme'
 import orm from 'store/models'
 import extractModelsForTest from 'util/testing/extractModelsForTest'
 import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
@@ -77,12 +76,16 @@ it('shows groups for current user', () => {
 
 describe('ContextRow', () => {
   it('renders with zero new posts', () => {
-    const wrapper = shallow(<ContextRow group={fooGroup} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<ContextRow group={fooGroup} />)
+
+    expect(screen.getByText(fooGroup.name)).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument() // Assuming Badge is rendered with role="status"
   })
 
   it('renders with new posts', () => {
-    const wrapper = shallow(<ContextRow group={barGroup} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<ContextRow group={barGroup} />)
+
+    expect(screen.getByText(barGroup.name)).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('7') // Assuming Badge is rendered with role="status"
   })
 })

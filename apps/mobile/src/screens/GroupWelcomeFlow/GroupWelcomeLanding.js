@@ -199,6 +199,7 @@ function AgreementsBodyContent ({ agreements, acceptedAgreements, handleCheckAgr
 }
 
 function JoinQuestionsBodyContent ({ questionAnswers, setQuestionAnswers, setAllQuestionsAnswered }) {
+  const { t } = useTranslation()
   const setAnswer = ({ value, index }) => {
     const newAnswers = [...questionAnswers]
     newAnswers[index].answer = value

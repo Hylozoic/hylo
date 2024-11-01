@@ -6,9 +6,9 @@ const path = require('path')
 
 process.stdout.write('Attempting to remove outdated migration filenames from database... ')
 const migrations = fs.readdirSync(path.join(__dirname, '..'))
-.filter(f => f.slice(-3) === '.js')
+  .filter(f => f.slice(-3) === '.js')
 
-var newestMigrationTime
+let newestMigrationTime
 
 if (migrations.length > 0) {
   const timestamp = migrations[migrations.length - 1].split('_')[0]
@@ -25,9 +25,9 @@ if (migrations.length > 0) {
 }
 
 knex('knex_migrations')
-.whereNotIn('name', migrations)
-.where('migration_time', '<', newestMigrationTime)
-.del()
-.then(n => console.info(`${n} rows affected.`))
-.catch(console.error)
-.finally(() => knex.destroy())
+  .whereNotIn('name', migrations)
+  .where('migration_time', '<', newestMigrationTime)
+  .del()
+  .then(n => console.info(`${n} rows affected.`))
+  .catch(console.error)
+  .finally(() => knex.destroy())

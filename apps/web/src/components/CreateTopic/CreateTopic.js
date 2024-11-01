@@ -47,7 +47,7 @@ class CreateTopic extends Component {
       narrow
       onClick={this.toggleTopicModal}
       className={classes.createTopic}>
-      <Icon name='Plus' green className={classes.plus} />{this.props.buttonText}</Button>
+      <Icon name='Plus' green className={classes.plus} data-testid='icon-Plus' />{this.props.buttonText}</Button>
     : <Icon
       key='create-button'
       name='Plus'

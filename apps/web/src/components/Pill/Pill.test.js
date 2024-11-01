@@ -1,27 +1,47 @@
-import Pill from './Pill'
-import { mount } from 'enzyme'
 import React from 'react'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import Pill from './Pill'
 
 describe('Pill', () => {
-  it('renders', () => {
-    const node = mount(<Pill id={1} label='mountain climbing' />)
-    expect(node).toMatchSnapshot()
+  it('renders with correct label', () => {
+    render(<Pill id={1} label='mountain climbing' />)
+    expect(screen.getByText('mountain climbing')).toBeInTheDocument()
   })
 
-  it('renders when editable', () => {
-    const node = mount(<Pill id={1} label='mountain climbing' editable />)
-    expect(node).toMatchSnapshot()
+  it('renders as editable with remove icon', () => {
+    render(<Pill id={1} label='mountain climbing' editable />)
+    expect(screen.getByText('mountain climbing')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /ex/i })).toBeInTheDocument()
   })
 
-  it('can be clicked to be removed', () => {
+  it('calls onRemove when double-clicked', () => {
     const onRemove = jest.fn()
-    const node = mount(<Pill id={1}
-      label='mountain climbing'
-      editable
-      onRemove={onRemove} />)
-    const deletePillIcon = node.find('Icon').first()
-    deletePillIcon.simulate('click')
-    deletePillIcon.simulate('click')
-    expect(onRemove).toBeCalled()
+    render(<Pill id={1} label='mountain climbing' editable onRemove={onRemove} />)
+
+    const removeIcon = screen.getByRole('img', { name: /ex/i })
+    fireEvent.click(removeIcon)
+    fireEvent.click(removeIcon)
+
+    expect(onRemove).toHaveBeenCalledWith(1, 'mountain climbing')
+  })
+
+  it('shows tooltip on hover', async () => {
+    render(<Pill id={1} label='mountain climbing' tooltipContent='Custom tooltip' />)
+
+    const pillLabel = screen.getByText('mountain climbing')
+    fireEvent.mouseEnter(pillLabel)
+
+    const tooltip = await screen.findByText('Custom tooltip')
+    expect(tooltip).toBeInTheDocument()
+  })
+
+  it('calls onClick when clicked', () => {
+    const onClick = jest.fn()
+    render(<Pill id={1} label='mountain climbing' onClick={onClick} />)
+
+    const pillLabel = screen.getByText('mountain climbing')
+    fireEvent.click(pillLabel)
+
+    expect(onClick).toHaveBeenCalledWith(1, 'mountain climbing')
   })
 })

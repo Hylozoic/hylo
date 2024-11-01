@@ -6,7 +6,7 @@ import {
   FETCH_POSTS, FETCH_FOR_CURRENT_USER
 } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
-import getGroupForCurrentRoute from 'store/selectors/getGroupForCurrentRoute'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getRouteParam from 'store/selectors/getRouteParam'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -26,7 +26,7 @@ export function mapStateToProps (state, props) {
   const childPostInclusion = get('settings.streamChildPosts', currentUser) || 'yes'
 
   if (groupSlug) {
-    group = getGroupForCurrentRoute(state, props)
+    group = getGroupForSlug(state, props)
   }
 
   const timeframe = state.Events.timeframe

@@ -1,18 +1,37 @@
-import ThreadList, { ThreadListItem } from './ThreadList'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import ThreadList, { ThreadListItem } from './ThreadList'
 import orm from 'store/models'
 
 describe('ThreadList', () => {
-  it('matches the last snapshot', () => {
-    const match = { params: {} }
-    const wrapper = shallow(<ThreadList threads={[]} fetchThreads={jest.fn()} match={match} />)
-    expect(wrapper).toMatchSnapshot()
+  it('renders empty state correctly', () => {
+    render(
+      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />,
+      { wrapper: AllTheProviders }
+    )
+    expect(screen.getByText('You have no active messages')).toBeInTheDocument()
+  })
+
+  it('renders search input', () => {
+    render(
+      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />,
+      { wrapper: AllTheProviders }
+    )
+    expect(screen.getByPlaceholderText('Search for people...')).toBeInTheDocument()
+  })
+
+  it('renders new message button', () => {
+    render(
+      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />,
+      { wrapper: AllTheProviders }
+    )
+    expect(screen.getByText('New')).toBeInTheDocument()
   })
 })
 
 describe('ThreadListItem', () => {
-  var MessageThread, Person
+  let MessageThread, Person
   const currentUser = { id: 2, name: 'Ra', avatarUrl: 'ra.png' }
 
   beforeEach(() => {
@@ -21,7 +40,7 @@ describe('ThreadListItem', () => {
     Person = session.Person
   })
 
-  it('matches the last snapshot', () => {
+  it('renders thread with multiple participants', () => {
     const props = {
       currentUser,
       thread: MessageThread.create({
@@ -33,11 +52,11 @@ describe('ThreadListItem', () => {
       })
     }
 
-    const wrapper = shallow(<ThreadListItem {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<ThreadListItem {...props} />, { wrapper: AllTheProviders })
+    expect(screen.getByText('Jo, La')).toBeInTheDocument()
   })
 
-  it('matches the last snapshot with 2 participants', () => {
+  it('renders thread with 2 participants', () => {
     const props = {
       currentUser,
       thread: MessageThread.create({
@@ -48,11 +67,11 @@ describe('ThreadListItem', () => {
       })
     }
 
-    const wrapper = shallow(<ThreadListItem {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<ThreadListItem {...props} />, { wrapper: AllTheProviders })
+    expect(screen.getByText('Jo')).toBeInTheDocument()
   })
 
-  it('matches the last snapshot with just you', () => {
+  it('renders thread with just the current user', () => {
     const props = {
       currentUser,
       thread: MessageThread.create({
@@ -62,7 +81,7 @@ describe('ThreadListItem', () => {
       })
     }
 
-    const wrapper = shallow(<ThreadListItem {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<ThreadListItem {...props} />, { wrapper: AllTheProviders })
+    expect(screen.getByText('Ra')).toBeInTheDocument()
   })
 })

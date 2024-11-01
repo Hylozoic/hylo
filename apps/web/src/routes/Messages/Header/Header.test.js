@@ -1,10 +1,10 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
-import { shallow } from 'enzyme'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import Header, { calculateMaxShown, generateDisplayNames, formatNames } from './Header'
 
 describe('Header', () => {
-  it('should match the latest snapshot', () => {
+  it('should render participant names', () => {
     const participants = [{ id: 1, name: 'One' }, { id: 2, name: 'Two' }, { id: 3, name: 'Three' }]
     const props = {
       currentUser: {
@@ -15,8 +15,10 @@ describe('Header', () => {
         participants: participants
       }
     }
-    const wrapper = shallow(<Header {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    render(<Header {...props} />, { wrapper: AllTheProviders })
+    expect(screen.getByText('You')).toBeInTheDocument()
+    expect(screen.getByText('Two')).toBeInTheDocument()
+    expect(screen.getByText('Three')).toBeInTheDocument()
   })
 })
 
@@ -52,45 +54,44 @@ describe('calculateMaxShown', () => {
 })
 
 describe('formatNames', () => {
-  it('returns an object with a joined array of all participants of participants.length is equal to maxShown', () => {
+  it('returns an object with a joined array of all participants if participants.length is equal to maxShown', () => {
     const maxShown = 3
     const otherParticipants = ['a', 'b', 'c']
-    const expected = {
-      displayNames: otherParticipants.join(', ')
-    }
-    expect(formatNames(otherParticipants, maxShown).toString()).toEqual(expected.toString())
+    const result = formatNames(otherParticipants, maxShown)
+    expect(result.displayNames).toEqual(['a', ', ', 'b', ', ', 'c'])
+    expect(result.andOthers).toBeUndefined()
   })
 
-  it('returns a truncated list of Links to user profiles with the user name, and a string of "n others" if maxShown is fewer than total participants', () => {
-    const maxShown = 2
-    const participants = [<Link to='/all/members/1'>One</Link>, <Link to='/all/members/2'>Two</Link>, <Link to='/all/members/3'>Three</Link>, <Link to='/all/members/4'>Four</Link>]
-    const expected = {
-      displayNames: ['<Link to="/all/members/1">One</Link>, ', '<Link to="/all/members/2">Two</Link>'],
-      andOthers: ' 2 others'
-    }
-    expect(formatNames(participants, maxShown).toString()).toEqual(expected.toString())
-  })
-
-  it('returns a truncated list of names, and a string of "n others" if maxShown is fewer than total participants', () => {
+  it('returns a truncated list of names and "n others" if maxShown is fewer than total participants', () => {
     const maxShown = 2
     const otherParticipants = ['a', 'b', 'c', 'd']
-    const expected = {
-      displayNames: 'a, b',
-      andOthers: ' 2 others'
-    }
-    expect(formatNames(otherParticipants, maxShown).toString()).toEqual(expected.toString())
+    const result = formatNames(otherParticipants, maxShown)
+    expect(result.displayNames).toEqual(['a', ', ', 'b'])
+    expect(result.andOthers).toBe(' 2 others')
   })
 })
 
 describe('generateDisplayNames', () => {
-  it('returns default if otherParticipants paramater isEmpty', () => {
+  it('returns default if otherParticipants parameter is empty', () => {
     const currentUser = {
       id: 1,
       name: 'One'
     }
-    const expected = {
-      displayNames: 'You'
-    }
-    expect(generateDisplayNames(null, [], currentUser).toString()).toEqual(expected.toString())
+    const result = generateDisplayNames(null, [], currentUser)
+    expect(result.displayNames.props.children).toBe('You')
+  })
+
+  it('returns formatted names for multiple participants', () => {
+    const currentUser = { id: 1, name: 'One' }
+    const participants = [
+      { id: 1, name: 'One' },
+      { id: 2, name: 'Two' },
+      { id: 3, name: 'Three' }
+    ]
+    const result = generateDisplayNames(3, participants, currentUser)
+    expect(result.displayNames).toHaveLength(5) // You, ', ', Two, ', ', Three
+    expect(result.displayNames[0].props.children).toBe('You')
+    expect(result.displayNames[2].props.children).toBe('Two')
+    expect(result.displayNames[4].props.children).toBe('Three')
   })
 })

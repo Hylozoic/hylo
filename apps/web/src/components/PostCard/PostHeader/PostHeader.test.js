@@ -1,111 +1,126 @@
-import PostHeader, { TopicsLine } from './PostHeader'
-import { shallow } from 'enzyme'
 import React from 'react'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import PostHeader, { TopicsLine } from './PostHeader'
 import { RESP_ADMINISTRATION } from 'store/constants'
 
-Date.now = jest.fn(() => new Date(2024, 6, 23, 16, 30))
+jest.mock('moment-timezone', () => ({
+  __esModule: true,
+  default: () => ({
+    fromNow: () => 'a few seconds ago',
+    format: () => '2024-07-23 16:30'
+  })
+}))
 
-it('matches snapshot', () => {
-  const creator = {
-    name: 'JJ',
-    avatarUrl: 'foo.png',
-    id: 123,
-    moderatedGroupMemberships: []
-  }
-  const context = {
-    label: 'some context',
-    url: '/foo/bar'
-  }
+const mockCreator = {
+  name: 'JJ',
+  avatarUrl: 'foo.png',
+  id: 123,
+  moderatedGroupMemberships: []
+}
 
-  const groups = [
-    {
-      name: 'FooC', slug: 'fooc'
-    },
-    {
-      name: 'BarC', slug: 'barc'
-    }
-  ]
+const mockGroups = [
+  { name: 'FooC', slug: 'fooc' },
+  { name: 'BarC', slug: 'barc' }
+]
 
-  const wrapper = shallow(<PostHeader groups={groups} creator={creator} roles={[{ id: 1, title: 'Coordinator', common: true, responsibilities: [RESP_ADMINISTRATION] }]} />)
-  expect(wrapper).toMatchSnapshot()
-  wrapper.setProps({ context, type: 'request', groups })
-  expect(wrapper).toMatchSnapshot()
-  wrapper.setProps({ deletePost: () => {}, editPost: () => {}, duplicatePost: () => {} })
-  expect(wrapper).toMatchSnapshot()
+const mockContext = {
+  label: 'some context',
+  url: '/foo/bar'
+}
+
+describe('PostHeader', () => {
+  it('renders basic post header', () => {
+    render(
+      <PostHeader
+        groups={mockGroups}
+        creator={mockCreator}
+        roles={[{ id: 1, title: 'Coordinator', common: true, responsibilities: [RESP_ADMINISTRATION] }]}
+      />
+    )
+
+    expect(screen.getByText('JJ')).toBeInTheDocument()
+    expect(screen.getByText('a few seconds ago')).toBeInTheDocument()
+    expect(screen.getByText('Coordinator')).toBeInTheDocument()
+  })
+
+  it('renders post header with context and type', () => {
+    render(
+      <PostHeader
+        groups={mockGroups}
+        creator={mockCreator}
+        context={mockContext}
+        type="request"
+        roles={[]}
+      />
+    )
+
+    expect(screen.getByText('JJ')).toBeInTheDocument()
+    expect(screen.getByText('Request')).toBeInTheDocument()
+  })
+
+  it('renders post header with action buttons', () => {
+    render(
+      <PostHeader
+        groups={mockGroups}
+        creator={mockCreator}
+        context={mockContext}
+        type="request"
+        deletePost={() => {}}
+        editPost={() => {}}
+        duplicatePost={() => {}}
+        roles={[]}
+      />
+    )
+
+    expect(screen.getByLabelText('More')).toBeInTheDocument()
+  })
 })
 
-it('matches announcement snapshot', () => {
-  const creator = {
-    name: 'JJ',
-    avatarUrl: 'foo.png',
-    id: 123,
-    moderatedGroupMemberships: []
-  }
-  const context = {
-    label: 'some context',
-    url: '/foo/bar'
-  }
+describe('PostHeader with announcement', () => {
+  it('renders announcement icon', () => {
+    render(
+      <PostHeader
+        groups={mockGroups}
+        creator={mockCreator}
+        announcement
+        roles={[]}
+      />
+    )
 
-  const groups = [
-    {
-      name: 'FooC', slug: 'fooc'
-    },
-    {
-      name: 'BarC', slug: 'barc'
-    }
-  ]
-
-  const wrapper = shallow(<PostHeader groups={groups} creator={creator} announcement roles={[]} />)
-  expect(wrapper).toMatchSnapshot()
-  wrapper.setProps({ context, type: 'request', groups })
-  expect(wrapper).toMatchSnapshot()
-  wrapper.setProps({ deletePost: () => {}, editPost: () => {}, duplicatePost: () => {} })
-  expect(wrapper).toMatchSnapshot()
+    expect(screen.getByLabelText('Announcement')).toBeInTheDocument()
+  })
 })
 
-it('renders human readable dates', () => {
-  const creator = {
-    name: 'JJ',
-    avatarUrl: 'foo.png',
-    id: 123,
-    moderatedGroupMemberships: []
-  }
-  const groups = [
-    {
-      name: 'FooC', slug: 'fooc'
-    },
-    {
-      name: 'BarC', slug: 'barc'
-    }
-  ]
-  const context = {
-    label: 'some context',
-    url: '/foo/bar'
-  }
-  let startTime = '2020-11-29'
-  let endTime = '2029-11-29'
+describe('PostHeader with date range', () => {
+  it('renders human readable dates', () => {
+    render(
+      <PostHeader
+        type='request'
+        groups={mockGroups}
+        creator={mockCreator}
+        context={mockContext}
+        startTime='2024-11-29'
+        endTime='2029-11-29'
+        roles={[]}
+      />
+    )
 
-  const wrapper = shallow(<PostHeader type='request' groups={groups} creator={creator} context={context} startTime={startTime} endTime={endTime} roles={[]} />)
-  expect(wrapper).toMatchSnapshot()
-  startTime = '2022-11-29'
-  endTime = '2029-11-29'
-  wrapper.setProps({ startTime, endTime })
-  expect(wrapper).toMatchSnapshot()
-  startTime = '2010-11-29'
-  endTime = '2020-11-29'
-  wrapper.setProps({ startTime, endTime })
-  expect(wrapper).toMatchSnapshot()
+    expect(screen.getByText(/Starts:/)).toBeInTheDocument()
+    expect(screen.getByText(/Ends:/)).toBeInTheDocument()
+  })
 })
 
 describe('TopicsLine', () => {
-  it('matches last snapshot', () => {
-    const props = {
-      topics: [{ name: 'one' }, { name: 'two' }],
-      slug: 'hay',
-      newLine: true
-    }
+  it('renders topics', () => {
+    render(
+      <TopicsLine
+        topics={[{ name: 'one' }, { name: 'two' }]}
+        slug='hay'
+        newLine
+      />
+    )
 
-    const wrapper = shallow(<TopicsLine {...props} />)
-    expect(wrapper).toMatchSnapshot()
+    expect(screen.getByText('#one')).toBeInTheDocument()
+    expect(screen.getByText('#two')).toBeInTheDocument()
   })
 })

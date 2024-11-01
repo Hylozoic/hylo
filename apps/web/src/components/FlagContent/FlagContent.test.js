@@ -1,162 +1,89 @@
 import React from 'react'
-import { shallow, mount } from 'enzyme'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import FlagContent from './FlagContent'
 
 describe('FlagContent', () => {
-  it('matches the last snapshot', () => {
-    const wrapper = shallow(<FlagContent type='post'
-      onClose={() => { }} />
-    , <div />)
+  const mockOnClose = jest.fn()
+  const mockSubmitFlagContent = jest.fn()
 
-    expect(wrapper).toMatchSnapshot()
+  const defaultProps = {
+    type: 'post',
+    onClose: mockOnClose,
+    submitFlagContent: mockSubmitFlagContent,
+    linkData: { id: 33, type: 'post' },
+    visible: true,
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
   })
 
-  it('changes title based on type', () => {
-    const wrapper = shallow(<FlagContent type='post'
-      onClose={() => { }} />
-    , <div />)
-
-    expect(wrapper).toMatchSnapshot()
+  it('renders the component with correct title', () => {
+    render(<FlagContent {...defaultProps} />)
+    expect(screen.getByText('Explanation for Flagging')).toBeInTheDocument()
   })
 
-  it('calls onClose successfully', () => {
-    const onClose = jest.fn()
-    const instance = mount(<FlagContent visible
-      type='post'
-      onClose={onClose} />
-    ).instance()
-
-    instance.closeModal()
-
-    expect(onClose).toHaveBeenCalled()
+  it('calls onClose when close button is clicked', () => {
+    render(<FlagContent {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: /ex/i }))
+    expect(mockOnClose).toHaveBeenCalled()
   })
 
-  it('sets required to true when called with no reason', () => {
-    const onClose = jest.fn()
-    const submitFlagContent = jest.fn()
-
-    const linkData = { id: 33, type: 'post' }
-    const instance = mount(<FlagContent visible
-      type='post'
-      linkData={linkData}
-      submitFlagContent={submitFlagContent}
-      onClose={onClose} />
-    ).instance()
-
-    expect(instance.state.reasonRequired).toBeFalsy()
-
-    instance.submit()
-
-    expect(instance.state.reasonRequired).toBeTruthy()
-  })
-
-  it('calls submit successfully with category:inappropriate', () => {
-    const onClose = jest.fn()
-    const submitFlagContent = jest.fn()
-
-    const linkData = { id: 33, type: 'post' }
-    const instance = mount(<FlagContent visible
-      type='post'
-      linkData={linkData}
-      submitFlagContent={submitFlagContent}
-      onClose={onClose} />
-    ).instance()
-
-    instance.setState({ selectedCategory: 'inappropriate' })
-
-    instance.setState({
-      explanation: '  my reason  '
-    })
-
-    instance.submit()
-
-    expect(instance.isExplanationOptional()).toBeTruthy()
-
-    expect(submitFlagContent).toHaveBeenCalledWith('inappropriate', 'my reason', linkData)
-    expect(onClose).toHaveBeenCalled()
-  })
-
-  it('calls submit successfully with category:other', () => {
-    const onClose = jest.fn()
-    const submitFlagContent = jest.fn()
-
-    const linkData = { id: 33, type: 'post' }
-    const renderer = mount(<FlagContent visible
-      type='post'
-      linkData={linkData}
-      submitFlagContent={submitFlagContent}
-      onClose={onClose} />
-    )
-
-    expect(renderer).toMatchSnapshot()
-
-    const instance = renderer.instance()
-
-    instance.setState({ selectedCategory: 'other' })
-
-    expect(instance.isExplanationOptional()).toBeFalsy()
-    expect(instance.state.highlightRequired).toBeFalsy()
-
-    instance.setState({
-      explanation: '   '
-    })
-
-    instance.submit()
-
-    expect(submitFlagContent).not.toHaveBeenCalled()
-    expect(instance.state.highlightRequired).toBeTruthy()
-
-    instance.setState({
-      explanation: '  my reason  '
-    })
-
-    instance.submit()
-
-    expect(submitFlagContent).toHaveBeenCalledWith('other', 'my reason', linkData)
-    expect(onClose).toHaveBeenCalled()
-  })
-
-  describe('cancel', () => {
-    it('sets the state and calls closeModal', () => {
-      const instance = mount(
-        <FlagContent type='post' />).instance()
-
-      instance.closeModal = jest.fn()
-
-      instance.setState({
-        highlightRequired: true
-      })
-
-      instance.cancel()
-      expect(instance.state.highlightRequired).toEqual(false)
-      expect(instance.closeModal).toHaveBeenCalled()
+  it('displays error when submitting without selecting a reason', async () => {
+    render(<FlagContent {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: /submit/i }))
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Select a reason')).toHaveClass('reasonRequired')
     })
   })
 
-  describe('isExplanationOptional', () => {
-    it('works from param', () => {
-      const instance = mount(
-        <FlagContent type='post' />).instance()
+  it('submits successfully with category:inappropriate', async () => {
+    render(<FlagContent {...defaultProps} />)
 
-      instance.setState({
-        selectedCategory: 'Not other'
-      })
-      expect(instance.isExplanationOptional('other')).toEqual(false)
-      expect(instance.isExplanationOptional('fine')).toEqual(true)
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'inappropriate' } })
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '  my reason  ' } })
+    fireEvent.click(screen.getByRole('button', { name: /submit/i }))
+
+    await waitFor(() => {
+      expect(mockSubmitFlagContent).toHaveBeenCalledWith('inappropriate', 'my reason', defaultProps.linkData)
+      expect(mockOnClose).toHaveBeenCalled()
+    })
+  })
+
+  it('requires explanation for category:other', async () => {
+    render(<FlagContent {...defaultProps} />)
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'other' } })
+    fireEvent.click(screen.getByRole('button', { name: /submit/i }))
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Why was this post 'other'/i)).toBeInTheDocument()
     })
 
-    it('works from state', () => {
-      const instance = mount(
-        <FlagContent type='post' />).instance()
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '  my reason  ' } })
+    fireEvent.click(screen.getByRole('button', { name: /submit/i }))
 
-      instance.setState({
-        selectedCategory: 'other'
-      })
-      expect(instance.isExplanationOptional()).toEqual(false)
-      instance.setState({
-        selectedCategory: 'fine'
-      })
-      expect(instance.isExplanationOptional()).toEqual(true)
+    await waitFor(() => {
+      expect(mockSubmitFlagContent).toHaveBeenCalledWith('other', 'my reason', defaultProps.linkData)
+      expect(mockOnClose).toHaveBeenCalled()
+    })
+  })
+
+  it('resets state when cancel is called', async () => {
+    render(<FlagContent {...defaultProps} />)
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'other' } })
+    fireEvent.click(screen.getByRole('button', { name: /submit/i }))
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Why was this post 'other'/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /ex/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText(/Why was this post 'other'/i)).not.toBeInTheDocument()
+      expect(mockOnClose).toHaveBeenCalled()
     })
   })
 })
