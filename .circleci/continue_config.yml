@@ -1,0 +1,85 @@
+version: 2.1
+
+commands:
+  setup:
+    steps:
+      - run:
+          command: |
+            corepack enable --install-directory ~/bin
+            yarn install
+
+# the default pipeline parameters, which will be updated according to
+# the results of the path-filtering orb
+parameters:
+  backend-changed:
+    type: boolean
+    default: false
+  web-changed:
+    type: boolean
+    default: false
+  mobile-changed:
+    type: boolean
+    default: false
+
+workflows:
+  run-backend-tests:
+    when: << pipeline.parameters.backend-changed >>
+    jobs:
+      - backend-tests
+  run-web-tests:
+    when: << pipeline.parameters.web-changed >>
+    jobs:
+      - web-tests
+  run-mobile-tests:
+    when: << pipeline.parameters.mobile-changed >>
+    jobs:
+      - mobile-tests
+
+jobs:
+  backend-tests:
+    docker:
+      - image: cimg/node:20.17
+      - image: cimg/postgres:13.4-postgis
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: hylo
+          POSTGRES_DB: hylo_test
+      - image: redis
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgres://localhost:5432/hylo_test
+      DOMAIN: testdomain
+      # this prevents jobs that were queued during testing from being run in development
+      KUE_NAMESPACE: qtest
+      PROTOCOL: http
+      # don't log errors to Rollbar
+      ROLLBAR_SERVER_TOKEN: 0
+    steps:
+      - checkout
+      - setup
+      - run:
+          command: |
+            cd apps/backend
+            yarn test
+
+  web-tests:
+    docker:
+      - image: cimg/node:20.17
+    steps:
+      - checkout
+      - setup
+      - run:
+          command: |
+            cd apps/web
+            yarn test
+
+  mobile-tests:
+    docker:
+      - image: cimg/node:20.17
+    steps:
+      - checkout
+      - setup
+      - run:
+          command: |
+            cd apps/mobile
+            yarn test
