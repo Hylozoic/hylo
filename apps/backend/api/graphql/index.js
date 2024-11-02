@@ -226,6 +226,7 @@ export function makeAuthenticatedQueries (userId, fetchOne, fetchMany) {
     comment: (root, { id }) => fetchOne('Comment', id),
     commonRoles: (root, args) => CommonRole.fetchAll(args),
     connections: (root, args) => fetchMany('PersonConnection', args),
+    // contextWidgets: (root, args) => fetchMany('ContextWidget', args), // TODO CONTEXT: check if this is the best way to fetch context widgets
     group: async (root, { id, slug, updateLastViewed }) => {
       // you can specify id or slug, but not both
       const group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')

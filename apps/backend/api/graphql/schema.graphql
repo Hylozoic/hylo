@@ -21,6 +21,8 @@ type Query {
 
   collection(id: ID): Collection
 
+  contextWidgets(groupId: ID, includeUnordered: Boolean): ContextWidgetQuerySet
+
   # Query for PersonConnections
   connections(
     # Number of PersonConnections to load
@@ -526,6 +528,55 @@ type CommonRole {
   responsibilitiesTotal: Int
 }
 
+# A ContextWidget for a Group
+type ContextWidget {
+  id: ID
+  # The title of the widget
+  title: String
+  # The type of widget
+  type: String
+  # The display order of the widget
+  order: Int
+  # The visibility settings of the widget
+  visibility: String
+  # View that this widget is pointing at
+  view: String
+  # Icon for the widget
+  icon: String
+  # When this widget was created
+  createdAt: Date
+  # When this widget was last updated
+  updatedAt: Date
+  # Primary highlight number for this widget
+  highlightNumber: Int
+  # Secondary number for this widget
+  secondaryNumber: Int
+
+  # Relationships
+  # The group that owns this widget
+  ownerGroup: Group
+  # Parent widget if this is a child widget
+  parentWidget: ContextWidget
+  # Child widgets if this is a parent widget
+  childWidgets: [ContextWidget]
+  # Group this widget is pointing at
+  viewGroup: Group
+  # Post this widget is pointing at
+  viewPost: Post
+  # Custom view this widget is pointing at
+  customView: CustomView
+  # User this widget is pointing at
+  viewUser: Person
+  # Chat this widget is pointing at
+  viewChat: Topic
+}
+
+type ContextWidgetQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [ContextWidget]
+}
+
 # A CustomView for a Group
 type CustomView {
   id: ID
@@ -694,6 +745,9 @@ type Group {
     # Return groups where the search text matches in the name, description or location
     search: String
   ): GroupQuerySet
+
+  # ContextWidgets for this group
+  contextWidgets: ContextWidgetQuerySet
 
   # CustomViews for this group
   customViews: CustomViewQuerySet

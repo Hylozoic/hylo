@@ -97,6 +97,10 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
+  contextWidgets () {
+    return this.hasMany(ContextWidget) // TODO CONTEXT: sometimes we want all widgets, sometimes only want the ordered ones. need to handle this
+  },
+
   creator: function () {
     return this.belongsTo(User, 'created_by_id')
   },
@@ -464,6 +468,63 @@ module.exports = bookshelf.Model.extend(merge({
     return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, {transacting}))
   },
 
+  async setupContextWidgets(trx) {
+    // Create home widget first
+    const homeWidget = await ContextWidget.forge({
+      group_id: this.id,
+      type: 'home',
+      title: 'widget-home',
+      order: 1,
+      created_at: new Date(),
+      updated_at: new Date()
+    }).save(null, { transacting: trx })
+  
+    // Get general tag id for the hearth widget
+    const generalTag = await Tag.where({ name: 'general' }).fetch({ transacting: trx })
+    
+    // Create hearth widget as child of home
+    await ContextWidget.forge({
+      group_id: this.id,
+      title: 'widget-hearth',
+      view_chat_id: generalTag.id,
+      parent_id: homeWidget.id,
+      order: 1,
+      created_at: new Date(),
+      updated_at: new Date()
+    }).save(null, { transacting: trx })
+  
+    // These are displayed in the menu, with the caveat being that the auto-view is hidden until it has child views
+    const orderedWidgets = [
+      { title: 'widget-auto-view', type: 'auto-view', order: 2 },
+      { title: 'widget-members', type: 'members', view: 'members', order: 3 },
+      { title: 'widget-setup', type: 'setup', visibility: 'admin', order: 4 }
+    ]
+  
+    // These are accessible in the all view
+    const unorderedWidgets = [
+      { title: 'widget-discussions', type: 'discussions', view: 'discussions' },
+      { title: 'widget-chats', type: 'chats', view: 'chats' },
+      { title: 'widget-stream', type: 'stream', view: 'stream' },
+      { title: 'widget-events', type: 'events', view: 'events' },
+      { title: 'widget-project', type: 'projects', view: 'projects' },
+      { title: 'widget-groups', type: 'groups', view: 'groups' },
+      { title: 'widget-decisions', type: 'decisions', view: 'decisions' },
+      { title: 'widget-map', type: 'map', view: 'map' }
+    ]
+  
+    await Promise.all([
+      ...orderedWidgets,
+      ...unorderedWidgets
+    ].map(widget => 
+      ContextWidget.forge({
+        group_id: this.id,
+        created_at: new Date(),
+        updated_at: new Date(),
+        ...widget
+      }).save(null, { transacting: trx })
+    ))
+  },
+
   update: async function (changes, updatedByUserId) {
     const whitelist = [
       'about_video_uri', 'active', 'access_code', 'accessibility', 'avatar_url', 'banner_url',
@@ -741,7 +802,8 @@ module.exports = bookshelf.Model.extend(merge({
 
       await group.createStarterPosts(trx)
 
-      await group.createInitialWidgets(trx)
+      // await group.createInitialWidgets(trx)
+      await group.setupContextWidgets(trx)
 
       await group.createDefaultTopics(group.id, userId, trx)
 
