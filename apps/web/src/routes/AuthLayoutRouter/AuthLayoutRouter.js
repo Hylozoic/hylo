@@ -309,7 +309,7 @@ export default function AuthLayoutRouter (props) {
         <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
       </Routes>
 
-      <Div100vh className={cx(classes.container, { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
+      <Div100vh className={cx('flex flex-col items-stretch bg-background', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cx(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })} onClick={handleCloseDrawer}>
           {/* View navigation menu */}
           {(!currentGroupSlug || (currentGroup && currentGroupMembership)) && (
@@ -321,7 +321,7 @@ export default function AuthLayoutRouter (props) {
                     context='groups'
                     group={currentGroup}
                     collapsed={collapsedState}
-                    className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
+                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -333,7 +333,7 @@ export default function AuthLayoutRouter (props) {
                     context='all'
                     group={currentGroup}
                     collapsed={collapsedState}
-                    className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
+                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -345,7 +345,7 @@ export default function AuthLayoutRouter (props) {
                     context='public'
                     group={currentGroup}
                     collapsed={collapsedState}
-                    className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
+                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -357,7 +357,7 @@ export default function AuthLayoutRouter (props) {
                     context='my'
                     group={currentGroup}
                     collapsed={collapsedState}
-                    className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
+                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
