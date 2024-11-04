@@ -4907,6 +4907,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mdxeditor/gurx@npm:^1.1.3":
+  version: 1.1.4
+  resolution: "@mdxeditor/gurx@npm:1.1.4"
+  peerDependencies:
+    react: ">= 18 || >= 19"
+    react-dom: ">= 18 || >= 19"
+  checksum: 10/3bb1516270120c1917e30477ad6f1568c06e470d6601331eae95f61ccdae4835e6a06ba0632d914daa926c420ff700853b961d73126fe7714b69e85394fa55e7
+  languageName: node
+  linkType: hard
+
 "@mswjs/cookies@npm:^0.1.7":
   version: 0.1.7
   resolution: "@mswjs/cookies@npm:0.1.7"
@@ -9159,6 +9169,18 @@ __metadata:
   version: 1.2.0
   resolution: "@ungap/structured-clone@npm:1.2.0"
   checksum: 10/c6fe89a505e513a7592e1438280db1c075764793a2397877ff1351721fe8792a966a5359769e30242b3cd023f2efb9e63ca2ca88019d73b564488cc20e3eab12
+  languageName: node
+  linkType: hard
+
+"@virtuoso.dev/message-list@npm:^1.9.2":
+  version: 1.9.2
+  resolution: "@virtuoso.dev/message-list@npm:1.9.2"
+  dependencies:
+    "@mdxeditor/gurx": "npm:^1.1.3"
+  peerDependencies:
+    react: ^18.0.0
+    react-dom: ^18.0.0
+  checksum: 10/2a441224a300b5748a1e591b9fa705c42add92bf501914d04ed300f1c00bfc6a98f1dbc73b41f03999b27090b3906ab4a800f87702e3d62fd82462e4bf57cc64
   languageName: node
   linkType: hard
 
@@ -21074,18 +21096,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"http-proxy-middleware@npm:0.17.4":
-  version: 0.17.4
-  resolution: "http-proxy-middleware@npm:0.17.4"
-  dependencies:
-    http-proxy: "npm:^1.16.2"
-    is-glob: "npm:^3.1.0"
-    lodash: "npm:^4.17.2"
-    micromatch: "npm:^2.3.11"
-  checksum: 10/b22db19a0cd2c9434a3a000175d5cd28aefb40199d65a5d018c6a3727d03ec701f513119aa0dcae010265270c2b326c0ba0a1a62ad47f905ec8407c02b1ecab1
-  languageName: node
-  linkType: hard
-
 "http-proxy-middleware@npm:^2.0.3":
   version: 2.0.7
   resolution: "http-proxy-middleware@npm:2.0.7"
@@ -21104,7 +21114,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"http-proxy@npm:^1.16.2, http-proxy@npm:^1.17.0, http-proxy@npm:^1.18.1":
+"http-proxy@npm:^1.17.0, http-proxy@npm:^1.18.1":
   version: 1.18.1
   resolution: "http-proxy@npm:1.18.1"
   dependencies:
@@ -25359,7 +25369,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash@npm:4.17.21, lodash@npm:^4.0.0, lodash@npm:^4.17.10, lodash@npm:^4.17.14, lodash@npm:^4.17.15, lodash@npm:^4.17.19, lodash@npm:^4.17.2, lodash@npm:^4.17.20, lodash@npm:^4.17.21, lodash@npm:^4.17.4, lodash@npm:^4.17.5, lodash@npm:^4.3.0, lodash@npm:^4.7.0, lodash@npm:~4.17.19, lodash@npm:~4.17.21":
+"lodash@npm:4.17.21, lodash@npm:^4.0.0, lodash@npm:^4.17.10, lodash@npm:^4.17.14, lodash@npm:^4.17.15, lodash@npm:^4.17.19, lodash@npm:^4.17.20, lodash@npm:^4.17.21, lodash@npm:^4.17.4, lodash@npm:^4.17.5, lodash@npm:^4.3.0, lodash@npm:^4.7.0, lodash@npm:~4.17.19, lodash@npm:~4.17.21":
   version: 4.17.21
   resolution: "lodash@npm:4.17.21"
   checksum: 10/c08619c038846ea6ac754abd6dd29d2568aa705feb69339e836dfa8d8b09abbb2f859371e86863eda41848221f9af43714491467b5b0299122431e202bb0c532
@@ -39820,6 +39830,7 @@ __metadata:
     "@types/hoist-non-react-statics": "npm:^3.3.5"
     "@types/react": "npm:^18.3.5"
     "@types/react-css-modules": "npm:^4.6.8"
+    "@virtuoso.dev/message-list": "npm:^1.9.2"
     "@vitejs/plugin-react": "npm:^4.3.1"
     ansi-styles: "npm:^3.2.1"
     app-module-path: "npm:^2.2.0"
@@ -39891,7 +39902,6 @@ __metadata:
     h3: "npm:^2.0.0"
     history: "npm:^5.3.0"
     html-webpack-plugin: "npm:^5.6.0"
-    http-proxy-middleware: "npm:0.17.4"
     husky: "npm:^7.0.4"
     i18next: "npm:^22.0.5"
     i18next-browser-languagedetector: "npm:^7.0.1"

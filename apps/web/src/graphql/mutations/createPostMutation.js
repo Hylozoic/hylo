@@ -1,7 +1,7 @@
 import postFieldsFragment from '@graphql/fragments/postFieldsFragment'
 
 export default
-`mutation (
+`mutation CreatePost (
   $acceptContributions: Boolean,
   $announcement: Boolean,
   $details: String,
@@ -18,6 +18,7 @@ export default
   $linkPreviewId: String,
   $location: String,
   $locationId: ID,
+  $localId: String,
   $memberIds: [ID],
   $projectManagementLink: String,
   $proposalOptions: [ProposalOptionInput],
@@ -44,6 +45,7 @@ export default
     isStrictProposal: $isStrictProposal,
     linkPreviewFeatured: $linkPreviewFeatured,
     linkPreviewId: $linkPreviewId,
+    localId: $localId,
     location: $location,
     locationId: $locationId,
     memberIds: $memberIds,
