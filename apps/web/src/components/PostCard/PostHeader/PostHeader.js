@@ -83,7 +83,7 @@ class PostHeader extends PureComponent {
     // Used to generate a link to this post from the backend.
     const flagPostData = {
       slug: routeParams.groupSlug,
-      id: id,
+      id,
       type: 'post'
     }
 

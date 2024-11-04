@@ -87,7 +87,8 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
         {filteredNotifications.map(notification => <Notification
           notification={notification}
           onClick={onClick}
-          key={notification.id} />)}
+          key={notification.id}
+                                                   />)}
         <ScrollListener
           elementId='notifications-scroll-list'
           onBottom={hasMore ? fetchMore : () => {}}

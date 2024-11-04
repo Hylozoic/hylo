@@ -258,7 +258,7 @@ function RoleRowUntranslated ({
             <div className={cx(styles.roleRow, styles.reverseFlex)}>
               <div className={styles.createButton} onClick={onSave}>{t('Create Role')}</div>
             </div>
-          )
+            )
           : (active || isCommonRole) && (
             <SettingsSection>
               <RoleList
@@ -271,7 +271,7 @@ function RoleRowUntranslated ({
                 slug={group.slug}
               />
             </SettingsSection>
-          )
+            )
       }
     </div>
   )

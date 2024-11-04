@@ -37,14 +37,14 @@ describe('CheckBox', () => {
   })
 
   it('renders with label', () => {
-    render(<CheckBox label="Test Label" onChange={() => {}} />)
+    render(<CheckBox label='Test Label' onChange={() => {}} />)
 
     const label = screen.getByText('Test Label')
     expect(label).toBeInTheDocument()
   })
 
   it('renders with left label', () => {
-    render(<CheckBox label="Left Label" labelLeft onChange={() => {}} />)
+    render(<CheckBox label='Left Label' labelLeft onChange={() => {}} />)
 
     const label = screen.getByText('Left Label')
     expect(label).toBeInTheDocument()

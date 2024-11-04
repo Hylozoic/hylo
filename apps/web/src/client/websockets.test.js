@@ -1,9 +1,9 @@
 import { getSocket, sendIsTyping, setSocket } from './websockets.js'
 
 describe('sendIsTyping', () => {
-  var realSocket
+  let realSocket
 
-  var mockSocket = {
+  const mockSocket = {
     post: jest.fn()
   }
 

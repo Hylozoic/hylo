@@ -6,14 +6,14 @@ const Something = () => null
 
 // Mock the rollbar module
 jest.mock('client/rollbar', () => ({
-  error: jest.fn(),
+  error: jest.fn()
 }))
 
 describe('ErrorBoundary', () => {
   it('renders children correctly', () => {
     render(
       <ErrorBoundary message='An Error Message'>
-        <div data-testid="child">Child Component</div>
+        <div data-testid='child'>Child Component</div>
       </ErrorBoundary>
     )
 

@@ -59,7 +59,7 @@ export default function FinishRegistration () {
       <Icon name='Ex' className={classes.closeIcon} onClick={handleCancel} />
       <div className={classes.formWrapper}>
         <h1 className={classes.title}>{t('One more step!')}</h1>
-        <p className={classes.blurb}>{t(`Hi {{email}} we just need to know your name and password and you're in.`, { email })}</p>
+        <p className={classes.blurb}>{t('Hi {{email}} we just need to know your name and password and you\'re in.', { email })}</p>
         {error && formatError(error, 'Signup', t)}
         <TextInput
           aria-label='name'

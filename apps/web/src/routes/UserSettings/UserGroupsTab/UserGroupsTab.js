@@ -71,14 +71,16 @@ class UserGroupsTab extends Component {
           />
         )}
 
-        { action === CREATE_AFFILIATION && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={this.resetMessage} />}
+        {action === CREATE_AFFILIATION && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={this.resetMessage} />}
 
-        {showAddAffiliations ? <AddAffiliation close={this.toggleAddAffiliations} save={this.saveAffiliation} /> : (
-          <div className={classes.addAffiliation} onClick={this.toggleAddAffiliations}>
-            <div className={classes.plus}>+</div>
-            <div>{t('Add new affiliation')}</div>
-          </div>
-        )}
+        {showAddAffiliations
+          ? <AddAffiliation close={this.toggleAddAffiliations} save={this.saveAffiliation} />
+          : (
+            <div className={classes.addAffiliation} onClick={this.toggleAddAffiliations}>
+              <div className={classes.plus}>+</div>
+              <div>{t('Add new affiliation')}</div>
+            </div>
+            )}
       </div>
     )
   }
@@ -192,7 +194,8 @@ export function AddAffiliation ({ close, save }) {
             onClick: () => setPreposition(p)
           }))}
           alignLeft
-          className={classes.dropdown} />
+          className={classes.dropdown}
+        />
 
         <div>
           <input
@@ -224,7 +227,7 @@ export function AddAffiliation ({ close, save }) {
 
 export function Message ({ errorMessage, successMessage, reset }) {
   return (
-    <div className={cx(classes.message, { [classes.error]: errorMessage, [classes.success]: !errorMessage })} onClick={reset}>{errorMessage || successMessage }</div>
+    <div className={cx(classes.message, { [classes.error]: errorMessage, [classes.success]: !errorMessage })} onClick={reset}>{errorMessage || successMessage}</div>
   )
 }
 export default withTranslation()(UserGroupsTab)

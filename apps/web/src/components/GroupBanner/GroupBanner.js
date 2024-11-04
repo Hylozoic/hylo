@@ -70,7 +70,8 @@ export default function GroupBanner ({
     <div className={cx(classes.banner, {
       [classes.allGroups]: context === 'all',
       [classes.hasPostPrompt]: hasPostPrompt
-    })}>
+    })}
+    >
       <div style={bgImageStyle(bannerUrl || DEFAULT_BANNER)} className={classes.image}>
         <div className={classes.fade}>
           <div className={classes.fade2} />
@@ -90,7 +91,7 @@ export default function GroupBanner ({
             ? <div className={classes.customIcon}>
               <Icon name={icon} />
             </div>
-            : <div className={cx(classes.logo, { [classes.allLogo]: context === 'all' })} style={bgImageStyle(avatarUrl || DEFAULT_AVATAR)} /> }
+            : <div className={cx(classes.logo, { [classes.allLogo]: context === 'all' })} style={bgImageStyle(avatarUrl || DEFAULT_AVATAR)} />}
           <div className={classes.headerText}>
             <div className={classes.headerContents}>
               <span className={classes.headerName}>{label || name}</span>
@@ -145,7 +146,7 @@ export default function GroupBanner ({
             : ''
           )
         }}
-      />}
+                     />}
     </div>
   )
 }

@@ -35,6 +35,8 @@ const PostListRow = (props) => {
     topics
   } = post
 
+  const { t } = useTranslation()
+
   if (!creator) { // PostCard guards against this, so it must be important? ;P
     return null
   }
@@ -47,7 +49,6 @@ const PostListRow = (props) => {
   const unread = false
   const startTimeMoment = Moment(post.startTime)
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
-  const { t } = useTranslation()
 
   return (
     <div className={cx(classes.postRow, { [classes.unread]: unread, [classes.expanded]: expanded })} onClick={showDetails}>
@@ -58,17 +59,19 @@ const PostListRow = (props) => {
             <Icon name={typeName} />
           </div>
           <div className={classes.participants}>
-            {post.type === 'event' ? <div className={classes.date}>
-              <span>{startTimeMoment.format('MMM')}</span>
-              <span>{startTimeMoment.format('D')}</span>
-            </div> : <div>
-              <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />
-              {creator.name} {
+            {post.type === 'event'
+              ? <div className={classes.date}>
+                <span>{startTimeMoment.format('MMM')}</span>
+                <span>{startTimeMoment.format('D')}</span>
+              </div>
+              : <div>
+                <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />
+                {creator.name} {
                 numOtherCommentors > 1
                   ? (<span> {t('and')} <strong>{numOtherCommentors} {t('others')}</strong></span>)
                   : null
               }
-            </div> }
+              </div>}
           </div>
           {childPost &&
             <div

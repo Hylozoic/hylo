@@ -97,7 +97,8 @@ class EventBody extends Component {
           eventId={id}
           eventInvitations={eventInvitations}
           forGroups={groups}
-          onClose={this.toggleInviteDialog} />}
+          onClose={this.toggleInviteDialog}
+                             />}
       </div>
     )
   }

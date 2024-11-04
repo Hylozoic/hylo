@@ -76,7 +76,8 @@ class SocialControl extends Component {
     const linkButton = (
       <span
         className={classes.linkButton}
-        onClick={linked ? () => this.handleUnlinkClick() : () => this.handleLinkClick()}>
+        onClick={linked ? () => this.handleUnlinkClick() : () => this.handleLinkClick()}
+      >
         {linked ? t('Unlink') : t('Link')}
 
       </span>

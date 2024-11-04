@@ -128,7 +128,8 @@ export function ImageManager (props) {
                 type={type}
                 id={id}
                 attachmentType='image'
-                onSuccess={attachment => addAttachment(type, id, attachment)}>
+                onSuccess={attachment => addAttachment(type, id, attachment)}
+              >
                 <div className={classes.addImage}>+</div>
               </UploadAttachmentButton>)}
           </div>
@@ -185,7 +186,8 @@ export function FileManager ({
           <FilePreview
             attachment={attachment}
             removeFile={() => removeAttachment(type, id, attachment)}
-            key={i} />)}
+            key={i}
+          />)}
         {showLoading && uploadAttachmentPending && <div className={classes.loadingFile}>{t('Loading...')}</div>}
         {showAddButton && (
           <UploadAttachmentButton
@@ -193,7 +195,8 @@ export function FileManager ({
             type={type}
             attachmentType='file'
             onSuccess={attachment => addAttachment(type, id, attachment)}
-            className={classes.addFileRow}>
+            className={classes.addFileRow}
+          >
             <div className={classes.addFile}>
               <span className={classes.addFilePlus}>+</span> {t('Add File')}
             </div>

@@ -24,7 +24,7 @@ describe('PeopleTyping', () => {
   })
 
   it('applies custom className', () => {
-    render(<PeopleTyping peopleTyping={{}} className="custom-class" />)
+    render(<PeopleTyping peopleTyping={{}} className='custom-class' />)
     expect(screen.getByTestId('people-typing')).toHaveClass('custom-class')
   })
 })

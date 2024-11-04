@@ -16,13 +16,16 @@ class BlockedUsersTab extends Component {
     const { blockedUsers, unBlockUser, loading } = this.props
     if (loading || !blockedUsers) return <Loading />
 
-    return <div>
-      {blockedUsers.map(blockedUser =>
-        <UnBlockUserControl
-          blockedUser={blockedUser}
-          unBlockUser={unBlockUser}
-          key={blockedUser.id} />)}
-    </div>
+    return (
+      <div>
+        {blockedUsers.map(blockedUser =>
+          <UnBlockUserControl
+            blockedUser={blockedUser}
+            unBlockUser={unBlockUser}
+            key={blockedUser.id}
+          />)}
+      </div>
+    )
   }
 }
 
@@ -30,11 +33,13 @@ export function UnBlockUserControl ({ blockedUser, unBlockUser }) {
   const unBlockUserFun = () => unBlockUser(blockedUser.id)
   const { t } = useTranslation()
 
-  return <div className={classes.unblockUserControl}>
-    <div className={classes.row}>
-      <div className={classes.name}>{blockedUser.name}</div>
-      <div onClick={unBlockUserFun} className={classes.unblockButton}>{t('Unblock')}</div>
+  return (
+    <div className={classes.unblockUserControl}>
+      <div className={classes.row}>
+        <div className={classes.name}>{blockedUser.name}</div>
+        <div onClick={unBlockUserFun} className={classes.unblockButton}>{t('Unblock')}</div>
+      </div>
     </div>
-  </div>
+  )
 }
 export default withTranslation()(BlockedUsersTab)

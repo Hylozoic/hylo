@@ -156,7 +156,7 @@ describe('ActionsBar', () => {
   })
 
   it('shows announcement icon when user can make announcements', () => {
-    render(<ActionsBar {...baseProps} canMakeAnnouncement={true} />)
+    render(<ActionsBar {...baseProps} canMakeAnnouncement />)
     expect(screen.getByTestId('announcement-icon')).toBeInTheDocument()
   })
 

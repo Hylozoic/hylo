@@ -1,8 +1,7 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import CommentForm from './CommentForm'
 import Me from 'store/models/Me'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 const minDefaultProps = {
   postId: 'new',
@@ -45,7 +44,7 @@ describe('CommentForm', () => {
 
   it('uses custom placeholder when provided', () => {
     render(
-      <CommentForm {...minDefaultProps} placeholder="Custom placeholder" />,
+      <CommentForm {...minDefaultProps} placeholder='Custom placeholder' />,
       { wrapper: AllTheProviders }
     )
 

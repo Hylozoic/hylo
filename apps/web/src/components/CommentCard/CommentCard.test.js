@@ -36,7 +36,7 @@ describe('CommentCard', () => {
   })
 
   it('renders expanded comment', () => {
-    render(<CommentCard {...defaultProps} expanded={true} />)
+    render(<CommentCard {...defaultProps} expanded />)
 
     const commentText = screen.getByText(/text of the comment/)
     expect(commentText.textContent).toEqual(defaultProps.comment.text.replace(/<\/?p>/g, ''))

@@ -1,7 +1,6 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import BlockedUsersTab, { UnBlockUserControl } from './BlockedUsersTab'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('BlockedUsersTab', () => {
   it('renders a list of UnBlockUserControls', () => {
@@ -21,7 +20,7 @@ describe('BlockedUsersTab', () => {
   })
 
   it('shows loading state when loading', () => {
-    render(<BlockedUsersTab loading={true} />, { wrapper: AllTheProviders })
+    render(<BlockedUsersTab loading />, { wrapper: AllTheProviders })
     expect(screen.getByTestId('loading')).toBeInTheDocument()
   })
 })

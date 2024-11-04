@@ -31,13 +31,14 @@ export default function ExportDataTab (props) {
       <p className={classes.help}>{t('This function exports all member data for this group as a CSV file for import into other software.')}</p>
       {status && <p>{status}</p>}
       <Button disabled={clicked} label={t('Export Members')} color='green' onClick={handleClick} />
-    </div>)
+    </div>
+  )
 }
 
 function triggerMemberExport (groupId, success, failure) {
   fetch(`${getHost()}/noo/export/group?groupId=${groupId}&datasets[]=members`)
     .then((res) => {
-      let { status } = res
+      const { status } = res
       status === 200 ? success() : failure()
     })
 }

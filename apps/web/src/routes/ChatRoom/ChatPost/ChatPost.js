@@ -27,13 +27,12 @@ import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
 import { bgImageStyle } from 'util/index'
 import isWebView from 'util/webView'
-import { personUrl } from 'util/navigation'
 import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { postUrl } from 'util/navigation'
+import { personUrl, postUrl } from 'util/navigation'
 
 import styles from './ChatPost.module.scss'
 
@@ -97,7 +96,7 @@ export default function ChatPost ({
     } else if (
       !editing &&
       !(event.target.getAttribute('target') === '_blank') &&
-      !event.target.className.includes(styles['imageInner']) &&
+      !event.target.className.includes(styles.imageInner) &&
       !event.target.className.includes('icon-Smiley')
     ) {
       showPost()

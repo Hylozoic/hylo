@@ -81,8 +81,7 @@ export default function SettingsControl (props) {
         {label}
         {helpText
           ? <div className={classes.help}>?<div className={classes.helpTooltip}>{helpText}</div></div>
-          : ''
-        }
+          : ''}
       </label>
 
       {control}

@@ -100,5 +100,5 @@ export default function Login (props) {
           <GoogleButton onClick={() => this.loginAndRedirect('google')} />
         </div> */}
       </div>
-    )
+      )
 }

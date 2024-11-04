@@ -49,7 +49,8 @@ describe('CreateGroup.connector', () => {
     })
 
     it('gets the default name and slug from the querystring', () => {
-      const props = { ...defaultProps,
+      const props = {
+        ...defaultProps,
         location: {
           search: '?name=weird&slug=banana'
         }

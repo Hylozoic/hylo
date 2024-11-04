@@ -176,13 +176,14 @@ export default function Widget (props) {
                       checked={isVisible}
                       onChange={() => handleUpdateWidget(id, { isVisible: !isVisible })}
                       className={classes.widgetVisibility}
-                      backgroundColor={isVisible ? 'gray' : 'black'} /> <span className={classes.visibilityLabel}>{t('Visibility')}:</span> {isVisible ? t('Visible') : t('Hidden')}
+                      backgroundColor={isVisible ? 'gray' : 'black'}
+                    /> <span className={classes.visibilityLabel}>{t('Visibility')}:</span> {isVisible ? t('Visible') : t('Hidden')}
                   </div>
                 </div>}
               </div>
             </div>}
           </div>
-        )
+          )
         : ''}
       {canEdit && isEditingSettings &&
         <EditForm
@@ -194,9 +195,9 @@ export default function Widget (props) {
           save={handleUpdateWidget}
         />}
       <div className={cx(classes.content, { [classes.hidden]: !isVisible })}>
-        {isVisible ? (widgetItems ? React.createElement(WIDGETS[name].component, { items: widgetItems, group, routeParams, settings, isMember: !!isMember }) : null)
-          : canEdit ? <HiddenWidget name={name} /> : null
-        }
+        {isVisible
+          ? (widgetItems ? React.createElement(WIDGETS[name].component, { items: widgetItems, group, routeParams, settings, isMember: !!isMember }) : null)
+          : canEdit ? <HiddenWidget name={name} /> : null}
       </div>
     </div>
   )

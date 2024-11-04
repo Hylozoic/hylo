@@ -6,7 +6,7 @@ export default function Select ({ disabled, options, selected, onChange, placeho
   const style = fullWidth ? { width: '100%' } : { }
 
   return (
-    <label className={classes.selectWrapper} style={style} >
+    <label className={classes.selectWrapper} style={style}>
       <select className={classes.select} style={style} onChange={e => onChange(e.target.value)} value={defaultTo(selected, '')} disabled={disabled}>
         {placeholder && <option value='' disabled>{placeholder}</option>}
         {options.map(({ id, label }) => (

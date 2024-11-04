@@ -34,7 +34,7 @@ it('renders as expected with no group', async () => {
     graphql.query('MeQuery', (req, res, ctx) => {
       return res(
         ctx.data({
-          me: me
+          me
         })
       )
     }),

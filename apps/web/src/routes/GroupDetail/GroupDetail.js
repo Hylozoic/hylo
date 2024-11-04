@@ -50,7 +50,7 @@ import {
   joinGroup
 } from './GroupDetail.store'
 
-import g from './GroupDetail.module.scss' // eslint-disable-line no-unused-vars
+import g from './GroupDetail.module.scss'
 import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable-line no-unused-vars
 
 const MAX_DETAILS_LENGTH = 144
@@ -179,8 +179,7 @@ function GroupDetail () {
               </div>
             </div>
             )
-          : ''
-        }
+          : ''}
         <div className={g.detailSection}>
           <h3>{t('Privacy settings')}</h3>
           <div className={g.privacySetting}>
@@ -207,8 +206,7 @@ function GroupDetail () {
                 )
               })}
             </div>)
-          : ''
-        }
+          : ''}
         {!isAboutCurrentGroup
           ? !currentUser
               ? (
@@ -240,8 +238,7 @@ function GroupDetail () {
                     />
                   </div>
                   )
-          : ''
-        }
+          : ''}
       </div>
       <Tooltip
         backgroundColor='rgba(35, 65, 91, 1.0)'
@@ -304,8 +301,7 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
                 : ''}
             </div>
             )
-          : ''
-      }
+          : ''}
     </>
   )
 }
@@ -358,8 +354,7 @@ export function JoinSection ({ addSkill, currentUser, fullPage, group, groupsWit
               ? hasPendingRequest
                 ? <div className={g.requestPending}>{t('Request to join pending')}</div>
                 : <JoinQuestionsAndButtons group={group} joinGroup={requestToJoinGroup} joinText={t('Request Membership in {{group.name}}', { group })} t={t} />
-              : ''
-      }
+              : ''}
     </div>
   )
 }

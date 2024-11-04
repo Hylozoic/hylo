@@ -1,6 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import MessageForm from './MessageForm'
 import { keyMap } from 'util/textInput'
 
@@ -57,7 +56,7 @@ describe('MessageForm', () => {
   })
 
   it('shows loading state when pending', () => {
-    render(<MessageForm {...defaultProps} pending={true} />, { wrapper: AllTheProviders })
+    render(<MessageForm {...defaultProps} pending />, { wrapper: AllTheProviders })
 
     expect(screen.getByText('Loading...')).toBeInTheDocument()
   })

@@ -233,7 +233,8 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             className={styles.contentDropdown}
             items={contentDropDownItems}
             toggleChildren={
-              <span>{currentTabState} <Icon className={styles.contentDropdownIcon} name='ArrowDown' /></span>}
+              <span>{currentTabState} <Icon className={styles.contentDropdownIcon} name='ArrowDown' /></span>
+}
           />
         </div>
         <CurrentContentComponent routeParams={routeParams} loading={contentLoading} />
@@ -280,7 +281,8 @@ export function ActionButtons ({ items }) {
           className={styles.actionIconButton}
           name={iconName}
           onClick={onClick}
-          {...tooltipProps} />
+          {...tooltipProps}
+        />
         <Tooltip
           id={tooltipId}
           place='bottom'

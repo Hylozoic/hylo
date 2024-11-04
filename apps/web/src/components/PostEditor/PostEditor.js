@@ -495,7 +495,6 @@ function PostEditor ({
       locationId
     })
 
-    console.log("proposaloptions", proposalOptions)
     const postToSave = {
       id,
       acceptContributions,

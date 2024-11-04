@@ -77,8 +77,8 @@ class EditProfileTab extends Component {
     setChanged && this.props.setConfirm(t('You have unsaved changes, are you sure you want to leave?'))
 
     if (key === 'location') {
-      edits['location'] = event.target.value.fullText
-      edits['locationId'] = await ensureLocationIdIfCoordinate({ fetchLocation, location: edits.location, locationId: event.target.value.id })
+      edits.location = event.target.value.fullText
+      edits.locationId = await ensureLocationIdIfCoordinate({ fetchLocation, location: edits.location, locationId: event.target.value.id })
     } else {
       edits[key] = event.target.value
     }
@@ -151,10 +151,14 @@ class EditProfileTab extends Component {
           type='location'
         />
         <SettingsControl label={t('Website')} onChange={this.updateSetting('url')} value={url} />
-        <SettingsControl label={t('My Skills & Interests')} renderControl={() =>
-          <SkillsSection personId={currentUser.id} />} />
-        <SettingsControl label={t('What I\'m learning')} renderControl={() =>
-          <SkillsToLearnSection personId={currentUser.id} />} />
+        <SettingsControl
+          label={t('My Skills & Interests')} renderControl={() =>
+            <SkillsSection personId={currentUser.id} />}
+        />
+        <SettingsControl
+          label={t('What I\'m learning')} renderControl={() =>
+            <SkillsToLearnSection personId={currentUser.id} />}
+        />
         <SettingsControl label={t('Contact Email')} onChange={this.updateSetting('contactEmail')} value={contactEmail} />
         <SettingsControl label={t('Contact Phone')} onChange={this.updateSetting('contactPhone')} value={contactPhone} />
         <label className={classes.socialLabel}>{t('Social Accounts')}</label>

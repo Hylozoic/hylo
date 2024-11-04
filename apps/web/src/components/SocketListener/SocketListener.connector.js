@@ -105,6 +105,6 @@ function convertToMessage (data) {
 }
 
 function isActiveThread (location, data) {
-  const [ namespace, id ] = location.pathname.split('/').slice(1, 3)
+  const [namespace, id] = location.pathname.split('/').slice(1, 3)
   return namespace === 't' && data.postId === id
 }

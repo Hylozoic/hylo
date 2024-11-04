@@ -17,7 +17,7 @@ export function fetchGroups ({ farmQuery, groupType, nearCoord, offset, order, p
         farmQuery,
         groupType,
         nearCoord,
-        offset: offset,
+        offset,
         order,
         search,
         sortBy

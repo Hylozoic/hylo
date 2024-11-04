@@ -31,7 +31,7 @@ export async function queryHyloAPI ({ query: unknownGraphql, variables }) {
     body: JSON.stringify(params),
     credentials: 'same-origin',
     headers: {
-      'Accept': 'application/json',
+      Accept: 'application/json',
       'Content-Type': 'application/json'
     },
     method: 'POST'

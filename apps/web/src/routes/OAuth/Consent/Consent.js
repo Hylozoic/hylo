@@ -39,25 +39,27 @@ export default function Consent (props) {
         <div>
           {previousAuthsOnly
             ? <p>{t('{{appName}} is asking you to confirm previously given authorization', { appName })}</p>
-            : ''
-          }
+            : ''}
 
           {!isEmpty(missingOIDCScopes)
             ? <div><h3>{t('This will allow {{appName}} to:', { appName })}</h3>
               <ul>
                 {missingOIDCScopes.map((scope) =>
                   <li key={scope}>
-                    {scope === 'profile' ? t('Access your profile, including your name and image.')
-                      : scope === 'address' ? t('Access to your physical address.')
-                        : scope === 'email' ? t('Access to your email address.')
-                          : scope === 'phone' ? t('Access to your phone number.')
+                    {scope === 'profile'
+                      ? t('Access your profile, including your name and image.')
+                      : scope === 'address'
+                        ? t('Access to your physical address.')
+                        : scope === 'email'
+                          ? t('Access to your email address.')
+                          : scope === 'phone'
+                            ? t('Access to your phone number.')
                             : ''}
                   </li>
                 )}
               </ul>
             </div>
-            : ''
-          }
+            : ''}
 
           {!isEmpty(missingOIDCClaims)
             ? <div>
@@ -68,8 +70,7 @@ export default function Consent (props) {
                 })}
               </ul>
             </div>
-            : ''
-          }
+            : ''}
 
           {!isEmpty(missingResourceScopes)
             ? Object.keys(missingResourceScopes).map(indicator => <div key={indicator}>
@@ -78,20 +79,18 @@ export default function Consent (props) {
                 {missingResourceScopes[indicator].map(scope => <li key={scope}>{scope}</li>)}
               </ul>
             </div>)
-            : ''
-          }
+            : ''}
 
           {offlineAccessRequested
             ? <div>
               {t('{{appName}} is asking to have offline access to Hylo', { appName })}
-              { /* XXX: Don't know currently how to tell here if the client is asking for offline_access but already granted it
+              {/* XXX: Don't know currently how to tell here if the client is asking for offline_access but already granted it
                 {isEmpty(missingOIDCScopes) || !missingOIDCScopes.includes('offline_access')
                 ? <p>(which you've previously granted)</p>
                 : ''
               } */}
             </div>
-            : ''
-          }
+            : ''}
         </div>
 
         <Button label={t('Cancel')} color='dark-gray' narrow onClick={cancel} />

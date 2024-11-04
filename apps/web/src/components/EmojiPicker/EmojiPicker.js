@@ -60,7 +60,7 @@ export default function EmojiPicker (props) {
             <EmojiPickerContent {...props} onClickOutside={toggleModalOpen} onEmojiSelect={handleClick} />
           </div>}
       </div>
-    )
+      )
     : (
       <div onClick={toggleModalOpen} className={cx(classes.emojiPickerContainer, props.className)}>
         {emoji || '?'}
@@ -69,7 +69,7 @@ export default function EmojiPicker (props) {
             <EmojiPickerContent {...props} onClickOutside={toggleModalOpen} onEmojiSelect={handleSelection} />
           </div>}
       </div>
-    )
+      )
 }
 
 function EmojiPickerContent (props) {
@@ -84,6 +84,6 @@ function EmojiPickerContent (props) {
     getData()
   }, [])
   return (
-    <Picker {...props} theme={'light'} data={data} />
+    <Picker {...props} theme='light' data={data} />
   )
 }

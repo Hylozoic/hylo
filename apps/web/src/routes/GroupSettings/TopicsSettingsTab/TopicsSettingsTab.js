@@ -147,7 +147,8 @@ class TopicsSettingsTab extends Component {
               buttonText={t('Add a Topic')}
               groupId={group.id}
               groupSlug={group.slug}
-              topics={topics} />
+              topics={topics}
+            />
           </div>
           <div className={styles.topicList} id={TOPIC_LIST_ID}>
             {topics.map(topic =>
@@ -180,7 +181,8 @@ export function SearchBar ({ search, setSearch, selectedSort, setSort, fetchIsPe
         placeholder={t('Search {{count}} topics', { count: totalTopicsCached || '' })}
         loading={fetchIsPending}
         noClearButton
-        onChange={event => setSearch(event.target.value)} />
+        onChange={event => setSearch(event.target.value)}
+      />
       <Dropdown
         className={styles.searchOrder}
         toggleChildren={<span className={styles.searchSorterLabel}>
@@ -191,7 +193,8 @@ export function SearchBar ({ search, setSearch, selectedSort, setSort, fetchIsPe
           label: t(label),
           onClick: () => setSort(id)
         }))}
-        alignRight />
+        alignRight
+      />
     </div>
   )
 }

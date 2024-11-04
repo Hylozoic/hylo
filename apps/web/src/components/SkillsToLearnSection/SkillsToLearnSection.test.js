@@ -15,7 +15,7 @@ describe('SkillsToLearnSection', () => {
   })
 
   it('shows editable fields when isMe = true', () => {
-    render(<SkillsToLearnSection skills={mockSkills} fetchMemberSkills={mockFetchMemberSkills} isMe={true} />)
+    render(<SkillsToLearnSection skills={mockSkills} fetchMemberSkills={mockFetchMemberSkills} isMe />)
 
     expect(screen.getByText('Add a skill you want to learn')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('What skills do you want to learn?')).toBeInTheDocument()
