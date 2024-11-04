@@ -89,7 +89,7 @@ export default [
       'react/jsx-wrap-multilines': 'warn',
       'react-refresh/only-export-components': [
         'warn',
-        { allowConstantExport: true, checkJS: true }
+        { allowConstantExport: true, checkJS: false }
       ],
       'eslint/indent': 'off',
       'react-hooks/exhaustive-deps': 'off'

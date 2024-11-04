@@ -8,7 +8,6 @@ import Button from 'components/Button'
 import Icon from 'components/Icon'
 import ModalDialog from 'components/ModalDialog'
 import TextInput from 'components/TextInput'
-import cx from 'classnames'
 
 import classes from './CreateTopic.module.scss'
 
@@ -41,24 +40,31 @@ class CreateTopic extends Component {
 
   // No text for use with TopicNavigation, text on AllTopics.
   buttonChooser = () => this.props.buttonText
-    ? <Button
-      color='green-white-green-border'
-      key='create-button'
-      narrow
-      onClick={this.toggleTopicModal}
-      className={classes.createTopic}>
-      <Icon name='Plus' green className={classes.plus} data-testid='icon-Plus' />{this.props.buttonText}</Button>
-    : <Icon
-      key='create-button'
-      name='Plus'
-      onClick={this.toggleTopicModal}
-      className={classes.createButton} />
+    ? (
+      <Button
+        color='green-white-green-border'
+        key='create-button'
+        narrow
+        onClick={this.toggleTopicModal}
+        className={classes.createTopic}
+      >
+        <Icon name='Plus' green className={classes.plus} data-testid='icon-Plus' />{this.props.buttonText}
+      </Button>
+      )
+    : (
+      <Icon
+        key='create-button'
+        name='Plus'
+        onClick={this.toggleTopicModal}
+        className={classes.createButton}
+      />
+      )
 
   componentDidUpdate (prevProps) {
     const { groupSlug } = this.props
     const name = this.safeTopicName()
     // This syntax handles topic names with dots in 'em
-    const topicPath = [ 'groupTopicExists', encodeURI(name), groupSlug ]
+    const topicPath = ['groupTopicExists', encodeURI(name), groupSlug]
     if (!has(topicPath, prevProps) && has(topicPath, this.props)) {
       return get(topicPath, this.props)
         ? this.subscribeAndRedirect(name)
@@ -91,7 +97,8 @@ class CreateTopic extends Component {
       groupTopicExists,
       topics,
       fetchGroupTopic,
-      subscribeAfterCreate } = this.props
+      subscribeAfterCreate
+    } = this.props
 
     const name = this.safeTopicName()
     if (isEmpty(name)) {
