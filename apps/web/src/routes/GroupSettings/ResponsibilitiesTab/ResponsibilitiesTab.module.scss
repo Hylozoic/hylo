@@ -1,3 +1,5 @@
+@use "sass:color";
+
 .adding {
   width: 100%;
   margin-top: 15px;
@@ -250,7 +252,7 @@
   justify-content: center;
 
   &:active {
-    background-color: lighten($color-caribbean-green, 50%);
+    background-color: color.adjust($color-caribbean-green, $lightness: 50%);
   }
 }
 

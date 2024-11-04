@@ -1,3 +1,4 @@
+@use "sass:color";
 .dropdownButton {
   height: 40px;
   line-height: 38px;
@@ -38,14 +39,14 @@
   background-color: $color-caribbean-green;
   color: $color-white;
   &:hover, &.hover {
-    background-color: lighten($color-caribbean-green, 2%);
+    background-color: color.adjust($color-caribbean-green, $lightness: 2%);
   }
   &:active, &.active {
-    background-color: darken($color-caribbean-green, 2%);
+    background-color: color.adjust($color-caribbean-green, $lightness: -2%);
   }
   &.disabled {
-    border-color: lighten(desaturate($color-caribbean-green, 40%), 35%);
-    background-color: lighten(desaturate($color-caribbean-green, 40%), 35%);
+    border-color: color.adjust($color-caribbean-green, $saturation: -40%, $lightness: 35%);
+    background-color: color.adjust($color-caribbean-green, $saturation: -40%, $lightness: 35%);
   }
 }
 
@@ -68,14 +69,14 @@
 }
 
 .choice {
-  background-color: lighten(desaturate($color-caribbean-green, 30%), 30%);
+  background-color: color.adjust($color-caribbean-green, $saturation: -30%, $lightness: 30%);
   color: $color-white;
   composes: caption-lt-lg from 'css/typography.scss';
   padding: 5px 15px;
   border-bottom: 1px solid $color-cape-cod-10;
   cursor: pointer;
   &:hover {
-    background-color: lighten(desaturate($color-caribbean-green, 30%), 20%);
+    background-color: color.adjust($color-caribbean-green, $saturation: -30%, $lightness: 20%);
   }
 }
 
