@@ -5,13 +5,12 @@ import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { IoSend } from 'react-icons/io5'
-import { useResizeDetector } from 'react-resize-detector'
 import { useSelector, useDispatch, shallowEqual } from 'react-redux'
-import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { useParams, useLocation } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData } from '@virtuoso.dev/message-list'
 
-import { getSocket, socketUrl } from 'client/websockets.js'
+import { getSocket } from 'client/websockets.js'
 import AttachmentManager from 'components/AttachmentManager'
 import {
   addAttachment,
@@ -40,21 +39,19 @@ import createPost from 'store/actions/createPost'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopic from 'store/actions/fetchTopic'
-import respondToEvent from 'store/actions/respondToEvent'
 import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import updateGroupTopicLastReadPost from 'store/actions/updateGroupTopicLastReadPost'
-import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC } from 'store/constants'
+import { FETCH_TOPIC, FETCH_GROUP_TOPIC } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getGroupTopicForCurrentRoute from 'store/selectors/getGroupTopicForCurrentRoute'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import { getHasMorePosts, getPostResults, getTotalPosts } from 'store/selectors/getPosts'
+import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { MAX_POST_TOPICS } from 'util/constants'
-import { postUrl } from 'util/navigation'
 import isWebView from 'util/webView'
 
 import styles from './ChatRoom.module.scss'
@@ -109,7 +106,6 @@ export default function ChatRoom (props) {
   const dispatch = useDispatch()
   const routeParams = useParams()
   const location = useLocation()
-  const navigate = useNavigate()
 
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
@@ -135,14 +131,7 @@ export default function ChatRoom (props) {
 
   const containerRef = useRef()
   const editorRef = useRef()
-  const virtuoso = useRef(null)
   const messageListRef = useRef(null)
-
-  // Whether scroll is at the bottom of the chat (most recent post)
-  const [atBottom, setAtBottom] = useState(false)
-
-  // Whether the current user has a created a new post in the room yet
-  const [createdNewPost, setCreatedNewPost] = useState(false)
 
   // Whether there is an in progress new post draft
   const [postInProgress, setPostInProgress] = useState(false)
@@ -203,11 +192,9 @@ export default function ChatRoom (props) {
 
   const postsPast = useSelector(state => getPosts(state, fetchPostsPastParams))
   const hasMorePostsPast = useSelector(state => getHasMorePosts(state, fetchPostsPastParams))
-  const totalPostsPast = useSelector(state => getTotalPosts(state, fetchPostsPastParams) || 0)
 
   const postsFuture = useSelector(state => getPosts(state, fetchPostsFutureParams))
   const hasMorePostsFuture = useSelector(state => getHasMorePosts(state, fetchPostsFutureParams))
-  const totalPostsFuture = useSelector(state => getTotalPosts(state, fetchPostsFutureParams) || 0)
 
   const fetchPostsPast = useCallback((offset) => {
     if (loadingPast || hasMorePostsPast === false) return Promise.resolve()
@@ -237,8 +224,6 @@ export default function ChatRoom (props) {
 
   const clearImageAttachments = useCallback(() => dispatch(clearAttachments('post', 'new', 'image')), [dispatch])
 
-  const respondToEventAction = useCallback((post) => (response) => dispatch(respondToEvent(post, response)), [dispatch])
-
   const toggleGroupTopicSubscribeAction = useCallback((groupTopic) => dispatch(toggleGroupTopicSubscribe(groupTopic)), [dispatch])
 
   const updateGroupTopicLastReadPostAction = useCallback((groupTopicId, postId) => dispatch(updateGroupTopicLastReadPost(groupTopicId, postId)), [dispatch])
@@ -246,7 +231,7 @@ export default function ChatRoom (props) {
   const handleNewPostReceived = useCallback((data) => {
     let updateExisting = false
     messageListRef.current?.data.map((item) => {
-      if (item.pending && (data.id === item.id || data.localId && data.localId === item.localId)) {
+      if (item.pending && (data.id === item.id || (data.localId && data.localId === item.localId))) {
         updateExisting = true
         return data
       } else {
@@ -313,22 +298,12 @@ export default function ChatRoom (props) {
     }, 600)
   }, [groupTopic?.id])
 
-
   // Do once after loading posts for the room to get things ready
   useEffect(() => {
     if (loadedPast && loadedFuture) {
       setInitialPostToScrollTo((postsPast ? postsPast.length - 1 : 0) + Math.min(postsFuture?.length || 0, 3))
     }
   }, [loadedPast, loadedFuture])
-
-  useEffect(() => {
-    // If scrolled to bottom and a new post comes in make sure to scroll down to see new post
-    if (atBottom && virtuoso.current) {
-      setTimeout(() => {
-        scrollToBottom()
-      }, 300)
-    }
-  }, [totalPostsFuture])
 
   // When text is entered in a draft post set postInProgress to true
   const handleDetailsUpdate = (d) => {
@@ -364,21 +339,6 @@ export default function ChatRoom (props) {
     dispatch(removeLinkPreview())
     setNewPost({ ...newPost, linkPreview: null, linkPreviewFeatured: false })
   }
-
-  const scrollToBottom = useCallback(() => {
-    if (virtuoso.current) {
-      virtuoso.current.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
-    }
-  }, [])
-
-  const handleResizeChats = () => {
-    // Make sure when post chat box grows we stay at bottom if already there
-    if (atBottom) {
-      scrollToBottom()
-    }
-  }
-
-  useResizeDetector({ handleWidth: false, targetRef: containerRef, onResize: handleResizeChats })
 
   const onScroll = React.useCallback(
     (location) => {
@@ -435,7 +395,6 @@ export default function ChatRoom (props) {
     dispatch(clearLinkPreview())
     clearImageAttachments()
     setNewPost(emptyPost)
-    setCreatedNewPost(true)
     editorRef.current.focus()
 
     const action = await dispatch(createPost(postToSave))
@@ -470,9 +429,11 @@ export default function ChatRoom (props) {
         }
         topicName={topicName}
       />
-      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative' ref={containerRef}>
-        {initialPostToScrollTo === null ? <div className={styles.loadingContainer}><Loading />blepp</div> :
-          <VirtuosoMessageListLicense licenseKey="">
+      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden' ref={containerRef}>
+        {initialPostToScrollTo === null
+          ? <div className={styles.loadingContainer}><Loading /></div>
+          : (
+            <VirtuosoMessageListLicense licenseKey=''>
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto' }}
                 ref={messageListRef}
@@ -488,7 +449,8 @@ export default function ChatRoom (props) {
                 StickyHeader={StickyHeader}
                 ItemContent={ItemContent}
               />
-            </VirtuosoMessageListLicense>}
+            </VirtuosoMessageListLicense>
+            )}
       </div>
       <div className={styles.postChatBox}>
         <HyloEditor
@@ -544,7 +506,7 @@ export default function ChatRoom (props) {
             onClick={postChatMessage}
             className={cx(styles.sendMessageButton, { [styles.disabled]: !postInProgress })}
           >
-            <IoSend color='white' />
+            <IoSend color='white' style={{ display: 'inline' }} />
           </Button>
         </div>
       </div>
@@ -552,7 +514,7 @@ export default function ChatRoom (props) {
   )
 }
 
-/*** Virtuoso Components ***/
+/** * Virtuoso Components ***/
 const EmptyPlaceholder = ({ context }) => {
   return (<div>{context.loadingPast || context.loadingFuture ? <Loading /> : <NoPosts className={styles.noPosts} />}</div>)
 }
