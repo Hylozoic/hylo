@@ -244,9 +244,11 @@ module.exports = bookshelf.Model.extend({
       // Update all affected widgets in a single query
       const query = `
         UPDATE context_widgets 
-        SET "order" = CASE id 
-          ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.order}`).join('\n')}
-        END
+        SET 
+          "order" = CASE id 
+            ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.order}`).join('\n')}
+          END,
+          auto_added = true
         WHERE id IN (${reorderedWidgets.map(w => w.id).join(',')})
       `
     
@@ -284,8 +286,8 @@ module.exports = bookshelf.Model.extend({
         })
       }
 
-      // Update the widget with the new data
-      await widget.save(data, { 
+      // Update the widget with the new data. If a widget is updated, we don't want to auto-add it later.
+      await widget.save({ ...data, auto_added: true }, { 
         patch: true, 
         transacting: trx 
       })

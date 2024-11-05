@@ -27,6 +27,7 @@ import {
   createAffiliation,
   createCollection,
   createComment,
+  createContextWidget,
   createGroup,
   createInvitation,
   createJoinRequest,
@@ -80,7 +81,7 @@ import {
   reinviteAll,
   rejectGroupRelationshipInvite,
   register,
-  reorderPostInCollection,
+  removeWidgetFromMenu,
   removeMember,
   removeModerator,
   removePost,
@@ -91,6 +92,8 @@ import {
   removeSkill,
   removeSkillToLearn,
   removeSuggestedSkillFromGroup,
+  reorderContextWidget,
+  reorderPostInCollection,
   resendInvitation,
   respondToEvent,
   sendEmailVerification,
@@ -102,6 +105,7 @@ import {
   unfulfillPost,
   unlinkAccount,
   updateComment,
+  updateContextWidget,
   updateGroup,
   updateGroupResponsibility,
   updateGroupRole,
@@ -350,6 +354,9 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
 
     createComment: (root, { data }) => createComment(userId, data),
 
+    createContextWidget: (root, { groupId, data }) => 
+      createContextWidget({ userId, groupId, data }),
+
     createGroup: (root, { data }) => createGroup(userId, data),
 
     createInvitation: (root, { groupId, data }) =>
@@ -461,6 +468,9 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
 
     rejectGroupRelationshipInvite: (root, { groupRelationshipInviteId }) => rejectGroupRelationshipInvite(userId, groupRelationshipInviteId),
 
+    removeWidgetFromMenu: (root, { contextWidgetId }) => 
+      removeWidgetFromMenu({ userId, contextWidgetId }),
+
     removeMember: (root, { personId, groupId }) =>
       removeMember(userId, personId, groupId),
 
@@ -482,6 +492,9 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
     removeSkill: (root, { id, name }) => removeSkill(userId, id || name),
     removeSkillToLearn: (root, { id, name }) => removeSkillToLearn(userId, id || name),
     removeSuggestedSkillFromGroup: (root, { groupId, id, name }) => removeSuggestedSkillFromGroup(userId, groupId, id || name),
+
+    reorderContextWidget: (root, { contextWidgetId, order }) => 
+      reorderContextWidget({ userId, contextWidgetId, order }),
 
     reorderPostInCollection: (root, { collectionId, postId, newOrderIndex }) =>
       reorderPostInCollection(userId, collectionId, postId, newOrderIndex),
@@ -508,6 +521,9 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
 
     unlinkAccount: (root, { provider }) =>
       unlinkAccount(userId, provider),
+
+    updateContextWidget: (root, { contextWidgetId, data }) => 
+      updateContextWidget({ userId, contextWidgetId, data }),
 
     updateGroupResponsibility: (root, { groupId, responsibilityId, title, description }) =>
       updateGroupResponsibility({ userId, groupId, responsibilityId, title, description }),

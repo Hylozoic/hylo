@@ -22,6 +22,12 @@ export {
   canUpdateComment
 } from './comment'
 export {
+  createContextWidget,
+  updateContextWidget,
+  removeWidgetFromMenu,
+  reorderContextWidget
+} from './context_widget'
+export {
   respondToEvent,
   invitePeopleToEvent
 } from './event'

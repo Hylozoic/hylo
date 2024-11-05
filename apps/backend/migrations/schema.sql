@@ -533,6 +533,7 @@ CREATE SEQUENCE public.community_invite_seq
 --
 
 CREATE TABLE public.context_widgets (
+    auto_added boolean DEFAULT false,
     id bigint NOT NULL,
     title character varying(255),
     group_id bigint,

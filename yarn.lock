@@ -11267,7 +11267,8 @@ __metadata:
     csv-parser: "npm:^1.7.0"
     csv-stringify: "npm:^5.6.2"
     dataloader: "npm:^1.2.0"
-    dotenv: "npm:^0.4.0"
+    dotenv: "npm:16.4.5"
+    dotenv-cli: "npm:7.4.2"
     ejs: "npm:^2.5.5"
     emoji-mart: "npm:^5.2.2"
     ent: "npm:^2.2.0"
@@ -16077,12 +16078,33 @@ __metadata:
   languageName: node
   linkType: hard
 
+"dotenv-cli@npm:7.4.2":
+  version: 7.4.2
+  resolution: "dotenv-cli@npm:7.4.2"
+  dependencies:
+    cross-spawn: "npm:^7.0.3"
+    dotenv: "npm:^16.3.0"
+    dotenv-expand: "npm:^10.0.0"
+    minimist: "npm:^1.2.6"
+  bin:
+    dotenv: cli.js
+  checksum: 10/48d887ea9be08f7453dc87d6c938311989e951d0b43028eadcbaff3be1ca56180f8c38b8f932fc2e59f0210e59f4b5c59cf8a34da3e6c92f63fe6d7ce4f09f65
+  languageName: node
+  linkType: hard
+
 "dotenv-defaults@npm:^2.0.2":
   version: 2.0.2
   resolution: "dotenv-defaults@npm:2.0.2"
   dependencies:
     dotenv: "npm:^8.2.0"
   checksum: 10/e0cf2a499119ff0dbc6565aa7914bd0f0c42dc331790037cefe2215bf6620c2a4167a1ef2a29331e6d223f445329e1f7c7e3e7e8c647fd3b6ccb59e4c138b7ba
+  languageName: node
+  linkType: hard
+
+"dotenv-expand@npm:^10.0.0":
+  version: 10.0.0
+  resolution: "dotenv-expand@npm:10.0.0"
+  checksum: 10/b41eb278bc96b92cbf3037ca5f3d21e8845bf165dc06b6f9a0a03d278c2bd5a01c0cfbb3528ae3a60301ba1a8a9cace30e748c54b460753bc00d4c014b675597
   languageName: node
   linkType: hard
 
@@ -16113,24 +16135,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"dotenv@npm:16.4.5, dotenv@npm:^16.0.0, dotenv@npm:^16.3.0":
+  version: 16.4.5
+  resolution: "dotenv@npm:16.4.5"
+  checksum: 10/55a3134601115194ae0f924e54473459ed0d9fc340ae610b676e248cca45aa7c680d86365318ea964e6da4e2ea80c4514c1adab5adb43d6867fb57ff068f95c8
+  languageName: node
+  linkType: hard
+
 "dotenv@npm:6.0.0":
   version: 6.0.0
   resolution: "dotenv@npm:6.0.0"
   checksum: 10/ba68373985e723bdbf46b76409aadae628b1202cd9e809273783dc926d4e490557406be8e5c23961df1e7803939851b39ebeaf684eca83c9b765dc1b4bf0d958
-  languageName: node
-  linkType: hard
-
-"dotenv@npm:^0.4.0":
-  version: 0.4.0
-  resolution: "dotenv@npm:0.4.0"
-  checksum: 10/e9da4be900374d803ddd2f13dd08b4f0ab561d00e536a7bb8dc47c7cb1b5f94100eb1742c5e4b5a47ccc317a2684d8dad18195b4e5cf496c48738e05607589de
-  languageName: node
-  linkType: hard
-
-"dotenv@npm:^16.0.0":
-  version: 16.4.5
-  resolution: "dotenv@npm:16.4.5"
-  checksum: 10/55a3134601115194ae0f924e54473459ed0d9fc340ae610b676e248cca45aa7c680d86365318ea964e6da4e2ea80c4514c1adab5adb43d6867fb57ff068f95c8
   languageName: node
   linkType: hard
 

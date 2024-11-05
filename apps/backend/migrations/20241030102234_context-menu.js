@@ -10,6 +10,7 @@ exports.up = function(knex) {
       table.bigInteger('parent_id').references('id').inTable('context_widgets').onDelete('CASCADE')
       table.string('view')
       table.string('icon') 
+      table.boolean('auto_added').defaultTo(false)
       table.bigInteger('view_group_id').references('id').inTable('groups').onDelete('CASCADE') // view group
       table.bigInteger('view_post_id').references('id').inTable('posts').onDelete('CASCADE') // view post
       table.bigInteger('custom_view_id').references('id').inTable('custom_views').onDelete('CASCADE') // custom view

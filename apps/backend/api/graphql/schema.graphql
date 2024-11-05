@@ -2334,6 +2334,8 @@ type Mutation {
   createCollection(data: CollectionInput): Collection
   # Add a comment to a Post
   createComment(data: CommentInput): Comment
+  # Create a new context widget
+  createContextWidget(data: ContextWidgetInput): ContextWidget
   # Create a new Group
   createGroup(
     data: GroupInput,
@@ -2448,6 +2450,8 @@ type Mutation {
   registerStripeAccount(authorizationCode: String): GenericResult
   # Reject a Group's invite or request to connect to one of your groups. Only a group steward can call this.
   rejectGroupRelationshipInvite(groupRelationshipInviteId: ID): GenericResult
+  # Remove a context widget from a menu
+  removeWidgetFromMenu(contextWidgetId: ID): ContextWidget
   # Remove a Person from a Group. Only a group Moderator can call this.
   removeMember(personId: ID, groupId: ID): Group
   # Remove a moderator from a Group.
@@ -2482,6 +2486,12 @@ type Mutation {
     questionAnswers: [QuestionAnswerInput],
     parentId: ID
   ): CreatedGroupRelationshipInvite
+  # Change a context widget's order/position
+  reorderContextWidget(
+    contextWidgetId: ID,
+    # Move the widget to this order position
+    order: Int
+  ): ContextWidget
   # Change a post's order/position in a Collection to newOrderIndex (0 indexed)
   reorderPostInCollection(
     collectionId: ID,
@@ -2516,6 +2526,8 @@ type Mutation {
   unfulfillPost(postId: ID): GenericResult
   # Edit a comment
   updateComment(id: ID, data: CommentInput): Comment
+  # Update a context widget
+  updateContextWidget(id: ID, data: ContextWidgetInput): ContextWidget
   # Update a Group's settings. Only a group steward can call this.
   updateGroupSettings(id: ID, changes: GroupInput): Group
   # Update a Group's settings. Only can be called via API key.

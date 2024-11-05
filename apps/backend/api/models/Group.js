@@ -497,18 +497,21 @@ module.exports = bookshelf.Model.extend(merge({
     const orderedWidgets = [
       { title: 'widget-auto-view', type: 'auto-view', order: 2 },
       { title: 'widget-members', type: 'members', view: 'members', order: 3 },
-      { title: 'widget-setup', type: 'setup', visibility: 'admin', order: 4 }
+      { title: 'widget-setup', type: 'setup', visibility: 'admin', order: 4 },
+      { title: 'widget-custom-views', type: 'custom-views', order: 5 },
     ]
   
     // These are accessible in the all view
     const unorderedWidgets = [
-      { title: 'widget-discussions', type: 'discussions', view: 'discussions' },
-      { title: 'widget-chats', type: 'chats', view: 'chats' },
-      { title: 'widget-stream', type: 'stream', view: 'stream' },
+      { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
+      { title: 'widget-chats', view: 'chats' },
+      { title: 'widget-ask-and-offer', view: 'ask-and-offer' },
+      { title: 'widget-stream', view: 'stream' },
       { title: 'widget-events', type: 'events', view: 'events' },
       { title: 'widget-project', type: 'projects', view: 'projects' },
       { title: 'widget-groups', type: 'groups', view: 'groups' },
       { title: 'widget-decisions', type: 'decisions', view: 'decisions' },
+      { title: 'widget-about', type: 'about', view: 'about' },
       { title: 'widget-map', type: 'map', view: 'map' }
     ]
   
@@ -523,6 +526,194 @@ module.exports = bookshelf.Model.extend(merge({
         ...widget
       }).save(null, { transacting: trx })
     ))
+  },
+
+  async transitionToNewMenu(existingTrx) {
+    const doWork = async (trx) => {
+      // Get all widgets for this group
+      const widgets = await ContextWidget.where({ group_id: this.id }).fetchAll({ transacting: trx })
+      const chatWidget = widgets.find(w => w.get('type') === 'chats')
+      const autoAddWidget = widgets.find(w => w.get('type') === 'auto-view')
+      const chatWidgetId = chatWidget?.get('id')
+      const autoAddWidgetId = autoAddWidget?.get('id')
+  
+      if (!chatWidget?.get('auto_added')) {
+        // TODO CONTEXT: port this lookup to the new chat model
+        const chatResults = await bookshelf.knex.raw(`
+          WITH chat_posts AS (
+            SELECT DISTINCT pt.tag_id
+            FROM posts p
+            JOIN posts_tags pt ON p.id = pt.post_id
+            WHERE p.group_id = ? AND p.type = 'chat'
+          )
+          SELECT DISTINCT t.id as tag_id, t.name, gt.visibility
+          FROM chat_posts cp
+          JOIN tags t ON t.id = cp.tag_id
+          JOIN groups_tags gt ON gt.tag_id = t.id AND gt.group_id = ?
+        `, [this.id, this.id])
+  
+        const groupChats = chatResults.rows.filter(tag => tag.name !== 'general')
+  
+        if (groupChats.length > 0) {
+          await Promise.all(groupChats.map(chat => 
+            ContextWidget.create({
+              group_id: this.id,
+              title: chat.name,
+              type: 'chat',
+              parent_id: chat.visibility === 2 ? chatWidgetId : null,
+              view_chat_id: chat.tag_id,
+              transacting: trx
+            })
+          ))
+  
+          // If any pinned chats were found, order the chats widget
+          if (groupChats.some(chat => chat.visibility === 2)) {
+            await ContextWidget.reorder({
+              id: chatWidgetId,
+              order: 2,
+              trx
+            })
+          }
+        }
+      }
+  
+      const askOfferWidget = widgets.find(w => w.get('type') === 'ask-and-offer')
+      if (askOfferWidget && !askOfferWidget.get('auto_added')) {
+        const hasAsksOffers = await bookshelf.knex('posts')
+          .where({ group_id: this.id })
+          .whereIn('type', ['request', 'offer'])
+          .first()
+  
+        if (hasAsksOffers) {
+          await ContextWidget.update({
+            id: askOfferWidget.get('id'),
+            data: { parent_id: autoAddWidgetId },
+            trx
+          })
+        }
+      }
+  
+      const eventsWidget = widgets.find(w => w.get('type') === 'events')
+      if (eventsWidget && !eventsWidget.get('auto_added')) {
+        const hasEvents = await bookshelf.knex('posts')
+          .where({ group_id: this.id })
+          .where('type', 'event')
+          .first()
+  
+        if (hasEvents) {
+          await ContextWidget.update({
+            id: eventsWidget.get('id'),
+            data: { parent_id: autoAddWidgetId },
+            trx
+          })
+        }
+      }
+  
+      const projectsWidget = widgets.find(w => w.get('type') === 'projects')
+      if (projectsWidget && !projectsWidget.get('auto_added')) {
+        const hasProjects = await bookshelf.knex('posts')
+          .where({ group_id: this.id })
+          .where('type', 'project')
+          .first()
+  
+        if (hasProjects) {
+          await ContextWidget.update({
+            id: projectsWidget.get('id'),
+            data: { parent_id: autoAddWidgetId },
+            trx
+          })
+        }
+      }
+  
+      const groupsWidget = widgets.find(w => w.get('type') === 'groups')
+      if (groupsWidget && !groupsWidget.get('auto_added')) {
+        const hasRelatedGroups = await bookshelf.knex('group_relationships')
+          .where('parent_group_id', this.id)
+          .orWhere('child_group_id', this.id)
+          .first()
+  
+        if (hasRelatedGroups) {
+          await ContextWidget.update({
+            id: groupsWidget.get('id'),
+            data: { parent_id: autoAddWidgetId },
+            trx
+          })
+        }
+      }
+  
+      const decisionsWidget = widgets.find(w => w.get('type') === 'decisions')
+      if (decisionsWidget && !decisionsWidget.get('auto_added')) {
+        const [hasProposals, hasModeration] = await Promise.all([
+          bookshelf.knex('posts')
+            .where({ group_id: this.id, type: 'proposal' })
+            .first(),
+          bookshelf.knex('moderation_actions')
+            .where({ group_id: this.id })
+            .first()
+        ])
+  
+        if (hasProposals || hasModeration) {
+          await ContextWidget.update({
+            id: decisionsWidget.get('id'),
+            data: { parent_id: autoAddWidgetId },
+            trx
+          })
+        }
+      }
+  
+      const mapWidget = widgets.find(w => w.get('type') === 'map')
+      if (mapWidget && !mapWidget.get('auto_added')) {
+        const [hasLocationPosts, hasMembersWithLocation] = await Promise.all([
+          bookshelf.knex('posts')
+            .where({ group_id: this.id })
+            .whereNotNull('location_id')
+            .first(),
+          bookshelf.knex('users')
+            .join('group_memberships', 'users.id', 'group_memberships.user_id')
+            .where('group_memberships.group_id', this.id)
+            .whereNotNull('users.location_id')
+            .first()
+        ])
+  
+        if (hasLocationPosts || hasMembersWithLocation) {
+          await ContextWidget.update({
+            id: mapWidget.get('id'),
+            data: { parent_id: autoAddWidgetId },
+            trx
+          })
+        }
+      }
+  
+      const customViews = await bookshelf.knex('custom_views')
+        .where({ group_id: this.id })
+        .whereNotExists(function() {
+          this.select('*')
+            .from('context_widgets')
+            .whereRaw('context_widgets.custom_view_id = custom_views.id')
+            .andWhere('auto_added', true)
+        })
+  
+        if (customViews.length > 0) {
+          const customViewsWidget = widgets.find(w => w.get('type') === 'custom-views')
+          if (customViewsWidget) {
+            await Promise.all(customViews.map(view =>
+              ContextWidget.create({
+                group_id: this.id,
+                custom_view_id: view.id,
+                parent_id: customViewsWidget.get('id'),
+                auto_added: true,
+                transacting: trx
+              })
+            ))
+          }
+        }
+    }
+  
+    if (existingTrx) {
+      return doWork(existingTrx)
+    }
+  
+    return await bookshelf.transaction(trx => doWork(trx))
   },
 
   update: async function (changes, updatedByUserId) {
