@@ -3,7 +3,7 @@ import tippy from 'tippy.js'
 import SuggestionList from './SuggestionList'
 
 export default {
-  render: (suggestionsThemeName = 'suggestions') => {
+  render: (suggestionsThemeName = 'suggestions', onLoadMore) => {
     let component
     let popup
 
@@ -52,7 +52,7 @@ export default {
     return {
       onStart: props => {
         component = new ReactRenderer(SuggestionList, {
-          props,
+          props: { ...props, onLoadMore: (offset, query) => onLoadMore(offset, query, props.editor) },
           editor: props.editor
         })
 
@@ -68,9 +68,17 @@ export default {
 
         component.updateProps(props)
 
-        if (!popup || popup[0].state.isDestroyed) {
+        if (!popup) { //  || (popup[0].state.isDestroyed) {
           popup = createPopup(props.clientRect)
         } else {
+          const matches = props?.query?.match(/([\s]+)/g)
+          const spacesCount = matches?.length || 0
+          if (spacesCount > 1 && props.items.length === 0) {
+            this.onExit()
+            // popup?.[0]?.hide() // hide popup if we have more than one spaces but no result items (null in my case).
+            return
+          }
+
           popup[0].setProps({
             getReferenceClientRect: props.clientRect
           })
@@ -79,18 +87,21 @@ export default {
 
       onKeyDown (props) {
         if (props.event.key === 'Escape') {
-          // Seems to be better to destroy and re-create in this case
           // popup[0].hide()
+          // Seems to be better to destroy and re-create in this case
           this.onExit()
 
           return true
         }
 
+        // if (!popup?.[0].state.isShown && !popup?.[0].state.isDestroyed) {
+        //   popup?.[0].show() // display the popup on key down
+        // }
+
         return component?.ref?.onKeyDown(props)
       },
 
       onExit () {
-        // console.log('!!! Mention Plugin `suggestion.onExit()` called early?')
         popup && popup[0].destroy()
         // Was causing a crashing bug
         component && setTimeout(() => component.destroy(), 500)
