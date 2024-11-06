@@ -3030,7 +3030,7 @@ input ModerationActionInput {
   groupId: ID
   platformAgreements: [ID]
   postId: ID
-  text: String 
+  text: String
 }
 
 # A geographic point
@@ -3069,6 +3069,8 @@ input PostInput {
   linkPreviewId: String
   # Whether LinkPreview appears full size above post or smaller below
   linkPreviewFeatured: Boolean
+  # Temporary id passed in from the client to identify the post when it is created, for optimistically updating the UI
+  localId: String
   # Full location string
   location: String
   # Id to location object with geocoded location deatils

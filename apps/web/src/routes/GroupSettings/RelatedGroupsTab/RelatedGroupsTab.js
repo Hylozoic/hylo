@@ -120,18 +120,18 @@ class RelatedGroupsTab extends Component {
           /> */}
 
         <div className={classes.title}>{t('Parent Groups')}</div>
-        {parentGroups.length > 0 ? <div>
-          <div className={classes.subtitle}>{parentGroups.length === 1 ? t('This is the one group') : t('These are the {{length}} groups that {{group.name}} is a member of', { group, length: parentGroups.length })}</div>
-          <div className={classes.groupList} >
-            {parentGroups.map(p => <GroupCard
-              group={p}
-              key={p.id}
-              actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={this.relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className={classes.relatedGroupDropdown} />}
-            />)}
+        {parentGroups.length > 0
+          ? <div>
+            <div className={classes.subtitle}>{parentGroups.length === 1 ? t('This is the one group') : t('These are the {{length}} groups that {{group.name}} is a member of', { group, length: parentGroups.length })}</div>
+            <div className={classes.groupList}>
+              {parentGroups.map(p => <GroupCard
+                group={p}
+                key={p.id}
+                actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={this.relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className={classes.relatedGroupDropdown} />}
+                                     />)}
+            </div>
           </div>
-        </div>
-          : <div className={classes.subtitle}>{t('{{group.name}} is not a member of any groups yet', { group })}</div>
-        }
+          : <div className={classes.subtitle}>{t('{{group.name}} is not a member of any groups yet', { group })}</div>}
 
         {groupInvitesToJoinThem.length > 0 && <div>
           <div className={classes.subtitle}>{t('Open Invitations to Join Other Groups')}</div>
@@ -149,7 +149,7 @@ class RelatedGroupsTab extends Component {
               )
             })}
           </div>
-        </div> }
+        </div>}
 
         {groupRequestsToJoinThem.length > 0 && <div>
           <div className={classes.subtitle}>{t('Pending requests to join other groups')}</div>
@@ -166,7 +166,7 @@ class RelatedGroupsTab extends Component {
               )
             })}
           </div>
-        </div> }
+        </div>}
 
         <div className={classes.groupPickerContainer}>
           <Button className={classes.connectButton} onClick={this.toggleRequestToJoinPicker}>
@@ -189,19 +189,19 @@ class RelatedGroupsTab extends Component {
         </div>
 
         <div className={classes.title}>{t('Child Groups')}</div>
-        {childGroups.length > 0 ? <div>
-          <div className={classes.subtitle}>{childGroups.length === 1 ? t('This group is a member') : t('These {{childGroups.length}} groups are members of {{group.name}}', { childGroups, group })}</div>
-          <div className={classes.groupList}>
-            {childGroups.map(c =>
-              <GroupCard
-                group={c}
-                key={c.id}
-                actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={this.relationshipDropdownItems(group, c, GROUP_RELATIONSHIP_TYPE.ParentToChild)} className={classes.relatedGroupDropdown} />}
-              />)}
+        {childGroups.length > 0
+          ? <div>
+            <div className={classes.subtitle}>{childGroups.length === 1 ? t('This group is a member') : t('These {{childGroups.length}} groups are members of {{group.name}}', { childGroups, group })}</div>
+            <div className={classes.groupList}>
+              {childGroups.map(c =>
+                <GroupCard
+                  group={c}
+                  key={c.id}
+                  actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={this.relationshipDropdownItems(group, c, GROUP_RELATIONSHIP_TYPE.ParentToChild)} className={classes.relatedGroupDropdown} />}
+                />)}
+            </div>
           </div>
-        </div>
-          : <div className={classes.subtitle}>{t('No groups are members of {{group.name}} yet', { group })}</div>
-        }
+          : <div className={classes.subtitle}>{t('No groups are members of {{group.name}} yet', { group })}</div>}
 
         {groupRequestsToJoinUs.length > 0 && <div>
           <div className={classes.subtitle}>{t('Requests to join {{group.name}}', { group })}</div>
@@ -222,7 +222,7 @@ class RelatedGroupsTab extends Component {
               )
             })}
           </div>
-        </div> }
+        </div>}
 
         {groupInvitesToJoinUs.length > 0 && <div>
           <div className={classes.subtitle}>{t('Pending invites to join {{group.name}}', { group })}</div>
@@ -239,7 +239,7 @@ class RelatedGroupsTab extends Component {
               )
             })}
           </div>
-        </div> }
+        </div>}
 
         <div className={classes.groupPickerContainer}>
           <Button className={classes.connectButton} onClick={this.toggleInviteAsChildPicker}>
@@ -266,7 +266,7 @@ class RelatedGroupsTab extends Component {
           parentGroup={showRequestToJoinModalForGroup}
           requestToAddGroupToParent={requestToAddGroupToParent}
           hideRequestToJoinModal={this.hideRequestToJoinModal}
-        />}
+                                           />}
       </div>
     )
   }
@@ -330,7 +330,7 @@ export function RequestToJoinModal ({ group, hideRequestToJoinModal, parentGroup
   const setAnswer = (index) => (event) => {
     const answerValue = event.target.value
     setQuestionAnswers(prevAnswers => {
-      const newAnswers = [ ...prevAnswers ]
+      const newAnswers = [...prevAnswers]
       newAnswers[index].answer = answerValue
       return newAnswers
     })

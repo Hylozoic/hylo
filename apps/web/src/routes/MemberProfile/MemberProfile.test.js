@@ -28,7 +28,7 @@ describe('MemberProfile', () => {
 
   it('displays an error if can\'t find person', () => {
     const props = {
-      ...defaultTestProps,
+      ...defaultTestProps
     }
     render(<MemberProfile {...props} />, { wrapper: testWrapper() })
     expect(screen.getByText('That doesn\'t seem to be a valid person ID.')).toBeInTheDocument()

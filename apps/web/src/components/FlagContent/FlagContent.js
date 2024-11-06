@@ -72,9 +72,11 @@ class FlagContent extends PureComponent {
     const required = !this.isExplanationOptional(selectedCategory) && highlightRequired
       ? ` ${this.props.t('(explanation required)')}`
       : ''
-    const subtitle = this.props.t(`Why was this {{type}} '{{selectedCategory}}'{{required}}?`, { type,
+    const subtitle = this.props.t('Why was this {{type}} \'{{selectedCategory}}\'{{required}}?', {
+      type,
       selectedCategory,
-      required })
+      required
+    })
     this.setState({ subtitle })
   }
 
@@ -92,7 +94,8 @@ class FlagContent extends PureComponent {
     const {
       subtitle = t('What was wrong?'),
       reasonRequired,
-      selectedCategory = '', explanation } = this.state
+      selectedCategory = '', explanation
+    } = this.state
 
     return (
       <div className={classes.popup}>
@@ -112,14 +115,16 @@ class FlagContent extends PureComponent {
                 })}
                 selected={selectedCategory}
                 placeholder={t('Select a reason')}
-                options={options} />
+                options={options}
+              />
             </div>
             <TextareaAutosize
               className={classes.explanationTextbox}
               minRows={6}
               value={explanation}
               onChange={(e) => { this.setState({ explanation: e.target.value }) }}
-              placeholder={subtitle} />
+              placeholder={subtitle}
+            />
             <Button className={classes.submitBtn} onClick={this.submit} disabled={isEmpty(selectedCategory)}>{t('Submit')}</Button>
           </div>
         </div>

@@ -1,8 +1,7 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import Comments from './Comments'
 import ShowMore from './ShowMore'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('Comments', () => {
   it('renders correctly', () => {

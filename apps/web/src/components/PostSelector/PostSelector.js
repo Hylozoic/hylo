@@ -181,8 +181,7 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
                     />
                   ))}
                 </ul>
-              </div>
-            }
+              </div>}
           </div>
         </div>
       </SortableContext>

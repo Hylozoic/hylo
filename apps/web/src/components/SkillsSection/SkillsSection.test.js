@@ -16,7 +16,7 @@ describe('SkillsSection', () => {
   })
 
   it('shows editable fields when isMe = true', () => {
-    render(<SkillsSection skills={mockSkills} fetchMemberSkills={jest.fn()} isMe={true} />)
+    render(<SkillsSection skills={mockSkills} fetchMemberSkills={jest.fn()} isMe />)
 
     expect(screen.getByText('Add a Skill or Interest')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('What skills and interests do you have?')).toBeInTheDocument()

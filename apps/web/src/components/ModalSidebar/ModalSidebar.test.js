@@ -10,7 +10,7 @@ describe('ModalSidebar', () => {
       header={header}
       body={body}
       onClick={jest.fn()}
-    />)
+           />)
 
     expect(screen.getByText('CLOSE')).toBeInTheDocument()
     expect(screen.getByText(header)).toBeInTheDocument()
@@ -29,7 +29,7 @@ describe('ModalSidebar', () => {
       body={body}
       onClick={jest.fn()}
       theme={theme}
-    />)
+           />)
 
     expect(screen.getByText('CLOSE')).toBeInTheDocument()
     expect(screen.getByText(header)).toHaveClass('header-theme')
@@ -43,14 +43,14 @@ describe('ModalSidebar', () => {
     const imageUrl = 'https://example.com/image.jpg'
 
     render(<ModalSidebar
-      header="Header"
-      body="Body"
+      header='Header'
+      body='Body'
       onClick={jest.fn()}
       secondParagraph={secondParagraph}
       imageDialogOne={imageDialogOne}
       imageDialogTwo={imageDialogTwo}
       imageUrl={imageUrl}
-    />)
+           />)
 
     expect(screen.getByText(secondParagraph)).toBeInTheDocument()
     expect(screen.getByText(imageDialogOne)).toBeInTheDocument()

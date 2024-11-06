@@ -80,7 +80,8 @@ const Comments = ({
             />
             <PeopleTyping className={cx(classes.peopleTyping)} />
           </div>
-        ) : (
+          )
+        : (
           <Link
             to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname)}`}
             target={inIframe() ? '_blank' : ''}
@@ -88,8 +89,7 @@ const Comments = ({
           >
             Join Hylo to respond
           </Link>
-        )
-      }
+          )}
     </div>
   )
 }

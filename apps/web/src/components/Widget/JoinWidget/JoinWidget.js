@@ -40,16 +40,16 @@ export default function JoinWidget ({ group, fullPage = true, routeParams }) {
               </div>
             </div>
             <div className={classes.profileContainer}>
-              <div className={classes.groupSubtitle}>{group.memberCount} {group.memberCount > 1 ? t(`Members`) : t(`Member`)}</div>
+              <div className={classes.groupSubtitle}>{group.memberCount} {group.memberCount > 1 ? t('Members') : t('Member')}</div>
               {get(group, 'settings.publicMemberDirectory')
                 ? <div>{group.members.map(member => {
                   return <div key={member.id} className={classes.avatarContainer}><Avatar avatarUrl={member.avatarUrl} className={classes.avatar} /><span>{member.name}</span></div>
-                })}</div>
+                })}
+                </div>
                 : <div className={classes.profile}>
                   <Icon name='Unlock' />
                   <span className={classes.profileText}>{t('Join to see')}</span>
-                </div>
-              }
+                </div>}
             </div>
           </div>
           <JoinSection

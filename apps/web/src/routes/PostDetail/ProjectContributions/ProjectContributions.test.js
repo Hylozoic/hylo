@@ -1,14 +1,13 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import ProjectContributions from './ProjectContributions'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('ProjectContributions', () => {
   const defaultProps = {
     postId: 123,
     totalContributions: 321,
     stripeKey: 'test_stripe_key',
-    processStripeToken: jest.fn(),
+    processStripeToken: jest.fn()
   }
 
   it('renders correctly', () => {

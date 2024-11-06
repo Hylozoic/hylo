@@ -1,3 +1,4 @@
+@use "sass:color";
 .create-button {
   cursor: pointer;
   font-size: 16px;
@@ -21,7 +22,7 @@
 
 .topic-error {
   color: $color-amaranth;
-  background-color: transparentize($color-amaranth, 0.9);
+  background-color: color.adjust($color-amaranth, $alpha: -0.9);
   border: 1px solid $color-amaranth;
   border-radius: 4px;
   padding: 9px 16px;

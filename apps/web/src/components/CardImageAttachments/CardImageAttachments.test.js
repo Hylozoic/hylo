@@ -9,7 +9,8 @@ describe('CardImageAttachments', () => {
       { url: 'bonkerz', type: 'file' },
       { url: 'bonkers', type: 'file' },
       { url: 'bonkerzztop', type: 'file' }
-    ]} />)
+    ]}
+                                 />)
     expect(container.firstChild).toBeNull()
   })
 
@@ -17,7 +18,8 @@ describe('CardImageAttachments', () => {
     render(<CardImageAttachments attachments={[
       { url: 'foo', type: 'image' },
       { url: 'bonkerz', type: 'file' }
-    ]} />)
+    ]}
+           />)
     expect(screen.getByAltText('Attached image 1')).toBeInTheDocument()
     expect(screen.queryByAltText('Attached image 2')).not.toBeInTheDocument()
   })
@@ -28,7 +30,8 @@ describe('CardImageAttachments', () => {
       { url: 'baz', type: 'image' },
       { url: 'bonk', type: 'image' },
       { url: 'bonkerz', type: 'file' }
-    ]} />)
+    ]}
+           />)
     expect(screen.getByAltText('Attached image 1')).toBeInTheDocument()
     expect(screen.getByAltText('Attached image 2')).toBeInTheDocument()
     expect(screen.getByAltText('Attached image 3')).toBeInTheDocument()
@@ -41,7 +44,8 @@ describe('CardImageAttachments', () => {
       { url: 'baz', type: 'image' },
       { url: 'bonk', type: 'image' },
       { url: 'bonkerz', type: 'file' }
-    ]} />)
+    ]}
+           />)
 
     userEvent.click(screen.getByAltText('Attached image 2'))
 
@@ -61,11 +65,13 @@ describe('CardImageAttachments', () => {
   })
 
   it('does not display modal when image is clicked from postCard', async () => {
-    render(<CardImageAttachments attachments={[
-      { url: 'bar', type: 'image' },
-      { url: 'baz', type: 'image' },
-      { url: 'bonk', type: 'image' }
-    ]} className='post-card' />)
+    render(<CardImageAttachments
+      attachments={[
+        { url: 'bar', type: 'image' },
+        { url: 'baz', type: 'image' },
+        { url: 'bonk', type: 'image' }
+      ]} className='post-card'
+           />)
 
     userEvent.click(screen.getByAltText('Attached image 1'))
 

@@ -1,3 +1,4 @@
+@use "sass:color";
 .header {
   border-radius: 4px;
   background-color: $color-athens-gray;
@@ -40,7 +41,7 @@
   color: $color-white;
 
   &:hover, &.hover {
-    background-color: lighten($color-caribbean-green, 2%);
+    background-color: color.adjust($color-caribbean-green, $lightness: 2%);
   }
 }
 

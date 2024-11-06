@@ -49,7 +49,7 @@ describe('PostHeader', () => {
         groups={mockGroups}
         creator={mockCreator}
         context={mockContext}
-        type="request"
+        type='request'
         roles={[]}
       />
     )
@@ -64,7 +64,7 @@ describe('PostHeader', () => {
         groups={mockGroups}
         creator={mockCreator}
         context={mockContext}
-        type="request"
+        type='request'
         deletePost={() => {}}
         editPost={() => {}}
         duplicatePost={() => {}}

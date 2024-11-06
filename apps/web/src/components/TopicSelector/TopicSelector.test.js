@@ -6,7 +6,7 @@ describe('TopicSelector', () => {
   const defaultProps = {
     fetchDefaultTopics: jest.fn(),
     findTopics: jest.fn(),
-    onChange: jest.fn(),
+    onChange: jest.fn()
   }
 
   const renderComponent = (props = {}) => {

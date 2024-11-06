@@ -1,7 +1,6 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import UserGroupsTab from './UserGroupsTab'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('UserGroupsTab', () => {
   it('renders a list of Memberships and Affiliations', () => {

@@ -1,5 +1,5 @@
 import { connect } from 'react-redux'
-import { push } from "redux-first-history";
+import { push } from 'redux-first-history'
 import { postUrl } from 'util/navigation'
 
 export function mapStateToProps (state, props) {

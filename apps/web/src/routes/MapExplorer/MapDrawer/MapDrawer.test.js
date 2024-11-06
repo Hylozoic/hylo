@@ -66,7 +66,7 @@ describe('MapDrawer', () => {
 
 describe('TabBar', () => {
   it('renders tabs and handles tab selection', () => {
-    const tabs = { 'Posts': 1, 'Groups': 2 }
+    const tabs = { Posts: 1, Groups: 2 }
     const selectTab = jest.fn()
     render(<TabBar currentTab='Posts' selectTab={selectTab} tabs={tabs} />, { wrapper: AllTheProviders })
 

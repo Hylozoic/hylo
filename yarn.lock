@@ -3667,7 +3667,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@invertase/react-native-apple-authentication@npm:^2.3.0":
+"@invertase/react-native-apple-authentication@npm:^2.4.0":
   version: 2.4.0
   resolution: "@invertase/react-native-apple-authentication@npm:2.4.0"
   checksum: 10/f9d42eda104e55fb5f3f405e8771e401a6ae2c2ca2e54ace29164794f43dbfa347d34856513575c67883f5c42da284108151ada07ea0bf5df065bb03989ec3cf
@@ -4907,6 +4907,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mdxeditor/gurx@npm:^1.1.3":
+  version: 1.1.4
+  resolution: "@mdxeditor/gurx@npm:1.1.4"
+  peerDependencies:
+    react: ">= 18 || >= 19"
+    react-dom: ">= 18 || >= 19"
+  checksum: 10/3bb1516270120c1917e30477ad6f1568c06e470d6601331eae95f61ccdae4835e6a06ba0632d914daa926c420ff700853b961d73126fe7714b69e85394fa55e7
+  languageName: node
+  linkType: hard
+
 "@mswjs/cookies@npm:^0.1.7":
   version: 0.1.7
   resolution: "@mswjs/cookies@npm:0.1.7"
@@ -5422,14 +5432,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-native-async-storage/async-storage@npm:^1.24.0":
-  version: 1.24.0
-  resolution: "@react-native-async-storage/async-storage@npm:1.24.0"
+"@react-native-async-storage/async-storage@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@react-native-async-storage/async-storage@npm:2.0.0"
   dependencies:
     merge-options: "npm:^3.0.4"
   peerDependencies:
-    react-native: ^0.0.0-0 || >=0.60 <1.0
-  checksum: 10/5a6b7ac8bd7a9e537a53a3f2301530c284fd885a45ce4a4e0014859bc0f7c89bee5c4b5a6b3740b8d83751561159b237474d18f32fad75ea7d56d4ddb2180d91
+    react-native: ^0.0.0-0 || >=0.65 <1.0
+  checksum: 10/cd00a7fac584bfce350c0ad56a542e19c5aa77bec41a211f004c87343e971819d38c5483470fd11116e0271a5e1321ce656cc0bb66d2aa0852f74bc23be61a77
   languageName: node
   linkType: hard
 
@@ -6353,13 +6363,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sailshq/connect-redis@npm:^3.2.1":
-  version: 3.2.1
-  resolution: "@sailshq/connect-redis@npm:3.2.1"
-  dependencies:
-    debug: "npm:^2.2.0"
-    redis: "npm:^2.1.0"
-  checksum: 10/a8f8e969a77bf062aa7db5b25c6f2f2f751d8d9e109483ccebb800e30a86b3a614a7dc758d294f02a4961fe31008927712942e4565f61226b5b907cd8773f2f2
+"@sailshq/connect-redis@npm:^6.1.3":
+  version: 6.1.3
+  resolution: "@sailshq/connect-redis@npm:6.1.3"
+  checksum: 10/5ab898eb7ccd2e0bf8c97004823670b51ea282815c176aac2f4bd6766fb0705accd6393eb60518de8ca2592a31daea1e96902668c3a8920b7e9a2d01c4dec53b
   languageName: node
   linkType: hard
 
@@ -6385,16 +6392,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sailshq/socket.io-redis@npm:^5.2.0":
-  version: 5.2.1
-  resolution: "@sailshq/socket.io-redis@npm:5.2.1"
+"@sailshq/socket.io-redis@npm:^6.1.2":
+  version: 6.1.2
+  resolution: "@sailshq/socket.io-redis@npm:6.1.2"
   dependencies:
-    debug: "npm:~2.6.8"
-    notepack.io: "npm:~2.1.2"
-    redis: "npm:3.1.1"
-    socket.io-adapter: "npm:~1.1.0"
+    debug: "npm:~4.3.1"
+    notepack.io: "npm:~2.2.0"
+    redis: "npm:^3.0.0"
+    socket.io-adapter: "npm:~2.2.0"
     uid2: "npm:0.0.3"
-  checksum: 10/9aadf4b320f0a32e9aac9f861fe1190caee07cc89fa9404a911006898388e28d4eb010fad023aefba4f44dad0400167d89bc96328dfd6e2cecc2fa75da54c844
+  checksum: 10/3074f975522b83d6abcf4645779a12bff448be58f1a3b65eae6fcb418471f9bedfdce8abcecf09e0234ee741dedaee4ca863286ef9d7c8823f7b16dec086f75a
   languageName: node
   linkType: hard
 
@@ -7054,42 +7061,42 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/core@npm:^2.8.0":
-  version: 2.9.0
-  resolution: "@tiptap/core@npm:2.9.0"
+"@tiptap/core@npm:^2.9.1":
+  version: 2.9.1
+  resolution: "@tiptap/core@npm:2.9.1"
   peerDependencies:
     "@tiptap/pm": ^2.7.0
-  checksum: 10/a9a060d50e6117cd471620d8721b73a5e1ddc1efe1016af5338242f8aed15e94c0c7267f7780114c8bd9e6411e800ef88b190e92dbba02a650c2913e52eb8b92
+  checksum: 10/a7e4d4c2a3309b5288e9854a08612f745db4e62d853e92cc7870c61b5a9d53abec75787e129a6fa61a5c99781649ad1d5e074be706f6d4cf0b240a46fec6457b
   languageName: node
   linkType: hard
 
-"@tiptap/extension-blockquote@npm:^2.8.0":
-  version: 2.9.0
-  resolution: "@tiptap/extension-blockquote@npm:2.9.0"
+"@tiptap/extension-blockquote@npm:^2.9.1":
+  version: 2.9.1
+  resolution: "@tiptap/extension-blockquote@npm:2.9.1"
   peerDependencies:
     "@tiptap/core": ^2.7.0
-  checksum: 10/249d10b41df4d32b6fad0563f84d1e9a02d905722111c4a0c94b570b55b05c7b04949f1c31acae7710bfbfa8aae8ffa74b157351de2872b5ca59400f5b9fe701
+  checksum: 10/b2f20ca5884568bfceb506b3a04240cd3380758fe22d06b87f3e6b1149d65d86de8299c161878aa736e57f25e8a9dcf9b55164963db6dc2e137263ce16e6d88a
   languageName: node
   linkType: hard
 
-"@tiptap/extension-bold@npm:^2.8.0":
-  version: 2.9.0
-  resolution: "@tiptap/extension-bold@npm:2.9.0"
+"@tiptap/extension-bold@npm:^2.9.1":
+  version: 2.9.1
+  resolution: "@tiptap/extension-bold@npm:2.9.1"
   peerDependencies:
     "@tiptap/core": ^2.7.0
-  checksum: 10/fde5e69cac957235cd4b16f279713554042907dc78d6c5f9e48593b425888032237a54377e1d1492cfc379b050fa7656f2ea5aa8987cf7c36388785a1284a5b3
+  checksum: 10/29dfff87ed20c1b5bc512392af0860b4e6e29c1d819645c8df94ec57f743784cf35fcad940040aa29b3f5a5ee9fd5b09e17db4b80f30e2bfcb7d933b4c146def
   languageName: node
   linkType: hard
 
-"@tiptap/extension-bubble-menu@npm:^2.8.0":
-  version: 2.9.0
-  resolution: "@tiptap/extension-bubble-menu@npm:2.9.0"
+"@tiptap/extension-bubble-menu@npm:^2.9.1":
+  version: 2.9.1
+  resolution: "@tiptap/extension-bubble-menu@npm:2.9.1"
   dependencies:
     tippy.js: "npm:^6.3.7"
   peerDependencies:
     "@tiptap/core": ^2.7.0
     "@tiptap/pm": ^2.7.0
-  checksum: 10/95e522586ed4ab6396c415edb39ef7d5886d565a58ab190b9854c0c01d29e69b8b3c47624e52cfdc2f77f84b508fce9447fc3faa3e18f9272803ec8012686abe
+  checksum: 10/c20b28252d58aa9e82115aa6db4f3cda4b9271dcf7fb2ead26813001e83489b0ffaf1d6a7f2bbd3b79664a355dc7fd2993038dbb86ba2044c10957fafcd53372
   languageName: node
   linkType: hard
 
@@ -7104,9 +7111,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-code-block@npm:^2.8.0":
-  version: 2.9.0
-  resolution: "@tiptap/extension-code-block@npm:2.9.0"
+"@tiptap/extension-code-block@npm:^2.9.1":
+  version: 2.9.1
+  resolution: "@tiptap/extension-code-block@npm:2.9.1"
   peerDependencies:
     "@tiptap/core": ^2.7.0
     "@tiptap/pm": ^2.7.0
@@ -8196,6 +8203,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/cors@npm:^2.8.12":
+  version: 2.8.17
+  resolution: "@types/cors@npm:2.8.17"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10/469bd85e29a35977099a3745c78e489916011169a664e97c4c3d6538143b0a16e4cc72b05b407dc008df3892ed7bf595f9b7c0f1f4680e169565ee9d64966bde
+  languageName: node
+  linkType: hard
+
 "@types/crypto-js@npm:^4.0.2":
   version: 4.2.2
   resolution: "@types/crypto-js@npm:4.2.2"
@@ -8534,6 +8550,15 @@ __metadata:
   dependencies:
     undici-types: "npm:~6.19.2"
   checksum: 10/22a7cb6da6a1cf914016bdcfb1d20399ec549a6220a9fd03253dc995848fa328c9dbeaf291b63bd60b0cf44387044adc80fc8d97401c647711b0b839d0ed4fe5
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:>=10.0.0":
+  version: 22.8.6
+  resolution: "@types/node@npm:22.8.6"
+  dependencies:
+    undici-types: "npm:~6.19.8"
+  checksum: 10/27bb73f033eeec05b4ed52dbc521cac28fb7ac14af267119c9bae0318c97848cd790ac7f0a65924ace7ea717eae62e91bd227da4bd6c0217d0016a7a6cd0a156
   languageName: node
   linkType: hard
 
@@ -9144,6 +9169,18 @@ __metadata:
   version: 1.2.0
   resolution: "@ungap/structured-clone@npm:1.2.0"
   checksum: 10/c6fe89a505e513a7592e1438280db1c075764793a2397877ff1351721fe8792a966a5359769e30242b3cd023f2efb9e63ca2ca88019d73b564488cc20e3eab12
+  languageName: node
+  linkType: hard
+
+"@virtuoso.dev/message-list@npm:^1.9.2":
+  version: 1.9.2
+  resolution: "@virtuoso.dev/message-list@npm:1.9.2"
+  dependencies:
+    "@mdxeditor/gurx": "npm:^1.1.3"
+  peerDependencies:
+    react: ^18.0.0
+    react-dom: ^18.0.0
+  checksum: 10/2a441224a300b5748a1e591b9fa705c42add92bf501914d04ed300f1c00bfc6a98f1dbc73b41f03999b27090b3906ab4a800f87702e3d62fd82462e4bf57cc64
   languageName: node
   linkType: hard
 
@@ -11243,8 +11280,8 @@ __metadata:
     "@faker-js/faker": "npm:^6.3.1"
     "@graphql-yoga/node": "npm:^2.13.13"
     "@mapbox/mapbox-sdk": "npm:^0.13.3"
-    "@sailshq/connect-redis": "npm:^3.2.1"
-    "@sailshq/socket.io-redis": "npm:^5.2.0"
+    "@sailshq/connect-redis": "npm:^6.1.3"
+    "@sailshq/socket.io-redis": "npm:^6.1.2"
     analytics-node: "npm:^1.2.0"
     apple-signin-auth: "npm:^1.2.1"
     async-repl: "npm:0.4.0"
@@ -11339,8 +11376,8 @@ __metadata:
     root-path: "npm:^0.2.1"
     rsa-pem-to-jwk: "npm:^1.1.3"
     s3-upload-stream: "npm:^1.0.7"
-    sails: "npm:^1.4.0"
-    sails-hook-sockets: "npm:^2.0.1"
+    sails: "npm:^1.5.12"
+    sails-hook-sockets: "npm:^3.0.1"
     sanitize-filename: "npm:^1.6.1"
     semver: "npm:^5.4.1"
     sendwithus: "npm:^2.8.0"
@@ -11452,7 +11489,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"base64id@npm:2.0.0":
+"base64id@npm:2.0.0, base64id@npm:~2.0.0":
   version: 2.0.0
   resolution: "base64id@npm:2.0.0"
   checksum: 10/e3312328429e512b0713469c5312f80b447e71592cae0a5bddf3f1adc9c89d1b2ed94156ad7bb9f529398f310df7ff6f3dbe9550735c6a759f247c088ea67364
@@ -13884,7 +13921,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cors@npm:^2.8.5":
+"cors@npm:^2.8.5, cors@npm:~2.8.5":
   version: 2.8.5
   resolution: "cors@npm:2.8.5"
   dependencies:
@@ -15189,7 +15226,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:*, debug@npm:4, debug@npm:^4.0.1, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.4, debug@npm:~4.3.1, debug@npm:~4.3.2":
+"debug@npm:*, debug@npm:4, debug@npm:^4.0.1, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.4, debug@npm:~4.3.1, debug@npm:~4.3.2, debug@npm:~4.3.4":
   version: 4.3.7
   resolution: "debug@npm:4.3.7"
   dependencies:
@@ -15201,7 +15238,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:2, debug@npm:2.6.9, debug@npm:^2.2.0, debug@npm:^2.3.3, debug@npm:^2.6.0, debug@npm:^2.6.8, debug@npm:^2.6.9, debug@npm:~2.6.4, debug@npm:~2.6.8":
+"debug@npm:2, debug@npm:2.6.9, debug@npm:^2.2.0, debug@npm:^2.3.3, debug@npm:^2.6.0, debug@npm:^2.6.8, debug@npm:^2.6.9, debug@npm:~2.6.4":
   version: 2.6.9
   resolution: "debug@npm:2.6.9"
   dependencies:
@@ -16455,19 +16492,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"engine.io-client@npm:~6.5.2":
-  version: 6.5.4
-  resolution: "engine.io-client@npm:6.5.4"
-  dependencies:
-    "@socket.io/component-emitter": "npm:~3.1.0"
-    debug: "npm:~4.3.1"
-    engine.io-parser: "npm:~5.2.1"
-    ws: "npm:~8.17.1"
-    xmlhttprequest-ssl: "npm:~2.0.0"
-  checksum: 10/a91b97cd80e6b048e24887ccac53b143d08ea91c76335870a4aee1427394ba01a7e78ed8d64e518a42fdb297b331ffa80e50fdd26dbc5a08364ea715bf367c59
-  languageName: node
-  linkType: hard
-
 "engine.io-parser@npm:~2.2.0":
   version: 2.2.1
   resolution: "engine.io-parser@npm:2.2.1"
@@ -16488,17 +16512,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"engine.io@npm:~3.6.0":
-  version: 3.6.2
-  resolution: "engine.io@npm:3.6.2"
+"engine.io@npm:~6.5.2":
+  version: 6.5.5
+  resolution: "engine.io@npm:6.5.5"
   dependencies:
+    "@types/cookie": "npm:^0.4.1"
+    "@types/cors": "npm:^2.8.12"
+    "@types/node": "npm:>=10.0.0"
     accepts: "npm:~1.3.4"
     base64id: "npm:2.0.0"
     cookie: "npm:~0.4.1"
-    debug: "npm:~4.1.0"
-    engine.io-parser: "npm:~2.2.0"
-    ws: "npm:~7.5.10"
-  checksum: 10/98fbe92314f4dc1a1c3ac2d7cf01a2ece3a0c8042c612d7d557ec2d58f3c5213bb50399b081f32e1176b7a4f5fea129f7df8a6a5e45024ec530a8602ca4eeccf
+    cors: "npm:~2.8.5"
+    debug: "npm:~4.3.1"
+    engine.io-parser: "npm:~5.2.1"
+    ws: "npm:~8.17.1"
+  checksum: 10/df8562e5249cf122efad77b909fe804b36ac5769676f963c997d4d18c91e014c68bb40661ff92f641b978baa0297be4000c2f3c3d1ce237cd1771952ccc5f38a
   languageName: node
   linkType: hard
 
@@ -17437,6 +17465,15 @@ __metadata:
   peerDependencies:
     eslint: ^3.17.0 || ^4 || ^5 || ^6 || ^7 || ^8
   checksum: 10/fb2d65a3faca9bf775a0fa430eb7e86b7c27d0b256916d4f79a94def9ad353c8a10605f1f0dc9a5fb10e446b003341d53af9d8cbca4dd7ba394350355efa30c6
+  languageName: node
+  linkType: hard
+
+"eslint-plugin-react-refresh@npm:^0.4.13":
+  version: 0.4.14
+  resolution: "eslint-plugin-react-refresh@npm:0.4.14"
+  peerDependencies:
+    eslint: ">=7"
+  checksum: 10/295ddf50cbe03187133f855f76baf88c92ce487971cdbc0ab33e037dc5d3d187fe2f809633eaa94da2769859963664b8c5b745db4812c644a1c535fe8823a045
   languageName: node
   linkType: hard
 
@@ -21074,18 +21111,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"http-proxy-middleware@npm:0.17.4":
-  version: 0.17.4
-  resolution: "http-proxy-middleware@npm:0.17.4"
-  dependencies:
-    http-proxy: "npm:^1.16.2"
-    is-glob: "npm:^3.1.0"
-    lodash: "npm:^4.17.2"
-    micromatch: "npm:^2.3.11"
-  checksum: 10/b22db19a0cd2c9434a3a000175d5cd28aefb40199d65a5d018c6a3727d03ec701f513119aa0dcae010265270c2b326c0ba0a1a62ad47f905ec8407c02b1ecab1
-  languageName: node
-  linkType: hard
-
 "http-proxy-middleware@npm:^2.0.3":
   version: 2.0.7
   resolution: "http-proxy-middleware@npm:2.0.7"
@@ -21104,7 +21129,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"http-proxy@npm:^1.16.2, http-proxy@npm:^1.17.0, http-proxy@npm:^1.18.1":
+"http-proxy@npm:^1.17.0, http-proxy@npm:^1.18.1":
   version: 1.18.1
   resolution: "http-proxy@npm:1.18.1"
   dependencies:
@@ -25359,7 +25384,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash@npm:4.17.21, lodash@npm:^4.0.0, lodash@npm:^4.17.10, lodash@npm:^4.17.14, lodash@npm:^4.17.15, lodash@npm:^4.17.19, lodash@npm:^4.17.2, lodash@npm:^4.17.20, lodash@npm:^4.17.21, lodash@npm:^4.17.4, lodash@npm:^4.17.5, lodash@npm:^4.3.0, lodash@npm:^4.7.0, lodash@npm:~4.17.19, lodash@npm:~4.17.21":
+"lodash@npm:4.17.21, lodash@npm:^4.0.0, lodash@npm:^4.17.10, lodash@npm:^4.17.14, lodash@npm:^4.17.15, lodash@npm:^4.17.19, lodash@npm:^4.17.20, lodash@npm:^4.17.21, lodash@npm:^4.17.4, lodash@npm:^4.17.5, lodash@npm:^4.3.0, lodash@npm:^4.7.0, lodash@npm:~4.17.19, lodash@npm:~4.17.21":
   version: 4.17.21
   resolution: "lodash@npm:4.17.21"
   checksum: 10/c08619c038846ea6ac754abd6dd29d2568aa705feb69339e836dfa8d8b09abbb2f859371e86863eda41848221f9af43714491467b5b0299122431e202bb0c532
@@ -26836,9 +26861,9 @@ __metadata:
     "@flyerhq/react-native-keyboard-accessory-view": "npm:^2.4.0"
     "@hylo/shared": "workspace:*"
     "@intercom/intercom-react-native": "npm:^6.8.1"
-    "@invertase/react-native-apple-authentication": "npm:^2.3.0"
+    "@invertase/react-native-apple-authentication": "npm:^2.4.0"
     "@native-html/iframe-plugin": "npm:^2.6.1"
-    "@react-native-async-storage/async-storage": "npm:^1.24.0"
+    "@react-native-async-storage/async-storage": "npm:^2.0.0"
     "@react-native-clipboard/clipboard": "npm:^1.14.1"
     "@react-native-community/checkbox": "npm:^0.5.17"
     "@react-native-community/eslint-config": "npm:^3.2.0"
@@ -26911,7 +26936,7 @@ __metadata:
     react-native-config: "npm:^1.5.3"
     react-native-confirmation-code-field: "npm:^7.4.0"
     react-native-date-picker: "npm:^4.2.6"
-    react-native-device-info: "npm:^10.3.0"
+    react-native-device-info: "npm:^14.0.0"
     react-native-document-picker: "npm:^8.1.2"
     react-native-fast-image: "npm:^8.6.3"
     react-native-geolocation-service: "npm:^5.3.1"
@@ -27793,10 +27818,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"notepack.io@npm:~2.1.0, notepack.io@npm:~2.1.2":
+"notepack.io@npm:~2.1.0":
   version: 2.1.3
   resolution: "notepack.io@npm:2.1.3"
   checksum: 10/76f1b98cc1f6a9c56a3c2bf75095b6f3e456d448470d46eee22f13a71c80e703ab31230834fdabc50b819fcffbcf1005e5027b1cd1d2a87d8e99f51dc0e6194c
+  languageName: node
+  linkType: hard
+
+"notepack.io@npm:~2.2.0":
+  version: 2.2.0
+  resolution: "notepack.io@npm:2.2.0"
+  checksum: 10/172a25ba48f79dc49e60c5e223361a15f71083624bd8543189a7c1b48b4abf15fcff658a894aab986c045d4d2740505c41db39de372fdaf809e0957cf3f2bd0e
   languageName: node
   linkType: hard
 
@@ -32537,12 +32569,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-device-info@npm:^10.3.0":
-  version: 10.14.0
-  resolution: "react-native-device-info@npm:10.14.0"
+"react-native-device-info@npm:^14.0.0":
+  version: 14.0.0
+  resolution: "react-native-device-info@npm:14.0.0"
   peerDependencies:
     react-native: "*"
-  checksum: 10/61cfbb4d0e61eae61ba026c443ca22c7812e7ba632f812d32593de58d8c4553b8b6ff92b3fd07616dc78266f935756e0a5c657999b421d3ece0f64a38ac359a3
+  checksum: 10/7fb7b21e43940793fa5cc5fe55237e383403b44fc31b2b47ba93f31624a616bc0d24320a3eb23f25cb0ad31ee6dba6372febb88857e38c33a677181b9e719c10
   languageName: node
   linkType: hard
 
@@ -33589,7 +33621,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"redis-parser@npm:^2.0.0, redis-parser@npm:^2.6.0":
+"redis-parser@npm:^2.0.0":
   version: 2.6.0
   resolution: "redis-parser@npm:2.6.0"
   checksum: 10/79786a19680eed2d8d05055f9942f8b5ad52bbc901943dd557b2032f2fffe545e03bf24e7c903d68a89586adaaa70421f7d52f432dd0992503fc6c3ba5523f1b
@@ -33635,14 +33667,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"redis@npm:^2.1.0":
-  version: 2.8.0
-  resolution: "redis@npm:2.8.0"
+"redis@npm:^3.0.0":
+  version: 3.1.2
+  resolution: "redis@npm:3.1.2"
   dependencies:
-    double-ended-queue: "npm:^2.1.0-0"
-    redis-commands: "npm:^1.2.0"
-    redis-parser: "npm:^2.6.0"
-  checksum: 10/2ce08ac5fd1ee7a0a48dedf3a886e878c208391cbe65f3d36df9e32e06dca161c5b0a1e922a877221b17c30bc1c31ca96947aaee1bddeaea9a0fe53c3494d96e
+    denque: "npm:^1.5.0"
+    redis-commands: "npm:^1.7.0"
+    redis-errors: "npm:^1.2.0"
+    redis-parser: "npm:^3.0.0"
+  checksum: 10/a8a2973bbfe98b4fd295f4e560d212106887e7adecfa23f9ee3207cefac080f261a06027a867293f8ed78ebc18e2541e132eea8642af7283e75ef7aa61c2a83a
   languageName: node
   linkType: hard
 
@@ -34879,9 +34912,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sails-hook-sockets@npm:^2.0.1":
-  version: 2.0.4
-  resolution: "sails-hook-sockets@npm:2.0.4"
+"sails-hook-sockets@npm:^3.0.1":
+  version: 3.0.1
+  resolution: "sails-hook-sockets@npm:3.0.1"
   dependencies:
     "@sailshq/lodash": "npm:^3.10.2"
     async: "npm:2.6.4"
@@ -34890,9 +34923,9 @@ __metadata:
     machinepack-urls: "npm:^6.0.2-0"
     proxy-addr: "npm:1.1.5"
     semver: "npm:7.5.2"
-    socket.io: "npm:2.5.0"
+    socket.io: "npm:4.7.5"
     uid2: "npm:0.0.3"
-  checksum: 10/5622e8e0d3f79ea097e92bd6867e9bab4ea4372ddb4d2e2b5c67aa05d6465ba64dd410bff6a8c2c1c9422b75001788e91d052917cb75896fc710515923e37856
+  checksum: 10/409c9dd581b33d3937c29d4b191eca1b90c8af81c1f0fa0730a4c342ad4802a2bb5738f2f78229fbcf99b45401efba44416e44cd8f962222591a807a8ca643ab
   languageName: node
   linkType: hard
 
@@ -34920,7 +34953,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sails@npm:^1.4.0":
+"sails@npm:^1.5.12":
   version: 1.5.12
   resolution: "sails@npm:1.5.12"
   dependencies:
@@ -35932,10 +35965,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"socket.io-adapter@npm:~1.1.0":
-  version: 1.1.2
-  resolution: "socket.io-adapter@npm:1.1.2"
-  checksum: 10/50a3c0fe9bf5aab77a260174ebe41fea20a5d31857e229b49b3cd677489915409a84736a869beb4b20cdf73a4385a2aa24e445d3a09e0fb581e144bf42c4eda2
+"socket.io-adapter@npm:~2.2.0":
+  version: 2.2.0
+  resolution: "socket.io-adapter@npm:2.2.0"
+  checksum: 10/751d161f973ec8d8112ebce5715daf06f79c5ed1d9388f4856c62094cf9eecfbd917142add339517eb1c6f84ee8b04377a799888a1e3207567d28d516088e656
+  languageName: node
+  linkType: hard
+
+"socket.io-adapter@npm:~2.5.2":
+  version: 2.5.5
+  resolution: "socket.io-adapter@npm:2.5.5"
+  dependencies:
+    debug: "npm:~4.3.4"
+    ws: "npm:~8.17.1"
+  checksum: 10/e364733a4c34ff1d4a02219e409bd48074fd614b7f5b0568ccfa30dd553252a5b9a41056931306a276891d13ea76a19e2c6f2128a4675c37323f642896874d80
   languageName: node
   linkType: hard
 
@@ -35958,7 +36001,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"socket.io-client@npm:2.5.0, socket.io-client@npm:^2.3.1":
+"socket.io-client@npm:^2.3.1":
   version: 2.5.0
   resolution: "socket.io-client@npm:2.5.0"
   dependencies:
@@ -35974,18 +36017,6 @@ __metadata:
     socket.io-parser: "npm:~3.3.0"
     to-array: "npm:0.1.4"
   checksum: 10/c0587528782992337654ae8be424a6c2ddb3619aa8b43ebbd4fd5d9151817fa530d9f5f5389bc22dfb821ae7f7b59f8568064ed9dc26dfe55cf35e17a1e5762a
-  languageName: node
-  linkType: hard
-
-"socket.io-client@npm:4.7.5":
-  version: 4.7.5
-  resolution: "socket.io-client@npm:4.7.5"
-  dependencies:
-    "@socket.io/component-emitter": "npm:~3.1.0"
-    debug: "npm:~4.3.2"
-    engine.io-client: "npm:~6.5.2"
-    socket.io-parser: "npm:~4.2.4"
-  checksum: 10/a9e118081dc1669a63af3abd9defce94f85c8ed8d9146cd7a77665b5f1f78baf0b9f4155cf0fce7770856f97493416551abcba686f02778045f4768ceaafed5c
   languageName: node
   linkType: hard
 
@@ -36024,17 +36055,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"socket.io-parser@npm:~3.4.0":
-  version: 3.4.3
-  resolution: "socket.io-parser@npm:3.4.3"
-  dependencies:
-    component-emitter: "npm:1.2.1"
-    debug: "npm:~4.1.0"
-    isarray: "npm:2.0.1"
-  checksum: 10/8fee93afdf7bbe3c3d09e0e9b81019a133077e75af4569d38bf147f979bf4510607844f4ccd8ced6b530577f10cd827302e02b9ceaf6c36f5105ec2df77b68fa
-  languageName: node
-  linkType: hard
-
 "socket.io-parser@npm:~4.2.4":
   version: 4.2.4
   resolution: "socket.io-parser@npm:4.2.4"
@@ -36045,17 +36065,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"socket.io@npm:2.5.0":
-  version: 2.5.0
-  resolution: "socket.io@npm:2.5.0"
+"socket.io@npm:4.7.5":
+  version: 4.7.5
+  resolution: "socket.io@npm:4.7.5"
   dependencies:
-    debug: "npm:~4.1.0"
-    engine.io: "npm:~3.6.0"
-    has-binary2: "npm:~1.0.2"
-    socket.io-adapter: "npm:~1.1.0"
-    socket.io-client: "npm:2.5.0"
-    socket.io-parser: "npm:~3.4.0"
-  checksum: 10/c418e062adf1f8682b2f195cd2d94738beefe9a4ff5c9bda7c0ff78b0c8e9c150c0a20f8238df32ea1081c341f135f84ba71ce916cd2a5ea3b61d306b0d4cc21
+    accepts: "npm:~1.3.4"
+    base64id: "npm:~2.0.0"
+    cors: "npm:~2.8.5"
+    debug: "npm:~4.3.2"
+    engine.io: "npm:~6.5.2"
+    socket.io-adapter: "npm:~2.5.2"
+    socket.io-parser: "npm:~4.2.4"
+  checksum: 10/911528f5bfdf83dbe2b154866884b736a7498f112f294a6f8420418fa11baadf08578869dab3e220c943094ff0d17b7f4587de3b1ad39679d9c12ed4cb226900
   languageName: node
   linkType: hard
 
@@ -38743,7 +38764,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici-types@npm:~6.19.2":
+"undici-types@npm:~6.19.2, undici-types@npm:~6.19.8":
   version: 6.19.8
   resolution: "undici-types@npm:6.19.8"
   checksum: 10/cf0b48ed4fc99baf56584afa91aaffa5010c268b8842f62e02f752df209e3dea138b372a60a963b3b2576ed932f32329ce7ddb9cb5f27a6c83040d8cd74b7a70
@@ -39824,6 +39845,7 @@ __metadata:
     "@types/hoist-non-react-statics": "npm:^3.3.5"
     "@types/react": "npm:^18.3.5"
     "@types/react-css-modules": "npm:^4.6.8"
+    "@virtuoso.dev/message-list": "npm:^1.9.2"
     "@vitejs/plugin-react": "npm:^4.3.1"
     ansi-styles: "npm:^3.2.1"
     app-module-path: "npm:^2.2.0"
@@ -39880,6 +39902,7 @@ __metadata:
     eslint-plugin-promise: "npm:^7.1.0"
     eslint-plugin-react: "npm:^7.36.1"
     eslint-plugin-react-hooks: "npm:^5.1.0-rc-206df66e-20240912"
+    eslint-plugin-react-refresh: "npm:^0.4.13"
     eslint-plugin-testing-library: "npm:^6.3.0"
     express: "npm:^4.15.5"
     file-loader: "npm:6.2.0"
@@ -39894,7 +39917,6 @@ __metadata:
     h3: "npm:^2.0.0"
     history: "npm:^5.3.0"
     html-webpack-plugin: "npm:^5.6.0"
-    http-proxy-middleware: "npm:0.17.4"
     husky: "npm:^7.0.4"
     i18next: "npm:^22.0.5"
     i18next-browser-languagedetector: "npm:^7.0.1"
@@ -39996,7 +40018,7 @@ __metadata:
     sass-resources-loader: "npm:^2.2.5"
     scroll-into-view-if-needed: "npm:^2.2.29"
     slick-carousel: "npm:^1.8.1"
-    socket.io-client: "npm:4.7.5"
+    socket.io-client: "npm:2.3.1"
     standard: "npm:17.1.2"
     standard-loader: "npm:^7.0.0"
     streamifier: "npm:^0.1.1"
@@ -40978,13 +41000,6 @@ __metadata:
   version: 1.6.3
   resolution: "xmlhttprequest-ssl@npm:1.6.3"
   checksum: 10/525dc9ecc7ce11c0404284e3580ea594d5414588adb3e4e52cd9b3c1a892b1f9f27e2cfb2299868de10aba57ca68ee476d6b26f9ba287dec48cc960f2f811cb3
-  languageName: node
-  linkType: hard
-
-"xmlhttprequest-ssl@npm:~2.0.0":
-  version: 2.0.0
-  resolution: "xmlhttprequest-ssl@npm:2.0.0"
-  checksum: 10/3c2edfce0c49c7a494ed16c87e6897c9e3eba29763a5505526de83ddefd195d224fa5cdf41092298c99cd6ee473c9f259a0679f6ff3b8a9535dcd09900db91f9
   languageName: node
   linkType: hard
 

@@ -91,6 +91,8 @@
   padding: 0 10px 0 15px;
   height: 30px;
   line-height: 30px;
+  min-width: 130px;
+  text-align: center;
 }
 
 .card-item {
@@ -183,7 +185,7 @@
   position: absolute;
   bottom: 5px;
   padding: 0;
-  line-height: 26px;
+  line-height: 20px;
   right: 5px;
   width: 25px;
   height: 25px;

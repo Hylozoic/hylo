@@ -120,7 +120,8 @@ export default function PostBodyProposal ({
       [classes.casual]: proposalStatus === PROPOSAL_STATUS_CASUAL,
       [classes.completed]: votingComplete,
       [classes.isFlagged]: isFlagged
-    })}>
+    })}
+    >
       <div className={classes.proposalStatus}>
         {isAnonymousVote && <Icon name='Hidden' className={classes.anonymousVoting} tooltipContent={t('Anonymous voting')} tooltipId='anon-tt' />}
         {proposalStatus === PROPOSAL_STATUS_DISCUSSION && t('Discussion in progress')}

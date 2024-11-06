@@ -7,7 +7,7 @@ const defaultMinProps = {
   items: []
 }
 
-function renderComponent(props = {}) {
+function renderComponent (props = {}) {
   return render(
     <GroupsWidget {...{ ...defaultMinProps, ...props }} />
   )

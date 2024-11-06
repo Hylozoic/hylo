@@ -8,7 +8,7 @@ describe('ScrollListener', () => {
     const element = { scrollTop: 0 }
 
     const { getByTestId } = render(
-      <div data-testid="scroll-container">
+      <div data-testid='scroll-container'>
         <ScrollListener element={element} onLeaveTop={onLeaveTop} />
       </div>
     )
@@ -25,7 +25,7 @@ describe('ScrollListener', () => {
     const element = { scrollTop: 1 }
 
     const { getByTestId } = render(
-      <div data-testid="scroll-container">
+      <div data-testid='scroll-container'>
         <ScrollListener element={element} onTop={onTop} />
       </div>
     )

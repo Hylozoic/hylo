@@ -148,18 +148,21 @@ export default class MessageSection extends React.Component {
   render () {
     const { messages, pending, messageThread } = this.props
 
-    return <div className={cx(classes.messagesSection)}
-      ref={this.list}
-      onScroll={this.handleScroll}>
-      {pending && <Loading />}
-      {!pending &&
-        <div className={cx(classes.messagesSectionInner)}>
-          <ClickCatcher>
-            {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
-          </ClickCatcher>
-        </div>
-      }
-    </div>
+    return (
+      <div
+        className={cx(classes.messagesSection)}
+        ref={this.list}
+        onScroll={this.handleScroll}
+      >
+        {pending && <Loading />}
+        {!pending &&
+          <div className={cx(classes.messagesSectionInner)}>
+            <ClickCatcher>
+              {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
+            </ClickCatcher>
+          </div>}
+      </div>
+    )
   }
 }
 

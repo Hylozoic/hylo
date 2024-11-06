@@ -10,7 +10,7 @@ import { CURRENT_USER_PROP_TYPES } from 'store/models/Me'
 import classes from './PostFooter.module.scss'
 
 class PostFooter extends React.PureComponent {
-  static propTypes= {
+  static propTypes = {
     currentUser: PropTypes.shape(CURRENT_USER_PROP_TYPES),
     commenters: PropTypes.array,
     commentersTotal: PropTypes.number,

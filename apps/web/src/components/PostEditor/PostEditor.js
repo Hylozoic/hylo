@@ -478,7 +478,7 @@ function PostEditor ({
       title,
       topics,
       type
-    } = post
+    } = currentPost
     const details = editorRef.current.getHTML()
     const topicNames = topics?.map((t) => t.name)
     const memberIds = members && members.map((m) => m.id)
@@ -495,7 +495,6 @@ function PostEditor ({
       locationId
     })
 
-    console.log("proposaloptions", proposalOptions)
     const postToSave = {
       id,
       acceptContributions,

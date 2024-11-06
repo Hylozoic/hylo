@@ -1,4 +1,3 @@
-
 module.exports = function (api) {
   if (api) {
     api.cache(true)

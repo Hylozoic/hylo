@@ -8,7 +8,7 @@ export default function apiProxy (req, res, next) {
   if (!req.originalUrl.startsWith('/noo') &&
     !req.originalUrl.startsWith('/admin/kue')) return next()
 
-  let url = API_HOST + req.originalUrl
+  const url = API_HOST + req.originalUrl
 
   request.delete = request.delete || request.del
   const method = request[req.method.toLowerCase()]

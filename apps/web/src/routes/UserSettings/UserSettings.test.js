@@ -22,7 +22,7 @@ describe('UserSettings', () => {
     const ormSession = orm.session(orm.getEmptyState())
     extractModelsForTest({
       me: currentUser,
-      memberships: memberships
+      memberships
     }, ['Me', 'Membership'], ormSession)
 
     reduxState = {
@@ -67,8 +67,8 @@ describe('UserSettings', () => {
   })
 
   it('does not render Payment tab when user does not have PROJECT_CONTRIBUTIONS feature', () => {
-     // Update the currentUser to have no blocked users
-     const currentUserWithNoBlockedUsers = {
+    // Update the currentUser to have no blocked users
+    const currentUserWithNoBlockedUsers = {
       ...reduxState.orm.Me.itemsById['1'],
       hasFeature: () => false
     }

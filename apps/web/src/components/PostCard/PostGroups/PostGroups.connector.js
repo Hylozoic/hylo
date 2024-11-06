@@ -1,8 +1,8 @@
 import { connect } from 'react-redux'
 
 export function mapStateToProps (state, props) {
-  let isPublic = props.isPublic
-  let groupsPlusPublic = props.groups
+  const isPublic = props.isPublic
+  const groupsPlusPublic = props.groups
 
   if (isPublic) {
     groupsPlusPublic.unshift({ name: 'Public', id: 'public', avatarUrl: '/public-icon.svg', slug: 'public' })

@@ -25,6 +25,14 @@
   .ProseMirror a {
     cursor: pointer;
   }
+
+  .ProseMirror ul {
+    list-style-type: disc;
+  }
+
+  .ProseMirror ol {
+    list-style-type: decimal;
+  }
 }
 
 .addLinkPreviewButton {
@@ -110,6 +118,8 @@
       color: $color-rhino-50;
       padding: 0.2rem;
       position: relative;
+      max-height: 180px;
+      overflow-y: auto;
     }
 
     .suggestion-list-item {
@@ -119,7 +129,6 @@
       border-radius: 0.4rem;
       align-items: center;
       justify-content: flex-start;
-      overflow: hidden;
       flex-wrap: nowrap;
       margin: 0;
       padding: 0.2rem 0.4rem;

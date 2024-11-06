@@ -8,7 +8,7 @@ export function createScatterplotLayerFromPublicGroups (publicGroups, onHover, o
         id: group.id,
         type: 'group',
         message: 'Group: ' + group.name,
-        color: FEATURE_TYPES['group'].primaryColor,
+        color: FEATURE_TYPES.group.primaryColor,
         coordinates: [parseFloat(group.locationObject.center.lng), parseFloat(group.locationObject.center.lat)]
       }
     }), onHover, onClick)
@@ -16,7 +16,7 @@ export function createScatterplotLayerFromPublicGroups (publicGroups, onHover, o
 
 export function createScatterplotLayer (id, data, onHover, onClick) {
   return new ScatterplotLayer({
-    id: id || `scatterplot-layer`,
+    id: id || 'scatterplot-layer',
     data,
     getPosition: d => d.coordinates,
     getRadius: 10,

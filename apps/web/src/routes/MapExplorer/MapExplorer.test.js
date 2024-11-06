@@ -8,8 +8,8 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({}),
   useLocation: () => ({
     pathname: '/map',
-    search: '',
-  }),
+    search: ''
+  })
 }))
 
 describe('MapExplorer', () => {
@@ -27,7 +27,7 @@ describe('MapExplorer', () => {
     routeParams: {},
     storeFetchPostsParam: jest.fn(),
     topics: [],
-    zoom: 0,
+    zoom: 0
   }
 
   it('renders the map container', () => {
@@ -93,7 +93,7 @@ describe('MapExplorer', () => {
   it('does not render the MapDrawer when hideDrawer is true', () => {
     render(
       <AllTheProviders>
-        <MapExplorer {...defaultProps} hideDrawer={true} />
+        <MapExplorer {...defaultProps} hideDrawer />
       </AllTheProviders>
     )
 

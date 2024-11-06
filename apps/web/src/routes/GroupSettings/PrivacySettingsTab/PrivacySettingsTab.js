@@ -182,7 +182,8 @@ class PrivacySettingsTab extends Component {
               <SwitchStyled
                 checked={askGroupToGroupJoinQuestions}
                 onChange={() => this.updateSettingDirectly('settings.askGroupToGroupJoinQuestions')(!askGroupToGroupJoinQuestions)}
-                backgroundColor={askGroupToGroupJoinQuestions ? '#0DC39F' : '#8B96A4'} />
+                backgroundColor={askGroupToGroupJoinQuestions ? '#0DC39F' : '#8B96A4'}
+              />
               <span className={general.toggleDescription}>{t('Require groups to answer questions when requesting to join this group')}</span>
               <div className={general.onOff}>
                 <div className={general.off}>{t('OFF')}</div>
@@ -211,7 +212,7 @@ class PrivacySettingsTab extends Component {
                 </div>
               </div>
             </SettingsSection>
-          )
+            )
           : ''}
 
         <div className={general.saveChanges}>
@@ -275,11 +276,15 @@ function QuestionsForm ({ disabled, questions, save }) {
     updateJoinQuestion(index)(event)
   }
 
-  return <div className={styles.questionList}>
-    {questions.map((q, i) => <div key={i} className={styles.question}>
-      {q.text ? <div className={styles.deleteInput}><Icon name='CircleEx' className={styles.close} onClick={clearField(i)} /></div> : <span className={styles.createInput}>+</span>}
-      <input name='questions[]' disabled={disabled} value={q.text} placeholder={t('Add a new question')} onChange={updateJoinQuestion(i)} />
-    </div>)}
-  </div>
+  return (
+    <div className={styles.questionList}>
+      {questions.map((q, i) => (
+        <div key={i} className={styles.question}>
+          {q.text ? <div className={styles.deleteInput}><Icon name='CircleEx' className={styles.close} onClick={clearField(i)} /></div> : <span className={styles.createInput}>+</span>}
+          <input name='questions[]' disabled={disabled} value={q.text} placeholder={t('Add a new question')} onChange={updateJoinQuestion(i)} />
+        </div>
+      ))}
+    </div>
+  )
 }
 export default withTranslation()(PrivacySettingsTab)

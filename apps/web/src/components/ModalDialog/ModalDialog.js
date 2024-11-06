@@ -122,11 +122,11 @@ class ModalDialog extends Component {
 
     const backgroundStyle = backgroundImage && useNotificationFormat
       ? {
-        ...bgImageStyle(`/assets/${backgroundImage}`),
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'bottom left',
-        backgroundSize: '180px'
-      }
+          ...bgImageStyle(`/assets/${backgroundImage}`),
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'bottom left',
+          backgroundSize: '180px'
+        }
       : {}
     const innerStyle = { ...backgroundStyle, ...style }
     const showControls = showCancelButton || showSubmitButton

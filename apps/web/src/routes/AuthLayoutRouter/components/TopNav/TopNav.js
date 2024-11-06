@@ -79,11 +79,13 @@ export default function TopNav (props) {
           <Link to='/search'><Icon name='Search' className={styles.icon} /></Link>
           <Suspense fallback={<BadgedIcon name='Messages' className={styles.icon} />}>
             <MessagesDropdown renderToggleChildren={showBadge =>
-              <BadgedIcon name='Messages' className={styles.icon} showBadge={showBadge} />} />
+              <BadgedIcon name='Messages' className={styles.icon} showBadge={showBadge} />}
+            />
           </Suspense>
           <Suspense fallback={<BadgedIcon name='Notifications' className={styles.icon} />}>
             <NotificationsDropdown renderToggleChildren={showBadge =>
-              <BadgedIcon name='Notifications' className={styles.icon} showBadge={showBadge} />} />
+              <BadgedIcon name='Notifications' className={styles.icon} showBadge={showBadge} />}
+            />
           </Suspense>
           <Dropdown
             className={cx(styles.navMenu, styles.userMenu)}

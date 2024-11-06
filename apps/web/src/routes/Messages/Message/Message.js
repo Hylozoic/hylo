@@ -1,6 +1,6 @@
+import cx from 'classnames'
 import PropTypes from 'prop-types'
 import React from 'react'
-import cx from 'classnames'
 import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
@@ -17,7 +17,6 @@ export default function Message ({ message, isHeader }) {
   const text = pending
     ? 'sending...'
     : TextHelpers.markdown(message.text)
-  const sName = cx('message', { messageHeader: isHeader })
 
   return (
     <div className={cx(classes.message, { [classes.messageHeader]: isHeader })} data-message-id={message.id}>
@@ -25,10 +24,12 @@ export default function Message ({ message, isHeader }) {
         {isHeader && <Avatar url={personUrl(person.id)} avatarUrl={person.avatarUrl} />}
       </div>
       <div className={classes.content}>
-        {isHeader && <div>
-          <span className={classes.name}>{person.name}</span>
-          <span className={classes.date}>{pending ? 'sending...' : TextHelpers.humanDate(message.createdAt)}</span>
-        </div>}
+        {isHeader && (
+          <div>
+            <span className={classes.name}>{person.name}</span>
+            <span className={classes.date}>{pending ? 'sending...' : TextHelpers.humanDate(message.createdAt)}</span>
+          </div>
+        )}
         <div className={classes.text}>
           <ClickCatcher>
             <HyloHTML element='span' html={text} />

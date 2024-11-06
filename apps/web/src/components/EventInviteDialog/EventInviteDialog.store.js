@@ -24,7 +24,7 @@ export const peopleSelector = createSelector(
       reduce((result, c) => result.concat(c.members.toModelArray()), []),
       uniqBy('id'),
       reject(p => currentUser ? currentUser.id === p.id : false),
-      map(pick([ 'id', 'name', 'avatarUrl' ])),
+      map(pick(['id', 'name', 'avatarUrl'])),
       orderBy([user => user.name.toLowerCase()], ['asc'])
     ]
 

@@ -40,7 +40,8 @@ export default function GroupCard ({
     <Link to={linkTo} className={classes.groupLink}>
       <div
         onClick={onClick}
-        className={cx(classes.card, { [classes.expanded]: expanded, [classes.constrained]: constrained }, className)}>
+        className={cx(classes.card, { [classes.expanded]: expanded, [classes.constrained]: constrained }, className)}
+      >
         <GroupHeader
           {...group}
           group={group}

@@ -1,5 +1,5 @@
 import { GraphQLYogaError } from '@graphql-yoga/node'
-import { curry, includes, isEmpty, values } from 'lodash'
+import { chain, curry, includes, isEmpty, values } from 'lodash'
 import moment from 'moment-timezone'
 import addTermToQueryBuilder from './addTermToQueryBuilder'
 
@@ -152,9 +152,18 @@ export const filterAndSortPosts = curry((opts, q) => {
 
 export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, commonRoleId, order, search, sortBy }, q) => {
   if (autocomplete) {
-    addTermToQueryBuilder(autocomplete, q, {
-      columns: ['users.name']
-    })
+    const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
+      .map(word => word.replace(/[,;|:&()!\\]+/, ''))
+      .reject(isEmpty)
+      .map(word => word + ':*') // add prefix matching
+      .reduce((result, word) => {
+        // build the tsquery string using logical AND operands
+        result += ' & ' + word
+        return result
+      }).value()
+
+    q.whereRaw('to_tsvector(\'simple\', users.name) @@ to_tsquery(\'simple\', ?)', [query])
+    q.orderByRaw('ts_rank_cd(to_tsvector(\'simple\', users.name), to_tsquery(\'simple\', ?)) DESC', [query])
   }
 
   if (groupRoleId) {

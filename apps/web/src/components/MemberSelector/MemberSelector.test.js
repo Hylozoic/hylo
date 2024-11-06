@@ -14,7 +14,7 @@ describe('MemberSelector', () => {
     memberMatches: []
   }
 
-  function renderComponent(props = {}) {
+  function renderComponent (props = {}) {
     return render(<MemberSelector {...{ ...defaultMinProps, ...props }} />)
   }
 
@@ -74,7 +74,7 @@ describe('Suggestion', () => {
     handleChoice: jest.fn()
   }
 
-  function renderComponent(props = {}) {
+  function renderComponent (props = {}) {
     return render(<Suggestion {...{ ...defaultMinProps, ...props }} />)
   }
 

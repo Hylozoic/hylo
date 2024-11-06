@@ -1,7 +1,7 @@
 import { createStore } from 'redux'
 import createMiddleware from './middleware'
 import { createBrowserHistory } from 'history'
-import { createReduxHistoryContext } from "redux-first-history";
+import { createReduxHistoryContext } from 'redux-first-history'
 import createRootReducer, { createCombinedReducers } from './reducers'
 
 const {

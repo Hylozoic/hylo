@@ -15,7 +15,7 @@ export default function GroupExplorer ({
   const handleChangeViewFilter = (value) => setViewFilter(value)
 
   return (
-    <React.Fragment>
+    <>
       <Helmet>
         <title>Group Explorer | Hylo</title>
         <meta name='description' content='Find the others on Hylo' />
@@ -23,6 +23,6 @@ export default function GroupExplorer ({
       <ExplorerBanner />
       <GroupViewFilter viewFilter={viewFilter} changeView={handleChangeViewFilter} />
       <GroupSearch viewFilter={viewFilter} />
-    </React.Fragment>
+    </>
   )
 }

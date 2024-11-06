@@ -8,12 +8,13 @@ import { fixupPluginRules } from '@eslint/compat'
 // import eslintConfigPrettier from 'eslint-config-prettier'
 // import eslintConfigStandard from 'eslint-config-standard'
 // import importPlugin from 'eslint-plugin-import'
-// import jest from 'eslint-plugin-jest'
+import jest from 'eslint-plugin-jest'
 // import nPlugin from 'eslint-plugin-n'
 // import promisePlugin from 'eslint-plugin-promise'
 import react from 'eslint-plugin-react'
 import reactHooksPlugin from 'eslint-plugin-react-hooks'
-// import testingLibrary from 'eslint-plugin-testing-library'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import testingLibrary from 'eslint-plugin-testing-library'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -40,10 +41,11 @@ export default [
     files: ['**/*.{js,jsx,ts,tsx,mjs,cjs}'],
     plugins: {
       react,
-      reactHooksPlugin
+      reactHooksPlugin,
+      'react-refresh': reactRefresh,
+      jest,
+      testingLibrary
       // 'react-hooks': fixupPluginRules(reactHooksPlugin)
-      // jest,
-      // 'testing-library': testingLibrary,
       // import: importPlugin,
       // n: nPlugin,
       // promise: promisePlugin
@@ -85,6 +87,10 @@ export default [
       'react/jsx-handler-names': 'off',
       'react/jsx-fragments': 'warn',
       'react/jsx-wrap-multilines': 'warn',
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true, checkJS: false }
+      ],
       'eslint/indent': 'off',
       'react-hooks/exhaustive-deps': 'off'
       // 'import/export': 'off',

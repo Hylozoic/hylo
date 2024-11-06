@@ -25,13 +25,13 @@ export default function NavLink ({ to, exact, label, icon, badge, onClick, colla
   const active = location.pathname === to
 
   return (
-      <li className={cx(classes.item, { [classes.active]: active, [classes.collapsed]: collapsed })}>
-        <Link to={to} className={cx(classes.link, { [classes.collapsed]: collapsed })} onClick={onClick}>
-          <BadgedIcon name={icon} green={active} showBadge={collapsed && badge} className={classes.icon} />
-          <span className={classes.label}>{label}</span>
-          <Badge number={badge} expanded={!collapsed} />
-          {home ? <Icon name='Home' /> : ''}
-        </Link>
-      </li>
+    <li className={cx(classes.item, { [classes.active]: active, [classes.collapsed]: collapsed })}>
+      <Link to={to} className={cx(classes.link, { [classes.collapsed]: collapsed })} onClick={onClick}>
+        <BadgedIcon name={icon} green={active} showBadge={collapsed && badge} className={classes.icon} />
+        <span className={classes.label}>{label}</span>
+        <Badge number={badge} expanded={!collapsed} />
+        {home ? <Icon name='Home' /> : ''}
+      </Link>
+    </li>
   )
 }

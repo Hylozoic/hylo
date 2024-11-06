@@ -3,7 +3,7 @@ import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
 import moment from 'moment-timezone'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import ReactPlayer from 'react-player'
 import { useLongPress } from 'use-long-press'
@@ -27,22 +27,21 @@ import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
 import { bgImageStyle } from 'util/index'
 import isWebView from 'util/webView'
-import { personUrl } from 'util/navigation'
+import updatePost from 'store/actions/updatePost'
+import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
+import { personUrl, postUrl } from 'util/navigation'
 
 import styles from './ChatPost.module.scss'
 
 export default function ChatPost ({
   className,
-  currentUser,
   group,
   highlightProps,
-  intersectionObserver,
   post,
-  showDetails,
-  updatePost
+  showHeader = true
 }) {
   const {
     commenters,
@@ -52,7 +51,7 @@ export default function ChatPost ({
     details,
     editedAt,
     fileAttachments,
-    groups,
+    groups, // TODO: why pass this in, why not pull from getGroupFromSlug?
     id,
     imageAttachments,
     linkPreview,
@@ -63,10 +62,14 @@ export default function ChatPost ({
 
   const dispatch = useDispatch()
   const { t } = useTranslation()
+  const routeParams = useParams()
+  const location = useLocation()
+  const querystringParams = new URLSearchParams(location.search)
   const navigate = useNavigate()
   const ref = useRef()
   const editorRef = useRef()
   const isPressDevice = !window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  const currentUser = useSelector(getMe)
   const currentUserResponsibilities = useSelector(state => getResponsibilitiesForGroup(state, { person: currentUser, groupId: group.id })).map(r => r.title)
 
   const [editing, setEditing] = useState(false)
@@ -78,13 +81,6 @@ export default function ChatPost ({
   const creatorRoles = useSelector(state => getRolesForGroup(state, { person: creator, groupId: group.id }))
 
   const groupIds = groups.map(g => g.id)
-
-  if (intersectionObserver) {
-    useEffect(() => {
-      intersectionObserver.observe(ref.current)
-      return () => { intersectionObserver.disconnect() }
-    })
-  }
 
   useEffect(() => {
     if (linkPreview?.url) {
@@ -100,12 +96,18 @@ export default function ChatPost ({
     } else if (
       !editing &&
       !(event.target.getAttribute('target') === '_blank') &&
-      !event.target.className.includes(styles['imageInner']) &&
+      !event.target.className.includes(styles.imageInner) &&
       !event.target.className.includes('icon-Smiley')
     ) {
       showPost()
     }
   }
+
+  const updatePostAction = useCallback((post) => dispatch(updatePost(post)), [])
+
+  const showDetails = useCallback((postId) => {
+    navigate(postUrl(postId, routeParams, { ...location.state, ...querystringParams }))
+  }, [routeParams, location.state, querystringParams])
 
   const bindLongPress = useLongPress(() => {
     setIsLongPress(false)
@@ -155,7 +157,7 @@ export default function ChatPost ({
 
     post.details = contentHTML
     post.topicNames = post.topics?.map((t) => t.name) // Make sure topic stays on the post
-    updatePost(post)
+    updatePostAction(post)
     setEditing(false)
 
     // Tell Editor this keyboard event was handled and to end propagation.
@@ -227,7 +229,7 @@ export default function ChatPost ({
           )}
         </div>
 
-        {post.header && (
+        {showHeader && (
           <div className={styles.header} onClick={handleClick}>
             <div onClick={showCreator} className={styles.author}>
               <Avatar avatarUrl={creator.avatarUrl} className={styles.avatar} />

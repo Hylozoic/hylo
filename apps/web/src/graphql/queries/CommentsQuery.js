@@ -1,4 +1,4 @@
-import CommentFields from "../fragments/CommentFieldsFragment"
+import CommentFields from '../fragments/CommentFieldsFragment'
 
 export default
 `
