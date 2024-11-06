@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux'
 import { LocationHelpers } from '@hylo/shared'
 import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import { recordClickthrough } from 'store/actions/moderationActions'
+import PostPresenter from 'urql-shared/presenters/PostPresenter'
 import PostHeader from './PostHeader'
 import PostBody from './PostBody'
 import PostGroups from './PostGroups'
@@ -15,14 +16,13 @@ import Icon from 'components/Icon'
 import Topics from 'components/Topics'
 import styles from 'components/PostCard/PostCard.styles'
 
-
 export default function PostCard ({
   goToGroup,
   hideDetails,
   groupId,
   hideMenu,
   onPress,
-  post = {},
+  post: providedPost = {},
   respondToEvent,
   showGroups = true,
   showMember,
@@ -31,6 +31,7 @@ export default function PostCard ({
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const post = PostPresenter(providedPost)
   const images = post.imageUrls && post.imageUrls.map(uri => ({ uri }))
   const locationText = LocationHelpers.generalLocationString(post.locationObject, post.location)
   const currentUser = useCurrentUser()

@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
 import { find, get } from 'lodash/fp'
 import { LocationHelpers } from '@hylo/shared'
@@ -53,10 +53,10 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
   const editPost = () => navigation.navigate('Edit Post', { id: post.id })
   const openProjectMembersModal = () => navigation.navigate('Project Members', { id: post.id, members: get('members', post) })
 
+  // TODO: Move some or all of the below to PostPresenter
   const isProject = get('type', post) === 'project'
   const isProjectMember = find(member => member.id === currentUser.id, post.members?.items)
   const locationText = LocationHelpers.generalLocationString(post.locationObject, post.location)
-  const images = post.imageUrls && post.imageUrls.map(uri => ({ uri }))
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(groupId)
 
   return (
@@ -77,18 +77,18 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
         title={post.title}
         type={post.type}
       />
-      {(!images || images.length === 0) && (
+      {(post.images.length === 0) && (
         <Topics
           topics={post.topics}
           onPress={t => goToTopic(t.name)}
           style={styles.topics}
         />
       )}
-      {(images && images.length > 0) && !(isFlagged && !post.clickthrough) && (
+      {(post.images.length > 0) && !(isFlagged && !post.clickthrough) && (
         <ImageAttachments
           creator={post.creator}
           isFlagged={isFlagged}
-          images={images}
+          images={post.images}
           style={styles.images}
           title={post.title}
         >

@@ -11,25 +11,20 @@ import {
   View
 } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { useQuery } from 'urql'
-import { get, uniq, uniqBy, isEmpty } from 'lodash/fp'
-import { useIsFocused, useNavigation } from '@react-navigation/native'
-import RNPickerSelect from 'react-native-picker-select'
-import moment from 'moment-timezone'
+import { get, uniqBy, isEmpty } from 'lodash/fp'
+import { useNavigation } from '@react-navigation/native'
 import { Validators, TextHelpers } from '@hylo/shared'
 import { isIOS } from 'util/platform'
 import useRouteParams from 'hooks/useRouteParams'
 import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import useCurrentGroup from 'hooks/useCurrentGroup'
-import fetchPostAction from 'store/actions/fetchPost'
 import createPostAction from 'store/actions/createPost'
 import createProjectAction from 'store/actions/createProject'
 import updatePostAction from 'store/actions/updatePost'
 import uploadAction from 'store/actions/upload'
 import { pollingFindOrCreateLocation as providedPollingFindOrCreateLocation } from 'screens/LocationPicker/LocationPicker.store'
-import isPendingFor from 'store/selectors/isPendingFor'
-import { getPresentedPost } from 'store/selectors/getPost'
 import postQuery from 'graphql/queries/postQuery'
 // Components
 import DatePickerWithLabel from './DatePickerWithLabel'
@@ -46,7 +41,6 @@ import TopicRow from 'screens/TopicList/TopicRow'
 // Group Chooser
 import GroupChooserItemRow from 'screens/ItemChooser/GroupChooserItemRow'
 import GroupsList from 'components/GroupsList'
-import DatePicker from 'react-native-date-picker'
 import Button from 'components/Button'
 import FileSelector, { showFilePicker as fileSelectorShowFilePicker } from './FileSelector'
 import HyloEditorWebView from 'components/HyloEditorWebView'
@@ -59,8 +53,9 @@ import ProjectMembersSummary from 'components/ProjectMembersSummary'
 import Topics from 'components/Topics'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
-import { caribbeanGreen, rhino30, rhino80, white } from 'style/colors'
+import { caribbeanGreen, rhino30, rhino80 } from 'style/colors'
 import styles from './PostEditor.styles'
+import PostPresenter from 'urql-shared/presenters/PostPresenter'
 
 export const MAX_TITLE_LENGTH = 50
 
@@ -80,7 +75,6 @@ export default function PostEditor (props) {
   const navigation = useNavigation()
   const scrollViewRef = useRef(null)
   const detailsEditorRef = useRef(null)
-  const isFocused = useIsFocused()
   const currentUser = useCurrentUser()
   const [currentGroup] = useCurrentGroup()
   const {
@@ -90,17 +84,17 @@ export default function PostEditor (props) {
     topicName: selectedTopicName,
     type: providedType
   } = useRouteParams()
-  const [editingPost, setEditingPost] = useState(selectedPostId)
+  const [editingPost] = useState(selectedPostId)
   const [{
     data: selectedPostData,
     fetching: selectedPostLoading
-  }] = useQuery({ query: postQuery, variables: { id: selectedPostId }, pause: !editingPost})
-  const defaultPost = {
-    type: providedType ? providedType : 'discussion',
+  }] = useQuery({ query: postQuery, variables: { id: selectedPostId }, pause: !editingPost })
+  const [post, setPost] = useState({
+    type: providedType || 'discussion',
     title: null,
     details: null,
     topics: selectedTopicName ? [{ name: selectedTopicName }] : [],
-    members: [],
+    members: { items: [] },
     startTime: null,
     endTime: null,
     groups: currentGroup ? [currentGroup] : [],
@@ -110,70 +104,43 @@ export default function PostEditor (props) {
     projectManagementLink: null,
     isPublic: false,
     announcement: false,
-    imageUrls: [],
-    fileUrls: []
-  }
-  const [post, setPost] = useState(defaultPost)
+    attachments: [],
+    images: [],
+    files: [],
+    postMemberships: []
+  })
+  const updatePost = postUpdates => setPost(p => PostPresenter(({ ...p, ...postUpdates })))
 
-  const updatePost = postUpdates => setPost(p => ({ ...p, ...postUpdates }))
-
-  const setIsValid = (updatedPost = {}) => {
-    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink } = updatedPost
-
-    // TODO: Fix this...
-    // const imagesLoading = images.some(image => !image?.remote)
-    // const filesLoading = files.some(file => !file?.remote)
-    // !imagesLoading && !filesLoading && 
-    const isValid = title && title.length >= 1
-      && !isEmpty(groups)
-      && (type !== 'event' || (startTime && endTime))
-      && (!donationsLink || TextHelpers.sanitizeURL(donationsLink))
-      && (!projectManagementLink || TextHelpers.sanitizeURL(projectManagementLink))
-  
-    providedSetIsValid(isValid)
-  }
-  
+  // Actions
   const createNewPost = useCallback(params => dispatch(createPostAction(params)), [dispatch])
   const createNewProject = useCallback(params => dispatch(createProjectAction(params)), [dispatch])
   const updateSelectedPost = useCallback(params => dispatch(updatePostAction(params)), [dispatch])
   const upload = useCallback(params => dispatch(uploadAction(params)), [dispatch])
+  const canHaveTimeframe = useMemo(() => post.type !== 'discussion', [post])
 
   // UI State
-  const [isValid, providedSetIsValid] = useState(editingPost)
-  const [isSaving, setIsSaving] = useState(false)
-  const [titleLengthError, setTitleLengthError] = useState(false)
-  const [detailsFocused, setDetailsFocused] = useState(false)
-  const [groupOptions, setGroupOptions] = useState(currentUser?.memberships.map(m => m.group) || [])
-  const [topicsPicked, setTopicsPicked] = useState(false)
-  const [startTimeExpanded, setStartTimeExpanded] = useState(false)
-  const [endTimeExpanded, setEndTimeExpanded] = useState(false)
-  const [filePickerPending, setFilePickerPending] = useState(false)
+  const isValid = useMemo(() => {
+    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink } = post
+    const attachmentsLoading = post.attachments.some(attachment => !attachment?.url)
+    return title && title.length >= 1 &&
+      !attachmentsLoading &&
+      !isEmpty(groups) &&
+      (type !== 'event' || (startTime && endTime)) &&
+      (!donationsLink || TextHelpers.sanitizeURL(donationsLink)) &&
+      (!projectManagementLink || TextHelpers.sanitizeURL(projectManagementLink))
+  }, [post])
+  const titleLengthWarning = useMemo(() => post?.title && post.title.length >= MAX_TITLE_LENGTH, [post])
+  const groupOptions = useMemo(() => currentUser?.memberships.map(m => m.group) || [], [currentUser])
   const mapCoordinate = useMemo(() => {
     return mapCoordinateLat && mapCoordinateLng ? { lat: mapCoordinateLat, lng: mapCoordinateLng } : null
   }, [mapCoordinateLat, mapCoordinateLng])
-  const [images, setImages] = useState([])
-  const [files, setFiles] = useState([])
+  const [isSaving, setIsSaving] = useState(false)
+  const [topicsPicked, setTopicsPicked] = useState(false)
+  const [filePickerPending, setFilePickerPending] = useState(false)
 
   useEffect(() => {
     if (selectedPostData?.post) {
-      const selectedPost = selectedPostData.post
-
-      setPost({
-        ...selectedPost,
-        title: selectedPost.title,
-        startTime: selectedPost?.startTime ? new Date(selectedPost.startTime) : selectedPost.startTime,
-        endTime: selectedPost?.endTime ? new Date(selectedPost.endTime) : selectedPost.endTime
-      })
-
-      if (selectedPost.imageUrls) {
-        // TODO: Iterate to build valid file (remote and local URLS) objects to show-up in selector
-        // setImages()
-      }
-
-      if (selectedPost.fileUrls) {
-        // TODO: Iterate to build valid file (remote and local URLS) objects to show-up in selector
-        // setFiles
-      }
+      setPost(PostPresenter(selectedPostData.post))
     }
   }, [selectedPostData?.post])
 
@@ -188,7 +155,7 @@ export default function PostEditor (props) {
         center: {
           lat: parseFloat(mapCoordinate.lat),
           lng: parseFloat(mapCoordinate.lng),
-        },
+        }
       }
       pollingFindOrCreateLocation(locationObject, handlePickLocation)
     }
@@ -199,7 +166,7 @@ export default function PostEditor (props) {
         onDiscard: () => navigation.dispatch(e.data.action),
         title: t('Are you sure?'),
         confirmationMessage: t('If you made changes they will be lost'),
-        t,
+        t
       })
     })
 
@@ -214,7 +181,7 @@ export default function PostEditor (props) {
     }
 
     if (post.announcement) {
-      var cancel = false
+      let cancel = false
       Alert.alert(
         t('makeAnAnnouncement'),
         t('announcementExplainer'),
@@ -234,14 +201,14 @@ export default function PostEditor (props) {
       details: detailsEditorRef.current.getHTML(),
       groups: post.groups,
       memberIds: post.members.items.map(m => m.id),
-      fileUrls: uniq(files.filter(file => file.remote).map(file => file.remote)),
-      imageUrls: uniq(images.filter(image => image.remote).map(image => image.remote)),
+      fileUrls: post.filesUrls,
+      imageUrls: post.imageUrls,
       isPublic: post.isPublic,
       title: post.title,
       announcement: post.announcement,
       topicNames: post.topics.map(t => t.name),
-      startTime: post.startTime && post.startTime.getTime(),
-      endTime: post.endTime && post.endTime.getTime(),
+      startTime: !canHaveTimeframe ? null : post.startTime && post.startTime.getTime(),
+      endTime: !canHaveTimeframe ? null : post.endTime && post.endTime.getTime(),
       location: post.location,
       projectManagementLink: TextHelpers.sanitizeURL(post.projectManagementLink),
       donationsLink: TextHelpers.sanitizeURL(post.donationsLink),
@@ -252,9 +219,7 @@ export default function PostEditor (props) {
       const saveAction = postData.id ? updateSelectedPost : postData.type === 'project' ? createNewProject : createNewPost
       const { payload, meta, error } = await saveAction(postData)
 
-      if (error) {
-        throw new Error('Error submitting post')
-      }
+      if (error) throw new Error('Error submitting post')
 
       const id = meta.extractModel?.getRoot(payload?.data)?.id
       navigation.navigate('Post Details', { id })
@@ -263,8 +228,6 @@ export default function PostEditor (props) {
       setIsSaving(false)
     }
   }
-
-  useEffect(() => { setIsValid(post) }, [post])
 
   useEffect(() => {
     navigation.setOptions({
@@ -275,7 +238,7 @@ export default function PostEditor (props) {
           : editingPost
             ? t('Save')
             : t('Post')
-    
+
         return (
           <View style={styles.headerContainer}>
             <View style={styles.header}>
@@ -301,12 +264,9 @@ export default function PostEditor (props) {
         )
       }
     })
-  }, [isValid, post])
+  }, [isValid, isSaving, post])
 
-  const handleUpdateTitle = title => {
-    setTitleLengthError(title.length >= MAX_TITLE_LENGTH)
-    updatePost({ title })
-  }
+  const handleUpdateTitle = title => updatePost({ title })
 
   const handleAddTopic = (providedTopic, picked) => {
     const ignoreHash = name => name[0] === '#' ? name.slice(1) : name
@@ -322,7 +282,7 @@ export default function PostEditor (props) {
     updatePost({ topics: post.topics.filter(t => t.id !== topic.id) })
     setTopicsPicked(true)
   }
-  
+
   const handlePickLocation = locationObject => updatePost({
     location: locationObject.fullText,
     locationObject: locationObject?.id !== 'NEW' ? locationObject : null
@@ -332,39 +292,30 @@ export default function PostEditor (props) {
     updatePost({ groups: uniqBy(c => c.id, [...post.groups, group]) })
   }
 
-
   const handleRemoveGroup = groupSlug => {
     updatePost({ groups: post.groups.filter(group => group.slug !== groupSlug) })
   }
 
-  const handleAddAttachmentForKey = key => ({ local, remote }) => {
-    let attachmentsForKey = post[key] || []
-    const existingIndex = attachmentsForKey.findIndex(attachment => attachment.local === local)
-
-    if (existingIndex >= 0) {
-      attachmentsForKey[existingIndex].remote = remote
-    } else {
-      attachmentsForKey = [...attachmentsForKey, { local, remote }]
-    }
-
-    // NOTE: `uniqBy` de-duping of local file uploads here won't do
-    // anything at least in iOS, as each file selection is copied into
-    // a unique `tmp` location on the device each time it's selected.
-    updatePost({ [key]: uniqBy('local', attachmentsForKey) })
-  }
-  
-  const handleRemoveAttachmentForKey = key => ({ local }) => {
-    updatePost({ [key]: post[key].filter(attachment => attachment.local !== local) })
+  const handleAddAttachment = (type, attachment) => {
+    updatePost({ attachments: [...post.attachments, { type, url: attachment.remote, ...attachment }] })
   }
 
-  const handleAttachmentUploadErrorForKey = key => (errorMessage, attachment) => {
-    handleRemoveAttachmentForKey(key)(attachment)
+  const handleRemoveAttachment = (type, attachmentToRemove) => {
+    updatePost({
+      attachments: post.attachments.filter(attachment =>
+        !(attachment.local === attachmentToRemove.local && attachment.type === type)
+      )
+    })
+  }
+
+  const handleAttachmentUploadError = (type, errorMessage, attachment) => {
+    handleRemoveAttachment(type, attachment)
     Alert.alert(errorMessage)
   }
 
   const handleTogglePublicPost = () => updatePost({ isPublic: !post.isPublic })
 
-  const handleToggleAnnouncement = () => setPost(p => ({ ...p, announcement: !p.announcement }))
+  const handleToggleAnnouncement = () => updatePost({ announcement: !post.announcement })
 
   const handleShowProjectMembersEditor = () => {
     const screenTitle = t('Project Members')
@@ -419,22 +370,20 @@ export default function PostEditor (props) {
   const handleShowFilePicker = async () => {
     setFilePickerPending(true)
     await fileSelectorShowFilePicker({
-      upload: upload,
+      upload,
       type: 'post',
       id: post?.id,
-      onAdd: handleAddAttachmentForKey('files'),
-      onError: () => {
+      onAdd: attachment => handleAddAttachment('file', attachment),
+      onError: (errorMessage, attachment) => {
         setFilePickerPending(true)
-        handleAttachmentUploadErrorForKey('files')
+        handleAttachmentUploadError('file', errorMessage, attachment)
       },
       onComplete: () => setFilePickerPending(false),
       onCancel: () => setFilePickerPending(false)
     })
   }
-  
-  const renderForm = () => {
-    const canHaveTimeframe = post.type !== 'discussion'
 
+  const renderForm = () => {
     t('Create a post')
     t('What are you looking for help with?')
     t('What help can you offer?')
@@ -464,7 +413,7 @@ export default function PostEditor (props) {
               blurOnSubmit
               maxLength={MAX_TITLE_LENGTH}
             />
-            {titleLengthError && (
+            {titleLengthWarning && (
               <Text style={styles.titleInputError}>😬 {MAX_TITLE_LENGTH} {t('characters max')}</Text>
             )}
           </View>
@@ -586,38 +535,38 @@ export default function PostEditor (props) {
           </TouchableOpacity>
 
           {post.type === 'project' && (
-            <View style={[styles.pressSelectionSection, styles.topics]}>
-              <View style={styles.pressSelection}>
-                <Text style={styles.pressSelectionLeft}>{t('Donation Link')}</Text>
-                {/* <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View> */}
+            <>
+              <View style={[styles.pressSelectionSection, styles.topics]}>
+                <View style={styles.pressSelection}>
+                  <Text style={styles.pressSelectionLeft}>{t('Donation Link')}</Text>
+                  {/* <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View> */}
+                </View>
+                <TextInput
+                  style={styles.pressSelectionValue}
+                  onChangeText={donationsLink => updatePost(({ donationsLink }))}
+                  returnKeyType='next'
+                  autoCapitalize='none'
+                  value={post.donationsLink}
+                  autoCorrect={false}
+                  underlineColorAndroid='transparent'
+                />
               </View>
-              <TextInput
-                style={styles.pressSelectionValue}
-                onChangeText={donationsLink => updatePost(({ donationsLink }))}
-                returnKeyType='next'
-                autoCapitalize='none'
-                value={post.donationsLink}
-                autoCorrect={false}
-                underlineColorAndroid='transparent'
-              />
-            </View>
-          )}
 
-          {post.type === 'project' && (
-            <View style={[styles.pressSelectionSection, styles.topics]}>
-              <View style={styles.pressSelection}>
-                <Text style={styles.pressSelectionLeft}>{t('Project Management')}</Text>
+              <View style={[styles.pressSelectionSection, styles.topics]}>
+                <View style={styles.pressSelection}>
+                  <Text style={styles.pressSelectionLeft}>{t('Project Management')}</Text>
+                </View>
+                <TextInput
+                  style={styles.pressSelectionValue}
+                  onChangeText={projectManagementLink => updatePost(({ projectManagementLink }))}
+                  returnKeyType='next'
+                  autoCapitalize='none'
+                  value={post.projectManagementLink}
+                  autoCorrect={false}
+                  underlineColorAndroid='transparent'
+                />
               </View>
-              <TextInput
-                style={styles.pressSelectionValue}
-                onChangeText={projectManagementLink => updatePost(({ projectManagementLink }))}
-                returnKeyType='next'
-                autoCapitalize='none'
-                value={post.projectManagementLink}
-                autoCorrect={false}
-                underlineColorAndroid='transparent'
-              />
-            </View>
+            </>
           )}
         </View>
 
@@ -647,6 +596,7 @@ export default function PostEditor (props) {
               </View>
             </View>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.pressSelectionSection, post?.announcement && styles.pressSelectionSectionPublicSelected]}
             onPress={handleToggleAnnouncement}
@@ -669,15 +619,12 @@ export default function PostEditor (props) {
                 />
               </View>
             </View>
-            {!isEmpty(files) && (
-              <View>
-                <FileSelector
-                  onRemove={handleRemoveAttachmentForKey('files')}
-                  files={files}
-                />
-              </View>
-            )}
+            <FileSelector
+              files={post.files}
+              onRemove={(errorMessage, attachment) => handleRemoveAttachment('file', errorMessage, attachment)}
+            />
           </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.pressSelectionSection}
           >
@@ -695,8 +642,8 @@ export default function PostEditor (props) {
                   type='post'
                   id={post?.id}
                   selectionLimit={10}
-                  onChoice={handleAddAttachmentForKey('images')}
-                  onError={handleAttachmentUploadErrorForKey('images')}
+                  onChoice={attachment => handleAddAttachment('image', attachment)}
+                  onError={(errorMessage, attachment) => handleAttachmentUploadError('image', errorMessage, attachment)}
                   renderPicker={loading => {
                     if (!loading) {
                       return (
@@ -714,15 +661,12 @@ export default function PostEditor (props) {
                 />
               </View>
             </View>
-            {!isEmpty(images) && (
-              <ImageSelector
-                onAdd={handleAddAttachmentForKey('images')}
-                onRemove={handleRemoveAttachmentForKey('images')}
-                images={images}
-                style={[styles.imageSelector]}
-                type='post'
-              />
-            )}
+            <ImageSelector
+              images={post.images}
+              onRemove={attachment => handleRemoveAttachment('image', attachment)}
+              style={[styles.imageSelector]}
+              type='post'
+            />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -752,14 +696,10 @@ export default function PostEditor (props) {
                 </TouchableOpacity>
               </View>
             </View>
-            {!isEmpty(files) && (
-              <View>
-                <FileSelector
-                  onRemove={handleRemoveAttachmentForKey('files')}
-                  files={files}
-                />
-              </View>
-            )}
+            <FileSelector
+              onRemove={attachment => handleRemoveAttachment('file', attachment)}
+              files={post.files}
+            />
           </TouchableOpacity>
         </View>
       </View>

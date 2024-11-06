@@ -18,6 +18,7 @@ import PostCardForDetails from 'components/PostCard/PostCardForDetails'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { white } from 'style/colors'
 import { useQuery } from 'urql'
+import PostPresenter from 'urql-shared/presenters/PostPresenter'
 
 export default function PostDetails () {
   const { t } = useTranslation()
@@ -27,7 +28,7 @@ export default function PostDetails () {
   const { id: postId } = useRouteParams()
   const currentGroup = useSelector(getCurrentGroup)
   const [{ data, fetching, error }] = useQuery({ query: postQuery, variables: { id: postId } })
-  const post = data?.post
+  const post = PostPresenter(data?.post)
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()
 
