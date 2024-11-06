@@ -97,6 +97,10 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
+  contextWidgets () {
+    return this.hasMany(ContextWidget) // TODO CONTEXT: sometimes we want all widgets, sometimes only want the ordered ones. need to handle this
+  },
+
   creator: function () {
     return this.belongsTo(User, 'created_by_id')
   },
@@ -464,6 +468,253 @@ module.exports = bookshelf.Model.extend(merge({
     return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, {transacting}))
   },
 
+  async setupContextWidgets(trx) {
+    // Create home widget first
+    const homeWidget = await ContextWidget.forge({
+      group_id: this.id,
+      type: 'home',
+      title: 'widget-home',
+      order: 1,
+      created_at: new Date(),
+      updated_at: new Date()
+    }).save(null, { transacting: trx })
+  
+    // Get general tag id for the hearth widget
+    const generalTag = await Tag.where({ name: 'general' }).fetch({ transacting: trx })
+    
+    // Create hearth widget as child of home
+    await ContextWidget.forge({
+      group_id: this.id,
+      title: 'widget-hearth',
+      view_chat_id: generalTag.id,
+      parent_id: homeWidget.id,
+      order: 1,
+      created_at: new Date(),
+      updated_at: new Date()
+    }).save(null, { transacting: trx })
+  
+    // These are displayed in the menu, with the caveat being that the auto-view is hidden until it has child views
+    const orderedWidgets = [
+      { title: 'widget-chats', view: 'chats', order: 2 },
+      { title: 'widget-auto-view', type: 'auto-view', order: 3 },
+      { title: 'widget-members', type: 'members', view: 'members', order: 4 },
+      { title: 'widget-setup', type: 'setup', visibility: 'admin', order: 5 },
+      { title: 'widget-custom-views', type: 'custom-views', order: 6 },
+    ]
+  
+    // These are accessible in the all view
+    const unorderedWidgets = [
+      { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
+      { title: 'widget-ask-and-offer', view: 'ask-and-offer' },
+      { title: 'widget-stream', view: 'stream' },
+      { title: 'widget-events', type: 'events', view: 'events' },
+      { title: 'widget-project', type: 'projects', view: 'projects' },
+      { title: 'widget-groups', type: 'groups', view: 'groups' },
+      { title: 'widget-decisions', type: 'decisions', view: 'decisions' },
+      { title: 'widget-about', type: 'about', view: 'about' },
+      { title: 'widget-map', type: 'map', view: 'map' }
+    ]
+  
+    await Promise.all([
+      ...orderedWidgets,
+      ...unorderedWidgets
+    ].map(widget => 
+      ContextWidget.forge({
+        group_id: this.id,
+        created_at: new Date(),
+        updated_at: new Date(),
+        ...widget
+      }).save(null, { transacting: trx })
+    ))
+  },
+  // This is idempotent
+  async transitionToNewMenu(existingTrx) {
+    const doWork = async (trx) => {
+      // Get all widgets for this group
+      const widgets = await ContextWidget.where({ group_id: this.id }).fetchAll({ transacting: trx })
+      const chatsWidget = widgets.find(w => w.get('view') === 'chats')
+      const autoAddWidget = widgets.find(w => w.get('type') === 'auto-view')
+      const chatsWidgetId = chatsWidget?.get('id')
+      const autoAddWidgetId = autoAddWidget?.get('id')
+  
+      if (!chatsWidget?.get('auto_added')) {
+        // TODO CONTEXT: port this section to the new chat model
+        const chatResults = await bookshelf.knex.raw(`
+          SELECT DISTINCT t.id as tag_id, t.name, gt.visibility
+          FROM posts p
+          JOIN groups_posts gp ON gp.post_id = p.id
+          JOIN posts_tags pt ON pt.post_id = p.id
+          JOIN tags t ON t.id = pt.tag_id
+          JOIN groups_tags gt ON gt.tag_id = t.id AND gt.group_id = gp.group_id
+          WHERE gp.group_id = ? AND p.type = 'chat'
+        `, [this.id], { transacting: trx })
+
+        const groupChats = chatResults.rows.filter(tag => tag.name !== 'general')
+  
+        if (groupChats.length > 0) {
+          await Promise.all(groupChats.map(chat => 
+            ContextWidget.create({
+              group_id: this.id,
+              title: chat.name,
+              type: 'chat',
+              parent_id: chat.visibility === 2 ? chatsWidgetId : null,
+              view_chat_id: chat.tag_id
+            }, { transacting: trx })
+          ))
+  
+          // If any pinned chats were found, order the chats widget
+          if (groupChats.some(chat => chat.visibility === 2)) {
+            await ContextWidget.reorder({
+              id: chatsWidgetId,
+              order: 2,
+              trx
+            })
+          }
+        }
+      }
+  
+      const askOfferWidget = widgets.find(w => w.get('view') === 'ask-and-offer')
+      if (askOfferWidget && !askOfferWidget.get('auto_added')) {
+        const hasAsksOffers = await bookshelf.knex('posts')
+          .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
+          .where('groups_posts.group_id', this.id)
+          .whereIn('posts.type', ['request', 'offer'])
+          .first()
+  
+        if (hasAsksOffers) {
+          await ContextWidget.update({
+            id: askOfferWidget.get('id'),
+            data: { parent_id: autoAddWidgetId },
+            trx
+          })
+        }
+      }
+  
+      const eventsWidget = widgets.find(w => w.get('type') === 'events')
+      if (eventsWidget && !eventsWidget.get('auto_added')) {
+        const hasEvents = await bookshelf.knex('posts')
+          .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
+          .where('groups_posts.group_id', this.id)
+          .where('posts.type', 'event')
+          .first()
+  
+        if (hasEvents) {
+          await ContextWidget.update({
+            id: eventsWidget.get('id'),
+            data: { parent_id: autoAddWidgetId },
+            trx
+          })
+        }
+      }
+  
+      const projectsWidget = widgets.find(w => w.get('type') === 'projects')
+      if (projectsWidget && !projectsWidget.get('auto_added')) {
+        const hasProjects = await bookshelf.knex('posts')
+          .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
+          .where('groups_posts.group_id', this.id)
+          .where('posts.type', 'project')
+          .first()
+  
+        if (hasProjects) {
+          await ContextWidget.update({
+            id: projectsWidget.get('id'),
+            data: { parent_id: autoAddWidgetId },
+            trx
+          })
+        }
+      }
+  
+      const groupsWidget = widgets.find(w => w.get('type') === 'groups')
+      if (groupsWidget && !groupsWidget.get('auto_added')) {
+        const hasRelatedGroups = await bookshelf.knex('group_relationships')
+          .where('parent_group_id', this.id)
+          .orWhere('child_group_id', this.id)
+          .first()
+  
+        if (hasRelatedGroups) {
+          await ContextWidget.update({
+            id: groupsWidget.get('id'),
+            data: { parent_id: autoAddWidgetId },
+            trx
+          })
+        }
+      }
+  
+      const decisionsWidget = widgets.find(w => w.get('type') === 'decisions')
+      if (decisionsWidget && !decisionsWidget.get('auto_added')) {
+        const [hasProposals, hasModeration] = await Promise.all([
+          bookshelf.knex('posts')
+            .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
+            .where({ 'groups_posts.group_id': this.id, 'posts.type': 'proposal' })
+            .first(),
+          bookshelf.knex('moderation_actions')
+            .where({ group_id: this.id })
+            .first()
+        ])
+  
+        if (hasProposals || hasModeration) {
+          await ContextWidget.update({
+            id: decisionsWidget.get('id'),
+            data: { parent_id: autoAddWidgetId },
+            trx
+          })
+        }
+      }
+  
+      const mapWidget = widgets.find(w => w.get('type') === 'map')
+      if (mapWidget && !mapWidget.get('auto_added')) {
+        const [hasLocationPosts, hasMembersWithLocation] = await Promise.all([
+          bookshelf.knex('posts')
+            .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
+            .where({ 'groups_posts.group_id': this.id })
+            .whereNotNull('posts.location_id')
+            .first(),
+          bookshelf.knex('users')
+            .join('group_memberships', 'users.id', 'group_memberships.user_id')
+            .where('group_memberships.group_id', this.id)
+            .whereNotNull('users.location_id')
+            .first()
+        ])
+  
+        if (hasLocationPosts || hasMembersWithLocation) {
+          await ContextWidget.update({
+            id: mapWidget.get('id'),
+            data: { parent_id: autoAddWidgetId },
+            trx
+          })
+        }
+      }
+  
+      const customViews = await bookshelf.knex('custom_views')
+        .where({ group_id: this.id })
+        .whereNotExists(function() {
+          this.select('*')
+            .from('context_widgets')
+            .whereRaw('context_widgets.custom_view_id = custom_views.id')
+            .andWhere('auto_added', true)
+        })
+        if (customViews.length > 0) {
+          const customViewsWidget = widgets.find(w => w.get('type') === 'custom-views')
+          if (customViewsWidget) {
+            await Promise.all(customViews.map(view =>
+              ContextWidget.create({
+                group_id: this.id,
+                custom_view_id: view.id,
+                parent_id: customViewsWidget.get('id'),
+                auto_added: true,
+              }, { transacting: trx })
+            ))
+          }
+        }
+    }
+  
+    if (existingTrx) {
+      return doWork(existingTrx)
+    }
+  
+    return await bookshelf.transaction(trx => doWork(trx))
+  },
+
   update: async function (changes, updatedByUserId) {
     const whitelist = [
       'about_video_uri', 'active', 'access_code', 'accessibility', 'avatar_url', 'banner_url',
@@ -741,7 +992,8 @@ module.exports = bookshelf.Model.extend(merge({
 
       await group.createStarterPosts(trx)
 
-      await group.createInitialWidgets(trx)
+      // await group.createInitialWidgets(trx)
+      await group.setupContextWidgets(trx)
 
       await group.createDefaultTopics(group.id, userId, trx)
 

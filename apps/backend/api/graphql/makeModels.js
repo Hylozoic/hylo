@@ -60,6 +60,42 @@ export default function makeModels (userId, isAdmin, apiClient) {
       fetchMany: () => CommonRole.fetchAll()
     },
 
+    ContextWidget: {
+      model: ContextWidget,
+      attributes: [
+        'id',
+        'title',
+        'type', 
+        'order',
+        'visibility',
+        'view',
+        'icon',
+        'created_at',
+        'updated_at',
+        'highlightNumber',
+        'secondaryNumber'
+      ],
+      relations: [
+        { group: { alias: 'ownerGroup' } },
+        { parent: { alias: 'parentWidget' } },
+        { children: { alias: 'childWidgets', querySet: true } },
+        'viewGroup',
+        'viewPost', 
+        'customView',
+        'viewUser',
+        'viewChat'
+      ],
+      fetchMany: ({ groupId, includeUnordered }) => {
+        return ContextWidget.collection().query(q => {
+          q.where({ group_id: groupId })
+          if (!includeUnordered) {
+            q.whereNotNull('order')
+          }
+          q.orderBy('order', 'asc')
+        })
+      }
+},
+
     Me: {
       model: User,
       attributes: [
@@ -440,6 +476,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { activeMembers: { querySet: true } },
         { agreements: { querySet: true } },
         { childGroups: { querySet: true } },
+        { contextWidgets: { querySet: true } },
         { customViews: { querySet: true } },
         { groupRelationshipInvitesFrom: { querySet: true } },
         { groupRelationshipInvitesTo: { querySet: true } },

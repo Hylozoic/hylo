@@ -18,7 +18,7 @@
  * `node app.js --silent --port=80 --prod`
  */
 
-require('dotenv').load()
+require('dotenv').config()
 require("@babel/register")
 
 if (process.env.NEW_RELIC_LICENSE_KEY) {
