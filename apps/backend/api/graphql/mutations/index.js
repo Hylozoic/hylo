@@ -26,7 +26,7 @@ export {
   updateContextWidget,
   removeWidgetFromMenu,
   reorderContextWidget
-} from './context_widget'
+} from './context_widgets'
 export {
   respondToEvent,
   invitePeopleToEvent

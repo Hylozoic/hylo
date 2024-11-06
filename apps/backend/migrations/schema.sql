@@ -533,7 +533,6 @@ CREATE SEQUENCE public.community_invite_seq
 --
 
 CREATE TABLE public.context_widgets (
-    auto_added boolean DEFAULT false,
     id bigint NOT NULL,
     title character varying(255),
     group_id bigint,
@@ -550,6 +549,7 @@ CREATE TABLE public.context_widgets (
     view_chat_id bigint,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
+    auto_added boolean DEFAULT false,
     CONSTRAINT single_view_reference CHECK (((((((
 CASE
     WHEN (view_group_id IS NOT NULL) THEN 1
@@ -5934,7 +5934,7 @@ ALTER TABLE ONLY public.groups
 --
 
 ALTER TABLE ONLY public.groups
-    ADD CONSTRAINT groups_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) DEFERRABLE INITIALLY DEFERRED;
+    ADD CONSTRAINT groups_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -6206,7 +6206,7 @@ ALTER TABLE ONLY public.posts_about_users
 --
 
 ALTER TABLE ONLY public.posts
-    ADD CONSTRAINT posts_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id);
+    ADD CONSTRAINT posts_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -6454,7 +6454,7 @@ ALTER TABLE ONLY public.users_groups_agreements
 --
 
 ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) DEFERRABLE INITIALLY DEFERRED;
+    ADD CONSTRAINT users_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
 
 
 --

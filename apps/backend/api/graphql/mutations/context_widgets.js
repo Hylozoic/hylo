@@ -100,3 +100,31 @@ export async function removeWidgetFromMenu({ userId, contextWidgetId }) {
       throw new GraphQLYogaError(`Removing widget from menu failed: ${err.message}`)
     })
 }
+
+export async function transitionGroupToNewMenu({ userId, groupId }) {
+  if (!userId) throw new GraphQLYogaError('No userId passed into function')
+  if (!groupId) throw new GraphQLYogaError('No groupId passed into function')
+
+  // Look up the group
+  const group = await Group.where({ id: groupId }).fetch()
+  if (!group) throw new GraphQLYogaError('Group not found')
+
+  // Check if user has admin permissions
+  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
+  if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+    throw new GraphQLYogaError("You don't have permission to modify this group's menu")
+  }
+
+  try {
+    const existingWidgets = await ContextWidget.where({ group_id: groupId }).fetch()
+    
+    if (!existingWidgets) {
+      await group.setupContextWidgets()
+    }
+    
+    await group.transitionToNewMenu()
+    return group
+  } catch (err) {
+    throw new GraphQLYogaError(`Failed to transition group to new menu: ${err.message}`)
+  }
+}

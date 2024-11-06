@@ -495,16 +495,16 @@ module.exports = bookshelf.Model.extend(merge({
   
     // These are displayed in the menu, with the caveat being that the auto-view is hidden until it has child views
     const orderedWidgets = [
-      { title: 'widget-auto-view', type: 'auto-view', order: 2 },
-      { title: 'widget-members', type: 'members', view: 'members', order: 3 },
-      { title: 'widget-setup', type: 'setup', visibility: 'admin', order: 4 },
-      { title: 'widget-custom-views', type: 'custom-views', order: 5 },
+      { title: 'widget-chats', view: 'chats', order: 2 },
+      { title: 'widget-auto-view', type: 'auto-view', order: 3 },
+      { title: 'widget-members', type: 'members', view: 'members', order: 4 },
+      { title: 'widget-setup', type: 'setup', visibility: 'admin', order: 5 },
+      { title: 'widget-custom-views', type: 'custom-views', order: 6 },
     ]
   
     // These are accessible in the all view
     const unorderedWidgets = [
       { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
-      { title: 'widget-chats', view: 'chats' },
       { title: 'widget-ask-and-offer', view: 'ask-and-offer' },
       { title: 'widget-stream', view: 'stream' },
       { title: 'widget-events', type: 'events', view: 'events' },
@@ -532,26 +532,23 @@ module.exports = bookshelf.Model.extend(merge({
     const doWork = async (trx) => {
       // Get all widgets for this group
       const widgets = await ContextWidget.where({ group_id: this.id }).fetchAll({ transacting: trx })
-      const chatWidget = widgets.find(w => w.get('type') === 'chats')
+      const chatsWidget = widgets.find(w => w.get('view') === 'chats')
       const autoAddWidget = widgets.find(w => w.get('type') === 'auto-view')
-      const chatWidgetId = chatWidget?.get('id')
+      const chatsWidgetId = chatsWidget?.get('id')
       const autoAddWidgetId = autoAddWidget?.get('id')
   
-      if (!chatWidget?.get('auto_added')) {
+      if (!chatsWidget?.get('auto_added')) {
         // TODO CONTEXT: port this lookup to the new chat model
         const chatResults = await bookshelf.knex.raw(`
-          WITH chat_posts AS (
-            SELECT DISTINCT pt.tag_id
-            FROM posts p
-            JOIN posts_tags pt ON p.id = pt.post_id
-            WHERE p.group_id = ? AND p.type = 'chat'
-          )
           SELECT DISTINCT t.id as tag_id, t.name, gt.visibility
-          FROM chat_posts cp
-          JOIN tags t ON t.id = cp.tag_id
-          JOIN groups_tags gt ON gt.tag_id = t.id AND gt.group_id = ?
-        `, [this.id, this.id])
-  
+          FROM posts p
+          JOIN groups_posts gp ON gp.post_id = p.id
+          JOIN posts_tags pt ON pt.post_id = p.id
+          JOIN tags t ON t.id = pt.tag_id
+          JOIN groups_tags gt ON gt.tag_id = t.id AND gt.group_id = gp.group_id
+          WHERE gp.group_id = ? AND p.type = 'chat'
+        `, [this.id], { transacting: trx })
+
         const groupChats = chatResults.rows.filter(tag => tag.name !== 'general')
   
         if (groupChats.length > 0) {
@@ -560,16 +557,15 @@ module.exports = bookshelf.Model.extend(merge({
               group_id: this.id,
               title: chat.name,
               type: 'chat',
-              parent_id: chat.visibility === 2 ? chatWidgetId : null,
-              view_chat_id: chat.tag_id,
-              transacting: trx
-            })
+              parent_id: chat.visibility === 2 ? chatsWidgetId : null,
+              view_chat_id: chat.tag_id
+            }, { transacting: trx })
           ))
   
           // If any pinned chats were found, order the chats widget
           if (groupChats.some(chat => chat.visibility === 2)) {
             await ContextWidget.reorder({
-              id: chatWidgetId,
+              id: chatsWidgetId,
               order: 2,
               trx
             })
@@ -577,11 +573,12 @@ module.exports = bookshelf.Model.extend(merge({
         }
       }
   
-      const askOfferWidget = widgets.find(w => w.get('type') === 'ask-and-offer')
+      const askOfferWidget = widgets.find(w => w.get('view') === 'ask-and-offer')
       if (askOfferWidget && !askOfferWidget.get('auto_added')) {
         const hasAsksOffers = await bookshelf.knex('posts')
-          .where({ group_id: this.id })
-          .whereIn('type', ['request', 'offer'])
+          .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
+          .where('groups_posts.group_id', this.id)
+          .whereIn('posts.type', ['request', 'offer'])
           .first()
   
         if (hasAsksOffers) {
@@ -596,8 +593,9 @@ module.exports = bookshelf.Model.extend(merge({
       const eventsWidget = widgets.find(w => w.get('type') === 'events')
       if (eventsWidget && !eventsWidget.get('auto_added')) {
         const hasEvents = await bookshelf.knex('posts')
-          .where({ group_id: this.id })
-          .where('type', 'event')
+          .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
+          .where('groups_posts.group_id', this.id)
+          .where('posts.type', 'event')
           .first()
   
         if (hasEvents) {
@@ -612,8 +610,9 @@ module.exports = bookshelf.Model.extend(merge({
       const projectsWidget = widgets.find(w => w.get('type') === 'projects')
       if (projectsWidget && !projectsWidget.get('auto_added')) {
         const hasProjects = await bookshelf.knex('posts')
-          .where({ group_id: this.id })
-          .where('type', 'project')
+          .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
+          .where('groups_posts.group_id', this.id)
+          .where('posts.type', 'project')
           .first()
   
         if (hasProjects) {
@@ -645,7 +644,8 @@ module.exports = bookshelf.Model.extend(merge({
       if (decisionsWidget && !decisionsWidget.get('auto_added')) {
         const [hasProposals, hasModeration] = await Promise.all([
           bookshelf.knex('posts')
-            .where({ group_id: this.id, type: 'proposal' })
+            .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
+            .where({ 'groups_posts.group_id': this.id, 'posts.type': 'proposal' })
             .first(),
           bookshelf.knex('moderation_actions')
             .where({ group_id: this.id })
@@ -665,8 +665,9 @@ module.exports = bookshelf.Model.extend(merge({
       if (mapWidget && !mapWidget.get('auto_added')) {
         const [hasLocationPosts, hasMembersWithLocation] = await Promise.all([
           bookshelf.knex('posts')
-            .where({ group_id: this.id })
-            .whereNotNull('location_id')
+            .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
+            .where({ 'groups_posts.group_id': this.id })
+            .whereNotNull('posts.location_id')
             .first(),
           bookshelf.knex('users')
             .join('group_memberships', 'users.id', 'group_memberships.user_id')
@@ -692,7 +693,6 @@ module.exports = bookshelf.Model.extend(merge({
             .whereRaw('context_widgets.custom_view_id = custom_views.id')
             .andWhere('auto_added', true)
         })
-  
         if (customViews.length > 0) {
           const customViewsWidget = widgets.find(w => w.get('type') === 'custom-views')
           if (customViewsWidget) {
@@ -702,8 +702,7 @@ module.exports = bookshelf.Model.extend(merge({
                 custom_view_id: view.id,
                 parent_id: customViewsWidget.get('id'),
                 auto_added: true,
-                transacting: trx
-              })
+              }, { transacting: trx })
             ))
           }
         }
