@@ -527,7 +527,7 @@ module.exports = bookshelf.Model.extend(merge({
       }).save(null, { transacting: trx })
     ))
   },
-
+  // This is idempotent
   async transitionToNewMenu(existingTrx) {
     const doWork = async (trx) => {
       // Get all widgets for this group
@@ -538,7 +538,7 @@ module.exports = bookshelf.Model.extend(merge({
       const autoAddWidgetId = autoAddWidget?.get('id')
   
       if (!chatsWidget?.get('auto_added')) {
-        // TODO CONTEXT: port this lookup to the new chat model
+        // TODO CONTEXT: port this section to the new chat model
         const chatResults = await bookshelf.knex.raw(`
           SELECT DISTINCT t.id as tag_id, t.name, gt.visibility
           FROM posts p
