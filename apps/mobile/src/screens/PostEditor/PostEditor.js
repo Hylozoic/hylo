@@ -12,7 +12,7 @@ import {
 } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { useQuery } from 'urql'
+import { useQuery, useMutation } from 'urql'
 import { get, uniqBy, isEmpty } from 'lodash/fp'
 import { useNavigation } from '@react-navigation/native'
 import { Validators, TextHelpers } from '@hylo/shared'
@@ -20,12 +20,13 @@ import { isIOS } from 'util/platform'
 import useRouteParams from 'hooks/useRouteParams'
 import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import useCurrentGroup from 'hooks/useCurrentGroup'
-import createPostAction from 'store/actions/createPost'
-import createProjectAction from 'store/actions/createProject'
-import updatePostAction from 'store/actions/updatePost'
+import createPostMutation from 'graphql/mutations/createPostMutation'
+import createProjectMutation from 'graphql/mutations/createProjectMutation'
+import updatePostMutation from 'graphql/mutations/updatePostMutation'
 import uploadAction from 'store/actions/upload'
 import { pollingFindOrCreateLocation as providedPollingFindOrCreateLocation } from 'screens/LocationPicker/LocationPicker.store'
 import postQuery from 'graphql/queries/postQuery'
+import PostPresenter from 'urql-shared/presenters/PostPresenter'
 // Components
 import DatePickerWithLabel from './DatePickerWithLabel'
 import TypeSelector from './TypeSelector'
@@ -55,7 +56,6 @@ import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
 import { caribbeanGreen, rhino30, rhino80 } from 'style/colors'
 import styles from './PostEditor.styles'
-import PostPresenter from 'urql-shared/presenters/PostPresenter'
 
 export const MAX_TITLE_LENGTH = 50
 
@@ -108,13 +108,14 @@ export default function PostEditor (props) {
     images: [],
     files: [],
     postMemberships: []
+
   })
   const updatePost = postUpdates => setPost(p => PostPresenter(({ ...p, ...postUpdates })))
 
   // Actions
-  const createNewPost = useCallback(params => dispatch(createPostAction(params)), [dispatch])
-  const createNewProject = useCallback(params => dispatch(createProjectAction(params)), [dispatch])
-  const updateSelectedPost = useCallback(params => dispatch(updatePostAction(params)), [dispatch])
+  const [, createNewPost] = useMutation(createPostMutation)
+  const [, createNewProject] = useMutation(createProjectMutation)
+  const [, updateSelectedPost] = useMutation(updatePostMutation)
   const upload = useCallback(params => dispatch(uploadAction(params)), [dispatch])
   const canHaveTimeframe = useMemo(() => post.type !== 'discussion', [post])
 
@@ -200,28 +201,34 @@ export default function PostEditor (props) {
       type: post.type,
       details: detailsEditorRef.current.getHTML(),
       groups: post.groups,
+      groupIds: post.groups.map(c => c.id),
       memberIds: post.members.items.map(m => m.id),
       fileUrls: post.filesUrls,
       imageUrls: post.imageUrls,
       isPublic: post.isPublic,
       title: post.title,
-      announcement: post.announcement,
+      sendAnnouncement: post.announcement,
       topicNames: post.topics.map(t => t.name),
-      startTime: !canHaveTimeframe ? null : post.startTime && post.startTime.getTime(),
-      endTime: !canHaveTimeframe ? null : post.endTime && post.endTime.getTime(),
+      startTime: !canHaveTimeframe ? null : post.startTime && post.startTime.getTime().valueOf(),
+      endTime: !canHaveTimeframe ? null : post.endTime && post.endTime.getTime().valueOf(),
       location: post.location,
       projectManagementLink: TextHelpers.sanitizeURL(post.projectManagementLink),
       donationsLink: TextHelpers.sanitizeURL(post.donationsLink),
-      locationId: post?.locationObject?.id || null
+      locationId: post?.locationObject?.id || null,
+      linkPreviewId: post?.linkPreview && post?.linkPreview.id,
+      linkPreviewFeatured: post?.linkPreviewFeatured
     }
 
     try {
       const saveAction = postData.id ? updateSelectedPost : postData.type === 'project' ? createNewProject : createNewPost
-      const { payload, meta, error } = await saveAction(postData)
+      const { error, data } = await saveAction(postData)
 
-      if (error) throw new Error('Error submitting post')
+      if (error) {
+        console.error(error)
+        throw new Error('Error submitting post')
+      }
 
-      const id = meta.extractModel?.getRoot(payload?.data)?.id
+      const id = data[Object.keys(data)[0]].id
       navigation.navigate('Post Details', { id })
     } catch (e) {
       console.log('!!!! error saving post', e)

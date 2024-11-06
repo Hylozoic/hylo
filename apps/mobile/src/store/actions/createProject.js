@@ -1,6 +1,8 @@
+// TODO: URLQ - this is no longer used, but analytics still need to be translated
+
 import { get } from 'lodash/fp'
 import { TextHelpers, AnalyticsEvents } from '@hylo/shared'
-import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
+import createProjectMutation from 'graphql/mutations/createProjectMutation'
 import { CREATE_PROJECT } from 'store/constants'
 
 export default function createProject (postParams) {
@@ -26,37 +28,7 @@ export default function createProject (postParams) {
   return {
     type: CREATE_PROJECT,
     graphql: {
-      query: `mutation (
-        $title: String
-        $details: String
-        $linkPreviewId: String
-        $groupIds: [ID]
-        $imageUrls: [String]
-        $fileUrls: [String]
-        $announcement: Boolean
-        $isPublic: Boolean
-        $topicNames: [String]
-        $memberIds: [ID]
-        $acceptContributions: Boolean
-        $donationsLink: String
-        $projectManagementLink: String
-      ) {
-        createProject(data: {
-          title: $title
-          details: $details
-          linkPreviewId: $linkPreviewId
-          groupIds: $groupIds
-          imageUrls: $imageUrls
-          fileUrls: $fileUrls
-          announcement: $announcement
-          isPublic: $isPublic
-          topicNames: $topicNames
-          memberIds: $memberIds
-          acceptContributions: $acceptContributions
-          donationsLink: $donationsLink
-          projectManagementLink: $projectManagementLink
-        }) {${postFieldsFragment(false)}}
-      }`,
+      query: createProjectMutation,
       variables: {
         type,
         title,

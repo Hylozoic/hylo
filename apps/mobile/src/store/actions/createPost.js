@@ -1,3 +1,5 @@
+// TODO: URLQ - this is no longer used, but analytics still need to be translated
+
 import { get } from 'lodash/fp'
 import { TextHelpers, AnalyticsEvents } from '@hylo/shared'
 import createPostMutation from 'graphql/mutations/createPostMutation'
