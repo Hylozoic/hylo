@@ -7061,42 +7061,42 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/core@npm:^2.8.0":
-  version: 2.9.0
-  resolution: "@tiptap/core@npm:2.9.0"
+"@tiptap/core@npm:^2.9.1":
+  version: 2.9.1
+  resolution: "@tiptap/core@npm:2.9.1"
   peerDependencies:
     "@tiptap/pm": ^2.7.0
-  checksum: 10/a9a060d50e6117cd471620d8721b73a5e1ddc1efe1016af5338242f8aed15e94c0c7267f7780114c8bd9e6411e800ef88b190e92dbba02a650c2913e52eb8b92
+  checksum: 10/a7e4d4c2a3309b5288e9854a08612f745db4e62d853e92cc7870c61b5a9d53abec75787e129a6fa61a5c99781649ad1d5e074be706f6d4cf0b240a46fec6457b
   languageName: node
   linkType: hard
 
-"@tiptap/extension-blockquote@npm:^2.8.0":
-  version: 2.9.0
-  resolution: "@tiptap/extension-blockquote@npm:2.9.0"
+"@tiptap/extension-blockquote@npm:^2.9.1":
+  version: 2.9.1
+  resolution: "@tiptap/extension-blockquote@npm:2.9.1"
   peerDependencies:
     "@tiptap/core": ^2.7.0
-  checksum: 10/249d10b41df4d32b6fad0563f84d1e9a02d905722111c4a0c94b570b55b05c7b04949f1c31acae7710bfbfa8aae8ffa74b157351de2872b5ca59400f5b9fe701
+  checksum: 10/b2f20ca5884568bfceb506b3a04240cd3380758fe22d06b87f3e6b1149d65d86de8299c161878aa736e57f25e8a9dcf9b55164963db6dc2e137263ce16e6d88a
   languageName: node
   linkType: hard
 
-"@tiptap/extension-bold@npm:^2.8.0":
-  version: 2.9.0
-  resolution: "@tiptap/extension-bold@npm:2.9.0"
+"@tiptap/extension-bold@npm:^2.9.1":
+  version: 2.9.1
+  resolution: "@tiptap/extension-bold@npm:2.9.1"
   peerDependencies:
     "@tiptap/core": ^2.7.0
-  checksum: 10/fde5e69cac957235cd4b16f279713554042907dc78d6c5f9e48593b425888032237a54377e1d1492cfc379b050fa7656f2ea5aa8987cf7c36388785a1284a5b3
+  checksum: 10/29dfff87ed20c1b5bc512392af0860b4e6e29c1d819645c8df94ec57f743784cf35fcad940040aa29b3f5a5ee9fd5b09e17db4b80f30e2bfcb7d933b4c146def
   languageName: node
   linkType: hard
 
-"@tiptap/extension-bubble-menu@npm:^2.8.0":
-  version: 2.9.0
-  resolution: "@tiptap/extension-bubble-menu@npm:2.9.0"
+"@tiptap/extension-bubble-menu@npm:^2.9.1":
+  version: 2.9.1
+  resolution: "@tiptap/extension-bubble-menu@npm:2.9.1"
   dependencies:
     tippy.js: "npm:^6.3.7"
   peerDependencies:
     "@tiptap/core": ^2.7.0
     "@tiptap/pm": ^2.7.0
-  checksum: 10/95e522586ed4ab6396c415edb39ef7d5886d565a58ab190b9854c0c01d29e69b8b3c47624e52cfdc2f77f84b508fce9447fc3faa3e18f9272803ec8012686abe
+  checksum: 10/c20b28252d58aa9e82115aa6db4f3cda4b9271dcf7fb2ead26813001e83489b0ffaf1d6a7f2bbd3b79664a355dc7fd2993038dbb86ba2044c10957fafcd53372
   languageName: node
   linkType: hard
 
@@ -7111,9 +7111,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-code-block@npm:^2.8.0":
-  version: 2.9.0
-  resolution: "@tiptap/extension-code-block@npm:2.9.0"
+"@tiptap/extension-code-block@npm:^2.9.1":
+  version: 2.9.1
+  resolution: "@tiptap/extension-code-block@npm:2.9.1"
   peerDependencies:
     "@tiptap/core": ^2.7.0
     "@tiptap/pm": ^2.7.0
