@@ -22,7 +22,14 @@ usage:
 
 */
 
-require('dotenv').load()
+const dotenv = require('dotenv')
+
+if (process.env.NODE_ENV === 'test') {
+  dotenv.config({ path: '.env.test' })
+} else {
+  dotenv.config()
+}
+
 const { blue, green, red, yellow } = require('chalk')
 if (process.env.NEW_RELIC_LICENSE_KEY) require('newrelic')
 

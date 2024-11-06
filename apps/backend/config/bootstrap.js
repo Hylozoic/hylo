@@ -13,7 +13,7 @@ import util from 'util'
 import models from '../api/models'
 import queryMonitor from '../lib/util/queryMonitor'
 import { red } from 'chalk'
-require('dotenv').load()
+require('dotenv').config()
 
 // very handy, these
 global.format = util.format
