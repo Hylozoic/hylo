@@ -210,7 +210,12 @@ export default function ChatRoom (props) {
     setLoadingFuture(true)
     return dispatch(fetchPosts({ ...fetchPostsFutureParams, offset })).then((action) => {
       setLoadingFuture(false)
-      messageListRef.current?.data.append(action.payload?.data?.group?.posts?.items || [])
+      const newPosts = action.payload?.data?.group?.posts?.items || []
+      if (offset === 0) {
+        messageListRef.current?.data.replace(newPosts || [], { index: 'LAST', align: 'end' })
+      } else {
+        messageListRef.current?.data.append(newPosts || [])
+      }
     })
   }, [fetchPostsFutureParams, loadingFuture, hasMorePostsFuture])
 
@@ -229,6 +234,8 @@ export default function ChatRoom (props) {
   const updateGroupTopicLastReadPostAction = useCallback((groupTopicId, postId) => dispatch(updateGroupTopicLastReadPost(groupTopicId, postId)), [dispatch])
 
   const handleNewPostReceived = useCallback((data) => {
+    if (!data.topics?.find(t => t.name === topicName)) return
+
     let updateExisting = false
     messageListRef.current?.data.map((item) => {
       if (item.pending && (data.id === item.id || (data.localId && data.localId === item.localId))) {
@@ -277,9 +284,12 @@ export default function ChatRoom (props) {
   useEffect(() => {
     // New group topic
     if (groupTopic?.id) {
+      setInitialPostToScrollTo(null)
+      setLoadedFuture(false)
       fetchPostsFuture(0).then(() => setLoadedFuture(true))
 
       if (groupTopic.lastReadPostId) {
+        setLoadedPast(false)
         fetchPostsPast(0).then(() => setLoadedPast(true))
       } else {
         setLoadedPast(true)
@@ -295,13 +305,13 @@ export default function ChatRoom (props) {
       if (editorRef.current) {
         editorRef.current.focus()
       }
-    }, 600)
+    }, 1000)
   }, [groupTopic?.id])
 
   // Do once after loading posts for the room to get things ready
   useEffect(() => {
     if (loadedPast && loadedFuture) {
-      setInitialPostToScrollTo((postsPast ? postsPast.length - 1 : 0) + Math.min(postsFuture?.length || 0, 3))
+      setInitialPostToScrollTo((postsPast && postsPast.length > 0 ? postsPast.length - 1 : 0) + Math.min(postsFuture && postsFuture.length > 0 ? postsFuture.length - 1 : 0, 3))
     }
   }, [loadedPast, loadedFuture])
 
@@ -433,7 +443,7 @@ export default function ChatRoom (props) {
         {initialPostToScrollTo === null
           ? <div className={styles.loadingContainer}><Loading /></div>
           : (
-            <VirtuosoMessageListLicense licenseKey=''>
+            <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto' }}
                 ref={messageListRef}
