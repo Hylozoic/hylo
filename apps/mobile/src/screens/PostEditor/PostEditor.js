@@ -273,8 +273,6 @@ export default function PostEditor (props) {
     })
   }, [isValid, isSaving, post])
 
-  const handleUpdateTitle = title => updatePost({ title })
-
   const handleAddTopic = (providedTopic, picked) => {
     const ignoreHash = name => name[0] === '#' ? name.slice(1) : name
     const topic = { ...providedTopic, name: ignoreHash(providedTopic.name) }
@@ -409,7 +407,7 @@ export default function PostEditor (props) {
             <TextInput
               style={[styles.titleInput]}
               editable={!isSaving}
-              onChangeText={handleUpdateTitle}
+              onChangeText={title => updatePost({ title })}
               placeholder={t(titlePlaceholders[post.type])}
               placeholderTextColor={rhino30}
               underlineColorAndroid='transparent'
