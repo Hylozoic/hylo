@@ -1,13 +1,14 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Text, View, Alert, TouchableOpacity } from 'react-native'
+import { useMutation } from 'urql'
 import { filter } from 'lodash/fp'
 import Clipboard from '@react-native-clipboard/clipboard'
 import { TextHelpers } from '@hylo/shared'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
+import deleteCommentMutation from 'graphql/mutations/deleteCommentMutation'
 import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import useReactOnEntity from 'urql-shared/hooks/useReactOnEntity'
 import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
-import deleteCommentAction from 'store/actions/deleteComment'
 import getGroup from 'store/selectors/getGroup'
 import { getPresentedPost } from 'store/selectors/getPost'
 import Avatar from 'components/Avatar'
@@ -37,20 +38,20 @@ export default function Comment ({
   slug
 }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
+  const [, deleteComment] = useMutation(deleteCommentMutation)
   const { showHyloActionSheet } = useHyloActionSheet()
   const { reactOnEntity, deleteReactionFromEntity } = useReactOnEntity()
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const currentUser = useCurrentUser()
+  // TODO: Convert to useQuery groupQuery ...
   const group = useSelector(state => getGroup(state, { slug }))
   const canModerate = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: group?.id }))
   const isCreator = currentUser && (comment.creator.id === currentUser.id)
   const { creator, text, createdAt, post: postId } = comment
   const post = useSelector(state => getPresentedPost(state, { postId, forGroupId: group?.id }))
-  const postTitle = displayPostTitle && post?.title && TextHelpers.truncateText(post.title, 40)
-  const myReactions = (comment && comment.myReactions) || []
+  const postTitle = useMemo(() => displayPostTitle && post?.title && TextHelpers.truncateText(post.title, 40), [post?.title])
+  const myReactions = useMemo(() => (comment && comment.myReactions) || [], [comment?.myReactions])
   const myEmojis = myReactions.map((reaction) => reaction.emojiFull)
-  const groupIds = post?.groups.map(g => g.id)
 
   const handleReaction = (emojiFull) => reactOnEntity('comment', comment?.id, emojiFull, postId)
   const handleRemoveReaction = (emojiFull) => deleteReactionFromEntity('comment', comment?.id, emojiFull, postId)
@@ -60,7 +61,7 @@ export default function Comment ({
       t('Moderator: Confirm Delete'),
       t('Are you sure you want to remove this comment?'),
       [
-        { text: t('Yes'), onPress: () => dispatch(deleteCommentAction(comment.id)) },
+        { text: t('Yes'), onPress: async () => deleteComment({ id: comment.id }) },
         { text: t('Cancel'), style: 'cancel' }
       ]
     )
@@ -71,7 +72,7 @@ export default function Comment ({
         t('Confirm Delete'),
         t('Are you sure you want to delete this comment?'),
         [
-          { text: t('Yes'), onPress: () => dispatch(deleteCommentAction(comment.id)) },
+          { text: t('Yes'), onPress: () => deleteComment({ id: comment.id }) },
           { text: t('Cancel'), style: 'cancel' }
         ]
       )
@@ -110,6 +111,7 @@ export default function Comment ({
     )
   }
 
+  // TODO: Make CommentPresenter
   const images = filter({ type: 'image' }, comment?.attachments)
     .map(image => ({ uri: image.url }))
 

@@ -103,7 +103,7 @@ export default function StreamList (props) {
     sortBy,
     timeframe,
     topicName
-  })  
+  })
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
   const [offset, setOffset] = useState(0)

@@ -4,17 +4,17 @@ import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 // ⚠️⚠️⚠️ Deprecated - see https://github.com/facebook/react-native/pull/31402 for native `InputAccessoryView` component (React Native 0.68+) ⚠️⚠️⚠️
 import { KeyboardAccessoryView } from '@flyerhq/react-native-keyboard-accessory-view'
+import { useMutation } from 'urql'
+import { useTranslation } from 'react-i18next'
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons'
 import { isEmpty } from 'lodash/fp'
 import { isIOS } from 'util/platform'
 import { TextHelpers } from '@hylo/shared'
-import createComment from 'store/actions/createComment'
+import CreateCommentMutation from 'graphql/mutations/CreateCommentMutation.graphql'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import styles from './CommentEditor.styles'
-import { useDispatch } from 'react-redux'
 import Icon from 'components/Icon'
 import { firstName } from 'store/models/Person'
-import { useTranslation } from 'react-i18next'
 
 export const KeyboardAccessoryCommentEditor = forwardRef(function KeyboardAccessoryCommentEditor ({
   renderScrollable,
@@ -55,7 +55,7 @@ export const CommentEditor = forwardRef(function CommentEditor ({
   clearReplyingTo
 }, ref) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
+  const [, createComment] = useMutation(CreateCommentMutation)
   const [hasContent, setHasContent] = useState()
   const editorRef = useRef()
   const [submitting, setSubmitting] = useState()
@@ -80,11 +80,20 @@ export const CommentEditor = forwardRef(function CommentEditor ({
     if (!isEmpty(commentHTML)) {
       setSubmitting(true)
 
-      const { error } = await dispatch(createComment({
+      // TODO: URQL send analytics event:
+      // analytics: {
+      //   eventName: AnalyticsEvents.COMMENT_CREATED,
+      //   commentLength: TextHelpers.textLengthHTML(text),
+      //   groupId: post.groups.map(g => g.id),
+      //   hasAttachments: attachments && attachments.length > 0,
+      //   parentCommentId,
+      //   postId
+      // }
+      const { error } = await createComment({
         text: commentHTML,
         parentCommentId: replyingTo?.parentComment || replyingTo?.id || null,
-        post
-      }))
+        postId: post.id
+      })
 
       setSubmitting(false)
 
@@ -94,7 +103,7 @@ export const CommentEditor = forwardRef(function CommentEditor ({
         handleDone()
       }
     }
-  }, [handleDone, post, replyingTo?.id, replyingTo?.parentComment, dispatch])
+  }, [handleDone, post, replyingTo?.id, replyingTo?.parentComment])
 
   const setEditorRef = useCallback(newEditorRef => {
     setHasContent(!newEditorRef?.isEmpty)
