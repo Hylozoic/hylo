@@ -11,7 +11,7 @@ import CheckBox from '@react-native-community/checkbox'
 import MultiSelect from 'components/MultiSelect/MultiSelect'
 import createModerationActionMutation from 'graphql/mutations/createModerationActionMutation'
 import { agreementsURL } from 'store/constants'
-import GroupPresenter from 'store/presenters/GroupPresenter'
+import GroupPresenter from 'urql-shared/presenters/GroupPresenter'
 import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
 import { mangoOrange } from 'style/colors'
 

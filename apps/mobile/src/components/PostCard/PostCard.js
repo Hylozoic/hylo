@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -31,11 +31,11 @@ export default function PostCard ({
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const post = PostPresenter(providedPost)
-  const images = post.imageUrls && post.imageUrls.map(uri => ({ uri }))
-  const locationText = LocationHelpers.generalLocationString(post.locationObject, post.location)
+  const post = useMemo(() => PostPresenter(providedPost), [providedPost])
+  const images = useMemo(() => post.imageUrls && post.imageUrls.map(uri => ({ uri })), [post])
+  const locationText = useMemo(() => LocationHelpers.generalLocationString(post.locationObject, post.location), [post])
+  const isFlagged = useMemo(() => post.flaggedGroups && post.flaggedGroups.includes(groupId), [post])
   const currentUser = useCurrentUser()
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(groupId)
 
   return (
     <>

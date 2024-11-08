@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { View, Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useDispatch, useSelector } from 'react-redux'
@@ -28,7 +28,7 @@ export default function PostDetails () {
   const { id: postId } = useRouteParams()
   const currentGroup = useSelector(getCurrentGroup)
   const [{ data, fetching, error }] = useQuery({ query: postQuery, variables: { id: postId } })
-  const post = PostPresenter(data?.post)
+  const post = useMemo(() => PostPresenter(data?.post), [data?.post])
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()
 
