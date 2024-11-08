@@ -30,7 +30,9 @@ export default function PostCard (props) {
     expanded,
     highlightProps,
     post,
-    locationParams
+    locationParams,
+    onAddReaction = () => {},
+    onRemoveReaction = () => {}
   } = props
 
   const postCardRef = useRef()
@@ -136,6 +138,8 @@ export default function PostCard (props) {
               constrained={constrained}
               currentUser={currentUser}
               isFlagged={isFlagged}
+              onAddReaction={onAddReaction}
+              onRemoveReaction={onRemoveReaction}
             />
           </div>
         )}

@@ -20,6 +20,8 @@ export default function PostBody (props) {
     highlightProps,
     isFlagged,
     onClick,
+    onAddReaction = () => {},
+    onRemoveReaction = () => {},
     ...post
   } = props
   const dispatch = useDispatch()
@@ -57,6 +59,8 @@ export default function PostBody (props) {
         <EmojiRow
           post={post}
           currentUser={currentUser}
+          onAddReaction={onAddReaction}
+          onRemoveReaction={onRemoveReaction}
         />
       </div>
     </div>

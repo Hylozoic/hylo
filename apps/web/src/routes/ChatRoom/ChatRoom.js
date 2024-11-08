@@ -375,6 +375,21 @@ export default function ChatRoom (props) {
     updateLastReadPost(lastPost)
   }, [groupTopic?.id, lastReadPostId])
 
+  const onAddReaction = useCallback((post, emojiFull) => {
+    const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
+    const newPost = { ...post, ...optimisticUpdate }
+    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
+  }, [currentUser])
+
+  const onRemoveReaction = useCallback((post, emojiFull) => {
+    const postReactions = post.postReactions.filter(reaction => {
+      if (reaction.emojiFull === emojiFull && reaction.user.id === currentUser.id) return false
+      return true
+    })
+    const newPost = { ...post, myReactions: post.myReactions.filter(react => react.emojiFull !== emojiFull), postReactions }
+    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
+  }, [currentUser])
+
   // Create a new chat post
   const postChatMessage = useEventCallback(async () => {
     // Only submit if any non-whitespace text has been added
@@ -447,9 +462,10 @@ export default function ChatRoom (props) {
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto' }}
                 ref={messageListRef}
-                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId }}
+                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction }}
                 initialData={postsForDisplay}
                 initialLocation={{ index: initialPostToScrollTo, align: 'end' }}
+                shortSizeAlign='bottom-smooth'
                 computeItemKey={({ data }) => data.id || data.localId}
                 onScroll={onScroll}
                 onRenderedDataChange={onRenderedDataChange}
@@ -598,12 +614,16 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
             group={context.group}
             showHeader={showHeader}
             post={post}
+            onAddReaction={context.onAddReaction}
+            onRemoveReaction={context.onRemoveReaction}
           />
         : (
           <div className={cx(styles.cardItem, { [styles.expanded]: expanded })}>
             <PostCard
               expanded={expanded}
               post={post}
+              onAddReaction={context.onAddReaction}
+              onRemoveReaction={context.onRemoveReaction}
             />
           </div>
           )}

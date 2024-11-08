@@ -41,7 +41,9 @@ export default function ChatPost ({
   group,
   highlightProps,
   post,
-  showHeader = true
+  showHeader = true,
+  onAddReaction = () => {},
+  onRemoveReaction = () => {}
 }) {
   const {
     commenters,
@@ -76,6 +78,8 @@ export default function ChatPost ({
   const [isVideo, setIsVideo] = useState()
   const [flaggingVisible, setFlaggingVisible] = useState(false)
   const [isLongPress, setIsLongPress] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
 
   const isCreator = currentUser.id === creator.id
   const creatorRoles = useSelector(state => getRolesForGroup(state, { person: creator, groupId: group.id }))
@@ -139,9 +143,13 @@ export default function ChatPost ({
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
   const handleReaction = (emojiFull) => {
     reactOnEntity({ emojiFull, entityType: 'post', postId: id, groupIds })
+    onAddReaction(post, emojiFull)
     setIsLongPress(false)
   }
-  const handleRemoveReaction = (emojiFull) => removeReactOnEntity({ emojiFull, entityType: 'post', postId: id })
+  const handleRemoveReaction = (emojiFull) => {
+    removeReactOnEntity({ emojiFull, entityType: 'post', postId: id })
+    onRemoveReaction(post, emojiFull)
+  }
 
   const handleEditCancel = () => {
     editorRef.current.setContent(details)
@@ -195,12 +203,37 @@ export default function ChatPost ({
 
   const commenterAvatarUrls = commenters.map(p => p.avatarUrl)
 
+  const handleMouseEnter = () => {
+    setIsHovered(true)
+  }
+
+  const handleMouseLeave = () => {
+    if (!isEmojiPickerOpen) {
+      setIsHovered(false)
+    }
+  }
+
+  const handleEmojiPickerOpen = useCallback((isOpen) => {
+    setIsEmojiPickerOpen(isOpen)
+    // Keep hover state while picker is open
+    if (isOpen) {
+      setIsHovered(true)
+    } else {
+      setIsHovered(false)
+    }
+  }, [])
+
   return (
     <Highlight {...highlightProps}>
       <div
-        className={cx(className, styles.container, { [styles.longPressed]: isLongPress })}
+        className={cx(className, styles.container, {
+          [styles.longPressed]: isLongPress,
+          [styles.hovered]: isHovered
+        })}
         ref={ref}
         {...bindLongPress()}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <div className={styles.actionBar}>
           {actionItems.map(item => (
@@ -219,6 +252,7 @@ export default function ChatPost ({
             handleReaction={handleReaction}
             handleRemoveReaction={handleRemoveReaction}
             myEmojis={myEmojis}
+            onOpenChange={handleEmojiPickerOpen}
           />
           {flaggingVisible && (
             <FlagContent
@@ -287,6 +321,8 @@ export default function ChatPost ({
           className={cx(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
           post={post}
           currentUser={currentUser}
+          onAddReaction={onAddReaction}
+          onRemoveReaction={onRemoveReaction}
         />
         {commentsTotal > 0 && (
           <span className={styles.commentsContainer}>
