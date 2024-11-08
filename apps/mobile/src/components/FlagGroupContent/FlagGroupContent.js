@@ -1,35 +1,50 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { View, Text, TouchableOpacity, ScrollView, Linking, Modal, TextInput } from 'react-native'
-import { regentGray, mangoOrange } from 'style/colors'
-import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
+import { useSelector } from 'react-redux'
+import { gql, useMutation, useQuery } from 'urql'
+import { isEmpty } from 'lodash'
+import { groupUrl } from 'util/navigation'
 import Icon from 'components/Icon'
 import Button from 'components/Button'
 import CheckBox from '@react-native-community/checkbox'
 import MultiSelect from 'components/MultiSelect/MultiSelect'
-import { createModerationAction } from 'store/actions/moderationActions'
-import getGroup from 'store/selectors/getGroup'
+import createModerationActionMutation from 'graphql/mutations/createModerationActionMutation'
 import { agreementsURL } from 'store/constants'
-import presentGroup from 'store/presenters/presentGroup'
+import GroupPresenter from 'store/presenters/GroupPresenter'
 import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
-import { groupUrl } from 'util/navigation'
-import { isEmpty } from 'lodash'
+import { mangoOrange } from 'style/colors'
 
 const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const { id, slug } = linkData || {}
-
+  const { id: postId, slug: groupSlug } = linkData || {}
+  const [{ data }] = useQuery({
+    query: gql`
+      query ($slug: String) {
+        group(slug: $slug) {
+          id
+          name
+          agreements {
+            items {
+              id
+              description
+              order
+              title        
+            }
+          }
+        }
+      }
+    `,
+    variables: { slug: groupSlug }
+  })
+  const group = useMemo(() => GroupPresenter(data?.group), [data])
+  const [, createModerationAction] = useMutation(createModerationActionMutation)
   const platformAgreements = useSelector(getPlatformAgreements)
-  const currentGroup = useSelector(state => getGroup(state, { slug }))
-  console.log(currentGroup, 'jjahahahahahahggggg', Object.keys(currentGroup))
-  const group = presentGroup(currentGroup)
-
-  const agreements = group?.agreements || []
+  const agreements = group?.agreements?.items || []
   const groupAgreementsUrl = group ? groupUrl(group.slug) + `/group/${group.slug}` : ''
   const [anonymous, setAnonymous] = useState(false)
   const [explanation, setExplanation] = useState('')
-  const [subtitle, setSubtitle] = useState(t('What was wrong?'))
+  const [subtitle] = useState(t('What was wrong?'))
   const [agreementsSelected, setAgreementsSelected] = useState([])
   const [platformAgreementsSelected, setPlatformAgreementsSelected] = useState([])
 
@@ -61,8 +76,17 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
     }
   }
 
-  const submit = () => {
-    dispatch(createModerationAction({ text: explanation, postId: id, groupId: group.id, agreements: agreementsSelected, platformAgreements: platformAgreementsSelected, anonymous }))
+  const submit = async () => {
+    await createModerationAction({
+      data: {
+        text: explanation,
+        postId,
+        groupId: group.id,
+        agreements: agreementsSelected,
+        platformAgreements: platformAgreementsSelected,
+        anonymous
+      }
+    })
     closeModal()
     return true
   }

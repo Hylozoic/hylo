@@ -1,6 +1,5 @@
 import { gql, useMutation } from 'urql'
 
-
 // TODO: Re-integrate analytics reporting:
 // analytics: {
 //   commentId,
@@ -34,7 +33,7 @@ const REACT_ON_MUTATION = gql`
 `
 
 const DELETE_POST_REACTION_MUTATION = gql`
-  mutation deleteReaction($entityId: ID, $data: ReactionInput) {
+  mutation deletePostReaction($entityId: ID, $data: ReactionInput) {
     deleteReaction(entityId: $entityId, data: $data) {
       id
       postReactions {
@@ -56,7 +55,7 @@ const DELETE_POST_REACTION_MUTATION = gql`
 `
 
 const DELETE_COMMENT_REACTION_MUTATION = gql`
-  mutation deleteReaction($entityId: ID, $data: ReactionInput) {
+  mutation deleteCommentReaction($entityId: ID, $data: ReactionInput) {
     deleteReaction(entityId: $entityId, data: $data) {
       id
     }
@@ -117,9 +116,9 @@ const DELETE_COMMENT_REACTION_MUTATION = gql`
 // }
 
 export default function useReactOnEntity () {
-  const [reactOnResult, reactOn] = useMutation(REACT_ON_MUTATION)
-  const [deleteReactionResult, deletePostReaction] = useMutation(DELETE_POST_REACTION_MUTATION)
-  const [deleteCommentReactionResult, deleteCommentReaction] = useMutation(DELETE_COMMENT_REACTION_MUTATION)
+  const [, reactOn] = useMutation(REACT_ON_MUTATION)
+  const [, deletePostReaction] = useMutation(DELETE_POST_REACTION_MUTATION)
+  const [, deleteCommentReaction] = useMutation(DELETE_COMMENT_REACTION_MUTATION)
   const reactOnEntity = async (entityType, entityId, emojiFull) =>
     reactOn({ entityId, data: { emojiFull, entityType, entityId } })
 

@@ -1,13 +1,13 @@
 import { uniq } from 'lodash/fp'
 
-export default function PostPresenter (postFromQuery, forGroupId) {
-  if (!postFromQuery) return postFromQuery
+export default function PostPresenter (post, forGroupId) {
+  if (!post) return post
 
-  const groupPostMembership = postFromQuery.postMemberships.find(postMembership => {
+  const groupPostMembership = post.postMemberships.find(postMembership => {
     return Number(postMembership.group) === Number(forGroupId)
   })
   // if remote exists set url to remote, if not do the following
-  const attachments = postFromQuery.attachments.map(attachment => {
+  const attachments = post.attachments.map(attachment => {
     const url = attachment?.url || attachment?.remote
     return { ...attachment, url, local: url }
   })
@@ -15,15 +15,15 @@ export default function PostPresenter (postFromQuery, forGroupId) {
   const files = attachments.filter(attachment => attachment.type === 'file')
 
   return {
-    ...postFromQuery,
+    ...post,
     attachments,
     images,
     files,
     fileUrls: uniq(files.map(file => file.url)),
     imageUrls: uniq(images.map(image => image.url)),
     pinned: groupPostMembership && groupPostMembership.pinned,
-    startTime: postFromQuery.startTime ? new Date(postFromQuery.startTime) : postFromQuery.startTime,
-    endTime: postFromQuery.endTime ? new Date(postFromQuery.endTime) : postFromQuery.endTime
+    startTime: post.startTime ? new Date(post.startTime) : post.startTime,
+    endTime: post.endTime ? new Date(post.endTime) : post.endTime
     // TODO: Doesn't seem to still be necessary, but confirm before removing
     // topics: post.topics.map(topic => presentTopic(topic, {}))
   }

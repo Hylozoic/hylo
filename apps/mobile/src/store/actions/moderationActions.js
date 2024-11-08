@@ -2,7 +2,6 @@ import { get } from 'lodash/fp'
 
 import {
   CLEAR_MODERATION_ACTION,
-  CREATE_MODERATION_ACTION,
   FETCH_MODERATION_ACTIONS,
   RECORD_CLICKTHROUGH
 } from 'store/constants'
@@ -22,34 +21,6 @@ export function clearModerationAction ({ postId, moderationActionId, groupId }) 
       moderationActionId,
       groupId,
       postId,
-      optimistic: true
-    }
-  }
-}
-
-export function createModerationAction (data) {
-  return {
-    type: CREATE_MODERATION_ACTION,
-    graphql: {
-      query: `mutation ($data: ModerationActionInput) {
-        createModerationAction (data: $data) {
-          id
-          postId
-          groupId
-          text
-          anonymous
-          agreements {
-            id
-          }
-          platformAgreements {
-            id
-          }
-        }
-      }`,
-      variables: { data }
-    },
-    meta: {
-      data,
       optimistic: true
     }
   }
