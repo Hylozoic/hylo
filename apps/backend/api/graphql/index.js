@@ -101,6 +101,7 @@ import {
   setProposalOptions,
   subscribe,
   swapProposalVote,
+  transitionGroupToNewMenu,
   unblockUser,
   unfulfillPost,
   unlinkAccount,
@@ -514,6 +515,8 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
       subscribe(userId, topicId, groupId, isSubscribing),
 
     swapProposalVote: (root, { postId, removeOptionId, addOptionId }) => swapProposalVote({ userId, postId, removeOptionId, addOptionId }),
+
+    transitionGroupToNewMenu: (root, { groupId }) => transitionGroupToNewMenu({ userId, groupId }),
 
     unblockUser: (root, { blockedUserId }) => unblockUser(userId, blockedUserId),
 

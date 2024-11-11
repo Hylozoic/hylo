@@ -274,6 +274,7 @@ class GroupSettingsTab extends Component {
               />
               )}
         </div>
+        <Button label='Transition to new menu' onClick={this.props.transitionGroupToNewMenu} />
         <br />
 
         <div className={general.saveChanges}>

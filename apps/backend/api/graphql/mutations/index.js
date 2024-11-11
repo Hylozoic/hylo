@@ -25,7 +25,8 @@ export {
   createContextWidget,
   updateContextWidget,
   removeWidgetFromMenu,
-  reorderContextWidget
+  reorderContextWidget,
+  transitionGroupToNewMenu
 } from './context_widgets'
 export {
   respondToEvent,

@@ -58,11 +58,7 @@ function Groups () {
     )
   )
 
-  console.log('parentGroups', parentGroups)
-  console.log('childGroups', childGroups)
-
   const networkData = mapNodesAndLinks(parentGroups, childGroups, group)
-  console.log('networkData', networkData)
   const groupRelationshipCount = childGroups.length + parentGroups.length
 
   return (
