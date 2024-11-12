@@ -281,26 +281,34 @@ export default function AuthLayoutRouter (props) {
       <Routes>
         <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
         <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/:view/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
         <Route path='groups/:groupSlug/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
         <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
         <Route path='public/topics/:topicName/post/:postId/create/*' element={<CreateModal context='public' />} />
+        <Route path='public/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
         <Route path='all/topics/:topicName/create/*' element={<CreateModal context='all' />} />
         <Route path='all/topics/:topicName/post/:postId/create/*' element={<CreateModal context='all' />} />
+        <Route path='all/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
         <Route path='all/:view/create/*' element={<CreateModal context='all' />} />
         <Route path='all/:view/post/:postId/create/*' element={<CreateModal context='all' />} />
+        <Route path='all/:view/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
         <Route path='public/:view/create/*' element={<CreateModal context='public' />} />
         <Route path='public/:view/post/:postId/create/*' element={<CreateModal context='public' />} />
+        <Route path='public/:view/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
         <Route path='my/:view/create/*' element={<CreateModal context='my' />} />
         <Route path='my/:view/post/:postId/create/*' element={<CreateModal context='my' />} />
+        <Route path='my/:view/post/:postId/edit/*' element={<CreateModal context='my' editingPost />} />
         <Route path='public/create/*' element={<CreateModal context='public' />} />
         <Route path='public/post/:postId/create/*' element={<CreateModal context='public' />} />
+        <Route path='public/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
         <Route path='all/create/*' element={<CreateModal context='all' />} />
         <Route path='all/post/:postId/create/*' element={<CreateModal context='all' />} />
-        {/* <Route path='/:context(public|all)/*' element={<CreateModal />} /> */}
-        {/* TODO route: how? <Route path={`(.*)/${REQUIRED_EDIT_POST_MATCH}`} element={<CreateModal />} /> */}
+        <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
       </Routes>
 
       <Div100vh className={cx(classes.container, { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
@@ -395,9 +403,9 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
               <Route path='groups/:groupSlug/events/*' element={<Events context='groups' view='events' />} />
               <Route path='groups/:groupSlug/groups' element={<Groups context='groups' />} />
-              <Route path='groups/:groupSlug/members/create' element={<Members context='groups' />} />
+              <Route path='groups/:groupSlug/members/create/*' element={<Members context='groups' />} />
               <Route path='groups/:groupSlug/members/:personId/*' element={<MemberProfile context='groups' />} />
-              <Route path='groups/:groupSlug/members' element={<Members context='groups' />} />
+              <Route path='groups/:groupSlug/members/*' element={<Members context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/*' element={<ChatRoom context='groups' />} />
               <Route path='groups/:groupSlug/topics' element={<AllTopics context='groups' />} />
               <Route path='groups/:groupSlug/settings/*' element={<GroupSettings context='groups' />} />

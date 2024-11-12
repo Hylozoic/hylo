@@ -19015,7 +19015,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"filestack-js@npm:^3.25.0":
+"filestack-js@npm:^3.34.4":
   version: 3.34.4
   resolution: "filestack-js@npm:3.34.4"
   dependencies:
@@ -40366,7 +40366,7 @@ __metadata:
     express: "npm:^4.15.5"
     file-loader: "npm:6.2.0"
     filesize: "npm:3.3.0"
-    filestack-js: "npm:^3.25.0"
+    filestack-js: "npm:^3.34.4"
     fs-extra: "npm:7.0.1"
     global: "npm:^4.3.2"
     globals: "npm:^15.9.0"

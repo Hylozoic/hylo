@@ -139,7 +139,7 @@
     "express": "^4.15.5",
     "file-loader": "6.2.0",
     "filesize": "3.3.0",
-    "filestack-js": "^3.25.0",
+    "filestack-js": "^3.34.4",
     "fs-extra": "7.0.1",
     "global": "^4.3.2",
     "globals": "^15.9.0",

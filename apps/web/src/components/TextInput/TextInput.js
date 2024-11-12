@@ -31,7 +31,7 @@ export default function TextInput (props) {
   }
 
   return (
-    <div className={cx(styles[theme.wrapperStyle] || styles.wrapper, styles[theme.wrapper] || className)}>
+    <div className={cx(theme.wrapperStyle || styles.wrapper, theme.wrapper || className)}>
       <input
         className={cx(styles[theme.inputStyle] || styles.input, theme.input)}
         {...{ onKeyDown, ...otherProps }}
