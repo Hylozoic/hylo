@@ -140,6 +140,7 @@ export default function PostCard (props) {
               isFlagged={isFlagged}
               onAddReaction={onAddReaction}
               onRemoveReaction={onRemoveReaction}
+              highlightProps={highlightProps}
             />
           </div>
         )}

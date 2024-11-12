@@ -73,13 +73,15 @@ export default function GroupSearch ({ viewFilter }) {
     <>
       <div className={classes.groupSearchViewCtrls}>
         {viewFilter === FARM_VIEW
-          ? <div className={classes.filterContainer} onClick={() => setFilterToggle(!filterToggle)}>
-            <Icon name='Filter' green={filterToggle} className={cx(classes.filterIcon, { [classes.filterOpen]: filterToggle })} />
-            <b className={cx({ [classes.filterOpen]: filterToggle })}>{t('Filters')}</b>
-            {filterToggle && <Icon name='Ex' className={classes.removeButton} />}
-          </div>
+          ? (
+            <div className={classes.filterContainer} onClick={() => setFilterToggle(!filterToggle)}>
+              <Icon name='Filter' green={filterToggle} className={cx(classes.filterIcon, { [classes.filterOpen]: filterToggle })} />
+              <b className={cx({ [classes.filterOpen]: filterToggle })}>{t('Filters')}</b>
+              {filterToggle && <Icon name='Ex' className={classes.removeButton} />}
+            </div>
+            )
           : <div id='div-left-intentionally-blank' />}
-        {makeDropdown({ selected: sortBy, options: sortOptions(nearCoord), onChange: setSortBy, filterLabel: `${t('Sort by')}: `, t })}
+        {makeDropdown({ selected: sortBy, options: sortOptions(t, nearCoord), onChange: setSortBy, filterLabel: `${t('Sort by')}: `, t })}
       </div>
       {filterToggle && viewFilter === FARM_VIEW &&
         <div className={classes.filterList}>
@@ -107,7 +109,6 @@ export default function GroupSearch ({ viewFilter }) {
               memberships={membershipGroupIds}
               className={cx(classes.cardItem, { [classes.expanded]: expanded })}
               expanded={expanded}
-              routeParams={query}
               group={group}
               key={group.id}
             />
@@ -124,8 +125,7 @@ export default function GroupSearch ({ viewFilter }) {
   )
 }
 
-const sortOptions = (nearCoord) => {
-  const { t } = useTranslation()
+const sortOptions = (t, nearCoord) => {
   const options = [
     { id: SORT_NAME, label: t('Group Name') },
     { id: SORT_SIZE, label: t('Member Count') }

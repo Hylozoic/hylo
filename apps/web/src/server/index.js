@@ -3,7 +3,6 @@ import './newrelic' // this must be second
 import express from 'express'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
-import appMiddleware from './appMiddleware'
 import apiProxy from './apiProxy'
 import redirectToApp from './redirectToApp'
 import { handleStaticPages } from './proxy'

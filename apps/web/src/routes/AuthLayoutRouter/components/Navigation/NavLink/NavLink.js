@@ -1,5 +1,5 @@
 import React from 'react'
-import { Route, useLocation } from 'react-router'
+import { useLocation } from 'react-router'
 import { Link } from 'react-router-dom'
 import BadgedIcon from 'components/BadgedIcon'
 import Badge from 'components/Badge'
@@ -8,6 +8,7 @@ import cx from 'classnames'
 import classes from './NavLink.module.scss'
 
 export default function NavLink ({ to, exact, label, icon, badge, onClick, collapsed = false, home = false, externalLink }) {
+  const location = useLocation()
   if (externalLink) {
     return (
       <li className={cx(classes.item, { [classes.collapsed]: collapsed })}>
@@ -21,7 +22,6 @@ export default function NavLink ({ to, exact, label, icon, badge, onClick, colla
     )
   }
 
-  const location = useLocation()
   const active = location.pathname === to
 
   return (

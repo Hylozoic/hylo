@@ -133,12 +133,16 @@ export const InviteeRow = React.forwardRef((props, ref) => {
       <div className={styles.col}>
         {name}
       </div>
-      {!showResponse && <div className={cx(styles.col, styles.check)}>
-        <CheckBox checked={selected} noInput />
-                        </div>}
-      {showResponse && response && <div className={cx(styles.col, styles.response)}>
-        {humanResponse(response)}
-                                   </div>}
+      {!showResponse && (
+        <div className={cx(styles.col, styles.check)}>
+          <CheckBox checked={selected} noInput />
+        </div>
+      )}
+      {showResponse && response && (
+        <div className={cx(styles.col, styles.response)}>
+          {humanResponse(response)}
+        </div>
+      )}
     </div>
   )
 })

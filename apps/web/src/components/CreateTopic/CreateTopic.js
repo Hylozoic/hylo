@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
+import { Navigate } from 'react-router-dom'
 import { any, arrayOf, func, object, string, bool } from 'prop-types'
 import { debounce, has, get, isEmpty, trim } from 'lodash/fp'
 import { Validators } from '@hylo/shared'

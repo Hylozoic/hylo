@@ -1,7 +1,6 @@
 import React, { Component } from 'react'
 import StripeCheckout from 'react-stripe-checkout'
 import { withTranslation } from 'react-i18next'
-import cx from 'classnames'
 import Button from 'components/Button'
 import TextInput from 'components/TextInput'
 import classes from './ProjectContributions.module.scss'
