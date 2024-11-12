@@ -12,14 +12,18 @@
     "mobile:android": "yarn workspace mobile run android",
     "mobile:clean": "yarn workspace mobile run clean",
     "mobile:ios": "yarn workspace mobile run ios",
-    "reset": "rm -rf **/node_modules **/.yarn/cache **/yarn.lock && yarn install"
+    "reset": "rm -rf **/node_modules **/.yarn/cache **/yarn.lock && yarn install",
+    "heroku-postbuild": "yarn workspace web build",
+    "start": "yarn workspace web serve"
   },
   "engines": {
     "node": "^20",
     "yarn": "^4.5.0"
   },
   "dependencies": {
-    "@hylo/shared": "workspace:*"
+    "@hylo/shared": "workspace:*",
+    "pretty-date": "^0.2.0",
+    "trunc-html": "^1.1.2"
   },
   "packageManager": "yarn@4.5.0"
 }
