@@ -6,6 +6,10 @@
   "license": "Apache-2.0",
   "author": "Hylo <hello@hylo.com>",
   "type": "module",
+  "engines": {
+    "node": "^20",
+    "yarn": "^4.5.0"
+  },
   "browserslist": [
     "defaults"
   ],
