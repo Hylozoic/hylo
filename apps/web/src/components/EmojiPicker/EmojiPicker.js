@@ -5,15 +5,10 @@ import Icon from 'components/Icon'
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger,
-} from "components/ui/popover"
+  PopoverTrigger
+} from 'components/ui/popover'
 
 import classes from './EmojiPicker.module.scss'
-
-const PICKER_DEFAULT_WIDTH = 373
-const PICKER_DEFAULT_HEIGHT = 435
-const DEFAULT_TOPNAV_HEIGHT = 56
-const emojiPickerMaxY = PICKER_DEFAULT_HEIGHT + DEFAULT_TOPNAV_HEIGHT
 
 export default function EmojiPicker (props) {
   const { handleRemoveReaction, myEmojis, handleReaction, forReactions = true, emoji, onOpenChange } = props
@@ -54,7 +49,7 @@ export default function EmojiPicker (props) {
               <Icon name='Smiley' className={classes.pickerIcon} />
             </div>
           </PopoverTrigger>
-          <PopoverContent className='w-auto p-0' hideWhenDetached={true} sideOffset={0}>
+          <PopoverContent className='w-auto p-0' hideWhenDetached sideOffset={0}>
             <div>
               <EmojiPickerContent {...props} onClickOutside={toggleModalOpen} onEmojiSelect={handleSelection} />
             </div>
@@ -68,7 +63,7 @@ export default function EmojiPicker (props) {
           <PopoverTrigger asChild>
             <span>{emoji || '?'}</span>
           </PopoverTrigger>
-          <PopoverContent className='w-auto p-0' hideWhenDetached={true} sideOffset={0}>
+          <PopoverContent className='w-auto p-0' hideWhenDetached sideOffset={0}>
             <EmojiPickerContent {...props} onClickOutside={toggleModalOpen} onEmojiSelect={handleSelection} />
           </PopoverContent>
         </Popover>
