@@ -25,7 +25,8 @@
     "lint:fix": "yarn exec standard --fix",
     "server": "./node_modules/.bin/babel-node --config-file ./babel.config.cjs scripts/serveUniversal.js",
     "prepare": "husky install",
-    "analyze": "webpack-bundle-analyzer build/bundle-stats.json"
+    "analyze": "webpack-bundle-analyzer build/bundle-stats.json",
+    "heroku-postbuild": "yarn install"
   },
   "standard": {
     "parser": "@babel/eslint-parser",
