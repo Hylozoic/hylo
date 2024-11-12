@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native'
 import { useSelector } from 'react-redux'
 import confirmNavigate from 'util/confirmNavigate'
-import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'store/models/Group'
+import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import getMemberships from 'store/selectors/getMemberships'
 import getCurrentGroup from 'store/selectors/getCurrentGroup'

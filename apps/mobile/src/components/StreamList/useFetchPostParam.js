@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
 import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
-import { isContextGroup } from 'store/models/Group'
+import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 
 export default function useFetchPostParam ({
   filter,

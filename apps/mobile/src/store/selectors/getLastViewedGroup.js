@@ -1,5 +1,5 @@
 import { createSelector } from 'reselect'
-import { PUBLIC_GROUP } from 'store/models/Group'
+import { PUBLIC_GROUP } from 'urql-shared/presenters/GroupPresenter'
 import getMe from './getMe'
 
 export const getLastViewedGroup = createSelector(

@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux'
 import { useOpenURL } from 'hooks/useOpenURL'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import getCurrentGroup from 'store/selectors/getCurrentGroup'
-import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'store/models/Group'
+import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import HyloWebView from 'components/HyloWebView'
 import { useTranslation } from 'react-i18next'
 

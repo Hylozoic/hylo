@@ -2,7 +2,7 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import { get } from 'lodash/fp'
 import orm from 'store/models'
 import { AnalyticsEvents } from '@hylo/shared'
-import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
+import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'urql-shared/presenters/GroupPresenter'
 import groupFieldsFragment from 'graphql/fragments/groupFieldsFragment'
 
 export const MODULE_NAME = 'CreateGroupFlow'

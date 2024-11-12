@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { useSelector } from 'react-redux'
-import { ALL_GROUP, MY_CONTEXT_GROUP, PUBLIC_GROUP } from 'store/models/Group'
+import { ALL_GROUP, MY_CONTEXT_GROUP, PUBLIC_GROUP } from 'urql-shared/presenters/GroupPresenter'
 import presentGroup from 'store/presenters/presentGroup'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getGroup from 'store/selectors/getGroup'

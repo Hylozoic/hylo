@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native'
-import { isContextGroup } from 'store/models/Group'
+import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 import useCurrentGroup from './useCurrentGroup'
 import useIsModalScreen from './useIsModalScreen'
 

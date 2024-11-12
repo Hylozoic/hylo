@@ -3,21 +3,20 @@ import { View, Text, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { capitalize, isEmpty } from 'lodash/fp'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
+import { useQuery } from 'urql'
 import LinearGradient from 'react-native-linear-gradient'
-import { isUndefined } from 'lodash'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import useGoToTopic from 'hooks/useGoToTopic'
 import { useTranslation } from 'react-i18next'
-import { PUBLIC_GROUP_ID } from 'store/models/Group'
+import { getContextGroup, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
+import topicQuery from 'graphql/queries/topicQuery'
 import useRouteParams from 'hooks/useRouteParams'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
+import getCurrentGroupSlug from 'store/selectors/getCurrentGroupSlug'
 import getCustomView from 'store/selectors/getCustomView'
-import getGroupTopic from 'store/selectors/getGroupTopic'
 import getMemberships from 'store/selectors/getMemberships'
-import toggleGroupTopicSubscribeAction from 'store/actions/toggleGroupTopicSubscribe'
-import fetchGroupTopic from 'store/actions/fetchGroupTopic'
+import fetchGroupDetailsAction from 'store/actions/fetchGroupDetails'
 import { firstName } from 'store/models/Person'
 import Avatar from 'components/Avatar'
 import Button from 'components/Button'
@@ -27,9 +26,9 @@ import StreamList from 'components/StreamList'
 import Loading from 'components/Loading'
 import SocketSubscriber from 'components/SocketSubscriber'
 import GroupWelcomeCheck from 'components/GroupWelcomeCheck'
+import ModerationList from 'components/ModerationList'
 import { bannerlinearGradientColors } from 'style/colors'
 import styles from './Stream.styles'
-import ModerationList from 'components/ModerationList'
 
 export function headerTitle (currentGroup, streamType, myHome, t) {
   if (myHome) return myHome
@@ -45,7 +44,6 @@ export default function Stream ({ topicName: providedTopicName }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const route = useRoute()
-  const dispatch = useDispatch()
 
   const { customViewId, streamType, myHome, topicName: routeTopicName } = useRouteParams()
   const customView = useSelector(state => getCustomView(state, { customViewId }))
@@ -63,29 +61,45 @@ export default function Stream ({ topicName: providedTopicName }) {
   const currentUser = useCurrentUser()
   const memberships = useSelector(getMemberships)
   const currentUserHasMemberships = !isEmpty(memberships)
-  const currentGroup = useSelector(getCurrentGroup)
-  const groupTopic = useSelector(state => getGroupTopic(state, { topicName, slug: currentGroup?.slug }))
-  const topic = groupTopic?.topic?.ref
-  const topicSubscribed = groupTopic?.isSubscribed
-  const topicPostsTotal = groupTopic?.postsTotal
-  const topicFollowersTotal = groupTopic?.followersTotal
-  const goToPostDetails = id => navigation.navigate('Post Details', { id })
-  const goToCreateGroup = () => navigation.navigate('Create Group')
-  const goToMember = id => navigation.navigate('Member', { id })
+  const currentGroupSlug = useSelector(getCurrentGroupSlug)
+  const [{ data }] = useQuery({
+    ...fetchGroupDetailsAction({
+      slug: currentGroupSlug,
+      withExtensions: false,
+      withWidgets: false,
+      withTopics: false,
+      withJoinQuestions: true,
+      withPrerequisites: true
+    }).graphql,
+    pause: !currentGroupSlug || getContextGroup(currentGroupSlug)
+  })
+  const currentGroup = getContextGroup(currentGroupSlug) || data?.group
+
+  // Topics related: This component re-directs to the WebView chat for Topics
+  // within everything but the Public and All My Groups contexts
+  const [{ data: topicData }, fetchTopic] = useQuery({
+    query: topicQuery,
+    variables: { name: topicName },
+    pause: true
+  })
+  const topic = topicData?.topic
+  const topicPostsTotal = topic?.postsTotal
+  const topicFollowersTotal = topic?.followersTotal
   const goToTopic = selectedTopicName => {
     if (selectedTopicName === topic?.name) return
-
     if (topic?.name) {
       navigation.setParams({ topicName: selectedTopicName })
     } else {
       goToTopicDefault(selectedTopicName)
     }
   }
-
   useEffect(() => {
-    topicName && currentGroup?.slug && dispatch(fetchGroupTopic(topicName, currentGroup.slug))
-  }, [dispatch, topicName, currentGroup?.slug])
+    if (topicName && currentGroup?.slug) {
+      fetchTopic()
+    }
+  }, [topicName, currentGroup?.slug])
 
+  // Keeps header up to date
   useEffect(() => {
     navigation.setOptions({
       title: headerTitle(currentGroup, streamType, myHome, t)
@@ -93,6 +107,11 @@ export default function Stream ({ topicName: providedTopicName }) {
   }, [navigation, topicName, currentGroup, currentGroup?.id, streamType, myHome])
 
   if (!currentUser) return <Loading style={{ flex: 1 }} />
+
+  // Navigation helpers
+  const goToPostDetails = id => navigation.navigate('Post Details', { id })
+  const goToCreateGroup = () => navigation.navigate('Create Group')
+  const goToMember = id => navigation.navigate('Member', { id })
 
   if (!currentUserHasMemberships && currentGroup?.id !== PUBLIC_GROUP_ID) {
     return (
@@ -105,13 +124,8 @@ export default function Stream ({ topicName: providedTopicName }) {
 
   if (!currentGroup) return null
 
-  const toggleTopicSubscribe = () => groupTopic && currentGroup.id && dispatch(toggleGroupTopicSubscribeAction(groupTopic))
-  const name = topicName
-    ? '#' + topicName
-    : currentGroup.name
-  const image = currentGroup.bannerUrl
-    ? { uri: currentGroup.bannerUrl }
-    : null
+  const name = topicName ? '#' + topicName : currentGroup.name
+  const image = currentGroup.bannerUrl ? { uri: currentGroup.bannerUrl } : null
   const pluralFollowers = (topicFollowersTotal !== 1)
   const pluralPosts = (topicPostsTotal !== 1)
   const streamListHeader = (
@@ -141,9 +155,6 @@ export default function Stream ({ topicName: providedTopicName }) {
               <Text style={styles.topicInfoText}>
                 <Icon name='Post' /> {topicPostsTotal || 0} post{pluralPosts && 's'}
               </Text>
-              {!isUndefined(topicSubscribed) && (
-                <SubscribeButton active={topicSubscribed} onPress={toggleTopicSubscribe} />
-              )}
             </View>
           )}
         </View>

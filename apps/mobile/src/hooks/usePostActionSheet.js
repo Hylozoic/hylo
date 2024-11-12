@@ -17,7 +17,7 @@ import {
 } from './usePostActionSheet.store'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import Icon from 'components/Icon'
-import { isContextGroup } from 'store/models/Group'
+import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 import { postUrl as postUrlCreator } from 'util/navigation'
 import { useTranslation } from 'react-i18next'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'

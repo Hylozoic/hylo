@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { useSelector } from 'react-redux'
 import WorkflowModalHeader from 'navigation/headers/WorkflowModalHeader'
 import CreateGroupTabBar from 'screens/CreateGroupFlow/CreateGroupTabBar'
-import { GROUP_ACCESSIBILITY } from 'store/models/Group'
+import { GROUP_ACCESSIBILITY } from 'urql-shared/presenters/GroupPresenter'
 import getMemberships from 'store/selectors/getMemberships'
 // Screens
 import CreateGroupName from 'screens/CreateGroupFlow/CreateGroupName'
