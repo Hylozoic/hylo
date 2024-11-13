@@ -186,7 +186,7 @@ export function widgetUrl ({ widget, rootPath, groupSlug, context }) {
   } else if (widget.viewPost) {
     url = postUrl(widget.viewPost.id)
   } else if (widget.viewChat) {
-    url = chatUrl(widget.viewChat.id)
+    url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
   } else if (widget.customView) {
     url = customViewUrl(widget.customView.id, rootPath, { groupSlug })
   }
