@@ -19,14 +19,18 @@
     "viteDev": "vite serve",
     "dev": "yarn start",
     "start": "rm -rf ../../node_modules/.cache/babel-loader && node --preserve-symlinks scripts/start.js",
-    "build": "node --max-old-space-size=4000 scripts/build.js --stats && scripts/build-es5.sh",
+    "build": "node scripts/build.js",
     "test": "TZ=UTC node scripts/test.js",
     "lint": "yarn exec standard",
     "lint:fix": "yarn exec standard --fix",
-    "server": "./node_modules/.bin/babel-node --config-file ./babel.config.cjs scripts/serveUniversal.js",
+    "serve": "node src/server/index.js",
     "prepare": "husky install",
     "analyze": "webpack-bundle-analyzer build/bundle-stats.json",
-    "heroku-postbuild": "yarn install"
+    "heroku-postbuild": "yarn install",
+    "preview": "vite preview",
+
+    "serverBabel": "./node_modules/.bin/babel-node --config-file ./babel.config.cjs scripts/serveUniversal.cjs",
+    "server": "node scripts/serveUniversal.cjs"
   },
   "standard": {
     "parser": "@babel/eslint-parser",
