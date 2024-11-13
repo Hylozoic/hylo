@@ -3,7 +3,7 @@ import { get } from 'lodash/fp'
 import orm from 'store/models'
 import { AnalyticsEvents } from '@hylo/shared'
 import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'urql-shared/presenters/GroupPresenter'
-import groupFieldsFragment from 'graphql/fragments/groupFieldsFragment'
+import groupFieldsFragment, { groupPrerequisiteGroupsFieldsFragment } from 'graphql/fragments/groupFieldsFragment'
 
 export const MODULE_NAME = 'CreateGroupFlow'
 export const UPDATE_GROUP_DATA = `${MODULE_NAME}/UPDATE_GROUP_DATA`
@@ -64,7 +64,8 @@ export function createGroup (groupData) {
       query: `
         mutation ($data: GroupInput) {
           createGroup(data: $data) {
-            ${groupFieldsFragment({ withJoinQuestions: true })}
+            ...GroupFieldsFragment
+            ...GroupPrerequisiteGroupsFieldsFragment
             memberships {
               items {
                 id
@@ -82,6 +83,8 @@ export function createGroup (groupData) {
               }
             }
           }
+          ${groupFieldsFragment}
+          ${groupPrerequisiteGroupsFieldsFragment}
         }
       `,
       variables: {

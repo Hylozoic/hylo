@@ -1,13 +1,49 @@
 /* eslint-disable camelcase */
 import React, { useState, useRef, useImperativeHandle, forwardRef, useCallback } from 'react'
 import { Text, TouchableOpacity, View, SectionList } from 'react-native'
-import { useQuery } from 'urql'
+import { gql, useQuery } from 'urql'
 import { isIOS } from 'util/platform'
-import commentsQuery from 'graphql/queries/commentsQuery'
-import childCommentsQuery from 'graphql/queries/childCommentsQuery'
+import commentsQuerySetFieldsFragment from 'graphql/fragments/commentsQuerySetFieldsFragment'
+import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
 import Comment from 'components/Comment'
 import Loading from 'components/Loading'
 import styles from './Comments.styles'
+
+const commentsQuery = gql`
+  query CommentsQuery (
+    $postId: ID,
+    $cursor: ID
+  ) {
+    post(id: $postId) {
+      id
+      ...CommentsQuerySetFieldsFragment
+    }
+  }
+  ${commentsQuerySetFieldsFragment}
+  ${commentFieldsFragment}
+`
+
+const childCommentsQuery = gql`
+  query ChildCommentsQuery (
+    $commentId: ID,
+    $cursor: ID
+  ) {
+    comment(id: $commentId) {
+      id
+      childComments(first: 10, cursor: $cursor, order: "desc") {
+        items {
+          post {
+            id
+          }
+          ...CommentFieldsFragment
+        }
+        total
+        hasMore
+      }
+    }
+    ${commentFieldsFragment}
+  }
+`
 
 function Comments ({
   postId,

@@ -24,7 +24,7 @@ import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import { white } from 'style/colors'
-// import MeQuery from 'graphql/queries/MeQuery'
+// import meQuery from 'graphql/queries/meQuery'
 // import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchPlatformAgreements from 'store/actions/fetchPlatformAgreements'
 import useHyloQuery from 'urql-shared/hooks/useHyloQuery'
@@ -32,7 +32,7 @@ import useHyloQuery from 'urql-shared/hooks/useHyloQuery'
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
   const dispatch = useDispatch()
-  // TODO: Need to figure-out roles and getResponsibilitiesForGroup selection before switching to useQuery({ query: MeQuery })
+  // TODO: Need to figure-out roles and getResponsibilitiesForGroup selection before switching to useQuery({ query: meQuery })
   const [{ fetching, data, error }] = useUrqlQueryAction({ action: fetchCurrentUser() })
   const [loading, setLoading] = useState(true)
   const currentUser = data?.me

@@ -7,8 +7,8 @@ import { useTranslation } from 'react-i18next'
 import { openURL } from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
 import getCurrentGroupSlug from 'store/selectors/getCurrentGroupSlug'
-import fetchGroupDetailsAction from 'store/actions/fetchGroupDetails'
 import { isContextGroup, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
+import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
 import Icon from 'components/Icon'
 import TopicsNavigation from 'components/TopicsNavigation'
 import styles from './GroupNavigation.styles'
@@ -20,15 +20,10 @@ export default function GroupNavigation () {
   const { myHome } = useRouteParams()
   // TODO: This is a session store value, keep in Redux or move elsewhere?
   const currentGroupSlug = useSelector(getCurrentGroupSlug)
-  const [{ data, error, fetching }] = useQuery({
-    ...fetchGroupDetailsAction({
-      slug: currentGroupSlug,
-      withExtensions: false,
-      withWidgets: false,
-      withTopics: false,
-      withJoinQuestions: true,
-      withPrerequisites: true
-    }).graphql,
+
+  const [{ data, fetching }] = useQuery({
+    query: groupDetailsQueryMaker({ withJoinQuestions: true, withPrerequisiteGroups: true }),
+    variables: { slug: currentGroupSlug },
     pause: !currentGroupSlug
   })
   const currentGroup = data?.group

@@ -1,145 +1,153 @@
-const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets = false }) => `
-  id
-  aboutVideoUri
-  accessibility
-  avatarUrl
-  bannerUrl
-  description
-  geoShape
-  location
-  memberCount
-  stewardDescriptor
-  stewardDescriptorPlural
-  name
-  purpose
-  settings {
-    agreementsLastUpdatedAt
-    allowGroupInvites
-    askGroupToGroupJoinQuestions
-    askJoinQuestions
-    hideExtensionData
-    locationDisplayPrecision
-    publicMemberDirectory
-    showSuggestedSkills
-  }
-  slug
-  type
-  typeDescriptor
-  typeDescriptorPlural
-  visibility
-  agreements {
-    items {
-      id
-      description
-      order
-      title
-    }
-  }
-  childGroups {
-    items {
-      id
-      accessibility
-      avatarUrl
-      bannerUrl
-      geoShape
-      memberCount
-      name
-      slug
-      visibility
-    }
-  }
-  customViews {
-    items {
-      id
-      activePostsOnly
-      collectionId
-      defaultSort
-      defaultViewMode
-      externalLink
-      groupId
-      isActive
-      icon
-      name
-      order
-      postTypes
-      topics {
-        id
-        name
-      }
-      type
-    }
-  }
-  locationObject {
+import { gql } from 'urql'
+
+const groupFieldsFragment = gql`
+  fragment GroupFieldsFragment on Group {
     id
-    addressNumber
-    addressStreet
-    bbox {
-      lat
-      lng
+    aboutVideoUri
+    accessibility
+    avatarUrl
+    bannerUrl
+    description
+    geoShape
+    location
+    memberCount
+    stewardDescriptor
+    stewardDescriptorPlural
+    name
+    purpose
+    settings {
+      agreementsLastUpdatedAt
+      allowGroupInvites
+      askGroupToGroupJoinQuestions
+      askJoinQuestions
+      hideExtensionData
+      locationDisplayPrecision
+      publicMemberDirectory
+      showSuggestedSkills
     }
-    center {
-      lat
-      lng
+    slug
+    type
+    typeDescriptor
+    typeDescriptorPlural
+    visibility
+    agreements {
+      items {
+        id
+        description
+        order
+        title
+      }
     }
-    city
-    country
-    fullText
-    locality
-    neighborhood
-    region
-  }
-  members(first: 8, sortBy: "name", order: "desc") {
-    items {
-      id
-      name
-      avatarUrl
+    childGroups {
+      items {
+        id
+        accessibility
+        avatarUrl
+        bannerUrl
+        geoShape
+        memberCount
+        name
+        slug
+        visibility
+      }
     }
-  }
-  stewards {
-    items {
-      id
-      name
-      avatarUrl
-      groupRoles {
-        items {
+    customViews {
+      items {
+        id
+        activePostsOnly
+        collectionId
+        defaultSort
+        defaultViewMode
+        externalLink
+        groupId
+        isActive
+        icon
+        name
+        order
+        postTypes
+        topics {
           id
           name
-          emoji
-          active
-          groupId
-          responsibilities {
-            items {
-              id
-              title
-              description
+        }
+        type
+      }
+    }
+    locationObject {
+      id
+      addressNumber
+      addressStreet
+      bbox {
+        lat
+        lng
+      }
+      center {
+        lat
+        lng
+      }
+      city
+      country
+      fullText
+      locality
+      neighborhood
+      region
+    }
+    members(first: 8, sortBy: "name", order: "desc") {
+      items {
+        id
+        name
+        avatarUrl
+      }
+    }
+    stewards {
+      items {
+        id
+        name
+        avatarUrl
+        groupRoles {
+          items {
+            id
+            name
+            emoji
+            active
+            groupId
+            responsibilities {
+              items {
+                id
+                title
+                description
+              }
             }
           }
         }
-      }
-      membershipCommonRoles {
-        items {
-          id
-          groupId
-          userId
-          roleId
+        membershipCommonRoles {
+          items {
+            id
+            groupId
+            userId
+            roleId
+          }
         }
       }
     }
-  }
-  parentGroups {
-    items {
-      id
-      accessibility
-      avatarUrl
-      bannerUrl
-      geoShape
-      name
-      slug
-      visibility
+    parentGroups {
+      items {
+        id
+        accessibility
+        avatarUrl
+        bannerUrl
+        geoShape
+        name
+        slug
+        visibility
+      }
     }
   }
-  ${withTopics
-    ? `
+`
+
+export default groupFieldsFragment
+
+export const groupGroupTopicsFieldsFragment = gql`
+  fragment GroupGroupTopicsFieldsFragment on Group {
     groupTopics(first: 8) {
       items {
         id
@@ -150,10 +158,12 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
         }
         postsTotal
       }
-    }`
-    : ''}
-  ${withJoinQuestions
-    ? `
+    }
+  }
+`
+
+export const groupJoinQuestionsFieldsFragment = gql`
+  fragment GroupJoinQuestionsFieldsFragment on Group {
     joinQuestions {
       items {
         id
@@ -166,10 +176,12 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
         id
         name
       }
-    }`
-    : ''}
-  ${withPrerequisites
-    ? `
+    }
+  }
+`
+
+export const groupPrerequisiteGroupsFieldsFragment = gql`
+  fragment GroupPrerequisiteGroupsFieldsFragment on Group {
     prerequisiteGroups(onlyNotMember: true) {
       items {
         avatarUrl
@@ -189,10 +201,11 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
       }
     }
     numPrerequisitesLeft
-    `
-    : ''}
-  ${withExtensions
-    ? `
+  }
+`
+
+export const groupGroupExtensionsFieldsFragment = gql`
+  fragment GroupGroupExtensionsFieldsFragment on Group {
     groupExtensions {
       items {
         id
@@ -200,10 +213,12 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
         type
         active
       }
-    }`
-    : ''}
-  ${withWidgets
-    ? `
+    }
+  }
+`
+
+export const groupWidgetsFieldsFragment = gql`
+  fragment GroupWidgetsFieldsFragment on Group {
     widgets {
       items {
         id
@@ -212,8 +227,6 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
         order
         isVisible
       }
-    }`
-    : ''}
+    }
+  }
 `
-
-export default groupFieldsFragment

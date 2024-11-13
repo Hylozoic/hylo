@@ -1,55 +1,59 @@
-export default `
-id
-text
-creator {
-  id
-  name
-  avatarUrl
-  groupRoles {
-    items {
+import { gql } from 'urql'
+
+export default gql`
+  fragment CommentFieldsFragment on Comment {
+    id
+    text
+    creator {
       id
       name
-      emoji
-      active
-      groupId
-      responsibilities {
+      avatarUrl
+      groupRoles {
         items {
           id
-          title
-          description
+          name
+          emoji
+          active
+          groupId
+          responsibilities {
+            items {
+              id
+              title
+              description
+            }
+          }
+        }
+      }
+      membershipCommonRoles {
+        items {
+          id
+          commonRoleId
+          groupId
+          userId
         }
       }
     }
-  }
-  membershipCommonRoles {
-    items {
+    attachments {
       id
-      commonRoleId
-      groupId
-      userId
+      position
+      type
+      url
     }
+    parentComment {
+      id
+    }
+    myReactions {
+      emojiFull
+      id
+    }
+    commentReactions {
+      emojiFull
+      id
+      user {
+        id
+        name
+      }
+    }
+    createdAt
   }
-}
-attachments {
-  id
-  position
-  type
-  url
-}
-parentComment {
-  id
-}
-myReactions {
-  emojiFull
-  id
-}
-commentReactions {
-  emojiFull
-  id
-  user {
-    id
-    name
-  }
-}
-createdAt
 `

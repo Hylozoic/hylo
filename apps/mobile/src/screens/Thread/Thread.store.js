@@ -3,8 +3,8 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import orm from 'store/models'
 import { get, pick, uniqueId } from 'lodash/fp'
 import { TextHelpers, AnalyticsEvents } from '@hylo/shared'
-import CreateMessageMutation from 'graphql/mutations/CreateMessageMutation.graphql'
-import MessageThreadMessagesQuery from 'graphql/queries/MessageThreadMessagesQuery.graphql'
+import createMessageMutation from 'graphql/mutations/createMessageMutation'
+import messageThreadMessagesQuery from 'graphql/queries/messageThreadMessagesQuery'
 import { makeGetQueryResults } from 'store/reducers/queryResults'
 
 export const BATCH_MINUTES = 5
@@ -24,7 +24,7 @@ export function fetchMessages (id, opts = {}) {
   return {
     type: FETCH_MESSAGES,
     graphql: {
-      query: MessageThreadMessagesQuery,
+      query: messageThreadMessagesQuery,
       variables
     },
     meta: {
@@ -43,7 +43,7 @@ export function createMessage (messageThreadId, messageText, forNewThread) {
   return {
     type: CREATE_MESSAGE,
     graphql: {
-      query: CreateMessageMutation,
+      query: createMessageMutation,
       variables: {
         messageThreadId,
         optimistic: true,

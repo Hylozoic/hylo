@@ -6,7 +6,7 @@ import { useIsFocused, useNavigation } from '@react-navigation/native'
 import { ALL_GROUP_ID, isContextGroup, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import useFetchPostParam from './useFetchPostParam'
 import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
-import fetchPostsAction from 'store/actions/fetchPosts'
+import { makeQuery } from './StreamList.store'
 import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
 import Icon from 'components/Icon'
 import ListControl from 'components/ListControl'
@@ -94,6 +94,7 @@ export default function StreamList (props) {
     DEFAULT_SORT_BY_ID
   )
   const [timeframe, setTimeframe] = useState(DEFAULT_TIMEFRAME_ID)
+  const [offset, setOffset] = useState(0)
   const fetchPostParam = useFetchPostParam({
     customView,
     streamType,
@@ -104,18 +105,14 @@ export default function StreamList (props) {
     timeframe,
     topicName
   })
-  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
-  const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
-  const [offset, setOffset] = useState(0)
-  const queryParams = fetchPostParam
-    ? fetchPostsAction({ ...fetchPostParam, first: 20, offset }).graphql
-    // URQL useQuery doesn't allow a null query
-    : { query: 'query EmptyQuery { __typename }', pause: true }
-  const [{ data, fetching }] = useQuery(queryParams)
+  const [{ data, fetching }, refetchPosts] = useQuery(makeQuery({ ...fetchPostParam, first: 20, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore
   const posts = postsQuerySet?.items
   const postIds = posts?.map(p => p.id)
+
+  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
+  const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
 
   useEffect(() => {
     if (fetchPostParam && isFocused && isEmpty(postIds) && hasMore !== false) {
@@ -132,8 +129,6 @@ export default function StreamList (props) {
       if (shouldReset(fetchPostParam.context)) {
         resetGroupNewPostCount({ id: forGroupId })
       }
-
-      // reexecuteQuery({ })
     }
   }, [fetchPostParam, hasMore, isFocused, postIds])
 
@@ -144,11 +139,11 @@ export default function StreamList (props) {
     }
   }, [customView, sortBy])
 
-  // const refreshPosts = useCallback(() => {
-  //   if (fetchPostParam) {
-  //     dispatch(fetchPosts(fetchPostParam, { reset: true }))
-  //   }
-  // }, [fetchPostParam])
+  const refreshPosts = useCallback(() => {
+    if (fetchPostParam) {
+      refetchPosts({ requestPolicy: 'network-only' })
+    }
+  }, [fetchPostParam, refetchPosts])
 
   const fetchMorePosts = useCallback(() => {
     if (postIds && hasMore && !fetching) {
@@ -177,7 +172,7 @@ export default function StreamList (props) {
         ref={scrollRef}
         data={posts}
         renderItem={({ item }) => renderPostRow({ ...props, post: item })}
-        // onRefresh={refreshPosts}
+        onRefresh={refreshPosts}
         refreshing={!!fetching}
         keyExtractor={item => `post${item.id}`}
         onEndReached={fetchMorePosts}

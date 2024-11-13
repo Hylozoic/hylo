@@ -1,9 +1,9 @@
 import { gql } from 'urql'
-import MeQuery from 'graphql/queries/MeQuery'
+import meQuery from 'graphql/queries/meQuery'
 
 export default (_results, args, cache, info) => {
   const { entityType, entityId, emojiFull } = args.data
-  const currentUser = cache.readQuery({ query: MeQuery })?.me
+  const currentUser = cache.readQuery({ query: meQuery })?.me
 
   if (entityType === 'comment') {
     const commentData = cache.readFragment(
@@ -75,12 +75,12 @@ export default (_results, args, cache, info) => {
   }
 }
 
-// NOTE: Post update code, works but is not necessary. Keeping for refeerence.
+// NOTE: Post update code, works but is not necessary. Keeping for reference.
 // export default {
 //   Mutation: {
 //     reactOn: (_results, args, cache, info) => {
 //       const { entityType, entityId, emojiFull } = args.data
-//       const currentUser = cache.readQuery({ query: MeQuery })?.me
+//       const currentUser = cache.readQuery({ query: meQuery })?.me
 
 //       if (entityType === 'post') {
 //         const postData = cache.readFragment(

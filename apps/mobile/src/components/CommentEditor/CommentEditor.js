@@ -10,7 +10,7 @@ import MaterialIcon from 'react-native-vector-icons/MaterialIcons'
 import { isEmpty } from 'lodash/fp'
 import { isIOS } from 'util/platform'
 import { TextHelpers } from '@hylo/shared'
-import CreateCommentMutation from 'graphql/mutations/CreateCommentMutation.graphql'
+import createCommentMutation from 'graphql/mutations/createCommentMutation'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import styles from './CommentEditor.styles'
 import Icon from 'components/Icon'
@@ -55,7 +55,7 @@ export const CommentEditor = forwardRef(function CommentEditor ({
   clearReplyingTo
 }, ref) {
   const { t } = useTranslation()
-  const [, createComment] = useMutation(CreateCommentMutation)
+  const [, createComment] = useMutation(createCommentMutation)
   const [hasContent, setHasContent] = useState()
   const editorRef = useRef()
   const [submitting, setSubmitting] = useState()

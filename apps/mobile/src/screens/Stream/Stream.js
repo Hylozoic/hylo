@@ -11,12 +11,11 @@ import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import useGoToTopic from 'hooks/useGoToTopic'
 import { useTranslation } from 'react-i18next'
 import { getContextGroup, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
+import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
 import topicQuery from 'graphql/queries/topicQuery'
 import useRouteParams from 'hooks/useRouteParams'
 import getCurrentGroupSlug from 'store/selectors/getCurrentGroupSlug'
 import getCustomView from 'store/selectors/getCustomView'
-import getMemberships from 'store/selectors/getMemberships'
-import fetchGroupDetailsAction from 'store/actions/fetchGroupDetails'
 import { firstName } from 'store/models/Person'
 import Avatar from 'components/Avatar'
 import Button from 'components/Button'
@@ -59,18 +58,11 @@ export default function Stream ({ topicName: providedTopicName }) {
   // const customViewMode = customView?.defaultViewMode
 
   const currentUser = useCurrentUser()
-  const memberships = useSelector(getMemberships)
-  const currentUserHasMemberships = !isEmpty(memberships)
+  const currentUserHasMemberships = !isEmpty(currentUser?.memberships)
   const currentGroupSlug = useSelector(getCurrentGroupSlug)
   const [{ data }] = useQuery({
-    ...fetchGroupDetailsAction({
-      slug: currentGroupSlug,
-      withExtensions: false,
-      withWidgets: false,
-      withTopics: false,
-      withJoinQuestions: true,
-      withPrerequisites: true
-    }).graphql,
+    query: groupDetailsQueryMaker({ withJoinQuestions: true, withPrerequisiteGroups: true }),
+    variables: { slug: currentGroupSlug },
     pause: !currentGroupSlug || getContextGroup(currentGroupSlug)
   })
   const currentGroup = getContextGroup(currentGroupSlug) || data?.group

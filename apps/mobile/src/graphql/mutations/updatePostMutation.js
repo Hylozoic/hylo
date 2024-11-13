@@ -44,6 +44,9 @@ export default gql`
       location: $location,
       locationId: $locationId,
       isPublic: $isPublic
-    }) {${postFieldsFragment()}}
+    }) {
+      ...PostFieldsFragment
+    }
+    ${postFieldsFragment}
   }
 `

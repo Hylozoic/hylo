@@ -62,7 +62,7 @@ exports[`mapDispatchToProps creates actions 2`] = `
   [
     {
       "graphql": {
-        "query": "query MessageThreadMessagesQuery($id: ID, $cursor: ID, $messagePageSize: Int = 20) {
+        "query": "query messageThreadMessagesQuery($id: ID, $cursor: ID, $messagePageSize: Int = 20) {
             messageThread(id: $id) {
               id
               messages(first: $messagePageSize, cursor: $cursor, order: \\"desc\\") {
@@ -107,7 +107,7 @@ exports[`mapDispatchToProps creates actions 2`] = `
   [
     {
       "graphql": {
-        "query": "query MessageThreadMessagesQuery($id: ID, $cursor: ID, $messagePageSize: Int = 20) {
+        "query": "query messageThreadMessagesQuery($id: ID, $cursor: ID, $messagePageSize: Int = 20) {
             messageThread(id: $id) {
               id
               messages(first: $messagePageSize, cursor: $cursor, order: \\"desc\\") {

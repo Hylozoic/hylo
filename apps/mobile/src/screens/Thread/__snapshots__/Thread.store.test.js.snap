@@ -49,7 +49,7 @@ exports[`createMessage should match the last snapshot 1`] = `
 exports[`fetchMessages should match the last snapshot 1`] = `
 {
   "graphql": {
-    "query": "query MessageThreadMessagesQuery($id: ID, $cursor: ID, $messagePageSize: Int = 20) {
+    "query": "query messageThreadMessagesQuery($id: ID, $cursor: ID, $messagePageSize: Int = 20) {
         messageThread(id: $id) {
           id
           messages(first: $messagePageSize, cursor: $cursor, order: \\"desc\\") {

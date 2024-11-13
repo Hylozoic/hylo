@@ -1,5 +1,5 @@
 import { createSelector } from 'reselect'
-import postsQueryFragment from 'graphql/fragments/postsQueryFragment'
+import { personPostsQueryFragment } from 'graphql/fragments/postsQueryFragment'
 import { get } from 'lodash/fp'
 import {
   makeGetQueryResults, makeQueryResultsModelSelector
@@ -45,9 +45,10 @@ export function fetchMemberPosts ({ id, first = 10, offset }) {
         ) {
           person (id: $id) {
             id
-            ${postsQueryFragment}
+            ...PersonPostsQueryFragment
           }
         }
+        ${personPostsQueryFragment}
       `,
       variables: { id, first, offset }
     },

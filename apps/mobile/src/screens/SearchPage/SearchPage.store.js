@@ -1,8 +1,8 @@
 import orm from 'store/models'
+import { gql } from 'urql'
 import { createSelector } from 'reselect'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { get, isEmpty, includes } from 'lodash/fp'
-import gql from 'graphql-tag'
 import { makeGetQueryResults } from 'store/reducers/queryResults'
 import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
 
@@ -86,7 +86,7 @@ export function fetchSearchResults ({ search, offset = 0, filter }) {
                   }
                 }
                 ... on Post {
-                  ${postFieldsFragment(false)}
+                  ...PostFieldsFragment
                 }
                 ... on Comment {
                   id
@@ -117,6 +117,7 @@ export function fetchSearchResults ({ search, offset = 0, filter }) {
             }
           }
         }
+        ${postFieldsFragment}
       `,
       variables: {
         search,

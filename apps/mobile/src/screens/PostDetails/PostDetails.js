@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { View, Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useDispatch, useSelector } from 'react-redux'
+import { gql, useQuery } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
@@ -9,7 +10,10 @@ import useGoToMember from 'hooks/useGoToMember'
 import useIsModalScreen from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
-import postQuery from 'graphql/queries/postQuery'
+import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
+import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
+import commentsQuerySetFieldsFragment from 'graphql/fragments/commentsQuerySetFieldsFragment'
+import PostPresenter from 'urql-shared/presenters/PostPresenter'
 import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import { KeyboardAccessoryCommentEditor } from 'components/CommentEditor/CommentEditor'
 import Comments from 'components/Comments'
@@ -17,8 +21,18 @@ import Loading from 'components/Loading'
 import PostCardForDetails from 'components/PostCard/PostCardForDetails'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { white } from 'style/colors'
-import { useQuery } from 'urql'
-import PostPresenter from 'urql-shared/presenters/PostPresenter'
+
+export const query = gql`
+  query PostDetailsQuery ($id: ID, $cursor: ID) {
+    post(id: $id) {
+      ...PostFieldsFragment
+      ...CommentsQuerySetFieldsFragment
+    }
+  }
+  ${postFieldsFragment}
+  ${commentsQuerySetFieldsFragment}
+  ${commentFieldsFragment}
+`
 
 export default function PostDetails () {
   const { t } = useTranslation()
@@ -27,7 +41,7 @@ export default function PostDetails () {
   const isModalScreen = useIsModalScreen()
   const { id: postId } = useRouteParams()
   const currentGroup = useSelector(getCurrentGroup)
-  const [{ data, fetching, error }] = useQuery({ query: postQuery, variables: { id: postId } })
+  const [{ data, fetching, error }] = useQuery({ query, variables: { id: postId } })
   const post = useMemo(() => PostPresenter(data?.post), [data?.post])
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()

@@ -31,6 +31,9 @@ export default gql`
       acceptContributions: $acceptContributions
       donationsLink: $donationsLink
       projectManagementLink: $projectManagementLink
-    }) {${postFieldsFragment(false)}}
+    }) {
+      ...PostFieldsFragment
+    }
+    ${postFieldsFragment}
   }
 `
