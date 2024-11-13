@@ -1,1 +1,1 @@
-web: node apps/web/es5/scripts/serveUniversal
+web: node apps/web/dist/server/index.js
