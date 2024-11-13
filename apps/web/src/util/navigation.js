@@ -166,6 +166,34 @@ export function topicUrl (topicName, opts) {
   return `${topicsUrl(opts)}/${topicName}`
 }
 
+export function chatUrl (chatName, opts) {
+  return `${topicsUrl(opts)}/${chatName}`
+}
+
+export function customViewUrl (customViewId, rootPath, opts) {
+  // TODO CONTEXT: This is PROBABLY ok but need to verify with a range of custom views
+  return `${rootPath}/custom/${customViewId}`
+}
+
+export function widgetUrl ({ widget, rootPath, groupSlug, context }) {
+  let url = ''
+  if (widget.view) {
+    url = viewUrl(widget.view, { groupSlug, context })
+  } else if (widget.viewGroup) {
+    url = groupUrl(widget.viewGroup.id)
+  } else if (widget.viewUser) {
+    url = personUrl(widget.viewUser.id)
+  } else if (widget.viewPost) {
+    url = postUrl(widget.viewPost.id)
+  } else if (widget.viewChat) {
+    url = chatUrl(widget.viewChat.id)
+  } else if (widget.customView) {
+    url = customViewUrl(widget.customView.id, rootPath, { groupSlug })
+  }
+
+  return url
+}
+
 // URL utility functions
 
 export function setQuerystringParam (key, value, location) {

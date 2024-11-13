@@ -8,6 +8,7 @@ import cx from 'classnames'
 import classes from './NavLink.module.scss'
 
 export default function NavLink ({ to, exact, label, icon, badge, onClick, collapsed = false, home = false, externalLink }) {
+  const location = useLocation()
   if (externalLink) {
     return (
       <li className={cx(classes.item, { [classes.collapsed]: collapsed })}>
@@ -20,8 +21,6 @@ export default function NavLink ({ to, exact, label, icon, badge, onClick, colla
       </li>
     )
   }
-
-  const location = useLocation()
   const active = location.pathname === to
 
   return (

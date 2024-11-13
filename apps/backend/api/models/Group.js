@@ -495,7 +495,7 @@ module.exports = bookshelf.Model.extend(merge({
   
     // These are displayed in the menu, with the caveat being that the auto-view is hidden until it has child views
     const orderedWidgets = [
-      { title: 'widget-chats', view: 'chats', order: 2 },
+      { title: 'widget-chats', type: 'chats', order: 2 },
       { title: 'widget-auto-view', type: 'auto-view', order: 3 },
       { title: 'widget-members', type: 'members', view: 'members', order: 4 },
       { title: 'widget-setup', type: 'setup', visibility: 'admin', order: 5 },
@@ -508,7 +508,7 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-ask-and-offer', view: 'ask-and-offer' },
       { title: 'widget-stream', view: 'stream' },
       { title: 'widget-events', type: 'events', view: 'events' },
-      { title: 'widget-project', type: 'projects', view: 'projects' },
+      { title: 'widget-projects', type: 'projects', view: 'projects' },
       { title: 'widget-groups', type: 'groups', view: 'groups' },
       { title: 'widget-decisions', type: 'decisions', view: 'decisions' },
       { title: 'widget-about', type: 'about', view: 'about' },

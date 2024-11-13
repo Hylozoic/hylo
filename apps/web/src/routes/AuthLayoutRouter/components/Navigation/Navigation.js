@@ -1,25 +1,30 @@
 import cx from 'classnames'
 import { compact, get } from 'lodash/fp'
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import Icon from 'components/Icon'
 import NavLink from './NavLink'
+import MenuLink from './MenuLink'
 import TopicNavigation from './TopicNavigation'
 import { toggleGroupMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
+import { getContextWidgets, orderContextWidgetsForContextMenu } from 'store/selectors/contextWidgetSelectors'
 import getMe from 'store/selectors/getMe'
 import resetNewPostCount from 'store/actions/resetNewPostCount'
-import { CONTEXT_MY, FETCH_POSTS } from 'store/constants'
+import useGatherItems from 'hooks/useGatherItems'
+import { CONTEXT_MY, FETCH_POSTS, RESP_ADMINISTRATION } from 'store/constants'
 import orm from 'store/models'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
-import { topicsUrl, baseUrl, viewUrl } from 'util/navigation'
+import { viewUrl, widgetUrl, baseUrl, topicsUrl } from 'util/navigation'
 
 import classes from './Navigation.module.scss'
+import { widgetTitleResolver } from 'util/contextWidgets'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 
 const getGroupMembership = ormCreateSelector(
   orm,
@@ -28,6 +33,7 @@ const getGroupMembership = ormCreateSelector(
   (session, currentUser, id) => session.Membership.filter({ group: id, person: currentUser }).first()
 )
 
+// TODO CONTEXT: this is the context menu, aka ContextMenu. Rename at the END of refractoring layout stuff, to avoid awkward merge conflicts
 export default function Navigation (props) {
   const {
     className,
@@ -44,9 +50,12 @@ export default function Navigation (props) {
   const { t } = useTranslation()
 
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
+
   const rootPath = baseUrl({ ...routeParams, view: null })
   const isAllOrPublicPath = ['/all', '/public'].includes(rootPath)
 
+  // TODO CONTEXT: the new post count will be refactored into the use of highlightNumber and secondaryNumber, on the context widgets
   const badge = useSelector(state => {
     if (group) {
       const groupMembership = getGroupMembership(state, { groupId: group.id })
@@ -63,6 +72,15 @@ export default function Navigation (props) {
     }
     return false
   })
+
+  const contextWidgets = useSelector(state => getContextWidgets(state, group))
+
+  const hasContextWidgets = useMemo(() => {
+    if (group) {
+      return contextWidgets.length > 0
+    }
+    return false
+  }, [group])
 
   const isGroupMenuOpen = useSelector(state => get('AuthLayoutRouter.isGroupMenuOpen', state))
   const streamFetchPostsParam = useSelector(state => get('Stream.fetchPostsParam', state))
@@ -193,36 +211,157 @@ export default function Navigation (props) {
   const links = isMyContext ? myLinks : regularLinks
   return (
     <div className={cx(classes.container, { [classes.mapView]: mapView }, classes[collapserState], { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
-      <div className={classes.navigation}>
-        {canView && (
-          <ul className={classes.links} id='groupMenu'>
-            {links.map((link, i) => (
-              <NavLink
-                key={link.label + i}
-                externalLink={link.externalLink}
-                {...link}
-                collapsed={collapsed}
-                onClick={link.handleClick}
-              />
-            ))}
-            <li className={cx(classes.item, classes.topicItem)}>
-              <Link to={topicsUrl(routeParams)}>
-                <Icon name='Topics' />
-              </Link>
-            </li>
-          </ul>
-        )}
-        {!hideTopics && canView && !isMyContext && (
-          <TopicNavigation
-            collapsed={collapsed}
-            backUrl={rootPath}
-            routeParams={routeParams}
-            groupId={groupId}
-            location={location}
-          />
-        )}
-      </div>
-      <div className={classes.closeBg} onClick={toggleGroupMenu} />
+      {!hasContextWidgets && (
+        <div className={classes.navigation}>
+          {canView && (
+            <ul className={classes.links} id='groupMenu'>
+              {links.map((link, i) => (
+                <NavLink
+                  key={link.label + i}
+                  externalLink={link.externalLink}
+                  {...link}
+                  collapsed={collapsed}
+                  onClick={link.handleClick}
+                />
+              ))}
+              <li className={cx(classes.item, classes.topicItem)}>
+                <Link to={topicsUrl(routeParams)}>
+                  <Icon name='Topics' />
+                </Link>
+              </li>
+            </ul>
+          )}
+          {!hideTopics && canView && !isMyContext && (
+            <TopicNavigation
+              collapsed={collapsed}
+              backUrl={rootPath}
+              routeParams={routeParams}
+              groupId={groupId}
+              location={location}
+            />
+          )}
+        </div>
+      )}
+      {hasContextWidgets && (
+        <ContextWidgetList contextWidgets={contextWidgets} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} />
+      )}
+      {!hasContextWidgets && <div className={classes.closeBg} onClick={toggleGroupMenu} />}
     </div>
   )
 }
+
+function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister }) {
+  const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
+
+  return (
+    <ul>
+      {orderedWidgets.map(widget => (
+        <li key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} /></li>
+      ))}
+    </ul>
+  )
+}
+
+function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false }) {
+  const { t } = useTranslation()
+  const { listItems, loading } = useGatherItems({ widget, groupSlug })
+  // Check if the widget should be rendered
+  if (!['members', 'setup'].includes(widget.type) && !widget.view && widget.childWidgets.length === 0 &&
+      !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
+      !widget.viewChat && !widget.customView) {
+    return null
+  }
+
+  // Check admin visibility
+  if (widget.visibility === 'admin' && !canAdminister) {
+    return null
+  }
+
+  const title = widgetTitleResolver({ widget, t })
+  const url = widgetUrl({ widget, rootPath, groupSlug, context: 'group' })
+  // Render the widget
+
+  return (
+    <div key={widget.id} className='border border-gray-700 rounded-md p-2'>
+      {/* TODO CONTEXT: need to fix this display logic for when someone wants */}
+      {url && (widget.childWidgets.length === 0 && !['members'].includes(widget.type))
+        ? (
+          <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
+            <span className='text-lg font-bold'>{title}</span>
+          </MenuLink>)
+        : (
+          <div>
+            {widget.view && <MenuLink to={url}> <h3 className='text-sm font-semibold'>{title}</h3></MenuLink>}
+            {!widget.view && <h3 className='text-sm font-semibold'>{title}</h3>}
+            {/* Special elements can be added here */}
+            <ul>
+              {loading && <li key='loading'>Loading...</li>}
+              {listItems.length > 0 && listItems.map(item => {
+                const itemTitle = widgetTitleResolver({ widget: item, t })
+                const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
+                return (
+                  <li key={item.id + itemTitle}>
+                    <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}><span className='text-sm text-blue-500 underline'>{itemTitle}</span></MenuLink>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>)}
+    </div>
+  )
+}
+
+// Needed attributes:
+// type
+// title
+// order
+// visibility
+// icon
+// view
+// viewChat
+// childWidgets
+// viewPost
+// viewGroup
+// viewUser
+// customView
+
+// const homeWidget = await ContextWidget.forge({
+//   group_id: this.id,
+//   type: 'home',
+//   title: 'widget-home',
+//   order: 1,
+//   created_at: new Date(),
+//   updated_at: new Date()
+// }).save(null, { transacting: trx })
+
+// // Create hearth widget as child of home
+// await ContextWidget.forge({
+//   group_id: this.id,
+//   title: 'widget-hearth',
+//   view_chat_id: generalTag.id,
+//   parent_id: homeWidget.id,
+//   order: 1,
+//   created_at: new Date(),
+//   updated_at: new Date()
+// }).save(null, { transacting: trx })
+
+// const orderedWidgets = [
+//   { title: 'widget-chats', type: 'chats', order: 2 },
+//   { title: 'widget-auto-view', type: 'auto-view', order: 3 },
+//   { title: 'widget-members', type: 'members', view: 'members', order: 4 },
+//   { title: 'widget-setup', type: 'setup', visibility: 'admin', order: 5 },
+//   { title: 'widget-custom-views', type: 'custom-views', order: 6 },
+// ]
+
+// // These are accessible in the all view
+// const unorderedWidgets = [
+//   { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
+//   { title: 'widget-ask-and-offer', view: 'ask-and-offer' },
+//   { title: 'widget-stream', view: 'stream' },
+//   { title: 'widget-events', type: 'events', view: 'events' },
+//   { title: 'widget-projects', type: 'projects', view: 'projects' },
+//   { title: 'widget-groups', type: 'groups', view: 'groups' },
+//   { title: 'widget-decisions', type: 'decisions', view: 'decisions' },
+//   { title: 'widget-about', type: 'about', view: 'about' },
+//   { title: 'widget-map', type: 'map', view: 'map' }
+// ]
