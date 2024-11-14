@@ -60,20 +60,23 @@ const PostListRow = (props) => {
           </div>
           <div className={classes.participants}>
             {post.type === 'event'
-              ? <div className={classes.date}>
-                <span>{startTimeMoment.format('MMM')}</span>
-                <span>{startTimeMoment.format('D')}</span>
-              </div>
-              : <div>
-                <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />
-                {creator.name} {
-                numOtherCommentors > 1
-                  ? (<span> {t('and')} <strong>{numOtherCommentors} {t('others')}</strong></span>)
-                  : null
-              }
-              </div>}
+              ? (
+                <div className={classes.date}>
+                  <span>{startTimeMoment.format('MMM')}</span>
+                  <span>{startTimeMoment.format('D')}</span>
+                </div>
+                )
+              : (
+                <div>
+                  <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />
+                  {creator.name}
+                  {numOtherCommentors > 1
+                    ? (<span> {t('and')} <strong>{numOtherCommentors} {t('others')}</strong></span>)
+                    : null}
+                </div>
+                )}
           </div>
-          {childPost &&
+          {childPost && (
             <div
               className={classes.iconContainer}
               data-tooltip-content={t('Post from child group')}
@@ -88,7 +91,8 @@ const PostListRow = (props) => {
                 id='childgroup-tt'
                 position='bottom'
               />
-            </div>}
+            </div>
+          )}
           <div className={cx(classes.timestamp, { [classes.pushToRight]: !childPost })}>
             {createdTimestamp}
           </div>

@@ -176,36 +176,40 @@ class CreateTopic extends Component {
     return (
       <>
         {this.buttonChooser()}
-        {modalVisible && <ModalDialog
-          key='create-dialog'
-          backgroundImage='axolotl-corner.png'
-          closeModal={this.toggleTopicModal}
-          closeOnSubmit={false}
-          modalTitle={modalTitle}
-          notificationIconName='Star'
-          showCancelButton={showCancelButton}
-          showSubmitButton={showSubmitButton}
-          submitButtonAction={this.submitButtonAction}
-          submitButtonIsDisabled={this.submitButtonIsDisabled}
-          submitButtonText={submitButtonText}
-          useNotificationFormat={useNotificationFormat}
-                         >
-          {useNotificationFormat
-            ? (subscribeAfterCreate ? <div className={classes.dialogContent}>{t('you\'re subscribed to #{{topicName}}', { topicName: this.ignoreHash(topicName) })}</div> : <div className={classes.dialogContent}>{t('Created topic #{{topicName}}', { topicName: this.ignoreHash(topicName) })}</div>)
-            : <div>
-              <TextInput
-                aria-label='topic-name'
-                autoFocus
-                label='topic-name'
-                name='topic-name'
-                onChange={this.updateTopicName}
-                loading={loading}
-                placeholder={t('Enter a topic name:')}
-                value={this.state.topicName}
-              />
-              {nameError && <div className={classes.topicError}>{nameError}</div>}
-            </div>}
-        </ModalDialog>}
+        {modalVisible && (
+          <ModalDialog
+            key='create-dialog'
+            backgroundImage='axolotl-corner.png'
+            closeModal={this.toggleTopicModal}
+            closeOnSubmit={false}
+            modalTitle={modalTitle}
+            notificationIconName='Star'
+            showCancelButton={showCancelButton}
+            showSubmitButton={showSubmitButton}
+            submitButtonAction={this.submitButtonAction}
+            submitButtonIsDisabled={this.submitButtonIsDisabled}
+            submitButtonText={submitButtonText}
+            useNotificationFormat={useNotificationFormat}
+          >
+            {useNotificationFormat
+              ? (subscribeAfterCreate ? <div className={classes.dialogContent}>{t('you\'re subscribed to #{{topicName}}', { topicName: this.ignoreHash(topicName) })}</div> : <div className={classes.dialogContent}>{t('Created topic #{{topicName}}', { topicName: this.ignoreHash(topicName) })}</div>)
+              : (
+                <div>
+                  <TextInput
+                    aria-label='topic-name'
+                    autoFocus
+                    label='topic-name'
+                    name='topic-name'
+                    onChange={this.updateTopicName}
+                    loading={loading}
+                    placeholder={t('Enter a topic name:')}
+                    value={this.state.topicName}
+                  />
+                  {nameError && <div className={classes.topicError}>{nameError}</div>}
+                </div>
+                )}
+          </ModalDialog>
+        )}
       </>
     )
   }
