@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-// Note: Imported here only to keeo gql parsing from erroring-out.
+// Note: Imported here only to keep gql parsing from erroring-out.
 // commentFieldsFragment still needs to be imported and added to the
 // queries which use this fragment (for now).
 import commentFieldsFragment from './commentFieldsFragment'
