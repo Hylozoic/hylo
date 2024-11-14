@@ -1,7 +1,7 @@
 import React from 'react'
 import { TouchableOpacity, View } from 'react-native'
-import { useDispatch } from 'react-redux'
-import respondToEvent from 'store/actions/respondToEvent'
+import { useMutation } from 'urql'
+import respondToEventMutation from 'graphql/mutations/respondToEventMutation'
 import PostCard from 'components/PostCard'
 import styles from './PostRow.styles'
 
@@ -15,11 +15,11 @@ export default function PostRow ({
   showPost,
   showTopic
 }) {
-  const dispatch = useDispatch()
+  const [, respondToEvent] = useMutation(respondToEventMutation)
 
   if (!post) return null
 
-  const handleRespondToEvent = response => dispatch(respondToEvent(post, response))
+  const handleRespondToEvent = response => respondToEvent({ id: post.id, response })
   const groupIds = post.groups.map(group => group.id)
 
   return (

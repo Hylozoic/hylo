@@ -2,8 +2,7 @@ import { get } from 'lodash/fp'
 
 import {
   CLEAR_MODERATION_ACTION,
-  FETCH_MODERATION_ACTIONS,
-  RECORD_CLICKTHROUGH
+  FETCH_MODERATION_ACTIONS
 } from 'store/constants'
 
 export function clearModerationAction ({ postId, moderationActionId, groupId }) {
@@ -20,25 +19,6 @@ export function clearModerationAction ({ postId, moderationActionId, groupId }) 
     meta: {
       moderationActionId,
       groupId,
-      postId,
-      optimistic: true
-    }
-  }
-}
-
-export function recordClickthrough ({ postId }) {
-  console.log(postId, 'whwhhwhw')
-  return {
-    type: RECORD_CLICKTHROUGH,
-    graphql: {
-      query: `mutation ($postId: ID) {
-        recordClickthrough (postId: $postId) {
-          success
-        }
-      }`,
-      variables: { postId }
-    },
-    meta: {
       postId,
       optimistic: true
     }

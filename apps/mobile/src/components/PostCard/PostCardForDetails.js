@@ -1,19 +1,19 @@
 import React from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
-import { useDispatch } from 'react-redux'
+import { useMutation } from 'urql'
 import { useNavigation } from '@react-navigation/native'
 import { find, get } from 'lodash/fp'
 import { LocationHelpers } from '@hylo/shared'
 import { DEFAULT_APP_HOST } from 'navigation/linking'
 import { openURL } from 'hooks/useOpenURL'
+import recordClickthroughMutation from 'graphql/mutations/recordClickthroughMutation'
+import respondToEventMutation from 'graphql/mutations/respondToEventMutation'
+import joinProjectMutation from 'graphql/mutations/joinProjectMutation'
+import leaveProjectMutation from 'graphql/mutations/leaveProjectMutation'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import useGoToMember from 'hooks/useGoToMember'
 import useGoToTopic from 'hooks/useGoToTopic'
 import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
-import joinProjectAction from 'store/actions/joinProject'
-import leaveProjectAction from 'store/actions/leaveProject'
-import respondToEventAction from 'store/actions/respondToEvent'
-import { recordClickthrough } from 'store/actions/moderationActions'
 import Button from 'components/Button'
 import Files from 'components/Files'
 import Icon from 'components/Icon'
@@ -30,7 +30,11 @@ import { useTranslation } from 'react-i18next'
 
 export default function PostCardForDetails ({ post, showGroups = true, groupId }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
+  const [, recordClickthrough] = useMutation(recordClickthroughMutation)
+  const [, respondToEvent] = useMutation(respondToEventMutation)
+  const [, providedJoinProject] = useMutation(joinProjectMutation)
+  const [, providedLeaveProject] = useMutation(leaveProjectMutation)
+
   const navigation = useNavigation
   const currentUser = useCurrentUser()
   const changeToGroup = useChangeToGroup()
@@ -47,9 +51,9 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
   const donationServiceSvgUri = donationServiceMatch &&
     `${DEFAULT_APP_HOST}/assets/payment-services/${donationServiceMatch[0]}.svg`
 
-  const handleRespondToEvent = response => dispatch(respondToEventAction(post, response))
-  const joinProject = () => dispatch(joinProjectAction(post.id))
-  const leaveProject = () => dispatch(leaveProjectAction(post.id))
+  const handleRespondToEvent = response => respondToEvent({ id: post.id, response })
+  const joinProject = () => providedJoinProject({ id: post.id })
+  const leaveProject = () => providedLeaveProject({ id: post.id })
   const editPost = () => navigation.navigate('Edit Post', { id: post.id })
   const openProjectMembersModal = () => navigation.navigate('Project Members', { id: post.id, members: get('members', post) })
 
@@ -104,7 +108,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
           <Text style={styles.clickthroughText}>{t('clickthroughExplainer')}</Text>
           <TouchableOpacity
             style={styles.clickthroughButton}
-            onPress={() => dispatch(recordClickthrough({ postId: post.id }))}
+            onPress={() => recordClickthrough({ postId: post.id })}
           >
             <Text style={styles.clickthroughButtonText}>{t('View post')}</Text>
           </TouchableOpacity>

@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
+import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
 import { LocationHelpers } from '@hylo/shared'
+import recordClickthroughMutation from 'graphql/mutations/recordClickthroughMutation'
 import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
-import { recordClickthrough } from 'store/actions/moderationActions'
 import PostPresenter from 'urql-shared/presenters/PostPresenter'
 import PostHeader from './PostHeader'
 import PostBody from './PostBody'
@@ -30,7 +30,7 @@ export default function PostCard ({
   showTopic: goToTopic
 }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
+  const [, recordClickthrough] = useMutation(recordClickthroughMutation)
   const post = useMemo(() => PostPresenter(providedPost), [providedPost])
   const images = useMemo(() => post.imageUrls && post.imageUrls.map(uri => ({ uri })), [post])
   const locationText = useMemo(() => LocationHelpers.generalLocationString(post.locationObject, post.location), [post])
@@ -64,7 +64,7 @@ export default function PostCard ({
             <Text style={styles.clickthroughText}>{t('clickthroughExplainer')}</Text>
             <TouchableOpacity
               style={styles.clickthroughButton}
-              onPress={() => dispatch(recordClickthrough({ postId: post.id }))}
+              onPress={() => recordClickthrough({ postId: post.id })}
             >
               <Text style={styles.clickthroughButtonText}>{t('View post')}</Text>
             </TouchableOpacity>
