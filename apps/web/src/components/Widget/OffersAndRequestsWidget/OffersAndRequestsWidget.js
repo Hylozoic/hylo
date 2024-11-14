@@ -21,16 +21,18 @@ class OffersAndRequestsWidget extends Component {
     const { isMember, items, routeParams, t } = this.props
     return (
       <div className={classes.offersAndRequests}>
-        {items.map(p => <Link to={postUrl(p.id, routeParams)} key={p.id}>
-          <div className={classes.item}>
-            <div className={classes.meta}>
-              <span className={classes.type}>{t(p.type)}</span>{' '}{t('from')}{' '}{p.creator.name}
-              <span className={cx(classes.numComments, classes[p.type])}>{p.commentsTotal} <div className={classes.tail} /></span>
+        {items.map(p => (
+          <Link to={postUrl(p.id, routeParams)} key={p.id}>
+            <div className={classes.item}>
+              <div className={classes.meta}>
+                <span className={classes.type}>{t(p.type)}</span>{' '}{t('from')}{' '}{p.creator.name}
+                <span className={cx(classes.numComments, classes[p.type])}>{p.commentsTotal} <div className={classes.tail} /></span>
+              </div>
+              <div className={classes.title}>{p.title}</div>
+              <RoundImage url={p.creator.avatarUrl} className={classes.authorImage} />
             </div>
-            <div className={classes.title}>{p.title}</div>
-            <RoundImage url={p.creator.avatarUrl} className={classes.authorImage} />
-          </div>
-        </Link>)}
+          </Link>
+        ))}
         {items.length < 3 && isMember
           ? (
             <div className={cx(classes.item, classes.createOfferRequest)}>

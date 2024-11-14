@@ -5,16 +5,14 @@ import classes from './PaymentSettingsTab.module.scss'
 import Loading from 'components/Loading'
 import Button from 'components/Button'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
-const { object, func } = PropTypes
+const { object } = PropTypes
 
 const clientId = process.env.STRIPE_CLIENT_ID
 const stripeUrl = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write`
 
 class PaymentSettingsTab extends Component {
   static propTypes = {
-    currentUser: object,
-    updateUserSettings: func,
-    loginWithService: func
+    currentUser: object
   }
 
   constructor (props) {

@@ -53,11 +53,13 @@ class Member extends React.Component {
               <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
             ))}
           </div>
-          {skills && <div className={classes.skills}>
-            {skills.map((skill, index) =>
-              <SkillLabel key={index} className={classes.skill}>{skill.name}</SkillLabel>
-            )}
-          </div>}
+          {skills && (
+            <div className={classes.skills}>
+              {skills.map((skill, index) =>
+                <SkillLabel key={index} className={classes.skill}>{skill.name}</SkillLabel>
+              )}
+            </div>
+          )}
           <div className={classes.tagline}>{tagline}</div>
         </div>
       </div>

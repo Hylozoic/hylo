@@ -141,9 +141,11 @@ class ModalDialog extends Component {
           <div className={classes.titleBlock}>
             {useNotificationFormat &&
               <Icon green name={notificationIconName} className={classes.notificationIcon} />}
-            {showModalTitle && <h1 className={cx({ [classes.notificationTitle]: useNotificationFormat })}>
-              {modalTitle}
-            </h1>}
+            {showModalTitle && (
+              <h1 className={cx({ [classes.notificationTitle]: useNotificationFormat })}>
+                {modalTitle}
+              </h1>
+            )}
           </div>
 
           <div className={classes.content}>

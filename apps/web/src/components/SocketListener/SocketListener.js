@@ -3,11 +3,10 @@ import { Component } from 'react'
 import { getSocket, socketUrl } from 'client/websockets.js'
 import { isEqual } from 'lodash'
 import rollbar from 'client/rollbar'
-const { func, object } = PropTypes
+const { func } = PropTypes
 
 export default class SocketListener extends Component {
   static propTypes = {
-    location: object,
     receiveThread: func,
     receiveMessage: func,
     receiveComment: func,

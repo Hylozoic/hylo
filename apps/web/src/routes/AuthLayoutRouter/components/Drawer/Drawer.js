@@ -101,7 +101,7 @@ export default function Drawer (props) {
           <Logo group={group} />
           {responsibilities.length !== 0 && !responsibilities.includes(RESP_MANAGE_CONTENT) && (
             <Link className={s.settingsLink} to={groupUrl(group.slug, 'settings')}>
-              <Icon name='Settings' className={s.settingsIcon} /> {t('Group Settings')}
+              <Icon name='Settings' className={s.settingsIcon} /> <span>{t('Group Settings')}</span>
             </Link>
           )}
         </div>

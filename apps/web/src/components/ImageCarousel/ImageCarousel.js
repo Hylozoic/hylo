@@ -12,7 +12,6 @@ export default function ImageCarousel ({
   initialSlide = 0
 }) {
   const imageAttachments = filter({ type: 'image' }, attachments)
-  if (isEmpty(imageAttachments)) return null
 
   const settings = {
     dots: true,
@@ -32,6 +31,8 @@ export default function ImageCarousel ({
     if (event.code === 'ArrowLeft') slickRef.current.slickPrev()
     if (event.code === 'ArrowRight') slickRef.current.slickNext()
   }
+
+  if (isEmpty(imageAttachments)) return null
 
   return (
     <div className={classes.images} ref={carouselRef} onKeyDown={handleKeydown}>

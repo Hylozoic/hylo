@@ -1,4 +1,3 @@
-/* eslint-disable no-fallthrough */
 import * as sessionReducers from './sessionReducers'
 import {
   ACCEPT_GROUP_RELATIONSHIP_INVITE,
