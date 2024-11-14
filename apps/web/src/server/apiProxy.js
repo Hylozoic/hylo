@@ -1,4 +1,5 @@
 import request from 'request'
+import { URL } from 'url'
 import dotenv from 'dotenv'
 
 dotenv.config()

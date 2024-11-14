@@ -1,5 +1,4 @@
-// import setupStartTime from './setup.js' // this must be first
-import './newrelic.js' // this must be second
+import './newrelic' // this must be second
 import express from 'express'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
@@ -11,7 +10,7 @@ const port = process.env.PORT || 9001
 
 const startTime = new Date().getTime()
 
-function startServer() {
+function startServer () {
   console.log('Starting server...')
   const server = express()
   server.use(cookieParser())

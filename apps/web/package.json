@@ -28,7 +28,6 @@
     "analyze": "webpack-bundle-analyzer build/bundle-stats.json",
     "heroku-postbuild": "yarn install",
     "preview": "vite preview",
-
     "serverBabel": "./node_modules/.bin/babel-node --config-file ./babel.config.cjs scripts/serveUniversal.cjs",
     "server": "node scripts/serveUniversal.cjs"
   },
