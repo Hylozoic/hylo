@@ -87,7 +87,7 @@ exports.seed = function (knex, Promise) {
 
   const initialPost = {
     name: 'Welcome to your community on Hylo! Here are a few tips.',
-    description: `<p>Hylo makes it easy for you to reach out to people in your community with special skills, connections and resources that can help you achieve your goals.</p> \
+    description: `<p>Hylo makes it easy for you to reach out to people in your community with special skills, connections and resources that can help you achieve your goals.</p>
       <p>Here&rsquo;s how to get the most out of Hylo:</p>
       <p>Start off by making a post. Looking for help on something? Try creating a Request. Have a special skill or resource to share? Try making an Offer.</p>
       <p>Know someone who might be able to help out on a Request? You can @tag other users in a community, or click on someone&rsquo;s name to message them directly.</p>
