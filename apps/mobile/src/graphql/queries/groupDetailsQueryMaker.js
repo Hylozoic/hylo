@@ -19,10 +19,10 @@ export default function groupDetailsQueryMaker ({
   withTopics = false,
   withJoinQuestions = false,
   withPrerequisiteGroups = false
-}) {
+} = {}) {
   return gql`
-    query GroupDetailsQuery ($slug: String) {
-      group(slug: $slug) {
+    query GroupDetailsQuery ($slug: String, $id: ID) {
+      group(slug: $slug, id: $id) {
         ...GroupFieldsFragment
         ${withExtensions ? '...GroupGroupExtensionsFieldsFragment' : ''}
         ${withWidgets ? '...GroupWidgetsFieldsFragment' : ''}

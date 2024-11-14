@@ -27,7 +27,7 @@ export default function GroupPresenter (group) {
       }))
       : [],
     customViews: group.customViews
-      ? group.customViews.map(cv => ({
+      ? group.customViews.items.map(cv => ({
         ...cv,
         collection: cv.collection ? presentCollection(cv.collection) : null,
         topics: cv.topics.map(topic => presentTopic(topic, {}))

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   Text, View, TextInput, ScrollView, TouchableOpacity
@@ -11,16 +11,18 @@ import { accessibilityDescription, visibilityDescription } from 'urql-shared/pre
 import Avatar from 'components/Avatar'
 import { formatDomainWithUrl } from './util'
 import {
-  createGroup, clearCreateGroupStore, getGroupData,
+  createGroupMutation, clearCreateGroupStore, getGroupData,
   getNewGroupParentGroups
 } from './CreateGroupFlow.store'
 import { white } from 'style/colors'
 import styles from './CreateGroupFlow.styles'
+import { useMutation } from 'urql'
 
 export default function CreateGroupReview () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const dispatch = useDispatch()
+  const [, createGroup] = useMutation(createGroupMutation)
   const groupData = useSelector(getGroupData)
   const parentGroups = useSelector(getNewGroupParentGroups)
   const [error, setError] = useState(null)
@@ -32,20 +34,20 @@ export default function CreateGroupReview () {
     })
   }, [navigation, groupData])
 
-  const submit = async () => {
+  const submit = useCallback(async () => {
     try {
-      const graphqlResponse = await dispatch(createGroup(groupData))
-      const newGroup = graphqlResponse.payload?.getData()
+      const { data, error } = await createGroup({ data: groupData })
+      const newGroup = data?.createGroup
       if (newGroup) {
         dispatch(clearCreateGroupStore())
         openURL(`/groups/${newGroup.slug}`)
       } else {
-        setError('Group may have been created, but there was an error. Please contact Hylo support.')
+        setError('Group may have been created, but there was an error. Please contact Hylo support.', error)
       }
     } catch (e) {
       setError(e.message)
     }
-  }
+  }, [groupData])
 
   return (
     <View style={styles.container}>
