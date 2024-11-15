@@ -3653,6 +3653,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hylo/shared@file:../../packages/shared::locator=web%40workspace%3Aapps%2Fweb":
+  version: 0.0.0
+  resolution: "@hylo/shared@file:../../packages/shared#../../packages/shared::hash=986213&locator=web%40workspace%3Aapps%2Fweb"
+  dependencies:
+    coordinate-parser: "npm:^1.0.7"
+    html-to-text: "npm:^8.1.0"
+    lodash: "npm:~4.17.21"
+    marked: "npm:^4.2.1"
+    moment-timezone: "npm:^0.5.46"
+    pretty-date: "npm:^0.2.0"
+    querystring: "npm:^0.2.1"
+    trunc-html: "npm:^1.1.2"
+    trunc-text: "npm:^1.0.2"
+    validator: "npm:^13.7.0"
+  checksum: 10/0e771bf1c33c88ffa162501e60d1dc20e2119dfdd2e36765d45ae5a62c2bd9074a205d8a7efb2105d04a0c94786e6ef19d8a91ae94bdb973d1d9c499769c7d57
+  languageName: node
+  linkType: hard
+
 "@hylo/shared@workspace:*, @hylo/shared@workspace:packages/shared":
   version: 0.0.0-use.local
   resolution: "@hylo/shared@workspace:packages/shared"
@@ -40265,7 +40283,7 @@ __metadata:
     "@eslint/eslintrc": "npm:^3.1.0"
     "@eslint/js": "npm:^9.10.0"
     "@faker-js/faker": "npm:^6.0.0-alpha.5"
-    "@hylo/shared": "workspace:*"
+    "@hylo/shared": "file:../../packages/shared"
     "@loaders.gl/core": "npm:^4.2.4"
     "@loaders.gl/loader-utils": "npm:^4.2.4"
     "@luma.gl/constants": "npm:^9.0.27"

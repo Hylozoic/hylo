@@ -26,7 +26,7 @@
     "serve": "node src/server/index.js",
     "prepare": "husky install",
     "analyze": "webpack-bundle-analyzer build/bundle-stats.json",
-    "heroku-postbuild": "yarn install",
+    "heroku-postbuild": "yarn install && yarn build",
     "preview": "vite preview",
     "serverBabel": "./node_modules/.bin/babel-node --config-file ./babel.config.cjs scripts/serveUniversal.cjs",
     "server": "node scripts/serveUniversal.cjs"
@@ -71,7 +71,7 @@
     "@dnd-kit/sortable": "^7.0.2",
     "@emoji-mart/react": "^1.1.1",
     "@faker-js/faker": "^6.0.0-alpha.5",
-    "@hylo/shared": "workspace:*",
+    "@hylo/shared": "file:../../packages/shared",
     "@loaders.gl/core": "^4.2.4",
     "@loaders.gl/loader-utils": "^4.2.4",
     "@luma.gl/constants": "^9.0.27",
