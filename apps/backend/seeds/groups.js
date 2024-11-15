@@ -45,7 +45,6 @@ exports.seed = function (knex, Promise) {
   ]
 
   const initialStarterGroup = {
-    id: 1,
     name: 'starter-posts',
     slug: 'starter-posts',
     avatar_url: 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png',
