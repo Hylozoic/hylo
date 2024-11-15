@@ -26,7 +26,8 @@ import { getSignupInProgress } from 'store/selectors/getAuthState'
 import { toggleDrawer as toggleDrawerAction } from './AuthLayoutRouter.store'
 import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
 import {
-  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl
+  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl,
+  widgetUrl
 } from 'util/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import AllTopics from 'routes/AllTopics'
@@ -61,6 +62,7 @@ import TopNav from './components/TopNav'
 import UserSettings from 'routes/UserSettings'
 import { GROUP_TYPES } from 'store/models/Group'
 import classes from './AuthLayoutRouter.module.scss'
+import { findHomeView } from 'util/contextWidgets'
 
 export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
@@ -232,6 +234,8 @@ export default function AuthLayoutRouter (props) {
     return <NotFound />
   }
 
+  const homeRoute = currentGroup?.contextWidgets?.items?.length > 0 ? <Navigate to={getHomeUrl({ routeParams: pathMatchParams, group: currentGroup })} replace /> : returnDefaultView(currentGroup, 'groups')
+
   return (
     <IntercomProvider appId={isTest ? '' : config.intercom.appId} autoBoot autoBootProps={intercomProps}>
       <Helmet>
@@ -401,7 +405,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/topics/:topicName/*' element={<ChatRoom context='groups' />} />
               <Route path='groups/:groupSlug/topics' element={<AllTopics context='groups' />} />
               <Route path='groups/:groupSlug/settings/*' element={<GroupSettings context='groups' />} />
-              <Route path='groups/:groupSlug/*' element={returnDefaultView('groups', currentGroup)} />
+              <Route path='groups/:groupSlug/*' element={homeRoute} />
               <Route path='post/:postId/*' element={<PostDetail />} />
               {/* **** My Routes **** */}
               <Route path='my/:view' element={<Stream />} />
@@ -506,4 +510,8 @@ export function returnDefaultView (group, context) {
     default:
       return <Stream context='groups' />
   }
+}
+
+export function getHomeUrl ({ group, routeParams }) {
+  return widgetUrl({ ...routeParams, widget: findHomeView(group) })
 }

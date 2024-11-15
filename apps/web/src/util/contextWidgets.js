@@ -26,3 +26,11 @@ export function wrapItemInWidget (item, type) {
     [type]: item
   }
 }
+
+export function findHomeView (group) {
+  if (!group?.contextWidgets) {
+    throw new Error('Group has no contextWidgets')
+  }
+  const homeWidget = group.contextWidgets.items.find(w => w.type === 'home')
+  return group.contextWidgets.items.find(w => w.parentWidget?.id === homeWidget.id)
+}
