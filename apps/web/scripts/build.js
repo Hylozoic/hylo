@@ -26,7 +26,7 @@ async function buildApp () {
     await fs.promises.cp(serverDir, distServerDir, { recursive: true })
 
     console.log('✨ Build complete!')
-    process.exit(1)
+    process.exit(0)
   } catch (error) {
     console.error('Build failed:', error)
     process.exit(1)
