@@ -10,6 +10,9 @@ import NavLink from './NavLink'
 import MenuLink from './MenuLink'
 import TopicNavigation from './TopicNavigation'
 import { toggleGroupMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import { DndContext, DragOverlay } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+
 import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
@@ -25,6 +28,7 @@ import { viewUrl, widgetUrl, baseUrl, topicsUrl } from 'util/navigation'
 import classes from './Navigation.module.scss'
 import { widgetTitleResolver } from 'util/contextWidgets'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 
 const getGroupMembership = ormCreateSelector(
   orm,
@@ -81,6 +85,8 @@ export default function Navigation (props) {
     }
     return false
   }, [group])
+
+  const isEditting = getQuerystringParam('cme', location) === 'yes' && canAdminister
 
   const isGroupMenuOpen = useSelector(state => get('AuthLayoutRouter.isGroupMenuOpen', state))
   const streamFetchPostsParam = useSelector(state => get('Stream.fetchPostsParam', state))
@@ -206,6 +212,13 @@ export default function Navigation (props) {
     }))
   ])
 
+  const handleDragStart = () => {
+    console.log('drag start')
+  }
+  const handleDragEnd = () => {
+    console.log('drag end')
+  }
+
   const collapserState = collapsed ? 'collapserCollapsed' : 'collapser'
   const canView = !group || group.memberCount !== 0
   const links = isMyContext ? myLinks : regularLinks
@@ -243,26 +256,31 @@ export default function Navigation (props) {
         </div>
       )}
       {hasContextWidgets && (
-        <ContextWidgetList contextWidgets={contextWidgets} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} />
+        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <ContextWidgetList isEditting={isEditting} contextWidgets={contextWidgets} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} />
+          <div className='absolute bottom-0 w-[calc(100%-2em)] p-2 ml-8 mb-[0.05em]'>
+            <ContextMenuItem widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} allView isEditting={isEditting} />
+          </div>
+        </DndContext>
       )}
       {!hasContextWidgets && <div className={classes.closeBg} onClick={toggleGroupMenu} />}
     </div>
   )
 }
 
-function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister }) {
+function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditting }) {
   const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
 
   return (
     <ul>
       {orderedWidgets.map(widget => (
-        <li key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} /></li>
+        <li key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} /></li>
       ))}
     </ul>
   )
 }
 
-function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false }) {
+function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditting = false, allView = false }) {
   const { t } = useTranslation()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
   // Check if the widget should be rendered
@@ -279,20 +297,45 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false }
 
   const title = widgetTitleResolver({ widget, t })
   const url = widgetUrl({ widget, rootPath, groupSlug, context: 'group' })
-  // Render the widget
-
+  const canDnd = !allView && isEditting && widget.type !== 'home'
+  const showEdit = allView && canAdminister
+  const grabMe = <span className='text-sm font-bold'>{t('Grab me')}</span>
   return (
     <div key={widget.id} className='border border-gray-700 rounded-md p-2'>
-      {/* TODO CONTEXT: need to fix this display logic for when someone wants */}
+      {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
       {url && (widget.childWidgets.length === 0 && !['members'].includes(widget.type))
         ? (
-          <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
-            <span className='text-lg font-bold'>{title}</span>
-          </MenuLink>)
+          <span className='flex justify-between items-center content-center'>
+            <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
+              <span className='text-lg font-bold'>{title}</span>
+            </MenuLink>
+            {showEdit &&
+              <MenuLink to={url + '?cme=yes'}>
+                <span className='text-lg font-bold'>{t('Edit')}</span>
+              </MenuLink>}
+            {canDnd &&
+              <MenuLink to={url + '?cme=yes'}>
+                {grabMe}
+              </MenuLink>}
+          </span>)
         : (
           <div>
-            {widget.view && <MenuLink to={url}> <h3 className='text-sm font-semibold'>{title}</h3></MenuLink>}
-            {!widget.view && <h3 className='text-sm font-semibold'>{title}</h3>}
+            {widget.view &&
+              <span className='flex justify-between items-center content-center'>
+                <MenuLink to={url}> <h3 className='text-sm font-semibold'>{title}</h3></MenuLink>
+                {canDnd &&
+                  <MenuLink to={url + '?cme=yes'}>
+                    {grabMe}
+                  </MenuLink>}
+              </span>}
+            {!widget.view &&
+              <span className='flex justify-between items-center content-center'>
+                <h3 className='text-sm font-semibold'>{title}</h3>
+                {canDnd &&
+                  <MenuLink to={url + '?cme=yes'}>
+                    {grabMe}
+                  </MenuLink>}
+              </span>}
             {/* Special elements can be added here */}
             <ul>
               {loading && <li key='loading'>Loading...</li>}

@@ -31,6 +31,7 @@ import {
 } from 'util/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import AllTopics from 'routes/AllTopics'
+import AllView from 'routes/AllView'
 import ChatRoom from 'routes/ChatRoom'
 import CreateModal from 'components/CreateModal'
 import GroupDetail from 'routes/GroupDetail'
@@ -405,6 +406,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/topics/:topicName/*' element={<ChatRoom context='groups' />} />
               <Route path='groups/:groupSlug/topics' element={<AllTopics context='groups' />} />
               <Route path='groups/:groupSlug/settings/*' element={<GroupSettings context='groups' />} />
+              <Route path='groups/:groupSlug/grid-view' element={<AllView context='groups' />} />
               <Route path='groups/:groupSlug/*' element={homeRoute} />
               <Route path='post/:postId/*' element={<PostDetail />} />
               {/* **** My Routes **** */}

@@ -486,6 +486,7 @@ module.exports = bookshelf.Model.extend(merge({
     await ContextWidget.forge({
       group_id: this.id,
       title: 'widget-hearth',
+      type: 'chat',
       view_chat_id: generalTag.id,
       parent_id: homeWidget.id,
       order: 1,
@@ -510,7 +511,7 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-events', type: 'events', view: 'events' },
       { title: 'widget-projects', type: 'projects', view: 'projects' },
       { title: 'widget-groups', type: 'groups', view: 'groups' },
-      { title: 'widget-decisions', type: 'decisions', view: 'decisions' },
+      { title: 'widget-decisions', type: 'decisions', view: 'proposals' },
       { title: 'widget-about', type: 'about', view: 'about' },
       { title: 'widget-map', type: 'map', view: 'map' }
     ]

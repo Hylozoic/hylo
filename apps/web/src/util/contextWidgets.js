@@ -34,3 +34,24 @@ export function findHomeView (group) {
   const homeWidget = group.contextWidgets.items.find(w => w.type === 'home')
   return group.contextWidgets.items.find(w => w.parentWidget?.id === homeWidget.id)
 }
+
+export function widgetTypeResolver ({ widget }) {
+  switch (true) {
+    case !!widget.type:
+      return widget.type
+    case !!widget.view:
+      return widget.view
+    case !!widget.viewGroup:
+      return 'viewGroup'
+    case !!widget.viewPost:
+      return 'viewPost'
+    case !!widget.viewUser:
+      return 'viewUser'
+    case !!widget.viewChat:
+      return 'viewChat'
+    case !!widget.customView:
+      return 'customView'
+    default:
+      return 'container'
+  }
+}
