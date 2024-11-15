@@ -1,0 +1,24 @@
+name: Deploy To Staging
+
+on:
+  push:
+    branches:
+      - frontend-deploy
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: akhileshns/heroku-deploy@v3.13.15 # This is the action
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: "hylo-evo-staging" #Must be unique in Heroku
+          heroku_email: "dev@hylo.com"
+          buildpack: "heroku/nodejs"
+
+      - name: install build plugin
+        run: heroku plugins:install heroku-builds
+
+      - name: deploy tarball
+        run: cd apps/web/dist && heroku builds:create -a hylo-evo-staging
