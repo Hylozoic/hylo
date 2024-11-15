@@ -1,1 +1,1 @@
-web: yarn workspace web serve
+web: node apps/web/server/index.js
