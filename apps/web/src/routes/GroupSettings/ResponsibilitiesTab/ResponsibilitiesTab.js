@@ -9,7 +9,7 @@ import { fetchResponsibilitiesForGroup, addGroupResponsibility, deleteGroupRespo
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss' // eslint-disable-line no-unused-vars
-import styles from './ResponsibilitiesTab.module.scss' // eslint-disable-line no-unused-vars
+import styles from './ResponsibilitiesTab.module.scss'
 
 const emptyResponsiblity = {
   description: '',

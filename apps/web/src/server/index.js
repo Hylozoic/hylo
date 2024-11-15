@@ -1,15 +1,17 @@
-import setupStartTime from './setup' // this must be first
-import './newrelic' // this must be second
+import './newrelic.js' // this must be second
 import express from 'express'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
-import apiProxy from './apiProxy'
-import redirectToApp from './redirectToApp'
-import { handleStaticPages } from './proxy'
+import apiProxy from './apiProxy.js'
+import redirectToApp from './redirectToApp.js'
+import { handleStaticPages } from './proxy.js'
 
 const port = process.env.PORT || 9001
 
-export default function () {
+const startTime = new Date().getTime()
+
+function startServer () {
+  console.log('Starting server...')
   const server = express()
   server.use(cookieParser())
   server.use(compression())
@@ -23,7 +25,7 @@ export default function () {
 
   const listener = server.listen(port, err => {
     if (err) throw err
-    const elapsed = new Date().getTime() - setupStartTime
+    const elapsed = new Date().getTime() - startTime
     console.log(`listening on port ${port} after ${elapsed}ms (pid ${process.pid})`)
   })
 
@@ -41,3 +43,9 @@ export default function () {
 
   return listener
 }
+
+// Call the function to start the server
+startServer()
+
+// Export for testing/importing if needed
+export { startServer }
