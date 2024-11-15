@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { View, Text, TouchableOpacity, ScrollView, Linking, Modal, TextInput } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useSelector } from 'react-redux'
 import { gql, useMutation, useQuery } from 'urql'
 import { isEmpty } from 'lodash'
 import { groupUrl } from 'util/navigation'
@@ -11,14 +10,15 @@ import CheckBox from '@react-native-community/checkbox'
 import MultiSelect from 'components/MultiSelect/MultiSelect'
 import createModerationActionMutation from 'graphql/mutations/createModerationActionMutation'
 import { agreementsURL } from 'store/constants'
+import usePlatformAgreements from 'hooks/usePlatformAgreements'
 import GroupPresenter from 'urql-shared/presenters/GroupPresenter'
-import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
 import { mangoOrange } from 'style/colors'
 
 const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
   const { t } = useTranslation()
   const { id: postId, slug: groupSlug } = linkData || {}
-  const [{ data }] = useQuery({
+  const [, createModerationAction] = useMutation(createModerationActionMutation)
+  const [{ data: groupData }] = useQuery({
     query: gql`
       query ($slug: String) {
         group(slug: $slug) {
@@ -37,9 +37,7 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
     `,
     variables: { slug: groupSlug }
   })
-  const group = useMemo(() => GroupPresenter(data?.group), [data])
-  const [, createModerationAction] = useMutation(createModerationActionMutation)
-  const platformAgreements = useSelector(getPlatformAgreements)
+  const group = useMemo(() => GroupPresenter(groupData?.group), [groupData])
   const agreements = group?.agreements?.items || []
   const groupAgreementsUrl = group ? groupUrl(group.slug) + `/group/${group.slug}` : ''
   const [anonymous, setAnonymous] = useState(false)
@@ -47,6 +45,9 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
   const [subtitle] = useState(t('What was wrong?'))
   const [agreementsSelected, setAgreementsSelected] = useState([])
   const [platformAgreementsSelected, setPlatformAgreementsSelected] = useState([])
+  const [platformAgreements, platformAgreementsFetching] = usePlatformAgreements()
+
+  if (platformAgreementsFetching) return null
 
   const isValid = () => {
     if (isEmpty(agreementsSelected) && isEmpty(platformAgreementsSelected)) return false

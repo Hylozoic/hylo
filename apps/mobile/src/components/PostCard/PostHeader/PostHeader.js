@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
+import { get } from 'lodash/fp'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useSelector } from 'react-redux'
-import { get } from 'lodash/fp'
+import { useTranslation } from 'react-i18next'
+import { useNavigation } from '@react-navigation/native'
 import { TextHelpers } from '@hylo/shared'
 import usePostActionSheet from 'hooks/usePostActionSheet'
+import useHasResponsibility from 'hooks/useHasResponsibility'
 import CondensingBadgeRow from 'components/CondensingBadgeRow'
 import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import Avatar from 'components/Avatar'
@@ -11,10 +14,7 @@ import FlagContent from 'components/FlagContent'
 import FlagGroupContent from 'components/FlagGroupContent'
 import Icon from 'components/Icon'
 import styles, { labelStyles } from './PostHeader.styles'
-import { useTranslation } from 'react-i18next'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import getRolesForGroup from 'store/selectors/getRolesForGroup'
-import { useNavigation } from '@react-navigation/native'
+import useRolesForGroup from 'hooks/useRolesForGroup'
 
 export default function PostHeader ({
   announcement,
@@ -42,13 +42,13 @@ export default function PostHeader ({
     setFlaggingVisible
   })
   const currentGroup = useSelector(getCurrentGroup)
-  const { avatarUrl, name } = creator
   const handleShowMember = () => showMember && showMember(creator.id)
 
-  const currentGroupId = currentGroup?.id
-  const badges = useSelector(state => getRolesForGroup(state, { person: creator, groupId: currentGroupId }))
-  // const badges = useRolesForGroup(creator?.id, currentGroupId)
-  const creatorIsSteward = useSelector(state => hasResponsibilityForGroup(state, { person: creator, responsibility: null, groupId: currentGroupId }))
+  const hasResponsibility = useHasResponsibility(currentGroup?.id, creator)
+  const badges = useRolesForGroup(currentGroup?.id, creator)
+  const creatorIsSteward = hasResponsibility(null)
+  const { avatarUrl, name } = creator
+
   return (
     <View style={[styles.container, style]}>
       <View style={styles.avatarSpacing}>
@@ -88,7 +88,7 @@ export default function PostHeader ({
             <Icon name='More' style={styles.moreIcon} />
           </TouchableOpacity>
         )}
-        {flaggingVisible && !currentGroupId && (
+        {flaggingVisible && !currentGroup?.id && (
           <FlagContent
             type='post'
             linkData={{
@@ -99,7 +99,7 @@ export default function PostHeader ({
             onClose={() => setFlaggingVisible(false)}
           />
         )}
-        {flaggingVisible && currentGroupId && (
+        {flaggingVisible && currentGroup?.id && (
           <FlagGroupContent
             type='post'
             linkData={{

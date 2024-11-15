@@ -8,6 +8,8 @@ import {
 } from 'react-native'
 import { useIsFocused, useScrollToTop } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
+import useHasResponsibility from 'hooks/useHasResponsibility'
+import useRolesForGroup from 'hooks/useRolesForGroup'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
@@ -15,9 +17,6 @@ import PopupMenuButton from 'components/PopupMenuButton'
 import styles from './MemberList.styles'
 import SearchBar from 'components/SearchBar'
 import CondensingBadgeRow from '../CondensingBadgeRow/CondensingBadgeRow'
-import getRolesForGroup from 'store/selectors/getRolesForGroup'
-import { useSelector } from 'react-redux'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 
 export class MemberList extends React.Component {
   static defaultProps = {
@@ -153,8 +152,10 @@ export default function (props) {
 }
 
 export function Member ({ member, showMember, group }) {
-  const badges = group ? useSelector(state => getRolesForGroup(state, { person: member, groupId: group.id })) : []
-  const creatorIsSteward = group ? useSelector(state => hasResponsibilityForGroup(state, { person: member, responsibility: null, groupId: group.id })) : []
+  const badges = useRolesForGroup(group?.id, member)
+  const hasResponsibility = useHasResponsibility(group.id, member)
+  const creatorIsSteward = group ? hasResponsibility(null) : []
+
   return (
     <TouchableOpacity
       onPress={() => isFunction(showMember) && showMember(member.id)}

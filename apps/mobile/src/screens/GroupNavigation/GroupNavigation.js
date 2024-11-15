@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { openURL } from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
 import getCurrentGroupSlug from 'store/selectors/getCurrentGroupSlug'
-import { isContextGroup, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
+import GroupPresenter, { isContextGroup, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
 import Icon from 'components/Icon'
 import TopicsNavigation from 'components/TopicsNavigation'
@@ -26,7 +26,7 @@ export default function GroupNavigation () {
     variables: { slug: currentGroupSlug },
     pause: !currentGroupSlug
   })
-  const currentGroup = data?.group
+  const currentGroup = GroupPresenter(data?.group)
   const childGroups = currentGroup?.childGroups?.items
   const parentGroups = currentGroup?.parentGroups?.items
 

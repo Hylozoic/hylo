@@ -24,9 +24,6 @@ import {
   RECEIVE_POST,
   RECEIVE_THREAD
 } from 'components/SocketListener/SocketListener.store'
-import {
-  REMOVE_POST_PENDING
-} from 'hooks/usePostActionSheet.store'
 
 // reducer
 
@@ -69,15 +66,6 @@ export default function (state = {}, action) {
 
     case RECEIVE_THREAD:
       return matchNewThreadIntoQueryResults(state, payload.data.thread)
-
-    case REMOVE_POST_PENDING:
-      return mapValues(state, (results, key) => {
-        if (get('params.slug', JSON.parse(key)) !== meta.slug) return results
-        return {
-          ...results,
-          ids: results.ids.filter(id => id !== meta.postId)
-        }
-      })
 
     case DROP_QUERY_RESULTS:
       return {

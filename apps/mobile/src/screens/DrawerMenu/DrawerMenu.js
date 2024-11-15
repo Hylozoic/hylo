@@ -7,6 +7,9 @@ import FastImage from 'react-native-fast-image'
 import LinearGradient from 'react-native-linear-gradient'
 import useRouteParams from 'hooks/useRouteParams'
 import useChangeToGroup from 'hooks/useChangeToGroup'
+import useCurrentGroup from 'hooks/useCurrentGroup'
+import useHasResponsibility from 'hooks/useHasResponsibility'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { PUBLIC_GROUP, ALL_GROUP, MY_CONTEXT_GROUP } from 'urql-shared/presenters/GroupPresenter'
 import getMemberships from 'store/selectors/getMemberships'
 // import getCurrentGroup from 'store/selectors/getCurrentGroup'
@@ -16,19 +19,16 @@ import { bannerlinearGradientColors } from 'style/colors'
 // import groupExplorerUrl from 'assets/group-explorer.png'
 import earthUrl from 'assets/earth.png'
 import myHomeUrl from 'assets/my-home.png'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
-import useCurrentGroup from 'hooks/useCurrentGroup'
 
 export default function DrawerMenu () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const memberships = useSelector(getMemberships)
   const [currentGroup] = useCurrentGroup()
-  const canAdmin = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: currentGroup?.id }))
-  const canInvite = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: currentGroup?.id }))
+  const hasResponsibility = useHasResponsibility(currentGroup?.id)
+  const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
+  const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
   const { myHome } = useRouteParams()
-
   const myGroups = memberships
     .map(m => m.group.ref)
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -135,18 +135,22 @@ export default function DrawerMenu () {
             <Text style={styles.headerText}>{currentGroup.name}</Text>
             {(canAdmin || canInvite) && (
               <View style={styles.currentGroupButtons}>
-                {canAdmin && <Button
-                  style={styles.currentGroupButton}
-                  iconName='Settings'
-                  onPress={goToGroupSettings}
-                  text={t('Settings')}
-                />}
-                {canInvite && <Button
-                  style={styles.currentGroupButton}
-                  iconName='Invite'
-                  onPress={goToInvitePeople}
-                  text={t('Invite')}
-                />}
+                {canAdmin && (
+                  <Button
+                    style={styles.currentGroupButton}
+                    iconName='Settings'
+                    onPress={goToGroupSettings}
+                    text={t('Settings')}
+                  />
+                )}
+                {canInvite && (
+                  <Button
+                    style={styles.currentGroupButton}
+                    iconName='Invite'
+                    onPress={goToInvitePeople}
+                    text={t('Invite')}
+                  />
+                )}
               </View>
             )}
           </View>

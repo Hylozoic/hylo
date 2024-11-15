@@ -35,14 +35,14 @@ export default function GroupPresenter (group) {
       : [],
     groupToGroupJoinQuestions: group.groupToGroupJoinQuestions ? group.groupToGroupJoinQuestions.toRefArray() : [],
     groupTopics: group.groupTopics
-      ? group.groupTopics.map(groupTopic => ({ ...groupTopic, name: groupTopic.topic.name }))
+      ? group.groupTopics.items.map(groupTopic => ({ ...groupTopic, name: groupTopic.topic.name }))
       : [],
-    joinQuestions: group.joinQuestions ? group.joinQuestions.toRefArray() : [],
+    joinQuestions: group.joinQuestions ? group.joinQuestions.items : [],
     members: group.members ? group.members : [],
     stewards: group.stewards ? group.stewards : [],
     openOffersAndRequests: group.openOffersAndRequests || [],
     prerequisiteGroups: group.prerequisiteGroups
-      ? group.prerequisiteGroups.map(prereq => ({ ...prereq, joinQuestions: prereq.joinQuestions || [] }))
+      ? group.prerequisiteGroups.items?.map(prereq => ({ ...prereq, joinQuestions: prereq.joinQuestions || [] }))
       : [],
     suggestedSkills: group.suggestedSkills || [],
     upcomingEvents: group.upcomingEvents

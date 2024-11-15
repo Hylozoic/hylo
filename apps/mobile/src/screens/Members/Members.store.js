@@ -45,30 +45,30 @@ query ($slug: String, $first: Int, $sortBy: String, $offset: Int, $search: Strin
           region
         }
         tagline
-      groupRoles {
-        items {
-          id
-          name
-          emoji
-          active
-          groupId
-          responsibilities {
-            items {
-              id
-              title
-              description
+        groupRoles {
+          items {
+            id
+            name
+            emoji
+            active
+            groupId
+            responsibilities {
+              items {
+                id
+                title
+                description
+              }
             }
           }
         }
-      }
-      membershipCommonRoles {
-        items {
-          id
-          commonRoleId
-          groupId
-          userId
+        membershipCommonRoles {
+          items {
+            id
+            commonRoleId
+            groupId
+            userId
+          }
         }
-      }
         skills {
           hasMore
           items {

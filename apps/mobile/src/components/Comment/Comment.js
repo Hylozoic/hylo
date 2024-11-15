@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Text, View, Alert, TouchableOpacity } from 'react-native'
 import { useMutation } from 'urql'
+import { useTranslation } from 'react-i18next'
 import { filter } from 'lodash/fp'
 import Clipboard from '@react-native-clipboard/clipboard'
 import { TextHelpers } from '@hylo/shared'
@@ -9,6 +10,8 @@ import deleteCommentMutation from 'graphql/mutations/deleteCommentMutation'
 import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import useReactOnEntity from 'urql-shared/hooks/useReactOnEntity'
 import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useHasResponsibility from 'hooks/useHasResponsibility'
+import { RESP_MANAGE_CONTENT } from 'store/constants'
 import getGroup from 'store/selectors/getGroup'
 import { getPresentedPost } from 'store/selectors/getPost'
 import Avatar from 'components/Avatar'
@@ -19,9 +22,6 @@ import Icon from 'components/Icon'
 import styles from './Comment.styles'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import ImageAttachments from 'components/ImageAttachments'
-import { useTranslation } from 'react-i18next'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { RESP_MANAGE_CONTENT } from 'store/constants'
 
 export default function Comment ({
   comment,
@@ -45,7 +45,9 @@ export default function Comment ({
   const currentUser = useCurrentUser()
   // TODO: Convert to useQuery groupQuery ...
   const group = useSelector(state => getGroup(state, { slug }))
-  const canModerate = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: group?.id }))
+  const hasResponsibility = useHasResponsibility(group?.id)
+
+  const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
   const isCreator = currentUser && (comment.creator.id === currentUser.id)
   const { creator, text, createdAt, post: postId } = comment
   const post = useSelector(state => getPresentedPost(state, { postId, forGroupId: group?.id }))

@@ -26,7 +26,7 @@ export default function groupDetailsQueryMaker ({
         ...GroupFieldsFragment
         ${withExtensions ? '...GroupGroupExtensionsFieldsFragment' : ''}
         ${withWidgets ? '...GroupWidgetsFieldsFragment' : ''}
-        ${withTopics ? '...GroupTopicsFieldsFragment' : ''}
+        ${withTopics ? '...GroupGroupTopicsFieldsFragment' : ''}
         ${withJoinQuestions ? '...GroupJoinQuestionsFieldsFragment' : ''}
         ${withPrerequisiteGroups ? '...GroupPrerequisiteGroupsFieldsFragment' : ''}
       }

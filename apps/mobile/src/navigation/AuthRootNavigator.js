@@ -12,6 +12,8 @@ import fetchCurrentUser from 'store/actions/fetchCurrentUser'
 // import { updateNewNotificationCount as resetNotificationCountAction } from 'screens/NotificationsList/NotificationsList.store'
 import resetNotificationsCountMutation from 'graphql/mutations/resetNotificationsCountMutation'
 import fetchNotificationsQuery, { NOTIFICATIONS_PAGE_SIZE } from 'graphql/queries/notificationsQuery'
+import commonRolesQuery from 'graphql/queries/commonRolesQuery'
+import usePlatformAgreements from 'hooks/usePlatformAgreements'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import CreateGroupTabsNavigator from 'navigation/CreateGroupTabsNavigator'
 import DrawerNavigator from 'navigation/DrawerNavigator'
@@ -24,29 +26,22 @@ import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import { white } from 'style/colors'
-// import meQuery from 'graphql/queries/meQuery'
-// import fetchCommonRoles from 'store/actions/fetchCommonRoles'
-import fetchPlatformAgreements from 'store/actions/fetchPlatformAgreements'
-import useHyloQuery from 'urql-shared/hooks/useHyloQuery'
 
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
   const dispatch = useDispatch()
-  // TODO: Need to figure-out roles and getResponsibilitiesForGroup selection before switching to useQuery({ query: meQuery })
   const [{ fetching, data, error }] = useUrqlQueryAction({ action: fetchCurrentUser() })
   const [loading, setLoading] = useState(true)
   const currentUser = data?.me
 
-  useQuery({ query: fetchNotificationsQuery, variables: { first: NOTIFICATIONS_PAGE_SIZE, offset: 0 } })
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
+  useQuery({ query: fetchNotificationsQuery, variables: { first: NOTIFICATIONS_PAGE_SIZE, offset: 0 } })
+  useQuery({ query: commonRolesQuery })
+  usePlatformAgreements()
 
   useEffect(() => {
     resetNotificationsCount()
   }, [])
-  // TODO: Why is this pre-fetch needed?
-  // useQuery(fetchCommonRoles().graphql)
-  // useHyloQuery({ action: fetchCommonRoles })
-  useHyloQuery({ action: fetchPlatformAgreements })
 
   useEffect(() => {
     (async function () {

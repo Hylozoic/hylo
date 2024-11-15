@@ -8,7 +8,9 @@ import { rhino05, slateGrey80 } from 'style/colors'
 
 export default function TopicsNavigation ({ group }) {
   const { pending, topics } = useEnsureGroupTopics({ groupId: group?.id, groupSlug: group?.slug })
+
   if (pending) return (<Loading />)
+
   return (
     <View style={{marginBottom: 20}}>
       {topics.map((topic, index) => (

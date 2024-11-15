@@ -149,14 +149,24 @@ export default groupFieldsFragment
 export const groupGroupTopicsFieldsFragment = gql`
   fragment GroupGroupTopicsFieldsFragment on Group {
     groupTopics(first: 8) {
+      hasMore
+      total
       items {
         id
+        followersTotal
+        isDefault
+        isSubscribed
         lastReadPostId
+        newPostCount
+        postsTotal
+        visibility
+        group {
+          id
+        }
         topic {
           id
           name
         }
-        postsTotal
       }
     }
   }
