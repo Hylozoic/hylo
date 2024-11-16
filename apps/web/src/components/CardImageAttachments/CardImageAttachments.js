@@ -13,15 +13,12 @@ export default function CardImageAttachments ({
 }) {
   const imageAttachments = filter({ type: 'image' }, attachments)
 
-  if (isEmpty(imageAttachments)) return null
-
-  const firstImageUrl = imageAttachments[0].url
-  const otherImageUrls = imageAttachments.slice(1).map(ia => ia.url)
-
-  if (!firstImageUrl) return null
+  const firstImageUrl = imageAttachments?.[0]?.url
+  const otherImageUrls = imageAttachments?.slice(1).map(ia => ia.url)
 
   const [initialSlide, setInitialSlide] = useState(0)
   const [modalVisible, setModalVisible] = useState(false)
+
   const toggleModal = (e) => {
     if (className === 'post-card') return
     setInitialSlide(e?.target.dataset.index || 0)
@@ -35,6 +32,9 @@ export default function CardImageAttachments ({
     closeModal: toggleModal,
     style: { width: '100%', maxWidth: '1024px' }
   }
+
+  if (isEmpty(imageAttachments)) return null
+  if (!firstImageUrl) return null
 
   return (
     <>
@@ -60,9 +60,11 @@ export default function CardImageAttachments ({
           </div>
         </div>
       </div>
-      {modalVisible && <ModalDialog {...modalSettings}>
-        <ImageCarousel attachments={imageAttachments} initialSlide={initialSlide} />
-      </ModalDialog>}
+      {modalVisible && (
+        <ModalDialog {...modalSettings}>
+          <ImageCarousel attachments={imageAttachments} initialSlide={initialSlide} />
+        </ModalDialog>
+      )}
     </>
   )
 }

@@ -41,7 +41,7 @@ export const getMemberVotes = ormCreateSelector( // TODO REACTIONS: switch this 
     const votes = Vote.filter(v => String(v.voter) === String(personId)).toModelArray()
     if (!votes) return []
     return compact(votes.map(({ post }) => {
-      if (!post) return
+      if (!post) return null
       return presentPost(post)
     }))
   }

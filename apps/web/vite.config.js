@@ -128,7 +128,11 @@ export default defineConfig({
     },
     preprocessorOptions: {
       scss: {
-        additionalData: '@use "./src/css/global/sass_resources.scss" as *;'
+        additionalData: '@use "./src/css/global/sass_resources.scss" as *;',
+        quietDeps: true,
+        logger: {
+          warn: () => {}
+        }
       }
     }
   }

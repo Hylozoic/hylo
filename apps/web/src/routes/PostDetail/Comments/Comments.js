@@ -103,7 +103,6 @@ Comments.propTypes = {
   currentUser: object,
   post: object,
   slug: string,
-  width: number,
   total: number,
   hasMore: bool
 }

@@ -27,7 +27,7 @@ describe('PostTitle', () => {
     render(<PostTitle {...defaultProps} type="event" />)
     expect(screen.queryByText('New York, NY')).not.toBeInTheDocument()
     expect(screen.queryByTestId('icon-Location')).not.toBeInTheDocument()
-  }
+  })
 
   it('applies constrained class when constrained prop is true', () => {
     render(<PostTitle {...defaultProps} constrained={true} />)

@@ -95,7 +95,7 @@ export class Comment extends Component {
     }
   }
 
-  handleEmojiPickerOpen(isOpen) {
+  handleEmojiPickerOpen (isOpen) {
     this.setState({ isEmojiPickerOpen: isOpen })
     // Keep hover state while picker is open
     if (isOpen) {

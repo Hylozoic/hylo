@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import { groupUrl, groupDetailUrl } from 'util/navigation'
 import ClickCatcher from 'components/ClickCatcher'
@@ -22,7 +22,6 @@ import classes from './GroupCard.module.scss'
 export default function GroupCard ({
   memberships,
   group = {},
-  routeParams = {},
   highlightProps = {},
   className,
   expanded = false,
@@ -31,6 +30,8 @@ export default function GroupCard ({
 }) {
   // XXX: turning this off for now because topics are random and can be weird. Turn back on when groups have their own #tags
   // const topics = group.groupTopics && group.groupTopics.toModelArray()
+
+  const routeParams = useParams()
 
   const linkTo = memberships.includes(group.id)
     ? groupUrl(group.slug)

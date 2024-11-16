@@ -50,8 +50,7 @@ class ImportExportSettingsTab extends Component {
 }
 
 ImportExportSettingsTab.propTypes = {
-  group: PropTypes.object,
-  deleteGroup: PropTypes.func
+  group: PropTypes.object
 }
 
 export default withTranslation()(ImportExportSettingsTab)

@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import { compact, get } from 'lodash/fp'
-import React from 'react'
+import React, { useCallback } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -34,8 +34,7 @@ export default function Navigation (props) {
     collapsed,
     groupId,
     hideTopics,
-    mapView,
-    toggleGroupMenu
+    mapView
   } = props
 
   const dispatch = useDispatch()
@@ -66,6 +65,8 @@ export default function Navigation (props) {
 
   const isGroupMenuOpen = useSelector(state => get('AuthLayoutRouter.isGroupMenuOpen', state))
   const streamFetchPostsParam = useSelector(state => get('Stream.fetchPostsParam', state))
+
+  const toggleGroupMenuAction = useCallback(() => dispatch(toggleGroupMenu()), [])
 
   const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
@@ -222,7 +223,7 @@ export default function Navigation (props) {
           />
         )}
       </div>
-      <div className={classes.closeBg} onClick={toggleGroupMenu} />
+      <div className={classes.closeBg} onClick={toggleGroupMenuAction} />
     </div>
   )
 }
