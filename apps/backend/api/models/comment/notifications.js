@@ -2,7 +2,7 @@
 /* globals RedisClient */
 import { parse } from 'url'
 import { compact, some, sum, uniq } from 'lodash/fp'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import { mapLocaleToSendWithUS } from '../../../lib/util'
 
 const MAX_PUSH_NOTIFICATION_LENGTH = 140

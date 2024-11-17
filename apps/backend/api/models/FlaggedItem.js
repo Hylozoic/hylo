@@ -1,7 +1,7 @@
 const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 import { values, isEmpty, trim } from 'lodash'
-import { Validators } from 'hylo-shared'
+import { Validators } from '@hylo/shared'
 import { notifyModeratorsPost, notifyModeratorsMember, notifyModeratorsComment } from './flaggedItem/notifyUtils'
 
 module.exports = bookshelf.Model.extend({

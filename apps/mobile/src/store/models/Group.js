@@ -248,6 +248,6 @@ export const MY_CONTEXT_GROUP = {
   childGroups: { toModelArray: () => [] }
 }
 
-// Move into hylo-shared (PathsHelper?)
+// Move into @hylo/shared (PathsHelper?)
 export const isContextGroup = slug =>
   [ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG].includes(slug)

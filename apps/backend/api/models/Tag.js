@@ -5,7 +5,7 @@ import { includes, isUndefined } from 'lodash'
 import {
   filter, omitBy, some, uniq
 } from 'lodash/fp'
-import { Validators } from 'hylo-shared'
+import { Validators } from '@hylo/shared'
 
 export const tagsInText = (text = '') => {
   const re = /(?:^| |>)#([A-Za-z][\w_-]+)/g

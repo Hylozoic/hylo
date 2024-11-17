@@ -80,7 +80,7 @@ export const truncateHTML = html => TextHelpers.presentHTMLToText(html, { trunca
 
 export function titleForNotification (notification, trans) {
   // XXX: Need the imported option for the electron notifications in SocketListener.store to work, but doesn't actually have the translations available
-  // TODO: perhaps notification text and translations should happen on the server, or in the electron app itself. should move notification transltions to hylo-shared?
+  // TODO: perhaps notification text and translations should happen on the server, or in the electron app itself. should move notification transltions to @hylo/shared?
   const t = trans || translate
 
   const { activity: { action, actor, post, group, meta: { reasons } } } = notification

@@ -7,7 +7,7 @@
   "+ New": "+ New",
   "+ New post": "+ New post",
   "+ New project": "+ New project",
-  "----- Comment: the ones below for notifications should use a key like notificationTitleAnnouncement but can't because of electron.": "We should move all these to hylo-shared so can be used in electron too, and in the mobile app",
+  "----- Comment: the ones below for notifications should use a key like notificationTitleAnnouncement but can't because of electron.": "We should move all these to @hylo/shared so can be used in electron too, and in the mobile app",
   "1 Group is a part of {{group.name}}": "1 Group is a part of {{group.name}}",
   "1 other": "1 other",
   "404 Not Found": "404 Not Found",
