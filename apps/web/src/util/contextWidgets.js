@@ -23,7 +23,8 @@ export function widgetIconResolver () {
 
 export function wrapItemInWidget (item, type) {
   return {
-    [type]: item
+    [type]: item,
+    id: 'fake-id-' + crypto.randomUUID()
   }
 }
 
@@ -54,4 +55,10 @@ export function widgetTypeResolver ({ widget }) {
     default:
       return 'container'
   }
+}
+
+export function isWidgetDroppable ({ widget }) {
+  if (widget.type === 'home') return false
+  if (widget.id?.startsWith('fake-id')) return false
+  return true
 }

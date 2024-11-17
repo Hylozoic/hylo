@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import { compact, get } from 'lodash/fp'
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -10,8 +10,7 @@ import NavLink from './NavLink'
 import MenuLink from './MenuLink'
 import TopicNavigation from './TopicNavigation'
 import { toggleGroupMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
-import { DndContext, DragOverlay } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { DndContext, DragOverlay, useDroppable, useDraggable, closestCenter } from '@dnd-kit/core'
 
 import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -26,7 +25,7 @@ import { makeDropQueryResults } from 'store/reducers/queryResults'
 import { viewUrl, widgetUrl, baseUrl, topicsUrl } from 'util/navigation'
 
 import classes from './Navigation.module.scss'
-import { widgetTitleResolver } from 'util/contextWidgets'
+import { isWidgetDroppable, widgetTitleResolver } from 'util/contextWidgets'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 
@@ -90,6 +89,8 @@ export default function Navigation (props) {
 
   const isGroupMenuOpen = useSelector(state => get('AuthLayoutRouter.isGroupMenuOpen', state))
   const streamFetchPostsParam = useSelector(state => get('Stream.fetchPostsParam', state))
+
+  const [isDragging, setIsDragging] = useState(false)
 
   const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
@@ -213,12 +214,17 @@ export default function Navigation (props) {
   ])
 
   const handleDragStart = () => {
+    setIsDragging(true)
     console.log('drag start')
   }
   const handleDragEnd = () => {
+    setIsDragging(false)
+    if (event.over && event.over.id === 'droppable') {
+      console.log('dropped over', event.over)
+    }
     console.log('drag end')
   }
-
+  console.log('isDraggingssss', isDragging)
   const collapserState = collapsed ? 'collapserCollapsed' : 'collapser'
   const canView = !group || group.memberCount !== 0
   const links = isMyContext ? myLinks : regularLinks
@@ -256,8 +262,8 @@ export default function Navigation (props) {
         </div>
       )}
       {hasContextWidgets && (
-        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <ContextWidgetList isEditting={isEditting} contextWidgets={contextWidgets} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} />
+        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
+          <ContextWidgetList isDragging={isDragging} isEditting={isEditting} contextWidgets={contextWidgets} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} />
           <div className='absolute bottom-0 w-[calc(100%-2em)] p-2 ml-8 mb-[0.05em]'>
             <ContextMenuItem widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} allView isEditting={isEditting} />
           </div>
@@ -268,21 +274,33 @@ export default function Navigation (props) {
   )
 }
 
-function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditting }) {
+function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditting, isDragging }) {
   const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
 
   return (
     <ul>
       {orderedWidgets.map(widget => (
-        <li key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} /></li>
+        <li key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} /></li>
       ))}
     </ul>
   )
 }
 
-function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditting = false, allView = false }) {
+function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditting = false, allView = false, isDragging = false }) {
   const { t } = useTranslation()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
+
+  const isDroppable = isWidgetDroppable({ widget })
+
+  // Draggable setup
+  const { attributes, listeners, setNodeRef: setDraggableNodeRef, transform } = useDraggable({ id: widget.id })
+  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
+
+  const title = widgetTitleResolver({ widget, t })
+  const url = widgetUrl({ widget, rootPath, groupSlug, context: 'group' })
+  const canDnd = !allView && isEditting && widget.type !== 'home'
+  const showEdit = allView && canAdminister
+
   // Check if the widget should be rendered
   if (!['members', 'setup'].includes(widget.type) && !widget.view && widget.childWidgets.length === 0 &&
       !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
@@ -295,62 +313,83 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
     return null
   }
 
-  const title = widgetTitleResolver({ widget, t })
-  const url = widgetUrl({ widget, rootPath, groupSlug, context: 'group' })
-  const canDnd = !allView && isEditting && widget.type !== 'home'
-  const showEdit = allView && canAdminister
-  const grabMe = <span className='text-sm font-bold'>{t('Grab me')}</span>
   return (
-    <div key={widget.id} className='border border-gray-700 rounded-md p-2'>
-      {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
-      {url && (widget.childWidgets.length === 0 && !['members'].includes(widget.type))
-        ? (
-          <span className='flex justify-between items-center content-center'>
-            <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
-              <span className='text-lg font-bold'>{title}</span>
-            </MenuLink>
-            {showEdit &&
-              <MenuLink to={url + '?cme=yes'}>
-                <span className='text-lg font-bold'>{t('Edit')}</span>
-              </MenuLink>}
-            {canDnd &&
-              <MenuLink to={url + '?cme=yes'}>
-                {grabMe}
-              </MenuLink>}
-          </span>)
-        : (
-          <div>
-            {widget.view &&
-              <span className='flex justify-between items-center content-center'>
-                <MenuLink to={url}> <h3 className='text-sm font-semibold'>{title}</h3></MenuLink>
-                {canDnd &&
-                  <MenuLink to={url + '?cme=yes'}>
-                    {grabMe}
-                  </MenuLink>}
-              </span>}
-            {!widget.view &&
-              <span className='flex justify-between items-center content-center'>
-                <h3 className='text-sm font-semibold'>{title}</h3>
-                {canDnd &&
-                  <MenuLink to={url + '?cme=yes'}>
-                    {grabMe}
-                  </MenuLink>}
-              </span>}
-            {/* Special elements can be added here */}
-            <ul>
-              {loading && <li key='loading'>Loading...</li>}
-              {listItems.length > 0 && listItems.map(item => {
-                const itemTitle = widgetTitleResolver({ widget: item, t })
-                const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
-                return (
-                  <li key={item.id + itemTitle}>
-                    <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}><span className='text-sm text-blue-500 underline'>{itemTitle}</span></MenuLink>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>)}
-    </div>
+    <>
+      <DropZone isDragging={isDragging} isDroppable={isDroppable} droppableParams={{ id: `${widget.id}-top`, data: { order: widget.order } }} />
+      <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border border-gray-700 rounded-md p-2 bg-white'>
+        {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
+        {url && (widget.childWidgets.length === 0 && !['members'].includes(widget.type))
+          ? (
+            <span className='flex justify-between items-center content-center'>
+              <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
+                <span className='text-lg font-bold'>{title}</span>
+              </MenuLink>
+              {showEdit &&
+                <MenuLink to={url + '?cme=yes'}>
+                  <span className='text-lg font-bold'>{t('Edit')}</span>
+                </MenuLink>}
+              {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
+            </span>)
+          : (
+            <div>
+              {widget.view &&
+                <span className='flex justify-between items-center content-center'>
+                  <MenuLink to={url}> <h3 className='text-sm font-semibold'>{title}</h3></MenuLink>
+                  {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
+                </span>}
+              {!widget.view &&
+                <span className='flex justify-between items-center content-center'>
+                  <h3 className='text-sm font-semibold'>{title}</h3>
+                  {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
+                </span>}
+              {/* Special elements can be added here */}
+              <ul>
+                {loading && <li key='loading'>Loading...</li>}
+                {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} />)}
+              </ul>
+            </div>)}
+      </div>
+      <DropZone isDragging={isDragging} isDroppable={isDroppable} droppableParams={{ id: `${widget.id}-bottom`, data: { order: widget.order + 1 } }} />
+    </>
+  )
+}
+
+function GrabMe ({ children, ...props }) {
+  return (
+    <span className='text-sm font-bold' {...props}>
+      {children || 'Grab me'}
+    </span>
+  )
+}
+
+function DropZone ({ droppableParams, isDroppable = false, isDragging = false }) {
+  const { isOver, setNodeRef } = useDroppable(droppableParams)
+  return (
+    <div ref={setNodeRef} className={`bg-green-100 ${isDroppable && isDragging ? 'h-2' : ''} ${isOver ? 'h-5 transition-height' : ''}`} />
+  )
+}
+
+function ListItemRenderer ({ item, rootPath, groupSlug, canDnd }) {
+  const { t } = useTranslation()
+  const itemTitle = widgetTitleResolver({ widget: item, t })
+  const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
+
+  const isItemDraggable = isWidgetDroppable({ widget: item }) && canDnd
+  // this is the hook problem. Need to move this out
+  const { attributes: itemAttributes, listeners: itemListeners, setNodeRef: setItemDraggableNodeRef, transform: itemTransform } = useDraggable({ id: item.id })
+  const itemStyle = itemTransform ? { transform: `translate3d(${itemTransform.x}px, ${itemTransform.y}px, 0)` } : undefined
+
+  return (
+    <React.Fragment key={item.id + itemTitle}>
+      <DropZone isDroppable={isItemDraggable} droppableParams={{ id: `${item.id}-top`, data: { order: item.order, parentId: item.parentId } }} />
+      <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify-between items-center content-center'>
+        <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}>
+          <span className='text-sm text-blue-500 underline'>{itemTitle}</span>
+        </MenuLink>
+        {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
+      </li>
+      <DropZone isDroppable={isItemDraggable} droppableParams={{ id: `${item.id}-bottom`, data: { order: item.order + 1, parentId: item.parentId } }} />
+    </React.Fragment>
   )
 }
 
