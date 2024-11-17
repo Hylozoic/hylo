@@ -17,7 +17,6 @@ export default function useHasResponsibility (groupId, providedPerson) {
 
   const isFetching = fetchingCommonRoles || skipQueries
 
-  // Helper functions to derive responsibilities
   const derivePersonGroupResponsibilities = (person) => {
     const groupRoles = person?.groupRoles?.items || []
     const groupRolesForGroup = groupRoles.filter(role => role.groupId === groupId) || []
@@ -49,6 +48,7 @@ export default function useHasResponsibility (groupId, providedPerson) {
 
     // Steward case?
     if (responsibility === null) {
+      // TODO: Shouldn't the '1', etc values be taken from constants?
       return responsibilities.some(r => ['1', '3', '4'].includes(r.id))
     }
 
