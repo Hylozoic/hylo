@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Tooltip } from 'react-tooltip'
@@ -29,7 +30,8 @@ export default function SavedSearches (props) {
         <div className={classes.title}>
           <span>
             <h2>{t('Save this view')}</h2>
-            {t('Get updates about this map view')}</span>
+            {t('Get updates about this map view')}
+          </span>
           <Icon name='Ex' className={classes.close} onClick={toggle} />
         </div>
 

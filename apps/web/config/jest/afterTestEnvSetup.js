@@ -8,7 +8,6 @@ import '@testing-library/jest-dom'
 //       You Has access to installed test environment, methods like describe, expect and other globals.
 //       You can for example add your custom matchers here.
 
-
 // import { IntercomProvider } from 'react-use-intercom'
 
 // ref: https://jestjs.io/docs/manual-mocks#mocking-methods-which-are-not-implemented-in-jsdom
@@ -61,5 +60,5 @@ jest.mock('react-i18next', () => ({
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
-  useParams: jest.fn(),
-}));
+  useParams: jest.fn()
+}))

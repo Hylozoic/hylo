@@ -1,7 +1,6 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import GroupSettingsTab from './GroupSettingsTab'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('GroupSettingsTab', () => {
   const group = {

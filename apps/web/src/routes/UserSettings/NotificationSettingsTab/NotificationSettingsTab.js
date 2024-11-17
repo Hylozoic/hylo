@@ -31,11 +31,11 @@ class NotificationSettingsTab extends Component {
       ...changes
     }
     let dmNotifications
-    if (newMessageSettings['sendEmail'] && newMessageSettings['sendPushNotifications']) {
+    if (newMessageSettings.sendEmail && newMessageSettings.sendPushNotifications) {
       dmNotifications = 'both'
-    } else if (newMessageSettings['sendEmail']) {
+    } else if (newMessageSettings.sendEmail) {
       dmNotifications = 'email'
-    } else if (newMessageSettings['sendPushNotifications']) {
+    } else if (newMessageSettings.sendPushNotifications) {
       dmNotifications = 'push'
     } else {
       dmNotifications = 'none'
@@ -106,7 +106,8 @@ class NotificationSettingsTab extends Component {
                 { id: 'daily', label: t('Daily') },
                 { id: 'weekly', label: t('Weekly') },
                 { id: 'never', label: t('Never') }
-              ]} />
+              ]}
+            />
           </div>
         </div>
         <div className={classes.globalSetting}>
@@ -120,7 +121,8 @@ class NotificationSettingsTab extends Component {
                 { id: 'none', label: t('No Posts') },
                 { id: 'important', label: t('Important Posts (Announcements & Mentions)') },
                 { id: 'all', label: t('Every Post') }
-              ]} />
+              ]}
+            />
           </div>
         </div>
         <div className={classes.globalSetting}>
@@ -134,7 +136,8 @@ class NotificationSettingsTab extends Component {
             <Select
               onChange={updateSetting('commentNotifications')}
               selected={getSetting('commentNotifications')}
-              options={notificationOptions} />
+              options={notificationOptions}
+            />
           </div>
         </div>
         <div>
@@ -142,17 +145,20 @@ class NotificationSettingsTab extends Component {
 
           <MessageSettingsRow
             settings={messageSettings}
-            updateMessageSettings={this.updateMessageSettings} />
+            updateMessageSettings={this.updateMessageSettings}
+          />
 
           <div className={classes.individualGroups}>{t('GROUP NOTIFICATIONS')}</div>
 
           <AllGroupsSettingsRow
             settings={allGroupsSettings}
-            updateAllGroups={this.updateAllGroupsAlert} />
+            updateAllGroups={this.updateAllGroupsAlert}
+          />
           {memberships.map(membership => <MembershipSettingsRow
             key={membership.id}
             membership={membership}
-            updateMembershipSettings={changes => updateMembershipSettings(membership.group.id, changes)} />)}
+            updateMembershipSettings={changes => updateMembershipSettings(membership.group.id, changes)}
+                                         />)}
         </div>
 
         <div className={classes.help}>

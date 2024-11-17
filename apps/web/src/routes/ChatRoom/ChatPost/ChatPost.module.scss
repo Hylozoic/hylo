@@ -75,14 +75,13 @@
       display: flex;
     }
   }
-  @media (hover: hover) and (pointer: fine) {
-    &:hover {
-      background: #efefef;
-      cursor: pointer;
 
-      .action-bar {
-        display: flex;
-      }
+  &.hovered {
+    background: #f0f0f0;
+    cursor: pointer;
+
+    .action-bar {
+      display: flex;
     }
   }
 

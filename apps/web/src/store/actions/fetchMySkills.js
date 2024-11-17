@@ -1,4 +1,4 @@
-export const FETCH_MY_SKILLS = `FETCH_MY_SKILLS`
+export const FETCH_MY_SKILLS = 'FETCH_MY_SKILLS'
 
 export default function fetchMySkills (type, limit = 20) {
   return {

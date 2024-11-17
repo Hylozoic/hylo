@@ -46,7 +46,8 @@ class PostPeopleDialog extends React.PureComponent {
         modalTitle={`${title} (${this.props.members.length})`}
         showCancelButton={false}
         showSubmitButton={false}
-        style={{ width: '100%', maxWidth: '620px' }}>
+        style={{ width: '100%', maxWidth: '620px' }}
+      >
         <div className={classes.container}>
           {/*
             Note: Can make memberDetails optional by adding a `withDetails` flag
@@ -65,13 +66,14 @@ class PostPeopleDialog extends React.PureComponent {
               loading={loading}
               value={searchString}
               placeholder={this.props.t('Find a member')}
-            />}
+                                              />}
             <section>
               {members.map(member => <MemberRow
                 member={member}
                 selected={member.id === get('id', selectedMember)}
                 onClick={this.selectMember(member)}
-                key={member.id} />)}
+                key={member.id}
+                                     />)}
             </section>
           </div>
           {selectedMember && <MemberDetail member={selectedMember} currentGroup={currentGroup} />}
@@ -92,9 +94,7 @@ function MemberRow ({ member, selected, onClick }) {
       <div className={classes.col}>
         {name}
       </div>
-      {response && <div className={cx(classes.col, classes.response)}>
-        {humanResponse(response)}
-      </div>}
+      {response && <div className={cx(classes.col, classes.response)}>{humanResponse(response)}</div>}
     </div>
   )
 }

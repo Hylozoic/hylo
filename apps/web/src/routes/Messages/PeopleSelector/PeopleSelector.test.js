@@ -1,8 +1,7 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import { keyMap } from 'util/textInput'
 import PeopleSelector from './PeopleSelector'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 const defaultProps = {
   setPeopleSearch: jest.fn(),

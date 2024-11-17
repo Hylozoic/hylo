@@ -13,6 +13,7 @@ import LocationInput from 'components/LocationInput'
 import RoundImage from 'components/RoundImage'
 import HyloEditor from 'components/HyloEditor'
 import Button from 'components/Button'
+import Loading from 'components/Loading'
 import Switch from 'components/Switch'
 import GroupsSelector from 'components/GroupsSelector'
 import TopicSelector from 'components/TopicSelector'
@@ -93,14 +94,7 @@ const getMyAdminGroups = createSelector(
 
 function PostEditor ({
   context,
-  post: propsPost = {
-    type: 'discussion',
-    title: '',
-    details: '',
-    groups: [],
-    location: '',
-    timezone: Moment.tz.guess()
-  },
+  post: propsPost,
   postTypes = Object.keys(POST_TYPES).filter(t => t !== 'chat'),
   editing = false,
   setIsDirty = () => {},
@@ -129,8 +123,6 @@ function PostEditor ({
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
-  // const [linkPreview, setLinkPreview] = useState(null)
-  // const linkPreviewStatus = useSelector(state => get('linkPreviewStatus', state[MODULE_NAME]))
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
   const uploadAttachmentPending = useSelector(getUploadAttachmentPending)
 
@@ -142,18 +134,19 @@ function PostEditor ({
   const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT], state))
   const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending || postPending
 
-  let post = propsPost
+  let inputPost = propsPost
   const _editingPost = useSelector(state => getPost(state, editingPostId))
   const editingPost = useMemo(() => presentPost(_editingPost), [_editingPost])
   const _fromPost = useSelector(state => getPost(state, fromPostId))
   const fromPost = useMemo(() => presentPost(_fromPost), [_fromPost])
 
-  if (routeParams.action === 'edit') {
-    post = propsPost || editingPost
-    editing = !!post || loading
-  } else if (fromPostId) {
-    post = propsPost || fromPost
-    post.title = `Copy of ${post.title.slice(0, MAX_TITLE_LENGTH - 8)}`
+  let isEditing = false
+  if (editing) {
+    inputPost = editingPost
+    isEditing = !!editingPost || loading
+  } else if (fromPostId && fromPost) {
+    inputPost = fromPost
+    inputPost.title = `Copy of ${fromPost.title.slice(0, MAX_TITLE_LENGTH - 8)}`
   }
 
   const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending
@@ -163,21 +156,26 @@ function PostEditor ({
   const editorRef = useRef()
   const groupsSelectorRef = useRef()
 
-  const defaultPostWithGroupsAndTopic = useMemo(() => ({
-    ...post,
-    type: postType || post.type,
+  const initialPost = useMemo(() => ({
+    title: '',
+    details: '',
+    type: postType || 'discussion',
     groups: currentGroup ? [currentGroup] : [],
     topics: topic ? [topic] : [],
     acceptContributions: false,
     isPublic: context === 'public',
+    locationId: null,
+    location: '',
+    timezone: Moment.tz.guess(),
+    proposalOptions: [],
     isAnonymousVote: false,
     isStrictProposal: false,
-    locationId: post?.locationObject?.id || null,
-    proposalOptions: post?.proposalOptions || [],
-    startTime: Moment(post.startTime),
-    endTime: Moment(post.endTime),
-    votingMethod: VOTING_METHOD_SINGLE
-  }), [post?.id, postType, currentGroup, topic, context])
+    votingMethod: VOTING_METHOD_SINGLE,
+    quorum: 0,
+    ...(inputPost || {}),
+    startTime: Moment(inputPost?.startTime || ''),
+    endTime: Moment(inputPost?.endTime || '')
+  }), [inputPost?.id, postType, currentGroup, topic, context])
 
   const titlePlaceholderForPostType = (type) => {
     const titlePlaceHolders = {
@@ -213,14 +211,14 @@ function PostEditor ({
     )
   }
 
-  const [currentPost, setCurrentPost] = useState(defaultPostWithGroupsAndTopic)
-  const [titlePlaceholder, setTitlePlaceholder] = useState(titlePlaceholderForPostType(defaultPostWithGroupsAndTopic.type))
-  const [detailPlaceholder, setDetailPlaceholder] = useState(detailPlaceholderForPostType(defaultPostWithGroupsAndTopic.type))
-  const [valid, setValid] = useState(editing === true || !!post.title)
+  const [currentPost, setCurrentPost] = useState(initialPost)
+  const [titlePlaceholder, setTitlePlaceholder] = useState(titlePlaceholderForPostType(initialPost.type))
+  const [detailPlaceholder, setDetailPlaceholder] = useState(detailPlaceholderForPostType(initialPost.type))
+  const [valid, setValid] = useState(editing || !!initialPost.title)
   const [announcementSelected, setAnnouncementSelected] = useState(false)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
   const [showPostTypeMenu, setShowPostTypeMenu] = useState(false)
-  const [titleLengthError, setTitleLengthError] = useState(post.title?.length >= MAX_TITLE_LENGTH)
+  const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
   const [allowAddTopic, setAllowAddTopic] = useState(true)
 
@@ -229,11 +227,11 @@ function PostEditor ({
   }, [])
 
   useEffect(() => {
-    editorRef.current.clearContent()
     groupsSelectorRef.current.reset()
-    setCurrentPost(defaultPostWithGroupsAndTopic)
+    editorRef.current.setContent(initialPost.details)
+    setCurrentPost(initialPost)
     editorRef.current.focus()
-  }, [post.id, post.details])
+  }, [initialPost.id, initialPost.details])
 
   useEffect(() => {
     onUpdateLinkPreview()
@@ -355,9 +353,9 @@ function PostEditor ({
 
   // Checks for linkPreview every 1/2 second
   const handleAddLinkPreview = debounce(500, (url, force) => {
-    const { linkPreview } = post
+    const { linkPreview } = currentPost
     if (linkPreview && !force) return
-    pollingFetchLinkPreview(url)
+    pollingFetchLinkPreview(dispatch, url)
   })
 
   const handleTopicSelectorOnChange = topics => {
@@ -385,7 +383,7 @@ function PostEditor ({
   }
 
   const handleSetSelectedGroups = (groups) => {
-    const hasChanged = !isEqual(post.groups, groups)
+    const hasChanged = !isEqual(initialPost.groups, groups)
 
     setCurrentPost({ ...currentPost, groups })
     setValid(isValid({ groups }))
@@ -495,7 +493,6 @@ function PostEditor ({
       locationId
     })
 
-    console.log("proposaloptions", proposalOptions)
     const postToSave = {
       id,
       acceptContributions,
@@ -527,10 +524,15 @@ function PostEditor ({
       topicNames,
       type
     }
-    const saveFunc = editing ? updatePost : createPost
+    const saveFunc = isEditing ? updatePost : createPost
     setAnnouncementSelected(false)
     const action = await dispatch(saveFunc(postToSave))
-    goToPost(action)
+
+    if (isEditing) {
+      onClose()
+    } else {
+      goToPost(action)
+    }
   }
 
   const goToPost = (createPostAction) => {
@@ -543,7 +545,7 @@ function PostEditor ({
 
   const buttonLabel = () => {
     if (postPending) return t('Posting...')
-    if (editing) return t('Save')
+    if (isEditing) return t('Save')
     return t('Post')
   }
 
@@ -638,19 +640,22 @@ function PostEditor ({
           {titleLengthError && (
             <span className={styles.titleError}>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
           )}
-          <HyloEditor
-            className={styles.editor}
-            placeholder={detailPlaceholder}
-            onUpdate={handleDetailsChange}
-            // Disable edit cancel through escape due to event bubbling issues
-            // onEscape={handleCancel}
-            onAddTopic={handleAddTopic}
-            onAddLink={handleAddLinkPreview}
-            contentHTML={currentPost.details}
-            showMenu
-            readOnly={loading}
-            ref={editorRef}
-          />
+          {currentPost.details === null || loading
+            ? <div className={styles.editor}><Loading /></div>
+            : <HyloEditor
+                key={currentPost.id}
+                className={styles.editor}
+                placeholder={detailPlaceholder}
+                onUpdate={handleDetailsChange}
+                // Disable edit cancel through escape due to event bubbling issues
+                // onEscape={handleCancel}
+                onAddTopic={handleAddTopic}
+                onAddLink={handleAddLinkPreview}
+                contentHTML={currentPost.details}
+                showMenu
+                readOnly={loading}
+                ref={editorRef}
+              />}
         </div>
       </div>
       {(currentPost.linkPreview || fetchLinkPreviewPending) && (
@@ -809,7 +814,7 @@ function PostEditor ({
                 <Icon name='Plus' className={styles.iconPlus} blue />
                 <span className={styles.optionText}>{t('Add an option to vote on...')}</span>
               </div>
-              {currentPost && !isEqual(currentPost.proposalOptions, post.proposalOptions) && (
+              {currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
                 <div className={cx(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
                   <Icon name='Hand' className={styles.iconPlus} />
                   <span className={styles.optionText}>{t('If you save changes to options, all votes will be discarded')}</span>
@@ -848,7 +853,7 @@ function PostEditor ({
         {currentPost.type === 'proposal' && (
           <div className={styles.footerSection}>
             <div className={styles.footerSectionLabel}>{t('Quorum')} <Icon name='Info' className={cx(styles.quorumTooltip)} data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
-            <SliderInput percentage={currentPost.quorum} setPercentage={handleSetQuorum} />
+            <SliderInput percentage={currentPost.quorum || 0} setPercentage={handleSetQuorum} />
             <ReactTooltip
               backgroundColor='rgba(35, 65, 91, 1.0)'
               effect='solid'
@@ -865,7 +870,7 @@ function PostEditor ({
         )}
         {/* {isProposal && (
           <StrictProposalToggle
-            isStrictProposal={!!post.isStrictProposal}
+            isStrictProposal={!!currentPost.isStrictProposal}
             toggleStrictProposal={toggleStrictProposal}
           />
         )} */}
@@ -992,7 +997,7 @@ function PostEditor ({
           loading={loading}
           submitButtonLabel={buttonLabel()}
           save={() => {
-            if (currentPost.type === 'proposal' && !isEqual(currentPost.proposalOptions, post.proposalOptions)) {
+            if (currentPost.type === 'proposal' && isEditing && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions)) {
               if (window.confirm(t('Changing proposal options will reset the votes. Are you sure you want to continue?'))) {
                 save()
               }
@@ -1005,9 +1010,9 @@ function PostEditor ({
           canMakeAnnouncement={canMakeAnnouncement()}
           toggleAnnouncementModal={toggleAnnouncementModal}
           showAnnouncementModal={showAnnouncementModal}
-          groupCount={get('groups', post).length}
+          groupCount={get('groups', currentPost).length}
           myAdminGroups={myAdminGroups}
-          groups={post.groups}
+          groups={currentPost.groups}
           invalidPostWarning={invalidPostWarning}
           t={t}
         />
@@ -1036,6 +1041,7 @@ export function ActionsBar ({
   invalidPostWarning,
   t
 }) {
+  const dispatch = useDispatch()
   return (
     <div className={styles.actionsBar}>
       <div className={styles.actions}>
@@ -1043,7 +1049,7 @@ export function ActionsBar ({
           type='post'
           id={id}
           attachmentType='image'
-          onSuccess={(attachment) => addAttachment('post', id, attachment)}
+          onSuccess={(attachment) => dispatch(addAttachment('post', id, attachment))}
           allowMultiple
           disable={showImages}
         >
@@ -1056,7 +1062,7 @@ export function ActionsBar ({
           type='post'
           id={id}
           attachmentType='file'
-          onSuccess={(attachment) => addAttachment('post', id, attachment)}
+          onSuccess={(attachment) => dispatch(addAttachment('post', id, attachment))}
           allowMultiple
           disable={showFiles}
         >

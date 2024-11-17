@@ -8,7 +8,8 @@ describe('ImageCarousel', () => {
       { url: 'bonkerz', type: 'file' },
       { url: 'bonkers', type: 'file' },
       { url: 'bonkerzztop', type: 'file' }
-    ]} />)
+    ]}
+           />)
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
@@ -17,7 +18,8 @@ describe('ImageCarousel', () => {
     render(<ImageCarousel attachments={[
       { url: 'foo', type: 'image' },
       { url: 'bonkerz', type: 'file' }
-    ]} />)
+    ]}
+           />)
 
     const image = screen.getByRole('img')
     expect(image).toBeInTheDocument()
@@ -31,7 +33,8 @@ describe('ImageCarousel', () => {
       { url: 'baz', type: 'image' },
       { url: 'bonk', type: 'image' },
       { url: 'bonkerz', type: 'file' }
-    ]} />)
+    ]}
+           />)
 
     const images = screen.getAllByRole('img')
     expect(images).toHaveLength(3)

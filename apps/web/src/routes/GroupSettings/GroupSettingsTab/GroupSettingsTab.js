@@ -228,7 +228,8 @@ class GroupSettingsTab extends Component {
               <SwitchStyled
                 checked={showSuggestedSkills}
                 onChange={() => this.updateSettingDirectly('settings.showSuggestedSkills')(!showSuggestedSkills)}
-                backgroundColor={showSuggestedSkills ? '#0DC39F' : '#8B96A4'} />
+                backgroundColor={showSuggestedSkills ? '#0DC39F' : '#8B96A4'}
+              />
               <span className={general.toggleDescription}>{t('Ask new members whether they have these skills and interests?')}</span>
               <div className={general.onOff}>
                 <div className={general.off}>{t('OFF')}</div>
@@ -239,7 +240,8 @@ class GroupSettingsTab extends Component {
           <SkillsSection
             group={group}
             label={t('Add a relevant skill or interest')}
-            placeholder={t('What skills and interests are most relevant to your group?')} />
+            placeholder={t('What skills and interests are most relevant to your group?')}
+          />
         </SettingsSection>
 
         <br />

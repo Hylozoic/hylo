@@ -42,7 +42,9 @@ export class Comment extends Component {
     edited: false,
     editing: false,
     editedText: null,
-    scrolledToComment: false
+    scrolledToComment: false,
+    showActions: false,
+    isEmojiPickerOpen: false
   }
 
   componentDidMount () {
@@ -93,10 +95,20 @@ export class Comment extends Component {
     }
   }
 
+  handleEmojiPickerOpen (isOpen) {
+    this.setState({ isEmojiPickerOpen: isOpen })
+    // Keep hover state while picker is open
+    if (isOpen) {
+      this.setState({ showActions: true })
+    } else {
+      this.setState({ showActions: false })
+    }
+  }
+
   render () {
     const { canModerate, comment, currentUser, deleteComment, onReplyComment, removeComment, slug, selectedCommentId, post, t } = this.props
     const { id, creator, createdAt, editedAt, text, attachments } = comment
-    const { editing, edited } = this.state
+    const { editing, edited, showActions } = this.state
     const timestamp = t('commented') + ' ' + TextHelpers.humanDate(createdAt)
     const editedTimestamp = (editedAt || edited) ? t('edited') + ' ' + TextHelpers.humanDate(editedAt) : false
     const isCreator = currentUser && (comment.creator.id === currentUser.id)
@@ -109,22 +121,29 @@ export class Comment extends Component {
     ])
 
     return (
-      <div ref={this.commentRef} className={cx(styles.commentContainer, { [styles.selectedComment]: selectedCommentId === comment.id })}>
+      <div
+        ref={this.commentRef}
+        className={cx(styles.commentContainer, { [styles.selectedComment]: selectedCommentId === comment.id })}
+        onMouseEnter={() => this.setState({ showActions: true })}
+        onMouseLeave={() => { if (!this.state.isEmojiPickerOpen) { this.setState({ showActions: false }) } }}
+      >
         <div className={styles.header}>
           <Avatar avatarUrl={creator.avatarUrl} url={profileUrl} className={styles.avatar} />
           <Link to={profileUrl} className={styles.userName}>{creator.name}</Link>
           <span className={styles.timestamp} data-for={`dateTip-${comment.id}`} data-tip={moment(createdAt).format('llll')}>
             {timestamp}
           </span>
-          {(editedTimestamp) && <span className={styles.timestamp} data-for={`dateTip-${comment.id}`} data-tip={moment(editedAt).format('llll')}>
-            ({editedTimestamp})
-          </span>}
+          {(editedTimestamp) && (
+            <span className={styles.timestamp} data-for={`dateTip-${comment.id}`} data-tip={moment(editedAt).format('llll')}>
+              ({editedTimestamp})
+            </span>
+          )}
           <div className={styles.upperRight}>
             {editing && (
               <Icon name='Ex' className={styles.cancelIcon} onClick={this.handleEditCancel} />
             )}
             {currentUser && (
-              <div className={styles.commentActions}>
+              <div className={cx(styles.commentActions, { [styles.showActions]: showActions })}>
                 <div className={cx(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
                   <Icon name='Replies' />
                 </div>
@@ -138,6 +157,7 @@ export class Comment extends Component {
                   comment={comment}
                   currentUser={currentUser}
                   post={post}
+                  onOpenChange={this.handleEmojiPickerOpen}
                 />
               </div>
             )}

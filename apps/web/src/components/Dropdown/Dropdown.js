@@ -46,8 +46,12 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
       </li>)
 
     if (triangle) {
-      const triangleLi = <li className={classes.triangle} key='triangle'
-        style={{ left: findTriangleLeftPos(parentRef.current) }} />
+      const triangleLi = (
+        <li
+          className={classes.triangle} key='triangle'
+          style={{ left: findTriangleLeftPos(parentRef.current) }}
+        />
+      )
       menuItems = [triangleLi].concat(menuItems)
     }
 
@@ -73,7 +77,6 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
 }
 
 Dropdown.propTypes = {
-  children: PropTypes.array,
   className: PropTypes.string,
   triangle: PropTypes.bool,
   items: PropTypes.array,

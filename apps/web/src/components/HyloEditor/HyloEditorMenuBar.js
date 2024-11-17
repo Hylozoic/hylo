@@ -157,7 +157,8 @@ export default function HyloEditorMenuBar ({ editor }) {
       <button onClick={() => {
         editor.chain().focus().clearNodes().run()
         editor.chain().focus().unsetAllMarks().run()
-      }}>
+      }}
+      >
         <RiFormatClear />
       </button>
     </div>

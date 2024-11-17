@@ -147,7 +147,8 @@ class TopicsSettingsTab extends Component {
               buttonText={t('Add a Topic')}
               groupId={group.id}
               groupSlug={group.slug}
-              topics={topics} />
+              topics={topics}
+            />
           </div>
           <div className={styles.topicList} id={TOPIC_LIST_ID}>
             {topics.map(topic =>
@@ -180,18 +181,22 @@ export function SearchBar ({ search, setSearch, selectedSort, setSort, fetchIsPe
         placeholder={t('Search {{count}} topics', { count: totalTopicsCached || '' })}
         loading={fetchIsPending}
         noClearButton
-        onChange={event => setSearch(event.target.value)} />
+        onChange={event => setSearch(event.target.value)}
+      />
       <Dropdown
         className={styles.searchOrder}
-        toggleChildren={<span className={styles.searchSorterLabel}>
-          {t(selected.label)}
-          <Icon name='ArrowDown' />
-        </span>}
+        toggleChildren={(
+          <span className={styles.searchSorterLabel}>
+            {t(selected.label)}
+            <Icon name='ArrowDown' />
+          </span>
+        )}
         items={sortOptions.map(({ id, label }) => ({
           label: t(label),
           onClick: () => setSort(id)
         }))}
-        alignRight />
+        alignRight
+      />
     </div>
   )
 }
@@ -210,11 +215,13 @@ export function TopicListItem ({ topic, singleGroup, setGroupTopicVisibility, re
         <Dropdown
           alignRight
           className={styles.visibilityDropdown}
-          toggleChildren={<span className={cx(styles.visibilityDropdownLabel, styles[`visibilityDropdown${TOPIC_VISIBILITY[groupTopic.visibility]}`])}>
-            <Icon name='Eye' />
-            <span className={styles.labelContent}>{TOPIC_VISIBILITY[groupTopic.visibility]}</span>
-            <Icon name='ArrowDown' />
-          </span>}
+          toggleChildren={(
+            <span className={cx(styles.visibilityDropdownLabel, styles[`visibilityDropdown${TOPIC_VISIBILITY[groupTopic.visibility]}`])}>
+              <Icon name='Eye' />
+              <span className={styles.labelContent}>{TOPIC_VISIBILITY[groupTopic.visibility]}</span>
+              <Icon name='ArrowDown' />
+            </span>
+          )}
           items={visibilityOptions.map(({ value, label }) => ({
             label,
             onClick: setGroupTopicVisibility(groupTopic.id, value),

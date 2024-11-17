@@ -19,7 +19,7 @@ function testProviders () {
   session.CommonRole.create({ id: '1', title: 'Coordinator', responsibilities: { items: [{ id: '1', title: 'Administration' }, { id: '2', title: 'Manage Content' }] } })
   const me = session.Me.create({
     id: '1',
-    membershipCommonRoles: { items: [{ commonRoleId: '1', groupId: '1' }] } ,
+    membershipCommonRoles: { items: [{ commonRoleId: '1', groupId: '1' }] },
     memberships: [
       session.Membership.create({
         id: '1',
@@ -79,7 +79,7 @@ describe('MemberSection', () => {
         slug='foo'
         members={members}
         memberCount={n}
-        canInvite={true}
+        canInvite
       />,
       { wrapper: AllTheProviders() }
     )
@@ -107,7 +107,7 @@ describe('MemberSection', () => {
         slug='foo'
         members={members}
         memberCount={5600}
-        canInvite={true}
+        canInvite
       />,
       { wrapper: AllTheProviders() }
     )

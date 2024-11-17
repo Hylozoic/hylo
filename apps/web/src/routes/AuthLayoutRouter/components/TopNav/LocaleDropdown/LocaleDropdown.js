@@ -1,4 +1,3 @@
-
 // react functional component that is a locale dropdown menu with two options: English and Spanish
 import React from 'react'
 import { localeLocalStorageSync } from 'util/locale'

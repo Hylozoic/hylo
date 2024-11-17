@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import PropTypes from 'prop-types'
 import React, { Component, useEffect, useState } from 'react'
 import { withTranslation } from 'react-i18next'
@@ -12,8 +13,7 @@ import { personUrl } from 'util/navigation'
 import SettingsControl from 'components/SettingsControl'
 import SettingsSection from '../SettingsSection'
 import EmojiPicker from 'components/EmojiPicker'
-import styles from './RolesSettingsTab.module.scss' // eslint-disable-line no-unused-vars
-import cx from 'classnames'
+import styles from './RolesSettingsTab.module.scss'
 
 const { array, func, string, object, bool } = PropTypes
 
@@ -258,7 +258,7 @@ function RoleRowUntranslated ({
             <div className={cx(styles.roleRow, styles.reverseFlex)}>
               <div className={styles.createButton} onClick={onSave}>{t('Create Role')}</div>
             </div>
-          )
+            )
           : (active || isCommonRole) && (
             <SettingsSection>
               <RoleList
@@ -271,7 +271,7 @@ function RoleRowUntranslated ({
                 slug={group.slug}
               />
             </SettingsSection>
-          )
+            )
       }
     </div>
   )
@@ -357,14 +357,16 @@ class AddMemberToRoleUntranslated extends Component {
             <span className={styles.cancelButton} onClick={toggle}>{t('Cancel')}</span>
             <span className={styles.addButton} onClick={chooseCurrentItem}>{t('Add')}</span>
           </div>
-          {!isEmpty(memberSuggestions) && <div style={listWidth}>
-            <KeyControlledItemList
-              ref={this.listRef}
-              items={memberSuggestions}
-              onChange={onChoose}
-              theme={styles}
-            />
-          </div>}
+          {!isEmpty(memberSuggestions) && (
+            <div style={listWidth}>
+              <KeyControlledItemList
+                ref={this.listRef}
+                items={memberSuggestions}
+                onChange={onChoose}
+                theme={styles}
+              />
+            </div>
+          )}
         </div>
       )
     } else {
@@ -441,14 +443,16 @@ class AddResponsibilityToRoleUntranslated extends Component {
             <span className={styles.cancelButton} onClick={toggle}>{t('Cancel')}</span>
             <span className={styles.addButton} onClick={chooseCurrentItem}>{t('Add')}</span>
           </div>
-          {!isEmpty(responsibilitySuggestions) && <div style={listWidth}>
-            <KeyControlledItemList
-              ref={this.listRef}
-              items={responsibilitySuggestions}
-              onChange={onChoose}
-              theme={styles}
-            />
-          </div>}
+          {!isEmpty(responsibilitySuggestions) && (
+            <div style={listWidth}>
+              <KeyControlledItemList
+                ref={this.listRef}
+                items={responsibilitySuggestions}
+                onChange={onChoose}
+                theme={styles}
+              />
+            </div>
+          )}
         </div>
       )
     } else {

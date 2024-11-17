@@ -18,7 +18,7 @@ describe('MemberVotes', () => { // TODO REACTIONS: switch this to reactions
 
   it('displays loading state when loading prop is true', () => {
     render(
-      <MemberVotes fetchMemberVotes={jest.fn()} posts={[]} loading={true} />
+      <MemberVotes fetchMemberVotes={jest.fn()} posts={[]} loading />
     )
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()

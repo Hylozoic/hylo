@@ -6,7 +6,7 @@ const defaultMinProps = {
   handleInputChange: jest.fn()
 }
 
-function renderComponent(props = {}) {
+function renderComponent (props = {}) {
   return render(
     <TagInput {...{ ...defaultMinProps, ...props }} />
   )

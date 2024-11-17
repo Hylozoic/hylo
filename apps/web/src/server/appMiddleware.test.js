@@ -5,7 +5,7 @@ jest.mock('react', () => ({
   useLayoutEffect: jest.requireActual('react').useEffect
 }))
 
-var req, res
+let req, res
 
 beforeEach(() => {
   req = {

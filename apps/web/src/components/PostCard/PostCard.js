@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import { get } from 'lodash/fp'
-import React, { useCallback, useEffect, useRef } from 'react'
+import React, { useCallback, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
@@ -30,7 +30,9 @@ export default function PostCard (props) {
     expanded,
     highlightProps,
     post,
-    locationParams
+    locationParams,
+    onAddReaction = () => {},
+    onRemoveReaction = () => {}
   } = props
 
   const postCardRef = useRef()
@@ -136,6 +138,9 @@ export default function PostCard (props) {
               constrained={constrained}
               currentUser={currentUser}
               isFlagged={isFlagged}
+              onAddReaction={onAddReaction}
+              onRemoveReaction={onRemoveReaction}
+              highlightProps={highlightProps}
             />
           </div>
         )}

@@ -22,7 +22,7 @@ describe('reducer', () => {
   })
 
   it('should handle FETCH_STEWARD_SUGGESTIONS', () => {
-    const expected = [ 11, 12 ]
+    const expected = [11, 12]
     const actual = reducer({}, {
       type: FETCH_STEWARD_SUGGESTIONS,
       payload: {

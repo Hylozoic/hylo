@@ -1,7 +1,6 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import { Comment } from './Comment'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 // local timezone is UTC so tests on CI match dev machines
 describe('Timezone', () => {
@@ -32,7 +31,7 @@ describe('Comment', () => {
         avatarUrl: 'foo.jpg'
       },
       attachments: [],
-      createdAt: createdAt,
+      createdAt,
       childComments: []
     },
     canModerate: false,

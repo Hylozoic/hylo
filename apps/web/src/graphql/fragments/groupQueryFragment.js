@@ -170,6 +170,7 @@ export default () => {
       items {
         id
         name
+        active
         emoji
         groupId
         responsibilities {

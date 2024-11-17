@@ -11,7 +11,7 @@ describe('FlagContent', () => {
     onClose: mockOnClose,
     submitFlagContent: mockSubmitFlagContent,
     linkData: { id: 33, type: 'post' },
-    visible: true,
+    visible: true
   }
 
   beforeEach(() => {

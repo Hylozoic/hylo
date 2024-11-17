@@ -44,6 +44,11 @@ $comment-row-padding: 25px;
   border-radius: 30px;
   box-shadow: 0 5px 10px rgb(0 0 0 / 20%);
   display: none;
+
+  &.showActions {
+    display: flex;
+  }
+
   :first-child {
     border-radius: 15px 0 0 15px;
   }
@@ -99,10 +104,6 @@ $comment-row-padding: 25px;
 
 .commentContainer {
   position: relative;
-}
-
-.commentContainer:hover .commentActions {
-  display: flex;
 }
 
 .dropdown {

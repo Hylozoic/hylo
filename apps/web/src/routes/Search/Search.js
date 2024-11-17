@@ -32,7 +32,7 @@ import classes from './Search.module.scss'
 
 const SEARCH_RESULTS_ID = 'search-results'
 
-export default function Search(props) {
+export default function Search (props) {
   const dispatch = useDispatch()
   const location = useLocation()
   const searchFromQueryString = getQuerystringParam('t', location) || ''

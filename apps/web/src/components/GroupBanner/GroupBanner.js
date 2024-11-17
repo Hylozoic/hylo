@@ -70,35 +70,44 @@ export default function GroupBanner ({
     <div className={cx(classes.banner, {
       [classes.allGroups]: context === 'all',
       [classes.hasPostPrompt]: hasPostPrompt
-    })}>
+    })}
+    >
       <div style={bgImageStyle(bannerUrl || DEFAULT_BANNER)} className={classes.image}>
         <div className={classes.fade}>
           <div className={classes.fade2} />
         </div>
 
-        {group && <div className={classes.right}>
-          <Link
-            className={cx(classes.about, { [classes.isAboutOpen]: isAboutOpen })}
-            to={isAboutOpen ? groupUrl(group.slug, routeParams, querystringParams) : groupDetailUrl(group.slug, routeParams, querystringParams)}
-          >
-            <Icon name='Info' />{t('About us')}
-          </Link>
-        </div>}
+        {group && (
+          <div className={classes.right}>
+            <Link
+              className={cx(classes.about, { [classes.isAboutOpen]: isAboutOpen })}
+              to={isAboutOpen ? groupUrl(group.slug, routeParams, querystringParams) : groupDetailUrl(group.slug, routeParams, querystringParams)}
+            >
+              <Icon name='Info' />{t('About us')}
+            </Link>
+          </div>
+        )}
 
         <div className={classes.header}>
           {icon
-            ? <div className={classes.customIcon}>
-              <Icon name={icon} />
-            </div>
-            : <div className={cx(classes.logo, { [classes.allLogo]: context === 'all' })} style={bgImageStyle(avatarUrl || DEFAULT_AVATAR)} /> }
+            ? (
+              <div className={classes.customIcon}>
+                <Icon name={icon} />
+              </div>
+              )
+            : (
+              <div className={cx(classes.logo, { [classes.allLogo]: context === 'all' })} style={bgImageStyle(avatarUrl || DEFAULT_AVATAR)} />
+              )}
           <div className={classes.headerText}>
             <div className={classes.headerContents}>
               <span className={classes.headerName}>{label || name}</span>
 
-              {location && !icon && <div className={classes.headerSubtitle}>
-                <Icon name='Location' className={classes.headerIcon} />
-                {location}
-              </div>}
+              {location && !icon && (
+                <div className={classes.headerSubtitle}>
+                  <Icon name='Location' className={classes.headerIcon} />
+                  {location}
+                </div>
+              )}
 
               {customViewType === 'stream'
                 ? <div className={classes.numFilters} data-tooltip-content='' data-tooltip-id='feed-banner-tip'>{numCustomFilters} {t('Filters')}</div>
@@ -106,9 +115,7 @@ export default function GroupBanner ({
                   ? <div className={classes.numFilters} data-tooltip-content='' data-tooltip-id='feed-banner-tip'>{t('Collection')}</div>
                   : ''}
 
-              {subtitle && <div className={classes.headerSubtitle}>
-                {subtitle}
-              </div>}
+              {subtitle && <div className={classes.headerSubtitle}>{subtitle}</div>}
             </div>
           </div>
         </div>
@@ -124,28 +131,32 @@ export default function GroupBanner ({
         />}
 
       {/* The ReactTooltip with dynamic content breaks our snapshots because it uses dynamic classname, so removing in our tests */}
-      {!isTesting && <Tooltip
-        id='feed-banner-tip'
-        style={{ backgroundColor: 'rgba(35, 65, 91, 1.0)' }}
-        effect='solid'
-        delayShow={0}
-        place='bottom'
-        content={() => {
-          return (customViewType === 'stream'
-            ? <div className={classes.customFilters}>
-              <span className={classes.displaying}>
-                {t('Displaying') + ' '};
-                {customActivePostsOnly ? 'active' : ''}
-              </span>
+      {!isTesting && (
+        <Tooltip
+          id='feed-banner-tip'
+          style={{ backgroundColor: 'rgba(35, 65, 91, 1.0)' }}
+          effect='solid'
+          delayShow={0}
+          place='bottom'
+          content={() => {
+            return (customViewType === 'stream'
+              ? (
+                <div className={classes.customFilters}>
+                  <span className={classes.displaying}>
+                    {t('Displaying') + ' '};
+                    {customActivePostsOnly ? 'active' : ''}
+                  </span>
 
-              {customPostTypes.length === 0 ? t('None') : customPostTypes.map((p, i) => <span key={i} className={classes.postTypelabel}><PostLabel key={p} type={p} className={classes.postType} />{p}s +</span>)}
-              {customViewTopics.length > 0 && <div className={classes.filteredTopics}>{t('filtered by topics:')}</div>}
-              {customViewTopics.length > 0 && customViewTopics.map(t => <span key={t.id} className={classes.filteredTopic}>#{t.name}</span>)}
-            </div>
-            : ''
-          )
-        }}
-      />}
+                  {customPostTypes.length === 0 ? t('None') : customPostTypes.map((p, i) => <span key={i} className={classes.postTypelabel}><PostLabel key={p} type={p} className={classes.postType} />{p}s +</span>)}
+                  {customViewTopics.length > 0 && <div className={classes.filteredTopics}>{t('filtered by topics:')}</div>}
+                  {customViewTopics.length > 0 && customViewTopics.map(t => <span key={t.id} className={classes.filteredTopic}>#{t.name}</span>)}
+                </div>
+                )
+              : ''
+            )
+          }}
+        />
+      )}
     </div>
   )
 }

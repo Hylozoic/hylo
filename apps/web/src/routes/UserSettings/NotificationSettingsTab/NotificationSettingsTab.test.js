@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import NotificationSettingsTab, {
   MessageSettingsRow,
   AllGroupsSettingsRow,
@@ -7,7 +7,6 @@ import NotificationSettingsTab, {
   SettingsRow,
   SettingsIcon
 } from './NotificationSettingsTab'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('NotificationSettingsTab', () => {
   const currentUser = {
@@ -162,7 +161,7 @@ describe('SettingsRow', () => {
   it('renders correctly', () => {
     render(
       <SettingsRow
-        name="Test Row"
+        name='Test Row'
         settings={{ sendEmail: true }}
         update={() => {}}
       />,
@@ -177,8 +176,8 @@ describe('SettingsIcon', () => {
   it('renders correctly', () => {
     render(
       <SettingsIcon
-        settingKey="sendEmail"
-        name="EmailNotification"
+        settingKey='sendEmail'
+        name='EmailNotification'
         settings={{ sendEmail: true }}
         update={() => {}}
       />,

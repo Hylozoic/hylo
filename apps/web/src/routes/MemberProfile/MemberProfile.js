@@ -175,21 +175,25 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
               <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={person.id} />
             ))}
           </div>
-          {person.location && <div className={styles.headerMemberLocation}>
-            <Icon name='Location' className={styles.headerMemberLocationIcon} />
-            {locationWithoutUsa}
-          </div>}
+          {person.location && (
+            <div className={styles.headerMemberLocation}>
+              <Icon name='Location' className={styles.headerMemberLocationIcon} />
+              {locationWithoutUsa}
+            </div>
+          )}
         </div>
         <div className={styles.actionIcons}>
           <ActionButtons items={actionButtonsItems} />
           <ActionDropdown items={actionDropdownItems} />
         </div>
         {person.tagline && <div className={styles.tagline}>{person.tagline}</div>}
-        {person.bio && <div className={styles.bio}>
-          <ClickCatcher>
-            <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
-          </ClickCatcher>
-        </div>}
+        {person.bio && (
+          <div className={styles.bio}>
+            <ClickCatcher>
+              <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
+            </ClickCatcher>
+          </div>
+        )}
         <div className={styles.memberDetails}>
           <div className={styles.profileSubhead}>
             {t('Skills & Interests')}
@@ -233,7 +237,8 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             className={styles.contentDropdown}
             items={contentDropDownItems}
             toggleChildren={
-              <span>{currentTabState} <Icon className={styles.contentDropdownIcon} name='ArrowDown' /></span>}
+              <span>{currentTabState} <Icon className={styles.contentDropdownIcon} name='ArrowDown' /></span>
+}
           />
         </div>
         <CurrentContentComponent routeParams={routeParams} loading={contentLoading} />
@@ -251,12 +256,14 @@ export function ActionTooltip ({ content, hideCopyTip, onClick }) {
       <span className={styles.actionIconTooltipContent} onClick={onClick}>
         {content}
       </span>
-      {!hideCopyTip && <CopyToClipboard text={content} onCopy={() => setCopied(true)}>
-        <Button className={cx(styles.actionIconTooltipButton, { [styles.copied]: copied })}>
-          <Icon name='Copy' />
-          {copied ? t('Copied!') : t('Copy')}
-        </Button>
-      </CopyToClipboard>}
+      {!hideCopyTip && (
+        <CopyToClipboard text={content} onCopy={() => setCopied(true)}>
+          <Button className={cx(styles.actionIconTooltipButton, { [styles.copied]: copied })}>
+            <Icon name='Copy' />
+            {copied ? t('Copied!') : t('Copy')}
+          </Button>
+        </CopyToClipboard>
+      )}
     </div>
   )
 }
@@ -280,7 +287,8 @@ export function ActionButtons ({ items }) {
           className={styles.actionIconButton}
           name={iconName}
           onClick={onClick}
-          {...tooltipProps} />
+          {...tooltipProps}
+        />
         <Tooltip
           id={tooltipId}
           place='bottom'

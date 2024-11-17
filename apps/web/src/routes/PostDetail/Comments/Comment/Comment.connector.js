@@ -39,7 +39,7 @@ export const mapDispatchToProps = (dispatch, props) => {
     }, dispatch),
     fetchCommentsMaker: cursor => () => dispatch(fetchChildComments(comment.id, { cursor })),
     createComment: commentParams => dispatch(createComment({
-      post: post,
+      post,
       parentCommentId: comment.id,
       ...commentParams
     }))

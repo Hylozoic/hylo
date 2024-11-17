@@ -258,7 +258,8 @@ const Messages = () => {
                         hasMore={hasMoreMessages}
                         pending={messagesPending}
                         updateThreadReadTime={updateThreadReadTimeAction}
-                        messageThread={messageThread} />}
+                        messageThread={messageThread}
+                      />}
                     {(!forNewThread || participants.length > 0) &&
                       <div className={classes.messageForm}>
                         <MessageForm

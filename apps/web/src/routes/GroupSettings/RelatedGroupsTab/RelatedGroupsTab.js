@@ -24,9 +24,7 @@ class RelatedGroupsTab extends Component {
     parentGroups: PropTypes.array.isRequired,
     possibleChildren: PropTypes.array.isRequired,
     possibleParents: PropTypes.array.isRequired,
-    requestToAddGroupToParent: PropTypes.func.isRequired,
-    search: PropTypes.string,
-    setSearch: PropTypes.func
+    requestToAddGroupToParent: PropTypes.func.isRequired
   }
 
   constructor (props) {
@@ -120,53 +118,65 @@ class RelatedGroupsTab extends Component {
           /> */}
 
         <div className={classes.title}>{t('Parent Groups')}</div>
-        {parentGroups.length > 0 ? <div>
-          <div className={classes.subtitle}>{parentGroups.length === 1 ? t('This is the one group') : t('These are the {{length}} groups that {{group.name}} is a member of', { group, length: parentGroups.length })}</div>
-          <div className={classes.groupList} >
-            {parentGroups.map(p => <GroupCard
-              group={p}
-              key={p.id}
-              actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={this.relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className={classes.relatedGroupDropdown} />}
-            />)}
-          </div>
-        </div>
-          : <div className={classes.subtitle}>{t('{{group.name}} is not a member of any groups yet', { group })}</div>
-        }
+        {parentGroups.length > 0
+          ? (
+            <div>
+              <div className={classes.subtitle}>{parentGroups.length === 1 ? t('This is the one group') : t('These are the {{length}} groups that {{group.name}} is a member of', { group, length: parentGroups.length })}</div>
+              <div className={classes.groupList}>
+                {parentGroups.map(p => (
+                  <GroupCard
+                    group={p}
+                    key={p.id}
+                    actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={this.relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className={classes.relatedGroupDropdown} />}
+                  />
+                ))}
+              </div>
+            </div>
+            )
+          : <div className={classes.subtitle}>{t('{{group.name}} is not a member of any groups yet', { group })}</div>}
 
-        {groupInvitesToJoinThem.length > 0 && <div>
-          <div className={classes.subtitle}>{t('Open Invitations to Join Other Groups')}</div>
-          <div className={classes.groupList}>
-            {groupInvitesToJoinThem.map(invite => {
-              return (
-                <GroupCard
-                  group={invite.fromGroup}
-                  key={invite.id}
-                  actionMenu={<div>
-                    <span className={classes.rejectButton} onClick={rejectGroupRelationshipInvite(invite.id)}><Icon name='Ex' className={classes.rejectIcon} /></span>
-                    <span className={classes.acceptButton} onClick={acceptGroupRelationshipInvite(invite.id)}><Icon name='Heart' className={classes.acceptIcon} /> <span>{t('Join')}</span></span>
-                  </div>}
-                />
-              )
-            })}
+        {groupInvitesToJoinThem.length > 0 && (
+          <div>
+            <div className={classes.subtitle}>{t('Open Invitations to Join Other Groups')}</div>
+            <div className={classes.groupList}>
+              {groupInvitesToJoinThem.map(invite => {
+                return (
+                  <GroupCard
+                    group={invite.fromGroup}
+                    key={invite.id}
+                    actionMenu={(
+                      <div>
+                        <span className={classes.rejectButton} onClick={rejectGroupRelationshipInvite(invite.id)}><Icon name='Ex' className={classes.rejectIcon} /></span>
+                        <span className={classes.acceptButton} onClick={acceptGroupRelationshipInvite(invite.id)}><Icon name='Heart' className={classes.acceptIcon} /> <span>{t('Join')}</span></span>
+                      </div>
+                    )}
+                  />
+                )
+              })}
+            </div>
           </div>
-        </div> }
+        )}
 
-        {groupRequestsToJoinThem.length > 0 && <div>
-          <div className={classes.subtitle}>{t('Pending requests to join other groups')}</div>
-          <div className={classes.groupList}>
-            {groupRequestsToJoinThem.map(invite => {
-              return (
-                <GroupCard
-                  group={invite.toGroup}
-                  key={invite.id}
-                  actionMenu={<div>
-                    <span className={classes.cancelButton} onClick={cancelGroupRelationshipInvite(invite.id)}>{t('Cancel Request')}</span>
-                  </div>}
-                />
-              )
-            })}
+        {groupRequestsToJoinThem.length > 0 && (
+          <div>
+            <div className={classes.subtitle}>{t('Pending requests to join other groups')}</div>
+            <div className={classes.groupList}>
+              {groupRequestsToJoinThem.map(invite => {
+                return (
+                  <GroupCard
+                    group={invite.toGroup}
+                    key={invite.id}
+                    actionMenu={(
+                      <div>
+                        <span className={classes.cancelButton} onClick={cancelGroupRelationshipInvite(invite.id)}>{t('Cancel Request')}</span>
+                      </div>
+                    )}
+                  />
+                )
+              })}
+            </div>
           </div>
-        </div> }
+        )}
 
         <div className={classes.groupPickerContainer}>
           <Button className={classes.connectButton} onClick={this.toggleRequestToJoinPicker}>
@@ -176,70 +186,85 @@ class RelatedGroupsTab extends Component {
             </div>
             <span className={classes.connectLabel}>{t('REQUEST')}</span>
           </Button>
-          {showRequestoJoinPicker && <div className={classes.groupPicker}>
-            <div className={classes.groupPickerList}>
-              {possibleParents.map(membership => <div key={membership.id}>
-                <span className={classes.inviteButton} onClick={this.handleRequestToAddGroupToParent(membership.group, group)}>
-                  <b>{membership.hasAdministrationAbility ? t('Join') : t('Request')}</b>
-                  {membership.group.name}
-                </span>
-              </div>)}
+          {showRequestoJoinPicker && (
+            <div className={classes.groupPicker}>
+              <div className={classes.groupPickerList}>
+                {possibleParents.map(membership => (
+                  <div key={membership.id}>
+                    <span className={classes.inviteButton} onClick={this.handleRequestToAddGroupToParent(membership.group, group)}>
+                      <b>{membership.hasAdministrationAbility ? t('Join') : t('Request')}</b>
+                      {membership.group.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>}
+          )}
         </div>
 
         <div className={classes.title}>{t('Child Groups')}</div>
-        {childGroups.length > 0 ? <div>
-          <div className={classes.subtitle}>{childGroups.length === 1 ? t('This group is a member') : t('These {{childGroups.length}} groups are members of {{group.name}}', { childGroups, group })}</div>
-          <div className={classes.groupList}>
-            {childGroups.map(c =>
-              <GroupCard
-                group={c}
-                key={c.id}
-                actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={this.relationshipDropdownItems(group, c, GROUP_RELATIONSHIP_TYPE.ParentToChild)} className={classes.relatedGroupDropdown} />}
-              />)}
-          </div>
-        </div>
-          : <div className={classes.subtitle}>{t('No groups are members of {{group.name}} yet', { group })}</div>
-        }
+        {childGroups.length > 0
+          ? (
+            <div>
+              <div className={classes.subtitle}>{childGroups.length === 1 ? t('This group is a member') : t('These {{childGroups.length}} groups are members of {{group.name}}', { childGroups, group })}</div>
+              <div className={classes.groupList}>
+                {childGroups.map(c => (
+                  <GroupCard
+                    group={c}
+                    key={c.id}
+                    actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={this.relationshipDropdownItems(group, c, GROUP_RELATIONSHIP_TYPE.ParentToChild)} className={classes.relatedGroupDropdown} />}
+                  />
+                ))}
+              </div>
+            </div>
+            )
+          : <div className={classes.subtitle}>{t('No groups are members of {{group.name}} yet', { group })}</div>}
 
-        {groupRequestsToJoinUs.length > 0 && <div>
-          <div className={classes.subtitle}>{t('Requests to join {{group.name}}', { group })}</div>
-          <div className={classes.groupList}>
-            {groupRequestsToJoinUs.map(invite => {
-              return (
-                <GroupCard
-                  group={invite.fromGroup}
-                  thisGroup={group}
-                  questionAnswers={invite.questionAnswers}
-                  key={invite.id}
-                  actionMenu={<div>
-                    <span className={classes.rejectButton} onClick={rejectGroupRelationshipInvite(invite.id)}><Icon name='Ex' className={classes.rejectIcon} /></span>
-                    <span className={classes.acceptButton} onClick={acceptGroupRelationshipInvite(invite.id)}><Icon name='Heart' className={classes.acceptIcon} /> <span>{t('Approve')}</span></span>
-                  </div>}
-                  type={GROUP_RELATIONSHIP_TYPE.ChildToParent}
-                />
-              )
-            })}
+        {groupRequestsToJoinUs.length > 0 && (
+          <div>
+            <div className={classes.subtitle}>{t('Requests to join {{group.name}}', { group })}</div>
+            <div className={classes.groupList}>
+              {groupRequestsToJoinUs.map(invite => {
+                return (
+                  <GroupCard
+                    group={invite.fromGroup}
+                    thisGroup={group}
+                    questionAnswers={invite.questionAnswers}
+                    key={invite.id}
+                    actionMenu={(
+                      <div>
+                        <span className={classes.rejectButton} onClick={rejectGroupRelationshipInvite(invite.id)}><Icon name='Ex' className={classes.rejectIcon} /></span>
+                        <span className={classes.acceptButton} onClick={acceptGroupRelationshipInvite(invite.id)}><Icon name='Heart' className={classes.acceptIcon} /> <span>{t('Approve')}</span></span>
+                      </div>
+                    )}
+                    type={GROUP_RELATIONSHIP_TYPE.ChildToParent}
+                  />
+                )
+              })}
+            </div>
           </div>
-        </div> }
+        )}
 
-        {groupInvitesToJoinUs.length > 0 && <div>
-          <div className={classes.subtitle}>{t('Pending invites to join {{group.name}}', { group })}</div>
-          <div className={classes.groupList}>
-            {groupInvitesToJoinUs.map(invite => {
-              return (
-                <GroupCard
-                  group={invite.toGroup}
-                  key={invite.id}
-                  actionMenu={<div>
-                    <span className={classes.cancelButton} onClick={cancelGroupRelationshipInvite(invite.id)}>{t('Cancel Invite')}</span>
-                  </div>}
-                />
-              )
-            })}
+        {groupInvitesToJoinUs.length > 0 && (
+          <div>
+            <div className={classes.subtitle}>{t('Pending invites to join {{group.name}}', { group })}</div>
+            <div className={classes.groupList}>
+              {groupInvitesToJoinUs.map(invite => {
+                return (
+                  <GroupCard
+                    group={invite.toGroup}
+                    key={invite.id}
+                    actionMenu={(
+                      <div>
+                        <span className={classes.cancelButton} onClick={cancelGroupRelationshipInvite(invite.id)}>{t('Cancel Invite')}</span>
+                      </div>
+                    )}
+                  />
+                )
+              })}
+            </div>
           </div>
-        </div> }
+        )}
 
         <div className={classes.groupPickerContainer}>
           <Button className={classes.connectButton} onClick={this.toggleInviteAsChildPicker}>
@@ -249,24 +274,30 @@ class RelatedGroupsTab extends Component {
             </div>
             <span className={classes.connectLabel}>{t('INVITE')}</span>
           </Button>
-          {showInviteAsChildPicker && <div className={classes.groupPicker}>
-            <div className={classes.groupPickerList}>
-              {possibleChildren.map(membership => <div key={membership.id}>
-                <span className={classes.inviteButton} onClick={this.handleInviteGroupToJoinParent(group.id, membership.group.id)}>
-                  <b>{membership.hasAdministrationAbility ? t('Add') : t('Invite')}</b>
-                  {membership.group.name}
-                </span>
-              </div>)}
+          {showInviteAsChildPicker && (
+            <div className={classes.groupPicker}>
+              <div className={classes.groupPickerList}>
+                {possibleChildren.map(membership => (
+                  <div key={membership.id}>
+                    <span className={classes.inviteButton} onClick={this.handleInviteGroupToJoinParent(group.id, membership.group.id)}>
+                      <b>{membership.hasAdministrationAbility ? t('Add') : t('Invite')}</b>
+                      {membership.group.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>}
+          )}
         </div>
 
-        {showRequestToJoinModalForGroup && <RequestToJoinModal
-          group={group}
-          parentGroup={showRequestToJoinModalForGroup}
-          requestToAddGroupToParent={requestToAddGroupToParent}
-          hideRequestToJoinModal={this.hideRequestToJoinModal}
-        />}
+        {showRequestToJoinModalForGroup && (
+          <RequestToJoinModal
+            group={group}
+            parentGroup={showRequestToJoinModalForGroup}
+            requestToAddGroupToParent={requestToAddGroupToParent}
+            hideRequestToJoinModal={this.hideRequestToJoinModal}
+          />
+        )}
       </div>
     )
   }
@@ -302,23 +333,25 @@ export function GroupCard ({ actionMenu, thisGroup, group, questionAnswers, type
       {type === GROUP_RELATIONSHIP_TYPE.ChildToParent &&
       thisGroup.settings.askGroupToGroupJoinQuestions &&
       thisGroup.groupToGroupJoinQuestions &&
-      thisGroup.groupToGroupJoinQuestions && <div className={classes.answerWrapper}>
-        {type === GROUP_RELATIONSHIP_TYPE.ChildToParent &&
-        thisGroup.settings.askGroupToGroupJoinQuestions &&
-        thisGroup.groupToGroupJoinQuestions &&
-        thisGroup.groupToGroupJoinQuestions.map(q =>
-          <div className={classes.answer} key={q.id}>
-            <div className={classes.subtitle}>{q.text}</div>
-            <p>{get('answer', questionAnswers && questionAnswers.find(qa => qa.question.id === q.questionId)) || <i>{t('Not answered')}</i>}</p>
-          </div>
-        )}
-        {otherAnswers.map(qa =>
-          <div className={classes.answer} key={qa.id}>
-            <div className={classes.subtitle}>{qa.question.text}</div>
-            <p>{qa.answer}</p>
-          </div>
-        )}
-      </div>}
+      thisGroup.groupToGroupJoinQuestions && (
+        <div className={classes.answerWrapper}>
+          {type === GROUP_RELATIONSHIP_TYPE.ChildToParent &&
+          thisGroup.settings.askGroupToGroupJoinQuestions &&
+          thisGroup.groupToGroupJoinQuestions &&
+          thisGroup.groupToGroupJoinQuestions.map(q =>
+            <div className={classes.answer} key={q.id}>
+              <div className={classes.subtitle}>{q.text}</div>
+              <p>{get('answer', questionAnswers && questionAnswers.find(qa => qa.question.id === q.questionId)) || <i>{t('Not answered')}</i>}</p>
+            </div>
+          )}
+          {otherAnswers.map(qa =>
+            <div className={classes.answer} key={qa.id}>
+              <div className={classes.subtitle}>{qa.question.text}</div>
+              <p>{qa.answer}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -330,7 +363,7 @@ export function RequestToJoinModal ({ group, hideRequestToJoinModal, parentGroup
   const setAnswer = (index) => (event) => {
     const answerValue = event.target.value
     setQuestionAnswers(prevAnswers => {
-      const newAnswers = [ ...prevAnswers ]
+      const newAnswers = [...prevAnswers]
       newAnswers[index].answer = answerValue
       return newAnswers
     })
@@ -357,13 +390,17 @@ export function RequestToJoinModal ({ group, hideRequestToJoinModal, parentGroup
               </div>
             </div>
           </div>
-          {questionAnswers && <div className={classes.joinQuestions}>
-            <div className={classes.requestMessageTitle}>{t('{{parentGroup.name}} requires groups to answer the following questions before joining', { parentGroup })}</div>
-            {questionAnswers.map((q, index) => <div className={classes.joinQuestion} key={index}>
-              <div className={classes.subtitle}>{q.text}</div>
-              <textarea name={`question_${q.questionId}`} onChange={setAnswer(index)} value={q.answer} placeholder={t('Type your answer here...')} />
-            </div>)}
-          </div>}
+          {questionAnswers && (
+            <div className={classes.joinQuestions}>
+              <div className={classes.requestMessageTitle}>{t('{{parentGroup.name}} requires groups to answer the following questions before joining', { parentGroup })}</div>
+              {questionAnswers.map((q, index) => (
+                <div className={classes.joinQuestion} key={index}>
+                  <div className={classes.subtitle}>{q.text}</div>
+                  <textarea name={`question_${q.questionId}`} onChange={setAnswer(index)} value={q.answer} placeholder={t('Type your answer here...')} />
+                </div>
+              ))}
+            </div>
+          )}
           <div className={classes.requestBottom}>
             <Button onClick={() => { requestToAddGroupToParent(parentGroup.id, group.id, questionAnswers); hideRequestToJoinModal() }}>{t('Request to Join')}</Button>
           </div>

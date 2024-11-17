@@ -20,6 +20,8 @@ export default function PostBody (props) {
     highlightProps,
     isFlagged,
     onClick,
+    onAddReaction = () => {},
+    onRemoveReaction = () => {},
     ...post
   } = props
   const dispatch = useDispatch()
@@ -37,7 +39,7 @@ export default function PostBody (props) {
         {post.type !== 'chat' && (
           <PostTitle
             {...post}
-            highlightProp={highlightProps}
+            highlightProps={highlightProps}
             constrained={constrained}
             onClick={onClick}
           />
@@ -46,7 +48,7 @@ export default function PostBody (props) {
         <PostDetails
           {...post}
           slug={slug}
-          highlightProp={highlightProps}
+          highlightProps={highlightProps}
           expanded={expanded}
           constrained={constrained}
           onClick={onClick}
@@ -57,6 +59,8 @@ export default function PostBody (props) {
         <EmojiRow
           post={post}
           currentUser={currentUser}
+          onAddReaction={onAddReaction}
+          onRemoveReaction={onRemoveReaction}
         />
       </div>
     </div>

@@ -5,7 +5,6 @@ import { Tooltip } from 'react-tooltip'
 import { PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
 import Icon from 'components/Icon/Icon'
 
-
 import classes from './QuorumBar.module.scss'
 
 const QuorumBar = ({ totalVoters, quorum, actualVoters, proposalStatus }) => {

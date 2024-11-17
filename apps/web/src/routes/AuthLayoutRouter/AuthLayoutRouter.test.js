@@ -65,7 +65,7 @@ it('shows group if the group exists', async () => {
     graphql.query('MeQuery', (req, res, ctx) => {
       return res(
         ctx.data({
-          me: me
+          me
         })
       )
     }),
@@ -169,7 +169,7 @@ it('shows NotFound if the group does not exist', async () => {
     graphql.query('MeQuery', (req, res, ctx) => {
       return res(
         ctx.data({
-          me: me
+          me
         })
       )
     }),

@@ -50,7 +50,7 @@ import {
   joinGroup
 } from './GroupDetail.store'
 
-import g from './GroupDetail.module.scss' // eslint-disable-line no-unused-vars
+import g from './GroupDetail.module.scss'
 import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable-line no-unused-vars
 
 const MAX_DETAILS_LENGTH = 144
@@ -179,8 +179,7 @@ function GroupDetail () {
               </div>
             </div>
             )
-          : ''
-        }
+          : ''}
         <div className={g.detailSection}>
           <h3>{t('Privacy settings')}</h3>
           <div className={g.privacySetting}>
@@ -207,8 +206,7 @@ function GroupDetail () {
                 )
               })}
             </div>)
-          : ''
-        }
+          : ''}
         {!isAboutCurrentGroup
           ? !currentUser
               ? (
@@ -240,8 +238,7 @@ function GroupDetail () {
                     />
                   </div>
                   )
-          : ''
-        }
+          : ''}
       </div>
       <Tooltip
         backgroundColor='rgba(35, 65, 91, 1.0)'
@@ -304,8 +301,7 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
                 : ''}
             </div>
             )
-          : ''
-      }
+          : ''}
     </>
   )
 }
@@ -318,38 +314,42 @@ export function JoinSection ({ addSkill, currentUser, fullPage, group, groupsWit
       {group.suggestedSkills && group.suggestedSkills.length > 0 &&
         <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
       {group.prerequisiteGroups && group.prerequisiteGroups.length > 0
-        ? <div className={g.prerequisiteGroups}>
-          {group.prerequisiteGroups.length === 1 ? <h4>{group.name}{' '}{t('is only accessible to members of')}{' '}{group.prerequisiteGroups.map(prereq => <span key={prereq.id}>{prereq.name}</span>)}</h4> : <h4>{t('{{group.name}} is only accessible to members of the following groups:', { group })}</h4>}
-          {group.prerequisiteGroups.map(prereq => <div key={prereq.id} className={g.prerequisiteGroup}>
-            <Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={cx(g.groupDetailHeader, g.prereqHeader)} style={{ backgroundImage: `url(${prereq.bannerUrl || DEFAULT_BANNER})` }}>
-              <div className={g.groupTitleContainer}>
-                <img src={prereq.avatarUrl || DEFAULT_AVATAR} height='50px' width='50px' />
-                <div>
-                  <div className={g.groupTitle}>{prereq.name}</div>
-                  <div className={g.groupContextInfo}>
-                    <span className={g.groupPrivacy}>
-                      <Icon name={visibilityIcon(prereq.visibility)} className={g.privacyIcon} />
-                      <div className={g.privacyTooltip}>
-                        <div>{t(visibilityString(prereq.visibility))} - {t(visibilityDescription(prereq.visibility))}</div>
+        ? (
+          <div className={g.prerequisiteGroups}>
+            {group.prerequisiteGroups.length === 1 ? <h4>{group.name}{' '}{t('is only accessible to members of')}{' '}{group.prerequisiteGroups.map(prereq => <span key={prereq.id}>{prereq.name}</span>)}</h4> : <h4>{t('{{group.name}} is only accessible to members of the following groups:', { group })}</h4>}
+            {group.prerequisiteGroups.map(prereq => (
+              <div key={prereq.id} className={g.prerequisiteGroup}>
+                <Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={cx(g.groupDetailHeader, g.prereqHeader)} style={{ backgroundImage: `url(${prereq.bannerUrl || DEFAULT_BANNER})` }}>
+                  <div className={g.groupTitleContainer}>
+                    <img src={prereq.avatarUrl || DEFAULT_AVATAR} height='50px' width='50px' />
+                    <div>
+                      <div className={g.groupTitle}>{prereq.name}</div>
+                      <div className={g.groupContextInfo}>
+                        <span className={g.groupPrivacy}>
+                          <Icon name={visibilityIcon(prereq.visibility)} className={g.privacyIcon} />
+                          <div className={g.privacyTooltip}>
+                            <div>{t(visibilityString(prereq.visibility))} - {t(visibilityDescription(prereq.visibility))}</div>
+                          </div>
+                        </span>
+                        <span className={g.groupPrivacy}>
+                          <Icon name={accessibilityIcon(prereq.accessibility)} className={g.privacyIcon} />
+                          <div className={g.privacyTooltip}>
+                            <div>{t(accessibilityString(prereq.accessibility))} - {t(accessibilityDescription(prereq.accessibility))}</div>
+                          </div>
+                        </span>
+                        {prereq.location}
                       </div>
-                    </span>
-                    <span className={g.groupPrivacy}>
-                      <Icon name={accessibilityIcon(prereq.accessibility)} className={g.privacyIcon} />
-                      <div className={g.privacyTooltip}>
-                        <div>{t(accessibilityString(prereq.accessibility))} - {t(accessibilityDescription(prereq.accessibility))}</div>
-                      </div>
-                    </span>
-                    {prereq.location}
+                    </div>
                   </div>
+                  <div className={g.headerBackground} />
+                </Link>
+                <div className={g.cta}>
+                  {t('To join')}{' '}{group.name} <Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={g.prereqVisitLink}>{t('visit')} {prereq.name}</Link>{' '}{t('and become a member')}
                 </div>
               </div>
-              <div className={g.headerBackground} />
-            </Link>
-            <div className={g.cta}>
-              {t('To join')}{' '}{group.name} <Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={g.prereqVisitLink}>{t('visit')} {prereq.name}</Link>{' '}{t('and become a member')}
-            </div>
-          </div>)}
-        </div>
+            ))}
+          </div>
+          )
         : group.numPrerequisitesLeft
           ? t('This group has prerequisite groups you cannot see, you cannot join this group at this time')
           : group.accessibility === GROUP_ACCESSIBILITY.Open
@@ -358,8 +358,7 @@ export function JoinSection ({ addSkill, currentUser, fullPage, group, groupsWit
               ? hasPendingRequest
                 ? <div className={g.requestPending}>{t('Request to join pending')}</div>
                 : <JoinQuestionsAndButtons group={group} joinGroup={requestToJoinGroup} joinText={t('Request Membership in {{group.name}}', { group })} t={t} />
-              : ''
-      }
+              : ''}
     </div>
   )
 }

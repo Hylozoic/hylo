@@ -114,7 +114,8 @@ const postFieldsFragment = withComments => `
   }
   commentersTotal
   commentsTotal
-  ${withComments ? `comments(first: 10, order: "desc") {
+  ${withComments
+? `comments(first: 10, order: "desc") {
     items {
       ${CommentFieldsFragment}
       childComments(first: ${INITIAL_SUBCOMMENTS_DISPLAYED}, order: "desc") {
@@ -130,7 +131,8 @@ const postFieldsFragment = withComments => `
     }
     total
     hasMore
-  }` : ''}
+  }`
+: ''}
   linkPreview {
     description
     id

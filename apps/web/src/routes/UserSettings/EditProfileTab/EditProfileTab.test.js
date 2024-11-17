@@ -1,9 +1,8 @@
 /* eslint no-unused-expressions: 'off' */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import EditProfileTab from './EditProfileTab'
 import SocialControl from './SocialControl'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 const mockUpdateSettingDirectly = jest.fn()
 const mockHandleUnlinkAccount = jest.fn()

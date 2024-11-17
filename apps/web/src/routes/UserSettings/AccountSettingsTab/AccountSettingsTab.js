@@ -152,11 +152,13 @@ class AccountSettingsTab extends Component {
           <Button label={t('Save Changes')} color={canSave ? 'green' : 'gray'} onClick={canSave ? this.save : null} className={classes.saveButton} />
         </div>
         {showDeactivateModal &&
-          <ModalDialog key='deactviate-user-dialog'
+          <ModalDialog
+            key='deactviate-user-dialog'
             closeModal={() => this.setState({ showDeactivateModal: false })}
             showModalTitle={false}
             submitButtonAction={() => this.deactivateMe()}
-            submitButtonText='Confirm' >
+            submitButtonText='Confirm'
+          >
             <h2>
               {t('Deactivate')}
             </h2>
@@ -174,14 +176,15 @@ class AccountSettingsTab extends Component {
                 <li>{t('Your comments and posts will REMAIN as they are')}</li>
               </ul>
             </div>
-          </ModalDialog>
-        }
+          </ModalDialog>}
         {showDeleteModal &&
-          <ModalDialog key='delete-user-dialog'
+          <ModalDialog
+            key='delete-user-dialog'
             closeModal={() => this.setState({ showDeleteModal: false })}
             showModalTitle={false}
             submitButtonAction={() => this.deleteMe()}
-            submitButtonText='Confirm' >
+            submitButtonText='Confirm'
+          >
             <h2 style={{ color: 'red' }}>
               {t('DELETE: CAUTION')}
             </h2>

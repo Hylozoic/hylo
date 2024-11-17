@@ -38,12 +38,14 @@ class EventBody extends Component {
           <div className={cx(classes.calendarDate)} onClick={onClick}>
             <EventDate {...event} />
           </div>
-          {currentUser && <div className={classes.eventResponseTop}>
-            <div className={classes.rsvp}>
-              <EventRSVP {...event} respondToEvent={respondToEvent} />
+          {currentUser && (
+            <div className={classes.eventResponseTop}>
+              <div className={classes.rsvp}>
+                <EventRSVP {...event} respondToEvent={respondToEvent} />
+              </div>
+              <Button label={t('Invite')} onClick={this.toggleInviteDialog} narrow small color='green-white' className={classes.inviteButton} />
             </div>
-            <Button label={t('Invite')} onClick={this.toggleInviteDialog} narrow small color='green-white' className={classes.inviteButton} />
-          </div>}
+          )}
         </div>
 
         <div className={cx(classes.eventBodyColumn, { [classes.constrained]: constrained })}>
@@ -51,9 +53,11 @@ class EventBody extends Component {
           <div className={cx(classes.eventData, { [classes.constrained]: constrained })} onClick={onClick}>
             <Icon name='Clock' className={classes.icon} /> {TextHelpers.formatDatePair(startTime, endTime)}
           </div>
-          {!!location && <div className={cx(classes.eventData, classes.eventLocation)} onClick={onClick}>
-            <Icon name='Location' className={classes.icon} /> {location}
-          </div>}
+          {!!location && (
+            <div className={cx(classes.eventData, classes.eventLocation)} onClick={onClick}>
+              <Icon name='Location' className={classes.icon} /> {location}
+            </div>
+          )}
           <div className={cx(classes.eventDetails, { [classes.constrained]: constrained })}>
             <PostDetails
               {...event}
@@ -82,12 +86,14 @@ class EventBody extends Component {
             />
           </div>
 
-          {currentUser && <div className={classes.eventResponse}>
-            <div className={classes.rsvp}>
-              <EventRSVP {...event} respondToEvent={respondToEvent} />
+          {currentUser && (
+            <div className={classes.eventResponse}>
+              <div className={classes.rsvp}>
+                <EventRSVP {...event} respondToEvent={respondToEvent} />
+              </div>
+              <Button label={t('Invite')} onClick={this.toggleInviteDialog} narrow small color='green-white' className={classes.inviteButton} />
             </div>
-            <Button label={t('Invite')} onClick={this.toggleInviteDialog} narrow small color='green-white' className={classes.inviteButton} />
-          </div>}
+          )}
         </div>
         <EmojiRow
           post={event}
@@ -97,7 +103,8 @@ class EventBody extends Component {
           eventId={id}
           eventInvitations={eventInvitations}
           forGroups={groups}
-          onClose={this.toggleInviteDialog} />}
+          onClose={this.toggleInviteDialog}
+                             />}
       </div>
     )
   }

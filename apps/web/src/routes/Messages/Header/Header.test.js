@@ -1,6 +1,5 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import Header, { calculateMaxShown, generateDisplayNames, formatNames } from './Header'
 
 describe('Header', () => {
@@ -12,7 +11,7 @@ describe('Header', () => {
         name: 'One'
       },
       messageThread: {
-        participants: participants
+        participants
       }
     }
     render(<Header {...props} />, { wrapper: AllTheProviders })

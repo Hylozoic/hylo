@@ -77,13 +77,12 @@ function Groups () {
             <a href='#'>+ Create Group</a>
           </div>
           <GroupNetworkMap networkData={networkData} />
-        </div>
-      }
+        </div>}
 
       <div className={classes.section}>
         <div className={classes.banner}>
-          {parentGroups.length === 1 ? <h3>{t('{{group.name}} is a part of 1 Group', { group })}</h3> : '' }
-          {parentGroups.length > 1 ? <h3>{t('{{group.name}} is a part of {{parentGroups.length}} Groups', { group, parentGroups })}</h3> : '' }
+          {parentGroups.length === 1 ? <h3>{t('{{group.name}} is a part of 1 Group', { group })}</h3> : ''}
+          {parentGroups.length > 1 ? <h3>{t('{{group.name}} is a part of {{parentGroups.length}} Groups', { group, parentGroups })}</h3> : ''}
         </div>
         <GroupsList
           groups={parentGroups}
@@ -138,8 +137,10 @@ export function GroupCard ({ group, routeParams }) {
                   </div>
                 </div>
                 {
-                  group.memberStatus === 'member' ? <div className={classes.statusTag}><Icon name='Complete' className={classes.memberComplete} /> <b>{t('Member')}</b></div>
-                    : group.memberStatus === 'requested' ? <div className={classes.statusTag}><b>{t('Membership Requested')}</b></div>
+                  group.memberStatus === 'member'
+                    ? <div className={classes.statusTag}><Icon name='Complete' className={classes.memberComplete} /> <b>{t('Member')}</b></div>
+                    : group.memberStatus === 'requested'
+                      ? <div className={classes.statusTag}><b>{t('Membership Requested')}</b></div>
                       : <div className={classes.statusTag}><Icon name='CirclePlus' className={classes.joinGroup} /> <b>{t('Join')}</b></div>
                 }
               </div>

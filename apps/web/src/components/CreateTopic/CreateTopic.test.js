@@ -28,7 +28,7 @@ describe('CreateTopic', () => {
   }
 
   it('renders create topic button when buttonText is provided', () => {
-    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    render(<CreateTopic {...defaultProps} buttonText='Create a Topic' />)
     expect(screen.getByText('Create a Topic')).toBeInTheDocument()
   })
 
@@ -38,27 +38,27 @@ describe('CreateTopic', () => {
   })
 
   it('opens modal when create button is clicked', () => {
-    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    render(<CreateTopic {...defaultProps} buttonText='Create a Topic' />)
     fireEvent.click(screen.getByText('Create a Topic'))
     expect(screen.getByText('Create a Topic')).toBeInTheDocument()
     expect(screen.getByLabelText('topic-name')).toBeInTheDocument()
   })
 
   it('disables submit button when topic name is empty', () => {
-    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    render(<CreateTopic {...defaultProps} buttonText='Create a Topic' />)
     fireEvent.click(screen.getByText('Create a Topic'))
     expect(screen.getByText('Add Topic')).toBeDisabled()
   })
 
   it('enables submit button when topic name is not empty', () => {
-    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    render(<CreateTopic {...defaultProps} buttonText='Create a Topic' />)
     fireEvent.click(screen.getByText('Create a Topic'))
     fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: 'New Topic' } })
     expect(screen.getByText('Add Topic')).not.toBeDisabled()
   })
 
   it('calls createTopic when submitting a new topic', async () => {
-    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    render(<CreateTopic {...defaultProps} buttonText='Create a Topic' />)
     fireEvent.click(screen.getByText('Create a Topic'))
     fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: 'New Topic' } })
     fireEvent.click(screen.getByText('Add Topic'))
@@ -69,7 +69,7 @@ describe('CreateTopic', () => {
   })
 
   it('shows error message for invalid topic name', async () => {
-    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    render(<CreateTopic {...defaultProps} buttonText='Create a Topic' />)
     fireEvent.click(screen.getByText('Create a Topic'))
     fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: 'Invalid@Topic' } })
 
@@ -79,7 +79,7 @@ describe('CreateTopic', () => {
   })
 
   it('allows leading `#` characters in topic name', async () => {
-    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    render(<CreateTopic {...defaultProps} buttonText='Create a Topic' />)
     fireEvent.click(screen.getByText('Create a Topic'))
     fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: '#ValidTopic' } })
     fireEvent.click(screen.getByText('Add Topic'))
@@ -90,7 +90,7 @@ describe('CreateTopic', () => {
   })
 
   it('shows success message after creating a topic', async () => {
-    render(<CreateTopic {...defaultProps} buttonText="Create a Topic" />)
+    render(<CreateTopic {...defaultProps} buttonText='Create a Topic' />)
     fireEvent.click(screen.getByText('Create a Topic'))
     fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: 'NewTopic' } })
     fireEvent.click(screen.getByText('Add Topic'))

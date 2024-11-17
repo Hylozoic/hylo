@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
@@ -8,8 +9,9 @@ import Avatar from 'components/Avatar'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
-import styles from './MembershipRequestsTab.module.scss' // eslint-disable-line no-unused-vars
 import { jollyAxolotl } from 'util/assets'
+
+import classes from './MembershipRequestsTab.module.scss'
 
 const { array, func, object } = PropTypes
 
@@ -17,7 +19,6 @@ export default class MembershipRequestsTab extends Component {
   static propTypes = {
     joinRequests: array,
     group: object,
-    currentUser: object,
     acceptJoinRequest: func,
     declineJoinRequest: func,
     viewMembers: func
@@ -52,10 +53,11 @@ export default class MembershipRequestsTab extends Component {
 
     return joinRequests.length
       ? <NewRequests
-        accept={this.submitAccept}
-        decline={this.submitDecline}
-        group={group}
-        joinRequests={joinRequests} />
+          accept={this.submitAccept}
+          decline={this.submitDecline}
+          group={group}
+          joinRequests={joinRequests}
+        />
       : <NoRequests group={group} viewMembers={this.viewMembers} />
   }
 }
@@ -86,7 +88,7 @@ export function NoRequests ({ group, viewMembers }) {
 export function NewRequests ({ accept, decline, group, joinRequests }) {
   const { t } = useTranslation()
   return (
-    <React.Fragment>
+    <>
       <div>
         <div className={classes.header}>
           <h2>{t('People want to join your group!')}</h2>
@@ -99,10 +101,11 @@ export function NewRequests ({ accept, decline, group, joinRequests }) {
             accept={accept}
             decline={decline}
             group={group}
-            request={r} />)}
+            request={r}
+                                 />)}
         </div>
       </div>
-    </React.Fragment>
+    </>
   )
 }
 

@@ -60,7 +60,6 @@ export default class MessageSection extends React.Component {
     document && document.removeEventListener('visibilitychange', this.handleVisibilityChange)
   }
 
-  // eslint-disable-next-line camelcase
   UNSAFE_componentWillUpdate (nextProps) {
     const { currentUser, messages, pending } = nextProps
     if (pending) return
@@ -148,18 +147,21 @@ export default class MessageSection extends React.Component {
   render () {
     const { messages, pending, messageThread } = this.props
 
-    return <div className={cx(classes.messagesSection)}
-      ref={this.list}
-      onScroll={this.handleScroll}>
-      {pending && <Loading />}
-      {!pending &&
-        <div className={cx(classes.messagesSectionInner)}>
-          <ClickCatcher>
-            {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
-          </ClickCatcher>
-        </div>
-      }
-    </div>
+    return (
+      <div
+        className={cx(classes.messagesSection)}
+        ref={this.list}
+        onScroll={this.handleScroll}
+      >
+        {pending && <Loading />}
+        {!pending &&
+          <div className={cx(classes.messagesSectionInner)}>
+            <ClickCatcher>
+              {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
+            </ClickCatcher>
+          </div>}
+      </div>
+    )
   }
 }
 
