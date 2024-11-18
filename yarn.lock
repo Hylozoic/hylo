@@ -29766,15 +29766,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-icons@npm:^5.3.0":
-  version: 5.3.0
-  resolution: "react-icons@npm:5.3.0"
-  peerDependencies:
-    react: "*"
-  checksum: 10/7f315d2a5e0eee7fefe01eac5cbe818b9592d88964f6c99ba454539a78cd2efd4430152e88113585c5a54bca6a5e1e7e7978df9cf69a03d8479a8d3d106a027c
-  languageName: node
-  linkType: hard
-
 "react-innertext@npm:^1.1.5":
   version: 1.1.5
   resolution: "react-innertext@npm:1.1.5"
@@ -36729,7 +36720,6 @@ __metadata:
     react-flip-move: "npm:^3.0.5"
     react-helmet: "npm:^6.1.0"
     react-i18next: "npm:^15.1.1"
-    react-icons: "npm:^5.3.0"
     react-intersection-observer: "npm:^9.13.1"
     react-joyride: "npm:^2.9.2"
     react-map-gl: "npm:^7.1.7"

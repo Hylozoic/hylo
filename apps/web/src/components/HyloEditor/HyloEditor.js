@@ -4,7 +4,7 @@ import { useEditor, EditorContent, Extension, BubbleMenu } from '@tiptap/react'
 import Highlight from '@tiptap/extension-highlight'
 import Placeholder from '@tiptap/extension-placeholder'
 import StarterKit from '@tiptap/starter-kit'
-import { VscPreview } from 'react-icons/vsc'
+import { ScanEye } from 'lucide-react'
 import Link from '@tiptap/extension-link'
 import PeopleMentions from './extensions/PeopleMentions'
 import TopicMentions from './extensions/TopicMentions'
@@ -200,7 +200,7 @@ const HyloEditor = React.forwardRef(({
             }}
             className={classes.addLinkPreviewButton}
           >
-            <VscPreview /> {t('Add Preview')}
+            <ScanEye size={14} /> {t('Add Preview')}
           </span>
         </BubbleMenu>
       )}

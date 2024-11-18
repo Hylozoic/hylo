@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { IoSend } from 'react-icons/io5'
+import { SendHorizontal } from 'lucide-react'
 import AttachmentManager from 'components/AttachmentManager'
 import Button from 'components/Button'
 import HyloEditor from 'components/HyloEditor'
@@ -114,7 +114,7 @@ class CommentForm extends Component {
                     dataTip={t('You need to include text to post a comment')}
                     dataFor='comment-submit-tt'
                   >
-                    <IoSend color='white' />
+                    <SendHorizontal size={18} color='white' />
                   </Button>
                   <Tooltip
                     delay={150}

@@ -46,7 +46,7 @@
       "url": "https://github.com/lstoll/heroku-buildpack-monorepo"
     },
     {
-      "url": "https://github.com/Hylozoic/heroku-buildpack-nodejs.git#run-webpack-build-v182"
+      "url": "https://github.com/heroku/heroku-buildpack-nodejs#latest"
     }
   ]
 }

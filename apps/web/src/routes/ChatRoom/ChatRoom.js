@@ -4,7 +4,7 @@ import moment from 'moment-timezone'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
-import { IoSend } from 'react-icons/io5'
+import { SendHorizontal } from 'lucide-react'
 import { useSelector, useDispatch, shallowEqual } from 'react-redux'
 import { useParams, useLocation } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
@@ -530,9 +530,9 @@ export default function ChatRoom (props) {
             borderRadius='6px'
             disabled={!postInProgress}
             onClick={postChatMessage}
-            className={cx(styles.sendMessageButton, { [styles.disabled]: !postInProgress })}
+            className={styles.sendMessageButton}
           >
-            <IoSend color='white' style={{ display: 'inline' }} />
+            <SendHorizontal color={!postInProgress ? 'gray' : 'white'} size={18} style={{ display: 'inline' }} />
           </Button>
         </div>
       </div>
