@@ -25680,7 +25680,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"newrelic@npm:^7.0.0, newrelic@npm:^7.0.2":
+"newrelic@npm:^7.0.0":
   version: 7.5.2
   resolution: "newrelic@npm:7.5.2"
   dependencies:
@@ -36694,7 +36694,6 @@ __metadata:
     mixpanel-browser: "npm:^2.45.0"
     moment-timezone: "npm:^0.5.46"
     msw: "npm:^0.36.8"
-    newrelic: "npm:^7.0.2"
     object-assign: "npm:4.1.1"
     path-browserify: "npm:^1.0.1"
     postcss: "npm:^8.4.47"

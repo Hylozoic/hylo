@@ -1,4 +1,3 @@
-import './newrelic.js' // this must be second
 import express from 'express'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
@@ -19,9 +18,6 @@ function startServer () {
   server.use(redirectToApp)
   handleStaticPages(server)
   server.use(express.static('build'))
-  // Note: Server-side Rendering
-  // ref: https://github.com/Hylozoic/hylo-evo/issues/1069
-  // server.use(appMiddleware)
 
   const listener = server.listen(port, err => {
     if (err) throw err
