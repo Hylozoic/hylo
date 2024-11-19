@@ -1,14 +1,11 @@
 import React from 'react'
-import { useQuery } from 'urql'
-import { useSelector } from 'react-redux'
 import { Text, ScrollView, View, TouchableOpacity } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import { openURL } from 'hooks/useOpenURL'
+import { isContextGroup, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
-import getCurrentGroupSlug from 'store/selectors/getCurrentGroupSlug'
-import GroupPresenter, { isContextGroup, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
-import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
+import { openURL } from 'hooks/useOpenURL'
 import Icon from 'components/Icon'
 import TopicsNavigation from 'components/TopicsNavigation'
 import styles from './GroupNavigation.styles'
@@ -17,16 +14,9 @@ import Loading from 'components/Loading'
 export default function GroupNavigation () {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const { myHome } = useRouteParams()
-  // TODO: This is a session store value, keep in Redux or move elsewhere?
-  const currentGroupSlug = useSelector(getCurrentGroupSlug)
+  const { myHome, groupSlug } = useRouteParams()
 
-  const [{ data, fetching }] = useQuery({
-    query: groupDetailsQueryMaker({ withJoinQuestions: true, withPrerequisiteGroups: true }),
-    variables: { slug: currentGroupSlug },
-    pause: !currentGroupSlug
-  })
-  const currentGroup = GroupPresenter(data?.group)
+  const [currentGroup, { fetching }] = useCurrentGroup({ setToGroupSlug: groupSlug })
   const childGroups = currentGroup?.childGroups?.items
   const parentGroups = currentGroup?.parentGroups?.items
 
@@ -37,7 +27,7 @@ export default function GroupNavigation () {
   if (fetching) return <Loading />
 
   const { navigate } = navigation
-  const customViews = (currentGroup && currentGroup.customViews?.items) || []
+  const customViews = (currentGroup && currentGroup.customViews) || []
   const navItems = myHome
     ? [
         { label: t('Create'), iconName: 'Create', onPress: () => navigate('Edit Post', { id: null }) },

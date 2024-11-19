@@ -18,7 +18,7 @@ import { useNavigation } from '@react-navigation/native'
 import { Validators, TextHelpers } from '@hylo/shared'
 import { isIOS } from 'util/platform'
 import useRouteParams from 'hooks/useRouteParams'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'hooks/useCurrentUser'
 import useCurrentGroup from 'hooks/useCurrentGroup'
 import createPostMutation from 'graphql/mutations/createPostMutation'
 import createProjectMutation from 'graphql/mutations/createProjectMutation'
@@ -75,7 +75,7 @@ export default function PostEditor (props) {
   const navigation = useNavigation()
   const scrollViewRef = useRef(null)
   const detailsEditorRef = useRef(null)
-  const currentUser = useCurrentUser()
+  const [currentUser] = useCurrentUser()
   const [currentGroup] = useCurrentGroup()
   const {
     id: selectedPostId,

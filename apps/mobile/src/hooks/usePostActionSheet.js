@@ -1,6 +1,5 @@
 import { Alert } from 'react-native'
 import { gql, useMutation } from 'urql'
-import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import Config from 'react-native-config'
 import Share from 'react-native-share'
@@ -10,13 +9,13 @@ import Clipboard from '@react-native-clipboard/clipboard'
 import { AnalyticsEvents } from '@hylo/shared'
 import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import useMixpanelTrack from 'hooks/useMixpanelTrack'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
-import { RESP_MANAGE_CONTENT } from 'store/constants'
+import useCurrentUser from 'hooks/useCurrentUser'
+import useCurrentGroup from './useCurrentGroup'
+import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 import useHasResponsibility from './useHasResponsibility'
+import { RESP_MANAGE_CONTENT } from 'store/constants'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import Icon from 'components/Icon'
-import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 import { postUrl as postUrlCreator } from 'util/navigation'
 
 export const deletePostMutation = gql`
@@ -59,8 +58,8 @@ export default function usePostActionSheet ({
   const [, pinPost] = useMutation(pinPostMutation)
   const { showHyloActionSheet } = useHyloActionSheet()
   const mixpanelTrack = useMixpanelTrack()
-  const currentGroup = useSelector(getCurrentGroup)
-  const currentUser = useCurrentUser()
+  const [currentGroup] = useCurrentGroup()
+  const [currentUser] = useCurrentUser()
   const hasResponsibility = useHasResponsibility(currentGroup?.id)
   const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
 

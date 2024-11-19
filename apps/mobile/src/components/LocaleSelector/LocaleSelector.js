@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'hooks/useCurrentUser'
 import { white80onCaribbeanGreen } from 'style/colors'
 import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
 import { useMutation } from 'urql'
@@ -11,7 +11,7 @@ const LocaleSelector = ({ small, dark }) => {
   const { t, i18n } = useTranslation()
   const selectedLocale = i18n.language
   const [dropdownVisible, setDropdownVisible] = useState(false)
-  const currentUser = useCurrentUser()
+  const [currentUser] = useCurrentUser()
 
   const handleSelectLocale = (locale) => {
     i18n.changeLanguage(locale)

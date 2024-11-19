@@ -2,6 +2,7 @@ import groupFieldsFragment, {
   groupGroupExtensionsFieldsFragment,
   groupGroupTopicsFieldsFragment,
   groupJoinQuestionsFieldsFragment,
+  groupPendingInvitationsFieldsFragment,
   groupPrerequisiteGroupsFieldsFragment,
   groupWidgetsFieldsFragment
 } from 'graphql/fragments/groupFieldsFragment'
@@ -18,7 +19,8 @@ export default function groupDetailsQueryMaker ({
   withWidgets = false,
   withTopics = false,
   withJoinQuestions = false,
-  withPrerequisiteGroups = false
+  withPrerequisiteGroups = false,
+  withPendingInvitations = false
 } = {}) {
   return gql`
     query GroupDetailsQuery ($slug: String, $id: ID) {
@@ -29,6 +31,8 @@ export default function groupDetailsQueryMaker ({
         ${withTopics ? '...GroupGroupTopicsFieldsFragment' : ''}
         ${withJoinQuestions ? '...GroupJoinQuestionsFieldsFragment' : ''}
         ${withPrerequisiteGroups ? '...GroupPrerequisiteGroupsFieldsFragment' : ''}
+        ${withPendingInvitations ? '...GroupPendingInvitationsFieldsFragment' : ''}
+
       }
       ${groupFieldsFragment}
       ${withExtensions ? groupGroupExtensionsFieldsFragment : ''}
@@ -36,6 +40,7 @@ export default function groupDetailsQueryMaker ({
       ${withTopics ? groupGroupTopicsFieldsFragment : ''}
       ${withJoinQuestions ? groupJoinQuestionsFieldsFragment : ''}
       ${withPrerequisiteGroups ? groupPrerequisiteGroupsFieldsFragment : ''}
+      ${withPendingInvitations ? groupPendingInvitationsFieldsFragment : ''}
   }
   `
 }

@@ -101,24 +101,24 @@ export function ContentRow ({
       <View style={styles.contentRow}>
         {itemType === 'post' && (
           <PostCard
+            commenters={item.commenters}
+            creator={item.creator}
             goToGroup={goToGroup}
-            showGroups
-            showMember={showMember}
-            showTopic={showTopic}
+            groups={item.groups}
             onPress={showPost}
             post={item}
             respondToEvent={response => respondToEvent(item, response)}
-            creator={item.creator}
-            commenters={item.commenters}
-            groups={item.groups}
+            showGroups
+            showMember={showMember}
+            showTopic={showTopic}
             topics={item.topics}
           />
         )}
         {itemType !== 'post' && (
           <Comment
-            onPress={showPost}
             comment={item}
-            displayPostTitle
+            onPress={showPost}
+            postTitle={item.post.title}
           />
         )}
       </View>

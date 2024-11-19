@@ -240,3 +240,17 @@ export const groupWidgetsFieldsFragment = gql`
     }
   }
 `
+
+export const groupPendingInvitationsFieldsFragment = gql`
+  fragment GroupPendingInvitationsFieldsFragment on Group {
+    pendingInvitations {
+      hasMore
+      items {
+        id
+        email
+        createdAt
+        lastSentAt
+      }
+    }
+  }
+`

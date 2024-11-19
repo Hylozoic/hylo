@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { ScrollView, View, Text, ImageBackground, ActivityIndicator } from 'react-native'
 import { useDispatch } from 'react-redux'
 import { AnalyticsEvents } from '@hylo/shared'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'hooks/useCurrentUser'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
@@ -17,7 +17,7 @@ import styles from './SignupUploadAvatar.styles'
 export default function SignupUploadAvatar ({ navigation }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const currentUser = useCurrentUser()
+  const [currentUser] = useCurrentUser()
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl)
   const [avatarImageSource, setAvatarImageSource] = useState({ uri: avatarUrl })
   const [imagePickerPending, setImagePickerPending] = useState(false)

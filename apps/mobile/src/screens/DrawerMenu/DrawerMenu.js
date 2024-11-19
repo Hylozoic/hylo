@@ -1,18 +1,16 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Text, TouchableOpacity, View, SectionList, Image } from 'react-native'
-import { useSelector } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import LinearGradient from 'react-native-linear-gradient'
+import useCurrentUser from 'hooks/useCurrentUser'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import useChangeToGroup from 'hooks/useChangeToGroup'
-import useCurrentGroup from 'hooks/useCurrentGroup'
 import useHasResponsibility from 'hooks/useHasResponsibility'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { PUBLIC_GROUP, ALL_GROUP, MY_CONTEXT_GROUP } from 'urql-shared/presenters/GroupPresenter'
-import getMemberships from 'store/selectors/getMemberships'
-// import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import styles from './DrawerMenu.styles'
 import Button from 'components/Button'
 import { bannerlinearGradientColors } from 'style/colors'
@@ -23,14 +21,15 @@ import myHomeUrl from 'assets/my-home.png'
 export default function DrawerMenu () {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const memberships = useSelector(getMemberships)
-  const [currentGroup] = useCurrentGroup()
-  const hasResponsibility = useHasResponsibility(currentGroup?.id)
-  const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
-  const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
+  const [currentUser, { fetching: currentUserFetching }] = useCurrentUser()
+  const [currentGroup, { fetching: currentGroupFetching }] = useCurrentGroup()
+  const memberships = currentUser?.memberships
   const { myHome } = useRouteParams()
+  const hasResponsibility = useHasResponsibility(currentGroup?.id)
+  const canAdmin = useMemo(() => hasResponsibility(RESP_ADMINISTRATION), [currentGroup?.id])
+  const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
   const myGroups = memberships
-    .map(m => m.group.ref)
+    .map(m => m.group)
     .sort((a, b) => a.name.localeCompare(b.name))
 
   const goToCreateGroup = () => {
@@ -124,6 +123,8 @@ export default function DrawerMenu () {
   const groupBannerImage = currentGroup?.bannerUrl
     ? { uri: currentGroup?.bannerUrl }
     : null
+
+  if (currentUserFetching || currentGroupFetching) return null
 
   return (
     <View style={styles.container}>

@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
 import { Text, View, ImageBackground, ScrollView, TouchableOpacity, TextInput } from 'react-native'
 import CheckBox from 'react-native-bouncy-checkbox'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'hooks/useCurrentUser'
 import presentGroup from 'store/presenters/presentGroup'
 import getGroup from 'store/selectors/getGroup'
 import { updateMembershipSettings } from 'store/actions/updateMembershipSettings'
@@ -28,7 +28,7 @@ export default function GroupWelcomeLanding ({ route }) {
   const currentGroup = useSelector(state => getGroup(state, { id: groupId }))
   const group = presentGroup(currentGroup)
   const currentStepIndex = useSelector(getCurrentStepIndex)
-  const currentUser = useCurrentUser()
+  const [currentUser] = useCurrentUser()
   const currentMemberships = useSelector(state => getMyMemberships(state))
   const currentMembership = currentMemberships.find(m => m.group.id === groupId)
   const routeNames = getRouteNames(group, currentMembership)

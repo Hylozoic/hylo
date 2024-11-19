@@ -7,8 +7,6 @@ import { useDispatch } from 'react-redux'
 import i18n from '../../i18n'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import useUrqlQueryAction from 'urql-shared/hooks/useUrqlQueryAction'
-import fetchCurrentUser from 'store/actions/fetchCurrentUser'
 // import { updateNewNotificationCount as resetNotificationCountAction } from 'screens/NotificationsList/NotificationsList.store'
 import resetNotificationsCountMutation from 'graphql/mutations/resetNotificationsCountMutation'
 import fetchNotificationsQuery, { NOTIFICATIONS_PAGE_SIZE } from 'graphql/queries/notificationsQuery'
@@ -26,13 +24,13 @@ import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import { white } from 'style/colors'
+import useCurrentUser from 'hooks/useCurrentUser'
 
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
   const dispatch = useDispatch()
-  const [{ fetching, data, error }] = useUrqlQueryAction({ action: fetchCurrentUser() })
+  const [currentUser, { fetching, error }] = useCurrentUser()
   const [loading, setLoading] = useState(true)
-  const currentUser = data?.me
 
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   useQuery({ query: fetchNotificationsQuery, variables: { first: NOTIFICATIONS_PAGE_SIZE, offset: 0 } })

@@ -3,19 +3,16 @@ import { View, Text, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { capitalize, isEmpty } from 'lodash/fp'
-import { useSelector } from 'react-redux'
 import { useQuery } from 'urql'
 import LinearGradient from 'react-native-linear-gradient'
+import useCurrentUser from 'hooks/useCurrentUser'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 import useChangeToGroup from 'hooks/useChangeToGroup'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import useGoToTopic from 'hooks/useGoToTopic'
 import { useTranslation } from 'react-i18next'
-import { getContextGroup, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
-import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
+import { PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import topicQuery from 'graphql/queries/topicQuery'
 import useRouteParams from 'hooks/useRouteParams'
-import getCurrentGroupSlug from 'store/selectors/getCurrentGroupSlug'
-import getCustomView from 'store/selectors/getCustomView'
 import { firstName } from 'store/models/Person'
 import Avatar from 'components/Avatar'
 import Button from 'components/Button'
@@ -43,9 +40,11 @@ export default function Stream ({ topicName: providedTopicName }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const route = useRoute()
-
   const { customViewId, streamType, myHome, topicName: routeTopicName } = useRouteParams()
-  const customView = useSelector(state => getCustomView(state, { customViewId }))
+
+  const [currentUser] = useCurrentUser()
+  const [currentGroup] = useCurrentGroup()
+  const customView = currentGroup?.customViews?.items?.filter(customView => customView.id === customViewId)
   const changeToGroup = useChangeToGroup()
   const goToTopicDefault = useGoToTopic()
   const topicName = providedTopicName || routeTopicName
@@ -56,16 +55,6 @@ export default function Stream ({ topicName: providedTopicName }) {
   const customViewIcon = customView?.icon
   // Note: Custom View Mode = grid, etc. Not implemented in App
   // const customViewMode = customView?.defaultViewMode
-
-  const currentUser = useCurrentUser()
-  const currentUserHasMemberships = !isEmpty(currentUser?.memberships)
-  const currentGroupSlug = useSelector(getCurrentGroupSlug)
-  const [{ data }] = useQuery({
-    query: groupDetailsQueryMaker({ withJoinQuestions: true, withPrerequisiteGroups: true }),
-    variables: { slug: currentGroupSlug },
-    pause: !currentGroupSlug || getContextGroup(currentGroupSlug)
-  })
-  const currentGroup = getContextGroup(currentGroupSlug) || data?.group
 
   // Topics related: This component re-directs to the WebView chat for Topics
   // within everything but the Public and All My Groups contexts
@@ -105,7 +94,7 @@ export default function Stream ({ topicName: providedTopicName }) {
   const goToCreateGroup = () => navigation.navigate('Create Group')
   const goToMember = id => navigation.navigate('Member', { id })
 
-  if (!currentUserHasMemberships && currentGroup?.id !== PUBLIC_GROUP_ID) {
+  if (isEmpty(currentUser?.memberships) && currentGroup?.id !== PUBLIC_GROUP_ID) {
     return (
       <CreateGroupNotice
         goToCreateGroup={goToCreateGroup}

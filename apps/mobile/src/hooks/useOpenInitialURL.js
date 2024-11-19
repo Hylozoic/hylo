@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useOpenURL } from './useOpenURL'
+import useOpenURL from './useOpenURL'
 import { SET_INITIAL_URL } from 'store/constants'
 
 export default function useOpenInitialURL (loading, wait = 0) {

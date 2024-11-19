@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { View, Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { gql, useQuery } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 import useGoToMember from 'hooks/useGoToMember'
 import useIsModalScreen from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
@@ -14,7 +15,6 @@ import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
 import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
 import commentsQuerySetFieldsFragment from 'graphql/fragments/commentsQuerySetFieldsFragment'
 import PostPresenter from 'urql-shared/presenters/PostPresenter'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import { KeyboardAccessoryCommentEditor } from 'components/CommentEditor/CommentEditor'
 import Comments from 'components/Comments'
 import Loading from 'components/Loading'
@@ -40,7 +40,7 @@ export default function PostDetails () {
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
   const { id: postId } = useRouteParams()
-  const currentGroup = useSelector(getCurrentGroup)
+  const [currentGroup] = useCurrentGroup()
   const [{ data, fetching, error }] = useQuery({ query, variables: { id: postId } })
   const post = useMemo(() => PostPresenter(data?.post), [data?.post])
   const commentsRef = React.useRef()

@@ -63,6 +63,7 @@ const groupTopicsQuery = gql`
   }
 `
 
+// TODO: URL - what topics are supposed to show up for AllGroups / PublicGroups
 export default function useEnsureGroupTopics ({ groupId, groupSlug }) {
   const [{ data, fetching: pending }] = useQuery({
     query: groupId ? groupTopicForGroupQuery : groupTopicsQuery,
@@ -77,12 +78,11 @@ export default function useEnsureGroupTopics ({ groupId, groupSlug }) {
     }
   })
 
-  if (pending) {
-    return { topics: [], pending }
-  }
-
   const allGroupTopics = groupId ? data?.group?.groupTopics?.items : data?.groupTopics?.items
 
+  if (pending || !allGroupTopics) {
+    return { topics: [], pending }
+  }
   const subscribedGroupTopics = allGroupTopics.filter(groupTopic => (
     groupTopic.group.id === groupId &&
     groupTopic.visibility === 1 &&

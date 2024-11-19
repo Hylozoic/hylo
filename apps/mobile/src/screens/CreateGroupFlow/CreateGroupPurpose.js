@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import { Text, View, ScrollView, TextInput } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import useRouteParams from 'hooks/useRouteParams'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 import {
   getGroupData, getEdited, updateGroupData, setWorkflowOptions,
   clearCreateGroupStore
@@ -18,7 +18,7 @@ export default function CreateGroupPurpose ({ route }) {
   const dispatch = useDispatch()
   // Add current group in as pre-selected as a parent group for Parent Groups Step
   const edited = useSelector(getEdited)
-  const currentGroup = useSelector(getCurrentGroup)
+  const [currentGroup] = useCurrentGroup()
   const groupData = useSelector(getGroupData)
   const [groupPurpose, setGroupPurpose] = useState()
   const [error, setError] = useState()

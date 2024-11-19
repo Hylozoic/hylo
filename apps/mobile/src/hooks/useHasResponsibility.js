@@ -1,11 +1,11 @@
-import React, { useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useQuery } from 'urql'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'hooks/useCurrentUser'
 import commonRolesQuery from 'graphql/queries/commonRolesQuery'
 import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 
 export default function useHasResponsibility (groupId, providedPerson) {
-  const currentUser = useCurrentUser()
+  const [currentUser] = useCurrentUser()
   const person = providedPerson || currentUser
   const skipQueries = !groupId || isContextGroup(groupId)
 

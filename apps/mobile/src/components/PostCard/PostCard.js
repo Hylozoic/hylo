@@ -4,7 +4,7 @@ import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { LocationHelpers } from '@hylo/shared'
 import recordClickthroughMutation from 'graphql/mutations/recordClickthroughMutation'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'hooks/useCurrentUser'
 import PostPresenter from 'urql-shared/presenters/PostPresenter'
 import PostHeader from './PostHeader'
 import PostBody from './PostBody'
@@ -35,7 +35,7 @@ export default function PostCard ({
   const images = useMemo(() => post.imageUrls && post.imageUrls.map(uri => ({ uri })), [post])
   const locationText = useMemo(() => LocationHelpers.generalLocationString(post.locationObject, post.location), [post])
   const isFlagged = useMemo(() => post.flaggedGroups && post.flaggedGroups.includes(groupId), [post])
-  const currentUser = useCurrentUser()
+  const [currentUser] = useCurrentUser()
 
   return (
     <>

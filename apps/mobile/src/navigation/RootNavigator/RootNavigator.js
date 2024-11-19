@@ -2,7 +2,6 @@ import React, { useEffect } from 'react'
 import { View } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { createStackNavigator } from '@react-navigation/stack'
-import { useSelector } from 'react-redux'
 import { navigationRef } from 'navigation/linking/helpers'
 import { OneSignal } from 'react-native-onesignal'
 import RNBootSplash from 'react-native-bootsplash'
@@ -10,11 +9,8 @@ import customLinking, {
   AUTH_ROOT_SCREEN_NAME,
   NON_AUTH_ROOT_SCREEN_NAME
 } from 'navigation/linking'
-import useUrqlQueryAction from 'urql-shared/hooks/useUrqlQueryAction'
+import useAuthState from 'hooks/useAuthState'
 import { openURL } from 'hooks/useOpenURL'
-import checkLogin from 'store/actions/checkLogin'
-import { getAuthorized } from 'store/selectors/getAuthState'
-import { white } from 'style/colors'
 import SocketListener from 'components/SocketListener'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import ItemChooser from 'screens/ItemChooser'
@@ -23,17 +19,13 @@ import LoginByTokenHandler from 'screens/LoginByTokenHandler'
 import AuthRootNavigator from 'navigation/AuthRootNavigator'
 import NonAuthRootNavigator from 'navigation/NonAuthRootNavigator'
 import LoadingScreen from 'screens/LoadingScreen'
+import { white } from 'style/colors'
 
 const Root = createStackNavigator()
 export default function RootNavigator () {
   // Here and `JoinGroup` should be the only place we check for a session from the API.
   // Routes will not be available until this check is complete.
-  const [{ fetching, error }] = useUrqlQueryAction({ action: checkLogin() })
-  const isAuthorized = useSelector(getAuthorized)
-
-  if (error) {
-    console.log('!!! Error when trying to check for session', error)
-  }
+  const [{ isAuthorized, fetching }] = useAuthState()
 
   // Handle Push Notifications opened
   useEffect(() => {

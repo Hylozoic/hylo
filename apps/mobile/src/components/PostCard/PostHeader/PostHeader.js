@@ -5,16 +5,16 @@ import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { TextHelpers } from '@hylo/shared'
-import usePostActionSheet from 'hooks/usePostActionSheet'
+import useCurrentGroup from 'hooks/useCurrentGroup'
+import useRolesForGroup from 'hooks/useRolesForGroup'
 import useHasResponsibility from 'hooks/useHasResponsibility'
+import usePostActionSheet from 'hooks/usePostActionSheet'
 import CondensingBadgeRow from 'components/CondensingBadgeRow'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import Avatar from 'components/Avatar'
 import FlagContent from 'components/FlagContent'
 import FlagGroupContent from 'components/FlagGroupContent'
 import Icon from 'components/Icon'
 import styles, { labelStyles } from './PostHeader.styles'
-import useRolesForGroup from 'hooks/useRolesForGroup'
 
 export default function PostHeader ({
   announcement,
@@ -41,7 +41,7 @@ export default function PostHeader ({
     closeOnDelete,
     setFlaggingVisible
   })
-  const currentGroup = useSelector(getCurrentGroup)
+  const [currentGroup] = useCurrentGroup()
   const handleShowMember = () => showMember && showMember(creator.id)
 
   const hasResponsibility = useHasResponsibility(currentGroup?.id, creator)

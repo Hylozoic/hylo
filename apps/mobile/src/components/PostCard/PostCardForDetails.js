@@ -13,7 +13,7 @@ import leaveProjectMutation from 'graphql/mutations/leaveProjectMutation'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import useGoToMember from 'hooks/useGoToMember'
 import useGoToTopic from 'hooks/useGoToTopic'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'hooks/useCurrentUser'
 import Button from 'components/Button'
 import Files from 'components/Files'
 import Icon from 'components/Icon'
@@ -36,7 +36,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
   const [, providedLeaveProject] = useMutation(leaveProjectMutation)
 
   const navigation = useNavigation
-  const currentUser = useCurrentUser()
+  const [currentUser] = useCurrentUser()
   const changeToGroup = useChangeToGroup()
   const goToMember = useGoToMember()
   const goToTopic = useGoToTopic()

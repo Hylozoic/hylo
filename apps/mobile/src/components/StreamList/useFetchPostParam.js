@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'hooks/useCurrentUser'
 import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 
 export default function useFetchPostParam ({
@@ -13,7 +13,7 @@ export default function useFetchPostParam ({
   timeframe,
   topicName
 }) {
-  const currentUser = useCurrentUser()
+  const [currentUser] = useCurrentUser()
   const fetchPostParam = useMemo(() => omitBy(x => isNull(x) || isUndefined(x), {
     activePostsOnly: customView?.activePostsOnly || null,
     afterTime: streamType === 'event'

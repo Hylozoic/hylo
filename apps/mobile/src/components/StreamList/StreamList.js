@@ -5,7 +5,7 @@ import { isEmpty, get } from 'lodash/fp'
 import { useIsFocused, useNavigation } from '@react-navigation/native'
 import { ALL_GROUP_ID, isContextGroup, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import useFetchPostParam from './useFetchPostParam'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'hooks/useCurrentUser'
 import { makeQuery } from './StreamList.store'
 import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
 import Icon from 'components/Icon'
@@ -86,7 +86,7 @@ export default function StreamList (props) {
   } = props
   const navigation = useNavigation()
   const isFocused = useIsFocused()
-  const currentUser = useCurrentUser()
+  const [currentUser] = useCurrentUser()
   const [filter, setFilter] = useState()
   const [sortBy, setSortBy] = useState(
     get('settings.streamSortBy', currentUser) ||
@@ -173,7 +173,7 @@ export default function StreamList (props) {
         data={posts}
         renderItem={({ item }) => renderPostRow({ ...props, post: item })}
         onRefresh={refreshPosts}
-        refreshing={!!fetching}
+        refreshing={false}
         keyExtractor={item => `post${item.id}`}
         onEndReached={fetchMorePosts}
         ListHeaderComponent={

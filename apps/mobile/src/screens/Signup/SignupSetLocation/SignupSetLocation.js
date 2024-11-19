@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentLocation from 'hooks/useCurrentLocation'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'hooks/useCurrentUser'
 import checkLogin from 'store/actions/checkLogin'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import updateUserSettings from 'store/actions/updateUserSettings'
@@ -18,7 +18,7 @@ import styles from './SignupSetLocation.styles'
 export default function SignupSetLocation ({ navigation }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const currentUser = useCurrentUser()
+  const [currentUser] = useCurrentUser()
   const [location, setLocation] = useState(currentUser?.location)
   const [locationId, setLocationId] = useState(currentUser?.locationId)
   const [currentLocation, getLocation] = useCurrentLocation()

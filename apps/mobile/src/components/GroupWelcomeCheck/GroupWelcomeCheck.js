@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { useQuery } from 'urql'
 import { useNavigation } from '@react-navigation/native'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'hooks/useCurrentUser'
 import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
 import GroupPresenter, { ALL_GROUP, MY_CONTEXT_GROUP, PUBLIC_GROUP } from 'urql-shared/presenters/GroupPresenter'
 
@@ -10,7 +10,7 @@ export default function GroupWelcomeCheck ({ groupId }) {
     return null
   }
   const navigation = useNavigation()
-  const currentUser = useCurrentUser()
+  const [currentUser] = useCurrentUser()
   const currentMemberships = currentUser.memberships
   const currentMembership = currentMemberships.find(m => m.group.id === groupId)
 

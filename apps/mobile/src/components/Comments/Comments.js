@@ -128,6 +128,7 @@ function Comments ({
           comment={comment}
           highlighted={comment.id === highlightedComment?.id}
           onReply={selectComment}
+          postTitle={post?.title}
           scrollTo={viewPosition => scrollToComment(comment, viewPosition)}
           setHighlighted={() => setHighlightedComment(comment)}
           showMember={showMember}
@@ -146,6 +147,7 @@ function Comments ({
         comment={comment}
         highlighted={comment.id === highlightedComment?.id}
         onReply={selectComment}
+        postTitle={post?.title}
         scrollTo={viewPosition => scrollToComment(comment, viewPosition)}
         setHighlighted={() => setHighlightedComment(comment)}
         showMember={showMember}

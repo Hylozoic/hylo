@@ -5,15 +5,12 @@ import { useTranslation } from 'react-i18next'
 import { filter } from 'lodash/fp'
 import Clipboard from '@react-native-clipboard/clipboard'
 import { TextHelpers } from '@hylo/shared'
-import { useSelector } from 'react-redux'
 import deleteCommentMutation from 'graphql/mutations/deleteCommentMutation'
 import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import useReactOnEntity from 'urql-shared/hooks/useReactOnEntity'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'hooks/useCurrentUser'
 import useHasResponsibility from 'hooks/useHasResponsibility'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import getGroup from 'store/selectors/getGroup'
-import { getPresentedPost } from 'store/selectors/getPost'
 import Avatar from 'components/Avatar'
 import EmojiRow from 'components/EmojiRow'
 import EmojiPicker from 'components/EmojiPicker'
@@ -22,15 +19,16 @@ import Icon from 'components/Icon'
 import styles from './Comment.styles'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import ImageAttachments from 'components/ImageAttachments'
+import { useGroup } from 'hooks/useCurrentGroup'
 
 export default function Comment ({
   comment,
   clearHighlighted,
-  displayPostTitle,
   showMenu = false,
   highlighted,
   onPress,
   onReply,
+  postTitle: providedPostTitle,
   scrollTo,
   setHighlighted,
   showMember,
@@ -42,18 +40,16 @@ export default function Comment ({
   const { showHyloActionSheet } = useHyloActionSheet()
   const { reactOnEntity, deleteReactionFromEntity } = useReactOnEntity()
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const currentUser = useCurrentUser()
-  // TODO: Convert to useQuery groupQuery ...
-  const group = useSelector(state => getGroup(state, { slug }))
+  const [currentUser] = useCurrentUser()
+  const [group] = useGroup({ groupSlug: slug })
   const hasResponsibility = useHasResponsibility(group?.id)
 
-  const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
   const isCreator = currentUser && (comment.creator.id === currentUser.id)
   const { creator, text, createdAt, post: postId } = comment
-  const post = useSelector(state => getPresentedPost(state, { postId, forGroupId: group?.id }))
-  const postTitle = useMemo(() => displayPostTitle && post?.title && TextHelpers.truncateText(post.title, 40), [post?.title])
+  const postTitle = useMemo(() => providedPostTitle && TextHelpers.truncateText(providedPostTitle, 40), [providedPostTitle])
   const myReactions = useMemo(() => (comment && comment.myReactions) || [], [comment?.myReactions])
   const myEmojis = myReactions.map((reaction) => reaction.emojiFull)
+  const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
 
   const handleReaction = (emojiFull) => reactOnEntity('comment', comment?.id, emojiFull, postId)
   const handleRemoveReaction = (emojiFull) => deleteReactionFromEntity('comment', comment?.id, emojiFull, postId)
@@ -134,7 +130,7 @@ export default function Comment ({
               <Text style={styles.name}>{creator.name}</Text>
             </TouchableOpacity>
             <Text style={styles.date}>{TextHelpers.humanDate(createdAt)}</Text>
-            {displayPostTitle && (
+            {postTitle && (
               <Text style={styles.date}>{t('on')} "{postTitle}"</Text>
             )}
           </View>
@@ -176,7 +172,6 @@ export default function Comment ({
           <HyloHTML html={text} />
           <EmojiRow
             includePicker={false}
-            post={post}
             currentUser={currentUser}
             comment={comment}
           />
