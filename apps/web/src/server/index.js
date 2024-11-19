@@ -1,13 +1,18 @@
 import express from 'express'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import apiProxy from './apiProxy.js'
+import appMiddleware from './appMiddleware.js'
 import redirectToApp from './redirectToApp.js'
 import { handleStaticPages } from './proxy.js'
 
 const port = process.env.PORT || 9001
 
 const startTime = new Date().getTime()
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 function startServer () {
   console.log('Starting server...')
@@ -17,7 +22,8 @@ function startServer () {
   server.use(apiProxy)
   server.use(redirectToApp)
   handleStaticPages(server)
-  server.use(express.static('build'))
+  server.use(express.static(path.join(__dirname, '../../dist')))
+  server.use(appMiddleware)
 
   const listener = server.listen(port, err => {
     if (err) throw err

@@ -122,6 +122,32 @@
   margin-bottom: 20px;
 }
 
+.codeContainer {
+  display: flex;
+  justify-content: center;
+  width: auto;
+}
+
+.codeCharacter {
+  width: 30px;
+  height: 40px;
+  border-radius: 6px;
+  line-height: 36px;
+  font-size: 34px;
+}
+
+.codeCharacterInactive {
+  background-color: lightgray;
+}
+
+.codeCharacterSelected {
+  background-color: white;
+}
+
+.codeCharacterFilled {
+  background-color: white;
+}
+
 .below-container {
   margin-top: $space-2x;
   a {
