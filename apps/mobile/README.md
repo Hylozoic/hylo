@@ -1,5 +1,21 @@
 # HyloReactNative
 
+## ⚠️ URQL CONVERSION IN PROGRESS
+
+### Currently known app issues, URQL and otherwise:
+
+1. Emoji reactions on comments in Post Details don't update/optimistically update according to the code in urql-shared/updates/reactOn.js. It used to work.
+2. MemberProfile tab switching between different feed types is slow and visually not what is expected (tab 1/2 switches but not all the way until fetching is done)
+3. Some issue with openUrl (from the file with the4 useOpenUrl hook in it) when navigating to a topic from the Group Navigation. Strange hooks related error though this function doesn't use hooks
+4. MemberList for Group needs to be URQL'ified, likely requiring some refactoring
+5. Messages area needs to be URQL'ifed, likely requiring some refactoring
+6. The entire test suite is likely quite broken at this point
+7. Create Group workflow was already URQL'ified and working, but seems to be broken again
+8. Login auths correctly but doesn't re-direct, needs testing and ironing out
+9. Sign-up flow is untested
+
+---
+
 ## Quick Start
 
 1. Run through the React Native environment setup on the [React Native website](https://reactnative.dev/docs/environment-setup)
