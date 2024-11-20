@@ -19890,25 +19890,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hylo-shared@npm:5.2.5":
-  version: 5.2.5
-  resolution: "hylo-shared@npm:5.2.5"
-  dependencies:
-    coordinate-parser: "npm:^1.0.7"
-    html-to-text: "npm:^8.1.0"
-    lodash: "npm:~4.17.21"
-    marked: "npm:^4.2.1"
-    pretty-date: "npm:^0.2.0"
-    querystring: "npm:^0.2.1"
-    trunc-html: "npm:^1.1.2"
-    trunc-text: "npm:^1.0.2"
-    validator: "npm:^13.7.0"
-  peerDependencies:
-    moment-timezone: ^0.5.37
-  checksum: 10/a237933b13fa38caf062c54a0e072b01a3651122e33511d0bf2b2bdb1f8a93eb0690fd9c02154db178c55c0ea7feabf409a268fae109f377b68f1a80a554ed1a
-  languageName: node
-  linkType: hard
-
 "i18n-2@npm:0.7.3":
   version: 0.7.3
   resolution: "i18n-2@npm:0.7.3"
