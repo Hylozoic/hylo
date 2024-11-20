@@ -4,15 +4,24 @@
 
 ### Currently known app issues, URQL and otherwise:
 
-1. Emoji reactions on comments in Post Details don't update/optimistically update according to the code in urql-shared/updates/reactOn.js. It used to work.
-2. MemberProfile tab switching between different feed types is slow and visually not what is expected (tab 1/2 switches but not all the way until fetching is done)
-3. Some issue with openUrl (from the file with the4 useOpenUrl hook in it) when navigating to a topic from the Group Navigation. Strange hooks related error though this function doesn't use hooks
-4. MemberList for Group needs to be URQL'ified, likely requiring some refactoring
-5. Messages area needs to be URQL'ifed, likely requiring some refactoring
-6. The entire test suite is likely quite broken at this point
-7. Create Group workflow was already URQL'ified and working, but seems to be broken again
-8. Login auths correctly but doesn't re-direct, needs testing and ironing out
-9. Sign-up flow is untested
+*Major Functional Areas Still needing URQL*
+
+- MemberList for Group, likely requiring some refactoring
+- Search
+- Messages, likely requiring some refactoring
+- Sign-up flow (partially converted, needs testing)
+- PostBodyProposal
+
+*Known Bugs*
+
+- Login auths correctly but doesn't re-direct, needs testing and ironing out
+- Strange hooks related error though this function doesn't use hooks
+- Create Group workflow was already URQL'ified and working, but seems to be broken again
+- It used to work.
+- Analytics needs to be brought-back in some way for relavent URQL mutations or interactions, mostly have left TODO's inline to indicate where
+- MemberProfile tab switching between different feed types is slow and visually not what is expected (tab 1/2 switches but not all the way until fetching is done)
+- The entire test suite is likely quite broken at this point
+- Post and Comment editing doesn't seem to get the existing content into the TipTap editor hosted on Web, this changes I think with the vite+ conversion--but could be something else--needs to be explored
 
 ---
 
