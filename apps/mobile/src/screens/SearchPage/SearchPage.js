@@ -1,5 +1,8 @@
-import React from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { View, Text, TextInput, FlatList, TouchableOpacity } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import { gql, useQuery } from 'urql'
+import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
 import Loading from 'components/Loading'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
@@ -8,92 +11,149 @@ import PostHeader from 'components/PostCard/PostHeader'
 import { PostTitle } from 'components/PostCard/PostBody/PostBody'
 import UnwrappedCommentCard from 'components/Comment'
 import styles from './SearchPage.styles'
-import { useTranslation } from 'react-i18next'
+import { modalScreenName } from 'hooks/useIsModalScreen'
+import { useNavigation } from '@react-navigation/native'
 
-export default class SearchPage extends React.Component {
-  state = {
-    refreshing: false
-  }
-
-  componentDidMount () {
-    this.props.fetchSearchResults()
-  }
-
-  componentDidUpdate (prevProps) {
-    if (prevProps.searchTerm !== this.props.searchTerm ||
-      prevProps.filter !== this.props.filter) {
-      this.props.fetchSearchResults()
+const searchQuery = gql`
+  query SearchQuery ($search: String, $type: String, $offset: Int) {
+    search(term: $search, first: 10, type: $type, offset: $offset) {
+      total
+      hasMore
+      items {
+        id
+        content {
+          contentTypeName: __typename
+          ... on Person {
+            id
+            name
+            location
+            avatarUrl
+            skills {
+              items {
+                id
+                name
+              }
+            }
+          }
+          ... on Post {
+            ...PostFieldsFragment
+          }
+          ... on Comment {
+            id
+            text
+            createdAt
+            creator {
+              id
+              name
+              avatarUrl
+            }
+            post {
+              id
+              title
+              type
+              creator {
+                id
+                name
+                avatarUrl
+              }
+            }
+            attachments {
+              id
+              url
+              type
+            }
+          }
+        }
+      }
     }
-    if (prevProps.pending && !this.props.pending) {
-      this.setState({
-        refreshing: false
-      })
+  }
+  ${postFieldsFragment}
+`
+
+export default function SearchPage () {
+  const navigation = useNavigation()
+  const [refreshing, setRefreshing] = useState(false)
+  const [searchString, setSearchString] = useState('')
+  const [searchFilter, setSearchFilter] = useState('all')
+  const [offset, setOffset] = useState(0)
+
+  const [{ data, fetching, error }, refetchQuery] = useQuery({
+    query: searchQuery,
+    variables: {
+      search: searchString,
+      type: searchFilter,
+      offset
     }
+  })
+
+  const { items: searchResults, hasMore } = useMemo(() => ({
+    items: data?.search?.items || [],
+    hasMore: data?.search?.hasMore || false
+  }), [data?.search])
+
+  const fetchMore = useCallback(() => {
+    if (hasMore && !fetching) {
+      setOffset(searchResults?.length)
+    }
+  }, [hasMore, fetching])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await refetchQuery()
+    setRefreshing(false)
   }
 
-  fetchMore = () => {
-    const { pending } = this.props
-    if (pending) return null
-    this.props.fetchMoreSearchResults()
-  }
+  useEffect(() => {
+    if (!fetching) setRefreshing(false)
+  }, [fetching])
 
-  handleRefresh = () => {
-    const { refreshing } = this.state
-    if (refreshing) return null
-    this.setState({ refreshing: true })
-    this.props.fetchSearchResults()
-  }
+  // TODO: Fix back links on Home Tab when navigating this way,
+  // currently causes a crash if trying to go back from Post Details or Member
+  const goToPost = id => navigation.navigate(modalScreenName('Post Details'), { id })
+  const goToPerson = id => navigation.navigate(modalScreenName('Member'), { id })
 
-  render () {
-    const {
-      searchResults, searchTerm, setSearchTerm, pending, goToPost, goToPerson,
-      filter, setSearchFilter
-    } = this.props
-    const { refreshing } = this.state
-
-    const listHeaderComponent = (
-      <View>
-        <View style={styles.searchBar}>
-          <View style={styles.searchBox}>
-            <Icon name='Search' style={styles.searchIcon} />
-            <TextInput
-              value={searchTerm}
-              onChangeText={text => setSearchTerm(text)}
-              style={styles.textInput}
-              autoCapitalize='none'
-              autoCorrect={false}
-              underlineColorAndroid='transparent'
-            />
-          </View>
+  const listHeaderComponent = (
+    <View>
+      <View style={styles.searchBar}>
+        <View style={styles.searchBox}>
+          <Icon name='Search' style={styles.searchIcon} />
+          <TextInput
+            value={searchString}
+            onChangeText={text => setSearchString(text)}
+            style={styles.textInput}
+            autoCapitalize='none'
+            autoCorrect={false}
+            underlineColorAndroid='transparent'
+          />
         </View>
-        <TabBar filter={filter} setSearchFilter={setSearchFilter} />
       </View>
-    )
+      <TabBar filter={searchFilter} setSearchFilter={type => setSearchFilter(type)} />
+    </View>
+  )
 
-    const listFooterComponent = pending
-      ? <Loading style={styles.loading} />
-      : null
+  const listFooterComponent = fetching
+    ? <Loading style={styles.loading} />
+    : null
 
-    return (
-      <View style={styles.flatListContainer}>
-        <FlatList
-          data={searchResults}
-          renderItem={({ item }) =>
-            <SearchResult
-              searchResult={item}
-              goToPost={goToPost}
-              goToPerson={goToPerson}
-            />}
-          onRefresh={this.handleRefresh}
-          refreshing={refreshing}
-          keyExtractor={(item) => item.id}
-          onEndReached={() => this.fetchMore()}
-          ListHeaderComponent={listHeaderComponent}
-          ListFooterComponent={listFooterComponent}
-        />
-      </View>
-    )
-  }
+  return (
+    <View style={styles.flatListContainer}>
+      <FlatList
+        data={searchResults}
+        renderItem={({ item }) =>
+          <SearchResult
+            searchResult={item}
+            goToPost={goToPost}
+            goToPerson={goToPerson}
+          />}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+        keyExtractor={(item) => item.id}
+        onEndReached={() => fetchMore()}
+        ListHeaderComponent={listHeaderComponent}
+        ListFooterComponent={listFooterComponent}
+      />
+    </View>
+  )
 }
 
 const tabs = [
@@ -138,7 +198,7 @@ export function Tab ({ id, label, filter, setSearchFilter }) {
 }
 
 export function SearchResult ({ searchResult, goToPost, goToPerson }) {
-  const { type, content } = searchResult
+  const { content } = searchResult
 
   const resultComponent = type => {
     switch (type) {
@@ -152,7 +212,7 @@ export function SearchResult ({ searchResult, goToPost, goToPerson }) {
   }
   return (
     <View style={styles.searchResult}>
-      {resultComponent(type)}
+      {resultComponent(content?.contentTypeName)}
     </View>
   )
 }

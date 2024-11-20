@@ -7,13 +7,14 @@
 *Major Functional Areas Still needing URQL*
 
 ~~- MemberList for Group, likely requiring some refactoring~~
-- Search
+~~- Search~~
 - Messages, likely requiring some refactoring
 - Sign-up flow (partially converted, needs testing)
 - PostBodyProposal
 
 *Known Bugs*
 
+- Converted Search pages has some minor refreshing status and stale bugs (particularly with the Person tab which doesn't re-fetch when switched away and back to)
 - useHasResponsibilty stopped working...
 - Stream sort doesn't seem to be working currently, was at some point
 - Login auths correctly but doesn't re-direct, needs testing and ironing out
