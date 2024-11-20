@@ -1,7 +1,7 @@
 import { gql } from 'urql'
 
 export default gql`
-  mutation DeleteComment ($id: ID) {
+  mutation DeleteCommentMutation ($id: ID) {
     deleteComment(id: $id) {
       success
     }

@@ -30,7 +30,7 @@ export const makeQuery = ({
   let query
 
   if (context === 'groups') {
-    query = groupPostsQuery(childPostInclusion === 'yes')
+    query = makeGroupPostsQuery(childPostInclusion === 'yes')
   } else if (context === 'all' || context === 'public' || context === 'my') {
     query = postsQuery
   } else {
@@ -101,7 +101,7 @@ const postsQuery = gql`
 // viewPosts shows all the aggregate posts from current group and any
 // children the current user is a member of. We alias as posts so
 // redux-orm sets up the relationship between group and posts correctly
-const groupPostsQuery = withChildPosts => gql`
+const makeGroupPostsQuery = withChildPosts => gql`
   query GroupPostsQuery (
     $slug: String,
     # following vars are in common between postsQuery and groupPostsQuery

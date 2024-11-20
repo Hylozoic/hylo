@@ -1,7 +1,7 @@
 import { gql } from 'urql'
 
 const resetNotificationsCountMutation = gql`
-  mutation resetNotificationsCountMutation {
+  mutation ResetNotificationsCountMutation {
     updateMe(changes: { newNotificationCount: 0 }) {
       id
       newNotificationCount

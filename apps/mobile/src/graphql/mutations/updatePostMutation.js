@@ -2,7 +2,7 @@ import { gql } from 'urql'
 import postFieldsFragment from '../fragments/postFieldsFragment'
 
 export default gql`
-  mutation (
+  mutation UpdatePostMutation (
     $id: ID,
     $type: String,
     $title: String,

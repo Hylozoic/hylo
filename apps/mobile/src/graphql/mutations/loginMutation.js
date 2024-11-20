@@ -1,7 +1,7 @@
 import { gql } from 'urql'
 
 export default gql`
-  mutation ($email: String, $password: String) {
+  mutation LoginMutation ($email: String, $password: String) {
     login(email: $email, password: $password) {
       me {
         id

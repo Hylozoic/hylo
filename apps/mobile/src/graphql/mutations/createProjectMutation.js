@@ -2,7 +2,7 @@ import { gql } from 'urql'
 import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
 
 export default gql`
-  mutation (
+  mutation CreateProjectMutation (
     $title: String
     $details: String
     $linkPreviewId: String

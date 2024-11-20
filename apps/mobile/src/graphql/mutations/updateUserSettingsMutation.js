@@ -1,7 +1,7 @@
 import { gql } from 'urql'
 
 export const updateUserSettingsMutation = gql`
-  mutation ($changes: MeInput) {
+  mutation UpdateUserSettingsMutation ($changes: MeInput) {
     updateMe(changes: $changes) {
       id
       avatarUrl
