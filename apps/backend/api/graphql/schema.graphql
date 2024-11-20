@@ -2489,8 +2489,12 @@ type Mutation {
   # Change a context widget's order/position
   reorderContextWidget(
     contextWidgetId: ID,
-    # Move the widget to this order position
-    order: Int
+    # Change the parent of the widget
+    parentWidgetId: ID,
+    # Move the widget in front of this widget
+    orderInFrontOfWidgetId: ID,
+    # Add the widget to the end of the parent
+    addToEnd: Boolean
   ): ContextWidget
   # Change a post's order/position in a Collection to newOrderIndex (0 indexed)
   reorderPostInCollection(
@@ -2529,7 +2533,7 @@ type Mutation {
   # Edit a comment
   updateComment(id: ID, data: CommentInput): Comment
   # Update a context widget
-  updateContextWidget(id: ID, data: ContextWidgetInput): ContextWidget
+  updateContextWidget(contextWidgetId: ID, data: ContextWidgetInput): ContextWidget
   # Update a Group's settings. Only a group steward can call this.
   updateGroupSettings(id: ID, changes: GroupInput): Group
   # Update a Group's settings. Only can be called via API key.
@@ -2728,7 +2732,10 @@ input ContextWidgetInput {
   title: String
   
   # The display order of the widget
-  order: Int
+  orderInFrontOfWidgetId: ID
+
+  # If true, add this widget to the end of the list. Will be ignored if orderInFrontOfWidgetId is also provided.
+  addToEnd: Boolean
   
   # The visibility settings of the widget. Currently null or admin
   visibility: String

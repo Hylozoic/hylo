@@ -17,6 +17,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
 import { getContextWidgets, orderContextWidgetsForContextMenu } from 'store/selectors/contextWidgetSelectors'
 import getMe from 'store/selectors/getMe'
+import { updateContextWidget } from 'store/actions/contextWidgets'
 import resetNewPostCount from 'store/actions/resetNewPostCount'
 import useGatherItems from 'hooks/useGatherItems'
 import { CONTEXT_MY, FETCH_POSTS, RESP_ADMINISTRATION } from 'store/constants'
@@ -85,12 +86,15 @@ export default function Navigation (props) {
     return false
   }, [group])
 
+  const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
+
   const isEditting = getQuerystringParam('cme', location) === 'yes' && canAdminister
 
   const isGroupMenuOpen = useSelector(state => get('AuthLayoutRouter.isGroupMenuOpen', state))
   const streamFetchPostsParam = useSelector(state => get('Stream.fetchPostsParam', state))
 
   const [isDragging, setIsDragging] = useState(false)
+  const [activeWidget, setActiveWidget] = useState(null)
 
   const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
@@ -100,6 +104,7 @@ export default function Navigation (props) {
       dispatch(resetNewPostCount(group.id, 'Membership'))
     }
   }
+
 
   const homeOnClick = () => {
     if (window.location.pathname === rootPath) {
@@ -213,18 +218,31 @@ export default function Navigation (props) {
     }))
   ])
 
-  const handleDragStart = () => {
+  const handleDragStart = ({ active }) => {
     setIsDragging(true)
-    console.log('drag start')
+    
+    const activeId = active.id
+    const activeContextWidget = orderedWidgets.find(widget => widget.id === activeId) || contextWidgets.find(widget => widget.id === activeId)
+    console.log('activeContextWidgessst', activeContextWidget)
+    setActiveWidget(activeContextWidget)
   }
-  const handleDragEnd = () => {
+  const handleDragEnd = (event) => {
+    const { active, over } = event
     setIsDragging(false)
-    if (event.over && event.over.id === 'droppable') {
-      console.log('dropped over', event.over)
+
+    if (over && over.id !== active.id) {
+      if (over.id && active.id && over.data.current.order) {
+        // TODO CONTEXT: need to update the params to this
+        dispatch(updateContextWidget({
+          contextWidgetId: active.id,
+          data: { order: over.data.current.order, parentId: over.data.current.widget.parentId }
+        }))
+      }
     }
+    setActiveWidget(null)
     console.log('drag end')
   }
-  console.log('isDraggingssss', isDragging)
+
   const collapserState = collapsed ? 'collapserCollapsed' : 'collapser'
   const canView = !group || group.memberCount !== 0
   const links = isMyContext ? myLinks : regularLinks
@@ -262,31 +280,57 @@ export default function Navigation (props) {
         </div>
       )}
       {hasContextWidgets && (
-        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
-          <ContextWidgetList isDragging={isDragging} isEditting={isEditting} contextWidgets={contextWidgets} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} />
-          <div className='absolute bottom-0 w-[calc(100%-2em)] p-2 ml-8 mb-[0.05em]'>
-            <ContextMenuItem widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} allView isEditting={isEditting} />
+        <div className='flex flex-col h-full'>
+          <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
+            <div className='flex-1 overflow-y-auto'>
+              <ContextWidgetList
+                isDragging={isDragging}
+                isEditting={isEditting}
+                contextWidgets={orderedWidgets}
+                groupSlug={routeParams.groupSlug}
+                rootPath={rootPath}
+                canAdminister={canAdminister}
+                activeWidget={activeWidget}
+              />
+            </div>
+            <DragOverlay>
+              {activeWidget && !activeWidget.parentWidget && (
+                <ContextMenuItem widget={activeWidget} isOverlay groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} />
+              )}
+              {activeWidget && activeWidget.parentWidget && (
+                <ListItemRenderer isOverlay item={activeWidget} rootPath={rootPath} groupSlug={routeParams.groupSlug} canDnd={false} />
+              )}
+            </DragOverlay>
+          </DndContext>
+          <div className='w-[calc(100%-1.5em)] ml-[1.5em] p-2 mb-[0.05em]'>
+            <ContextMenuItem
+              widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }}
+              groupSlug={routeParams.groupSlug}
+              rootPath={rootPath}
+              canAdminister={canAdminister}
+              allView
+              isEditting={isEditting}
+            />
           </div>
-        </DndContext>
+        </div>
       )}
       {!hasContextWidgets && <div className={classes.closeBg} onClick={toggleGroupMenu} />}
     </div>
   )
 }
 
-function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditting, isDragging }) {
-  const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
-
+function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditting, isDragging, activeWidget }) {
+  console.log('contextWidgetsjsjsjsjssjsjs', contextWidgets.map(widget => ({ id: widget.id, title: widget.title, order: widget.order })))
   return (
     <ul>
-      {orderedWidgets.map(widget => (
-        <li key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} /></li>
+      {contextWidgets.map(widget => (
+        <li key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} /></li>
       ))}
     </ul>
   )
 }
 
-function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditting = false, allView = false, isDragging = false }) {
+function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditting = false, allView = false, isDragging = false, isOverlay = false, activeWidget }) {
   const { t } = useTranslation()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
 
@@ -302,7 +346,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const showEdit = allView && canAdminister
 
   // Check if the widget should be rendered
-  if (!['members', 'setup'].includes(widget.type) && !widget.view && widget.childWidgets.length === 0 &&
+  if (!['members', 'setup'].includes(widget.type) && !isEditting && !widget.view && widget.childWidgets.length === 0 &&
       !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
       !widget.viewChat && !widget.customView) {
     return null
@@ -313,9 +357,13 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
     return null
   }
 
+  if (activeWidget && activeWidget.id === widget.id) {
+    return null
+  }
+
   return (
     <>
-      <DropZone isDragging={isDragging} isDroppable={isDroppable} droppableParams={{ id: `${widget.id}-top`, data: { order: widget.order } }} />
+      <DropZone isDragging={isDragging} isDroppable={isDroppable && isEditting && !isOverlay} droppableParams={{ id: `${widget.id}`, data: { order: widget.order, widget } }} hide={allView} />
       <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border border-gray-700 rounded-md p-2 bg-white'>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
         {url && (widget.childWidgets.length === 0 && !['members'].includes(widget.type))
@@ -349,7 +397,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
               </ul>
             </div>)}
       </div>
-      <DropZone isDragging={isDragging} isDroppable={isDroppable} droppableParams={{ id: `${widget.id}-bottom`, data: { order: widget.order + 1 } }} />
+      <DropZone isDragging={isDragging} isDroppable={isDroppable && isEditting && !isOverlay} droppableParams={{ id: `${widget.id}`, data: { order: widget.order + 1, widget } }} hide={allView} />
     </>
   )
 }
@@ -362,14 +410,17 @@ function GrabMe ({ children, ...props }) {
   )
 }
 
-function DropZone ({ droppableParams, isDroppable = false, isDragging = false }) {
-  const { isOver, setNodeRef } = useDroppable(droppableParams)
+function DropZone ({ droppableParams, isDroppable = false, isDragging = false, hide = false }) {
+  const { setNodeRef } = useDroppable(droppableParams)
+  if (hide) {
+    return null
+  }
   return (
-    <div ref={setNodeRef} className={`bg-green-100 ${isDroppable && isDragging ? 'h-2' : ''} ${isOver ? 'h-5 transition-height' : ''}`} />
+    <div ref={setNodeRef} className={`bg-green-100 ${isDroppable ? 'h-2' : ''} ${isDragging ? 'h-5 transition-height' : ''}`} />
   )
 }
 
-function ListItemRenderer ({ item, rootPath, groupSlug, canDnd }) {
+function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay }) {
   const { t } = useTranslation()
   const itemTitle = widgetTitleResolver({ widget: item, t })
   const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
@@ -381,14 +432,14 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd }) {
 
   return (
     <React.Fragment key={item.id + itemTitle}>
-      <DropZone isDroppable={isItemDraggable} droppableParams={{ id: `${item.id}-top`, data: { order: item.order, parentId: item.parentId } }} />
+      <DropZone isDroppable={isItemDraggable && !isOverlay} droppableParams={{ id: `${item.id}`, data: { order: item.order, widget: item } }} />
       <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify-between items-center content-center'>
         <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}>
           <span className='text-sm text-blue-500 underline'>{itemTitle}</span>
         </MenuLink>
         {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
       </li>
-      <DropZone isDroppable={isItemDraggable} droppableParams={{ id: `${item.id}-bottom`, data: { order: item.order + 1, parentId: item.parentId } }} />
+      <DropZone isDroppable={isItemDraggable && !isOverlay} droppableParams={{ id: `${item.id}`, data: { order: item.order + 1, widget: item } }} />
     </React.Fragment>
   )
 }

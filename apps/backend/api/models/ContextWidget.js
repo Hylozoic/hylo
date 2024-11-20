@@ -166,7 +166,7 @@ module.exports = bookshelf.Model.extend({
         }
         return acc
       }, [])
-
+      
       if (reorderedWidgets.length > 0) {
         // Update all affected widgets in a single query
         const query = `
@@ -180,9 +180,9 @@ module.exports = bookshelf.Model.extend({
       }
 
       // Set the removed widget's order and parent_id to null
-      await removedWidget.save({ order: null }, { 
+      await removedWidget.save({ order: null, parent_id: null, }, { 
         patch: true,
-        parent_id: null,
+       
         transacting: trx 
       })
 
@@ -195,58 +195,42 @@ module.exports = bookshelf.Model.extend({
 
     return await bookshelf.transaction(trx => doWork(trx))
   },
-  reorder: async function({ id, order, trx: existingTrx }) {
+  reorder: async function({ id, addToEnd, orderInFrontOfWidgetId, parentWidgetId, trx: existingTrx }) {
     const doWork = async (trx) => {
       const movedContextWidget = await ContextWidget.where({ id }).fetch({ transacting: trx })
       if (!movedContextWidget) throw new Error('Context widget not found')
-        
-      const peerWidgets = await movedContextWidget.peers(trx).fetch({ transacting: trx })
-      const addItToTheEnd = peerWidgets.find(w => w.get('id') === id) ? peerWidgets.length : peerWidgets.length + 1
+      console.log('inside the reorder', order)
 
-      const newOrder = order || addItToTheEnd
-      // Check if this is a root widget trying to move to the home position
-      if (!movedContextWidget.get('parent_id') && newOrder === 1) {
-        throw new Error('The home widget must remain the first widget in the context menu')
+      const priorWidgetState = {
+        id: movedWidget.get('id'),
+        parentId: movedWidget.get('parent_id'),
+        order: movedWidget.get('order')
       }
-    
-      // Find old order if widget exists in peers
-      const oldOrder = peerWidgets.find(w => w.get('id') === id)?.get('order')
-    
-      // Get widgets that need order updates
-      const reorderedWidgets = peerWidgets.reduce((acc, widget) => {
-        const currentOrder = widget.get('order')
-        const widgetId = widget.get('id')
-        // Skip widgets outside the affected range
-        if (oldOrder) {
-          if (currentOrder < Math.min(oldOrder, newOrder) || 
-              currentOrder > Math.max(oldOrder, newOrder)) {
-            return acc
-          }
-        } else if (currentOrder < newOrder) {
-          return acc
-        }
-    
-        // Calculate new order
-        let newWidgetOrder = currentOrder
-        if (currentOrder >= newOrder) newWidgetOrder = currentOrder + 1
-        if (oldOrder && currentOrder > oldOrder) newWidgetOrder = currentOrder - 1
-        if (widgetId === id) newWidgetOrder = newOrder
-        if (newWidgetOrder !== currentOrder) acc.push({ id: widgetId, order: newWidgetOrder })
+  
+      // Fetch all widgets for the group
+      const allWidgets = await ContextWidget.findForGroup(movedWidget.get('group_id'), { transacting: trx })
+        .map(widget => ({
+          id: widget.get('id'),
+          parentId: widget.get('parent_id'),
+          order: widget.get('order')
+        }))
+  
+      // Define the new widget position
+      const newWidgetPosition = { id, addToEnd, orderInFrontOfWidgetId, parentWidgetId }
+  
+      // Reorder the widgets
+      const reorderedWidgets = reorderTree({priorWidgetState, newWidgetPosition, allWidgets})
 
-        return acc
-      }, [])
-
-      // If widget doesn't have an order yet, add it to reorderedWidgets
-      if (movedContextWidget.get('order') === null) {
-        reorderedWidgets.push({ id, order: newOrder })
-      }
-
+      console.log('this is what the reorderedWidgets are', reorderedWidgets)
       // Update all affected widgets in a single query
       const query = `
         UPDATE context_widgets 
         SET 
           "order" = CASE id 
             ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.order}`).join('\n')}
+          END,
+          parent_id = CASE id
+            ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.parentId === null ? 'NULL' : w.parentId}`).join('\n')}
           END,
           auto_added = true
         WHERE id IN (${reorderedWidgets.map(w => w.id).join(',')})
@@ -267,16 +251,11 @@ module.exports = bookshelf.Model.extend({
     const doWork = async (trx) => {
       const widget = await this.where({ id }).fetch({ transacting: trx })
       if (!widget) throw new Error('Context widget not found')
-      // If widget has an existing order, remove it from the current menu
-      const currentOrder = widget.get('order')
-      if (currentOrder !== null) {
-        await ContextWidget.removeFromMenu({id, trx})
-      }
 
       // Check if any view fields are being updated
       const viewFields = Object.values(this.ViewFields)
       const hasViewUpdate = viewFields.some(field => data[field] !== undefined)
-
+      console.log('inside the update', widget.toJSON(), 'and this is the input' , data)
       if (hasViewUpdate) {
         // If updating a view field, set all other view fields to null
         viewFields.forEach(field => {
@@ -286,21 +265,28 @@ module.exports = bookshelf.Model.extend({
         })
       }
 
+      // pull out the addToEnd and orderInFrontOfWidgetId
+      const addToEnd = data.add_to_end
+      const orderInFrontOfWidgetId = data.order_in_front_of_widget_id
+
       // Update the widget with the new data. If a widget is updated, we don't want to auto-add it later.
-      await widget.save({ ...data, auto_added: true }, { 
+      await widget.save({ ...data, auto_added: true, order: widget.get('order') || null, parent_id: widget.get('parent_id') || null }, { 
         patch: true, 
         transacting: trx 
       })
       widget.refresh()
       // If the update includes an order or parent_id, reorder the widget
-      if (data.order !== undefined || data.parent_id !== undefined) {
+      if (addToEnd || data.parent_id !== undefined || orderInFrontOfWidgetId !== undefined) {
 
         await ContextWidget.reorder({
           id: widget.get('id'),
-          order: data.order,
+          addToEnd,
+          orderInFrontOfWidgetId,
+          parentWidgetId: data.parent_id,
           trx
         })
       }
+      widget.refresh()
 
       return widget
     }
