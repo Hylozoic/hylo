@@ -1,5 +1,5 @@
 import { merge, pick, pickBy } from 'lodash/fp'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import { pluralize } from '../../util/normalize'
 import { presentAuthor } from '../digest2/formatData'
 import { sendToUser } from '../digest2'

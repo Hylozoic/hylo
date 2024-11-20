@@ -298,7 +298,8 @@ module.exports = {
     }),
     // To strip all locales except "en"
     new MomentLocalesPlugin(),
-    // Required for hylo-shared package, but ideally would be handled by
+    // TODO: Is the below still true?:
+    // Required for @hylo/shared package, but ideally would be handled by
     // the package build itself
     new webpack.IgnorePlugin({ resourceRegExp: /jsdom$/ }),
     // Generate WebPack bundle size stats (see build/stats.json and )
