@@ -15,7 +15,6 @@ export default function useOpenURL () {
 
 export async function openURL (providedPathOrURL, reset, navigation = navigationRef) {
   const linkingURL = new URL(providedPathOrURL, DEFAULT_APP_HOST)
-  console.log('!!!! here', linkingURL)
 
   if (
     prefixes.includes(linkingURL.origin) &&

@@ -122,12 +122,13 @@ export const hyloSimplePagination = ({
 
     const hasCurrentPage = cache.resolve(entityKey, fieldName, fieldArgs);
 
+    const inferredTypename = cache.resolve(hasCurrentPage as string, '__typename') as string;
     const total = cache.resolve(hasCurrentPage as string, 'total') as number;
     const hasMore = cache.resolve(hasCurrentPage as string, 'hasMore') as boolean;
 
     if (hasCurrentPage) {
       return {
-        __typename: 'PostQuerySet',
+        __typename: inferredTypename,
         items: result,
         total,
         hasMore
@@ -137,7 +138,7 @@ export const hyloSimplePagination = ({
     } else {
       info.partial = true;
       return {
-        __typename: 'PostQuerySet',
+        __typename: inferredTypename,
         items: result,
         total,
         hasMore

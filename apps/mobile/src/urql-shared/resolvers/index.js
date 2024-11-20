@@ -19,6 +19,10 @@ export default {
       })
     }
   },
+  Person: {
+    posts: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' }),
+    comments: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' })
+  },
   Comment: {
     childComments: cursorPagination()
   }

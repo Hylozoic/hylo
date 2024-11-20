@@ -10,7 +10,6 @@ import resetStore from './resetStore'
 import { handleSetState, composeReducers } from './util'
 // Local store
 import ItemChooser from 'screens/ItemChooser/ItemChooser.store'
-import MemberStream from 'screens/MemberProfile/MemberStream/MemberStream.store'
 import Members from 'screens/Members/Members.store'
 import NewMessage from 'screens/NewMessage/NewMessage.store'
 import PeopleTyping from 'components/PeopleTyping/PeopleTyping.store'
@@ -30,7 +29,6 @@ export const createCombinedReducers = () => combineReducers({
   returnToOnAuthPath,
   // Local store (Component)
   ItemChooser,
-  MemberStream,
   Members,
   NewMessage,
   PeopleTyping,
