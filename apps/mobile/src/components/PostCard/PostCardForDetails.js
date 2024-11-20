@@ -35,7 +35,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
   const [, providedJoinProject] = useMutation(joinProjectMutation)
   const [, providedLeaveProject] = useMutation(leaveProjectMutation)
 
-  const navigation = useNavigation
+  const navigation = useNavigation()
   const [currentUser] = useCurrentUser()
   const changeToGroup = useChangeToGroup()
   const goToMember = useGoToMember()
@@ -55,10 +55,9 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
   const joinProject = () => providedJoinProject({ id: post.id })
   const leaveProject = () => providedLeaveProject({ id: post.id })
   const editPost = () => navigation.navigate('Edit Post', { id: post.id })
-  const openProjectMembersModal = () => navigation.navigate('Project Members', { id: post.id, members: get('members', post) })
 
   // TODO: Move some or all of the below to PostPresenter
-  const isProject = get('type', post) === 'project'
+  const isProject = post?.type === 'project'
   const isProjectMember = find(member => member.id === currentUser.id, post.members?.items)
   const locationText = LocationHelpers.generalLocationString(post.locationObject, post.location)
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(groupId)
@@ -135,14 +134,18 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
         currentUser={currentUser}
       />
       <Files urls={post.fileUrls} style={styles.files} />
-      {isProject && (
-        <ProjectMembersSummary
-          dimension={34}
-          members={post.members}
-          onPress={openProjectMembersModal}
-          style={styles.projectMembersContainer}
-        />
-      )}
+      {/*
+        NOTE: Replaced by PeopleListModal in Footer for Project Members and Commenters...
+        but this could still be better, put in the footer
+        {isProject && (
+          <ProjectMembersSummary
+            dimension={34}
+            members={post.members.items}
+            onPress={openProjectMembersModal}
+            style={styles.projectMembersContainer}
+          />
+        )}
+      */}
       {isProject && post.projectManagementLink && (
         <View style={styles.donationsLink}>
           {projectManagementLinkSvgUri && (

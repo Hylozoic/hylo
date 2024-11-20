@@ -83,7 +83,7 @@ export default function PostFooter ({
           toggleModal={togglePeopleModal}
           isVisible={peopleModalVisible}
         />
-        <TouchableOpacity onPress={onPress} onLongPress={togglePeopleModal} style={styles.comments}>
+        <TouchableOpacity onPress={togglePeopleModal} onLongPress={togglePeopleModal} style={styles.comments}>
           {avatarUrls.slice(0, 3).map((avatarUrl, index) => {
             return (
               <Avatar

@@ -6,7 +6,7 @@
 
 *Major Functional Areas Still needing URQL*
 
-- MemberList for Group, likely requiring some refactoring
+~~- MemberList for Group, likely requiring some refactoring~~
 - Search
 - Messages, likely requiring some refactoring
 - Sign-up flow (partially converted, needs testing)
@@ -14,6 +14,8 @@
 
 *Known Bugs*
 
+- useHasResponsibilty stopped working...
+- Stream sort doesn't seem to be working currently, was at some point
 - Login auths correctly but doesn't re-direct, needs testing and ironing out
 - Strange hooks related error though this function doesn't use hooks
 - Create Group workflow was already URQL'ified and working, but seems to be broken again
