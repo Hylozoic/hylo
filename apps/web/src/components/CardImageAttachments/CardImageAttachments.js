@@ -38,7 +38,7 @@ export default function CardImageAttachments ({
 
   return (
     <>
-      <div className={cx(className, classes.image)}>
+      <div className={cx(className, classes.image, { [classes.flagged]: isFlagged })}>
         <img
           src={firstImageUrl}
           alt='Attached image 1'

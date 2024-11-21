@@ -620,6 +620,7 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
         : (
           <div className={cx(styles.cardItem, { [styles.expanded]: expanded })}>
             <PostCard
+              group={context.group}
               expanded={expanded}
               post={post}
               onAddReaction={context.onAddReaction}

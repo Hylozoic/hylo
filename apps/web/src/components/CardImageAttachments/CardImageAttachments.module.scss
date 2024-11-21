@@ -40,3 +40,10 @@
   }
 }
 
+.flagged {
+  overflow: hidden;
+
+  img {
+    filter: blur(30px);
+  }
+}

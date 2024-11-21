@@ -260,6 +260,7 @@ export default function Stream (props) {
                 expanded={expanded}
                 routeParams={params}
                 post={post}
+                group={group}
                 key={post.id}
                 currentGroupId={group && group.id}
                 currentUser={currentUser}

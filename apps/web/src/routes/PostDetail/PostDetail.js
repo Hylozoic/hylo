@@ -212,7 +212,7 @@ function PostDetail () {
           />
         </div>
       )}
-      <CardImageAttachments attachments={post.attachments} />
+      <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
       {isEvent && (
         <EventBody
           className={classes.body}

@@ -11,6 +11,7 @@ import { POST_PROP_TYPES } from 'store/models/Post'
 import { postUrl, editPostUrl } from 'util/navigation'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import EventBody from './EventBody'
 import PostBody from './PostBody'
 import PostFooter from './PostFooter'
@@ -26,9 +27,9 @@ export default function PostCard (props) {
     childPost,
     className,
     constrained,
-    currentGroupId,
     expanded,
     highlightProps,
+    group,
     post,
     locationParams,
     onAddReaction = () => {},
@@ -78,7 +79,7 @@ export default function PostCard (props) {
 
   const postType = get('type', post)
   const isEvent = postType === 'event'
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const isFlagged = group && post.flaggedGroups && post.flaggedGroups.includes(group.id)
 
   const hasImage = post.attachments?.find(a => a.type === 'image') || false
 
@@ -113,8 +114,12 @@ export default function PostCard (props) {
             hasImage={hasImage}
           />
         </div>
-        <div onClick={onClick} className={cx({ [classes.flagged]: isFlagged && !post.clickthrough })}>
-          <CardImageAttachments attachments={post.attachments || []} className='post-card' isFlagged={isFlagged && !post.clickthrough} />
+        <div onClick={onClick}>
+          <CardImageAttachments
+            attachments={post.attachments || []}
+            className='post-card'
+            isFlagged={isFlagged && !post.clickthrough}
+          />
         </div>
         {isEvent && (
           <div className={classes.bodyWrapper}>
