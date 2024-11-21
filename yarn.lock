@@ -11055,7 +11055,6 @@ __metadata:
     graphql-tools: "npm:^9.0.1"
     graphql-type-json: "npm:^0.3.2"
     grunt: "npm:1.3.0"
-    he: "npm:^1.2.0"
     i18n: "npm:^0.8.3"
     image-size: "npm:^0.3.5"
     insane: "npm:^2.6.2"
