@@ -5,7 +5,7 @@ import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { SendHorizontal } from 'lucide-react'
-import { useSelector, useDispatch, shallowEqual } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { useParams, useLocation } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData } from '@virtuoso.dev/message-list'
@@ -121,7 +121,7 @@ export default function ChatRoom (props) {
   const groupTopic = useSelector(state => getGroupTopicForCurrentRoute(state, groupSlug, topicName))
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
-  const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: 'new', attachmentType: 'image' }), shallowEqual)
+  const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: 'new', attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
   const linkPreview = useSelector(getLinkPreview) // TODO: check
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
   const followersTotal = useMemo(() => get('followersTotal', groupSlug ? groupTopic : topic), [groupSlug, groupTopic, topic])
@@ -518,7 +518,7 @@ export default function ChatRoom (props) {
             className={styles.uploadAttachment}
             id='new'
             attachmentType='image'
-            onSuccess={(attachment) => addAttachment('post', 'new', attachment)}
+            onSuccess={(attachment) => dispatch(addAttachment('post', 'new', attachment))}
             allowMultiple
           >
             <Icon
