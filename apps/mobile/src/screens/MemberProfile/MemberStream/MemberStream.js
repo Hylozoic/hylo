@@ -125,7 +125,7 @@ export default function MemberStream ({ id, header }) {
   }, [choice])
 
   const [offset, setOffset] = useState(0)
-  const [{ data, fetching }] = useQuery({ query, variables: { id, offset, first: 20 } })
+  const [{ data, fetching }] = useQuery({ query, variables: { id, offset, first: 5 } })
   const { items, hasMore } = useMemo(() => {
     if (!data?.person[itemType]) return { items: [], hasMore: false }
     return {

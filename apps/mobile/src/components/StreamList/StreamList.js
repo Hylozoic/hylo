@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { gql, useMutation, useQuery } from 'urql'
 import { FlatList, View, TouchableOpacity } from 'react-native'
 import { isEmpty, get } from 'lodash/fp'
@@ -105,7 +105,7 @@ export default function StreamList (props) {
     timeframe,
     topicName
   })
-  const [{ data, fetching }, refetchPosts] = useQuery(makeQuery({ ...fetchPostParam, first: 20, offset }))
+  const [{ data, fetching }, refetchPosts] = useQuery(makeQuery({ ...fetchPostParam, first: 10, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore
   const posts = postsQuerySet?.items

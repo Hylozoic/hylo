@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useCallback } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import { useNavigation, useRoute } from '@react-navigation/native'
@@ -26,15 +26,6 @@ import ModerationList from 'components/ModerationList'
 import { bannerlinearGradientColors } from 'style/colors'
 import styles from './Stream.styles'
 
-export function headerTitle (currentGroup, streamType, myHome, t) {
-  if (myHome) return myHome
-  let title
-  title = currentGroup?.name
-  title = streamType ? capitalize(t(streamType) + 's') : title
-  if (streamType === 'Moderation') title = t('Moderation')
-  return title
-}
-
 export default function Stream ({ topicName: providedTopicName }) {
   const ref = useRef(null)
   const { t } = useTranslation()
@@ -44,17 +35,18 @@ export default function Stream ({ topicName: providedTopicName }) {
 
   const [currentUser] = useCurrentUser()
   const [currentGroup] = useCurrentGroup()
-  const customView = currentGroup?.customViews?.items?.filter(customView => customView.id === customViewId)
   const changeToGroup = useChangeToGroup()
   const goToTopicDefault = useGoToTopic()
-  const topicName = providedTopicName || routeTopicName
 
+  const customView = currentGroup?.customViews?.items?.filter(customView => customView.id === customViewId)
   const customViewType = customView?.type
   const customPostTypes = customViewType === 'stream' ? customView?.postTypes : null
   const customViewName = customView?.name
   const customViewIcon = customView?.icon
   // Note: Custom View Mode = grid, etc. Not implemented in App
   // const customViewMode = customView?.defaultViewMode
+
+  const topicName = providedTopicName || routeTopicName
 
   // Topics related: This component re-directs to the WebView chat for Topics
   // within everything but the Public and All My Groups contexts
@@ -85,16 +77,18 @@ export default function Stream ({ topicName: providedTopicName }) {
     navigation.setOptions({
       title: headerTitle(currentGroup, streamType, myHome, t)
     })
-  }, [navigation, topicName, currentGroup, currentGroup?.id, streamType, myHome])
+  }, [navigation, currentGroup?.id, streamType, myHome])
 
   if (!currentUser) return <Loading style={{ flex: 1 }} />
 
   // Navigation helpers
-  const goToPostDetails = id => navigation.navigate('Post Details', { id })
-  const goToCreateGroup = () => navigation.navigate('Create Group')
-  const goToMember = id => navigation.navigate('Member', { id })
+  const goToPostDetails = useCallback(id => navigation.navigate('Post Details', { id }), [navigation])
+  const goToCreateGroup = useCallback(() => navigation.navigate('Create Group'), [navigation])
+  const goToMember = useCallback(id => navigation.navigate('Member', { id }), [navigation])
 
-  if (isEmpty(currentUser?.memberships) && currentGroup?.id !== PUBLIC_GROUP_ID) {
+  if (!currentGroup) return null
+
+  if (isEmpty(currentUser.memberships) && currentGroup.id !== PUBLIC_GROUP_ID) {
     return (
       <CreateGroupNotice
         goToCreateGroup={goToCreateGroup}
@@ -102,8 +96,6 @@ export default function Stream ({ topicName: providedTopicName }) {
       />
     )
   }
-
-  if (!currentGroup) return null
 
   const name = topicName ? '#' + topicName : currentGroup.name
   const image = currentGroup.bannerUrl ? { uri: currentGroup.bannerUrl } : null
@@ -202,6 +194,15 @@ export default function Stream ({ topicName: providedTopicName }) {
       )}
     </>
   )
+}
+
+export function headerTitle (currentGroup, streamType, myHome, t) {
+  if (myHome) return myHome
+  let title
+  title = currentGroup?.name
+  title = streamType ? capitalize(t(streamType) + 's') : title
+  if (streamType === 'Moderation') title = t('Moderation')
+  return title
 }
 
 export function postPromptString (type = '', { firstName }, t) {

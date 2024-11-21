@@ -22,7 +22,7 @@ import PostCardForDetails from 'components/PostCard/PostCardForDetails'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { white } from 'style/colors'
 
-export const query = gql`
+export const postDetailsQuery = gql`
   query PostDetailsQuery ($id: ID, $cursor: ID) {
     post(id: $id) {
       ...PostFieldsFragment
@@ -41,7 +41,7 @@ export default function PostDetails () {
   const isModalScreen = useIsModalScreen()
   const { id: postId } = useRouteParams()
   const [currentGroup] = useCurrentGroup()
-  const [{ data, fetching, error }] = useQuery({ query, variables: { id: postId } })
+  const [{ data, fetching, error }] = useQuery({ query: postDetailsQuery, variables: { id: postId } })
   const post = useMemo(() => PostPresenter(data?.post), [data?.post])
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()
