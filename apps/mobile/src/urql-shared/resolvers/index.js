@@ -4,7 +4,8 @@ import cursorPagination from './cursorPagination'
 export default {
   Query: {
     threadList: cursorPagination(),
-    posts: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' })
+    posts: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' }),
+    search: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' })
   },
   Group: {
     posts: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' }),
