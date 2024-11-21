@@ -1,34 +1,5 @@
 # HyloReactNative
 
-## ⚠️ URQL CONVERSION IN PROGRESS
-
-### Currently known app issues, URQL and otherwise:
-
-*Major Functional Areas Still needing URQL*
-
-- ~~MemberList for Group, likely requiring some refactoring~~
-- ~~Search~~
-- Messages, likely requiring some refactoring (mostly done--NewMessage remains)
-- Sign-up flow (partially converted, needs testing)
-- PostBodyProposal
-- Analytics needs to be brought-back in some way for relavent URQL mutations or interactions, mostly have left TODO's inline to indicate where
-- ItemChoosers...
-
-*Known Bugs*
-
-- ~~Converted Search pages has some minor refreshing status and stale bugs (particularly with the Person tab which doesn't re-fetch when switched away and back to)~~
-- useHasResponsibilty stopped working...
-- Stream sort doesn't seem to be working currently, was at some point
-- Login auths correctly but doesn't re-direct, needs testing and ironing out
-- Strange hooks related error though this function doesn't use hooks
-- Create Group workflow was already URQL'ified and working, but seems to be broken again
-- It used to work.
-- MemberProfile tab switching between different feed types is slow and visually not what is expected (tab 1/2 switches but not all the way until fetching is done)
-- The entire test suite is likely quite broken at this point
-- Post and Comment editing doesn't seem to get the existing content into the TipTap editor hosted on Web, this changes I think with the vite+ conversion--but could be something else--needs to be explored
-
----
-
 ## Quick Start
 
 1. Run through the React Native environment setup on the [React Native website](https://reactnative.dev/docs/environment-setup)
