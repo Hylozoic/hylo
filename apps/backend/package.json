@@ -40,10 +40,6 @@
     "heroku-postbuild": "yarn install"
   },
   "devDependencies": {
-    "@babel/cli": "^7.17.6",
-    "@babel/core": "^7.17.9",
-    "@babel/preset-env": "^7.16.11",
-    "@babel/register": "^7.17.7",
     "@faker-js/faker": "^6.3.1",
     "babel-plugin-istanbul": "^2.0.3",
     "chai": "^4.2.0",
@@ -63,6 +59,10 @@
   },
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
+    "@babel/cli": "^7.17.6",
+    "@babel/core": "^7.17.9",
+    "@babel/preset-env": "^7.16.11",
+    "@babel/register": "^7.17.7",
     "@emoji-mart/data": "^1.0.6",
     "@envelop/core": "^2.6.0",
     "@graphql-yoga/node": "^2.13.13",
