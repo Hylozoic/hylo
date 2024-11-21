@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { gql, useMutation, useQuery } from 'urql'
 import { FlatList, View, TouchableOpacity } from 'react-native'
 import { isEmpty, get } from 'lodash/fp'
@@ -57,7 +57,7 @@ export const DEFAULT_TIMEFRAME_ID = 'future'
 
 // Currently unused
 export const resetGroupTopicNewPostCountMutation = gql`
-  mutation($id: ID) {
+  mutation ResetGroupTopicNewPostCountMutation($id: ID) {
     updateGroupTopicFollow(id: $id, data: { newPostCount: 0 }) {
       success
     }
@@ -65,7 +65,7 @@ export const resetGroupTopicNewPostCountMutation = gql`
 `
 
 export const resetGroupNewPostCountMutation = gql`
-  mutation($id: ID) {
+  mutation ResetGroupNewPostCountMutation ($id: ID) {
     updateMembership(groupId: $id, data: { newPostCount: 0 }) {
       id
     }
@@ -114,23 +114,27 @@ export default function StreamList (props) {
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
 
+  // TODO: Can this be simplified? Also, does this perhaps follow the same logic as
+  // group( updateLastViewed: true ) and could we combine this? Currrently that extra
+  // query arg for GroupDetailsQuery makes the URQL caching not merged, so it would be nice
+  // to run it independently or make it a mutation, like this resetGroupNewPostCount
   useEffect(() => {
     if (fetchPostParam && isFocused && isEmpty(postIds) && hasMore !== false) {
-      const forGroupId = get('id', forGroup)
-      const shouldReset = slug => (
+      const slug = fetchPostParam.context
+
+      if (
+        forGroup?.id &&
         slug !== ALL_GROUP_ID &&
         slug !== PUBLIC_GROUP_ID &&
         slug !== MY_CONTEXT_ID &&
         !topicName &&
         sortBy === DEFAULT_SORT_BY_ID &&
         !fetchPostParam.filter
-      )
-
-      if (shouldReset(fetchPostParam.context)) {
-        resetGroupNewPostCount({ id: forGroupId })
+      ) {
+        resetGroupNewPostCount({ id: forGroup?.id })
       }
     }
-  }, [fetchPostParam, hasMore, isFocused, postIds])
+  }, [forGroup?.id, fetchPostParam?.filter, fetchPostParam?.context, hasMore, isFocused, postIds])
 
   // Only custom views can be sorted by manual order
   useEffect(() => {

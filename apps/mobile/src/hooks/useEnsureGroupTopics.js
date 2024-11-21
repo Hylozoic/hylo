@@ -64,12 +64,12 @@ const groupTopicsQuery = gql`
 `
 
 // TODO: URL - what topics are supposed to show up for AllGroups / PublicGroups
-export default function useEnsureGroupTopics ({ groupId, groupSlug }) {
+export default function useEnsureGroupTopics ({ groupId, groupSlug, first = 100 }) {
   const [{ data, fetching: pending }] = useQuery({
     query: groupId ? groupTopicForGroupQuery : groupTopicsQuery,
     variables: {
       autocomplete: '',
-      first: 100,
+      first,
       id: groupId,
       offset: 0,
       order: 'desc',

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { View, FlatList, Text, TouchableOpacity } from 'react-native'
-import { useNavigation, useScrollToTop } from '@react-navigation/native'
+import { useScrollToTop } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { gql, useQuery } from 'urql'
 import { isFunction, filter, values, keys, debounce, size } from 'lodash/fp'
