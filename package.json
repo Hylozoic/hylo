@@ -25,5 +25,8 @@
     "pretty-date": "^0.2.0",
     "trunc-html": "^1.1.2"
   },
+  "devDependencies": {
+    "typescript": "5.0.4"
+  },
   "packageManager": "yarn@4.5.0"
 }
