@@ -46,13 +46,13 @@
     ]
   },
   "dependencies": {
-    "@deck.gl-community/editable-layers": "^9.0.3",
-    "@deck.gl-community/layers": "^9.0.3",
+    "@deck.gl-community/editable-layers": "9.0.3",
+    "@deck.gl-community/layers": "9.0.3",
     "@deck.gl/core": "9.0.35",
-    "@deck.gl/extensions": "^9.0.35",
+    "@deck.gl/extensions": "9.0.35",
     "@deck.gl/geo-layers": "9.0.35",
     "@deck.gl/layers": "9.0.35",
-    "@deck.gl/mapbox": "^9.0.35",
+    "@deck.gl/mapbox": "9.0.35",
     "@deck.gl/mesh-layers": "9.0.35",
     "@deck.gl/react": "9.0.35",
     "@dnd-kit/core": "^6.0.8",

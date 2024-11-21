@@ -2428,7 +2428,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@deck.gl-community/editable-layers@npm:^9.0.3":
+"@deck.gl-community/editable-layers@npm:9.0.3":
   version: 9.0.3
   resolution: "@deck.gl-community/editable-layers@npm:9.0.3"
   dependencies:
@@ -2482,7 +2482,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@deck.gl-community/layers@npm:^9.0.3":
+"@deck.gl-community/layers@npm:9.0.3":
   version: 9.0.3
   resolution: "@deck.gl-community/layers@npm:9.0.3"
   dependencies:
@@ -2529,7 +2529,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@deck.gl/extensions@npm:^9.0.12, @deck.gl/extensions@npm:^9.0.35":
+"@deck.gl/extensions@npm:9.0.35, @deck.gl/extensions@npm:^9.0.12":
   version: 9.0.35
   resolution: "@deck.gl/extensions@npm:9.0.35"
   dependencies:
@@ -2596,7 +2596,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@deck.gl/mapbox@npm:^9.0.35":
+"@deck.gl/mapbox@npm:9.0.35":
   version: 9.0.35
   resolution: "@deck.gl/mapbox@npm:9.0.35"
   dependencies:
@@ -35830,13 +35830,13 @@ __metadata:
     "@babel/plugin-transform-runtime": "npm:^7.25.7"
     "@babel/preset-env": "npm:7.25.8"
     "@babel/preset-react": "npm:^7.25.7"
-    "@deck.gl-community/editable-layers": "npm:^9.0.3"
-    "@deck.gl-community/layers": "npm:^9.0.3"
+    "@deck.gl-community/editable-layers": "npm:9.0.3"
+    "@deck.gl-community/layers": "npm:9.0.3"
     "@deck.gl/core": "npm:9.0.35"
-    "@deck.gl/extensions": "npm:^9.0.35"
+    "@deck.gl/extensions": "npm:9.0.35"
     "@deck.gl/geo-layers": "npm:9.0.35"
     "@deck.gl/layers": "npm:9.0.35"
-    "@deck.gl/mapbox": "npm:^9.0.35"
+    "@deck.gl/mapbox": "npm:9.0.35"
     "@deck.gl/mesh-layers": "npm:9.0.35"
     "@deck.gl/react": "npm:9.0.35"
     "@dnd-kit/core": "npm:^6.0.8"
