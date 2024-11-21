@@ -1,6 +1,6 @@
 const { GraphQLYogaError } = require('@graphql-yoga/node')
 import validator from 'validator'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import { get, isEmpty, map, merge } from 'lodash/fp'
 
 module.exports = {

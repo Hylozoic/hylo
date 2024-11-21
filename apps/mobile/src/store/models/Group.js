@@ -108,7 +108,7 @@ Group.fields = {
     to: 'Group',
     relatedName: 'antirequisiteGroups',
     through: 'GroupPrerequisite',
-    throughFields: [ 'prerequisiteGroup', 'forGroup' ]
+    throughFields: ['prerequisiteGroup', 'forGroup']
   }),
   settings: attr(),
   slug: attr(),

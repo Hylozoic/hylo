@@ -2,7 +2,7 @@
 import {
   curry, every, filter, find, isEmpty, map, pickBy, sortBy
 } from 'lodash/fp'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 
 const isChat = post => post.get('type') === 'chat'
 const isRequest = post => post.get('type') === 'request'

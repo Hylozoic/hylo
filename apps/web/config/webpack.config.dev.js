@@ -174,7 +174,8 @@ module.exports = {
     new webpack.DefinePlugin(env.stringified),
     // To strip all locales except “en”
     new MomentLocalesPlugin(),
-    // Required for hylo-shared package, but ideally would be handled by
+    // TODO: Is the below still true?:
+    // Required for @hylo/shared package, but ideally would be handled by
     // the package build itself
     new webpack.IgnorePlugin({ resourceRegExp: /jsdom$/ })
   ],

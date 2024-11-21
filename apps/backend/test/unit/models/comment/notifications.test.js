@@ -1,4 +1,4 @@
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import { compact } from 'lodash'
 import { notifyAboutMessage, MAX_PUSH_NOTIFICATION_LENGTH } from '../../../../api/models/comment/notifications'
 import factories from '../../../setup/factories'
