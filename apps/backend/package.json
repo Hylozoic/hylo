@@ -113,7 +113,6 @@
     "minimist": "^1.1.0",
     "mixpanel": "^0.17.0",
     "moment-timezone": "^0.5.46",
-    "newrelic": "^7.0.0",
     "node-fetch": "^2",
     "oidc-provider": "^7.11.3",
     "parse-redis-url": "0.0.2",
