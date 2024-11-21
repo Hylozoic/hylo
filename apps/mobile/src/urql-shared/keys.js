@@ -20,6 +20,8 @@ export default {
   MembershipSettings: () => null,
   MembershipCommonRoleQuerySet: () => null,
   MembershipQuerySet: () => null,
+  MessageQuerySet: () => null,
+  MessageThreadQuerySet: () => null,
   NotificationQuerySet: () => null,
   PersonQuerySet: () => null,
   Point: () => null,

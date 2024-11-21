@@ -3,7 +3,6 @@ import cursorPagination from './cursorPagination'
 
 export default {
   Query: {
-    threadList: cursorPagination(),
     posts: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' }),
     search: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' })
   },
@@ -19,6 +18,12 @@ export default {
         return cache.resolve(b, 'position') - cache.resolve(a, 'position')
       })
     }
+  },
+  Me: {
+    messageThreads: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' })
+  },
+  MessageThread: {
+    messages: cursorPagination()
   },
   Person: {
     posts: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' }),

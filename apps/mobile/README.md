@@ -8,9 +8,11 @@
 
 - ~~MemberList for Group, likely requiring some refactoring~~
 - ~~Search~~
-- Messages, likely requiring some refactoring
+- Messages, likely requiring some refactoring (mostly done--NewMessage remains)
 - Sign-up flow (partially converted, needs testing)
 - PostBodyProposal
+- Analytics needs to be brought-back in some way for relavent URQL mutations or interactions, mostly have left TODO's inline to indicate where
+- ItemChoosers...
 
 *Known Bugs*
 
@@ -21,7 +23,6 @@
 - Strange hooks related error though this function doesn't use hooks
 - Create Group workflow was already URQL'ified and working, but seems to be broken again
 - It used to work.
-- Analytics needs to be brought-back in some way for relavent URQL mutations or interactions, mostly have left TODO's inline to indicate where
 - MemberProfile tab switching between different feed types is slow and visually not what is expected (tab 1/2 switches but not all the way until fetching is done)
 - The entire test suite is likely quite broken at this point
 - Post and Comment editing doesn't seem to get the existing content into the TipTap editor hosted on Web, this changes I think with the vite+ conversion--but could be something else--needs to be explored

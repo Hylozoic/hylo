@@ -1,10 +1,10 @@
 import { gql } from 'urql'
 
 export default gql` 
-  query MessageThreadMessagesQuery ($id: ID, $cursor: ID, $messagePageSize: Int = 20) {
+  query MessageThreadMessagesQuery ($id: ID, $cursor: ID, $first: Int = 20) {
     messageThread (id: $id) {
       id
-      messages(first: $messagePageSize, cursor: $cursor, order: "desc") {
+      messages(first: $first, cursor: $cursor, order: "desc") {
         hasMore
         total
         items {

@@ -13,11 +13,15 @@ const cursorPagination = () => {
     const isInTheCache = cache.resolve(entityKey, fieldKey)
     info.partial = !isInTheCache
 
+    let inferredTypename = null
     let hasMore = false
     let total = 0
     const results = []
     fieldInfos.forEach((fi) => {
       const key = cache.resolve(entityKey, fi.fieldKey)
+      if (!inferredTypename) {
+        inferredTypename = cache.resolve(key, '__typename') // Introspect for typename
+      }
       const data = cache.resolve(key, 'items')
       total = cache.resolve(key, 'total')
       const _hasMore = cache.resolve(key, 'hasMore')
@@ -27,8 +31,7 @@ const cursorPagination = () => {
       results.push(...(data || []))
     })
     return {
-      // TODO: introspect for this!
-      __typename: 'CommentQuerySet',
+      __typename: inferredTypename,
       items: results,
       hasMore,
       total
