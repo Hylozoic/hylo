@@ -3663,7 +3663,6 @@ __metadata:
     marked: "npm:^4.2.1"
     moment-timezone: "npm:^0.5.46"
     pretty-date: "npm:^0.2.0"
-    querystring: "npm:^0.2.1"
     standard: "npm:^16.0.4"
     trunc-html: "npm:^1.1.2"
     trunc-text: "npm:^1.0.2"
