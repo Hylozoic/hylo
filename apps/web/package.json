@@ -18,7 +18,7 @@
   "scripts": {
     "viteDev": "vite serve",
     "dev": "yarn start",
-    "start": "rm -rf ../../node_modules/.cache/babel-loader && node --preserve-symlinks scripts/start.js",
+    "start": "node --preserve-symlinks scripts/start.js",
     "build": "node scripts/build.js",
     "test": "TZ=UTC node scripts/test.js",
     "lint": "yarn exec standard",
