@@ -31365,8 +31365,6 @@ __metadata:
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
     "@hylo/shared": "workspace:*"
-    pretty-date: "npm:^0.2.0"
-    trunc-html: "npm:^1.1.2"
     typescript: "npm:5.0.4"
   languageName: unknown
   linkType: soft
