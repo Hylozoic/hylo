@@ -16,8 +16,8 @@ import { modalScreenName } from 'hooks/useIsModalScreen'
 import { useNavigation } from '@react-navigation/native'
 
 const searchQuery = gql`
-  query SearchQuery ($search: String, $type: String, $offset: Int) {
-    search(term: $search, first: 2, type: $type, offset: $offset) {
+  query SearchQuery ($search: String, $type: String, $offset: Int, $first: Int = 2) {
+    search(term: $search, first: $first, type: $type, offset: $offset) {
       total
       hasMore
       items {
@@ -97,7 +97,8 @@ export default function SearchPage () {
     variables: {
       search: searchString,
       type: searchType,
-      offset
+      offset,
+      first: searchType === 'person' ? 10 : 2
     },
     pause: !searchString
   })
