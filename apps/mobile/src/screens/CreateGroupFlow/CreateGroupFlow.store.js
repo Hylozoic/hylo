@@ -129,6 +129,7 @@ export function clearCreateGroupStore () {
   }
 }
 
+// TODO: URQL - convert off of ReduxORM
 export const getNewGroupParentGroups = ormCreateSelector(
   orm,
   getGroupData,

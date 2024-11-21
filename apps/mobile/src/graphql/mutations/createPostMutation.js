@@ -1,6 +1,17 @@
 import { gql } from 'urql'
 import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
 
+// TODO: URQL - re-integrate analytics:
+// analytics: {
+//   eventName: AnalyticsEvents.POST_CREATED,
+//   detailsLength: TextHelpers.textLengthHTML(details),
+//   groupId: groupIds,
+//   isAnnouncement: sendAnnouncement,
+//   isPublic,
+//   topics: topicNames,
+//   type
+// }
+
 export default gql`
   mutation CreatePostMutation (
     $type: String,

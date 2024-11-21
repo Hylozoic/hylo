@@ -6,23 +6,11 @@
 // to 'Location'. And both of these lists are different from what should be
 // shown when something has been typed into the search field.
 import { get, isNull, omitBy, pick, reduce, uniq, isEmpty, includes } from 'lodash/fp'
-import { mapValues, camelCase } from 'lodash'
 import orm from 'store/models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
+import { FETCH_POSTS } from 'store/constants'
 import {
-  FETCH_POSTS,
-  FETCH_TOPICS,
-  FETCH_DEFAULT_TOPICS,
-  CREATE_POST,
-  CREATE_PROJECT,
-  DROP_QUERY_RESULTS,
-  FIND_OR_CREATE_THREAD,
-  FETCH_THREADS,
-  FETCH_CHILD_COMMENTS
-} from 'store/constants'
-import {
-  RECEIVE_POST,
-  RECEIVE_THREAD
+  RECEIVE_POST
 } from 'components/SocketListener/SocketListener.store'
 
 // reducer
@@ -30,7 +18,6 @@ import {
 export default function (state = {}, action) {
   const { type, payload, error, meta } = action
   if (error) return state
-  let root
 
   const { extractQueryResults } = meta || {}
   if (extractQueryResults && payload) {
@@ -48,30 +35,9 @@ export default function (state = {}, action) {
   //
 
   switch (type) {
-    case CREATE_PROJECT:
-    case CREATE_POST:
-      root = {
-        ...payload.data[camelCase(type)]
-      }
-      return matchNewPostIntoQueryResults(state, root)
-
-    case FIND_OR_CREATE_THREAD:
-      root = payload.data.findOrCreateThread
-      return matchNewThreadIntoQueryResults(state, root)
-
-
     case RECEIVE_POST: {
       return matchNewPostIntoQueryResults(state, payload.data.post)
     }
-
-    case RECEIVE_THREAD:
-      return matchNewThreadIntoQueryResults(state, payload.data.thread)
-
-    case DROP_QUERY_RESULTS:
-      return {
-        ...state,
-        [payload]: null
-      }
   }
 
   return state
@@ -88,7 +54,7 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
 
   // All Groups stream w/ topics
   queriesToMatch.push({ context: 'all' })
-  for (let topic of topics) {
+  for (const topic of topics) {
     queriesToMatch.push(
       { context: 'all', topic: topic.id }
     )
@@ -115,7 +81,7 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
       { context: 'groups', slug: group.slug, sortBy: 'start_time', filter: type, order: 'asc' },
       { context: 'groups', slug: group.slug, sortBy: 'start_time', filter: type, order: 'desc' }
     )
-    for (let topic of topics) {
+    for (const topic of topics) {
       queriesToMatch.push(
         { context: 'groups', slug: group.slug, topic: topic.id }
       )
@@ -127,50 +93,6 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
   }, state, groups)
 }
 
-export function matchNewTopicIntoQueryResults (state, { id, isDefault, groupTopics }) {
-  const queriesToMatch = []
-
-  // All Groups topics
-  queriesToMatch.push({ sortBy: 'name' })
-
-  // Group topics
-  return reduce((memo, groupTopic) => {
-    queriesToMatch.push(
-      { groupSlug: groupTopic.group.slug, autocomplete: '' },
-      { groupSlug: groupTopic.group.slug, sortBy: 'name', autocomplete: '' },
-      { groupSlug: groupTopic.group.slug, sortBy: 'updated_at', autocomplete: '' },
-      { groupSlug: groupTopic.group.slug, sortBy: 'num_followers', autocomplete: '' }
-    )
-
-    return reduce((innerMemo, params) => {
-      if (isDefault) {
-        innerMemo = appendId(innerMemo, FETCH_DEFAULT_TOPICS, params, id)
-      }
-      return prependIdForCreate(innerMemo, FETCH_TOPICS, params, id)
-    }, memo, queriesToMatch)
-  }, state, groupTopics.items)
-}
-
-export function matchNewThreadIntoQueryResults (state, { id, type }) {
-  return prependIdForCreate(state, FETCH_THREADS, null, id)
-}
-
-export function matchChildCommentsIntoQueryResults (state, { data }) {
-  const toplevelComments = get('post.comments.items', data)
-
-  if (toplevelComments) {
-    toplevelComments.forEach(comment => {
-      state = updateIds(state,
-        FETCH_CHILD_COMMENTS,
-        { id: comment.id },
-        get('childComments', comment) || {}
-      )
-    })
-  }
-
-  return state
-}
-
 function prependIdForCreate (state, type, params, id) {
   const key = buildKey(type, params)
   if (!state[key]) return state
@@ -178,19 +100,6 @@ function prependIdForCreate (state, type, params, id) {
     ...state,
     [key]: {
       ids: !state[key].ids.includes(id) ? [id].concat(state[key].ids) : state[key].ids,
-      total: state[key].total && state[key].total + 1,
-      hasMore: state[key].hasMore
-    }
-  }
-}
-
-function appendId (state, type, params, id) {
-  const key = buildKey(type, params)
-  if (!state[key]) return state
-  return {
-    ...state,
-    [key]: {
-      ids: !state[key].ids.includes(id) ? state[key].ids.concat(id) : state[key].ids,
       total: state[key].total && state[key].total + 1,
       hasMore: state[key].hasMore
     }
@@ -229,16 +138,6 @@ export function makeGetQueryResults (actionType) {
 }
 
 // action factory
-
-export function makeDropQueryResults (actionType) {
-  return props => {
-    const key = buildKey(actionType, props)
-    return {
-      type: DROP_QUERY_RESULTS,
-      payload: key
-    }
-  }
-}
 
 export function buildKey (type, params) {
   return JSON.stringify({

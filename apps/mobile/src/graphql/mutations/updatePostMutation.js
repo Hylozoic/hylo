@@ -1,6 +1,16 @@
 import { gql } from 'urql'
 import postFieldsFragment from '../fragments/postFieldsFragment'
 
+// TODO: URQL - re-integrate analytics:
+// analytics: {
+//   eventName: AnalyticsEvents.POST_UPDATED,
+//   detailsLength: TextHelpers.textLengthHTML(details),
+//   groupId: groupIds,
+//   isPublic,
+//   topics: topicNames,
+//   type
+// }
+
 export default gql`
   mutation UpdatePostMutation (
     $id: ID,

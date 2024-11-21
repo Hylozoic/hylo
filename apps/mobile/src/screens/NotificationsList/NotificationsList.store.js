@@ -1,5 +1,5 @@
-import { find, pick } from 'lodash/fp'
 import { gql } from 'urql'
+import { find, pick } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 
@@ -30,12 +30,6 @@ export const NOTIFICATIONS_WHITELIST = [
 ]
 
 export const NOTIFICATION_TEXT_MAX = 76
-export const MODULE_NAME = 'NotificationsList'
-export const FETCH_NOTIFICATIONS = `${MODULE_NAME}/FETCH_NOTIFICATIONS`
-export const MARK_ACTIVITY_READ = `${MODULE_NAME}/MARK_ACTIVITY_READ`
-export const MARK_ALL_ACTIVITIES_READ = `${MODULE_NAME}/MARK_ALL_ACTIVITIES_READ`
-export const UPDATE_NEW_NOTIFICATION_COUNT = `${MODULE_NAME}/UPDATE_NEW_NOTIFICATION_COUNT`
-export const UPDATE_NEW_NOTIFICATION_COUNT_PENDING = `${UPDATE_NEW_NOTIFICATION_COUNT}_PENDING`
 
 export const markActivityReadMutation = gql`
   mutation ($id: ID) {
