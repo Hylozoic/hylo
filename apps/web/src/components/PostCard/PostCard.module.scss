@@ -136,3 +136,12 @@
     border-top: 5px solid $color-requests;
   }
 }
+
+.flagged {
+
+  img {
+    filter: blur(30px);
+  }
+
+  overflow: hidden;
+}

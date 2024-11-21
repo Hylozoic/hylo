@@ -113,7 +113,7 @@ export default function PostCard (props) {
             hasImage={hasImage}
           />
         </div>
-        <div onClick={onClick}>
+        <div onClick={onClick} className={cx({ [classes.flagged]: isFlagged && !post.clickthrough })}>
           <CardImageAttachments attachments={post.attachments || []} className='post-card' isFlagged={isFlagged && !post.clickthrough} />
         </div>
         {isEvent && (
