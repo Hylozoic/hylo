@@ -8,6 +8,7 @@
     "backend:dev": "yarn workspace backend run dev",
     "web:dev": "yarn workspace web run dev",
     "migrate": "yarn workspace backend migrate",
+    "worker": "yarn workspace backend worker",
     "mobile:dev": "yarn workspace mobile start",
     "mobile:pod-install": "yarn workspace mobile pod-install",
     "mobile:android": "yarn workspace mobile run android",
