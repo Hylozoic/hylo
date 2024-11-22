@@ -42,14 +42,14 @@ export default function Comment ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [currentUser] = useCurrentUser()
   const [group] = useGroup({ groupSlug: slug })
-  const hasResponsibility = useHasResponsibility(group?.id)
+  const hasResponsibility = useHasResponsibility({ groupId: group?.id })
 
+  const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
   const isCreator = currentUser && (comment.creator.id === currentUser.id)
   const { creator, text, createdAt, post: postId } = comment
   const postTitle = useMemo(() => providedPostTitle && TextHelpers.truncateText(providedPostTitle, 40), [providedPostTitle])
   const myReactions = useMemo(() => (comment && comment.myReactions) || [], [comment?.myReactions])
   const myEmojis = myReactions.map((reaction) => reaction.emojiFull)
-  const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
 
   const handleReaction = (emojiFull) => reactOnEntity('comment', comment?.id, emojiFull, postId)
   const handleRemoveReaction = (emojiFull) => deleteReactionFromEntity('comment', comment?.id, emojiFull, postId)

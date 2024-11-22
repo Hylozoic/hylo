@@ -31,7 +31,7 @@ export default function PostCard ({
 }) {
   const { t } = useTranslation()
   const [, recordClickthrough] = useMutation(recordClickthroughMutation)
-  const post = useMemo(() => PostPresenter(providedPost), [providedPost])
+  const post = useMemo(() => PostPresenter(providedPost, groupId), [providedPost])
   const images = useMemo(() => post.imageUrls && post.imageUrls.map(uri => ({ uri })), [post])
   const locationText = useMemo(() => LocationHelpers.generalLocationString(post.locationObject, post.location), [post])
   const isFlagged = useMemo(() => post.flaggedGroups && post.flaggedGroups.includes(groupId), [post])

@@ -1,13 +1,12 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useSelector } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
 import { agreementsURL, RESP_MANAGE_CONTENT } from 'store/constants'
 import { groupUrl } from 'util/navigation'
+import useCurrentUser from 'hooks/useCurrentUser'
 import useHasResponsibility from 'hooks/useHasResponsibility'
 import usePlatformAgreements from 'hooks/usePlatformAgreements'
-import getMe from 'store/selectors/getMe'
 import Avatar from 'components/Avatar'
 import MultiSelect from 'components/MultiSelect'
 import Button from 'components/Button/Button'
@@ -22,9 +21,9 @@ const ModerationListItem = ({
   group
 }) => {
   const { t } = useTranslation()
-  const currentUser = useSelector(getMe)
   const navigation = useNavigation()
-  const hasResponsibility = useHasResponsibility(group.id)
+  const [currentUser] = useCurrentUser()
+  const hasResponsibility = useHasResponsibility({ groupId: group.id })
   const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
 
   const {

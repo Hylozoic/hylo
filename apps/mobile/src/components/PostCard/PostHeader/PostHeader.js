@@ -44,9 +44,14 @@ export default function PostHeader ({
   const [currentGroup] = useCurrentGroup()
   const handleShowMember = () => showMember && showMember(creator.id)
 
-  const hasResponsibility = useHasResponsibility(currentGroup?.id, creator)
+  const creatorHasResponsibility = useHasResponsibility({ person: creator })
+  // // TODO: URQL - Steward case? -- https://terrans.slack.com/archives/G01HM5VHD8X/p1732263229830789
+  // if (responsibility === null) {
+  //   // TODO: Shouldn't the '1', etc values be taken from constants?
+  //   return responsibilities.some(r => ['1', '3', '4'].includes(r.id))
+  // }
+  const creatorIsSteward = creatorHasResponsibility(null)
   const badges = useRolesForGroup(currentGroup?.id, creator)
-  const creatorIsSteward = hasResponsibility(null)
   const { avatarUrl, name } = creator
 
   return (

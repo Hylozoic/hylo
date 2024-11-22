@@ -151,6 +151,6 @@ const makeGroupPostsQuery = withChildPosts => gql`
         }
       }
     }
-    ${postFieldsFragment}
   }
+  ${postFieldsFragment}
 `

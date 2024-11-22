@@ -20,6 +20,8 @@ import { isIOS } from 'util/platform'
 import useRouteParams from 'hooks/useRouteParams'
 import useCurrentUser from 'hooks/useCurrentUser'
 import useCurrentGroup from 'hooks/useCurrentGroup'
+import useHasResponsibility from 'hooks/useHasResponsibility'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import createPostMutation from 'graphql/mutations/createPostMutation'
 import createProjectMutation from 'graphql/mutations/createProjectMutation'
 import updatePostMutation from 'graphql/mutations/updatePostMutation'
@@ -77,6 +79,8 @@ export default function PostEditor (props) {
   const detailsEditorRef = useRef(null)
   const [currentUser] = useCurrentUser()
   const [currentGroup] = useCurrentGroup()
+  const hasResponsibility = useHasResponsibility({ groupId: '' })
+
   const {
     id: selectedPostId,
     lat: mapCoordinateLat,
@@ -110,7 +114,14 @@ export default function PostEditor (props) {
     postMemberships: []
 
   })
-  const updatePost = postUpdates => setPost(p => PostPresenter(({ ...p, ...postUpdates })))
+  const canAdminister = hasResponsibility(RESP_ADMINISTRATION, {
+    groupIds: post?.groups?.map(group => group.id)
+  })
+
+  const updatePost = useCallback(postUpdates => setPost(p => {
+    p.announcement = !canAdminister && p.announcement
+    return PostPresenter(({ ...p, ...postUpdates }))
+  }), [canAdminister])
 
   // Actions
   const [, createNewPost] = useMutation(createPostMutation)
@@ -176,65 +187,67 @@ export default function PostEditor (props) {
     }
   }, [editingPost, mapCoordinate, pollingFindOrCreateLocation, navigation, t])
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!detailsEditorRef?.current) {
       return
     }
 
+    const doSave = async () => {
+      setIsSaving(true)
+
+      const postData = {
+        id: post.id,
+        type: post.type,
+        details: detailsEditorRef.current.getHTML(),
+        groups: post.groups,
+        groupIds: post.groups.map(c => c.id),
+        memberIds: post.members.items.map(m => m.id),
+        fileUrls: post.filesUrls,
+        imageUrls: post.imageUrls,
+        isPublic: post.isPublic,
+        title: post.title,
+        sendAnnouncement: post.announcement,
+        topicNames: post.topics.map(t => t.name),
+        startTime: !canHaveTimeframe ? null : post.startTime && post.startTime.getTime().valueOf(),
+        endTime: !canHaveTimeframe ? null : post.endTime && post.endTime.getTime().valueOf(),
+        location: post.location,
+        projectManagementLink: TextHelpers.sanitizeURL(post.projectManagementLink),
+        donationsLink: TextHelpers.sanitizeURL(post.donationsLink),
+        locationId: post?.locationObject?.id || null,
+        linkPreviewId: post?.linkPreview && post?.linkPreview.id,
+        linkPreviewFeatured: post?.linkPreviewFeatured
+      }
+
+      try {
+        const saveAction = postData.id ? updateSelectedPost : postData.type === 'project' ? createNewProject : createNewPost
+        const { error, data } = await saveAction(postData)
+
+        if (error) {
+          console.error(error)
+          throw new Error('Error submitting post')
+        }
+
+        const id = data[Object.keys(data)[0]].id
+        navigation.navigate('Post Details', { id })
+      } catch (e) {
+        console.log('!!!! error saving post', e)
+        setIsSaving(false)
+      }
+    }
+
     if (post.announcement) {
-      let cancel = false
       Alert.alert(
         t('makeAnAnnouncement'),
         t('announcementExplainer'),
         [
-          { text: t('Send It'), onPress: () => {} },
-          { text: t('Go Back'), style: 'cancel', onPress: () => { cancel = true } }
+          { text: t('Send It'), onPress: () => doSave() },
+          { text: t('Go Back'), style: 'cancel', onPress: () => {} }
         ]
       )
-      if (cancel) return
+    } else {
+      doSave()
     }
-
-    setIsSaving(true)
-
-    const postData = {
-      id: post.id,
-      type: post.type,
-      details: detailsEditorRef.current.getHTML(),
-      groups: post.groups,
-      groupIds: post.groups.map(c => c.id),
-      memberIds: post.members.items.map(m => m.id),
-      fileUrls: post.filesUrls,
-      imageUrls: post.imageUrls,
-      isPublic: post.isPublic,
-      title: post.title,
-      sendAnnouncement: post.announcement,
-      topicNames: post.topics.map(t => t.name),
-      startTime: !canHaveTimeframe ? null : post.startTime && post.startTime.getTime().valueOf(),
-      endTime: !canHaveTimeframe ? null : post.endTime && post.endTime.getTime().valueOf(),
-      location: post.location,
-      projectManagementLink: TextHelpers.sanitizeURL(post.projectManagementLink),
-      donationsLink: TextHelpers.sanitizeURL(post.donationsLink),
-      locationId: post?.locationObject?.id || null,
-      linkPreviewId: post?.linkPreview && post?.linkPreview.id,
-      linkPreviewFeatured: post?.linkPreviewFeatured
-    }
-
-    try {
-      const saveAction = postData.id ? updateSelectedPost : postData.type === 'project' ? createNewProject : createNewPost
-      const { error, data } = await saveAction(postData)
-
-      if (error) {
-        console.error(error)
-        throw new Error('Error submitting post')
-      }
-
-      const id = data[Object.keys(data)[0]].id
-      navigation.navigate('Post Details', { id })
-    } catch (e) {
-      console.log('!!!! error saving post', e)
-      setIsSaving(false)
-    }
-  }
+  }, [post, detailsEditorRef])
 
   useEffect(() => {
     navigation.setOptions({
@@ -602,34 +615,31 @@ export default function PostEditor (props) {
             </View>
           </TouchableOpacity>
 
-          {/* TOOD: Only allow Announcement when RESP_ADMINISTRATION in all selected groups: https://github.com/Hylozoic/hylo/issues/87 */}
-          <TouchableOpacity
-            style={[styles.pressSelectionSection, post?.announcement && styles.pressSelectionSectionPublicSelected]}
-            onPress={handleToggleAnnouncement}
-          >
-            <View style={styles.pressSelection}>
-              <View style={styles.pressSelectionLeft}>
-                <Icon
-                  name='Announcement'
-                  style={[{ fontSize: 16, marginRight: 10 }, post?.announcement && styles.pressSelectionSectionPublicSelected]}
-                  color={rhino80}
-                />
-                <Text style={[styles.pressSelectionLeftText, post?.announcement && styles.pressSelectionSectionPublicSelected]}>{t('Announcement?')}</Text>
+          {canAdminister && (
+            <TouchableOpacity
+              style={[styles.pressSelectionSection, post?.announcement && styles.pressSelectionSectionPublicSelected]}
+              onPress={handleToggleAnnouncement}
+            >
+              <View style={styles.pressSelection}>
+                <View style={styles.pressSelectionLeft}>
+                  <Icon
+                    name='Announcement'
+                    style={[{ fontSize: 16, marginRight: 10 }, post?.announcement && styles.pressSelectionSectionPublicSelected]}
+                    color={rhino80}
+                  />
+                  <Text style={[styles.pressSelectionLeftText, post?.announcement && styles.pressSelectionSectionPublicSelected]}>{t('Announcement?')}</Text>
+                </View>
+                <View style={styles.pressSelectionRightNoBorder}>
+                  <Switch
+                    trackColor={{ true: caribbeanGreen, false: rhino80 }}
+                    onValueChange={handleToggleAnnouncement}
+                    style={styles.pressSelectionSwitch}
+                    value={post?.announcement}
+                  />
+                </View>
               </View>
-              <View style={styles.pressSelectionRightNoBorder}>
-                <Switch
-                  trackColor={{ true: caribbeanGreen, false: rhino80 }}
-                  onValueChange={handleToggleAnnouncement}
-                  style={styles.pressSelectionSwitch}
-                  value={post?.announcement}
-                />
-              </View>
-            </View>
-            <FileSelector
-              files={post.files}
-              onRemove={(errorMessage, attachment) => handleRemoveAttachment('file', errorMessage, attachment)}
-            />
-          </TouchableOpacity>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.pressSelectionSection}

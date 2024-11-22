@@ -202,7 +202,12 @@ export default function MemberList ({
 
 export function Member ({ member, showMember, group }) {
   const badges = useRolesForGroup(group?.id, member)
-  const hasResponsibility = useHasResponsibility(group.id, member)
+  // // TODO: URQL - Steward case? -- https://terrans.slack.com/archives/G01HM5VHD8X/p1732263229830789
+  // if (responsibility === null) {
+  //   // TODO: Shouldn't the '1', etc values be taken from constants?
+  //   return responsibilities.some(r => ['1', '3', '4'].includes(r.id))
+  // }
+  const hasResponsibility = useHasResponsibility({ groupId: group.id, person: member })
   const creatorIsSteward = group ? hasResponsibility(null) : []
 
   return (
