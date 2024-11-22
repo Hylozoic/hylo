@@ -60,7 +60,7 @@ export default function usePostActionSheet ({
   const mixpanelTrack = useMixpanelTrack()
   const [currentGroup] = useCurrentGroup()
   const [currentUser] = useCurrentUser()
-  const hasResponsibility = useHasResponsibility()
+  const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
 
   const createActionSheetActions = () => {

@@ -43,7 +43,7 @@ export default function PostHeader ({
   const [currentGroup] = useCurrentGroup()
   const handleShowMember = () => showMember && showMember(creator.id)
 
-  const creatorHasResponsibility = useHasResponsibility({ person: creator })
+  const creatorHasResponsibility = useHasResponsibility({ person: creator, forCurrentGroup: true })
   // // TODO: URQL - Steward case? -- https://terrans.slack.com/archives/G01HM5VHD8X/p1732263229830789
   // if (responsibility === null) {
   //   // TODO: Shouldn't the '1', etc values be taken from constants?

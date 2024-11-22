@@ -9,45 +9,56 @@ import useCurrentGroup from './useCurrentGroup'
  * useHasResponsibility
  *
  * A hook that returns a function to check if a given responsibility (or set of responsibilities) is present
- * for a specified groupId and person. If person or personId is not provided, the current user is used by default.
- * Similarly, if groupId or groupIds is not specified, the current group (currentGroup) is used.
+ * for a specified groupId and person. You can optionally use bind to the currentUser or currentGroup by setting
+ * either or both forCurrentGroup or forCurrentUser to true at hook instantiation. See example usage below.
  *
- * Important: If not using currentUser, it is strongly recommended to pass an already-queried person object
+ * Important: If not using forCurrentUser, it is strongly recommended to pass an already-queried person object
  * rather than a personId. Otherwise, a potentially uncached query for the person will be issued, which
  * could impact performance.
  *
  * Examples:
  *
- * 1. Default usage (currentUser and currentGroup defaults):
- *    const hasResponsibility = useHasResponsibility();
- *    const canAdminister = hasResponsibility(RESP_ADMINISTRATION);
+ * 1. Default usage, set the group and person at hook instantiation::
+ *    const hasResponsibility = useHasResponsibility({ groupId: myGroup.id, person: myPerson })
+ *    const canAdminister = hasResponsibility(RESP_ADMINISTRATION)
  *
- * 2. Specifying a group (defaults to currentUser):
- *    const hasResponsibility = useHasResponsibility({ groupId: group?.id });
- *    const canManageContent = hasResponsibility(RESP_MANAGE_CONTENT);
+ *    -OR- set the group and person ad hoc in the function call:
  *
- * 3. Advanced usage (specify groups and person/personId in hook or function call):
+ *    const hasResponsibility = useHasResponsibility()
+ *    hasResponsibility(RESP_ADMINISTRATION, { person: myPerson, groupId: myGroup.id })
+ *
+ * 2. CurrentUser and/or CurrentGroup usage:
+ *    const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
+ *    const canManageContent = hasResponsibility(RESP_MANAGE_CONTENT)
+ *
+ * 3. Advanced usage (specify multiple groups and person/personId in hook or function call):
  *    const hasResponsibilities = useHasResponsibility({
  *      groupId: <optional>,
  *      groupIds: <optional>,
  *      person: <optional>,
  *      personId: <optional, with caution>
- *    });
+ *    })
  *
  *    const canAddMembersAndManageContent = hasResponsibilities(
  *      [RESP_ADD_MEMBERS, RESP_MANAGE_CONTENT],
  *      {
  *        groupId: <optional>,
  *        groupIds: <optional>,
- *        person: <optional>,
- *        personId: <optional, with caution>
+ *        person: <optional>
  *      }
- *    );
+ *    )
  */
 
-export default function useHasResponsibility ({ groupId: hookGroupId, groupIds: hookGroupIds, personId: hookPersonId, person: providedHookPerson, key } = {}) {
-  const [currentGroup, { fetching: currentGroupFetching, error: currentGroupError }] = useCurrentGroup({ useQueryArgs: { pause: hookGroupId || hookGroupIds } })
-  const [currentUser, { fetching: currentUserFetching, error: currentUserError }] = useCurrentUser({ pause: hookPersonId })
+export default function useHasResponsibility ({
+  forCurrentGroup = false,
+  forCurrentUser = false,
+  groupId: hookGroupId,
+  groupIds: hookGroupIds,
+  personId: hookPersonId,
+  person: providedHookPerson
+} = {}) {
+  const [currentGroup, { fetching: currentGroupFetching, error: currentGroupError }] = useCurrentGroup({ useQueryArgs: { pause: !forCurrentGroup } })
+  const [currentUser, { fetching: currentUserFetching, error: currentUserError }] = useCurrentUser({ pause: !forCurrentUser })
   const [hookPersonById, { fetching: hookPersonByIdFetching, error: hookPersonByIdError }] = usePerson({ id: hookPersonId, pause: !hookPersonId })
 
   const hookPersonError = currentUserError || hookPersonByIdError
@@ -94,11 +105,11 @@ export default function useHasResponsibility ({ groupId: hookGroupId, groupIds: 
     const groupIds = [].concat(rawGroupIds)
 
     const person = functionPerson || hookPerson || hookPersonById
-
+console.log('!!! hookPerson', hookPerson)
     if (!person) {
       throw new Error(
-        '"person" not resolved for hook. Defaults to "currentUser". There was either a query failure, ' +
-        'or the provided function provided "person" is invalid or the hook provided "personId" is not found')
+        '"person" not resolved for hook. There was either a query failure, or the function provided "person" ' +
+        'is invalid or the hook provided "personId" is not found')
     }
 
     return { groupIds, person }

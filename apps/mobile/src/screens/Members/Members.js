@@ -16,7 +16,7 @@ import styles from './Members.styles'
 export default function Members ({ isFocused }) {
   const navigation = useNavigation()
   const [group] = useCurrentGroup()
-  const hasResponsibility = useHasResponsibility()
+  const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
 
   const goToInvitePeople = () => navigation.navigate('Group Settings', { screen: 'Invite' })

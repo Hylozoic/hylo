@@ -25,7 +25,7 @@ export default function DrawerMenu () {
   const [currentGroup, { fetching: currentGroupFetching }] = useCurrentGroup()
   const memberships = currentUser?.memberships
   const { myHome } = useRouteParams()
-  const hasResponsibility = useHasResponsibility()
+  const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
   const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
   const myGroups = memberships

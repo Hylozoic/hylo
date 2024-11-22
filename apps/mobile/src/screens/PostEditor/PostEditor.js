@@ -79,7 +79,7 @@ export default function PostEditor (props) {
   const detailsEditorRef = useRef(null)
   const [currentUser] = useCurrentUser()
   const [currentGroup] = useCurrentGroup()
-  const hasResponsibility = useHasResponsibility({ groupId: '' })
+  const hasResponsibility = useHasResponsibility({ forCurrentUser: true })
 
   const {
     id: selectedPostId,
