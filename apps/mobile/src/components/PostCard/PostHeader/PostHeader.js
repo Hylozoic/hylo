@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { get } from 'lodash/fp'
 import { View, Text, TouchableOpacity } from 'react-native'
-import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { TextHelpers } from '@hylo/shared'

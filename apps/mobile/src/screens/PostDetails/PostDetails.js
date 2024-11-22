@@ -42,7 +42,7 @@ export default function PostDetails () {
   const { id: postId } = useRouteParams()
   const [currentGroup] = useCurrentGroup()
   const [{ data, fetching, error }] = useQuery({ query: postDetailsQuery, variables: { id: postId } })
-  const post = useMemo(() => PostPresenter(data?.post), [data?.post])
+  const post = useMemo(() => PostPresenter(data?.post, currentGroup?.id), [data?.post])
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()
 
