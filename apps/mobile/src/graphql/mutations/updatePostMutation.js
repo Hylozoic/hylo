@@ -57,6 +57,6 @@ export default gql`
     }) {
       ...PostFieldsFragment
     }
-    ${postFieldsFragment}
   }
+  ${postFieldsFragment}
 `

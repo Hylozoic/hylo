@@ -32,15 +32,14 @@ export default function groupDetailsQueryMaker ({
         ${withJoinQuestions ? '...GroupJoinQuestionsFieldsFragment' : ''}
         ${withPrerequisiteGroups ? '...GroupPrerequisiteGroupsFieldsFragment' : ''}
         ${withPendingInvitations ? '...GroupPendingInvitationsFieldsFragment' : ''}
-
       }
-      ${groupFieldsFragment}
-      ${withExtensions ? groupGroupExtensionsFieldsFragment : ''}
-      ${withWidgets ? groupWidgetsFieldsFragment : ''}
-      ${withTopics ? groupGroupTopicsFieldsFragment : ''}
-      ${withJoinQuestions ? groupJoinQuestionsFieldsFragment : ''}
-      ${withPrerequisiteGroups ? groupPrerequisiteGroupsFieldsFragment : ''}
-      ${withPendingInvitations ? groupPendingInvitationsFieldsFragment : ''}
-  }
+    }
+    ${groupFieldsFragment}
+    ${withExtensions ? groupGroupExtensionsFieldsFragment : ''}
+    ${withWidgets ? groupWidgetsFieldsFragment : ''}
+    ${withTopics ? groupGroupTopicsFieldsFragment : ''}
+    ${withJoinQuestions ? groupJoinQuestionsFieldsFragment : ''}
+    ${withPrerequisiteGroups ? groupPrerequisiteGroupsFieldsFragment : ''}
+    ${withPendingInvitations ? groupPendingInvitationsFieldsFragment : ''}
   `
 }

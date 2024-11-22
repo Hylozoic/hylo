@@ -81,9 +81,9 @@ export const createGroupMutation = gql`
         }
       }
     }
-    ${groupFieldsFragment}
-    ${groupPrerequisiteGroupsFieldsFragment}
   }
+  ${groupFieldsFragment}
+  ${groupPrerequisiteGroupsFieldsFragment}
 `
 
 export const groupExistsCheckQuery = gql`

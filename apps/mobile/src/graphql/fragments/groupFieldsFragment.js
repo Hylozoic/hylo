@@ -1,6 +1,6 @@
 import { gql } from 'urql'
 
-const groupFieldsFragment = gql`
+export const groupFieldsFragment = gql`
   fragment GroupFieldsFragment on Group {
     id
     aboutVideoUri

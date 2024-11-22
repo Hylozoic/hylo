@@ -20,7 +20,7 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
   const [, createModerationAction] = useMutation(createModerationActionMutation)
   const [{ data: groupData }] = useQuery({
     query: gql`
-      query ($slug: String) {
+      query GroupAgreementsQuery ($slug: String) {
         group(slug: $slug) {
           id
           name

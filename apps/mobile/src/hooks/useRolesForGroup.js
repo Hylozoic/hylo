@@ -1,16 +1,14 @@
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from 'urql'
 import commonRolesQuery from 'graphql/queries/commonRolesQuery'
 
 export default function useRolesForGroup (groupId, person) {
   const [{ data: commonRolesData, fetching: commonRolesFetching }] = useQuery({ query: commonRolesQuery })
 
-  // Extract data from queries
   const commonRoles = commonRolesData?.commonRoles || []
   const personGroupRoles = person?.groupRoles?.items || []
   const membershipCommonRoles = person?.membershipCommonRoles?.items || []
 
-  // Memoize derived values
   const membershipCommonRolesForGroup = useMemo(() => {
     return membershipCommonRoles.filter(membershipCommonRole => membershipCommonRole.groupId === groupId)
   }, [membershipCommonRoles, groupId])

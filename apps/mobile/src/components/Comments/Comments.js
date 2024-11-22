@@ -41,8 +41,8 @@ const childCommentsQuery = gql`
         hasMore
       }
     }
-    ${commentFieldsFragment}
   }
+  ${commentFieldsFragment}
 `
 
 function Comments ({

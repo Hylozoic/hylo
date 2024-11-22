@@ -93,7 +93,7 @@ const postsQuery = gql`
     $topics: [ID],
     $types: [String]
   ) {
-    ...PostsQueryFragment    
+    ...PostsQueryFragment
   }
   ${postsQueryFragment}
 `

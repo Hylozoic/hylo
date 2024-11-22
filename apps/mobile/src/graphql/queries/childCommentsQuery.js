@@ -10,7 +10,7 @@ export default gql`
       id
       childComments(first: 10, cursor: $cursor, order: "desc") {
         items {
-          ..CommentFieldsFragment
+          ...CommentFieldsFragment
           post {
             id
           }
@@ -19,6 +19,6 @@ export default gql`
         hasMore
       }
     }
-    ${commentFieldsFragment}
   }
+  ${commentFieldsFragment}
 `
