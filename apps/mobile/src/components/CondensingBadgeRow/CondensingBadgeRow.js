@@ -11,7 +11,7 @@ export default function CondensingBadgeRow ({ postId, creatorIsSteward, badges, 
     setShowAllBadges(!showAllBadges)
     setTimeout(() => setShowAllBadges(false), 5000)
   }
-  
+
   return (
     <View style={[styles.badgeRow, containerStyle]}>
       <TouchableOpacity styles={styles.badgeRow} hitSlop={5} onPress={handleShowBadges}>

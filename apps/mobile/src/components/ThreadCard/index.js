@@ -8,11 +8,9 @@ import { useTranslation } from 'react-i18next'
 
 const MAX_THREAD_PREVIEW_LENGTH = 54
 
-export default function ThreadCard (props) {
-  const { t } = useTranslation()
-  if (!props?.message) return null
+export default function ThreadCard ({ message, currentUser, participants, isLast, unread }) {
+  if (!message) return null
 
-  const { message, currentUser, participants, isLast, unread } = props
   const latestMessagePreview = TextHelpers.presentHTMLToText(message?.text, {
     truncate: MAX_THREAD_PREVIEW_LENGTH
   })
@@ -60,11 +58,21 @@ export function ThreadAvatars ({ avatarUrls }) {
   const count = avatarUrls.length
   return (
     <View style={styles.threadAvatars}>
-      {(count <= 2) && <Avatar avatarUrl={avatarUrls[0]} style={styles.firstThreadAvatar} />}
-      {count === 2 && <Avatar avatarUrl={avatarUrls[1]} style={styles.restThreadAvatars} />}
-      {count > 2 && <Avatar avatarUrl={avatarUrls[0]} style={styles.firstThreadAvatar} />}
-      {count > 2 && <Avatar avatarUrl={avatarUrls[1]} style={styles.restThreadAvatars} />}
-      {count > 3 && <View style={styles.count}><Text style={styles.countText}>+{count - 2}</Text></View>}
+      {count <= 2 && (
+        <Avatar avatarUrl={avatarUrls[0]} style={styles.firstThreadAvatar} />
+      )}
+      {count === 2 && (
+        <Avatar avatarUrl={avatarUrls[1]} style={styles.restThreadAvatars} />
+      )}
+      {count > 2 && (
+        <Avatar avatarUrl={avatarUrls[0]} style={styles.firstThreadAvatar} />
+      )}
+      {count > 2 && (
+        <Avatar avatarUrl={avatarUrls[1]} style={styles.restThreadAvatars} />
+      )}
+      {count > 3 && (
+        <View style={styles.count}><Text style={styles.countText}>+{count - 2}</Text></View>
+      )}
     </View>
   )
 }

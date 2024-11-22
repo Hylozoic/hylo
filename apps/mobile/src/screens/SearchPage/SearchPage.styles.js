@@ -53,7 +53,18 @@ export default {
   active: {
     color: caribbeanGreen
   },
-  personCard: {
+  postResult: {
+    marginHorizontal: cardMargin,
+    marginBottom: cardMargin
+  },
+  commentResult: {
+    marginHorizontal: cardMargin,
+    marginBottom: cardMargin,
+    borderWidth: 1,
+    borderColor: capeCod10,
+    borderRadius: 4
+  },
+  personResult: {
     ...row,
     height: 60,
     alignItems: 'center',
@@ -77,17 +88,6 @@ export default {
   location: {
     color: rhino60,
     fontSize: 12
-  },
-  postWrapper: {
-    marginHorizontal: cardMargin,
-    marginBottom: cardMargin
-  },
-  commentWrapper: {
-    marginHorizontal: cardMargin,
-    marginBottom: cardMargin,
-    borderWidth: 1,
-    borderColor: capeCod10,
-    borderRadius: 4
   },
   postTitle: {
     paddingHorizontal: cardPadding

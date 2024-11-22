@@ -8,12 +8,13 @@ import { rhino10 } from 'style/colors'
 import { useTranslation } from 'react-i18next'
 
 export default function ThreadHeaderTitle ({ thread, currentUserId, navigation }) {
+  const { t } = useTranslation()
   const [modalIsVisible, setModalIsVisible] = useState(false)
   const toggleModalIsVisible = () => setModalIsVisible(!modalIsVisible)
 
   if (!thread) return null
 
-  const otherParticipants = thread.participants.filter(p => p.id !== currentUserId).toRefArray()
+  const otherParticipants = thread.participants.filter(p => p.id !== currentUserId)
   const avatarUrls = otherParticipants.map(p => p.avatarUrl)
   const names = otherParticipants.length > 1 ? otherParticipants.map(firstName) : [otherParticipants[0]?.name || 'Deleted User']
   const goToParticipant = ({ id }) => navigation.navigate(modalScreenName('Member'), { id })
@@ -40,7 +41,7 @@ export default function ThreadHeaderTitle ({ thread, currentUserId, navigation }
                 />
               )
             })}
-            <Text style={styles.participantNames}>{participantNamesSummary(names)}</Text>
+            <Text style={styles.participantNames}>{participantNamesSummary(names, t)}</Text>
           </View>
         </TouchableOpacity>
         <PeopleListModal
@@ -54,8 +55,7 @@ export default function ThreadHeaderTitle ({ thread, currentUserId, navigation }
   )
 }
 
-export function participantNamesSummary (names) {
-  const { t } = useTranslation()
+export function participantNamesSummary (names, t) {
   if (names.length < 3) return names.join(' & ')
   return `${names[0]} & ${names.length - 1} ${t('others')}`
 }

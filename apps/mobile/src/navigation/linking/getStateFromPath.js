@@ -4,7 +4,7 @@ import { match } from 'path-to-regexp'
 import { URL } from 'react-native-url-polyfill'
 import * as QueryString from 'query-string'
 import store from 'store'
-import { getAuthorized } from 'store/selectors/getAuthState'
+import useAuthState from 'hooks/useAuthState'
 import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
 import {
   routingConfig,
@@ -26,8 +26,7 @@ export default function getStateFromPath (providedPath) {
   const { path, screenPath } = addParamsToScreenPath(routeMatch, routingConfig)
 
   const screenConfig = buildScreenConfigFromScreenPath(screenPath)
-  const isAuthorized = getAuthorized(store.getState())
-
+  const { isAuthorized } = useAuthState()
   // Set `returnToOnAuthPath` for routes requiring auth when not auth'd
   if (!isAuthorized && screenPath.match(new RegExp(`^${AUTH_ROOT_SCREEN_NAME}`))) {
     store.dispatch(setReturnToOnAuthPath(providedPath))

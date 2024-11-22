@@ -1,6 +1,8 @@
 import { get } from 'lodash/fp'
 import { CHECK_LOGIN } from 'store/constants'
 
+const getRoot = get('me')
+
 export default function checkLogin () {
   return {
     type: CHECK_LOGIN,
@@ -33,7 +35,7 @@ export default function checkLogin () {
     meta: {
       extractModel: [
         {
-          getRoot: get('me'),
+          getRoot,
           modelName: 'Me'
         }
       ]

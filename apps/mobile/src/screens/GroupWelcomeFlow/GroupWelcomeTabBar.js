@@ -11,7 +11,7 @@ import {
   caribbeanGreen, rhino30, white, white20onCaribbeanGreen, white40onCaribbeanGreen
 } from 'style/colors'
 import { useKeyboard } from '@react-native-community/hooks'
-import { ALL_GROUP } from 'store/models/Group'
+import { ALL_GROUP } from 'urql-shared/presenters/GroupPresenter'
 import { useTranslation } from 'react-i18next'
 
 export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agreements, handleAccept, allQuestionsAnswered }) {

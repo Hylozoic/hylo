@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import {
   View,
   TouchableOpacity,
@@ -12,29 +12,31 @@ import styles from './MemberHeader.styles'
 import { AXOLOTL_ID } from 'store/models/Person'
 import LocationPicker from 'screens/LocationPicker/LocationPicker'
 import Control from 'screens/MemberProfile/Control'
+import { openURL } from 'hooks/useOpenURL'
+import { useNavigation } from '@react-navigation/native'
+import useCurrentUser from 'hooks/useCurrentUser'
+import { useMutation } from 'urql'
+import blockUserMutation from 'graphql/mutations/blockUserMutation'
 
 export default function MemberHeader ({
   person,
   flagMember,
-  onPressMessages,
   isMe,
-  goToEdit,
-  goToEditAccount,
-  goToManageNotifications,
-  goToBlockedUsers,
   editable,
   updateSetting = () => {},
   saveChanges,
   errors = {},
-  navigation,
   ...props
 }) {
   const { t } = useTranslation()
+  const navigation = useNavigation()
+  const [currentUser] = useCurrentUser()
+  const [, blockUser] = useMutation(blockUserMutation)
+
   if (!person) return null
 
   const { name, tagline } = person
   const locationText = get('location', person) || get('locationObject.fullText', person)
-  const blockUser = blockUserWithConfirmationFun(props.blockUser, name)
   const isAxolotl = AXOLOTL_ID === get('id', person)
   const showLocationPicker = () => {
     LocationPicker({
@@ -47,6 +49,44 @@ export default function MemberHeader ({
       t
     })
   }
+
+  const handleBlockUserWithConfirmation = () => {
+    const blockUserFun = async () => {
+      await blockUser(person.id)
+      navigation.goBack()
+    }
+
+    return function () {
+      return Alert.alert(
+        t('Are you sure you want to block {{name}}?', { name }),
+        t('You will no longer see {{name}}s activity and they wont see yours', { name }),
+        '',
+        t('You can unblock this member at any time Go to Settings > Blocked Users'),
+        [
+          { text: `${t('Block')} ${name}`, onPress: (blockedUserId) => blockUserFun(blockedUserId) },
+          { text: t('Cancel'), style: 'cancel' }
+        ])
+    }
+  }
+
+  const goToEdit = () => openURL('/settings')
+  const goToEditAccount = () => openURL('/settings/account')
+  const goToManageNotifications = () => openURL('/settings/notifications')
+  const goToBlockedUsers = () => openURL('/settings/blocked-users')
+
+  const handleMessages = useCallback(() => {
+    if (!person || currentUser.id === person.id) {
+      navigation.navigate('Messages Tab')
+    }
+
+    const { messageThreadId } = person
+
+    if (messageThreadId) {
+      navigation.navigate('Messages Tab', { screen: 'Thread', initial: false, params: { id: messageThreadId } })
+    }
+
+    navigation.navigate('Messages Tab', { screen: 'New Message', initial: false, params: { participants: person.id } })
+  }, [currentUser, person, navigation])
 
   return (
     <View style={styles.header}>
@@ -62,7 +102,7 @@ export default function MemberHeader ({
         />
         <View style={styles.icons}>
           {!isMe && (
-            <TouchableOpacity onPress={onPressMessages}>
+            <TouchableOpacity onPress={handleMessages}>
               <Icon name='Messages' style={styles.icon} />
             </TouchableOpacity>
           )}
@@ -72,7 +112,7 @@ export default function MemberHeader ({
               isMe,
               saveChanges,
               editable,
-              blockUser,
+              blockUser: handleBlockUserWithConfirmation,
               isAxolotl,
               goToEdit,
               goToEditAccount,

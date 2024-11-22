@@ -3,8 +3,7 @@ import { useWindowDimensions } from 'react-native'
 import { RenderHTMLConfigProvider, RenderHTMLSource } from 'react-native-render-html'
 import WebView from 'react-native-webview'
 import iframe, { iframeModel } from '@native-html/iframe-plugin'
-import { useSelector } from 'react-redux'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 import { openURL } from 'hooks/useOpenURL'
 import useGoToMember from 'hooks/useGoToMember'
 import useGoToTopic from 'hooks/useGoToTopic'
@@ -72,7 +71,7 @@ const renderers = {
 }
 
 export function HyloHTMLConfigProvider ({ children }) {
-  const currentlySelectedGroup = useSelector(getCurrentGroup)
+  const [currentlySelectedGroup] = useCurrentGroup()
 
   const handleLinkPress = useCallback(
     async (_, href) => openURL(href),

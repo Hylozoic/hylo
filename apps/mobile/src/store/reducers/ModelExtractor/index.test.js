@@ -139,7 +139,7 @@ it('handles null children', () => {
   expect(extractor.mergedNodes()).toMatchSnapshot()
 })
 
-it('creates a polymorphicChildId when __typename field is present', () => {
+it('creates a polymorphicChildId when contentTypeName field is present', () => {
   const extractor = new ModelExtractor(orm.session(orm.getEmptyState()))
   extractor.walk(testPayloads['FETCH_SEARCH'].data.search, 'SearchResult')
   expect(extractor.mergedNodes()).toMatchSnapshot()

@@ -1,27 +1,26 @@
 import React from 'react'
 import { TouchableOpacity, View } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
-import respondToEvent from 'store/actions/respondToEvent'
-import { getPresentedPost } from 'store/selectors/getPost'
+import { useMutation } from 'urql'
+import respondToEventMutation from 'graphql/mutations/respondToEventMutation'
 import PostCard from 'components/PostCard'
 import styles from './PostRow.styles'
 
 export default function PostRow ({
   context,
+  post,
   goToGroup,
-  postId,
   forGroupId,
   showGroups,
   showMember,
   showPost,
   showTopic
 }) {
-  const dispatch = useDispatch()
-  const post = useSelector(state => getPresentedPost(state, { postId, forGroupId }))
-  const groupIds = post.groups.map(group => group.id)
-  const handleRespondToEvent = response => dispatch(respondToEvent(post, response))
+  const [, respondToEvent] = useMutation(respondToEventMutation)
 
   if (!post) return null
+
+  const handleRespondToEvent = response => respondToEvent({ id: post.id, response })
+  const groupIds = post.groups.map(group => group.id)
 
   return (
     <View style={styles.postRow}>

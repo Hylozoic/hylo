@@ -1,23 +1,19 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useCallback } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { capitalize, isEmpty } from 'lodash/fp'
-import { useDispatch, useSelector } from 'react-redux'
+import { useQuery } from 'urql'
 import LinearGradient from 'react-native-linear-gradient'
-import { isUndefined } from 'lodash'
+import useCurrentUser from 'hooks/useCurrentUser'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import useGoToTopic from 'hooks/useGoToTopic'
 import { useTranslation } from 'react-i18next'
-import { PUBLIC_GROUP_ID } from 'store/models/Group'
+import { PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
+import topicQuery from 'graphql/queries/topicQuery'
 import useRouteParams from 'hooks/useRouteParams'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
-import getCustomView from 'store/selectors/getCustomView'
-import getGroupTopic from 'store/selectors/getGroupTopic'
-import getMe from 'store/selectors/getMe'
-import getMemberships from 'store/selectors/getMemberships'
-import toggleGroupTopicSubscribeAction from 'store/actions/toggleGroupTopicSubscribe'
-import fetchGroupTopic from 'store/actions/fetchGroupTopic'
+import { firstName } from 'store/models/Person'
 import Avatar from 'components/Avatar'
 import Button from 'components/Button'
 import CreateGroupNotice from 'components/CreateGroupNotice'
@@ -26,32 +22,23 @@ import StreamList from 'components/StreamList'
 import Loading from 'components/Loading'
 import SocketSubscriber from 'components/SocketSubscriber'
 import GroupWelcomeCheck from 'components/GroupWelcomeCheck'
+import ModerationList from 'components/ModerationList'
 import { bannerlinearGradientColors } from 'style/colors'
 import styles from './Stream.styles'
-import ModerationList from 'components/ModerationList'
-
-export function headerTitle (currentGroup, streamType, myHome, t) {
-  if (myHome) return myHome
-  let title
-  title = currentGroup?.name
-  title = streamType ? capitalize(t(streamType) + 's') : title
-  if (streamType === 'Moderation') title = t('Moderation')
-  return title
-}
 
 export default function Stream ({ topicName: providedTopicName }) {
   const ref = useRef(null)
   const { t } = useTranslation()
   const navigation = useNavigation()
   const route = useRoute()
-  const dispatch = useDispatch()
-
   const { customViewId, streamType, myHome, topicName: routeTopicName } = useRouteParams()
-  const customView = useSelector(state => getCustomView(state, { customViewId }))
+
+  const [currentUser] = useCurrentUser()
+  const [currentGroup] = useCurrentGroup()
   const changeToGroup = useChangeToGroup()
   const goToTopicDefault = useGoToTopic()
-  const topicName = providedTopicName || routeTopicName
 
+  const customView = currentGroup?.customViews?.items?.filter(customView => customView.id === customViewId)
   const customViewType = customView?.type
   const customPostTypes = customViewType === 'stream' ? customView?.postTypes : null
   const customViewName = customView?.name
@@ -59,41 +46,49 @@ export default function Stream ({ topicName: providedTopicName }) {
   // Note: Custom View Mode = grid, etc. Not implemented in App
   // const customViewMode = customView?.defaultViewMode
 
-  const currentUser = useSelector(getMe)
-  const memberships = useSelector(getMemberships)
-  const currentUserHasMemberships = !isEmpty(memberships)
-  const currentGroup = useSelector(getCurrentGroup)
-  const groupTopic = useSelector(state => getGroupTopic(state, { topicName, slug: currentGroup?.slug }))
-  const topic = groupTopic?.topic?.ref
-  const topicSubscribed = groupTopic?.isSubscribed
-  const topicPostsTotal = groupTopic?.postsTotal
-  const topicFollowersTotal = groupTopic?.followersTotal
-  const goToPostDetails = id => navigation.navigate('Post Details', { id })
-  const goToCreateGroup = () => navigation.navigate('Create Group')
-  const goToMember = id => navigation.navigate('Member', { id })
+  const topicName = providedTopicName || routeTopicName
+
+  // Topics related: This component re-directs to the WebView chat for Topics
+  // within everything but the Public and All My Groups contexts
+  const [{ data: topicData }, fetchTopic] = useQuery({
+    query: topicQuery,
+    variables: { name: topicName },
+    pause: true
+  })
+  const topic = topicData?.topic
+  const topicPostsTotal = topic?.postsTotal
+  const topicFollowersTotal = topic?.followersTotal
   const goToTopic = selectedTopicName => {
     if (selectedTopicName === topic?.name) return
-
     if (topic?.name) {
       navigation.setParams({ topicName: selectedTopicName })
     } else {
       goToTopicDefault(selectedTopicName)
     }
   }
-
   useEffect(() => {
-    topicName && currentGroup?.slug && dispatch(fetchGroupTopic(topicName, currentGroup.slug))
-  }, [dispatch, topicName, currentGroup?.slug])
+    if (topicName && currentGroup?.slug) {
+      fetchTopic()
+    }
+  }, [topicName, currentGroup?.slug])
 
+  // Keeps header up to date
   useEffect(() => {
     navigation.setOptions({
       title: headerTitle(currentGroup, streamType, myHome, t)
     })
-  }, [navigation, topicName, currentGroup, currentGroup?.id, streamType, myHome])
+  }, [navigation, currentGroup?.id, streamType, myHome])
 
   if (!currentUser) return <Loading style={{ flex: 1 }} />
 
-  if (!currentUserHasMemberships && currentGroup?.id !== PUBLIC_GROUP_ID) {
+  // Navigation helpers
+  const goToPostDetails = useCallback(id => navigation.navigate('Post Details', { id }), [navigation])
+  const goToCreateGroup = useCallback(() => navigation.navigate('Create Group'), [navigation])
+  const goToMember = useCallback(id => navigation.navigate('Member', { id }), [navigation])
+
+  if (!currentGroup) return null
+
+  if (isEmpty(currentUser.memberships) && currentGroup.id !== PUBLIC_GROUP_ID) {
     return (
       <CreateGroupNotice
         goToCreateGroup={goToCreateGroup}
@@ -102,15 +97,8 @@ export default function Stream ({ topicName: providedTopicName }) {
     )
   }
 
-  if (!currentGroup) return null
-
-  const toggleTopicSubscribe = () => groupTopic && currentGroup.id && dispatch(toggleGroupTopicSubscribeAction(groupTopic))
-  const name = topicName
-    ? '#' + topicName
-    : currentGroup.name
-  const image = currentGroup.bannerUrl
-    ? { uri: currentGroup.bannerUrl }
-    : null
+  const name = topicName ? '#' + topicName : currentGroup.name
+  const image = currentGroup.bannerUrl ? { uri: currentGroup.bannerUrl } : null
   const pluralFollowers = (topicFollowersTotal !== 1)
   const pluralPosts = (topicPostsTotal !== 1)
   const streamListHeader = (
@@ -140,9 +128,6 @@ export default function Stream ({ topicName: providedTopicName }) {
               <Text style={styles.topicInfoText}>
                 <Icon name='Post' /> {topicPostsTotal || 0} post{pluralPosts && 's'}
               </Text>
-              {!isUndefined(topicSubscribed) && (
-                <SubscribeButton active={topicSubscribed} onPress={toggleTopicSubscribe} />
-              )}
             </View>
           )}
         </View>
@@ -211,6 +196,15 @@ export default function Stream ({ topicName: providedTopicName }) {
   )
 }
 
+export function headerTitle (currentGroup, streamType, myHome, t) {
+  if (myHome) return myHome
+  let title
+  title = currentGroup?.name
+  title = streamType ? capitalize(t(streamType) + 's') : title
+  if (streamType === 'Moderation') title = t('Moderation')
+  return title
+}
+
 export function postPromptString (type = '', { firstName }, t) {
   const postPrompts = {
     offer: t('Hi {{firstName}}, what would you like to share?', { firstName }),
@@ -244,7 +238,7 @@ export function PostPrompt ({ currentUser, forGroup, currentType, currentTopicNa
     <View style={styles.postPrompt}>
       <TouchableOpacity onPress={handleOpenPostEditor} style={styles.promptButton}>
         <Avatar avatarUrl={avatarUrl} style={styles.avatar} />
-        <Text style={styles.promptText}>{postPromptString(checkedCurrentType, { firstName: currentUser.firstName() }, t)}</Text>
+        <Text style={styles.promptText}>{postPromptString(currentType, { firstName: firstName(currentUser) }, t)}</Text>
       </TouchableOpacity>
     </View>
   )

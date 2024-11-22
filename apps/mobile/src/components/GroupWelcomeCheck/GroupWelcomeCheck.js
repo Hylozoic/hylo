@@ -1,33 +1,37 @@
-import React, { useEffect } from 'react'
-import { useSelector } from 'react-redux'
-import { ALL_GROUP, MY_CONTEXT_GROUP, PUBLIC_GROUP } from 'store/models/Group'
-import presentGroup from 'store/presenters/presentGroup'
-import getMyMemberships from 'store/selectors/getMyMemberships'
-import getGroup from 'store/selectors/getGroup'
+import { useEffect } from 'react'
+import { useQuery } from 'urql'
 import { useNavigation } from '@react-navigation/native'
+import useCurrentUser from 'hooks/useCurrentUser'
+import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
+import GroupPresenter, { ALL_GROUP, MY_CONTEXT_GROUP, PUBLIC_GROUP } from 'urql-shared/presenters/GroupPresenter'
 
 export default function GroupWelcomeCheck ({ groupId }) {
   if (groupId === ALL_GROUP.id || groupId === PUBLIC_GROUP.id || groupId === MY_CONTEXT_GROUP.id) {
     return null
   }
-  const currentGroup = useSelector(state => getGroup(state, { id: groupId }))
   const navigation = useNavigation()
-  const currentMemberships = useSelector(state => getMyMemberships(state))
+  const [currentUser] = useCurrentUser()
+  const currentMemberships = currentUser.memberships
   const currentMembership = currentMemberships.find(m => m.group.id === groupId)
-  const group = presentGroup(currentGroup)
+
+  const [{ data, fetching }] = useQuery({ query: groupDetailsQueryMaker(), variables: { id: groupId }})
+  const currentGroup = data?.group || {}
+  const group = GroupPresenter(currentGroup)
   const { agreements, settings } = group
   const { agreementsAcceptedAt, joinQuestionsAnsweredAt, showJoinForm } = currentMembership?.settings || {}
 
-  const numAgreements = agreements?.length || 0
+  const numAgreements = agreements?.total || 0
 
   const agreementsChanged = numAgreements > 0 &&
-  (!agreementsAcceptedAt || agreementsAcceptedAt < currentGroup.settings.agreementsLastUpdatedAt)
+    (!agreementsAcceptedAt || agreementsAcceptedAt < currentGroup.settings.agreementsLastUpdatedAt)
 
   useEffect(() => {
-    if (showJoinForm || agreementsChanged || (settings?.askJoinQuestions && !joinQuestionsAnsweredAt)) {
-      navigation.navigate('Group Welcome', { groupId })
+    if (!fetching) {
+      if (showJoinForm || agreementsChanged || (settings?.askJoinQuestions && !joinQuestionsAnsweredAt)) {
+        navigation.navigate('Group Welcome', { groupId })
+      }
     }
-  }, [showJoinForm, agreementsChanged, joinQuestionsAnsweredAt])
+  }, [fetching, showJoinForm, agreementsChanged, joinQuestionsAnsweredAt])
 
   return null
 }

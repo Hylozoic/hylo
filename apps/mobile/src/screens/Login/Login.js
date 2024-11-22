@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useMutation } from 'urql'
+import { useSelector } from 'react-redux'
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
@@ -7,7 +8,7 @@ import FastImage from 'react-native-fast-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
 import useRouteParams from 'hooks/useRouteParams'
-import loginAction from 'store/actions/login'
+import loginMutation from 'graphql/mutations/loginMutation'
 import validator from 'validator'
 import errorMessages from 'util/errorMessages'
 import SocialAuth from 'components/SocialAuth'
@@ -18,7 +19,7 @@ export default function Login () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const passwordInputRef = useRef()
-  const dispatch = useDispatch()
+  const [, login] = useMutation(loginMutation)
   const defaultLoginEmail = useSelector(state => state.session?.defaultLoginEmail)
 
   const [email, providedSetEmail] = useState(defaultLoginEmail)
@@ -34,8 +35,12 @@ export default function Login () {
     setFormError(errorMessages(errorMessage))
   }
 
-  const setLoadingMessage = loadingStatus => {
-    if (loadingStatus) setBannerMessage(t('LOGGING IN'))
+  const setLoggingIn = status => {
+    if (status) {
+      setBannerMessage(t('LOGGING IN'))
+    } else {
+      setBannerMessage()
+    }
   }
 
   const clearErrors = useCallback(() => {
@@ -64,28 +69,26 @@ export default function Login () {
   }
 
   const handleSocialAuthStart = () => {
-    setLoadingMessage(true)
+    setLoggingIn(true)
   }
 
   const handleSocialAuthComplete = error => {
     if (error) setBannerError(error)
-    setLoadingMessage(false)
+    setLoggingIn(false)
   }
 
-  const login = async () => {
+  const handleLogin = async () => {
     try {
-      setLoadingMessage(true)
-      const response = await dispatch(loginAction(email, password))
-      const responseError = response.payload?.getData().error
+      setLoggingIn(true)
+      // TODO: URQL - backend should return errors to land in URQL error value not in data response
+      const { data: loginData } = await login({ email, password })
 
-      if (responseError) {
-        setError(responseError)
+      if (loginData?.login?.error) {
+        throw loginData?.login?.error
       }
-
-      setLoadingMessage(false)
     } catch (err) {
-      setLoadingMessage(false)
-      setError(err.message)
+      setLoggingIn(false)
+      setError(err)
     }
   }
 
@@ -156,7 +159,7 @@ export default function Login () {
                 onChangeText={setPassword}
                 returnKeyType='go'
                 selectTextOnFocus
-                onSubmitEditing={() => login()}
+                onSubmitEditing={() => handleLogin()}
                 underlineColorAndroid='transparent'
               />
             </View>
@@ -170,7 +173,7 @@ export default function Login () {
           </View>
         </View>
         <View style={styles.paddedRow}>
-          <TouchableOpacity onPress={login} disabled={!emailIsValid} style={styles.loginButton}>
+          <TouchableOpacity onPress={handleLogin} disabled={!emailIsValid} style={styles.loginButton}>
             <Text style={styles.loginText}>{t('Log In')}</Text>
           </TouchableOpacity>
         </View>
