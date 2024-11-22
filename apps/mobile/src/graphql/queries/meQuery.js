@@ -144,6 +144,14 @@ export default gql`
         slug
       }
     }
+    membershipCommonRoles {
+      items {
+        id
+        commonRoleId
+        groupId
+        userId
+      }
+    }
     skills {
       items {
         id
