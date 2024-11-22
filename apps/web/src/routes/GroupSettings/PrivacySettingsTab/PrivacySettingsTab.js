@@ -20,8 +20,8 @@ import {
 } from 'store/models/Group'
 import SettingsSection from '../SettingsSection'
 
-import general from '../GroupSettings.module.scss' // eslint-disable-line no-unused-vars
-import styles from './PrivacySettingsTab.module.scss' // eslint-disable-line no-unused-vars
+import general from '../GroupSettings.module.scss'
+import styles from './PrivacySettingsTab.module.scss'
 
 const { object } = PropTypes
 

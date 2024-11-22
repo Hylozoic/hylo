@@ -183,6 +183,7 @@
 
 .send-message-button {
   position: absolute;
+  display: inline;
   bottom: 5px;
   padding: 0;
   line-height: 20px;
@@ -192,12 +193,6 @@
   text-align: center;
   vertical-align: middle;
   border-radius: 6px;
-
-  &.disabled {
-    svg {
-      color: gray !important;
-    }
-  }
 }
 @media screen and (max-width: 600px) {
 

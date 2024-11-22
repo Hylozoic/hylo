@@ -284,9 +284,10 @@
   right: 0;
   margin-left: auto;
   margin-right: auto;
-  width: 300px;
-  z-index: 15;
+  max-width: 300px;
+  z-index: 10;
 }
+
 .clickthroughButton{
   margin-top: 6px;
   width: 120px;

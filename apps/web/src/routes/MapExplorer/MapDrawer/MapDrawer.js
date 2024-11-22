@@ -185,15 +185,13 @@ function MapDrawer ({
 
             <div className={styles.contentListContainer} id='contentList'>
               {posts.map(p => {
-                const isFlagged = group && p.flaggedGroups && p.flaggedGroups.includes(group.id)
-
                 return (
                   <PostCard
-                    isFlagged={isFlagged}
                     constrained
                     expanded={false}
                     key={p.id}
                     locationParams={locationParams}
+                    group={group}
                     post={p}
                     className={styles.contentCard}
                   />
