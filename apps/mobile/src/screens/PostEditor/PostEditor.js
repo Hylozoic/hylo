@@ -602,6 +602,7 @@ export default function PostEditor (props) {
             </View>
           </TouchableOpacity>
 
+          {/* TOOD: Only allow Announcement when RESP_ADMINISTRATION in all selected groups: https://github.com/Hylozoic/hylo/issues/87 */}
           <TouchableOpacity
             style={[styles.pressSelectionSection, post?.announcement && styles.pressSelectionSectionPublicSelected]}
             onPress={handleToggleAnnouncement}

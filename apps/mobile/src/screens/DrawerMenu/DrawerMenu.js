@@ -26,7 +26,7 @@ export default function DrawerMenu () {
   const memberships = currentUser?.memberships
   const { myHome } = useRouteParams()
   const hasResponsibility = useHasResponsibility(currentGroup?.id)
-  const canAdmin = useMemo(() => hasResponsibility(RESP_ADMINISTRATION), [currentGroup?.id])
+  const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
   const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
   const myGroups = memberships
     .map(m => m.group)

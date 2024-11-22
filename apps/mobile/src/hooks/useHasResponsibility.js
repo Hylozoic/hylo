@@ -4,6 +4,7 @@ import useCurrentUser from 'hooks/useCurrentUser'
 import commonRolesQuery from 'graphql/queries/commonRolesQuery'
 import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 
+// TODO: Convert to allow a single or multiple groups to be provided to hasResponsibility, see: https://github.com/Hylozoic/hylo/issues/87
 export default function useHasResponsibility (groupId, providedPerson) {
   const [currentUser] = useCurrentUser()
   const person = providedPerson || currentUser
@@ -17,36 +18,34 @@ export default function useHasResponsibility (groupId, providedPerson) {
 
   const isFetching = fetchingCommonRoles || skipQueries
 
-  const derivePersonGroupResponsibilities = (person) => {
+  const personGroupResponsibilities = useMemo(() => {
     const groupRoles = person?.groupRoles?.items || []
-    const groupRolesForGroup = groupRoles.filter(role => role.groupId === groupId) || []
-    return groupRolesForGroup.flatMap(role => role?.responsibilities?.items || [])
-  }
+    const groupRolesForGroup = groupRoles
+      .filter(role => role.groupId === groupId) || []
+    return groupRolesForGroup
+      .flatMap(role => role?.responsibilities?.items || [])
+  }, [person, groupId])
 
-  const deriveCommonResponsibilities = (commonRolesData, person) => {
+  const commonResponsibilities = useMemo(() => {
     const commonRoles = commonRolesData?.commonRoles || []
-    const membershipRoles = person?.membershipCommonRoles?.items || []
-    const membershipRolesForGroup = membershipRoles.filter(role => role.groupId === groupId)
+    const membershipCommonRoles = person?.membershipCommonRoles?.items || []
+    const membershipCommonRolesForGroup = membershipCommonRoles
+      .filter(role => role.groupId === groupId)
 
     return commonRoles
-      .filter(role => membershipRolesForGroup.some(mr => mr.commonRoleId === role.id))
+      .filter(role => membershipCommonRolesForGroup.some(mr => mr.commonRoleId === role.id))
       .flatMap(role => role.responsibilities.items || [])
-  }
+  }, [commonRolesData, person, groupId])
 
-  // Memoize derived responsibilities
-  const personGroupResponsibilities = useMemo(() => derivePersonGroupResponsibilities(person), [person, groupId])
-  const commonResponsibilities = useMemo(() => deriveCommonResponsibilities(commonRolesData, person), [commonRolesData, person, groupId])
-
-  const responsibilities = useMemo(() => [
+  const responsibilities = useMemo(() => ([
     ...personGroupResponsibilities,
     ...commonResponsibilities
-  ], [personGroupResponsibilities, commonResponsibilities])
+  ]), [personGroupResponsibilities, commonResponsibilities])
 
-  // Callback to check responsibilities
-  const hasResponsibility = useCallback((responsibility) => {
+  const hasResponsibility = useCallback(responsibility => {
     const requiredResponsibilities = Array.isArray(responsibility) ? responsibility : [responsibility]
 
-    // Steward case?
+    // TODO: URQL - Steward case? -- https://terrans.slack.com/archives/G01HM5VHD8X/p1732263229830789
     if (responsibility === null) {
       // TODO: Shouldn't the '1', etc values be taken from constants?
       return responsibilities.some(r => ['1', '3', '4'].includes(r.id))
