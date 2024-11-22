@@ -132,7 +132,8 @@ export default class Highlight extends React.Component {
 
     const newString = elements.join('')
 
-    const domTree = cheerio.parseHTML(newString)
+    const $ = cheerio.load(newString)
+    const domTree = $.root().contents().toArray()
 
     if (domTree.length === 1) {
       return domTree[0]

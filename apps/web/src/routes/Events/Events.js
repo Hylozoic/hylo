@@ -128,6 +128,7 @@ function Events (props) {
             <PostCard
               childPost={!groupSlugs.includes(groupSlug)}
               post={post}
+              group={group}
               className={cx(s.eventCard, { [s.expanded]: expanded })}
               expanded={expanded}
               key={post.id}
