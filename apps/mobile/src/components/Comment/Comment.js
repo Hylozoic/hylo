@@ -109,7 +109,7 @@ export default function Comment ({
     )
   }
 
-  // TODO: Make CommentPresenter
+  // TODO: URQL - Make CommentPresenter
   const images = filter({ type: 'image' }, comment?.attachments)
     .map(image => ({ uri: image.url }))
 

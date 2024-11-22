@@ -1,7 +1,7 @@
 import { gql } from 'urql'
 import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
 
-// TODO: URQL - re-integrate analytics:
+// TODO: URQL - analytics:
 // analytics: {
 //   eventName: AnalyticsEvents.POST_CREATED,
 //   detailsLength: TextHelpers.textLengthHTML(details),

@@ -127,7 +127,6 @@ export const LOCATION_PRECISION = {
   region: 'Display only nearest city and don\'t show on the map'
 }
 
-// TODO: URQL - Context Group stuff which will still be used. Move outside of model.
 export const DEFAULT_BANNER = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_banner.jpg'
 export const DEFAULT_AVATAR = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png'
 export const ALL_GROUP_ID = ALL_GROUPS_CONTEXT_SLUG

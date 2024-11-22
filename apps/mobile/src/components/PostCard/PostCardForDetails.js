@@ -56,7 +56,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
   const leaveProject = () => providedLeaveProject({ id: post.id })
   const editPost = () => navigation.navigate('Edit Post', { id: post.id })
 
-  // TODO: Move some or all of the below to PostPresenter
+  // TODO: URQL - Move some or all of the below to PostPresenter
   const isProject = post?.type === 'project'
   const isProjectMember = find(member => member.id === currentUser.id, post.members?.items)
   const locationText = LocationHelpers.generalLocationString(post.locationObject, post.location)

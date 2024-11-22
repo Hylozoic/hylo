@@ -80,7 +80,7 @@ export const CommentEditor = forwardRef(function CommentEditor ({
     if (!isEmpty(commentHTML)) {
       setSubmitting(true)
 
-      // TODO: URQL send analytics event:
+      // TODO: URQL - analytics
       // analytics: {
       //   eventName: AnalyticsEvents.COMMENT_CREATED,
       //   commentLength: TextHelpers.textLengthHTML(text),
