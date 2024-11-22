@@ -320,6 +320,7 @@ export default function AuthLayoutRouter (props) {
                 path='groups/:groupSlug/*'
                 element={
                   <Navigation
+                    context='groups'
                     group={currentGroup}
                     collapsed={collapsedState}
                     className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
@@ -331,6 +332,7 @@ export default function AuthLayoutRouter (props) {
                 path='all/*'
                 element={
                   <Navigation
+                    context='all'
                     group={currentGroup}
                     collapsed={collapsedState}
                     className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
@@ -342,6 +344,7 @@ export default function AuthLayoutRouter (props) {
                 path='public/*'
                 element={
                   <Navigation
+                    context='public'
                     group={currentGroup}
                     collapsed={collapsedState}
                     className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
@@ -353,6 +356,7 @@ export default function AuthLayoutRouter (props) {
                 path='my/*'
                 element={
                   <Navigation
+                    context='my'
                     group={currentGroup}
                     collapsed={collapsedState}
                     className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
@@ -402,7 +406,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/projects/*' element={<Stream context='groups' view='projects' />} />
               <Route path='groups/:groupSlug/custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
               <Route path='groups/:groupSlug/events/*' element={<Events context='groups' view='events' />} />
-              <Route path='groups/:groupSlug/groups' element={<Groups context='groups' />} />
+              <Route path='groups/:groupSlug/groups/*' element={<Groups context='groups' />} />
               <Route path='groups/:groupSlug/members/create/*' element={<Members context='groups' />} />
               <Route path='groups/:groupSlug/members/:personId/*' element={<MemberProfile context='groups' />} />
               <Route path='groups/:groupSlug/members/*' element={<Members context='groups' />} />
@@ -412,8 +416,8 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/*' element={returnDefaultView('groups', currentGroup)} />
               <Route path='post/:postId/*' element={<PostDetail />} />
               {/* **** My Routes **** */}
-              <Route path='my/:view' element={<Stream />} />
-              <Route path='my' render={props => <Navigate to='/my/posts' replace />} />
+              <Route path='my/:view/*' element={<Stream context='my' />} />
+              <Route path='my' element={<Navigate to='/my/posts' replace />} />
               {/* **** Other Routes **** */}
               <Route path='welcome/*' element={<WelcomeWizardRouter />} />
               <Route path='messages/:messageThreadId' element={<Messages />} />
@@ -505,7 +509,7 @@ export default function AuthLayoutRouter (props) {
   )
 }
 
-export function returnDefaultView (group, context) {
+function returnDefaultView (group, context) {
   if (!group) return <Stream context={context} />
 
   switch (group.type) {

@@ -1,17 +1,17 @@
 import cx from 'classnames'
 import { get } from 'lodash/fp'
 import React, { useCallback, useRef } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import CardImageAttachments from 'components/CardImageAttachments'
 import Icon from 'components/Icon'
+import useRouteParams from 'hooks/useRouteParams'
 import { POST_PROP_TYPES } from 'store/models/Post'
 import { postUrl, editPostUrl } from 'util/navigation'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
-import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import EventBody from './EventBody'
 import PostBody from './PostBody'
 import PostFooter from './PostFooter'
@@ -38,7 +38,7 @@ export default function PostCard (props) {
 
   const postCardRef = useRef()
   const { t } = useTranslation()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const location = useLocation()

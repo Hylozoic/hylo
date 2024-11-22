@@ -1,13 +1,14 @@
 import cx from 'classnames'
 import { compact, get } from 'lodash/fp'
 import React, { useCallback } from 'react'
-import { Link, useParams, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import Icon from 'components/Icon'
 import NavLink from './NavLink'
 import TopicNavigation from './TopicNavigation'
+import useRouteParams from 'hooks/useRouteParams'
 import { toggleGroupMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -38,7 +39,7 @@ export default function Navigation (props) {
   } = props
 
   const dispatch = useDispatch()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const location = useLocation()
   const { t } = useTranslation()
 

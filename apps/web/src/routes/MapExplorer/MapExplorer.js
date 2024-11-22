@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import React, { useState, useEffect, useMemo, useRef, useCallback, useContext } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate, useLocation, useParams } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { createSelector } from 'reselect'
@@ -25,6 +25,7 @@ import { createPolygonLayerFromGroups } from 'components/Map/layers/polygonLayer
 import SwitchStyled from 'components/SwitchStyled'
 import Tooltip from 'components/Tooltip'
 import LayoutFlagsContext from 'contexts/LayoutFlagsContext'
+import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { locationObjectToViewport } from 'util/geo'
 import { isMobileDevice } from 'util/mobile'
@@ -92,7 +93,7 @@ function MapExplorer (props) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const layoutFlags = useContext(LayoutFlagsContext)
 
   const mapRef = useRef(null)

@@ -1,13 +1,14 @@
 import cx from 'classnames'
 import { capitalize } from 'lodash'
 import React, { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Tooltip } from 'react-tooltip'
 
 import Icon from 'components/Icon'
 import PostLabel from 'components/PostLabel'
 import RoundImage from 'components/RoundImage'
+import useRouteParams from 'hooks/useRouteParams'
 import { CONTEXT_MY } from 'store/constants'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { whiteMerkaba, allGroupsBanner, publicGlobe } from 'util/assets'
@@ -34,7 +35,7 @@ export default function GroupBanner ({
 }) {
   let bannerUrl, avatarUrl, name, location, subtitle
   const { t } = useTranslation()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const view = routeParams.view
   const isAboutOpen = !!routeParams.detailGroupSlug
 
@@ -81,7 +82,7 @@ export default function GroupBanner ({
           <div className={classes.right}>
             <Link
               className={cx(classes.about, { [classes.isAboutOpen]: isAboutOpen })}
-              to={isAboutOpen ? groupUrl(group.slug, routeParams, querystringParams) : groupDetailUrl(group.slug, routeParams, querystringParams)}
+              to={isAboutOpen ? groupUrl(group.slug, routeParams.view, querystringParams) : groupDetailUrl(group.slug, routeParams, querystringParams)}
             >
               <Icon name='Info' />{t('About us')}
             </Link>
@@ -161,7 +162,7 @@ export default function GroupBanner ({
   )
 }
 
-export const PostPrompt = (props) => {
+const PostPrompt = (props) => {
   const { avatarUrl, className, firstName = '', type = '', querystringParams = {}, routeParams = {} } = props
   const [hover, setHover] = useState(false)
   const { t } = useTranslation()
