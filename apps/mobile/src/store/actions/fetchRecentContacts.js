@@ -1,4 +1,4 @@
-import gql from 'graphql-tag'
+import { gql } from 'urql'
 import { FETCH_RECENT_CONTACTS } from 'store/constants'
 
 export const RecentContactsQuery = gql`

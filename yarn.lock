@@ -24754,7 +24754,6 @@ __metadata:
     eslint-plugin-react: "npm:^7.34.3"
     eslint-plugin-testing-library: "npm:^6.2.2"
     graphql: "npm:^16.9.0"
-    graphql-tag: "npm:^2.12.6"
     html-entities: "npm:^2.5.2"
     i18next: "npm:^23.12.2"
     intl-pluralrules: "npm:^2.0.1"
