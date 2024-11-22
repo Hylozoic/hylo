@@ -32,6 +32,7 @@ export const makeQuery = ({
   if (context === 'groups') {
     query = makeGroupPostsQuery(childPostInclusion === 'yes')
   } else if (context === 'all' || context === 'public' || context === 'my') {
+    console.log('!!!! here')
     query = postsQuery
   } else {
     throw new Error(`makeQuery with context=${context} is not implemented`)
@@ -93,8 +94,8 @@ const postsQuery = gql`
     $types: [String]
   ) {
     ...PostsQueryFragment    
-    ${postsQueryFragment}
   }
+  ${postsQueryFragment}
 `
 
 // TODO: URQL - eliminate Group.viewPosts and add "includeChildPost" filter (or similar)

@@ -13,8 +13,8 @@ import HyloWebView from 'components/HyloWebView'
 import ModalHeaderTransparent from 'navigation/headers/ModalHeaderTransparent'
 import getGroup from 'store/selectors/getGroup'
 
-const groupModeratorsQuery = gql`
-  query GroupModeratorsQuery ($id: ID, $slug: String) {
+const groupStewardsQuery = gql`
+  query GroupStewardsQuery ($id: ID, $slug: String) {
     group (id: $id, slug: $slug) {
       id
       stewards {
@@ -28,12 +28,12 @@ const groupModeratorsQuery = gql`
   }
 `
 export default function GroupExploreWebView () {
-  const [, fetchGroupDetails] = useQuery({ query: groupDetailsQueryMaker(), pause: true })
-  const [, fetchGroupModerators] = useQuery({ query: groupModeratorsQuery, pause: true })
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
   const webViewRef = useRef(null)
   const { groupSlug } = useRouteParams()
+  const [, fetchGroupDetails] = useQuery({ query: groupDetailsQueryMaker(), pause: true })
+  const [, fetchGroupModerators] = useQuery({ query: groupStewardsQuery, pause: true })
   const currentGroup = useSelector(state => getGroup(state, { slug: groupSlug }))
   const [path, setPath] = useState()
   const [canGoBack, setCanGoBack] = useState(false)
