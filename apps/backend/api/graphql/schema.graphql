@@ -2490,7 +2490,7 @@ type Mutation {
   reorderContextWidget(
     contextWidgetId: ID,
     # Change the parent of the widget
-    parentWidgetId: ID,
+    parentId: ID,
     # Move the widget in front of this widget
     orderInFrontOfWidgetId: ID,
     # Add the widget to the end of the parent

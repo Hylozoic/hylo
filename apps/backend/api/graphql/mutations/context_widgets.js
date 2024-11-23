@@ -59,7 +59,7 @@ export async function updateContextWidget({ userId, contextWidgetId, data }) {
     })
 }
 
-export async function reorderContextWidget({ userId, contextWidgetId, parentWidgetId, orderInFrontOfWidgetId, addToEnd }) {
+export async function reorderContextWidget({ userId, contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')
   if (!contextWidgetId) throw new GraphQLYogaError('No context widget id passed into function')
 
@@ -74,7 +74,7 @@ export async function reorderContextWidget({ userId, contextWidgetId, parentWidg
 
   return ContextWidget.reorder({ 
     id: contextWidgetId, 
-    parentWidgetId,
+    parentId,
     orderInFrontOfWidgetId,
     addToEnd
   })

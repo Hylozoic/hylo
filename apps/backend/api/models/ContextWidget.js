@@ -1,3 +1,5 @@
+const { reorderTree } = require("./util/contextWidgets")
+
 module.exports = bookshelf.Model.extend({
   tableName: 'context_widgets',
   requireFetch: false,
@@ -195,11 +197,11 @@ module.exports = bookshelf.Model.extend({
 
     return await bookshelf.transaction(trx => doWork(trx))
   },
-  reorder: async function({ id, addToEnd, orderInFrontOfWidgetId, parentWidgetId, trx: existingTrx }) {
+  reorder: async function({ id, addToEnd, orderInFrontOfWidgetId, parentId, trx: existingTrx }) {
     const doWork = async (trx) => {
-      const movedContextWidget = await ContextWidget.where({ id }).fetch({ transacting: trx })
-      if (!movedContextWidget) throw new Error('Context widget not found')
-      console.log('inside the reorder', order)
+      const movedWidget = await ContextWidget.where({ id }).fetch({ transacting: trx })
+      if (!movedWidget) throw new Error('Context widget not found')
+      console.log('inside the reorder')
 
       const priorWidgetState = {
         id: movedWidget.get('id'),
@@ -216,7 +218,7 @@ module.exports = bookshelf.Model.extend({
         }))
   
       // Define the new widget position
-      const newWidgetPosition = { id, addToEnd, orderInFrontOfWidgetId, parentWidgetId }
+      const newWidgetPosition = { id, addToEnd, orderInFrontOfWidgetId, parentId }
   
       // Reorder the widgets
       const reorderedWidgets = reorderTree({priorWidgetState, newWidgetPosition, allWidgets})
@@ -237,8 +239,8 @@ module.exports = bookshelf.Model.extend({
       `
     
       await bookshelf.knex.raw(query).transacting(trx)
-    
-      return movedContextWidget
+      movedWidget.refresh()
+      return movedWidget
     }
 
     if (existingTrx) {
@@ -270,11 +272,25 @@ module.exports = bookshelf.Model.extend({
       const orderInFrontOfWidgetId = data.order_in_front_of_widget_id
 
       // Update the widget with the new data. If a widget is updated, we don't want to auto-add it later.
-      await widget.save({ ...data, auto_added: true, order: widget.get('order') || null, parent_id: widget.get('parent_id') || null }, { 
+      await widget.save({ 
+        icon: data.icon, 
+        title: data.title, 
+        type: data.type, 
+        auto_added: true, 
+        visibility: data.visibility,
+        group_id: data.group_id,
+        view: data.view,
+        view_chat_id: data.view_chat_id,
+        view_group_id: data.view_group_id,
+        view_post_id: data.view_post_id,
+        view_user_id: data.view_user_id,
+        custom_view_id: data.custom_view_id,
+      }, { 
         patch: true, 
         transacting: trx 
       })
       widget.refresh()
+      console.log('widget did we get this far')
       // If the update includes an order or parent_id, reorder the widget
       if (addToEnd || data.parent_id !== undefined || orderInFrontOfWidgetId !== undefined) {
 
@@ -282,7 +298,7 @@ module.exports = bookshelf.Model.extend({
           id: widget.get('id'),
           addToEnd,
           orderInFrontOfWidgetId,
-          parentWidgetId: data.parent_id,
+          parentId: data.parent_id,
           trx
         })
       }
