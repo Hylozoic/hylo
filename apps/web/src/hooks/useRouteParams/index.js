@@ -22,7 +22,12 @@ export default function useRouteParams () {
   // if view is not set, then set it
   if (!params.view) {
     const pathParts = location.pathname.split('/')
-    params.view = params.context === 'groups' ? pathParts[3] : pathParts[2]
+    if (params.context === 'groups') {
+      // Correctly track the view for groups context
+      params.view = !['post', 'group', 'create'].includes(pathParts[3]) ? pathParts[3] : 'stream'
+    } else {
+      params.view = pathParts[2]
+    }
   }
 
   // Mix query params and path params into one object, query params take precedence
