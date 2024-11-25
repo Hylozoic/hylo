@@ -15,7 +15,9 @@ export default function useRouteParams () {
     const pathParts = location.pathname.split('/')
     const firstPart = pathParts[1]
     if (['groups', 'all', 'public', 'my', 'welcome'].includes(firstPart)) {
-      params.context = firstPart || 'all'
+      params.context = firstPart
+    } else {
+      params.context = 'all'
     }
   }
 

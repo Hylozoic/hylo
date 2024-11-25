@@ -1,5 +1,5 @@
 import cx from 'classnames'
-import { keyBy, map, trim, get } from 'lodash'
+import { keyBy, map, trim } from 'lodash'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
@@ -55,13 +55,6 @@ import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable
 
 const MAX_DETAILS_LENGTH = 144
 
-// export const initialState = {
-//   errorMessage: undefined,
-//   successMessage: undefined,
-//   membership: undefined,
-//   request: undefined
-// }
-
 function GroupDetail () {
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -72,7 +65,7 @@ function GroupDetail () {
   const currentUser = useSelector(getMe)
   const groupSelector = useSelector(state => getGroupForSlug(state, routeParams.detailGroupSlug || routeParams.groupSlug))
   const group = useMemo(() => presentGroup(groupSelector), [groupSelector])
-  const slug = get(group, 'slug')
+  const slug = routeParams.detailGroupSlug || routeParams.groupSlug
   const isAboutCurrentGroup = routeParams.groupSlug === routeParams.detailGroupSlug
   const myMemberships = useSelector(state => getMyMemberships(state))
   const isMember = useMemo(() => group && currentUser ? myMemberships.find(m => m.group.id === group.id) : false, [group, currentUser, myMemberships])
@@ -81,8 +74,6 @@ function GroupDetail () {
   const responsibilities = useSelector(state => getResponsibilitiesForGroup(state, { person: currentUser, groupId: group?.id }))
   const responsibilityTitles = useMemo(() => responsibilities.map(r => r.title), [responsibilities])
   const pending = useSelector(state => state.pending[FETCH_GROUP_DETAILS])
-
-  // const [state, setState] = useState(initialState)
 
   const fetchGroup = useCallback(() => {
     dispatch(fetchGroupDetails({ slug, withWidgets: true, withPrerequisites: !!currentUser }))
@@ -100,13 +91,11 @@ function GroupDetail () {
   }, [dispatch])
 
   useEffect(() => {
-    console.log('useEffect fetchGroup')
     dispatch(fetchJoinRequests())
     dispatch(fetchForCurrentUser())
   }, [dispatch])
 
   useEffect(() => {
-    console.log('useEffect fetchGroup 2', group?.id)
     fetchGroup()
   }, [group?.id])
 

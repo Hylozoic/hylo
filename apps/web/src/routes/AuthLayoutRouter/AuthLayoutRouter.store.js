@@ -34,7 +34,7 @@ export default function reducer (state = initialState, action) {
   }
 
   // Links current user to rollbar config
-  if (action.type === FETCH_FOR_CURRENT_USER) {
+  if (action.type === FETCH_FOR_CURRENT_USER && action.payload?.data?.me) {
     const { id, name, email } = action.payload.data.me
     rollbar.configure({
       payload: {

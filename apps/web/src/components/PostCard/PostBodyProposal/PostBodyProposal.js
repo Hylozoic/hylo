@@ -81,7 +81,7 @@ export default function PostBodyProposal ({
   const proposalOptionsArray = useMemo(() => proposalOptions || [], [proposalOptions])
   const proposalVotesArray = useMemo(() => proposalVotes?.items || [], [proposalVotes])
 
-  const currentUserVotes = useMemo(() => proposalVotesArray.filter(vote => vote?.user?.id === currentUser.id), [proposalVotesArray, currentUser.id])
+  const currentUserVotes = useMemo(() => proposalVotesArray.filter(vote => vote?.user?.id === currentUser?.id), [proposalVotesArray, currentUser?.id])
   const currentUserVotesOptionIds = useMemo(() => currentUserVotes.map(vote => vote.optionId), [currentUserVotes])
   const proposalVoterCount = useMemo(() => calcNumberOfVoters(proposalVotesArray), [proposalVotesArray])
   const numberOfPossibleVoters = useMemo(() => calcNumberOfPossibleVoters(groups), [groups])
