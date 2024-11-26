@@ -1,11 +1,12 @@
 import React from 'react'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
 import { Provider } from 'react-redux'
+import { ThemeProvider } from 'components/ThemeProvider'
 // import { Provider as RollbarProvider, ErrorBoundary } from '@rollbar/react'
 import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
-import isWebView from 'util/webView'
 import store, { history } from '../store'
 import RootRouter from 'routes/RootRouter'
+import isWebView from 'util/webView'
 
 if (isWebView()) {
   window.ReactNativeWebView.reactRouterHistory = history
@@ -35,9 +36,11 @@ export default function App () {
   return (
     <LayoutFlagsProvider>
       <Provider store={store}>
-        <Router history={history}>
-          <RootRouter />
-        </Router>
+        <ThemeProvider>
+          <Router history={history}>
+            <RootRouter />
+          </Router>
+        </ThemeProvider>
       </Provider>
     </LayoutFlagsProvider>
   )

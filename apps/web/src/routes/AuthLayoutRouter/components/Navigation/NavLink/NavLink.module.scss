@@ -16,12 +16,12 @@
 .link {
   display: flex;
   align-items: center;
-  color: $color-rhino-60;
+  color: var(--foreground);
   text-decoration: none !important;
 
   &:hover, &:visited, &:active, &:link {
     text-decoration: none;
-    color: $color-rhino;
+    color: var(--foreground);
   }
 
   transition: 1.5s;
@@ -32,7 +32,7 @@
 }
 
 .active {
-  background-color: rgba(0, 118, 223, .1);
+  background-color: var(--accent);
 
   .collapsed.link span.label {
     color: transparent;
@@ -40,10 +40,10 @@
 
   .link {
     text-decoration: none;
-    color: rgba(0, 118, 223, 1.0);
+    color: var(--accent-foreground);
 
     span {
-      color: rgba(0, 118, 223, 1.0);
+      color: var(--accent-foreground);
     }
 
     &.collapsed {
@@ -85,7 +85,7 @@
   }
 
   .link.collapsed, .active .link.collapsed {
-    color: $color-rhino-60;
+    color: var(--muted-foreground);
   }
 }
 
