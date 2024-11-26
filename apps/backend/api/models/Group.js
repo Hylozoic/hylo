@@ -6,7 +6,7 @@ import randomstring from 'randomstring'
 import wkx from 'wkx'
 
 import mixpanel from '../../lib/mixpanel'
-import { AnalyticsEvents, LocationHelpers } from 'hylo-shared'
+import { AnalyticsEvents, LocationHelpers } from '@hylo/shared'
 import HasSettings from './mixins/HasSettings'
 import findOrCreateThread from './post/findOrCreateThread'
 import { groupFilter } from '../graphql/filters'

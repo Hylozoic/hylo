@@ -1,7 +1,3 @@
-/* eslint-disable no-undef */
-
-// write a function that takes a locale and returns the emoji flag for that locale
-
 export function localeToFlagEmoji (locale = 'en') {
   const code = locale.length > 2 ? locale.split('-')[0] : locale
 

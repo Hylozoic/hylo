@@ -19,7 +19,7 @@
   }
 
   .ProseMirror p:last-child {
-    margin-bottom: 0px;
+    margin: 0px;
   }
 
   .ProseMirror a {
@@ -68,7 +68,7 @@
     font-size: 14px;
     border-radius: 3px;
     transition: all .25s ease;
-    padding-top: 3px;
+    padding: 3px 4px;
 
     &.is-active {
       background-color: $color-rhino-80;

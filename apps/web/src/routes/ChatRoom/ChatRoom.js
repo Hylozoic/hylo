@@ -4,8 +4,8 @@ import moment from 'moment-timezone'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
-import { IoSend } from 'react-icons/io5'
-import { useSelector, useDispatch, shallowEqual } from 'react-redux'
+import { SendHorizontal } from 'lucide-react'
+import { useSelector, useDispatch } from 'react-redux'
 import { useParams, useLocation } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData } from '@virtuoso.dev/message-list'
@@ -121,7 +121,7 @@ export default function ChatRoom (props) {
   const groupTopic = useSelector(state => getGroupTopicForCurrentRoute(state, groupSlug, topicName))
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
-  const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: 'new', attachmentType: 'image' }), shallowEqual)
+  const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: 'new', attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
   const linkPreview = useSelector(getLinkPreview) // TODO: check
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
   const followersTotal = useMemo(() => get('followersTotal', groupSlug ? groupTopic : topic), [groupSlug, groupTopic, topic])
@@ -375,6 +375,21 @@ export default function ChatRoom (props) {
     updateLastReadPost(lastPost)
   }, [groupTopic?.id, lastReadPostId])
 
+  const onAddReaction = useCallback((post, emojiFull) => {
+    const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
+    const newPost = { ...post, ...optimisticUpdate }
+    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
+  }, [currentUser])
+
+  const onRemoveReaction = useCallback((post, emojiFull) => {
+    const postReactions = post.postReactions.filter(reaction => {
+      if (reaction.emojiFull === emojiFull && reaction.user.id === currentUser.id) return false
+      return true
+    })
+    const newPost = { ...post, myReactions: post.myReactions.filter(react => react.emojiFull !== emojiFull), postReactions }
+    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
+  }, [currentUser])
+
   // Create a new chat post
   const postChatMessage = useEventCallback(async () => {
     // Only submit if any non-whitespace text has been added
@@ -447,9 +462,10 @@ export default function ChatRoom (props) {
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto' }}
                 ref={messageListRef}
-                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId }}
+                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction }}
                 initialData={postsForDisplay}
                 initialLocation={{ index: initialPostToScrollTo, align: 'end' }}
+                shortSizeAlign='bottom-smooth'
                 computeItemKey={({ data }) => data.id || data.localId}
                 onScroll={onScroll}
                 onRenderedDataChange={onRenderedDataChange}
@@ -502,7 +518,7 @@ export default function ChatRoom (props) {
             className={styles.uploadAttachment}
             id='new'
             attachmentType='image'
-            onSuccess={(attachment) => addAttachment('post', 'new', attachment)}
+            onSuccess={(attachment) => dispatch(addAttachment('post', 'new', attachment))}
             allowMultiple
           >
             <Icon
@@ -514,9 +530,9 @@ export default function ChatRoom (props) {
             borderRadius='6px'
             disabled={!postInProgress}
             onClick={postChatMessage}
-            className={cx(styles.sendMessageButton, { [styles.disabled]: !postInProgress })}
+            className={styles.sendMessageButton}
           >
-            <IoSend color='white' style={{ display: 'inline' }} />
+            <SendHorizontal color={!postInProgress ? 'gray' : 'white'} size={18} style={{ display: 'inline' }} />
           </Button>
         </div>
       </div>
@@ -598,12 +614,17 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
             group={context.group}
             showHeader={showHeader}
             post={post}
+            onAddReaction={context.onAddReaction}
+            onRemoveReaction={context.onRemoveReaction}
           />
         : (
           <div className={cx(styles.cardItem, { [styles.expanded]: expanded })}>
             <PostCard
+              group={context.group}
               expanded={expanded}
               post={post}
+              onAddReaction={context.onAddReaction}
+              onRemoveReaction={context.onRemoveReaction}
             />
           </div>
           )}

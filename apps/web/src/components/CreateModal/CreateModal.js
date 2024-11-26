@@ -52,34 +52,35 @@ const CreateModal = (props) => {
           <span className={classes.closeButton} onClick={confirmClose}>
             <Icon name='Ex' />
           </span>
-          <Routes>
-            <Route
-              path='edit'
-              element={
-                <PostEditor
-                  {...props}
-                  selectedLocation={mapLocation}
-                  onClose={closeModal}
-                  onCancel={confirmClose}
-                  setIsDirty={setIsDirty}
+          {props.editingPost
+            ? (
+              <PostEditor
+                {...props}
+                selectedLocation={mapLocation}
+                onClose={closeModal}
+                onCancel={confirmClose}
+                setIsDirty={setIsDirty}
+                editing={props.editingPost}
+              />
+              )
+            : (
+              <Routes>
+                <Route
+                  path='post'
+                  element={(
+                    <PostEditor
+                      {...props}
+                      selectedLocation={mapLocation}
+                      onClose={closeModal}
+                      onCancel={confirmClose}
+                      setIsDirty={setIsDirty}
+                    />
+                  )}
                 />
-              }
-            />
-            <Route
-              path='post'
-              element={
-                <PostEditor
-                  {...props}
-                  selectedLocation={mapLocation}
-                  onClose={closeModal}
-                  onCancel={confirmClose}
-                  setIsDirty={setIsDirty}
-                />
-              }
-            />
-            <Route path='group' element={<CreateGroup {...props} />} />
-            <Route path='*' element={<CreateModalChooser {...props} />} />
-          </Routes>
+                <Route path='group' element={<CreateGroup {...props} />} />
+                <Route path='*' element={<CreateModalChooser {...props} />} />
+              </Routes>
+              )}
         </div>
         <div className={classes.createModalBg} onClick={confirmClose} />
       </div>

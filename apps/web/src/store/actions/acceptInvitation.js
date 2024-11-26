@@ -2,7 +2,7 @@ import { get } from 'lodash/fp'
 import { USE_INVITATION } from 'store/constants'
 import { AnalyticsEvents } from '@hylo/shared'
 
-export default function useInvitation (inviteCodes = {}) {
+export default function acceptInvitation (inviteCodes = {}) {
   const { invitationToken, accessCode } = inviteCodes
 
   return {

@@ -104,10 +104,15 @@ export default function PostBigGridItem ({
         <h3 className={classes.title} onClick={showDetailsTargeted}>{title}</h3>
 
         {attachmentType === 'image'
-          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={classes.firstImage} onClick={showDetails} />
+          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cx(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} onClick={showDetails} />
           : null}
+
         {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
-        <HyloHTML className={classes.details} html={details} onClick={showDetailsTargeted} />
+
+        <div className={cx({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+          <HyloHTML html={details} onClick={showDetailsTargeted} />
+        </div>
+
         <div className={classes.gridMeta}>
           <div className={classes.gridMetaRow1}>
             {post.type === 'event' && (

@@ -9,7 +9,7 @@ import FullPageModal from 'routes/FullPageModal'
 import Icon from 'components/Icon'
 import ScrollListener from 'components/ScrollListener'
 import TextInput from 'components/TextInput'
-import useRouterParams from 'hooks/useRouterParams'
+import useRouteParams from 'hooks/useRouteParams'
 import { inflectedTotal } from 'util/index'
 import { topicUrl, baseUrl } from 'util/navigation'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -37,7 +37,7 @@ function AllTopics (props) {
   // const [createTopicModalVisible, setCreateTopicModalVisible] = useState(false)
   const [totalTopicsCached, setTotalTopicsCached] = useState(null)
 
-  const routeParams = useRouterParams()
+  const routeParams = useRouteParams()
   const groupSlug = routeParams.groupSlug
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const selectedSort = useSelector(getSort)

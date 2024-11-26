@@ -94,9 +94,7 @@ function MemberRow ({ member, selected, onClick }) {
       <div className={classes.col}>
         {name}
       </div>
-      {response && <div className={cx(classes.col, classes.response)}>
-        {humanResponse(response)}
-      </div>}
+      {response && <div className={cx(classes.col, classes.response)}>{humanResponse(response)}</div>}
     </div>
   )
 }

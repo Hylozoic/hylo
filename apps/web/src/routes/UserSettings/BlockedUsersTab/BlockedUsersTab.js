@@ -1,17 +1,9 @@
-import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { useTranslation, withTranslation } from 'react-i18next'
 import classes from './BlockedUsersTab.module.scss'
 import Loading from 'components/Loading'
 
-const { array, func } = PropTypes
-
 class BlockedUsersTab extends Component {
-  static propTypes = {
-    memberships: array,
-    updateMembershipSettings: func
-  }
-
   render () {
     const { blockedUsers, unBlockUser, loading } = this.props
     if (loading || !blockedUsers) return <Loading />

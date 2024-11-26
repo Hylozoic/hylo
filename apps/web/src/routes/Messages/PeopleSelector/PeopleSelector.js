@@ -143,12 +143,10 @@ export default function PeopleSelector (props) {
 
 PeopleSelector.propTypes = {
   people: PropTypes.array,
-  currentUser: PropTypes.object,
   fetchPeople: PropTypes.func,
   fetchDefaultList: PropTypes.func,
   setPeopleSearch: PropTypes.func,
   selectedPeople: PropTypes.array,
-  recentPeople: PropTypes.array,
   selectPerson: PropTypes.func.isRequired,
   removePerson: PropTypes.func
 }

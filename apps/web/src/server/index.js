@@ -1,30 +1,33 @@
-import setupStartTime from './setup' // this must be first
-import './newrelic' // this must be second
 import express from 'express'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
-import appMiddleware from './appMiddleware'
-import apiProxy from './apiProxy'
-import redirectToApp from './redirectToApp'
-import { handleStaticPages } from './proxy'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import apiProxy from './apiProxy.js'
+import appMiddleware from './appMiddleware.js'
+import redirectToApp from './redirectToApp.js'
+import { handleStaticPages } from './proxy.js'
 
 const port = process.env.PORT || 9001
 
-export default function () {
+const startTime = new Date().getTime()
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+function startServer () {
+  console.log('Starting server...')
   const server = express()
   server.use(cookieParser())
   server.use(compression())
   server.use(apiProxy)
   server.use(redirectToApp)
   handleStaticPages(server)
-  server.use(express.static('build'))
-  // Note: Server-side Rendering
-  // ref: https://github.com/Hylozoic/hylo-evo/issues/1069
-  // server.use(appMiddleware)
+  server.use(express.static(path.join(__dirname, '../../dist')))
+  server.use(appMiddleware)
 
   const listener = server.listen(port, err => {
     if (err) throw err
-    const elapsed = new Date().getTime() - setupStartTime
+    const elapsed = new Date().getTime() - startTime
     console.log(`listening on port ${port} after ${elapsed}ms (pid ${process.pid})`)
   })
 
@@ -42,3 +45,9 @@ export default function () {
 
   return listener
 }
+
+// Call the function to start the server
+startServer()
+
+// Export for testing/importing if needed
+export { startServer }

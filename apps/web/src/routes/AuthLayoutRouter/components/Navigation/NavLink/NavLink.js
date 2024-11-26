@@ -1,5 +1,5 @@
 import React from 'react'
-import { Route, useLocation } from 'react-router'
+import { useLocation } from 'react-router'
 import { Link } from 'react-router-dom'
 import BadgedIcon from 'components/BadgedIcon'
 import Badge from 'components/Badge'

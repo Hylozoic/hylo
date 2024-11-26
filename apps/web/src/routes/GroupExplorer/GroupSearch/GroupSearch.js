@@ -8,7 +8,7 @@ import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import ScrollListener from 'components/ScrollListener'
 import GroupCard from 'components/GroupCard'
-import useRouterParams from 'hooks/useRouterParams'
+import useRouteParams from 'hooks/useRouteParams'
 import useDebounce from 'hooks/useDebounce'
 import useEnsureSearchedGroups from 'hooks/useEnsureSearchedGroups'
 import getMe from 'store/selectors/getMe'
@@ -34,8 +34,8 @@ export default function GroupSearch ({ viewFilter }) {
   const [filterToggle, setFilterToggle] = useState(false)
   const [groupType, setGroupType] = useState(null)
   const debouncedSearchTerm = useDebounce(search, 500)
-  const routerParams = useRouterParams()
-  const selectedGroupSlug = routerParams.groupSlug
+  const routeParams = useRouteParams()
+  const selectedGroupSlug = routeParams.groupSlug
   const [farmQuery, setFarmQuery] = useState({ farmType: '', certOrManagementPlan: '', productCategories: '' })
   const {
     groups = [],
@@ -73,13 +73,15 @@ export default function GroupSearch ({ viewFilter }) {
     <>
       <div className={classes.groupSearchViewCtrls}>
         {viewFilter === FARM_VIEW
-          ? <div className={classes.filterContainer} onClick={() => setFilterToggle(!filterToggle)}>
-            <Icon name='Filter' green={filterToggle} className={cx(classes.filterIcon, { [classes.filterOpen]: filterToggle })} />
-            <b className={cx({ [classes.filterOpen]: filterToggle })}>{t('Filters')}</b>
-            {filterToggle && <Icon name='Ex' className={classes.removeButton} />}
-          </div>
+          ? (
+            <div className={classes.filterContainer} onClick={() => setFilterToggle(!filterToggle)}>
+              <Icon name='Filter' green={filterToggle} className={cx(classes.filterIcon, { [classes.filterOpen]: filterToggle })} />
+              <b className={cx({ [classes.filterOpen]: filterToggle })}>{t('Filters')}</b>
+              {filterToggle && <Icon name='Ex' className={classes.removeButton} />}
+            </div>
+            )
           : <div id='div-left-intentionally-blank' />}
-        {makeDropdown({ selected: sortBy, options: sortOptions(nearCoord), onChange: setSortBy, filterLabel: `${t('Sort by')}: `, t })}
+        {makeDropdown({ selected: sortBy, options: sortOptions(t, nearCoord), onChange: setSortBy, filterLabel: `${t('Sort by')}: `, t })}
       </div>
       {filterToggle && viewFilter === FARM_VIEW &&
         <div className={classes.filterList}>
@@ -107,7 +109,6 @@ export default function GroupSearch ({ viewFilter }) {
               memberships={membershipGroupIds}
               className={cx(classes.cardItem, { [classes.expanded]: expanded })}
               expanded={expanded}
-              routeParams={query}
               group={group}
               key={group.id}
             />
@@ -124,8 +125,7 @@ export default function GroupSearch ({ viewFilter }) {
   )
 }
 
-const sortOptions = (nearCoord) => {
-  const { t } = useTranslation()
+const sortOptions = (t, nearCoord) => {
   const options = [
     { id: SORT_NAME, label: t('Group Name') },
     { id: SORT_SIZE, label: t('Member Count') }

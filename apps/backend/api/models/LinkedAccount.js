@@ -2,7 +2,7 @@ const { GraphQLYogaError } = require('@graphql-yoga/node')
 import bcrypt from 'bcrypt'
 import Promise from 'bluebird'
 import { get, isEmpty } from 'lodash'
-import { Validators } from 'hylo-shared'
+import { Validators } from '@hylo/shared'
 const hash = Promise.promisify(bcrypt.hash, bcrypt)
 
 module.exports = bookshelf.Model.extend({

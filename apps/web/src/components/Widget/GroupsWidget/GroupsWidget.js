@@ -1,6 +1,6 @@
 import cx from 'classnames'
-import React, { Component } from 'react'
-import { withTranslation, useTranslation } from 'react-i18next'
+import React from 'react'
+import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
 import { Link } from 'react-router-dom'
 import Slider from 'react-slick'
@@ -34,31 +34,29 @@ const sliderSettings = {
   ]
 }
 
-class GroupsWidget extends Component {
-  static propTypes = {
-    group: object,
-    items: array,
-    routeParams: object
-  }
+const GroupsWidget = ({ items = [], routeParams }) => {
+  const { t } = useTranslation()
 
-  render () {
-    const { items = [], routeParams } = this.props
-
-    return (
-      <div className={classes.groups}>
-        <Slider {...sliderSettings}>
-          {items && items.map(group => <GroupCard key={group.id} group={group} routeParams={routeParams} />)}
-          <div className={classes.createGroup}>
-            <div>
-              <Link to={createGroupUrl(routeParams)}>{this.props.t('+ Create Group')}</Link>
-              {/* might have to make this conditional, to suit a wider range of uses */}
-            </div>
+  return (
+    <div className={classes.groups}>
+      <Slider {...sliderSettings}>
+        {items && items.map(group => <GroupCard key={group.id} group={group} routeParams={routeParams} />)}
+        <div className={classes.createGroup}>
+          <div>
+            <Link to={createGroupUrl(routeParams)}>{t('+ Create Group')}</Link>
+            {/* might have to make this conditional, to suit a wider range of uses */}
           </div>
-        </Slider>
-        <div className={classes.groupBumper} />
-      </div>
-    )
-  }
+        </div>
+      </Slider>
+      <div className={classes.groupBumper} />
+    </div>
+  )
+}
+
+GroupsWidget.propTypes = {
+  group: object,
+  items: array,
+  routeParams: object
 }
 
 export function GroupCard ({ group, routeParams, className }) {
@@ -88,4 +86,4 @@ export function GroupCard ({ group, routeParams, className }) {
   )
 }
 
-export default withTranslation()(GroupsWidget)
+export default GroupsWidget

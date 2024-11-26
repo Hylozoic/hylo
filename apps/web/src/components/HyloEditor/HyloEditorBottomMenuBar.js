@@ -1,7 +1,5 @@
 import React from 'react'
-import {
-  RiArrowGoBackLine, RiArrowGoForwardLine, RiFormatClear
-} from 'react-icons/ri'
+import { Undo2, Redo2, RemoveFormatting } from 'lucide-react'
 import classes from './HyloEditor.module.scss'
 
 export default function HyloEditorBottomMenuBar ({ editor }) {
@@ -10,16 +8,16 @@ export default function HyloEditorBottomMenuBar ({ editor }) {
   return (
     <div className={classes.bottomMenuBar}>
       <button onClick={() => editor.chain().focus().undo().run()}>
-        <RiArrowGoBackLine />
+        <Undo2 size={14} />
       </button>
       <button onClick={() => editor.chain().focus().redo().run()}>
-        <RiArrowGoForwardLine />
+        <Redo2 size={14} />
       </button>
       {/* <button onClick={() => editor.chain().focus().unsetAllMarks().run()}>
         clear formatting in selection
       </button> */}
       <button onClick={() => editor.chain().focus().clearNodes().run()}>
-        <RiFormatClear />
+        <RemoveFormatting size={14} />
       </button>
     </div>
   )

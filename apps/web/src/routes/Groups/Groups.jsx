@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
@@ -11,6 +11,7 @@ import RoundImage from 'components/RoundImage'
 import GroupNetworkMap from 'components/GroupNetworkMap'
 import HyloHTML from 'components/HyloHTML'
 import { useGetJoinRequests } from 'hooks/useGetJoinRequests'
+import useRouteParams from 'hooks/useRouteParams'
 import {
   DEFAULT_BANNER,
   DEFAULT_AVATAR,
@@ -32,7 +33,7 @@ import classes from './Groups.module.scss'
 
 function Groups () {
   const { t } = useTranslation()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
 
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const memberships = useSelector(getMyMemberships)

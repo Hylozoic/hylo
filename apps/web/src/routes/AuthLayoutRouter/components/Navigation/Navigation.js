@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import { compact, get } from 'lodash/fp'
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useCallback } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -9,6 +9,7 @@ import Icon from 'components/Icon'
 import NavLink from './NavLink'
 import MenuLink from './MenuLink'
 import TopicNavigation from './TopicNavigation'
+import useRouteParams from 'hooks/useRouteParams'
 import { toggleGroupMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { DndContext, DragOverlay, useDroppable, useDraggable, closestCenter } from '@dnd-kit/core'
 
@@ -44,12 +45,11 @@ export default function Navigation (props) {
     collapsed,
     groupId,
     hideTopics,
-    mapView,
-    toggleGroupMenu
+    mapView
   } = props
 
   const dispatch = useDispatch()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const location = useLocation()
   const { t } = useTranslation()
 
@@ -95,6 +95,7 @@ export default function Navigation (props) {
 
   const [isDragging, setIsDragging] = useState(false)
   const [activeWidget, setActiveWidget] = useState(null)
+  const toggleGroupMenuAction = useCallback(() => dispatch(toggleGroupMenu()), [])
 
   const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
@@ -315,7 +316,7 @@ export default function Navigation (props) {
           </div>
         </div>
       )}
-      {!hasContextWidgets && <div className={classes.closeBg} onClick={toggleGroupMenu} />}
+      {!hasContextWidgets && <div className={classes.closeBg} onClick={toggleGroupMenuAction} />}
     </div>
   )
 }

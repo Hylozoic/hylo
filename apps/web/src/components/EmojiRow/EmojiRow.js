@@ -11,7 +11,9 @@ export default function EmojiRow (props) {
     comment,
     currentUser,
     onClick,
-    post
+    post,
+    onAddReaction = () => {},
+    onRemoveReaction = () => {}
   } = props
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
 
@@ -19,8 +21,14 @@ export default function EmojiRow (props) {
   const myReactions = (comment ? comment.myReactions : post.myReactions) || []
   const entityReactions = (comment ? comment.commentReactions : post.postReactions) || []
   const groupIds = post.groups.map(g => g.id)
-  const handleReaction = (emojiFull) => reactOnEntity({ commentId: comment?.id, emojiFull, entityType, groupIds, postId: post.id })
-  const handleRemoveReaction = (emojiFull) => removeReactOnEntity({ commentId: comment?.id, emojiFull, entityType, postId: post.id })
+  const handleReaction = (emojiFull) => {
+    onAddReaction(post, emojiFull)
+    reactOnEntity({ commentId: comment?.id, emojiFull, entityType, groupIds, postId: post.id })
+  }
+  const handleRemoveReaction = (emojiFull) => {
+    onRemoveReaction(post, emojiFull)
+    removeReactOnEntity({ commentId: comment?.id, emojiFull, entityType, postId: post.id })
+  }
   const myEmojis = myReactions.map((reaction) => reaction.emojiFull)
   const usersReactions = entityReactions.reduce((accum, entityReaction) => {
     if (accum[entityReaction.emojiFull]) {

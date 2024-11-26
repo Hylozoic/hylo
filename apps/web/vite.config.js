@@ -16,8 +16,12 @@ dotenv.config({ path: '.env' })
 const proxyTarget = process.env.VITE_API_HOST || 'http://localhost:3001'
 
 export default defineConfig({
+  base: '/',
   define: {
     'process.env.PUBLIC_URL': JSON.stringify('')
+  },
+  build: {
+    minify: true
   },
   plugins: [
     patchCssModules(),
@@ -128,7 +132,11 @@ export default defineConfig({
     },
     preprocessorOptions: {
       scss: {
-        additionalData: '@use "./src/css/global/sass_resources.scss" as *;'
+        additionalData: '@use "./src/css/global/sass_resources.scss" as *;',
+        quietDeps: true,
+        logger: {
+          warn: () => {}
+        }
       }
     }
   }

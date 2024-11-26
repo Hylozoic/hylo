@@ -1,13 +1,12 @@
 import React from 'react'
 import cx from 'classnames'
 import {
-  RiBold, RiItalic, RiCodeBoxLine, RiStrikethrough,
+  Bold, Italic, SquareCode, Strikethrough,
   // RiH1, RiH2, RiH3,
-  RiListUnordered, RiListOrdered,
-  RiIndentIncrease, RiCodeView,
-  RiArrowGoBackLine, RiArrowGoForwardLine, RiFormatClear
-} from 'react-icons/ri'
-// import { VscPreview } from 'react-icons/vsc'
+  List, ListOrdered,
+  IndentIncrease, Code,
+  Undo2, Redo2, RemoveFormatting
+} from 'lucide-react'
 import classes from './HyloEditor.module.scss'
 
 // export function addIframe (editor) {
@@ -27,26 +26,26 @@ export default function HyloEditorMenuBar ({ editor }) {
         onClick={() => editor.chain().focus().toggleBold().run()}
         className={cx({ [classes.isActive]: editor.isActive('bold') })}
       >
-        <RiBold />
+        <Bold size={14} />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleItalic().run()}
         className={cx({ [classes.isActive]: editor.isActive('italic') })}
       >
-        <RiItalic />
+        <Italic size={14} />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleStrike().run()}
         className={cx({ [classes.isActive]: editor.isActive('strike') })}
       >
-        <RiStrikethrough />
+        <Strikethrough size={14} />
       </button>
 
       <button
         onClick={() => editor.chain().focus().toggleCode().run()}
         className={cx({ [classes.isActive]: editor.isActive('code') })}
       >
-        <RiCodeView />
+        <Code size={14} />
       </button>
 
       <div className={classes.divider} />
@@ -55,13 +54,13 @@ export default function HyloEditorMenuBar ({ editor }) {
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         className={cx({ [classes.isActive]: editor.isActive('bulletList') })}
       >
-        <RiListUnordered />
+        <List size={14} />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         className={cx({ [classes.isActive]: editor.isActive('orderedList') })}
       >
-        <RiListOrdered />
+        <ListOrdered size={14} />
       </button>
 
       {/* <div className={classes.divider} /> */}
@@ -122,14 +121,14 @@ export default function HyloEditorMenuBar ({ editor }) {
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         className={cx({ [classes.isActive]: editor.isActive('blockquote') })}
       >
-        <RiIndentIncrease />
+        <IndentIncrease size={14} />
       </button>
 
       <button
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         className={cx({ [classes.isActive]: editor.isActive('codeBlock') })}
       >
-        <RiCodeBoxLine />
+        <SquareCode size={14} />
       </button>
       {/* <button onClick={() => editor.chain().focus().setHorizontalRule().run()}>
         <RiSeparator />
@@ -147,11 +146,11 @@ export default function HyloEditorMenuBar ({ editor }) {
       <div className={classes.divider} />
 
       <button onClick={() => editor.chain().focus().undo().run()}>
-        <RiArrowGoBackLine />
+        <Undo2 size={14} />
       </button>
 
       <button onClick={() => editor.chain().focus().redo().run()}>
-        <RiArrowGoForwardLine />
+        <Redo2 size={14} />
       </button>
 
       <button onClick={() => {
@@ -159,7 +158,7 @@ export default function HyloEditorMenuBar ({ editor }) {
         editor.chain().focus().unsetAllMarks().run()
       }}
       >
-        <RiFormatClear />
+        <RemoveFormatting size={14} />
       </button>
     </div>
   )

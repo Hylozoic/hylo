@@ -286,26 +286,34 @@ export default function AuthLayoutRouter (props) {
       <Routes>
         <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
         <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/:view/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
         <Route path='groups/:groupSlug/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
         <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
         <Route path='public/topics/:topicName/post/:postId/create/*' element={<CreateModal context='public' />} />
+        <Route path='public/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
         <Route path='all/topics/:topicName/create/*' element={<CreateModal context='all' />} />
         <Route path='all/topics/:topicName/post/:postId/create/*' element={<CreateModal context='all' />} />
+        <Route path='all/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
         <Route path='all/:view/create/*' element={<CreateModal context='all' />} />
         <Route path='all/:view/post/:postId/create/*' element={<CreateModal context='all' />} />
+        <Route path='all/:view/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
         <Route path='public/:view/create/*' element={<CreateModal context='public' />} />
         <Route path='public/:view/post/:postId/create/*' element={<CreateModal context='public' />} />
+        <Route path='public/:view/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
         <Route path='my/:view/create/*' element={<CreateModal context='my' />} />
         <Route path='my/:view/post/:postId/create/*' element={<CreateModal context='my' />} />
+        <Route path='my/:view/post/:postId/edit/*' element={<CreateModal context='my' editingPost />} />
         <Route path='public/create/*' element={<CreateModal context='public' />} />
         <Route path='public/post/:postId/create/*' element={<CreateModal context='public' />} />
+        <Route path='public/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
         <Route path='all/create/*' element={<CreateModal context='all' />} />
         <Route path='all/post/:postId/create/*' element={<CreateModal context='all' />} />
-        {/* <Route path='/:context(public|all)/*' element={<CreateModal />} /> */}
-        {/* TODO route: how? <Route path={`(.*)/${REQUIRED_EDIT_POST_MATCH}`} element={<CreateModal />} /> */}
+        <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
       </Routes>
 
       <Div100vh className={cx(classes.container, { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
@@ -317,6 +325,7 @@ export default function AuthLayoutRouter (props) {
                 path='groups/:groupSlug/*'
                 element={
                   <Navigation
+                    context='groups'
                     group={currentGroup}
                     collapsed={collapsedState}
                     className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
@@ -328,6 +337,7 @@ export default function AuthLayoutRouter (props) {
                 path='all/*'
                 element={
                   <Navigation
+                    context='all'
                     group={currentGroup}
                     collapsed={collapsedState}
                     className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
@@ -339,6 +349,7 @@ export default function AuthLayoutRouter (props) {
                 path='public/*'
                 element={
                   <Navigation
+                    context='public'
                     group={currentGroup}
                     collapsed={collapsedState}
                     className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
@@ -350,6 +361,7 @@ export default function AuthLayoutRouter (props) {
                 path='my/*'
                 element={
                   <Navigation
+                    context='my'
                     group={currentGroup}
                     collapsed={collapsedState}
                     className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
@@ -399,10 +411,10 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/projects/*' element={<Stream context='groups' view='projects' />} />
               <Route path='groups/:groupSlug/custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
               <Route path='groups/:groupSlug/events/*' element={<Events context='groups' view='events' />} />
-              <Route path='groups/:groupSlug/groups' element={<Groups context='groups' />} />
-              <Route path='groups/:groupSlug/members/create' element={<Members context='groups' />} />
+              <Route path='groups/:groupSlug/groups/*' element={<Groups context='groups' />} />
+              <Route path='groups/:groupSlug/members/create/*' element={<Members context='groups' />} />
               <Route path='groups/:groupSlug/members/:personId/*' element={<MemberProfile context='groups' />} />
-              <Route path='groups/:groupSlug/members' element={<Members context='groups' />} />
+              <Route path='groups/:groupSlug/members/*' element={<Members context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/*' element={<ChatRoom context='groups' />} />
               <Route path='groups/:groupSlug/topics' element={<AllTopics context='groups' />} />
               <Route path='groups/:groupSlug/settings/*' element={<GroupSettings context='groups' />} />
@@ -410,8 +422,8 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/*' element={homeRoute} />
               <Route path='post/:postId/*' element={<PostDetail />} />
               {/* **** My Routes **** */}
-              <Route path='my/:view' element={<Stream />} />
-              <Route path='my' render={props => <Navigate to='/my/posts' replace />} />
+              <Route path='my/:view/*' element={<Stream context='my' />} />
+              <Route path='my' element={<Navigate to='/my/posts' replace />} />
               {/* **** Other Routes **** */}
               <Route path='welcome/*' element={<WelcomeWizardRouter />} />
               <Route path='messages/:messageThreadId' element={<Messages />} />
@@ -503,7 +515,7 @@ export default function AuthLayoutRouter (props) {
   )
 }
 
-export function returnDefaultView (group, context) {
+function returnDefaultView (group, context) {
   if (!group) return <Stream context={context} />
 
   switch (group.type) {
