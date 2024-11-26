@@ -295,6 +295,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   async checkClickthrough (userId) {
+    if (!userId) return null
+
     const pu = await this.postUsers()
       .query(q => q.where('user_id', userId)).fetchOne()
     return (pu && pu.get('clickthrough')) || null
