@@ -551,6 +551,8 @@ type ContextWidget {
   highlightNumber: Int
   # Secondary number for this widget
   secondaryNumber: Int
+  # Parent ID for this widget
+  parentId: ID
 
   # Relationships
   # The group that owns this widget

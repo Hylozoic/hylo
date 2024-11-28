@@ -219,10 +219,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
         icon
         highlightNumber
         secondaryNumber
-
-        parentWidget {
-          id
-        }
+        parentId
         viewGroup {
           id
           avatarUrl

@@ -308,10 +308,7 @@ export default function groupQueryFragment () {
         icon
         highlightNumber
         secondaryNumber
-
-        parentWidget {
-          id
-        }
+        parentId
         viewGroup {
           id
           avatarUrl

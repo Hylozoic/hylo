@@ -27,8 +27,7 @@ export function createContextWidget ({ groupId, data }) {
   }
 }
 
-export function updateContextWidget ({ contextWidgetId, data }) {
-  console.log('updateContextWidget', contextWidgetId, data, 'weeee')
+export function updateContextWidget ({ contextWidgetId, data, groupId }) {
   return {
     type: UPDATE_CONTEXT_WIDGET,
     graphql: {
@@ -37,15 +36,14 @@ export function updateContextWidget ({ contextWidgetId, data }) {
           id
           title
           order
-          parentWidget {
-            id
-          }
+          parentId
         }
       }`,
       variables: { contextWidgetId, data }
     },
     meta: {
       contextWidgetId,
+      groupId,
       data,
       optimistic: true
     }

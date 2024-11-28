@@ -71,6 +71,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'view',
         'icon',
         'created_at',
+        'parent_id',
         'updated_at',
         'highlightNumber',
         'secondaryNumber'

@@ -2660,6 +2660,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@dnd-kit/modifiers@npm:8.0.0":
+  version: 8.0.0
+  resolution: "@dnd-kit/modifiers@npm:8.0.0"
+  dependencies:
+    "@dnd-kit/utilities": "npm:^3.2.2"
+    tslib: "npm:^2.0.0"
+  peerDependencies:
+    "@dnd-kit/core": ^6.2.0
+    react: ">=16.8.0"
+  checksum: 10/dc3927eba6a38c115138bc6039f79bc27ef9c1a12085d41246a7ec93ed77d7aa2ae1e5d46fd199c792dfe1852d9af8f3b529b9831873b65c9dc50711177df713
+  languageName: node
+  linkType: hard
+
 "@dnd-kit/sortable@npm:^7.0.2":
   version: 7.0.2
   resolution: "@dnd-kit/sortable@npm:7.0.2"
@@ -35866,6 +35879,7 @@ __metadata:
     "@deck.gl/mesh-layers": "npm:9.0.35"
     "@deck.gl/react": "npm:9.0.35"
     "@dnd-kit/core": "npm:^6.0.8"
+    "@dnd-kit/modifiers": "npm:8.0.0"
     "@dnd-kit/sortable": "npm:^7.0.2"
     "@emoji-mart/react": "npm:^1.1.1"
     "@eslint/compat": "npm:^1.2.3"

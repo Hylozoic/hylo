@@ -201,7 +201,6 @@ module.exports = bookshelf.Model.extend({
     const doWork = async (trx) => {
       const movedWidget = await ContextWidget.where({ id }).fetch({ transacting: trx })
       if (!movedWidget) throw new Error('Context widget not found')
-      console.log('inside the reorder')
 
       const priorWidgetState = {
         id: movedWidget.get('id'),
@@ -223,7 +222,6 @@ module.exports = bookshelf.Model.extend({
       // Reorder the widgets
       const reorderedWidgets = reorderTree({priorWidgetState, newWidgetPosition, allWidgets})
 
-      console.log('this is what the reorderedWidgets are', reorderedWidgets)
       // Update all affected widgets in a single query
       const query = `
         UPDATE context_widgets 

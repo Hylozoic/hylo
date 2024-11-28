@@ -42,7 +42,8 @@ import {
   UPDATE_USER_SETTINGS_PENDING as UPDATE_USER_SETTINGS_GLOBAL_PENDING,
   UPDATE_WIDGET,
   USE_INVITATION,
-  UPDATE_PROPOSAL_OUTCOME_PENDING
+  UPDATE_PROPOSAL_OUTCOME_PENDING,
+  UPDATE_CONTEXT_WIDGET_PENDING
 } from 'store/constants'
 import {
   UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING,
@@ -85,6 +86,7 @@ import clearCacheFor from './clearCacheFor'
 import { find, get, values } from 'lodash/fp'
 import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
+import { reorderTree } from 'util/contextWidgets'
 
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
@@ -93,6 +95,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
   const {
     Comment,
+    ContextWidget,
     EventInvitation,
     Group,
     GroupRelationship,
@@ -544,6 +547,32 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case UPDATE_COMMENT_PENDING: {
       comment = Comment.withId(meta.id)
       comment.update(meta.data)
+      break
+    }
+
+    case UPDATE_CONTEXT_WIDGET_PENDING: {
+      console.log('UPDATE_CONTEXT_WIDGET_PENDING', meta.data, meta.contextWidgetId, meta.groupId)
+      /*
+       So, we need to grab the context widgets from the ORM
+       Then we need to format them into a value that can go into reorderTree
+       Then we need to run reorderTree
+       Then we need to update the context widgets in the ORM
+      */
+      const group = Group.withId(meta.groupId)
+      const allWidgets = group.contextWidgets.items
+
+      const priorWidgetState = allWidgets.find(widget => widget.id === meta.contextWidgetId)
+      const newWidgetPosition = {
+        id: meta.contextWidgetId,
+        addToEnd: meta.data.addToEnd,
+        orderInFrontOfWidgetId: meta.data.orderInFrontOfWidgetId,
+        parentId: meta.data.parentId || null
+      }
+      console.log('alll widgets', allWidgets)
+      const reorderedWidgets = reorderTree({ priorWidgetState, newWidgetPosition, allWidgets })
+      console.log('reorderedWidgetsssss', reorderedWidgets)
+      // maybe I need a deep copy here
+      Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
       break
     }
 
