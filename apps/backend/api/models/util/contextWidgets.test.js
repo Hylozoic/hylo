@@ -177,5 +177,23 @@ describe('ContextWidget', () => {
         expect(reorderedWidget).to.deep.equal(expectedWidget)
       })
     })
+
+    it('should add a child to a parent widget that has no children', () => {
+      const priorWidgetState = { id: 3, order: 3, parentId: null }
+      const newWidgetPosition = { id: 3, parentId: 2, addToEnd: true }
+      const reorderedWidgets = reorderTree({ priorWidgetState, newWidgetPosition, allWidgets: testTreeOne })
+
+      const expectedWidgets = [
+        { id: 1, order: 1, parentId: null },
+        { id: 2, order: 2, parentId: null },
+        { id: 3, order: 1, parentId: 2 },
+        { id: 12, order: null }
+      ]
+
+      expectedWidgets.forEach((expectedWidget, index) => {
+        const reorderedWidget = reorderedWidgets.find(widget => widget.id === expectedWidget.id)
+        expect(reorderedWidget).to.deep.equal(expectedWidget)
+      })
+    })
   })
 })

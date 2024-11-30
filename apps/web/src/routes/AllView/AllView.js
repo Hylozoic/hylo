@@ -36,6 +36,7 @@ export default function AllViews () {
       const url = widgetUrl({ widget, rootPath, groupSlug: routeParams.groupSlug, context: 'group' })
       const type = widgetTypeResolver({ widget })
       const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1)
+      const capitalizedView = widget.view ? widget.view.charAt(0).toUpperCase() + widget.view.slice(1) : ''
       const cardContent = (
         <div>
           <h3 className='text-lg font-semibold'>{title}</h3>
@@ -46,7 +47,7 @@ export default function AllViews () {
           )}
           {widget.view && (
             <span className='text-sm text-gray-600 block'>
-              {t('View')}: {t(widget.view)}
+              {t('View')}: {t(capitalizedView)}
             </span>
           )}
         </div>

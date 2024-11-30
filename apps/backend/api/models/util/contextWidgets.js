@@ -1,6 +1,3 @@
-
-
-
 export function reorderTree ({ priorWidgetState = {}, newWidgetPosition, allWidgets }) {
   // Remove the old widget position
   const oldWidgetDetails = allWidgets.find(widget => widget.id === priorWidgetState?.id)
@@ -26,7 +23,7 @@ export function reorderTree ({ priorWidgetState = {}, newWidgetPosition, allWidg
 
   let newPeers = replacedWidget ? getPeers(updatedWidgets, replacedWidget) : getPeers(updatedWidgets, newWidgetPosition)
   if (!replacedWidget) {
-    const newOrder = newPeers.sort((a, b) => a.order - b.order)[newPeers.length - 1].order
+    const newOrder = newPeers.length > 0 ? newPeers.sort((a, b) => a.order - b.order)[newPeers.length - 1].order : 0
     newPeers.push({ ...oldWidgetDetails, id: newWidgetPosition.id, order: newOrder + 1, parentId: newWidgetPosition.parentId || null })
   } else {
     newPeers = newPeers.reduce((acc, widget) => {

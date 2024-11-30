@@ -32,7 +32,6 @@ export function findHomeView (group) {
   if (!group?.contextWidgets) {
     throw new Error('Group has no contextWidgets')
   }
-  console.log('group.contextWidgets.items mahbahab', group.contextWidgets.items)
   const homeWidget = group.contextWidgets.items.find(w => w.type === 'home')
   return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
 }
@@ -64,6 +63,22 @@ export function isWidgetDroppable ({ widget }) {
   return true
 }
 
+export function widgetIsValidChild ({ childWidget, parentWidget }) {
+  if (childWidget.type === 'home') return false
+  if (childWidget.id?.startsWith('fake-id')) return false
+  if (childWidget.id === parentWidget.id) return false
+  if (parentWidget.viewGroup?.id) return false
+  if (parentWidget.viewUser?.id) return false
+  if (parentWidget.viewPost?.id) return false
+  if (parentWidget.viewChat?.id) return false
+  if (parentWidget.customView?.id) return false
+  if (parentWidget.type === 'chats' && !childWidget.viewChat?.id) return false
+  if (parentWidget.type === 'custom-views' && !childWidget.customView?.id) return false
+  if (parentWidget.type === 'members') return false
+  if (parentWidget.type === 'setup') return false
+  return true
+}
+
 // TODO CONTEXT: add this to /shared
 export function reorderTree ({ priorWidgetState = {}, newWidgetPosition, allWidgets }) {
   // Remove the old widget position
@@ -90,7 +105,7 @@ export function reorderTree ({ priorWidgetState = {}, newWidgetPosition, allWidg
 
   let newPeers = replacedWidget ? getPeers(updatedWidgets, replacedWidget) : getPeers(updatedWidgets, newWidgetPosition)
   if (!replacedWidget) {
-    const newOrder = newPeers.sort((a, b) => a.order - b.order)[newPeers.length - 1].order
+    const newOrder = newPeers.length > 0 ? newPeers.sort((a, b) => a.order - b.order)[newPeers.length - 1].order : 0
     newPeers.push({ ...oldWidgetDetails, id: newWidgetPosition.id, order: newOrder + 1, parentId: newWidgetPosition.parentId || null })
   } else {
     newPeers = newPeers.reduce((acc, widget) => {

@@ -27,7 +27,7 @@ import { makeDropQueryResults } from 'store/reducers/queryResults'
 import { viewUrl, widgetUrl, baseUrl, topicsUrl } from 'util/navigation'
 
 import classes from './Navigation.module.scss'
-import { isWidgetDroppable, widgetTitleResolver } from 'util/contextWidgets'
+import { isWidgetDroppable, widgetIsValidChild, widgetTitleResolver } from 'util/contextWidgets'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 
@@ -239,21 +239,16 @@ export default function Navigation (props) {
   const handleDragEnd = (event) => {
     const { active, over } = event
     setIsDragging(false)
-    console.log('finished over', over, active)
-// Still getting mis-positioning. Should also consider locking movement to the y-axis
-// Might be more robust to collapse the droppable zones into one pre-pended to each widget, and then attach a separate zone at the end of each list
 
     if (over && over.id !== active.id) {
       const orderInFrontOfWidget = over.data.current.widget
-      console.log('orderInFrontOfWidget finddda', orderInFrontOfWidget, over)
       dispatch(updateContextWidget({
         contextWidgetId: active.id,
         groupId: group.id,
-        data: { orderInFrontOfWidgetId: orderInFrontOfWidget?.id, parentId: over.data.current?.widget?.parentId, addToEnd: over.data.current.addToEnd }
+        data: { orderInFrontOfWidgetId: orderInFrontOfWidget?.id, parentId: over.data.current?.widget?.parentId || over.data?.current?.parentId, addToEnd: over.data.current.addToEnd }
       }))
     }
     setActiveWidget(null)
-    console.log('drag end')
   }
 
   const collapserState = collapsed ? 'collapserCollapsed' : 'collapser'
@@ -333,14 +328,13 @@ export default function Navigation (props) {
 }
 
 function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditting, isDragging, activeWidget }) {
-  console.log('contextWidgetsjsjsjsjssjsjs', contextWidgets.map(widget => ({ id: widget.id, title: widget.title, order: widget.order })))
   return (
     <ul>
       {contextWidgets.map(widget => (
         <li key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} /></li>
       ))}
       <li>
-        <DropZone isDragging={isDragging} isDroppable endOfList droppableParams={{ id: 'bottom-of-list', data: { addToEnd: true, parentId: null } }} />
+        <DropZone isDragging={isDragging} height='h-20' isDroppable droppableParams={{ id: 'bottom-of-list-' + groupSlug, data: { addToEnd: true, parentId: null } }} />
       </li>
     </ul>
   )
@@ -379,9 +373,13 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
     return null
   }
 
+  if (activeWidget && !widgetIsValidChild({ childWidget: activeWidget, parentWidget: widget })) {
+    hideDropZone = true
+  }
+
   return (
     <>
-      <DropZone isDragging={isDragging} isDroppable={isDroppable && isEditting} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { order: widget.order, parentId: widget.parentId, widget } }} />
+      <DropZone isDragging={isDragging} height={isDroppable && isEditting ? 'h-4' : ''} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }} />
       <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border border-gray-700 rounded-md p-2 bg-white'>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
         {url && (widget.childWidgets.length === 0 && !['members'].includes(widget.type))
@@ -411,11 +409,14 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
               {/* Special elements can be added here */}
               <ul>
                 {loading && <li key='loading'>Loading...</li>}
-                {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} />)}
+                {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={hideDropZone} />)}
+                {widget.id &&
+                  <li>
+                    <DropZone isDragging={isDragging} hide={hideDropZone} isDroppable={canDnd && !url} height='h-10' droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }} />
+                  </li>}
               </ul>
             </div>)}
       </div>
-      {/* <DropZone isDragging={isDragging} isDroppable={isDroppable && isEditting} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { order: widget.order + 1, widget } }} /> */}
     </>
   )
 }
@@ -428,18 +429,18 @@ function GrabMe ({ children, ...props }) {
   )
 }
 
-function DropZone ({ droppableParams, isDroppable = false, isDragging = false, hide = false, endOfList = false }) {
+function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false }) {
   const { setNodeRef } = useDroppable(droppableParams)
-  if (hide) {
+  if (hide || !isDroppable) {
     return null
   }
   // TODO CONTEXT: remove isDragging or actually use it
   return (
-    <div ref={setNodeRef} className={`bg-green-100 ${isDroppable ? 'h-4' : ''} ${endOfList ? 'h-20' : ''}`} />
+    <div ref={setNodeRef} className={`bg-green-100 ${isDroppable && height}`} />
   )
 }
 
-function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = false, activeWidget }) {
+function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = false, activeWidget, invalidChild = false }) {
   const { t } = useTranslation()
   const itemTitle = widgetTitleResolver({ widget: item, t })
   const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
@@ -457,14 +458,13 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
 
   return (
     <React.Fragment key={item.id + itemTitle}>
-      <DropZone isDroppable={isItemDraggable} hide={hideDropZone} droppableParams={{ id: `${item.id}`, data: { order: item.order, widget: item } }} />
+      <DropZone height={isItemDraggable ? 'h-4' : ''} hide={hideDropZone || invalidChild} droppableParams={{ id: `${item.id}`, data: { widget: item } }} />
       <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify-between items-center content-center'>
         <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}>
           <span className='text-sm text-blue-500 underline'>{itemTitle}</span>
         </MenuLink>
         {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
       </li>
-      {/* <DropZone isDroppable={isItemDraggable} hide={hideDropZone} droppableParams={{ id: `${item.id}`, data: { order: item.order + 1, widget: item } }} /> */}
     </React.Fragment>
   )
 }
