@@ -9,7 +9,7 @@ import { baseUrl } from 'util/navigation'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import { setHomeWidget } from 'store/actions/contextWidgets'
+import { setHomeWidget, updateContextWidget } from 'store/actions/contextWidgets'
 
 export default function AllViews () {
   const navigate = useNavigate()
@@ -43,6 +43,16 @@ export default function AllViews () {
     }
   }, [t, setHomeWidget])
 
+  const handleWidgetUpdate = useCallback((widget) => {
+    dispatch(updateContextWidget(
+      dispatch(updateContextWidget({
+        contextWidgetId: widget.id,
+        groupId: group.id,
+        data: { parentId: null, addToEnd: true }
+      }))
+    ))
+  }, [t, updateContextWidget])
+
   // Create widget cards
   const widgetCards = useMemo(() => {
     return visibleWidgets.map(widget => {
@@ -71,6 +81,17 @@ export default function AllViews () {
                 onClick={(evt) => {
                   evt.stopPropagation()
                   handleWidgetHomePromotion(widget)
+                }}
+              />
+            </span>
+          )}
+          {isEditting && !widget.order && (
+            <span className='text-sm text-gray-600 block'>
+              <Icon
+                name='Plus'
+                onClick={(evt) => {
+                  evt.stopPropagation()
+                  handleWidgetUpdate(widget)
                 }}
               />
             </span>
