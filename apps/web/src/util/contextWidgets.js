@@ -21,6 +21,17 @@ export function widgetIconResolver () {
 
 }
 
+export function isValidHomeWidget (widget) {
+  if (widget?.viewGroup?.id) return true
+  if (widget?.viewUser?.id) return true
+  if (widget?.viewPost?.id) return true
+  if (widget?.viewChat?.id) return true
+  if (widget?.customView?.id) return true
+  if (widget?.view) return true
+
+  return false
+}
+
 export function wrapItemInWidget (item, type) {
   return {
     [type]: item,
@@ -126,15 +137,74 @@ export function reorderTree ({ priorWidgetState = {}, newWidgetPosition, allWidg
     return settledPeer || widget
   })
 }
-
+// TODO CONTEXT: add this to /shared
 function getPeers (widgets, widget) {
   if (widget.parentId) return widgets.filter(w => w.parentId === widget.parentId)
   return widgets.filter(w => !w.parentId && !!w.order)
 }
-
+// TODO CONTEXT: add this to /shared
 function settle (items) {
   return items.sort((a, b) => a.order - b.order).map((item, index) => ({
     ...item,
     order: item.order !== index + 1 ? item.order - 1 : item.order
   }))
+}
+// TODO CONTEXT: add this to /shared
+function findHomeChild (widgets) {
+  const homeParentId = widgets.find(widget => widget.type === 'home')?.id
+  return { homeChild: widgets.find(widget => widget.parentId === homeParentId), homeParentId, }
+}
+
+// TODO CONTEXT: add this to /shared
+// MOVE EXISTING HOME WIDGET TO NEW POSITION
+export function replaceHomeWidget ({ widgets, newHomeWidgetId }) {
+  const { homeChild, homeParentId } = findHomeChild(widgets)
+  const priorWidgetState = widgets.find(widget => widget.id === newHomeWidgetId)
+  let updatedWidgets = widgets.filter(widget => {
+    if (widget.id === newHomeWidgetId) return false
+    if (homeChild && widget.id === homeChild.id) return false
+    return true
+  })
+
+  let oldPeers = []
+  // Get the peers of the widget being moved, and settle them
+  if (priorWidgetState.order) {
+    oldPeers = settle(getPeers(updatedWidgets, priorWidgetState))
+  }
+
+  updatedWidgets = updatedWidgets.map(widget => {
+    const settledPeer = oldPeers.find(peer => peer.id === widget.id)
+    return settledPeer || widget
+  })
+
+  // so by here the updatedWidgets array has removed the new home widget from its prior position and its prior peers are settled
+
+  // if the old home widget is a chat, we need to move it to the top of the chats widget, otherwise we remove it from the menu
+  if (homeChild.type === 'chat') {
+    const chatsWidgetId = updatedWidgets.find(widget => widget.type === 'chats')?.id
+    const newPeers = updatedWidgets.filter(widget => widget.parentId === chatsWidgetId).map(peer => ({
+      ...peer,
+      order: peer.order + 1
+    }))
+
+    updatedWidgets.push({
+      ...homeChild,
+      parentId: chatsWidgetId,
+      order: 1
+    })
+    updatedWidgets = updatedWidgets.map(widget => newPeers.find(peer => peer.id === widget.id) || widget)
+  } else {
+    updatedWidgets.push({
+      ...homeChild,
+      order: null,
+      parentId: null
+    })
+  }
+
+  updatedWidgets.push({
+    ...priorWidgetState,
+    order: 1,
+    parentId: homeParentId
+  })
+  return updatedWidgets
 }

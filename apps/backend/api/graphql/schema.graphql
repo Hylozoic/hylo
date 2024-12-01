@@ -2520,6 +2520,8 @@ type Mutation {
   sendPasswordReset(email: String!): GenericResult,
   # set options for a proposal
   setProposalOptions(postId: ID, options: [ProposalOptionInput]): [ProposalOption]
+  # Set the Home widget for a Group
+  setHomeWidget(contextWidgetId: ID, groupId: ID): GenericResult
   # Subscribe or unsubscribe to a Topic in a Group
   subscribe(groupId: ID, topicId: ID, isSubscribing: Boolean): GenericResult
   # Swap votes on a proposal

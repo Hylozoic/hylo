@@ -103,6 +103,26 @@ export async function removeWidgetFromMenu({ userId, contextWidgetId }) {
     })
 }
 
+export async function setHomeWidget({ userId, contextWidgetId, groupId }) {
+  if (!userId) throw new GraphQLYogaError('No userId passed into function')
+  if (!groupId) throw new GraphQLYogaError('No groupId passed into function')
+
+  // Look up the group
+  const group = await Group.where({ id: groupId }).fetch()
+  if (!group) throw new GraphQLYogaError('Group not found')
+
+  // Check if user has admin permissions
+  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
+  if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+    throw new GraphQLYogaError("You don't have permission to modify this group's menu")
+  }
+
+  return ContextWidget.setHomeWidget({ id: contextWidgetId, groupId })
+    .catch(err => {
+      throw new GraphQLYogaError(`Setting home widget failed: ${err.message}`)
+    })
+}
+
 export async function transitionGroupToNewMenu({ userId, groupId }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')
   if (!groupId) throw new GraphQLYogaError('No groupId passed into function')

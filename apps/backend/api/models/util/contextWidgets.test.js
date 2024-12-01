@@ -1,9 +1,9 @@
-import { reorderTree } from "./contextWidgets"
+import { reorderTree, replaceHomeWidget } from "./contextWidgets"
 
 
 describe('ContextWidget', () => {
   describe('reorderTree', () => {
-    let testTreeOne, testTreeTwo, testTreeThree;
+    let testTreeOne, testTreeTwo, testTreeThree, testTreeFour, testTreeFive;
 
     beforeEach(() => {
       testTreeOne = [
@@ -33,6 +33,32 @@ describe('ContextWidget', () => {
         { id: 7, order: 1, parentId: 3 },
         { id: 8, order: 2, parentId: 3 },
         { id: 9, order: 3, parentId: 3 }
+      ]
+
+      testTreeFour = [
+        { id: 1, order: 1, parentId: null, type: 'home' },
+        { id: 2, order: 2, parentId: null, type: 'chats' },
+        { id: 3, order: 1, parentId: 1, type: 'chat' },
+        { id: 4, order: 3, parentId: null, type: null },
+        { id: 5, order: 1, parentId: 4, type: null },
+        { id: 6, order: 2, parentId: 4, type: null },
+        { id: 7, order: 3, parentId: 4, type: null },
+        { id: 8, order: 1, parentId: 2, type: 'chat' },
+        { id: 9, order: 2, parentId: 2, type: 'chat' },
+        { id: 10, order: null, parentId: null, type: 'chat' },
+      ]
+
+      testTreeFive = [
+        { id: 1, order: 1, parentId: null, type: 'home' },
+        { id: 2, order: 2, parentId: null, type: 'chats' },
+        { id: 3, order: 1, parentId: 1, type: 'test' },
+        { id: 4, order: 3, parentId: null, type: null },
+        { id: 5, order: 1, parentId: 4, type: null },
+        { id: 6, order: 2, parentId: 4, type: null },
+        { id: 7, order: 3, parentId: 4, type: null },
+        { id: 8, order: 1, parentId: 2, type: 'chat' },
+        { id: 9, order: 2, parentId: 2, type: 'chat' },
+        { id: 10, order: null, parentId: null, type: 'chat' },
       ]
     });
 
@@ -195,5 +221,74 @@ describe('ContextWidget', () => {
         expect(reorderedWidget).to.deep.equal(expectedWidget)
       })
     })
+
+    it('if the home child is a chat, move it to the front of the chats widget', () => {
+      const newHomeWidgetId = 5
+      const reorderedWidgets = replaceHomeWidget({ newHomeWidgetId, widgets: testTreeFour })
+
+      const expectedWidgets = [
+        { id: 1, order: 1, parentId: null, type: 'home' },
+        { id: 2, order: 2, parentId: null, type: 'chats' },
+        { id: 3, order: 1, parentId: 2, type: 'chat' },
+        { id: 4, order: 3, parentId: null, type: null },
+        { id: 5, order: 1, parentId: 1, type: null },
+        { id: 6, order: 1, parentId: 4, type: null },
+        { id: 7, order: 2, parentId: 4, type: null },
+        { id: 8, order: 2, parentId: 2, type: 'chat' },
+        { id: 9, order: 3, parentId: 2, type: 'chat' },
+        { id: 10, order: null, parentId: null, type: 'chat' },
+      ]
+
+      expectedWidgets.forEach((expectedWidget, index) => {
+        const reorderedWidget = reorderedWidgets.find(widget => widget.id === expectedWidget.id)
+        expect(reorderedWidget).to.deep.equal(expectedWidget)
+      })
+    })
+  
+    it('if the old home child and new child are chats, make sure the order is correct', () => {
+      const newHomeWidgetId = 9
+      const reorderedWidgets = replaceHomeWidget({ newHomeWidgetId, widgets: testTreeFour })
+
+      const expectedWidgets = [
+        { id: 1, order: 1, parentId: null, type: 'home' },
+        { id: 2, order: 2, parentId: null, type: 'chats' },
+        { id: 3, order: 1, parentId: 2, type: 'chat' },
+        { id: 4, order: 3, parentId: null, type: null },
+        { id: 5, order: 1, parentId: 4, type: null },
+        { id: 6, order: 2, parentId: 4, type: null },
+        { id: 7, order: 3, parentId: 4, type: null },
+        { id: 8, order: 2, parentId: 2, type: 'chat' },
+        { id: 9, order: 1, parentId: 1, type: 'chat' },
+        { id: 10, order: null, parentId: null, type: 'chat' },
+      ]
+      expectedWidgets.forEach((expectedWidget, index) => {
+        const reorderedWidget = reorderedWidgets.find(widget => widget.id === expectedWidget.id)
+        expect(reorderedWidget).to.deep.equal(expectedWidget)
+      })
+    })
+
+    it('if the old home child is not a chat, remove it from the ordering', () => {
+      const newHomeWidgetId = 5
+      const reorderedWidgets = replaceHomeWidget({ newHomeWidgetId, widgets: testTreeFive })
+
+      const expectedWidgets = [
+        { id: 1, order: 1, parentId: null, type: 'home' },
+        { id: 2, order: 2, parentId: null, type: 'chats' },
+        { id: 3, order: null, parentId: null, type: 'test' },
+        { id: 4, order: 3, parentId: null, type: null },
+        { id: 5, order: 1, parentId: 1, type: null },
+        { id: 6, order: 1, parentId: 4, type: null },
+        { id: 7, order: 2, parentId: 4, type: null },
+        { id: 8, order: 1, parentId: 2, type: 'chat' },
+        { id: 9, order: 2, parentId: 2, type: 'chat' },
+        { id: 10, order: null, parentId: null, type: 'chat' },
+      ]
+
+      expectedWidgets.forEach((expectedWidget, index) => {
+        const reorderedWidget = reorderedWidgets.find(widget => widget.id === expectedWidget.id)
+        expect(reorderedWidget).to.deep.equal(expectedWidget)
+      })
+    })
+
   })
 })

@@ -32,7 +32,9 @@ import {
   REQUEST_FOR_CHILD_TO_JOIN_PARENT_GROUP,
   RESET_NEW_POST_COUNT_PENDING,
   RESPOND_TO_EVENT_PENDING,
+
   SWAP_PROPOSAL_VOTE_PENDING,
+  SET_HOME_WIDGET_PENDING,
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
   UPDATE_GROUP_TOPIC_PENDING,
@@ -86,7 +88,7 @@ import clearCacheFor from './clearCacheFor'
 import { find, get, values } from 'lodash/fp'
 import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
-import { reorderTree } from 'util/contextWidgets'
+import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
 
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
@@ -95,7 +97,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
   const {
     Comment,
-    ContextWidget,
     EventInvitation,
     Group,
     GroupRelationship,
@@ -504,6 +505,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case RESPOND_TO_EVENT_PENDING: {
       const event = Post.withId(meta.id)
       event.update({ myEventResponse: meta.response })
+      break
+    }
+
+    case SET_HOME_WIDGET_PENDING: {
+      group = Group.withId(meta.groupId)
+      const contextWidgets = group.contextWidgets.items
+
+      const newWidgets = replaceHomeWidget({ widgets: contextWidgets, newHomeWidgetId: meta.contextWidgetId })
+      group.update({ contextWidgets: { items: structuredClone(newWidgets) } })
       break
     }
 

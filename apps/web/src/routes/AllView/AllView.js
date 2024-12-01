@@ -1,17 +1,21 @@
-import React, { useMemo } from 'react'
-import { useSelector } from 'react-redux'
+import React, { useMemo, useCallback } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { useLocation, useParams } from 'react-router-dom'
-import { widgetUrl, widgetTitleResolver, widgetTypeResolver } from 'util/contextWidgets'
+import Icon from 'components/Icon'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { widgetUrl, widgetTitleResolver, widgetTypeResolver, isValidHomeWidget } from 'util/contextWidgets'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { baseUrl } from 'util/navigation'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import { setHomeWidget } from 'store/actions/contextWidgets'
 
 export default function AllViews () {
+  const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const routeParams = useParams()
 
   // Access the current group and its contextWidgets
@@ -25,9 +29,19 @@ export default function AllViews () {
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
 
   // Filter widgets based on visibility
-  const visibleWidgets = contextWidgets.filter(widget => widget.visibility !== 'admin' || canAdminister)
-  
+  const visibleWidgets = contextWidgets.filter(widget => {
+    if (widget.visibility === 'admin' && !canAdminister) return false
+    if (widget.type === 'home') return false
+    return true
+  })
+
   const isEditting = getQuerystringParam('cme', location) === 'yes'
+
+  const handleWidgetHomePromotion = useCallback((widget) => {
+    if (window.confirm(t('Are you sure you want to set this widget as the home/default widget for this group?'))) {
+      dispatch(setHomeWidget({ contextWidgetId: widget.id, groupId: group.id }))
+    }
+  }, [t, setHomeWidget])
 
   // Create widget cards
   const widgetCards = useMemo(() => {
@@ -50,20 +64,24 @@ export default function AllViews () {
               {t('View')}: {t(capitalizedView)}
             </span>
           )}
+          {isEditting && isValidHomeWidget(widget) && (
+            <span className='text-sm text-gray-600 block'>
+              <Icon
+                name='Home'
+                onClick={(evt) => {
+                  evt.stopPropagation()
+                  handleWidgetHomePromotion(widget)
+                }}
+              />
+            </span>
+          )}
         </div>
       )
       return (
-        <div key={widget.id} className='p-4 border border-gray-300 rounded-md shadow-sm'>
-          {url && (
-            <a href={url} className='block text-center'>
-              {cardContent}
-            </a>
-          )}
-          {!url && (
-            <div className='block text-center'>
-              {cardContent}
-            </div>
-          )}
+        <div key={widget.id} onClick={() => url ? navigate(url) : null} className={`p-4 border border-gray-300 rounded-md shadow-sm ${url ? 'cursor-pointer' : ''}`}>
+          <div className='block text-center'>
+            {cardContent}
+          </div>
         </div>
       )
     })

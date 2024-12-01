@@ -1,4 +1,4 @@
-const { reorderTree } = require("./util/contextWidgets")
+const { reorderTree, replaceHomeWidget } = require("./util/contextWidgets")
 
 module.exports = bookshelf.Model.extend({
   tableName: 'context_widgets',
@@ -239,6 +239,19 @@ module.exports = bookshelf.Model.extend({
       await bookshelf.knex.raw(query).transacting(trx)
       movedWidget.refresh()
       return movedWidget
+    }
+
+    if (existingTrx) {
+      return doWork(existingTrx)
+    }
+
+    return await bookshelf.transaction(trx => doWork(trx))
+  },
+  setHomeWidget: async function({ id, groupId, trx: existingTrx }) {
+    const doWork = async (trx) => {
+      const groupWidgets = await this.where({ group_id: groupId }).fetchAll({ transacting: trx })
+      if (!groupWidgets) throw new Error('Context widget not found')
+      replaceHomeWidget({ widgets: groupWidgets, newHomeWidgetId: id })
     }
 
     if (existingTrx) {

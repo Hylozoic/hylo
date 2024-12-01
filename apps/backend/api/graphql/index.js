@@ -99,6 +99,7 @@ import {
   sendEmailVerification,
   sendPasswordReset,
   setProposalOptions,
+  setHomeWidget,
   subscribe,
   swapProposalVote,
   transitionGroupToNewMenu,
@@ -510,6 +511,8 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
       respondToEvent(userId, id, response),
 
     setProposalOptions: (root, { postId, options }) => setProposalOptions({ userId, postId, options }),
+
+    setHomeWidget: (root, { contextWidgetId, groupId }) => setHomeWidget({ userId, contextWidgetId, groupId }),
 
     subscribe: (root, { groupId, topicId, isSubscribing }) =>
       subscribe(userId, topicId, groupId, isSubscribing),

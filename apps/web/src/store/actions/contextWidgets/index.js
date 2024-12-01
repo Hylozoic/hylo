@@ -2,7 +2,8 @@ import {
   CREATE_CONTEXT_WIDGET,
   UPDATE_CONTEXT_WIDGET,
   REORDER_CONTEXT_WIDGET,
-  REMOVE_WIDGET_FROM_MENU
+  REMOVE_WIDGET_FROM_MENU,
+  SET_HOME_WIDGET
 } from 'store/constants'
 
 export function createContextWidget ({ groupId, data }) {
@@ -84,6 +85,25 @@ export function removeWidgetFromMenu ({ contextWidgetId }) {
     },
     meta: {
       contextWidgetId,
+      optimistic: true
+    }
+  }
+}
+
+export function setHomeWidget ({ contextWidgetId, groupId }) {
+  return {
+    type: SET_HOME_WIDGET,
+    graphql: {
+      query: `mutation ($contextWidgetId: ID, $groupId: ID) {
+        setHomeWidget(contextWidgetId: $contextWidgetId, groupId: $groupId) {
+          success
+        }
+      }`,
+      variables: { contextWidgetId, groupId }
+    },
+    meta: {
+      contextWidgetId,
+      groupId,
       optimistic: true
     }
   }

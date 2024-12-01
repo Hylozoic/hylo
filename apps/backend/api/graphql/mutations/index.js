@@ -26,6 +26,7 @@ export {
   updateContextWidget,
   removeWidgetFromMenu,
   reorderContextWidget,
+  setHomeWidget,
   transitionGroupToNewMenu
 } from './context_widgets'
 export {
