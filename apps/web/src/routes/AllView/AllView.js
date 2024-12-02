@@ -44,13 +44,11 @@ export default function AllViews () {
   }, [t, setHomeWidget])
 
   const handleWidgetUpdate = useCallback((widget) => {
-    dispatch(updateContextWidget(
-      dispatch(updateContextWidget({
-        contextWidgetId: widget.id,
-        groupId: group.id,
-        data: { parentId: null, addToEnd: true }
-      }))
-    ))
+    dispatch(updateContextWidget({
+      contextWidgetId: widget.id,
+      groupId: group.id,
+      data: { parentId: null, addToEnd: true }
+    }))
   }, [t, updateContextWidget])
 
   // Create widget cards

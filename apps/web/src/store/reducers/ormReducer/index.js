@@ -32,7 +32,7 @@ import {
   REQUEST_FOR_CHILD_TO_JOIN_PARENT_GROUP,
   RESET_NEW_POST_COUNT_PENDING,
   RESPOND_TO_EVENT_PENDING,
-
+  REMOVE_WIDGET_FROM_MENU_PENDING,
   SWAP_PROPOSAL_VOTE_PENDING,
   SET_HOME_WIDGET_PENDING,
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
@@ -476,6 +476,14 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case REMOVE_WIDGET_FROM_MENU_PENDING: {
+      group = Group.withId(meta.groupId)
+      const contextWidgets = group.contextWidgets.items
+      const newContextWidgets = reorderTree({ priorWidgetState: { id: meta.contextWidgetId }, newWidgetPosition: { remove: true }, allWidgets: contextWidgets })
+      group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
+      break
+    }
+
     case REQUEST_FOR_CHILD_TO_JOIN_PARENT_GROUP: {
       const newGroupRelationship = payload.data.requestToAddGroupToParent.groupRelationship
       if (newGroupRelationship) {
@@ -561,13 +569,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case UPDATE_CONTEXT_WIDGET_PENDING: {
-      console.log('UPDATE_CONTEXT_WIDGET_PENDING', meta.data, meta.contextWidgetId, meta.groupId)
-      /*
-       So, we need to grab the context widgets from the ORM
-       Then we need to format them into a value that can go into reorderTree
-       Then we need to run reorderTree
-       Then we need to update the context widgets in the ORM
-      */
       const group = Group.withId(meta.groupId)
       const allWidgets = group.contextWidgets.items
 
@@ -578,10 +579,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         orderInFrontOfWidgetId: meta.data.orderInFrontOfWidgetId,
         parentId: meta.data.parentId || null
       }
-      console.log('alll widgets', allWidgets)
       const reorderedWidgets = reorderTree({ priorWidgetState, newWidgetPosition, allWidgets })
-      console.log('reorderedWidgetsssss', reorderedWidgets)
-      // maybe I need a deep copy here
       Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
       break
     }

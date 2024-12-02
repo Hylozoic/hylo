@@ -72,19 +72,20 @@ export function reorderContextWidget ({ contextWidgetId, order }) {
   }
 }
 
-export function removeWidgetFromMenu ({ contextWidgetId }) {
+export function removeWidgetFromMenu ({ contextWidgetId, groupId }) {
   return {
     type: REMOVE_WIDGET_FROM_MENU,
     graphql: {
-      query: `mutation ($contextWidgetId: ID) {
-        removeWidgetFromMenu(contextWidgetId: $contextWidgetId) {
+      query: `mutation ($contextWidgetId: ID, $groupId: ID) {
+        removeWidgetFromMenu(contextWidgetId: $contextWidgetId, groupId: $groupId) {
           success
         }
       }`,
-      variables: { contextWidgetId }
+      variables: { contextWidgetId, groupId }
     },
     meta: {
       contextWidgetId,
+      groupId,
       optimistic: true
     }
   }

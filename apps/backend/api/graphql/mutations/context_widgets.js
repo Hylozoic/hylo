@@ -84,15 +84,15 @@ export async function reorderContextWidget({ userId, contextWidgetId, parentId, 
 }
 
 
-export async function removeWidgetFromMenu({ userId, contextWidgetId }) {
+export async function removeWidgetFromMenu({ userId, contextWidgetId, groupId }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')
   if (!contextWidgetId) throw new GraphQLYogaError('No context widget id passed into function')
 
   const widget = await ContextWidget.where({ id: contextWidgetId }).fetch()
   if (!widget) throw new GraphQLYogaError('Context widget not found')
 
-  const groupId = widget.get('group_id')
-  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
+  const widgetGroupId = groupId || widget.get('group_id')
+  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, widgetGroupId)
   if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
     throw new GraphQLYogaError("You don't have permission to modify context widgets for this group")
   }

@@ -94,6 +94,7 @@ export function widgetIsValidChild ({ childWidget, parentWidget }) {
 export function reorderTree ({ priorWidgetState = {}, newWidgetPosition, allWidgets }) {
   // Remove the old widget position
   const oldWidgetDetails = allWidgets.find(widget => widget.id === priorWidgetState?.id)
+  // TODO CONTEXT: are oldWidgetDetails and priorWidgetState the same? Refractor this?
   let updatedWidgets = allWidgets.filter(widget => widget.id !== priorWidgetState?.id)
   let replacedWidget
   let oldPeers = []
@@ -107,6 +108,7 @@ export function reorderTree ({ priorWidgetState = {}, newWidgetPosition, allWidg
   })
 
   if (newWidgetPosition.remove) {
+    updatedWidgets.push({ ...oldWidgetDetails, order: null, parentId: null })
     return updatedWidgets
   }
 

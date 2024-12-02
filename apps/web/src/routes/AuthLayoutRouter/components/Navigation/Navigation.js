@@ -18,7 +18,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
 import { getContextWidgets, orderContextWidgetsForContextMenu } from 'store/selectors/contextWidgetSelectors'
 import getMe from 'store/selectors/getMe'
-import { updateContextWidget } from 'store/actions/contextWidgets'
+import { removeWidgetFromMenu, updateContextWidget } from 'store/actions/contextWidgets'
 import resetNewPostCount from 'store/actions/resetNewPostCount'
 import useGatherItems from 'hooks/useGatherItems'
 import { CONTEXT_MY, FETCH_POSTS, RESP_ADMINISTRATION } from 'store/constants'
@@ -95,7 +95,6 @@ export default function Navigation (props) {
 
   const [isDragging, setIsDragging] = useState(false)
   const [activeWidget, setActiveWidget] = useState(null)
-  const [overItem, setOverItem] = useState(null)
   const toggleGroupMenuAction = useCallback(() => dispatch(toggleGroupMenu()), [])
 
   const dropPostResults = makeDropQueryResults(FETCH_POSTS)
@@ -229,24 +228,24 @@ export default function Navigation (props) {
     setActiveWidget(activeContextWidget)
   }
 
-  const handleDragOver = (event) => {
-    console.log('drag overrrr', event)
-    if (event?.over?.data?.current && event.over.data.current?.widget?.id && !event.over.data.current?.widget?.id.startsWith('fake-id')) {
-      setOverItem(event.over.data.current)
-    }
-  }
-
   const handleDragEnd = (event) => {
     const { active, over } = event
     setIsDragging(false)
-
-    if (over && over.id !== active.id) {
-      const orderInFrontOfWidget = over.data.current.widget
+    if (over && over.id !== active.id && over.id !== 'remove') {
+      const orderInFrontOfWidget = over.data?.current?.widget
       dispatch(updateContextWidget({
         contextWidgetId: active.id,
         groupId: group.id,
-        data: { orderInFrontOfWidgetId: orderInFrontOfWidget?.id, parentId: over.data.current?.widget?.parentId || over.data?.current?.parentId, addToEnd: over.data.current.addToEnd }
+        data: {
+          orderInFrontOfWidgetId: orderInFrontOfWidget?.id,
+          parentId: over.data.current?.widget?.parentId || over.data?.current?.parentId,
+          addToEnd: over.data?.current?.addToEnd,
+          remove: over.id === 'remove'
+        }
       }))
+    }
+    if (over.id === 'remove') {
+      dispatch(removeWidgetFromMenu({ contextWidgetId: active.id, groupId: group.id }))
     }
     setActiveWidget(null)
   }
@@ -289,7 +288,7 @@ export default function Navigation (props) {
       )}
       {hasContextWidgets && (
         <div className='flex flex-col h-full'>
-          <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver} collisionDetection={closestCorners}>
+          <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
             <div className='flex-1 overflow-y-auto'>
               <ContextWidgetList
                 isDragging={isDragging}
@@ -330,6 +329,13 @@ export default function Navigation (props) {
 function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditting, isDragging, activeWidget }) {
   return (
     <ul>
+      {isEditting &&
+        <DropZone isDragging={isDragging} height='h-16' droppableParams={{ id: 'remove' }}>
+          {/* <span className='text-sm text-gray-800 block bg-orange-300'>
+            <Icon name='Trash' />
+          </span> */}
+          Drag here to remove from menu
+        </DropZone>}
       {contextWidgets.map(widget => (
         <li key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} /></li>
       ))}
@@ -429,14 +435,16 @@ function GrabMe ({ children, ...props }) {
   )
 }
 
-function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false }) {
+function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false, children }) {
   const { setNodeRef } = useDroppable(droppableParams)
   if (hide || !isDroppable) {
     return null
   }
   // TODO CONTEXT: remove isDragging or actually use it
   return (
-    <div ref={setNodeRef} className={`bg-green-100 ${isDroppable && height}`} />
+    <div ref={setNodeRef} className={`bg-green-100 ${isDroppable && height} ${droppableParams.id === 'remove' && 'bg-orange-300'}`}>
+      {children}
+    </div>
   )
 }
 

@@ -2453,7 +2453,7 @@ type Mutation {
   # Reject a Group's invite or request to connect to one of your groups. Only a group steward can call this.
   rejectGroupRelationshipInvite(groupRelationshipInviteId: ID): GenericResult
   # Remove a context widget from a menu
-  removeWidgetFromMenu(contextWidgetId: ID): ContextWidget
+  removeWidgetFromMenu(contextWidgetId: ID, groupId: ID): GenericResult
   # Remove a Person from a Group. Only a group Moderator can call this.
   removeMember(personId: ID, groupId: ID): Group
   # Remove a moderator from a Group.
@@ -2740,6 +2740,9 @@ input ContextWidgetInput {
 
   # If true, add this widget to the end of the list. Will be ignored if orderInFrontOfWidgetId is also provided.
   addToEnd: Boolean
+
+  # If true, remove this widget from the menu.
+  remove: Boolean
   
   # The visibility settings of the widget. Currently null or admin
   visibility: String

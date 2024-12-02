@@ -470,8 +470,8 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
 
     rejectGroupRelationshipInvite: (root, { groupRelationshipInviteId }) => rejectGroupRelationshipInvite(userId, groupRelationshipInviteId),
 
-    removeWidgetFromMenu: (root, { contextWidgetId }) => 
-      removeWidgetFromMenu({ userId, contextWidgetId }),
+    removeWidgetFromMenu: (root, { contextWidgetId, groupId }) => 
+      removeWidgetFromMenu({ userId, contextWidgetId, groupId }),
 
     removeMember: (root, { personId, groupId }) =>
       removeMember(userId, personId, groupId),

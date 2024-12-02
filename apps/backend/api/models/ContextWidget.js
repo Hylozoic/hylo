@@ -155,38 +155,33 @@ module.exports = bookshelf.Model.extend({
       const currentOrder = removedWidget.get('order')
       if (!currentOrder) return // Widget wasn't ordered, nothing to do
 
-      const peerWidgets = await removedWidget.peers(trx).fetch({ transacting: trx })
+      const allWidgets = await ContextWidget.findForGroup(removedWidget.get('group_id'), { transacting: trx })
+      .map(widget => ({
+        id: widget.get('id'),
+        parentId: widget.get('parent_id'),
+        order: widget.get('order')
+      }))
 
       // Get widgets that need order updates (all peers with higher order)
-      const reorderedWidgets = peerWidgets.reduce((acc, widget) => {
-        const widgetOrder = widget.get('order')
-        if (widgetOrder > currentOrder) {
-          acc.push({ 
-            id: widget.get('id'), 
-            order: widgetOrder - 1 
-          })
-        }
-        return acc
-      }, [])
-      
+      const reorderedWidgets = reorderTree({priorWidgetState: removedWidget, newWidgetPosition: {remove: true}, allWidgets})
       if (reorderedWidgets.length > 0) {
         // Update all affected widgets in a single query
         const query = `
           UPDATE context_widgets 
-          SET "order" = CASE id 
-            ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.order}`).join('\n')}
-          END
+          SET 
+            "order" = CASE id 
+              ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.order}`).join('\n')}
+            END,
+            parent_id = CASE id
+              ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.parentId === null ? 'NULL' : w.parentId}`).join('\n')}
+            END,
+            auto_added = true
           WHERE id IN (${reorderedWidgets.map(w => w.id).join(',')})
         `
         await bookshelf.knex.raw(query).transacting(trx)
       }
 
-      // Set the removed widget's order and parent_id to null
-      await removedWidget.save({ order: null, parent_id: null, }, { 
-        patch: true,
-       
-        transacting: trx 
-      })
+      await removedWidget.refresh()
 
       return removedWidget
     }
@@ -249,9 +244,30 @@ module.exports = bookshelf.Model.extend({
   },
   setHomeWidget: async function({ id, groupId, trx: existingTrx }) {
     const doWork = async (trx) => {
-      const groupWidgets = await this.where({ group_id: groupId }).fetchAll({ transacting: trx })
-      if (!groupWidgets) throw new Error('Context widget not found')
-      replaceHomeWidget({ widgets: groupWidgets, newHomeWidgetId: id })
+      const allWidgets = await ContextWidget.findForGroup(groupId, { transacting: trx })
+        .map(widget => ({
+          id: widget.get('id'),
+          parentId: widget.get('parent_id'),
+          order: widget.get('order'),
+          type: widget.get('type')
+        }))
+      const reorderedWidgets = replaceHomeWidget({ widgets: allWidgets, newHomeWidgetId: id })
+            // Update all affected widgets in a single query
+      const query = `
+        UPDATE context_widgets 
+        SET 
+          "order" = CASE id 
+            ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.order}`).join('\n')}
+          END,
+          parent_id = CASE id
+            ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.parentId === null ? 'NULL' : w.parentId}`).join('\n')}
+          END,
+          auto_added = true
+        WHERE id IN (${reorderedWidgets.map(w => w.id).join(',')})
+      `
+    
+      await bookshelf.knex.raw(query).transacting(trx)
+      return { success: true }
     }
 
     if (existingTrx) {
