@@ -158,7 +158,6 @@ function findHomeChild (widgets) {
 }
 
 // TODO CONTEXT: add this to /shared
-// MOVE EXISTING HOME WIDGET TO NEW POSITION
 export function replaceHomeWidget ({ widgets, newHomeWidgetId }) {
   const { homeChild, homeParentId } = findHomeChild(widgets)
   const priorWidgetState = widgets.find(widget => widget.id === newHomeWidgetId)
