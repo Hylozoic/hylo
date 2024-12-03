@@ -103,8 +103,10 @@ const PostListRow = (props) => {
               <Link className={classes.topic} to={topicUrl(t.name, { groupSlug: routeParams.slug })} key={t.name} onClick={stopEvent}>#{t.name}</Link>)}
           </div>
         )}
-        <h3 className={cx(classes.title, { [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</h3>
-        <HyloHTML className={classes.details} html={details} />
+        <div className={cx({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+          <h3 className={cx(classes.title)}>{title}</h3>
+          <HyloHTML className={classes.details} html={details} />
+        </div>
         <div className={classes.reactions}>
           <EmojiRow
             post={post}

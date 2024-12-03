@@ -1,5 +1,4 @@
 import { isEmpty, filter } from 'lodash/fp'
-import path from 'path'
 import PropTypes from 'prop-types'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -207,7 +206,7 @@ export function FileManager ({
 }
 
 export function FilePreview ({ attachment, removeFile, fileSize }) {
-  const filename = path.basename(attachment.url)
+  const filename = new URL(attachment.url).pathname.split('/').pop()
   return (
     <div className={classes.filePreview}>
       <Icon name='Document' className={classes.iconDocument} />

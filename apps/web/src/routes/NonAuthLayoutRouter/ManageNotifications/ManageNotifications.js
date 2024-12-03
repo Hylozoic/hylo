@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 
 import { useTranslation } from 'react-i18next'
-import useRouterParams from 'hooks/useRouterParams'
+import useRouteParams from 'hooks/useRouteParams'
 
 import Button from 'components/Button'
 import CheckBox from 'components/CheckBox'
@@ -17,9 +17,9 @@ import styles from './ManageNotifications.module.scss'
 export default function ManageNotifications (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const routerParams = useRouterParams()
-  const userName = routerParams.name
-  const token = routerParams.token
+  const routeParams = useRouteParams()
+  const userName = routeParams.name
+  const token = routeParams.token
 
   const [settings, setSettings] = useState({ allGroupNotifications: 'keep' })
   const [unsubscribeAll, setUnsubscribeAll] = useState(false)

@@ -5,7 +5,7 @@ import { init, getEmojiDataFromNative } from 'emoji-mart'
 import { difference, filter, isNull, omitBy, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import fetch from 'node-fetch'
 import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
@@ -295,6 +295,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   async checkClickthrough (userId) {
+    if (!userId) return null
+
     const pu = await this.postUsers()
       .query(q => q.where('user_id', userId)).fetchOne()
     return (pu && pu.get('clickthrough')) || null

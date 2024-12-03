@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { isEmpty } from 'lodash'
 import { flow, filter, map, includes } from 'lodash/fp'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import createComment from '../models/comment/createComment'
 
 module.exports = {

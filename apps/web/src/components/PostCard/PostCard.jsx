@@ -1,12 +1,13 @@
 import cx from 'classnames'
 import { get } from 'lodash/fp'
 import React, { useCallback, useRef } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import CardImageAttachments from 'components/CardImageAttachments'
 import Icon from 'components/Icon'
+import useRouteParams from 'hooks/useRouteParams'
 import { POST_PROP_TYPES } from 'store/models/Post'
 import { postUrl, editPostUrl } from 'util/navigation'
 import respondToEvent from 'store/actions/respondToEvent'
@@ -26,9 +27,9 @@ export default function PostCard (props) {
     childPost,
     className,
     constrained,
-    currentGroupId,
     expanded,
     highlightProps,
+    group,
     post,
     locationParams,
     onAddReaction = () => {},
@@ -37,7 +38,7 @@ export default function PostCard (props) {
 
   const postCardRef = useRef()
   const { t } = useTranslation()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const location = useLocation()
@@ -78,7 +79,7 @@ export default function PostCard (props) {
 
   const postType = get('type', post)
   const isEvent = postType === 'event'
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const isFlagged = group && post.flaggedGroups && post.flaggedGroups.includes(group.id)
 
   const hasImage = post.attachments?.find(a => a.type === 'image') || false
 
@@ -114,7 +115,11 @@ export default function PostCard (props) {
           />
         </div>
         <div onClick={onClick}>
-          <CardImageAttachments attachments={post.attachments || []} className='post-card' isFlagged={isFlagged && !post.clickthrough} />
+          <CardImageAttachments
+            attachments={post.attachments || []}
+            className='post-card'
+            isFlagged={isFlagged && !post.clickthrough}
+          />
         </div>
         {isEvent && (
           <div className={classes.bodyWrapper}>

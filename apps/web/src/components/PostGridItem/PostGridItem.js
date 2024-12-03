@@ -77,7 +77,9 @@ export default function PostGridItem ({
             : ' '}
         {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
 
-        <HyloHTML className={classes.details} html={details} />
+        <div className={cx(classes.details, { [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+          <HyloHTML html={details} />
+        </div>
         <div className={classes.gridMeta}>
           <div className={classes.gridMetaRow1}>
             <div className={classes.typeAuthor}>

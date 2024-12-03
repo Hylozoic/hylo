@@ -1,6 +1,6 @@
 {
-  "name": "hylo-evo",
-  "stack": "heroku-20",
+  "name": "hylo-web",
+  "stack": "heroku-24",
   "scripts": {
   },
   "env": {
@@ -34,7 +34,8 @@
     "ROLLBAR_ENV": "reviewApp",
     "INTERCOM_APP_ID": {
       "required": true
-    }
+    },
+    "APP_BASE": "apps/web"
   },
   "formation": {
   },
@@ -42,7 +43,10 @@
   ],
   "buildpacks": [
     {
-      "url": "https://github.com/Hylozoic/heroku-buildpack-nodejs.git#run-webpack-build-v182"
+      "url": "https://github.com/lstoll/heroku-buildpack-monorepo"
+    },
+    {
+      "url": "https://github.com/heroku/heroku-buildpack-nodejs#latest"
     }
   ]
 }

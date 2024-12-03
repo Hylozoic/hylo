@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import ReactCodeInput from 'react-code-input'
+import VerificationInput from 'react-verification-input'
 import { formatError } from '../../util'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -73,7 +73,18 @@ export default function VerifyEmail (props) {
         <p className={classes.subHeader}>{t("We've sent a 6 digit code to {{email}}. The code will expire shortly, so please enter it here soon.", { email })}</p>
         {error && formatError(error, 'Signup', t)}
         <div className={classes.codeWrapper}>
-          <ReactCodeInput type='text' fields={6} onChange={handleChange} />
+          <VerificationInput
+            autoFocus
+            length={6}
+            onChange={handleChange}
+            classNames={{
+              container: classes.codeContainer,
+              character: classes.codeCharacter,
+              characterInactive: classes.codeCharacterInactive,
+              characterSelected: classes.codeCharacterSelected,
+              characterFilled: classes.codeCharacterFilled
+            }}
+          />
         </div>
       </div>
       <div onClick={() => sendEmailVerification(email)} className={classes.resend}>{t('Resend code')}</div>

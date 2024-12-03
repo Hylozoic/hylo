@@ -1,7 +1,7 @@
 import { isEmpty } from 'lodash'
 import { get, includes } from 'lodash/fp'
 import decode from 'ent/decode'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import { refineOne } from './util/relations'
 import rollbar from '../../lib/rollbar'
 import { broadcast, userRoom } from '../services/Websockets'

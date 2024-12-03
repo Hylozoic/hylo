@@ -139,7 +139,8 @@ function PostDetail () {
 
   const isProject = get('type', post) === 'project'
   const isEvent = get('type', post) === 'event'
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroup.id)
+  // TODO: if not in a group should show as flagged if flagged in any of my groups
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroup?.id)
 
   const m = post.projectManagementLink ? post.projectManagementLink.match(/(asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho)/) : null
   const projectManagementTool = m ? m[1] : null
@@ -212,7 +213,7 @@ function PostDetail () {
           />
         </div>
       )}
-      <CardImageAttachments attachments={post.attachments} />
+      <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
       {isEvent && (
         <EventBody
           className={classes.body}

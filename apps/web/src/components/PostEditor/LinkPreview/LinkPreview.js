@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import ReactPlayer from 'react-player'
 import { useTranslation } from 'react-i18next'
-import { ImEnlarge, ImShrink } from 'react-icons/im'
+import { Expand, Shrink } from 'lucide-react'
 import { bgImageStyle } from 'util/index'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
@@ -53,10 +53,10 @@ export default function LinkPreview ({ loading, featured: providedFeatured, ...p
           {imageUrl && (
             <div style={imageStyle} className={classes.image}>
               {isVideo && !featured && (
-                <ImEnlarge className={cx(classes.featureButton, { [classes.featured]: featured })} onClick={toggleFeatured} />
+                <Expand className={cx(classes.featureButton, { [classes.featured]: featured })} onClick={toggleFeatured} />
               )}
               {isVideo && featured && (
-                <ImShrink className={cx(classes.featureButton, { [classes.featured]: featured })} onClick={toggleFeatured} />
+                <Shrink className={cx(classes.featureButton, { [classes.featured]: featured })} onClick={toggleFeatured} />
               )}
             </div>
           )}
