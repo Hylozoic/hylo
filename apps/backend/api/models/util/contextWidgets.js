@@ -64,7 +64,6 @@ function findHomeChild(widgets) {
   return { homeChild: widgets.find(widget => widget.parentId === homeParentId), homeParentId, }
 }
 
-// MOVE EXISTING HOME WIDGET TO NEW POSITION
 export function replaceHomeWidget({ widgets, newHomeWidgetId }) {
   const { homeChild, homeParentId } = findHomeChild(widgets)
   const priorWidgetState = widgets.find(widget => widget.id === newHomeWidgetId)

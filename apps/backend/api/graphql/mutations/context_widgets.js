@@ -1,13 +1,6 @@
 const { GraphQLYogaError } = require('@graphql-yoga/node')
 import convertGraphqlData from './convertGraphqlData'
 
-
-// What are the mutations?
-// - create
-// - update
-// - reorder
-// - remove from menu
-
 export async function createContextWidget({ userId, groupId, data }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')
   if (!groupId) throw new GraphQLYogaError('No groupId passed into function')

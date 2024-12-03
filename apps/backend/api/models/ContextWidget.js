@@ -83,7 +83,6 @@ module.exports = bookshelf.Model.extend({
   },
 
   reorder({ order, trx }) {
-    console.log('well we certainly get here, ', this.get('id'), 'aaaaaa')
     return ContextWidget.reorder({ id: this.get('id'), order, trx })
   },
 
