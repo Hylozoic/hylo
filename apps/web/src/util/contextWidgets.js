@@ -74,19 +74,19 @@ export function isWidgetDroppable ({ widget }) {
   return true
 }
 
-export function widgetIsValidChild ({ childWidget, parentWidget }) {
-  if (childWidget.type === 'home') return false
-  if (childWidget.id?.startsWith('fake-id')) return false
-  if (childWidget.id === parentWidget.id) return false
+export function widgetIsValidChild ({ childWidget = {}, parentWidget }) {
   if (parentWidget.viewGroup?.id) return false
   if (parentWidget.viewUser?.id) return false
   if (parentWidget.viewPost?.id) return false
   if (parentWidget.viewChat?.id) return false
   if (parentWidget.customView?.id) return false
-  if (parentWidget.type === 'chats' && !childWidget.viewChat?.id) return false
-  if (parentWidget.type === 'custom-views' && !childWidget.customView?.id) return false
   if (parentWidget.type === 'members') return false
   if (parentWidget.type === 'setup') return false
+  if (parentWidget.type === 'chats' && !childWidget?.viewChat?.id) return false
+  if (parentWidget.type === 'custom-views' && !childWidget?.customView?.id) return false
+  if (childWidget?.type === 'home') return false
+  if (childWidget?.id?.startsWith('fake-id')) return false
+  if (childWidget?.id === parentWidget.id) return false
   return true
 }
 

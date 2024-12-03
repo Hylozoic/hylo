@@ -5,14 +5,14 @@ import { Link, useParams, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { createSelector as ormCreateSelector } from 'redux-orm'
+import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
+
 import Icon from 'components/Icon'
 import NavLink from './NavLink'
 import MenuLink from './MenuLink'
 import TopicNavigation from './TopicNavigation'
 import useRouteParams from 'hooks/useRouteParams'
 import { toggleGroupMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
-import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
-
 import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
@@ -21,10 +21,10 @@ import getMe from 'store/selectors/getMe'
 import { removeWidgetFromMenu, updateContextWidget } from 'store/actions/contextWidgets'
 import resetNewPostCount from 'store/actions/resetNewPostCount'
 import useGatherItems from 'hooks/useGatherItems'
-import { CONTEXT_MY, FETCH_POSTS, RESP_ADMINISTRATION } from 'store/constants'
+import { CONTEXT_MY, FETCH_POSTS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import orm from 'store/models'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
-import { viewUrl, widgetUrl, baseUrl, topicsUrl } from 'util/navigation'
+import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl } from 'util/navigation'
 
 import classes from './Navigation.module.scss'
 import { isWidgetDroppable, widgetIsValidChild, widgetTitleResolver } from 'util/contextWidgets'
@@ -298,6 +298,7 @@ export default function Navigation (props) {
                 rootPath={rootPath}
                 canAdminister={canAdminister}
                 activeWidget={activeWidget}
+                group={group}
               />
             </div>
             <DragOverlay>
@@ -317,6 +318,7 @@ export default function Navigation (props) {
               canAdminister={canAdminister}
               allView
               isEditting={isEditting}
+              group={group}
             />
           </div>
         </div>
@@ -326,27 +328,24 @@ export default function Navigation (props) {
   )
 }
 
-function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditting, isDragging, activeWidget }) {
+function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditting, isDragging, activeWidget, group }) {
   return (
     <ul>
       {isEditting &&
         <DropZone isDragging={isDragging} height='h-16' droppableParams={{ id: 'remove' }}>
-          {/* <span className='text-sm text-gray-800 block bg-orange-300'>
-            <Icon name='Trash' />
-          </span> */}
           Drag here to remove from menu
         </DropZone>}
       {contextWidgets.map(widget => (
-        <li key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} /></li>
+        <li key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} group={group} /></li>
       ))}
       <li>
-        <DropZone isDragging={isDragging} height='h-20' isDroppable droppableParams={{ id: 'bottom-of-list-' + groupSlug, data: { addToEnd: true, parentId: null } }} />
+        <DropZone isDragging={isDragging} hide={!isEditting} height='h-20' isDroppable droppableParams={{ id: 'bottom-of-list-' + groupSlug, data: { addToEnd: true, parentId: null } }} />
       </li>
     </ul>
   )
 }
 
-function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditting = false, allView = false, isDragging = false, isOverlay = false, activeWidget }) {
+function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditting = false, allView = false, isDragging = false, isOverlay = false, activeWidget, group }) {
   const { t } = useTranslation()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
 
@@ -379,9 +378,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
     return null
   }
 
-  if (activeWidget && !widgetIsValidChild({ childWidget: activeWidget, parentWidget: widget })) {
-    hideDropZone = true
-  }
+  const hideBottomDropZone = activeWidget || !widgetIsValidChild({ childWidget: activeWidget, parentWidget: widget })
 
   return (
     <>
@@ -413,12 +410,15 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {/* Special elements can be added here */}
+              <span className='flex flex-col justify-center items-center'>
+                {SpecialTopElementRenderer({ widget, group })}
+              </span>
               <ul>
                 {loading && <li key='loading'>Loading...</li>}
-                {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={hideDropZone} />)}
+                {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={hideBottomDropZone} />)}
                 {widget.id &&
                   <li>
-                    <DropZone isDragging={isDragging} hide={hideDropZone} isDroppable={canDnd && !url} height='h-10' droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }} />
+                    <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} height='h-10' droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }} />
                   </li>}
               </ul>
             </div>)}
@@ -477,6 +477,72 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
   )
 }
 
+function SpecialTopElementRenderer ({ widget, group }) {
+  const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
+  const { t } = useTranslation()
+
+  if (widget.type === 'members' && canAddMembers) {
+    return (
+      <Link to={groupUrl(group.slug, 'settings/invite')}>
+        <div className='inline-block px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
+          {t('Add Members')}
+        </div>
+      </Link>
+    )
+  }
+
+  if (widget.type === 'setup') {
+    const settingsUrl = groupUrl(group.slug, 'settings')
+    return (
+      <>
+        <Link to={groupUrl(group.slug, 'settings')}>
+          <div className='inline-block px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
+            {t('Settings')}
+          </div>
+        </Link>
+        <ul className='mt-4'>
+          {!group.avatarUrl && (
+            <li className='py-2 px-2 border border-gray-200'>
+              <Link to={settingsUrl} className='text-sm text-gray-600 hover:text-gray-900'>
+                {t('Add Avatar')}
+              </Link>
+            </li>
+          )}
+          {!group.bannerUrl && (
+            <li className='py-2 px-2 border border-gray-200'>
+              <Link to={settingsUrl} className='text-sm text-gray-600 hover:text-gray-900'>
+                {t('Add Banner')}
+              </Link>
+            </li>
+          )}
+          {!group.purpose && (
+            <li className='py-2 px-2 border border-gray-200'>
+              <Link to={settingsUrl} className='text-sm text-gray-600 hover:text-gray-900'>
+                {t('Add Purpose')}
+              </Link>
+            </li>
+          )}
+          {!group.description && (
+            <li className='py-2 px-2 border border-gray-200'>
+              <Link to={settingsUrl} className='text-sm text-gray-600 hover:text-gray-900'>
+                {t('Add Description')}
+              </Link>
+            </li>
+          )}
+          {!group.locationObject && (
+            <li className='py-2 px-2 border border-gray-200'>
+              <Link to={settingsUrl} className='text-sm text-gray-600 hover:text-gray-900'>
+                {t('Add Location')}
+              </Link>
+            </li>
+          )}
+        </ul>
+      </>
+    )
+  }
+
+  return null
+}
 // Needed attributes:
 // type
 // title
