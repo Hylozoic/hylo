@@ -12,6 +12,7 @@ import { POST_PROP_TYPES } from 'store/models/Post'
 import { postUrl, editPostUrl } from 'util/navigation'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
+import getMyGroups from 'store/selectors/getMyGroups'
 import EventBody from './EventBody'
 import PostBody from './PostBody'
 import PostFooter from './PostFooter'
@@ -80,7 +81,9 @@ export default function PostCard (props) {
 
   const postType = get('type', post)
   const isEvent = postType === 'event'
-  const isFlagged = group && post.flaggedGroups && post.flaggedGroups.includes(group.id)
+  const myGroupsIds = useSelector(getMyGroups).map(group => group.id)
+
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(group => myGroupsIds.includes(group))
 
   const hasImage = post.attachments?.find(a => a.type === 'image') || false
 

@@ -4,6 +4,8 @@ import Tooltip from 'components/Tooltip'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { personUrl, postUrl } from 'util/navigation'
+import { useSelector } from 'react-redux'
+import getMyGroups from 'store/selectors/getMyGroups'
 import Avatar from 'components/Avatar'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
@@ -33,7 +35,8 @@ export default function PostGridItem ({
   const attachmentType = firstAttachment.type || 0
   const attachmentUrl = firstAttachment.url || 0
   const { t } = useTranslation()
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const myGroupsIds = useSelector(getMyGroups).map(group => group.id)
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(group => myGroupsIds.includes(group))
   const creatorUrl = personUrl(creator.id, routeParams.slug)
   const unread = false
   // will reintegrate once I have attachment vars
