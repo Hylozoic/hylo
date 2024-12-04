@@ -220,7 +220,7 @@ export default function EditableMap (props) {
       >
         <MapGL
           {...viewport}
-          mapStyle='mapbox://styles/mapbox/light-v9'
+          mapStyle='mapbox://styles/mapbox/satellite-streets-v12'
           mapboxAccessToken={mapbox.token}
           attributionControl={false}
         />
