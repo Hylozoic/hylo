@@ -30,6 +30,7 @@ export default function PostCard (props) {
     expanded,
     highlightProps,
     group,
+    mapDrawer,
     post,
     locationParams,
     onAddReaction = () => {},
@@ -146,6 +147,7 @@ export default function PostCard (props) {
               onAddReaction={onAddReaction}
               onRemoveReaction={onRemoveReaction}
               highlightProps={highlightProps}
+              mapDrawer={mapDrawer}
             />
           </div>
         )}
