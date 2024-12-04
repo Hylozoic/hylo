@@ -6,6 +6,8 @@ import Moment from 'moment-timezone'
 
 import { isEmpty } from 'lodash/fp'
 import { personUrl, topicUrl } from 'util/navigation'
+import { useSelector } from 'react-redux'
+import getMyGroups from 'store/selectors/getMyGroups'
 import Avatar from 'components/Avatar'
 import EmojiRow from 'components/EmojiRow'
 import HyloHTML from 'components/HyloHTML'
@@ -20,7 +22,6 @@ const PostListRow = (props) => {
   const {
     childPost,
     routeParams,
-    currentGroupId,
     post,
     showDetails,
     expanded,
@@ -37,6 +38,8 @@ const PostListRow = (props) => {
 
   const { t } = useTranslation()
 
+  const myGroupsIds = useSelector(getMyGroups).map(group => group.id)
+
   if (!creator) { // PostCard guards against this, so it must be important? ;P
     return null
   }
@@ -48,7 +51,7 @@ const PostListRow = (props) => {
   const numOtherCommentors = commentersTotal - 1
   const unread = false
   const startTimeMoment = Moment(post.startTime)
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(group => myGroupsIds.includes(group))
 
   return (
     <div className={cx(classes.postRow, { [classes.unread]: unread, [classes.expanded]: expanded })} onClick={showDetails}>

@@ -12,6 +12,7 @@ import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
+import getMyGroups from 'store/selectors/getMyGroups'
 import { personUrl, postUrl } from 'util/navigation'
 
 import classes from './PostBigGridItem.module.scss'
@@ -40,7 +41,8 @@ export default function PostBigGridItem ({
   // XXX: we should figure out what to actually do with 'video' type attachments, which are almost never used
   const attachmentType = (firstAttachment.type === 'video' ? 'file' : firstAttachment.type) || 0
   const attachmentUrl = firstAttachment.url || 0
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const myGroupsIds = useSelector(getMyGroups).map(group => group.id)
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(group => myGroupsIds.includes(group))
 
   const currentUser = useSelector(getMe)
 

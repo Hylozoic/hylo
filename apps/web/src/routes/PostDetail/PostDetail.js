@@ -36,6 +36,7 @@ import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { FETCH_POST } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getMyGroups from 'store/selectors/getMyGroups'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -55,6 +56,7 @@ function PostDetail () {
   const postId = routeParams.postId || getQuerystringParam('fromPostId', location)
   const { groupSlug, commentId } = routeParams
 
+  const myGroupsIds = useSelector(getMyGroups).map(group => group.id)
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   const postSelector = useSelector(state => getPost(state, postId))
   const post = useMemo(() => {
@@ -140,7 +142,7 @@ function PostDetail () {
   const isProject = get('type', post) === 'project'
   const isEvent = get('type', post) === 'event'
   // TODO: if not in a group should show as flagged if flagged in any of my groups
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroup?.id)
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(group => myGroupsIds.includes(group))
 
   const m = post.projectManagementLink ? post.projectManagementLink.match(/(asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho)/) : null
   const projectManagementTool = m ? m[1] : null
