@@ -10,7 +10,7 @@ groups(
   visibility: $visibility
 ) {
   items {
-    ${groupFieldsFragment({ withContextWidgets: true })}
+    ${groupFieldsFragment(false)}
   }
 }`
 

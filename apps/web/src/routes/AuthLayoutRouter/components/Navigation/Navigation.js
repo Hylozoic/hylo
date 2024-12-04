@@ -409,7 +409,6 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <h3 className='text-sm font-semibold'>{title}</h3>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
-              {/* Special elements can be added here */}
               <span className='flex flex-col justify-center items-center'>
                 {SpecialTopElementRenderer({ widget, group })}
               </span>
@@ -493,6 +492,15 @@ function SpecialTopElementRenderer ({ widget, group }) {
 
   if (widget.type === 'setup') {
     const settingsUrl = groupUrl(group.slug, 'settings')
+
+    const listItemComponent = ({ title, url }) => (
+      <li className='py-2 px-2 border border-gray-200'>
+        <Link to={url} className='text-sm text-gray-600 hover:text-gray-900'>
+          {title}
+        </Link>
+      </li>
+    )
+
     return (
       <>
         <Link to={groupUrl(group.slug, 'settings')}>
@@ -501,41 +509,26 @@ function SpecialTopElementRenderer ({ widget, group }) {
           </div>
         </Link>
         <ul className='mt-4'>
-          {!group.avatarUrl && (
-            <li className='py-2 px-2 border border-gray-200'>
-              <Link to={settingsUrl} className='text-sm text-gray-600 hover:text-gray-900'>
-                {t('Add Avatar')}
-              </Link>
-            </li>
-          )}
-          {!group.bannerUrl && (
-            <li className='py-2 px-2 border border-gray-200'>
-              <Link to={settingsUrl} className='text-sm text-gray-600 hover:text-gray-900'>
-                {t('Add Banner')}
-              </Link>
-            </li>
-          )}
-          {!group.purpose && (
-            <li className='py-2 px-2 border border-gray-200'>
-              <Link to={settingsUrl} className='text-sm text-gray-600 hover:text-gray-900'>
-                {t('Add Purpose')}
-              </Link>
-            </li>
-          )}
-          {!group.description && (
-            <li className='py-2 px-2 border border-gray-200'>
-              <Link to={settingsUrl} className='text-sm text-gray-600 hover:text-gray-900'>
-                {t('Add Description')}
-              </Link>
-            </li>
-          )}
-          {!group.locationObject && (
-            <li className='py-2 px-2 border border-gray-200'>
-              <Link to={settingsUrl} className='text-sm text-gray-600 hover:text-gray-900'>
-                {t('Add Location')}
-              </Link>
-            </li>
-          )}
+          {!group.avatarUrl && listItemComponent({
+            title: t('Add Avatar'),
+            url: settingsUrl
+          })}
+          {!group.bannerUrl && listItemComponent({
+            title: t('Add Banner'),
+            url: settingsUrl
+          })}
+          {!group.purpose && listItemComponent({
+            title: t('Add Purpose'),
+            url: settingsUrl
+          })}
+          {!group.description && listItemComponent({
+            title: t('Add Description'),
+            url: settingsUrl
+          })}
+          {!group.locationObject && listItemComponent({
+            title: t('Add Location'),
+            url: settingsUrl
+          })}
         </ul>
       </>
     )
@@ -543,57 +536,3 @@ function SpecialTopElementRenderer ({ widget, group }) {
 
   return null
 }
-// Needed attributes:
-// type
-// title
-// order
-// visibility
-// icon
-// view
-// viewChat
-// childWidgets
-// viewPost
-// viewGroup
-// viewUser
-// customView
-
-// const homeWidget = await ContextWidget.forge({
-//   group_id: this.id,
-//   type: 'home',
-//   title: 'widget-home',
-//   order: 1,
-//   created_at: new Date(),
-//   updated_at: new Date()
-// }).save(null, { transacting: trx })
-
-// // Create hearth widget as child of home
-// await ContextWidget.forge({
-//   group_id: this.id,
-//   title: 'widget-hearth',
-//   view_chat_id: generalTag.id,
-//   parent_id: homeWidget.id,
-//   order: 1,
-//   created_at: new Date(),
-//   updated_at: new Date()
-// }).save(null, { transacting: trx })
-
-// const orderedWidgets = [
-//   { title: 'widget-chats', type: 'chats', order: 2 },
-//   { title: 'widget-auto-view', type: 'auto-view', order: 3 },
-//   { title: 'widget-members', type: 'members', view: 'members', order: 4 },
-//   { title: 'widget-setup', type: 'setup', visibility: 'admin', order: 5 },
-//   { title: 'widget-custom-views', type: 'custom-views', order: 6 },
-// ]
-
-// // These are accessible in the all view
-// const unorderedWidgets = [
-//   { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
-//   { title: 'widget-ask-and-offer', view: 'ask-and-offer' },
-//   { title: 'widget-stream', view: 'stream' },
-//   { title: 'widget-events', type: 'events', view: 'events' },
-//   { title: 'widget-projects', type: 'projects', view: 'projects' },
-//   { title: 'widget-groups', type: 'groups', view: 'groups' },
-//   { title: 'widget-decisions', type: 'decisions', view: 'decisions' },
-//   { title: 'widget-about', type: 'about', view: 'about' },
-//   { title: 'widget-map', type: 'map', view: 'map' }
-// ]

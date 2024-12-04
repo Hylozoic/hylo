@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux'
 import { fetchGroupMembers } from 'routes/Members/Members.store'
 import { wrapItemInWidget } from 'util/contextWidgets'
 
+// Different widgets have different sorts of children to display. This function ensures that they are always returned via a consistent interface.
 export default function useGatherItems ({ widget, groupSlug }) {
   const [listItems, setListItems] = useState([])
   const [loading, setLoading] = useState(true)

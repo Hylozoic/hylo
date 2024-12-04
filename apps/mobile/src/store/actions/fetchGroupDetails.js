@@ -15,7 +15,7 @@ export default function fetchGroupDetails ({
     graphql: {
       query: `query GroupDetailsQuery ($slug: String) {
         group(slug: $slug) {
-          ${groupFieldsFragment({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets, withContextWidgets })}
+          ${groupFieldsFragment({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets })}
         }
       }`,
       variables: { slug }

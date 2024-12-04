@@ -64,7 +64,7 @@ export function createGroup (groupData) {
       query: `
         mutation ($data: GroupInput) {
           createGroup(data: $data) {
-            ${groupFieldsFragment({ withJoinQuestions: true, withContextWidgets: true })}
+            ${groupFieldsFragment({ withJoinQuestions: true })}
             memberships {
               items {
                 id
