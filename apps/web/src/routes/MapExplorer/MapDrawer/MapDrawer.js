@@ -188,6 +188,7 @@ function MapDrawer ({
                 return (
                   <PostCard
                     constrained
+                    mapDrawer
                     expanded={false}
                     key={p.id}
                     locationParams={locationParams}
