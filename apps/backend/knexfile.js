@@ -1,5 +1,5 @@
 const merge = require('lodash/merge')
-require('dotenv').load()
+require('dotenv').config()
 
 if (!process.env.DATABASE_URL) {
   throw new Error('process.env.DATABASE_URL must be set')
