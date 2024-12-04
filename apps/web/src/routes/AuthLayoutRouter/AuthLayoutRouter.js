@@ -526,6 +526,6 @@ function returnDefaultView (group, context) {
   }
 }
 
-export function getHomeUrl ({ group, routeParams }) {
+function getHomeUrl ({ group, routeParams }) {
   return widgetUrl({ ...routeParams, widget: findHomeView(group) })
 }
