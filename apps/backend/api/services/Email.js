@@ -27,7 +27,7 @@ const sendSimpleEmail = function (address, templateId, data, extraOptions, local
 const sendEmailWithOptions = curry((templateId, opts) =>
   sendEmail(merge({}, defaultOptions, {
     email_id: templateId,
-    recipient: {address: opts.email},
+    recipient: { address: opts.email },
     email_data: opts.data,
     version_name: opts.version,
     locale: mapLocaleToSendWithUS(opts.locale),
@@ -49,6 +49,9 @@ module.exports = {
 
   sendFinishRegistration: opts =>
     sendSimpleEmail(opts.email, 'tem_BcfBCCHdDmkvcvkBSGPWYcjJ', opts.templateData, mapLocaleToSendWithUS(opts.locale)),
+
+  sendModerationAction: ({ email, templateData, locale }) =>
+    sendSimpleEmail(email, 'tem_Bpb3WGd8dbFHXyKcfV4TTmGB', templateData, mapLocaleToSendWithUS(locale)),
 
   sendInvitation: (email, data) =>
     sendEmailWithOptions('tem_ZXZuvouDYKKhCrdEWYbEp9', {

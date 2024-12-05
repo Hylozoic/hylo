@@ -28,10 +28,16 @@ export async function createThread (userId, participantIds) {
 }
 
 export async function validateThreadData (userId, participantIds) {
+  if (userId === User.AXOLOTL_ID) {
+    // Can always send a message from axolotl
+    return true
+  }
+
   if (!(participantIds && participantIds.length)) {
     throw new GraphQLYogaError("participantIds can't be empty")
   }
   const validParticipantIds = await personFilter(userId)(User.where('id', 'in', uniq(participantIds))).fetchAll()
+
   if (validParticipantIds.length !== participantIds.length) {
     throw new GraphQLYogaError("Cannot message a participant who doesn't share a group")
   }
