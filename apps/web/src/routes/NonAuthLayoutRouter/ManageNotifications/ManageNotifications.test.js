@@ -4,12 +4,6 @@ import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibrar
 import { act } from '@testing-library/react'
 import ManageNotifications from './ManageNotifications'
 
-jest.mock('hooks/useRouterParams', () => () => {
-  return {
-    name: 'Philharmonic'
-  }
-})
-
 jest.mock('store/middleware/apiMiddleware', () => (req) => {
   return store => next => action => {
     return Promise.resolve({ ...action, payload: Promise.resolve({ commentNotifications: 'email', dmNotifications: 'push', postNofications: 'important', digestFrequency: 'daily', allGroupNotifications: 'both' }) })
