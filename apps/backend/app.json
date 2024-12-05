@@ -1,5 +1,5 @@
 {
-  "name": "hylo-node",
+  "name": "hylo-backend",
   "description": "The back-end/API server for Hylo - the Social Coordination Platform for a Thriving Planet",
   "stack": "heroku-24",
   "addons": [

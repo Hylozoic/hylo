@@ -45,58 +45,19 @@ module.exports = bookshelf.Model.extend({
     if (groupId === group.id) {
       const agreements = this.relations.agreements.models.concat(this.relations.platformAgreements.models)
 
-      return `${this.relations.reporter.get('name')} flagged a post in ${group.get('name')}}\n` +
-      `Message: ${this.get('text')}\n` +
-      `Broken agreements: ${agreements.map(agreement => agreement.get('title') || agreement.get('text')).join(', ')}\n` +
-      `${link}\n\n`
+      return `${this.relations.reporter.get('name')} flagged a post in ${group.get('name')}\n` +
+        `Message: ${this.get('text')}\n` +
+        `Broken agreements: ${agreements.map(agreement => agreement.get('title') || agreement.get('text')).join(', ')}\n` +
+        `${link}\n\n`
     } else {
       const agreements = this.relations.platformAgreements.models
 
-      return `${anonymous ? 'Anonymous reporter' : this.relations.reporter.get('name')} flagged a post in another group: ${group.get('name')}}\n` +
-      `Message: ${this.get('text')}\n` +
-      `Broken agreements: ${agreements.map(agreement => agreement.get('text')).join(', ')}\n` +
-      `${link}\n\n`
+      return `${anonymous ? 'Anonymous reporter' : this.relations.reporter.get('name')} flagged a post in another group: ${group.get('name')}\n` +
+        `Message: ${this.get('text')}\n` +
+        `Broken agreements: ${agreements.map(agreement => agreement.get('text')).join(', ')}\n` +
+        `${link}\n\n`
     }
-  },
-
-  async sendEmailsForModerationAction ({ reporterId, postId, groupId, type = 'created' }) {
-    // type is 'created' or 'cleared'
-    // email reportee and reporter
-    const group = await Group.find(groupId)
-    const reporter = await User.find(reporterId)
-    const post = await Post.find(postId)
-    const reportee = post.relations.user
-    const link = await Frontend.Route.post(this.get('post_id'), group)
-    const reporterLocale = reporter.getLocale()
-    const reporteeLocale = reportee.getLocale()
-
-    const messageReporter = type === 'created'
-      ? `${locales[reporterLocale].flaggedPostEmailContent({ post, group })}`
-      : `${locales[reporterLocale].clearedPostEmailContent({ post, group })}`
-
-    const messageReportee = type === 'created'
-      ? `${locales[reporteeLocale].flaggedPostEmailContent({ post, group })}`
-      : `${locales[reporteeLocale].clearedPostEmailContent({ post, group })}`
-
-    Queue.classMethod('Email', 'sendRawEmail', {
-      email: reporter.get('email'),
-      data: {
-        subject: locales[reporterLocale].moderatorClearedYouFlag(),
-        body: messageReporter +
-        `${link}\n\n`
-      }
-    })
-
-    Queue.classMethod('Email', 'sendRawEmail', {
-      email: reportee.get('email'),
-      data: {
-        subject: locales[reporteeLocale].moderatorClearedFlagFromPost(),
-        body: messageReportee +
-        `${link}\n\n`
-      }
-    })
-  },
-
+  }
 }, {
   create: async function (data, opts) {
     const { agreements, anonymous, platformAgreements, postId, groupId, reporterId, text } = data
@@ -121,22 +82,71 @@ module.exports = bookshelf.Model.extend({
     return action
   },
 
+  async sendEmailsForModerationAction ({ reporterId, postId, groupId, type = 'created' }) {
+    // type is 'created' or 'cleared'
+    // email reportee and reporter
+    const group = await Group.find(groupId)
+    const reporter = await User.find(reporterId)
+    const post = await Post.find(postId, { withRelated: ['user'] })
+    const reportee = post.relations.user
+    const link = await Frontend.Route.post(postId, group)
+    const reporterLocale = reporter.getLocale()
+    const reporteeLocale = reportee.getLocale()
+
+    const reporterSubject = type === 'created'
+      ? locales[reporterLocale].moderationYouFlaggedAPost()
+      : locales[reporterLocale].moderationClearedYourFlag()
+
+    const reporterMessageContent = type === 'created'
+      ? `${locales[reporterLocale].moderationYouFlaggedPostEmailContent({ post, group })}`
+      : `${locales[reporterLocale].moderationReporterClearedPostEmailContent({ post, group })}`
+
+    const reporteeSubject = type === 'created'
+      ? locales[reporteeLocale].moderationYourPostWasFlagged()
+      : locales[reporteeLocale].moderationClearedFlagFromYourPost()
+
+    const reporteeMessageContent = type === 'created'
+      ? `${locales[reporteeLocale].moderationFlaggedPostEmailContent({ post, group })}`
+      : `${locales[reporteeLocale].moderationClearedPostEmailContent({ post, group })}`
+
+    Queue.classMethod('Email', 'sendModerationAction', {
+      email: reporter.get('email'),
+      templateData: {
+        subject: reporterSubject,
+        body: reporterMessageContent +
+        `${link}\n\n`
+      },
+      locale: reporterLocale
+    })
+
+    Queue.classMethod('Email', 'sendModerationAction', {
+      email: reportee.get('email'),
+      templateData: {
+        subject: reporteeSubject,
+        body: reporteeMessageContent +
+        `${link}\n\n`
+      },
+      local: reporteeLocale
+    })
+  },
+
   async sendToModerators ({ moderationActionId, postId, groupId, anonymous }) {
-    const moderationAction = await ModerationAction.find(moderationActionId)
-    const groups = await Post.find(postId).groups().fetch()
+    const moderationAction = await ModerationAction.where({ id: moderationActionId }).fetch({ withRelated: ['agreements', 'platformAgreements', 'reporter'] })
+    const post = await Post.find(postId)
+    const groups = await post.groups().fetch()
 
     const send = async (group, userIds, anonymous) => {
       const text = await moderationAction.getMessageText({ group, groupId, anonymous })
       return sendMessageFromAxolotl(userIds, text)
     }
-    for (let group of groups) {
+    for (const group of groups) {
       const moderators = await group.moderators().fetch()
       await send(group, moderators.map(moderator => moderator.id), anonymous)
     }
-    const shouldSendToAdmins = (process.env.HYLO_ADMINS &&
+    const shouldSendToAdmins = (post.isPublic() && process.env.HYLO_ADMINS &&
       moderationAction.relationships.platformAgreements &&
       moderationAction.relationships.platformAgreements.length > 0)
-  
+
     if (shouldSendToAdmins) {
       const adminIds = process.env.HYLO_ADMINS.split(',').map(id => Number(id))
       const group = groups.filter(g => g.id === groupId)
