@@ -33,7 +33,7 @@ module.exports = bookshelf.Model.extend({
   customView() {
     return this.belongsTo(CustomView, 'custom_view_id')
   },
-  group() {
+  ownerGroup() {
     return this.belongsTo(Group, 'group_id')
   },
 
@@ -47,7 +47,7 @@ module.exports = bookshelf.Model.extend({
     return 8
   },
 
-  parent() {
+  parentWidget() {
     return this.belongsTo(ContextWidget, 'parent_id')
   },
 
@@ -144,6 +144,7 @@ module.exports = bookshelf.Model.extend({
       .orderBy('created_at', 'asc')
       .fetchAll(options)
   },
+
   removeFromMenu: async function({id, trx: existingTrx}) {
     const doWork = async (trx) => {
       // Get the widget being removed
@@ -191,6 +192,7 @@ module.exports = bookshelf.Model.extend({
 
     return await bookshelf.transaction(trx => doWork(trx))
   },
+
   reorder: async function({ id, addToEnd, orderInFrontOfWidgetId, parentId, trx: existingTrx }) {
     const doWork = async (trx) => {
       const movedWidget = await ContextWidget.where({ id }).fetch({ transacting: trx })
@@ -241,6 +243,7 @@ module.exports = bookshelf.Model.extend({
 
     return await bookshelf.transaction(trx => doWork(trx))
   },
+
   setHomeWidget: async function({ id, groupId, trx: existingTrx }) {
     const doWork = async (trx) => {
       const allWidgets = await ContextWidget.findForGroup(groupId, { transacting: trx })
@@ -275,6 +278,7 @@ module.exports = bookshelf.Model.extend({
 
     return await bookshelf.transaction(trx => doWork(trx))
   },
+
   update: async function({ id, data, trx: existingTrx }) {
     const doWork = async (trx) => {
       const widget = await this.where({ id }).fetch({ transacting: trx })

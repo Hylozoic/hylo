@@ -77,8 +77,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'secondaryNumber'
       ],
       relations: [
-        { group: { alias: 'ownerGroup' } },
-        { parent: { alias: 'parentWidget' } },
+        'ownerGroup',
+        'parentWidget',
         { children: { alias: 'childWidgets', querySet: true } },
         'viewGroup',
         'viewPost', 
