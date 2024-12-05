@@ -11,8 +11,6 @@ export default function TopicNavigation ({
   topics,
   goBack,
   seeAllUrl,
-  collapsed,
-  expand,
   clearBadge,
   clearStream
 }) {
@@ -28,8 +26,8 @@ export default function TopicNavigation ({
   const { t } = useTranslation()
 
   return (
-    <div className={cx(styles.topicNavigation, { [styles.collapsed]: collapsed })}>
-      <div className={cx(styles.header, { [styles.headerLink]: collapsed })} onClick={expand}>
+    <div className={cx(styles.topicNavigation)}>
+      <div className={cx(styles.header)}>
         <Link to={seeAllUrl}>
           <Icon name='Topics' className={styles.icon} />
           <span className={styles.title}>{t('Topics')}</span>

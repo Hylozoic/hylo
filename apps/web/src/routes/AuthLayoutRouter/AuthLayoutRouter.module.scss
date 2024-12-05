@@ -332,8 +332,6 @@ $drawer-z-index: 51;
     opacity: 0;
   }
 }
-
-
 /* end tooltip stuff */
 
 .left {
@@ -342,7 +340,7 @@ $drawer-z-index: 51;
 }
 
 .left .map-field {
-    height: calc(100vh - 60px);
+  height: calc(100vh - 60px);
 }
 
 .center {
@@ -350,15 +348,12 @@ $drawer-z-index: 51;
   position: relative;
   min-height: 1px; // Prevent collapsing
   height: 100%;
-  flex: 0 0 50%;
-  max-width: 50%;
+  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   // transition: all .45s ease; // Took this out because it was causing issues with the width of the map
 
   &.full-width {
-    max-width: $center-column-full-width;
-    flex: 0 0 $center-column-full-width;
     padding: 0 0 0 0;
   }
   &.withoutNav {
@@ -372,22 +367,10 @@ $drawer-z-index: 51;
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  flex: 0 0 100%;
-  max-width: 100%;
+  flex: 1;
   padding-right: 0;
   height: calc(100vh - 58px);
   padding-left: 0;
-}
-
-.center.collapsedState {
-  width: 43%;
-  flex: 0 0 43%;
-}
-
-.center.full-width.collapsedState {
-  width: calc(100% - 88px);
-  max-width: calc(100% - 88px);
-  flex: 0 0 100%;
 }
 
 .sidebar {
@@ -409,6 +392,7 @@ $drawer-z-index: 51;
     opacity: 0;
     right: -60px;
     transition-delay: 0.0s;
+    display: none;
   }
 }
 
@@ -450,16 +434,7 @@ $drawer-z-index: 51;
     opacity: 0;
     transform: scale(0);
     height: 0;
-  }
-
-  .center {
-    max-width: calc(83% - 30px);
-    flex: 0 0 83%;
-  }
-
-  .center.collapsedState {
-    width: 60%;
-    flex: 0 0 60%;
+    display: none;
   }
 
   .detail {
@@ -468,35 +443,16 @@ $drawer-z-index: 51;
 }
 
 @media screen and (max-width: 930px) {
-  .center {
-    max-width: 80%;
-    flex: 0 0 80%;
-    left: 5%;
-  }
-
   .left {
     overflow: hidden;
   }
 
   .center.full-width {
     max-width: calc(100% - 80px);
-    flex-basis: 93%;
-    left: 0;
   }
 }
 
 @media screen and (max-width: 700px) {
-  .center {
-    max-width: 86%;
-    flex: 0 0 86%;
-    left: 0%;
-  }
-
-  .center.full-width {
-    max-width: 90%;
-    flex: 0 0 90%;
-  }
-
   .detail {
     width: calc(100% - 80px);
     margin-top: 0;
@@ -558,22 +514,10 @@ $drawer-z-index: 51;
   }
 
   .center {
-    max-width: 100%;
-    flex: 0 0 100%;
-    left: 0%;
     padding: 0 0 150px 0;
   }
 
   .center.full-width {
-    max-width: 100%;
-    flex: 0 0 100%;
-    left: 0;
-    padding: 0 0 0 0;
-  }
-
-  .center.full-width.collapsedState {
-    width: 100%;
-    max-width: 100%;
     padding: 0 0 0 0;
   }
 

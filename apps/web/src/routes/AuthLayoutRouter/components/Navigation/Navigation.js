@@ -32,7 +32,6 @@ const getGroupMembership = ormCreateSelector(
 export default function Navigation (props) {
   const {
     className,
-    collapsed,
     groupId,
     mapView
   } = props
@@ -189,11 +188,10 @@ export default function Navigation (props) {
     }))
   ])
 
-  const collapserState = collapsed ? 'collapserCollapsed' : 'collapser'
   const canView = !group || group.memberCount !== 0
   const links = isMyContext ? myLinks : regularLinks
   return (
-    <div className={cx(classes.container, { [classes.mapView]: mapView }, classes[collapserState], { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
+    <div className={cx(classes.container, { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
       <div className={classes.navigation}>
         {canView && (
           <ul className={classes.links} id='groupMenu'>
@@ -202,7 +200,6 @@ export default function Navigation (props) {
                 key={link.label + i}
                 externalLink={link.externalLink}
                 {...link}
-                collapsed={collapsed}
                 onClick={link.handleClick}
               />
             ))}
@@ -215,7 +212,6 @@ export default function Navigation (props) {
         )}
         {canView && !isMyContext && !isPublic && (
           <TopicNavigation
-            collapsed={collapsed}
             backUrl={rootPath}
             routeParams={routeParams}
             groupId={groupId}

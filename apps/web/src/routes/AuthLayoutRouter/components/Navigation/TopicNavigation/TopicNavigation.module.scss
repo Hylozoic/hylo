@@ -24,10 +24,6 @@
   }
 }
 
-.header-link {
-  cursor: pointer;
-}
-
 .title {
   flex: 1;
   vertical-align: top;
@@ -47,16 +43,6 @@
   overflow-x: hidden;
   transition: opacity .3s ease;
   color: $color-rhino-60;
-}
-
-.collapsed {
-  .topics {
-    display: none;
-  }
-
-  .allTopics {
-    display: none;
-  }
 }
 
 .topics::-webkit-scrollbar {
@@ -146,17 +132,5 @@
     color: rgba(0, 118, 223, 1);
     font-family: "Circular Bold", sans-serif;
     border-radius: 5px;
-  }
-}
-
-@media screen and (max-width: 930px) {
-  .topics {
-    opacity: 0;
-  }
-}
-
-@media screen and (max-width: 600px) {
-  .topics {
-    opacity: 1;
   }
 }

@@ -107,8 +107,6 @@ export default function AuthLayoutRouter (props) {
   const isMapView = pathMatchParams?.view === 'map'
   const hideSidebar = isMapView || pathMatchParams?.view === 'topics'
   const isWelcomeContext = pathMatchParams?.context === 'welcome'
-  const queryParams = Object.fromEntries(new URLSearchParams(location.search))
-  const hideDrawer = queryParams?.hideDrawer !== 'true'
 
   // Store
   const dispatch = useDispatch()
@@ -195,7 +193,6 @@ export default function AuthLayoutRouter (props) {
   }
   const handleCloseDrawer = () => isDrawerOpen && dispatch(toggleDrawerAction())
   const showMenuBadge = some(m => m.newPostCount > 0, memberships)
-  const collapsedState = hasDetail || (isMapView && hideDrawer)
   const isSingleColumn = (currentGroupSlug && !currentGroupMembership) ||
     matchPath({ path: '/members/:personId' }, location.pathname)
   // When joining a group by invitation Group Welcome Modal (join form)
@@ -320,8 +317,7 @@ export default function AuthLayoutRouter (props) {
                   <Navigation
                     context='groups'
                     group={currentGroup}
-                    collapsed={collapsedState}
-                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', { [classes.hidden]: !isGroupMenuOpen })}
+                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -332,8 +328,7 @@ export default function AuthLayoutRouter (props) {
                   <Navigation
                     context='all'
                     group={currentGroup}
-                    collapsed={collapsedState}
-                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', { [classes.hidden]: !isGroupMenuOpen })}
+                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -344,8 +339,7 @@ export default function AuthLayoutRouter (props) {
                   <Navigation
                     context='public'
                     group={currentGroup}
-                    collapsed={collapsedState}
-                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', { [classes.hidden]: !isGroupMenuOpen })}
+                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -356,15 +350,14 @@ export default function AuthLayoutRouter (props) {
                   <Navigation
                     context='my'
                     group={currentGroup}
-                    collapsed={collapsedState}
-                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
+                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
               />
             </Routes>
           )}
-          <div className={cx(classes.center, { [classes.fullWidth]: hideSidebar, [classes.collapsedState]: collapsedState, [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
+          <div className={cx(classes.center, { [classes.fullWidth]: hideSidebar, [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
             {/* NOTE: It could be more clear to group the following switched routes by component  */}
             <Routes>
               {/* **** Member Routes **** */}

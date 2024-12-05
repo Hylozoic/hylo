@@ -34,7 +34,7 @@ class PostGroups extends Component {
     return (
       <div className={cx(classes.groups, { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })} onClick={expanded ? this.toggleExpanded : undefined}>
         <div className={classes.row}>
-          <span className={classes.label}>{`${this.props.t('Posted In:')} `}</span>
+          <span className={classes.label}>{`${this.props.t('Posted In:')}`}&nbsp;</span>
           {!expanded &&
             <LinkedGroupNameList t={t} groups={groups} maxShown={2} expandFunc={this.toggleExpanded} />}
           <a onClick={this.toggleExpanded} className={classes.expandLink} role='button' aria-label={expanded ? 'collapse' : 'expand'}>

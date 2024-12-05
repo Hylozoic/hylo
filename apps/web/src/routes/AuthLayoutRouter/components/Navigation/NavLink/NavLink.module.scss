@@ -9,10 +9,6 @@
   text-decoration: none;
 }
 
-.item.collapsed {
-  margin-right: 0;
-}
-
 .link {
   display: flex;
   align-items: center;
@@ -25,18 +21,10 @@
   }
 
   transition: 1.5s;
-
-  &.collapsed {
-    color: transparent;
-  }
 }
 
 .active {
   background-color: var(--accent);
-
-  .collapsed.link span.label {
-    color: transparent;
-  }
 
   .link {
     text-decoration: none;
@@ -44,10 +32,6 @@
 
     span {
       color: var(--accent-foreground);
-    }
-
-    &.collapsed {
-      color: transparent;
     }
   }
 }
@@ -62,16 +46,12 @@
   padding-right: 5px;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-wrap: nowrap;
 }
 
 @media screen and (max-width: 930px) {
   .icon {
-    min-width: 100%;
     margin-right: 20px;
-  }
-
-  .item {
-    padding: 0 0;
   }
 }
 
@@ -82,10 +62,6 @@
 
   .item {
     padding: 0 15px;
-  }
-
-  .link.collapsed, .active .link.collapsed {
-    color: var(--muted-foreground);
   }
 }
 

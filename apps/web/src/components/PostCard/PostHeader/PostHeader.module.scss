@@ -90,7 +90,9 @@
 
 .headerText {
   display: flex;
+  flex-wrap: wrap;
   line-height: 15px;
+  flex: 1;
 }
 
 .constrained.header {
@@ -100,7 +102,7 @@
 }
 
 .userName {
-  // Extract typography?
+  white-space: nowrap;
   @include font-bold;
   color: $color-rhino-80;
   display: flex;
@@ -144,9 +146,8 @@
 }
 
 .timestampRow {
-  align-items: center;
   display: flex;
-  margin-left: 10px;
+  align-items: center;
 }
 
 .timestamp {
@@ -183,7 +184,6 @@
 }
 
 .upperRight {
-  margin-left: auto;
   display: flex;
   vertical-align: top;
   justify-content: right;
@@ -340,6 +340,7 @@
   display: flex;
   margin-left: 4px;
   grid-gap: 2px;
+  margin-right: 10px;
 }
 
 .tooltip {
