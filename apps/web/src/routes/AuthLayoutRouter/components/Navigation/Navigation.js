@@ -385,7 +385,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
       <DropZone isDragging={isDragging} height={isDroppable && isEditting ? 'h-4' : ''} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }} />
       <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border border-gray-700 rounded-md p-2 bg-white'>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
-        {url && (widget.childWidgets.length === 0 && !['members'].includes(widget.type))
+        {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (
             <span className='flex justify-between items-center content-center'>
               <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
@@ -409,9 +409,9 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <h3 className='text-sm font-semibold'>{title}</h3>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
-              <span className='flex flex-col justify-center items-center'>
+              <div className='flex flex-col justify-center items-center relative'>
                 <SpecialTopElementRenderer widget={widget} group={group} />
-              </span>
+              </div>
               <ul>
                 {loading && <li key='loading'>Loading...</li>}
                 {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={hideBottomDropZone} />)}
@@ -487,6 +487,15 @@ function SpecialTopElementRenderer ({ widget, group }) {
           {t('Add Members')}
         </div>
       </Link>
+    )
+  }
+
+  if (widget.type === 'about') {
+    return (
+      <>
+        <p className='text-sm text-gray-600 break-words w-[12.5rem] min-h-fit'>{group.purpose}</p>
+        <p className='text-sm text-gray-600 break-words w-[12.5rem] min-h-fit'>{group.description}</p>
+      </>
     )
   }
 
