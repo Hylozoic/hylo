@@ -410,7 +410,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               <span className='flex flex-col justify-center items-center'>
-                {SpecialTopElementRenderer({ widget, group })}
+                <SpecialTopElementRenderer widget={widget} group={group} />
               </span>
               <ul>
                 {loading && <li key='loading'>Loading...</li>}
