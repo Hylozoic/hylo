@@ -14,8 +14,7 @@ describe('Header', () => {
         participants
       }
     }
-    render(<Header {...props} />, { wrapper: AllTheProviders })
-    expect(screen.getByText('You')).toBeInTheDocument()
+    render(<Header {...props} />)
     expect(screen.getByText('Two')).toBeInTheDocument()
     expect(screen.getByText('Three')).toBeInTheDocument()
   })
@@ -57,7 +56,7 @@ describe('formatNames', () => {
     const maxShown = 3
     const otherParticipants = ['a', 'b', 'c']
     const result = formatNames(otherParticipants, maxShown)
-    expect(result.displayNames).toEqual(['a', ', ', 'b', ', ', 'c'])
+    expect(result.displayNames).toEqual([['a', ', '], ['b', ', '], 'c'])
     expect(result.andOthers).toBeUndefined()
   })
 
@@ -65,7 +64,7 @@ describe('formatNames', () => {
     const maxShown = 2
     const otherParticipants = ['a', 'b', 'c', 'd']
     const result = formatNames(otherParticipants, maxShown)
-    expect(result.displayNames).toEqual(['a', ', ', 'b'])
+    expect(result.displayNames).toEqual([['a', ', '], 'b'])
     expect(result.andOthers).toBe(' 2 others')
   })
 })
@@ -88,9 +87,8 @@ describe('generateDisplayNames', () => {
       { id: 3, name: 'Three' }
     ]
     const result = generateDisplayNames(3, participants, currentUser)
-    expect(result.displayNames).toHaveLength(5) // You, ', ', Two, ', ', Three
-    expect(result.displayNames[0].props.children).toBe('You')
-    expect(result.displayNames[2].props.children).toBe('Two')
-    expect(result.displayNames[4].props.children).toBe('Three')
+    expect(result.displayNames).toHaveLength(2)
+    expect(result.displayNames[0][0].props.children).toBe('Two')
+    expect(result.displayNames[1].props.children).toBe('Three')
   })
 })

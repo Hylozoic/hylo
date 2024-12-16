@@ -102,6 +102,7 @@ export default function PostCard (props) {
           { [classes.constrained]: constrained },
           className
         )}
+        data-testid='post-card'
       >
         <div onClick={onClick}>
           <PostHeader

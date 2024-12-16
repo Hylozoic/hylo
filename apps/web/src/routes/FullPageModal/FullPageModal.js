@@ -87,7 +87,7 @@ export default function FullPageModal ({
 
 export function CloseButton ({ onClose }) {
   return (
-    <div className={styles.closeButton} onClick={onClose}>
+    <div className={styles.closeButton} onClick={onClose} role='button' aria-label='close'>
       <Icon name='Ex' className={styles.icon} />
     </div>
   )

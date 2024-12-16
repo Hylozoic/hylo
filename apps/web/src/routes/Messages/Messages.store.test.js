@@ -183,29 +183,22 @@ describe('getTextForCurrentMessageThread', () => {
         1: 'trinket'
       }
     }
-    const props = {
-      match: {
-        params: {
-          messageThreadId: '1'
-        }
-      }
+    const routeParams = {
+      messageThreadId: '1'
     }
-    expect(getTextForCurrentMessageThread(state, props)).toEqual('trinket')
+    expect(getTextForCurrentMessageThread(state, routeParams)).toEqual('trinket')
   })
+
   it('returns an empty string if there is no matching thread id', () => {
     const state = {
       Messages: {
         1: 'trinket'
       }
     }
-    const props = {
-      match: {
-        params: {
-          messageThreadId: '2'
-        }
-      }
+    const routeParams = {
+      messageThreadId: '2'
     }
-    expect(getTextForCurrentMessageThread(state, props)).toEqual('')
+    expect(getTextForCurrentMessageThread(state, routeParams)).toEqual('')
   })
 })
 

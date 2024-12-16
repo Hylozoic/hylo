@@ -75,7 +75,7 @@ function MapDrawer ({
   }
 
   return (
-    <div className={cx(styles.container, { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} id='mapDrawerWrapper'>
+    <div className={cx(styles.container, { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} id='mapDrawerWrapper' data-testid='map-drawer'>
       <div className={styles.header}>
         <input
           className={styles.searchBox}

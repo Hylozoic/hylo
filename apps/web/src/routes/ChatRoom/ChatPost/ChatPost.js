@@ -310,7 +310,7 @@ export default function ChatPost ({
             <div className={styles.imagesInner}>
               {imageAttachments.map(image =>
                 <a href={image.url} className={styles.image} target='_blank' rel='noreferrer' key={image.url}>
-                  <div className={styles.imageInner} style={bgImageStyle(image.url)} />
+                  <div className={styles.imageInner} style={bgImageStyle(image.url)} role='img' aria-label={image.url} />
                 </a>)}
             </div>
           </div>)}

@@ -1,5 +1,4 @@
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { createSelector } from 'reselect'
 import orm from 'store/models'
 import { getCurrentlyRelatedGroupIds } from 'store/selectors/getGroupRelationships'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -14,7 +13,7 @@ export function fetchGroupToGroupJoinQuestions () {
   return {
     type: FETCH_GROUP_TO_GROUP_JOIN_QUESTIONS,
     graphql: {
-      query: `query {
+      query: `query FetchGroupToGroupJoinQuestions {
         me {
           memberships {
             id
@@ -68,15 +67,10 @@ export function setSearch (search) {
 // Selectors
 export const moduleSelector = (state) => state[MODULE_NAME]
 
-export const getSearch = createSelector(
-  moduleSelector,
-  (state, props) => state.search
-)
-
 export const getPossibleRelatedGroups = ormCreateSelector(
   orm,
-  (_, { group }) => group,
-  (state, { group }) => getCurrentlyRelatedGroupIds(state, { groupSlug: group.slug }),
+  (_, group) => group,
+  (state, group) => getCurrentlyRelatedGroupIds(state, group),
   getMyMemberships,
   (state, group, currentRelationships, myMemberships) => {
     // TODO: check for cycles, cant add a grandparent as a child

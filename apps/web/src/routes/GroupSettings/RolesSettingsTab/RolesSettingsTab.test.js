@@ -1,5 +1,5 @@
 import React from 'react'
-import { graphql } from 'msw'
+import { graphql, HttpResponse } from 'msw'
 import userEvent from '@testing-library/user-event'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
@@ -31,12 +31,20 @@ describe('RoleList', () => {
       t: (str) => str
     }
 
-    mockGraphqlServer.resetHandlers(
-      graphql.query('fetchResponsibilitiesForCommonRole', (req, res, ctx) => {
-        return res(ctx.data({ responsibilities: [] }))
+    mockGraphqlServer.use(
+      graphql.query('fetchResponsibilitiesForCommonRole', () => {
+        return HttpResponse.json({
+          data: {
+            responsibilities: []
+          }
+        })
       }),
-      graphql.query('fetchResponsibiltiesForGroup', (req, res, ctx) => {
-        return res(ctx.data({ responsibilities: [] }))
+      graphql.query('fetchResponsibiltiesForGroup', () => {
+        return HttpResponse.json({
+          data: {
+            responsibilities: []
+          }
+        })
       })
     )
 
@@ -59,7 +67,7 @@ describe('AddMemberToRole', () => {
 
     render(<AddMemberToRole {...props} />, { wrapper: AllTheProviders() })
 
-    expect(screen.getByText('Add Member to Role')).toBeInTheDocument()
+    expect(screen.getByText('+ Add Member to Role')).toBeInTheDocument()
 
     const user = userEvent.setup()
     await user.click(screen.getByTestId('add-new'))
@@ -73,7 +81,7 @@ describe('AddMemberToRole', () => {
     const props = {
       fetchSuggestions: jest.fn(),
       clearSuggestions: jest.fn(),
-      suggestions: [
+      memberSuggestions: [
         { id: 1, name: 'Demeter' },
         { id: 2, name: 'Ares' },
         { id: 3, name: 'Hermes' }
@@ -85,9 +93,11 @@ describe('AddMemberToRole', () => {
     const user = userEvent.setup()
     await user.click(screen.getByTestId('add-new'))
 
-    expect(screen.getByText('Demeter')).toBeInTheDocument()
-    expect(screen.getByText('Ares')).toBeInTheDocument()
-    expect(screen.getByText('Hermes')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Demeter')).toBeInTheDocument()
+      expect(screen.getByText('Ares')).toBeInTheDocument()
+      expect(screen.getByText('Hermes')).toBeInTheDocument()
+    })
   })
 
   it('handles interactions correctly', async () => {

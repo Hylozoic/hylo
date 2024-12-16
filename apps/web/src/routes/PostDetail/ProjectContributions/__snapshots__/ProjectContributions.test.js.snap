@@ -123,25 +123,6 @@ exports[`ProjectContributions disables button on invalid amount 1`] = `
 </ProjectContributions>
 `;
 
-exports[`ProjectContributions renders correctly 1`] = `
-<div
-  data-stylename="project-contributions"
->
-  <Button
-    color="green"
-    label="Contribute"
-    narrow={true}
-    onClick={[Function]}
-    small={true}
-  />
-  <div
-    data-stylename="project-contributions-total"
-  >
-    Contributions so far: {{totalContributions}}
-  </div>
-</div>
-`;
-
 exports[`ProjectContributions renders error message 1`] = `
 <ProjectContributions
   postId={123}

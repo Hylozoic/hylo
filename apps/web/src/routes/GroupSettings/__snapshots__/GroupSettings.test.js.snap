@@ -3,11 +3,17 @@
 exports[`renders a redirect if you can not moderate 1`] = `
 <DocumentFragment>
   <div
-    class=""
+    class="loading"
+    data-testid="loading-container"
   >
-    <div>
+    <div
+      class="loadingIndicator"
+      data-testid="loading-indicator"
+    >
       <svg
+        aria-label="loading"
         height="40px"
+        role="img"
         version="1.1"
         viewBox="0 0 50 50"
         width="40px"
@@ -37,11 +43,17 @@ exports[`renders a redirect if you can not moderate 1`] = `
 exports[`renders correctly with a group 1`] = `
 <DocumentFragment>
   <div
-    class=""
+    class="loading"
+    data-testid="loading-container"
   >
-    <div>
+    <div
+      class="loadingIndicator"
+      data-testid="loading-indicator"
+    >
       <svg
+        aria-label="loading"
         height="40px"
+        role="img"
         version="1.1"
         viewBox="0 0 50 50"
         width="40px"
@@ -71,11 +83,17 @@ exports[`renders correctly with a group 1`] = `
 exports[`renders correctly with no group 1`] = `
 <DocumentFragment>
   <div
-    class=""
+    class="loading"
+    data-testid="loading-container"
   >
-    <div>
+    <div
+      class="loadingIndicator"
+      data-testid="loading-indicator"
+    >
       <svg
+        aria-label="loading"
         height="40px"
+        role="img"
         version="1.1"
         viewBox="0 0 50 50"
         width="40px"

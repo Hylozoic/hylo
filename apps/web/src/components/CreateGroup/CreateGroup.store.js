@@ -70,7 +70,7 @@ export function fetchGroupExists (slug) {
     type: FETCH_GROUP_EXISTS,
     graphql: {
       query: `
-        query ($slug: String) {
+        query GroupExists ($slug: String) {
           groupExists (slug: $slug) {
             exists
           }

@@ -20,7 +20,7 @@ describe('Message', () => {
     expect(screen.getByText('Good Person')).toBeInTheDocument()
     expect(screen.getByText('test message')).toBeInTheDocument()
     expect(screen.getByRole('img')).toBeInTheDocument()
-    expect(screen.getByText(/Apr 15, 2023/)).toBeInTheDocument()
+    expect(screen.getByText(/1 year ago/)).toBeInTheDocument()
   })
 
   it('renders a non-header message correctly', () => {

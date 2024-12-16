@@ -1,6 +1,6 @@
 import { createBrowserHistory } from 'history'
 import React from 'react'
-import { MemoryRouter } from 'react-router'
+import { BrowserRouter, MemoryRouter, Routes, Route } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { createStore } from 'redux'
 import { createReduxHistoryContext } from 'redux-first-history'
@@ -15,7 +15,6 @@ import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
 // for examples. Merges `provideState` over default app empty state
 export function generateStore (providedState) {
   const {
-    createReduxHistory,
     routerMiddleware,
     routerReducer
   } = createReduxHistoryContext({ history: createBrowserHistory() })
@@ -32,13 +31,25 @@ export function generateStore (providedState) {
 //
 //   `render(<ComponentUnderTest />, { wrapper: AllTheProviders(myOwnReduxState) }) />)`
 //
-export const AllTheProviders = providedState => ({ children }) => {
+export const AllTheProviders = (providedState, initialEntries = []) => ({ children }) => {
   return (
     <LayoutFlagsProvider>
       <Provider store={generateStore(providedState)}>
-        <MemoryRouter>
-          {children}
-        </MemoryRouter>
+        {initialEntries.length > 0
+          ? (
+            <MemoryRouter initialEntries={initialEntries}>
+              <Routes>
+                <Route path='*' element={children} />
+              </Routes>
+            </MemoryRouter>
+            )
+          : (
+            <BrowserRouter>
+              <Routes>
+                <Route path='*' element={children} />
+              </Routes>
+            </BrowserRouter>
+            )}
       </Provider>
     </LayoutFlagsProvider>
   )
@@ -52,12 +63,13 @@ export function createRootContainer () {
 }
 
 // If an initialized but empty store is adequate then no providerFunc needs to be supplied
-const customRender = (ui, options, providersFunc) =>
-  render(ui, {
+const customRender = (ui, options = {}, providersFunc) => {
+  return render(ui, {
     wrapper: providersFunc || AllTheProviders(),
     container: createRootContainer(),
     ...options
   })
+}
 
 // re-export everything
 

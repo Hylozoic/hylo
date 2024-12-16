@@ -24,7 +24,7 @@ export default function PostTitle ({
         <div onClick={onClick} className={cx(classes.title, { [classes.constrained]: constrained }, 'hdr-headline')}>{title}</div>
         {type !== 'event' && location && (
           <div className={cx(classes.headerLocation, { [classes.constrained]: constrained })}>
-            <Icon name='Location' className={classes.locationIcon} />
+            <Icon name='Location' className={classes.locationIcon} dataTestId='icon-Location' />
             {generalLocation}
           </div>
         )}

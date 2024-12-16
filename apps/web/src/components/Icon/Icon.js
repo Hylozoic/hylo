@@ -10,7 +10,8 @@ function Icon ({
   children,
   onClick,
   tooltipContent,
-  tooltipId
+  tooltipId,
+  dataTestId
 }) {
   const iconClassName = `icon-${name}`
 
@@ -20,6 +21,7 @@ function Icon ({
       onClick={onClick}
       data-tooltip-content={tooltipContent}
       data-tooltip-id={tooltipId}
+      data-testid={dataTestId}
     >
       {children}
     </span>

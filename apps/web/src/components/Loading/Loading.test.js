@@ -11,14 +11,15 @@ describe('Loading component', () => {
 
   it('applies the correct class for fullscreen type', () => {
     render(<Loading type='fullscreen' />)
-    const loadingElement = screen.getByRole('img', { name: /loading/i })
-    expect(loadingElement.parentElement).toHaveClass('loadingFullscreen')
+    const loadingContainer = screen.getByTestId('loading-container')
+    expect(loadingContainer).toHaveClass('loadingFullscreen')
   })
 
   it('applies the correct class for inline type and sets the correct size', () => {
     render(<Loading type='inline' />)
+    const loadingContainer = screen.getByTestId('loading-container')
+    expect(loadingContainer).toHaveClass('loadingInline')
     const loadingElement = screen.getByRole('img', { name: /loading/i })
-    expect(loadingElement.parentElement).toHaveClass('loadingInline')
     expect(loadingElement).toHaveAttribute('width', '25px')
   })
 

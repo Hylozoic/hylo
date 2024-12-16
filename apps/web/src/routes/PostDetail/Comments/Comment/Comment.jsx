@@ -29,8 +29,7 @@ import { getHasMoreChildComments, getTotalChildComments } from 'store/selectors/
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-
-export const INITIAL_SUBCOMMENTS_DISPLAYED = 4
+import { INITIAL_SUBCOMMENTS_DISPLAYED } from 'util/constants'
 
 function Comment ({
   comment,
@@ -67,8 +66,7 @@ function Comment ({
   }, [])
 
   const handleEditComment = useCallback(() => {
-    setEditing(false)
-    setEdited(true)
+    setEditing(true)
   }, [])
 
   const handleEditCancel = useCallback(() => {
@@ -83,6 +81,7 @@ function Comment ({
     }
     dispatch(updateComment(comment.id, contentHTML))
     setEditing(false)
+    setEdited(true)
     return true
   }
 
@@ -143,7 +142,7 @@ function Comment ({
               </div>
               {dropdownItems.map(item => (
                 <div key={item.icon} className={styles.commentAction} onClick={item.onClick}>
-                  <Icon name={item.icon} />
+                  <Icon name={item.icon} dataTestId={item.label} />
                 </div>
               ))}
               <EmojiRow

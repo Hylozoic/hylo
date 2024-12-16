@@ -1,6 +1,6 @@
+import cx from 'classnames'
 import React, { Component } from 'react'
 import classes from './DropdownButton.module.scss'
-import cx from 'classnames'
 
 export default class DropdownButton extends Component {
   state = {
@@ -38,10 +38,11 @@ export default class DropdownButton extends Component {
             className
           )}
           onClick={this.toggleExpanded}
+          data-position={position}
         >
           {label}&nbsp;&nbsp;|&nbsp;&nbsp;▾
         </div>
-        <div className={cx(classes.dropdown, { [classes.expanded]: expanded, [classes.top]: position === 'top' })}>
+        <div className={cx(classes.dropdown, { [classes.expanded]: expanded, [classes.top]: position === 'top' })} data-testid='dropdown-button-choices'>
           {choices.map(({ label, value }) =>
             <span className={classes.choice} key={value} onClick={(e) => { e.preventDefault(); e.stopPropagation(); this.onChoose(value, label) }}>{label}</span>)}
         </div>
