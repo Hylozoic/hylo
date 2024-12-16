@@ -74,7 +74,26 @@ export function isWidgetDroppable ({ widget }) {
   return true
 }
 
+export function humanReadableTypes (type) {
+  switch (true) {
+    case type === 'group' || type === 'viewGroup':
+      return 'group'
+    case type === 'viewPost' || type === 'post':
+      return 'post'
+    case type === 'viewUser' || type === 'user':
+      return 'member'
+    case type === 'viewChat' || type === 'chat':
+      return 'chat'
+    case type === 'customView' || type === 'customview':
+      return 'custom view'
+    default:
+      return 'container'
+  }
+}
+
+// TODO CONTEXT: create tests for this
 export function widgetIsValidChild ({ childWidget = {}, parentWidget }) {
+  // TODO CONTEXT: stop container widgets from becoming children
   if (parentWidget.viewGroup?.id) return false
   if (parentWidget.viewUser?.id) return false
   if (parentWidget.viewPost?.id) return false

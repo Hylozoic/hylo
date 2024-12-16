@@ -486,11 +486,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
           groupTags: {
             querySet: true,
             alias: 'groupTopics',
-            filter: (relation, { autocomplete, subscribed }) =>
+            filter: (relation, { autocomplete, subscribed, groupId }) =>
               relation.query(groupTopicFilter(userId, {
                 autocomplete,
                 subscribed,
-                groupId: relation.relatedData.parentId
+                groupId: relation.relatedData.parentId || groupId
               }))
           }
         },
@@ -1050,9 +1050,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         groupTags: {
           alias: 'groupTopics',
           querySet: true,
-          filter: (relation, { autocomplete, subscribed, isDefault, visibility }) =>
+          filter: (relation, { autocomplete, subscribed, isDefault, visibility, groupId }) =>
             relation.query(groupTopicFilter(userId, {
               autocomplete,
+              groupId,
               isDefault,
               subscribed,
               visibility

@@ -114,29 +114,70 @@ module.exports = bookshelf.Model.extend({
   },
 
   // Static methods
-  create: async function(attributes) {
+  create: async function(data) {
     return await bookshelf.transaction(async trx => {
-      // Create the widget within the transaction
-      const widget = await this.forge({
-        ...attributes,
-        order: null,
-        created_at: new Date(),
-        updated_at: new Date()
-      }).save(null, { transacting: trx });
+      let customViewId = data.custom_view_id
+            // Check if any view fields are being updated
+      const viewFields = Object.values(this.ViewFields)
+      const hasViewUpdate = viewFields.some(field => data[field] !== undefined) || data.customViewInput
 
-      // If a widget has a parent, it must be ordered
-      // If a widget has an order, it must be reordered
-      // If a widget has neither, it is created but won't be part of a context menu
-      if (attributes.parent_id || attributes.order) {
-        await ContextWidget.reorder({
-          id: widget.get('id'),
-          order: attributes.order,
-          trx
+      if (hasViewUpdate) {
+        // If including a view field, set all other view fields to null
+        viewFields.forEach(field => {
+          if (data[field] === undefined) {
+            data[field] = null
+          }
         })
       }
 
-      return widget;
-    });
+      if (data.customViewInput) {
+        const newView = data.customViewInput
+        const topics = newView && newView.topics
+        delete newView.topics
+        delete newView.id
+        currentView = await CustomView.forge({ ...newView, group_id: data.group_id }).save({}, { transacting: trx })
+
+        await currentView.updateTopics(topics, trx)
+        customViewId = currentView.get('id')
+      }
+      
+      // Create the widget within the transaction
+      let widget = await this.forge({
+        icon: data.icon, 
+        title: data.title, 
+        type: data.type, 
+        auto_added: true, 
+        visibility: data.visibility,
+        group_id: data.group_id,
+        view: data.view,
+        view_chat_id: data.view_chat_id,
+        view_group_id: data.view_group_id,
+        view_post_id: data.view_post_id,
+        view_user_id: data.view_user_id,
+        custom_view_id: customViewId,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).save(null, { transacting: trx })
+
+      widget.refresh()
+      // pull out the addToEnd and orderInFrontOfWidgetId
+      const addToEnd = data.add_to_end
+      const orderInFrontOfWidgetId = data.order_in_front_of_widget_id
+      
+      if (addToEnd || data.parent_id !== undefined || orderInFrontOfWidgetId !== undefined) {
+        await ContextWidget.reorder({
+          id: widget.get('id'),
+          addToEnd,
+          orderInFrontOfWidgetId,
+          parentId: data.parent_id,
+          trx
+        })
+      // widget.refresh() wasn't enough to ensure the reordered widget would actually be refreshed, so needed this
+        widget = await this.where({ id: widget.get('id') }).fetch({ transacting: trx })
+      }
+
+      return widget
+    })
   },
 
   findForGroup: function(groupId, options = {}) {
@@ -287,7 +328,7 @@ module.exports = bookshelf.Model.extend({
       // Check if any view fields are being updated
       const viewFields = Object.values(this.ViewFields)
       const hasViewUpdate = viewFields.some(field => data[field] !== undefined)
-      console.log('inside the update', widget.toJSON(), 'and this is the input' , data)
+
       if (hasViewUpdate) {
         // If updating a view field, set all other view fields to null
         viewFields.forEach(field => {
@@ -319,11 +360,10 @@ module.exports = bookshelf.Model.extend({
         patch: true, 
         transacting: trx 
       })
-      widget.refresh()
-      console.log('widget did we get this far')
+      await widget.refresh()
+
       // If the update includes an order or parent_id, reorder the widget
       if (addToEnd || data.parent_id !== undefined || orderInFrontOfWidgetId !== undefined) {
-
         await ContextWidget.reorder({
           id: widget.get('id'),
           addToEnd,
@@ -332,8 +372,7 @@ module.exports = bookshelf.Model.extend({
           trx
         })
       }
-      widget.refresh()
-
+      await widget.refresh()
       return widget
     }
 

@@ -222,7 +222,7 @@ class CustomViewsTab extends Component {
   }
 }
 
-function CustomViewRow ({
+export function CustomViewRow ({
   activePostsOnly,
   addPostToCollection,
   collection,
@@ -233,6 +233,7 @@ function CustomViewRow ({
   group,
   icon,
   index,
+  menuCreate = false,
   name,
   onChange,
   onDelete,
@@ -272,25 +273,26 @@ function CustomViewRow ({
   }
 
   const reorderPost = (p, i) => {
-    reorderPostInCollection(collectionId, p.id, i)
+    reorderPostInCollection(collectionId, p.id, i, p)
   }
 
   const selectPost = (p) => {
-    addPostToCollection(collectionId, p.id)
+    addPostToCollection(collectionId, p.id, p)
   }
 
   // needed because of external links which have empty default_view_mode or old 'externalLink' value
   const defaultViewModeVal = !defaultViewMode || defaultViewMode === 'externalLink' ? 'cards' : defaultViewMode
-
+  console.log(name, 'namemmeemem')
   const sortOptions = type === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS
   const defaultSortVal = defaultSort || (type === 'collection' ? 'order' : 'created')
   const viewCount = parseInt(index) + 1
   return (
     <div className={styles.customViewContainer}>
-      <h4>
-        <div><strong>{t('Custom View')}{' '}#{viewCount}</strong>{' '}{name}</div>
-        <Icon name='Trash' onClick={onDelete} />
-      </h4>
+      {!menuCreate &&
+        <h4>
+          <div><strong>{t('Custom View')}{' '}#{viewCount}</strong>{' '}{name}</div>
+          <Icon name='Trash' onClick={onDelete} />
+        </h4>}
       <div className={styles.customViewRow}>
         <SettingsControl label={t('Icon')} controlClass={styles.iconButton} onChange={onChange('icon')} value={icon} type='icon-selector' selectedIconClass={styles.selectedIcon} />
         <SettingsControl label={t('Label')} controlClass={styles.settingsControl} onChange={onChange('name')} value={name} />

@@ -10,6 +10,8 @@ import {
   CREATE_MESSAGE,
   CREATE_MESSAGE_PENDING,
   CREATE_MODERATION_ACTION_PENDING,
+  CREATE_CONTEXT_WIDGET,
+  CREATE_CONTEXT_WIDGET_PENDING,
   DELETE_COMMENT_PENDING,
   DELETE_GROUP_RELATIONSHIP,
   DELETE_POST_PENDING,
@@ -256,6 +258,29 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           post.update({ moderationActions: moderationActions || [meta?.data] })
         }
       }
+      break
+    }
+
+    case CREATE_CONTEXT_WIDGET_PENDING: {
+      const group = Group.withId(meta.groupId)
+      const allWidgets = group.contextWidgets.items
+
+      const newWidgetPosition = {
+        id: 'creating',
+        addToEnd: meta.data.addToEnd
+      }
+      const reorderedWidgets = reorderTree({ newWidgetPosition, allWidgets })
+      Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
+      break
+    }
+
+    case CREATE_CONTEXT_WIDGET: {
+      const group = Group.withId(meta.groupId)
+      const allWidgets = group.contextWidgets.items
+      const reorderedWidgets = allWidgets.filter(widget => widget.id !== 'creating')
+      reorderedWidgets.push(payload.data.createContextWidget)
+      Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
+
       break
     }
 

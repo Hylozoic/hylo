@@ -13,9 +13,61 @@ export function createContextWidget ({ groupId, data }) {
       query: `mutation ($groupId: ID, $data: ContextWidgetInput) {
         createContextWidget(groupId: $groupId, data: $data) {
           id
-          groupId
           title
+          type
           order
+          visibility
+          view
+          icon
+          highlightNumber
+          secondaryNumber
+          parentId
+          viewGroup {
+            id
+            avatarUrl
+            bannerUrl
+            name
+            memberCount
+            visibility
+            accessibility
+            slug
+          }
+          viewPost {
+            id
+            announcement
+            title
+            details
+            type
+            createdAt
+            startTime
+            endTime
+            isPublic
+          }
+          customView {
+            id
+            groupId
+            collectionId
+            externalLink
+            isActive
+            icon
+            name
+            order
+            postTypes
+            topics {
+              id
+              name
+            }
+            type
+          }
+          viewUser {
+            id
+            name
+            avatarUrl
+          }
+          viewChat {
+            id
+            name
+          }
         }
       }`,
       variables: { groupId, data }

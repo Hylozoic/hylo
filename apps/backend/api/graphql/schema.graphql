@@ -113,6 +113,8 @@ type Query {
     autocomplete: String,
     # Int of GroupTopics to return
     first: Int,
+    # filter by group id
+    groupId: ID
     # If true only return topics that are set to be a default topic in a group that the current logged in user is a member of
     isDefault: Boolean,
     # For pagination, start loading GroupTopics after this offset
@@ -2184,6 +2186,8 @@ type Topic {
     offset: Int
     # Filter by visibility: 0: hidden in the group, 1: visible, 2: pinned
     visibility: [Int]
+    # groupId to narrow query to one group
+    groupId: ID
   ): GroupTopicQuerySet
 }
 
@@ -2337,7 +2341,7 @@ type Mutation {
   # Add a comment to a Post
   createComment(data: CommentInput): Comment
   # Create a new context widget
-  createContextWidget(data: ContextWidgetInput): ContextWidget
+  createContextWidget(data: ContextWidgetInput, groupId: ID): ContextWidget
   # Create a new Group
   createGroup(
     data: GroupInput,
@@ -2770,6 +2774,9 @@ input ContextWidgetInput {
   
   # Chat this widget is pointing at
   viewChatId: ID
+  
+  # Create a custom view when creating a widget
+  customViewInput: CustomViewInput
 }
 
 # For adding or editing an existing CustomView on a Group

@@ -24,7 +24,7 @@ import useGatherItems from 'hooks/useGatherItems'
 import { CONTEXT_MY, FETCH_POSTS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import orm from 'store/models'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
-import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl } from 'util/navigation'
+import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath } from 'util/navigation'
 
 import classes from './Navigation.module.scss'
 import { isWidgetDroppable, widgetIsValidChild, widgetTitleResolver } from 'util/contextWidgets'
@@ -350,6 +350,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
 
   const isDroppable = isWidgetDroppable({ widget })
+  const isCreating = widget.id === 'creating'
 
   // Draggable setup
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, transform } = useDraggable({ id: widget.id })
@@ -360,6 +361,14 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const canDnd = !allView && isEditting && widget.type !== 'home'
   const showEdit = allView && canAdminister
   let hideDropZone = isOverlay || allView || !canDnd
+
+  if (isCreating) {
+    return (
+      <div className='border border-gray-700 rounded-md p-2 bg-white'>
+        <h3 className='text-sm font-semibold'>{t('creatingWidget')}</h3>
+      </div>
+    )
+  }
 
   // Check if the widget should be rendered
   if (!['members', 'setup'].includes(widget.type) && !isEditting && !widget.view && widget.childWidgets.length === 0 &&
@@ -378,7 +387,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
     return null
   }
 
-  const hideBottomDropZone = activeWidget || !widgetIsValidChild({ childWidget: activeWidget, parentWidget: widget })
+  const hideBottomDropZone = activeWidget && !widgetIsValidChild({ childWidget: activeWidget, parentWidget: widget })
 
   return (
     <>
@@ -392,7 +401,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                 <span className='text-lg font-bold'>{title}</span>
               </MenuLink>
               {showEdit &&
-                <MenuLink to={url + '?cme=yes'}>
+                <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })}>
                   <span className='text-lg font-bold'>{t('Edit')}</span>
                 </MenuLink>}
               {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}

@@ -70,6 +70,7 @@ export function groupTopicFilter (userId, {
   visibility
 }) {
   return q => {
+    q.distinct('groups_tags.tag_id')
     if (groupId) {
       q.where('groups_tags.group_id', groupId)
     }
