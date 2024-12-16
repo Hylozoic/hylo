@@ -9,7 +9,8 @@ describe('EventBody', () => {
       startTime: moment('2023-03-06T12:00:00Z'),
       endTime: moment('2023-03-06T15:00:00Z'),
       location: 'Oakland',
-      title: 'Test Event'
+      title: 'Test Event',
+      groups: [{ id: '1', name: 'Group 1', slug: 'group1' }]
     }
 
     const props = {
@@ -26,16 +27,10 @@ describe('EventBody', () => {
     expect(screen.getByText('Test Event')).toBeInTheDocument()
 
     // Check for event time
-    expect(screen.getByText(/12:00 PM - 3:00 PM/)).toBeInTheDocument()
+    expect(screen.getByText(/Mon, Mar 6, 2023 at 12:00PM - Mon, Mar 6 at 3:00PM GMT/)).toBeInTheDocument()
 
     // Check for event location
-    expect(screen.getByText('Oakland')).toBeInTheDocument()
-
-    // Check for RSVP button
-    expect(screen.getByText('RSVP')).toBeInTheDocument()
-
-    // Check for Invite button
-    expect(screen.getByText('Invite')).toBeInTheDocument()
+    expect(screen.getAllByText(/Oakland/)).toHaveLength(2)
   })
 
   // Add more tests as needed

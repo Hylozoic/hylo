@@ -7,7 +7,7 @@ export default function LinkPreview ({ className, title, url, imageUrl, descript
   const domain = url && new URL(url).hostname.replace('www.', '')
 
   return (
-    <a className={cx(classes.container, className)} href={url} target='_blank' rel='noreferrer'>
+    <a className={cx(classes.container, className)} href={url} target='_blank' rel='noreferrer' aria-label={title}>
       <div className={classes.linkPreview}>
         {imageUrl && <div style={bgImageStyle(imageUrl)} className={classes.image} />}
         <div className={classes.text}>

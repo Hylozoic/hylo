@@ -289,11 +289,11 @@ function CustomViewRow ({
     <div className={styles.customViewContainer}>
       <h4>
         <div><strong>{t('Custom View')}{' '}#{viewCount}</strong>{' '}{name}</div>
-        <Icon name='Trash' onClick={onDelete} />
+        <Icon name='Trash' onClick={onDelete} dataTestId='delete-custom-view' />
       </h4>
       <div className={styles.customViewRow}>
         <SettingsControl label={t('Icon')} controlClass={styles.iconButton} onChange={onChange('icon')} value={icon} type='icon-selector' selectedIconClass={styles.selectedIcon} />
-        <SettingsControl label={t('Label')} controlClass={styles.settingsControl} onChange={onChange('name')} value={name} />
+        <SettingsControl label={t('Label')} controlClass={styles.settingsControl} onChange={onChange('name')} value={name} id='custom-view-name' />
         <SettingsControl
           label={t('Type')} controlClass={styles.settingsControl} renderControl={(props) => {
             return (

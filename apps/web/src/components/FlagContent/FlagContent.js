@@ -101,7 +101,7 @@ class FlagContent extends PureComponent {
       <div className={classes.popup}>
         <div className={classes.popupInner}>
           <h1>{t('Explanation for Flagging')}</h1>
-          <span onClick={this.closeModal} className={classes.closeBtn}>
+          <span onClick={this.closeModal} className={classes.closeBtn} role='button' aria-label='Ex'>
             <Icon name='Ex' className={classes.icon} />
           </span>
 

@@ -14,7 +14,7 @@ export default function CheckBox ({ checked, onChange, className, label, labelCl
   return (
     <label className={cx(classes.label, labelClass)}>
       {labelLeft && label}
-      <Icon name={iconName} className={cx(classes.icon, { [classes.labelLeft]: labelLeft })} />
+      <Icon name={iconName} className={cx(classes.icon, { [classes.labelLeft]: labelLeft })} dataTestId={`icon-${iconName}`} />
       {!noInput &&
         <input
           type='checkbox'

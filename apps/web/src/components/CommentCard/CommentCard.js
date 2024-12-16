@@ -21,10 +21,11 @@ export default function CommentCard ({
   const postTitle = post.title ? TextHelpers.truncateText(post.title, 25) : TextHelpers.truncateHTML(post.details, 25)
 
   const commentText = expanded ? comment.text : TextHelpers.truncateHTML(comment.text, 144)
+
   const { t } = useTranslation()
 
   return (
-    <span onClick={() => showDetails(comment.post.id)} className={classes.link}>
+    <span onClick={() => showDetails(comment.post.id)} className={classes.link} data-testid='comment-card'>
       <div className={cx(classes.commentCard, { [classes.expanded]: expanded })}>
         <div className={classes.commentHeader}>
           <RoundImage url={creator.avatarUrl} className={classes.profileImage} />

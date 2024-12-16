@@ -8,14 +8,16 @@ const fooGroup = {
   id: '11',
   slug: 'foo',
   name: 'Foomunity',
-  avatarUrl: '/foo.png'
+  avatarUrl: '/foo.png',
+  newPostCount: 0
 }
 
 const barGroup = {
   id: '22',
   slug: 'bar',
   name: 'Barmunity',
-  avatarUrl: '/bar.png'
+  avatarUrl: '/bar.png',
+  newPostCount: 7
 }
 
 function currentUserWithGroupsProvider () {

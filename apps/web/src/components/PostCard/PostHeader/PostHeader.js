@@ -107,6 +107,7 @@ class PostHeader extends PureComponent {
     const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
 
     const { from, to } = TextHelpers.formatDatePair(startTime, actualEndTime, true)
+
     const startString = fulfilledAt
       ? false
       : TextHelpers.isDateInTheFuture(startTime)
@@ -155,7 +156,7 @@ class PostHeader extends PureComponent {
                   <span className={classes.announcementSection}>
                     <span className={classes.announcementSpacer}>•</span>
                     <span data-tooltip-content='Announcement' data-tooltip-id={`announcement-tt-${id}`}>
-                      <Icon name='Announcement' className={classes.announcementIcon} />
+                      <Icon name='Announcement' className={classes.announcementIcon} dataTestId='post-header-announcement-icon' />
                     </span>
                   </span>
                 )}
@@ -172,7 +173,7 @@ class PostHeader extends PureComponent {
               {fulfilledAt && <div data-tooltip-content='Completed' data-tooltip-id={`announcement-tt-${id}`}><PostLabel type='completed' className={classes.label} /></div>}
               {type && <PostLabel type={type} className={classes.label} />}
               {dropdownItems.length > 0 &&
-                <Dropdown toggleChildren={<Icon name='More' />} items={dropdownItems} alignRight />}
+                <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' />} items={dropdownItems} alignRight />}
               {close &&
                 <a className={cx(classes.close)} onClick={close}><Icon name='Ex' /></a>}
             </div>

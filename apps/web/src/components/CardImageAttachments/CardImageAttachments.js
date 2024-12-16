@@ -44,6 +44,7 @@ export default function CardImageAttachments ({
           alt='Attached image 1'
           data-index={0}
           onClick={toggleModal}
+          data-testid='first-image'
         />
         <div className={classes.others}>
           <div className={classes.othersInner}>

@@ -17,6 +17,7 @@ export default function Button ({
   disabled = false,
   hover,
   label,
+  name,
   narrow,
   noDefaultStyles,
   onClick,
@@ -46,6 +47,7 @@ export default function Button ({
       data-tooltip-content={dataTip}
       data-tooltip-id={dataFor}
       data-testid={dataTestId}
+      aria-label={name || label}
     >
       {label || children}
     </div>

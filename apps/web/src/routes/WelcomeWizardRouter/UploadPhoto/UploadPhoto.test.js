@@ -4,7 +4,7 @@ import UploadPhoto from './UploadPhoto'
 
 describe('UploadPhoto', () => {
   it('renders correctly', () => {
-    render(<UploadPhoto />)
+    render(<UploadPhoto currentUser={true} />)
 
     // Check for key elements
     expect(screen.getByText('STEP 1/3')).toBeInTheDocument()
@@ -12,7 +12,7 @@ describe('UploadPhoto', () => {
     expect(screen.getByText('Next: Where are you from?')).toBeInTheDocument()
 
     // Check for the upload button
-    expect(screen.getByRole('button')).toBeInTheDocument()
+    expect(screen.getByTestId('upload-attachment-button')).toBeInTheDocument()
 
     // Check for the icon
     expect(screen.getByTestId('icon-AddImage')).toBeInTheDocument()
@@ -20,6 +20,6 @@ describe('UploadPhoto', () => {
 
   it('displays loading when currentUser is not provided', () => {
     render(<UploadPhoto currentUser={null} />)
-    expect(screen.getByTestId('loading')).toBeInTheDocument()
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
   })
 })

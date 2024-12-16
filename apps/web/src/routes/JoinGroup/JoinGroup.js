@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate, Navigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, Navigate, useParams } from 'react-router-dom'
 import { every, isEmpty } from 'lodash/fp'
 import { baseUrl, groupUrl } from 'util/navigation'
 import setReturnToPath from 'store/actions/setReturnToPath'
@@ -20,15 +20,16 @@ export default function JoinGroup (props) {
   const [redirectTo, setRedirectTo] = useState()
   const { t } = useTranslation()
   const routeParams = useParams()
+  const location = useLocation()
 
   // This is used in iFrames where we want people to join a group and go directly to a specific page (for OpenTEAM coffee shop for example)
-  const redirectToView = getQuerystringParam('redirectToView', props)
+  const redirectToView = getQuerystringParam('redirectToView', location)
 
   useEffect(() => {
     (async function () {
       try {
         const invitationTokenAndCode = {
-          invitationToken: getQuerystringParam('token', props),
+          invitationToken: getQuerystringParam('token', location),
           accessCode: routeParams.accessCode
         }
         if (every(isEmpty, invitationTokenAndCode)) {
@@ -48,10 +49,9 @@ export default function JoinGroup (props) {
         } else {
           const result = await dispatch(checkInvitation(invitationTokenAndCode))
           const isValidInvite = result?.payload?.getData()?.valid
-          console.log('isValidInvite', invitationTokenAndCode, isValidInvite)
 
           if (isValidInvite) {
-            dispatch(setReturnToPath(props.location.pathname + props.location.search))
+            dispatch(setReturnToPath(location.pathname + location.search))
             setRedirectTo(SIGNUP_PATH)
           } else {
             setRedirectTo(`${SIGNUP_PATH}?error=invite-expired`)
@@ -66,5 +66,5 @@ export default function JoinGroup (props) {
 
   if (redirectTo) return <Navigate to={redirectTo} replace />
 
-  return <Loading />
+  return <><Loading /></>
 }

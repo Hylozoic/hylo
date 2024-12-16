@@ -22,7 +22,7 @@ describe('PeopleListItem', () => {
     render(<PeopleListItem person={person} />)
 
     const avatar = screen.getByRole('img')
-    expect(avatar).toHaveAttribute('src', 'https://wombat.life')
+    expect(avatar.getAttribute('style')).toBe('background-image: url(https://wombat.life);')
   })
 
   it('applies active class when active prop is true', () => {

@@ -8,7 +8,7 @@ describe('PostDetails', () => {
     details: 'the details',
     linkPreview: {
       title: 'a walk in the park',
-      url: 'www.hylo.com/awitp',
+      url: 'https://www.hylo.com/awitp',
       imageUrl: 'foo.png'
     },
     slug: 'foomunity',
@@ -18,11 +18,13 @@ describe('PostDetails', () => {
     fileAttachments: [
       {
         id: 1,
-        url: 'https://www.hylo.com/awitp.pdf'
+        url: 'https://www.hylo.com/awitp.pdf',
+        type: 'file'
       },
       {
         id: 2,
-        url: 'http://www.google.com/lalala.zip'
+        url: 'http://www.google.com/lalala.zip',
+        type: 'file'
       }
     ]
   }
@@ -42,11 +44,11 @@ describe('PostDetails', () => {
   })
 
   it('truncates details when not expanded', () => {
-    const longDetails = 'a'.repeat(200)
+    const longDetails = '<p>' + 'a '.repeat(100) + '</p>'
     render(<PostDetails {...defaultProps} details={longDetails} expanded={false} />)
 
     // Check if the details are truncated
-    expect(screen.getByText(/^a+\.{3}$/)).toBeInTheDocument()
+    expect(screen.getByText(/(a\s)+…/)).toBeInTheDocument()
   })
 
   it('renders edit timestamp when provided', () => {

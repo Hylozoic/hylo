@@ -8,7 +8,7 @@ export const REMOVE_MEMBER = 'REMOVE_MEMBER'
 export const REMOVE_MEMBER_PENDING = REMOVE_MEMBER + '_PENDING'
 
 export const groupMembersQuery = `
-query ($slug: String, $first: Int, $sortBy: String, $offset: Int, $search: String) {
+query FetchGroupMembers ($slug: String, $first: Int, $sortBy: String, $offset: Int, $search: String) {
   group (slug: $slug) {
     id
     name

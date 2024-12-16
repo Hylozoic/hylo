@@ -30,7 +30,7 @@ class PostFooter extends React.PureComponent {
     const tooltipId = 'postfooter-tt-' + postId
 
     return (
-      <div onClick={onClick} className={cx(classes.footer, { [classes.constrained]: constrained })}>
+      <div onClick={onClick} className={cx(classes.footer, { [classes.constrained]: constrained })} data-testid='post-footer'>
         <PeopleInfo constrained={constrained} people={commenters} peopleTotal={commentersTotal} excludePersonId={get('id', currentUser)} />
         <Tooltip
           delay={550}

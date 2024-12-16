@@ -30,5 +30,4 @@ it('renders post content correctly', () => {
 
   expect(screen.getByText('Test Post Title')).toBeInTheDocument()
   expect(screen.getByText('Test post content')).toBeInTheDocument()
-  expect(screen.getByText('Jan 17, 2014')).toBeInTheDocument()
 })

@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux'
 import KeyControlledItemList from 'components/KeyControlledList/KeyControlledItemList'
 import RemovableListItem from 'components/RemovableListItem'
 import Icon from 'components/Icon'
-import { isEmpty, get, includes } from 'lodash/fp'
+import { isEmpty, includes } from 'lodash/fp'
 import { removeResponsibilityFromRole, addResponsibilityToRole, fetchResponsibilitiesForGroupRole, fetchResponsibilitiesForGroup, fetchResponsibilitiesForCommonRole } from 'store/actions/responsibilities'
 import { keyMap } from 'util/textInput'
 import { personUrl } from 'util/navigation'
@@ -338,7 +338,7 @@ class AddMemberToRoleUntranslated extends Component {
       return this.listRef.current.handleKeys(e)
     }
 
-    const listWidth = { width: get('inputRef.current.clientWidth', this, 0) + 4 }
+    const listWidth = { width: (this.inputRef?.current?.clientWidth || 0) + 4 }
 
     if (adding) {
       return (
@@ -427,7 +427,6 @@ class AddResponsibilityToRoleUntranslated extends Component {
       return this.listRef.current.handleKeys(e)
     }
 
-    const listWidth = { width: get('inputRef.current.clientWidth', this, 0) + 4 }
     if (adding) {
       return (
         <div className={styles.adding}>
@@ -444,7 +443,7 @@ class AddResponsibilityToRoleUntranslated extends Component {
             <span className={styles.addButton} onClick={chooseCurrentItem}>{t('Add')}</span>
           </div>
           {!isEmpty(responsibilitySuggestions) && (
-            <div style={listWidth}>
+            <div>
               <KeyControlledItemList
                 ref={this.listRef}
                 items={responsibilitySuggestions}
@@ -500,7 +499,6 @@ export function RoleList ({ slug, fetchStewardSuggestions, addRoleToMember, sugg
   const memberRoleIds = membersForRole.map(mr => mr.id)
 
   const memberSuggestions = suggestions.filter(person => !includes(person.id, memberRoleIds))
-
   const groupRoleResponsibilityTitles = responsibilitiesForRole.map(rfr => rfr.title)
   // TODO: dubious. Need to ensure the above returns responsibilityIds and then change the below off title
   const responsibilitySuggestions = availableResponsibilities.filter(responsibility => !includes(responsibility.title, groupRoleResponsibilityTitles))

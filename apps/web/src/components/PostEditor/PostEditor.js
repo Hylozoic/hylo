@@ -524,6 +524,7 @@ function PostEditor ({
       topicNames,
       type
     }
+
     const saveFunc = isEditing ? updatePost : createPost
     setAnnouncementSelected(false)
     const action = await dispatch(saveFunc(postToSave))
@@ -1056,6 +1057,7 @@ export function ActionsBar ({
           <Icon
             name='AddImage'
             className={cx(styles.actionIcon, { [styles.highlightIcon]: showImages })}
+            dataTestId='add-image-icon'
           />
         </UploadAttachmentButton>
         <UploadAttachmentButton
@@ -1069,11 +1071,13 @@ export function ActionsBar ({
           <Icon
             name='Paperclip'
             className={cx(styles.actionIcon, { [styles.highlightIcon]: showFiles })}
+            dataTestId='add-file-icon'
           />
         </UploadAttachmentButton>
         {canMakeAnnouncement && (
           <span data-tooltip-content='Send Announcement' data-tooltip-id='announcement-tt'>
             <Icon
+              dataTestId='announcement-icon'
               name='Announcement'
               onClick={() => setAnnouncementSelected(!announcementSelected)}
               className={cx(styles.actionIcon, {

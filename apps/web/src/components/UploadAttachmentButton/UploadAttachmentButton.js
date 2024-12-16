@@ -103,7 +103,7 @@ export function UploadButton ({
   const loadingIconName = loading ? 'Clock' : iconName
 
   return (
-    <div onClick={onClick} className={className}>
+    <div onClick={onClick} className={className} data-testid='upload-attachment-button'>
       {children && children}
       {!children && <Icon name={loadingIconName} className={cx(classes.icon)} />}
     </div>

@@ -1,7 +1,7 @@
 import React from 'react'
-import { BrowserRouter } from 'react-router-dom'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
-import GroupBanner, { PostPrompt } from './GroupBanner'
+import GroupBanner from './GroupBanner'
+import PostPrompt from './PostPrompt'
 
 const currentUser = {
   avatarUrl: 'me.png',
@@ -21,13 +21,11 @@ const group = {
 describe('GroupBanner', () => {
   it('renders with a group', () => {
     render(
-      <BrowserRouter>
-        <GroupBanner
-          group={group}
-          routeParams={{ view: 'stream', slug: 'foo' }}
-          isTesting
-        />
-      </BrowserRouter>
+      <GroupBanner
+        group={group}
+        routeParams={{ view: 'stream', slug: 'foo' }}
+        isTesting
+      />
     )
     expect(screen.getByText('Spacebase')).toBeInTheDocument()
     expect(screen.getByText('space, duh')).toBeInTheDocument()
@@ -35,14 +33,12 @@ describe('GroupBanner', () => {
 
   it('renders for all groups', () => {
     render(
-      <BrowserRouter>
-        <GroupBanner
-          context='all'
-          routeParams={{ view: 'stream' }}
-          currentUser={currentUser}
-          currentUserHasMemberships
-        />
-      </BrowserRouter>
+      <GroupBanner
+        context='all'
+        routeParams={{ view: 'stream' }}
+        currentUser={currentUser}
+        currentUserHasMemberships
+      />
     )
     expect(screen.getByText('All My Groups')).toBeInTheDocument()
     expect(screen.getByText('18 Groups')).toBeInTheDocument()
@@ -50,14 +46,12 @@ describe('GroupBanner', () => {
 
   it('renders for an orphan user', () => {
     render(
-      <BrowserRouter>
-        <GroupBanner
-          context='all'
-          routeParams={{ view: 'stream', slug: 'foo' }}
-          currentUser={currentUser}
-          currentUserHasMemberships={false}
-        />
-      </BrowserRouter>
+      <GroupBanner
+        context='all'
+        routeParams={{ view: 'stream', slug: 'foo' }}
+        currentUser={currentUser}
+        currentUserHasMemberships={false}
+      />
     )
     expect(screen.getByText('All My Groups')).toBeInTheDocument()
     expect(screen.getByText('18 Groups')).toBeInTheDocument()
@@ -68,9 +62,7 @@ describe('GroupBanner', () => {
 describe('PostPrompt', () => {
   it('renders a post prompt', () => {
     render(
-      <BrowserRouter>
-        <PostPrompt firstName='Arturo' type='project' />
-      </BrowserRouter>
+      <PostPrompt firstName='Arturo' type='project' />
     )
     expect(screen.getByText('Hi Arturo, what would you like to create?')).toBeInTheDocument()
   })

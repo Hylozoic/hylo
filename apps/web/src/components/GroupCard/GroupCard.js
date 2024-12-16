@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
@@ -6,7 +7,7 @@ import ClickCatcher from 'components/ClickCatcher'
 import useRouteParams from 'hooks/useRouteParams'
 import GroupHeader from './GroupHeader'
 import HyloHTML from 'components/HyloHTML'
-import cx from 'classnames'
+
 import classes from './GroupCard.module.scss'
 
 /*
@@ -42,6 +43,7 @@ export default function GroupCard ({
     <Link to={linkTo} className={classes.groupLink}>
       <div
         onClick={onClick}
+        data-testid='group-card'
         className={cx(classes.card, { [classes.expanded]: expanded, [classes.constrained]: constrained }, className)}
       >
         <GroupHeader

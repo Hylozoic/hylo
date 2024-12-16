@@ -61,6 +61,7 @@ const Pill = forwardRef(({
           tooltipId={tooltipId}
           name='Ex'
           onClick={deletePill}
+          dataTestId='pill-remove-icon'
         />}
       {!isMobile.any && (
         <Tooltip

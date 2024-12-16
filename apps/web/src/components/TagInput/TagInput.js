@@ -171,6 +171,7 @@ class TagInput extends Component {
               onChange={event => this.handleChange(event.target.value)}
               onKeyDown={this.handleKeys}
               disabled={readOnly}
+              aria-label='tagInput'
             />
           </div>
           {!isEmpty(suggestionsOrError) &&

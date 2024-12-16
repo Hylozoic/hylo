@@ -33,12 +33,12 @@ describe('InviteeRow', () => {
     render(<InviteeRow {...props} />)
 
     expect(screen.getByText('John')).toBeInTheDocument()
-    expect(screen.getByRole('checkbox')).toBeChecked()
+    expect(screen.getByTestId('icon-Checkmark')).toBeInTheDocument()
   })
 
   it('renders correctly with showResponse', () => {
     const props = {
-      person: { id: 1, name: 'Jane', avatarUrl: 'jane.png', response: 'needed!' },
+      person: { id: 1, name: 'Jane', avatarUrl: 'jane.png', response: 'interested' },
       selected: true,
       onClick: jest.fn(),
       showResponse: true
@@ -46,8 +46,8 @@ describe('InviteeRow', () => {
     render(<InviteeRow {...props} />)
 
     expect(screen.getByText('Jane')).toBeInTheDocument()
-    expect(screen.getByText('needed!')).toBeInTheDocument()
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(screen.getByText('Interested')).toBeInTheDocument()
+    expect(screen.queryByTestId('icon-Checkmark')).not.toBeInTheDocument()
   })
 })
 

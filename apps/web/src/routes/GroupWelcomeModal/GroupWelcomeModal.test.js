@@ -1,7 +1,7 @@
 import React from 'react'
-import { graphql } from 'msw'
+import { graphql, HttpResponse } from 'msw'
 import userEvent from '@testing-library/user-event'
-import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import orm from 'store/models'
 import extractModelsForTest from 'util/testing/extractModelsForTest'
@@ -38,17 +38,20 @@ it('selects group, displays agreements and suggested skills, and renders nothing
         memberships: {
           items: [testMembership]
         }
-      },
+      }
+    }, 'Me', ormSession)
+
+    extractModelsForTest({
       groups: [testGroup]
-    }, ['Me', 'Group'], ormSession)
+    }, 'Group', ormSession)
 
     return AllTheProviders(reduxState)
   }
 
-  mockGraphqlServer.resetHandlers(
-    graphql.query('GroupWelcomeQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
+  mockGraphqlServer.use(
+    graphql.query('GroupWelcomeQuery', () => {
+      return HttpResponse.json({
+        data: {
           group: {
             id: testGroup.id,
             agreements: {
@@ -60,17 +63,17 @@ it('selects group, displays agreements and suggested skills, and renders nothing
               ]
             }
           }
-        })
-      )
+        }
+      })
     }),
-    graphql.mutation('UpdateMembershipSettings', (req, res, ctx) => {
-      return res(
-        ctx.data({
+    graphql.mutation('UpdateMembershipSettings', () => {
+      return HttpResponse.json({
+        data: {
           group: {
             id: testGroup.id
           }
-        })
-      )
+        }
+      })
     })
   )
 
@@ -83,8 +86,10 @@ it('selects group, displays agreements and suggested skills, and renders nothing
 
   const user = userEvent.setup()
 
-  // expect(await screen.findByText(`Welcome to ${testGroup.name}!`)).toBeInTheDocument() TODO: Fix this test
-  expect(await screen.findByText('Do good stuff always')).toBeInTheDocument()
+  await waitFor(() => {
+    // expect(await screen.findByText(`Welcome to ${testGroup.name}!`)).toBeInTheDocument() TODO: Fix this test
+    expect(screen.getByText('Do good stuff always')).toBeInTheDocument()
+  })
 
   const cbEl = screen.getByTestId('cbAgreement0')
   expect(cbEl).toBeInTheDocument()
@@ -92,7 +97,11 @@ it('selects group, displays agreements and suggested skills, and renders nothing
 
   await user.click(cbEl)
   await user.click(screen.getByTestId('jump-in'))
-  expect(await screen.findByText('a-skill-to-have')).toBeInTheDocument()
+
+  await waitFor(() => {
+    expect(screen.getByText('a-skill-to-have')).toBeInTheDocument()
+  })
+
   await user.click(screen.getByTestId('jump-in'))
 
   expect(container).toBeEmptyDOMElement()

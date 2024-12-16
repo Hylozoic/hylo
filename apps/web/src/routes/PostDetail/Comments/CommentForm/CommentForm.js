@@ -83,7 +83,7 @@ class CommentForm extends Component {
         <div className={cx(classes.prompt, { [classes.disabled]: !currentUser })}>
           {currentUser
             ? <RoundImage url={currentUser.avatarUrl} small className={classes.image} />
-            : <Icon name='Person' className={classes.anonymousImage} />}
+            : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
           <HyloEditor
             contentHTML={editorContent}
             onEnter={this.handleOnEnter}
@@ -101,7 +101,7 @@ class CommentForm extends Component {
                 target={inIframe() ? '_blank' : ''}
                 className={classes.signupButton}
               >
-                {this.prop.t('Sign up to reply')}
+                {this.props.t('Sign up to reply')}
               </Link>
               )
             : (
@@ -113,6 +113,7 @@ class CommentForm extends Component {
                     className={classes.sendMessageButton}
                     dataTip={t('You need to include text to post a comment')}
                     dataFor='comment-submit-tt'
+                    name='send'
                   >
                     <SendHorizontal size={18} color='white' />
                   </Button>
@@ -145,7 +146,7 @@ export function UploadButton ({
   className
 }) {
   return (
-    <div onClick={onClick} className={className}>
+    <div onClick={onClick} className={className} data-testid='upload-button'>
       {loading && <Loading type='inline' className={classes.uploadButtonLoading} />}
       {!loading && <Icon name='AddImage' className={classes.uploadButtonIcon} />}
     </div>

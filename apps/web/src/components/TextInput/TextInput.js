@@ -40,13 +40,14 @@ export default function TextInput (props) {
         onAnimationStart={handleAnimation}
         onBlur={onBlur}
         onFocus={onFocus}
+        id={props.id}
       />
       {internalLabel && (
         <label htmlFor={props.id} className={cx(styles.internalLabel, active || (value && value.length > 0) ? styles.active : '')}>{internalLabel}</label>
       )}
 
       {value && !noClearButton &&
-        <div className={cx(styles.clear, theme.clear)} onClick={clear}>
+        <div className={cx(styles.clear, theme.clear)} onClick={clear} role='button' aria-label='clear'>
           <Icon name='Ex' />
         </div>}
       {loading && <Loading type='inline' className={styles.loading} />}

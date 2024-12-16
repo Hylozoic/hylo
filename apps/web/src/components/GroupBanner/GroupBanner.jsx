@@ -1,19 +1,19 @@
 import cx from 'classnames'
 import { capitalize } from 'lodash'
-import React, { useState } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Tooltip } from 'react-tooltip'
 
 import Icon from 'components/Icon'
 import PostLabel from 'components/PostLabel'
-import RoundImage from 'components/RoundImage'
 import useRouteParams from 'hooks/useRouteParams'
 import { CONTEXT_MY } from 'store/constants'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { whiteMerkaba, allGroupsBanner, publicGlobe } from 'util/assets'
 import { bgImageStyle } from 'util/index'
-import { createPostUrl, groupUrl, groupDetailUrl } from 'util/navigation'
+import { groupUrl, groupDetailUrl } from 'util/navigation'
+import PostPrompt from './PostPrompt'
 
 import classes from './GroupBanner.module.scss'
 
@@ -68,10 +68,12 @@ export default function GroupBanner ({
   const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'
   const numCustomFilters = customViewType === 'stream' ? (customPostTypes.length + customViewTopics.length + (customActivePostsOnly ? 1 : 0)) : false
   return (
-    <div className={cx(classes.banner, {
-      [classes.allGroups]: context === 'all',
-      [classes.hasPostPrompt]: hasPostPrompt
-    })}
+    <div
+      className={cx(classes.banner, {
+        [classes.allGroups]: context === 'all',
+        [classes.hasPostPrompt]: hasPostPrompt
+      })}
+      data-testid='group-banner'
     >
       <div style={bgImageStyle(bannerUrl || DEFAULT_BANNER)} className={classes.image}>
         <div className={classes.fade}>
@@ -158,35 +160,6 @@ export default function GroupBanner ({
           }}
         />
       )}
-    </div>
-  )
-}
-
-const PostPrompt = (props) => {
-  const { avatarUrl, className, firstName = '', type = '', querystringParams = {}, routeParams = {} } = props
-  const [hover, setHover] = useState(false)
-  const { t } = useTranslation()
-
-  const postPromptString = (type, firstName) => {
-    const postPrompts = {
-      offer: t('Hi {{firstName}}, what would you like to share?', { firstName }),
-      request: t('Hi {{firstName}}, what are you looking for?', { firstName }),
-      project: t('Hi {{firstName}}, what would you like to create?', { firstName }),
-      event: t('Hi {{firstName}}, want to create an event?', { firstName }),
-      default: t('Hi {{firstName}}, click here to start a post', { firstName })
-    }
-    return postPrompts[type] || postPrompts.default
-  }
-
-  return (
-    <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-      <Link to={createPostUrl(routeParams, { ...querystringParams, newPostType: type })}>
-        <div className={cx(classes.postPrompt, className)}>
-          <RoundImage url={avatarUrl} small className={classes.promptImage} />
-          {postPromptString(type, firstName)}
-        </div>
-      </Link>
-      <div className={cx(classes.shadow, { [classes.hover]: hover })} />
     </div>
   )
 }

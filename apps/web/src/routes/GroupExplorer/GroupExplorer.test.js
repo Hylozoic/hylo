@@ -1,5 +1,5 @@
 import React from 'react'
-import { graphql } from 'msw'
+import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { render, AllTheProviders, screen } from 'util/testing/reactTestingLibraryExtended'
 import GroupExplorer from './GroupExplorer'
@@ -26,8 +26,8 @@ afterAll(() => mockGraphqlServer.close())
 
 test('GroupExplorer integration test', async () => {
   mockGraphqlServer.resetHandlers(
-    graphql.operation((req, res, ctx) => {
-      const { search, groupType, farmQuery } = req.body.variables
+    graphql.query('FetchGroups', ({ query, variables }) => {
+      const { search, groupType, farmQuery } = variables
       let items
       if (search === '') {
         items = firstGroupResults
@@ -38,9 +38,11 @@ test('GroupExplorer integration test', async () => {
       } else if (search === 'different group' && groupType === FARM_VIEW && farmQuery.productCategories === 'vegetables') {
         items = fourthGroupResults
       }
-      return res(
-        ctx.data({ groups: { hasMore: false, items, total: 0 } })
-      )
+      return HttpResponse.json({
+        data: {
+          groups: { hasMore: false, items, total: 0 }
+        }
+      })
     })
   )
   const user = userEvent.setup()

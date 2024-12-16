@@ -60,7 +60,7 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
 
   return (
     <div className={cx(className, classes.dropdown, { [classes.hasTriangle]: triangle })} ref={parentRef}>
-      <span className={cx(classes.dropdownToggle, { [classes.toggled]: active })} onClick={toggle}>
+      <span className={cx(classes.dropdownToggle, { [classes.toggled]: active })} onClick={toggle} data-testid='dropdown-toggle'>
         {toggleChildren}
       </span>
       <span className={cx(classes.closeDropdown, { [classes.toggled]: active })} onClick={toggle}><Icon name='Ex' /></span>

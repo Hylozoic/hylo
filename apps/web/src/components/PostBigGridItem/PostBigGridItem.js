@@ -110,7 +110,7 @@ export default function PostBigGridItem ({
         {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
 
         <div className={cx({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
-          <HyloHTML html={details} onClick={showDetailsTargeted} />
+          <HyloHTML html={details} onClick={showDetailsTargeted} className={classes.details} />
         </div>
 
         <div className={classes.gridMeta}>

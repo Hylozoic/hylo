@@ -1,6 +1,7 @@
 import React from 'react'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { graphql, HttpResponse } from 'msw'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import NotificationsDropdown, { Notification } from './NotificationsDropdown'
 import {
   ACTION_NEW_COMMENT,
@@ -147,17 +148,19 @@ const notifications = [
 // }
 
 describe('NotificationsDropdown', () => {
-  mockGraphqlServer.resetHandlers(
-    graphql.query('NotificationsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
-          notifications: null
+  beforeEach(() => {
+    mockGraphqlServer.use(
+      graphql.query('NotificationsQuery', () => {
+        return HttpResponse.json({
+          data: {
+            notifications: null
+          }
         })
-      )
-    })
-  )
+      })
+    )
+  })
 
-  it('renders correctly with an empty list', () => {
+  it('renders correctly with an empty list', async () => {
     render(
       <NotificationsDropdown
         renderToggleChildren={() => <span>click me</span>}
@@ -167,12 +170,18 @@ describe('NotificationsDropdown', () => {
       />
     )
 
-    expect(screen.getByText('click me')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('click me')).toBeInTheDocument()
+    })
+
     fireEvent.click(screen.getByText('click me'))
-    expect(screen.getByText('No notifications')).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(screen.getByText('No notifications')).toBeInTheDocument()
+    })
   })
 
-  it('renders correctly with a list of notifications', () => {
+  it('renders correctly with a list of notifications', async () => {
     render(
       <NotificationsDropdown
         renderToggleChildren={() => <span>click me</span>}
@@ -182,60 +191,82 @@ describe('NotificationsDropdown', () => {
       />
     )
 
-    expect(screen.getByText('click me')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('click me')).toBeInTheDocument()
+    })
+
     fireEvent.click(screen.getByText('click me'))
-    expect(screen.getByText('Recent')).toBeInTheDocument()
-    expect(screen.getByText('Unread')).toBeInTheDocument()
-    expect(screen.getByText('Mark all as read')).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(screen.getByText('Recent')).toBeInTheDocument()
+      expect(screen.getByText('Unread')).toBeInTheDocument()
+      expect(screen.getByText('Mark all as read')).toBeInTheDocument()
+    })
   })
 })
 
 describe('Notification', () => {
-  it('renders correctly with a comment notification', () => {
+  it('renders correctly with a comment notification', async () => {
     render(<Notification notification={commentNotification} />)
-    expect(screen.getByText(/commented on/i)).toBeInTheDocument()
-    expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/New comment on/i)).toBeInTheDocument()
+      expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
+    })
   })
 
-  it('renders correctly with a tag notification', () => {
+  it('renders correctly with a tag notification', async () => {
     render(<Notification notification={tagNotification} />)
-    expect(screen.getByText(/tagged you in a post/i)).toBeInTheDocument()
-    expect(screen.getByText(/I have so many things I need!/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/New post in/i)).toBeInTheDocument()
+      expect(screen.getByText(/I have so many things I need!/i)).toBeInTheDocument()
+    })
   })
 
-  it('renders correctly with a join request notification', () => {
+  it('renders correctly with a join request notification', async () => {
     render(<Notification notification={joinRequestNotification} />)
-    expect(screen.getByText(/asked to join/i)).toBeInTheDocument()
-    expect(screen.getByText(/Foomunity/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/asked to join/i)).toBeInTheDocument()
+      expect(screen.getByText(/Foomunity/i)).toBeInTheDocument()
+    })
   })
 
-  it('renders correctly with an approved join request notification', () => {
+  it('renders correctly with an approved join request notification', async () => {
     render(<Notification notification={approvedJoinRequestNotification} />)
-    expect(screen.getByText(/approved your request to join/i)).toBeInTheDocument()
-    expect(screen.getByText(/Foomunity/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/approved your request to join/i)).toBeInTheDocument()
+      expect(screen.getByText(/Foomunity/i)).toBeInTheDocument()
+    })
   })
 
-  it('renders correctly with a mention notification', () => {
+  it('renders correctly with a mention notification', async () => {
     render(<Notification notification={mentionNotification} />)
-    expect(screen.getByText(/mentioned you in/i)).toBeInTheDocument()
-    expect(screen.getByText(/Heads up/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/mentioned you/i)).toBeInTheDocument()
+      expect(screen.getByText(/Heads up/i)).toBeInTheDocument()
+    })
   })
 
-  it('renders correctly with a donation to notification', () => {
+  it('renders correctly with a donation to notification', async () => {
     render(<Notification notification={donationToNotification} />)
-    expect(screen.getByText(/donated to your project/i)).toBeInTheDocument()
-    expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/contributed to a project/i)).toBeInTheDocument()
+      expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
+    })
   })
 
-  it('renders correctly with a donation from notification', () => {
+  it('renders correctly with a donation from notification', async () => {
     render(<Notification notification={donationFromNotification} />)
-    expect(screen.getByText(/thanked you for your donation to/i)).toBeInTheDocument()
-    expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/contributed to your project/i)).toBeInTheDocument()
+      expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
+    })
   })
 
-  it('renders correctly with a comment mention notification', () => {
+  it('renders correctly with a comment mention notification', async () => {
     render(<Notification notification={commentMentionNotification} />)
-    expect(screen.getByText(/mentioned you in a comment on/i)).toBeInTheDocument()
-    expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/mentioned you in a comment on/i)).toBeInTheDocument()
+      expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
+    })
   })
 })
