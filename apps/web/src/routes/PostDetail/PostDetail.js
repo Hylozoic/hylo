@@ -96,7 +96,9 @@ function PostDetail () {
   const { ref } = useResizeDetector({ handleHeight: false, onResize: handleSetComponentPositions })
 
   const onPostIdChange = () => {
-    dispatch(fetchPost(postId))
+    if (!pending) {
+      dispatch(fetchPost(postId))
+    }
 
     if (post) {
       dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_OPENED, {

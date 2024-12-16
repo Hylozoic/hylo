@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { matchPath, Route, Routes, Navigate, useLocation, useParams } from 'react-router-dom'
+import { matchPath, Route, Routes, Navigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
@@ -71,8 +71,6 @@ export default function AuthLayoutRouter (props) {
 
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
-
-  const params = useParams()
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()
@@ -279,7 +277,7 @@ export default function AuthLayoutRouter (props) {
         <>
           {/* Depends on `pathMatchParams` */}
           <TopNav className={classes.top} onClick={handleCloseDrawer} {...{ group: currentGroup, currentUser, routeParams: pathMatchParams, showMenuBadge, width }} />
-          {isDrawerOpen && <Drawer className={cx(classes.drawer)} group={currentGroup} />}
+          {isDrawerOpen && <Drawer className={cx(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
         </>
       )}
 
@@ -319,7 +317,7 @@ export default function AuthLayoutRouter (props) {
       <Div100vh className={cx(classes.container, { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cx(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })} onClick={handleCloseDrawer}>
           {/* View navigation menu */}
-          {(params.context !== 'groups' || (currentGroup && !currentGroupMembership)) && (
+          {(!currentGroupSlug || (currentGroup && currentGroupMembership)) && (
             <Routes>
               <Route
                 path='groups/:groupSlug/*'

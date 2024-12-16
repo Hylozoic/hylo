@@ -354,8 +354,7 @@ module.exports = bookshelf.Model.extend(merge({
         role: GroupMembership.Role.DEFAULT,
         settings: {
           sendEmail: true,
-          sendPushNotifications: true,
-          showJoinForm: true
+          sendPushNotifications: true
         }
       },
       pick(omitBy(attrs, isUndefined), GROUP_ATTR_UPDATE_WHITELIST)
@@ -378,11 +377,11 @@ module.exports = bookshelf.Model.extend(merge({
           user_id: id,
           created_at: new Date(),
           settings: {
-            ...updatedAttribs.settings,
             // Show join form, and ask for agreements and join questions to be answered, unless member is the creator of the group
             agreementsAcceptedAt: id === this.get('created_by_id') ? new Date() : null,
             joinQuestionsAnsweredAt: id === this.get('created_by_id') ? new Date() : null,
-            showJoinForm: id !== this.get('created_by_id')
+            showJoinForm: id !== this.get('created_by_id'),
+            ...updatedAttribs.settings
           }
         }), { transacting })
       newMemberships.push(membership)

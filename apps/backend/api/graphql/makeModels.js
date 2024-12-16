@@ -967,6 +967,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
 
     Reaction: {
       model: Reaction,
+      attributes: [
+        'user_id'
+      ],
       getters: {
         createdAt: r => r.get('date_reacted'),
         emojiBase: r => r.get('emoji_base'),

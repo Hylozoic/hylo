@@ -37,7 +37,7 @@ class Member extends React.Component {
     const { id, name, location, tagline, avatarUrl, skills } = member
 
     return (
-      <div className={cx(classes.member, className)}>
+      <div className={cx(classes.member, className)} data-testid='member-card'>
         {(currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)) &&
           <Dropdown
             className={classes.dropdown}

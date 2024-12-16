@@ -54,12 +54,13 @@ class LocationInput extends Component {
   handleSuggest = e => { }
 
   render () {
-    const { inputClass, locationObject, location, placeholder = this.props.t('Search for a location...'), mapboxToken } = this.props
+    const { id, inputClass, locationObject, location, placeholder = this.props.t('Search for a location...'), mapboxToken } = this.props
     const centerAt = (locationObject && locationObject.center) || this.state.browserLocation
 
     return (
       <div className={styles.wrapper}>
         <Geocoder
+          id={id}
           accessToken={mapboxToken}
           defaultInputValue={location || ''}
           onInputChange={this.handleInputChange}

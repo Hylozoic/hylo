@@ -1,7 +1,7 @@
 import postFieldsFragment from '../fragments/postFieldsFragment'
 
 export default
-`mutation (
+`mutation UpdatePost(
   $acceptContributions: Boolean,
   $details: String,
   $donationsLink: String,

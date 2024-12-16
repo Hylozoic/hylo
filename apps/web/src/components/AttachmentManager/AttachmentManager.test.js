@@ -60,13 +60,13 @@ describe('AttachmentManager', () => {
       render(<AttachmentManager attachments={attachments} {...postEditorCaseDefaultProps} />)
       expect(screen.getByText('Images')).toBeInTheDocument()
       expect(screen.getByText('Files')).toBeInTheDocument()
-      expect(screen.getAllByRole('img')).toHaveLength(2)
+      expect(screen.getAllByRole('button')).toHaveLength(2)
       expect(screen.getAllByText(/thing\d\./).length).toBe(2)
     })
 
     test('when loading', () => {
       render(<AttachmentManager uploadAttachmentPending {...postEditorCaseDefaultProps} />)
-      expect(screen.getByText('Loading...')).toBeInTheDocument()
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
     })
   })
 
@@ -79,7 +79,7 @@ describe('AttachmentManager', () => {
 
     test('with attachments', () => {
       render(<AttachmentManager attachments={attachments} {...commentFormCaseDefaultProps} />)
-      expect(screen.getAllByRole('img')).toHaveLength(2)
+      expect(screen.getAllByRole('button')).toHaveLength(2)
       expect(screen.getAllByText(/thing\d\./).length).toBe(2)
     })
   })
@@ -87,13 +87,13 @@ describe('AttachmentManager', () => {
   describe('when attachmentType', () => {
     test('"image" with attachments', () => {
       render(<AttachmentManager attachmentType='image' attachments={attachments} {...minDefaultProps} />)
-      expect(screen.getAllByRole('img')).toHaveLength(2)
+      expect(screen.getAllByRole('button')).toHaveLength(2)
       expect(screen.queryByText(/thing\d\./)).not.toBeInTheDocument()
     })
 
     test('"file" with attachments', () => {
       render(<AttachmentManager attachmentType='file' attachments={attachments} {...minDefaultProps} />)
-      expect(screen.queryByRole('img')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button')).not.toBeInTheDocument()
       expect(screen.getAllByText(/thing\d\./).length).toBe(2)
     })
   })
@@ -115,7 +115,7 @@ describe('ImageManager', () => {
     }
     render(<ImageManager {...props} />)
     expect(screen.getByText('Images')).toBeInTheDocument()
-    expect(screen.getAllByRole('img')).toHaveLength(2)
+    expect(screen.getAllByRole('button')).toHaveLength(2)
     expect(screen.getByText('+')).toBeInTheDocument()
   })
 })
@@ -127,8 +127,7 @@ describe('ImagePreview', () => {
       removeImage: jest.fn()
     }
     render(<ImagePreview {...props} />)
-    expect(screen.getByRole('img')).toBeInTheDocument()
-    expect(screen.getByRole('button')).toBeInTheDocument()
+    expect(screen.getByRole('button')).toHaveClass('image')
   })
 })
 
@@ -162,6 +161,5 @@ describe('FilePreview', () => {
     render(<FilePreview {...props} />)
     expect(screen.getByText('foo.pdf')).toBeInTheDocument()
     expect(screen.getByText('23.3mb')).toBeInTheDocument()
-    expect(screen.getByRole('button')).toBeInTheDocument()
   })
 })

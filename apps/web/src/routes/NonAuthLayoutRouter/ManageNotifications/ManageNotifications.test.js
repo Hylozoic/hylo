@@ -1,14 +1,7 @@
 import React from 'react'
 import orm from 'store/models'
-import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
-import { act } from '@testing-library/react'
+import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import ManageNotifications from './ManageNotifications'
-
-jest.mock('hooks/useRouterParams', () => () => {
-  return {
-    name: 'Philharmonic'
-  }
-})
 
 jest.mock('store/middleware/apiMiddleware', () => (req) => {
   return store => next => action => {
@@ -22,14 +15,21 @@ function testProviders () {
   return AllTheProviders(reduxState)
 }
 
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useParams: jest.fn().mockReturnValue({ name: 'Philharmonic', token: 'hjkhkjhkjh' }),
+  // useLocation: jest.fn().mockReturnValue({  })
+}))
+
 describe('ManageNotifications', () => {
   it('renders correctly', async () => {
-    await act(async () => {
-      render(
-        <ManageNotifications match={{ params: { cheese: 1 } }} location={{ search: '?name=Philharmonic&token=hjkhkjhkjh' }} />,
-        { wrapper: testProviders() }
-      )
-      expect(screen.getByText('Hi {{userName}}')).toBeInTheDocument()
+    render(
+      <ManageNotifications />,
+      { wrapper: testProviders() }
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Hi Philharmonic')).toBeInTheDocument()
     })
   })
 })

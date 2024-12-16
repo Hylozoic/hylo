@@ -679,7 +679,7 @@ function MapExplorer (props) {
         <title>Map | {group ? `${group.name} | ` : context === 'public' ? 'Public | ' : ' All My Groups | '}Hylo</title>
       </Helmet>
 
-      <div className={classes.mapContainer}>
+      <div className={classes.mapContainer} data-testid='map-container'>
         <Map
           baseLayerStyle={baseLayerStyle}
           hyloLayers={[polygonLayer, groupIconLayer, clusterLayer]}
@@ -701,6 +701,7 @@ function MapExplorer (props) {
         data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
         className={cx(classes.toggleDrawerButton, classes.drawerAdjacentButton, { [classes.drawerOpen]: !hideDrawer })}
         onClick={toggleDrawer}
+        data-testid='drawer-toggle-button'
       >
         <Icon name='Hamburger' className={classes.openDrawer} />
         <Icon name='Ex' className={classes.closeDrawer} />
@@ -781,6 +782,7 @@ function MapExplorer (props) {
         data-tooltip-content={showLayersSelector ? null : t('Change Map Layers')}
         onClick={toggleLayersSelector}
         className={cx(classes.toggleLayersSelectorButton, classes.drawerAdjacentButton, { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, [classes.drawerOpen]: !hideDrawer })}
+        data-testid='layers-selector-button'
       >
         <Icon name='Stack' />
       </button>

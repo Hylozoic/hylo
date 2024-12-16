@@ -31,10 +31,10 @@ class PeopleTyping extends React.Component {
     const { className, peopleTyping } = this.props
     const names = values(peopleTyping).map(v => v.name)
     return (
-      <div className={cx(classes.typing, className)}>
+      <div className={cx(classes.typing, className)} data-testid='people-typing'>
         {names.length === 1 && <div>{names[0]} {this.props.t('is typing...')}</div>}
         {names.length > 1 && <div>{this.props.t('Multiple people are typing...')}</div>}
-      &nbsp;
+        &nbsp;
       </div>
     )
   }

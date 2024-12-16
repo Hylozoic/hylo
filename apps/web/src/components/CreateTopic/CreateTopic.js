@@ -49,13 +49,14 @@ class CreateTopic extends Component {
         onClick={this.toggleTopicModal}
         className={classes.createTopic}
       >
-        <Icon name='Plus' green className={classes.plus} data-testid='icon-Plus' />{this.props.buttonText}
+        <Icon name='Plus' green className={classes.plus} />{this.props.buttonText}
       </Button>
       )
     : (
       <Icon
         key='create-button'
         name='Plus'
+        dataTestId='icon-Plus'
         onClick={this.toggleTopicModal}
         className={classes.createButton}
       />
@@ -192,7 +193,10 @@ class CreateTopic extends Component {
             useNotificationFormat={useNotificationFormat}
           >
             {useNotificationFormat
-              ? (subscribeAfterCreate ? <div className={classes.dialogContent}>{t('you\'re subscribed to #{{topicName}}', { topicName: this.ignoreHash(topicName) })}</div> : <div className={classes.dialogContent}>{t('Created topic #{{topicName}}', { topicName: this.ignoreHash(topicName) })}</div>)
+              ? (subscribeAfterCreate
+                  ? <div className={classes.dialogContent}>{t('you\'re subscribed to #{{topicName}}', { topicName: this.ignoreHash(topicName) })}</div>
+                  : <div className={classes.dialogContent}>{t('Created topic #{{topicName}}', { topicName: this.ignoreHash(topicName) })}</div>
+                )
               : (
                 <div>
                   <TextInput

@@ -22,7 +22,7 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       // You can render any custom fallback UI
       return (
-        <div className={classes.container}>
+        <div className={classes.container} data-testid='error-boundary-container'>
           <div className={classes.speechBubble}>
             <div className={classes.arrow} />
             <span>{message}</span>

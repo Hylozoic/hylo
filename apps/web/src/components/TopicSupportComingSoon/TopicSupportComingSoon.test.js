@@ -10,7 +10,7 @@ describe('TopicSupportComingSoon', () => {
 
     // Check for the heading
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      "We're working on expanding\n#topics to more places"
+      "We're working on expanding #topics to more places"
     )
 
     // Check for the paragraph text

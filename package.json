@@ -14,6 +14,7 @@
     "mobile:android": "yarn workspace mobile run android",
     "mobile:clean": "yarn workspace mobile run clean",
     "mobile:ios": "yarn workspace mobile run ios",
+    "shared:build": "yarn workspace @hylo/shared build:cjs",
     "reset": "rm -rf **/node_modules **/.yarn/cache **/yarn.lock && yarn install",
     "heroku-postbuild": "yarn workspace web build && yarn workspace @hylo/shared build:cjs"
   },
@@ -21,11 +22,14 @@
     "node": "^20",
     "yarn": "^4.5.0"
   },
+  "packageManager": "yarn@4.5.0",
   "dependencies": {
     "@hylo/shared": "workspace:*"
   },
   "devDependencies": {
     "typescript": "5.0.4"
   },
-  "packageManager": "yarn@4.5.0"
+  "resolutions": {
+    "@deck.gl/core": "9.0.35"
+  }
 }

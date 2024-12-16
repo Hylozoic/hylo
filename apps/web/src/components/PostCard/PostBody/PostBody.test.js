@@ -1,8 +1,6 @@
 import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import PostBody from './index'
-import { Provider } from 'react-redux'
-import { createStore } from 'redux'
 
 describe('PostBody', () => {
   const defaultProps = {
@@ -11,30 +9,37 @@ describe('PostBody', () => {
     details: 'the details',
     linkPreview: {
       title: 'a walk in the park',
-      url: 'www.hylo.com/awitp',
+      url: 'https://www.hylo.com/awitp',
       imageUrl: 'foo.png'
     },
     slug: 'foomunity',
     expanded: true,
     className: 'classy',
     highlightProps: { term: 'foo' },
+    groups: [
+      {
+        id: 1,
+        name: 'foo',
+        slug: 'foo'
+      }
+    ],
     fileAttachments: [
       {
         id: 1,
-        url: 'https://www.hylo.com/awitp.pdf'
+        url: 'https://www.hylo.com/awitp.pdf',
+        type: 'file'
       },
       {
         id: 2,
-        url: 'http://www.google.com/lalala.zip'
+        url: 'http://www.google.com/lalala.zip',
+        type: 'file'
       }
     ]
   }
 
   const renderComponent = (props = {}) => {
     return render(
-      <Provider store={createStore(() => ({}))}>
-        <PostBody {...defaultProps} {...props} />
-      </Provider>
+      <PostBody {...defaultProps} {...props} />
     )
   }
 

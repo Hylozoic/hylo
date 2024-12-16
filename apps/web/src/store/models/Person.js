@@ -8,6 +8,12 @@ PersonSkillsToLearn.fields = {
   skillToLearn: fk('Skill', 'personSkillsToLearn')
 }
 
+export class Reaction extends Model {}
+Reaction.modelName = 'Reaction'
+Reaction.fields = {
+  post: fk('Post', 'reactions')
+}
+
 export class MembershipCommonRole extends Model { }
 MembershipCommonRole.modelName = 'MembershipCommonRole'
 MembershipCommonRole.fields = {
@@ -44,6 +50,7 @@ Person.fields = {
     as: 'locationObject'
   }),
   membershipCommonRoles: many('MembershipCommonRole'),
+  reactions: many('Reaction'),
   skills: many({ to: 'Skill', as: 'skills', relatedName: 'peopleHaving' }),
   skillsToLearn: many({
     to: 'Skill',

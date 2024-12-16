@@ -133,7 +133,7 @@ const UserSettings = () => {
     }
   ]
 
-  if (currentUser && !isEmpty(currentUser.blockedUsers.toRefArray())) {
+  if (currentUser && !isEmpty(blockedUsers)) {
     content.push({
       name: t('Blocked Users'),
       path: 'blocked-users',

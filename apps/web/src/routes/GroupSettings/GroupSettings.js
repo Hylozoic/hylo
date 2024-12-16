@@ -127,7 +127,7 @@ export default function GroupSettings () {
   const accessSettings = {
     name: t('Privacy & Access'),
     path: 'privacy',
-    component: <PrivacySettingsTab group={group} slug={group.slug} updateGroupSettings={updateGroupSettings} parentGroups={parentGroups} fetchPending={fetchPending} />
+    component: <PrivacySettingsTab group={group} slug={group.slug} updateGroupSettings={updateGroupSettingsAction} parentGroups={parentGroups} fetchPending={fetchPending} />
   }
 
   const customViewsSettings = {

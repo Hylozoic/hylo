@@ -1,6 +1,5 @@
 import React from 'react'
 import { faker } from '@faker-js/faker'
-import extractModelsForTest from 'util/testing/extractModelsForTest'
 import { fakePerson } from 'util/testing/testData'
 import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
 import { createStore } from 'redux'
@@ -126,7 +125,7 @@ describe('GroupStewardsSection', () => {
     )
 
     // TODO: figure out how to test the translation named values working
-    expect(await screen.findByText('Group {{locationDescriptor}}')).toBeInTheDocument()
+    expect(await screen.findByText('Group Wizard')).toBeInTheDocument()
   })
 })
 

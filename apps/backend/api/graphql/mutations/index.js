@@ -251,7 +251,7 @@ export async function addSkillToLearn (userId, name) {
 export async function addSuggestedSkillToGroup (userId, groupId, name) {
   const group = await Group.find(groupId)
   if (!group) throw new GraphQLYogaError('Invalid group')
-  const isAdministrator = GroupMembership.hasResponsibility(userId, group, {}, Responsibility.constants.RESP_ADMINISTRATION)
+  const isAdministrator = GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION, {})
   if (!isAdministrator) throw new GraphQLYogaError('You don\'t have permission to add skill to group')
 
   const skill = await createSkill(name)
