@@ -282,7 +282,7 @@ export function CustomViewRow ({
 
   // needed because of external links which have empty default_view_mode or old 'externalLink' value
   const defaultViewModeVal = !defaultViewMode || defaultViewMode === 'externalLink' ? 'cards' : defaultViewMode
-  console.log(name, 'namemmeemem')
+
   const sortOptions = type === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS
   const defaultSortVal = defaultSort || (type === 'collection' ? 'order' : 'created')
   const viewCount = parseInt(index) + 1

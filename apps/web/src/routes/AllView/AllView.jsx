@@ -181,7 +181,8 @@ function AddViewDialog ({ group }) {
     let groupTopic
     // if a topic comes here with 'create' as its id, we need to create a groupTopic before we can create the widget
     if (addChoice === 'chat' && selectedItem.id === 'create') {
-      groupTopic = await dispatch(createTopic(selectedItem.name, group.id))
+      const response = await dispatch(createTopic(selectedItem.name, group.id))
+      groupTopic = response.payload.data.createTopic
     } else if (addChoice === 'chat') {
       groupTopic = selectedItem
     }
@@ -393,7 +394,6 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
                       key={item.id}
                       value={item.name}
                       onSelect={(value) => {
-                        console.log('Selected item:', value)
                         setSelectedItem(item)
                       }}
                     >

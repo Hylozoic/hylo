@@ -180,7 +180,7 @@ export function widgetUrl ({ widget, rootPath, groupSlug, context }) {
   if (widget.view) {
     url = viewUrl(widget.view, { groupSlug, context })
   } else if (widget.viewGroup) {
-    url = groupUrl(widget.viewGroup.id)
+    url = groupUrl(widget.viewGroup.slug)
   } else if (widget.viewUser) {
     url = personUrl(widget.viewUser.id)
   } else if (widget.viewPost) {

@@ -22,7 +22,6 @@ export function widgetIconResolver () {
 }
 
 export function isValidHomeWidget (widget) {
-  if (widget?.viewGroup?.id) return true
   if (widget?.viewUser?.id) return true
   if (widget?.viewPost?.id) return true
   if (widget?.viewChat?.id) return true
