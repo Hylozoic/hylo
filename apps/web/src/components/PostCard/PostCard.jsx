@@ -124,17 +124,15 @@ export default function PostCard (props) {
           />
         </div>
         {isEvent && (
-          <div className={classes.bodyWrapper}>
-            <EventBody
-              onClick={onClick}
-              currentUser={currentUser}
-              event={post}
-              slug={routeParams.groupSlug}
-              respondToEvent={handleRespondToEvent}
-              constrained={constrained}
-              isFlagged={isFlagged}
-            />
-          </div>
+          <EventBody
+            onClick={onClick}
+            currentUser={currentUser}
+            event={post}
+            slug={routeParams.groupSlug}
+            respondToEvent={handleRespondToEvent}
+            constrained={constrained}
+            isFlagged={isFlagged}
+          />
         )}
         {!isEvent && (
           <div>
