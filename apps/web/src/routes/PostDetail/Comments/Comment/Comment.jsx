@@ -123,11 +123,11 @@ function Comment ({
       <div className={styles.header}>
         <Avatar avatarUrl={creator.avatarUrl} url={profileUrl} className={styles.avatar} />
         <Link to={profileUrl} className={styles.userName}>{creator.name}</Link>
-        <span className={styles.timestamp} data-for={`dateTip-${comment.id}`} data-tip={moment(createdAt).format('llll')}>
+        <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={moment(createdAt).format('llll')}>
           {timestamp}
         </span>
         {(editedTimestamp) && (
-          <span className={styles.timestamp} data-for={`dateTip-${comment.id}`} data-tip={moment(editedAt).format('llll')}>
+          <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={moment(editedAt).format('llll')}>
             ({editedTimestamp})
           </span>
         )}
