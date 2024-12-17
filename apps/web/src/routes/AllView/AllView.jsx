@@ -90,7 +90,6 @@ export default function AllViews () {
   const widgetCards = useMemo(() => {
     return visibleWidgets.map(widget => {
       const title = widgetTitleResolver({ widget, t })
-      // TODO CONTEXT: SOOO... do I split externalLink customviews off here and treat them totally differently?
       const url = widgetUrl({ widget, rootPath, groupSlug: routeParams.groupSlug, context: 'group' })
       const type = widgetTypeResolver({ widget })
       const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1)

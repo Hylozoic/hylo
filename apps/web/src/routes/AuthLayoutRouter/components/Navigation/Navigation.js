@@ -356,7 +356,6 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 
   const title = widgetTitleResolver({ widget, t })
-  // TODO CONTEXT: split off externalLink customviews here
   const url = widgetUrl({ widget, rootPath, groupSlug, context: 'group' })
   const canDnd = !allView && isEditting && widget.type !== 'home'
   const showEdit = allView && canAdminister
@@ -410,7 +409,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
             <div>
               {widget.view &&
                 <span className='flex justify-between items-center content-center'>
-                  <MenuLink to={url}> <h3 className='text-sm font-semibold'>{title}</h3></MenuLink>
+                  <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}> <h3 className='text-sm font-semibold'>{title}</h3></MenuLink>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {!widget.view &&
