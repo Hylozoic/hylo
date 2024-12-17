@@ -40,6 +40,7 @@ export const groupWelcomeQuery = `
           settings {
             joinQuestionsAnsweredAt
             agreementsAcceptedAt
+            showJoinForm
           }
         }
       }

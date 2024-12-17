@@ -44,7 +44,6 @@ export default function Navigation (props) {
     className,
     collapsed,
     groupId,
-    hideTopics,
     mapView
   } = props
 
@@ -275,7 +274,7 @@ export default function Navigation (props) {
               </li>
             </ul>
           )}
-          {!hideTopics && canView && !isMyContext && (
+          {canView && !isMyContext && !isPublic && (
             <TopicNavigation
               collapsed={collapsed}
               backUrl={rootPath}
