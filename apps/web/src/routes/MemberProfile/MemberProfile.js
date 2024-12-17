@@ -299,22 +299,6 @@ function ActionButtons ({ items }) {
           delayHide={500}
           delayShow={500}
           className={styles.tooltip}
-          afterShow={e => {
-            const hoverClassName = styles.actionIconButtonHover
-            const elements = document.getElementsByClassName(hoverClassName)
-            while (elements.length > 0) {
-              elements[0].classList.remove(hoverClassName)
-            }
-            e.target.classList.add(hoverClassName)
-          }}
-          afterHide={e => {
-            const hoverClassName = styles.actionIconButtonHover
-            const elements = document.getElementsByClassName(hoverClassName)
-            while (elements.length > 0) {
-              elements[0].classList.remove(hoverClassName)
-            }
-            e.target.classList.remove(hoverClassName)
-          }}
           content={() =>
             <ActionTooltip content={value} onClick={onClick} key={index} hideCopyTip={hideCopyTip} />}
         />
