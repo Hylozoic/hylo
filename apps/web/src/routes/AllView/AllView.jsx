@@ -36,6 +36,14 @@ import {
 import Icon from 'components/Icon'
 import { CustomViewRow } from 'routes/GroupSettings/CustomViewsTab/CustomViewsTab'
 import { createTopic } from 'components/CreateTopic/CreateTopic.store'
+import { cleanCustomView } from 'util'
+
+const CHAT = 'chat'
+const POST = 'post'
+const USER = 'user'
+const GROUP = 'group'
+const CUSTOM_VIEW = 'customView'
+const CONTAINER = 'container'
 
 export default function AllViews () {
   const navigate = useNavigate()
@@ -180,24 +188,24 @@ function AddViewDialog ({ group }) {
   const handleCreate = useCallback(async ({ widgetData, selectedItem, addChoice }) => {
     let groupTopic
     // if a topic comes here with 'create' as its id, we need to create a groupTopic before we can create the widget
-    if (addChoice === 'chat' && selectedItem.id === 'create') {
+    if (addChoice === CHAT && selectedItem.id === 'create') {
       const response = await dispatch(createTopic(selectedItem.name, group.id))
       groupTopic = response.payload.data.createTopic
-    } else if (addChoice === 'chat') {
+    } else if (addChoice === CHAT) {
       groupTopic = selectedItem
     }
 
     const contextWidgetInput = {
       addToEnd: true, // These widgets are default added to the bottom of the menu
       visibility: widgetData.visibility === 'all' ? null : widgetData.visibility,
-      type: addChoice === 'chat' ? 'chat' : null, // The default is for type to be null unless there is a specific need
+      type: addChoice === CHAT ? CHAT : null, // The default is for type to be null unless there is a specific need
       title: widgetData.title === '' ? null : widgetData.title,
       icon: null, // TODO CONTEXT: what is required for icons?
-      viewGroupId: addChoice === 'group' ? selectedItem.id : null,
-      viewPostId: addChoice === 'post' ? selectedItem.id : null,
-      customViewInput: addChoice === 'customview' ? selectedItem : null,
-      viewUserId: addChoice === 'user' ? selectedItem.id : null,
-      viewChatId: addChoice === 'chat' ? groupTopic.id : null
+      viewGroupId: addChoice === GROUP ? selectedItem.id : null,
+      viewPostId: addChoice === POST ? selectedItem.id : null,
+      customViewInput: addChoice === CUSTOM_VIEW ? cleanCustomView(selectedItem) : null,
+      viewUserId: addChoice === USER ? selectedItem.id : null,
+      viewChatId: addChoice === CHAT ? groupTopic.id : null
     }
 
     // Widget will be inserted into the menu as a 'loading' widget, and then properly inserted when returned from the db
@@ -219,33 +227,33 @@ function AddViewDialog ({ group }) {
             <div className='grid grid-cols-2 gap-4'>
               <AddOption
                 title={t('Add Container')}
-                onClick={() => setAddChoice('container')}
+                onClick={() => setAddChoice(CONTAINER)}
               />
               <AddOption
                 title={t('Add Chat')}
-                onClick={() => setAddChoice('chat')}
+                onClick={() => setAddChoice(CHAT)}
               />
               <AddOption
                 title={t('Add Custom View')}
-                onClick={() => setAddChoice('customView')}
+                onClick={() => setAddChoice(CUSTOM_VIEW)}
                 description={t('addCustomViewDescription')}
               />
               <AddOption
                 title={t('Add Member')}
-                onClick={() => setAddChoice('user')}
+                onClick={() => setAddChoice(USER)}
               />
               <AddOption
                 title={t('Add Group')}
-                onClick={() => setAddChoice('group')}
+                onClick={() => setAddChoice(GROUP)}
               />
               <AddOption
                 title={t('Add Post')}
-                onClick={() => setAddChoice('post')}
+                onClick={() => setAddChoice(POST)}
               />
             </div>}
-          {addChoice && ['chat', 'post', 'group', 'user'].includes(addChoice) && <ItemSelector addChoice={addChoice} group={group} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />}
-          {addChoice && addChoice === 'customView' && <CustomViewCreator group={group} addChoice={addChoice} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />}
-          {addChoice && addChoice === 'container' && <ContainerCreator group={group} addChoice={addChoice} widgetData={widgetData} setWidgetData={setWidgetData} />}
+          {addChoice && [CHAT, POST, GROUP, USER].includes(addChoice) && <ItemSelector addChoice={addChoice} group={group} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />}
+          {addChoice && addChoice === CUSTOM_VIEW && <CustomViewCreator group={group} addChoice={addChoice} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />}
+          {addChoice && addChoice === CONTAINER && <ContainerCreator group={group} addChoice={addChoice} widgetData={widgetData} setWidgetData={setWidgetData} />}
         </div>
         <div className='flex justify-end gap-1 mt-4'>
           {addChoice &&
@@ -263,7 +271,7 @@ function AddViewDialog ({ group }) {
           >
             {t('Close')}
           </Button>
-          {(selectedItem || addChoice === 'container') &&
+          {(selectedItem || addChoice === CONTAINER) &&
             <Button
               variant='primary'
               onClick={() => handleCreate({ widgetData, selectedItem, addChoice })}
@@ -289,7 +297,7 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
 
   useEffect(() => {
     async function fetchTopics () {
-      if (!debouncedSearch || addChoice !== 'chat') return
+      if (!debouncedSearch || addChoice !== CHAT) return
 
       setIsLoading(true)
       try {
@@ -313,7 +321,7 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
 
   useEffect(() => {
     async function getPeople () {
-      if (!debouncedSearch || addChoice !== 'user') return
+      if (!debouncedSearch || addChoice !== USER) return
 
       setIsLoading(true)
       try {
@@ -335,9 +343,9 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
 
   useEffect(() => {
     function filterGroups () {
-      if (addChoice === 'group') setItems(groups || [])
+      if (addChoice === GROUP) setItems(groups || [])
 
-      if (!debouncedSearch || addChoice !== 'group') return
+      if (!debouncedSearch || addChoice !== GROUP) return
 
       setIsLoading(true)
       try {
@@ -375,8 +383,8 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
 
   return (
     <div>
-      {addChoice === 'post' && !selectedItem && <PostSelector group={group} onSelectPost={setSelectedItem} />}
-      {['chat', 'user', 'group'].includes(addChoice) && !selectedItem && (
+      {addChoice === POST && !selectedItem && <PostSelector group={group} onSelectPost={setSelectedItem} />}
+      {[CHAT, USER, GROUP].includes(addChoice) && !selectedItem && (
         <Command className='rounded-lg border shadow-md'>
           <CommandInput
             placeholder={textOptions[addChoice].searchPlaceholder}
@@ -407,7 +415,7 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
       {selectedItem &&
         <div>
           <div className='mb-4'>
-            {addChoice === 'user' && (
+            {addChoice === USER && (
               <>
                 <h2>
                   {t('Selected User')}: <span className='font-extrabold'>{selectedItem.name}</span>
@@ -415,7 +423,7 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
                 <p className='text-sm text-gray-500'>{t('The default name of the widget will be the name of the user')}</p>
               </>
             )}
-            {addChoice === 'post' && (
+            {addChoice === POST && (
               <>
                 <h2>
                   {t('Selected Post')}: <span className='font-extrabold'>{selectedItem.title}</span> by <span className='font-extrabold'>{selectedItem.creator?.name}</span>
@@ -423,7 +431,7 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
                 <p className='text-sm text-gray-500'>{t('The default name of the widget will be the title of the post')}</p>
               </>
             )}
-            {addChoice === 'chat' && (
+            {addChoice === CHAT && (
               <>
                 <h2>
                   {t('Selected Chat Topic')}: <span className='font-extrabold'>{selectedItem.name}</span>
@@ -431,7 +439,7 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
                 <p className='text-sm text-gray-500'>{t('The default name of the widget will be the name of the chat topic')}</p>
               </>
             )}
-            {addChoice === 'group' && (
+            {addChoice === GROUP && (
               <>
                 <h2>
                   {t('Selected Group')}: <span className='font-extrabold'>{selectedItem.name}</span>
@@ -628,8 +636,8 @@ function ContainerCreator ({ group, addChoice, widgetData, setWidgetData, }) {
 
 function WidgetSettings ({ setWidgetData, widgetData, addChoice }) {
   const { t } = useTranslation()
-  const isContainer = addChoice === 'container'
-  const isCustomView = addChoice === 'customView'
+  const isContainer = addChoice === CONTAINER
+  const isCustomView = addChoice === CUSTOM_VIEW
   return (
     <div>
       {!isCustomView &&
