@@ -111,7 +111,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const selectTab = tab => setCurrentTabState(tab)
 
   const handleBlockUser = personId => {
-    if (window.confirm(blockConfirmMessage)) {
+    if (window.confirm(t('blockConfirmMessage'))) {
       blockUserAction(personId).then(goToPreviousLocation)
     }
   }
