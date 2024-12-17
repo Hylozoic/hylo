@@ -119,7 +119,7 @@ module.exports = bookshelf.Model.extend({
       let customViewId = data.custom_view_id
             // Check if any view fields are being updated
       const viewFields = Object.values(this.ViewFields)
-      const hasViewUpdate = viewFields.some(field => data[field] !== undefined) || data.customViewInput
+      const hasViewUpdate = viewFields.some(field => data[field] !== undefined) || data.custom_view_input
 
       if (hasViewUpdate) {
         // If including a view field, set all other view fields to null
@@ -130,12 +130,12 @@ module.exports = bookshelf.Model.extend({
         })
       }
 
-      if (data.customViewInput) {
-        const newView = data.customViewInput
+      if (data.custom_view_input) {
+        const newView = data.custom_view_input
         const topics = newView && newView.topics
         delete newView.topics
         delete newView.id
-        currentView = await CustomView.forge({ ...newView, group_id: data.group_id }).save({}, { transacting: trx })
+        const currentView = await CustomView.forge({ ...newView, group_id: data.group_id }).save({}, { transacting: trx })
 
         await currentView.updateTopics(topics, trx)
         customViewId = currentView.get('id')

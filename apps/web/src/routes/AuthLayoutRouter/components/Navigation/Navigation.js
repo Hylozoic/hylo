@@ -356,6 +356,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 
   const title = widgetTitleResolver({ widget, t })
+  // TODO CONTEXT: split off externalLink customviews here
   const url = widgetUrl({ widget, rootPath, groupSlug, context: 'group' })
   const canDnd = !allView && isEditting && widget.type !== 'home'
   const showEdit = allView && canAdminister
@@ -462,7 +463,6 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
   let hideDropZone = isOverlay
 
   const isItemDraggable = isWidgetDroppable({ widget: item }) && canDnd
-  // this is the hook problem. Need to move this out
   const { attributes: itemAttributes, listeners: itemListeners, setNodeRef: setItemDraggableNodeRef, transform: itemTransform } = useDraggable({ id: item.id })
   const itemStyle = itemTransform ? { transform: `translate3d(${itemTransform.x}px, ${itemTransform.y}px, 0)` } : undefined
 
