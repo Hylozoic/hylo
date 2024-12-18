@@ -34,17 +34,13 @@
     "ROLLBAR_ENV": "reviewApp",
     "INTERCOM_APP_ID": {
       "required": true
-    },
-    "APP_BASE": "apps/web"
+    }
   },
   "formation": {
   },
   "addons": [
   ],
   "buildpacks": [
-    {
-      "url": "https://github.com/lstoll/heroku-buildpack-monorepo"
-    },
     {
       "url": "https://github.com/heroku/heroku-buildpack-nodejs#latest"
     }
