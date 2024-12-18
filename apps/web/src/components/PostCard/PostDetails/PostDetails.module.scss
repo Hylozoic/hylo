@@ -71,6 +71,10 @@
   h3, h4, h5 {
     font-size: 16px;
   }
+
+  ol, ul {
+    list-style: revert;
+  }
 }
 
 .timestamp {
