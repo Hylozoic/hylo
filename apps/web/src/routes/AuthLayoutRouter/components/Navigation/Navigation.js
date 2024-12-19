@@ -8,6 +8,7 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
 
 import Icon from 'components/Icon'
+import WidgetIconResolver from 'components/WidgetIconResolver'
 import NavLink from './NavLink'
 import MenuLink from './MenuLink'
 import TopicNavigation from './TopicNavigation'
@@ -396,6 +397,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
         {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (
             <span className='flex justify-between items-center content-center'>
+              <WidgetIconResolver widget={widget} />
               <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
                 <span className='text-lg font-bold'>{title}</span>
               </MenuLink>
@@ -409,11 +411,13 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
             <div>
               {widget.view &&
                 <span className='flex justify-between items-center content-center'>
+                  <WidgetIconResolver widget={widget} />
                   <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}> <h3 className='text-sm font-semibold'>{title}</h3></MenuLink>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {!widget.view &&
                 <span className='flex justify-between items-center content-center'>
+                  <WidgetIconResolver widget={widget} />
                   <h3 className='text-sm font-semibold'>{title}</h3>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
@@ -474,6 +478,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
     <React.Fragment key={item.id + itemTitle}>
       <DropZone height={isItemDraggable ? 'h-4' : ''} hide={hideDropZone || invalidChild} droppableParams={{ id: `${item.id}`, data: { widget: item } }} />
       <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify-between items-center content-center'>
+        <WidgetIconResolver widget={item} />
         <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}>
           <span className='text-sm text-blue-500 underline'>{itemTitle}</span>
         </MenuLink>

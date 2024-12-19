@@ -16,11 +16,6 @@ export function widgetTitleResolver ({ widget, t }) {
   return title
 }
 
-// TODO CONTEXT: need to check if a widget has a set icon, a default icon based on type/view/etc or can fall back on to the icon/avatar of its child
-export function widgetIconResolver () {
-
-}
-
 export function isValidHomeWidget (widget) {
   if (widget?.viewChat?.id) return true
   if (widget?.customView?.id) return true
