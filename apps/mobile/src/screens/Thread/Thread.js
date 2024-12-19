@@ -66,8 +66,7 @@ export default function Thread (props) {
     markAsRead()
   }
 
-  const [, providedCreateMessage] = useMutation(createMessageMutation)
-  const createMessage = text => providedCreateMessage({ messageThreadId: threadId, text, createdAt: new Date().toString() })
+  const [, createMessage] = useMutation(createMessageMutation)
   const sendIsTyping = () => providedSendIsTyping(threadId, true)
   const updateThreadReadTime = () => dispatch(updateThreadReadTimeAction(threadId))
 
@@ -179,7 +178,12 @@ export default function Thread (props) {
     prevThreadIdRef.current = threadId
   }, [messages, threadId, shouldScroll, notify, currentUser?.id])
 
-  const handleSubmit = text => createMessage(TextHelpers.markdown(text))
+  const handleSubmit = text => {
+    createMessage({
+      messageThreadId: threadId,
+      text: TextHelpers.markdown(text)
+    })
+  }
 
   const markAsRead = debounce(1000, () => updateThreadReadTime())
 
@@ -221,7 +225,7 @@ export default function Thread (props) {
       <MessageInput
         blurOnSubmit={false}
         multiline
-        onSubmit={handleSubmit}
+        onSubmit={messageText => handleSubmit(messageText)}
         sendIsTyping={sendIsTyping}
         placeholder={t('Write something')}
       />

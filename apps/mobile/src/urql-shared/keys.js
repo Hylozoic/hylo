@@ -23,6 +23,7 @@ export default {
   MessageQuerySet: () => null,
   MessageThreadQuerySet: () => null,
   NotificationQuerySet: () => null,
+  PersonConnectionQuerySet: () => null,
   PersonQuerySet: () => null,
   Point: () => null,
   PostQuerySet: () => null,

@@ -105,7 +105,7 @@ export default function useHasResponsibility ({
     const groupIds = [].concat(rawGroupIds)
 
     const person = functionPerson || hookPerson || hookPersonById
-console.log('!!! hookPerson', hookPerson)
+
     if (!person) {
       throw new Error(
         '"person" not resolved for hook. There was either a query failure, or the function provided "person" ' +

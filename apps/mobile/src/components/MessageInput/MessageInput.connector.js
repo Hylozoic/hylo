@@ -1,5 +1,5 @@
 import { connect } from 'react-redux'
-import { getMessage, setMessage } from 'screens/NewMessage/NewMessage.store.js'
+import { getMessage, setMessage } from './MessageInput.store.js'
 
 export function mapStateToProps (state, props) {
   const message = getMessage(state)

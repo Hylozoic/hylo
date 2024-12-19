@@ -1,5 +1,6 @@
 import { gql } from 'urql'
 
+// TODO: URQL - analytics: AnalyticsEvents.DIRECT_MESSAGE_SENT
 export default gql` 
   mutation CreateMessageMutation (
     $messageThreadId: String,
