@@ -14,6 +14,8 @@ const { v4: uuidv4 } = require('uuid')
  * https://sailsjs.com/documentation/reference/configuration/sails-config-session
  */
 
+console.log('session config', process.env.PROTOCOL, process.env.COOKIE_DOMAIN, process.env.COOKIE_NAME)
+
 module.exports.session = {
 
   /***************************************************************************

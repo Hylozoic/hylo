@@ -1,6 +1,7 @@
 import fetch from 'node-fetch'
 
 export default function (req, res, next, opts = {}) {
+  console.log("redirect to app", process.env.VITE_HYLO_COOKIE_NAME, req.cookies[process.env.VITE_HYLO_COOKIE_NAME])
   if (req.url !== '/' || !req.cookies[process.env.VITE_HYLO_COOKIE_NAME]) {
     return next()
   }

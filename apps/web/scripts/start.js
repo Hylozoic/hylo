@@ -59,6 +59,7 @@ async function start () {
 
     await server.listen()
 
+    console.log("testinnng", process.env.HTTPS, process.env.VITE_HTTPS)
     const protocol = process.env.HTTPS === 'true' ? 'https' : 'http'
     const packageJson = JSON.parse(fs.readFileSync(paths.appPackageJson, 'utf8'))
     const appName = packageJson.name

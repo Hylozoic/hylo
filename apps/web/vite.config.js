@@ -15,6 +15,8 @@ dotenv.config({ path: '.env' })
 
 const proxyTarget = process.env.VITE_API_HOST || 'http://localhost:3001'
 
+console.log("vote config", process.env.HTTPS, process.env.VITE_HTTPS, process.env.VITE_HTTPS === 'true', process.env.VITE_API_HOST)
+
 export default defineConfig({
   base: '/',
   define: {

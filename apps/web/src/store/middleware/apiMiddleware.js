@@ -9,6 +9,7 @@ export default function apiMiddleware (req) {
     const { path, params, method } = payload.api
     const cookie = req && req.headers.cookie
 
+    console.log("api middleware", path, params, method, cookie, getHost())
     let promise = fetchJSON(path, params, { method, cookie, host: getHost() })
 
     if (meta && meta.then) {
@@ -20,6 +21,7 @@ export default function apiMiddleware (req) {
 }
 
 export function getHost () {
+  console.log("get host", process.env.API_HOST, process.env.VITE_API_HOST)
   if (typeof window === 'undefined') {
     return process.env.API_HOST
   } else {
@@ -37,7 +39,7 @@ export function fetchJSON (path, params, options = {}) {
       'Content-Type': 'application/json',
       Cookie: options.cookie
     },
-    credentials: 'same-origin',
+    credentials: 'include',
     body: method === 'post' ? JSON.stringify(params) : null
   }
   const processResults = (resp) => {
