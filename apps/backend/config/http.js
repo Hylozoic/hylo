@@ -29,13 +29,18 @@ module.exports.http = {
   ****************************************************************************/
 
   middleware: {
-
     passportInit: require('passport').initialize(),
     passportSession: require('passport').session(),
     rollbar: require('../lib/rollbar').errorHandler(),
 
     requestLogger: function (req, res, next) {
       sails.log.info(magenta(`${req.method} ${req.url}`))
+      sails.log.info('Incoming Request Headers:', req.headers)
+
+      // Log outgoing response headers after the response finishes
+      res.on('finish', () => {
+        sails.log.info('Outgoing Response Headers:', res.getHeaders())
+      })
       next()
     },
 
