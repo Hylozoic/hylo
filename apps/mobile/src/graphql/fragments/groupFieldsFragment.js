@@ -266,6 +266,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           id
           name
         }
+      }
     }`
     : ''}
 `
