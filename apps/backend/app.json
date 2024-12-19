@@ -81,7 +81,7 @@
         "NODE_ENV": "production",
         "NODE_MODULES_CACHE": false,
         "PROCFILE": "apps/backend/Procfile",
-        "PROTOCOL": "http",
+        "PROTOCOL": "https",
         "YARN2_WORKSPACE_PATH": "apps/backend"
       }
     }

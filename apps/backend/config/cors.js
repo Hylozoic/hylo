@@ -50,7 +50,7 @@ module.exports.security = {
     *                                                                          *
     ***************************************************************************/
 
-    allowOrigins: '*',
+    allowOrigins: ['https://www.hylo.com', 'https://staging.hylo.com', 'http://localhost:3000'],
     // process.env.CORS_ORIGIN || 'https://www.hylo.com',
 
     /***************************************************************************
@@ -59,7 +59,7 @@ module.exports.security = {
     *                                                                          *
     ***************************************************************************/
 
-    allowCredentials: false,
+    allowCredentials: true,
 
     /***************************************************************************
     *                                                                          *
