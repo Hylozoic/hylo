@@ -177,7 +177,9 @@ export function customViewUrl (customViewId, rootPath, opts) {
 
 export function widgetUrl ({ widget, rootPath, groupSlug, context }) {
   let url = ''
-  if (widget.view) {
+  if (widget.view === 'about') {
+    url = groupDetailUrl(groupSlug, { rootPath, groupSlug, context })
+  } else if (widget.view) {
     url = viewUrl(widget.view, { groupSlug, context })
   } else if (widget.viewGroup) {
     url = groupUrl(widget.viewGroup.slug)
