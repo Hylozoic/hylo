@@ -99,6 +99,11 @@ export default function Stream (props) {
   }
   const viewMode = querystringParams.v || customView?.defaultViewMode || projectsDefault || defaultViewMode
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
+  const getTypes = ({ customView, view }) => {
+    if (customView?.type === 'stream') return customView?.postTypes
+    if (view === 'ask-and-offer') return ['request', 'offer']
+    return null
+  }
 
   const fetchPostsParam = {
     activePostsOnly: customView?.type === 'stream' ? customView?.activePostsOnly : false,
@@ -112,7 +117,7 @@ export default function Stream (props) {
     sortBy,
     topic: topic?.id,
     topics: customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : [],
-    types: customView?.type === 'stream' ? customView?.postTypes : null
+    types: getTypes({ customView, view })
   }
 
   if (context === CONTEXT_MY && view === VIEW_MENTIONS) fetchPostsParam.mentionsOf = [currentUser.id]

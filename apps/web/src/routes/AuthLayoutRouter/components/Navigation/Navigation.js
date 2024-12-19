@@ -360,7 +360,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const url = widgetUrl({ widget, rootPath, groupSlug, context: 'group' })
   const canDnd = !allView && isEditting && widget.type !== 'home'
   const showEdit = allView && canAdminister
-  let hideDropZone = isOverlay || allView || !canDnd
+  let hideDropZone = isOverlay || allView || !canDnd || ['setup'].includes(widget.type)
 
   if (isCreating) {
     return (

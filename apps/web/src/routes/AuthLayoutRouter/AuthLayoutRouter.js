@@ -406,6 +406,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/stream/*' element={<Stream context='groups' view='stream' />} />
               <Route path='groups/:groupSlug/proposals/*' element={<Stream context='groups' view='proposals' />} />
               <Route path='groups/:groupSlug/explore/*' element={<LandingPage context='groups' />} />
+              <Route path='groups/:groupSlug/ask-and-offer/*' element={<Stream context='groups' view='ask-and-offer' />} />
               <Route path='groups/:groupSlug/projects/*' element={<Stream context='groups' view='projects' />} />
               <Route path='groups/:groupSlug/custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
               <Route path='groups/:groupSlug/events/*' element={<Events context='groups' view='events' />} />
@@ -488,6 +489,7 @@ export default function AuthLayoutRouter (props) {
               <Route path={`/groups/:groupSlug/projects/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/stream/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/proposals/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
+              <Route path={`/groups/:groupSlug/ask-and-offer/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/custom/:customViewId/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/members/:personId/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
