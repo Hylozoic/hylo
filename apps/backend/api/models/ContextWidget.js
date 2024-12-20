@@ -161,8 +161,8 @@ module.exports = bookshelf.Model.extend({
 
       widget.refresh()
       // pull out the addToEnd and orderInFrontOfWidgetId
-      const addToEnd = data.add_to_end
-      const orderInFrontOfWidgetId = data.order_in_front_of_widget_id
+      const addToEnd = data.add_to_end || data.addToEnd
+      const orderInFrontOfWidgetId = data.order_in_front_of_widget_id || data.orderInFrontOfWidgetId
       
       if (addToEnd || data.parent_id !== undefined || orderInFrontOfWidgetId !== undefined) {
         await ContextWidget.reorder({
@@ -269,7 +269,10 @@ module.exports = bookshelf.Model.extend({
           parent_id = CASE id
             ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.parentId === null ? 'NULL' : w.parentId}`).join('\n')}
           END,
-          auto_added = true
+          auto_added = CASE 
+            ${reorderedWidgets.map(w => `WHEN id = ${w.id} AND ${w.order} IS NOT NULL THEN true`).join('\n')}
+            ELSE auto_added
+          END
         WHERE id IN (${reorderedWidgets.map(w => w.id).join(',')})
       `
     
@@ -305,7 +308,10 @@ module.exports = bookshelf.Model.extend({
           parent_id = CASE id
             ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.parentId === null ? 'NULL' : w.parentId}`).join('\n')}
           END,
-          auto_added = true
+          auto_added = CASE 
+            ${reorderedWidgets.map(w => `WHEN id = ${w.id} AND ${w.order} IS NOT NULL THEN true`).join('\n')}
+            ELSE auto_added
+          END
         WHERE id IN (${reorderedWidgets.map(w => w.id).join(',')})
       `
     
@@ -339,8 +345,8 @@ module.exports = bookshelf.Model.extend({
       }
 
       // pull out the addToEnd and orderInFrontOfWidgetId
-      const addToEnd = data.add_to_end
-      const orderInFrontOfWidgetId = data.order_in_front_of_widget_id
+      const addToEnd = data.add_to_end || data.addToEnd
+      const orderInFrontOfWidgetId = data.order_in_front_of_widget_id || data.orderInFrontOfWidgetId
 
       // Update the widget with the new data. If a widget is updated, we don't want to auto-add it later.
       await widget.save({ 

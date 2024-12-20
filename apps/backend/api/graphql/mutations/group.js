@@ -174,7 +174,9 @@ export async function acceptGroupRelationshipInvite (userId, groupRelationshipIn
   if (invite) {
     if (GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
       const groupRelationship = await invite.accept(userId)
+      await Queue.classMethod('Group', 'doesMenuUpdate', { groupRelationship: true, groupIds: group_ids })
       return { success: !!groupRelationship, groupRelationship }
+      
     } else {
       throw new GraphQLYogaError('You do not have permission to do this')
     }

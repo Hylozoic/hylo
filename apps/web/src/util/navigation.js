@@ -171,7 +171,6 @@ export function chatUrl (chatName, opts) {
 }
 
 export function customViewUrl (customViewId, rootPath, opts) {
-  // TODO CONTEXT: This is PROBABLY ok but need to verify with a range of custom views
   return `${rootPath}/custom/${customViewId}`
 }
 

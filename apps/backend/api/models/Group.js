@@ -558,18 +558,10 @@ module.exports = bookshelf.Model.extend(merge({
               title: chat.name,
               type: 'chat',
               parent_id: chat.visibility === 2 ? chatsWidgetId : null,
-              view_chat_id: chat.tag_id
+              view_chat_id: chat.tag_id,
+              addToEnd: (chat.visibility === 2),
             }, { transacting: trx })
           ))
-  
-          // If any pinned chats were found, order the chats widget
-          if (groupChats.some(chat => chat.visibility === 2)) {
-            await ContextWidget.reorder({
-              id: chatsWidgetId,
-              order: 2,
-              trx
-            })
-          }
         }
       }
   
@@ -584,7 +576,7 @@ module.exports = bookshelf.Model.extend(merge({
         if (hasAsksOffers) {
           await ContextWidget.update({
             id: askOfferWidget.get('id'),
-            data: { parent_id: autoAddWidgetId },
+            data: { parent_id: autoAddWidgetId, addToEnd: true },
             trx
           })
         }
@@ -601,7 +593,7 @@ module.exports = bookshelf.Model.extend(merge({
         if (hasEvents) {
           await ContextWidget.update({
             id: eventsWidget.get('id'),
-            data: { parent_id: autoAddWidgetId },
+            data: { parent_id: autoAddWidgetId, addToEnd: true },
             trx
           })
         }
@@ -618,7 +610,7 @@ module.exports = bookshelf.Model.extend(merge({
         if (hasProjects) {
           await ContextWidget.update({
             id: projectsWidget.get('id'),
-            data: { parent_id: autoAddWidgetId },
+            data: { parent_id: autoAddWidgetId, addToEnd: true },
             trx
           })
         }
@@ -634,7 +626,7 @@ module.exports = bookshelf.Model.extend(merge({
         if (hasRelatedGroups) {
           await ContextWidget.update({
             id: groupsWidget.get('id'),
-            data: { parent_id: autoAddWidgetId },
+            data: { parent_id: autoAddWidgetId, addToEnd: true },
             trx
           })
         }
@@ -655,7 +647,7 @@ module.exports = bookshelf.Model.extend(merge({
         if (hasProposals || hasModeration) {
           await ContextWidget.update({
             id: decisionsWidget.get('id'),
-            data: { parent_id: autoAddWidgetId },
+            data: { parent_id: autoAddWidgetId, addToEnd: true },
             trx
           })
         }
@@ -679,7 +671,7 @@ module.exports = bookshelf.Model.extend(merge({
         if (hasLocationPosts || hasMembersWithLocation) {
           await ContextWidget.update({
             id: mapWidget.get('id'),
-            data: { parent_id: autoAddWidgetId },
+            data: { parent_id: autoAddWidgetId, addToEnd: true },
             trx
           })
         }
@@ -702,6 +694,7 @@ module.exports = bookshelf.Model.extend(merge({
                 custom_view_id: view.id,
                 parent_id: customViewsWidget.get('id'),
                 auto_added: true,
+                addToEnd: true
               }, { transacting: trx })
             ))
           }
@@ -847,6 +840,7 @@ module.exports = bookshelf.Model.extend(merge({
               }
             } else {
               currentView = await CustomView.forge({ ...newView, group_id: this.id }).save({}, { transacting })
+                .tap((currentView) => Queue.classMethod('Group', 'doesMenuUpdate', { customView: currentView, groupIds: [this.id] }))
             }
 
             await currentView.updateTopics(topics, transacting)
@@ -1038,6 +1032,114 @@ module.exports = bookshelf.Model.extend(merge({
       await group.save({ active: false }, opts)
       return group.removeMembers(await group.members().fetch(), opts)
     }
+  },
+
+  async doesMenuUpdate ({ groupIds, post, customView, groupRelation = false }) {
+    if (!post && !customView && !groupRelation) return
+    const postType = post && post.get('type')
+    // Skip processing if it's a chat post and no other conditions are present
+    if (postType === 'chat' && !customView && !groupRelation) return
+    await bookshelf.transaction(async trx => {
+      for (const groupId of groupIds) {
+        const widgets = await ContextWidget.where({ group_id: groupId }).fetchAll({ transacting: trx })
+        const autoAddWidget = widgets.find(w => w.get('type') === 'auto-view')
+        
+        // Handle custom view case
+        if (customView) {
+          const existingWidget = widgets.find(w => w.get('custom_view_id') === customView.id)
+          if (!existingWidget) {
+            await ContextWidget.create({
+              custom_view_id: customView.id,
+              addToEnd: true,
+              group_id: groupId,
+              transacting: trx
+            })
+          }
+        }
+
+        // Handle group relation case
+        if (groupRelation) {
+          const groupsWidget = widgets.find(w => w.get('view') === 'groups')
+          if (groupsWidget && !groupsWidget.get('auto_added')) {
+            await ContextWidget.reorder({
+              id: groupsWidget.get('id'),
+              parentId: autoAddWidget.get('id'),
+              addToEnd: true,
+              trx
+            })
+          }
+        }
+
+        // Handle post cases - multiple conditions can apply
+        if (post) {
+          // Check events
+          if (postType === 'event') {
+            const eventsWidget = widgets.find(w => w.get('view') === 'events')
+            if (eventsWidget && !eventsWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: eventsWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check asks and offers
+          if (postType === 'request' || postType === 'offer') {
+            const askOfferWidget = widgets.find(w => w.get('view') === 'ask-and-offer')
+            if (askOfferWidget && !askOfferWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: askOfferWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check location
+          if (post.location_id) {
+            const mapWidget = widgets.find(w => w.get('view') === 'map')
+            if (mapWidget && !mapWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: mapWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check projects
+          if (postType === 'project') {
+            console.log('does this happen?')
+            const projectsWidget = widgets.find(w => w.get('view') === 'projects')
+            if (projectsWidget && !projectsWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: projectsWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check proposals/decisions
+          if (postType === 'proposal') {
+            const decisionsWidget = widgets.find(w => w.get('view') === 'decisions')
+            if (decisionsWidget && !decisionsWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: decisionsWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+        }
+      }
+    })
   },
 
   find (idOrSlug, opts = {}) {
