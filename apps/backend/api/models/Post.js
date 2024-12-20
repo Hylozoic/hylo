@@ -759,7 +759,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     num_comments: 0,
     num_people_reacts: 0
   }),
-
+  
   create: function (attrs, opts) {
     return Post.forge(_.merge(Post.newPostAttrs(), attrs))
       .save(null, _.pick(opts, 'transacting'))

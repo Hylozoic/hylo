@@ -60,6 +60,43 @@ export default function makeModels (userId, isAdmin, apiClient) {
       fetchMany: () => CommonRole.fetchAll()
     },
 
+    ContextWidget: {
+      model: ContextWidget,
+      attributes: [
+        'id',
+        'title',
+        'type', 
+        'order',
+        'visibility',
+        'view',
+        'icon',
+        'created_at',
+        'parent_id',
+        'updated_at',
+        'highlightNumber',
+        'secondaryNumber'
+      ],
+      relations: [
+        'ownerGroup',
+        'parentWidget',
+        { children: { alias: 'childWidgets', querySet: true } },
+        'viewGroup',
+        'viewPost', 
+        'customView',
+        'viewUser',
+        'viewChat'
+      ],
+      fetchMany: ({ groupId, includeUnordered }) => {
+        return ContextWidget.collection().query(q => {
+          q.where({ group_id: groupId })
+          if (!includeUnordered) {
+            q.whereNotNull('order')
+          }
+          q.orderBy('order', 'asc')
+        })
+      }
+},
+
     Me: {
       model: User,
       attributes: [
@@ -440,6 +477,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { activeMembers: { querySet: true } },
         { agreements: { querySet: true } },
         { childGroups: { querySet: true } },
+        { contextWidgets: { querySet: true } },
         { customViews: { querySet: true } },
         { groupRelationshipInvitesFrom: { querySet: true } },
         { groupRelationshipInvitesTo: { querySet: true } },
@@ -448,11 +486,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
           groupTags: {
             querySet: true,
             alias: 'groupTopics',
-            filter: (relation, { autocomplete, subscribed }) =>
+            filter: (relation, { autocomplete, subscribed, groupId }) =>
               relation.query(groupTopicFilter(userId, {
                 autocomplete,
                 subscribed,
-                groupId: relation.relatedData.parentId
+                groupId: relation.relatedData.parentId || groupId
               }))
           }
         },
@@ -1015,9 +1053,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         groupTags: {
           alias: 'groupTopics',
           querySet: true,
-          filter: (relation, { autocomplete, subscribed, isDefault, visibility }) =>
+          filter: (relation, { autocomplete, subscribed, isDefault, visibility, groupId }) =>
             relation.query(groupTopicFilter(userId, {
               autocomplete,
+              groupId,
               isDefault,
               subscribed,
               visibility

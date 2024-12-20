@@ -20,7 +20,6 @@ export default function NavLink ({ to, exact, label, icon, badge, onClick, colla
       </li>
     )
   }
-
   const active = location.pathname === to
 
   return (
