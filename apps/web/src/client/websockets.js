@@ -16,7 +16,10 @@ if (isClient) {
 
   // Optional: configure additional options
   io.sails.autoConnect = true
-  io.sails.useCORSRouteToGetCookie = false
+
+  // XXX: this is needed with our current setup on production, to get the session cookie from the server, using the API host, and enable logging in at all.
+  // Otherwise, the session cookie is does not come through when calling https://www.hylo.com/noo/graphql,and the login fails
+  io.sails.useCORSRouteToGetCookie = true
 
   io.sails.environment = environment
   io.sails.reconnection = true
