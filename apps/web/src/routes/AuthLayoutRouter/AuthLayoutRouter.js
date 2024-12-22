@@ -56,7 +56,7 @@ import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import SiteTour from 'routes/AuthLayoutRouter/components/SiteTour'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
-import TopNav from './components/TopNav'
+import GlobalNav from './components/GlobalNav'
 
 import UserSettings from 'routes/UserSettings'
 import { GROUP_TYPES } from 'store/models/Group'
@@ -265,14 +265,6 @@ export default function AuthLayoutRouter (props) {
         )}
       </Routes>
 
-      {!withoutNav && (
-        <>
-          {/* Depends on `pathMatchParams` */}
-          <TopNav className={classes.top} onClick={handleCloseDrawer} {...{ group: currentGroup, currentUser, routeParams: pathMatchParams, showMenuBadge, width }} />
-          {isDrawerOpen && <Drawer className={cx(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
-        </>
-      )}
-
       <Routes>
         <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
@@ -306,8 +298,22 @@ export default function AuthLayoutRouter (props) {
         <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
       </Routes>
 
-      <Div100vh className={cx('flex flex-col items-stretch bg-background', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
+      <Div100vh className={cx('flex flex-row items-stretch bg-background', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cx(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })} onClick={handleCloseDrawer}>
+          {!withoutNav && (
+            <>
+              {/* Depends on `pathMatchParams` */}
+              <GlobalNav
+                onClick={handleCloseDrawer}
+                group={currentGroup}
+                currentUser={currentUser}
+                routeParams={pathMatchParams}
+                showMenuBadge={showMenuBadge}
+              />
+              {isDrawerOpen && <Drawer className={cx(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
+            </>
+          )}
+
           {/* View navigation menu */}
           {(!currentGroupSlug || (currentGroup && currentGroupMembership)) && (
             <Routes>

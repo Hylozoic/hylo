@@ -33,6 +33,7 @@ import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import PostCard from 'components/PostCard'
 import TopicFeedHeader from 'components/TopicFeedHeader'
+import ViewHeader from 'components/ViewHeader'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import ChatPost from './ChatPost'
 import createPost from 'store/actions/createPost'
@@ -440,7 +441,9 @@ export default function ChatRoom (props) {
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
 
-      <TopicFeedHeader
+      <ViewHeader title={`#${topicName}`}></ViewHeader>
+
+      {/* <TopicFeedHeader
         bannerUrl={group && group.bannerUrl}
         currentUser={currentUser}
         followersTotal={followersTotal}
@@ -453,8 +456,9 @@ export default function ChatRoom (props) {
             : null
         }
         topicName={topicName}
-      />
-      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden' ref={containerRef}>
+      /> */}
+
+      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden bg-background/50' ref={containerRef}>
         {initialPostToScrollTo === null
           ? <div className={styles.loadingContainer}><Loading /></div>
           : (

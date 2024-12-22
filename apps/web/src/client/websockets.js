@@ -16,7 +16,7 @@ if (isClient) {
 
   // Optional: configure additional options
   io.sails.autoConnect = true
-  io.sails.useCORSRouteToGetCookie = false
+  io.sails.useCORSRouteToGetCookie = true
 
   io.sails.environment = environment
   io.sails.reconnection = true

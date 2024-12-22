@@ -1,14 +1,13 @@
 .card {
-  border-radius: 4px;
+  border-radius: 12px;
   cursor: pointer;
   position: relative;
-  right: 0px;
-  transition: 0.25s;
   display: flex;
   flex-direction: column;
   transition: all .25s ease;
-  background-color: rgba(255, 255, 255, 1);
-  border: 1px solid rgba(0, 118, 223, 0);
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--card-foreground));
 }
 
 .child-post-label-wrapper {
