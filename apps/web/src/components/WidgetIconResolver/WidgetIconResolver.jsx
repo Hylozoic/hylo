@@ -49,8 +49,6 @@ export function WidgetIconResolver ({ widget, style, className }) {
       return <Icon name='Calendar' style={style} />
     case 'projects':
       return <Icon name='Stack' style={style} />
-    case 'groups':
-      return <Icon name='People' style={style} />
     case 'proposals':
     case 'decisions':
       return <Icon name='Proposal' style={style} />
