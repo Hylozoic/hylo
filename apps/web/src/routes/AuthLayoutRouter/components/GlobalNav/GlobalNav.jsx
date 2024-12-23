@@ -20,6 +20,7 @@ import { toggleDrawer, toggleGroupMenu } from 'routes/AuthLayoutRouter/AuthLayou
 import getMyGroups from 'store/selectors/getMyGroups'
 import logout from 'store/actions/logout'
 import { CONTEXT_MY } from 'store/constants'
+import { PUBLIC_CONTEXT_AVATAR_PATH } from 'store/models/Group'
 import { hyloLogo, publicLogo } from 'util/assets'
 import { bgImageStyle } from 'util/index'
 import { localeToFlagEmoji, localeLocalStorageSync } from 'util/locale'
@@ -79,7 +80,7 @@ export default function GlobalNav (props) {
           alignLeft
           noOverflow
           toggleChildren={
-            <GlobalNavItem img={get('avatarUrl', currentUser)} />
+            <GlobalNavItem img={get('avatarUrl', currentUser)} tooltip={t('Your Profile')} />
           }
         >
           <li>
@@ -89,10 +90,8 @@ export default function GlobalNav (props) {
           </li>
           <li><Link className={styles.hoverHighlight} to='/settings'>{t('Settings')}</Link></li>
           <li>
-            <Suspense fallback={<GlobalNavItem><span>{t('Locale')} {localeFlag}</span></GlobalNavItem>}>
-              <GlobalNavItem>
-                <LocaleDropdown className={styles.localeDropdown} renderToggleChildren={<span className={styles.locale}>{t('Locale')} {localeFlag}</span>} />
-              </GlobalNavItem>
+            <Suspense fallback={<span>{t('Locale')} {localeFlag}</span>}>
+              <LocaleDropdown className={styles.localeDropdown} renderToggleChildren={<span className={styles.locale}>{t('Locale')} {localeFlag}</span>} />
             </Suspense>
           </li>
           <li><a onClick={handleLogout}>{t('Log out')}</a></li>
@@ -100,7 +99,7 @@ export default function GlobalNav (props) {
 
         <Suspense fallback={<GlobalNavItem><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
-            <GlobalNavItem>
+            <GlobalNavItem tooltip='Activity'>
               <BadgedIcon name='Notifications' className={styles.icon} showBadge={showBadge} />
             </GlobalNavItem>}
           />
@@ -108,11 +107,13 @@ export default function GlobalNav (props) {
 
         <Suspense fallback={<GlobalNavItem><BadgedIcon name='Messages' className={styles.icon} /></GlobalNavItem>}>
           <MessagesDropdown renderToggleChildren={showBadge =>
-            <GlobalNavItem>
+            <GlobalNavItem tooltip='Messages'>
               <BadgedIcon name='Messages' className={styles.icon} showBadge={showBadge} />
             </GlobalNavItem>}
           />
         </Suspense>
+
+        <GlobalNavItem img={PUBLIC_CONTEXT_AVATAR_PATH} tooltip={t('Public')} url='/public' />
 
         {groups.map(group =>
           <GlobalNavItem
