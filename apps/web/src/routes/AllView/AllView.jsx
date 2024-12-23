@@ -55,14 +55,18 @@ export default function AllViews () {
   // Access the current group and its contextWidgets
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const contextWidgets = group?.contextWidgets?.items || []
+  const addViewParam = getQuerystringParam('addview', location)
 
   const isEditting = getQuerystringParam('cme', location) === 'yes'
-  const isAddingView = getQuerystringParam('addview', location) === 'yes'
+  const isAddingView = !!addViewParam
   const orderInFrontOfWidgetId = getQuerystringParam('orderInFrontOfWidgetId', location)
   const parentId = getQuerystringParam('parentId', location)
   const addToEnd = getQuerystringParam('addToEnd', location)
   const parentWidget = parentId ? contextWidgets.find(widget => widget.id === parentId) : null
 
+  const editingWidgetId = addViewParam !== 'yes' ? addViewParam : null
+  const edittedWidget = editingWidgetId ? contextWidgets.find(widget => widget.id === editingWidgetId) : null
+  console.log(edittedWidget, 'edittedWidget', addViewParam, 'addViewParamssss')
   // Determine the rootPath
   const rootPath = baseUrl({ ...routeParams, view: null })
 
@@ -76,20 +80,21 @@ export default function AllViews () {
     return true
   })
 
-
   const handleWidgetHomePromotion = useCallback((widget) => {
     if (window.confirm(t('Are you sure you want to set this widget as the home/default widget for this group?'))) {
       dispatch(setHomeWidget({ contextWidgetId: widget.id, groupId: group.id }))
     }
   }, [t, setHomeWidget])
 
-  const handleWidgetUpdate = useCallback((widget) => {
+  const handleAddWidgetToMenu = useCallback((widget) => {
     dispatch(updateContextWidget({
       contextWidgetId: widget.id,
       groupId: group.id,
       data: { parentId: null, addToEnd: true }
     }))
   }, [updateContextWidget])
+
+  const handleEditWidget = (widget) => navigate(addQuerystringToPath(location.pathname, { cme: 'yes', addview: widget.id }))
 
   // Create widget cards
   const widgetCards = useMemo(() => {
@@ -129,7 +134,18 @@ export default function AllViews () {
                 name='Plus'
                 onClick={(evt) => {
                   evt.stopPropagation()
-                  handleWidgetUpdate(widget)
+                  handleAddWidgetToMenu(widget)
+                }}
+              />
+            </span>
+          )}
+          {isEditting && (
+            <span className='text-sm text-gray-600 block'>
+              <Icon
+                name='Edit'
+                onClick={(evt) => {
+                  evt.stopPropagation()
+                  handleEditWidget(widget)
                 }}
               />
             </span>
@@ -159,7 +175,7 @@ export default function AllViews () {
         </div>
       </div>
       {widgetCards}
-      {isAddingView && <AddViewDialog group={group} orderInFrontOfWidgetId={orderInFrontOfWidgetId} parentId={parentId} addToEnd={addToEnd} parentWidget={parentWidget} />}
+      {isAddingView && <AddViewDialog group={group} orderInFrontOfWidgetId={orderInFrontOfWidgetId} parentId={parentId} addToEnd={addToEnd} parentWidget={parentWidget} edittedWidget={edittedWidget} />}
     </div>
   )
 }
@@ -175,7 +191,7 @@ function AddOption ({ title, onClick, description, disabled = false }) {
   )
 }
 
-function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, parentWidget }) {
+function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, parentWidget, edittedWidget }) {
   const { t } = useTranslation()
   const location = useLocation()
   const dispatch = useDispatch()
@@ -187,14 +203,37 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
       ? CUSTOM_VIEW
       : null
   const [addChoice, setAddChoice] = useState(initialAddChoice)
-  const [selectedItem, setSelectedItem] = useState(null)
-  const [widgetData, setWidgetData] = useState({ title: '', visibility: 'all' })
-
+  const [selectedItem, setSelectedItem] = useState(edittedWidget && null)
+  const [widgetData, setWidgetData] = useState({
+    title: edittedWidget ? (edittedWidget.title === null ? '' : edittedWidget.title) : '',
+    visibility: edittedWidget ? (edittedWidget.visibility === null ? 'all' : edittedWidget.visibility) : 'all'
+  })
+  console.log(addChoice, selectedItem, widgetData, 'wahtsst happening')
   const handleReset = () => {
     setAddChoice(null)
     setSelectedItem(null)
     setWidgetData({ title: '', visibility: 'all' })
   }
+
+  useEffect(() => {
+    if (edittedWidget) {
+      setWidgetData(edittedWidget)
+      setSelectedItem(edittedWidget)
+      if (edittedWidget.viewChat) {
+        setAddChoice(CHAT)
+      } else if (edittedWidget?.viewGroup) {
+        setAddChoice(GROUP)
+      } else if (edittedWidget?.viewPost) {
+        setAddChoice(POST)
+      } else if (edittedWidget?.viewUser) {
+        setAddChoice(USER)
+      } else if (edittedWidget?.customView) {
+        setAddChoice(CUSTOM_VIEW)
+      } else {
+        setAddChoice(CONTAINER)
+      }
+    }
+  }, [edittedWidget])
 
   const handleCreate = useCallback(async ({ widgetData, selectedItem, addChoice }) => {
     let groupTopic
@@ -230,6 +269,30 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
       console.error('Failed to create context widget:', error)
     }
   }, [])
+
+  const handleUpdate = useCallback(async ({ widgetData, selectedItem, addChoice }) => {
+    // Only very limited fields can be updated
+    const contextWidgetInput = {
+      visibility: widgetData.visibility === 'all' ? null : widgetData.visibility,
+      title: widgetData.title === '' ? null : widgetData.title,
+      icon: null,
+      customViewInput: addChoice === CUSTOM_VIEW ? cleanCustomView(selectedItem) : null // TODO CONTEXT: need to verify this works
+    }
+
+    try {
+      await dispatch(updateContextWidget({
+        id: edittedWidget.id,
+        data: contextWidgetInput,
+        groupId: group.id
+      }))
+      handleReset()
+      navigate(addQuerystringToPath(location.pathname, { cme: 'yes' }))
+    } catch (error) {
+      console.error('Failed to update context widget:', error)
+    }
+  }, [edittedWidget])
+
+  const handleSave = edittedWidget ? handleUpdate : handleCreate
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
@@ -270,9 +333,9 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
                 disabled={!widgetIsValidChild({ parentWidget, childWidget: { viewPost: { id: 'fake-id' } } })}
               />
             </div>}
-          {addChoice && [CHAT, POST, GROUP, USER].includes(addChoice) && <ItemSelector addChoice={addChoice} group={group} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />}
-          {addChoice && addChoice === CUSTOM_VIEW && <CustomViewCreator group={group} addChoice={addChoice} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />}
-          {addChoice && addChoice === CONTAINER && <ContainerCreator group={group} addChoice={addChoice} widgetData={widgetData} setWidgetData={setWidgetData} />}
+          {addChoice && [CHAT, POST, GROUP, USER].includes(addChoice) && <ItemSelector addChoice={addChoice} group={group} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} edittedWidget={edittedWidget} />}
+          {addChoice && addChoice === CUSTOM_VIEW && <CustomViewCreator group={group} addChoice={addChoice} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} edittedWidget={edittedWidget} />}
+          {addChoice && addChoice === CONTAINER && <ContainerCreator group={group} addChoice={addChoice} widgetData={widgetData} setWidgetData={setWidgetData} edittedWidget={edittedWidget} />}
         </div>
         <div className='flex justify-end gap-1 mt-4'>
           {addChoice &&
@@ -293,10 +356,10 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
           {(selectedItem || addChoice === CONTAINER) &&
             <Button
               variant='primary'
-              onClick={() => handleCreate({ widgetData, selectedItem, addChoice })}
+              onClick={() => handleSave({ widgetData, selectedItem, addChoice })}
               className='bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600'
             >
-              {t('Create')}
+              {edittedWidget ? t('Update') : t('Create')}
             </Button>}
         </div>
       </div>
@@ -304,7 +367,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
   )
 }
 
-function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widgetData, setWidgetData }) {
+function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widgetData, setWidgetData, edittedWidget }) {
   const [searchTerm, setSearchTerm] = useState('')
   const { t } = useTranslation()
   const [items, setItems] = useState([])
@@ -474,7 +537,7 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
   )
 }
 
-function CustomViewCreator ({ group, selectedItem, setSelectedItem, widgetData, setWidgetData, addChoice }) {
+function CustomViewCreator ({ group, selectedItem, setSelectedItem, widgetData, setWidgetData, addChoice, edittedWidget }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const [customView, setCustomView] = useState({
@@ -642,7 +705,7 @@ function CustomViewCreator ({ group, selectedItem, setSelectedItem, widgetData, 
   )
 }
 
-function ContainerCreator ({ group, addChoice, widgetData, setWidgetData, }) {
+function ContainerCreator ({ group, addChoice, widgetData, setWidgetData, edittedWidget}) {
   const { t } = useTranslation()
   return (
     <div>
