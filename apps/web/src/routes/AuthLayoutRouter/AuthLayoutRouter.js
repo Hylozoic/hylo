@@ -95,7 +95,7 @@ export default function AuthLayoutRouter (props) {
 
   const hasDetail = useMemo(() => {
     const detailRegex = /\/(group|post)\/([a-zA-Z0-9-]+)/
-    return detailRegex.test(location.pathname)
+    return detailRegex.test(location.pathname) && !location.pathname.includes('topics/')
   }, [location.pathname])
 
   const paramPostId = useMemo(() => {
@@ -463,7 +463,7 @@ export default function AuthLayoutRouter (props) {
               <Route path={`/public/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
               <Route path={`/public/projects/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
               <Route path={`/public/stream/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
-              <Route path={`/public/topics/:topicName/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
+              {/* <Route path={`/public/topics/:topicName/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} /> */}
               <Route path={`/public/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
               <Route path={`/public/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
               <Route path={`/public/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
@@ -490,7 +490,7 @@ export default function AuthLayoutRouter (props) {
               <Route path={`/groups/:groupSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/projects/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/stream/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-              <Route path={`/groups/:groupSlug/topics/:topicName/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
+              {/* <Route path={`/groups/:groupSlug/topics/:topicName/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} /> */}
               <Route path={`/groups/:groupSlug/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
 

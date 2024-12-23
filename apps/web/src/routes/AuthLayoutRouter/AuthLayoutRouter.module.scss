@@ -381,16 +381,15 @@ $drawer-z-index: 51;
   background-color: white;
   position: absolute;
   z-index: 30;
-  top: 64px;
+  top: 0px;
   right: 0px;
-  height: calc(100vh - 56px);
+  height: 100vh;
   width: $detail-column-width;
   box-shadow: 0px 4px 56px 0px $shadow-color;
   transition-delay: 0.1s;
   transition-duration: 0.2s;
   padding-bottom: 50px;
   overflow-y: auto;
-  margin-top: -8px;
   overflow-x: hidden;
 
   &.hidden {
