@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [5.11.0] - 2024-12-17
+
+### Added
+- Support passing a localId for optimistically created posts, to make post creation faster in chat rooms especially
+
+### Changed
+- Improve our @mentions significantly: Works with spaces in names! Loads more people as you scroll down! Slightly improves search results coming from the backend.
+- Updated database seed data for groups and users
+- Now developing and deploying from a new hylo monorepo!
+
+### Fixed
+- Fix bug where people are asked to answer join questions even after having answered them when requesting to join
+- Fix bug where reactions view on user profile was not working
+- Moderation action notifications are working now
+
 ## [5.10.1] - 2024-10-28
 
 ### Fixed

@@ -7,6 +7,7 @@
   "scripts": {
     "backend:dev": "yarn workspace backend run dev",
     "web:dev": "yarn workspace web run dev",
+    "cron": "yarn workspace backend cron",
     "migrate": "yarn workspace backend migrate",
     "worker": "yarn workspace backend worker",
     "mobile:dev": "yarn workspace mobile start",
