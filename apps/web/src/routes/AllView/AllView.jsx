@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash'
-import { widgetUrl, widgetTitleResolver, widgetTypeResolver, isValidHomeWidget, humanReadableTypes } from 'util/contextWidgets'
+import { widgetUrl, widgetTitleResolver, widgetTypeResolver, isValidHomeWidget, humanReadableTypes, widgetIsValidChild } from 'util/contextWidgets'
 import { addQuerystringToPath, baseUrl } from 'util/navigation'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -56,6 +56,13 @@ export default function AllViews () {
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const contextWidgets = group?.contextWidgets?.items || []
 
+  const isEditting = getQuerystringParam('cme', location) === 'yes'
+  const isAddingView = getQuerystringParam('addview', location) === 'yes'
+  const orderInFrontOfWidgetId = getQuerystringParam('orderInFrontOfWidgetId', location)
+  const parentId = getQuerystringParam('parentId', location)
+  const addToEnd = getQuerystringParam('addToEnd', location)
+  const parentWidget = parentId ? contextWidgets.find(widget => widget.id === parentId) : null
+
   // Determine the rootPath
   const rootPath = baseUrl({ ...routeParams, view: null })
 
@@ -69,8 +76,6 @@ export default function AllViews () {
     return true
   })
 
-  const isEditting = getQuerystringParam('cme', location) === 'yes'
-  const isAddingView = getQuerystringParam('addview', location) === 'yes'
 
   const handleWidgetHomePromotion = useCallback((widget) => {
     if (window.confirm(t('Are you sure you want to set this widget as the home/default widget for this group?'))) {
@@ -154,14 +159,14 @@ export default function AllViews () {
         </div>
       </div>
       {widgetCards}
-      {isAddingView && <AddViewDialog group={group} />}
+      {isAddingView && <AddViewDialog group={group} orderInFrontOfWidgetId={orderInFrontOfWidgetId} parentId={parentId} addToEnd={addToEnd} parentWidget={parentWidget} />}
     </div>
   )
 }
 
-function AddOption ({ title, onClick, description }) {
+function AddOption ({ title, onClick, description, disabled = false }) {
   return (
-    <div onClick={onClick} className='p-4 border border-gray-300 rounded-md shadow-sm cursor-pointer hover:bg-gray-50'>
+    <div onClick={disabled ? null : onClick} className={`p-4 border border-gray-300 rounded-md shadow-sm cursor-pointer hover:bg-gray-50 ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}>
       <div className='flex flex-col'>
         <h3 className='text-lg font-semibold'>{title}</h3>
         {description && <p className='text-sm font-normal text-gray-500'>{description}</p>}
@@ -170,12 +175,18 @@ function AddOption ({ title, onClick, description }) {
   )
 }
 
-function AddViewDialog ({ group }) {
+function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, parentWidget }) {
   const { t } = useTranslation()
   const location = useLocation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const [addChoice, setAddChoice] = useState(null)
+
+  const initialAddChoice = parentWidget?.type === 'chats'
+    ? CHAT
+    : parentWidget?.type === 'custom-views'
+      ? CUSTOM_VIEW
+      : null
+  const [addChoice, setAddChoice] = useState(initialAddChoice)
   const [selectedItem, setSelectedItem] = useState(null)
   const [widgetData, setWidgetData] = useState({ title: '', visibility: 'all' })
 
@@ -196,7 +207,7 @@ function AddViewDialog ({ group }) {
     }
 
     const contextWidgetInput = {
-      addToEnd: true, // These widgets are default added to the bottom of the menu
+      addToEnd: !orderInFrontOfWidgetId,
       visibility: widgetData.visibility === 'all' ? null : widgetData.visibility,
       type: addChoice === CHAT ? CHAT : null, // The default is for type to be null unless there is a specific need
       title: widgetData.title === '' ? null : widgetData.title,
@@ -205,7 +216,9 @@ function AddViewDialog ({ group }) {
       viewPostId: addChoice === POST ? selectedItem.id : null,
       customViewInput: addChoice === CUSTOM_VIEW ? cleanCustomView(selectedItem) : null,
       viewUserId: addChoice === USER ? selectedItem.id : null,
-      viewChatId: addChoice === CHAT ? groupTopic.id : null
+      viewChatId: addChoice === CHAT ? groupTopic.id : null,
+      parentId,
+      orderInFrontOfWidgetId
     }
 
     // Widget will be inserted into the menu as a 'loading' widget, and then properly inserted when returned from the db
@@ -228,27 +241,33 @@ function AddViewDialog ({ group }) {
               <AddOption
                 title={t('Add Container')}
                 onClick={() => setAddChoice(CONTAINER)}
+                disabled={parentWidget?.id}
               />
               <AddOption
                 title={t('Add Chat')}
                 onClick={() => setAddChoice(CHAT)}
+                disabled={!widgetIsValidChild({ parentWidget, childWidget: { type: CHAT, viewChat: { id: 'fake-id' } } })}
               />
               <AddOption
                 title={t('Add Custom View')}
                 onClick={() => setAddChoice(CUSTOM_VIEW)}
                 description={t('addCustomViewDescription')}
+                disabled={!widgetIsValidChild({ parentWidget, childWidget: { customView: { id: 'fake-id' } } })}
               />
               <AddOption
                 title={t('Add Member')}
                 onClick={() => setAddChoice(USER)}
+                disabled={!widgetIsValidChild({ parentWidget, childWidget: { viewUser: { id: 'fake-id' } } })}
               />
               <AddOption
                 title={t('Add Group')}
                 onClick={() => setAddChoice(GROUP)}
+                disabled={!widgetIsValidChild({ parentWidget, childWidget: { viewGroup: { id: 'fake-id' } } })}
               />
               <AddOption
                 title={t('Add Post')}
                 onClick={() => setAddChoice(POST)}
+                disabled={!widgetIsValidChild({ parentWidget, childWidget: { viewPost: { id: 'fake-id' } } })}
               />
             </div>}
           {addChoice && [CHAT, POST, GROUP, USER].includes(addChoice) && <ItemSelector addChoice={addChoice} group={group} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />}
