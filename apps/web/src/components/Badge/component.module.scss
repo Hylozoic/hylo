@@ -16,8 +16,8 @@
   width: 21px;
   height: 21px;
   border-radius: 50%;
-  color: $color-white;
-  background-color: $color-persimmon;
+  color: hsl(var(--accent-foreground));
+  background-color: hsl(var(--accent));
   font-weight: 600;
   vertical-align: middle;
   line-height: normal;
@@ -40,7 +40,7 @@
   display: inline;
   font-size: 12px;
   transition: 0.15s;
-  color: $color-white;
+  color: hsl(var(--accent-foreground));
   position: relative;
   top: -1px;
   text-decoration: none;
@@ -62,7 +62,7 @@
 .border {
   width: 11px;
   height: 11px;
-  border: 2px solid $color-white;
+  border: 2px solid hsl(var(--accent-foreground));
 }
 
 // parent is imported by parent composes to add as a className so that the badge can

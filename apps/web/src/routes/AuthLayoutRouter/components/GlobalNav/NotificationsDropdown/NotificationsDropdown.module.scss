@@ -1,11 +1,11 @@
 // NotificationsDropdown
 
 .header-content {
-  composes: header-content from '../TopNavDropdown/TopNavDropdown.module.scss';
+  composes: header-content from '../GlobalNavDropdown/GlobalNavDropdown.module.scss';
 }
 
 .tab {
-  composes: header-link from '../TopNavDropdown/TopNavDropdown.module.scss';
+  composes: header-link from '../GlobalNavDropdown/GlobalNavDropdown.module.scss';
   margin-right: 15px;
 }
 
@@ -23,12 +23,12 @@
 }
 
 .mark-read {
-  composes: header-link from '../TopNavDropdown/TopNavDropdown.module.scss';
+  composes: header-link from '../GlobalNavDropdown/GlobalNavDropdown.module.scss';
   margin-left: auto;
 }
 
 .notifications {
-  composes: body from '../TopNavDropdown/TopNavDropdown.module.scss';
+  composes: body from '../GlobalNavDropdown/GlobalNavDropdown.module.scss';
 }
 
 .notification {

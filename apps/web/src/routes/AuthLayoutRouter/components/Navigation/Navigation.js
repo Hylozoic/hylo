@@ -43,7 +43,6 @@ const getGroupMembership = ormCreateSelector(
 export default function Navigation (props) {
   const {
     className,
-    collapsed,
     groupId,
     mapView
   } = props
@@ -250,11 +249,41 @@ export default function Navigation (props) {
     setActiveWidget(null)
   }
 
-  const collapserState = collapsed ? 'collapserCollapsed' : 'collapser'
+  const handleDragStart = ({ active }) => {
+    setIsDragging(true)
+
+    const activeId = active.id
+    const activeContextWidget = orderedWidgets.find(widget => widget.id === activeId) || contextWidgets.find(widget => widget.id === activeId)
+
+    setActiveWidget(activeContextWidget)
+  }
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event
+    setIsDragging(false)
+    if (over && over.id !== active.id && over.id !== 'remove') {
+      const orderInFrontOfWidget = over.data?.current?.widget
+      dispatch(updateContextWidget({
+        contextWidgetId: active.id,
+        groupId: group.id,
+        data: {
+          orderInFrontOfWidgetId: orderInFrontOfWidget?.id,
+          parentId: over.data.current?.widget?.parentId || over.data?.current?.parentId,
+          addToEnd: over.data?.current?.addToEnd,
+          remove: over.id === 'remove'
+        }
+      }))
+    }
+    if (over.id === 'remove') {
+      dispatch(removeWidgetFromMenu({ contextWidgetId: active.id, groupId: group.id }))
+    }
+    setActiveWidget(null)
+  }
+
   const canView = !group || group.memberCount !== 0
   const links = isMyContext ? myLinks : regularLinks
   return (
-    <div className={cx(classes.container, { [classes.mapView]: mapView }, classes[collapserState], { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
+    <div className={cx(classes.container, { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
       {!hasContextWidgets && (
         <div className={classes.navigation}>
           {canView && (
@@ -264,7 +293,6 @@ export default function Navigation (props) {
                   key={link.label + i}
                   externalLink={link.externalLink}
                   {...link}
-                  collapsed={collapsed}
                   onClick={link.handleClick}
                 />
               ))}
@@ -277,7 +305,6 @@ export default function Navigation (props) {
           )}
           {canView && !isMyContext && !isPublic && (
             <TopicNavigation
-              collapsed={collapsed}
               backUrl={rootPath}
               routeParams={routeParams}
               groupId={groupId}

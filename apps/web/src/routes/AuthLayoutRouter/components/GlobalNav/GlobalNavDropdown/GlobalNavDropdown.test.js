@@ -1,20 +1,20 @@
 import React from 'react'
 import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
-import TopNavDropdown from './TopNavDropdown'
+import GlobalNavDropdown from './GlobalNavDropdown'
 
 const topNavPosition = {
   rightX: 1280,
   height: 56
 }
 
-describe('TopNavDropdown', () => {
+describe('GlobalNavDropdown', () => {
   it('renders correctly and toggles active state', () => {
     const toggleChildren = <div>toggle</div>
     const header = <div>header</div>
     const body = <div>body</div>
 
     render(
-      <TopNavDropdown
+      <GlobalNavDropdown
         topNavPosition={topNavPosition}
         toggleChildren={toggleChildren}
         header={header}

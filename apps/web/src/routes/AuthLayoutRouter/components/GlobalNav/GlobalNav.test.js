@@ -2,13 +2,13 @@ import React from 'react'
 import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
-import TopNav from './TopNav'
+import GlobalNav from './GlobalNav'
 
 jest.mock('react-use-intercom', () => ({
   useIntercom: () => ({ show: () => {} })
 }))
 
-describe('TopNav', () => {
+describe('GlobalNav', () => {
   it('renders as expected with no group', async () => {
     const me = {
       id: '1',
@@ -82,7 +82,7 @@ describe('TopNav', () => {
     )
 
     render(
-      <TopNav routeParams={{ context: 'all', view: 'stream' }} />
+      <GlobalNav routeParams={{ context: 'all', view: 'stream' }} />
     )
 
     await waitFor(() => {

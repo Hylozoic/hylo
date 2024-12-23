@@ -5,10 +5,10 @@ import { useTranslation } from 'react-i18next'
 import { TextHelpers } from '@hylo/shared'
 import RoundImage from 'components/RoundImage'
 import ScrollListener from 'components/ScrollListener/ScrollListener'
-import LoadingItems from 'routes/AuthLayoutRouter/components/TopNav/LoadingItems'
-import NoItems from 'routes/AuthLayoutRouter/components/TopNav/NoItems'
+import LoadingItems from 'routes/AuthLayoutRouter/components/GlobalNav/LoadingItems'
+import NoItems from 'routes/AuthLayoutRouter/components/GlobalNav/NoItems'
 import { bodyForNotification, titleForNotification, urlForNotification } from 'store/models/Notification'
-import TopNavDropdown from '../TopNavDropdown'
+import GlobalNavDropdown from '../GlobalNavDropdown'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
 import {
@@ -99,7 +99,7 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
   }
 
   return (
-    <TopNavDropdown
+    <GlobalNavDropdown
       ref={dropdownRef}
       className={className}
       onToggle={onToggle}

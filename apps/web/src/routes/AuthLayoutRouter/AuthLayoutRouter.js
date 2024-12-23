@@ -58,7 +58,7 @@ import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import SiteTour from 'routes/AuthLayoutRouter/components/SiteTour'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
-import TopNav from './components/TopNav'
+import GlobalNav from './components/GlobalNav'
 
 import UserSettings from 'routes/UserSettings'
 import { GROUP_TYPES } from 'store/models/Group'
@@ -98,7 +98,7 @@ export default function AuthLayoutRouter (props) {
 
   const hasDetail = useMemo(() => {
     const detailRegex = /\/(group|post)\/([a-zA-Z0-9-]+)/
-    return detailRegex.test(location.pathname)
+    return detailRegex.test(location.pathname) && !location.pathname.includes('topics/')
   }, [location.pathname])
 
   const paramPostId = useMemo(() => {
@@ -110,8 +110,6 @@ export default function AuthLayoutRouter (props) {
   const isMapView = pathMatchParams?.view === 'map'
   const hideSidebar = isMapView || pathMatchParams?.view === 'topics'
   const isWelcomeContext = pathMatchParams?.context === 'welcome'
-  const queryParams = Object.fromEntries(new URLSearchParams(location.search))
-  const hideDrawer = queryParams?.hideDrawer !== 'true'
 
   // Store
   const dispatch = useDispatch()
@@ -198,7 +196,6 @@ export default function AuthLayoutRouter (props) {
   }
   const handleCloseDrawer = () => isDrawerOpen && dispatch(toggleDrawerAction())
   const showMenuBadge = some(m => m.newPostCount > 0, memberships)
-  const collapsedState = hasDetail || (isMapView && hideDrawer)
   const isSingleColumn = (currentGroupSlug && !currentGroupMembership) ||
     matchPath({ path: '/members/:personId' }, location.pathname)
   // When joining a group by invitation Group Welcome Modal (join form)
@@ -273,14 +270,6 @@ export default function AuthLayoutRouter (props) {
         )}
       </Routes>
 
-      {!withoutNav && (
-        <>
-          {/* Depends on `pathMatchParams` */}
-          <TopNav className={classes.top} onClick={handleCloseDrawer} {...{ group: currentGroup, currentUser, routeParams: pathMatchParams, showMenuBadge, width }} />
-          {isDrawerOpen && <Drawer className={cx(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
-        </>
-      )}
-
       <Routes>
         <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
@@ -314,8 +303,22 @@ export default function AuthLayoutRouter (props) {
         <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
       </Routes>
 
-      <Div100vh className={cx(classes.container, { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
+      <Div100vh className={cx('flex flex-row items-stretch bg-background', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cx(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })} onClick={handleCloseDrawer}>
+          {!withoutNav && (
+            <>
+              {/* Depends on `pathMatchParams` */}
+              <GlobalNav
+                onClick={handleCloseDrawer}
+                group={currentGroup}
+                currentUser={currentUser}
+                routeParams={pathMatchParams}
+                showMenuBadge={showMenuBadge}
+              />
+              {isDrawerOpen && <Drawer className={cx(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
+            </>
+          )}
+
           {/* View navigation menu */}
           {(!currentGroupSlug || (currentGroup && currentGroupMembership)) && (
             <Routes>
@@ -325,8 +328,7 @@ export default function AuthLayoutRouter (props) {
                   <Navigation
                     context='groups'
                     group={currentGroup}
-                    collapsed={collapsedState}
-                    className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
+                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -337,8 +339,7 @@ export default function AuthLayoutRouter (props) {
                   <Navigation
                     context='all'
                     group={currentGroup}
-                    collapsed={collapsedState}
-                    className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
+                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -349,8 +350,7 @@ export default function AuthLayoutRouter (props) {
                   <Navigation
                     context='public'
                     group={currentGroup}
-                    collapsed={collapsedState}
-                    className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
+                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -361,15 +361,14 @@ export default function AuthLayoutRouter (props) {
                   <Navigation
                     context='my'
                     group={currentGroup}
-                    collapsed={collapsedState}
-                    className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
+                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
               />
             </Routes>
           )}
-          <div className={cx(classes.center, { [classes.fullWidth]: hideSidebar, [classes.collapsedState]: collapsedState, [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
+          <div className={cx(classes.center, { [classes.fullWidth]: hideSidebar, [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
             {/* NOTE: It could be more clear to group the following switched routes by component  */}
             <Routes>
               {/* **** Member Routes **** */}
@@ -471,7 +470,7 @@ export default function AuthLayoutRouter (props) {
               <Route path={`/public/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
               <Route path={`/public/projects/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
               <Route path={`/public/stream/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
-              <Route path={`/public/topics/:topicName/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
+              {/* <Route path={`/public/topics/:topicName/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} /> */}
               <Route path={`/public/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
               <Route path={`/public/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
               <Route path={`/public/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
@@ -499,7 +498,7 @@ export default function AuthLayoutRouter (props) {
               <Route path={`/groups/:groupSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/projects/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/stream/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-              <Route path={`/groups/:groupSlug/topics/:topicName/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
+              {/* <Route path={`/groups/:groupSlug/topics/:topicName/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} /> */}
               <Route path={`/groups/:groupSlug/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
 
