@@ -1,15 +1,3 @@
-.card {
-  border-radius: 12px;
-  cursor: pointer;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  transition: all .25s ease;
-  background-color: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  color: hsl(var(--card-foreground));
-}
-
 .child-post-label-wrapper {
   display: flex;
   justify-content: flex-end;

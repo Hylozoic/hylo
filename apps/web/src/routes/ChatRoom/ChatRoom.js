@@ -436,27 +436,12 @@ export default function ChatRoom (props) {
   if (topicLoading) return <Loading />
 
   return (
-    <div className={cx(styles.container, { [styles.withoutNav]: withoutNav })}>
+    <div className={cx('h-full shadow-md flex flex-col overflow-hidden', { [styles.withoutNav]: withoutNav })}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
 
-      <ViewHeader title={`#${topicName}`}></ViewHeader>
-
-      {/* <TopicFeedHeader
-        bannerUrl={group && group.bannerUrl}
-        currentUser={currentUser}
-        followersTotal={followersTotal}
-        groupSlug={groupSlug}
-        isSubscribed={groupTopic && groupTopic.isSubscribed}
-        newPost={newPost}
-        toggleSubscribe={
-          groupTopic
-            ? () => toggleGroupTopicSubscribeAction(groupTopic)
-            : null
-        }
-        topicName={topicName}
-      /> */}
+      <ViewHeader title={`#${topicName}`} />
 
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden bg-background/50' ref={containerRef}>
         {initialPostToScrollTo === null
@@ -482,7 +467,8 @@ export default function ChatRoom (props) {
             </VirtuosoMessageListLicense>
             )}
       </div>
-      <div className={styles.postChatBox}>
+      {/* Post chat box */}
+      <div className='relative w-full max-w-[750px] px-2 mt-2 mx-auto shadow-md p-2 border-t border-l border-r border-border shadow-lg rounded-t-xl bg-card'>
         <HyloEditor
           contentHTML={newPost.details}
           groupIds={groupIds}
@@ -516,7 +502,7 @@ export default function ChatRoom (props) {
           showLabel
           showLoading
         />
-        <div className={styles.postChatBoxFooter}>
+        <div className='w-full'>
           <UploadAttachmentButton
             type='post'
             className={styles.uploadAttachment}
@@ -613,16 +599,20 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
           )
         : null}
       {post.type === 'chat'
-        ? <ChatPost
-            expanded={expanded}
-            group={context.group}
-            showHeader={showHeader}
-            post={post}
-            onAddReaction={context.onAddReaction}
-            onRemoveReaction={context.onRemoveReaction}
-          />
+        ? (
+          <div className='mx-auto px-4 max-w-[750px]'>
+            <ChatPost
+              expanded={expanded}
+              group={context.group}
+              showHeader={showHeader}
+              post={post}
+              onAddReaction={context.onAddReaction}
+              onRemoveReaction={context.onRemoveReaction}
+            />
+          </div>
+          )
         : (
-          <div className={cx(styles.cardItem, { [styles.expanded]: expanded })}>
+          <div className='mx-auto px-4 max-w-[750px]'>
             <PostCard
               group={context.group}
               expanded={expanded}
