@@ -750,16 +750,16 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   encryptEmail: function (email) {
-    var plaintext = process.env.MAILGUN_EMAIL_SALT + email
-    return `u=${PlayCrypto.encrypt(plaintext)}@${process.env.MAILGUN_DOMAIN}`
+    var plaintext = process.env.INBOUND_EMAIL_SALT + email
+    return `u=${PlayCrypto.encrypt(plaintext)}@${process.env.INBOUND_EMAIL_DOMAIN}`
   },
 
   decryptEmail: function (email) {
-    var pattern = new RegExp(`u=(\\w+)@${process.env.MAILGUN_DOMAIN}`)
+    var pattern = new RegExp(`u=(\\w+)@${process.env.INBOUND_EMAIL_DOMAIN}`)
     var match = email.match(pattern)
     var hash = match[1]
     var decrypted = PlayCrypto.decrypt(hash)
-    var unsalted = decrypted.replace(new RegExp('^' + process.env.MAILGUN_EMAIL_SALT), '')
+    var unsalted = decrypted.replace(new RegExp('^' + process.env.INBOUND_EMAIL_SALT), '')
 
     return unsalted
   },

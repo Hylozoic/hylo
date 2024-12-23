@@ -100,12 +100,12 @@ module.exports = {
       Object.assign({version: 'v2'}, opts)),
 
   postReplyAddress: function (postId, userId) {
-    var plaintext = format('%s%s|%s', process.env.MAILGUN_EMAIL_SALT, postId, userId)
-    return format('reply-%s@%s', PlayCrypto.encrypt(plaintext), process.env.MAILGUN_DOMAIN)
+    var plaintext = format('%s%s|%s', process.env.INBOUND_EMAIL_SALT, postId, userId)
+    return format('reply-%s@%s', PlayCrypto.encrypt(plaintext), process.env.INBOUND_EMAIL_DOMAIN)
   },
 
   decodePostReplyAddress: function (address) {
-    var salt = new RegExp(format('^%s', process.env.MAILGUN_EMAIL_SALT))
+    var salt = new RegExp(format('^%s', process.env.INBOUND_EMAIL_SALT))
     var match = address.match(/reply-(.*?)@/)
     var plaintext = PlayCrypto.decrypt(match[1]).replace(salt, '')
     var ids = plaintext.split('|')
@@ -114,12 +114,12 @@ module.exports = {
   },
 
   postCreationAddress: function (groupId, userId, type) {
-    var plaintext = format('%s%s|%s|', process.env.MAILGUN_EMAIL_SALT, groupId, userId, type)
-    return format('create-%s@%s', PlayCrypto.encrypt(plaintext), process.env.MAILGUN_DOMAIN)
+    var plaintext = format('%s%s|%s|', process.env.INBOUND_EMAIL_SALT, groupId, userId, type)
+    return format('create-%s@%s', PlayCrypto.encrypt(plaintext), process.env.INBOUND_EMAIL_DOMAIN)
   },
 
   decodePostCreationAddress: function (address) {
-    var salt = new RegExp(format('^%s', process.env.MAILGUN_EMAIL_SALT))
+    var salt = new RegExp(format('^%s', process.env.INBOUND_EMAIL_SALT))
     var match = address.match(/create-(.*?)@/)
     var plaintext = PlayCrypto.decrypt(match[1]).replace(salt, '')
     var decodedData = plaintext.split('|')
@@ -128,12 +128,12 @@ module.exports = {
   },
 
   formToken: function (groupId, userId) {
-    var plaintext = format('%s%s|%s|', process.env.MAILGUN_EMAIL_SALT, groupId, userId)
+    var plaintext = format('%s%s|%s|', process.env.INBOUND_EMAIL_SALT, groupId, userId)
     return PlayCrypto.encrypt(plaintext)
   },
 
   decodeFormToken: function (token) {
-    var salt = new RegExp(format('^%s', process.env.MAILGUN_EMAIL_SALT))
+    var salt = new RegExp(format('^%s', process.env.INBOUND_EMAIL_SALT))
     var plaintext = PlayCrypto.decrypt(token).replace(salt, '')
     var decodedData = plaintext.split('|')
 
