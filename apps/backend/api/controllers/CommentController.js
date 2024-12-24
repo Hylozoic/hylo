@@ -55,7 +55,7 @@ module.exports = {
             }
           })
 
-          const text = Comment.cleanEmailText(user, params.html || params.text, {
+          const text = Comment.cleanEmailText(user, params.text || params.html, {
             useMarkdown: !post.isThread()
           })
           return createComment(replyData.userId, { text, post, created_from: 'email' })
