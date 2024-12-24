@@ -42,11 +42,8 @@ module.exports = {
         Post.find(replyData.postId, { withRelated: 'groups' }),
         User.find(replyData.userId),
         (post, user) => {
-          sails.log.info('post', post)
-          sails.log.info('user', user)
           if (!post) return res.status(422).send('valid token, but post not found')
           if (!user) return res.status(422).send('valid token, but user not found')
-
           const group = post.relations.groups.first()
 
           Analytics.track({
@@ -61,7 +58,6 @@ module.exports = {
           const text = Comment.cleanEmailText(user, params.html || params.text, {
             useMarkdown: !post.isThread()
           })
-
           return createComment(replyData.userId, { text, post, created_from: 'email' })
             .then(() => res.ok({}), res.serverError)
         })

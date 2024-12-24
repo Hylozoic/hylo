@@ -1,8 +1,9 @@
-const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
-const Promise = require('bluebird')
 import { curry, merge } from 'lodash'
 import { format } from 'util'
 import { mapLocaleToSendWithUS } from '../../lib/util'
+
+const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
+const Promise = require('bluebird')
 
 const sendEmail = opts =>
   new Promise((resolve, reject) =>
@@ -100,17 +101,16 @@ module.exports = {
       Object.assign({version: 'v2'}, opts)),
 
   postReplyAddress: function (postId, userId) {
-    var plaintext = format('%s%s|%s', process.env.INBOUND_EMAIL_SALT, postId, userId)
+    const plaintext = format('%s%s|%s', process.env.INBOUND_EMAIL_SALT, postId, userId)
     return format('reply-%s@%s', PlayCrypto.encrypt(plaintext), process.env.INBOUND_EMAIL_DOMAIN)
   },
 
   decodePostReplyAddress: function (address) {
-    var salt = new RegExp(format('^%s', process.env.INBOUND_EMAIL_SALT))
-    var match = address.match(/reply-(.*?)@/)
-    var plaintext = PlayCrypto.decrypt(match[1]).replace(salt, '')
-    var ids = plaintext.split('|')
-
-    return {postId: ids[0], userId: ids[1]}
+    const salt = new RegExp(format('^%s', process.env.INBOUND_EMAIL_SALT))
+    const match = address.match(/reply-(.*?)@/)
+    const plaintext = PlayCrypto.decrypt(match[1]).replace(salt, '')
+    const ids = plaintext.split('|')
+    return { postId: ids[0], userId: ids[1] }
   },
 
   postCreationAddress: function (groupId, userId, type) {
