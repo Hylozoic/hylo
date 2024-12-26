@@ -659,7 +659,7 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     sails.log.info('Group.update', this.getSetting('publish_murmurations_profile'), previousSettings.publish_murmurations_profile)
-    if (this.getSetting('publish_murmurations_profile') && !previousSettings.publish_murmurations_profile) {
+    if (this.hasMurmurationsProfile()) {
       sails.log.info('Group.update', 'publishing to murmurations')
       await Queue.classMethod('Group', 'publishToMurmurations', { groupId: this.id })
     }
