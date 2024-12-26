@@ -941,7 +941,7 @@ module.exports = bookshelf.Model.extend(merge({
       sails.log.info('Group.publishToMurmurations response', response)
       if (response.ok) {
         sails.log.info('Group.publishToMurmurations response ok', await response.json())
-        return response.json()
+        return await response.json()
       } else {
         sails.log.error('Group.publishToMurmurations error', response.status, response.statusText, await response.json())
         throw new Error('Failed to publish to Murmurations')

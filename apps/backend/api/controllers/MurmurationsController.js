@@ -20,7 +20,7 @@ module.exports = {
     if (group.hasMurmurationsProfile()) {
       const groupObject = await group.toMurmurationsObject()
       sails.log.info('MurmurationsController.group', groupObject)
-      return res.ok(groupObject)
+      return res.ok(JSON.stringify(groupObject))
     } else {
       return res.forbidden()
     }
