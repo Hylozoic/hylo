@@ -944,12 +944,13 @@ module.exports = bookshelf.Model.extend(merge({
         headers: { 'Content-Type': 'application/json' }
       })
       sails.log.info('Group.publishToMurmurations response', response)
+      const responseJSON = await response.json()
       if (response.ok) {
-        sails.log.info('Group.publishToMurmurations response ok', await response.json())
-        return await response.json()
+        sails.log.info('Group.publishToMurmurations response ok', responseJSON)
+        return responseJSON
       } else {
-        sails.log.error('Group.publishToMurmurations error', response.status, response.statusText, await response.json())
-        throw new Error('Failed to publish to Murmurations')
+        sails.log.error('Group.publishToMurmurations error', response.status, response.statusText, responseJSON)
+        throw new Error(`Failed to publish to Murmurations: ${response.status}: ${response.statusText} - ${responseJSON.message}`)
       }
     }
   },
