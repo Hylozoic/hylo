@@ -459,29 +459,34 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   async toMurmurationsObject () {
-    const location = this.get('location_id') ? await this.locationObject().fetch() : null
     const parentGroups = await this.parentGroups().fetch()
     const childrenGroups = await this.childGroups().fetch()
     const publicParents = parentGroups.filter(g => g.hasMurmurationsProfile()).map(g => ({ object_url: Frontend.Route.group(g), predicate_url: 'https://schema.org/memberOf' }))
     const publicChildren = childrenGroups.filter(g => g.hasMurmurationsProfile()).map(g => ({ object_url: Frontend.Route.group(g), predicate_url: 'https://schema.org/member' }))
-    return {
+    const profile = {
       linked_schemas: [
         'organizations_schema-v1.0.0'
       ],
       name: this.get('name'),
       primary_url: Frontend.Route.group(this),
-      mission: this.get('purpose'),
-      description: this.get('description'),
-      image: this.get('avatar_url'),
-      header_image: this.get('banner_url'),
-      full_address: location?.get('full_address'),
-      country_iso_3166: location?.get('country_code') ? location?.get('country_code').toUpperCase() : null,
-      geolocation: {
-        lat: location?.get('center').lat,
-        lon: location?.get('center').lng
-      },
+      mission: this.get('purpose') || '',
+      description: this.get('description') || '',
+      image: this.get('avatar_url') || '',
+      full_address: this.get('location') || '',
       relationships: publicParents.concat(publicChildren)
     }
+    if (this.get('banner_url')) {
+      profile.header_image = this.get('banner_url')
+    }
+    if (this.get('location_id')) {
+      const location = this.get('location_id') ? await this.locationObject().fetch() : null
+      profile.country_iso_3166 = location?.get('country_code') ? location?.get('country_code').toUpperCase() : ''
+      profile.geolocation = {
+        lat: location?.get('center').lat,
+        lon: location?.get('center').lng
+      }
+    }
+    return profile
   },
 
   async updateMembers (usersOrIds, attrs, { transacting } = {}) {
