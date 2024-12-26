@@ -101,14 +101,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
       return false
     })
   },
-
   childComments: function () {
-    return this.hasMany(Comment, 'comment_id').query({where: {'comments.active': true}})
+    return this.hasMany(Comment, 'comment_id').query({ where: { 'comments.active': true } })
   },
 
   media: function (type) {
     const relation = this.hasMany(Media)
-    return type ? relation.query({where: {type}}) : relation
+    return type ? relation.query({ where: { type } }) : relation
   },
 
   getTagsInComments: function (opts) {
@@ -136,13 +135,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
     })
 
     const newCommentActivities = followers
-    .filter(u => u.id !== actorId)
-    .map(u => u.id)
-    .map(createActivity('newComment'))
+      .filter(u => u.id !== actorId)
+      .map(u => u.id)
+      .map(createActivity('newComment'))
 
     const mentionActivities = mentionedIds
-    .filter(u => u.id !== actorId)
-    .map(createActivity('commentMention'))
+      .filter(u => u.id !== actorId)
+      .map(createActivity('commentMention'))
 
     return Activity.saveForReasons(
       newCommentActivities.concat(mentionActivities), trx)
@@ -150,7 +149,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 }, EnsureLoad), {
 
   find: function (id, options) {
-    return Comment.where({id: id}).fetch(options)
+    return Comment.where({ id: id }).fetch(options)
   },
 
   createdInTimeRange: function (collection, startTime, endTime) {

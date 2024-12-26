@@ -1,3 +1,5 @@
+/* global GroupToGroupJoinQuestion, Location, Slack, Widget */
+/* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { clone, defaults, difference, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
 import mbxGeocoder from '@mapbox/mapbox-sdk/services/geocoding'
@@ -111,12 +113,12 @@ module.exports = bookshelf.Model.extend(merge({
 
   groupRelationshipInvitesFrom () {
     return this.hasMany(GroupRelationshipInvite, 'from_group_id')
-      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending }})
+      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending } })
   },
 
   groupRelationshipInvitesTo () {
     return this.hasMany(GroupRelationshipInvite, 'to_group_id')
-      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending }})
+      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending } })
   },
 
   groupRoles () {
@@ -139,7 +141,15 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
-  isHidden() {
+  hasMurmurationsProfile () {
+    return this.get('visibility') === Group.Visibility.PUBLIC && this.getSetting('publish_murmurations_profile')
+  },
+
+  murmurationsProfileUrl () {
+    return process.env.PROTOCOL + '://' + process.env.DOMAIN + '/noo/group/' + this.get('slug') + '/murmurations'
+  },
+
+  isHidden () {
     return this.get('visibility') === Group.Visibility.HIDDEN
   },
 
@@ -226,7 +236,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   // Return # of prereq groups userId is not a member of yet
   // This is used on front-end to figure out if user can see all prereqs or not
-  async numPrerequisitesLeft(userId) {
+  async numPrerequisitesLeft (userId) {
     const prerequisiteGroups = await this.prerequisiteGroups().fetch()
     let num = prerequisiteGroups.models.length
     await Promise.map(prerequisiteGroups.models, async (prereq) => {
@@ -433,19 +443,45 @@ module.exports = bookshelf.Model.extend(merge({
         const newPost = post.copy()
         const time = new Date(now - (timeShift[post.get('type')] || 0) * 1000)
         // TODO: why are we attaching Ed West as a follower to every welcome post??
-        return newPost.save({created_at: time, updated_at: time}, {transacting})
+        return newPost.save({ created_at: time, updated_at: time }, { transacting })
           .then(() => Promise.all(flatten([
-            this.posts().attach(newPost, {transacting}),
+            this.posts().attach(newPost, { transacting }),
             post.followers().fetch().then(followers =>
-              newPost.addFollowers(followers.map(f => f.id), {}, {transacting})
+              newPost.addFollowers(followers.map(f => f.id), {}, { transacting })
             )
           ])))
       }))
   },
 
   async removeMembers (usersOrIds, { transacting } = {}) {
-    return this.updateMembers(usersOrIds, {active: false}, {transacting}).then(() =>
-      this.save({ num_members: this.get('num_members') - usersOrIds.length }, { transacting }))
+    return this.updateMembers(usersOrIds, { active: false }, { transacting })
+      .then(() => this.save({ num_members: this.get('num_members') - usersOrIds.length }, { transacting }))
+  },
+
+  async toMurmurationsObject () {
+    const location = this.get('location_id') ? await this.locationObject().fetch() : null
+    const parentGroups = await this.parentGroups().fetch()
+    const childrenGroups = await this.childGroups().fetch()
+    const publicParents = parentGroups.filter(g => g.hasMurmurationsProfile()).map(g => ({ object_url: Frontend.Route.group(g), predicate_url: 'https://schema.org/memberOf' }))
+    const publicChildren = childrenGroups.filter(g => g.hasMurmurationsProfile()).map(g => ({ object_url: Frontend.Route.group(g), predicate_url: 'https://schema.org/member' }))
+    return {
+      linked_schemas: [
+        'organizations_schema-v1.0.0'
+      ],
+      name: this.get('name'),
+      primary_url: Frontend.Route.group(this),
+      mission: this.get('purpose'),
+      description: this.get('description'),
+      image: this.get('avatar_url'),
+      header_image: this.get('banner_url'),
+      full_address: location?.get('full_address'),
+      country_iso_3166: location?.get('country_code'),
+      geolocation: {
+        lat: location?.get('center').lat,
+        lon: location?.get('center').lng
+      },
+      relationships: publicParents.concat(publicChildren)
+    }
   },
 
   async updateMembers (usersOrIds, attrs, { transacting } = {}) {
@@ -456,11 +492,11 @@ module.exports = bookshelf.Model.extend(merge({
 
     const updatedAttribs = Object.assign(
       {},
-      {settings: {}},
+      { settings: {} },
       pick(omitBy(attrs, isUndefined), GROUP_ATTR_UPDATE_WHITELIST)
     )
 
-    return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, {transacting}))
+    return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, { transacting }))
   },
 
   update: async function (changes, updatedByUserId) {
@@ -474,6 +510,7 @@ module.exports = bookshelf.Model.extend(merge({
     const attributes = mapValues(pick(changes, whitelist), (v, k) => trimAttrs.includes(k) ? trim(v) : v)
     const saneAttrs = clone(attributes)
 
+    const previousSettings = this.get('settings')
     if (attributes.settings) {
       saneAttrs.settings = merge({}, this.get('settings'), attributes.settings)
     }
@@ -615,6 +652,12 @@ module.exports = bookshelf.Model.extend(merge({
     if (changes.location && changes.location !== this.get('location') && !changes.location_id) {
       await Queue.classMethod('Group', 'geocodeLocation', { groupId: this.id })
     }
+
+    sails.log.info('Group.update', this.getSetting('publish_murmurations_profile'), previousSettings.publish_murmurations_profile)
+    if (this.getSetting('publish_murmurations_profile') && !previousSettings.publish_murmurations_profile) {
+      sails.log.info('Group.update', 'publishing to murmurations')
+      await Queue.classMethod('Group', 'publishToMurmurations', { groupId: this.id })
+    }
     return this
   },
 
@@ -624,7 +667,7 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     return Promise.resolve()
-  },
+  }
 }, HasSettings), {
   // ****** Class constants ****** //
 
@@ -651,7 +694,7 @@ module.exports = bookshelf.Model.extend(merge({
     if (zapierTriggers && zapierTriggers.length > 0) {
       const group = await Group.find(groupId)
       for (const trigger of zapierTriggers) {
-        const response = await fetch(trigger.get('target_url'), {
+        await fetch(trigger.get('target_url'), {
           method: 'post',
           body: JSON.stringify(members.map(m => ({
             id: m.id,
@@ -754,7 +797,7 @@ module.exports = bookshelf.Model.extend(merge({
           if (parent) {
             // Only allow for adding parent groups that the creator is a moderator of or that are Open
             const parentGroupMembership = await GroupMembership.forIds(userId, parentId, {
-              query: q => { q.select('group_memberships.*', 'groups.accessibility as accessibility', 'groups.visibility as visibility')}
+              query: q => { q.select('group_memberships.*', 'groups.accessibility as accessibility', 'groups.visibility as visibility') }
             }).fetch({ transacting: trx })
 
             // TODO: fix hasRole
@@ -810,7 +853,7 @@ module.exports = bookshelf.Model.extend(merge({
     return loop()
   },
 
-  geocodeLocation: async function({ groupId }) {
+  geocodeLocation: async function ({ groupId }) {
     const group = await Group.find(groupId)
     if (group) {
       const geocoder = mbxGeocoder({ accessToken: process.env.MAPBOX_TOKEN })
@@ -829,7 +872,7 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
-  messageStewards: async function(fromUserId, groupId) {
+  messageStewards: async function (fromUserId, groupId) {
     // Make sure they can only message a group they can see
     const group = await groupFilter(fromUserId)(Group.where({ id: groupId })).fetch()
     // TODO: ADD RESP TO THIS ONE
@@ -848,7 +891,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   notifyAboutCreate: function (opts) {
-    return Group.find(opts.groupId, {withRelated: ['creator']})
+    return Group.find(opts.groupId, { withRelated: ['creator'] })
       .then(g => {
         const creator = g.relations.creator
         const recipient = process.env.NEW_GROUP_EMAIL
@@ -882,6 +925,27 @@ module.exports = bookshelf.Model.extend(merge({
         const slackMessage = Slack.textForNewPost(post, group)
         return Slack.send(slackMessage, group.get('slack_hook_url'))
       })
+  },
+
+  publishToMurmurations: async function ({ groupId }) {
+    sails.log.info('Group.publishToMurmurations', groupId)
+    const group = await Group.find(groupId)
+    if (group) {
+      sails.log.info('Group.publishToMurmurations2', group.murmurationsProfileUrl())
+      // post murmurations profile data to Murmurations index (https://app.swaggerhub.com/apis-docs/MurmurationsNetwork/IndexAPI/2.0.0#/Node%20Endpoints/post_nodes)
+      const response = await fetch(process.env.MURMURATIONS_INDEX_API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ profile_url: group.murmurationsProfileUrl() }), // JSON.stringify(await group.toMurmurationsObject()),
+        headers: { 'Content-Type': 'application/json' }
+      })
+      if (response.ok) {
+        sails.log.info('Group.publishToMurmurations', response.json())
+        return response.json()
+      } else {
+        sails.log.error('Group.publishToMurmurations', response, response.status, response.statusText)
+        throw new Error('Failed to publish to Murmurations')
+      }
+    }
   },
 
   async pluckIdsForMember (userOrId, where) {
