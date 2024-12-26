@@ -938,11 +938,12 @@ module.exports = bookshelf.Model.extend(merge({
         body: JSON.stringify({ profile_url: group.murmurationsProfileUrl() }), // JSON.stringify(await group.toMurmurationsObject()),
         headers: { 'Content-Type': 'application/json' }
       })
+      sails.log.info('Group.publishToMurmurations response', response)
       if (response.ok) {
-        sails.log.info('Group.publishToMurmurations', response.json())
+        sails.log.info('Group.publishToMurmurations response ok', await response.json())
         return response.json()
       } else {
-        sails.log.error('Group.publishToMurmurations', response, response.status, response.statusText)
+        sails.log.error('Group.publishToMurmurations error', response.status, response.statusText, await response.json())
         throw new Error('Failed to publish to Murmurations')
       }
     }
