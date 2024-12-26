@@ -475,7 +475,7 @@ module.exports = bookshelf.Model.extend(merge({
       image: this.get('avatar_url'),
       header_image: this.get('banner_url'),
       full_address: location?.get('full_address'),
-      country_iso_3166: location?.get('country_code'),
+      country_iso_3166: location?.get('country_code') ? location?.get('country_code').toUpperCase() : null,
       geolocation: {
         lat: location?.get('center').lat,
         lon: location?.get('center').lng
