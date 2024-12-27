@@ -5,7 +5,7 @@
 }
 
 .form-wrapper {
-  position: fixed;
+  position: absolute;
   bottom: 0;
   background-color: rgba(255,255,255,.9);
   padding: 0 20px;
@@ -13,7 +13,7 @@
 }
 
 .people-typing {
-  position: fixed;
+  position: absolute;
   bottom: -17px;
   font-size: 12px;
 }

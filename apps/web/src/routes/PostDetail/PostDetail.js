@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useResizeDetector } from 'react-resize-detector'
 import { useTranslation } from 'react-i18next'
@@ -44,7 +44,7 @@ import { DETAIL_COLUMN_ID, position } from 'util/scrolling'
 import classes from './PostDetail.module.scss'
 
 // the height of the header plus the padding-top
-const STICKY_HEADER_SCROLL_OFFSET = 70
+const STICKY_HEADER_SCROLL_OFFSET = 44
 const MAX_DETAILS_LENGTH = 144
 
 function PostDetail () {
@@ -62,7 +62,6 @@ function PostDetail () {
   }, [postSelector, currentGroup])
   const currentUser = useSelector(getMe)
   const pending = useSelector(state => state.pending[FETCH_POST])
-  const isProjectMember = find(({ id }) => id === get('id', currentUser), get('members', post))
 
   const [state, setState] = useState({
     atHeader: false,
@@ -81,7 +80,7 @@ function PostDetail () {
     onPostIdChange()
   }, [postId])
 
-  const handleSetComponentPositions = () => {
+  const handleSetComponentPositions = useCallback(() => {
     const container = document.getElementById(DETAIL_COLUMN_ID)
     if (!container) return
     const element = activityHeader.current
@@ -91,11 +90,11 @@ function PostDetail () {
       activityWidth: element ? element.offsetWidth : 0,
       activityScrollOffset: element ? position(element, container).y - STICKY_HEADER_SCROLL_OFFSET : 0
     }))
-  }
+  }, [])
 
   const { ref } = useResizeDetector({ handleHeight: false, onResize: handleSetComponentPositions })
 
-  const onPostIdChange = () => {
+  const onPostIdChange = useCallback(() => {
     if (!pending) {
       dispatch(fetchPost(postId))
     }
@@ -109,7 +108,7 @@ function PostDetail () {
         type: post.type
       }))
     }
-  }
+  }, [postId, post, pending])
 
   const handleScroll = throttle(100, event => {
     const { scrollTop } = event.target
@@ -126,35 +125,56 @@ function PostDetail () {
     }))
   })
 
-  const togglePeopleDialog = () => setState(prevState => ({ ...prevState, showPeopleDialog: !prevState.showPeopleDialog }))
+  const togglePeopleDialog = useCallback(() => setState(prevState => ({ ...prevState, showPeopleDialog: !prevState.showPeopleDialog })), [])
 
-  const onClose = () => {
+  const onClose = useCallback(() => {
     const closeLocation = {
       ...location,
       pathname: removePostFromUrl(location.pathname) || '/'
     }
     navigate(closeLocation)
+  }, [location])
+
+  const scrollToBottom = useCallback(() => {
+    const detail = document.getElementById(DETAIL_COLUMN_ID)
+    detail.scrollTop = detail.scrollHeight
+  }, [])
+
+  const isProject = useMemo(() => get('type', post) === 'project', [post])
+  const isProjectMember = useMemo(() => isProject && find(({ id }) => id === get('id', currentUser), get('members', post)), [currentUser, post])
+  const isEvent = useMemo(() => get('type', post) === 'event', [post])
+
+  // TODO: if not in a group should show as flagged if flagged in any of my groups
+  const isFlagged = useMemo(() => post?.flaggedGroups && post.flaggedGroups.includes(currentGroup?.id), [post, currentGroup])
+
+  const projectManagementTool = useMemo(() => {
+    const m = post?.projectManagementLink ? post.projectManagementLink.match(/(asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho)/) : null
+    return m ? m[1] : null
+  }, [post?.projectManagementLink])
+
+  const d = post?.donationsLink ? post.donationsLink.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/) : null
+  const donationService = d ? d[1] : null
+
+  const { acceptContributions, totalContributions } = post || {}
+
+  let people, postPeopleDialogTitle
+
+  if (isProject) {
+    people = post?.members
+    postPeopleDialogTitle = t('Project Members')
+  } else if (isEvent) {
+    people = post?.eventInvitations
+    postPeopleDialogTitle = t('Responses')
   }
+
+  const detailHasImage = useMemo(() => post?.attachments.find(a => a.type === 'image') || false, [post])
+  const hasPeople = useMemo(() => people && people.length > 0, [people])
+  const showPeopleDialog = hasPeople && state.showPeopleDialog
+  const handleTogglePeopleDialog = hasPeople && togglePeopleDialog ? togglePeopleDialog : undefined
 
   if (!post && !pending) return <NotFound />
   if (pending) return <Loading />
 
-  const isProject = get('type', post) === 'project'
-  const isEvent = get('type', post) === 'event'
-  // TODO: if not in a group should show as flagged if flagged in any of my groups
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroup?.id)
-
-  const m = post.projectManagementLink ? post.projectManagementLink.match(/(asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho)/) : null
-  const projectManagementTool = m ? m[1] : null
-
-  const d = post.donationsLink ? post.donationsLink.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/) : null
-  const donationService = d ? d[1] : null
-
-  const { acceptContributions, totalContributions } = post || {}
-  const scrollToBottom = () => {
-    const detail = document.getElementById(DETAIL_COLUMN_ID)
-    detail.scrollTop = detail.scrollHeight
-  }
   const headerStyle = {
     width: state.headerWidth + 'px'
   }
@@ -162,28 +182,6 @@ function PostDetail () {
     width: state.activityWidth + 'px',
     marginTop: STICKY_HEADER_SCROLL_OFFSET + 'px'
   }
-
-  let people, postPeopleDialogTitle
-
-  if (isProject) {
-    people = post.members
-    postPeopleDialogTitle = t('Project Members')
-  } else if (isEvent) {
-    people = post.eventInvitations
-    postPeopleDialogTitle = t('Responses')
-  }
-
-  const detailHasImage = post.attachments.find(a => a.type === 'image') || false
-  const hasPeople = people && people.length > 0
-  const showPeopleDialog = hasPeople && state.showPeopleDialog
-  const handleTogglePeopleDialog = hasPeople && togglePeopleDialog ? togglePeopleDialog : undefined
-
-  const postFooter = (
-    <PostFooter
-      {...post}
-      currentUser={currentUser}
-    />
-  )
 
   return (
     <div ref={ref} className={cx(classes.post, { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
@@ -290,11 +288,11 @@ function PostDetail () {
         slug={groupSlug}
         showBottomBorder
       />
-      {postFooter}
+      <PostFooter {...post} currentUser={currentUser} />
       <div ref={activityHeader} />
       {state.atActivity && (
         <div className={classes.activitySticky} style={activityStyle}>
-          {postFooter}
+          <PostFooter {...post} currentUser={currentUser} />
         </div>
       )}
       <Comments

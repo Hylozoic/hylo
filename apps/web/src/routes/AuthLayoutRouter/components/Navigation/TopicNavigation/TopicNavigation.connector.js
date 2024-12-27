@@ -3,7 +3,7 @@ import { push } from 'redux-first-history'
 import { get } from 'lodash/fp'
 import { getTopicsFromSubscribedGroupTopics } from './TopicNavigation.store'
 import resetNewPostCount from 'store/actions/resetNewPostCount'
-import { topicsUrl, removePostFromUrl, allGroupsUrl } from 'util/navigation'
+import { topicsUrl, allGroupsUrl } from 'util/navigation'
 import { FETCH_POSTS } from 'store/constants'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
 
@@ -25,11 +25,6 @@ export function mapDispatchToProps (dispatch, props) {
   return {
     clearBadge: id => dispatch(resetNewPostCount(id, 'GroupTopic')),
     dropPostResultsMaker: props => () => dispatch(dropPostResults(props)),
-    expand: () => {
-      if (props.collapsed) {
-        return dispatch(push(removePostFromUrl(window.location.pathname)))
-      }
-    },
     goBack: event => {
       // this action is assigned to an element inside a link, so preventDefault
       // stops the link from being clicked

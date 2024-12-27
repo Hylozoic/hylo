@@ -96,7 +96,7 @@ export default function PostCard (props) {
       <div
         ref={postCardRef}
         className={cx(
-          classes.card,
+          'rounded-xl cursor-pointer relative flex flex-col transition-all duration-250 bg-card border border-border text-card-foreground shadow-md hover:shadow-lg',
           classes[postType],
           { [classes.expanded]: expanded },
           { [classes.constrained]: constrained },

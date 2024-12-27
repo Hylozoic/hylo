@@ -10,10 +10,10 @@ import { TextHelpers } from '@hylo/shared'
 import { newMessageUrl, messageThreadUrl } from 'util/navigation'
 import Icon from 'components/Icon'
 import RoundImageRow from 'components/RoundImageRow'
-import TopNavDropdown from '../TopNavDropdown'
+import GlobalNavDropdown from '../GlobalNavDropdown'
 import { participantAttributes, isUnread, isUpdatedSince } from 'store/models/MessageThread'
-import NoItems from 'routes/AuthLayoutRouter/components/TopNav/NoItems'
-import LoadingItems from 'routes/AuthLayoutRouter/components/TopNav/LoadingItems'
+import NoItems from 'routes/AuthLayoutRouter/components/GlobalNav/NoItems'
+import LoadingItems from 'routes/AuthLayoutRouter/components/GlobalNav/LoadingItems'
 import fetchThreads from 'store/actions/fetchThreads'
 import { getThreads } from 'routes/Messages/Messages.store'
 import getMe from 'store/selectors/getMe'
@@ -88,7 +88,7 @@ const MessagesDropdown = ({
     : newMessageUrl()
 
   return (
-    <TopNavDropdown
+    <GlobalNavDropdown
       ref={dropdown}
       className={className}
       onToggle={onToggle}

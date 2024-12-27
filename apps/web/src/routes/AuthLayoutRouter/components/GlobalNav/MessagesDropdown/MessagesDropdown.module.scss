@@ -1,5 +1,5 @@
 .header-content {
-  composes: header-content from '../TopNavDropdown/TopNavDropdown.module.scss';
+  composes: header-content from '../GlobalNavDropdown/GlobalNavDropdown.module.scss';
 }
 
 .open {
@@ -24,7 +24,7 @@
 }
 
 .new {
-  composes: header-link from '../TopNavDropdown/TopNavDropdown.module.scss';
+  composes: header-link from '../GlobalNavDropdown/GlobalNavDropdown.module.scss';
   margin-left: auto;
 
   .new-icon {
@@ -33,7 +33,7 @@
 }
 
 .threads {
-  composes: body from '../TopNavDropdown/TopNavDropdown.module.scss';
+  composes: body from '../GlobalNavDropdown/GlobalNavDropdown.module.scss';
 }
 
 .thread {

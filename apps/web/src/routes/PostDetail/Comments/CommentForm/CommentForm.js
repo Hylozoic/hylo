@@ -38,14 +38,15 @@ class CommentForm extends Component {
     this.props.sendIsTyping(true)
   })
 
-  componentDidMount () {
-    setTimeout(() => {
-      // In case we unmounted really quick and its no longer here
-      if (this.editor.current) {
-        this.editor.current.focus()
-      }
-    }, 600)
-  }
+  // TODO: do we want this? its scrolling down to the bottom when we dont want to
+  // componentDidMount () {
+  //   setTimeout(() => {
+  //     // In case we unmounted really quick and its no longer here
+  //     if (this.editor.current) {
+  //       this.editor.current.focus()
+  //     }
+  //   }, 600)
+  // }
 
   handleOnEnter = contentHTML => {
     const {

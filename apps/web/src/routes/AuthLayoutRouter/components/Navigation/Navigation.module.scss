@@ -1,32 +1,6 @@
-.collapser {
-  position: relative;
-  // Prevent columns from becoming too narrow when at smaller grid tiers by
-  // always setting `width: 100%;`. This works because we use `flex` values
-  // later on to override this initial width.
-  width: 100%;
-  min-height: 1px; // Prevent collapsing
-  flex: 0 0 17%;
-  // Add a `max-width` to ensure content within each column does not blow out
-  // the width of the column. Applies to IE10+ and Firefox. Chrome and Safari
-  // do not appear to require this.
-  max-width: 17%;
-  transition: 0.5s;
-  // // overriding bootstrap default. Seems broken
-  // padding: 0 0 !important;
-  margin: 0 0 0 30px;
-  overflow: hidden;
-  white-space: nowrap;
-  height: 100%;
-}
-
-.collapser-collapsed {
-  composes: collapser;
-  flex: 0 0 60px;
-  // Add a `max-width` to ensure content within each column does not blow out
-  // the width of the column. Applies to IE10+ and Firefox. Chrome and Safari
-  // do not appear to require this.
-  max-width: 60px;
-  margin: 0 15px;
+.container {
+  box-shadow: 4px 0 2px -2px rgba(0, 0, 0, 0.1);
+  z-index: 40;
 }
 
 .navigation {
@@ -37,6 +11,7 @@
   overflow-y: auto;
   overflow-x: hidden;
 }
+
 .links {
   list-style: none;
   border-bottom: 2px solid $color-ghost-30;
@@ -49,11 +24,6 @@
 }
 
 @media screen and (max-width: 930px) {
-  .collapser {
-    flex: 0 0 6%;
-    min-width: 6%;
-    margin: 0 15px 0 15px;
-  }
   .navigation {
     overflow: hidden;
     overflow-y: auto;
@@ -93,10 +63,6 @@
     height: 100%;
     z-index: 10;
     transition: all .25s ease;
-  }
-
-  .mapView.collapser {
-    margin: 0 0 0 0;
   }
 
   .showGroupMenu {

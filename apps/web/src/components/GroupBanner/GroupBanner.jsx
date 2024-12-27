@@ -55,14 +55,11 @@ export default function GroupBanner ({
     avatarUrl = currentUser.avatarUrl || publicGlobe
     bannerUrl = currentUser.bannerUrl || allGroupsBanner
     // These need to be invoked here so that they get picked up by the translation extractor
-    t('Posts')
-    t('Interactions')
-    t('Mentions')
-    t('Announcements')
   } else if (!group) {
     return null
   } else {
-    ({ bannerUrl, avatarUrl, name, location } = group)
+    ({ bannerUrl, avatarUrl, location } = group)
+    name = ['projects', 'ask-and-offer'].includes(view) ? `${group.name}: ${capitalize(t(view))}` : group.name
   }
 
   const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'

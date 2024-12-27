@@ -337,6 +337,9 @@ function MapExplorer (props) {
   const toggleDrawer = useCallback(() => {
     dispatch(changeQuerystringParam(location, 'hideDrawer', !hideDrawer))
     setHideDrawer(!hideDrawer)
+    setTimeout(() => {
+      mapRef.current.resize()
+    }, 100)
   }, [dispatch, hideDrawer, location])
 
   const doStoreClientFilterParams = useCallback(params => {
@@ -386,6 +389,9 @@ function MapExplorer (props) {
     if (info.objects) {
       if (viewport.zoom >= 20 && hideDrawer) {
         setHideDrawer(false)
+        setTimeout(() => {
+          mapRef.current.resize()
+        }, 100)
       } else {
         const features = featureCollection(info.objects.map(o => point([o.coordinates[0], o.coordinates[1]])))
         const c = center(features)

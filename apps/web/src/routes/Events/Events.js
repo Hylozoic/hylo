@@ -118,7 +118,7 @@ function Events (props) {
       </div>
 
       {pending && <Loading />}
-      <div className={cx(s.eventsStream, { [s.collapsedState]: false })}>
+      <div className={cx(s.eventsStream)}>
         {!pending && posts.length === 0 ? <NoPosts message={t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? upcomingText : pastText })} /> : ''}
 
         {posts.map(post => {

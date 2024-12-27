@@ -4,9 +4,9 @@ import React, { useImperativeHandle, useState, useRef } from 'react'
 import ErrorBoundary from 'components/ErrorBoundary'
 import { position } from 'util/scrolling'
 
-import classes from './TopNavDropdown.module.scss'
+import classes from './GlobalNavDropdown.module.scss'
 
-const TopNavDropdown = React.forwardRef(({ toggleChildren, className, header, body, onToggle }, ref) => {
+const GlobalNavDropdown = React.forwardRef(({ toggleChildren, className, header, body, onToggle }, ref) => {
   const [active, setActive] = useState(false)
   const [neverOpened, setNeverOpened] = useState(true)
 
@@ -49,7 +49,7 @@ const TopNavDropdown = React.forwardRef(({ toggleChildren, className, header, bo
   )
 })
 
-TopNavDropdown.propTypes = {
+GlobalNavDropdown.propTypes = {
   toggleChildren: PropTypes.object,
   className: PropTypes.string,
   header: PropTypes.object,
@@ -57,4 +57,4 @@ TopNavDropdown.propTypes = {
   onToggle: PropTypes.func
 }
 
-export default TopNavDropdown
+export default GlobalNavDropdown
