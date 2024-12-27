@@ -1020,6 +1020,8 @@
   "member_plural": "miembro_plural",
   "mentorship & advice": "mentoría y consejo",
   "multi-unrestricted": "multi-sin restricciones",
+  "murmurationsHeader": "Agrega tu grupo al directorio de <1>Murmurations</1> para que pueda ser encontrado y fácilmente agregado a mapas públicos de terceros. Primero debes establecer la visibilidad como Pública.",
+  "murmurationsDescription": "Tu grupo ahora está publicado en el directorio de Murmurations. Puedes encontrar tu perfil <1>aquí</1>.",
   "new comments on posts you're following?": "¿nuevos comentarios en las publicaciones que estás siguiendo?",
   "new markets": "nuevos mercados",
   "no more than {{maxTags}} allowed": "no más de {{maxTags}} permitido",
