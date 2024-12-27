@@ -13,13 +13,10 @@ module.exports = {
   // },
 
   group: async function (req, res) {
-    sails.log.info('MurmurationsController.group', req.param('groupId'), req.param('groupSlug'))
     const groupSlug = req.param('groupSlug')
     const group = await Group.findActive(groupSlug)
-    sails.log.info('MurmurationsController.group', group)
     if (group.hasMurmurationsProfile()) {
       const groupObject = await group.toMurmurationsObject()
-      sails.log.info('MurmurationsController.group', groupObject)
       return res.ok(groupObject)
     } else {
       return res.forbidden()

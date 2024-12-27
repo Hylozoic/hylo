@@ -515,7 +515,6 @@ module.exports = bookshelf.Model.extend(merge({
     const attributes = mapValues(pick(changes, whitelist), (v, k) => trimAttrs.includes(k) ? trim(v) : v)
     const saneAttrs = clone(attributes)
 
-    const previousSettings = this.get('settings')
     if (attributes.settings) {
       saneAttrs.settings = merge({}, this.get('settings'), attributes.settings)
     }
@@ -658,9 +657,7 @@ module.exports = bookshelf.Model.extend(merge({
       await Queue.classMethod('Group', 'geocodeLocation', { groupId: this.id })
     }
 
-    sails.log.info('Group.update', this.getSetting('publish_murmurations_profile'), previousSettings.publish_murmurations_profile)
     if (this.hasMurmurationsProfile()) {
-      sails.log.info('Group.update', 'publishing to murmurations')
       await Queue.classMethod('Group', 'publishToMurmurations', { groupId: this.id })
     }
     return this
@@ -933,20 +930,17 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   publishToMurmurations: async function ({ groupId }) {
-    sails.log.info('Group.publishToMurmurations', groupId)
     const group = await Group.find(groupId)
     if (group) {
-      sails.log.info('Group.publishToMurmurations2', group.murmurationsProfileUrl())
+      sails.log.info('Publishing to Murmurations', groupId, group.murmurationsProfileUrl())
       // post murmurations profile data to Murmurations index (https://app.swaggerhub.com/apis-docs/MurmurationsNetwork/IndexAPI/2.0.0#/Node%20Endpoints/post_nodes)
       const response = await fetch(process.env.MURMURATIONS_INDEX_API_URL, {
         method: 'POST',
-        body: JSON.stringify({ profile_url: group.murmurationsProfileUrl() }), // JSON.stringify(await group.toMurmurationsObject()),
+        body: JSON.stringify({ profile_url: group.murmurationsProfileUrl() }),
         headers: { 'Content-Type': 'application/json' }
       })
-      sails.log.info('Group.publishToMurmurations response', response)
       const responseJSON = await response.json()
       if (response.ok) {
-        sails.log.info('Group.publishToMurmurations response ok', responseJSON)
         return responseJSON
       } else {
         sails.log.error('Group.publishToMurmurations error', response.status, response.statusText, responseJSON)
