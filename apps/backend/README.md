@@ -58,8 +58,8 @@ HYLO_ADMINS=[ your user id ]
 JWT_SECRET=[a string without spaces]
 LINKEDIN_API_KEY=[ api key ]
 LINKEDIN_API_SECRET=[ api secret ]
-MAILGUN_DOMAIN=[ domain ]
-MAILGUN_EMAIL_SALT=[ salt ]
+INBOUND_EMAIL_DOMAIN=[ domain ]
+INBOUND_EMAIL_SALT=[ salt ]
 MAPBOX_TOKEN=[ key ]
 PLAY_APP_SECRET=[ app secret ]
 ROLLBAR_SERVER_TOKEN=[ token ]
@@ -186,14 +186,14 @@ PROTOCOL=http
 ROLLBAR_SERVER_TOKEN=
 # you can set up a SendWithUs API key to return valid responses but send no email
 SENDWITHUS_KEY=test_...
-MAILGUN_EMAIL_SALT=FFFFAAAA123456789
-MAILGUN_DOMAIN=mg.hylo.com
+INBOUND_EMAIL_SALT=FFFFAAAA123456789
+INBOUND_EMAIL_DOMAIN=inbound-staging.hylo.com
 PLAY_APP_SECRET=quxgrault12345678
 AWS_ACCESS_KEY_ID=foo
 UPLOADER_PATH_PREFIX=foo
 ```
 
-(Without the above Mailgun values, you'll see a failing test in the suite.) Since the test database was created above, `npm test` should work at this point.
+(Without the above values, you'll see a failing test in the suite.) Since the test database was created above, `npm test` should work at this point.
 
 ### creating and running database migrations
 

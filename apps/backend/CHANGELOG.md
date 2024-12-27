@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [5.11.1] - 2024-12-24
+
+### Fixed
+- Switch inbound email parsing from Mailgun to Sendgrid
+- Fix bug where replies to emails were not being cut off at the divider line
+
 ## [5.11.0] - 2024-12-17
 
 ### Added
