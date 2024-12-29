@@ -1,15 +1,8 @@
 import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import PostCompletion from './PostCompletion'
-import { useTranslation } from 'react-i18next'
 
 describe('PostCompletion', () => {
-  beforeEach(() => {
-    useTranslation.mockImplementation(() => ({
-      t: (key) => key // Return the key as-is for simplicity
-    }))
-  })
-
   it('renders correctly if fulfilled for a project', () => {
     render(<PostCompletion isFulfilled type='project' />)
 

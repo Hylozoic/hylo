@@ -39,7 +39,6 @@ export default function PublicGroupDetail (props) {
   return (
     <Div100vh className={classes.publicContainer}>
       <PublicPageHeader />
-      mooo
       <div className={cx(classes.centerColumn, classes.nonMapView)} id={CENTER_COLUMN_ID}>
         <GroupDetail {...props} />
       </div>

@@ -34,7 +34,7 @@ const TopNavDropdown = React.forwardRef(({ toggleChildren, className, header, bo
       <a onClick={() => toggle()} ref={toggleRef}>
         {toggleChildren}
       </a>
-      <div className={cx(classes.wrapper, classes.animateFadeInDown, { [classes.active]: active })}>
+      <div className={cx(classes.wrapper, classes.animateFadeInDown, { [classes.active]: active })} data-testid='top-nav-dropdown-wrapper'>
         <ul className={classes.menu}>
           <li className={classes.triangle} style={triangleStyle} />
           <ErrorBoundary>

@@ -36,16 +36,17 @@ export default {
   snapshotSerializers: [
     'jest-serializer-graphql'
   ],
-  testEnvironment: 'jest-environment-jsdom',
+  testEnvironment: 'jest-fixed-jsdom',
   testEnvironmentOptions: {
+    customExportConditions: ['node', 'node-addons', 'msw'],
     url: 'http://localhost'
   },
   roots: ['<rootDir>'],
   modulePaths: ['<rootDir>'],
   moduleNameMapper: {
     '^react-native$': 'react-native-web',
+    '\\.(css|scss)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': '<rootDir>/config/jest/__mocks__/fileMock.js',
-    '\\.(css|less|scss)$': '<rootDir>/config/jest/__mocks__/styleMock.js',
     '^client/(.*)$': '<rootDir>/src/client/$1',
     '^components/(.*)$': '<rootDir>/src/components/$1',
     '^contexts/(.*)$': '<rootDir>/src/contexts/$1',

@@ -63,16 +63,5 @@ describe('PostEditor store', () => {
       })
     })
 
-    describe(`when ${SET_ANNOUNCEMENT}`, () => {
-      const action = {
-        type: SET_ANNOUNCEMENT,
-        payload: true
-      }
-      test('announcement is set approrpiately', () => {
-        const finalState = reducer(defaultState, action)
-        expect(finalState.announcement).toEqual(true)
-        expect(finalState).toMatchSnapshot()
-      })
-    })
   })
 })

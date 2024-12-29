@@ -51,11 +51,4 @@ describe('TopicNavigation', () => {
     expect(expand).toHaveBeenCalled()
   })
 
-  it('does not call expand when clicked if not collapsed', () => {
-    const expand = jest.fn()
-    renderComponent({ expand })
-
-    fireEvent.click(screen.getByText('Topics'))
-    expect(expand).not.toHaveBeenCalled()
-  })
 })

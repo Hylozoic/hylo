@@ -126,7 +126,7 @@ function Events (props) {
           const groupSlugs = post.groups.map(group => group.slug)
           return (
             <PostCard
-              childPost={!groupSlugs.includes(groupSlug)}
+              childPost={!['my', 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
               post={post}
               group={group}
               className={cx(s.eventCard, { [s.expanded]: expanded })}

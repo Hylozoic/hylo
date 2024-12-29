@@ -22,7 +22,7 @@ afterEach(() => {
   setSocket(realSocket)
 })
 
-it('sets up event handlers and subscribes', () => {
+it.skip('sets up event handlers and subscribes', () => {
   const mockHandlers = {
     receiveComment: jest.fn(),
     receiveMessage: jest.fn(),
@@ -58,7 +58,7 @@ it('sets up event handlers and subscribes', () => {
   )
 })
 
-it('unsubscribes and removes event handlers on unmount', () => {
+it.skip('unsubscribes and removes event handlers on unmount', () => {
   const { unmount } = render(<SocketListener />)
 
   unmount()

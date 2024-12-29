@@ -26,18 +26,16 @@ describe('TopNavDropdown', () => {
     expect(screen.getByText('toggle')).toBeInTheDocument()
 
     // Check if the dropdown is initially closed
-    expect(screen.queryByText('header')).not.toBeInTheDocument()
-    expect(screen.queryByText('body')).not.toBeInTheDocument()
+    expect(screen.getByTestId('top-nav-dropdown-wrapper')).not.toHaveClass('active')
 
     // Click the toggle to open the dropdown
     fireEvent.click(screen.getByText('toggle'))
 
     // Check if the dropdown is now open
-    expect(screen.getByText('header')).toBeInTheDocument()
-    expect(screen.getByText('body')).toBeInTheDocument()
+    expect(screen.getByTestId('top-nav-dropdown-wrapper')).toHaveClass('active')
 
     // Check if the wrapper has the correct classes
-    const wrapper = screen.getByText('header').closest('div')
+    const wrapper = screen.getByTestId('top-nav-dropdown-wrapper')
     expect(wrapper).toHaveClass('wrapper')
     expect(wrapper).toHaveClass('animateFadeInDown')
     expect(wrapper).toHaveClass('active')
@@ -46,7 +44,6 @@ describe('TopNavDropdown', () => {
     fireEvent.click(screen.getByText('toggle'))
 
     // Check if the dropdown is closed
-    expect(screen.queryByText('header')).not.toBeInTheDocument()
-    expect(screen.queryByText('body')).not.toBeInTheDocument()
+    expect(screen.getByTestId('top-nav-dropdown-wrapper')).not.toHaveClass('active')
   })
 })

@@ -136,7 +136,7 @@ export default function Stream (props) {
     return decisionView === 'moderation' ? getModerationActions(state, fetchModerationActionParam) : []
   }, (prevModerationActions, nextModerationActions) => {
     if (prevModerationActions.length !== nextModerationActions.length) return false
-    return prevModerationActions.every((item, index) => item.id === nextModerationActions[index].id)
+    return prevModerationActions.every((item, index) => item.id === nextModerationActions[index].id && item.status === nextModerationActions[index].status)
   })
   const hasMoreModerationActions = useSelector(state => decisionView === 'moderation' ? getHasMoreModerationActions(state, fetchModerationActionParam) : false)
 

@@ -14,7 +14,7 @@ const MAX_MINS_TO_BATCH = 5
 
 const lastSeenAtTimes = {}
 
-export function createMessageList (messages, lastSeenAt) {
+function createMessageList (messages, lastSeenAt) {
   let currentHeader
   return messages.reduce((acc, m) => {
     let headerDate, messageDate, diff, greaterThanMax
@@ -152,6 +152,7 @@ export default class MessageSection extends React.Component {
         className={cx(classes.messagesSection)}
         ref={this.list}
         onScroll={this.handleScroll}
+        data-testid='message-section'
       >
         {pending && <Loading />}
         {!pending &&

@@ -57,7 +57,7 @@ class UploadPhoto extends Component {
                 onSuccess={({ url }) => this.updateSettingDirectly('avatarUrl')(url)}
               >
                 <div className={classes.avatar} style={bgImageStyle(currentAvatarUrl)}>
-                  <Icon className={classes.uploadIcon} name={uploadImagePending ? 'Clock' : 'AddImage'} />
+                  <Icon className={classes.uploadIcon} name={uploadImagePending ? 'Clock' : 'AddImage'} dataTestId='icon-AddImage' />
                 </div>
               </UploadAttachmentButton>
             </div>

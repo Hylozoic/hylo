@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { CSSTransition } from 'react-transition-group'
-import { useLocation } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import { bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
@@ -26,10 +26,10 @@ export default function GroupWelcomeModal (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
-  const location = useLocation()
-  const currentGroup = useSelector(state => getGroupForSlug(state, location))
+  const params = useParams()
+  const currentGroup = useSelector(state => getGroupForSlug(state, params.groupSlug))
   const group = presentGroup(currentGroup)
-  const currentMembership = useSelector(state => getMyGroupMembership(state, location))
+  const currentMembership = useSelector(state => getMyGroupMembership(state, params.groupSlug))
   const membershipAgreements = currentMembership?.agreements.toModelArray()
   const { agreementsAcceptedAt, joinQuestionsAnsweredAt } = currentMembership?.settings || {}
   const [page, setPage] = useState(1)

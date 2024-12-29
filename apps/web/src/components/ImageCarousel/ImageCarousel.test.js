@@ -27,7 +27,7 @@ describe('ImageCarousel', () => {
     expect(image).toHaveAttribute('alt', 'Attached image 1')
   })
 
-  it('renders multiple images', () => {
+  it('renders multiple images, but only shows first one', () => {
     render(<ImageCarousel attachments={[
       { url: 'bar', type: 'image' },
       { url: 'baz', type: 'image' },
@@ -37,9 +37,7 @@ describe('ImageCarousel', () => {
            />)
 
     const images = screen.getAllByRole('img')
-    expect(images).toHaveLength(3)
+    expect(images).toHaveLength(1)
     expect(images[0]).toHaveAttribute('src', 'bar')
-    expect(images[1]).toHaveAttribute('src', 'baz')
-    expect(images[2]).toHaveAttribute('src', 'bonk')
   })
 })

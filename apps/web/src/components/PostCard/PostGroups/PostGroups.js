@@ -37,7 +37,9 @@ class PostGroups extends Component {
           <span className={classes.label}>{`${this.props.t('Posted In:')} `}</span>
           {!expanded &&
             <LinkedGroupNameList t={t} groups={groups} maxShown={2} expandFunc={this.toggleExpanded} />}
-          <a onClick={this.toggleExpanded} className={classes.expandLink}><Icon name={expanded ? 'ArrowUp' : 'ArrowDown'} className={classes.expandIcon} /></a>
+          <a onClick={this.toggleExpanded} className={classes.expandLink} role='button' aria-label={expanded ? 'collapse' : 'expand'}>
+            <Icon name={expanded ? 'ArrowUp' : 'ArrowDown'} className={classes.expandIcon} />
+          </a>
         </div>
 
         {expanded && <GroupsList groups={groups} />}
@@ -67,7 +69,7 @@ export function LinkedGroupNameList ({ groups, maxShown = 2, expandFunc, t }) {
 export function LinkedGroupName ({ group, children }) {
   return (
     <span key={group.id}>
-      <Link to={groupUrl(group.slug)} className={classes.groupLink}>{group.name === 'Public' && <Icon name='Public' className={classes.publicGroupIcon} />} {group.name}</Link>
+      <Link to={groupUrl(group.slug)} className={classes.groupLink}>{group.name === 'Public' && <Icon name='Public' className={classes.publicGroupIcon} dataTestId='icon-Public' />} {group.name}</Link>
       {children}
     </span>
   )

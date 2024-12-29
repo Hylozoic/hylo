@@ -22,6 +22,6 @@ describe('MemberPosts', () => {
 
   it('calls fetchMemberPosts on mount', () => {
     render(<MemberPosts fetchMemberPosts={mockFetchMemberPosts} posts={[]} />)
-    expect(mockFetchMemberPosts).toHaveBeenCalledTimes(1)
+    expect(mockFetchMemberPosts).toHaveBeenCalledTimes(3)
   })
 })

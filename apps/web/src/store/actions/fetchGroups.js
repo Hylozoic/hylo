@@ -34,7 +34,7 @@ export function fetchGroups ({ farmQuery, groupType, nearCoord, offset, order, p
 }
 
 const groupQuery = `
-query (
+query FetchGroups (
   $boundingBox: [PointInput],
   $first: Int,
   $farmQuery: JSON,

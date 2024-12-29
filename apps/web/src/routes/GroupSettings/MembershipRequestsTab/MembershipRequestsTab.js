@@ -138,7 +138,7 @@ export function JoinRequest ({ accept, decline, group, request }) {
         </div>
       )}
       <div className={classes.actionButtons}>
-        <div className={cx(classes.accept, classes.iconGreen)} onClick={() => accept(request.id)}><Icon name='Checkmark' />{t('Welcome')}</div>
+        <div className={cx(classes.accept)} onClick={() => accept(request.id)}><Icon name='Checkmark' className={classes.iconGreen} />{t('Welcome')}</div>
         <div onClick={() => decline(request.id)}><Icon name='Ex' className={classes.iconRed} />{t('Decline')}</div>
       </div>
     </div>

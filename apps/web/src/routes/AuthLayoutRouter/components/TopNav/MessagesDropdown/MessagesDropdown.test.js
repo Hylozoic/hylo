@@ -1,116 +1,165 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import mockGraphqlServer from 'util/testing/mockGraphqlServer'
+import { graphql, HttpResponse } from 'msw'
 import MessagesDropdown, { MessagesDropdownItem, lastMessageCreator } from './MessagesDropdown'
 import orm from 'store/models'
 import { Provider } from 'react-redux'
-import configureStore from 'redux-mock-store'
 
-const mockStore = configureStore([])
-
-const session = orm.mutableSession(orm.getEmptyState())
-const { MessageThread, Message, Person } = session
+const mockT = jest.fn((str, params) => {
+  if (!params) return str
+  let result = str
+  Object.entries(params).forEach(([key, value]) => {
+    result = result.replace(`{{${key}}}`, value)
+  })
+  return result
+})
 
 const u1 = { id: '1', name: 'Charles Darwin', avatarUrl: 'foo.png' }
 const u2 = { id: '2', name: 'Marie Curie', avatarUrl: 'bar.png' }
 const u3 = { id: '3', name: 'Arthur Fonzarelli', avatarUrl: 'baz.png' }
 
-;[u1, u2, u3].forEach(u => Person.create(u))
+const messages = [
+  { text: 'hi', creator: u2.id, messageThread: '1' },
+  { text: 'there', creator: u3.id, messageThread: '2' }
+]
 
 const threads = [
   {
-    id: 2,
+    id: '1',
     participants: [u1, u2, u3].map(u => u.id),
-    updatedAt: '2017-05-07T03:24:00'
+    updatedAt: '2017-05-07T03:24:00',
+    messages: { items: [messages[0]] }
   },
   {
-    id: 1,
+    id: '2',
     participants: [u1, u2, u3].map(u => u.id),
-    updatedAt: '1995-12-17T03:23:00'
+    updatedAt: '1995-12-17T03:23:00',
+    messages: { items: [messages[1]] }
   }
-].map(t => MessageThread.create(t))
+]
 
-;[
-  { text: 'hi', creator: u2.id, messageThread: threads[0].id },
-  { text: 'there', creator: u3.id, messageThread: threads[1].id }
-].map(m => Message.create(m))
+const session = orm.mutableSession(orm.getEmptyState())
+const { MessageThread, Message, Person } = session
+
+const users = [u1, u2, u3]
+users.map(u => Person.create(u))
+
+threads.map(t => MessageThread.create(t))
+
+messages.map(m => Message.create(m))
+
+const reduxState = { orm: session.state }
+
+const testProviders = () => {
+  return AllTheProviders(reduxState)
+}
 
 describe('MessagesDropdown', () => {
-  it('renders correctly with an empty list', () => {
-    const store = mockStore({
-      pending: {},
-      orm: orm.getEmptyState()
-    })
 
+  it('renders correctly with an empty list', async () => {
+
+    mockGraphqlServer.use(
+      graphql.query('MessageThreadsQuery', ({ query, variables }) => {
+        return HttpResponse.json({
+          data: {
+            me: {
+              id: '1',
+              messageThreads: {
+                items: []
+              }
+            }
+          }
+        })
+      })
+    )
     render(
-      <Provider store={store}>
-        <MessagesDropdown
-          fetchThreads={jest.fn()}
-          renderToggleChildren={() => <span>click me</span>}
-          threads={[]}
-          currentUser={u1}
-        />
-      </Provider>
+      <MessagesDropdown
+        renderToggleChildren={() => <span>click me</span>}
+        currentUser={u1}
+      />
     )
 
-    expect(screen.getByText('click me')).toBeInTheDocument()
-    expect(screen.getByText("You don't have any messages yet")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('click me')).toBeInTheDocument()
+      expect(screen.getByText("You don't have any messages yet")).toBeInTheDocument()
+    })
   })
 
-  it('renders correctly with a list of threads', () => {
-    const store = mockStore({
-      pending: {},
-      orm: session.state
-    })
-
+  it('renders correctly with a list of threads', async () => {
+    mockGraphqlServer.use(
+      graphql.query('MessageThreadsQuery', ({ query, variables }) => {
+        return HttpResponse.json({
+          data: {
+            me: {
+              id: '1',
+              messageThreads: { items: threads }
+            }
+          }
+        })
+      })
+    )
     render(
-      <Provider store={store}>
-        <MessagesDropdown
-          fetchThreads={jest.fn()}
-          renderToggleChildren={() => <span>click me</span>}
-          threads={threads}
-          currentUser={u1}
-        />
-      </Provider>
+      <MessagesDropdown
+        renderToggleChildren={() => <span>click me</span>}
+        currentUser={u1}
+      />,
+      { wrapper: testProviders() }
     )
 
-    expect(screen.getByText('click me')).toBeInTheDocument()
-    expect(screen.getByText('Marie Curie and Arthur Fonzarelli')).toBeInTheDocument()
-    expect(screen.getByText('Marie Curie: hi')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('click me')).toBeInTheDocument()
+      expect(screen.getAllByText('Marie Curie and Arthur Fonzarelli')).toHaveLength(2)
+      expect(screen.getByText('Marie Curie: hi')).toBeInTheDocument()
+    })
   })
 })
 
 describe('MessagesDropdownItem', () => {
-  it('renders correctly with an empty thread', () => {
-    const thread = new MessageThread({})
-    render(<MessagesDropdownItem thread={thread} />)
-    expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
-  })
+  it('renders correctly with an empty thread', async () => {
+    const thread = { messages: { items: [] } }
+    render(<MessagesDropdownItem thread={thread} t={mockT} />)
 
-  it('renders correctly with no other participants', () => {
-    const currentUser = { id: 1, name: 'Ra', avatarUrl: 'ra.png' }
-    const thread = new MessageThread({
-      participants: [currentUser]
+    await waitFor(() => {
+      expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
     })
-    render(<MessagesDropdownItem thread={thread} currentUser={currentUser} />)
-    expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
   })
 
-  it('renders correctly with a message', () => {
+  it('renders correctly with no other participants', async () => {
+    const currentUser = { id: 1, name: 'Ra', avatarUrl: 'ra.png' }
+    const thread = {
+      participants: [currentUser],
+      messages: { items: [{ creator: currentUser.id }] }
+    }
+    render(<MessagesDropdownItem thread={thread} currentUser={currentUser} t={mockT} />)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
+    })
+  })
+
+  it('renders correctly with a message', async () => {
     const mockNavigate = jest.fn()
     const goToThread = i => mockNavigate(i)
     render(
       <MessagesDropdownItem
-        thread={threads[0]}
-        currentUser={u1}
+        thread={session.MessageThread.withId(threads[0].id)}
+        currentUser={session.Person.withId(u1.id)}
         onClick={() => goToThread(threads[0].id)}
+        t={mockT}
       />
     )
 
-    expect(screen.getByText('Marie Curie and Arthur Fonzarelli')).toBeInTheDocument()
-    expect(screen.getByText('Marie Curie: hi')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Marie Curie and Arthur Fonzarelli')).toBeInTheDocument()
+      expect(screen.getByText('Marie Curie: hi')).toBeInTheDocument()
+    })
 
     fireEvent.click(screen.getByRole('listitem'))
-    expect(mockNavigate).toHaveBeenCalledWith(threads[0].id)
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(threads[0].id)
+    })
   })
 })
 
@@ -121,7 +170,7 @@ describe('lastMessageCreator', () => {
     const message = {
       creator: { id: 1 }
     }
-    expect(lastMessageCreator(message, currentUser, [])).toBe(formattedName)
+    expect(lastMessageCreator(message, currentUser, [], mockT)).toBe(formattedName)
   })
   it('handles when a different user created the message', () => {
     const name = 'name'
@@ -135,7 +184,7 @@ describe('lastMessageCreator', () => {
       { id: 3, name: 'other' },
       { id: 4, name: 'another' }
     ]
-    expect(lastMessageCreator(message, currentUser, participants)).toBe(formattedName)
+    expect(lastMessageCreator(message, currentUser, participants, mockT)).toBe(formattedName)
   })
   it('handles when there are 2 participants and a different user created the message', () => {
     const currentUser = { id: 1 }
@@ -146,6 +195,6 @@ describe('lastMessageCreator', () => {
       { id: 2, name: 'name1' },
       { id: 2, name: 'name2' }
     ]
-    expect(lastMessageCreator(message, currentUser, participants)).toBe('')
+    expect(lastMessageCreator(message, currentUser, participants, mockT)).toBe('')
   })
 })

@@ -121,9 +121,9 @@ class EditProfileTab extends Component {
         <Helmet>
           <title>{t('Your Settings')} | Hylo</title>
         </Helmet>
-        <label className={classes.label}>{t('Your Name')}</label>
+        <label className={classes.label} htmlFor='nameField'>{t('Your Name')}</label>
         {!validateName(name) && <div className={classes.nameValidation}>{t('Name must not be blank')}</div>}
-        <input type='text' className={classes.name} onChange={this.updateSetting('name')} value={name || ''} />
+        <input type='text' className={classes.name} onChange={this.updateSetting('name')} value={name || ''} id='nameField' />
         <label className={classes.label}>{t('Banner and Avatar Images')}</label>
         <UploadAttachmentButton
           type='userBanner'
@@ -141,16 +141,17 @@ class EditProfileTab extends Component {
         >
           <div style={bgImageStyle(avatarUrl)} className={classes.avatarImage}><Icon name='AddImage' className={classes.uploadIcon} /></div>
         </UploadAttachmentButton>
-        <SettingsControl label={t('Tagline')} onChange={this.updateSetting('tagline')} value={tagline} maxLength={60} />
-        <SettingsControl label={t('About Me')} onChange={this.updateSetting('bio')} value={bio} type='textarea' />
+        <SettingsControl id='taglineField' label={t('Tagline')} onChange={this.updateSetting('tagline')} value={tagline} maxLength={60} />
+        <SettingsControl id='bioField' label={t('About Me')} onChange={this.updateSetting('bio')} value={bio} type='textarea' />
         <SettingsControl
+          id='locationField'
           label={t('Location')}
           onChange={this.updateSettingDirectly('location', true)}
           location={location}
           locationObject={locationObject}
           type='location'
         />
-        <SettingsControl label={t('Website')} onChange={this.updateSetting('url')} value={url} />
+        <SettingsControl id='urlField' label={t('Website')} onChange={this.updateSetting('url')} value={url} />
         <SettingsControl
           label={t('My Skills & Interests')} renderControl={() =>
             <SkillsSection personId={currentUser.id} />}
@@ -159,8 +160,8 @@ class EditProfileTab extends Component {
           label={t('What I\'m learning')} renderControl={() =>
             <SkillsToLearnSection personId={currentUser.id} />}
         />
-        <SettingsControl label={t('Contact Email')} onChange={this.updateSetting('contactEmail')} value={contactEmail} />
-        <SettingsControl label={t('Contact Phone')} onChange={this.updateSetting('contactPhone')} value={contactPhone} />
+        <SettingsControl id='contactEmailField' label={t('Contact Email')} onChange={this.updateSetting('contactEmail')} value={contactEmail} />
+        <SettingsControl id='contactPhoneField' label={t('Contact Phone')} onChange={this.updateSetting('contactPhone')} value={contactPhone} />
         <label className={classes.socialLabel}>{t('Social Accounts')}</label>
         <SocialControl
           label='Facebook'

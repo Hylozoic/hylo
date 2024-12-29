@@ -16,6 +16,7 @@ const GeocoderAutocomplete = ({
   resultClass = '',
   resultsClass = '',
   resultFocusClass = 'strong',
+  id,
   inputPosition = 'top',
   inputPlaceholder = 'Search',
   showLoader = false,
@@ -221,6 +222,7 @@ const GeocoderAutocomplete = ({
 
   const input = (
     <input
+      id={id}
       ref={inputRef}
       className={inputClass}
       onKeyDown={onKeyDown}

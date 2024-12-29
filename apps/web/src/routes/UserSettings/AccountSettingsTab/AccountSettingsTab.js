@@ -138,9 +138,9 @@ class AccountSettingsTab extends Component {
         <div className={classes.title}>{t('Update Account')}</div>
         {formErrors.map((formErrorText, i) =>
           <div className={classes.error} key={i}>{formErrorText}</div>)}
-        <SettingsControl label={t('Email')} onChange={this.updateSetting('email')} value={email} />
-        <SettingsControl label={t('New Password')} onChange={this.updateSetting('password')} value={password} type='password' />
-        <SettingsControl label={t('New Password (Confirm)')} onChange={this.updateSetting('confirm')} value={confirm} type='password' />
+        <SettingsControl label={t('Email')} onChange={this.updateSetting('email')} value={email} id='email' />
+        <SettingsControl label={t('New Password')} onChange={this.updateSetting('password')} value={password} type='password' id='password' />
+        <SettingsControl label={t('New Password (Confirm)')} onChange={this.updateSetting('confirm')} value={confirm} type='password' id='confirm' />
         <div className={classes.help}>
           {t('Passwords must be at least 9 characters long, and should be a mix of lower and upper case letters, numbers and symbols.')}
         </div>

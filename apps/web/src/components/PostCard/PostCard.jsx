@@ -30,6 +30,7 @@ export default function PostCard (props) {
     expanded,
     highlightProps,
     group,
+    mapDrawer,
     post,
     locationParams,
     onAddReaction = () => {},
@@ -101,6 +102,7 @@ export default function PostCard (props) {
           { [classes.constrained]: constrained },
           className
         )}
+        data-testid='post-card'
       >
         <div onClick={onClick}>
           <PostHeader
@@ -122,17 +124,15 @@ export default function PostCard (props) {
           />
         </div>
         {isEvent && (
-          <div className={classes.bodyWrapper}>
-            <EventBody
-              onClick={onClick}
-              currentUser={currentUser}
-              event={post}
-              slug={routeParams.groupSlug}
-              respondToEvent={handleRespondToEvent}
-              constrained={constrained}
-              isFlagged={isFlagged}
-            />
-          </div>
+          <EventBody
+            onClick={onClick}
+            currentUser={currentUser}
+            event={post}
+            slug={routeParams.groupSlug}
+            respondToEvent={handleRespondToEvent}
+            constrained={constrained}
+            isFlagged={isFlagged}
+          />
         )}
         {!isEvent && (
           <div>
@@ -146,6 +146,7 @@ export default function PostCard (props) {
               onAddReaction={onAddReaction}
               onRemoveReaction={onRemoveReaction}
               highlightProps={highlightProps}
+              mapDrawer={mapDrawer}
             />
           </div>
         )}

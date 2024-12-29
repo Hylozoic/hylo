@@ -7,5 +7,5 @@ it('renders correctly', () => {
     <Consent location={{ search: '?name=CoolApp' }} appName='CoolApp' />
   )
 
-  expect(screen.getByText('{{appName}} wants access to your Hylo account')).toBeInTheDocument()
+  expect(screen.getByText('CoolApp wants access to your Hylo account')).toBeInTheDocument()
 })
