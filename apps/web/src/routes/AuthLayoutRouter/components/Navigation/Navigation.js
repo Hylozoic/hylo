@@ -105,7 +105,6 @@ export default function Navigation (props) {
     }
   }
 
-
   const homeOnClick = () => {
     if (window.location.pathname === rootPath) {
       clearStream()
