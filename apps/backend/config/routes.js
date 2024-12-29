@@ -72,8 +72,9 @@ module.exports.routes = {
   'POST   /noo/threads/subscribe':                        'PostController.subscribeToUpdates',
   'POST   /noo/threads/unsubscribe':                      'PostController.unsubscribeFromUpdates',
 
+  'GET    /noo/group/:groupSlug/murmurations':            'MurmurationsController.group',
+
   'POST   /noo/upload':                                   'UploadController.create',
 
   'GET    /noo/export/group':                             'ExportController.groupData'
-
 }
