@@ -420,10 +420,10 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/*' element={homeRoute} />
               <Route path='post/:postId/*' element={<PostDetail />} />
               {/* **** My Routes **** */}
-              <Route path='my/posts/*' element={<Stream context='my' />} />
-              <Route path='my/interactions/*' element={<Stream context='my' />} />
-              <Route path='my/announcements/*' element={<Stream context='my' />} />
-              <Route path='my/mentions/*' element={<Stream context='my' />} />
+              <Route path='my/posts/*' element={<Stream context='my' view='posts' />} />
+              <Route path='my/interactions/*' element={<Stream context='my' view='interactions' />} />
+              <Route path='my/announcements/*' element={<Stream context='my' view='announcements' />} />
+              <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
               <Route path='my/*' element={<UserSettings />} />
               <Route path='my' element={<Navigate to='/my/posts' replace />} />
               {/* **** Other Routes **** */}

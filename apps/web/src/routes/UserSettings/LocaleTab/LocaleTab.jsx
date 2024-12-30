@@ -7,7 +7,7 @@ export default function LocaleTab ({ currentUser }) {
   const { t } = useTranslation()
   const locale = currentUser?.settings?.locale
   const localeFlag = localeToFlagEmoji(localeLocalStorageSync(locale))
-  
+
   return (
     <div className='p-6'>
       <h2>{t('Language Settings')}</h2>
