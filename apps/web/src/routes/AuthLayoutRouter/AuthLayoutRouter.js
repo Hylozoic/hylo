@@ -420,12 +420,15 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/*' element={homeRoute} />
               <Route path='post/:postId/*' element={<PostDetail />} />
               {/* **** My Routes **** */}
-              <Route path='my/:view/*' element={<Stream context='my' />} />
+              <Route path='my/posts/*' element={<Stream context='my' />} />
+              <Route path='my/interactions/*' element={<Stream context='my' />} />
+              <Route path='my/announcements/*' element={<Stream context='my' />} />
+              <Route path='my/mentions/*' element={<Stream context='my' />} />
+              <Route path='my/*' element={<UserSettings />} />
               <Route path='my' element={<Navigate to='/my/posts' replace />} />
               {/* **** Other Routes **** */}
               <Route path='welcome/*' element={<WelcomeWizardRouter />} />
               <Route path='messages/:messageThreadId' element={<Messages />} />
-              <Route path='settings/*' element={<UserSettings />} />
               <Route path='search' element={<Search />} />
               {/* **** Default Route (404) **** */}
               <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />

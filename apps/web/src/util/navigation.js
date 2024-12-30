@@ -146,8 +146,8 @@ export function messagePersonUrl (person) {
 }
 
 // Person URLs
-export function currentUserSettingsUrl (view = '') {
-  return '/settings' + (view ? '/' + view : '')
+export function currentUserSettingsUrl () {
+  return '/my/edit-profile'
 }
 
 export function personUrl (id, groupSlug) {
@@ -176,6 +176,7 @@ export function customViewUrl (customViewId, rootPath, opts) {
 
 export function widgetUrl ({ widget, rootPath, groupSlug, context = 'group' }) {
   let url = ''
+  if (widget.url) return widget.url
   if (widget.view === 'about') {
     url = groupDetailUrl(groupSlug, { rootPath, groupSlug, context })
   } else if (widget.view) {

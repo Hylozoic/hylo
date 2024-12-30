@@ -36,7 +36,7 @@ export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl }) {
 
   if (isPublic) {
     widgets = [
-      { type: 'all', title: 'widget-my-all', id: 'widget-my-all', view: 'all', order: 1, parentId: null },
+      { type: 'all', title: 'widget-my-all', id: 'widget-my-all', view: 'all', order: 1, parentId: null }
     ]
   }
 
@@ -51,7 +51,7 @@ export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl }) {
       { icon: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', view: 'announcements', order: 4, parentId: 'widget-my-content', context: 'my' },
       { title: 'widget-myself', id: 'widget-myself', order: 3, parentId: null },
       { title: 'widget-my-profile', id: 'widget-my-profile', url: profileUrl, order: 1, parentId: 'widget-myself' },
-      { title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', context: 'my', view: 'settings', order: 2, parentId: 'widget-myself' },
+      { title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', context: 'my', view: 'edit-profile', order: 2, parentId: 'widget-myself' },
       { title: 'widget-my-groups', id: 'widget-my-groups', context: 'my', view: 'groups', order: 3, parentId: 'widget-myself' },
       { title: 'widget-my-invites', id: 'widget-my-invites', context: 'my', view: 'invitations', order: 4, parentId: 'widget-myself' },
       { title: 'widget-my-notifications', id: 'widget-my-notifications', context: 'my', view: 'notifications', order: 5, parentId: 'widget-myself' },

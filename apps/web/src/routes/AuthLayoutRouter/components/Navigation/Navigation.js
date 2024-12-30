@@ -55,7 +55,6 @@ export default function Navigation (props) {
 
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
-
   const rootPath = baseUrl({ ...routeParams, view: null })
   const isAllOrPublicPath = ['/all', '/public'].includes(rootPath)
   const isPublic = routeParams.context === 'public'
@@ -92,7 +91,7 @@ export default function Navigation (props) {
       return contextWidgets.length > 0
     }
     return false
-  }, [group])
+  }, [group, isMyContext])
 
   const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
 

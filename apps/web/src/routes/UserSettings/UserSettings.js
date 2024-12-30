@@ -74,7 +74,7 @@ const UserSettings = () => {
   const content = [
     {
       name: t('Edit Profile'),
-      path: '',
+      path: 'edit-profile',
       component: (
         <EditProfileTab
           currentUser={currentUser}
@@ -163,7 +163,7 @@ const UserSettings = () => {
     })
   }
 
-  return <FullPageModal content={content} />
+  return <FullPageModal hideMenu content={content} />
 }
 
 export default UserSettings
