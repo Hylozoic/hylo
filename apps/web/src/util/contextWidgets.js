@@ -42,20 +42,21 @@ export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl }) {
 
   if (isMyContext) {
     widgets = [
-      { title: 'widget-my-all', id: 'widget-my-all', view: 'all', order: 1, parentId: null },
+      // { title: 'widget-my-all', id: 'widget-my-all', view: 'all', order: 1, parentId: null },
+      // TODO CONTEXT: integrating the 'all' context into the 'my' context needs a lot of thought
       { title: 'widget-my-content', id: 'widget-my-content', order: 2, parentId: null },
-      { icon: 'Posticon', title: 'widget-my-posts', id: 'widget-my-posts', view: 'posts', order: 1, parentId: 'widget-my-content' },
-      { icon: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', view: 'interactions', order: 2, parentId: 'widget-my-content' },
-      { icon: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', view: 'mentions', order: 3, parentId: 'widget-my-content' },
-      { icon: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', view: 'announcements', order: 4, parentId: 'widget-my-content' },
+      { icon: 'Posticon', title: 'widget-my-posts', id: 'widget-my-posts', view: 'posts', order: 1, parentId: 'widget-my-content', context: 'my' },
+      { icon: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', view: 'interactions', order: 2, parentId: 'widget-my-content', context: 'my' },
+      { icon: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', view: 'mentions', order: 3, parentId: 'widget-my-content', context: 'my' },
+      { icon: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', view: 'announcements', order: 4, parentId: 'widget-my-content', context: 'my' },
       { title: 'widget-myself', id: 'widget-myself', order: 3, parentId: null },
-      { title: 'widget-my-profile', id: 'widget-my-profile', context: 'all', url: profileUrl, order: 1, parentId: 'widget-myself' },
-      { title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', context: 'all', view: 'settings', order: 2, parentId: 'widget-myself' },
+      { title: 'widget-my-profile', id: 'widget-my-profile', url: profileUrl, order: 1, parentId: 'widget-myself' },
+      { title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', context: 'my', view: 'settings', order: 2, parentId: 'widget-myself' },
       { title: 'widget-my-groups', id: 'widget-my-groups', context: 'my', view: 'groups', order: 3, parentId: 'widget-myself' },
-      { title: 'widget-my-invites', id: 'widget-my-invites', context: 'all', view: 'invitations', order: 4, parentId: 'widget-myself' },
-      { title: 'widget-my-notifications', id: 'widget-my-notifications', context: 'all', view: 'notifications', order: 5, parentId: 'widget-myself' },
-      { title: 'widget-my-account', id: 'widget-my-account', context: 'all', view: 'account', order: 6, parentId: 'widget-myself' },
-      { title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', context: 'all', view: 'saved-searches', order: 7, parentId: 'widget-myself' },
+      { title: 'widget-my-invites', id: 'widget-my-invites', context: 'my', view: 'invitations', order: 4, parentId: 'widget-myself' },
+      { title: 'widget-my-notifications', id: 'widget-my-notifications', context: 'my', view: 'notifications', order: 5, parentId: 'widget-myself' },
+      { title: 'widget-my-account', id: 'widget-my-account', context: 'my', view: 'account', order: 6, parentId: 'widget-myself' },
+      { title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', context: 'my', view: 'saved-searches', order: 7, parentId: 'widget-myself' },
       { title: 'widget-my-logout', id: 'widget-my-logout', view: 'logout', type: 'logout', order: 4, parentId: null }
     ]
   }

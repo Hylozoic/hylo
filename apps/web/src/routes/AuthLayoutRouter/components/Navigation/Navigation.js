@@ -368,7 +368,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 
   const title = widgetTitleResolver({ widget, t })
-  const url = widgetUrl({ widget, rootPath, groupSlug, context: 'group' })
+  const url = widgetUrl({ widget, rootPath, groupSlug })
   const canDnd = !allView && isEditting && widget.type !== 'home'
   const showEdit = allView && canAdminister
   const hideDropZone = isOverlay || allView || !canDnd

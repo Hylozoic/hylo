@@ -174,12 +174,12 @@ export function customViewUrl (customViewId, rootPath, opts) {
   return `${rootPath}/custom/${customViewId}`
 }
 
-export function widgetUrl ({ widget, rootPath, groupSlug, context }) {
+export function widgetUrl ({ widget, rootPath, groupSlug, context = 'group' }) {
   let url = ''
   if (widget.view === 'about') {
     url = groupDetailUrl(groupSlug, { rootPath, groupSlug, context })
   } else if (widget.view) {
-    url = viewUrl(widget.view, { groupSlug, context })
+    url = viewUrl(widget.view, { groupSlug, context: widget.context || context })
   } else if (widget.viewGroup) {
     url = groupUrl(widget.viewGroup.slug)
   } else if (widget.viewUser) {
