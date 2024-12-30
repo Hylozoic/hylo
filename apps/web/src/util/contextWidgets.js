@@ -55,8 +55,9 @@ export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl }) {
       { title: 'widget-my-groups', id: 'widget-my-groups', context: 'my', view: 'groups', order: 3, parentId: 'widget-myself' },
       { title: 'widget-my-invites', id: 'widget-my-invites', context: 'my', view: 'invitations', order: 4, parentId: 'widget-myself' },
       { title: 'widget-my-notifications', id: 'widget-my-notifications', context: 'my', view: 'notifications', order: 5, parentId: 'widget-myself' },
-      { title: 'widget-my-account', id: 'widget-my-account', context: 'my', view: 'account', order: 6, parentId: 'widget-myself' },
-      { title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', context: 'my', view: 'saved-searches', order: 7, parentId: 'widget-myself' },
+      { title: 'widget-my-locale', id: 'widget-my-locale', context: 'my', view: 'locale', order: 6, parentId: 'widget-myself' },
+      { title: 'widget-my-account', id: 'widget-my-account', context: 'my', view: 'account', order: 7, parentId: 'widget-myself' },
+      { title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', context: 'my', view: 'saved-searches', order: 8, parentId: 'widget-myself' },
       { title: 'widget-my-logout', id: 'widget-my-logout', view: 'logout', type: 'logout', order: 4, parentId: null }
     ]
   }

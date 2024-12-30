@@ -429,6 +429,8 @@ export default function AuthLayoutRouter (props) {
               {/* **** Other Routes **** */}
               <Route path='welcome/*' element={<WelcomeWizardRouter />} />
               <Route path='messages/:messageThreadId' element={<Messages />} />
+              {/* Keep old settings paths for mobile */}
+              <Route path='settings/*' element={<UserSettings />} />
               <Route path='search' element={<Search />} />
               {/* **** Default Route (404) **** */}
               <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />

@@ -8,9 +8,10 @@ import { createSelector } from 'reselect'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import EditProfileTab from './EditProfileTab/EditProfileTab'
 import UserGroupsTab from './UserGroupsTab/'
-import BlockedUsersTab from './BlockedUsersTab/BlockedUsersTab'
+import BlockedUsersTab from './BlockedUsersTab'
 import ManageInvitesTab from './ManageInvitesTab/'
-import NotificationSettingsTab from './NotificationSettingsTab/NotificationSettingsTab'
+import LocaleTab from './LocaleTab'
+import NotificationSettingsTab from './NotificationSettingsTab'
 import AccountSettingsTab from './AccountSettingsTab/AccountSettingsTab'
 import PaymentSettingsTab from './PaymentSettingsTab/PaymentSettingsTab'
 import SavedSearchesTab from './SavedSearchesTab/SavedSearchesTab'
@@ -96,6 +97,11 @@ const UserSettings = () => {
       name: t('Invites & Requests'),
       path: 'invitations',
       component: <ManageInvitesTab currentUser={currentUser} />
+    },
+    {
+      name: t('Locale'),
+      path: 'locale',
+      component: <LocaleTab currentUser={currentUser} />
     },
     {
       name: t('Notifications'),

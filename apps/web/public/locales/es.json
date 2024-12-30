@@ -1101,7 +1101,7 @@
   "this role/badge?": "este rol/insignia?",
   "title: text": "título : texto",
   "to set it up.": "para configurarlo.",
-  "topics: up to 3 topic names separated by spaces and/or commas e.g. “food organic”": "temas: hasta 3 nombres de temas separados por espacios y/o comas, p. \n“comida organica”",
+  "topics: up to 3 topic names separated by spaces and/or commas e.g. “food organic”": "temas: hasta 3 nombres de temas separados por espacios y/o comas, p. \n"comida organica"",
   "type here": "escriba aquí",
   "type: one of discussion, request, offer, resource, event, project": "tipo: uno de discusión, solicitud, oferta, recurso, evento, proyecto",
   "upcoming": "próximo",
@@ -1186,9 +1186,12 @@
   "widget-my-invites": "Mis Invitaciones",
   "widget-my-logout": "Cerrar Sesión",
   "widget-my-mentions": "Menciones",
+  "widget-my-locale": "Idioma/Región",
   "widget-my-notifications": "Notificaciones",
   "widget-my-posts": "Mis Publicaciones",
   "widget-my-profile": "Perfil",
   "widget-my-saved-searches": "Búsquedas Guardadas",
-  "widget-myself": "Mi Cuenta"
+  "widget-myself": "Mi Cuenta",
+  "Language Settings": "Configuración de idioma",
+  "Select your preferred language for the Hylo interface": "Seleccione su idioma preferido para la interfaz de Hylo"
 }

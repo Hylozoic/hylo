@@ -1188,8 +1188,11 @@
   "widget-my-logout": "Logout",
   "widget-my-mentions": "Mentions",
   "widget-my-notifications": "Notifications",
+  "widget-my-locale": "Language/Locale",
   "widget-my-posts": "My Posts",
   "widget-my-profile": "My Profile",
   "widget-my-saved-searches": "Saved Searches",
-  "widget-myself": "My Account"
+  "widget-myself": "My Account",
+  "Language Settings": "Language Settings",
+  "Select your preferred language for the Hylo interface": "Select your preferred language for the Hylo interface"
 }
