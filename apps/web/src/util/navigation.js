@@ -146,8 +146,8 @@ export function messagePersonUrl (person) {
 }
 
 // Person URLs
-export function currentUserSettingsUrl () {
-  return '/my/edit-profile'
+export function currentUserSettingsUrl (view = 'edit-profile') {
+  return '/my' + (view ? '/' + view : '')
 }
 
 export function personUrl (id, groupSlug) {
