@@ -35,7 +35,7 @@ export default function GlobalNavItem ({
   return (
     <Tooltip>
       <div className='mb-4'>
-        <TooltipTrigger>
+        <TooltipTrigger asChild>
           <div
             className={cx(
               'flex flex-col items-center justify-center w-10 h-10 min-h-10 rounded-lg shadow-lg bg-background relative',

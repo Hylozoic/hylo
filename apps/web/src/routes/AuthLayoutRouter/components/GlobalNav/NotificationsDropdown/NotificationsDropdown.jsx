@@ -1,14 +1,13 @@
 import cx from 'classnames'
 import { isEmpty, some } from 'lodash/fp'
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { TextHelpers } from '@hylo/shared'
-import RoundImage from 'components/RoundImage'
 import ScrollListener from 'components/ScrollListener/ScrollListener'
+import { Popover, PopoverTrigger, PopoverContent } from 'components/ui/popover'
+import NotificationItem from './NotificationItem'
 import LoadingItems from 'routes/AuthLayoutRouter/components/GlobalNav/LoadingItems'
 import NoItems from 'routes/AuthLayoutRouter/components/GlobalNav/NoItems'
-import { bodyForNotification, titleForNotification, urlForNotification } from 'store/models/Notification'
-import GlobalNavDropdown from '../GlobalNavDropdown'
+import { urlForNotification } from 'store/models/Notification'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
 import {
@@ -21,14 +20,12 @@ import {
 import getMe from 'store/selectors/getMe'
 import { FETCH_NOTIFICATIONS } from 'store/constants'
 
-import classes from './NotificationsDropdown.module.scss'
-
 const NOTIFICATIONS_PAGE_SIZE = 20
 
 function NotificationsDropdown ({ renderToggleChildren, className }) {
   const [showingUnread, setShowingUnread] = useState(false)
   const [lastOpenedAt, setLastOpenedAt] = useState(null)
-  const dropdownRef = useRef(null)
+  const [modalOpen, setModalOpen] = useState(false)
   const { t } = useTranslation()
   const dispatch = useDispatch()
 
@@ -41,11 +38,12 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
     dispatch(fetchNotifications())
   }, [dispatch])
 
-  const onToggle = nowActive => {
-    if (nowActive) {
+  const handleOpenChange = isOpen => {
+    if (isOpen) {
       setLastOpenedAt(new Date())
       if (!pending) dispatch(fetchNotifications())
     }
+    setModalOpen(isOpen)
   }
 
   const hasUnread = () => {
@@ -69,7 +67,7 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
   const onClick = (notification) => {
     if (notification.activity.unread) dispatch(markActivityRead(notification.activity.id))
     dispatch(push(urlForNotification(notification)))
-    dropdownRef.current.toggle(false)
+    setModalOpen(false)
   }
 
   const fetchMore = () => dispatch(fetchNotifications(NOTIFICATIONS_PAGE_SIZE, notifications.length))
@@ -83,12 +81,14 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
     body = <NoItems message={message} />
   } else {
     body = (
-      <div className={classes.notifications} id='notifications-scroll-list'>
-        {filteredNotifications.map(notification => <Notification
-          notification={notification}
-          onClick={onClick}
-          key={notification.id}
-                                                   />)}
+      <div className='overflow-y-auto h-[calc(100vh-100px)]' id='notifications-scroll-list'>
+        {filteredNotifications.map(notification => (
+          <NotificationItem
+            notification={notification}
+            onClick={onClick}
+            key={notification.id}
+          />
+        ))}
         <ScrollListener
           elementId='notifications-scroll-list'
           onBottom={hasMore ? fetchMore : () => {}}
@@ -99,53 +99,23 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
   }
 
   return (
-    <GlobalNavDropdown
-      ref={dropdownRef}
-      className={className}
-      onToggle={onToggle}
-      toggleChildren={renderToggleChildren(hasUnread())}
-      header={
-        <div className={classes.headerContent}>
-          <span onClick={showRecent} className={cx(classes.tab, { [classes.active]: !showingUnread })}>
+    <Popover onOpenChange={handleOpenChange} open={modalOpen}>
+      <PopoverTrigger>
+        {renderToggleChildren(hasUnread())}
+      </PopoverTrigger>
+      <PopoverContent side='right' align='start' className='!p-0 !w-[340px]'>
+        <div className='flex items-center w-full z-10 p-2'>
+          <span onClick={showRecent} className={cx('cursor-pointer text-accent mr-5 px-2', { 'border-b-2 border-accent relative': !showingUnread })}>
             {t('Recent')}
           </span>
-          <span onClick={showUnread} className={cx(classes.tab, { [classes.active]: showingUnread })}>
+          <span onClick={showUnread} className={cx('cursor-pointer text-accent mr-5 px-2', { 'border-b-2 border-accent relative': showingUnread })}>
             {t('Unread')}
           </span>
-          <span onClick={() => dispatch(markAllActivitiesRead())} className={classes.markRead}>{t('Mark all as read')}</span>
+          <span onClick={() => dispatch(markAllActivitiesRead())} className='cursor-pointer text-accent ml-auto'>{t('Mark all as read')}</span>
         </div>
-      }
-      body={body}
-    />
-  )
-}
-
-export function Notification ({ notification, onClick }) {
-  const { activity: { unread, actor } } = notification
-  const { t } = useTranslation()
-
-  return (
-    <li
-      className={cx(classes.notification, { [classes.unread]: unread })}
-      onClick={() => onClick(notification)}
-    >
-      <div className={classes.imageWraper}>
-        <RoundImage url={actor.avatarUrl} />
-      </div>
-      <div className={classes.content}>
-        <div className={classes.header}>
-          <span
-            dangerouslySetInnerHTML={{ __html: titleForNotification(notification, t) }}
-          />
-        </div>
-        <div className={classes.body}>
-          <span
-            dangerouslySetInnerHTML={{ __html: bodyForNotification(notification, t) }}
-          />
-        </div>
-        <div className={classes.date}>{TextHelpers.humanDate(notification.createdAt)}</div>
-      </div>
-    </li>
+        {body}
+      </PopoverContent>
+    </Popover>
   )
 }
 

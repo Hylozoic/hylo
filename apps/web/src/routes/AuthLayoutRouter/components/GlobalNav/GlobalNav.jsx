@@ -133,7 +133,9 @@ export default function GlobalNav (props) {
       </GlobalNavItem>
 
       <Popover>
-        <PopoverTrigger><button className='text-themeForeground border-2 border-themeForeground rounded-xl p-1 w-10 line-height-1'>?</button></PopoverTrigger>
+        <PopoverTrigger>
+          <span className='inline-block text-themeForeground border-2 border-themeForeground rounded-xl p-1 w-10 line-height-1'>?</span>
+        </PopoverTrigger>
         <PopoverContent side='right' align='start'>
           <ul>
             <li><span className={styles.hoverHighlight} onClick={showIntercom}>{t('Feedback & Support')}</span></li>

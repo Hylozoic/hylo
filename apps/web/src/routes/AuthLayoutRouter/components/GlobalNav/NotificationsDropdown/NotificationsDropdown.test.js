@@ -2,7 +2,8 @@ import React from 'react'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { graphql, HttpResponse } from 'msw'
 import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
-import NotificationsDropdown, { Notification } from './NotificationsDropdown'
+import NotificationsDropdown from './NotificationsDropdown'
+import NotificationItem from './NotificationItem'
 import {
   ACTION_NEW_COMMENT,
   ACTION_TAG,
@@ -207,7 +208,7 @@ describe('NotificationsDropdown', () => {
 
 describe('Notification', () => {
   it('renders correctly with a comment notification', async () => {
-    render(<Notification notification={commentNotification} />)
+    render(<NotificationItem notification={commentNotification} />)
     await waitFor(() => {
       expect(screen.getByText(/New comment on/i)).toBeInTheDocument()
       expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
@@ -215,7 +216,7 @@ describe('Notification', () => {
   })
 
   it('renders correctly with a tag notification', async () => {
-    render(<Notification notification={tagNotification} />)
+    render(<NotificationItem notification={tagNotification} />)
     await waitFor(() => {
       expect(screen.getByText(/New post in/i)).toBeInTheDocument()
       expect(screen.getByText(/I have so many things I need!/i)).toBeInTheDocument()
@@ -223,7 +224,7 @@ describe('Notification', () => {
   })
 
   it('renders correctly with a join request notification', async () => {
-    render(<Notification notification={joinRequestNotification} />)
+    render(<NotificationItem notification={joinRequestNotification} />)
     await waitFor(() => {
       expect(screen.getByText(/asked to join/i)).toBeInTheDocument()
       expect(screen.getByText(/Foomunity/i)).toBeInTheDocument()
@@ -239,7 +240,7 @@ describe('Notification', () => {
   })
 
   it('renders correctly with a mention notification', async () => {
-    render(<Notification notification={mentionNotification} />)
+    render(<NotificationItem notification={mentionNotification} />)
     await waitFor(() => {
       expect(screen.getByText(/mentioned you/i)).toBeInTheDocument()
       expect(screen.getByText(/Heads up/i)).toBeInTheDocument()
@@ -247,7 +248,7 @@ describe('Notification', () => {
   })
 
   it('renders correctly with a donation to notification', async () => {
-    render(<Notification notification={donationToNotification} />)
+    render(<NotificationItem notification={donationToNotification} />)
     await waitFor(() => {
       expect(screen.getByText(/contributed to a project/i)).toBeInTheDocument()
       expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
@@ -255,7 +256,7 @@ describe('Notification', () => {
   })
 
   it('renders correctly with a donation from notification', async () => {
-    render(<Notification notification={donationFromNotification} />)
+    render(<NotificationItem notification={donationFromNotification} />)
     await waitFor(() => {
       expect(screen.getByText(/contributed to your project/i)).toBeInTheDocument()
       expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
@@ -263,7 +264,7 @@ describe('Notification', () => {
   })
 
   it('renders correctly with a comment mention notification', async () => {
-    render(<Notification notification={commentMentionNotification} />)
+    render(<NotificationItem notification={commentMentionNotification} />)
     await waitFor(() => {
       expect(screen.getByText(/mentioned you in a comment on/i)).toBeInTheDocument()
       expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()

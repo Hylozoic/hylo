@@ -1,4 +1,10 @@
 import inflection from 'inflection'
+import { clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+export function cn (...inputs) {
+  return twMerge(clsx(inputs))
+}
 
 export function bgImageStyle (url) {
   if (!url) return {}

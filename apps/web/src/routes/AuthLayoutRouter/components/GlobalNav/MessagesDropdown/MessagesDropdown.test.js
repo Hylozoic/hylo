@@ -2,9 +2,10 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { graphql, HttpResponse } from 'msw'
-import MessagesDropdown, { MessagesDropdownItem, lastMessageCreator } from './MessagesDropdown'
+import MessagesDropdown from './MessagesDropdown'
+import MessagesDropdownItem from './MessagesDropdownItem'
+import { lastMessageCreator } from './util'
 import orm from 'store/models'
-import { Provider } from 'react-redux'
 
 const mockT = jest.fn((str, params) => {
   if (!params) return str
