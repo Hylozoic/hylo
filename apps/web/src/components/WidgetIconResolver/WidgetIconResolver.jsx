@@ -22,6 +22,10 @@ export function WidgetIconResolver ({ widget, style, className }) {
     return <Icon name={widget.icon} style={style} className={className} />
   }
 
+  if (widget.context === 'my') {
+    return null
+  }
+
   switch (type) {
     case 'chats':
       return <Icon name='Message' style={style} />

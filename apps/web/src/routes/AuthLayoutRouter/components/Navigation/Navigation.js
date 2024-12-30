@@ -25,10 +25,10 @@ import useGatherItems from 'hooks/useGatherItems'
 import { CONTEXT_MY, FETCH_POSTS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import orm from 'store/models'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
-import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath } from 'util/navigation'
+import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
 
 import classes from './Navigation.module.scss'
-import { isWidgetDroppable, widgetIsValidChild, widgetTitleResolver } from 'util/contextWidgets'
+import { getStaticMenuWidgets, isWidgetDroppable, widgetIsValidChild, widgetTitleResolver } from 'util/contextWidgets'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 
@@ -50,6 +50,7 @@ export default function Navigation (props) {
   const dispatch = useDispatch()
   const routeParams = useRouteParams()
   const location = useLocation()
+  const currentUser = useSelector(getMe)
   const { t } = useTranslation()
 
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
@@ -57,6 +58,9 @@ export default function Navigation (props) {
 
   const rootPath = baseUrl({ ...routeParams, view: null })
   const isAllOrPublicPath = ['/all', '/public'].includes(rootPath)
+  const isPublic = routeParams.context === 'public'
+  const isMyContext = routeParams.context === CONTEXT_MY
+  const profileUrl = personUrl(get('id', currentUser))
 
   // TODO CONTEXT: the new post count will be refactored into the use of highlightNumber and secondaryNumber, on the context widgets
   const badge = useSelector(state => {
@@ -76,10 +80,15 @@ export default function Navigation (props) {
     return false
   })
 
-  const contextWidgets = useSelector(state => getContextWidgets(state, group))
+  const contextWidgets = useSelector(state => {
+    if (isMyContext) {
+      return getStaticMenuWidgets({ isPublic, isMyContext, profileUrl })
+    }
+    return getContextWidgets(state, group)
+  })
 
   const hasContextWidgets = useMemo(() => {
-    if (group) {
+    if (group || isMyContext) {
       return contextWidgets.length > 0
     }
     return false
@@ -121,9 +130,6 @@ export default function Navigation (props) {
   const membersPath = !isAllOrPublicPath && viewUrl('members', routeParams)
   const projectsPath = viewUrl('projects', routeParams)
   const proposalPath = viewUrl('proposals', routeParams)
-
-  const isPublic = routeParams.context === 'public'
-  const isMyContext = routeParams.context === CONTEXT_MY
 
   const customViews = (group && group.customViews && group.customViews.toRefArray()) || []
 
@@ -305,17 +311,18 @@ export default function Navigation (props) {
               )}
             </DragOverlay>
           </DndContext>
-          <div className='w-[calc(100%-1.5em)] ml-[1.5em] p-2 mb-[0.05em]'>
-            <ContextMenuItem
-              widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }}
-              groupSlug={routeParams.groupSlug}
-              rootPath={rootPath}
-              canAdminister={canAdminister}
-              allView
-              isEditting={isEditting}
-              group={group}
-            />
-          </div>
+          {!isMyContext && (
+            <div className='w-[calc(100%-1.5em)] ml-[1.5em] p-2 mb-[0.05em]'>
+              <ContextMenuItem
+                widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }}
+                groupSlug={routeParams.groupSlug}
+                rootPath={rootPath}
+                canAdminister={canAdminister}
+                allView
+                isEditting={isEditting}
+                group={group}
+              />
+            </div>)}
         </div>
       )}
       {!hasContextWidgets && <div className={classes.closeBg} onClick={toggleGroupMenuAction} />}
