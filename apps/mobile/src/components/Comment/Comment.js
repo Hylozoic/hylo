@@ -25,6 +25,7 @@ export default function Comment ({
   comment,
   clearHighlighted,
   showMenu = false,
+  groupId,
   highlighted,
   onPress,
   onReply,
@@ -32,8 +33,7 @@ export default function Comment ({
   scrollTo,
   setHighlighted,
   showMember,
-  style,
-  slug
+  style
 }) {
   const { t } = useTranslation()
   const [, deleteComment] = useMutation(deleteCommentMutation)
@@ -41,8 +41,7 @@ export default function Comment ({
   const { reactOnEntity, deleteReactionFromEntity } = useReactOnEntity()
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [currentUser] = useCurrentUser()
-  const [group] = useGroup({ groupSlug: slug })
-  const hasResponsibility = useHasResponsibility({ groupId: group?.id })
+  const hasResponsibility = useHasResponsibility({ forCurrentGroup: !groupId, forCurrentUser: true, groupId  })
 
   const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
   const isCreator = currentUser && (comment.creator.id === currentUser.id)

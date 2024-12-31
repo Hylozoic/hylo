@@ -87,12 +87,14 @@ export default function PostDetails () {
   }
 
   const renderPostDetails = panHandlers => {
+    // TOOD: It is not clear why we do this vs just relying on currentGroup
     const firstGroupSlug = get('groups.0.slug', post)
     const showGroups = isModalScreen || post?.groups.find(g => g.slug !== currentGroup?.slug)
 
     return (
       <Comments
         ref={commentsRef}
+        groupId={firstGroupSlug}
         postId={post.id}
         header={(
           <PostCardForDetails
@@ -102,7 +104,6 @@ export default function PostDetails () {
           />
         )}
         onSelect={setSelectedComment}
-        slug={firstGroupSlug}
         showMember={goToMember}
         panHandlers={panHandlers}
       />

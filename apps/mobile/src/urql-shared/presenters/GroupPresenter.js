@@ -1,5 +1,5 @@
 import { Image } from 'react-native'
-import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
 import allGroupsBannerImage from 'assets/all-groups-banner.png'
 import allGroupsAvatarUrl from 'assets/All_Groups2.png'
 import myHomeAvatarUrl from 'assets/my-home.png'
@@ -167,9 +167,9 @@ export const MY_CONTEXT_GROUP = {
   childGroups: { toModelArray: () => [] }
 }
 
-// Move into hylo-shared (PathsHelper?)
+// TODO: URQL - Move into hylo-shared (PathsHelper?)
 export const isContextGroup = slug =>
-  [ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG].includes(slug)
+  [ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(slug)
 
 export function getContextGroup(groupIdOrSlug) {
   if (groupIdOrSlug === ALL_GROUP_ID) {

@@ -46,11 +46,11 @@ const childCommentsQuery = gql`
 `
 
 function Comments ({
+  groupId,
   postId,
   header: providedHeader = null,
   style = {},
   showMember,
-  slug,
   panHandlers,
   onSelect
 }, ref) {
@@ -126,13 +126,13 @@ function Comments ({
         <Comment
           clearHighlighted={() => setHighlightedComment(null)}
           comment={comment}
+          groupId={groupId}
           highlighted={comment.id === highlightedComment?.id}
           onReply={selectComment}
           postTitle={post?.title}
           scrollTo={viewPosition => scrollToComment(comment, viewPosition)}
           setHighlighted={() => setHighlightedComment(comment)}
           showMember={showMember}
-          slug={slug}
           key={comment.id}
         />
       </>
@@ -145,13 +145,13 @@ function Comments ({
       <Comment
         clearHighlighted={() => setHighlightedComment(null)}
         comment={comment}
+        groupId={groupId}
         highlighted={comment.id === highlightedComment?.id}
         onReply={selectComment}
         postTitle={post?.title}
         scrollTo={viewPosition => scrollToComment(comment, viewPosition)}
         setHighlighted={() => setHighlightedComment(comment)}
         showMember={showMember}
-        slug={slug}
         style={styles.childComment}
         key={comment.id}
       />

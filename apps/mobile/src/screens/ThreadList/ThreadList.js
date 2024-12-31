@@ -51,7 +51,7 @@ export default function ThreadList () {
       {fetching && (
         <Loading />
       )}
-      {!fetching && threads.length === 0 && (
+      {!fetching && threads && !threads.length === 0 && (
         <Text style={styles.center}>{t('No active conversations')}</Text>
       )}
       <FlatList

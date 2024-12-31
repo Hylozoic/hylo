@@ -1,6 +1,7 @@
 import { gql } from 'urql'
 import postsQueryFragment from 'graphql/fragments/postsQueryFragment'
 import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
+import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 
 export const makeQuery = ({
   activePostsOnly,
@@ -31,8 +32,8 @@ export const makeQuery = ({
 
   if (context === 'groups') {
     query = makeGroupPostsQuery(childPostInclusion === 'yes')
-  } else if (context === 'all' || context === 'public' || context === 'my') {
-    console.log('!!!! here')
+  // TODO: URQL - Amend to make 'my' a ContextGroup as well
+  } else if (isContextGroup(context)) {
     query = postsQuery
   } else {
     throw new Error(`makeQuery with context=${context} is not implemented`)
