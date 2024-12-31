@@ -26,10 +26,10 @@ export default {
       // => @media (min-width: 1536px) { ... }
     },
     extend: {
-      height: {
-        190: '190px'
-      },
-      width: {
+      spacing: {
+        190: '190px',
+        280: '280px',
+        300: '300px',
         320: '320px'
       },
       borderWidth: {

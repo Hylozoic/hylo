@@ -305,7 +305,7 @@ export default function AuthLayoutRouter (props) {
 
       <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })} onClick={handleCloseDrawer}>
-          <div className={cn('NavigationContainer flex flex-row w-320 w-full')}>
+          <div className={cn('NavigationContainer flex flex-row nin-w-320 max-w-420')}>
           {!withoutNav && (
             <>
               {/* Depends on `pathMatchParams` */}

@@ -229,7 +229,7 @@ export default function ContextMenu (props) {
   const canView = !group || group.memberCount !== 0
   const links = regularLinks
   return (
-    <div className={cn('Navigation bg-background z-40 overflow-y-auto h-lvh w-320', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
+    <div className={cn('Navigation bg-background z-40 overflow-y-auto h-lvh min-w-280', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
       <div className='ContextDetails h-190 w-full flex items-end'>
         <div className='flex flex-col p-2'>
           <h2 className='text-foreground font-bold leading-3 text-lg'>Group Name</h2>
@@ -405,10 +405,10 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
         {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (
-            <span className='flex justify-between items-center content-center'>
+            <span className='flex items-center content-center'>
               <WidgetIconResolver widget={widget} />
               <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
-                <span className='text-lg font-bold'>{title}</span>
+                <span className='text-sm font-bold ml-2'>{title}</span>
               </MenuLink>
               {showEdit &&
                 <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })}>
@@ -420,14 +420,12 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
             <div>
               {widget.view &&
                 <span className='flex justify-between items-center content-center'>
-                  <WidgetIconResolver widget={widget} />
-                  <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}> <h3 className='text-sm font-semibold'>{title}</h3></MenuLink>
+                  <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}> <h3 className='text-sm font-semibold text-foreground'>{title}</h3></MenuLink>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {!widget.view &&
                 <span className='flex justify-between items-center content-center'>
-                  <WidgetIconResolver widget={widget} />
-                  <h3 className='text-sm font-semibold'>{title}</h3>
+                  <h3 className='text-sm font-semibold text-foreground'>{title}</h3>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               <div className='flex flex-col justify-center items-center relative'>
@@ -509,7 +507,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
   if (widget.type === 'members' && canAddMembers) {
     return (
       <Link to={groupUrl(group.slug, 'settings/invite')}>
-        <div className='inline-block px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
+        <div className='inline-block px-4 py-2 text-sm font-medium text-foreground bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
           {t('Add Members')}
         </div>
       </Link>
@@ -529,8 +527,8 @@ function SpecialTopElementRenderer ({ widget, group }) {
     const settingsUrl = groupUrl(group.slug, 'settings')
 
     const listItemComponent = ({ title, url }) => (
-      <li className='py-2 px-2 border border-gray-200'>
-        <Link to={url} className='text-sm text-gray-600 hover:text-gray-900'>
+      <li className='py-2 px-2 border'>
+        <Link to={url} className='text-sm text-foreground'>
           {title}
         </Link>
       </li>
