@@ -27,7 +27,7 @@ import orm from 'store/models'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
 import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
 
-import classes from './Navigation.module.scss'
+import classes from './ContextMenu.module.scss'
 import { getStaticMenuWidgets, isWidgetDroppable, widgetIsValidChild, widgetTitleResolver } from 'util/contextWidgets'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -39,8 +39,7 @@ const getGroupMembership = ormCreateSelector(
   (session, currentUser, id) => session.Membership.filter({ group: id, person: currentUser }).first()
 )
 
-// TODO CONTEXT: this is the context menu, aka ContextMenu. Rename at the END of refractoring layout stuff, to avoid awkward merge conflicts
-export default function Navigation (props) {
+export default function ContextMenu (props) {
   const {
     className,
     groupId,

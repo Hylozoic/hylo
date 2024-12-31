@@ -50,7 +50,7 @@ import Loading from 'components/Loading'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
 import Messages from 'routes/Messages'
-import Navigation from './components/Navigation'
+import ContextMenu from './components/ContextMenu'
 import NotFound from 'components/NotFound'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
@@ -325,7 +325,7 @@ export default function AuthLayoutRouter (props) {
               <Route
                 path='groups/:groupSlug/*'
                 element={
-                  <Navigation
+                  <ContextMenu
                     context='groups'
                     group={currentGroup}
                     className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
@@ -336,7 +336,7 @@ export default function AuthLayoutRouter (props) {
               <Route
                 path='all/*'
                 element={
-                  <Navigation
+                  <ContextMenu
                     context='all'
                     group={currentGroup}
                     className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
@@ -347,7 +347,7 @@ export default function AuthLayoutRouter (props) {
               <Route
                 path='public/*'
                 element={
-                  <Navigation
+                  <ContextMenu
                     context='public'
                     group={currentGroup}
                     className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
@@ -358,7 +358,7 @@ export default function AuthLayoutRouter (props) {
               <Route
                 path='my/*'
                 element={
-                  <Navigation
+                  <ContextMenu
                     context='my'
                     group={currentGroup}
                     className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
