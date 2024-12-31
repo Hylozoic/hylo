@@ -229,7 +229,13 @@ export default function ContextMenu (props) {
   const canView = !group || group.memberCount !== 0
   const links = regularLinks
   return (
-    <div className={cn('bg-background z-40', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
+    <div className={cn('Navigation bg-background z-40 overflow-y-auto h-lvh w-320', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
+      <div className='ContextDetails h-190 w-full flex items-end'>
+        <div className='flex flex-col p-2'>
+          <h2 className='text-foreground font-bold leading-3 text-lg'>Group Name</h2>
+          <span className={cn('text-xs')}>312 Members</span>
+        </div>
+      </div>
       {!hasContextWidgets && (
         <div className={classes.navigation}>
           {canView && (
@@ -260,9 +266,9 @@ export default function ContextMenu (props) {
         </div>
       )}
       {hasContextWidgets && (
-        <div className='flex flex-col h-full'>
+        <div className='flex flex-col content-center'>
           <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
-            <div className='flex-1 overflow-y-auto'>
+            <div>
               <ContextWidgetList
                 isDragging={isDragging}
                 isEditting={isEditting}
@@ -311,15 +317,15 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
   }
 
   return (
-    <ul>
+    <ul className='m-2 p-0'>
       {isEditting &&
         <DropZone isDragging={isDragging} height='h-16' droppableParams={{ id: 'remove' }}>
           Drag here to remove from menu
         </DropZone>}
       {contextWidgets.map(widget => (
-        <li key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} /></li>
+        <li className='mb-2 items-start' key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} /></li>
       ))}
-      <li>
+      <li className='mb-2'>
         <DropZone isDragging={isDragging} hide={!isEditting} height='h-20' isDroppable droppableParams={{ id: 'bottom-of-list-' + groupSlug, data: { addToEnd: true, parentId: null } }}>
           <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} />
         </DropZone>

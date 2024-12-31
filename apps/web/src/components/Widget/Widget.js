@@ -158,7 +158,7 @@ export default function Widget (props) {
   if (!WIDGETS[name]) return null
 
   return (
-    <div className={cn(classes.widget, { [classes.editingSettings]: isEditingSettings })}>
+    <div className={cn('Widget', classes.widget, { [classes.editingSettings]: isEditingSettings })}>
       {/* TODO: ADMIN RESP? Add something for RESP here */}
       {canEdit || (isVisible && widgetItems)
         ? (

@@ -305,6 +305,7 @@ export default function AuthLayoutRouter (props) {
 
       <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })} onClick={handleCloseDrawer}>
+          <div className={cn('NavigationContainer flex flex-row w-320 w-full')}>
           {!withoutNav && (
             <>
               {/* Depends on `pathMatchParams` */}
@@ -328,7 +329,6 @@ export default function AuthLayoutRouter (props) {
                   <ContextMenu
                     context='groups'
                     group={currentGroup}
-                    className={cn('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -339,7 +339,6 @@ export default function AuthLayoutRouter (props) {
                   <ContextMenu
                     context='all'
                     group={currentGroup}
-                    className={cn('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -350,7 +349,6 @@ export default function AuthLayoutRouter (props) {
                   <ContextMenu
                     context='public'
                     group={currentGroup}
-                    className={cn('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -361,13 +359,13 @@ export default function AuthLayoutRouter (props) {
                   <ContextMenu
                     context='my'
                     group={currentGroup}
-                    className={cn('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
               />
             </Routes>
           )}
+          </div>
           <div className={cn(classes.center, { [classes.fullWidth]: hideSidebar, [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
             {/* NOTE: It could be more clear to group the following switched routes by component  */}
             <Routes>

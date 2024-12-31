@@ -34,8 +34,8 @@ export default function GlobalNav (props) {
   const { t } = useTranslation()
 
   return (
-    <div className={cn('flex flex-col bg-theme-background h-full z-50 items-center pb-2')} onClick={onClick}>
-      <div className='overflow-y-auto py-2 px-3 flex flex-col items-center'>
+    <div className={cn('flex flex-col bg-theme-background h-full z-50 items-center pb-2 pt-2')} onClick={onClick}>
+      <div className='overflow-y-auto py-2 flex flex-col items-center pl-5 pr-3'>
         {/* <div className={styles.drawerToggle} id='toggleDrawer'>
           <button className={styles.drawerToggleButton} onClick={handleToggleDrawer}><Icon name='Hamburger' className={styles.menuIcon} /></button>
           {showMenuBadge && <Badge number='1' className={styles.logoBadge} border />}
