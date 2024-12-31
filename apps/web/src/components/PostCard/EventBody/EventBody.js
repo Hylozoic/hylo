@@ -11,7 +11,7 @@ import EventDate from '../EventDate'
 import EventRSVP from '../EventRSVP'
 import Icon from 'components/Icon'
 import PostTitle from '../PostTitle'
-import PostDetails from '../PostDetails'
+import PostContent from '../PostContent'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
 import { recordClickthrough } from 'store/actions/moderationActions'
 import { RESPONSES } from 'store/models/EventInvitation'
@@ -66,7 +66,7 @@ function EventBody (props) {
             </div>
           )}
           <div className={cn(classes.eventDetails, { [classes.constrained]: constrained })}>
-            <PostDetails
+            <PostContent
               {...event}
               onClick={onClick}
               constrained={constrained}

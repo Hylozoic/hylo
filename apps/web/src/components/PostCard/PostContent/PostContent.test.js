@@ -1,8 +1,8 @@
 import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
-import PostDetails from './index'
+import PostContent from './index'
 
-describe('PostDetails', () => {
+describe('PostContent', () => {
   const defaultProps = {
     id: 1,
     details: 'the details',
@@ -30,7 +30,7 @@ describe('PostDetails', () => {
   }
 
   it('renders post details correctly', () => {
-    render(<PostDetails {...defaultProps} />)
+    render(<PostContent {...defaultProps} />)
 
     // Check if the details are rendered
     expect(screen.getByText('the details')).toBeInTheDocument()
@@ -45,7 +45,7 @@ describe('PostDetails', () => {
 
   it('truncates details when not expanded', () => {
     const longDetails = '<p>' + 'a '.repeat(100) + '</p>'
-    render(<PostDetails {...defaultProps} details={longDetails} expanded={false} />)
+    render(<PostContent {...defaultProps} details={longDetails} expanded={false} />)
 
     // Check if the details are truncated
     expect(screen.getByText(/(a\s)+…/)).toBeInTheDocument()
@@ -57,7 +57,7 @@ describe('PostDetails', () => {
       editedTimestamp: '2 hours ago',
       exactEditedTimestamp: '2023-04-01 14:30:00'
     }
-    render(<PostDetails {...props} />)
+    render(<PostContent {...props} />)
 
     // Check if the edit timestamp is rendered
     expect(screen.getByText('2 hours ago')).toBeInTheDocument()

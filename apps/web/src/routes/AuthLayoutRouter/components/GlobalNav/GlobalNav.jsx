@@ -4,9 +4,8 @@ import { Globe } from 'lucide-react'
 import React, { Suspense, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
-import { replace } from 'redux-first-history'
 import {
   Popover,
   PopoverContent,
@@ -14,25 +13,17 @@ import {
 } from 'components/ui/popover'
 import Badge from 'components/Badge'
 import BadgedIcon from 'components/BadgedIcon'
-import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import GlobalNavItem from './GlobalNavItem'
 import { toggleDrawer, toggleGroupMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getMyGroups from 'store/selectors/getMyGroups'
-import logout from 'store/actions/logout'
-import { CONTEXT_MY } from 'store/constants'
-import { PUBLIC_CONTEXT_AVATAR_PATH } from 'store/models/Group'
 import { hyloLogo, publicLogo } from 'util/assets'
-import { bgImageStyle } from 'util/index'
-import { localeToFlagEmoji, localeLocalStorageSync } from 'util/locale'
 import { isMobileDevice, downloadApp } from 'util/mobile'
-import { baseUrl, personUrl } from 'util/navigation'
 
 import styles from './GlobalNav.module.scss'
 
 const MessagesDropdown = React.lazy(() => import('./MessagesDropdown'))
 const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown'))
-const LocaleDropdown = React.lazy(() => import('./LocaleDropdown'))
 
 export default function GlobalNav (props) {
   const { currentUser, onClick } = props

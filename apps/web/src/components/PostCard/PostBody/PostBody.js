@@ -3,7 +3,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import PostTitle from '../PostTitle'
-import PostDetails from '../PostDetails'
+import PostContent from '../PostContent'
 import PostBodyProposal from '../PostBodyProposal'
 import EmojiRow from 'components/EmojiRow'
 import { recordClickthrough } from 'store/actions/moderationActions'
@@ -46,7 +46,7 @@ export default function PostBody (props) {
           />
         )}
 
-        <PostDetails
+        <PostContent
           {...post}
           slug={slug}
           highlightProps={highlightProps}

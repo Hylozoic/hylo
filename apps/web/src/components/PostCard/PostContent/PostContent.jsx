@@ -11,11 +11,11 @@ import Feature from 'components/PostCard/Feature'
 import LinkPreview from 'components/LinkPreview'
 import Tooltip from 'components/Tooltip'
 
-import classes from './PostDetails.module.scss'
+import classes from './PostContent.module.scss'
 
 const MAX_DETAILS_LENGTH = 144
 
-export default function PostDetails ({
+export default function PostContent ({
   details: providedDetails,
   linkPreview,
   linkPreviewFeatured,
