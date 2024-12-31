@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util'
 import { validateEmail } from 'util/index'
 import { checkForStorageAccess, formatError } from '../util'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -108,7 +108,7 @@ export default function Signup (props) {
         />
 
         <Button
-          className={cx(classes.submit, { [classes.green]: canSubmit, [classes.gray]: !canSubmit })}
+          className={cn(classes.submit, { [classes.green]: canSubmit, [classes.gray]: !canSubmit })}
           label={t('Continue')}
           onClick={canSubmit ? () => submit() : null}
         />

@@ -3,7 +3,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useResizeDetector } from 'react-resize-detector'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import cx from 'classnames'
+import { cn } from 'util'
 import PropTypes from 'prop-types'
 import { get, throttle, find } from 'lodash/fp'
 import { Helmet } from 'react-helmet'
@@ -184,7 +184,7 @@ function PostDetail () {
   }
 
   return (
-    <div ref={ref} className={cx(classes.post, { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
+    <div ref={ref} className={cn(classes.post, { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
       <Helmet>
         <title>
           {`${post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 20 })} | Hylo`}
@@ -202,7 +202,7 @@ function PostDetail () {
         hasImage={hasImage}
       />
       {state.atHeader && (
-        <div className={cx(classes.headerSticky, { [classes.atActivity]: state.atActivity })} style={headerStyle}>
+        <div className={cn(classes.headerSticky, { [classes.atActivity]: state.atActivity })} style={headerStyle}>
           <PostHeader
             className={classes.header}
             currentUser={currentUser}

@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { compact, get } from 'lodash/fp'
 import React, { useMemo, useState, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
@@ -251,7 +251,7 @@ export default function Navigation (props) {
   const canView = !group || group.memberCount !== 0
   const links = isMyContext ? myLinks : regularLinks
   return (
-    <div className={cx('bg-background z-40', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
+    <div className={cn('bg-background z-40', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
       {!hasContextWidgets && (
         <div className={classes.navigation}>
           {canView && (
@@ -264,7 +264,7 @@ export default function Navigation (props) {
                   onClick={link.handleClick}
                 />
               ))}
-              <li className={cx(classes.item, classes.topicItem)}>
+              <li className={cn(classes.item, classes.topicItem)}>
                 <Link to={topicsUrl(routeParams)}>
                   <Icon name='Topics' />
                 </Link>

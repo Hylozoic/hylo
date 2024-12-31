@@ -2,7 +2,7 @@ import { trim, pick, keys, omit, find, isEmpty } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util'
 
 import Button from 'components/Button'
 import Loading from 'components/Loading'
@@ -148,7 +148,7 @@ class AccountSettingsTab extends Component {
         <div className={classes.buttonRow}><Button onClick={() => this.setState({ showDeleteModal: true })} label={t('Delete Account')} color='purple' /></div>
 
         <div className={classes.saveChanges}>
-          <span className={cx({ [classes.settingChanged]: canSave })}>{canSave ? 'Changes not saved' : 'Current settings up to date'}</span>
+          <span className={cn({ [classes.settingChanged]: canSave })}>{canSave ? 'Changes not saved' : 'Current settings up to date'}</span>
           <Button label={t('Save Changes')} color={canSave ? 'green' : 'gray'} onClick={canSave ? this.save : null} className={classes.saveButton} />
         </div>
         {showDeactivateModal &&

@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { DndContext, DragOverlay } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -242,8 +242,8 @@ const SelectedPost = forwardRef(({ children, ...props }, ref) => {
     <div className={classes.selectedPost} ref={ref} style={style} {...attributes} {...listeners}>
       <RoundImage url={post?.creator?.avatarUrl} className={classes.selectedPostAvatar} small />
       <span className={classes.postTitle}>{post.title}</span>
-      <Icon name='Trash' onClick={handleDelete(post, index)} className={cx(classes.removePost, classes.selectedPostIcon)} dataTip={t('Remove Post')} />
-      {draggable && <Icon name='Draggable' className={cx(classes.selectedPostIcon, classes.dragHandle)} />}
+      <Icon name='Trash' onClick={handleDelete(post, index)} className={cn(classes.removePost, classes.selectedPostIcon)} dataTip={t('Remove Post')} />
+      {draggable && <Icon name='Draggable' className={cn(classes.selectedPostIcon, classes.dragHandle)} />}
     </div>
   )
 })

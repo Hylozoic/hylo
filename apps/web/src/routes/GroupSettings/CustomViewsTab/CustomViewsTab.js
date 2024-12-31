@@ -2,7 +2,7 @@ import { omit } from 'lodash/fp'
 import React, { Component, useState } from 'react'
 import { useTranslation, withTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
-import cx from 'classnames'
+import { cn } from 'util'
 import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
@@ -215,7 +215,7 @@ class CustomViewsTab extends Component {
 
         <div className={general.saveChanges}>
           <span className={this.saveButtonContent().style}>{this.saveButtonContent().text}</span>
-          <Button label={t('Save Changes')} color={this.saveButtonContent().color} onClick={changed && !error ? this.save : null} className={cx('saveButton', general.saveButton)} />
+          <Button label={t('Save Changes')} color={this.saveButtonContent().color} onClick={changed && !error ? this.save : null} className={cn('saveButton', general.saveButton)} />
         </div>
       </div>
     )
@@ -369,13 +369,13 @@ export function CustomViewRow ({
             {type === 'stream'
               ? (
                 <>
-                  <div className={cx(styles.postTypes, styles.customViewRow)}>
+                  <div className={cn(styles.postTypes, styles.customViewRow)}>
                     <label className={styles.label}>{t('What post types to display?')}</label>
                     <div className={styles.postTypesChosen}>
                       <span onClick={() => setPostTypesModalOpen(!postTypesModalOpen)}>
                         {postTypes.length === 0 ? t('None') : postTypes.map((p, i) => <PostLabel key={p} type={p} className={styles.postType} />)}
                       </span>
-                      <div className={cx(styles.postTypesSelector, { [styles.open]: postTypesModalOpen })}>
+                      <div className={cn(styles.postTypesSelector, { [styles.open]: postTypesModalOpen })}>
                         <Icon name='Ex' className={styles.closeButton} onClick={() => setPostTypesModalOpen(!postTypesModalOpen)} />
                         {Object.keys(POST_TYPES).map(postType => {
                           if (postType === 'chat') {

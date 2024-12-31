@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React from 'react'
 import Icon from 'components/Icon'
 import Button from 'components/Button'
@@ -38,8 +38,8 @@ export default function TopicFeedHeader ({
           </div>
         </div>
         {toggleSubscribe && (
-          <Button className={cx(classes[buttonStyle])} onClick={toggleSubscribe}>
-            <Icon name='Star' className={cx(classes[iconStyle])} />
+          <Button className={cn(classes[buttonStyle])} onClick={toggleSubscribe}>
+            <Icon name='Star' className={cn(classes[iconStyle])} />
             <div className={classes.subscribeLabel}>{buttonText}</div>
           </Button>)}
         <div className={classes.fade}><div className={classes.fade2} /></div>

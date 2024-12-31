@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { TextHelpers } from '@hylo/shared'
@@ -11,14 +11,14 @@ export default function NotificationItem ({ notification, onClick }) {
 
   return (
     <li
-      className={cx('flex items-start cursor-pointer border-b border-border text-sm text-muted-foreground py-3', { 'bg-primary/20 text-foreground': unread })}
+      className={cn('flex items-start cursor-pointer border-b border-border text-sm text-muted-foreground py-3', { 'bg-primary/20 text-foreground': unread })}
       onClick={() => onClick(notification)}
     >
       <div className='my-1 pl-3'>
         <RoundImage url={actor.avatarUrl} />
       </div>
       <div className='flex flex-col align-start px-3 pt-1'>
-        <div className={cx('mb-2', { 'font-bold': unread })}>
+        <div className={cn('mb-2', { 'font-bold': unread })}>
           <span
             dangerouslySetInnerHTML={{ __html: titleForNotification(notification, t) }}
           />

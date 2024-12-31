@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React, { useEffect, useState } from 'react'
 import { pick } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
@@ -41,7 +41,7 @@ export default function PostDetails ({
 
   return (
     <Highlight {...highlightProps}>
-      <div onClick={onClick} className={cx(classes.postDetails, { [classes.constrained]: constrained })}>
+      <div onClick={onClick} className={cn(classes.postDetails, { [classes.constrained]: constrained })}>
         <div className={classes.fade} />
         {linkPreview?.url && linkPreviewFeatured && isVideo && (
           <Feature url={linkPreview.url} />

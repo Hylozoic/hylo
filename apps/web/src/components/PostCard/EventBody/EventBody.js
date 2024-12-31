@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { get, filter } from 'lodash/fp'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -40,9 +40,9 @@ function EventBody (props) {
           <div className={classes.clickthroughButton} onClick={() => dispatch(recordClickthrough({ postId: event.id }))}>{t('View post')}</div>
         </div>}
 
-      <div className={cx(classes.body, classes.eventBody, { [classes.smallMargin]: !expanded, [classes.eventImage]: attachmentType === 'image', [classes.constrained]: constrained }, className)}>
+      <div className={cn(classes.body, classes.eventBody, { [classes.smallMargin]: !expanded, [classes.eventImage]: attachmentType === 'image', [classes.constrained]: constrained }, className)}>
         <div className={classes.eventTop}>
-          <div className={cx(classes.calendarDate)} onClick={onClick}>
+          <div className={cn(classes.calendarDate)} onClick={onClick}>
             <EventDate {...event} />
           </div>
           {currentUser && (
@@ -55,17 +55,17 @@ function EventBody (props) {
           )}
         </div>
 
-        <div className={cx(classes.eventBodyColumn, { [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !event.clickthrough })}>
+        <div className={cn(classes.eventBodyColumn, { [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !event.clickthrough })}>
           <PostTitle {...event} constrained={constrained} onClick={onClick} />
-          <div className={cx(classes.eventData, { [classes.constrained]: constrained })} onClick={onClick}>
+          <div className={cn(classes.eventData, { [classes.constrained]: constrained })} onClick={onClick}>
             <Icon name='Clock' className={classes.icon} /> {TextHelpers.formatDatePair(startTime, endTime)}
           </div>
           {!!location && (
-            <div className={cx(classes.eventData, classes.eventLocation)} onClick={onClick}>
+            <div className={cn(classes.eventData, classes.eventLocation)} onClick={onClick}>
               <Icon name='Location' className={classes.icon} /> {location}
             </div>
           )}
-          <div className={cx(classes.eventDetails, { [classes.constrained]: constrained })}>
+          <div className={cn(classes.eventDetails, { [classes.constrained]: constrained })}>
             <PostDetails
               {...event}
               onClick={onClick}

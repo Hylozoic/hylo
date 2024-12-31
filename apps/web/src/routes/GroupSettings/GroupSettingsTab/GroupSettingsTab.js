@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { set, trim } from 'lodash'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
@@ -223,7 +223,7 @@ class GroupSettingsTab extends Component {
         <SettingsSection>
           <h3>{t('Relevant skills & interests')}</h3>
           <p className={general.detailText}>{t('What skills and interests are particularly relevant to this group?')}</p>
-          <div className={cx(styles.skillsSetting, { [general.on]: showSuggestedSkills })}>
+          <div className={cn(styles.skillsSetting, { [general.on]: showSuggestedSkills })}>
             <div className={general.switchContainer}>
               <SwitchStyled
                 checked={showSuggestedSkills}
@@ -279,7 +279,7 @@ class GroupSettingsTab extends Component {
 
         <div className={general.saveChanges}>
           <span className={this.saveButtonContent().style}>{this.saveButtonContent().text}</span>
-          <Button label={t('Save Changes')} color={this.saveButtonContent().color} onClick={changed && !error ? this.save : null} className={cx('saveButton', general.saveButton)} />
+          <Button label={t('Save Changes')} color={this.saveButtonContent().color} onClick={changed && !error ? this.save : null} className={cn('saveButton', general.saveButton)} />
         </div>
       </div>
     )

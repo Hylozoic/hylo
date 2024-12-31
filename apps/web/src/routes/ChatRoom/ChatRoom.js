@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { debounce, includes, isEmpty, trim, uniqueId } from 'lodash/fp'
 import { SendHorizontal } from 'lucide-react'
 import moment from 'moment-timezone'
@@ -441,7 +441,7 @@ export default function ChatRoom (props) {
   if (topicLoading) return <Loading />
 
   return (
-    <div className={cx('h-full shadow-md flex flex-col overflow-hidden', { [styles.withoutNav]: withoutNav })}>
+    <div className={cn('h-full shadow-md flex flex-col overflow-hidden', { [styles.withoutNav]: withoutNav })}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
@@ -518,7 +518,7 @@ export default function ChatRoom (props) {
           >
             <Icon
               name='AddImage'
-              className={cx(styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
+              className={cn(styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
             />
           </UploadAttachmentButton>
           <Button
@@ -555,7 +555,7 @@ const Footer = ({ context }) => {
 const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
   return (
-    <div className={cx(styles.displayDay, '!absolute top-0')}>
+    <div className={cn(styles.displayDay, '!absolute top-0')}>
       <div className={styles.day}>{firstItem?.createdAt ? moment(firstItem.createdAt).calendar(null, dayFormats) : ''}</div>
     </div>
   )

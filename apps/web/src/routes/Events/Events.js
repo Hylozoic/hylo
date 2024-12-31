@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { get, isEmpty } from 'lodash/fp'
 import React, { useEffect, useMemo } from 'react'
 import { Helmet } from 'react-helmet'
@@ -118,7 +118,7 @@ function Events (props) {
       </div>
 
       {pending && <Loading />}
-      <div className={cx(s.eventsStream)}>
+      <div className={cn(s.eventsStream)}>
         {!pending && posts.length === 0 ? <NoPosts message={t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? upcomingText : pastText })} /> : ''}
 
         {posts.map(post => {
@@ -129,7 +129,7 @@ function Events (props) {
               childPost={!['my', 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
               post={post}
               group={group}
-              className={cx(s.eventCard, { [s.expanded]: expanded })}
+              className={cn(s.eventCard, { [s.expanded]: expanded })}
               expanded={expanded}
               key={post.id}
             />

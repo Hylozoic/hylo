@@ -3,7 +3,7 @@ import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import { debounce, includes, isEmpty } from 'lodash'
 import { uniqBy } from 'lodash/fp'
-import cx from 'classnames'
+import { cn } from 'util'
 import { getKeyCode, keyMap } from 'util/textInput'
 import Icon from 'components/Icon'
 import KeyControlledItemList from 'components/KeyControlledList/KeyControlledItemList'
@@ -151,14 +151,14 @@ class TagInput extends Component {
         : [{ name: this.props.t('no more than {{maxTags}} allowed', { maxTags }), isError: true }]
       : suggestions
     return (
-      <div className={cx(theme.root, { [theme.readOnly]: readOnly }, className)} onClick={this.focus}>
+      <div className={cn(theme.root, { [theme.readOnly]: readOnly }, className)} onClick={this.focus}>
         <ul className={theme.selected}>
           {selectedItems}
         </ul>
-        <div className={cx(theme.search, { tagsEmpty: selectedItems.length === 0 })}>
+        <div className={cn(theme.search, { tagsEmpty: selectedItems.length === 0 })}>
           <div className={theme.searchInput}>
             <input
-              className={cx(theme.searchInput, { error: maxReached, tagsEmpty: selectedItems.length === 0 })}
+              className={cn(theme.searchInput, { error: maxReached, tagsEmpty: selectedItems.length === 0 })}
               ref={this.input}
               type='text'
               placeholder={placeholder}
@@ -183,7 +183,7 @@ class TagInput extends Component {
                 onChange={maxReached ? this.resetInput : this.select}
                 theme={{
                   items: theme.suggestions,
-                  item: cx(theme.suggestion, { [styles.error]: maxReached }),
+                  item: cn(theme.suggestion, { [styles.error]: maxReached }),
                   itemActive: theme.suggestionActive
                 }}
                 ref={this.list}

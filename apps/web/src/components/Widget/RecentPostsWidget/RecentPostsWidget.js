@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Slider from 'react-slick'
@@ -60,7 +60,7 @@ const RecentPostsWidget = ({ group, items, routeParams }) => {
       <Slider {...settings} onSwipe={handleSwiped}>
         {items.map(p => <RecentPostCard key={p.id} post={p} group={group} onClickCapture={handleOnItemClick} routeParams={routeParams} />)}
         <div>
-          <Link to={createPostUrl(routeParams)} className={cx(classes.post, classes.createNew)}>
+          <Link to={createPostUrl(routeParams)} className={cn(classes.post, classes.createNew)}>
             <div className={classes.content}>
               <div className={classes.type}>{t('NO MORE RECENT ACTIVITY')}</div>
               <div className={classes.recentPostsCta}>{t('+ New post')}</div>
@@ -86,7 +86,7 @@ const RecentPostCard = ({ group, onClickCapture, post, routeParams }) => {
   }
   return (
     <div>
-      <Link to={postUrl(id, routeParams)} className={cx(classes.post, classes[type])} onClickCapture={onClickCapture}>
+      <Link to={postUrl(id, routeParams)} className={cn(classes.post, classes[type])} onClickCapture={onClickCapture}>
         <div className={classes.content}>
           <div className={classes.type}>{type}</div>
           <div className={classes.title}>{title}</div>

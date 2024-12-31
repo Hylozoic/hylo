@@ -1,6 +1,6 @@
 import React from 'react'
 import { filter } from 'lodash/fp'
-import cx from 'classnames'
+import { cn } from 'util'
 import Icon from 'components/Icon'
 import classes from './CardFileAttachments.module.scss'
 
@@ -11,7 +11,7 @@ export default function CardFileAttachments ({
   const fileAttachments = filter({ type: 'file' }, attachments)
 
   return (
-    <div className={cx(classes.fileAttachments, className)}>
+    <div className={cn(classes.fileAttachments, className)}>
       {fileAttachments.map((fileAttachment, i) =>
         <CardFileAttachment fileAttachment={fileAttachment} key={i} />)}
     </div>

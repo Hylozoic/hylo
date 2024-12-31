@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import DeckGL from '@deck.gl/react'
 import {
   EditableGeoJsonLayer,
@@ -133,16 +133,16 @@ export default function EditableMap (props) {
 
   const drawTools = (
     <div className='mapboxgl-ctrl-top-left'>
-      <div className={cx('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
+      <div className={cn('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
         <button
-          className={cx(classes.mapboxGlGrawPolygon, { active: mode === DrawPolygonMode })}
+          className={cn(classes.mapboxGlGrawPolygon, { active: mode === DrawPolygonMode })}
           title='New Polygon'
           onClick={toggleMode}
         >
           <Icon name='Drawing' />
         </button>
       </div>
-      <div className={cx('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
+      <div className={cn('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
         <button
           className={classes.mapboxGlDrawCircleEx}
           title='Delete selected polygon, click polygon to select'
@@ -153,7 +153,7 @@ export default function EditableMap (props) {
         </button>
       </div>
       {/* We may implement this later
-       <div className={cx('mapboxgl-ctrl-group mapboxgl-ctrl', classes.mapControl)}>
+       <div className={cn('mapboxgl-ctrl-group mapboxgl-ctrl', classes.mapControl)}>
         <button
           className={classes.mapboxGlDrawReset}
           title='Reset Drawing'
@@ -165,7 +165,7 @@ export default function EditableMap (props) {
 
   const zoomTools = (
     <div className='mapboxgl-ctrl-top-right'>
-      <div className={cx('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
+      <div className={cn('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
         <button
           className={classes.mapboxGlDrawPlus}
           title='Zoom In'
@@ -186,7 +186,7 @@ export default function EditableMap (props) {
 
   const expandTools = (
     <div className='mapboxgl-ctrl-bottom-left'>
-      <div className={cx('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
+      <div className={cn('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
         <button
           className={classes.mapboxGlExpand}
           title='Expand'

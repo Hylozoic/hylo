@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import { filter, isEmpty } from 'lodash/fp'
@@ -38,7 +38,7 @@ export default function CardImageAttachments ({
 
   return (
     <>
-      <div className={cx(className, classes.image, { [classes.flagged]: isFlagged })}>
+      <div className={cn(className, classes.image, { [classes.flagged]: isFlagged })}>
         <img
           src={firstImageUrl}
           alt='Attached image 1'

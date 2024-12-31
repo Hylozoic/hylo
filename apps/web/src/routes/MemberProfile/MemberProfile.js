@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { filter, isFunction } from 'lodash'
 import Moment from 'moment-timezone'
 import React, { useState, useEffect, useRef } from 'react'
@@ -158,7 +158,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   } = contentDropDownItems.find(contentItem => contentItem.id === currentTabState)
 
   return (
-    <div className={cx(styles.memberProfile, { [styles.isSingleColumn]: isSingleColumn })}>
+    <div className={cn(styles.memberProfile, { [styles.isSingleColumn]: isSingleColumn })}>
       <Helmet>
         <title>{person.name} | Hylo</title>
         <meta name='description' content={`${person.name}: ${t('Member Profile')}`} />
@@ -259,7 +259,7 @@ function ActionTooltip ({ content, hideCopyTip, onClick }) {
       </span>
       {!hideCopyTip && (
         <CopyToClipboard text={content} onCopy={() => setCopied(true)}>
-          <Button className={cx(styles.actionIconTooltipButton, { [styles.copied]: copied })}>
+          <Button className={cn(styles.actionIconTooltipButton, { [styles.copied]: copied })}>
             <Icon name='Copy' />
             {copied ? t('Copied!') : t('Copy')}
           </Button>
@@ -316,7 +316,7 @@ function ActionDropdown ({ items }) {
       alignRight
       items={activeItems}
       toggleChildren={
-        <Icon className={cx(styles.actionIconButton, styles.actionMenu)} name='More' />
+        <Icon className={cn(styles.actionIconButton, styles.actionMenu)} name='More' />
       }
     />
 }
@@ -329,7 +329,7 @@ function Project ({ memberCap, project, routeParams, showDetails }) {
         <div className={styles.title}>{title} </div>
         <div className={styles.meta}>{creator.name} - {Moment(createdAt).fromNow()} </div>
       </div>
-      <RoundImageRow className={cx(styles.members, { [styles.membersPlus]: members.items.length > memberCap })} inline imageUrls={members.items.map(m => m.avatarUrl)} cap={memberCap} />
+      <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: members.items.length > memberCap })} inline imageUrls={members.items.map(m => m.avatarUrl)} cap={memberCap} />
     </div>
   )
 }
@@ -346,7 +346,7 @@ function Event ({ memberCap, event, routeParams, showDetails }) {
         <div className={styles.title}>{title}</div>
         <div className={styles.meta}><Icon name='Location' />{location}</div>
       </div>
-      <RoundImageRow className={cx(styles.members, { [styles.membersPlus]: eventInvitations.items.length > memberCap })} inline imageUrls={eventInvitations.items.map(e => e.person.avatarUrl)} cap={memberCap} />
+      <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: eventInvitations.items.length > memberCap })} inline imageUrls={eventInvitations.items.map(e => e.person.avatarUrl)} cap={memberCap} />
     </div>
   )
 }

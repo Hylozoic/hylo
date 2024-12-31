@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import isMobile from 'ismobilejs'
 import { uniqueId } from 'lodash'
 import React, { forwardRef, useState } from 'react'
@@ -28,7 +28,7 @@ const Pill = forwardRef(({
   }
   const providedOnClick = onClick ? (e) => { e.stopPropagation(); e.preventDefault(); onClick(id, label) } : null
   const mouseOut = () => setRemoving(false)
-  const pillStyles = cx(
+  const pillStyles = cn(
     classes.pill,
     {
       [classes.clickable]: !!onClick,
@@ -42,7 +42,7 @@ const Pill = forwardRef(({
 
   return (
     <div
-      className={cx(pillStyles, className)}
+      className={cn(pillStyles, className)}
       onMouseLeave={mouseOut}
       ref={ref}
     >

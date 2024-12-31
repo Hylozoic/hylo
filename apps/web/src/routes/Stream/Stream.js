@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { get, isEmpty } from 'lodash/fp'
 import React, { useCallback, useEffect, useMemo } from 'react'
 import { Helmet } from 'react-helmet'
@@ -256,14 +256,14 @@ export default function Stream (props) {
         decisionView={decisionView} changeDecisionView={changeDecisionView}
       />
       {decisionView !== 'moderation' && (
-        <div className={cx(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
+        <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
           {!pending && posts.length === 0 ? <NoPosts /> : ''}
           {posts.map(post => {
             const expanded = selectedPostId === post.id
             const groupSlugs = post.groups.map(group => group.slug)
             return (
               <ViewComponent
-                className={cx({ [styles.cardItem]: viewMode === 'cards', [styles.expanded]: expanded })}
+                className={cn({ [styles.cardItem]: viewMode === 'cards', [styles.expanded]: expanded })}
                 expanded={expanded}
                 routeParams={params}
                 post={post}

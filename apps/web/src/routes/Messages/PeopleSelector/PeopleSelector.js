@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
@@ -102,7 +102,7 @@ export default function PeopleSelector (props) {
     }
   }
   return (
-    <div className={cx(classes.threadHeader)} tabIndex='0'>
+    <div className={cn(classes.threadHeader)} tabIndex='0'>
       <div className={classes.autocompleteControl}>
         <span className={classes.to}>{t('With:')}</span>
         {selectedPeople && selectedPeople.map(person =>

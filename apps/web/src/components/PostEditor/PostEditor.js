@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { debounce, get, isEqual, isEmpty } from 'lodash/fp'
 import Moment from 'moment-timezone'
 import React, { useMemo, useRef, useEffect, useState } from 'react'
@@ -264,7 +264,7 @@ function PostEditor ({
   const postTypeButtonProps = (forPostType) => {
     const { type } = currentPost
     const active = type === forPostType
-    const className = cx(
+    const className = cn(
       styles.postType,
       styles[`postType${forPostType.charAt(0).toUpperCase() + forPostType.slice(1)}`],
       {
@@ -276,7 +276,7 @@ function PostEditor ({
       ? (
         <span className={styles.initialPrompt}>
           <span>{t(forPostType)}</span>{' '}
-          <Icon className={cx('icon', `icon-${forPostType}`)} name='ArrowDown' />
+          <Icon className={cn('icon', `icon-${forPostType}`)} name='ArrowDown' />
         </span>
         )
       : t(forPostType)
@@ -602,7 +602,7 @@ function PostEditor ({
   const invalidPostWarning = currentPost.type === 'proposal' ? t('You need a title, a group and at least one option for a proposal') : t('You need a title and at least one group to post')
 
   return (
-    <div className={cx(styles.wrapper, { [styles.hide]: showAnnouncementModal })}>
+    <div className={cn(styles.wrapper, { [styles.hide]: showAnnouncementModal })}>
       <div className={styles.header}>
         <div className={styles.initial}>
           <div>
@@ -762,9 +762,9 @@ function PostEditor ({
                   <Dropdown
                     className={styles.optionDropdown}
                     toggleChildren={
-                      <span className={cx(styles.optionDropdownLabel, styles.dropdownLabel)}>
+                      <span className={cn(styles.optionDropdownLabel, styles.dropdownLabel)}>
                         {option.emoji || t('Emoji')}
-                        <Icon name='ArrowDown' blue className={cx(styles.optionDropdownIcon, styles.blue)} />
+                        <Icon name='ArrowDown' blue className={cn(styles.optionDropdownIcon, styles.blue)} />
                       </span>
                     }
                   >
@@ -816,13 +816,13 @@ function PostEditor ({
                 <span className={styles.optionText}>{t('Add an option to vote on...')}</span>
               </div>
               {currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
-                <div className={cx(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
+                <div className={cn(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
                   <Icon name='Hand' className={styles.iconPlus} />
                   <span className={styles.optionText}>{t('If you save changes to options, all votes will be discarded')}</span>
                 </div>
               )}
               {currentPost.proposalOptions.length === 0 && (
-                <div className={cx(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
+                <div className={cn(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
                   <Icon name='Hand' className={styles.iconPlus} />
                   <span className={styles.optionText}>{t('Proposals require at least one option')}</span>
                 </div>
@@ -853,7 +853,7 @@ function PostEditor ({
         )}
         {currentPost.type === 'proposal' && (
           <div className={styles.footerSection}>
-            <div className={styles.footerSectionLabel}>{t('Quorum')} <Icon name='Info' className={cx(styles.quorumTooltip)} data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
+            <div className={styles.footerSectionLabel}>{t('Quorum')} <Icon name='Info' className={cn(styles.quorumTooltip)} data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
             <SliderInput percentage={currentPost.quorum || 0} setPercentage={handleSetQuorum} />
             <ReactTooltip
               backgroundColor='rgba(35, 65, 91, 1.0)'
@@ -900,7 +900,7 @@ function PostEditor ({
         )}
         {hasLocation && (
           <div className={styles.footerSection}>
-            <div className={cx(styles.footerSectionLabel, styles.alignedLabel)}>{t('Location')}</div>
+            <div className={cn(styles.footerSectionLabel, styles.alignedLabel)}>{t('Location')}</div>
             <LocationInput
               saveLocationToDB
               locationObject={currentPost.locationObject}
@@ -928,7 +928,7 @@ function PostEditor ({
             <div className={styles.footerSectionLabel}>{t('Accept Contributions')}</div>
             {hasStripeAccount && (
               <div
-                className={cx(styles.footerSectionGroups, styles.acceptContributions)}
+                className={cn(styles.footerSectionGroups, styles.acceptContributions)}
               >
                 <Switch
                   value={currentPost.acceptContributions}
@@ -946,7 +946,7 @@ function PostEditor ({
             )}
             {!hasStripeAccount && (
               <div
-                className={cx(
+                className={cn(
                   styles.footerSectionGroups,
                   styles.acceptContributionsHelp
                 )}
@@ -961,7 +961,7 @@ function PostEditor ({
         )}
         {currentPost.type === 'project' && (
           <div className={styles.footerSection}>
-            <div className={cx(styles.footerSectionLabel, { [styles.warning]: !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
+            <div className={cn(styles.footerSectionLabel, { [styles.warning]: !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
             <div className={styles.footerSectionGroups}>
               <input
                 type='text'
@@ -976,7 +976,7 @@ function PostEditor ({
         )}
         {currentPost.type === 'project' && (
           <div className={styles.footerSection}>
-            <div className={cx(styles.footerSectionLabel, { [styles.warning]: !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
+            <div className={cn(styles.footerSectionLabel, { [styles.warning]: !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
             <div className={styles.footerSectionGroups}>
               <input
                 type='text'
@@ -1056,7 +1056,7 @@ export function ActionsBar ({
         >
           <Icon
             name='AddImage'
-            className={cx(styles.actionIcon, { [styles.highlightIcon]: showImages })}
+            className={cn(styles.actionIcon, { [styles.highlightIcon]: showImages })}
             dataTestId='add-image-icon'
           />
         </UploadAttachmentButton>
@@ -1070,7 +1070,7 @@ export function ActionsBar ({
         >
           <Icon
             name='Paperclip'
-            className={cx(styles.actionIcon, { [styles.highlightIcon]: showFiles })}
+            className={cn(styles.actionIcon, { [styles.highlightIcon]: showFiles })}
             dataTestId='add-file-icon'
           />
         </UploadAttachmentButton>
@@ -1080,7 +1080,7 @@ export function ActionsBar ({
               dataTestId='announcement-icon'
               name='Announcement'
               onClick={() => setAnnouncementSelected(!announcementSelected)}
-              className={cx(styles.actionIcon, {
+              className={cn(styles.actionIcon, {
                 [styles.highlightIcon]: announcementSelected
               })}
             />

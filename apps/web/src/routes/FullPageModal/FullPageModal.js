@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React, { useState } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import isWebView from 'util/webView'
@@ -43,16 +43,16 @@ export default function FullPageModal ({
     )
   } else {
     return (
-      <div className={cx(styles.modal, { [styles.fullWidth]: fullWidth })}>
+      <div className={cn(styles.modal, { [styles.fullWidth]: fullWidth })}>
         <div className={styles.content}>
-          <div className={cx(styles.leftSidebar, { [styles.leftSideBarHidden]: leftSideBarHidden })}>
-            <div className={cx(styles.leftSidebarFixed, { [styles.border]: multipleTabs })}>
+          <div className={cn(styles.leftSidebar, { [styles.leftSideBarHidden]: leftSideBarHidden })}>
+            <div className={cn(styles.leftSidebarFixed, { [styles.border]: multipleTabs })}>
               {multipleTabs && content.filter(tab => !!tab.name).map(tab => (
                 <NavLink
                   to={tab.path}
                   end
                   replace
-                  className={({ isActive }) => cx(styles.navLink, { [styles.active]: isActive })}
+                  className={({ isActive }) => cn(styles.navLink, { [styles.active]: isActive })}
                   key={tab.path}
                 >
                   {tab.name}
@@ -62,7 +62,7 @@ export default function FullPageModal ({
             </div>
           </div>
           {multipleTabs && (
-            <div className={cx(styles.center, styles.narrow)}>
+            <div className={cn(styles.center, styles.narrow)}>
               <Routes>
                 {content.map(tab =>
                   <Route
@@ -73,7 +73,7 @@ export default function FullPageModal ({
               </Routes>
             </div>
           )}
-          {!multipleTabs && <div className={cx(styles.center, { [styles.narrow]: narrow })}>{content || children}</div>}
+          {!multipleTabs && <div className={cn(styles.center, { [styles.narrow]: narrow })}>{content || children}</div>}
           <div className={styles.rightSidebar}>
             <div className={styles.rightSidebarInner}>
               <CloseButton onClose={onClose} />

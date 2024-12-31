@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { filter, isFunction } from 'lodash'
 import React, { PureComponent } from 'react'
 import { withTranslation } from 'react-i18next'
@@ -132,13 +132,13 @@ class PostHeader extends PureComponent {
 
     const showNormal = ((canBeCompleted && canEdit && expanded) && (topics?.length > 0 || (canHaveTimes && timeWindow.length > 0))) || false
     return (
-      <div className={cx('relative', { 'mb-0 h-12 px-2': constrained }, className)}>
+      <div className={cn('relative', { 'mb-0 h-12 px-2': constrained }, className)}>
         <div className='w-full bg-card rounded-t-lg'>
           <div className='flex justify-start items-center p-2 border-b border-border'>
-            <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cx('mr-3', { 'mr-2': constrained })} medium />
+            <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
             <div className='flex flex-wrap flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible max-w-[calc(100%-160px)] xs:max-w-auto'>
               <Highlight {...highlightProps}>
-                <Link to={creatorUrl} className={cx('flex whitespace-nowrap items-center text-card-foreground font-bold font-md', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
+                <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
                   {creator.name}
                 </Link>
               </Highlight>
@@ -162,7 +162,7 @@ class PostHeader extends PureComponent {
               </div>
             </div>
 
-            <div className={cx('flex items-center justify-end ml-auto', { hidden: constrained })}>
+            <div className={cn('flex items-center justify-end ml-auto', { hidden: constrained })}>
               {isFlagged && <Link to={moderationActionsGroupUrl} className='text-decoration-none'><Icon name='Flag' className='top-1 mr-3 text-xl text-accent font-bold' dataTip={t('See why this post was flagged')} data-tooltip-id='flag-tt' /></Link>}
               <Tooltip
                 delay={250}
@@ -174,7 +174,7 @@ class PostHeader extends PureComponent {
               {dropdownItems.length > 0 &&
                 <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' />} items={dropdownItems} alignRight />}
               {close &&
-                <a className={cx('inline-block cursor-pointer relative px-3 text-xl')} onClick={close}>
+                <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} onClick={close}>
                   <Icon name='Ex' className='align-middle' />
                 </a>}
             </div>
@@ -193,10 +193,10 @@ class PostHeader extends PureComponent {
             />}
         </div>
 
-        <div className={cx('flex flex-col xs:flex-row justify-between', { 'absolute z-11 w-full': hasImage, relative: showNormal })}>
+        <div className={cn('flex flex-col xs:flex-row justify-between', { 'absolute z-11 w-full': hasImage, relative: showNormal })}>
           {/* {topics?.length > 0 && <TopicsLine topics={topics} slug={routeParams.groupSlug} />} */}
           {canHaveTimes && timeWindow.length > 0 && (
-            <div className={cx('text-xs font-bold text-secondary w-auto text-center border border-border rounded-md bg-card p-2 m-4 xs:m-3', { hidden: constrained })}>
+            <div className={cn('text-xs font-bold text-secondary w-auto text-center border border-border rounded-md bg-card p-2 m-4 xs:m-3', { hidden: constrained })}>
               {timeWindow}
             </div>
           )}
@@ -244,7 +244,7 @@ class PostHeader extends PureComponent {
 
 export function TopicsLine ({ topics, slug, newLine }) {
   return (
-    <div className={cx('text-xs flex overflow-hidden truncate whitespace-nowrap w-full pb-0 xs:pb-2;', { 'overflow-visible text-clip ml-2.5 mt-2.5 w-[450px]': newLine })}>
+    <div className={cn('text-xs flex overflow-hidden truncate whitespace-nowrap w-full pb-0 xs:pb-2;', { 'overflow-visible text-clip ml-2.5 mt-2.5 w-[450px]': newLine })}>
       {topics.slice(0, 3).map(t =>
         <Link
           className='py:2 px-3 xs:px-2 flex items-center border rounded-md mt-2 ml-2 bg-white text-xs mr-3'

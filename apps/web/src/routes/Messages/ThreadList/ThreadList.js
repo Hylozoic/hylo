@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
-import cx from 'classnames'
+import { cn } from 'util'
 import { get, isEmpty, orderBy } from 'lodash/fp'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
@@ -35,7 +35,7 @@ class ThreadList extends Component {
     } = this.props
 
     return (
-      <div className={cx(classes.threadList, className)}>
+      <div className={cn(classes.threadList, className)}>
         <div className={classes.header}>
           <div className={classes.search}>
             <div className={classes.searchIcon}>
@@ -108,7 +108,7 @@ export function ThreadListItem ({
   const { names, avatarUrls } = participantAttributes(thread, currentUser, 2)
 
   return (
-    <li className={cx(classes.listItem, { [classes.unreadListItem]: isUnread, [classes.active]: active })}>
+    <li className={cn(classes.listItem, { [classes.unreadListItem]: isUnread, [classes.active]: active })}>
       <Link to={`/messages/${id}`}>
         {active && <div className={classes.activeThread} />}
         <ThreadAvatars avatarUrls={avatarUrls} />
@@ -139,7 +139,7 @@ ThreadListItem.propTypes = {
 function ThreadAvatars ({ avatarUrls }) {
   const count = avatarUrls.length
   const style = `avatar${count < 4 ? count : 'More'}`
-  const plusStyle = cx(`avatar${count < 4 ? count : 'More'}`, { [classes.plusCount]: count > 4 })
+  const plusStyle = cn(`avatar${count < 4 ? count : 'More'}`, { [classes.plusCount]: count > 4 })
   return (
     <div className={classes.threadAvatars}>
       {(count === 1 || count === 2) && <RoundImage url={avatarUrls[0]} />}

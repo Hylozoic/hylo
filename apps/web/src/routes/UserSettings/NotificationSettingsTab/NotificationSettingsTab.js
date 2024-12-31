@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { useTranslation, withTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util'
 import { compact } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import Tooltip from 'components/Tooltip'
@@ -243,12 +243,12 @@ export function SettingsIcon ({ settingKey, name, update, settings }) {
 
   return (
     <div
-      className={cx(classes.settingControls, { [classes.highlightIcon]: settings[settingKey] })}
+      className={cn(classes.settingControls, { [classes.highlightIcon]: settings[settingKey] })}
       onClick={() => update({ [settingKey]: !settings[settingKey] })}
       data-tooltip-content={`Turn ${name === 'EmailNotification' ? 'Email' : 'Mobile Push'} Notifications ${settings[settingKey] ? t('Off') : t('On')}`}
       data-tooltip-id='helpTip'
     >
-      <Icon name={name} className={cx(classes.icon, { [classes.highlightIcon]: settings[settingKey] })} />
+      <Icon name={name} className={cn(classes.icon, { [classes.highlightIcon]: settings[settingKey] })} />
       <span className={classes.settingStatus}>{t(settingStatus)}</span>
     </div>
   )

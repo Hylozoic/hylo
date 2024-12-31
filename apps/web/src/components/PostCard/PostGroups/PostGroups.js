@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { useTranslation, withTranslation } from 'react-i18next'
 import { get, isEmpty } from 'lodash/fp'
-import cx from 'classnames'
+import { cn } from 'util'
 import { Link } from 'react-router-dom'
 import { groupUrl } from 'util/navigation'
 import GroupsList from 'components/GroupsList'
@@ -32,7 +32,7 @@ class PostGroups extends Component {
     if (isEmpty(groups) || (groups.length === 1 && get('0.slug', groups) === slug)) return null
 
     return (
-      <div className={cx(classes.groups, { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })} onClick={expanded ? this.toggleExpanded : undefined}>
+      <div className={cn(classes.groups, { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })} onClick={expanded ? this.toggleExpanded : undefined}>
         <div className={classes.row}>
           <span className={classes.label}>{`${this.props.t('Posted In:')}`}&nbsp;</span>
           {!expanded &&

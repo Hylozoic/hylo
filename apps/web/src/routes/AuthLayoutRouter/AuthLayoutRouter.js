@@ -6,7 +6,7 @@ import { Helmet } from 'react-helmet'
 import Div100vh from 'react-div-100vh'
 import { get, some } from 'lodash/fp'
 import { useResizeDetector } from 'react-resize-detector'
-import cx from 'classnames'
+import { cn } from 'util'
 import mixpanel from 'mixpanel-browser'
 import config, { isTest } from 'config/index'
 import isWebView from 'util/webView'
@@ -303,8 +303,8 @@ export default function AuthLayoutRouter (props) {
         <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
       </Routes>
 
-      <Div100vh className={cx('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
-        <div ref={resizeRef} className={cx(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })} onClick={handleCloseDrawer}>
+      <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
+        <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })} onClick={handleCloseDrawer}>
           {!withoutNav && (
             <>
               {/* Depends on `pathMatchParams` */}
@@ -315,7 +315,7 @@ export default function AuthLayoutRouter (props) {
                 routeParams={pathMatchParams}
                 showMenuBadge={showMenuBadge}
               />
-              {isDrawerOpen && <Drawer className={cx(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
+              {isDrawerOpen && <Drawer className={cn(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
             </>
           )}
 
@@ -328,7 +328,7 @@ export default function AuthLayoutRouter (props) {
                   <Navigation
                     context='groups'
                     group={currentGroup}
-                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
+                    className={cn('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -339,7 +339,7 @@ export default function AuthLayoutRouter (props) {
                   <Navigation
                     context='all'
                     group={currentGroup}
-                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
+                    className={cn('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -350,7 +350,7 @@ export default function AuthLayoutRouter (props) {
                   <Navigation
                     context='public'
                     group={currentGroup}
-                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
+                    className={cn('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
@@ -361,14 +361,14 @@ export default function AuthLayoutRouter (props) {
                   <Navigation
                     context='my'
                     group={currentGroup}
-                    className={cx('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
+                    className={cn('z-101 w-128 h-full m-0 bg-background box-shadow-shadow-color', classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
                     mapView={isMapView}
                   />
                 }
               />
             </Routes>
           )}
-          <div className={cx(classes.center, { [classes.fullWidth]: hideSidebar, [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
+          <div className={cn(classes.center, { [classes.fullWidth]: hideSidebar, [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
             {/* NOTE: It could be more clear to group the following switched routes by component  */}
             <Routes>
               {/* **** Member Routes **** */}
@@ -432,7 +432,7 @@ export default function AuthLayoutRouter (props) {
             </Routes>
           </div>
           {(currentGroup && currentGroupMembership) && (
-            <div className={cx(classes.sidebar, { [classes.hidden]: (hasDetail || hideSidebar) })}>
+            <div className={cn(classes.sidebar, { [classes.hidden]: (hasDetail || hideSidebar) })}>
               <Routes>
                 <Route
                   path='groups/:groupSlug/:view/*'
@@ -449,7 +449,7 @@ export default function AuthLayoutRouter (props) {
               </Routes>
             </div>
           )}
-          <div className={cx(classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
+          <div className={cn(classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
             <Routes>
               {/* All context routes */}
               <Route path={`/all/events/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />

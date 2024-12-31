@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util'
 import { Link, NavLink } from 'react-router-dom'
 import Badge from 'components/Badge'
 import Icon from 'components/Icon'
@@ -26,8 +26,8 @@ export default function TopicNavigation ({
   const { t } = useTranslation()
 
   return (
-    <div className={cx(styles.topicNavigation)}>
-      <div className={cx(styles.header)}>
+    <div className={cn(styles.topicNavigation)}>
+      <div className={cn(styles.header)}>
         <Link to={seeAllUrl}>
           <Icon name='Topics' className={styles.icon} />
           <span className={styles.title}>{t('Topics')}</span>
@@ -49,9 +49,9 @@ export function TopicsList ({ topics, onClick, onClose }) {
   return (
     <ul className={styles.topics}>
       {topics.map(topic => (
-        <li key={topic.name} className={cx(styles.topic, { [styles.pinned]: topic.visibility === 2 })}>
+        <li key={topic.name} className={cn(styles.topic, { [styles.pinned]: topic.visibility === 2 })}>
           <NavLink
-            className={({ isActive }) => cx(badgeHoverStyles.parent, styles.topicLink, { [styles.activeTopicNavLink]: isActive })}
+            className={({ isActive }) => cn(badgeHoverStyles.parent, styles.topicLink, { [styles.activeTopicNavLink]: isActive })}
             to={topic.url}
             onClick={() => onClick(topic)}
           >

@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { keyBy, map, trim } from 'lodash'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
@@ -112,7 +112,7 @@ function GroupDetail () {
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
 
   return (
-    <div className={cx({ [g.group]: true, [g.fullPage]: fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
+    <div className={cn({ [g.group]: true, [g.fullPage]: fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
       <Helmet>
         <title>{group.name} | Hylo</title>
         <meta name='description' content={TextHelpers.truncateHTML(group.description, MAX_DETAILS_LENGTH)} />
@@ -182,7 +182,7 @@ function GroupDetail () {
         </div>
         {group.agreements?.length > 0
           ? (
-            <div className={cx(g.agreements, g.detailSection)}>
+            <div className={cn(g.agreements, g.detailSection)}>
               <h2>{t('Agreements')}</h2>
               {group.agreements.map((agreement, i) => {
                 return (
@@ -267,7 +267,7 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
           )
         : group.purpose || group.description
           ? (
-            <div className={cx(g.groupDescription, g.detailSection)}>
+            <div className={cn(g.groupDescription, g.detailSection)}>
               {group.purpose
                 ? (
                   <>
@@ -308,7 +308,7 @@ export function JoinSection ({ addSkill, currentUser, fullPage, group, groupsWit
             {group.prerequisiteGroups.length === 1 ? <h4>{group.name}{' '}{t('is only accessible to members of')}{' '}{group.prerequisiteGroups.map(prereq => <span key={prereq.id}>{prereq.name}</span>)}</h4> : <h4>{t('{{group.name}} is only accessible to members of the following groups:', { group })}</h4>}
             {group.prerequisiteGroups.map(prereq => (
               <div key={prereq.id} className={g.prerequisiteGroup}>
-                <Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={cx(g.groupDetailHeader, g.prereqHeader)} style={{ backgroundImage: `url(${prereq.bannerUrl || DEFAULT_BANNER})` }}>
+                <Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={cn(g.groupDetailHeader, g.prereqHeader)} style={{ backgroundImage: `url(${prereq.bannerUrl || DEFAULT_BANNER})` }}>
                   <div className={g.groupTitleContainer}>
                     <img src={prereq.avatarUrl || DEFAULT_AVATAR} height='50px' width='50px' />
                     <div>
@@ -413,7 +413,7 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
       )}
       <div className={g.center}>
         <div
-          className={cx(g.requestButton, { [g.disabledButton]: !allQuestionsAnswered })}
+          className={cn(g.requestButton, { [g.disabledButton]: !allQuestionsAnswered })}
           onClick={allQuestionsAnswered ? () => joinGroup(group.id, questionAnswers) : () => {}}
           data-tooltip-content={!allQuestionsAnswered ? t('You must answer all the questions to join') : ''}
           data-tooltip-id='join-tip'

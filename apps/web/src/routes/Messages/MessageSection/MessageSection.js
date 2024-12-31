@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { array, bool, func, object } from 'prop-types'
 import React from 'react'
 import { throttle, debounce } from 'lodash'
@@ -149,14 +149,14 @@ export default class MessageSection extends React.Component {
 
     return (
       <div
-        className={cx(classes.messagesSection)}
+        className={cn(classes.messagesSection)}
         ref={this.list}
         onScroll={this.handleScroll}
         data-testid='message-section'
       >
         {pending && <Loading />}
         {!pending &&
-          <div className={cx(classes.messagesSectionInner)}>
+          <div className={cn(classes.messagesSectionInner)}>
             <ClickCatcher>
               {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
             </ClickCatcher>

@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
@@ -25,7 +25,7 @@ export default function Membership ({ membership, index, archive, rowStyle }) {
   }
 
   return (
-    <div className={cx(classes.membership, { [classes.even]: index % 2 === 0, [classes.odd]: index % 2 !== 0, [classes.rowStyle]: rowStyle })}>
+    <div className={cn(classes.membership, { [classes.even]: index % 2 === 0, [classes.odd]: index % 2 !== 0, [classes.rowStyle]: rowStyle })}>
       <Button className={classes.group} color='green-white'>
         <Link to={groupUrl(group.slug)}>
           <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} small />

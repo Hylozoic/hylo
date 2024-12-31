@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { isEmpty, some } from 'lodash/fp'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -105,10 +105,10 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
       </PopoverTrigger>
       <PopoverContent side='right' align='start' className='!p-0 !w-[340px]'>
         <div className='flex items-center w-full z-10 p-2'>
-          <span onClick={showRecent} className={cx('cursor-pointer text-accent mr-5 px-2', { 'border-b-2 border-accent relative': !showingUnread })}>
+          <span onClick={showRecent} className={cn('cursor-pointer text-accent mr-5 px-2', { 'border-b-2 border-accent relative': !showingUnread })}>
             {t('Recent')}
           </span>
-          <span onClick={showUnread} className={cx('cursor-pointer text-accent mr-5 px-2', { 'border-b-2 border-accent relative': showingUnread })}>
+          <span onClick={showUnread} className={cn('cursor-pointer text-accent mr-5 px-2', { 'border-b-2 border-accent relative': showingUnread })}>
             {t('Unread')}
           </span>
           <span onClick={() => dispatch(markAllActivitiesRead())} className='cursor-pointer text-accent ml-auto'>{t('Mark all as read')}</span>

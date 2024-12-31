@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { capitalize } from 'lodash'
 import React from 'react'
 import { Link } from 'react-router-dom'
@@ -66,7 +66,7 @@ export default function GroupBanner ({
   const numCustomFilters = customViewType === 'stream' ? (customPostTypes.length + customViewTopics.length + (customActivePostsOnly ? 1 : 0)) : false
   return (
     <div
-      className={cx(classes.banner, {
+      className={cn(classes.banner, {
         [classes.allGroups]: context === 'all',
         [classes.hasPostPrompt]: hasPostPrompt
       })}
@@ -80,7 +80,7 @@ export default function GroupBanner ({
         {group && (
           <div className={classes.right}>
             <Link
-              className={cx(classes.about, { [classes.isAboutOpen]: isAboutOpen })}
+              className={cn(classes.about, { [classes.isAboutOpen]: isAboutOpen })}
               to={isAboutOpen ? groupUrl(group.slug, routeParams.view, querystringParams) : groupDetailUrl(group.slug, routeParams, querystringParams)}
             >
               <Icon name='Info' />{t('About us')}
@@ -96,7 +96,7 @@ export default function GroupBanner ({
               </div>
               )
             : (
-              <div className={cx(classes.logo, { [classes.allLogo]: context === 'all' })} style={bgImageStyle(avatarUrl || DEFAULT_AVATAR)} />
+              <div className={cn(classes.logo, { [classes.allLogo]: context === 'all' })} style={bgImageStyle(avatarUrl || DEFAULT_AVATAR)} />
               )}
           <div className={classes.headerText}>
             <div className={classes.headerContents}>

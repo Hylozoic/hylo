@@ -1,7 +1,7 @@
 import React, { Component, createRef } from 'react'
 import { withTranslation } from 'react-i18next'
 import { bool, func, node, string } from 'prop-types'
-import cx from 'classnames'
+import { cn } from 'util'
 
 import { bgImageStyle } from 'util/index'
 import Button from 'components/Button'
@@ -142,7 +142,7 @@ class ModalDialog extends Component {
             {useNotificationFormat &&
               <Icon green name={notificationIconName} className={classes.notificationIcon} dataTestId={'icon-' + notificationIconName} />}
             {showModalTitle && (
-              <h1 className={cx({ [classes.notificationTitle]: useNotificationFormat })}>
+              <h1 className={cn({ [classes.notificationTitle]: useNotificationFormat })}>
                 {modalTitle}
               </h1>
             )}

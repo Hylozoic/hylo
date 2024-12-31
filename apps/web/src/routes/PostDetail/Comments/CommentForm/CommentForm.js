@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { throttle, isEmpty } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
@@ -77,11 +77,11 @@ class CommentForm extends Component {
     const placeholder = this.props.placeholder || this.props.t('Add a comment...')
 
     return (
-      <div className={cx(classes.commentForm, className)}>
+      <div className={cn(classes.commentForm, className)}>
         {currentUser && (
           <AttachmentManager type='comment' id='new' />
         )}
-        <div className={cx(classes.prompt, { [classes.disabled]: !currentUser })}>
+        <div className={cn(classes.prompt, { [classes.disabled]: !currentUser })}>
           {currentUser
             ? <RoundImage url={currentUser.avatarUrl} small className={classes.image} />
             : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}

@@ -2,7 +2,7 @@ import React from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import LocationInput from 'components/LocationInput'
 import IconSelector from 'components/IconSelector'
-import cx from 'classnames'
+import { cn } from 'util'
 import classes from './SettingsControl.module.scss'
 
 export default function SettingsControl (props) {
@@ -80,8 +80,8 @@ export default function SettingsControl (props) {
   }
 
   return (
-    <div className={cx(classes.control, { [classes.error]: error }, controlClass)}>
-      <label className={cx(classes.controlLabel, { [classes.error]: error })} htmlFor={id}>
+    <div className={cn(classes.control, { [classes.error]: error }, controlClass)}>
+      <label className={cn(classes.controlLabel, { [classes.error]: error })} htmlFor={id}>
         {label}
         {helpText
           ? <div className={classes.help}>?<div className={classes.helpTooltip}>{helpText}</div></div>

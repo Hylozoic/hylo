@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -36,7 +36,7 @@ export default function PostBody (props) {
           <div className={classes.clickthroughButton} onClick={() => dispatch(recordClickthrough({ postId: post.id }))}>{t('View post')}</div>
         </div>}
 
-      <div className={cx(classes.body, { [classes.smallMargin]: !expanded, [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !post.clickthrough }, className)}>
+      <div className={cn(classes.body, { [classes.smallMargin]: !expanded, [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !post.clickthrough }, className)}>
         {post.type !== 'chat' && (
           <PostTitle
             {...post}

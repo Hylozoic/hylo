@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { get } from 'lodash/fp'
 import { Globe } from 'lucide-react'
 import React, { Suspense, useRef } from 'react'
@@ -61,7 +61,7 @@ export default function GlobalNav (props) {
   }
 
   return (
-    <div className={cx('flex flex-col bg-theme-background h-full z-50 items-center pb-2')} onClick={onClick}>
+    <div className={cn('flex flex-col bg-theme-background h-full z-50 items-center pb-2')} onClick={onClick}>
       <div className='overflow-y-auto py-2 px-3 flex flex-col items-center'>
         {/* <div className={styles.drawerToggle} id='toggleDrawer'>
           <button className={styles.drawerToggleButton} onClick={handleToggleDrawer}><Icon name='Hamburger' className={styles.menuIcon} /></button>
@@ -70,14 +70,14 @@ export default function GlobalNav (props) {
         {/* <Link
           to={baseUrl(pick(['context', 'groupSlug'], routeParams))}
           onClick={handleToggleGroupMenu}
-          className={cx(styles.currentContext, { [styles.groupMenuOpen]: isGroupMenuOpen })}
+          className={cn(styles.currentContext, { [styles.groupMenuOpen]: isGroupMenuOpen })}
           id='currentContext'
         >
           <Logo {...{ group, isPublic }} />
           <Title group={group} isPublic={isPublic} isMyHome={isMyHome} />
         </Link> */}
         <Dropdown
-          className={cx(styles.navMenu, 'z-50')}
+          className={cn(styles.navMenu, 'z-50')}
           alignLeft
           noOverflow
           toggleChildren={
@@ -144,13 +144,13 @@ export default function GlobalNav (props) {
             <li><span className={styles.hoverHighlight} onClick={showIntercom}>{t('Feedback & Support')}</span></li>
             <li><a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer' className={styles.hoverHighlight}>{t('User Guide')}</a></li>
             <li><a href='http://hylo.com/terms/' target='_blank' rel='noreferrer' className={styles.hoverHighlight}>{t('Terms & Privacy')}</a></li>
-            <li><span className={cx(styles.hoverHighlight, styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li>
+            <li><span className={cn(styles.hoverHighlight, styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li>
             <li><a href='https://opencollective.com/hylo' target='_blank' rel='noreferrer' className={styles.hoverHighlight}>{t('Contribute to Hylo')}</a></li>
           </ul>
         </PopoverContent>
       </Popover>
       {/* <Dropdown
-        className={cx(styles.navMenu, styles.supportMenu)}
+        className={cn(styles.navMenu, styles.supportMenu)}
         alignLeft
         toggleChildren={
 

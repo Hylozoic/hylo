@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import cx from 'classnames'
+import { cn } from 'util'
 import Tooltip from 'components/Tooltip'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -44,7 +44,7 @@ export default function PostGridItem ({
   }, [post.id, routeParams, locationParams, querystringParams])
 
   return (
-    <div className={cx(classes.postGridItemContainer, { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType])} onClick={showDetails}>
+    <div className={cn(classes.postGridItemContainer, { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType])} onClick={showDetails}>
       <div className={classes.contentSummary}>
         {childPost &&
           <div
@@ -61,9 +61,9 @@ export default function PostGridItem ({
               id='childgroup-tt'
             />
           </div>}
-        <h3 className={cx(classes.title, { [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</h3>
+        <h3 className={cn(classes.title, { [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</h3>
         {attachmentType === 'image'
-          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cx(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} />
+          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cn(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} />
           : attachmentType === 'file'
             ? (
               <div className={classes.fileAttachment}>
@@ -77,7 +77,7 @@ export default function PostGridItem ({
             : ' '}
         {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
 
-        <div className={cx(classes.details, { [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+        <div className={cn(classes.details, { [classes.isFlagged]: isFlagged && !post.clickthrough })}>
           <HyloHTML html={details} />
         </div>
         <div className={classes.gridMeta}>
