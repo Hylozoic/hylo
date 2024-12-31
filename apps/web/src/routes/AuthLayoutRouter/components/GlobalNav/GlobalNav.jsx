@@ -35,30 +35,12 @@ const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown')
 const LocaleDropdown = React.lazy(() => import('./LocaleDropdown'))
 
 export default function GlobalNav (props) {
-  const dispatch = useDispatch()
-  const {
-    currentUser,
-    group,
-    onClick,
-    routeParams,
-    showMenuBadge
-  } = props
+  const { currentUser, onClick } = props
   const { show: showIntercom } = useIntercom()
   const groups = useSelector(getMyGroups)
 
-  const profileUrl = personUrl(get('id', currentUser))
-  const isPublic = routeParams.context === 'public'
-  const isMyHome = routeParams.context === CONTEXT_MY
-  const locale = currentUser?.settings?.locale
-  const localeFlag = localeToFlagEmoji(localeLocalStorageSync(locale))
-
   const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
   const { t } = useTranslation()
-
-  const handleLogout = async () => {
-    dispatch(replace('/login', null))
-    await dispatch(logout())
-  }
 
   return (
     <div className={cn('flex flex-col bg-theme-background h-full z-50 items-center pb-2')} onClick={onClick}>
@@ -76,27 +58,7 @@ export default function GlobalNav (props) {
           <Logo {...{ group, isPublic }} />
           <Title group={group} isPublic={isPublic} isMyHome={isMyHome} />
         </Link> */}
-        <Dropdown
-          className={cn(styles.navMenu, 'z-50')}
-          alignLeft
-          noOverflow
-          toggleChildren={
-            <GlobalNavItem img={get('avatarUrl', currentUser)} tooltip={t('Your Profile')} />
-          }
-        >
-          <li>
-            <Link className={styles.hoverHighlight} to={profileUrl}>
-              {t('Profile')}
-            </Link>
-          </li>
-          <li><Link className={styles.hoverHighlight} to='/settings'>{t('Settings')}</Link></li>
-          <li>
-            <Suspense fallback={<span>{t('Locale')} {localeFlag}</span>}>
-              <LocaleDropdown className={styles.localeDropdown} renderToggleChildren={<span className={styles.locale}>{t('Locale')} {localeFlag}</span>} />
-            </Suspense>
-          </li>
-          <li><a onClick={handleLogout}>{t('Log out')}</a></li>
-        </Dropdown>
+        <GlobalNavItem img={get('avatarUrl', currentUser)} tooltip={t('Your Profile')} url='/my/posts' />
 
         <Suspense fallback={<GlobalNavItem><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
@@ -114,7 +76,7 @@ export default function GlobalNav (props) {
           />
         </Suspense>
 
-        <GlobalNavItem tooltip={t('Public')} url='/public'>
+        <GlobalNavItem tooltip={t('Public')} url='/public/stream'>
           <Globe color='hsl(var(--primary-foreground))' />
         </GlobalNavItem>
 
@@ -149,52 +111,24 @@ export default function GlobalNav (props) {
           </ul>
         </PopoverContent>
       </Popover>
-      {/* <Dropdown
-        className={cn(styles.navMenu, styles.supportMenu)}
-        alignLeft
-        toggleChildren={
-
-        }
-      >
-
-      </Dropdown> */}
     </div>
   )
 }
 
-function Logo ({ group, isPublic }) {
-  let imageStyle = bgImageStyle(hyloLogo)
-  if (group) {
-    imageStyle = bgImageStyle(get('avatarUrl', group))
-  } else if (isPublic) {
-    imageStyle = bgImageStyle(publicLogo)
-  }
+// function Logo ({ group, isPublic }) {
+//   let imageStyle = bgImageStyle(hyloLogo)
+//   if (group) {
+//     imageStyle = bgImageStyle(get('avatarUrl', group))
+//   } else if (isPublic) {
+//     imageStyle = bgImageStyle(publicLogo)
+//   }
 
-  return (
-    <span className={styles.image} style={imageStyle}>
-      <span>
-        <Icon name='Home' className={styles.homeLink} />
-        <Icon name='Ex' className={styles.closeGroupMenu} />
-      </span>
-    </span>
-  )
-}
-
-function Title ({ group, isPublic, onClick, isMyHome }) {
-  const { t } = useTranslation()
-  let [label, name] = [t('PERSONAL'), t('All My Groups')]
-  if (group) {
-    [label, name] = [group.typeDescriptor, group.name]
-  } else if (isPublic) {
-    [label, name] = [t('GLOBAL'), t('Public Groups & Posts')]
-  } else if (isMyHome) {
-    [label, name] = [t('PERSONAL'), t('My Home')]
-  }
-
-  return (
-    <div className={styles.title}>
-      <div className={styles.label}>{label}</div>
-      <div className={styles.groupName}>{name}</div>
-    </div>
-  )
-}
+//   return (
+//     <span className={styles.image} style={imageStyle}>
+//       <span>
+//         <Icon name='Home' className={styles.homeLink} />
+//         <Icon name='Ex' className={styles.closeGroupMenu} />
+//       </span>
+//     </span>
+//   )
+// }
