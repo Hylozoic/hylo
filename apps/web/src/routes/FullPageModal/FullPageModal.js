@@ -9,7 +9,7 @@ import styles from './FullPageModal.module.scss'
 export default function FullPageModal ({
   confirmMessage, setConfirmBeforeClose, navigate, goToOnClose,
   content, children, narrow, fullWidth, leftSideBarHidden,
-  previousLocation
+  previousLocation, hideMenu
 }) {
   const [entryLocation] = useState(previousLocation)
 
@@ -45,22 +45,23 @@ export default function FullPageModal ({
     return (
       <div className={cn(styles.modal, { [styles.fullWidth]: fullWidth })}>
         <div className={styles.content}>
-          <div className={cn(styles.leftSidebar, { [styles.leftSideBarHidden]: leftSideBarHidden })}>
-            <div className={cn(styles.leftSidebarFixed, { [styles.border]: multipleTabs })}>
-              {multipleTabs && content.filter(tab => !!tab.name).map(tab => (
-                <NavLink
-                  to={tab.path}
-                  end
-                  replace
-                  className={({ isActive }) => cn(styles.navLink, { [styles.active]: isActive })}
-                  key={tab.path}
-                >
-                  {tab.name}
-                </NavLink>
-              ))}
-              <Icon name='ArrowDown' className={styles.arrowDown} />
-            </div>
-          </div>
+          {!hideMenu && (
+            <div className={cx(styles.leftSidebar, { [styles.leftSideBarHidden]: leftSideBarHidden })}>
+              <div className={cx(styles.leftSidebarFixed, { [styles.border]: multipleTabs })}>
+                {multipleTabs && content.filter(tab => !!tab.name).map(tab => (
+                  <NavLink
+                    to={tab.path}
+                    end
+                    replace
+                    className={({ isActive }) => cx(styles.navLink, { [styles.active]: isActive })}
+                    key={tab.path}
+                  >
+                    {tab.name}
+                  </NavLink>
+                ))}
+                <Icon name='ArrowDown' className={styles.arrowDown} />
+              </div>
+            </div>)}
           {multipleTabs && (
             <div className={cn(styles.center, styles.narrow)}>
               <Routes>

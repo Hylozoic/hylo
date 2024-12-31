@@ -2,6 +2,7 @@ import { cn } from 'util'
 import { compact, get } from 'lodash/fp'
 import React, { useMemo, useState, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { createSelector as ormCreateSelector } from 'redux-orm'
@@ -25,12 +26,13 @@ import useGatherItems from 'hooks/useGatherItems'
 import { CONTEXT_MY, FETCH_POSTS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import orm from 'store/models'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
-import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath } from 'util/navigation'
+import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
 
-import classes from './Navigation.module.scss'
-import { isWidgetDroppable, widgetIsValidChild, widgetTitleResolver } from 'util/contextWidgets'
+import classes from './ContextMenu.module.scss'
+import { getStaticMenuWidgets, isWidgetDroppable, widgetIsValidChild, widgetTitleResolver } from 'util/contextWidgets'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import logout from 'store/actions/logout'
 
 const getGroupMembership = ormCreateSelector(
   orm,
@@ -39,8 +41,7 @@ const getGroupMembership = ormCreateSelector(
   (session, currentUser, id) => session.Membership.filter({ group: id, person: currentUser }).first()
 )
 
-// TODO CONTEXT: this is the context menu, aka ContextMenu. Rename at the END of refractoring layout stuff, to avoid awkward merge conflicts
-export default function Navigation (props) {
+export default function ContextMenu (props) {
   const {
     className,
     groupId,
@@ -50,13 +51,16 @@ export default function Navigation (props) {
   const dispatch = useDispatch()
   const routeParams = useRouteParams()
   const location = useLocation()
+  const currentUser = useSelector(getMe)
   const { t } = useTranslation()
 
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
-
   const rootPath = baseUrl({ ...routeParams, view: null })
   const isAllOrPublicPath = ['/all', '/public'].includes(rootPath)
+  const isPublic = routeParams.context === 'public'
+  const isMyContext = routeParams.context === CONTEXT_MY
+  const profileUrl = personUrl(get('id', currentUser))
 
   // TODO CONTEXT: the new post count will be refactored into the use of highlightNumber and secondaryNumber, on the context widgets
   const badge = useSelector(state => {
@@ -76,14 +80,19 @@ export default function Navigation (props) {
     return false
   })
 
-  const contextWidgets = useSelector(state => getContextWidgets(state, group))
+  const contextWidgets = useSelector(state => {
+    if (isMyContext || isPublic) {
+      return getStaticMenuWidgets({ isPublic, isMyContext, profileUrl })
+    }
+    return getContextWidgets(state, group)
+  })
 
   const hasContextWidgets = useMemo(() => {
-    if (group) {
+    if (group || isMyContext || isPublic) {
       return contextWidgets.length > 0
     }
     return false
-  }, [group])
+  }, [group, isMyContext, isPublic])
 
   const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
 
@@ -122,38 +131,7 @@ export default function Navigation (props) {
   const projectsPath = viewUrl('projects', routeParams)
   const proposalPath = viewUrl('proposals', routeParams)
 
-  const isPublic = routeParams.context === 'public'
-  const isMyContext = routeParams.context === CONTEXT_MY
-
   const customViews = (group && group.customViews && group.customViews.toRefArray()) || []
-
-  const myLinks = [
-    createPath && {
-      label: t('Create'),
-      icon: 'Create',
-      to: createPath
-    },
-    {
-      label: t('My Posts'),
-      icon: 'Posticon',
-      to: '/my/posts'
-    },
-    {
-      label: t('Interactions'),
-      icon: 'Support',
-      to: '/my/interactions'
-    },
-    {
-      label: t('Mentions'),
-      icon: 'Email',
-      to: '/my/mentions'
-    },
-    {
-      label: t('Announcements'),
-      icon: 'Announcement',
-      to: '/my/announcements'
-    }
-  ]
 
   const regularLinks = compact([
     createPath && {
@@ -199,8 +177,8 @@ export default function Navigation (props) {
       icon: 'Proposal',
       to: proposalPath
     },
-    (hasRelatedGroups || isPublic) && groupsPath && {
-      label: isPublic ? t('Group Explorer') : t('Groups'),
+    (hasRelatedGroups) && groupsPath && {
+      label: t('Groups'),
       icon: 'Groups',
       to: groupsPath
     },
@@ -249,7 +227,7 @@ export default function Navigation (props) {
   }
 
   const canView = !group || group.memberCount !== 0
-  const links = isMyContext ? myLinks : regularLinks
+  const links = regularLinks
   return (
     <div className={cn('bg-background z-40', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
       {!hasContextWidgets && (
@@ -305,17 +283,18 @@ export default function Navigation (props) {
               )}
             </DragOverlay>
           </DndContext>
-          <div className='w-[calc(100%-1.5em)] ml-[1.5em] p-2 mb-[0.05em]'>
-            <ContextMenuItem
-              widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }}
-              groupSlug={routeParams.groupSlug}
-              rootPath={rootPath}
-              canAdminister={canAdminister}
-              allView
-              isEditting={isEditting}
-              group={group}
-            />
-          </div>
+          {(!isMyContext && !isPublic) && (
+            <div className='w-[calc(100%-1.5em)] ml-[1.5em] p-2 mb-[0.05em]'>
+              <ContextMenuItem
+                widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }}
+                groupSlug={routeParams.groupSlug}
+                rootPath={rootPath}
+                canAdminister={canAdminister}
+                allView
+                isEditting={isEditting}
+                group={group}
+              />
+            </div>)}
         </div>
       )}
       {!hasContextWidgets && <div className={classes.closeBg} onClick={toggleGroupMenuAction} />}
@@ -351,17 +330,23 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
 
 function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditting = false, allView = false, isDragging = false, isOverlay = false, activeWidget, group, handlePositionedAdd }) {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
 
   const isDroppable = isWidgetDroppable({ widget })
   const isCreating = widget.id === 'creating'
+
+  const handleLogout = async () => {
+    dispatch(replace('/login', null))
+    await dispatch(logout())
+  }
 
   // Draggable setup
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, transform } = useDraggable({ id: widget.id })
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 
   const title = widgetTitleResolver({ widget, t })
-  const url = widgetUrl({ widget, rootPath, groupSlug, context: 'group' })
+  const url = widgetUrl({ widget, rootPath, groupSlug })
   const canDnd = !allView && isEditting && widget.type !== 'home'
   const showEdit = allView && canAdminister
   const hideDropZone = isOverlay || allView || !canDnd
@@ -390,6 +375,19 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
   if (activeWidget && activeWidget.id === widget.id) {
     return null
+  }
+
+  if (widget.type === 'logout') {
+    return (
+      <div key={widget.id} style={style} className='border border-gray-700 rounded-md p-2 bg-white'>
+        <span className='flex justify-between items-center content-center'>
+          <WidgetIconResolver widget={widget} />
+          <MenuLink onClick={handleLogout}>
+            <span className='text-lg font-bold'>{title}</span>
+          </MenuLink>
+        </span>
+      </div>
+    )
   }
 
   return (

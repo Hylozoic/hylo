@@ -146,8 +146,8 @@ export function messagePersonUrl (person) {
 }
 
 // Person URLs
-export function currentUserSettingsUrl (view = '') {
-  return '/settings' + (view ? '/' + view : '')
+export function currentUserSettingsUrl (view = 'edit-profile') {
+  return '/my' + (view ? '/' + view : '')
 }
 
 export function personUrl (id, groupSlug) {
@@ -174,12 +174,13 @@ export function customViewUrl (customViewId, rootPath, opts) {
   return `${rootPath}/custom/${customViewId}`
 }
 
-export function widgetUrl ({ widget, rootPath, groupSlug, context }) {
+export function widgetUrl ({ widget, rootPath, groupSlug, context = 'group' }) {
   let url = ''
+  if (widget.url) return widget.url
   if (widget.view === 'about') {
     url = groupDetailUrl(groupSlug, { rootPath, groupSlug, context })
   } else if (widget.view) {
-    url = viewUrl(widget.view, { groupSlug, context })
+    url = viewUrl(widget.view, { groupSlug, context: widget.context || context })
   } else if (widget.viewGroup) {
     url = groupUrl(widget.viewGroup.slug)
   } else if (widget.viewUser) {
