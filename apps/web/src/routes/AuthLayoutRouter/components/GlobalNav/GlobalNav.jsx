@@ -115,7 +115,7 @@ export default function GlobalNav (props) {
         </Suspense>
 
         <GlobalNavItem tooltip={t('Public')} url='/public'>
-            <Globe color='hsl(var(--primary-foreground))' />
+          <Globe color='hsl(var(--primary-foreground))' />
         </GlobalNavItem>
 
         {groups.map(group =>

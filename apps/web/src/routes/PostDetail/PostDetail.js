@@ -167,7 +167,7 @@ function PostDetail () {
     postPeopleDialogTitle = t('Responses')
   }
 
-  const detailHasImage = useMemo(() => post?.attachments.find(a => a.type === 'image') || false, [post])
+  const hasImage = useMemo(() => post?.attachments.find(a => a.type === 'image') || false, [post])
   const hasPeople = useMemo(() => people && people.length > 0, [people])
   const showPeopleDialog = hasPeople && state.showPeopleDialog
   const handleTogglePeopleDialog = hasPeople && togglePeopleDialog ? togglePeopleDialog : undefined
@@ -199,7 +199,7 @@ function PostDetail () {
         close={onClose}
         expanded
         isFlagged={isFlagged}
-        detailHasImage={detailHasImage}
+        hasImage={hasImage}
       />
       {state.atHeader && (
         <div className={cx(classes.headerSticky, { [classes.atActivity]: state.atActivity })} style={headerStyle}>

@@ -7,34 +7,28 @@ export default {
   ],
   theme: {
     screens: {
-      'xs': '410px',
+      xs: '410px',
       // => @media (min-width: 410px) { ... }
 
-      'sm': '640px',
+      sm: '640px',
       // => @media (min-width: 640px) { ... }
 
-      'md': '768px',
+      md: '768px',
       // => @media (min-width: 768px) { ... }
 
-      'lg': '1024px',
+      lg: '1024px',
       // => @media (min-width: 1024px) { ... }
 
-      'xl': '1280px',
+      xl: '1280px',
       // => @media (min-width: 1280px) { ... }
 
-      '2xl': '1536px',
+      '2xl': '1536px'
       // => @media (min-width: 1536px) { ... }
     },
-    borderWidth: {
-      DEFAULT: '1px',
-      '0': '0',
-      '2': '2px',
-      '3': '3px',
-      '4': '4px',
-      '6': '6px',
-      '8': '8px',
-    },
     extend: {
+      borderWidth: {
+        3: '3px'
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
@@ -84,6 +78,9 @@ export default {
         },
         'theme-background': 'hsl(var(--theme-background))',
         'theme-foreground': 'hsl(var(--theme-foreground))'
+      },
+      fontSize: {
+        '2xs': '0.625rem'
       }
     }
   },

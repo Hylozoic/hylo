@@ -150,14 +150,14 @@ export default function PostCard (props) {
             />
           </div>
         )}
-        <div onClick={onClick}>
+        {/* <div onClick={onClick}>
           <PostGroups
             isPublic={post.isPublic}
             groups={post.groups}
             slug={routeParams.groupSlug}
             constrained={constrained}
           />
-        </div>
+        </div> */}
         <PostFooter
           {...post}
           onClick={onClick}

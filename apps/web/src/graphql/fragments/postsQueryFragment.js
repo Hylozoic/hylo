@@ -1,4 +1,4 @@
-import postFieldsFragment from '@graphql/fragments/postFieldsFragment'
+import postCardFieldsFragment from '@graphql/fragments/postCardFieldsFragment'
 
 const postsQueryFragment = `
 posts(
@@ -29,7 +29,7 @@ posts(
   hasMore
   total
   items {
-    ${postFieldsFragment(false)}
+    ${postCardFieldsFragment}
   }
 }`
 
