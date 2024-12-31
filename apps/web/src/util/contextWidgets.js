@@ -36,7 +36,10 @@ export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl }) {
 
   if (isPublic) {
     widgets = [
-      { type: 'all', title: 'widget-my-all', id: 'widget-my-all', view: 'all', order: 1, parentId: null }
+      { context: 'public', title: 'widget-public-stream', id: 'widget-public-stream', view: 'stream', order: 1, parentId: null },
+      { context: 'public', title: 'widget-public-groups', id: 'widget-public-groups', view: 'groups', order: 2, parentId: null },
+      { context: 'public', title: 'widget-public-map', id: 'widget-public-map', view: 'map', type: 'map', order: 3, parentId: null },
+      { context: 'public', title: 'widget-public-events', id: 'widget-public-events', view: 'events', order: 4, parentId: null }
     ]
   }
 

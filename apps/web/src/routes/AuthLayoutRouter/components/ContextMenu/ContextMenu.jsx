@@ -81,18 +81,18 @@ export default function ContextMenu (props) {
   })
 
   const contextWidgets = useSelector(state => {
-    if (isMyContext) {
+    if (isMyContext || isPublic) {
       return getStaticMenuWidgets({ isPublic, isMyContext, profileUrl })
     }
     return getContextWidgets(state, group)
   })
 
   const hasContextWidgets = useMemo(() => {
-    if (group || isMyContext) {
+    if (group || isMyContext || isPublic) {
       return contextWidgets.length > 0
     }
     return false
-  }, [group, isMyContext])
+  }, [group, isMyContext, isPublic])
 
   const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
 
@@ -132,34 +132,6 @@ export default function ContextMenu (props) {
   const proposalPath = viewUrl('proposals', routeParams)
 
   const customViews = (group && group.customViews && group.customViews.toRefArray()) || []
-
-  const myLinks = [
-    createPath && {
-      label: t('Create'),
-      icon: 'Create',
-      to: createPath
-    },
-    {
-      label: t('My Posts'),
-      icon: 'Posticon',
-      to: '/my/posts'
-    },
-    {
-      label: t('Interactions'),
-      icon: 'Support',
-      to: '/my/interactions'
-    },
-    {
-      label: t('Mentions'),
-      icon: 'Email',
-      to: '/my/mentions'
-    },
-    {
-      label: t('Announcements'),
-      icon: 'Announcement',
-      to: '/my/announcements'
-    }
-  ]
 
   const regularLinks = compact([
     createPath && {
@@ -205,8 +177,8 @@ export default function ContextMenu (props) {
       icon: 'Proposal',
       to: proposalPath
     },
-    (hasRelatedGroups || isPublic) && groupsPath && {
-      label: isPublic ? t('Group Explorer') : t('Groups'),
+    (hasRelatedGroups) && groupsPath && {
+      label: t('Groups'),
       icon: 'Groups',
       to: groupsPath
     },
@@ -255,7 +227,7 @@ export default function ContextMenu (props) {
   }
 
   const canView = !group || group.memberCount !== 0
-  const links = isMyContext ? myLinks : regularLinks
+  const links = regularLinks
   return (
     <div className={cx(classes.container, { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
       {!hasContextWidgets && (
@@ -311,7 +283,7 @@ export default function ContextMenu (props) {
               )}
             </DragOverlay>
           </DndContext>
-          {!isMyContext && (
+          {(!isMyContext && !isPublic) && (
             <div className='w-[calc(100%-1.5em)] ml-[1.5em] p-2 mb-[0.05em]'>
               <ContextMenuItem
                 widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }}

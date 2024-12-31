@@ -1192,6 +1192,10 @@
   "widget-my-posts": "My Posts",
   "widget-my-profile": "My Profile",
   "widget-my-saved-searches": "Saved Searches",
+  "widget-public-stream": "Public Stream",
+  "widget-public-groups": "Group Explorer", 
+  "widget-public-map": "Public Map",
+  "widget-public-events": "Public Events",
   "widget-myself": "My Account",
   "Language Settings": "Language Settings",
   "Select your preferred language for the Hylo interface": "Select your preferred language for the Hylo interface"
