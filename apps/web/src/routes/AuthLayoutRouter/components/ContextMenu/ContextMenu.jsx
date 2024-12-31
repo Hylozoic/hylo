@@ -2,6 +2,7 @@ import cx from 'classnames'
 import { compact, get } from 'lodash/fp'
 import React, { useMemo, useState, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { createSelector as ormCreateSelector } from 'redux-orm'
@@ -31,6 +32,7 @@ import classes from './ContextMenu.module.scss'
 import { getStaticMenuWidgets, isWidgetDroppable, widgetIsValidChild, widgetTitleResolver } from 'util/contextWidgets'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import logout from 'store/actions/logout'
 
 const getGroupMembership = ormCreateSelector(
   orm,
@@ -356,10 +358,16 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
 
 function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditting = false, allView = false, isDragging = false, isOverlay = false, activeWidget, group, handlePositionedAdd }) {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
 
   const isDroppable = isWidgetDroppable({ widget })
   const isCreating = widget.id === 'creating'
+
+  const handleLogout = async () => {
+    dispatch(replace('/login', null))
+    await dispatch(logout())
+  }
 
   // Draggable setup
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, transform } = useDraggable({ id: widget.id })
@@ -395,6 +403,19 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
   if (activeWidget && activeWidget.id === widget.id) {
     return null
+  }
+
+  if (widget.type === 'logout') {
+    return (
+      <div key={widget.id} style={style} className='border border-gray-700 rounded-md p-2 bg-white'>
+        <span className='flex justify-between items-center content-center'>
+          <WidgetIconResolver widget={widget} />
+          <MenuLink onClick={handleLogout}>
+            <span className='text-lg font-bold'>{title}</span>
+          </MenuLink>
+        </span>
+      </div>
+    )
   }
 
   return (
