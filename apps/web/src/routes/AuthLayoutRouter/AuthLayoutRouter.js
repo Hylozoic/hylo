@@ -303,7 +303,7 @@ export default function AuthLayoutRouter (props) {
         <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
       </Routes>
 
-      <Div100vh className={cx('flex flex-row items-stretch bg-background', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
+      <Div100vh className={cx('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cx(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })} onClick={handleCloseDrawer}>
           {!withoutNav && (
             <>

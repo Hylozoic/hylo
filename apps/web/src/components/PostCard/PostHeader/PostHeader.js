@@ -135,13 +135,14 @@ class PostHeader extends PureComponent {
 
     const showNormal = ((canBeCompleted && canEdit && expanded) && (topics?.length > 0 || (canHaveTimes && timeWindow.length > 0))) || false
     return (
-      <div className={cx(classes.header, { [classes.constrained]: constrained, [classes.detailHasImage]: detailHasImage }, className)}>
+      <div className={cx('relative', { [classes.constrained]: constrained, [classes.detailHasImage]: detailHasImage }, className)}>
         <div className={classes.headerMainRow}>
           <div className={classes.headerTopRow}>
             <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} />
-            <div className={classes.headerText}>
+            {/* Header */}
+            <div className='flex flex-wrap flex-1 text-foreground'>
               <Highlight {...highlightProps}>
-                <Link to={creatorUrl} className={cx(classes.userName)} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>{creator.name}</Link>
+                <Link to={creatorUrl} className='flex whitespace-nowrap items-center text-card-foreground font-bold font-md' data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>{creator.name}</Link>
               </Highlight>
               <div className={classes.badgeRow}>
                 {roles.map(role => (

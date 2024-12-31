@@ -251,7 +251,7 @@ export default function Navigation (props) {
   const canView = !group || group.memberCount !== 0
   const links = isMyContext ? myLinks : regularLinks
   return (
-    <div className={cx(classes.container, { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
+    <div className={cx('bg-background z-40', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
       {!hasContextWidgets && (
         <div className={classes.navigation}>
           {canView && (
@@ -397,7 +397,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
       <DropZone isDragging={isDragging} height={isDroppable && isEditting ? 'h-5' : ''} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }}>
         <Icon name='Plus' onClick={() => handlePositionedAdd({ widget })} />
       </DropZone>
-      <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border border-gray-700 rounded-md p-2 bg-white'>
+      <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground '>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
         {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (

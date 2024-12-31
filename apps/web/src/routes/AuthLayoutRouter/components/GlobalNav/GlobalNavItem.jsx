@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import React from 'react'
 import Badge from 'components/Badge'
 import {
@@ -7,6 +6,7 @@ import {
   TooltipTrigger
 } from 'components/ui/tooltip'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { cn } from 'util'
 
 export default function GlobalNavItem ({
   children,
@@ -37,11 +37,11 @@ export default function GlobalNavItem ({
       <div className='mb-4'>
         <TooltipTrigger asChild>
           <div
-            className={cx(
-              'flex flex-col items-center justify-center w-10 h-10 min-h-10 rounded-lg shadow-lg bg-background relative',
+            className={cn(
+              'transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-10 h-10 min-h-10 rounded-lg drop-shadow-md opacity-70 hover:opacity-100 scale-90 hover:scale-100 bg-primary relative hover:drop-shadow-lg',
               {
-                'border-4 border-primary w-12 h-12 min-h-12': selected,
-                'border-2 border-accent': badgeCount > 0
+                'border-3 border-secondary opacity-100 scale-100 hover:scale-110': selected,
+                'border-3 border-accent opacity-100 scale-100': badgeCount > 0
               }
             )}
             style={style}

@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import { get } from 'lodash/fp'
+import { Globe } from 'lucide-react'
 import React, { Suspense, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
@@ -60,7 +61,7 @@ export default function GlobalNav (props) {
   }
 
   return (
-    <div className={cx('flex flex-col bg-themeBackground h-full z-50 items-center pb-2')} onClick={onClick}>
+    <div className={cx('flex flex-col bg-theme-background h-full z-50 items-center pb-2')} onClick={onClick}>
       <div className='overflow-y-auto py-2 px-3 flex flex-col items-center'>
         {/* <div className={styles.drawerToggle} id='toggleDrawer'>
           <button className={styles.drawerToggleButton} onClick={handleToggleDrawer}><Icon name='Hamburger' className={styles.menuIcon} /></button>
@@ -100,7 +101,7 @@ export default function GlobalNav (props) {
         <Suspense fallback={<GlobalNavItem><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem tooltip='Activity'>
-              <BadgedIcon name='Notifications' className={styles.icon} showBadge={showBadge} />
+              <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' showBadge={showBadge} />
             </GlobalNavItem>}
           />
         </Suspense>
@@ -108,12 +109,14 @@ export default function GlobalNav (props) {
         <Suspense fallback={<GlobalNavItem><BadgedIcon name='Messages' className={styles.icon} /></GlobalNavItem>}>
           <MessagesDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem tooltip='Messages'>
-              <BadgedIcon name='Messages' className={styles.icon} showBadge={showBadge} />
+              <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' showBadge={showBadge} />
             </GlobalNavItem>}
           />
         </Suspense>
 
-        <GlobalNavItem img={PUBLIC_CONTEXT_AVATAR_PATH} tooltip={t('Public')} url='/public' />
+        <GlobalNavItem tooltip={t('Public')} url='/public'>
+            <Globe color='hsl(var(--primary-foreground))' />
+        </GlobalNavItem>
 
         {groups.map(group =>
           <GlobalNavItem

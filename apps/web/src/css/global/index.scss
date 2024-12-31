@@ -8,8 +8,10 @@
 @tailwind utilities;
 
 @layer base {
+
   :root {
     --background: 50 27% 96%;
+    --midground: 35 8% 28%;
     --foreground: 240 10% 3.9%;
     --card: 40 100% 99%;
     --card-foreground: 34 9% 15%;
@@ -66,19 +68,20 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --background: 33 8% 28%;
+    --midground: 27 5% 34%;
+    --foreground: 40 100% 99%;
+    --card: 33 9% 23%;
+    --card-foreground: 40 100% 99%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
+    --primary: 24 7% 14%;
+    --primary-foreground: 40 100% 99%;
+    --secondary: 169 44% 48%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
+    --accent: 21 79% 63%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
@@ -90,6 +93,7 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    --theme-background: 33 9% 23%;
   }
 
   * {
