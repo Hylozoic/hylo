@@ -18,6 +18,7 @@ import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchPlatformAgreements from 'store/actions/fetchPlatformAgreements'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupChats from 'store/actions/fetchGroupChats'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -34,6 +35,7 @@ import AllTopics from 'routes/AllTopics'
 import AllView from 'routes/AllView'
 import ChatRoom from 'routes/ChatRoom'
 import CreateModal from 'components/CreateModal'
+import GroupChatLanding from 'routes/GroupChatLanding'
 import GroupDetail from 'routes/GroupDetail'
 import GroupSettings from 'routes/GroupSettings'
 import GroupSidebar from 'routes/GroupSidebar'
@@ -132,6 +134,7 @@ export default function AuthLayoutRouter (props) {
       await dispatch(fetchForCurrentUser())
       setCurrentUserLoading(false)
       await dispatch(fetchPlatformAgreements())
+      await dispatch(fetchGroupChats({}))
     })()
   }, [])
 
@@ -363,6 +366,14 @@ export default function AuthLayoutRouter (props) {
                   />
                 }
               />
+              <Route
+                path='groupchats/*'
+                element={
+                  <ContextMenu
+                    context='groupchats'
+                  />
+                }
+              />
             </Routes>
           )}
           </div>
@@ -426,6 +437,8 @@ export default function AuthLayoutRouter (props) {
               <Route path='my' element={<Navigate to='/my/posts' replace />} />
               {/* **** Other Routes **** */}
               <Route path='welcome/*' element={<WelcomeWizardRouter />} />
+              <Route path='groupchats/:groupSlug' element={<ChatRoom context='groupchats' />} />
+              <Route path='groupchats' element={<GroupChatLanding />} />
               <Route path='messages/:messageThreadId' element={<Messages />} />
               {/* Keep old settings paths for mobile */}
               <Route path='settings/*' element={<UserSettings />} />

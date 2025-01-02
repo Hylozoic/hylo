@@ -9,6 +9,7 @@ import CommonRole from './CommonRole'
 import CustomView from './CustomView'
 import EventInvitation from './EventInvitation'
 import Group, { GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
+import GroupChat from './GroupChat'
 import GroupRelationshipInvite, { GroupToGroupJoinRequestQuestionAnswer } from './GroupRelationshipInvite'
 import GroupTopic from './GroupTopic'
 import Invitation from './Invitation'
@@ -44,6 +45,7 @@ orm.register(
   CustomView,
   EventInvitation,
   Group,
+  GroupChat,
   GroupJoinQuestion,
   GroupJoinQuestionAnswer,
   GroupPrerequisite,

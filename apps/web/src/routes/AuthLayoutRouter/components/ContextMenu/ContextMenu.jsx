@@ -22,6 +22,7 @@ import { getContextWidgets, orderContextWidgetsForContextMenu } from 'store/sele
 import getMe from 'store/selectors/getMe'
 import { removeWidgetFromMenu, updateContextWidget } from 'store/actions/contextWidgets'
 import resetNewPostCount from 'store/actions/resetNewPostCount'
+import { getGroupChats } from 'store/actions/fetchGroupChats'
 import useGatherItems from 'hooks/useGatherItems'
 import { CONTEXT_MY, FETCH_POSTS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import orm from 'store/models'
@@ -60,6 +61,7 @@ export default function ContextMenu (props) {
   const isAllOrPublicPath = ['/all', '/public'].includes(rootPath)
   const isPublic = routeParams.context === 'public'
   const isMyContext = routeParams.context === CONTEXT_MY
+  const isGroupChats = routeParams.context === 'groupchats'
   const profileUrl = personUrl(get('id', currentUser))
 
   // TODO CONTEXT: the new post count will be refactored into the use of highlightNumber and secondaryNumber, on the context widgets
@@ -83,6 +85,8 @@ export default function ContextMenu (props) {
   const contextWidgets = useSelector(state => {
     if (isMyContext || isPublic) {
       return getStaticMenuWidgets({ isPublic, isMyContext, profileUrl })
+    } else if (isGroupChats) {
+      return getGroupChats(state)
     }
     return getContextWidgets(state, group)
   })
@@ -91,8 +95,8 @@ export default function ContextMenu (props) {
     if (group || isMyContext || isPublic) {
       return contextWidgets.length > 0
     }
-    return false
-  }, [group, isMyContext, isPublic])
+    return isGroupChats || false
+  }, [group, isMyContext, isPublic, isGroupChats])
 
   const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
 
@@ -278,6 +282,7 @@ export default function ContextMenu (props) {
                 canAdminister={canAdminister}
                 activeWidget={activeWidget}
                 group={group}
+                isGroupChats={isGroupChats}
               />
             </div>
             <DragOverlay>
@@ -289,7 +294,7 @@ export default function ContextMenu (props) {
               )}
             </DragOverlay>
           </DndContext>
-          {(!isMyContext && !isPublic) && (
+          {(!isMyContext && !isPublic && !isGroupChats) && (
             <div className='w-[calc(100%-1.5em)] ml-[1.5em] p-2 mb-[0.05em]'>
               <ContextMenuItem
                 widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }}
@@ -308,7 +313,7 @@ export default function ContextMenu (props) {
   )
 }
 
-function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditting, isDragging, activeWidget, group }) {
+function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditting, isDragging, activeWidget, group, isGroupChats }) {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -322,6 +327,10 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
         <DropZone isDragging={isDragging} height='h-16' droppableParams={{ id: 'remove' }}>
           Drag here to remove from menu
         </DropZone>}
+      {isGroupChats &&
+        <li className='mb-2 items-start' key='groupchat'>
+          <ContextMenuItem widget={{ title: 'Create Group Chat', type: 'create-groupchat' }} rootPath={rootPath} />
+        </li>}
       {contextWidgets.map(widget => (
         <li className='mb-2 items-start' key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} /></li>
       ))}
@@ -336,6 +345,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
 
 function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditting = false, allView = false, isDragging = false, isOverlay = false, activeWidget, group, handlePositionedAdd }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const dispatch = useDispatch()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
 
@@ -368,7 +378,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   }
 
   // Check if the widget should be rendered
-  if (!['members', 'setup'].includes(widget.type) && !isEditting && !widget.view && widget.childWidgets.length === 0 &&
+  if (!['members', 'setup'].includes(widget.type) && !isEditting && !widget.view && widget.childWidgets && widget.childWidgets.length === 0 &&
       !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
       !widget.viewChat && !widget.customView) {
     return null
@@ -385,13 +395,24 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
   if (widget.type === 'logout') {
     return (
-      <div key={widget.id} style={style} className='border border-gray-700 rounded-md p-2 bg-white'>
+      <div key={widget.id} style={style} className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground '>
         <span className='flex justify-between items-center content-center'>
           <WidgetIconResolver widget={widget} />
           <MenuLink onClick={handleLogout}>
             <span className='text-lg font-bold'>{title}</span>
           </MenuLink>
         </span>
+      </div>
+    )
+  }
+
+  if (widget.type === 'create-groupchat') {
+    return (
+      <div
+        className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground  cursor-pointer'
+        onClick={() => navigate(addQuerystringToPath(location.pathname, { 'edit-group-chat': 'yes' }))}
+      >
+        <h3 className='text-sm font-semibold'>{t('Create Group Chat')}</h3>
       </div>
     )
   }
@@ -403,7 +424,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
       </DropZone>
       <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground '>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
-        {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
+        {url && (widget.childWidgets && widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (
             <span className='flex items-center content-center'>
               <WidgetIconResolver widget={widget} />

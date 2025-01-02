@@ -29,6 +29,7 @@ import {
   clearLinkPreview,
   getLinkPreview
 } from 'components/PostEditor/PostEditor.store'
+import EditGroupChat from 'components/EditGroupChat'
 import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import PostCard from 'components/PostCard'
@@ -103,7 +104,7 @@ EditorView.prototype.updateState = function updateState (state) {
   this.updateStateInner(state, this.state.plugins !== state.plugins)
 }
 
-export default function ChatRoom (props) {
+export default function ChatRoom ({ context, empty = false }) {
   const dispatch = useDispatch()
   const routeParams = useParams()
   const location = useLocation()
@@ -111,16 +112,19 @@ export default function ChatRoom (props) {
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
 
-  const { context } = props
   const { groupSlug, topicName, postId: selectedPostId } = routeParams
+
+  const isGroupChat = context === 'groupchats'
+  const inUseTopicName = isGroupChat ? 'general' : topicName
+  const isEditGroupChat = getQuerystringParam('edit-group-chat', location)
 
   const socket = useMemo(() => getSocket(), [])
 
   const currentUser = useSelector(getMe)
-  const group = useSelector(state => getGroupForSlug(state, groupSlug))
+  const group = useSelector(state => getGroupForSlug(state, groupSlug)) // TODO groupchat: switch this to load a group by id
   const groupIds = useMemo(() => group?.id ? [group.id] : [], [group])
-  const groupTopic = useSelector(state => getGroupTopicForCurrentRoute(state, groupSlug, topicName))
-  const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
+  const groupTopic = useSelector(state => getGroupTopicForCurrentRoute(state, groupSlug, inUseTopicName))
+  const topic = useSelector(state => getTopicForCurrentRoute(state, inUseTopicName))
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
   const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: 'new', attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
   const linkPreview = useSelector(getLinkPreview) // TODO: check
@@ -158,9 +162,9 @@ export default function ChatRoom (props) {
     linkPreviewFeatured: false,
     location: '',
     title: null,
-    topicNames: [topicName],
+    topicNames: [inUseTopicName],
     type: 'chat'
-  }), [group, topicName])
+  }), [group, inUseTopicName])
 
   // The data for an in progress post draft
   const [newPost, setNewPost] = useState(emptyPost)
@@ -221,12 +225,12 @@ export default function ChatRoom (props) {
   }, [fetchPostsFutureParams, loadingFuture, hasMorePostsFuture])
 
   const fetchTopicAction = useCallback(() => {
-    if (groupSlug && topicName) {
-      return dispatch(fetchGroupTopic(topicName, groupSlug))
-    } else if (topicName) {
-      return dispatch(fetchTopic(topicName))
+    if (groupSlug && inUseTopicName) {
+      return dispatch(fetchGroupTopic(inUseTopicName, groupSlug))
+    } else if (inUseTopicName) {
+      return dispatch(fetchTopic(inUseTopicName))
     }
-  }, [dispatch, groupSlug, topicName])
+  }, [dispatch, groupSlug, inUseTopicName])
 
   const clearImageAttachments = useCallback(() => dispatch(clearAttachments('post', 'new', 'image')), [dispatch])
 
@@ -235,7 +239,7 @@ export default function ChatRoom (props) {
   const updateGroupTopicLastReadPostAction = useCallback((groupTopicId, postId) => dispatch(updateGroupTopicLastReadPost(groupTopicId, postId)), [dispatch])
 
   const handleNewPostReceived = useCallback((data) => {
-    if (!data.topics?.find(t => t.name === topicName)) return
+    if (!data.topics?.find(t => t.name === inUseTopicName)) return
 
     let updateExisting = false
     messageListRef.current?.data.map((item) => {
@@ -269,7 +273,7 @@ export default function ChatRoom (props) {
 
     // Make sure GroupTopic is loaded
     fetchTopicAction()
-  }, [group?.id, topicName])
+  }, [group?.id, inUseTopicName])
 
   useEffect(() => {
     socket.on('newPost', handleNewPostReceived)
@@ -443,10 +447,11 @@ export default function ChatRoom (props) {
   return (
     <div className={cn('h-full shadow-md flex flex-col overflow-hidden', { [styles.withoutNav]: withoutNav })}>
       <Helmet>
-        <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
+        {/* TODO groupchats: change this */}
+        <title>#{inUseTopicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
-
-      <ViewHeader title={`#${topicName}`} />
+        {/* TODO groupchats: change this */}
+      <ViewHeader title={`#${inUseTopicName}`} />
 
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden' ref={setContainer}>
         {initialPostToScrollTo === null
@@ -483,7 +488,8 @@ export default function ChatRoom (props) {
           onAddLink={handleAddLinkPreview}
           onUpdate={handleDetailsUpdate}
           onEnter={postChatMessage}
-          placeholder={`Send a message to #${topicName}`}
+          placeholder={`Send a message to #${inUsetopicName}`}
+          /* TODO groupchats: change this, both for i18n and groupchat reasons */
           readOnly={loadingPast || loadingFuture}
           ref={editorRef}
           showMenu={!isWebView()}
@@ -499,6 +505,8 @@ export default function ChatRoom (props) {
             onClose={handleRemoveLinkPreview}
           />
         )}
+        {isEditGroupChat && <EditGroupChat />}
+        
         <AttachmentManager
           type='post'
           id='new'

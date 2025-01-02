@@ -12,6 +12,7 @@ export const getContextWidgets = ormCreateSelector(
 )
 
 export const orderContextWidgetsForContextMenu = (contextWidgets) => {
+  if (contextWidgets.length === 0) return contextWidgets
   // Step 1: Filter out widgets without an order, as these are not displayed in the context menu
   const orderedWidgets = contextWidgets.filter(widget => widget.order !== null)
 
