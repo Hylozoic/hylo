@@ -60,7 +60,7 @@ export default function ContextMenu (props) {
   const isAllOrPublicPath = ['/all', '/public'].includes(rootPath)
   const isPublic = routeParams.context === 'public'
   const isMyContext = routeParams.context === CONTEXT_MY
-  const profileUrl = personUrl(get('id', currentUser))
+  const profileUrl = personUrl(get('id', currentUser), routeParams.groupSlug)
 
   // TODO CONTEXT: the new post count will be refactored into the use of highlightNumber and secondaryNumber, on the context widgets
   const badge = useSelector(state => {
