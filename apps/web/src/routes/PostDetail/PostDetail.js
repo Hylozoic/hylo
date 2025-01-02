@@ -173,7 +173,7 @@ function PostDetail () {
   const handleTogglePeopleDialog = hasPeople && togglePeopleDialog ? togglePeopleDialog : undefined
 
   if (!post && !pending) return <NotFound />
-  if (pending) return <Loading />
+  if (!post && pending) return <Loading />
 
   const headerStyle = {
     width: state.headerWidth + 'px'

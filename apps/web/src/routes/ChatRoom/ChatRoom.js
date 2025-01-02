@@ -1,4 +1,3 @@
-import { cn } from 'util'
 import { debounce, includes, isEmpty, trim, uniqueId } from 'lodash/fp'
 import { SendHorizontal } from 'lucide-react'
 import moment from 'moment-timezone'
@@ -6,7 +5,7 @@ import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams, useLocation, Routes, Route, useNavigate } from 'react-router-dom'
+import { useParams, useLocation, Routes, Route } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData } from '@virtuoso.dev/message-list'
 
@@ -52,7 +51,7 @@ import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { MAX_POST_TOPICS } from 'util/constants'
-import { removePostFromUrl } from 'util/navigation'
+import { cn } from 'util'
 import isWebView from 'util/webView'
 
 import styles from './ChatRoom.module.scss'
@@ -107,7 +106,6 @@ export default function ChatRoom (props) {
   const dispatch = useDispatch()
   const routeParams = useParams()
   const location = useLocation()
-  const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
 
@@ -391,11 +389,6 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
-  const closePostDialog = () => {
-    // remove post/:postId from the url
-    navigate(removePostFromUrl(location.pathname))
-  }
-
   // Create a new chat post
   const postChatMessage = useEventCallback(async () => {
     // Only submit if any non-whitespace text has been added
@@ -533,7 +526,7 @@ export default function ChatRoom (props) {
       </div>
 
       <Routes>
-        <Route path='post/:postId' element={<PostDialog container={container} onOpenChange={closePostDialog} />} />
+        <Route path='post/:postId' element={<PostDialog container={container} />} />
       </Routes>
     </div>
   )

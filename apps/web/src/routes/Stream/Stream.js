@@ -1,9 +1,9 @@
 import { cn } from 'util'
 import { get, isEmpty } from 'lodash/fp'
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams, useLocation } from 'react-router-dom'
+import { Routes, Route, useParams, useLocation } from 'react-router-dom'
 import { push } from 'redux-first-history'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 
@@ -11,6 +11,7 @@ import GroupBanner from 'components/GroupBanner'
 import Loading from 'components/Loading'
 import ModerationListItem from 'components/ModerationListItem/ModerationListItem'
 import NoPosts from 'components/NoPosts'
+import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
 import PostCard from 'components/PostCard'
 import PostGridItem from 'components/PostGridItem'
@@ -38,7 +39,6 @@ import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { getHasMoreModerationActions, getModerationActions } from 'store/selectors/getModerationActions'
 import { createPostUrl } from 'util/navigation'
-import { CENTER_COLUMN_ID } from 'util/scrolling'
 
 import styles from './Stream.module.scss'
 
@@ -59,8 +59,10 @@ export default function Stream (props) {
   const dispatch = useDispatch()
   const location = useLocation()
   const params = useParams()
-  const { groupSlug, topicName, customViewId, postId: selectedPostId } = params
+  const { groupSlug, topicName, customViewId } = params
   const context = props.context
+
+  const [container, setContainer] = useState(null)
 
   const view = props.view || params.view
 
@@ -86,11 +88,12 @@ export default function Stream (props) {
   const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || 'yes'
 
   const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search'], location)
-  const determinePostTypeFilter = () => {
+  const determinePostTypeFilter = useCallback(() => {
     if (view === 'projects') return 'project'
     if (view === 'proposals') return 'proposal'
     return querystringParams.t || defaultPostType
-  }
+  }, [querystringParams, defaultPostType, view])
+
   const postTypeFilter = determinePostTypeFilter()
   const search = querystringParams.search
   let sortBy = querystringParams.s || customView?.defaultSort || defaultSortBy
@@ -99,11 +102,12 @@ export default function Stream (props) {
   }
   const viewMode = querystringParams.v || customView?.defaultViewMode || projectsDefault || defaultViewMode
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
-  const getTypes = ({ customView, view }) => {
+
+  const getTypes = useCallback(({ customView, view }) => {
     if (customView?.type === 'stream') return customView?.postTypes
     if (view === 'ask-and-offer') return ['request', 'offer']
     return null
-  }
+  }, [])
 
   const fetchPostsParam = {
     activePostsOnly: customView?.type === 'stream' ? customView?.activePostsOnly : false,
@@ -120,10 +124,22 @@ export default function Stream (props) {
     types: getTypes({ customView, view })
   }
 
-  if (context === CONTEXT_MY && view === VIEW_MENTIONS) fetchPostsParam.mentionsOf = [currentUser.id]
-  if (context === CONTEXT_MY && view === VIEW_ANNOUNCEMENTS) fetchPostsParam.announcementsOnly = true
-  if (context === CONTEXT_MY && view === VIEW_INTERACTIONS) fetchPostsParam.interactedWithBy = [currentUser.id]
-  if (context === CONTEXT_MY && view === VIEW_POSTS) fetchPostsParam.createdBy = [currentUser.id]
+  if (context === CONTEXT_MY) {
+    switch (view) {
+      case VIEW_MENTIONS:
+        fetchPostsParam.mentionsOf = [currentUser.id]
+        break
+      case VIEW_ANNOUNCEMENTS:
+        fetchPostsParam.announcementsOnly = true
+        break
+      case VIEW_INTERACTIONS:
+        fetchPostsParam.interactedWithBy = [currentUser.id]
+        break
+      case VIEW_POSTS:
+        fetchPostsParam.createdBy = [currentUser.id]
+        break
+    }
+  }
 
   const postsSelector = useSelector((state) => getPosts(state, fetchPostsParam))
   const posts = useMemo(() => postsSelector.map(p => presentPost(p, groupId)), [groupId, postsSelector])
@@ -147,10 +163,10 @@ export default function Stream (props) {
 
   const ViewComponent = viewComponent[viewMode]
 
-  const fetchModerationActionsAction = offset => {
+  const fetchModerationActionsAction = useCallback((offset) => {
     if (pendingModerationActions || hasMoreModerationActions === false) return
     return dispatch(fetchModerationActions({ offset, ...fetchModerationActionParam }))
-  }
+  }, [pendingModerationActions, hasMoreModerationActions, fetchModerationActionParam])
 
   useEffect(() => {
     if (topicName) {
@@ -167,10 +183,10 @@ export default function Stream (props) {
     }
   }, [groupSlug, topicName, postTypeFilter, sortBy, childPostInclusion, context, group?.id, search, customViewId, topic, view, decisionView])
 
-  const fetchPostsFrom = (offset) => {
+  const fetchPostsFrom = useCallback((offset) => {
     if (pending || hasMore === false) return
     dispatch(fetchPosts({ offset, ...fetchPostsParam }))
-  }
+  }, [pending, hasMore, fetchPostsParam])
 
   const changeTab = useCallback(tab => {
     dispatch(updateUserSettings({ settings: { streamPostType: tab || '' } }))
@@ -200,16 +216,21 @@ export default function Stream (props) {
     dispatch(changeQuerystringParam(location, 'd', view, 'proposals'))
   }, [location])
 
-  const newPost = () => dispatch(push(createPostUrl(params, querystringParams)))
+  const newPost = useCallback(() => dispatch(push(createPostUrl(params, querystringParams))), [params, querystringParams])
 
   if (topicLoading) return <Loading />
 
   return (
-    <>
+    <div id='stream-outer-container' className='max-w-[750px] mx-auto overflow-auto h-full' ref={setContainer}>
       <Helmet>
         <title>{group ? `${group.name} | ` : ''}Hylo</title>
         <meta name='description' content={group ? `Posts from ${group.name}. ${group.description}` : 'Group Not Found'} />
       </Helmet>
+
+      <Routes>
+        <Route path='post/:postId' element={<PostDialog container={container} />} />
+      </Routes>
+
       {topicName
         ? (
           <TopicFeedHeader
@@ -259,12 +280,10 @@ export default function Stream (props) {
         <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
           {!pending && posts.length === 0 ? <NoPosts /> : ''}
           {posts.map(post => {
-            const expanded = selectedPostId === post.id
             const groupSlugs = post.groups.map(group => group.slug)
             return (
               <ViewComponent
-                className={cn({ [styles.cardItem]: viewMode === 'cards', [styles.expanded]: expanded })}
-                expanded={expanded}
+                className={cn({ [styles.cardItem]: viewMode === 'cards' })}
                 routeParams={params}
                 post={post}
                 group={group}
@@ -293,11 +312,12 @@ export default function Stream (props) {
           })}
         </div>
       )}
+      {pending && <Loading />}
+
       <ScrollListener
         onBottom={() => fetchPostsFrom(posts.length)}
-        elementId={CENTER_COLUMN_ID}
+        elementId='stream-outer-container'
       />
-      {pending && <Loading />}
-    </>
+    </div>
   )
 }

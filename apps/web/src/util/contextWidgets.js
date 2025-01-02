@@ -202,7 +202,7 @@ function settle (items) {
 // TODO CONTEXT: add this to /shared
 function findHomeChild (widgets) {
   const homeParentId = widgets.find(widget => widget.type === 'home')?.id
-  return { homeChild: widgets.find(widget => widget.parentId === homeParentId), homeParentId, }
+  return { homeChild: widgets.find(widget => widget.parentId === homeParentId), homeParentId }
 }
 
 // TODO CONTEXT: add this to /shared

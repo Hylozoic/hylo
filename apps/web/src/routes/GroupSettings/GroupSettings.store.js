@@ -358,7 +358,6 @@ export function removePostFromCollection (collectionId, postId) {
 }
 
 export function transitionGroupToNewMenu (groupId) {
-  console.log('transitionGroupToNewMenu', groupId, 'eackkak')
   return {
     type: TRANSITION_GROUP_TO_NEW_MENU,
     graphql: {

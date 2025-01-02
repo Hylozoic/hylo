@@ -36,7 +36,6 @@ import ChatRoom from 'routes/ChatRoom'
 import CreateModal from 'components/CreateModal'
 import GroupDetail from 'routes/GroupDetail'
 import GroupSettings from 'routes/GroupSettings'
-import GroupSidebar from 'routes/GroupSidebar'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
 import Groups from 'routes/Groups'
 import GroupExplorer from 'routes/GroupExplorer'
@@ -98,7 +97,7 @@ export default function AuthLayoutRouter (props) {
 
   const hasDetail = useMemo(() => {
     const detailRegex = /\/(group|post)\/([a-zA-Z0-9-]+)/
-    return detailRegex.test(location.pathname) && !location.pathname.includes('topics/')
+    return detailRegex.test(location.pathname) && (location.pathname.includes('map/') || location.pathname.includes('explore/'))
   }, [location.pathname])
 
   const paramPostId = useMemo(() => {
@@ -117,7 +116,7 @@ export default function AuthLayoutRouter (props) {
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
   const currentUser = useSelector(getMe)
   const isDrawerOpen = useSelector(state => get('AuthLayoutRouter.isDrawerOpen', state))
-  const isGroupMenuOpen = useSelector(state => get('AuthLayoutRouter.isGroupMenuOpen', state))
+  // const isGroupMenuOpen = useSelector(state => get('AuthLayoutRouter.isGroupMenuOpen', state))
   const lastViewedGroup = useSelector(getLastViewedGroup)
   const memberships = useSelector(getMyMemberships)
   const returnToPath = useSelector(getReturnToPath)
@@ -306,65 +305,65 @@ export default function AuthLayoutRouter (props) {
       <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })} onClick={handleCloseDrawer}>
           <div className={cn('NavigationContainer flex flex-row nin-w-320 max-w-420')}>
-          {!withoutNav && (
-            <>
-              {/* Depends on `pathMatchParams` */}
-              <GlobalNav
-                onClick={handleCloseDrawer}
-                group={currentGroup}
-                currentUser={currentUser}
-                routeParams={pathMatchParams}
-                showMenuBadge={showMenuBadge}
-              />
-              {isDrawerOpen && <Drawer className={cn(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
-            </>
-          )}
+            {!withoutNav && (
+              <>
+                {/* Depends on `pathMatchParams` */}
+                <GlobalNav
+                  onClick={handleCloseDrawer}
+                  group={currentGroup}
+                  currentUser={currentUser}
+                  routeParams={pathMatchParams}
+                  showMenuBadge={showMenuBadge}
+                />
+                {isDrawerOpen && <Drawer className={cn(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
+              </>
+            )}
 
-          {/* View navigation menu */}
-          {(!currentGroupSlug || (currentGroup && currentGroupMembership)) && (
-            <Routes>
-              <Route
-                path='groups/:groupSlug/*'
-                element={
-                  <ContextMenu
-                    context='groups'
-                    group={currentGroup}
-                    mapView={isMapView}
-                  />
-                }
-              />
-              <Route
-                path='all/*'
-                element={
-                  <ContextMenu
-                    context='all'
-                    group={currentGroup}
-                    mapView={isMapView}
-                  />
-                }
-              />
-              <Route
-                path='public/*'
-                element={
-                  <ContextMenu
-                    context='public'
-                    group={currentGroup}
-                    mapView={isMapView}
-                  />
-                }
-              />
-              <Route
-                path='my/*'
-                element={
-                  <ContextMenu
-                    context='my'
-                    group={currentGroup}
-                    mapView={isMapView}
-                  />
-                }
-              />
-            </Routes>
-          )}
+            {/* View navigation menu */}
+            {(!currentGroupSlug || (currentGroup && currentGroupMembership)) && (
+              <Routes>
+                <Route
+                  path='groups/:groupSlug/*'
+                  element={
+                    <ContextMenu
+                      context='groups'
+                      group={currentGroup}
+                      mapView={isMapView}
+                    />
+                  }
+                />
+                <Route
+                  path='all/*'
+                  element={
+                    <ContextMenu
+                      context='all'
+                      group={currentGroup}
+                      mapView={isMapView}
+                    />
+                  }
+                />
+                <Route
+                  path='public/*'
+                  element={
+                    <ContextMenu
+                      context='public'
+                      group={currentGroup}
+                      mapView={isMapView}
+                    />
+                  }
+                />
+                <Route
+                  path='my/*'
+                  element={
+                    <ContextMenu
+                      context='my'
+                      group={currentGroup}
+                      mapView={isMapView}
+                    />
+                  }
+                />
+              </Routes>
+            )}
           </div>
           <div className={cn(classes.center, { [classes.fullWidth]: hideSidebar, [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
             {/* NOTE: It could be more clear to group the following switched routes by component  */}
@@ -434,75 +433,34 @@ export default function AuthLayoutRouter (props) {
               <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />
             </Routes>
           </div>
-          {(currentGroup && currentGroupMembership) && (
-            <div className={cn(classes.sidebar, { [classes.hidden]: (hasDetail || hideSidebar) })}>
-              <Routes>
-                <Route
-                  path='groups/:groupSlug/:view/*'
-                  element={<GroupSidebar />}
-                />
-                <Route
-                  path='groups/:groupSlug/topics/:topicName/*'
-                  element={<GroupSidebar />}
-                />
-                <Route
-                  path='groups/:groupSlug/*'
-                  element={<GroupSidebar />}
-                />
-              </Routes>
-            </div>
-          )}
           <div className={cn(classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
             <Routes>
               {/* All context routes */}
-              <Route path={`/all/events/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
               <Route path={`/all/explore/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
               <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
               <Route path={`/all/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
-              <Route path={`/all/projects/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
-              <Route path={`/all/stream/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
-              <Route path={`/all/topics/:topicName/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
               <Route path={`/all/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='all' />} />
-              <Route path={`/all/members/:personId/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
-              <Route path={`/all/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
 
               {/* Public context routes */}
-              <Route path={`/public/events/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
               <Route path={`/public/explore/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
               <Route path={`/public/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
               <Route path={`/public/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
-              <Route path={`/public/projects/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
-              <Route path={`/public/stream/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
-              {/* <Route path={`/public/topics/:topicName/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} /> */}
               <Route path={`/public/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
               <Route path={`/public/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
-              <Route path={`/public/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
 
               {/* My context routes */}
-              <Route path={`/my/mentions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
+              {/* <Route path={`/my/mentions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
               <Route path={`/my/interactions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
               <Route path={`/my/posts/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-              <Route path={`/my/announcements/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
+              <Route path={`/my/announcements/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} /> */}
 
               {/* Groups context routes */}
-              <Route path={`/groups/:groupSlug/events/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/explore/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
-              <Route path={`/groups/:groupSlug/projects/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
-              <Route path={`/groups/:groupSlug/stream/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
-              <Route path={`/groups/:groupSlug/proposals/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
-              <Route path={`/groups/:groupSlug/ask-and-offer/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
-              <Route path={`/groups/:groupSlug/custom/:customViewId/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-              <Route path={`/groups/:groupSlug/members/:personId/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
-              <Route path={`/groups/:groupSlug/events/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/explore/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-              <Route path={`/groups/:groupSlug/projects/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-              <Route path={`/groups/:groupSlug/stream/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-              {/* <Route path={`/groups/:groupSlug/topics/:topicName/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} /> */}
-              <Route path={`/groups/:groupSlug/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
               <Route path={`/groups/:groupSlug/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
 
               {/* Other routes */}
