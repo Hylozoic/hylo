@@ -170,15 +170,3 @@ export const MY_CONTEXT_GROUP = {
 // TODO: URQL - Move into hylo-shared (PathsHelper?)
 export const isContextGroup = slug =>
   [ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(slug)
-
-export function getContextGroup(groupIdOrSlug) {
-  if (groupIdOrSlug === ALL_GROUP_ID) {
-    return ALL_GROUP
-  }
-  if (groupIdOrSlug === PUBLIC_GROUP_ID) {
-    return PUBLIC_GROUP
-  }
-  if (groupIdOrSlug === MY_CONTEXT_ID) {
-    return MY_CONTEXT_GROUP
-  }
-}
