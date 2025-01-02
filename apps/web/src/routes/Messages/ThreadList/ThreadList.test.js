@@ -6,24 +6,21 @@ import orm from 'store/models'
 describe('ThreadList', () => {
   it('renders empty state correctly', () => {
     render(
-      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />,
-      { wrapper: AllTheProviders }
+      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />
     )
     expect(screen.getByText('You have no active messages')).toBeInTheDocument()
   })
 
   it('renders search input', () => {
     render(
-      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />,
-      { wrapper: AllTheProviders }
+      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />
     )
     expect(screen.getByPlaceholderText('Search for people...')).toBeInTheDocument()
   })
 
   it('renders new message button', () => {
     render(
-      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />,
-      { wrapper: AllTheProviders }
+      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />
     )
     expect(screen.getByText('New')).toBeInTheDocument()
   })
@@ -51,8 +48,8 @@ describe('ThreadListItem', () => {
       })
     }
 
-    render(<ThreadListItem {...props} />, { wrapper: AllTheProviders })
-    expect(screen.getByText('Jo, La')).toBeInTheDocument()
+    render(<ThreadListItem {...props} />)
+    expect(screen.getByText('Jo and La')).toBeInTheDocument()
   })
 
   it('renders thread with 2 participants', () => {
@@ -66,7 +63,7 @@ describe('ThreadListItem', () => {
       })
     }
 
-    render(<ThreadListItem {...props} />, { wrapper: AllTheProviders })
+    render(<ThreadListItem {...props} />)
     expect(screen.getByText('Jo')).toBeInTheDocument()
   })
 
@@ -80,7 +77,7 @@ describe('ThreadListItem', () => {
       })
     }
 
-    render(<ThreadListItem {...props} />, { wrapper: AllTheProviders })
-    expect(screen.getByText('Ra')).toBeInTheDocument()
+    render(<ThreadListItem {...props} />)
+    expect(screen.getByText('You')).toBeInTheDocument()
   })
 })

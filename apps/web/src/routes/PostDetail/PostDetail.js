@@ -96,7 +96,9 @@ function PostDetail () {
   const { ref } = useResizeDetector({ handleHeight: false, onResize: handleSetComponentPositions })
 
   const onPostIdChange = () => {
-    dispatch(fetchPost(postId))
+    if (!pending) {
+      dispatch(fetchPost(postId))
+    }
 
     if (post) {
       dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_OPENED, {
@@ -139,7 +141,8 @@ function PostDetail () {
 
   const isProject = get('type', post) === 'project'
   const isEvent = get('type', post) === 'event'
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroup.id)
+  // TODO: if not in a group should show as flagged if flagged in any of my groups
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroup?.id)
 
   const m = post.projectManagementLink ? post.projectManagementLink.match(/(asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho)/) : null
   const projectManagementTool = m ? m[1] : null

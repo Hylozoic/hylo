@@ -52,7 +52,7 @@ export default function PostDetails ({
           </ClickCatcher>
         )}
         {editedTimestamp && (
-          <div className={classes.timestamp} data-for={`editedTip-${post.id}`} data-tip={exactEditedTimestamp}>
+          <div className={classes.timestamp} data-tooltip-id={`editedTip-${expanded ? 'expanded' : 'collapsed'}-${post.id}`} data-tooltip-content={exactEditedTimestamp}>
             {editedTimestamp}
           </div>
         )}
@@ -64,8 +64,8 @@ export default function PostDetails ({
         )}
         <Tooltip
           delay={550}
-          id={`editedTip-${post.id}`}
-          position='left'
+          id={`editedTip-${expanded ? 'expanded' : 'collapsed'}-${post.id}`}
+          position='right'
         />
       </div>
     </Highlight>

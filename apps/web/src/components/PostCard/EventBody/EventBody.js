@@ -1,7 +1,8 @@
 import cx from 'classnames'
 import { get, filter } from 'lodash/fp'
-import React, { Component } from 'react'
-import { withTranslation } from 'react-i18next'
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useDispatch } from 'react-redux'
 import { TextHelpers } from '@hylo/shared'
 import Button from 'components/Button'
 import EmojiRow from 'components/EmojiRow'
@@ -12,28 +13,34 @@ import Icon from 'components/Icon'
 import PostTitle from '../PostTitle'
 import PostDetails from '../PostDetails'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
+import { recordClickthrough } from 'store/actions/moderationActions'
 import { RESPONSES } from 'store/models/EventInvitation'
 import classes from '../PostBody/PostBody.module.scss'
 
-class EventBody extends Component {
-  state = {
-    showInviteDialog: false
-  }
+function EventBody (props) {
+  const [showInviteDialog, setShowInviteDialog] = useState(false)
+  const dispatch = useDispatch()
+  const { t } = useTranslation()
 
-  toggleInviteDialog = () => this.setState({ showInviteDialog: !this.state.showInviteDialog })
+  const toggleInviteDialog = () => setShowInviteDialog(!showInviteDialog)
 
-  render () {
-    const { currentUser, event, isFlagged, respondToEvent, slug, expanded, className, constrained, onClick, togglePeopleDialog, t } = this.props
-    const { showInviteDialog } = this.state
-    const { id, startTime, endTime, location, eventInvitations, groups } = event
+  const { currentUser, event, isFlagged, respondToEvent, slug, expanded, className, constrained, onClick, togglePeopleDialog } = props
+  const { id, startTime, endTime, location, eventInvitations, groups } = event
 
-    const firstAttachment = event.attachments?.[0]
-    const attachmentType = firstAttachment?.type
+  const firstAttachment = event.attachments?.[0]
+  const attachmentType = firstAttachment?.type
 
-    const eventAttendees = filter(ei => ei.response === RESPONSES.YES, eventInvitations)
+  const eventAttendees = filter(ei => ei.response === RESPONSES.YES, eventInvitations)
 
-    return (
-      <div className={cx(classes.body, classes.eventBody, { [classes.smallMargin]: !expanded, [classes.eventImage]: attachmentType === 'image', [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !event.clickthrough }, className)}>
+  return (
+    <div>
+      {isFlagged && !event.clickthrough &&
+        <div className={classes.clickthroughContainer}>
+          <div>{t('clickthroughExplainer')}</div>
+          <div className={classes.clickthroughButton} onClick={() => dispatch(recordClickthrough({ postId: event.id }))}>{t('View post')}</div>
+        </div>}
+
+      <div className={cx(classes.body, classes.eventBody, { [classes.smallMargin]: !expanded, [classes.eventImage]: attachmentType === 'image', [classes.constrained]: constrained }, className)}>
         <div className={classes.eventTop}>
           <div className={cx(classes.calendarDate)} onClick={onClick}>
             <EventDate {...event} />
@@ -43,12 +50,12 @@ class EventBody extends Component {
               <div className={classes.rsvp}>
                 <EventRSVP {...event} respondToEvent={respondToEvent} />
               </div>
-              <Button label={t('Invite')} onClick={this.toggleInviteDialog} narrow small color='green-white' className={classes.inviteButton} />
+              <Button label={t('Invite')} onClick={toggleInviteDialog} narrow small color='green-white' className={classes.inviteButton} />
             </div>
           )}
         </div>
 
-        <div className={cx(classes.eventBodyColumn, { [classes.constrained]: constrained })}>
+        <div className={cx(classes.eventBodyColumn, { [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !event.clickthrough })}>
           <PostTitle {...event} constrained={constrained} onClick={onClick} />
           <div className={cx(classes.eventData, { [classes.constrained]: constrained })} onClick={onClick}>
             <Icon name='Clock' className={classes.icon} /> {TextHelpers.formatDatePair(startTime, endTime)}
@@ -91,7 +98,7 @@ class EventBody extends Component {
               <div className={classes.rsvp}>
                 <EventRSVP {...event} respondToEvent={respondToEvent} />
               </div>
-              <Button label={t('Invite')} onClick={this.toggleInviteDialog} narrow small color='green-white' className={classes.inviteButton} />
+              <Button label={t('Invite')} onClick={toggleInviteDialog} narrow small color='green-white' className={classes.inviteButton} />
             </div>
           )}
         </div>
@@ -99,14 +106,17 @@ class EventBody extends Component {
           post={event}
           currentUser={currentUser}
         />
-        {showInviteDialog && <EventInviteDialog
-          eventId={id}
-          eventInvitations={eventInvitations}
-          forGroups={groups}
-          onClose={this.toggleInviteDialog}
-                             />}
+        {showInviteDialog && (
+          <EventInviteDialog
+            eventId={id}
+            eventInvitations={eventInvitations}
+            forGroups={groups}
+            onClose={toggleInviteDialog}
+          />
+        )}
       </div>
-    )
-  }
+    </div>
+  )
 }
-export default withTranslation()(EventBody)
+
+export default EventBody

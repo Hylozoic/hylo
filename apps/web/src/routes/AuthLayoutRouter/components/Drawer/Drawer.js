@@ -2,7 +2,6 @@ import cx from 'classnames'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { get } from 'lodash/fp'
 import { useDispatch, useSelector } from 'react-redux'
 import { bgImageStyle } from 'util/index'
 import { baseUrl, createGroupUrl, groupUrl } from 'util/navigation'
@@ -78,7 +77,7 @@ export default function Drawer (props) {
   const toggleDrawer = () => dispatch(toggleDrawerAction())
 
   const goToCreateGroup = () => {
-    navigate(createGroupUrl(get('match.params', props)))
+    navigate(createGroupUrl({ context: props.context }))
     return null
   }
 

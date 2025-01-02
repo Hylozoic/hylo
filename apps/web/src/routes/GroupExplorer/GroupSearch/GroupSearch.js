@@ -8,7 +8,7 @@ import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import ScrollListener from 'components/ScrollListener'
 import GroupCard from 'components/GroupCard'
-import useRouterParams from 'hooks/useRouterParams'
+import useRouteParams from 'hooks/useRouteParams'
 import useDebounce from 'hooks/useDebounce'
 import useEnsureSearchedGroups from 'hooks/useEnsureSearchedGroups'
 import getMe from 'store/selectors/getMe'
@@ -34,8 +34,8 @@ export default function GroupSearch ({ viewFilter }) {
   const [filterToggle, setFilterToggle] = useState(false)
   const [groupType, setGroupType] = useState(null)
   const debouncedSearchTerm = useDebounce(search, 500)
-  const routerParams = useRouterParams()
-  const selectedGroupSlug = routerParams.groupSlug
+  const routeParams = useRouteParams()
+  const selectedGroupSlug = routeParams.groupSlug
   const [farmQuery, setFarmQuery] = useState({ farmType: '', certOrManagementPlan: '', productCategories: '' })
   const {
     groups = [],

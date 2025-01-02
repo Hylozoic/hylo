@@ -18,7 +18,7 @@ export default function PostLabel ({ type, className }) {
         data-tooltip-content={typeName}
         data-tooltip-id='typeTip'
       >
-        <Icon name={typeName} className={classes.typeIcon} />
+        <Icon name={typeName} className={classes.typeIcon} dataTestId={`post-type-${typeName}`} />
       </div>
       {type === 'completed' && (
         <div className={classes.completed}>

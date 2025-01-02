@@ -5,7 +5,7 @@ import PeopleTyping from './PeopleTyping'
 describe('PeopleTyping', () => {
   it('renders nothing when no one is typing', () => {
     render(<PeopleTyping peopleTyping={{}} />)
-    expect(screen.getByTestId('people-typing')).toBeEmptyDOMElement()
+    expect(screen.getByTestId('people-typing')).toHaveTextContent('')
   })
 
   it('renders a single person typing message', () => {

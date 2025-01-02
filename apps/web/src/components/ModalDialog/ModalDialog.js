@@ -133,14 +133,14 @@ class ModalDialog extends Component {
 
     return (
       <div className={classes.popup} tabIndex='-1'>
-        <div className={classes.popupInner} style={innerStyle} ref={this.modalRef}>
+        <div className={classes.popupInner} style={innerStyle} ref={this.modalRef} data-testid='popup-inner'>
           <span onClick={this.cancel} className={classes.closeBtn}>
             <Icon name='Ex' className={classes.icon} />
           </span>
 
           <div className={classes.titleBlock}>
             {useNotificationFormat &&
-              <Icon green name={notificationIconName} className={classes.notificationIcon} />}
+              <Icon green name={notificationIconName} className={classes.notificationIcon} dataTestId={'icon-' + notificationIconName} />}
             {showModalTitle && (
               <h1 className={cx({ [classes.notificationTitle]: useNotificationFormat })}>
                 {modalTitle}

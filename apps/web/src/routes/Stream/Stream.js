@@ -132,9 +132,11 @@ export default function Stream (props) {
     groupId,
     sortBy
   }
-  const moderationActions = useSelector(state => decisionView === 'moderation' ? getModerationActions(state, fetchModerationActionParam) : [], (prevModerationActions, nextModerationActions) => {
+  const moderationActions = useSelector(state => {
+    return decisionView === 'moderation' ? getModerationActions(state, fetchModerationActionParam) : []
+  }, (prevModerationActions, nextModerationActions) => {
     if (prevModerationActions.length !== nextModerationActions.length) return false
-    return prevModerationActions.every((item, index) => item.id === nextModerationActions[index].id)
+    return prevModerationActions.every((item, index) => item.id === nextModerationActions[index].id && item.status === nextModerationActions[index].status)
   })
   const hasMoreModerationActions = useSelector(state => decisionView === 'moderation' ? getHasMoreModerationActions(state, fetchModerationActionParam) : false)
 
@@ -158,7 +160,7 @@ export default function Stream (props) {
     } else {
       fetchPostsFrom(0)
     }
-  }, [groupSlug, topicName, postTypeFilter, sortBy, childPostInclusion, context, group?.id, search, customViewId, topic, view])
+  }, [groupSlug, topicName, postTypeFilter, sortBy, childPostInclusion, context, group?.id, search, customViewId, topic, view, decisionView])
 
   const fetchPostsFrom = (offset) => {
     if (pending || hasMore === false) return

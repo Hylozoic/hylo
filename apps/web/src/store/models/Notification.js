@@ -105,7 +105,7 @@ export function titleForNotification (notification, trans) {
     case ACTION_MENTION:
       return t('<strong>{{name}}</strong> mentioned you', { name })
     case ACTION_COMMENT_MENTION:
-      return t('<strong>{{name}}</strong> mentioned you in a comment on <strong{{postSummary}}</strong>', { name, postSummary })
+      return t('<strong>{{name}}</strong> mentioned you in a comment on <strong>{{postSummary}}</strong>', { name, postSummary })
     case ACTION_ANNOUNCEMENT:
       return t('New announcement in <strong>{{groupName}}</strong>', { groupName: group.name })
     case ACTION_DONATION_TO:

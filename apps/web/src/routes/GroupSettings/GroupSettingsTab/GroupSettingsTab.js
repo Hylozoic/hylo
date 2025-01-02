@@ -1,8 +1,8 @@
+import cx from 'classnames'
+import { set, trim } from 'lodash'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
-import { set, trim } from 'lodash'
-import cx from 'classnames'
 import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
@@ -148,8 +148,8 @@ class GroupSettingsTab extends Component {
     return (
       <div className={general.groupSettings}>
         <span className={styles.nameBox}>
-          <label className={styles.label}>{t('Group Name')}</label>
-          <input type='text' className={styles.name} onChange={this.updateSetting('name')} value={name || ''} />
+          <label className={styles.label} htmlFor='nameField'>{t('Group Name')}</label>
+          <input type='text' className={styles.name} onChange={this.updateSetting('name')} value={name || ''} id='nameField' />
         </span>
         <label className={styles.label}>{t('Banner and Avatar Images')}</label>
         <UploadAttachmentButton
@@ -180,7 +180,7 @@ class GroupSettingsTab extends Component {
           type='textarea'
           value={purpose}
         />
-        <SettingsControl label={t('Description')} onChange={this.updateSetting('description')} value={description} type='textarea' />
+        <SettingsControl label={t('Description')} onChange={this.updateSetting('description')} value={description} type='textarea' id='descriptionField' />
         <SettingsControl label={t('About Video URL')} onChange={this.updateSetting('aboutVideoUri')} value={aboutVideoUri} />
         <SettingsControl
           label={t('Location')}

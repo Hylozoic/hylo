@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import React, { useState, useEffect, useMemo, useRef, useCallback, useContext } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate, useLocation, useParams } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { createSelector } from 'reselect'
@@ -25,6 +25,7 @@ import { createPolygonLayerFromGroups } from 'components/Map/layers/polygonLayer
 import SwitchStyled from 'components/SwitchStyled'
 import Tooltip from 'components/Tooltip'
 import LayoutFlagsContext from 'contexts/LayoutFlagsContext'
+import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { locationObjectToViewport } from 'util/geo'
 import { isMobileDevice } from 'util/mobile'
@@ -92,12 +93,12 @@ function MapExplorer (props) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const layoutFlags = useContext(LayoutFlagsContext)
 
   const mapRef = useRef(null)
 
-  const context = props.context
+  const context = routeParams.context || props.context
   const groupSlug = routeParams.groupSlug
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id
@@ -186,30 +187,53 @@ function MapExplorer (props) {
     )
   )
 
+  // Use browser location if center location is not otherwise provided
+  const [browserLocation, setBrowserLocation] = useState(null)
+  useEffect(() => {
+    if (!centerParam &&
+        !reduxState.centerLocation &&
+        !group?.locationObject?.center &&
+        !currentUser?.locationObject?.center) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        setBrowserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        })
+        setViewport({
+          ...viewport,
+          zoom: 10,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        })
+      })
+    }
+  }, [])
+
   const centerParam = getQuerystringParam('center', location)
   let centerLocation = useMemo(() => {
     if (centerParam) {
       const decodedCenter = decodeURIComponent(centerParam).split(',')
-      return { lat: decodedCenter[0], lng: decodedCenter[1] }
-    } else {
-      return reduxState.centerLocation ||
-        group?.locationObject?.center ||
-        currentUser?.locationObject?.center ||
-        null
+      return { lat: parseFloat(decodedCenter[0]), lng: parseFloat(decodedCenter[1]) }
     }
-  }, [centerParam, reduxState.centerLocation, group?.locationObject?.center, currentUser?.locationObject?.center])
+
+    // TODO: figure out how to priotize group location over current user location, when current user loads first
+    return reduxState.centerLocation ||
+      group?.locationObject?.center ||
+      currentUser?.locationObject?.center ||
+      browserLocation ||
+      null
+  }, [centerParam, reduxState.centerLocation, group?.locationObject?.center, currentUser?.locationObject?.center, browserLocation])
 
   let defaultZoom
   if (centerLocation) {
-    centerLocation = { lat: parseFloat(centerLocation.lat), lng: parseFloat(centerLocation.lng) }
     defaultZoom = 10
   } else {
+    defaultZoom = 2
     centerLocation = { lat: 35.442845, lng: 7.916598 }
-    defaultZoom = 0
   }
 
   const zoomParam = getQuerystringParam('zoom', location)
-  const zoom = zoomParam ? parseFloat(zoomParam) : reduxState.zoom || defaultZoom
+  const zoom = useMemo(() => zoomParam ? parseFloat(zoomParam) : reduxState.zoom || defaultZoom, [zoomParam, reduxState.zoom, defaultZoom])
 
   const baseStyleParam = getQuerystringParam('style', location)
   const [baseLayerStyle, setBaseLayerStyle] = useState(baseStyleParam || reduxState.baseLayerStyle || currentUser?.settings?.mapBaseLayer || 'light-v11')
@@ -278,9 +302,9 @@ function MapExplorer (props) {
     return dispatch(changeQuerystringParam(location, 'c', childPostsBool, 'yes'))
   }, [dispatch, location])
 
-  const doFetchPostsForDrawer = useCallback((offset = 0, replace = true) => dispatch(fetchPostsForDrawer({ ...fetchPostsForDrawerParams, offset, replace })), [dispatch])
-  const doFetchSavedSearches = useCallback(() => dispatch(fetchSavedSearches(currentUser.id)), [currentUser.id, dispatch])
-  const handleDeleteSearch = useCallback((searchId) => dispatch(deleteSearch(searchId)), [dispatch])
+  const doFetchPostsForDrawer = useCallback((offset = 0, replace = true) => dispatch(fetchPostsForDrawer({ ...fetchPostsForDrawerParams, offset, replace })), [fetchPostsForDrawerParams])
+  const doFetchSavedSearches = useCallback(() => dispatch(fetchSavedSearches(currentUser.id)), [currentUser?.id])
+  const handleDeleteSearch = useCallback((searchId) => dispatch(deleteSearch(searchId)), [])
 
   const handleSaveSearch = useCallback((name) => {
     const { featureTypes, search: searchText, topics } = filters
@@ -300,7 +324,7 @@ function MapExplorer (props) {
     const attributes = { boundingBox, groupSlug, context, name, postTypes, searchText, topicIds, userId: currentUser.id }
 
     dispatch(saveSearch(attributes))
-  }, [context, currentBoundingBox, currentUser.id, dispatch, filters, groupSlug])
+  }, [context, currentBoundingBox, currentUser?.id, dispatch, filters, groupSlug])
 
   const showDetails = useCallback((postId) => dispatch(navigate(postUrl(postId, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location)))), [dispatch, navigate, routeParams, location])
 
@@ -497,7 +521,9 @@ function MapExplorer (props) {
       setHideDrawer(true)
     }
 
-    doFetchSavedSearches()
+    if (currentUser) {
+      doFetchSavedSearches()
+    }
 
     const missingInUrl = {}
     const missingInState = {}
@@ -653,7 +679,7 @@ function MapExplorer (props) {
         <title>Map | {group ? `${group.name} | ` : context === 'public' ? 'Public | ' : ' All My Groups | '}Hylo</title>
       </Helmet>
 
-      <div className={classes.mapContainer}>
+      <div className={classes.mapContainer} data-testid='map-container'>
         <Map
           baseLayerStyle={baseLayerStyle}
           hyloLayers={[polygonLayer, groupIconLayer, clusterLayer]}
@@ -675,6 +701,7 @@ function MapExplorer (props) {
         data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
         className={cx(classes.toggleDrawerButton, classes.drawerAdjacentButton, { [classes.drawerOpen]: !hideDrawer })}
         onClick={toggleDrawer}
+        data-testid='drawer-toggle-button'
       >
         <Icon name='Hamburger' className={classes.openDrawer} />
         <Icon name='Ex' className={classes.closeDrawer} />
@@ -755,6 +782,7 @@ function MapExplorer (props) {
         data-tooltip-content={showLayersSelector ? null : t('Change Map Layers')}
         onClick={toggleLayersSelector}
         className={cx(classes.toggleLayersSelectorButton, classes.drawerAdjacentButton, { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, [classes.drawerOpen]: !hideDrawer })}
+        data-testid='layers-selector-button'
       >
         <Icon name='Stack' />
       </button>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { matchPath, Route, Routes, Navigate, useLocation, useParams } from 'react-router-dom'
+import { matchPath, Route, Routes, Navigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
@@ -68,8 +68,6 @@ export default function AuthLayoutRouter (props) {
 
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
-
-  const params = useParams()
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()
@@ -274,7 +272,7 @@ export default function AuthLayoutRouter (props) {
         <>
           {/* Depends on `pathMatchParams` */}
           <TopNav className={classes.top} onClick={handleCloseDrawer} {...{ group: currentGroup, currentUser, routeParams: pathMatchParams, showMenuBadge, width }} />
-          {isDrawerOpen && <Drawer className={cx(classes.drawer)} group={currentGroup} />}
+          {isDrawerOpen && <Drawer className={cx(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
         </>
       )}
 
@@ -314,12 +312,13 @@ export default function AuthLayoutRouter (props) {
       <Div100vh className={cx(classes.container, { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cx(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })} onClick={handleCloseDrawer}>
           {/* View navigation menu */}
-          {(params.context !== 'groups' || (currentGroup && !currentGroupMembership)) && (
+          {(!currentGroupSlug || (currentGroup && currentGroupMembership)) && (
             <Routes>
               <Route
                 path='groups/:groupSlug/*'
                 element={
                   <Navigation
+                    context='groups'
                     group={currentGroup}
                     collapsed={collapsedState}
                     className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
@@ -331,6 +330,7 @@ export default function AuthLayoutRouter (props) {
                 path='all/*'
                 element={
                   <Navigation
+                    context='all'
                     group={currentGroup}
                     collapsed={collapsedState}
                     className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
@@ -342,6 +342,7 @@ export default function AuthLayoutRouter (props) {
                 path='public/*'
                 element={
                   <Navigation
+                    context='public'
                     group={currentGroup}
                     collapsed={collapsedState}
                     className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
@@ -353,6 +354,7 @@ export default function AuthLayoutRouter (props) {
                 path='my/*'
                 element={
                   <Navigation
+                    context='my'
                     group={currentGroup}
                     collapsed={collapsedState}
                     className={cx(classes.left, { [classes.mapView]: isMapView, [classes.hidden]: !isGroupMenuOpen })}
@@ -402,7 +404,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/projects/*' element={<Stream context='groups' view='projects' />} />
               <Route path='groups/:groupSlug/custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
               <Route path='groups/:groupSlug/events/*' element={<Events context='groups' view='events' />} />
-              <Route path='groups/:groupSlug/groups' element={<Groups context='groups' />} />
+              <Route path='groups/:groupSlug/groups/*' element={<Groups context='groups' />} />
               <Route path='groups/:groupSlug/members/create/*' element={<Members context='groups' />} />
               <Route path='groups/:groupSlug/members/:personId/*' element={<MemberProfile context='groups' />} />
               <Route path='groups/:groupSlug/members/*' element={<Members context='groups' />} />
@@ -412,8 +414,8 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/*' element={returnDefaultView('groups', currentGroup)} />
               <Route path='post/:postId/*' element={<PostDetail />} />
               {/* **** My Routes **** */}
-              <Route path='my/:view' element={<Stream />} />
-              <Route path='my' render={props => <Navigate to='/my/posts' replace />} />
+              <Route path='my/:view/*' element={<Stream context='my' />} />
+              <Route path='my' element={<Navigate to='/my/posts' replace />} />
               {/* **** Other Routes **** */}
               <Route path='welcome/*' element={<WelcomeWizardRouter />} />
               <Route path='messages/:messageThreadId' element={<Messages />} />
@@ -505,7 +507,7 @@ export default function AuthLayoutRouter (props) {
   )
 }
 
-export function returnDefaultView (group, context) {
+function returnDefaultView (group, context) {
   if (!group) return <Stream context={context} />
 
   switch (group.type) {

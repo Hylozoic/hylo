@@ -9,7 +9,7 @@ export default function MatchingPeopleListItem ({ avatarUrl, name, onClick }) {
     <div className={classes.selectorMatchedItem}>
       <RoundImage url={avatarUrl} small className={classes.avatar} />
       <span className={classes.name}>{name}</span>
-      <span onClick={onClick}>
+      <span onClick={onClick} role='button' aria-label='Ex'>
         <Icon name='Ex' className={classes.deleteMatch} />
       </span>
     </div>

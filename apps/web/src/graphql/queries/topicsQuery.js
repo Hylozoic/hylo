@@ -1,4 +1,4 @@
-export default `query (
+export default `query FetchTopics (
   $groupSlug: String,
   $autocomplete: String,
   $isDefault: Boolean,

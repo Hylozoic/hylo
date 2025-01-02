@@ -27,7 +27,7 @@ export default function ModalSidebar ({
       {imageDialogOne && <div className={classes.sidebarDialog}>{imageDialogOne}</div>}
       {imageDialogTwo && <div className={classes.sidebarDialogTwo}>{imageDialogTwo}</div>}
       {imageDialogOne && <div className={classes.dialogLine} />}
-      {imageUrl && <div style={bgImageStyle(imageUrl)} className={classes.sidebarImage} />}
+      {imageUrl && <div style={bgImageStyle(imageUrl)} className={classes.sidebarImage} data-testid='sidebar-image' />}
     </div>
   )
 }

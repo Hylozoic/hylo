@@ -21,7 +21,7 @@ import Message from './Message'
 import MessageThread from './MessageThread'
 import ModerationAction from './ModerationAction'
 import Notification from './Notification'
-import Person, { MembershipCommonRole, PersonSkillsToLearn } from './Person'
+import Person, { MembershipCommonRole, PersonSkillsToLearn, Reaction } from './Person'
 import PersonConnection from './PersonConnection'
 import PlatformAgreement from './PlatformAgreement'
 import Post, { PostFollower, PostCommenter, ProjectMember, ProposalOption } from './Post'
@@ -77,6 +77,7 @@ orm.register(
   ProjectMember,
   ProposalOption,
   Question,
+  Reaction,
   // Responsibility,
   SearchResult,
   Skill,

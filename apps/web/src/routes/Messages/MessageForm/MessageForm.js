@@ -72,7 +72,7 @@ const MessageForm = forwardRef((props, ref) => {
         onBlur={() => setHasFocus(false)}
         placeholder={placeholder}
       />
-      <button className={styles.sendButton}>
+      <button className={styles.sendButton} data-testid='send-button'>
         <Icon name='Reply' className={styles.replyIcon} />
       </button>
     </form>

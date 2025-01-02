@@ -1,5 +1,6 @@
 import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { DEFAULT_AVATAR } from 'store/models/Group'
 import GroupsList, { GroupRow, GroupCell } from './GroupsList'
 
 describe('GroupsList', () => {

@@ -2,7 +2,7 @@ import cx from 'classnames'
 import { filter, isFunction } from 'lodash'
 import Moment from 'moment-timezone'
 import React, { useState, useEffect, useRef } from 'react'
-import { useTranslation, withTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
 import { Tooltip } from 'react-tooltip'
 import { Helmet } from 'react-helmet'
@@ -32,7 +32,7 @@ import RecentActivity from './RecentActivity'
 import MemberPosts from './MemberPosts'
 import MemberComments from './MemberComments'
 import Membership from 'components/Membership'
-import MemberVotes from './MemberVotes' // TODO REACTIONS: switch this to reactions
+import MemberReactions from './MemberReactions'
 import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
 
@@ -50,7 +50,7 @@ import {
   FETCH_RECENT_ACTIVITY,
   FETCH_MEMBER_POSTS,
   FETCH_MEMBER_COMMENTS,
-  FETCH_MEMBER_VOTES, // TODO REACTIONS: switch this to reactions
+  FETCH_MEMBER_REACTIONS,
   getPresentedPerson
 } from './MemberProfile.store'
 
@@ -60,10 +60,11 @@ const MESSAGES = {
   invalid: "That doesn't seem to be a valid person ID."
 }
 
-const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleColumn, t }) => {
+const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleColumn }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routeParams = useParams()
+  const { t } = useTranslation()
 
   const personId = routeParams.personId
   const error = !Number.isSafeInteger(Number(personId)) ? MESSAGES.invalid : null
@@ -72,7 +73,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     FETCH_RECENT_ACTIVITY,
     FETCH_MEMBER_POSTS,
     FETCH_MEMBER_COMMENTS,
-    FETCH_MEMBER_VOTES
+    FETCH_MEMBER_REACTIONS
   ], state))
   const personLoading = useSelector(state => isPendingFor(fetchPerson, state))
   const groupSlug = routeParams.groupSlug
@@ -110,7 +111,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const selectTab = tab => setCurrentTabState(tab)
 
   const handleBlockUser = personId => {
-    if (window.confirm(blockConfirmMessage)) {
+    if (window.confirm(t('blockConfirmMessage'))) {
       blockUserAction(personId).then(goToPreviousLocation)
     }
   }
@@ -131,10 +132,10 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const isCurrentUser = currentUser && currentUser.id === personId
   const isAxolotl = AXOLOTL_ID === personId
   const contentDropDownItems = [
-    { id: 'Overview', label: t('Overview'), title: t('{{name}}s recent activity', { name: person.name }), component: RecentActivity },
-    { id: 'Posts', label: t('Posts'), title: t('{{name}}s posts', { name: person.name }), component: MemberPosts },
-    { id: 'Comments', label: t('Comments'), title: t('{{name}}s comments', { name: person.name }), component: MemberComments },
-    { id: 'Reactions', label: t('Reactions'), title: t('{{name}}s reactions', { name: person.name }), component: MemberVotes } // TODO REACTIONS: switch this to reactions
+    { id: 'Overview', label: t('Overview'), title: t('{{name}}\'s recent activity', { name: person.name }), component: RecentActivity },
+    { id: 'Posts', label: t('Posts'), title: t('{{name}}\'s posts', { name: person.name }), component: MemberPosts },
+    { id: 'Comments', label: t('Comments'), title: t('{{name}}\'s comments', { name: person.name }), component: MemberComments },
+    { id: 'Reactions', label: t('Reactions'), title: t('{{name}}\'s reactions', { name: person.name }), component: MemberReactions }
   ].map(contentDropDownitem => ({
     ...contentDropDownitem, onClick: () => selectTab(contentDropDownitem.label)
   }))
@@ -198,11 +199,11 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
           <div className={styles.profileSubhead}>
             {t('Skills & Interests')}
           </div>
-          <SkillsSection personId={personId} editable={false} />
+          <SkillsSection personId={personId} editable={false} t={t} />
           <div className={styles.profileSubhead}>
             {t('What I\'m Learning')}
           </div>
-          <SkillsToLearnSection personId={personId} editable={false} />
+          <SkillsToLearnSection personId={personId} editable={false} t={t} />
 
           {memberships && memberships.length > 0 && <div className={styles.profileSubhead}>{t('Hylo Groups')}</div>}
           <div
@@ -247,7 +248,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   )
 }
 
-export function ActionTooltip ({ content, hideCopyTip, onClick }) {
+function ActionTooltip ({ content, hideCopyTip, onClick }) {
   const [copied, setCopied] = useState(false)
   const { t } = useTranslation()
 
@@ -268,7 +269,7 @@ export function ActionTooltip ({ content, hideCopyTip, onClick }) {
   )
 }
 
-export function ActionButtons ({ items }) {
+function ActionButtons ({ items }) {
   return items.map((actionIconItem, index) => {
     const { iconName, value, onClick, hideCopyTip } = actionIconItem
 
@@ -298,22 +299,6 @@ export function ActionButtons ({ items }) {
           delayHide={500}
           delayShow={500}
           className={styles.tooltip}
-          afterShow={e => {
-            const hoverClassName = styles.actionIconButtonHover
-            const elements = document.getElementsByClassName(hoverClassName)
-            while (elements.length > 0) {
-              elements[0].classList.remove(hoverClassName)
-            }
-            e.target.classList.add(hoverClassName)
-          }}
-          afterHide={e => {
-            const hoverClassName = styles.actionIconButtonHover
-            const elements = document.getElementsByClassName(hoverClassName)
-            while (elements.length > 0) {
-              elements[0].classList.remove(hoverClassName)
-            }
-            e.target.classList.remove(hoverClassName)
-          }}
           content={() =>
             <ActionTooltip content={value} onClick={onClick} key={index} hideCopyTip={hideCopyTip} />}
         />
@@ -322,7 +307,7 @@ export function ActionButtons ({ items }) {
   })
 }
 
-export function ActionDropdown ({ items }) {
+function ActionDropdown ({ items }) {
   const activeItems = filter(items, item =>
     isFunction(item.onClick) && !item.hide)
 
@@ -336,7 +321,7 @@ export function ActionDropdown ({ items }) {
     />
 }
 
-export function Project ({ memberCap, project, routeParams, showDetails }) {
+function Project ({ memberCap, project, routeParams, showDetails }) {
   const { title, id, createdAt, creator, members } = project
   return (
     <div className={styles.project} onClick={() => showDetails(id, { ...routeParams })}>
@@ -349,7 +334,7 @@ export function Project ({ memberCap, project, routeParams, showDetails }) {
   )
 }
 
-export function Event ({ memberCap, event, routeParams, showDetails }) {
+function Event ({ memberCap, event, routeParams, showDetails }) {
   const { id, location, eventInvitations, startTime, title } = event
   return (
     <div className={styles.event} onClick={() => showDetails(id, { ...routeParams })}>
@@ -366,7 +351,7 @@ export function Event ({ memberCap, event, routeParams, showDetails }) {
   )
 }
 
-export function Error ({ children }) {
+function Error ({ children }) {
   return (
     <div className={styles.memberProfile}>
       <span className={styles.error}>{children}</span>
@@ -374,12 +359,12 @@ export function Error ({ children }) {
   )
 }
 
-export function handleContactPhone (contactPhone) {
+function handleContactPhone (contactPhone) {
   return window.location.assign(`tel:${contactPhone}`)
 }
 
-export function handleContactEmail (contactEmail) {
+function handleContactEmail (contactEmail) {
   return window.location.assign(`mailto:${contactEmail}`)
 }
 
-export default withTranslation()(MemberProfile)
+export default MemberProfile

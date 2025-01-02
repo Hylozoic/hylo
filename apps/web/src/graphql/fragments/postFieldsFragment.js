@@ -1,4 +1,4 @@
-import { INITIAL_SUBCOMMENTS_DISPLAYED } from 'routes/PostDetail/Comments/Comment/Comment'
+import { INITIAL_SUBCOMMENTS_DISPLAYED } from 'util/constants'
 
 // :TODO: clean this up and use proper query fragments?
 const CommentFieldsFragment = `
@@ -58,7 +58,7 @@ const CommentFieldsFragment = `
   editedAt
 `
 
-const postFieldsFragment = withComments => `
+const postFieldsFragment = (withComments) => `
   id
   announcement
   title

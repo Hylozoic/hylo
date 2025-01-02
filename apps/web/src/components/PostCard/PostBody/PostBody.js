@@ -19,6 +19,7 @@ export default function PostBody (props) {
     currentUser,
     highlightProps,
     isFlagged,
+    mapDrawer = false,
     onClick,
     onAddReaction = () => {},
     onRemoveReaction = () => {},
@@ -54,7 +55,7 @@ export default function PostBody (props) {
           onClick={onClick}
         />
       </div>
-      {post.type === 'proposal' && <PostBodyProposal {...post} isFlagged={isFlagged && !post.clickthrough} currentUser={currentUser} />}
+      {post.type === 'proposal' && !mapDrawer && <PostBodyProposal {...post} isFlagged={isFlagged && !post.clickthrough} currentUser={currentUser} />}
       <div className={classes.reactions}>
         <EmojiRow
           post={post}

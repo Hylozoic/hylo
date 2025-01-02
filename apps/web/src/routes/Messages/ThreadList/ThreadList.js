@@ -54,7 +54,7 @@ class ThreadList extends Component {
             <Icon name='Messages' className={classes.messagesIcon} />
           </Link>
         </div>
-        <ul className={classes.list} id='thread-list-list'>
+        <ul className={classes.list} id='thread-list-list' role='list'>
           {!isEmpty(threads) && threads.map(t => {
             const messages = itemsToArray(toRefArray(t.messages))
             const isUnread = t.unreadCount > 0

@@ -16,7 +16,7 @@ describe('RemovableListItem', () => {
 
     expect(screen.getByText('Zeus')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Zeus' })).toHaveAttribute('href', '/happy/place')
-    expect(screen.getByRole('img')).toHaveAttribute('src', 'zeus.png')
+    expect(screen.getByRole('img').getAttribute('style')).toContain(`background-image: url(zeus.png)`)
     expect(screen.getByText('Remove')).toBeInTheDocument()
   })
 
@@ -25,7 +25,7 @@ describe('RemovableListItem', () => {
 
     expect(screen.getByText('Zeus')).toBeInTheDocument()
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
-    expect(screen.getByRole('img')).toHaveAttribute('src', 'zeus.png')
+    expect(screen.getByRole('img').getAttribute('style')).toContain(`background-image: url(zeus.png)`)
   })
 
   it('doesnt render a remove link when removeItem is not provided', () => {
