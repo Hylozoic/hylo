@@ -7,7 +7,7 @@ import getMemberships from 'store/selectors/getMemberships'
 // NOTE: Make a local copy of this if modification is needed
 import ItemChooserItemRow from 'screens/ItemChooser/ItemChooserItemRow'
 import { white } from 'style/colors'
-import { GROUP_ACCESSIBILITY } from 'store/models/Group'
+import { GROUP_ACCESSIBILITY } from 'urql-shared/presenters/GroupPresenter'
 import { getGroupData, updateGroupData } from './CreateGroupFlow.store'
 import styles from './CreateGroupFlow.styles'
 import { useTranslation } from 'react-i18next'

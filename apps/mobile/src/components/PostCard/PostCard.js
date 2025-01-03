@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
+import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
 import { LocationHelpers } from '@hylo/shared'
-import { useCurrentUser } from 'hooks/useCurrentUser'
-import { recordClickthrough } from 'store/actions/moderationActions'
+import recordClickthroughMutation from 'graphql/mutations/recordClickthroughMutation'
+import useCurrentUser from 'hooks/useCurrentUser'
+import PostPresenter from 'urql-shared/presenters/PostPresenter'
 import PostHeader from './PostHeader'
 import PostBody from './PostBody'
 import PostGroups from './PostGroups'
@@ -15,14 +16,13 @@ import Icon from 'components/Icon'
 import Topics from 'components/Topics'
 import styles from 'components/PostCard/PostCard.styles'
 
-
 export default function PostCard ({
   goToGroup,
   hideDetails,
   groupId,
   hideMenu,
   onPress,
-  post = {},
+  post: providedPost = {},
   respondToEvent,
   showGroups = true,
   showMember,
@@ -30,11 +30,12 @@ export default function PostCard ({
   showTopic: goToTopic
 }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const images = post.imageUrls && post.imageUrls.map(uri => ({ uri }))
-  const locationText = LocationHelpers.generalLocationString(post.locationObject, post.location)
-  const currentUser = useCurrentUser()
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(groupId)
+  const [, recordClickthrough] = useMutation(recordClickthroughMutation)
+  const post = useMemo(() => PostPresenter(providedPost, groupId), [providedPost])
+  const images = useMemo(() => post.imageUrls && post.imageUrls.map(uri => ({ uri })), [post])
+  const locationText = useMemo(() => LocationHelpers.generalLocationString(post.locationObject, post.location), [post])
+  const isFlagged = useMemo(() => post.flaggedGroups && post.flaggedGroups.includes(groupId), [post])
+  const [currentUser] = useCurrentUser()
 
   return (
     <>
@@ -63,7 +64,7 @@ export default function PostCard ({
             <Text style={styles.clickthroughText}>{t('clickthroughExplainer')}</Text>
             <TouchableOpacity
               style={styles.clickthroughButton}
-              onPress={() => dispatch(recordClickthrough({ postId: post.id }))}
+              onPress={() => recordClickthrough({ postId: post.id })}
             >
               <Text style={styles.clickthroughButtonText}>{t('View post')}</Text>
             </TouchableOpacity>

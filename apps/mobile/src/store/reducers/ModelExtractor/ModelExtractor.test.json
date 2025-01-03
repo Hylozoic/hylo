@@ -163,7 +163,7 @@
         {
           "id": "1",
           "content": {
-            "__typename": "Post",
+            "contentTypeName": "Post",
             "id": "2",
             "title": "Hey"
           }

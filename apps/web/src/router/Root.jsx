@@ -2,7 +2,7 @@ import React, { Suspense } from 'react'
 import Loading from 'components/Loading'
 
 const App = React.lazy(() => import('./index'))
-const HyloEditorMobile = React.lazy(() => import('components/HyloEditor/HyloEditorMobile'))
+const HyloEditorMobile = React.lazy(() => import('routes/HyloEditorMobile'))
 const Feature = React.lazy(() => import('components/PostCard/Feature'))
 
 export default function Root () {

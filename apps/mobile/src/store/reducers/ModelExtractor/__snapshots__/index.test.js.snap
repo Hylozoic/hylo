@@ -1,11 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`creates a polymorphicChildId when __typename field is present 1`] = `
+exports[`creates a polymorphicChildId when contentTypeName field is present 1`] = `
 [
   {
     "modelName": "Post",
     "payload": {
-      "__typename": "Post",
+      "contentTypeName": "Post",
       "id": "2",
       "title": "Hey",
     },

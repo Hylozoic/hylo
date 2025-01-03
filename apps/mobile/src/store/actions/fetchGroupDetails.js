@@ -7,8 +7,7 @@ export default function fetchGroupDetails ({
   withWidgets = false,
   withTopics = true,
   withJoinQuestions = true,
-  withPrerequisites = true,
-  withContextWidgets = true
+  withPrerequisites = true
 }) {
   return {
     type: FETCH_GROUP_DETAILS,

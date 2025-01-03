@@ -1,18 +1,20 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { View, Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
+import { gql, useQuery } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 import useGoToMember from 'hooks/useGoToMember'
 import useIsModalScreen from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
-import useHyloQuery from 'urql-shared/hooks/useHyloQuery'
-import fetchPost from 'store/actions/fetchPost'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
-import { getPresentedPost } from 'store/selectors/getPost'
+import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
+import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
+import commentsQuerySetFieldsFragment from 'graphql/fragments/commentsQuerySetFieldsFragment'
+import PostPresenter from 'urql-shared/presenters/PostPresenter'
 import { KeyboardAccessoryCommentEditor } from 'components/CommentEditor/CommentEditor'
 import Comments from 'components/Comments'
 import Loading from 'components/Loading'
@@ -20,16 +22,28 @@ import PostCardForDetails from 'components/PostCard/PostCardForDetails'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { white } from 'style/colors'
 
+export const postDetailsQuery = gql`
+  query PostDetailsQuery ($id: ID, $cursor: ID) {
+    post(id: $id) {
+      ...PostFieldsFragment
+      ...CommentsQuerySetFieldsFragment
+    }
+  }
+  ${postFieldsFragment}
+  ${commentsQuerySetFieldsFragment}
+  ${commentFieldsFragment}
+`
+
 export default function PostDetails () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigation = useNavigation()
-  const currentGroup = useSelector(getCurrentGroup)
-  const { id: postId } = useRouteParams()
-  const [{ fetching, error }] = useHyloQuery({ action: fetchPost(postId) })
-  const post = useSelector(state => getPresentedPost(state, { postId, forGroupId: currentGroup?.id }))
-  const commentsRef = React.useRef()
   const isModalScreen = useIsModalScreen()
+  const { id: postId } = useRouteParams()
+  const [currentGroup] = useCurrentGroup()
+  const [{ data, fetching, error }] = useQuery({ query: postDetailsQuery, variables: { id: postId } })
+  const post = useMemo(() => PostPresenter(data?.post, currentGroup?.id), [data?.post])
+  const commentsRef = React.useRef()
   const goToMember = useGoToMember()
 
   const [selectedComment, setSelectedComment] = useState(null)
@@ -50,16 +64,16 @@ export default function PostDetails () {
   useEffect(() => { setHeader() }, [currentGroup?.slug])
 
   useEffect(() => {
-    if (!error && post) {
+    if (!fetching && !error && post) {
       dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_OPENED, {
-        postId: post.id,
+        postId: post?.id,
         groupId: post.groups.map(g => g.id),
         isPublic: post.isPublic,
         topics: post.topics?.map(t => t.name),
         type: post.type
       }))
     }
-  }, [error, post])
+  }, [fetching, error, post])
 
   if (fetching) return <Loading />
 
@@ -73,12 +87,14 @@ export default function PostDetails () {
   }
 
   const renderPostDetails = panHandlers => {
+    // TOOD: It is not clear why we do this vs just relying on currentGroup
     const firstGroupSlug = get('groups.0.slug', post)
     const showGroups = isModalScreen || post?.groups.find(g => g.slug !== currentGroup?.slug)
 
     return (
       <Comments
         ref={commentsRef}
+        groupId={firstGroupSlug}
         postId={post.id}
         header={(
           <PostCardForDetails
@@ -88,7 +104,6 @@ export default function PostDetails () {
           />
         )}
         onSelect={setSelectedComment}
-        slug={firstGroupSlug}
         showMember={goToMember}
         panHandlers={panHandlers}
       />

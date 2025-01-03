@@ -14,7 +14,6 @@ export default getPost
 
 export const getPresentedPost = createSelector(
   getPost,
-  (_, props) => get('postId', props),
   (_, props) => get('forGroupId', props),
-  (post, postId, forGroupId) => presentPost(post, forGroupId)
+  (post, forGroupId) => presentPost(post, forGroupId)
 )

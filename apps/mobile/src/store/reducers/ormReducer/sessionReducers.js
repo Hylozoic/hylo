@@ -9,13 +9,5 @@ export {
 } from 'components/SocketListener/SocketListener.store'
 
 export {
-  ormSessionReducer as postHeaderReducer
-} from 'hooks/usePostActionSheet.store'
-
-export {
   default as pushNotificationReducer
 } from './pushNotifications'
-
-export {
-  ormSessionReducer as postEditorReducer
-} from 'screens/PostEditor/PostEditor.store'

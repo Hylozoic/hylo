@@ -10,14 +10,11 @@ import resetStore from './resetStore'
 import { handleSetState, composeReducers } from './util'
 // Local store
 import ItemChooser from 'screens/ItemChooser/ItemChooser.store'
-import MemberStream from 'screens/MemberProfile/MemberStream/MemberStream.store'
-import Members from 'screens/Members/Members.store'
-import NewMessage from 'screens/NewMessage/NewMessage.store'
+import MessageInput from 'components/MessageInput/MessageInput.store'
 import PeopleTyping from 'components/PeopleTyping/PeopleTyping.store'
 import SocketListener from 'components/SocketListener/SocketListener.store'
 import CreateGroupFlow from 'screens/CreateGroupFlow/CreateGroupFlow.store'
 import GroupWelcomeFlow from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
-import SearchPage from 'screens/SearchPage/SearchPage.store'
 
 export const createCombinedReducers = () => combineReducers({
   // Global store
@@ -30,11 +27,8 @@ export const createCombinedReducers = () => combineReducers({
   returnToOnAuthPath,
   // Local store (Component)
   ItemChooser,
-  MemberStream,
-  Members,
-  NewMessage,
+  MessageInput,
   PeopleTyping,
-  SearchPage,
   SocketListener,
   CreateGroupFlow,
   GroupWelcomeFlow

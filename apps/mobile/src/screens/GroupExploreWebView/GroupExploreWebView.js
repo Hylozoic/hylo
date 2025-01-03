@@ -1,24 +1,39 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
-import { useDispatch, useSelector } from 'react-redux'
+import { gql, useQuery } from 'urql'
+import { useSelector } from 'react-redux'
 import { URL } from 'react-native-url-polyfill'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { DEFAULT_APP_HOST } from 'navigation/linking'
 import { openURL } from 'hooks/useOpenURL'
 import useIsModalScreen, { modalScreenName } from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
+import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
 import HyloWebView from 'components/HyloWebView'
-import fetchGroupModerators from 'store/actions/fetchGroupModerators'
-import fetchGroupDetails from 'store/actions/fetchGroupDetails'
 import ModalHeaderTransparent from 'navigation/headers/ModalHeaderTransparent'
 import getGroup from 'store/selectors/getGroup'
 
+const groupStewardsQuery = gql`
+  query GroupStewardsQuery ($id: ID, $slug: String) {
+    group (id: $id, slug: $slug) {
+      id
+      stewards {
+        items {
+          id
+          name
+          avatarUrl
+        }
+      }
+    }
+  }
+`
 export default function GroupExploreWebView () {
-  const dispatch = useDispatch()
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
   const webViewRef = useRef(null)
   const { groupSlug } = useRouteParams()
+  const [, fetchGroupDetails] = useQuery({ query: groupDetailsQueryMaker(), pause: true })
+  const [, fetchGroupModerators] = useQuery({ query: groupStewardsQuery, pause: true })
   const currentGroup = useSelector(state => getGroup(state, { slug: groupSlug }))
   const [path, setPath] = useState()
   const [canGoBack, setCanGoBack] = useState(false)
@@ -39,16 +54,12 @@ export default function GroupExploreWebView () {
   useEffect(() => {
     if (groupSlug) {
       setPath(`/groups/${groupSlug}/explore`)
-      dispatch(fetchGroupModerators({ slug: groupSlug }))
+      fetchGroupModerators({ slug: groupSlug })
     }
   }, [groupSlug])
 
   const joinGroup = async groupToJoinSlug => {
-    // Re-fetching CurrentUser fixes some things, but takes too long. Look into reducers
-    // such that the Membership update propagates everywhere, including in Stream if
-    // currently on this group:
-    // await dispatch(fetchCurrentUser())
-    await dispatch(fetchGroupDetails({ slug: groupToJoinSlug }))
+    await fetchGroupDetails({ slug: groupToJoinSlug })
 
     openURL(`/groups/${groupToJoinSlug}`)
   }
