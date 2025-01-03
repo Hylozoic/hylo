@@ -123,6 +123,11 @@ export function postCommentUrl ({ postId, commentId, ...opts }, querystringParam
   return `${postUrl(postId, opts, querystringParams)}/comments/${commentId}`
 }
 
+export function groupChatUrl (slug, querystringParams = {}) {
+  const url = `/groupchats/${slug}`
+  return addQuerystringToPath(url, querystringParams)
+}
+
 // Messages URLs
 export function messagesUrl () {
   return '/messages'

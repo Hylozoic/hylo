@@ -29,7 +29,7 @@ export default function fetchPosts ({
 }) {
   let query, extractModel, getItems
 
-  if (context === 'groups') {
+  if (context === 'groups' || context === 'groupchats') {
     query = groupQuery(childPostInclusion === 'yes')
     extractModel = 'Group'
     getItems = get('payload.data.group.posts')

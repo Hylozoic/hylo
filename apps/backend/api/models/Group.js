@@ -984,14 +984,21 @@ module.exports = bookshelf.Model.extend(merge({
         }
       }
 
-      await group.createStarterPosts(trx)
-
-      // await group.createInitialWidgets(trx)
-      await group.setupContextWidgets(trx)
+      if ( data.type !== 'groupchat') {
+        await group.createStarterPosts(trx)
+        await group.setupContextWidgets(trx)
+      }
 
       await group.createDefaultTopics(group.id, userId, trx)
-
+      
       await group.addMembers([userId], { role: GroupMembership.Role.MODERATOR }, { transacting: trx })
+
+      if (data.members && data.type === 'groupchat') {
+        // If there is only one element in members, its a dm and thus both users are given moderator status
+        data.members.length > 1
+         ? await group.addMembers(data.members, { role: GroupMembership.Role.MEMBER }, { transacting: trx })
+         : await group.addMembers(data.members, { role: GroupMembership.Role.MODERATOR }, { transacting: trx })
+      }
 
       // Have to add/request add to parent group after admin has been added to the group
       if (data.parent_ids) {

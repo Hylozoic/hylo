@@ -488,7 +488,7 @@ export default function ChatRoom ({ context, empty = false }) {
           onAddLink={handleAddLinkPreview}
           onUpdate={handleDetailsUpdate}
           onEnter={postChatMessage}
-          placeholder={`Send a message to #${inUsetopicName}`}
+          placeholder={`Send a message to #${inUseTopicName}`}
           /* TODO groupchats: change this, both for i18n and groupchat reasons */
           readOnly={loadingPast || loadingFuture}
           ref={editorRef}

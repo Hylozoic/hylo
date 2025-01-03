@@ -2893,6 +2893,8 @@ input GroupInput {
   location: String
   # ID of the geocoded location object
   locationId: ID
+  # IDs of the members of this group. Only works for groupchat type groups.
+  members: [ID]
   # Word used to describe an admin/moderator of this group. Defaults to "Moderator". TODO: remove once mobile app switches to stewardDescriptor
   moderatorDescriptor: String
   # Plural word used to describe admins/moderators of this group. Defaults to "Moderators". TODO: remove once mobile app switches to stewardDescriptor
