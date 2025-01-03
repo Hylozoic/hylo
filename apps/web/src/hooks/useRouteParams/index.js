@@ -25,10 +25,9 @@ export default function useRouteParams () {
   // if view is not set, then set it
   if (!params.view) {
     if (params.context === 'groups') {
-      // Correctly track the view for groups context
       params.view = !['post', 'group', 'create'].includes(pathParts[3]) ? pathParts[3] : 'stream'
     } else {
-      params.view = pathParts[2]
+      params.view = !['post', 'group', 'create'].includes(pathParts[2]) ? pathParts[2] : 'stream'
     }
   }
 
