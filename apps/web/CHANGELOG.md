@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [5.11.1] - 2024-01-03
+
+### Fixed
+- Viewing public group explorer when not logged in
+
 ## [5.11.0] - 2024-12-17
 
 ### Changed
