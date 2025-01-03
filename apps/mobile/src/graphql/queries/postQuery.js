@@ -1,8 +1,11 @@
+import { gql } from 'urql'
 import postFieldsFragment from '../fragments/postFieldsFragment'
 
-export default
-`query ($id: ID) {
-  post(id: $id) {
-    ${postFieldsFragment(true)}
+export default gql`
+  query PostQuery ($id: ID) {
+    post(id: $id) {
+      ...PostFieldsFragment
+    }
   }
-}`
+  ${postFieldsFragment}
+`

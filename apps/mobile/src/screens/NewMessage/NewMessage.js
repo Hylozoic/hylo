@@ -1,22 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import {
-  View,
-  ScrollView,
-  Text,
-  TouchableOpacity
-} from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigation, useRoute } from '@react-navigation/native'
-import { get, isArray, isEmpty } from 'lodash/fp'
-import getPeople from 'store/selectors/getPeople'
+import { View, ScrollView, Text, TouchableOpacity } from 'react-native'
+import { useSelector } from 'react-redux'
+import { gql, useClient, useMutation, useQuery } from 'urql'
+import { useNavigation } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
+import { isArray } from 'lodash/fp'
+import useRouteParams from 'hooks/useRouteParams'
 import scopedFetchPeopleAutocomplete from 'store/actions/scopedFetchPeopleAutocomplete'
 import { getRecentContacts } from 'store/selectors/getContactList'
+import findOrCreateThreadMutation from 'graphql/mutations/findOrCreateThreadMutation'
+import createMessageMutation from 'graphql/mutations/createMessageMutation'
 import scopedGetPeopleAutocomplete from 'store/selectors/scopedGetPeopleAutocomplete'
-import {
-  createMessage as createMessageAction,
-  findOrCreateThread as findOrCreateThreadAction
-} from './NewMessage.store.js'
-import fetchRecentContactsAction from 'store/actions/fetchRecentContacts'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
 import Button from 'components/Button'
@@ -25,78 +19,106 @@ import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
 import PersonPickerItemRow from 'screens/ItemChooser/PersonPickerItemRow'
 import styles from './NewMessage.styles'
-import useGraphqlAction from 'hooks/useGraphqlAction'
-import gql from 'graphql-tag'
-import { useTranslation } from 'react-i18next'
+
+export const recentContactsQuery = gql`
+  query RecentContactsQuery ($first: Int = 20) {
+    connections (first: $first) {
+      items {
+        id
+        person {
+          id
+          name
+          avatarUrl
+          memberships (first: 1) {
+            id
+            group {
+              id
+              name
+            }
+          }
+        }
+        type
+        updatedAt
+      }
+    }
+  }
+`
+
+export const participantQuery = gql`
+  query ParticipantQuery ($id: ID!) {
+    person (id: $id) {
+      id
+      name
+      avatarUrl
+    }
+  }
+`
 
 export default function NewMessage (props) {
-  const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const route = useRoute()
   const navigation = useNavigation()
-  const graphqlAction = useGraphqlAction()
+  const { t } = useTranslation()
+  const client = useClient()
+  const [, fetchRecentContacts] = useQuery({ query: recentContactsQuery })
+  const [, findOrCreateThread] = useMutation(findOrCreateThreadMutation)
+  const [, createMessage] = useMutation(createMessageMutation)
+  const { prompt, participants: routeParticipants } = useRouteParams()
+
   const [participants, setParticipants] = useState([])
   const [loading, setLoading] = useState(true)
-  const prompt = route?.params?.prompt
   const recentContacts = useSelector(getRecentContacts)
-  const initialParticipantIds = !isArray(route?.params?.participants)
-    ? route?.params?.participants?.split(',')
-    : route?.params?.participants || []
-  const initialParticipantsFromStore = useSelector(
-    state => getPeople(state, { personIds: initialParticipantIds })
-  ) || []
+  const initialParticipantIds = !isArray(routeParticipants)
+    ? routeParticipants?.split(',')
+    : routeParticipants || []
 
-  const fetchInitialParticipants = () => {
-    setLoading(true)
+  console.log('!!! initialParticipantsIds', initialParticipantIds)
+  // useEffect(() => {
+  //   setLoading(true)
 
-    if (initialParticipantIds) {
-      async function asyncFunc () {
-        const participantsToFetch = initialParticipantIds?.filter(initialParticipantId =>
-          !initialParticipantsFromStore.map(p => p.id).includes(initialParticipantId)
-        )
-        const fetchedParticipants = await Promise.all(
-          participantsToFetch.map(
-            async initialParticipantId => {
-              const person = await graphqlAction(gql`
-                query Participant ($id: ID) {
-                  person (id: $id) {
-                    id
-                    name
-                    avatarUrl
-                  }
-                }
-              `, { id: initialParticipantId })
+  //   async function fetchParticipants () {
+  //     try {
+  //       const fetchedParticipants = await Promise.all(
+  //         initialParticipantIds.map(async id => {
+  //           const result = await client.query(participantQuery, { id }).toPromise()
 
-              return person
-            }
-          )
-        )
+  //           return result.data?.person || null
+  //         })
+  //       )
 
-        setParticipants(
-          [
-            ...initialParticipantsFromStore,
-            ...fetchedParticipants
-          ].filter(p => !isEmpty(p))
-        )
-      }
+  //       setParticipants(fetchedParticipants.filter(p => p))
+  //     } catch (error) {
+  //       console.error('Error fetching participants:', error)
+  //     } finally {
+  //       setLoading(false)
+  //     }
+  //   }
 
-      asyncFunc()
+  //   if (initialParticipantIds) {
+  //     fetchParticipants()
+  //   } else {
+  //     setLoading(false)
+  //   }
+  // }, [initialParticipantIds, client])
+
+  // fetchRecentContacts()
+
+  const handleCreateMessage = async text => {
+    const { data: messageThreadData, error: messageThreadError } = await findOrCreateThread({ participantIds: participants.map(p => p.id) })
+
+    if (messageThreadError) {
+      console.error('Error creating thread:', messageThreadError)
+      return
     }
 
-    dispatch(fetchRecentContactsAction())
-    setLoading(false)
-  }
+    const messageThreadId = messageThreadData?.findOrCreateThread?.id
 
-  useEffect(fetchInitialParticipants, [])
+    const { error: createMessageError } = await createMessage({ messageThreadId, text })
 
-  const createMessage = async text => {
-    const response = await dispatch(findOrCreateThreadAction(participants.map(p => p.id)))
-    const messageThreadId = get('payload.data.findOrCreateThread.id', response)
-    const { error } = await dispatch(createMessageAction(messageThreadId, text, true))
-
-    if (!error) {
-      navigation.replace('Thread', { id: messageThreadId })
+    if (createMessageError) {
+      console.error('Error creating message:', createMessageError)
+      return
     }
+
+    navigation.replace('Thread', { id: messageThreadId })
   }
 
   const handleAddParticipant = participant => {
@@ -149,7 +171,7 @@ export default function NewMessage (props) {
         style={styles.messageInput}
         value={prompt}
         multiline
-        onSubmit={createMessage}
+        onSubmit={handleCreateMessage}
         placeholder={t('Type your message here')}
         emptyParticipants={emptyParticipantsList}
       />

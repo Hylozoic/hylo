@@ -1,4 +1,4 @@
-import gql from 'graphql-tag'
+import { gql } from 'urql'
 import { print } from 'graphql/language/printer'
 
 export function stringToGraphql (graphqlString) {

@@ -1,8 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react'
+import { debounce } from 'lodash/fp'
 import { useSelector, useDispatch } from 'react-redux'
+import { useQuery } from 'urql'
 import { Text, View, ScrollView, TextInput } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
-import { debounce } from 'lodash/fp'
+import { useTranslation } from 'react-i18next'
 import ErrorBubble from 'components/ErrorBubble'
 import {
   slugValidatorRegex, invalidSlugMessage,
@@ -10,10 +12,9 @@ import {
 } from './util'
 import {
   updateGroupData, setWorkflowOptions,
-  fetchGroupExists, getGroupData
+  groupExistsCheckQuery, getGroupData
 } from './CreateGroupFlow.store'
 import styles from './CreateGroupFlow.styles'
-import { useTranslation } from 'react-i18next'
 
 export default function CreateGroupUrl ({ navigation }) {
   const { t } = useTranslation()
@@ -21,13 +22,15 @@ export default function CreateGroupUrl ({ navigation }) {
   const groupData = useSelector(getGroupData)
   const [error, providedSetError] = useState()
   const [groupSlug, setGroupSlug] = useState(groupData?.slug)
+  const [groupExistsCheckResult] = useQuery({ query: groupExistsCheckQuery, variables: { slug: groupSlug } })
+
   const setError = error => {
     dispatch(setWorkflowOptions({ disableContinue: true }))
     providedSetError(error)
   }
   const clearError = () => providedSetError()
 
-  const validateAndSave = useMemo(() => debounce(300, async (slug) => {
+  const validateAndSave = useMemo(() => debounce(300, async (result, slug) => {
     try {
       if (!slug || slug.length === 0) {
         // setError('Please enter a URL')
@@ -40,11 +43,9 @@ export default function CreateGroupUrl ({ navigation }) {
         return false
       }
 
-      const data = await dispatch(fetchGroupExists(slug))
-      const error = data?.error
-      const groupExists = data?.payload?.data?.groupExists?.exists
+      const groupExists = result?.data?.groupExists?.exists
 
-      if (error) {
+      if (result?.error) {
         setError(t('There was an error please try again'))
       } else if (groupExists === false) {
         dispatch(updateGroupData({ slug }))
@@ -63,8 +64,8 @@ export default function CreateGroupUrl ({ navigation }) {
 
   useFocusEffect(useCallback(() => {
     dispatch(setWorkflowOptions({ disableContinue: true }))
-    validateAndSave(groupSlug)
-  }, [groupSlug]))
+    validateAndSave(groupExistsCheckResult, groupSlug)
+  }, [groupExistsCheckResult?.data]))
 
   return (
     <View style={styles.container}>

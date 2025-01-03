@@ -1,36 +1,35 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Text, TouchableOpacity, View, SectionList, Image } from 'react-native'
-import { useSelector } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import LinearGradient from 'react-native-linear-gradient'
+import useCurrentUser from 'hooks/useCurrentUser'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import useChangeToGroup from 'hooks/useChangeToGroup'
-import { PUBLIC_GROUP, ALL_GROUP, MY_CONTEXT_GROUP } from 'store/models/Group'
-import getMemberships from 'store/selectors/getMemberships'
-// import getCurrentGroup from 'store/selectors/getCurrentGroup'
+import useHasResponsibility from 'hooks/useHasResponsibility'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { PUBLIC_GROUP, ALL_GROUP, MY_CONTEXT_GROUP } from 'urql-shared/presenters/GroupPresenter'
 import styles from './DrawerMenu.styles'
 import Button from 'components/Button'
 import { bannerlinearGradientColors } from 'style/colors'
 // import groupExplorerUrl from 'assets/group-explorer.png'
 import earthUrl from 'assets/earth.png'
 import myHomeUrl from 'assets/my-home.png'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
-import useCurrentGroup from 'hooks/useCurrentGroup'
 
 export default function DrawerMenu () {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const memberships = useSelector(getMemberships)
-  const [currentGroup] = useCurrentGroup()
-  const canAdmin = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: currentGroup?.id }))
-  const canInvite = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: currentGroup?.id }))
+  const [currentUser, { fetching: currentUserFetching }] = useCurrentUser()
+  const [currentGroup, { fetching: currentGroupFetching }] = useCurrentGroup()
+  const memberships = currentUser?.memberships
   const { myHome } = useRouteParams()
-
+  const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
+  const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
+  const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
   const myGroups = memberships
-    .map(m => m.group.ref)
+    .map(m => m.group)
     .sort((a, b) => a.name.localeCompare(b.name))
 
   const goToCreateGroup = () => {
@@ -125,6 +124,8 @@ export default function DrawerMenu () {
     ? { uri: currentGroup?.bannerUrl }
     : null
 
+  if (currentUserFetching || currentGroupFetching) return null
+
   return (
     <View style={styles.container}>
       {currentGroup && !myHome && (
@@ -135,18 +136,22 @@ export default function DrawerMenu () {
             <Text style={styles.headerText}>{currentGroup.name}</Text>
             {(canAdmin || canInvite) && (
               <View style={styles.currentGroupButtons}>
-                {canAdmin && <Button
-                  style={styles.currentGroupButton}
-                  iconName='Settings'
-                  onPress={goToGroupSettings}
-                  text={t('Settings')}
-                />}
-                {canInvite && <Button
-                  style={styles.currentGroupButton}
-                  iconName='Invite'
-                  onPress={goToInvitePeople}
-                  text={t('Invite')}
-                />}
+                {canAdmin && (
+                  <Button
+                    style={styles.currentGroupButton}
+                    iconName='Settings'
+                    onPress={goToGroupSettings}
+                    text={t('Settings')}
+                  />
+                )}
+                {canInvite && (
+                  <Button
+                    style={styles.currentGroupButton}
+                    iconName='Invite'
+                    onPress={goToInvitePeople}
+                    text={t('Invite')}
+                  />
+                )}
               </View>
             )}
           </View>

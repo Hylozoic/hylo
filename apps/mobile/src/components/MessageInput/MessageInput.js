@@ -1,31 +1,17 @@
 import React from 'react'
-import {
-  TextInput,
-  TouchableOpacity,
-  View,
-  Alert
-} from 'react-native'
-import { bool, func, string } from 'prop-types'
+import { TextInput, TouchableOpacity, View, Alert } from 'react-native'
+import { withTranslation } from 'react-i18next'
 import { throttle } from 'lodash'
 
 import Icon from 'components/Icon'
 import { azureRadiance, rhino30 } from 'style/colors'
 import styles from './MessageInput.style'
-import { withTranslation } from 'react-i18next'
 
 const IS_TYPING_THROTTLE = 3000
 const MIN_INPUT_HEIGHT = 22
 const MAX_INPUT_HEIGHT = 100
 
 class MessageInput extends React.PureComponent {
-  static propTypes = {
-    blurOnSubmit: bool,
-    multiline: bool,
-    onSubmit: func,
-    placeholder: string,
-    sendIsTyping: func
-  }
-
   constructor () {
     super()
     this.state = {

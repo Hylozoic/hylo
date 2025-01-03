@@ -1,4 +1,4 @@
-import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
+import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'urql-shared/presenters/GroupPresenter'
 import isEmpty from 'lodash/isEmpty'
 
 export const MODULE_NAME = 'GroupWelcomeFlow'

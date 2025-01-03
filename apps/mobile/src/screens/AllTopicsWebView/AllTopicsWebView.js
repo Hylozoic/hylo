@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react'
-import { useSelector } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 import HyloWebView from 'components/HyloWebView'
 
 export default function AllTopicsWebView () {
   const navigation = useNavigation()
-  const currentGroup = useSelector(getCurrentGroup)
+  const [currentGroup] = useCurrentGroup()
   const path = currentGroup?.slug === 'all'
     ? `/${currentGroup?.slug}/topics`
     : `/groups/${currentGroup?.slug}/topics`

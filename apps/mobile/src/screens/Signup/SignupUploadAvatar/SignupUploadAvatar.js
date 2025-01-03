@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import { ScrollView, View, Text, ImageBackground, ActivityIndicator } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { AnalyticsEvents } from '@hylo/shared'
-import getMe from 'store/selectors/getMe'
+import useCurrentUser from 'hooks/useCurrentUser'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
@@ -12,12 +13,11 @@ import Button from 'components/Button'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import styles from './SignupUploadAvatar.styles'
-import { useTranslation } from 'react-i18next'
 
 export default function SignupUploadAvatar ({ navigation }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const currentUser = useSelector(getMe)
+  const [currentUser] = useCurrentUser()
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl)
   const [avatarImageSource, setAvatarImageSource] = useState({ uri: avatarUrl })
   const [imagePickerPending, setImagePickerPending] = useState(false)

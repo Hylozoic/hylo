@@ -1,31 +1,61 @@
-export default `
-id
-text
-creator {
-  id
-  name
-  avatarUrl
-}
-attachments {
-  id
-  position
-  type
-  url
-}
-parentComment {
-  id
-}
-myReactions {
-  emojiFull
-  id
-}
-commentReactions {
-  emojiFull
-  id
-  user {
+import { gql } from 'urql'
+
+export const commentFieldsFragment = gql`
+  fragment CommentFieldsFragment on Comment {
     id
-    name
+    text
+    creator {
+      id
+      name
+      avatarUrl
+      groupRoles {
+        items {
+          id
+          name
+          emoji
+          active
+          groupId
+          responsibilities {
+            items {
+              id
+              title
+              description
+            }
+          }
+        }
+      }
+      membershipCommonRoles {
+        items {
+          id
+          commonRoleId
+          groupId
+          userId
+        }
+      }
+    }
+    attachments {
+      id
+      position
+      type
+      url
+    }
+    parentComment {
+      id
+    }
+    myReactions {
+      emojiFull
+      id
+    }
+    commentReactions {
+      emojiFull
+      id
+      user {
+        id
+        name
+      }
+    }
+    createdAt
   }
-}
-createdAt
 `
+
+export default commentFieldsFragment

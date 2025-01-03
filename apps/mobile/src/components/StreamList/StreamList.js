@@ -1,17 +1,13 @@
-import React, { useEffect, useCallback, useState } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import React, { useCallback, useEffect, useState } from 'react'
+import { gql, useMutation, useQuery } from 'urql'
 import { FlatList, View, TouchableOpacity } from 'react-native'
-import { createSelector } from 'reselect'
 import { isEmpty, get } from 'lodash/fp'
 import { useIsFocused, useNavigation } from '@react-navigation/native'
-import { FETCH_POSTS } from 'store/constants'
-import { ALL_GROUP_ID, isContextGroup, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from 'store/models/Group'
-import { makeGetQueryResults } from 'store/reducers/queryResults'
+import { ALL_GROUP_ID, isContextGroup, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import useFetchPostParam from './useFetchPostParam'
-import getMe from 'store/selectors/getMe'
-import fetchPosts from 'store/actions/fetchPosts'
-import resetNewPostCount from 'store/actions/resetNewPostCount'
-import updateUserSettings from 'store/actions/updateUserSettings'
+import useCurrentUser from 'hooks/useCurrentUser'
+import { makeQuery } from './StreamList.store'
+import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
 import Icon from 'components/Icon'
 import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
@@ -59,16 +55,22 @@ export const DECISIONS_OPTIONS = [
 export const DEFAULT_SORT_BY_ID = 'updated'
 export const DEFAULT_TIMEFRAME_ID = 'future'
 
-/* === SELECTORS === */
+// Currently unused
+export const resetGroupTopicNewPostCountMutation = gql`
+  mutation ResetGroupTopicNewPostCountMutation($id: ID) {
+    updateGroupTopicFollow(id: $id, data: { newPostCount: 0 }) {
+      success
+    }
+  }
+`
 
-const getPostResults = makeGetQueryResults(FETCH_POSTS)
-
-export const getPostIds = createSelector(
-  getPostResults,
-  results => isEmpty(results) ? [] : results.ids
-)
-
-export const getHasMorePosts = createSelector(getPostResults, get('hasMore'))
+export const resetGroupNewPostCountMutation = gql`
+  mutation ResetGroupNewPostCountMutation ($id: ID) {
+    updateMembership(groupId: $id, data: { newPostCount: 0 }) {
+      id
+    }
+  }
+`
 
 /* === COMPONENTS === */
 
@@ -82,10 +84,9 @@ export default function StreamList (props) {
     scrollRef,
     topicName
   } = props
-  const dispatch = useDispatch()
   const navigation = useNavigation()
   const isFocused = useIsFocused()
-  const currentUser = useSelector(getMe)
+  const [currentUser] = useCurrentUser()
   const [filter, setFilter] = useState()
   const [sortBy, setSortBy] = useState(
     get('settings.streamSortBy', currentUser) ||
@@ -93,6 +94,7 @@ export default function StreamList (props) {
     DEFAULT_SORT_BY_ID
   )
   const [timeframe, setTimeframe] = useState(DEFAULT_TIMEFRAME_ID)
+  const [offset, setOffset] = useState(0)
   const fetchPostParam = useFetchPostParam({
     customView,
     streamType,
@@ -103,29 +105,36 @@ export default function StreamList (props) {
     timeframe,
     topicName
   })
-  const pending = useSelector(state => state.pending[FETCH_POSTS])
-  const postIds = useSelector(state => getPostIds(state, fetchPostParam))
-  const hasMore = useSelector(state => getHasMorePosts(state, fetchPostParam))
+  const [{ data, fetching }, refetchPosts] = useQuery(makeQuery({ ...fetchPostParam, first: 10, offset }))
+  const postsQuerySet = data?.posts || data?.group?.posts
+  const hasMore = postsQuerySet?.hasMore
+  const posts = postsQuerySet?.items
+  const postIds = posts?.map(p => p.id)
 
+  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
+  const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
+
+  // TODO: Can this be simplified? Also, does this perhaps follow the same logic as
+  // group( updateLastViewed: true ) and could we combine this? Currrently that extra
+  // query arg for GroupDetailsQuery makes the URQL caching not merged, so it would be nice
+  // to run it independently or make it a mutation, like this resetGroupNewPostCount
   useEffect(() => {
     if (fetchPostParam && isFocused && isEmpty(postIds) && hasMore !== false) {
-      const forGroupId = get('id', forGroup)
-      const shouldReset = slug => (
+      const slug = fetchPostParam.context
+
+      if (
+        forGroup?.id &&
         slug !== ALL_GROUP_ID &&
         slug !== PUBLIC_GROUP_ID &&
         slug !== MY_CONTEXT_ID &&
         !topicName &&
         sortBy === DEFAULT_SORT_BY_ID &&
         !fetchPostParam.filter
-      )
-
-      if (shouldReset(fetchPostParam.context)) {
-        dispatch(resetNewPostCount(forGroupId, 'Membership'))
+      ) {
+        resetGroupNewPostCount({ id: forGroup?.id })
       }
-
-      dispatch(fetchPosts(fetchPostParam))
     }
-  }, [fetchPostParam, hasMore, isFocused, postIds])
+  }, [forGroup?.id, fetchPostParam?.filter, fetchPostParam?.context, hasMore, isFocused, postIds])
 
   // Only custom views can be sorted by manual order
   useEffect(() => {
@@ -136,18 +145,15 @@ export default function StreamList (props) {
 
   const refreshPosts = useCallback(() => {
     if (fetchPostParam) {
-      dispatch(fetchPosts(fetchPostParam, { reset: true }))
+      refetchPosts({ requestPolicy: 'network-only' })
     }
-  }, [fetchPostParam])
+  }, [fetchPostParam, refetchPosts])
 
   const fetchMorePosts = useCallback(() => {
-    if (fetchPostParam && hasMore && !pending) {
-      dispatch(fetchPosts({
-        ...fetchPostParam,
-        offset: postIds.length
-      }))
+    if (postIds && hasMore && !fetching) {
+      setOffset(postIds?.length)
     }
-  }, [fetchPostParam, hasMore, pending, postIds.length])
+  }, [hasMore, fetching, postIds])
 
   if (!fetchPostParam) return null
 
@@ -157,7 +163,7 @@ export default function StreamList (props) {
 
   const handleChildPostToggle = () => {
     const childPostInclusion = fetchPostParam?.childPostInclusion === 'yes' ? 'no' : 'yes'
-    dispatch(updateUserSettings({ settings: { streamChildPosts: childPostInclusion } }))
+    updateUserSettings({ changes: { settings: { streamChildPosts: childPostInclusion } } })
   }
 
   const extraToggleStyles = fetchPostParam?.childPostInclusion === 'yes'
@@ -168,11 +174,11 @@ export default function StreamList (props) {
     <View style={styles.container}>
       <FlatList
         ref={scrollRef}
-        data={postIds}
-        renderItem={({ item }) => renderPostRow({ ...props, postId: item })}
+        data={posts}
+        renderItem={({ item }) => renderPostRow({ ...props, post: item })}
         onRefresh={refreshPosts}
-        refreshing={!!pending}
-        keyExtractor={item => `post${item}`}
+        refreshing={false}
+        keyExtractor={item => `post${item.id}`}
         onEndReached={fetchMorePosts}
         ListHeaderComponent={
           <View>
@@ -205,14 +211,14 @@ export default function StreamList (props) {
             )}
           </View>
         }
-        ListFooterComponent={pending ? <Loading style={styles.loading} /> : null}
+        ListFooterComponent={fetching ? <Loading style={styles.loading} /> : null}
       />
     </View>
   )
 }
 
 function renderPostRow ({
-  postId,
+  post,
   fetchPostParam,
   forGroup,
   showPost,
@@ -223,7 +229,7 @@ function renderPostRow ({
   return (
     <PostRow
       context={fetchPostParam?.context}
-      postId={postId}
+      post={post}
       forGroupId={forGroup?.id}
       showGroups={!forGroup?.id || isContextGroup(forGroup?.slug)}
       showPost={showPost}

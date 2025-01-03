@@ -1,10 +1,10 @@
 import React, { useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native'
 import { every, isEmpty } from 'lodash/fp'
 import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
+import useAuthState from 'hooks/useAuthState'
 import useRouteParams from 'hooks/useRouteParams'
-import { getAuthorized } from 'store/selectors/getAuthState'
 import { openURL } from 'hooks/useOpenURL'
 import useInvitation from 'store/actions/useInvitation'
 import checkInvitation from 'store/actions/checkInvitation'
@@ -17,7 +17,7 @@ export default function JoinGroup (props) {
   const navigation = useNavigation()
   const route = useRoute()
   const dispatch = useDispatch()
-  const isAuthorized = useSelector(getAuthorized)
+  const [{ isAuthorized }] = useAuthState()
   const { token: invitationToken, accessCode } = useRouteParams()
 
   // Might be more clear to simply use `useEffect`

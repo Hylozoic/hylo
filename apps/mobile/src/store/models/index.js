@@ -5,7 +5,6 @@ import Agreement from './Agreement'
 import Attachment from './Attachment'
 import Collection, { CollectionPost } from './Collection'
 import Comment from './Comment'
-import CommonRole from './CommonRole'
 import CustomView from './CustomView'
 import EventInvitation from './EventInvitation'
 import Group, { GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
@@ -20,7 +19,6 @@ import Me, { MySkillsToLearn } from './Me'
 import Membership from './Membership'
 import Message from './Message'
 import MessageThread from './MessageThread'
-import Notification from './Notification'
 import Person, { PersonSkillsToLearn } from './Person'
 import PersonConnection from './PersonConnection'
 import PlatformAgreement from './PlatformAgreement'
@@ -41,7 +39,6 @@ orm.register(
   Collection,
   CollectionPost,
   Comment,
-  CommonRole,
   CustomView,
   EventInvitation,
   Group,
@@ -64,7 +61,6 @@ orm.register(
   MessageThread,
   ModerationAction,
   MySkillsToLearn,
-  Notification,
   Person,
   PersonConnection,
   PersonSkillsToLearn,

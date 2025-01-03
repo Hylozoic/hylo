@@ -1,7 +1,7 @@
 import orm from '../models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { get } from 'lodash/fp'
-import { ALL_GROUP, ALL_GROUP_ID, MY_CONTEXT_GROUP, MY_CONTEXT_ID, PUBLIC_GROUP, PUBLIC_GROUP_ID } from 'store/models/Group'
+import { ALL_GROUP, ALL_GROUP_ID, MY_CONTEXT_GROUP, MY_CONTEXT_ID, PUBLIC_GROUP, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 
 const getGroup = ormCreateSelector(
   orm,

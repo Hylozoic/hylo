@@ -1,4 +1,4 @@
-import gql from 'graphql-tag'
+import { gql } from 'urql'
 import { FETCH_GROUP_STEWARDS } from 'store/constants'
 
 export default function fetchGroupModerators ({ id, slug }) {
