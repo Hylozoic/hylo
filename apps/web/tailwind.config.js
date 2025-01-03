@@ -43,7 +43,7 @@ export default {
       colors: {
         background: 'hsl(var(--background))',
         midground: 'hsl(var(--midground))',
-        foreground: 'hsl(var(--foreground))',
+        foreground: 'hsl(var(--foreground) / <alpha-value>)',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
