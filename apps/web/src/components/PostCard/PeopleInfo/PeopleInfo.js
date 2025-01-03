@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { find, sortBy } from 'lodash/fp'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -60,9 +60,9 @@ export default function PeopleInfo ({
     avatarUrls = people.map(p => p.avatarUrl)
   }
   return (
-    <span className={cx(classes.peopleContainer, { [classes.constrained]: constrained }, className)}>
+    <span className={cn(classes.peopleContainer, { [classes.constrained]: constrained }, className)}>
       <RoundImageRow imageUrls={avatarUrls.slice(0, 3)} className={classes.people} onClick={onClick} small={small} tiny={tiny} />
-      <span className={cx(classes.caption)} onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'inherit' }}>
+      <span className={cn(classes.caption)} onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'inherit' }}>
         {caption}
       </span>
     </span>

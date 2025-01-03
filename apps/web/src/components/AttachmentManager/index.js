@@ -1,4 +1,3 @@
-import component from './AttachmentManager'
-import connector from './AttachmentManager.connector'
+import AttachmentManager from './AttachmentManager'
 
-export default connector(component)
+export default AttachmentManager

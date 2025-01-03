@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React, { useEffect, useCallback } from 'react'
 import { array, bool, func, object, number, string } from 'prop-types'
 import { Link } from 'react-router-dom'
@@ -72,20 +72,20 @@ const Comments = ({
       ))}
       {currentUser
         ? (
-          <div className={cx(classes.formWrapper)} style={style}>
+          <div className={cn(classes.formWrapper)} style={style}>
             <CommentForm
               currentUser={currentUser}
               createComment={createComment}
               postId={post.id}
             />
-            <PeopleTyping className={cx(classes.peopleTyping)} />
+            <PeopleTyping className={cn(classes.peopleTyping)} />
           </div>
           )
         : (
           <Link
             to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname)}`}
             target={inIframe() ? '_blank' : ''}
-            className={cx(classes.signupButton)}
+            className={cn(classes.signupButton)}
           >
             Join Hylo to respond
           </Link>

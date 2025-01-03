@@ -10,6 +10,8 @@ import {
   CREATE_MESSAGE,
   CREATE_MESSAGE_PENDING,
   CREATE_MODERATION_ACTION_PENDING,
+  CREATE_CONTEXT_WIDGET,
+  CREATE_CONTEXT_WIDGET_PENDING,
   DELETE_COMMENT_PENDING,
   DELETE_GROUP_RELATIONSHIP,
   DELETE_POST_PENDING,
@@ -32,7 +34,9 @@ import {
   REQUEST_FOR_CHILD_TO_JOIN_PARENT_GROUP,
   RESET_NEW_POST_COUNT_PENDING,
   RESPOND_TO_EVENT_PENDING,
+  REMOVE_WIDGET_FROM_MENU_PENDING,
   SWAP_PROPOSAL_VOTE_PENDING,
+  SET_HOME_WIDGET_PENDING,
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
   UPDATE_GROUP_TOPIC_PENDING,
@@ -42,7 +46,8 @@ import {
   UPDATE_USER_SETTINGS_PENDING as UPDATE_USER_SETTINGS_GLOBAL_PENDING,
   UPDATE_WIDGET,
   USE_INVITATION,
-  UPDATE_PROPOSAL_OUTCOME_PENDING
+  UPDATE_PROPOSAL_OUTCOME_PENDING,
+  UPDATE_CONTEXT_WIDGET_PENDING
 } from 'store/constants'
 import {
   UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING,
@@ -85,6 +90,7 @@ import clearCacheFor from './clearCacheFor'
 import { find, get, values } from 'lodash/fp'
 import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
+import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
 
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
@@ -252,6 +258,29 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           post.update({ moderationActions: moderationActions || [meta?.data] })
         }
       }
+      break
+    }
+
+    case CREATE_CONTEXT_WIDGET_PENDING: {
+      const group = Group.withId(meta.groupId)
+      const allWidgets = group.contextWidgets.items
+
+      const newWidgetPosition = {
+        id: 'creating',
+        addToEnd: meta.data.addToEnd
+      }
+      const reorderedWidgets = reorderTree({ newWidgetPosition, allWidgets })
+      Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
+      break
+    }
+
+    case CREATE_CONTEXT_WIDGET: {
+      const group = Group.withId(meta.groupId)
+      const allWidgets = group.contextWidgets.items
+      const reorderedWidgets = allWidgets.filter(widget => widget.id !== 'creating')
+      reorderedWidgets.push(payload.data.createContextWidget)
+      Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
+
       break
     }
 
@@ -472,6 +501,14 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case REMOVE_WIDGET_FROM_MENU_PENDING: {
+      group = Group.withId(meta.groupId)
+      const contextWidgets = group.contextWidgets.items
+      const newContextWidgets = reorderTree({ priorWidgetState: { id: meta.contextWidgetId }, newWidgetPosition: { remove: true }, allWidgets: contextWidgets })
+      group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
+      break
+    }
+
     case REQUEST_FOR_CHILD_TO_JOIN_PARENT_GROUP: {
       const newGroupRelationship = payload.data.requestToAddGroupToParent.groupRelationship
       if (newGroupRelationship) {
@@ -501,6 +538,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case RESPOND_TO_EVENT_PENDING: {
       const event = Post.withId(meta.id)
       event.update({ myEventResponse: meta.response })
+      break
+    }
+
+    case SET_HOME_WIDGET_PENDING: {
+      group = Group.withId(meta.groupId)
+      const contextWidgets = group.contextWidgets.items
+
+      const newWidgets = replaceHomeWidget({ widgets: contextWidgets, newHomeWidgetId: meta.contextWidgetId })
+      group.update({ contextWidgets: { items: structuredClone(newWidgets) } })
       break
     }
 
@@ -544,6 +590,22 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case UPDATE_COMMENT_PENDING: {
       comment = Comment.withId(meta.id)
       comment.update(meta.data)
+      break
+    }
+
+    case UPDATE_CONTEXT_WIDGET_PENDING: {
+      const group = Group.withId(meta.groupId)
+      const allWidgets = group.contextWidgets.items
+
+      const priorWidgetState = allWidgets.find(widget => widget.id === meta.contextWidgetId)
+      const newWidgetPosition = {
+        id: meta.contextWidgetId,
+        addToEnd: meta.data.addToEnd,
+        orderInFrontOfWidgetId: meta.data.orderInFrontOfWidgetId,
+        parentId: meta.data.parentId || null
+      }
+      const reorderedWidgets = reorderTree({ priorWidgetState, newWidgetPosition, allWidgets })
+      Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
       break
     }
 

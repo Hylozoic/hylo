@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { isEmpty, filter, get, map } from 'lodash/fp'
-import cx from 'classnames'
+import { cn } from 'util'
 import Icon from 'components/Icon'
 import { personUrl } from 'util/navigation'
 import { others } from 'store/models/MessageThread'
@@ -61,7 +61,7 @@ export default class Header extends React.Component {
     const showArrow = !!andOthers
 
     return (
-      <div className={cx(classes.header)} id='thread-header'>
+      <div className={cn(classes.header)} id='thread-header'>
         <Link to='/messages' className={classes.closeThread}>
           <Icon name='ArrowForward' />
         </Link>

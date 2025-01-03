@@ -15,6 +15,8 @@ import react from 'eslint-plugin-react'
 import reactHooksPlugin from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import testingLibrary from 'eslint-plugin-testing-library'
+import typescriptEslintParser from '@typescript-eslint/parser'
+import typescriptEslintPlugin from '@typescript-eslint/eslint-plugin'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -44,7 +46,8 @@ export default [
       reactHooksPlugin,
       'react-refresh': reactRefresh,
       jest,
-      testingLibrary
+      testingLibrary,
+      '@typescript-eslint': typescriptEslintPlugin
       // 'react-hooks': fixupPluginRules(reactHooksPlugin)
       // import: importPlugin,
       // n: nPlugin,
@@ -53,15 +56,14 @@ export default [
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-      parser: babelParser,
+      parser: typescriptEslintParser,
       // ecmaVersion: 5,
       parserOptions: {
         requireConfigFile: false,
         babelOptions: {
           configFile: './babel.config.cjs'
-        }
-        // project: './tsconfig.json',
-        // sourceType: 'module'
+        },
+        project: './tsconfig.json'
       },
       globals: {
         ...globals.browser,
@@ -92,7 +94,9 @@ export default [
         { allowConstantExport: true, checkJS: false }
       ],
       'eslint/indent': 'off',
-      'react-hooks/exhaustive-deps': 'off'
+      'react-hooks/exhaustive-deps': 'off',
+      // '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/explicit-function-return-type': 'off'
       // 'import/export': 'off',
     }
   },

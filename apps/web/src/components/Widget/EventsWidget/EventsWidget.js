@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import moment from 'moment-timezone'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -43,7 +43,7 @@ export default ({ items, group, routeParams, isMember }) => {
     <div className={classes.events}>
       <Slider {...settings} onSwipe={handleSwiped}>
         {items.map(e => (
-          <div className={cx(classes.event, { [classes.narrow]: items.length > 1 })} key={e.id}>
+          <div className={cn(classes.event, { [classes.narrow]: items.length > 1 })} key={e.id}>
             <Link to={postUrl(e.id, routeParams)} onClickCapture={handleOnItemClick}>
               <div className={classes.content}>
                 <div className={classes.time}>{moment(e.startTime).format('MMM D YYYY')}</div>
@@ -55,7 +55,7 @@ export default ({ items, group, routeParams, isMember }) => {
           </div>
         ))}
         {isMember && (
-          <div className={cx(classes.event, classes.createNew)}>
+          <div className={cn(classes.event, classes.createNew)}>
             <div className={classes.eventsCta}>
               <Link to={createPostUrl(routeParams, { newPostType: 'event' })}>
                 <Icon name='Calendar' className={classes.eventIcon} />

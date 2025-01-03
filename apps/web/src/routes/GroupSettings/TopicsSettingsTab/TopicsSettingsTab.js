@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { find } from 'lodash/fp'
 import { arrayOf, func, number, shape, string, object, bool } from 'prop-types'
 import React, { Component } from 'react'
@@ -216,7 +216,7 @@ export function TopicListItem ({ topic, singleGroup, setGroupTopicVisibility, re
           alignRight
           className={styles.visibilityDropdown}
           toggleChildren={(
-            <span className={cx(styles.visibilityDropdownLabel, styles[`visibilityDropdown${TOPIC_VISIBILITY[groupTopic.visibility]}`])}>
+            <span className={cn(styles.visibilityDropdownLabel, styles[`visibilityDropdown${TOPIC_VISIBILITY[groupTopic.visibility]}`])}>
               <Icon name='Eye' />
               <span className={styles.labelContent}>{TOPIC_VISIBILITY[groupTopic.visibility]}</span>
               <Icon name='ArrowDown' />

@@ -2,7 +2,11 @@
 import React from 'react'
 import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
 import userEvent from '@testing-library/user-event'
-import AttachmentManager, { ImageManager, ImagePreview, FileManager, FilePreview } from './AttachmentManager'
+import AttachmentManager from './AttachmentManager'
+import { ImageManager } from './ImageManager'
+import { ImagePreview } from './ImagePreview'
+import { FileManager } from './FileManager'
+import { FilePreview } from './FilePreview'
 
 const minDefaultProps = {
   type: 'anything',

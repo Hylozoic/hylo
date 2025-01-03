@@ -1,7 +1,7 @@
 import React from 'react'
 import { withTranslation } from 'react-i18next'
 import { filter, get } from 'lodash/fp'
-import cx from 'classnames'
+import { cn } from 'util'
 import { bgImageStyle } from 'util/index'
 import ModalDialog from 'components/ModalDialog'
 import TextInput from 'components/TextInput'
@@ -87,14 +87,14 @@ function MemberRow ({ member, selected, onClick }) {
   const { name, avatarUrl, response } = member
 
   return (
-    <div className={cx(classes.row, { [classes.selected]: selected })} onClick={onClick}>
+    <div className={cn(classes.row, { [classes.selected]: selected })} onClick={onClick}>
       <div className={classes.col}>
         <div className={classes.avatar} style={bgImageStyle(avatarUrl)} />
       </div>
       <div className={classes.col}>
         {name}
       </div>
-      {response && <div className={cx(classes.col, classes.response)}>{humanResponse(response)}</div>}
+      {response && <div className={cn(classes.col, classes.response)}>{humanResponse(response)}</div>}
     </div>
   )
 }

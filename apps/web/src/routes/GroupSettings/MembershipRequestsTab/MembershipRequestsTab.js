@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
@@ -138,7 +138,7 @@ export function JoinRequest ({ accept, decline, group, request }) {
         </div>
       )}
       <div className={classes.actionButtons}>
-        <div className={cx(classes.accept)} onClick={() => accept(request.id)}><Icon name='Checkmark' className={classes.iconGreen} />{t('Welcome')}</div>
+        <div className={cn(classes.accept)} onClick={() => accept(request.id)}><Icon name='Checkmark' className={classes.iconGreen} />{t('Welcome')}</div>
         <div onClick={() => decline(request.id)}><Icon name='Ex' className={classes.iconRed} />{t('Decline')}</div>
       </div>
     </div>

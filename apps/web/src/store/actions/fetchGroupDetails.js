@@ -7,14 +7,15 @@ export default function fetchGroupDetails ({
   withWidgets = false,
   withTopics = true,
   withJoinQuestions = true,
-  withPrerequisites = true
+  withPrerequisites = true,
+  withContextWidgets = true
 }) {
   return {
     type: FETCH_GROUP_DETAILS,
     graphql: {
       query: `query GroupDetailsQuery ($slug: String) {
         group(slug: $slug) {
-          ${groupFieldsFragment({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets })}
+          ${groupFieldsFragment({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets, withContextWidgets })}
         }
       }`,
       variables: { slug }

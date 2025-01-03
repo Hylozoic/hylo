@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
@@ -185,7 +185,7 @@ const Messages = () => {
   const focusForm = () => formRef.current && formRef.current.focus()
 
   return (
-    <div className={cx(classes.modal, { [classes.messagesOpen]: messageThreadId })}>
+    <div className={cn(classes.modal, { [classes.messagesOpen]: messageThreadId })}>
       <Helmet>
         <title>Messages | Hylo</title>
       </Helmet>

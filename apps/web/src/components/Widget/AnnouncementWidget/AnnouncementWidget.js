@@ -1,6 +1,6 @@
 import moment from 'moment-timezone'
 import React, { useCallback, useState } from 'react'
-import cx from 'classnames'
+import { cn } from 'util'
 import { Link } from 'react-router-dom'
 import Slider from 'react-slick'
 import { postUrl } from 'util/navigation'
@@ -39,7 +39,7 @@ export default ({ items = [], group, routeParams }) => {
     <div className={classes.announcements}>
       <Slider {...settings} onSwipe={handleSwiped}>
         {items.map(a => (
-          <div className={cx(classes.announcement, { [classes.narrow]: items.length > 1 })} key={a.id}>
+          <div className={cn(classes.announcement, { [classes.narrow]: items.length > 1 })} key={a.id}>
             <Link to={postUrl(a.id, routeParams)} onClickCapture={handleOnItemClick}>
               <div className={classes.content}>
                 <div>

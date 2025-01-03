@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import moment from 'moment-timezone'
 import React, { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -116,7 +116,7 @@ function Comment ({
   return (
     <div
       ref={commentRef}
-      className={cx(styles.commentContainer, { [styles.selectedComment]: selectedCommentId === comment.id })}
+      className={cn(styles.commentContainer, { [styles.selectedComment]: selectedCommentId === comment.id })}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => { if (!isEmojiPickerOpen) { setShowActions(false) } }}
     >
@@ -136,8 +136,8 @@ function Comment ({
             <Icon name='Ex' className={styles.cancelIcon} onClick={handleEditCancel} />
           )}
           {currentUser && (
-            <div className={cx(styles.commentActions, { [styles.showActions]: showActions })}>
-              <div className={cx(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
+            <div className={cn(styles.commentActions, { [styles.showActions]: showActions })}>
+              <div className={cn(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
                 <Icon name='Replies' />
               </div>
               {dropdownItems.map(item => (
@@ -146,7 +146,7 @@ function Comment ({
                 </div>
               ))}
               <EmojiRow
-                className={cx(styles.emojis, styles.hiddenReactions)}
+                className={cn(styles.emojis, styles.hiddenReactions)}
                 comment={comment}
                 currentUser={currentUser}
                 post={post}
@@ -176,7 +176,7 @@ function Comment ({
             <HyloHTML className={styles.text} html={text} />
           </ClickCatcher>
           <EmojiRow
-            className={cx(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}
+            className={cn(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}
             comment={comment}
             currentUser={currentUser}
             post={post}

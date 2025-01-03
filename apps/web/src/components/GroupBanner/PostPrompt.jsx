@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -26,12 +26,12 @@ export default function PostPrompt (props) {
   return (
     <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       <Link to={createPostUrl(routeParams, { ...querystringParams, newPostType: type })}>
-        <div className={cx(classes.postPrompt, className)}>
+        <div className={cn(classes.postPrompt, className)}>
           <RoundImage url={avatarUrl} small className={classes.promptImage} />
           {postPromptString(type, firstName)}
         </div>
       </Link>
-      <div className={cx(classes.shadow, { [classes.hover]: hover })} />
+      <div className={cn(classes.shadow, { [classes.hover]: hover })} />
     </div>
   )
 }

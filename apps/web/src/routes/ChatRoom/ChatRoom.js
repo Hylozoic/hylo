@@ -1,12 +1,11 @@
-import cx from 'classnames'
-import { debounce, get, includes, isEmpty, trim, uniqueId } from 'lodash/fp'
+import { debounce, includes, isEmpty, trim, uniqueId } from 'lodash/fp'
+import { SendHorizontal } from 'lucide-react'
 import moment from 'moment-timezone'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
-import { SendHorizontal } from 'lucide-react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams, useLocation } from 'react-router-dom'
+import { useParams, useLocation, Routes, Route } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData } from '@virtuoso.dev/message-list'
 
@@ -32,14 +31,14 @@ import {
 import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import PostCard from 'components/PostCard'
-import TopicFeedHeader from 'components/TopicFeedHeader'
+import PostDialog from 'components/PostDialog'
+import ViewHeader from 'components/ViewHeader'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import ChatPost from './ChatPost'
 import createPost from 'store/actions/createPost'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopic from 'store/actions/fetchTopic'
-import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import updateGroupTopicLastReadPost from 'store/actions/updateGroupTopicLastReadPost'
 import { FETCH_TOPIC, FETCH_GROUP_TOPIC } from 'store/constants'
 import orm from 'store/models'
@@ -52,6 +51,7 @@ import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { MAX_POST_TOPICS } from 'util/constants'
+import { cn } from 'util'
 import isWebView from 'util/webView'
 
 import styles from './ChatRoom.module.scss'
@@ -106,7 +106,6 @@ export default function ChatRoom (props) {
   const dispatch = useDispatch()
   const routeParams = useParams()
   const location = useLocation()
-
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
 
@@ -124,12 +123,12 @@ export default function ChatRoom (props) {
   const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: 'new', attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
   const linkPreview = useSelector(getLinkPreview) // TODO: check
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
-  const followersTotal = useMemo(() => get('followersTotal', groupSlug ? groupTopic : topic), [groupSlug, groupTopic, topic])
+  // const followersTotal = useMemo(() => get('followersTotal', groupSlug ? groupTopic : topic), [groupSlug, groupTopic, topic])
   const querystringParams = getQuerystringParam(['search', 'postId'], location)
   const search = querystringParams?.search
   const postIdToStartAt = querystringParams?.postId
 
-  const containerRef = useRef()
+  const [container, setContainer] = React.useState(null)
   const editorRef = useRef()
   const messageListRef = useRef(null)
 
@@ -229,7 +228,7 @@ export default function ChatRoom (props) {
 
   const clearImageAttachments = useCallback(() => dispatch(clearAttachments('post', 'new', 'image')), [dispatch])
 
-  const toggleGroupTopicSubscribeAction = useCallback((groupTopic) => dispatch(toggleGroupTopicSubscribe(groupTopic)), [dispatch])
+  // const toggleGroupTopicSubscribeAction = useCallback((groupTopic) => dispatch(toggleGroupTopicSubscribe(groupTopic)), [dispatch])
 
   const updateGroupTopicLastReadPostAction = useCallback((groupTopicId, postId) => dispatch(updateGroupTopicLastReadPost(groupTopicId, postId)), [dispatch])
 
@@ -435,26 +434,14 @@ export default function ChatRoom (props) {
   if (topicLoading) return <Loading />
 
   return (
-    <div className={cx(styles.container, { [styles.withoutNav]: withoutNav })}>
+    <div className={cn('h-full shadow-md flex flex-col overflow-hidden', { [styles.withoutNav]: withoutNav })}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
 
-      <TopicFeedHeader
-        bannerUrl={group && group.bannerUrl}
-        currentUser={currentUser}
-        followersTotal={followersTotal}
-        groupSlug={groupSlug}
-        isSubscribed={groupTopic && groupTopic.isSubscribed}
-        newPost={newPost}
-        toggleSubscribe={
-          groupTopic
-            ? () => toggleGroupTopicSubscribeAction(groupTopic)
-            : null
-        }
-        topicName={topicName}
-      />
-      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden' ref={containerRef}>
+      <ViewHeader title={`#${topicName}`} />
+
+      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden' ref={setContainer}>
         {initialPostToScrollTo === null
           ? <div className={styles.loadingContainer}><Loading /></div>
           : (
@@ -478,7 +465,8 @@ export default function ChatRoom (props) {
             </VirtuosoMessageListLicense>
             )}
       </div>
-      <div className={styles.postChatBox}>
+      {/* Post chat box */}
+      <div className='relative w-full max-w-[750px] px-2 mt-2 mx-auto shadow-md p-2 border-t border-l border-r border-border shadow-lg rounded-t-xl bg-card'>
         <HyloEditor
           contentHTML={newPost.details}
           groupIds={groupIds}
@@ -512,7 +500,7 @@ export default function ChatRoom (props) {
           showLabel
           showLoading
         />
-        <div className={styles.postChatBoxFooter}>
+        <div className='w-full'>
           <UploadAttachmentButton
             type='post'
             className={styles.uploadAttachment}
@@ -523,7 +511,7 @@ export default function ChatRoom (props) {
           >
             <Icon
               name='AddImage'
-              className={cx(styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
+              className={cn(styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
             />
           </UploadAttachmentButton>
           <Button
@@ -536,6 +524,10 @@ export default function ChatRoom (props) {
           </Button>
         </div>
       </div>
+
+      <Routes>
+        <Route path='post/:postId' element={<PostDialog container={container} />} />
+      </Routes>
     </div>
   )
 }
@@ -556,7 +548,7 @@ const Footer = ({ context }) => {
 const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
   return (
-    <div className={cx(styles.displayDay, '!absolute top-0')}>
+    <div className={cn(styles.displayDay, '!absolute top-0')}>
       <div className={styles.day}>{firstItem?.createdAt ? moment(firstItem.createdAt).calendar(null, dayFormats) : ''}</div>
     </div>
   )
@@ -609,16 +601,20 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
           )
         : null}
       {post.type === 'chat'
-        ? <ChatPost
-            expanded={expanded}
-            group={context.group}
-            showHeader={showHeader}
-            post={post}
-            onAddReaction={context.onAddReaction}
-            onRemoveReaction={context.onRemoveReaction}
-          />
+        ? (
+          <div className='mx-auto px-4 max-w-[750px]'>
+            <ChatPost
+              expanded={expanded}
+              group={context.group}
+              showHeader={showHeader}
+              post={post}
+              onAddReaction={context.onAddReaction}
+              onRemoveReaction={context.onRemoveReaction}
+            />
+          </div>
+          )
         : (
-          <div className={cx(styles.cardItem, { [styles.expanded]: expanded })}>
+          <div className='mx-auto px-4 max-w-[750px]'>
             <PostCard
               group={context.group}
               expanded={expanded}

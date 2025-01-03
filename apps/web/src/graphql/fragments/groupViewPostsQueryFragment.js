@@ -1,4 +1,4 @@
-import postFieldsFragment from '@graphql/fragments/postFieldsFragment'
+import postCardFieldsFragment from '@graphql/fragments/postCardFieldsFragment'
 
 // When includeChildGroupPosts is true we query for viewPosts,
 // which shows all the aggregate posts from current group and any
@@ -27,7 +27,7 @@ ${includeChildGroupPosts ? 'posts: viewPosts(' : 'posts('}
   hasMore
   total
   items {
-    ${postFieldsFragment(false)}
+    ${postCardFieldsFragment}
   }
 }`
 

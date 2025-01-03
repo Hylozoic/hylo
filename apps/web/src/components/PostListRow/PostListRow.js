@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util'
 import Moment from 'moment-timezone'
 
 import { isEmpty } from 'lodash/fp'
@@ -51,11 +51,11 @@ const PostListRow = (props) => {
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
   return (
-    <div className={cx(classes.postRow, { [classes.unread]: unread, [classes.expanded]: expanded })} onClick={showDetails}>
+    <div className={cn(classes.postRow, { [classes.unread]: unread, [classes.expanded]: expanded })} onClick={showDetails}>
       <div className={classes.contentSummary}>
         <div className={classes.typeAuthor}>
           {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
-          <div className={cx(classes.postType, classes[post.type])}>
+          <div className={cn(classes.postType, classes[post.type])}>
             <Icon name={typeName} />
           </div>
           <div className={classes.participants}>
@@ -93,7 +93,7 @@ const PostListRow = (props) => {
               />
             </div>
           )}
-          <div className={cx(classes.timestamp, { [classes.pushToRight]: !childPost })}>
+          <div className={cn(classes.timestamp, { [classes.pushToRight]: !childPost })}>
             {createdTimestamp}
           </div>
         </div>
@@ -103,8 +103,8 @@ const PostListRow = (props) => {
               <Link className={classes.topic} to={topicUrl(t.name, { groupSlug: routeParams.slug })} key={t.name} onClick={stopEvent}>#{t.name}</Link>)}
           </div>
         )}
-        <div className={cx({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
-          <h3 className={cx(classes.title)}>{title}</h3>
+        <div className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+          <h3 className={cn(classes.title)}>{title}</h3>
           <HyloHTML className={classes.details} html={details} />
         </div>
         <div className={classes.reactions}>

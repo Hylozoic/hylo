@@ -1,0 +1,89 @@
+.item {
+  // FIXME this makes padding of 12px, actual spacing is 12.5px
+  padding: 0 $space-3x;
+  // height and line-height maybe should use spacing units too?
+  height: 40px;
+  line-height: 40px;
+  border-radius: 5px;
+  margin-right: 5px;
+  text-decoration: none;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  color: var(--foreground);
+  text-decoration: none !important;
+
+  &:hover, &:visited, &:active, &:link {
+    text-decoration: none;
+    color: var(--foreground);
+  }
+
+  transition: 1.5s;
+}
+
+.active {
+  background-color: var(--accent);
+
+  .link {
+    text-decoration: none;
+    color: var(--accent-foreground);
+
+    span {
+      color: var(--accent-foreground);
+    }
+  }
+}
+
+.icon {
+    margin-right: 20px;
+    min-width: 30px;
+    text-align: center;
+}
+
+.label {
+  padding-right: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+}
+
+@media screen and (max-width: 930px) {
+  .icon {
+    margin-right: 20px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .icon {
+    min-width: 30px;
+  }
+
+  .item {
+    padding: 0 15px;
+  }
+}
+
+@media screen and (max-width: 425px) {
+  .icon {
+    font-size: 24px;
+  }
+}
+
+@media screen and (max-width: 375px) {
+  .icon {
+    font-size: 22px;
+  }
+}
+
+
+@media screen and (max-width: 320px) {
+  .icon {
+    font-size: 20px;
+  }
+
+  .link {
+    height: 32px;
+  }
+}

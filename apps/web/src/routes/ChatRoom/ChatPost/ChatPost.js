@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
 import moment from 'moment-timezone'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
@@ -226,7 +226,7 @@ export default function ChatPost ({
   return (
     <Highlight {...highlightProps}>
       <div
-        className={cx(className, styles.container, {
+        className={cn(className, styles.container, {
           [styles.longPressed]: isLongPress,
           [styles.hovered]: isHovered
         })}
@@ -289,7 +289,7 @@ export default function ChatPost ({
             placeholder='Edit Post'
             ref={editorRef}
             showMenu={!isWebView()}
-            className={cx(styles.postContentContainer, styles.editing, styles.postContent)}
+            className={cn(styles.postContentContainer, styles.editing, styles.postContent)}
           />
         )}
         {details && !editing && (
@@ -318,7 +318,7 @@ export default function ChatPost ({
           <CardFileAttachments attachments={fileAttachments} />
         )}
         <EmojiRow
-          className={cx(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
+          className={cn(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
           post={post}
           currentUser={currentUser}
           onAddReaction={onAddReaction}

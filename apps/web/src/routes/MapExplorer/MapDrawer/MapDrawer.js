@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
@@ -75,7 +75,7 @@ function MapDrawer ({
   }
 
   return (
-    <div className={cx(styles.container, { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} id='mapDrawerWrapper' data-testid='map-drawer'>
+    <div className={cn(styles.container, { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} id='mapDrawerWrapper' data-testid='map-drawer'>
       <div className={styles.header}>
         <input
           className={styles.searchBox}
@@ -156,7 +156,7 @@ function MapDrawer ({
                   >
                     <Icon
                       name='Subgroup'
-                      className={cx(styles.toggleIcon, { [styles.activeToggle]: childPostInclusion === 'yes' })}
+                      className={cn(styles.toggleIcon, { [styles.activeToggle]: childPostInclusion === 'yes' })}
                     />
                   </span>
                   <Tooltip
@@ -209,7 +209,7 @@ function MapDrawer ({
               <div className={styles.contentListContainer} id='contentList'>
                 {members.map(m => (
                   <Member
-                    className={cx(styles.contentCard, styles.member)}
+                    className={cn(styles.contentCard, styles.member)}
                     member={m}
                     key={m.id}
                     group={group}
@@ -258,7 +258,7 @@ export function TabBar ({ currentTab, tabs, selectTab, pendingPostsDrawer }) {
       {Object.keys(tabs).map(name =>
         <li
           key={name}
-          className={cx(styles.tab, { [styles.tabActive]: name === currentTab })}
+          className={cn(styles.tab, { [styles.tabActive]: name === currentTab })}
           onClick={() => selectTab(name)}
         >
           {name}&nbsp;

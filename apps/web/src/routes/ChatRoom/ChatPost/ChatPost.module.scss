@@ -113,7 +113,7 @@
         position: relative;
         font-size: 17px;
         font-family: "Circular Bold";
-        color: #2A4059;
+        color: hsl(var(--text-foreground));
         top: 9px;
       }
     }
@@ -153,7 +153,7 @@
   // Extract typography? This one is exactly half way between
   // BDY-LT-LG and BDY-LT-SM
   @include font-regular;
-  color: rgba(44, 64, 89, 0.7);
+  color: hsl(var(--text-foreground));
   font-size: 16px;
   line-height: 24px;
   padding-bottom: 1px;
