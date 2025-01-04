@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
-import { JoinSection } from 'routes/GroupDetail/GroupDetail'
+import JoinSection from 'routes/GroupDetail/JoinSection'
 
 import { inIframe } from 'util/index'
 import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'

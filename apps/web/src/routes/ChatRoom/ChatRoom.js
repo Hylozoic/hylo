@@ -1,5 +1,5 @@
 import { debounce, includes, isEmpty, trim, uniqueId } from 'lodash/fp'
-import { SendHorizontal } from 'lucide-react'
+import { SendHorizontal, ImagePlus } from 'lucide-react'
 import moment from 'moment-timezone'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -480,7 +480,7 @@ export default function ChatRoom (props) {
           readOnly={loadingPast || loadingFuture}
           ref={editorRef}
           showMenu={!isWebView()}
-          className={styles.editor}
+          className={cn(styles.editor)}
         />
         {(linkPreview || fetchLinkPreviewPending) && (
           <LinkPreview
@@ -509,10 +509,13 @@ export default function ChatRoom (props) {
             onSuccess={(attachment) => dispatch(addAttachment('post', 'new', attachment))}
             allowMultiple
           >
+            <ImagePlus className={cn('text-foreground hover:cursor-pointer hover:text-accent', { 'text-primary': imageAttachments && imageAttachments.length > 0 })} />
+          {/* Remove when it's confirmed to be working              
             <Icon
               name='AddImage'
-              className={cn(styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
-            />
+              className={cn('text-foreground', styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
+            /> 
+            */}
           </UploadAttachmentButton>
           <Button
             borderRadius='6px'

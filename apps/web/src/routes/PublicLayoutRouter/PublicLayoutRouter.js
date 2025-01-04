@@ -70,14 +70,16 @@ function GroupExplorerLayoutRouter () {
           <GroupExplorer />
         </div>
       </div>
-      <Route
-        path={GROUP_DETAIL_MATCH}
-        element={
-          <div className={classes.detail} id={DETAIL_COLUMN_ID}>
-            <GroupDetail />
-          </div>
-        }
-      />
+      <Routes>
+        <Route
+          path={GROUP_DETAIL_MATCH}
+          element={
+            <div className={classes.detail} id={DETAIL_COLUMN_ID}>
+              <GroupDetail />
+            </div>
+          }
+        />
+      </Routes>
     </>
   )
 }

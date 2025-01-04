@@ -8,6 +8,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
 
+import GroupMenuHeader from 'components/GroupMenuHeader'
 import Icon from 'components/Icon'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import NavLink from './NavLink'
@@ -229,12 +230,23 @@ export default function ContextMenu (props) {
   const canView = !group || group.memberCount !== 0
   const links = regularLinks
   return (
-    <div className={cn('Navigation bg-background z-40 overflow-y-auto h-lvh min-w-280', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
-      <div className='ContextDetails h-190 w-full flex items-end'>
-        <div className='flex flex-col p-2'>
-          <h2 className='text-foreground font-bold leading-3 text-lg'>Group Name</h2>
-          <span className={cn('text-xs')}>312 Members</span>
-        </div>
+    <div className={cn('Navigation bg-background z-40 overflow-y-auto h-lvh min-w-280 border-r border-foreground/20 shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
+      <div className='ContextDetails w-full'>
+        {routeParams.context === 'groups'
+          ? <GroupMenuHeader group={group} />
+          : routeParams.context === 'public'
+            ? (
+              <div className='flex flex-col p-2'>
+                <h2 className='text-foreground font-bold leading-3 text-lg'>The Commons</h2>
+              </div>
+              )
+            : routeParams.context === 'my'
+              ? (
+                <div className='flex flex-col p-2'>
+                  <h2 className='text-foreground font-bold leading-3 text-lg'>My Home</h2>
+                </div>
+                )
+              : null}
       </div>
       {!hasContextWidgets && (
         <div className={classes.navigation}>

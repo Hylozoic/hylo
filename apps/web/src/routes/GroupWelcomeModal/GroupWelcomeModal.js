@@ -1,4 +1,3 @@
-import { cn } from 'util'
 import { isEmpty, trim } from 'lodash'
 import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -19,7 +18,9 @@ import Button from 'components/Button'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import RoundImage from 'components/RoundImage'
-import { SuggestedSkills } from 'routes/GroupDetail/GroupDetail'
+import SuggestedSkills from 'components/SuggestedSkills'
+import { cn } from 'util'
+
 import classes from './GroupWelcomeModal.module.scss'
 
 export default function GroupWelcomeModal (props) {
