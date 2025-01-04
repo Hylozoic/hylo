@@ -1,5 +1,4 @@
 import React from 'react'
-import { cn } from 'util'
 import { Link } from 'react-router-dom'
 
 export default function MenuLink ({ to, children, onClick, externalLink }) {

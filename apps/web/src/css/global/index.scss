@@ -77,4 +77,9 @@
     @apply bg-background text-foreground;
     overflow-x: hidden;
   }
+
+  #__filestack-picker {
+    /* To work around issue with Radix dialog setting pointer-events: none */
+    pointer-events: auto;
+  }
 }

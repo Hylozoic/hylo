@@ -112,7 +112,7 @@ h1,
   font-size: 24px;
   letter-spacing: 0;
   line-height: 28px;
-  color: $color-rhino;
+  color: hsl(var(--foreground));
   word-wrap: break-word;
 }
 

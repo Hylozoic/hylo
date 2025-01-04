@@ -24,43 +24,43 @@ export default function HyloEditorMenuBar ({ editor }) {
     <div className={classes.topMenuBar}>
       <button
         onClick={() => editor.chain().focus().toggleBold().run()}
-        className={cn({ [classes.isActive]: editor.isActive('bold') })}
+        className={cn({[classes.isActive]: editor.isActive('bold')})}
       >
-        <Bold size={14} />
+        <Bold size={14} className='text-foreground' />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleItalic().run()}
         className={cn({ [classes.isActive]: editor.isActive('italic') })}
       >
-        <Italic size={14} />
+        <Italic size={14} className='text-foreground' />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleStrike().run()}
         className={cn({ [classes.isActive]: editor.isActive('strike') })}
       >
-        <Strikethrough size={14} />
+        <Strikethrough size={14} className='text-foreground' />
       </button>
 
       <button
         onClick={() => editor.chain().focus().toggleCode().run()}
         className={cn({ [classes.isActive]: editor.isActive('code') })}
       >
-        <Code size={14} />
+        <Code size={14} className='text-foreground' />
       </button>
 
-      <div className={classes.divider} />
+      <div className={cn('bg-foreground bg-opacity-30 w-px')} />
 
       <button
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         className={cn({ [classes.isActive]: editor.isActive('bulletList') })}
       >
-        <List size={14} />
+        <List size={14} className='text-foreground' />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         className={cn({ [classes.isActive]: editor.isActive('orderedList') })}
       >
-        <ListOrdered size={14} />
+        <ListOrdered size={14} className='text-foreground' />
       </button>
 
       {/* <div className={classes.divider} /> */}
@@ -115,20 +115,20 @@ export default function HyloEditorMenuBar ({ editor }) {
         <RiH6 />
       </button> */}
 
-      <div className={classes.divider} />
+      <div className={cn('bg-foreground bg-opacity-30 w-px')} />
 
       <button
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         className={cn({ [classes.isActive]: editor.isActive('blockquote') })}
       >
-        <IndentIncrease size={14} />
+        <IndentIncrease size={14} className='text-foreground' />
       </button>
 
       <button
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         className={cn({ [classes.isActive]: editor.isActive('codeBlock') })}
       >
-        <SquareCode size={14} />
+        <SquareCode size={14} className='text-foreground' />
       </button>
       {/* <button onClick={() => editor.chain().focus().setHorizontalRule().run()}>
         <RiSeparator />
@@ -143,14 +143,14 @@ export default function HyloEditorMenuBar ({ editor }) {
         <RiFilmLine />
       </button> */}
 
-      <div className={classes.divider} />
+      <div className={cn('bg-foreground bg-opacity-30 w-px')} />
 
       <button onClick={() => editor.chain().focus().undo().run()}>
-        <Undo2 size={14} />
+        <Undo2 size={14} className='text-foreground' />
       </button>
 
       <button onClick={() => editor.chain().focus().redo().run()}>
-        <Redo2 size={14} />
+        <Redo2 size={14} className='text-foreground' />
       </button>
 
       <button onClick={() => {
@@ -158,7 +158,7 @@ export default function HyloEditorMenuBar ({ editor }) {
         editor.chain().focus().unsetAllMarks().run()
       }}
       >
-        <RemoveFormatting size={14} />
+        <RemoveFormatting size={14} className='text-foreground' />
       </button>
     </div>
   )

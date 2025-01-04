@@ -990,6 +990,7 @@
   "Your group has been invited": "Your group has been invited",
   "Your group's name": "Your group's name",
   "Your groups": "Your Groups",
+  "Your Profile": "Your Profile",
   "Your profile won't show up in any member searches or group memberships": "Your profile won't show up in any member searches or group memberships",
   "about": "About",
   "above this box to change the visibility settings. Only Administrators can see this message": "above this box to change the visibility settings. \nOnly Administrators can see this message",
@@ -1163,6 +1164,8 @@
   "{{childGroups.length}} groups are a part of {{group.name}}": "{{childGroups.length}} groups are a part of {{group.name}}",
   "{{count}} Groups": "{{count}} Groups",
   "{{count}} Groups_plural": "{{count}} Groups_plural",
+  "{{count}} Members_one": "{{count}} Member",
+  "{{count}} Members_other": "{{count}} Members",
   "{{currentGroup.name}} topics": "{{currentGroup.name}} topics",
   "{{group.name}} has some volunteering opportunities": "{{group.name}} has some volunteering opportunities",
   "{{group.name}} is a part of 1 Group": "{{group.name}} is a part of 1 Group",
@@ -1201,5 +1204,10 @@
   "{{othersCount}} others": "{{othersCount}} others",
   "{{parentGroup.name}} requires groups to answer the following questions before joining": "{{parentGroup.name}} requires groups to answer the following questions before joining",
   "{{personOne}} and {{personTwo}}": "{{personOne}} and {{personTwo}}",
-  "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total Topics"
+  "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total Topics",
+  "widget-my-locale": "Language/Locale",
+  "widget-public-stream": "Public Stream",
+  "widget-public-groups": "Group Explorer",
+  "widget-public-map": "Public Map",
+  "widget-public-events": "Public Events"
 }

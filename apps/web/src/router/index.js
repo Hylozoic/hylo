@@ -2,7 +2,7 @@ import React from 'react'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
 import { Provider } from 'react-redux'
 import { ThemeProvider } from 'components/ThemeProvider'
-import { TooltipProvider } from "components/ui/tooltip"
+import { TooltipProvider } from 'components/ui/tooltip'
 // import { Provider as RollbarProvider, ErrorBoundary } from '@rollbar/react'
 import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
 import store, { history } from '../store'
