@@ -86,6 +86,7 @@ const HyloWebView = forwardRef(function HyloWebView ({
       onMessage={handleMessage}
       nestedScrollEnabled
       hideKeyboardAccessoryView
+      webviewDebuggingEnabled
       /*
 
       // NOTE: The following is deprecated in favor of listening for the WebView
