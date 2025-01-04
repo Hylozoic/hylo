@@ -9,7 +9,7 @@ import Comment from 'components/Comment'
 import Loading from 'components/Loading'
 import styles from './Comments.styles'
 
-const commentsQuery = gql`
+export const commentsQuery = gql`
   query CommentsQuery (
     $postId: ID,
     $cursor: ID
