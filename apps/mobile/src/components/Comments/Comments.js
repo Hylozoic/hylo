@@ -75,10 +75,7 @@ function Comments ({
   panHandlers,
   onSelect
 }, ref) {
-  const [{ data, pending }] = useQuery({
-    query: postCommentsQuery,
-    variables: { postId }
-  })
+  const [{ data, fetching }] = useQuery({ query: postCommentsQuery, variables: { postId } })
   const post = data?.post
   const commentsQuerySet = post?.comments
   const comments = commentsQuerySet?.items || []
@@ -134,7 +131,7 @@ function Comments ({
     <>
       {providedHeader}
       <ShowMore postOrComment={post} style={styles.childCommentsShowMore} />
-      {pending && (
+      {fetching && (
         <View style={styles.loadingContainer}>
           <Loading style={styles.loading} />
         </View>
@@ -181,7 +178,11 @@ function Comments ({
       />
     )
   }
-
+  
+  if (fetching) {
+    return <Loading />
+  }
+  
   return (
     <SectionList
       style={style}
