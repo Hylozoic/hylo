@@ -1,15 +1,12 @@
-import { cn } from 'util'
-import React, { useState } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import RoundImage from 'components/RoundImage'
+import { cn } from 'util'
 import { createPostUrl } from 'util/navigation'
-
-import classes from './GroupBanner.module.scss'
 
 export default function PostPrompt (props) {
   const { avatarUrl, className, firstName = '', type = '', querystringParams = {}, routeParams = {} } = props
-  const [hover, setHover] = useState(false)
   const { t } = useTranslation()
 
   const postPromptString = (type, firstName) => {
@@ -24,14 +21,13 @@ export default function PostPrompt (props) {
   }
 
   return (
-    <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+    <div>
       <Link to={createPostUrl(routeParams, { ...querystringParams, newPostType: type })}>
-        <div className={cn(classes.postPrompt, className)}>
-          <RoundImage url={avatarUrl} small className={classes.promptImage} />
+        <div className={cn('rounded-sm h-14 flex items-center mx-auto cursor-pointer bg-white border border-foreground/10 text-muted-foreground shadow-sm hover:shadow-md transition-shadow duration-200', className)}>
+          <RoundImage url={avatarUrl} small className='mr-2 ml-4' />
           {postPromptString(type, firstName)}
         </div>
       </Link>
-      <div className={cn(classes.shadow, { [classes.hover]: hover })} />
     </div>
   )
 }

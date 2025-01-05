@@ -9,9 +9,34 @@ import { COLLECTION_SORT_OPTIONS, STREAM_SORT_OPTIONS } from 'util/constants'
 
 import classes from './StreamViewControls.module.scss'
 
+const POST_TYPE_OPTIONS = [
+  { id: undefined, label: 'All Posts' },
+  { id: 'discussion', label: 'Discussions' },
+  { id: 'event', label: 'Events' },
+  { id: 'offer', label: 'Offers' },
+  { id: 'project', label: 'Projects' },
+  { id: 'proposal', label: 'Proposals' },
+  { id: 'request', label: 'Requests' },
+  { id: 'resource', label: 'Resources' }
+]
+
+const DECISIONS_OPTIONS = [
+  { id: 'proposals', label: 'Proposals' },
+  { id: 'moderation', label: 'Moderation' }
+]
+
+const TIMEFRAME_OPTIONS = [
+  { id: 'future', label: 'Upcoming Events' },
+  { id: 'past', label: 'Past Events' }
+]
+
 const makeDropdown = (selected, options, onChange, t) => {
+  // Load these strings in the component
   t('Proposals')
   t('Moderation')
+  t('Upcoming Events')
+  t('Past Events')
+
   return (
     <Dropdown
       className={classes.dropdown}
@@ -29,26 +54,29 @@ const makeDropdown = (selected, options, onChange, t) => {
   )
 }
 
-const StreamViewControls = (props) => {
+const StreamViewControls = ({
+  customViewType,
+  sortBy,
+  postTypeFilter,
+  viewMode,
+  changeSearch,
+  changeSort,
+  changeTab,
+  changeView,
+  context,
+  searchValue,
+  view,
+  customPostTypes,
+  changeChildPostInclusion,
+  childPostInclusion,
+  decisionView,
+  changeDecisionView,
+  timeframe,
+  changeTimeframe
+}) => {
   const { t } = useTranslation()
-  let decisionViewDropdown
-  const POST_TYPE_OPTIONS = [
-    { id: undefined, label: 'All Posts' },
-    { id: 'discussion', label: 'Discussions' },
-    { id: 'event', label: 'Events' },
-    { id: 'offer', label: 'Offers' },
-    { id: 'project', label: 'Projects' },
-    { id: 'proposal', label: 'Proposals' },
-    { id: 'request', label: 'Requests' },
-    { id: 'resource', label: 'Resources' }
-  ]
+  let decisionViewDropdown, timeframeDropdown
 
-  const DECISIONS_OPTIONS = [
-    { id: 'proposals', label: 'Proposals' },
-    { id: 'moderation', label: 'Moderation' }
-  ]
-
-  const { customViewType, sortBy, postTypeFilter, viewMode, changeSearch, changeSort, changeTab, changeView, context, searchValue, view, customPostTypes, changeChildPostInclusion, childPostInclusion, decisionView, changeDecisionView } = props
   const [searchActive, setSearchActive] = useState(!!searchValue)
   const [searchState, setSearchState] = useState('')
 
@@ -57,6 +85,10 @@ const StreamViewControls = (props) => {
 
   if (view === 'proposals') {
     decisionViewDropdown = makeDropdown(decisionView, DECISIONS_OPTIONS, changeDecisionView, t)
+  }
+
+  if (view === 'events') {
+    timeframeDropdown = makeDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t)
   }
 
   const handleSearchToggle = () => {
@@ -124,8 +156,9 @@ const StreamViewControls = (props) => {
             <Icon name='SmallGridView' className={classes.gridViewIcon} />
           </div>
         </div>
-        {makeDropdown(sortBy, customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS, changeSort, t)}
-        {!['projects', 'proposals', 'ask-and-offer'].includes(view) && postTypeFilterDropdown}
+        {view === 'events' && timeframeDropdown}
+        {view !== 'events' && makeDropdown(sortBy, customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS, changeSort, t)}
+        {!['events', 'projects', 'proposals', 'ask-and-offer'].includes(view) && postTypeFilterDropdown}
         {view === 'proposals' && decisionViewDropdown}
         <Tooltip id='stream-viewmode-tip' position='bottom' />
       </div>

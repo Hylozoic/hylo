@@ -1,69 +1,59 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
-import GroupBanner from './GroupBanner'
-import PostPrompt from './PostPrompt'
-
-const currentUser = {
-  avatarUrl: 'me.png',
-  firstName: () => 'Bob',
-  memberships: {
-    count: () => 18
-  }
-}
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import GroupMenuHeader from './GroupMenuHeader'
+import { groupUrl } from 'util/navigation'
 
 const group = {
   bannerUrl: 'banner.png',
   avatarUrl: 'avatar.png',
   name: 'Spacebase',
-  location: 'space, duh'
+  slug: 'spacebase',
+  memberCount: 18
 }
 
-describe('GroupBanner', () => {
+describe('GroupMenuHeader', () => {
   it('renders with a group', () => {
     render(
-      <GroupBanner
+      <GroupMenuHeader
         group={group}
-        routeParams={{ view: 'stream', slug: 'foo' }}
-        isTesting
       />
     )
     expect(screen.getByText('Spacebase')).toBeInTheDocument()
-    expect(screen.getByText('space, duh')).toBeInTheDocument()
+    expect(screen.getByAltText('Group Avatar')).toHaveAttribute('src', 'avatar.png')
+    expect(screen.getByText('18 Members')).toBeInTheDocument()
   })
 
-  it('renders for all groups', () => {
+  it('renders default avatar and banner if not provided', () => {
+    const groupWithoutImages = { ...group, avatarUrl: null, bannerUrl: null }
     render(
-      <GroupBanner
-        context='all'
-        routeParams={{ view: 'stream' }}
-        currentUser={currentUser}
-        currentUserHasMemberships
+      <GroupMenuHeader
+        group={groupWithoutImages}
       />
     )
-    expect(screen.getByText('All My Groups')).toBeInTheDocument()
-    expect(screen.getByText('18 Groups')).toBeInTheDocument()
+    expect(screen.getByAltText('Group Avatar')).toHaveAttribute('src', 'default-avatar.png') // Assuming DEFAULT_AVATAR is 'default-avatar.png'
+    expect(screen.getByTestId('group-header')).toHaveStyle(`background-image: url(default-banner.png)`) // Assuming DEFAULT_BANNER is 'default-banner.png'
   })
 
-  it('renders for an orphan user', () => {
+  it('toggles details on chevron click', () => {
     render(
-      <GroupBanner
-        context='all'
-        routeParams={{ view: 'stream', slug: 'foo' }}
-        currentUser={currentUser}
-        currentUserHasMemberships={false}
+      <GroupMenuHeader
+        group={group}
       />
     )
-    expect(screen.getByText('All My Groups')).toBeInTheDocument()
-    expect(screen.getByText('18 Groups')).toBeInTheDocument()
-    expect(screen.queryByTestId('post-prompt')).not.toBeInTheDocument()
+    const chevron = screen.getByRole('button')
+    fireEvent.click(chevron)
+    expect(screen.getByText('Group Details')).toBeInTheDocument() // Assuming 'Group Details' is part of the GroupDetail component
+    fireEvent.click(chevron)
+    expect(screen.queryByText('Group Details')).not.toBeInTheDocument()
   })
-})
 
-describe('PostPrompt', () => {
-  it('renders a post prompt', () => {
+  it('links to the correct group members page', () => {
     render(
-      <PostPrompt firstName='Arturo' type='project' />
+      <GroupMenuHeader
+        group={group}
+      />
     )
-    expect(screen.getByText('Hi Arturo, what would you like to create?')).toBeInTheDocument()
+    const link = screen.getByText('18 Members')
+    expect(link.closest('a')).toHaveAttribute('href', groupUrl(group.slug, 'members', {}))
   })
 })

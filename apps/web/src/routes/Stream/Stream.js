@@ -2,12 +2,12 @@ import { cn } from 'util'
 import { get, isEmpty } from 'lodash/fp'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
+import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { Routes, Route, useParams, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { push } from 'redux-first-history'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 
-import GroupBanner from 'components/GroupBanner'
 import Loading from 'components/Loading'
 import ModerationListItem from 'components/ModerationListItem/ModerationListItem'
 import NoPosts from 'components/NoPosts'
@@ -16,9 +16,14 @@ import PostListRow from 'components/PostListRow'
 import PostCard from 'components/PostCard'
 import PostGridItem from 'components/PostGridItem'
 import PostBigGridItem from 'components/PostBigGridItem'
+import PostLabel from 'components/PostLabel'
+import PostPrompt from './PostPrompt'
 import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
 import TopicFeedHeader from 'components/TopicFeedHeader'
+import ViewHeader from 'components/ViewHeader'
+import useRouteParams from 'hooks/useRouteParams'
+import { SYSTEM_VIEWS } from 'util/constants'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
@@ -58,84 +63,109 @@ const getCustomView = ormCreateSelector(
 export default function Stream (props) {
   const dispatch = useDispatch()
   const location = useLocation()
-  const params = useParams()
-  const { groupSlug, topicName, customViewId } = params
+  const routeParams = useRouteParams()
+  const { t } = useTranslation()
+  const { groupSlug, topicName, customViewId } = routeParams
   const context = props.context
 
   const [container, setContainer] = useState(null)
 
-  const view = props.view || params.view
+  const view = props.view || routeParams.view
 
   const currentUser = useSelector(getMe)
   const currentUserHasMemberships = useSelector(state => !isEmpty(getMyMemberships(state)))
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id || 0
-  const topic = useSelector(state => getTopicForCurrentRoute(state, { match: { params } }))
-
+  const topic = useSelector(state => getTopicForCurrentRoute(state, { match: { params: routeParams } })) // TODO: is this correct?
   const groupTopic = useSelector(state => {
     const gt = getGroupTopicForCurrentRoute(state, groupSlug, topicName)
     return gt && { ...gt.ref, group: gt.group, topic: gt.topic }
   })
+  const systemView = SYSTEM_VIEWS[view]
   const customView = useSelector(state => getCustomView(state, customViewId))
 
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
-  const isAboutOpen = params.detailGroupSlug
 
-  const defaultSortBy = get('settings.streamSortBy', currentUser) || 'updated'
-  const projectsDefault = view === 'projects' ? 'bigGrid' : null
-  const defaultViewMode = get('settings.streamViewMode', currentUser) || 'cards'
+  const defaultSortBy = get('settings.streamSortBy', currentUser) || systemView?.defaultSortBy || 'created'
+  const defaultViewMode = get('settings.streamViewMode', currentUser) || systemView?.defaultViewMode || 'cards'
   const defaultPostType = get('settings.streamPostType', currentUser) || undefined
   const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || 'yes'
 
-  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search'], location)
-  const determinePostTypeFilter = useCallback(() => {
-    if (view === 'projects') return 'project'
-    if (view === 'proposals') return 'proposal'
-    return querystringParams.t || defaultPostType
-  }, [querystringParams, defaultPostType, view])
+  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe'], location)
 
-  const postTypeFilter = determinePostTypeFilter()
   const search = querystringParams.search
   let sortBy = querystringParams.s || customView?.defaultSort || defaultSortBy
   if (!customView && sortBy === 'order') {
     sortBy = 'updated'
   }
-  const viewMode = querystringParams.v || customView?.defaultViewMode || projectsDefault || defaultViewMode
+  if (view === 'events') {
+    sortBy = 'start_time'
+  }
+  const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
+  const timeframe = querystringParams.timeframe || 'future'
+
+  // TODO: merge this and getTypes
+  const determinePostTypeFilter = useCallback(() => {
+    if (view === 'projects') return 'project'
+    if (view === 'proposals') return 'proposal'
+    if (view === 'events') return 'event'
+    return querystringParams.t || defaultPostType
+  }, [querystringParams, defaultPostType, view])
+
+  const postTypeFilter = determinePostTypeFilter()
 
   const getTypes = useCallback(({ customView, view }) => {
     if (customView?.type === 'stream') return customView?.postTypes
-    if (view === 'ask-and-offer') return ['request', 'offer']
+    if (systemView) return systemView?.postTypes
     return null
   }, [])
 
-  const fetchPostsParam = {
-    activePostsOnly: customView?.type === 'stream' ? customView?.activePostsOnly : false,
-    childPostInclusion,
-    context,
-    topicName,
-    filter: postTypeFilter,
-    forCollection: customView?.type === 'collection' ? customView?.collectionId : null,
-    slug: groupSlug,
-    search,
-    sortBy,
-    topic: topic?.id,
-    topics: customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : [],
-    types: getTypes({ customView, view })
-  }
+  const fetchPostsParam = useMemo(() => {
+    const params = {
+      activePostsOnly: customView?.type === 'stream' ? customView?.activePostsOnly : false,
+      childPostInclusion,
+      context,
+      filter: postTypeFilter,
+      forCollection: customView?.type === 'collection' ? customView?.collectionId : null,
+      search,
+      slug: groupSlug,
+      sortBy,
+      topic: topic?.id,
+      topicName,
+      topics: customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : [],
+      types: getTypes({ customView, view })
+    }
+    if (view === 'events') {
+      fetchPostsParam.afterTime = timeframe === 'future' ? new Date().toISOString() : undefined
+      fetchPostsParam.beforeTime = timeframe === 'past' ? new Date().toISOString() : undefined
+      fetchPostsParam.order = timeframe === 'future' ? 'asc' : 'desc'
+    }
+    return params
+  }, [childPostInclusion, context, customView, groupSlug, postTypeFilter, timeframe, topic?.id, topicName, sortBy, search, view])
 
+  let name = customView?.name || systemView?.name || ''
+  let icon = customView?.icon || systemView?.icon
   if (context === CONTEXT_MY) {
     switch (view) {
       case VIEW_MENTIONS:
+        name = 'Mentions'
+        icon = 'Email'
         fetchPostsParam.mentionsOf = [currentUser.id]
         break
       case VIEW_ANNOUNCEMENTS:
+        name = 'Announcements'
+        icon = 'Announcement'
         fetchPostsParam.announcementsOnly = true
         break
       case VIEW_INTERACTIONS:
+        name = 'Interactions'
+        icon = 'Support'
         fetchPostsParam.interactedWithBy = [currentUser.id]
         break
       case VIEW_POSTS:
+        name = 'Posts'
+        icon = 'Posticon'
         fetchPostsParam.createdBy = [currentUser.id]
         break
     }
@@ -161,12 +191,17 @@ export default function Stream (props) {
   })
   const hasMoreModerationActions = useSelector(state => decisionView === 'moderation' ? getHasMoreModerationActions(state, fetchModerationActionParam) : false)
 
-  const ViewComponent = viewComponent[viewMode]
-
   const fetchModerationActionsAction = useCallback((offset) => {
     if (pendingModerationActions || hasMoreModerationActions === false) return
     return dispatch(fetchModerationActions({ offset, ...fetchModerationActionParam }))
   }, [pendingModerationActions, hasMoreModerationActions, fetchModerationActionParam])
+
+  const fetchPostsFrom = useCallback((offset) => {
+    if (pending || hasMore === false) return
+    dispatch(fetchPosts({ offset, ...fetchPostsParam }))
+  }, [pending, hasMore, fetchPostsParam])
+
+  // TODO: fetch custom view inc ase it has been updated?
 
   useEffect(() => {
     if (topicName) {
@@ -178,15 +213,11 @@ export default function Stream (props) {
     }
     if (decisionView === 'moderation') {
       fetchModerationActionsAction(0)
-    } else {
+    } else if (!customViewId || customView?.type === 'stream') {
+      // Fetch posts, unless the custom view has not fully loaded yet
       fetchPostsFrom(0)
     }
-  }, [groupSlug, topicName, postTypeFilter, sortBy, childPostInclusion, context, group?.id, search, customViewId, topic, view, decisionView])
-
-  const fetchPostsFrom = useCallback((offset) => {
-    if (pending || hasMore === false) return
-    dispatch(fetchPosts({ offset, ...fetchPostsParam }))
-  }, [pending, hasMore, fetchPostsParam])
+  }, [fetchPostsParam, decisionView])
 
   const changeTab = useCallback(tab => {
     dispatch(updateUserSettings({ settings: { streamPostType: tab || '' } }))
@@ -216,14 +247,38 @@ export default function Stream (props) {
     dispatch(changeQuerystringParam(location, 'd', view, 'proposals'))
   }, [location])
 
-  const newPost = useCallback(() => dispatch(push(createPostUrl(params, querystringParams))), [params, querystringParams])
+  const changeTimeframe = useCallback(timeframe => {
+    dispatch(changeQuerystringParam(location, 'timeframe', timeframe, 'future'))
+  }, [location])
+
+  const newPost = useCallback(() => dispatch(push(createPostUrl(routeParams, querystringParams))), [routeParams, querystringParams])
 
   if (topicLoading) return <Loading />
 
+  const ViewComponent = viewComponent[viewMode]
+  const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'
+
+  const info = customView?.type === 'stream'
+    ? (
+      <div className='flex flex-row gap-2 items-center'>
+        <span className='text-sm'>
+          {t('Displaying')}:&nbsp;
+          {customView?.activePostsOnly ? 'Only active' : ''}
+        </span>
+
+        {customView?.postTypes.length === 0 ? t('None') : customView?.postTypes.map((p, i) => <span key={i}><PostLabel key={p} type={p} className='align-middle mr-1' />{p}s&nbsp;</span>)}
+        {customView?.topics.length > 0 && <div>{t('filtered by topics:')}</div>}
+        {customView?.topics.length > 0 && customView?.topics.map(t => <span key={t.id}>#{t.name}</span>)}
+      </div>
+      )
+    : customView?.type === 'collection' ? 'Curated Post Collection' : null
+
+  const noPostsMessage = view === 'events' ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') }) : 'No posts'
+
   return (
-    <div id='stream-outer-container' className='max-w-[750px] mx-auto overflow-auto h-full' ref={setContainer}>
+    <div id='stream-outer-container' className='flex flex-col h-full' ref={setContainer}>
       <Helmet>
-        <title>{group ? `${group.name} | ` : ''}Hylo</title>
+        <title>{name} | {group ? `${group.name} | ` : context} | Hylo</title>
         <meta name='description' content={group ? `Posts from ${group.name}. ${group.description}` : 'Group Not Found'} />
       </Helmet>
 
@@ -231,8 +286,10 @@ export default function Stream (props) {
         <Route path='post/:postId' element={<PostDialog container={container} />} />
       </Routes>
 
-      {topicName
-        ? (
+      <ViewHeader title={name} icon={icon} info={info} />
+
+      {/* {topicName
+        && (
           <TopicFeedHeader
             isSubscribed={groupTopic && groupTopic.isSubscribed}
             toggleSubscribe={
@@ -249,75 +306,69 @@ export default function Stream (props) {
             bannerUrl={group && group.bannerUrl}
             newPost={newPost}
           />
-          )
-        : (
-          <GroupBanner
-            customPostTypes={customView?.type === 'stream' ? customView?.postTypes : null}
-            customActivePostsOnly={customView?.type === 'stream' ? customView?.activePostsOnly : false}
-            customViewTopics={customView?.type === 'stream' ? customView?.topics?.toModelArray() : null}
-            customViewType={customView?.type}
-            context={context}
-            currentUser={currentUser}
-            currentUserHasMemberships={currentUserHasMemberships}
-            group={group}
-            isAboutOpen={isAboutOpen}
+          )} */}
+
+      <div id='stream-inner-container' className='flex flex-col flex-1 w-full max-w-[750px] mx-auto overflow-auto p-4'>
+        {hasPostPrompt && (
+          <PostPrompt
+            avatarUrl={currentUser.avatarUrl}
+            firstName={currentUser.firstName()}
             newPost={newPost}
             querystringParams={querystringParams}
-            routeParams={params}
+            routeParams={routeParams}
             type={postTypeFilter}
-            icon={customView?.icon}
-            label={customView?.name}
           />
-          )}
-      <ViewControls
-        routeParams={params} view={view} customPostTypes={customView?.type === 'stream' ? customView?.postTypes : null} customViewType={customView?.type}
-        postTypeFilter={postTypeFilter} sortBy={sortBy} viewMode={viewMode} searchValue={search}
-        changeTab={changeTab} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
-        changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
-        decisionView={decisionView} changeDecisionView={changeDecisionView}
-      />
-      {decisionView !== 'moderation' && (
-        <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
-          {!pending && posts.length === 0 ? <NoPosts /> : ''}
-          {posts.map(post => {
-            const groupSlugs = post.groups.map(group => group.slug)
-            return (
-              <ViewComponent
-                className={cn({ [styles.cardItem]: viewMode === 'cards' })}
-                routeParams={params}
-                post={post}
-                group={group}
-                key={post.id}
-                currentGroupId={group && group.id}
-                currentUser={currentUser}
-                querystringParams={querystringParams}
-                childPost={![CONTEXT_MY, 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
-              />
-            )
-          })}
-        </div>
-      )}
-      {decisionView === 'moderation' && (
-        <div className='streamItems'>
-          {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
-          {moderationActions.map(modAction => {
-            return (
-              <ModerationListItem
-                group={group}
-                key={modAction.id}
-                moderationAction={modAction}
-                handleClearModerationAction={() => dispatch(clearModerationAction({ postId: modAction?.post?.id, moderationActionId: modAction?.id, groupId: group?.id }))}
-              />
-            )
-          })}
-        </div>
-      )}
-      {pending && <Loading />}
+        )}
+        <ViewControls
+          routeParams={routeParams} view={view} customPostTypes={customView?.type === 'stream' ? customView?.postTypes : null} customViewType={customView?.type}
+          postTypeFilter={postTypeFilter} sortBy={sortBy} viewMode={viewMode} searchValue={search}
+          changeTab={changeTab} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
+          changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
+          decisionView={decisionView} changeDecisionView={changeDecisionView} changeTimeframe={changeTimeframe} timeframe={timeframe}
+        />
+        {decisionView !== 'moderation' && (
+          <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
+            {!pending && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+            {posts.map(post => {
+              const groupSlugs = post.groups.map(group => group.slug)
+              return (
+                <ViewComponent
+                  className={cn({ [styles.cardItem]: viewMode === 'cards' })}
+                  routeParams={routeParams}
+                  post={post}
+                  group={group}
+                  key={post.id}
+                  currentGroupId={group && group.id}
+                  currentUser={currentUser}
+                  querystringParams={querystringParams}
+                  childPost={![CONTEXT_MY, 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
+                />
+              )
+            })}
+          </div>
+        )}
+        {decisionView === 'moderation' && (
+          <div className='streamItems'>
+            {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
+            {moderationActions.map(modAction => {
+              return (
+                <ModerationListItem
+                  group={group}
+                  key={modAction.id}
+                  moderationAction={modAction}
+                  handleClearModerationAction={() => dispatch(clearModerationAction({ postId: modAction?.post?.id, moderationActionId: modAction?.id, groupId: group?.id }))}
+                />
+              )
+            })}
+          </div>
+        )}
+        {pending && <Loading />}
 
-      <ScrollListener
-        onBottom={() => fetchPostsFrom(posts.length)}
-        elementId='stream-outer-container'
-      />
+        <ScrollListener
+          onBottom={() => fetchPostsFrom(posts.length)}
+          elementId='stream-inner-container'
+        />
+      </div>
     </div>
   )
 }
