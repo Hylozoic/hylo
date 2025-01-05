@@ -3,27 +3,48 @@ import React, { useState, useRef, useImperativeHandle, forwardRef, useCallback }
 import { Text, TouchableOpacity, View, SectionList } from 'react-native'
 import { gql, useQuery } from 'urql'
 import { isIOS } from 'util/platform'
-import commentsQuerySetFieldsFragment from 'graphql/fragments/commentsQuerySetFieldsFragment'
 import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
 import Comment from 'components/Comment'
 import Loading from 'components/Loading'
 import styles from './Comments.styles'
 
-export const commentsQuery = gql`
-  query CommentsQuery (
+export const postCommentsQuery = gql`
+  query PostCommentsQuery (
     $postId: ID,
     $cursor: ID
   ) {
     post(id: $postId) {
       id
-      ...CommentsQuerySetFieldsFragment
+      commenters(first: 20) {
+        id
+        name
+        avatarUrl
+      }
+      commentersTotal
+      commentsTotal
+      comments(first: 10, cursor: $cursor, order: "desc") {
+        items {
+          ...CommentFieldsFragment
+          childComments(first: 2, order: "desc") {
+            items {
+              ...CommentFieldsFragment
+              post {
+                id
+              }
+            }
+            total
+            hasMore
+          }
+        }
+        total
+        hasMore
+      }
     }
   }
-  ${commentsQuerySetFieldsFragment}
   ${commentFieldsFragment}
 `
 
-const childCommentsQuery = gql`
+export const childCommentsQuery = gql`
   query ChildCommentsQuery (
     $commentId: ID,
     $cursor: ID
@@ -54,7 +75,10 @@ function Comments ({
   panHandlers,
   onSelect
 }, ref) {
-  const [{ data, pending }] = useQuery({ query: commentsQuery, variables: { postId } })
+  const [{ data, pending }] = useQuery({
+    query: postCommentsQuery,
+    variables: { postId }
+  })
   const post = data?.post
   const commentsQuerySet = post?.comments
   const comments = commentsQuerySet?.items || []
@@ -190,7 +214,7 @@ export function ShowMore ({ postOrComment, style = {} }) {
   const variables = forSubcomments
     ? { commentId: postOrComment?.id, cursor }
     : { postId: postOrComment?.id, cursor }
-  const query = forSubcomments ? childCommentsQuery : commentsQuery
+  const query = forSubcomments ? childCommentsQuery : postCommentsQuery
   const [, fetchComments] = useQuery({ query, variables, pause: true })
   const total = commentQuerySet?.total || 0
   const hasMore = commentQuerySet?.hasMore

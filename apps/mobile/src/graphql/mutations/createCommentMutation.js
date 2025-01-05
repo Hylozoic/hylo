@@ -15,19 +15,16 @@ export default gql`
     }) {
       id
       text
-      post {
+      creator {
         id
       }
-      creator {
+      parentComment {
         id
       }
       attachments {
         type
         url
         position
-        id
-      }
-      parentComment {
         id
       }
       createdAt
