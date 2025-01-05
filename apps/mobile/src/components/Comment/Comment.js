@@ -19,7 +19,6 @@ import Icon from 'components/Icon'
 import styles from './Comment.styles'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import ImageAttachments from 'components/ImageAttachments'
-import { useGroup } from 'hooks/useCurrentGroup'
 
 export default function Comment ({
   comment,
