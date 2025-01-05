@@ -1,35 +1,37 @@
 import { gql } from 'urql'
 
 // TODO: URQL - analytics: AnalyticsEvents.DIRECT_MESSAGE_SENT
+// TODO: URQL - Look into createMessage updater which currently simply invalidates the whole thread. 
+//       Doesn't work as expected with pagination when returning all fields. 
 export default gql` 
   mutation CreateMessageMutation (
     $messageThreadId: String,
-    $text: String,
-    $createdAt: Date
+    $text: String
+    # $createdAt: Date
   ) {
     createMessage(data: {
       messageThreadId: $messageThreadId,
-      text: $text,
-      createdAt: $createdAt
+      text: $text
+      # createdAt: $createdAt
     }) {
-      id
+      # id
       text
-      createdAt
-      creator {
-        id
-        name
-        avatarUrl
-      }
-      messageThread {
-        id
-        createdAt
-        updatedAt
-        participants {
-          id
-          name
-          avatarUrl
-        }
-      }
+      # createdAt
+      # creator {
+      #   id
+      #   name
+      #   avatarUrl
+      # }
+      # messageThread {
+      #   id
+      #   createdAt
+      #   updatedAt
+      #   participants {
+      #     id
+      #     name
+      #     avatarUrl
+      #   }
+      # }
     }
   }
 `
