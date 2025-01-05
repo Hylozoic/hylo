@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import Pill from 'components/Pill'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { capitalize, keyBy } from 'lodash'
 import { animalCountToRange, areaToRange } from 'store/presenters/presentFarmData'
 import {

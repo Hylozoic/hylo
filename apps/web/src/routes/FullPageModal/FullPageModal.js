@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import React, { useState } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import isWebView from 'util/webView'

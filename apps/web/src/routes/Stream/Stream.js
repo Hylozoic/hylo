@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { get, isEmpty } from 'lodash/fp'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
@@ -137,9 +137,9 @@ export default function Stream (props) {
       types: getTypes({ customView, view })
     }
     if (view === 'events') {
-      fetchPostsParam.afterTime = timeframe === 'future' ? new Date().toISOString() : undefined
-      fetchPostsParam.beforeTime = timeframe === 'past' ? new Date().toISOString() : undefined
-      fetchPostsParam.order = timeframe === 'future' ? 'asc' : 'desc'
+      params.afterTime = timeframe === 'future' ? new Date().toISOString() : undefined
+      params.beforeTime = timeframe === 'past' ? new Date().toISOString() : undefined
+      params.order = timeframe === 'future' ? 'asc' : 'desc'
     }
     return params
   }, [childPostInclusion, context, customView, groupSlug, postTypeFilter, timeframe, topic?.id, topicName, sortBy, search, view])

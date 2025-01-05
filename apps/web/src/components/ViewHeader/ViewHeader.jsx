@@ -1,7 +1,7 @@
 import { Info } from 'lucide-react'
 import React from 'react'
 import Icon from 'components/Icon'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { Tooltip, TooltipTrigger, TooltipContent } from 'components/ui/tooltip'
 
 const ViewHeader = ({
   children,

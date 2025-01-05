@@ -1,6 +1,6 @@
 import { string, bool, func } from 'prop-types'
 import React from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { bgImageStyle } from '../../util/index'
 import classes from './RoundImage.module.scss'
 

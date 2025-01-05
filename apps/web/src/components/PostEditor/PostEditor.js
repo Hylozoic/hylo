@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty } from 'lodash/fp'
 import Moment from 'moment-timezone'
 import React, { useMemo, useRef, useEffect, useState } from 'react'

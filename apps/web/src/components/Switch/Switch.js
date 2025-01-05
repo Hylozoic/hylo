@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import classes from './Switch.module.scss'
 
 export default function Switch ({

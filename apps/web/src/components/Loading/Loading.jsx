@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import React from 'react'
 import classes from './Loading.module.scss'
 

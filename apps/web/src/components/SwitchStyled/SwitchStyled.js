@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import classes from './SwitchStyled.module.scss'
 
 function SwitchStyled ({

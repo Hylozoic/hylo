@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import RoundImage from 'components/RoundImage'
 import classes from './PeopleListItem.module.scss'
 

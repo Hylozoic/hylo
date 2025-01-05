@@ -1,7 +1,7 @@
 import React from 'react'
 import { LocationHelpers } from '@hylo/shared'
 import Highlight from 'components/Highlight'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import Icon from 'components/Icon'
 import classes from './PostTitle.module.scss'
 

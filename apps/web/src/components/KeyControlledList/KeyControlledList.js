@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { isEmpty, omit } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react'

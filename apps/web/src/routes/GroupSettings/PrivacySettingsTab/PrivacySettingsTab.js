@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { set, startCase, trim } from 'lodash'
 import React, { Component } from 'react'
 import { useTranslation, withTranslation } from 'react-i18next'

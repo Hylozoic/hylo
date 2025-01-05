@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import RoundImage from 'components/RoundImage'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { createPostUrl } from 'util/navigation'
 
 export default function PostPrompt (props) {

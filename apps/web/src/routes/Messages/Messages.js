@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
@@ -60,7 +60,6 @@ const Messages = () => {
   // State from mapStateToProps
   const contacts = useSelector(state => getContactsList(state))
   const forParticipants = useSelector(state => getParticipantsFromQuerystring(state, location))
-  console.log('forParticipants', forParticipants)
   const prompt = getQuerystringParam('prompt', location)
   const previousLocation = useSelector(state => getPreviousLocation(state))
   const onCloseLocation = useMemo(() => {

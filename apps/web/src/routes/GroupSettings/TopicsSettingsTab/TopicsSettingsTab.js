@@ -1,4 +1,3 @@
-import { cn } from 'util'
 import { find } from 'lodash/fp'
 import { arrayOf, func, number, shape, string, object, bool } from 'prop-types'
 import React, { Component } from 'react'
@@ -11,7 +10,7 @@ import SingleTopicSelector from 'components/TopicSelector/SingleTopicSelector'
 import ScrollListener from 'components/ScrollListener'
 import TextInput from 'components/TextInput'
 import { TOPIC_VISIBILITY } from 'store/models/Topic'
-import { inflectedTotal } from 'util/index'
+import { cn, inflectedTotal } from 'util/index'
 import styles from './TopicsSettingsTab.module.scss'
 
 const sortOptions = [

@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import Icon from 'components/Icon'
 import { Tooltip } from 'react-tooltip'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import classes from './PostLabel.module.scss'
 
 const { string } = PropTypes

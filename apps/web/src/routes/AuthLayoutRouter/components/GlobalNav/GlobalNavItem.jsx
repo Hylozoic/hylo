@@ -6,7 +6,7 @@ import {
   TooltipTrigger
 } from 'components/ui/tooltip'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { cn } from 'util'
+import { cn } from 'util/index'
 
 export default function GlobalNavItem ({
   children,

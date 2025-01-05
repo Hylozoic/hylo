@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import { isEmpty, map } from 'lodash'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import Pillbox from 'components/Pillbox'
 import Loading from 'components/Loading'
 import classes from './SkillsSection.module.scss'

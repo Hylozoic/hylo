@@ -1,13 +1,12 @@
 import React from 'react'
 import { withTranslation } from 'react-i18next'
 import { filter, get } from 'lodash/fp'
-import { cn } from 'util'
-import { bgImageStyle } from 'util/index'
 import ModalDialog from 'components/ModalDialog'
 import TextInput from 'components/TextInput'
 import Member from 'components/Member'
 import classes from './PostPeopleDialog.module.scss'
 import { humanResponse } from 'store/models/EventInvitation'
+import { bgImageStyle, cn } from 'util/index'
 
 class PostPeopleDialog extends React.PureComponent {
   constructor (props) {

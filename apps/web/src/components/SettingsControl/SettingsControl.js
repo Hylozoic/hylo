@@ -2,7 +2,7 @@ import React from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import LocationInput from 'components/LocationInput'
 import IconSelector from 'components/IconSelector'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import classes from './SettingsControl.module.scss'
 
 export default function SettingsControl (props) {

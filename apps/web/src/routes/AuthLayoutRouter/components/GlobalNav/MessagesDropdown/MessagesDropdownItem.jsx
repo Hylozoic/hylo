@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { TextHelpers } from '@hylo/shared'
 import RoundImageRow from 'components/RoundImageRow'
 import { isUnread, participantAttributes } from 'store/models/MessageThread'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { toRefArray, itemsToArray } from 'util/reduxOrmMigration'
 import { lastMessageCreator } from './util'
 

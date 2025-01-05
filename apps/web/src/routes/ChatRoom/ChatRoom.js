@@ -19,7 +19,6 @@ import {
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import Button from 'components/Button'
 import HyloEditor from 'components/HyloEditor'
-import Icon from 'components/Icon'
 import LinkPreview from 'components/PostEditor/LinkPreview'
 import {
   FETCH_LINK_PREVIEW,
@@ -51,7 +50,7 @@ import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { MAX_POST_TOPICS } from 'util/constants'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import isWebView from 'util/webView'
 
 import styles from './ChatRoom.module.scss'
@@ -510,11 +509,11 @@ export default function ChatRoom (props) {
             allowMultiple
           >
             <ImagePlus className={cn('text-foreground hover:cursor-pointer hover:text-accent', { 'text-primary': imageAttachments && imageAttachments.length > 0 })} />
-          {/* Remove when it's confirmed to be working              
+          {/* Remove when it's confirmed to be working
             <Icon
               name='AddImage'
               className={cn('text-foreground', styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
-            /> 
+            />
             */}
           </UploadAttachmentButton>
           <Button

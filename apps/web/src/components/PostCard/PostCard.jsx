@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { get } from 'lodash/fp'
 import React, { useCallback, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'

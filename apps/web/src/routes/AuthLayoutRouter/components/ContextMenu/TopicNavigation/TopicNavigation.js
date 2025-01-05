@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { Link, NavLink } from 'react-router-dom'
 import Badge from 'components/Badge'
 import Icon from 'components/Icon'

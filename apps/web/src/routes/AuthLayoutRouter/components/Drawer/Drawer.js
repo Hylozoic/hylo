@@ -1,10 +1,7 @@
-import { cn } from 'util'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { bgImageStyle } from 'util/index'
-import { baseUrl, createGroupUrl, groupUrl } from 'util/navigation'
 import {
   ALL_GROUPS_ID, ALL_GROUPS_AVATAR_PATH, DEFAULT_AVATAR,
   PUBLIC_CONTEXT_ID, PUBLIC_CONTEXT_AVATAR_PATH, GROUP_EXPLORER_ID, GROUP_EXPLORER_AVATAR_PATH, PUBLIC_MAP_ID, PUBLIC_MAP_AVATAR_PATH, MY_HOME_AVATAR_PATH, MY_HOME_ID
@@ -17,6 +14,8 @@ import Icon from 'components/Icon'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
+import { bgImageStyle, cn } from 'util/index'
+import { baseUrl, createGroupUrl, groupUrl } from 'util/navigation'
 
 // import s from './Drawer.module.scss' // eslint-disable-line no-unused-vars
 import s from './Drawer.module.scss'

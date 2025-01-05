@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import Tooltip from 'components/Tooltip'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'

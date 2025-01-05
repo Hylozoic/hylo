@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import SuggestedSkills from 'components/SuggestedSkills'
 import { DEFAULT_AVATAR, DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, accessibilityString, accessibilityDescription, visibilityIcon, visibilityString, visibilityDescription } from 'store/models/Group'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { groupUrl, groupDetailUrl } from 'util/navigation'
 
 import Icon from 'components/Icon'
