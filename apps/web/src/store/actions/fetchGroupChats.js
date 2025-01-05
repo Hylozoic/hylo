@@ -1,11 +1,12 @@
 import { get } from 'lodash/fp'
+import orm from 'store/models'
 import { createSelector } from 'reselect'
 import { FETCH_GROUP_CHATS } from 'store/constants'
 import { makeGetQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
 
 export default function fetchGroupChats ({ offset = 0, pageSize = 20, search }) {
   const query = groupChatsQuery
-  const extractModel = 'GroupChat'
+  const extractModel = 'Group'
   const getItems = get('payload.data.groups')
 
   return {
@@ -76,18 +77,13 @@ const getGroupChatsResults = makeGetQueryResults(FETCH_GROUP_CHATS)
 
 export const getHasMoreGroupChats = createSelector(getGroupChatsResults, get('hasMore'))
 
-export const getGroupChats = makeQueryResultsModelSelector(
-  getGroupChatsResults,
-  'Group',
-  wrapGroupChatInWidget
-)
-
-function wrapGroupChatInWidget (groupChat, index) {
+export function wrapGroupChatInWidget (groupChat, index) {
   return {
     type: 'groupchat',
     id: groupChat.id,
     parentId: null,
     order: index + 1,
-    viewGroup: groupChat
+    viewGroup: groupChat,
+    childWidgets: []
   }
 }

@@ -217,3 +217,11 @@ export const PUBLIC_CONTEXT_AVATAR_PATH = '/public.svg'
 
 export const MY_HOME_ID = 'my-home'
 export const MY_HOME_AVATAR_PATH = '/my-home.svg'
+
+export const getGroupChatTitle = ({group, currentUser}) => {
+  const members = group?.members?.items
+  const isDM = members?.length === 2
+  const otherUser = members.find(member => member.id !== currentUser.id)
+
+  return isDM ? otherUser.name : group.name
+}

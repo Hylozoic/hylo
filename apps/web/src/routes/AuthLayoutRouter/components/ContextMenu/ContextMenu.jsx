@@ -1,6 +1,6 @@
 import { cn } from 'util'
 import { compact, get } from 'lodash/fp'
-import React, { useMemo, useState, useCallback } from 'react'
+import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +9,7 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
+import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import NavLink from './NavLink'
@@ -23,7 +24,7 @@ import { getContextWidgets, orderContextWidgetsForContextMenu } from 'store/sele
 import getMe from 'store/selectors/getMe'
 import { removeWidgetFromMenu, updateContextWidget } from 'store/actions/contextWidgets'
 import resetNewPostCount from 'store/actions/resetNewPostCount'
-import { getGroupChats } from 'store/actions/fetchGroupChats'
+import fetchGroupChats, { wrapGroupChatInWidget } from 'store/actions/fetchGroupChats'
 import useGatherItems from 'hooks/useGatherItems'
 import { CONTEXT_MY, FETCH_POSTS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import orm from 'store/models'
@@ -64,6 +65,8 @@ export default function ContextMenu (props) {
   const isMyContext = routeParams.context === CONTEXT_MY
   const isGroupChats = routeParams.context === 'groupchats'
   const profileUrl = personUrl(get('id', currentUser), routeParams.groupSlug)
+  const [groupChats, setGroupChats] = useState([])
+  const groupChatWidgets = useMemo(() => groupChats.map(wrapGroupChatInWidget), [groupChats])
 
   // TODO CONTEXT: the new post count will be refactored into the use of highlightNumber and secondaryNumber, on the context widgets
   const badge = useSelector(state => {
@@ -73,6 +76,13 @@ export default function ContextMenu (props) {
     }
     return null
   })
+
+  useEffect(() => {
+    if (isGroupChats) {
+      dispatch(fetchGroupChats({}))
+        .then((resp) => setGroupChats(resp?.payload?.data?.groups?.items))
+    }
+  }, [isGroupChats, dispatch])
 
   const hasRelatedGroups = useSelector(state => {
     if (group) {
@@ -86,8 +96,6 @@ export default function ContextMenu (props) {
   const contextWidgets = useSelector(state => {
     if (isMyContext || isPublic) {
       return getStaticMenuWidgets({ isPublic, isMyContext, profileUrl })
-    } else if (isGroupChats) {
-      return getGroupChats(state)
     }
     return getContextWidgets(state, group)
   })
@@ -288,7 +296,7 @@ export default function ContextMenu (props) {
               <ContextWidgetList
                 isDragging={isDragging}
                 isEditting={isEditting}
-                contextWidgets={orderedWidgets}
+                contextWidgets={isGroupChats ? groupChatWidgets : orderedWidgets}
                 groupSlug={routeParams.groupSlug}
                 rootPath={rootPath}
                 canAdminister={canAdminister}
@@ -360,7 +368,6 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
-
   const isDroppable = isWidgetDroppable({ widget })
   const isCreating = widget.id === 'creating'
 
@@ -409,7 +416,6 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
     return (
       <div key={widget.id} style={style} className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground '>
         <span className='flex justify-between items-center content-center'>
-          <WidgetIconResolver widget={widget} />
           <MenuLink onClick={handleLogout}>
             <span className='text-lg font-bold'>{title}</span>
           </MenuLink>
@@ -429,13 +435,16 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
     )
   }
 
+  if (widget.type === 'groupchat') {
+    return (<GroupChatContextMenuItem widget={widget} url={url} rootPath={rootPath} title={title} />)
+  }
+
   return (
     <>
       <DropZone isDragging={isDragging} height={isDroppable && isEditting ? 'h-5' : ''} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }}>
         <Icon name='Plus' onClick={() => handlePositionedAdd({ widget })} />
       </DropZone>
       <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground '>
-        {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
         {url && (widget.childWidgets && widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (
             <span className='flex items-center content-center'>
@@ -601,4 +610,34 @@ function SpecialTopElementRenderer ({ widget, group }) {
   }
 
   return null
+}
+
+function GroupChatContextMenuItem ({ widget, url, rootPath, title }) {
+  const { t } = useTranslation()
+  const currentUser = useSelector(getMe)
+  const members =widget.viewGroup.members.items
+  const isDM = members.length === 2
+  const otherUser = members.find(member => member.id !== currentUser.id)
+
+  return (
+    <div className='relative flex items-center'>
+      <MenuLink
+        to={url}
+        className='flex items-center w-full px-4 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground'
+      >
+      {!isDM &&
+        <div className='flex items-center'>
+          <WidgetIconResolver widget={widget} />
+          <span className='text-sm font-bold ml-2'>{title}</span>
+        </div>}
+      {isDM &&
+        <div className='flex items-center'>
+          <Avatar avatarUrl={currentUser.avatarUrl} name={currentUser.name} medium />
+          x
+          <Avatar avatarUrl={otherUser.avatarUrl} name={otherUser.name} medium />
+          <span className='text-sm font-bold ml-2'>{otherUser.name}</span>
+        </div>}
+      </MenuLink>
+    </div>
+  )
 }

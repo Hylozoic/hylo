@@ -209,7 +209,7 @@ function EditGroupChat() {
           <Button
             variant='primary'
             onClick={handleSubmit}
-            disabled={selectedMembers.length === 0}
+            disabled={!isValid()}
           >
             {t('Save')}
           </Button>

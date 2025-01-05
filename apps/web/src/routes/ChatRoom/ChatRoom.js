@@ -5,7 +5,8 @@ import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams, useLocation, Routes, Route } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { useParams, useLocation, Routes, Route, useNavigate } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData } from '@virtuoso.dev/message-list'
 
@@ -43,6 +44,7 @@ import fetchTopic from 'store/actions/fetchTopic'
 import updateGroupTopicLastReadPost from 'store/actions/updateGroupTopicLastReadPost'
 import { FETCH_TOPIC, FETCH_GROUP_TOPIC } from 'store/constants'
 import orm from 'store/models'
+import { getGroupChatTitle } from 'store/models/Group'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getGroupTopicForCurrentRoute from 'store/selectors/getGroupTopicForCurrentRoute'
@@ -107,6 +109,8 @@ export default function ChatRoom ({ context, empty = false }) {
   const dispatch = useDispatch()
   const routeParams = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
+  const { t } = useTranslation()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
 
@@ -441,11 +445,12 @@ export default function ChatRoom ({ context, empty = false }) {
     <div className={cn('h-full shadow-md flex flex-col overflow-hidden', { [styles.withoutNav]: withoutNav })}>
       <Helmet>
         {/* TODO groupchats: change this */}
-        <title>#{inUseTopicName} | {group ? `${group.name} | ` : ''}Hylo</title>
+        {!isGroupChat && <title>#{inUseTopicName} | {group ? `${group.name} | ` : ''}Hylo</title>}
+        {isGroupChat && <title>{t('Chat')} | Hylo</title>}
       </Helmet>
         {/* TODO groupchats: change this */}
-      <ViewHeader title={`#${inUseTopicName}`} />
-
+      {!isGroupChat && <ViewHeader title={`#${inUseTopicName}`} />}
+      {isGroupChat && <ViewHeader title={getGroupChatTitle({group, currentUser})} />}
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden' ref={setContainer}>
         {initialPostToScrollTo === null
           ? <div className={styles.loadingContainer}><Loading /></div>

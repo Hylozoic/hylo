@@ -187,7 +187,11 @@ export function widgetUrl ({ widget, rootPath, groupSlug, context = 'group' }) {
   } else if (widget.view) {
     url = viewUrl(widget.view, { groupSlug, context: widget.context || context })
   } else if (widget.viewGroup) {
-    url = groupUrl(widget.viewGroup.slug)
+    if (widget.type === 'groupchat' || widget.viewGroup?.type === 'groupchat') {
+      url = groupChatUrl(widget.viewGroup.slug)
+    } else {
+      url = groupUrl(widget.viewGroup.slug)
+    }
   } else if (widget.viewUser) {
     url = personUrl(widget.viewUser.id, groupSlug)
   } else if (widget.viewPost) {
