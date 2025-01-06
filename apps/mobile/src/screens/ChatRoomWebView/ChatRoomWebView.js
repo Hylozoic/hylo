@@ -40,7 +40,7 @@ export default function ChatRoom () {
   })
 
   useEffect(() => {
-    navigation.setOptions({ headerTitle: currentGroup?.name })
+    navigation.setOptions({ title: currentGroup?.name })
   }, [currentGroup?.name])
 
   return (

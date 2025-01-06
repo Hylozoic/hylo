@@ -30,9 +30,20 @@ const cursorPagination = () => {
       }
       results.push(...(data || []))
     })
+
+    // TODO: URQL - This re-ordering only seemed necessary to fix issues with the Messages list in a MessageThread,
+    //       try removing it and testing later. It may not be necessary.
+    const { order = 'desc' } = fieldArgs
+    const isAscending = order.toLowerCase() === 'asc'
+    const uniqueResults = [...new Set(results)].sort((a, b) => {
+      const aCreatedAt = new Date(cache.resolve(a, 'createdAt') || 0).getTime()
+      const bCreatedAt = new Date(cache.resolve(b, 'createdAt') || 0).getTime()
+      return isAscending ? aCreatedAt - bCreatedAt : bCreatedAt - aCreatedAt
+    })
+
     return {
       __typename: inferredTypename,
-      items: results,
+      items: uniqueResults,
       hasMore,
       total
     }

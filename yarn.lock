@@ -2875,7 +2875,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@emotion/cache@npm:^11.13.0, @emotion/cache@npm:^11.4.0":
+"@emotion/cache@npm:^11.13.0":
   version: 11.13.5
   resolution: "@emotion/cache@npm:11.13.5"
   dependencies:
@@ -2885,6 +2885,19 @@ __metadata:
     "@emotion/weak-memoize": "npm:^0.4.0"
     stylis: "npm:4.2.0"
   checksum: 10/d91139453d279cfd6f6f38180d3af2fdcee8c0fc6d9a6faa2cdce9a1211b294a8019ef45365bf1171e0687d1744a70ff760637b88ed46f7a9fe74db9dc36f4df
+  languageName: node
+  linkType: hard
+
+"@emotion/cache@npm:^11.4.0":
+  version: 11.14.0
+  resolution: "@emotion/cache@npm:11.14.0"
+  dependencies:
+    "@emotion/memoize": "npm:^0.9.0"
+    "@emotion/sheet": "npm:^1.4.0"
+    "@emotion/utils": "npm:^1.4.2"
+    "@emotion/weak-memoize": "npm:^0.4.0"
+    stylis: "npm:4.2.0"
+  checksum: 10/52336b28a27b07dde8fcdfd80851cbd1487672bbd4db1e24cca1440c95d8a6a968c57b0453c2b7c88d9b432b717f99554dbecc05b5cdef27933299827e69fd8e
   languageName: node
   linkType: hard
 
@@ -9520,13 +9533,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:*, @types/react@npm:^18.2.6, @types/react@npm:^18.3.5":
+"@types/react@npm:*":
   version: 18.3.14
   resolution: "@types/react@npm:18.3.14"
   dependencies:
     "@types/prop-types": "npm:*"
     csstype: "npm:^3.0.2"
   checksum: 10/683927b1e24293276cf62f60f1baa666b7f1053c87ec8d8c79d2d4bc105b99e0492482f801ffce7cdef9d656c11294faa423051807a500c7475f4fbd7661bd8d
+  languageName: node
+  linkType: hard
+
+"@types/react@npm:^18.2.6, @types/react@npm:^18.3.5":
+  version: 18.3.18
+  resolution: "@types/react@npm:18.3.18"
+  dependencies:
+    "@types/prop-types": "npm:*"
+    csstype: "npm:^3.0.2"
+  checksum: 10/7fdd8b853e0d291d4138133f93f8d5c333da918e5804afcea61a923aab4bdfc9bb15eb21a5640959b452972b8715ddf10ffb12b3bd071898b9e37738636463f2
   languageName: node
   linkType: hard
 
@@ -25832,7 +25855,7 @@ __metadata:
     react-native-linear-gradient: "npm:^2.8.3"
     react-native-localization: "npm:^2.3.2"
     react-native-modal: "npm:^13.0.1"
-    react-native-onesignal: "npm:^5.2.2"
+    react-native-onesignal: "npm:^5.2.8"
     react-native-pager-view: "npm:^6.3.3"
     react-native-picker-select: "npm:^9.2.0"
     react-native-prompt-android: "npm:^1.1.0"
@@ -25849,7 +25872,7 @@ __metadata:
     react-native-url-polyfill: "npm:^1.3.0"
     react-native-vector-icons: "npm:^9.2.0"
     react-native-version: "npm:^4.0.0"
-    react-native-webview: "npm:^13.10.5"
+    react-native-webview: "npm:^13.12.5"
     react-redux: "npm:^8.0.4"
     react-test-renderer: "npm:18.2.0"
     reactotron-react-native: "npm:^5.1.7"
@@ -30568,12 +30591,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-onesignal@npm:^5.2.2":
-  version: 5.2.6
-  resolution: "react-native-onesignal@npm:5.2.6"
+"react-native-onesignal@npm:^5.2.8":
+  version: 5.2.8
+  resolution: "react-native-onesignal@npm:5.2.8"
   dependencies:
     invariant: "npm:^2.2.2"
-  checksum: 10/27970297958fac562d783eff2d267682faf061fba5bd0be6176ba62aa28d6b066c47f79276e46016cfe2cf987ed4801ea5296aee714be8aa82ee140de2c2ba57
+  checksum: 10/c9c94d285b829658b0881f1709b23103e3b95e9f71f0255769e21f8beae53a231aa10fb46394ea9f2c236c1c7b027f146ecca69b60245e4b6634773875e0fe99
   languageName: node
   linkType: hard
 
@@ -30809,16 +30832,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-webview@npm:^13.10.5":
-  version: 13.12.3
-  resolution: "react-native-webview@npm:13.12.3"
+"react-native-webview@npm:^13.12.5":
+  version: 13.12.5
+  resolution: "react-native-webview@npm:13.12.5"
   dependencies:
     escape-string-regexp: "npm:^4.0.0"
     invariant: "npm:2.2.4"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 10/291f01b311185d6e3be6b9bbd0f5a44642ecc6f9f405bf3f6043fdf9e3faa024e45c1d62f2abb93807e2906f7be0d9079a517f9c34cd42604407b44710501212
+  checksum: 10/ea7d5a5f7df2a23cfa2d9afe9856d7d4bfef2502ee9f081b21cc9d0ae77dc2b7465e4007068fffce45256df4f6703a7b215158537885b1ba0c86f2953bec761e
   languageName: node
   linkType: hard
 

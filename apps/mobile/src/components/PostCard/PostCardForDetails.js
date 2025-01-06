@@ -204,8 +204,8 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
         />
       )}
       <PostFooter
-        commenters={post.commenters?.items}
-        commentersTotal={post.commenters?.total}
+        commenters={post.commenters}
+        commentersTotal={post.commentersTotal}
         currentUser={currentUser}
         eventInvitations={post.eventInvitations}
         forDetails

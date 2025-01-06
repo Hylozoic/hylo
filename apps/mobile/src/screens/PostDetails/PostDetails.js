@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { View, Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useDispatch } from 'react-redux'
@@ -12,8 +12,6 @@ import useIsModalScreen from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
-import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
-import commentsQuerySetFieldsFragment from 'graphql/fragments/commentsQuerySetFieldsFragment'
 import PostPresenter from 'urql-shared/presenters/PostPresenter'
 import { KeyboardAccessoryCommentEditor } from 'components/CommentEditor/CommentEditor'
 import Comments from 'components/Comments'
@@ -23,15 +21,12 @@ import SocketSubscriber from 'components/SocketSubscriber'
 import { white } from 'style/colors'
 
 export const postDetailsQuery = gql`
-  query PostDetailsQuery ($id: ID, $cursor: ID) {
+  query PostDetailsQuery ($id: ID) {
     post(id: $id) {
       ...PostFieldsFragment
-      ...CommentsQuerySetFieldsFragment
     }
   }
   ${postFieldsFragment}
-  ${commentsQuerySetFieldsFragment}
-  ${commentFieldsFragment}
 `
 
 export default function PostDetails () {
@@ -42,7 +37,7 @@ export default function PostDetails () {
   const { id: postId } = useRouteParams()
   const [currentGroup] = useCurrentGroup()
   const [{ data, fetching, error }] = useQuery({ query: postDetailsQuery, variables: { id: postId } })
-  const post = useMemo(() => PostPresenter(data?.post, currentGroup?.id), [data?.post])
+  const post = useMemo(() => PostPresenter(data?.post, currentGroup?.id), [data?.post, currentGroup?.id])
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()
 

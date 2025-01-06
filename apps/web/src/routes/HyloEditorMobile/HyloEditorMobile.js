@@ -15,7 +15,6 @@ import HyloEditor from 'components/HyloEditor'
 */
 export default function HyloEditorMobile (props) {
   const editorRef = useRef()
-  // Should the default be empty or a paragraph?
   const [contentHTML, setContentHTML] = useState()
   const [groupIds, setGroupIds] = useState()
   const [placeholder, setPlaceholder] = useState()
@@ -33,7 +32,7 @@ export default function HyloEditorMobile (props) {
     sendMessageToWebView(WebViewMessageTypes.EDITOR.ON_ADD_TOPIC, topic)
   ))
 
-  const handleBeforeCreate = () => {
+  const handleCreate = () => {
     sendMessageToWebView(WebViewMessageTypes.EDITOR.LOADED)
   }
 
@@ -101,7 +100,7 @@ export default function HyloEditorMobile (props) {
     className: 'hyloEditorMobile',
     onUpdate: handleUpdate,
     onEnter: handleEnter,
-    onBeforeCreate: handleBeforeCreate,
+    onCreate: handleCreate,
     // Not implemented: No ADD_MENTION constant
     // onAddMention: handleAddMention
     // onAddLink: handleAddLink,

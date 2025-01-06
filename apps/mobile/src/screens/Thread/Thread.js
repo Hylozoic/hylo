@@ -70,7 +70,14 @@ export default function Thread (props) {
   const sendIsTyping = () => providedSendIsTyping(threadId, true)
   const updateThreadReadTime = () => dispatch(updateThreadReadTimeAction(threadId))
 
-  const [{ data, fetching }, refetchThread] = useQuery({ query: messageThreadMessagesQuery, variables: { id: threadId, first: MESSAGE_PAGE_SIZE, cursor }})
+  const [{ data, fetching, error }, refetchThread] = useQuery({
+    query: messageThreadMessagesQuery,
+    variables: {
+      id: threadId,
+      first: MESSAGE_PAGE_SIZE,
+      cursor
+    }
+  })
   const thread = data?.messageThread
 
   // TODO: URQL handle consolidation of multiple messages from same user
@@ -130,53 +137,55 @@ export default function Thread (props) {
 
   // Was UNSAFE_componentWillUpdate (nextProps) and componentDidUpdate (prevProps)
   useEffect(() => {
-    const prevMessages = prevMessagesRef.current
-    const prevThreadId = prevThreadIdRef.current
+    if (!fetching && messages) {
+      const prevMessages = prevMessagesRef.current
+      const prevThreadId = prevThreadIdRef.current
 
-    // UNSAFE_componentWillUpdate logic (before the update)
-    if (!prevMessages) {
+      // UNSAFE_componentWillUpdate logic (before the update)
+      if (!prevMessages) {
+        prevMessagesRef.current = messages
+        prevThreadIdRef.current = threadId
+        return
+      }
+
+      const deltaLength = Math.abs(messages.length - prevMessages.length)
+      setShouldScroll(false)
+
+      if (deltaLength) {
+        const latest = messages[0]
+        const oldLatest = prevMessages[0]
+
+        if (latest?.id === oldLatest?.id) {
+          if (notify) setNotify(false)
+        } else if (deltaLength === 1 && atBottom &&
+          latest?.creator?.id !== currentUser?.id
+        ) {
+          setNewMessages(newMessages + 1)
+          setNotify(true)
+        } else {
+          setShouldScroll(true)
+        }
+      }
+
+      // componentDidUpdate logic (after the update)
+      if (shouldScroll) {
+        scrollToBottom()
+      }
+
+      if (
+        prevThreadId !== threadId ||
+        (atBottom && prevMessages.length + 1 === messages.length)
+      ) {
+        markAsRead()
+      }
+
+      setHeader()
+
+      // Update refs for the next render
       prevMessagesRef.current = messages
       prevThreadIdRef.current = threadId
-      return
     }
-
-    const deltaLength = Math.abs(messages.length - prevMessages.length)
-    setShouldScroll(false)
-
-    if (deltaLength) {
-      const latest = messages[0]
-      const oldLatest = prevMessages[0]
-
-      if (latest?.id === oldLatest?.id) {
-        if (notify) setNotify(false)
-      } else if (deltaLength === 1 && atBottom &&
-        latest?.creator?.id !== currentUser?.id
-      ) {
-        setNewMessages(newMessages + 1)
-        setNotify(true)
-      } else {
-        setShouldScroll(true)
-      }
-    }
-
-    // componentDidUpdate logic (after the update)
-    if (shouldScroll) {
-      scrollToBottom()
-    }
-
-    if (
-      prevThreadId !== threadId ||
-      (atBottom && prevMessages.length + 1 === messages.length)
-    ) {
-      markAsRead()
-    }
-
-    setHeader()
-
-    // Update refs for the next render
-    prevMessagesRef.current = messages
-    prevThreadIdRef.current = threadId
-  }, [messages, threadId, shouldScroll, notify, currentUser?.id])
+  }, [fetching, messages, threadId, shouldScroll, notify, currentUser?.id])
 
   const handleSubmit = text => {
     createMessage({

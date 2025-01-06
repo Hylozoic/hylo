@@ -91,7 +91,7 @@ export const CommentEditor = forwardRef(function CommentEditor ({
       // }
       const { error } = await createComment({
         text: commentHTML,
-        parentCommentId: replyingTo?.parentComment || replyingTo?.id || null,
+        parentCommentId: replyingTo?.parentComment?.id || replyingTo?.id || null,
         postId: post.id
       })
 

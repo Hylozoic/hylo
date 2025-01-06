@@ -1,13 +1,18 @@
 import reactOn from './reactOn'
+import createComment from './createComment'
 
 export default {
   Mutation: {
-    reactOn,
+    createComment,
+    createMessage: (result, args, cache, info) => {
+      cache.invalidate({ __typename: 'MessageThread', id: args.data.messageThreadId })
+    },
     deletePost: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         cache.invalidate({ __typename: 'Post', id: args.id })
       }
     },
+    reactOn,
     removePost: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         cache.invalidate({ __typename: 'Post', id: args.postId })

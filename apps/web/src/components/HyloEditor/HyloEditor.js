@@ -23,7 +23,7 @@ const HyloEditor = React.forwardRef(({
   onAddLink,
   onAddMention,
   onAddTopic,
-  onBeforeCreate = () => {},
+  onCreate = () => {},
   onUpdate,
   onEnter,
   onEscape,
@@ -35,100 +35,124 @@ const HyloEditor = React.forwardRef(({
   const { t } = useTranslation()
   const editorRef = useRef(null)
   const [selectedLink, setSelectedLink] = useState()
+
+  const extensions = [
+    // Key events respond are last extension first, these will be last
+    Extension.create({
+      name: 'KeyboardShortcuts',
+      // Keep around for debugging for now:
+      // onTransaction: ({ editor, transaction }) => {
+      //   console.log('!!!!! looking how to get all link marks', transaction)
+      //   transactions.doc.node.forEach(child => {
+      //     const [fontSizeMark] = child.marks.filter((m: Mark) => m.type === markType)
+      //    })
+      // },
+      addKeyboardShortcuts () {
+        return {
+          Enter: ({ editor }) => {
+            if (!onEnter) return false
+            return onEnter(editor.getHTML())
+          },
+          Escape: () => {
+            if (!onEscape) return false
+            return onEscape()
+          }
+        }
+      }
+    }),
+
+    StarterKit.configure({
+      heading: {
+        levels: [1, 2, 3]
+      }
+    }),
+
+    Placeholder.configure({ placeholder }),
+
+    Link.extend({
+      // This expands concatenated links back to full href for editing
+      parseHTML () {
+        return [
+          {
+            tag: 'a',
+            // Special handling for links who's innerHTML has been concatenated by the backend
+            contentElement: element => {
+              if (element.innerHTML.match(/…$/)) {
+                const href = element.getAttribute('href')
+
+                try {
+                  const url = new URL(href)
+
+                  element.innerHTML = `${url.hostname}${url.pathname !== '/' ? url.pathname : ''}`
+                  return element
+                } catch (e) {
+                  element.innerHTML = href
+                  return element
+                }
+              }
+
+              return element
+            }
+          }
+        ]
+      },
+      addOptions () {
+        return {
+          ...this.parent?.(),
+          openOnClick: false,
+          autolink: true,
+          HTMLAttributes: {
+            target: null
+          },
+          validate: href => {
+            onAddLink && onAddLink(href)
+            return true
+          }
+        }
+      }
+    }),
+
+    PeopleMentions({ onSelection: onAddMention, maxSuggestions, groupIds, suggestionsThemeName }),
+
+    TopicMentions({ onSelection: onAddTopic, maxSuggestions, groupIds, suggestionsThemeName }),
+
+    Highlight
+  ]
+
   const editor = useEditor({
     content: contentHTML,
-
-    extensions: [
-      // Key events respond are last extension first, these will be last
-      Extension.create({
-        name: 'KeyboardShortcuts',
-        // Keep around for debugging for now:
-        // onTransaction: ({ editor, transaction }) => {
-        //   console.log('!!!!! looking how to get all link marks', transaction)
-        //   transactions.doc.node.forEach(child => {
-        //     const [fontSizeMark] = child.marks.filter((m: Mark) => m.type === markType)
-        //    })
-        // },
-        addKeyboardShortcuts () {
-          return {
-            Enter: ({ editor }) => {
-              if (!onEnter) return false
-              return onEnter(editor.getHTML())
-            },
-            Escape: () => {
-              if (!onEscape) return false
-              return onEscape()
-            }
-          }
-        }
-      }),
-
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3]
-        }
-      }),
-
-      Placeholder.configure({ placeholder }),
-
-      Link.extend({
-        // This expands concatenated links back to full href for editing
-        parseHTML () {
-          return [
-            {
-              tag: 'a',
-              // Special handling for links who's innerHTML has been concatenated by the backend
-              contentElement: element => {
-                if (element.innerHTML.match(/…$/)) {
-                  const href = element.getAttribute('href')
-
-                  try {
-                    const url = new URL(href)
-
-                    element.innerHTML = `${url.hostname}${url.pathname !== '/' ? url.pathname : ''}`
-                    return element
-                  } catch (e) {
-                    element.innerHTML = href
-                    return element
-                  }
-                }
-
-                return element
-              }
-            }
-          ]
-        },
-        addOptions () {
-          return {
-            ...this.parent?.(),
-            openOnClick: false,
-            autolink: true,
-            HTMLAttributes: {
-              target: null
-            },
-            validate: href => {
-              onAddLink && onAddLink(href)
-              return true
-            }
-          }
-        }
-      }),
-
-      PeopleMentions({ onSelection: onAddMention, maxSuggestions, groupIds, suggestionsThemeName }),
-
-      TopicMentions({ onSelection: onAddTopic, maxSuggestions, groupIds, suggestionsThemeName }),
-
-      Highlight
-    ],
-
-    onBeforeCreate,
-
+    extensions,
+    onCreate,
     onUpdate: ({ editor }) => {
       if (!onUpdate) return
-
       onUpdate(editor.getHTML())
     }
-  }, [placeholder, contentHTML]) // TODO: changing the placeholder resets the content of the editor which is probably not what we want
+  })
+
+  // Dynamic setting of initial editor content
+  useEffect(() => {
+    if (editor.isInitialized) {
+      editor.commands.setContent(contentHTML)
+    }
+  }, [editor?.isInitialized, contentHTML])
+
+  // Dynamic placeholder text
+  useEffect(() => {
+    if (editor !== null && placeholder !== '') {
+      editor.extensionManager.extensions.filter(
+        extension => extension.name === 'placeholder'
+      )[0].options.placeholder = placeholder
+      editor.view.dispatch(editor.state.tr)
+    }
+  }, [editor, placeholder])
+
+  useEffect(() => {
+    if (!editor) return
+
+    if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
+
+    editor.setEditable(!readOnly)
+  }, [groupIds, readOnly])
 
   useImperativeHandle(ref, () => ({
     blur: () => {
@@ -156,14 +180,6 @@ const HyloEditor = React.forwardRef(({
       editorRef.current.commands.setContent(content)
     }
   }))
-
-  useEffect(() => {
-    if (!editor) return
-
-    if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
-
-    editor.setEditable(!readOnly)
-  }, [groupIds, readOnly])
 
   const shouldShowBubbleMenu = ({ editor }) => {
     if (onAddLink && editor.isActive('link')) {
