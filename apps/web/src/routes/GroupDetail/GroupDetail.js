@@ -1,4 +1,3 @@
-import { cn } from 'util'
 import { keyBy } from 'lodash'
 import React, { useCallback, useEffect, useMemo } from 'react'
 import { Helmet } from 'react-helmet'
@@ -39,7 +38,7 @@ import getMyMemberships from 'store/selectors/getMyMemberships'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
-import { inIframe } from 'util/index'
+import { cn, inIframe } from 'util/index'
 import { groupUrl, personUrl, removeGroupFromUrl } from 'util/navigation'
 import isWebView, { sendMessageToWebView } from 'util/webView'
 

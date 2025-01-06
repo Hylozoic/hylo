@@ -1,6 +1,5 @@
-import { cn } from 'util'
 import React from 'react'
-import { bgImageStyle } from 'util/index'
+import { cn, bgImageStyle } from 'util/index'
 import classes from './LinkPreview.module.scss'
 
 export default function LinkPreview ({ className, title, url, imageUrl, description }) {

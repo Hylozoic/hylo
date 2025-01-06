@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import moment from 'moment-timezone'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'

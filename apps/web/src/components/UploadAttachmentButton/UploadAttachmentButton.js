@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import { ID_FOR_NEW } from 'components/AttachmentManager/AttachmentManager.store'
 import Icon from 'components/Icon'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import classes from './UploadAttachmentButton.module.scss'
 import {
   uploadedFileToAttachment,

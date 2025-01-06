@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import * as React from 'react'
 import * as PopoverPrimitive from '@radix-ui/react-popover'
 

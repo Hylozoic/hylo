@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { AnalyticsEvents } from '@hylo/shared'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'

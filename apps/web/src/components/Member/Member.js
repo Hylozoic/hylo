@@ -1,13 +1,12 @@
-import { cn } from 'util'
 import PropTypes from 'prop-types'
 import React from 'react'
 import { withTranslation } from 'react-i18next'
-import { bgImageStyle } from 'util/index'
 import BadgeEmoji from 'components/BadgeEmoji'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import SkillLabel from 'components/SkillLabel'
 import { RESP_REMOVE_MEMBERS } from 'store/constants'
+import { cn, bgImageStyle } from 'util/index'
 
 import classes from './Member.module.scss'
 

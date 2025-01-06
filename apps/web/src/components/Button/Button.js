@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import classes from './Button.module.scss'
 
 const { string, bool, func, object, oneOfType, node } = PropTypes

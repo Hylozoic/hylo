@@ -2,12 +2,11 @@ import { trim, pick, keys, omit, find, isEmpty } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
-import { cn } from 'util'
 
 import Button from 'components/Button'
 import Loading from 'components/Loading'
 import SettingsControl from 'components/SettingsControl'
-import { validateEmail } from 'util/index'
+import { cn, validateEmail } from 'util/index'
 
 import classes from './AccountSettingsTab.module.scss'
 

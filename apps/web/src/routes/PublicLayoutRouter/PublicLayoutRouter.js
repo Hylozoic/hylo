@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import React from 'react'
 import { useParams, useLocation, useNavigate, Navigate, Route, Routes } from 'react-router-dom'
 import Div100vh from 'react-div-100vh'

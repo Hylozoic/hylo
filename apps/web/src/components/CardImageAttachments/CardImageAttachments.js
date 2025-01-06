@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import { filter, isEmpty } from 'lodash/fp'

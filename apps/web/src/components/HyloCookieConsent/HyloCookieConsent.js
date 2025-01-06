@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import CookieConsent from 'react-cookie-consent'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import classes from './HyloCookieConsent.module.scss'
 
 export default function HyloCookieConsent () {

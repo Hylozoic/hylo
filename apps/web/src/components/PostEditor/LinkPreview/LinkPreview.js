@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react'
 import ReactPlayer from 'react-player'
 import { useTranslation } from 'react-i18next'
 import { Expand, Shrink } from 'lucide-react'
-import { bgImageStyle } from 'util/index'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
-import { cn } from 'util'
+import { cn, bgImageStyle } from 'util/index'
+
 import classes from './LinkPreview.module.scss'
 
 export default function LinkPreview ({ loading, featured: providedFeatured, ...props }) {

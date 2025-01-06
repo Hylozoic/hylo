@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import React from 'react'
 import classes from './Select.module.scss'
 import { defaultTo } from 'lodash'

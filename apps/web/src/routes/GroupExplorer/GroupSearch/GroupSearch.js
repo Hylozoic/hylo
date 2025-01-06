@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { useSelector } from 'react-redux'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'

@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types'
 import React, { useState, useEffect, useRef } from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { isEmpty } from 'lodash'
 import { position } from 'util/scrolling'
 import Icon from 'components/Icon'

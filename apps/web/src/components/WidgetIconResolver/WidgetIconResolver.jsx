@@ -44,7 +44,7 @@ export function WidgetIconResolver ({ widget, style, className }) {
     case 'viewPost':
       return <Icon name='Posticon' style={style} />
     case 'discussions':
-      return <Icon name='Message' style={style} />
+      return <Icon name='SpeechBubble' style={style} />
     case 'ask-and-offer':
       return <Icon name='Request' style={style} />
     case 'stream':

@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { omit } from 'lodash/fp'
 import React, { useState } from 'react'
 

@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import DeckGL from '@deck.gl/react'
 import {
   EditableGeoJsonLayer,

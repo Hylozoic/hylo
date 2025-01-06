@@ -1,11 +1,9 @@
 import React, { Component, createRef } from 'react'
 import { withTranslation } from 'react-i18next'
 import { bool, func, node, string } from 'prop-types'
-import { cn } from 'util'
-
-import { bgImageStyle } from 'util/index'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
+import { bgImageStyle, cn } from 'util/index'
 
 import classes from './ModalDialog.module.scss'
 

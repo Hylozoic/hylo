@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import React, { useRef } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { CSSTransition } from 'react-transition-group'

@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import classes from '../WelcomeWizard.module.scss'
 
 export default function WelcomeWizardModalFooter ({ previous, submit, continueText, showPrevious = true }) {

@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { filter, isFunction } from 'lodash'
 import React, { PureComponent } from 'react'
 import { withTranslation } from 'react-i18next'

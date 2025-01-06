@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'

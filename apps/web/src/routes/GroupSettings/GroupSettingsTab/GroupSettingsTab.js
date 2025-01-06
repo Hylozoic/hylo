@@ -1,4 +1,3 @@
-import { cn } from 'util'
 import { set, trim } from 'lodash'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
@@ -19,7 +18,7 @@ import {
   DEFAULT_AVATAR,
   LOCATION_PRECISION
 } from 'store/models/Group'
-import { bgImageStyle } from 'util/index'
+import { bgImageStyle, cn } from 'util/index'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss'

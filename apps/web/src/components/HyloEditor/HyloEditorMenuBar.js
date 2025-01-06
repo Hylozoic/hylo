@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import {
   Bold, Italic, SquareCode, Strikethrough,
   // RiH1, RiH2, RiH3,
@@ -24,7 +24,7 @@ export default function HyloEditorMenuBar ({ editor }) {
     <div className={classes.topMenuBar}>
       <button
         onClick={() => editor.chain().focus().toggleBold().run()}
-        className={cn({[classes.isActive]: editor.isActive('bold')})}
+        className={cn({ [classes.isActive]: editor.isActive('bold') })}
       >
         <Bold size={14} className='text-foreground' />
       </button>

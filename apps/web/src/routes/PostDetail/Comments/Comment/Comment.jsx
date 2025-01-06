@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import moment from 'moment-timezone'
 import React, { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'

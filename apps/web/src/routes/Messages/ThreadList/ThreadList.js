@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { get, isEmpty, orderBy } from 'lodash/fp'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'

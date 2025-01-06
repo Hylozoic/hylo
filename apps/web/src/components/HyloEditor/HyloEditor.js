@@ -1,5 +1,5 @@
 import React, { useRef, useImperativeHandle, useEffect, useState } from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { useTranslation } from 'react-i18next'
 import { useEditor, EditorContent, Extension, BubbleMenu } from '@tiptap/react'
 import Highlight from '@tiptap/extension-highlight'

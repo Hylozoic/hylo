@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useParams } from 'react-router-dom'
-import GroupBanner from 'components/GroupBanner'
 import Loading from 'components/Loading'
 import Widget from 'components/Widget'
+import ViewHeader from 'components/ViewHeader'
 import fetchPosts from 'store/actions/fetchPosts'
 import presentGroup from 'store/presenters/presentGroup'
 import presentPost from 'store/presenters/presentPost'
@@ -44,10 +44,7 @@ const LandingPage = () => {
 
   return (
     <div>
-      <GroupBanner
-        context='groups'
-        group={group}
-      />
+      <ViewHeader title='Explore' icon='RaisedHand' />
 
       {widgets && widgets.map(widget => (
         <Widget

@@ -2,8 +2,6 @@ import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { cn } from 'util'
-import { validateEmail } from 'util/index'
 import { checkForStorageAccess, formatError } from '../util'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import checkLogin from 'store/actions/checkLogin'
@@ -12,6 +10,8 @@ import loginWithService from 'store/actions/loginWithService'
 import Button from 'components/Button'
 import GoogleButton from 'components/GoogleButton'
 import TextInput from 'components/TextInput'
+import { cn, validateEmail } from 'util/index'
+
 import classes from './Signup.module.scss'
 
 export default function Signup (props) {

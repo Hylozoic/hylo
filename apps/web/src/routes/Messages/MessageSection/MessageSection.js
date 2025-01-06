@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { array, bool, func, object } from 'prop-types'
 import React from 'react'
 import { throttle, debounce } from 'lodash'

@@ -1,6 +1,6 @@
 import React from 'react'
 import Icon from '../Icon'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import classes from './component.module.scss'
 
 export default function BadgedIcon (props) {
