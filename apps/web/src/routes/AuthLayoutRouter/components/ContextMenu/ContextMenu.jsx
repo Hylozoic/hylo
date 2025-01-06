@@ -302,7 +302,7 @@ export default function ContextMenu (props) {
             </DragOverlay>
           </DndContext>
           {(!isMyContext && !isPublic) && (
-            <div className='w-[calc(100%-1.5em)] ml-[1.5em] p-2 mb-[0.05em]'>
+            <div className='w-[calc(100%-1.5em)] p-2 mb-[0.05em]'>
               <ContextMenuItem
                 widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }}
                 groupSlug={routeParams.groupSlug}
@@ -413,7 +413,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
       <DropZone isDragging={isDragging} height={isDroppable && isEditting ? 'h-5' : ''} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }}>
         <Icon name='Plus' onClick={() => handlePositionedAdd({ widget })} />
       </DropZone>
-      <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground '>
+      <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem] '>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
         {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (
@@ -422,12 +422,9 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
               <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
                 <span className='text-sm font-bold ml-2'>{title}</span>
               </MenuLink>
-              {showEdit &&
-                <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })}>
-                  <span className='text-lg font-bold'>{t('Edit')}</span>
-                </MenuLink>}
-              {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
-            </span>)
+            </span>
+
+          )
           : (
             <div>
               {widget.view &&
@@ -454,7 +451,13 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   </li>}
               </ul>
             </div>)}
+        
       </div>
+      {showEdit && <div className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground'>            
+        <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })}>
+          <span className='text-lg font-bold'>{t('Edit')}</span>
+        </MenuLink> 
+      </div>}
     </>
   )
 }
