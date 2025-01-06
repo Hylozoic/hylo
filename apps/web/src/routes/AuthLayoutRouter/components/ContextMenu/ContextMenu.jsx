@@ -295,10 +295,10 @@ export default function ContextMenu (props) {
             </div>
             <DragOverlay>
               {activeWidget && !activeWidget.parentId && (
-                <ContextMenuItem widget={activeWidget} isOverlay groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} />
+                <ContextMenuItem widget={activeWidget} isOverlay group={group} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} />
               )}
               {activeWidget && activeWidget.parentId && (
-                <ListItemRenderer isOverlay item={activeWidget} rootPath={rootPath} groupSlug={routeParams.groupSlug} canDnd={false} />
+                <ListItemRenderer isOverlay item={activeWidget} group={group} rootPath={rootPath} groupSlug={routeParams.groupSlug} canDnd={false} />
               )}
             </DragOverlay>
           </DndContext>
