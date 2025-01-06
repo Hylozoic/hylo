@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [5.11.2] - 2024-01-06
+
+### Fixed
+- Commenting on a comment in the mobile app
+
 ## [5.11.1] - 2024-01-03
 
 ### Fixed
