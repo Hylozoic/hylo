@@ -68,6 +68,7 @@ export default function Thread (props) {
 
   const [, createMessage] = useMutation(createMessageMutation)
   const sendIsTyping = () => providedSendIsTyping(threadId, true)
+  // TODO: URQL - convert
   const updateThreadReadTime = () => dispatch(updateThreadReadTimeAction(threadId))
 
   const [{ data, fetching, error }, refetchThread] = useQuery({
