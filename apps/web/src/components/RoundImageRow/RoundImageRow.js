@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import RoundImage from 'components/RoundImage'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import classes from './RoundImageRow.module.scss'
 
 const { array, string, bool } = PropTypes

@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import Tooltip from 'components/Tooltip'
 import classes from './badgeEmoji.module.scss'
 

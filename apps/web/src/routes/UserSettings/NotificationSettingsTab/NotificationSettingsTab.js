@@ -1,13 +1,12 @@
 import React, { Component } from 'react'
 import { useTranslation, withTranslation } from 'react-i18next'
-import { cn } from 'util'
 import { compact } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import Tooltip from 'components/Tooltip'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import Select from 'components/Select'
-import { bgImageStyle } from 'util/index'
+import { bgImageStyle, cn } from 'util/index'
 
 import classes from './NotificationSettingsTab.module.scss'
 

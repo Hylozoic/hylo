@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { useTranslation, withTranslation } from 'react-i18next'
 import { get, isEmpty } from 'lodash/fp'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { Link } from 'react-router-dom'
 import { groupUrl } from 'util/navigation'
 import GroupsList from 'components/GroupsList'

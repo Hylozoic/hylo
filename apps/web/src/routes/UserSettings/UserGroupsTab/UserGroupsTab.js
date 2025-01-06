@@ -15,7 +15,7 @@ import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import Membership from 'components/Membership'
 import classes from './UserGroupsTab.module.scss'
-import { cn } from 'util'
+import { cn } from 'util/index'
 
 const { array, func, object, string } = PropTypes
 

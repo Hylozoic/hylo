@@ -1,6 +1,5 @@
-import { cn } from 'util'
 import React from 'react'
-import { bgImageStyle } from 'util/index'
+import { bgImageStyle, cn } from 'util/index'
 import classes from './LoadingItems.module.scss'
 
 export default function LoadingItems () {

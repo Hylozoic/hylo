@@ -1,9 +1,8 @@
-import { cn } from 'util'
 import { get } from 'lodash/fp'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { bgImageStyle } from 'util/index'
+import { bgImageStyle, cn } from 'util/index'
 
 import classes from '../WelcomeWizard.module.scss'
 

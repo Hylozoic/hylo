@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { capitalize } from 'lodash/fp'
 import React from 'react'
 

@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import React from 'react'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import classes from './Tooltip.module.scss'

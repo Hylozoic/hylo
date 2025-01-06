@@ -1139,6 +1139,8 @@
   "{{childGroups.length}} groups are a part of {{group.name}}": "{{childGroups.length}} groups are a part of {{group.name}}",
   "{{count}} Groups": "{{count}} Groups",
   "{{count}} Groups_plural": "{{count}} Groups_plural",
+  "{{count}} Members_one": "{{count}} Member",
+  "{{count}} Members_other": "{{count}} Members",
   "{{currentGroup.name}} topics": "{{currentGroup.name}} topics",
   "{{group.name}} has some volunteering opportunities": "{{group.name}} has some volunteering opportunities",
   "{{group.name}} is a part of 1 Group": "{{group.name}} is a part of 1 Group",

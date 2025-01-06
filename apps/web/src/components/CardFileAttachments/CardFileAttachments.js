@@ -1,6 +1,6 @@
 import React from 'react'
 import { filter } from 'lodash/fp'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import Icon from 'components/Icon'
 import classes from './CardFileAttachments.module.scss'
 

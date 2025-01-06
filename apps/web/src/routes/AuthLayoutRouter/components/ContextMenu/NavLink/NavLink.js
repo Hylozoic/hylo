@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import BadgedIcon from 'components/BadgedIcon'
 import Badge from 'components/Badge'
 import Icon from 'components/Icon'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import classes from './NavLink.module.scss'
 
 export default function NavLink ({ to, exact, label, icon, badge, onClick, home = false, externalLink }) {

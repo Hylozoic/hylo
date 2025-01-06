@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import PropTypes from 'prop-types'
 import React, { Component, useEffect, useState } from 'react'
 import { withTranslation } from 'react-i18next'

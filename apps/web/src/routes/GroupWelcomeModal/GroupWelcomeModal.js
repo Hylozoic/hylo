@@ -1,4 +1,3 @@
-import { cn } from 'util'
 import { isEmpty, trim } from 'lodash'
 import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,7 +5,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { CSSTransition } from 'react-transition-group'
 import { useParams } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
-import { bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
@@ -19,7 +17,9 @@ import Button from 'components/Button'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import RoundImage from 'components/RoundImage'
-import { SuggestedSkills } from 'routes/GroupDetail/GroupDetail'
+import SuggestedSkills from 'components/SuggestedSkills'
+import { bgImageStyle, cn } from 'util/index'
+
 import classes from './GroupWelcomeModal.module.scss'
 
 export default function GroupWelcomeModal (props) {

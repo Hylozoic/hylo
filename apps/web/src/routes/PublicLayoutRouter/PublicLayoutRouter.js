@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import React from 'react'
 import { useParams, useLocation, useNavigate, Navigate, Route, Routes } from 'react-router-dom'
 import Div100vh from 'react-div-100vh'
@@ -70,14 +70,16 @@ function GroupExplorerLayoutRouter () {
           <GroupExplorer />
         </div>
       </div>
-      <Route
-        path={GROUP_DETAIL_MATCH}
-        element={
-          <div className={classes.detail} id={DETAIL_COLUMN_ID}>
-            <GroupDetail />
-          </div>
-        }
-      />
+      <Routes>
+        <Route
+          path={GROUP_DETAIL_MATCH}
+          element={
+            <div className={classes.detail} id={DETAIL_COLUMN_ID}>
+              <GroupDetail />
+            </div>
+          }
+        />
+      </Routes>
     </>
   )
 }

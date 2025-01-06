@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { cn } from 'util'
-import { bgImageStyle } from 'util/index'
 import ModalDialog from 'components/ModalDialog'
 import CheckBox from 'components/CheckBox'
 import Button from 'components/Button'
@@ -9,6 +7,7 @@ import { humanResponse } from 'store/models/EventInvitation'
 import TextInput from 'components/TextInput'
 import { useInView } from 'react-cool-inview'
 import Loading from 'components/Loading'
+import { bgImageStyle, cn } from 'util/index'
 
 import styles from './EventInviteDialog.module.scss'
 

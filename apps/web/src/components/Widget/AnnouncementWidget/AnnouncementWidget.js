@@ -1,6 +1,6 @@
 import moment from 'moment-timezone'
 import React, { useCallback, useState } from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { Link } from 'react-router-dom'
 import Slider from 'react-slick'
 import { postUrl } from 'util/navigation'

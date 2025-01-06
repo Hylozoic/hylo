@@ -1,9 +1,9 @@
 import React from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import classes from './SwitchStyled.module.scss'
 
 function SwitchStyled ({
-  onChange = (checked, name) => { console.log(checked, name) },
+  onChange = (checked, name) => { },
   checked = false,
   disabled = false,
   backgroundColor = '#ff44ff',

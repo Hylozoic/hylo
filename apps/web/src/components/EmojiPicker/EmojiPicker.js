@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import Picker from '@emoji-mart/react'
 import React, { useState, useEffect } from 'react'
 import Icon from 'components/Icon'

@@ -11,7 +11,7 @@ import { TransitionGroup, CSSTransition } from 'react-transition-group'
 import Icon from 'components/Icon'
 import isMobile from 'ismobilejs'
 import { Tooltip } from 'react-tooltip'
-import { cn } from 'util'
+import { cn } from 'util/index'
 
 import classes from './InviteSettingsTab.module.scss'
 

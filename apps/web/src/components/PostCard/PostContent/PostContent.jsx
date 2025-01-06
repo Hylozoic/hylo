@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import React, { useEffect, useState } from 'react'
 import { pick } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'

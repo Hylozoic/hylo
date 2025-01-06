@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import Pill from 'components/Pill'
 
 import classes from './EmojiPill.module.scss'

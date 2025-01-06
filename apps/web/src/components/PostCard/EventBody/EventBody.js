@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import { get, filter } from 'lodash/fp'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'

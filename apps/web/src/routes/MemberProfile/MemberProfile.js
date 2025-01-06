@@ -1,22 +1,14 @@
-import { cn } from 'util'
 import { filter, isFunction } from 'lodash'
 import Moment from 'moment-timezone'
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
-import { Tooltip } from 'react-tooltip'
 import { Helmet } from 'react-helmet'
+import { useSelector, useDispatch } from 'react-redux'
+import { Tooltip } from 'react-tooltip'
 import { useParams, useNavigate, Routes, Route } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
-import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
-import { bgImageStyle } from 'util/index'
-import {
-  currentUserSettingsUrl,
-  messagePersonUrl,
-  messagesUrl,
-  gotoExternalUrl,
-  postUrl
-} from 'util/navigation'
+
 import Affiliation from 'components/Affiliation'
 import Button from 'components/Button'
 import BadgeEmoji from 'components/BadgeEmoji'
@@ -37,10 +29,8 @@ import PostDialog from 'components/PostDialog'
 import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
 
-import styles from './MemberProfile.module.scss'
-
-import { useSelector, useDispatch } from 'react-redux'
 import blockUser from 'store/actions/blockUser'
+import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
@@ -54,6 +44,16 @@ import {
   FETCH_MEMBER_REACTIONS,
   getPresentedPerson
 } from './MemberProfile.store'
+import { bgImageStyle, cn } from 'util/index'
+import {
+  currentUserSettingsUrl,
+  messagePersonUrl,
+  messagesUrl,
+  gotoExternalUrl,
+  postUrl
+} from 'util/navigation'
+
+import styles from './MemberProfile.module.scss'
 
 const GROUPS_DIV_HEIGHT = 200
 

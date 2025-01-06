@@ -1,4 +1,4 @@
-import { cn } from 'util'
+import { cn } from 'util/index'
 import isMobile from 'ismobilejs'
 import { uniqueId } from 'lodash'
 import React, { forwardRef, useState } from 'react'

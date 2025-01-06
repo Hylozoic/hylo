@@ -1138,6 +1138,8 @@
   "{{childGroups.length}} groups are a part of {{group.name}}": "{{childGroups.length}} grupos son parte de {{group.name}}",
   "{{count}} Groups": "{{count}} Grupos",
   "{{count}} Groups_plural": "{{count}} Grupos",
+  "{{count}} Members_one": "{{count}} Miembros",
+  "{{count}} Members_other": "{{count}} Miembros",
   "{{currentGroup.name}} topics": "{{currentGroup.name}} temas",
   "{{group.name}} has some volunteering opportunities": "{{group.name}} tiene algunas oportunidades de voluntariado",
   "{{group.name}} is a part of 1 Group": "{{group.name}} es parte de 1 grupo",

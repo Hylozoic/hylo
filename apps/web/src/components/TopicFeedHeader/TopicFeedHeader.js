@@ -1,8 +1,7 @@
-import { cn } from 'util'
 import React from 'react'
 import Icon from 'components/Icon'
 import Button from 'components/Button'
-import { inflectedTotal, bgImageStyle } from 'util/index'
+import { cn, inflectedTotal, bgImageStyle } from 'util/index'
 import { DEFAULT_BANNER } from 'store/models/Group'
 
 import classes from './TopicFeedHeader.module.scss'

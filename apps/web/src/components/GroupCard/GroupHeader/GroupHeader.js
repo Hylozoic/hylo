@@ -1,13 +1,12 @@
 import React from 'react'
-import { cn } from 'util'
 import classes from './GroupHeader.module.scss'
 import RoundImage from 'components/RoundImage'
 import {
   DEFAULT_BANNER,
   DEFAULT_AVATAR
 } from 'store/models/Group'
-import { bgImageStyle } from 'util/index'
 import RoundImageRow from 'components/RoundImageRow'
+import { bgImageStyle, cn } from 'util/index'
 
 export default function GroupHeader ({ constrained = false, name, group }) {
   const members = group.members.toModelArray()

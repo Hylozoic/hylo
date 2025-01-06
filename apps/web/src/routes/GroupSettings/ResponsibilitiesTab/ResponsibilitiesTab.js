@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { cn } from 'util'
+import { cn } from 'util/index'
 import Loading from 'components/Loading'
 import Icon from 'components/Icon'
 import SettingsControl from 'components/SettingsControl'
