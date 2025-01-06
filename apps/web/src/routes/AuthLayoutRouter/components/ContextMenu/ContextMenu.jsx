@@ -61,6 +61,7 @@ export default function ContextMenu (props) {
   const isAllOrPublicPath = ['/all', '/public'].includes(rootPath)
   const isPublic = routeParams.context === 'public'
   const isMyContext = routeParams.context === CONTEXT_MY
+  const isAllContext = routeParams.context === 'all'
   const profileUrl = personUrl(get('id', currentUser), routeParams.groupSlug)
 
   // TODO CONTEXT: the new post count will be refactored into the use of highlightNumber and secondaryNumber, on the context widgets
@@ -82,18 +83,18 @@ export default function ContextMenu (props) {
   })
 
   const contextWidgets = useSelector(state => {
-    if (isMyContext || isPublic) {
-      return getStaticMenuWidgets({ isPublic, isMyContext, profileUrl })
+    if (isMyContext || isPublic || isAllContext) {
+      return getStaticMenuWidgets({ isPublic, isMyContext, profileUrl, isAllContext })
     }
     return getContextWidgets(state, group)
   })
 
   const hasContextWidgets = useMemo(() => {
-    if (group || isMyContext || isPublic) {
+    if (group || isMyContext || isPublic || isAllContext) {
       return contextWidgets.length > 0
     }
     return false
-  }, [group, isMyContext, isPublic])
+  }, [group, isMyContext, isPublic, isAllContext])
 
   const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
 
@@ -234,13 +235,13 @@ export default function ContextMenu (props) {
       <div className='ContextDetails w-full'>
         {routeParams.context === 'groups'
           ? <GroupMenuHeader group={group} />
-          : routeParams.context === 'public'
+          : isPublic
             ? (
               <div className='flex flex-col p-2'>
                 <h2 className='text-foreground font-bold leading-3 text-lg'>The Commons</h2>
               </div>
               )
-            : routeParams.context === 'my'
+            : isMyContext || isAllContext
               ? (
                 <div className='flex flex-col p-2'>
                   <h2 className='text-foreground font-bold leading-3 text-lg'>My Home</h2>
@@ -267,7 +268,7 @@ export default function ContextMenu (props) {
               </li>
             </ul>
           )}
-          {canView && !isMyContext && !isPublic && (
+          {canView && !isMyContext && !isPublic && !isAllContext && (
             <TopicNavigation
               backUrl={rootPath}
               routeParams={routeParams}
@@ -301,7 +302,7 @@ export default function ContextMenu (props) {
               )}
             </DragOverlay>
           </DndContext>
-          {(!isMyContext && !isPublic) && (
+          {(!isMyContext && !isPublic && !isAllContext) && (
             <div className='w-[calc(100%-1.5em)] ml-[1.5em] p-2 mb-[0.05em]'>
               <ContextMenuItem
                 widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }}

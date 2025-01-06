@@ -31,7 +31,7 @@ export function wrapItemInWidget (item, type) {
   }
 }
 
-export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl }) {
+export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl, isAllContext }) {
   let widgets = []
 
   if (isPublic) {
@@ -43,11 +43,14 @@ export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl }) {
     ]
   }
 
-  if (isMyContext) {
+  if (isMyContext || isAllContext) {
     widgets = [
-      // { title: 'widget-my-all', id: 'widget-my-all', view: 'all', order: 1, parentId: null },
+      { title: 'widget-my-groups-content', id: 'widget-my-groups-content', order: 2, parentId: null },
+      { title: 'widget-my-groups-stream', id: 'widget-my-groups-stream', context: 'all', view: 'stream', order: 1, parentId: 'widget-my-groups-content' },
+      { title: 'widget-my-groups-map', id: 'widget-my-groups-map', context: 'all', view: 'map', type: 'map', order: 2, parentId: 'widget-my-groups-content' },
+      { title: 'widget-my-groups-events', id: 'widget-my-groups-events', context: 'all', view: 'events', order: 3, parentId: 'widget-my-groups-content' },
       // TODO CONTEXT: integrating the 'all' context into the 'my' context needs a lot of thought
-      { title: 'widget-my-content', id: 'widget-my-content', order: 2, parentId: null },
+      { title: 'widget-my-content', id: 'widget-my-content', order: 1, parentId: null },
       { icon: 'Posticon', title: 'widget-my-posts', id: 'widget-my-posts', view: 'posts', order: 1, parentId: 'widget-my-content', context: 'my' },
       { icon: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', view: 'interactions', order: 2, parentId: 'widget-my-content', context: 'my' },
       { icon: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', view: 'mentions', order: 3, parentId: 'widget-my-content', context: 'my' },
