@@ -1,9 +1,9 @@
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { get } from 'lodash/fp'
+import { gql } from 'urql'
 import orm from 'store/models'
-import { AnalyticsEvents } from '@hylo/shared'
-import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
-import groupFieldsFragment from 'graphql/fragments/groupFieldsFragment'
+import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'urql-shared/presenters/GroupPresenter'
+import groupFieldsFragment, { groupPrerequisiteGroupsFieldsFragment } from 'graphql/fragments/groupFieldsFragment'
 
 export const MODULE_NAME = 'CreateGroupFlow'
 export const UPDATE_GROUP_DATA = `${MODULE_NAME}/UPDATE_GROUP_DATA`
@@ -57,64 +57,42 @@ export default function reducer (state = initialState, action) {
   return state
 }
 
-export function createGroup (groupData) {
-  return {
-    type: CREATE_GROUP,
-    graphql: {
-      query: `
-        mutation ($data: GroupInput) {
-          createGroup(data: $data) {
-            ${groupFieldsFragment({ withJoinQuestions: true })}
-            memberships {
-              items {
-                id
-                hasModeratorRole
-                person {
-                  id
-                }
-                settings {
-                  agreementsAcceptedAt
-                  joinQuestionsAnsweredAt
-                  sendEmail
-                  showJoinForm
-                  sendPushNotifications
-                }
-              }
-            }
+// TODO: URQL - analytics
+// AnalyticsEvents.GROUP_CREATED (see action to get metadata that is sent)
+export const createGroupMutation = gql`
+  mutation CreateGroupMutation ($data: GroupInput) {
+    createGroup(data: $data) {
+      ...GroupFieldsFragment
+      ...GroupPrerequisiteGroupsFieldsFragment
+      memberships {
+        items {
+          id
+          hasModeratorRole
+          person {
+            id
+          }
+          settings {
+            agreementsAcceptedAt
+            joinQuestionsAnsweredAt
+            sendEmail
+            showJoinForm
+            sendPushNotifications
           }
         }
-      `,
-      variables: {
-        data: groupData
       }
-    },
-    meta: {
-      extractModel: [
-        { modelName: 'Group', getRoot: get('createGroup') },
-        { modelName: 'Membership', getRoot: get('createGroup.memberships.items[0]') }
-      ],
-      analytics: AnalyticsEvents.GROUP_CREATED
     }
   }
-}
+  ${groupFieldsFragment}
+  ${groupPrerequisiteGroupsFieldsFragment}
+`
 
-export function fetchGroupExists (slug) {
-  return {
-    type: FETCH_GROUP_EXISTS,
-    graphql: {
-      query: `
-        query ($slug: String) {
-          groupExists (slug: $slug) {
-            exists
-          }
-        }
-      `,
-      variables: {
-        slug
-      }
+export const groupExistsCheckQuery = gql`
+  query GroupExistsCheckQuery ($slug: String) {
+    groupExists (slug: $slug) {
+      exists
     }
   }
-}
+`
 
 export function setWorkflowOptions (value = {}) {
   return {
@@ -152,6 +130,7 @@ export function clearCreateGroupStore () {
   }
 }
 
+// TODO: URQL - convert off of ReduxORM
 export const getNewGroupParentGroups = ormCreateSelector(
   orm,
   getGroupData,

@@ -3,21 +3,27 @@ import Badge from 'components/Badge'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading/Loading'
 import useEnsureGroupTopics from 'hooks/useEnsureGroupTopics'
+import useGoToTopic from 'hooks/useGoToTopic'
 import { openURL } from 'hooks/useOpenURL'
 import { rhino05, slateGrey80 } from 'style/colors'
 
 export default function TopicsNavigation ({ group }) {
   const { pending, topics } = useEnsureGroupTopics({ groupId: group?.id, groupSlug: group?.slug })
-  if (pending) return (<Loading />)
+  const goToTopic = useGoToTopic()
+
+  if (pending || !group) return (<Loading />)
+
+  // const topics = group?.groupTopics.filter(t => t.isDefault)
+
   return (
-    <View style={{marginBottom: 20}}>
+    <View style={{ marginBottom: 20 }}>
       {topics.map((topic, index) => (
         <TopicItem
           label={topic.name}
           iconName='Topics'
           topic={topic}
           key={index}
-          onPress={() => openURL(topic.url)}
+          onPress={() => goToTopic(topic.name)}
         />
       ))}
     </View>

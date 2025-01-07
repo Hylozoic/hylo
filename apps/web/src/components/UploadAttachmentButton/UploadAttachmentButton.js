@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import { ID_FOR_NEW } from 'components/AttachmentManager/AttachmentManager.store'
 import Icon from 'components/Icon'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import classes from './UploadAttachmentButton.module.scss'
 import {
   uploadedFileToAttachment,
@@ -105,7 +105,7 @@ export function UploadButton ({
   return (
     <div onClick={onClick} className={className} data-testid='upload-attachment-button'>
       {children && children}
-      {!children && <Icon name={loadingIconName} className={cx(classes.icon)} />}
+      {!children && <Icon name={loadingIconName} className={cn(classes.icon)} />}
     </div>
   )
 }

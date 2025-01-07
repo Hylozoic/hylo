@@ -1,6 +1,6 @@
 import React from 'react'
 import { withTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import PeopleInfo from '../PeopleInfo'
@@ -30,7 +30,7 @@ class PostFooter extends React.PureComponent {
     const tooltipId = 'postfooter-tt-' + postId
 
     return (
-      <div onClick={onClick} className={cx(classes.footer, { [classes.constrained]: constrained })} data-testid='post-footer'>
+      <div onClick={onClick} className={cn(classes.footer, { [classes.constrained]: constrained })} data-testid='post-footer'>
         <PeopleInfo constrained={constrained} people={commenters} peopleTotal={commentersTotal} excludePersonId={get('id', currentUser)} />
         <Tooltip
           delay={550}

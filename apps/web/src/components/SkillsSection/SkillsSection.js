@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import { isEmpty, map } from 'lodash'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import Pillbox from 'components/Pillbox'
 import Loading from 'components/Loading'
 import classes from './SkillsSection.module.scss'
@@ -51,7 +51,7 @@ class SkillsSection extends Component {
     } = this.props
 
     return (
-      <div className={cx(classes.pillContainer, classes.expanded)}>
+      <div className={cn(classes.pillContainer, classes.expanded)}>
         <Pillbox
           pills={map(skills, skill => ({ ...skill, label: skill.name }))}
           handleInputChange={this.handleInputChange}

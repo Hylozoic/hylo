@@ -79,7 +79,7 @@ export default function ImageViewer ({
 }) {
   return (
     <ImageView
-      images={images}
+      images={images.map(image => ({ uri: image?.uri || image?.url }))}
       HeaderComponent={
           ({ imageIndex }) => {
             return (

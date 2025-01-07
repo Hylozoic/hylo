@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import PropTypes from 'prop-types'
 import React, { Component, useEffect, useState } from 'react'
 import { withTranslation } from 'react-i18next'
@@ -237,7 +237,7 @@ function RoleRowUntranslated ({
   const isDraftRole = active === ''
   const inactiveStyle = (!active && !isDraftRole && !isCommonRole) ? styles.inactive : ''
   return (
-    <div className={cx(styles.roleContainer, inactiveStyle)}>
+    <div className={cn(styles.roleContainer, inactiveStyle)}>
       {!isCommonRole &&
         <div className={styles.actionContainer}>
           {isDraftRole && (<span onClick={onDelete} className={styles.action}><Icon name='Trash' /> {t('Delete')}</span>)}
@@ -255,7 +255,7 @@ function RoleRowUntranslated ({
       {
         isDraftRole
           ? (
-            <div className={cx(styles.roleRow, styles.reverseFlex)}>
+            <div className={cn(styles.roleRow, styles.reverseFlex)}>
               <div className={styles.createButton} onClick={onSave}>{t('Create Role')}</div>
             </div>
             )
@@ -456,7 +456,7 @@ class AddResponsibilityToRoleUntranslated extends Component {
       )
     } else {
       return (
-        <div className={cx(styles.addNew)} onClick={toggle}>
+        <div className={cn(styles.addNew)} onClick={toggle}>
           + {t('Add Responsibility to Role')}
         </div>
       )

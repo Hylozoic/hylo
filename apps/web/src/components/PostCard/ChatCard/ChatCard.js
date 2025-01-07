@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import moment from 'moment-timezone'
 import React from 'react'
 import CardFileAttachments from 'components/CardFileAttachments'
@@ -22,7 +22,7 @@ export default function ChatCard ({
 
   return (
     <span onClick={() => showDetails(post.id)} className={classes.link}>
-      <div className={cx(classes.chatCard, { [classes.expanded]: expanded })}>
+      <div className={cn(classes.chatCard, { [classes.expanded]: expanded })}>
         <div className={classes.postHeader}>
           <RoundImage url={post.creator.avatarUrl} className={classes.profileImage} />
           <Highlight {...highlightProps}>

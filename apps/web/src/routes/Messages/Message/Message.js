@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import PropTypes from 'prop-types'
 import React from 'react'
 import Avatar from 'components/Avatar'
@@ -19,7 +19,7 @@ export default function Message ({ message, isHeader }) {
     : TextHelpers.markdown(message.text)
 
   return (
-    <div className={cx(classes.message, { [classes.messageHeader]: isHeader })} data-message-id={message.id}>
+    <div className={cn(classes.message, { [classes.messageHeader]: isHeader })} data-message-id={message.id}>
       <div className={classes.avatar}>
         {isHeader && <Avatar url={personUrl(person.id)} avatarUrl={person.avatarUrl} />}
       </div>

@@ -45,11 +45,9 @@ strong {
   font-weight: 300;
 }
 
-// This should be applied / controlled here
-// Currently getting `1rem` from Bootstrap
-// p {
-//   margin-bottom: 1em;
-// }
+p {
+  margin-bottom: 1em;
+}
 
 a {
   color: #0275d8
@@ -114,7 +112,7 @@ h1,
   font-size: 24px;
   letter-spacing: 0;
   line-height: 28px;
-  color: $color-rhino;
+  color: hsl(var(--foreground));
   word-wrap: break-word;
 }
 

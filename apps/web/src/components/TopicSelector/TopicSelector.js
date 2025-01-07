@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import AsyncCreatableSelect from 'react-select/async-creatable'
@@ -217,8 +217,8 @@ class TopicSelector extends Component {
             <div className={classes.item}>
               <div className={classes.menuTopicLabel}>#{name}</div>
               <div className={classes.suggestionMeta}>
-                <span className={cx(classes.column, classes.icon)}><Icon name='Star' className={classes.icon} />{formatCount(followersTotal)} {t('subscribers')}</span>
-                <span className={cx(classes.column, classes.icon)}><Icon name='Events' className={classes.icon} />{formatCount(postsTotal)} {t('posts')}</span>
+                <span className={cn(classes.column, classes.icon)}><Icon name='Star' className={classes.icon} />{formatCount(followersTotal)} {t('subscribers')}</span>
+                <span className={cn(classes.column, classes.icon)}><Icon name='Events' className={classes.icon} />{formatCount(postsTotal)} {t('posts')}</span>
               </div>
             </div>
           )

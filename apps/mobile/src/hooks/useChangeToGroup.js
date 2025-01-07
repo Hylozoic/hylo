@@ -1,17 +1,17 @@
 import { useNavigation } from '@react-navigation/native'
-import { useSelector } from 'react-redux'
-import confirmNavigate from 'util/confirmNavigate'
-import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'store/models/Group'
-import { modalScreenName } from 'hooks/useIsModalScreen'
-import getMemberships from 'store/selectors/getMemberships'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import { useTranslation } from 'react-i18next'
+import confirmNavigate from 'util/confirmNavigate'
+import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentUser from 'hooks/useCurrentUser'
+import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
+import { modalScreenName } from 'hooks/useIsModalScreen'
 
 export default function useChangeToGroup () {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const myMemberships = useSelector(getMemberships)
-  const currentGroup = useSelector(getCurrentGroup)
+  const [currentUser] = useCurrentUser()
+  const [currentGroup] = useCurrentGroup()
+  const myMemberships = currentUser?.memberships
 
   return (groupSlug, confirm = true) => {
     if (!myMemberships) {

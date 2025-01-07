@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useRef } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { CSSTransition } from 'react-transition-group'
@@ -17,8 +17,8 @@ export default function WelcomeWizardRouter () {
       nodeRef={welcomeWizardRef}
     >
       <div className={classes.modal} ref={welcomeWizardRef}>
-        <div className={cx(classes.background, classes.background)} />
-        <div className={cx(classes.wrapper, classes.wrapper)}>
+        <div className={cn(classes.background, classes.background)} />
+        <div className={cn(classes.wrapper, classes.wrapper)}>
           <Routes>
             <Route path='upload-photo' element={<UploadPhoto />} />
             <Route path='add-location' element={<AddLocation />} />

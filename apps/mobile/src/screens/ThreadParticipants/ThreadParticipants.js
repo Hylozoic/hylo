@@ -1,13 +1,21 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
+import orm from 'store/models'
+import { createSelector as ormCreateSelector } from 'redux-orm'
 import { View, ScrollView, Text, TouchableOpacity } from 'react-native'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import { getThread } from '../Thread/Thread.store'
 import getCurrentUserId from 'store/selectors/getCurrentUserId'
 import Loading from 'components/Loading'
 import Avatar from 'components/Avatar'
 import { isEmpty } from 'lodash/fp'
 import styles from './ThreadParticipants.styles'
+
+// TODO: URQL - moved here to remove Thread.store until this component is converted
+export const getThread = ormCreateSelector(
+  orm,
+  (_, { route }) => route.params.id,
+  (session, id) => session?.MessageThread.safeWithId(id)
+)
 
 export default function ThreadParticipants ({ threadId, navigation }) {
   const currentUserId = useSelector(getCurrentUserId)

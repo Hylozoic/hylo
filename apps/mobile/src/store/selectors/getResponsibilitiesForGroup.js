@@ -1,7 +1,7 @@
 import orm from '../models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import getMe from './getMe'
-import { isContextGroup } from 'store/models/Group'
+import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 
 const getResponsibilitiesForGroup = ormCreateSelector(
   orm,

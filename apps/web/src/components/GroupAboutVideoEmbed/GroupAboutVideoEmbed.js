@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React from 'react'
 import { trim } from 'lodash/fp'
 import ReactPlayer from 'react-player'
@@ -8,7 +8,7 @@ export default function GroupAboutVideoEmbed ({ uri, className }) {
   if (!uri || trim(uri).length === 0) return null
 
   return (
-    <div className={cx(classes.videoContainer, className)}>
+    <div className={cn(classes.videoContainer, className)}>
       <ReactPlayer
         url={uri}
         controls

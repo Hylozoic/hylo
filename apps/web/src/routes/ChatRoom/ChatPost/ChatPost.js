@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
 import moment from 'moment-timezone'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
@@ -25,7 +24,7 @@ import RoundImageRow from 'components/RoundImageRow'
 import useReactionActions from 'hooks/useReactionActions'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
-import { bgImageStyle } from 'util/index'
+import { bgImageStyle, cn } from 'util/index'
 import isWebView from 'util/webView'
 import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
@@ -226,7 +225,7 @@ export default function ChatPost ({
   return (
     <Highlight {...highlightProps}>
       <div
-        className={cx(className, styles.container, {
+        className={cn(className, styles.container, {
           [styles.longPressed]: isLongPress,
           [styles.hovered]: isHovered
         })}
@@ -289,7 +288,7 @@ export default function ChatPost ({
             placeholder='Edit Post'
             ref={editorRef}
             showMenu={!isWebView()}
-            className={cx(styles.postContentContainer, styles.editing, styles.postContent)}
+            className={cn(styles.postContentContainer, styles.editing, styles.postContent)}
           />
         )}
         {details && !editing && (
@@ -318,7 +317,7 @@ export default function ChatPost ({
           <CardFileAttachments attachments={fileAttachments} />
         )}
         <EmojiRow
-          className={cx(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
+          className={cn(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
           post={post}
           currentUser={currentUser}
           onAddReaction={onAddReaction}

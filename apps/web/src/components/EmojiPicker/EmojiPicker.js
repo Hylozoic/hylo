@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import Picker from '@emoji-mart/react'
 import React, { useState, useEffect } from 'react'
 import Icon from 'components/Icon'
@@ -42,7 +42,7 @@ export default function EmojiPicker (props) {
 
   return forReactions
     ? (
-      <div className={cx(classes.emojiPickerContainer, props.className)}>
+      <div className={cn(classes.emojiPickerContainer, props.className)}>
         <Popover onOpenChange={handleOpenChange} open={modalOpen}>
           <PopoverTrigger asChild>
             <div className={classes.emojiPickerToggle} onClick={toggleModalOpen}>
@@ -58,7 +58,7 @@ export default function EmojiPicker (props) {
       </div>
       )
     : (
-      <div onClick={toggleModalOpen} className={cx(classes.emojiPickerContainer, props.className)}>
+      <div onClick={toggleModalOpen} className={cn(classes.emojiPickerContainer, props.className)}>
         <Popover onOpenChange={handleOpenChange} open={modalOpen}>
           <PopoverTrigger asChild>
             <span>{emoji || '?'}</span>

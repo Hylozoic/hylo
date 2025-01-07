@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { get } from 'lodash/fp'
 import React, { useCallback, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -95,8 +95,8 @@ export default function PostCard (props) {
         </div>}
       <div
         ref={postCardRef}
-        className={cx(
-          classes.card,
+        className={cn(
+          'PostCard rounded-xl cursor-pointer relative flex flex-col transition-all duration-250 bg-card border border-border text-card-foreground shadow-md hover:shadow-lg mb-4',
           classes[postType],
           { [classes.expanded]: expanded },
           { [classes.constrained]: constrained },
@@ -150,14 +150,14 @@ export default function PostCard (props) {
             />
           </div>
         )}
-        <div onClick={onClick}>
+        {/* <div onClick={onClick}>
           <PostGroups
             isPublic={post.isPublic}
             groups={post.groups}
             slug={routeParams.groupSlug}
             constrained={constrained}
           />
-        </div>
+        </div> */}
         <PostFooter
           {...post}
           onClick={onClick}

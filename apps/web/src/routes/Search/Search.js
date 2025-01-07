@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { get, intersection, debounce } from 'lodash/fp'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -146,7 +146,7 @@ export function TabBar ({ filter, setSearchFilter }) {
       {tabs.map(({ id, label }) => (
         <span
           key={id}
-          className={cx(classes.tab, { [classes.tabActive]: id === filter })}
+          className={cn(classes.tab, { [classes.tabActive]: id === filter })}
           onClick={() => setSearchFilter(id)}
         >
           {label}

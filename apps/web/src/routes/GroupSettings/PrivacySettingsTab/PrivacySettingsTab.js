@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { set, startCase, trim } from 'lodash'
 import React, { Component } from 'react'
 import { useTranslation, withTranslation } from 'react-i18next'
@@ -139,8 +139,8 @@ class PrivacySettingsTab extends Component {
 
         <SettingsSection>
           <h3>{t('Join Questions')}</h3>
-          <div className={cx(styles.groupQuestions, { [styles.on]: settings?.askJoinQuestions })}>
-            <div className={cx(general.switchContainer, { [general.on]: askJoinQuestions })}>
+          <div className={cn(styles.groupQuestions, { [styles.on]: settings?.askJoinQuestions })}>
+            <div className={cn(general.switchContainer, { [general.on]: askJoinQuestions })}>
               <SwitchStyled
                 checked={askJoinQuestions}
                 onChange={() => this.updateSettingDirectly('settings.askJoinQuestions')(!askJoinQuestions)}
@@ -177,8 +177,8 @@ class PrivacySettingsTab extends Component {
           <h3>{t('Group Access Questions')}</h3>
           <p className={general.detailText}>{t('What questions are asked when a group requests to join this group?')}</p>
 
-          <div className={cx(styles.groupQuestions, { [styles.on]: askGroupToGroupJoinQuestions })}>
-            <div className={cx(general.switchContainer, { [general.on]: askGroupToGroupJoinQuestions })}>
+          <div className={cn(styles.groupQuestions, { [styles.on]: askGroupToGroupJoinQuestions })}>
+            <div className={cn(general.switchContainer, { [general.on]: askGroupToGroupJoinQuestions })}>
               <SwitchStyled
                 checked={askGroupToGroupJoinQuestions}
                 onChange={() => this.updateSettingDirectly('settings.askGroupToGroupJoinQuestions')(!askGroupToGroupJoinQuestions)}
@@ -199,7 +199,7 @@ class PrivacySettingsTab extends Component {
             <SettingsSection>
               <h3>{t('Hide {{postType}} Data', { postType: startCase(type) })}</h3>
               <p className={styles.dataDetail}>{t('If you don\'t want to display the detailed {{postType}} specific data on your group\'s profile', { postType: type })}</p>
-              <div className={cx(general.switchContainer, { [general.on]: hideExtensionData })}>
+              <div className={cn(general.switchContainer, { [general.on]: hideExtensionData })}>
                 <SwitchStyled
                   checked={hideExtensionData}
                   onChange={() => this.updateSettingDirectly('settings.hideExtensionData')(hideExtensionData === undefined || hideExtensionData === null || !hideExtensionData)}
@@ -216,7 +216,7 @@ class PrivacySettingsTab extends Component {
           : ''}
 
         <div className={general.saveChanges}>
-          <span className={cx({ [general.settingChanged]: changed })}>{changed ? t('Changes not saved') : t('Current settings up to date')}</span>
+          <span className={cn({ [general.settingChanged]: changed })}>{changed ? t('Changes not saved') : t('Current settings up to date')}</span>
           <Button label={t('Save Changes')} color={changed ? 'green' : 'gray'} onClick={changed ? this.save : null} className={general.saveButton} />
         </div>
       </div>
@@ -226,13 +226,13 @@ class PrivacySettingsTab extends Component {
 
 function VisibilitySettingRow ({ currentSetting, forSetting, updateSetting, t }) {
   return (
-    <div className={cx(styles.privacySetting, { [styles.on]: currentSetting === forSetting })}>
+    <div className={cn(styles.privacySetting, { [styles.on]: currentSetting === forSetting })}>
       <label>
         <input type='radio' name='Visibility' value={forSetting} onChange={updateSetting('visibility')} checked={currentSetting === forSetting} />
         <Icon name={visibilityIcon(forSetting)} className={styles.settingIcon} />
         <div className={styles.settingDescription}>
           <h4>{t(visibilityString(forSetting))}</h4>
-          <span className={cx(styles.privacyOption, { [styles.disabled]: currentSetting !== forSetting })}>{t(visibilityDescription(forSetting))}</span>
+          <span className={cn(styles.privacyOption, { [styles.disabled]: currentSetting !== forSetting })}>{t(visibilityDescription(forSetting))}</span>
         </div>
       </label>
     </div>
@@ -242,13 +242,13 @@ function VisibilitySettingRow ({ currentSetting, forSetting, updateSetting, t })
 function AccessibilitySettingRow ({ currentSetting, forSetting, updateSetting }) {
   const { t } = useTranslation()
   return (
-    <div className={cx(styles.privacySetting, { [styles.on]: currentSetting === forSetting })}>
+    <div className={cn(styles.privacySetting, { [styles.on]: currentSetting === forSetting })}>
       <label>
         <input type='radio' name='accessibility' value={forSetting} onChange={updateSetting('accessibility')} checked={currentSetting === forSetting} />
         <Icon name={accessibilityIcon(forSetting)} className={styles.settingIcon} />
         <div className={styles.settingDescription}>
           <h4>{t(accessibilityString(forSetting))}</h4>
-          <span className={cx(styles.privacyOption, { [styles.disabled]: currentSetting !== forSetting })}>{t(accessibilityDescription(forSetting))}</span>
+          <span className={cn(styles.privacyOption, { [styles.disabled]: currentSetting !== forSetting })}>{t(accessibilityDescription(forSetting))}</span>
         </div>
       </label>
     </div>

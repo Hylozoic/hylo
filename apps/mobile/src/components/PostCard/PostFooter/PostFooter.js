@@ -25,7 +25,6 @@ export default function PostFooter ({
   const [peopleModalVisible, setPeopleModalVisible] = useState(false)
   const togglePeopleModal = () => setPeopleModalVisible(!peopleModalVisible)
   const goToMember = person => navigation.navigate('Member', { id: person.id })
-
   const eventAttendees = filter(ei => ei.response === RESPONSES.YES, eventInvitations)
 
   let peopleRowResult
@@ -83,7 +82,7 @@ export default function PostFooter ({
           toggleModal={togglePeopleModal}
           isVisible={peopleModalVisible}
         />
-        <TouchableOpacity onPress={onPress} onLongPress={togglePeopleModal} style={styles.comments}>
+        <TouchableOpacity onPress={togglePeopleModal} onLongPress={togglePeopleModal} style={styles.comments}>
           {avatarUrls.slice(0, 3).map((avatarUrl, index) => {
             return (
               <Avatar

@@ -11,7 +11,7 @@ import { TransitionGroup, CSSTransition } from 'react-transition-group'
 import Icon from 'components/Icon'
 import isMobile from 'ismobilejs'
 import { Tooltip } from 'react-tooltip'
-import cx from 'classnames'
+import { cn } from 'util/index'
 
 import classes from './InviteSettingsTab.module.scss'
 
@@ -249,8 +249,8 @@ I'm inviting you to join {{name}} on Hylo.
                         <span className={classes.inviteDate}>{TextHelpers.humanDate(invite.lastSentAt)}</span>
                       </div>
                       <div className={classes.inviteActions}>
-                        <span className={cx(classes.actionBtn, classes.expireBtn)} onClick={() => expireOnClick(invite.id)}>{t('Expire')}</span>
-                        <span className={cx(classes.actionBtn, classes.resendBtn)} onClick={() => !invite.resent && resendOnClick(invite.id)}>{invite.resent ? t('Sent') : t('Resend')}</span>
+                        <span className={cn(classes.actionBtn, classes.expireBtn)} onClick={() => expireOnClick(invite.id)}>{t('Expire')}</span>
+                        <span className={cn(classes.actionBtn, classes.resendBtn)} onClick={() => !invite.resent && resendOnClick(invite.id)}>{invite.resent ? t('Sent') : t('Resend')}</span>
                       </div>
                     </div>
                   </CSSTransition>

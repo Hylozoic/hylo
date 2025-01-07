@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { isEmpty, trim } from 'lodash'
 import React, { PureComponent } from 'react'
 import { withTranslation } from 'react-i18next'
@@ -110,7 +110,7 @@ class FlagContent extends PureComponent {
               <Select
                 onChange={this.updateSelected}
                 fullWidth
-                className={cx({
+                className={cn({
                   [classes.reasonRequired]: reasonRequired
                 })}
                 selected={selectedCategory}

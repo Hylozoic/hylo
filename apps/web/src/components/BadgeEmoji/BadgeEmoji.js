@@ -1,5 +1,5 @@
 import React from 'react'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import Tooltip from 'components/Tooltip'
 import classes from './badgeEmoji.module.scss'
 
@@ -15,7 +15,7 @@ export default function Badge ({ emoji, expanded, className, common, border, onC
   return (
     <>
       <span
-        className={cx(
+        className={cn(
           className,
           expanded ? classes.badge : classes.badgeCollapsed,
           { [classes.border]: border, [classes.common]: common }

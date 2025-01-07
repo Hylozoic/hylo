@@ -1,4 +1,4 @@
-import gql from 'graphql-tag'
+import { gql } from 'urql'
 
 // Note: The most reliable query here for getting memberCount
 // was on `me.memberships`. `group(id: x)` nor `groups(groupIds: [x])

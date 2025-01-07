@@ -6,16 +6,6 @@
   }
 }
 
-.container {
-  box-shadow: 0 4px 10px rgba(35, 65, 91, .2);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 15px;
-  background-color: white;
-  overflow: hidden;
-}
-
 .stream-items-container {
   margin: 0 auto;
   overflow: hidden;
@@ -95,58 +85,6 @@
   text-align: center;
 }
 
-.card-item {
-  padding: $space-2x $space-4x $space-2x;
-  max-width: 600px;
-
-  > div {
-    box-shadow: 0 4px 10px rgba(35, 65, 91, .2);
-
-    &> div:nth-child(2) > div:nth-child(1) {
-      margin-bottom: 0;
-    }
-
-    &:hover {
-      box-shadow: 0 4px 10px rgba(35, 65, 91, .3);
-    }
-  }
-
-  &.expanded {
-    padding: 0 $space-2x $space-6x;
-
-    > div {
-      box-shadow: 0 4px 15px rgba(35, 65, 91, .3);
-      border: 1px solid rgba(0, 118, 223, .50);
-      border-top: 3px solid rgba(0, 118, 223, .50);
-
-      &:hover {
-        box-shadow: 0 4px 15px rgba(35, 65, 91, .3);;
-      }
-    }
-  }
-}
-
-.post-chat-box {
-  position: relative;
-  width: 97%;
-  margin: 0 auto;
-  box-shadow: 0 4px 10px rgba(35, 65, 91, .2);
-  padding: 5px;
-  border-top: 1px solid rgba(222, 224, 228, 0.6);
-  border-bottom: 2px solid rgba(38, 68, 93, .45);
-  border-right: 1px solid rgba(38, 68, 93, .15);
-  border-left: 4px solid rgba(0, 199, 157, 1.0);
-  border-radius: 5px;
-}
-
-.post-chat-box-footer {
-  width: 100%;
-
-  > div:nth-child(1) {
-    width: 50px;
-  }
-}
-
 .action-icon {
   font-size: 32px;
   cursor: pointer;
@@ -194,8 +132,8 @@
   vertical-align: middle;
   border-radius: 6px;
 }
-@media screen and (max-width: 600px) {
 
+@media screen and (max-width: 600px) {
   .post-chat-box {
     width: 100%;
     //margin-bottom: 0px;
@@ -220,10 +158,6 @@
 }
 
 @media screen and (max-width: 425px) {
-  .card-item {
-    padding: 0 5px 10px 5px;
-  }
-
   .stream-grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }

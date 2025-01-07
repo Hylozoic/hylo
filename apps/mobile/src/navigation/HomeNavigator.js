@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { createStackNavigator } from '@react-navigation/stack'
-import { isEmpty } from 'lodash/fp'
-import useCurrentGroup from 'hooks/useCurrentGroup'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import useReturnToOnAuthPath from 'hooks/useReturnToOnAuthPath'
 import getReturnToOnAuthPath from 'store/selectors/getReturnToOnAuthPath'
@@ -29,7 +27,6 @@ const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
   const initialURL = useSelector(state => state.initialURL)
   const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
-  const [, setCurrentGroup] = useCurrentGroup()
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -43,16 +40,6 @@ export default function HomeNavigator ({ navigation }) {
 
   const navigatorProps = {
     initialRouteName: 'Group Navigation',
-    screenListeners: {
-      state: (e) => {
-        const routes = e.data.state.routes
-        const groupSlugs = routes
-          .map(route => route.params?.groupSlug)
-          .filter(s => !isEmpty(s))
-
-        setCurrentGroup(!isEmpty(groupSlugs) && groupSlugs[groupSlugs.length - 1])
-      }
-    },
     screenOptions: {
       animationEnabled: !initialURL,
       transitionSpec: {

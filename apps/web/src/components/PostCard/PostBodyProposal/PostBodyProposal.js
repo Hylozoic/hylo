@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useMemo } from 'react'
 import { throttle } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
@@ -114,7 +114,7 @@ export default function PostBodyProposal ({
   const votePrompt = votingMethod === VOTING_METHOD_SINGLE ? t('select one option') : t('select one or more options')
 
   return (
-    <div className={cx(classes.proposalBodyContainer, {
+    <div className={cn(classes.proposalBodyContainer, {
       [classes.discussion]: proposalStatus === PROPOSAL_STATUS_DISCUSSION,
       [classes.voting]: proposalStatus === PROPOSAL_STATUS_VOTING,
       [classes.casual]: proposalStatus === PROPOSAL_STATUS_CASUAL,
@@ -146,7 +146,7 @@ export default function PostBodyProposal ({
         return (
           <div
             key={`${option.id}+${currentUserVotesOptionIds.includes(option.id)}`}
-            className={cx(classes.proposalOption, {
+            className={cn(classes.proposalOption, {
               [classes.selected]: currentUserVotesOptionIds.includes(option.id),
               [classes.completed]: votingComplete,
               [classes.highestVote]: (votingComplete || proposalOutcome) && highestVotedOptions.includes(option.id)

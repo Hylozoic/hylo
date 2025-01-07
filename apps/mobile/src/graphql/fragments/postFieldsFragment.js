@@ -1,249 +1,178 @@
-export const INITIAL_SUBCOMMENTS_DISPLAYED = 4
+import { gql } from 'urql'
 
-// :TODO: clean this up and use proper query fragments?
-const CommentFieldsFragment = `
-  id
-  text
-  creator {
+// Note the first set of comments are always loaded with this
+export const postFieldsFragment = gql`
+  fragment PostFieldsFragment on Post {
     id
-    name
-    avatarUrl
-    groupRoles {
-      items {
-        id
-        name
-        emoji
-        active
-        groupId
-        responsibilities {
-          items {
-            id
-            title
-            description
-          }
-        }
-      }
-    }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
-  }
-  attachments {
-    id
-    position
+    announcement
+    title
+    details
     type
-    url
-  }
-  parentComment {
-    id
-  }
-  myReactions {
-    emojiFull
-    id
-  }
-  commentReactions {
-    emojiFull
-    id
-    user {
+    creator {
       id
       name
-    }
-  }
-  createdAt
-`
-
-const postFieldsFragment = withComments => `
-  id
-  announcement
-  title
-  details
-  type
-  creator {
-    id
-    name
-    avatarUrl
-    groupRoles {
-      items {
-        id
-        name
-        emoji
-        active
-        groupId
-        responsibilities {
-          items {
-            id
-            title
-            description
-          }
-        }
-      }
-    }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
-  }
-  createdAt
-  clickthrough
-  updatedAt
-  flaggedGroups
-  isAnonymousVote
-  isPublic
-  fulfilledAt
-  startTime
-  endTime
-  donationsLink
-  projectManagementLink
-  myEventResponse
-  commenters(first: 20) {
-    id
-    name
-    avatarUrl
-  }
-  commentersTotal
-  commentsTotal
-  ${withComments ? `comments(first: 10, order: "desc") {
-    items {
-      ${CommentFieldsFragment}
-      childComments(first: ${INITIAL_SUBCOMMENTS_DISPLAYED}, order: "desc") {
+      avatarUrl
+      groupRoles {
         items {
-          ${CommentFieldsFragment}
-          post {
-            id
+          id
+          name
+          emoji
+          active
+          groupId
+          responsibilities {
+            items {
+              id
+              title
+              description
+            }
           }
         }
-        total
-        hasMore
+      }
+      membershipCommonRoles {
+        items {
+          id
+          commonRoleId
+          groupId
+          userId
+        }
       }
     }
-    total
-    hasMore
-  }` : ''}
-  linkPreview {
-    description
-    id
-    imageUrl
-    title
-    url
-  }
-  linkPreviewFeatured
-  location
-  locationObject {
-    id
-    addressNumber
-    addressStreet
-    bbox {
-      lat
-      lng
-    }
-    center {
-      lat
-      lng
-    }
-    city
-    country
-    fullText
-    locality
-    neighborhood
-    region
-  }
-  peopleReactedTotal
-  proposalStatus
-  proposalOutcome
-  votingMethod
-  quorum
-  proposalOptions {
-    total
-    hasMore
-    items {
+    createdAt
+    clickthrough
+    updatedAt
+    flaggedGroups
+    isAnonymousVote
+    isPublic
+    fulfilledAt
+    startTime
+    endTime
+    donationsLink
+    projectManagementLink
+    myEventResponse
+    commenters(first: 20) {
       id
-      text
-      emoji
+      name
+      avatarUrl
     }
-  }
-  proposalVotes {
+    commentersTotal
+    commentsTotal
+    linkPreview {
+      description
+      id
+      imageUrl
+      title
+      url
+    }
+    linkPreviewFeatured
+    location
+    locationObject {
+      id
+      addressNumber
+      addressStreet
+      bbox {
+        lat
+        lng
+      }
+      center {
+        lat
+        lng
+      }
+      city
+      country
+      fullText
+      locality
+      neighborhood
+      region
+    }
+    peopleReactedTotal
+    proposalStatus
+    proposalOutcome
+    votingMethod
+    quorum
+    proposalOptions {
       total
       hasMore
       items {
         id
-        optionId
-        user {
-          id
-          name
-          avatarUrl
-        }
+        text
+        emoji
       }
-  }
-  myReactions {
-    emojiFull
-    id
-  }
-  postReactions {
-    emojiFull
-    id
-    user {
+    }
+    proposalVotes {
+        total
+        hasMore
+        items {
+          id
+          optionId
+          user {
+            id
+            name
+            avatarUrl
+          }
+        }
+    }
+    myReactions {
+      emojiFull
+      id
+    }
+    postReactions {
+      emojiFull
+      id
+      user {
+        id
+        name
+      }
+    }
+    groups {
       id
       name
+      slug
     }
-  }
-  groups {
-    id
-    name
-    slug
-  }
-  attachments {
-    type
-    url
-    position
-    id
-  }
-  postMemberships {
-    id
-    pinned
-    group {
+    attachments {
+      type
+      url
+      position
       id
     }
-  }
-  topics {
-    id
-    name
-    postsTotal
-    followersTotal
-  }
-  members {
-    total
-    hasMore
-    items {
+    postMemberships {
+      id
+      pinned
+      group {
+        id
+      }
+    }
+    topics {
       id
       name
-      avatarUrl
-      bio
-      tagline
-      location
+      postsTotal
+      followersTotal
     }
-  }
-  eventInvitations {
-    total
-    hasMore
-    items {
-      id
-      response
-      person {
+    members {
+      total
+      hasMore
+      items {
         id
         name
         avatarUrl
         bio
         tagline
         location
+      }
+    }
+    eventInvitations {
+      total
+      hasMore
+      items {
+        id
+        response
+        person {
+          id
+          name
+          avatarUrl
+          bio
+          tagline
+          location
+        }
       }
     }
   }

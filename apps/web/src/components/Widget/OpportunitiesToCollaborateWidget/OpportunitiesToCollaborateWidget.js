@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
@@ -99,7 +99,7 @@ export function OpportunityToCollaborate ({ group, opportunity }) {
         <Icon
           name='Messages'
           blue
-          className={cx(classes.collabIcon, classes.cursorPointer)}
+          className={cn(classes.collabIcon, classes.cursorPointer)}
           onClick={goToGroupStewardsMessage}
         />
       )}
