@@ -76,15 +76,6 @@
     }
   }
 
-  &.hovered {
-    background: #f0f0f0;
-    cursor: pointer;
-
-    .action-bar {
-      display: flex;
-    }
-  }
-
   p:last-child {
     margin-bottom: 0;
     padding-bottom: 5px;

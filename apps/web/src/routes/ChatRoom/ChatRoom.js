@@ -551,7 +551,7 @@ const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
   return (
     <div className={cn(styles.displayDay, '!absolute top-0')}>
-      <div className={styles.day}>{firstItem?.createdAt ? moment(firstItem.createdAt).calendar(null, dayFormats) : ''}</div>
+      <div className={cn('bg-background', styles.day)}>{firstItem?.createdAt ? moment(firstItem.createdAt).calendar(null, dayFormats) : ''}</div>
     </div>
   )
 }
@@ -580,7 +580,7 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
       {firstUnread && !displayDay
         ? (
           <div className={styles.firstUnread}>
-            <div className={styles.divider} />
+            <div className={cn('border-dashed border-b-2 border-background')} />
             <div className={styles.newPost}>NEW</div>
           </div>
           )
@@ -588,17 +588,17 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
       {firstUnread && displayDay
         ? (
           <div className={styles.unreadAndDay}>
-            <div className={styles.divider} />
+            <div className={cn('border-dashed border-b-2 border-background')} />
             <div className={styles.newPost}>NEW</div>
-            <div className={styles.day}>{displayDay}</div>
+            <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground bg-background rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
           </div>
           )
         : null}
       {!firstUnread && displayDay
         ? (
           <div className={styles.displayDay}>
-            <div className={styles.divider} />
-            <div className={styles.day}>{displayDay}</div>
+            <div className={cn('border-dashed border-b-2 border-background')} />
+            <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground bg-background rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
           </div>
           )
         : null}

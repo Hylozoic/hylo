@@ -37,9 +37,6 @@
   text-transform: uppercase;
 }
 
-.displayDay .divider {
-  border-bottom: 1px dashed rgba(125, 140, 157, .3);
-}
 
 .firstUnread .divider, .unreadAndDay .divider {
   border-bottom: 1px dashed rgba(65, 211, 145, .6);
@@ -103,7 +100,6 @@
   padding: 5px;
   min-height: 1rem;
   max-height: 6rem;
-  color: $color-rhino-80;
   overflow: auto;
 
   strong {
