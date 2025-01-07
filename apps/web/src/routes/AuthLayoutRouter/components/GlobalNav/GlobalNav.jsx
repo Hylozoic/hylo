@@ -49,11 +49,11 @@ export default function GlobalNav (props) {
           <Logo {...{ group, isPublic }} />
           <Title group={group} isPublic={isPublic} isMyHome={isMyHome} />
         </Link> */}
-        <GlobalNavItem img={get('avatarUrl', currentUser)} tooltip={t('Your Profile')} url='/my/posts' />
+        <GlobalNavItem img={get('avatarUrl', currentUser)} tooltip={t('Your Profile')} url='/my/posts' className={cn('opacity-1')}/>
 
-        <Suspense fallback={<GlobalNavItem><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
+        <Suspense fallback={<GlobalNavItem className={cn('opacity-1')}><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
-            <GlobalNavItem tooltip='Activity'>
+            <GlobalNavItem tooltip='Activity' className={cn('opacity-1')}>
               <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' showBadge={showBadge} />
             </GlobalNavItem>}
           />
@@ -61,13 +61,13 @@ export default function GlobalNav (props) {
 
         <Suspense fallback={<GlobalNavItem><BadgedIcon name='Messages' className={styles.icon} /></GlobalNavItem>}>
           <MessagesDropdown renderToggleChildren={showBadge =>
-            <GlobalNavItem tooltip='Messages'>
+            <GlobalNavItem tooltip='Messages' className={cn('opacity-1')}>
               <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' showBadge={showBadge} />
             </GlobalNavItem>}
           />
         </Suspense>
 
-        <GlobalNavItem tooltip={t('Public')} url='/public/stream'>
+        <GlobalNavItem tooltip={t('Public')} url='/public/stream' className={cn('opacity-1')}>
           <Globe color='hsl(var(--primary-foreground))' />
         </GlobalNavItem>
 
