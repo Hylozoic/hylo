@@ -2,6 +2,7 @@ import React from 'react'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
 import { widgetTypeResolver } from 'util/contextWidgets'
+import { ViewHelpers } from '@hylo/shared'
 
 export function WidgetIconResolver ({ widget, style, className }) {
   const type = widgetTypeResolver({ widget })
@@ -26,13 +27,13 @@ export function WidgetIconResolver ({ widget, style, className }) {
     return null
   }
 
+  if (ViewHelpers.COMMON_VIEWS[type]) {
+    return <Icon name={ViewHelpers.COMMON_VIEWS[type].icon} style={style} />
+  }
+
   switch (type) {
     case 'chats':
       return <Icon name='Message' style={style} />
-    case 'members':
-      return <Icon name='People' style={style} />
-    case 'groups':
-      return <Icon name='Groups' style={style} />
     case 'setup':
       return <Icon name='Settings' style={style} />
     case 'custom-views':
@@ -43,23 +44,8 @@ export function WidgetIconResolver ({ widget, style, className }) {
       return <Icon name='Message' style={style} />
     case 'viewPost':
       return <Icon name='Posticon' style={style} />
-    case 'discussions':
-      return <Icon name='SpeechBubble' style={style} />
-    case 'ask-and-offer':
-      return <Icon name='Request' style={style} />
-    case 'stream':
-      return <Icon name='Stream' style={style} />
-    case 'events':
-      return <Icon name='Calendar' style={style} />
-    case 'projects':
-      return <Icon name='Stack' style={style} />
-    case 'proposals':
-    case 'decisions':
-      return <Icon name='Proposal' style={style} />
     case 'about':
       return <Icon name='Info' style={style} />
-    case 'map':
-      return <Icon name='Globe' style={style} />
   }
   return null
 }

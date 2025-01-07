@@ -23,7 +23,7 @@ import ViewControls from 'components/StreamViewControls'
 import TopicFeedHeader from 'components/TopicFeedHeader'
 import ViewHeader from 'components/ViewHeader'
 import useRouteParams from 'hooks/useRouteParams'
-import { SYSTEM_VIEWS } from 'util/constants'
+import { ViewHelpers } from '@hylo/shared'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
@@ -81,7 +81,7 @@ export default function Stream (props) {
     const gt = getGroupTopicForCurrentRoute(state, groupSlug, topicName)
     return gt && { ...gt.ref, group: gt.group, topic: gt.topic }
   })
-  const systemView = SYSTEM_VIEWS[view]
+  const systemView = ViewHelpers.COMMON_VIEWS[view]
   const customView = useSelector(state => getCustomView(state, customViewId))
 
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
