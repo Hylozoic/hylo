@@ -34,8 +34,8 @@ export default function GlobalNav (props) {
   const { t } = useTranslation()
 
   return (
-    <div className={cn('flex flex-col bg-theme-background h-full z-50 items-center pb-2 pt-2')} onClick={onClick}>
-      <div className='overflow-y-auto py-2 flex flex-col items-center pl-5 pr-3'>
+    <div className={cn('flex flex-col bg-theme-background h-full z-50 items-center pb-0 pt-2')} onClick={onClick}>
+      <div className='overflow-y-auto pt-2 flex flex-col items-center pl-5 pr-3 relative bg-theme-background overflow-x-hidden'>
         {/* <div className={styles.drawerToggle} id='toggleDrawer'>
           <button className={styles.drawerToggleButton} onClick={handleToggleDrawer}><Icon name='Hamburger' className={styles.menuIcon} /></button>
           {showMenuBadge && <Badge number='1' className={styles.logoBadge} border />}
@@ -80,6 +80,7 @@ export default function GlobalNav (props) {
             url={`/groups/${group.slug}`}
           />
         )}
+      <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-100'>&nbsp;</div>
       </div>
 
       <Link to='/search'><Icon name='Search' className={styles.icon} /></Link>
