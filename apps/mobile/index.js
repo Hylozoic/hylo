@@ -21,6 +21,7 @@ import VersionCheck from 'components/VersionCheck'
 import RootNavigator from 'navigation/RootNavigator'
 import './i18n'
 import 'intl-pluralrules'
+import './src/style/global.css'
 import { ActionSheetProvider } from '@expo/react-native-action-sheet'
 import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
 
