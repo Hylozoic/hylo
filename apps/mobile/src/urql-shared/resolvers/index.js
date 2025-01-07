@@ -1,5 +1,5 @@
-import { hyloSimplePagination } from './hyloSimplePagination'
-import cursorPagination from './cursorPagination'
+import hyloSimplePagination from './hyloSimplePagination'
+import hyloCursorPagination from './hyloCursorPagination'
 
 export default {
   Query: {
@@ -11,7 +11,7 @@ export default {
     viewPosts: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' })
   },
   Post: {
-    comments: cursorPagination(),
+    comments: hyloCursorPagination(),
     attachments: (parent, args, cache, info) => {
       const attachments = cache.resolve(parent, info.fieldName)
       return attachments.sort((a, b) => {
@@ -23,13 +23,13 @@ export default {
     messageThreads: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' })
   },
   MessageThread: {
-    messages: cursorPagination()
+    messages: hyloCursorPagination()
   },
   Person: {
     posts: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' }),
     comments: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' })
   },
   Comment: {
-    childComments: cursorPagination()
+    childComments: hyloCursorPagination()
   }
 }
