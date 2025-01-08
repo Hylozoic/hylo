@@ -63,10 +63,10 @@ export default function GroupMenuHeader ({
       <div className='relative flex flex-row items-center text-background'>
         <img src={avatarUrl} alt='Group Avatar' className='rounded-lg h-10 w-10 mr-2 shadow-md' />
         <div className={`flex flex-col flex-1 text-${textColor} drop-shadow-md`}>
-          <h1 className={`text-xl font-bold m-0 text-white`}>{group.name}</h1>
+          <h1 className='text-xl font-bold m-0 text-white'>{group.name}</h1>
           <span className='text-xs align-middle  text-white'>
             <UsersRound className='w-4 h-4 inline mr-1 align-bottom' />
-            <Link className={`text-white underline`} to={groupUrl(group.slug, 'members', {})}>{t('{{count}} Members', { count: group.memberCount })}</Link>
+            <Link className='text-white underline' to={groupUrl(group.slug, 'members', {})}>{t('{{count}} Members', { count: group.memberCount })}</Link>
           </span>
         </div>
         <Popover onOpenChange={setDetailsOpen} open={detailsOpen}>

@@ -1,11 +1,7 @@
 import { cn } from 'util/index'
-import React, { useState } from 'react'
-import { NavLink, Route, Routes } from 'react-router-dom'
-import Icon from 'components/Icon'
-import getPreviousLocation from 'store/selectors/getPreviousLocation'
+import React from 'react'
+import { Route, Routes } from 'react-router-dom'
 import isWebView from 'util/webView'
-
-import styles from './FullPageModal.module.scss'
 
 export default function FullPageModal ({
   confirmMessage, navigate, goToOnClose,
@@ -48,4 +44,3 @@ export default function FullPageModal ({
     )
   }
 }
-

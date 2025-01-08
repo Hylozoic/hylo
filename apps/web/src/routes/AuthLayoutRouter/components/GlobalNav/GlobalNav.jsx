@@ -1,11 +1,11 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
 import { Globe } from 'lucide-react'
-import React, { Suspense, useRef } from 'react'
+import React, { Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector } from 'react-redux'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import {
   Popover,
   PopoverContent,
@@ -29,7 +29,7 @@ export default function GlobalNav (props) {
   const { currentUser, onClick } = props
   const { show: showIntercom } = useIntercom()
   const groups = useSelector(getMyGroups)
-
+  const location = useLocation()
   const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
   const { t } = useTranslation()
 
@@ -80,12 +80,13 @@ export default function GlobalNav (props) {
             url={`/groups/${group.slug}`}
           />
         )}
-      <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-100'>&nbsp;</div>
+
+        <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-100'>&nbsp;</div>
       </div>
 
       <Link to='/search'><Icon name='Search' className={styles.icon} /></Link>
 
-      <GlobalNavItem onClick={() => {}}>
+      <GlobalNavItem url={`${location.pathname}/create`} className={cn('opacity-1')}>
         +
       </GlobalNavItem>
 
@@ -106,21 +107,3 @@ export default function GlobalNav (props) {
     </div>
   )
 }
-
-// function Logo ({ group, isPublic }) {
-//   let imageStyle = bgImageStyle(hyloLogo)
-//   if (group) {
-//     imageStyle = bgImageStyle(get('avatarUrl', group))
-//   } else if (isPublic) {
-//     imageStyle = bgImageStyle(publicLogo)
-//   }
-
-//   return (
-//     <span className={styles.image} style={imageStyle}>
-//       <span>
-//         <Icon name='Home' className={styles.homeLink} />
-//         <Icon name='Ex' className={styles.closeGroupMenu} />
-//       </span>
-//     </span>
-//   )
-// }
