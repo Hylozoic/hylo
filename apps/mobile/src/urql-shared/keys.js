@@ -3,6 +3,7 @@ export default {
   ActivityMeta: () => null,
   AgreementQuerySet: () => null,
   CommentQuerySet: () => null,
+  ContextWidgetQuerySet: () => null,
   CustomViewQuerySet: () => null,
   EventInvitationQuerySet: () => null,
   GroupExistsOutput: () => null,
