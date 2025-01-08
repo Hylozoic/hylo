@@ -1,7 +1,8 @@
 import { cn } from 'util/index'
 import { compact, get } from 'lodash/fp'
+import { ChevronLeft } from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -25,6 +26,7 @@ import { removeWidgetFromMenu, updateContextWidget } from 'store/actions/context
 import resetNewPostCount from 'store/actions/resetNewPostCount'
 import useGatherItems from 'hooks/useGatherItems'
 import { CONTEXT_MY, FETCH_POSTS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import orm from 'store/models'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
 import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
@@ -279,7 +281,11 @@ export default function ContextMenu (props) {
         </div>
       )}
       {hasContextWidgets && (
-        <div className='flex flex-col content-center'>
+        <div className='relative translate-x-0 translate-y-0 flex flex-col items-center overflow-hidden'>
+          <Routes>
+            <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
+          </Routes>
+
           <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
             <div>
               <ContextWidgetList
@@ -454,11 +460,13 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
             </div>)}
         
       </div>
-      {showEdit && <div className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground'>            
-        <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })}>
-          <span className='text-lg font-bold'>{t('Edit')}</span>
-        </MenuLink> 
-      </div>}
+      {showEdit && (
+        <div className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground'>
+          <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })}>
+            <span className='text-lg font-bold'>{t('Edit')}</span>
+          </MenuLink>
+        </div>
+      )}
     </>
   )
 }
@@ -584,4 +592,61 @@ function SpecialTopElementRenderer ({ widget, group }) {
   }
 
   return null
+}
+
+const SETTINGS_MENU_ITEMS = [
+  { title: 'Group Details', url: 'settings' },
+  { title: 'Agreements', url: 'settings/agreements' },
+  { title: 'Responsibilities', url: 'settings/responsibilities' },
+  { title: 'Roles & Badges', url: 'settings/roles' },
+  { title: 'Privacy & Access', url: 'settings/privacy' },
+  { title: 'Topics', url: 'settings/topics' },
+  { title: 'Invitations', url: 'settings/invite' },
+  { title: 'Join Requests', url: 'settings/requests' },
+  { title: 'Related Groups', url: 'settings/relationships' },
+  { title: 'Export Data', url: 'settings/export' },
+  { title: 'Delete', url: 'settings/delete' }
+]
+
+function GroupSettingsMenu ({ group }) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  // XXX: hacky way to track the view we were at before opening the settings menu. also see locationHistory.js
+  const previousLocation = useSelector(state => get('locationHistory.currentLocation', state))
+
+  const confirm = useSelector(state => get('FullPageModal.confirm', state))
+
+  const closeMenu = useCallback(() => {
+    if (!confirm || window.confirm(t('You have unsaved changes, are you sure you want to leave?'))) {
+      dispatch(setConfirmBeforeClose(false))
+      navigate(previousLocation || groupUrl(group.slug))
+    }
+  }, [confirm, previousLocation, group.slug])
+
+  return (
+    <div className='fixed h-full w-full top-0 left-0 backdrop-blur-sm z-10'>
+      <div className='absolute h-full w-[calc(100%-3.5em)] top-0 left-14 flex flex-col gap-2 bg-background rounded-t-lg shadow-xl border-t border-l border-2 border-border pl-3 pr-6'>
+        <h3 className='text-lg font-bold flex items-center gap-2'>
+          <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
+          {t('Group Settings')}
+        </h3>
+        <ul className='flex flex-col gap-2 p-0' onClick={() => { console.log('menu') }}>
+          {SETTINGS_MENU_ITEMS.map(item => (
+            <li key={item.url}>
+              <Link
+                to={groupUrl(group.slug, item.url)}
+                className={cn(
+                  'inline-block w-full ml-2 mr-4 py-1 px-2 text-md text-foreground rounded-xl border-foreground/50 border-2 hover:border-secondary cursor-pointer',
+                  { 'text-secondary border-secondary': location.pathname === groupUrl(group.slug, item.url) }
+                )}
+              >
+                {item.title}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
 }
