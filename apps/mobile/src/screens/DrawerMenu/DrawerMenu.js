@@ -17,6 +17,7 @@ import { bannerlinearGradientColors } from 'style/colors'
 // import groupExplorerUrl from 'assets/group-explorer.png'
 import earthUrl from 'assets/earth.png'
 import myHomeUrl from 'assets/my-home.png'
+import GlobalNav from 'navigation/menus/GlobalNav/GlobalNav'
 
 export default function DrawerMenu () {
   const { t } = useTranslation()
@@ -31,6 +32,8 @@ export default function DrawerMenu () {
   const myGroups = memberships
     .map(m => m.group)
     .sort((a, b) => a.name.localeCompare(b.name))
+
+  const contextWidgets = currentGroup?.contextWidgets || []
 
   const goToCreateGroup = () => {
     navigation.navigate('Create Group', { screen: 'CreateGroupName', params: { reset: true } })
@@ -126,7 +129,21 @@ export default function DrawerMenu () {
 
   if (currentUserFetching || currentGroupFetching) return null
 
-  return (
+  const newSchool = (
+    <View style={styles.container}>
+      {currentGroup &&
+        <View className="flex flex-row h-full">
+          <View className="w-20 bg-gray-200">
+            <GlobalNav />
+          </View>
+          <View className="flex-1 bg-white">
+            {/* Content for the second column */}
+          </View>
+        </View>}
+      </View>
+  )
+
+  const oldSchool = (
     <View style={styles.container}>
       {currentGroup && !myHome && (
         <FastImage source={groupBannerImage} style={styles.headerBackgroundImage}>
@@ -170,6 +187,8 @@ export default function DrawerMenu () {
       <Button text={t('Start a Group')} onPress={goToCreateGroup} style={styles.createGroupButton} />
     </View>
   )
+
+  return contextWidgets.length > 0 ? newSchool : oldSchool
 }
 
 export function TextButton ({ text, onPress }) {

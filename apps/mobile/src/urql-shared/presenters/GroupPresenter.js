@@ -26,6 +26,9 @@ export default function GroupPresenter (group) {
         primaryImage: a.attachments.length > 0 ? a.attachments[0].url : false
       }))
       : [],
+    contextWidgets: group.contextWidgets
+      ? group.contextWidgets.items
+      : [],
     customViews: group.customViews
       ? group.customViews.items.map(cv => ({
         ...cv,

@@ -13,6 +13,7 @@ import { SET_CURRENT_GROUP_SLUG } from 'store/constants'
 export default function useCurrentGroup ({
   setToGroupSlug,
   groupQueryScope = {
+    withContextWidgets: true,
     withJoinQuestions: true,
     withPrerequisiteGroups: true
   },

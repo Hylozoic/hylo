@@ -10,13 +10,13 @@ import { gql } from 'urql'
 
 // Note: The previous defaults args for fetchGroupDetails were:
 // withExtensions = true,
-// withWidgets = false,
+// withContextWidgets = false,
 // withTopics = true,
 // withJoinQuestions = true,
 // withPrerequisites = true
 export default function groupDetailsQueryMaker ({
   withExtensions = false,
-  withWidgets = false,
+  withContextWidgets = false,
   withTopics = false,
   withJoinQuestions = false,
   withPrerequisiteGroups = false,
@@ -27,7 +27,7 @@ export default function groupDetailsQueryMaker ({
       group(slug: $slug, id: $id) {
         ...GroupFieldsFragment
         ${withExtensions ? '...GroupGroupExtensionsFieldsFragment' : ''}
-        ${withWidgets ? '...GroupWidgetsFieldsFragment' : ''}
+        ${withContextWidgets ? '...GroupContextWidgetsFieldsFragment' : ''}
         ${withTopics ? '...GroupGroupTopicsFieldsFragment' : ''}
         ${withJoinQuestions ? '...GroupJoinQuestionsFieldsFragment' : ''}
         ${withPrerequisiteGroups ? '...GroupPrerequisiteGroupsFieldsFragment' : ''}
@@ -36,7 +36,7 @@ export default function groupDetailsQueryMaker ({
     }
     ${groupFieldsFragment}
     ${withExtensions ? groupGroupExtensionsFieldsFragment : ''}
-    ${withWidgets ? groupWidgetsFieldsFragment : ''}
+    ${withContextWidgets ? groupWidgetsFieldsFragment : ''}
     ${withTopics ? groupGroupTopicsFieldsFragment : ''}
     ${withJoinQuestions ? groupJoinQuestionsFieldsFragment : ''}
     ${withPrerequisiteGroups ? groupPrerequisiteGroupsFieldsFragment : ''}
