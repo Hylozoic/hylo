@@ -34,8 +34,8 @@ export default function GlobalNav (props) {
   const { t } = useTranslation()
 
   return (
-    <div className={cn('flex flex-col bg-theme-background h-full z-50 items-center pb-2 pt-2')} onClick={onClick}>
-      <div className='overflow-y-auto py-2 flex flex-col items-center pl-5 pr-3'>
+    <div className={cn('flex flex-col bg-theme-background h-full z-50 items-center pb-0 pt-2')} onClick={onClick}>
+      <div className='overflow-y-auto pt-2 flex flex-col items-center pl-5 pr-3 relative bg-theme-background overflow-x-hidden'>
         {/* <div className={styles.drawerToggle} id='toggleDrawer'>
           <button className={styles.drawerToggleButton} onClick={handleToggleDrawer}><Icon name='Hamburger' className={styles.menuIcon} /></button>
           {showMenuBadge && <Badge number='1' className={styles.logoBadge} border />}
@@ -49,11 +49,11 @@ export default function GlobalNav (props) {
           <Logo {...{ group, isPublic }} />
           <Title group={group} isPublic={isPublic} isMyHome={isMyHome} />
         </Link> */}
-        <GlobalNavItem img={get('avatarUrl', currentUser)} tooltip={t('Your Profile')} url='/my/posts' />
+        <GlobalNavItem img={get('avatarUrl', currentUser)} tooltip={t('Your Profile')} url='/my/posts' className={cn('opacity-1')}/>
 
-        <Suspense fallback={<GlobalNavItem><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
+        <Suspense fallback={<GlobalNavItem className={cn('opacity-1')}><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
-            <GlobalNavItem tooltip='Activity'>
+            <GlobalNavItem tooltip='Activity' className={cn('opacity-1')}>
               <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' showBadge={showBadge} />
             </GlobalNavItem>}
           />
@@ -61,13 +61,13 @@ export default function GlobalNav (props) {
 
         <Suspense fallback={<GlobalNavItem><BadgedIcon name='Messages' className={styles.icon} /></GlobalNavItem>}>
           <MessagesDropdown renderToggleChildren={showBadge =>
-            <GlobalNavItem tooltip='Messages'>
+            <GlobalNavItem tooltip='Messages' className={cn('opacity-1')}>
               <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' showBadge={showBadge} />
             </GlobalNavItem>}
           />
         </Suspense>
 
-        <GlobalNavItem tooltip={t('Public')} url='/public/stream'>
+        <GlobalNavItem tooltip={t('Public')} url='/public/stream' className={cn('opacity-1')}>
           <Globe color='hsl(var(--primary-foreground))' />
         </GlobalNavItem>
 
@@ -80,6 +80,7 @@ export default function GlobalNav (props) {
             url={`/groups/${group.slug}`}
           />
         )}
+      <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-100'>&nbsp;</div>
       </div>
 
       <Link to='/search'><Icon name='Search' className={styles.icon} /></Link>
