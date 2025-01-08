@@ -1,22 +1,25 @@
-import { ChevronRight, ChevronDown, UsersRound } from 'lucide-react'
+import { ChevronRight, ChevronDown, Settings, UsersRound } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
-
+import { Link, useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import GroupDetail from 'routes/GroupDetail'
 import { Popover, PopoverTrigger, PopoverContent } from 'components/ui/popover'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { bgImageStyle } from 'util/index'
 import { groupUrl } from 'util/navigation'
-
 export default function GroupMenuHeader ({
   group
 }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const avatarUrl = group.avatarUrl || DEFAULT_AVATAR
   const bannerUrl = group.bannerUrl || DEFAULT_BANNER
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [textColor, setTextColor] = useState('background')
+  const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
 
   useEffect(() => {
     // Detect the color of the banner and set the text color accordingly
@@ -50,13 +53,20 @@ export default function GroupMenuHeader ({
   return (
     <div className='relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md' data-testid='group-header'>
       <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle(bannerUrl), opacity: 0.7 }} />
+      {canAdminister && (
+        <div className='absolute top-2 right-2'>
+          <button onClick={() => { navigate(groupUrl(group.slug, 'settings', {})) }}>
+            <Settings className={`w-6 h-6 text-${textColor} drop-shadow-md`} />
+          </button>
+        </div>
+      )}
       <div className='relative flex flex-row items-center text-background'>
         <img src={avatarUrl} alt='Group Avatar' className='rounded-lg h-10 w-10 mr-2 shadow-md' />
         <div className={`flex flex-col flex-1 text-${textColor} drop-shadow-md`}>
-          <h1 className={`text-xl font-bold m-0 text-white`}>{group.name}</h1>
+          <h1 className='text-xl font-bold m-0 text-white'>{group.name}</h1>
           <span className='text-xs align-middle  text-white'>
             <UsersRound className='w-4 h-4 inline mr-1 align-bottom' />
-            <Link className={`text-white underline`} to={groupUrl(group.slug, 'members', {})}>{t('{{count}} Members', { count: group.memberCount })}</Link>
+            <Link className='text-white underline' to={groupUrl(group.slug, 'members', {})}>{t('{{count}} Members', { count: group.memberCount })}</Link>
           </span>
         </div>
         <Popover onOpenChange={setDetailsOpen} open={detailsOpen}>

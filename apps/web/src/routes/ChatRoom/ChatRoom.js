@@ -465,65 +465,67 @@ export default function ChatRoom (props) {
             )}
       </div>
       {/* Post chat box */}
-      <div className='relative w-full max-w-[750px] px-2 mt-2 mx-auto shadow-md p-2 border-t border-l border-r border-border shadow-lg rounded-t-xl bg-card'>
-        <HyloEditor
-          contentHTML={newPost.details}
-          groupIds={groupIds}
-          // Disable edit cancel through escape due to event bubbling issues
-          // onEscape={this.handleCancel}
-          onAddTopic={handleAddTopic}
-          onAddLink={handleAddLinkPreview}
-          onUpdate={handleDetailsUpdate}
-          onEnter={postChatMessage}
-          placeholder={`Send a message to #${topicName}`}
-          readOnly={loadingPast || loadingFuture}
-          ref={editorRef}
-          showMenu={!isWebView()}
-          className={cn(styles.editor)}
-        />
-        {(linkPreview || fetchLinkPreviewPending) && (
-          <LinkPreview
-            className={styles.linkPreview}
-            loading={fetchLinkPreviewPending}
-            linkPreview={linkPreview}
-            featured={newPost.linkPreviewFeatured}
-            onFeatured={handleFeatureLinkPreview}
-            onClose={handleRemoveLinkPreview}
+      <div className='ChatBoxContainer px-4 w-full max-w-[750px]'>
+        <div className='ChatBox relative w-full px-2 mt-2 mx-auto shadow-md p-2 border-t border-l border-r border-border shadow-lg rounded-t-xl bg-card'>
+          <HyloEditor
+            contentHTML={newPost.details}
+            groupIds={groupIds}
+            // Disable edit cancel through escape due to event bubbling issues
+            // onEscape={this.handleCancel}
+            onAddTopic={handleAddTopic}
+            onAddLink={handleAddLinkPreview}
+            onUpdate={handleDetailsUpdate}
+            onEnter={postChatMessage}
+            placeholder={`Send a message to #${topicName}`}
+            readOnly={loadingPast || loadingFuture}
+            ref={editorRef}
+            showMenu={!isWebView()}
+            className={cn(styles.editor)}
           />
-        )}
-        <AttachmentManager
-          type='post'
-          id='new'
-          attachmentType='image'
-          showAddButton
-          showLabel
-          showLoading
-        />
-        <div className='w-full'>
-          <UploadAttachmentButton
+          {(linkPreview || fetchLinkPreviewPending) && (
+            <LinkPreview
+              className={styles.linkPreview}
+              loading={fetchLinkPreviewPending}
+              linkPreview={linkPreview}
+              featured={newPost.linkPreviewFeatured}
+              onFeatured={handleFeatureLinkPreview}
+              onClose={handleRemoveLinkPreview}
+            />
+          )}
+          <AttachmentManager
             type='post'
-            className={styles.uploadAttachment}
             id='new'
             attachmentType='image'
-            onSuccess={(attachment) => dispatch(addAttachment('post', 'new', attachment))}
-            allowMultiple
-          >
-            <ImagePlus className={cn('text-foreground hover:cursor-pointer hover:text-accent', { 'text-primary': imageAttachments && imageAttachments.length > 0 })} />
-          {/* Remove when it's confirmed to be working
-            <Icon
-              name='AddImage'
-              className={cn('text-foreground', styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
-            />
-            */}
-          </UploadAttachmentButton>
-          <Button
-            borderRadius='6px'
-            disabled={!postInProgress}
-            onClick={postChatMessage}
-            className={styles.sendMessageButton}
-          >
-            <SendHorizontal color={!postInProgress ? 'gray' : 'white'} size={18} style={{ display: 'inline' }} />
-          </Button>
+            showAddButton
+            showLabel
+            showLoading
+          />
+          <div className='w-full'>
+            <UploadAttachmentButton
+              type='post'
+              className={styles.uploadAttachment}
+              id='new'
+              attachmentType='image'
+              onSuccess={(attachment) => dispatch(addAttachment('post', 'new', attachment))}
+              allowMultiple
+            >
+              <ImagePlus className={cn('text-foreground hover:cursor-pointer hover:text-accent', { 'text-primary': imageAttachments && imageAttachments.length > 0 })} />
+            {/* Remove when it's confirmed to be working
+              <Icon
+                name='AddImage'
+                className={cn('text-foreground', styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
+              />
+              */}
+            </UploadAttachmentButton>
+            <Button
+              borderRadius='6px'
+              disabled={!postInProgress}
+              onClick={postChatMessage}
+              className={styles.sendMessageButton}
+            >
+              <SendHorizontal color={!postInProgress ? 'gray' : 'white'} size={18} style={{ display: 'inline' }} />
+            </Button>
+          </div>
         </div>
       </div>
 

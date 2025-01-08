@@ -6,6 +6,7 @@ import FastImage from 'react-native-fast-image'
 import { Text, View, ImageBackground, ScrollView, TouchableOpacity, TextInput } from 'react-native'
 import CheckBox from 'react-native-bouncy-checkbox'
 import useCurrentUser from 'hooks/useCurrentUser'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 import presentGroup from 'store/presenters/presentGroup'
 import getGroup from 'store/selectors/getGroup'
 import { updateMembershipSettings } from 'store/actions/updateMembershipSettings'
@@ -25,17 +26,16 @@ export default function GroupWelcomeLanding ({ route }) {
   const { groupId } = params
   const dispatch = useDispatch()
   const navigation = useNavigation()
-  const currentGroup = useSelector(state => getGroup(state, { id: groupId }))
-  const group = presentGroup(currentGroup)
+  // const currentGroup = useSelector(state => getGroup(state, { id: groupId }))
+  const [currentGroup] = useCurrentGroup()
   const currentStepIndex = useSelector(getCurrentStepIndex)
   const [currentUser] = useCurrentUser()
   const currentMemberships = useSelector(state => getMyMemberships(state))
   const currentMembership = currentMemberships.find(m => m.group.id === groupId)
-  const routeNames = getRouteNames(group, currentMembership)
+  const routeNames = getRouteNames(currentGroup, currentMembership) // ensure this works with null group
   const addSkill = name => dispatch(addSkillAction(name))
   const removeSkill = skillId => dispatch(removeSkillAction(skillId))
-
-  const { name, avatarUrl, purpose, bannerUrl, description, agreements, joinQuestions } = group
+  const { name, avatarUrl, purpose, bannerUrl, description, agreements, joinQuestions } = currentGroup
   const { agreementsAcceptedAt, joinQuestionsAnsweredAt,showJoinForm } = currentMembership?.settings || {}
   const imageSource = { uri: avatarUrl || DEFAULT_AVATAR }
   const bgImageSource = { uri: bannerUrl || DEFAULT_BANNER }
@@ -50,22 +50,22 @@ export default function GroupWelcomeLanding ({ route }) {
 
   // Join Questions logic
   const [questionAnswers, setQuestionAnswers] = useState(joinQuestions.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
-  const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!group?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
+  const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!currentGroup?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
 
   useEffect(() => {
     if (!showJoinForm &&
       !agreementsChanged &&
       (joinQuestionsAnsweredAt ||
-      !group.settings?.askJoinQuestions)) {
+      !currentGroup.settings?.askJoinQuestions)) {
       navigation.navigate('Stream', { groupId, initial: false })
     }
   }, [showJoinForm, agreementsChanged, joinQuestionsAnsweredAt])
 
   useEffect(() => {
     if (numAgreements > 0) {
-      setAcceptedAgreements(group.agreements.map(a => a.accepted))
+      setAcceptedAgreements(currentGroup.agreements.map(a => a.accepted))
     }
-  }, [group?.id])
+  }, [currentGroup?.id])
 
   const handleCheckAgreement = ({ checked, index }) => {
     const accepted = checked
@@ -83,7 +83,7 @@ export default function GroupWelcomeLanding ({ route }) {
 
   const handleAccept = async () => {
     await dispatch(updateMembershipSettings(
-      group.id,
+      currentGroup.id,
       { joinQuestionsAnsweredAt: new Date(), showJoinForm: false },
       true,
       questionAnswers ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : []
@@ -119,10 +119,10 @@ export default function GroupWelcomeLanding ({ route }) {
           {currentStepIndex === 0 && <LandingBodyContent description={description} purpose={purpose} currentStepIndex={currentStepIndex} />}
           {routeNames[currentStepIndex] === GROUP_WELCOME_AGREEMENTS && <AgreementsBodyContent agreements={agreements} agreementsChanged={agreementsChanged} acceptedAgreements={acceptedAgreements} handleCheckAgreement={handleCheckAgreement} acceptedAllAgreements={acceptedAllAgreements} handleCheckAllAgreements={handleCheckAllAgreements} numAgreements={numAgreements} />}
           {routeNames[currentStepIndex] === GROUP_WELCOME_JOIN_QUESTIONS && <JoinQuestionsBodyContent questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} setAllQuestionsAnswered={setAllQuestionsAnswered} />}
-          {routeNames[currentStepIndex] === GROUP_WELCOME_SUGGESTED_SKILLS && <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
+          {routeNames[currentStepIndex] === GROUP_WELCOME_SUGGESTED_SKILLS && <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={currentGroup} removeSkill={removeSkill} />}
         </View>
       </ScrollView>
-      <GroupWelcomeTabBar group={group} agreements={agreements} acceptedAllAgreements={acceptedAllAgreements} handleAccept={handleAccept} allQuestionsAnswered={allQuestionsAnswered} />
+      <GroupWelcomeTabBar group={currentGroup} agreements={agreements} acceptedAllAgreements={acceptedAllAgreements} handleAccept={handleAccept} allQuestionsAnswered={allQuestionsAnswered} />
     </View>
   )
 }

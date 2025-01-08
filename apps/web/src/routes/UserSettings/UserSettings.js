@@ -169,7 +169,7 @@ const UserSettings = () => {
     })
   }
 
-  return <FullPageModal hideMenu content={content} />
+  return <FullPageModal content={content} />
 }
 
 export default UserSettings

@@ -1,7 +1,6 @@
 import React from 'react'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
 import { Provider } from 'react-redux'
-import { BrowserRouter } from 'react-router-dom'
 import { ThemeProvider } from 'components/ThemeProvider'
 import { TooltipProvider } from 'components/ui/tooltip'
 // import { Provider as RollbarProvider, ErrorBoundary } from '@rollbar/react'
@@ -40,11 +39,9 @@ export default function App () {
       <Provider store={store}>
         <ThemeProvider>
           <TooltipProvider delayDuration={0}>
-            <BrowserRouter>
-              <Router history={history}>
-                <RootRouter />
-              </Router>
-            </BrowserRouter>
+            <Router history={history}>
+              <RootRouter />
+            </Router>
           </TooltipProvider>
         </ThemeProvider>
       </Provider>
