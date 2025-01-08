@@ -31,6 +31,7 @@ export default function GlobalNav() {
       <View className="flex-1 overflow-y-scroll">
         {myGroups?.map(group => (
           <GroupRow
+            key={group.id}
             group={group}
             changeToGroup={changeToGroup}
             currentGroupSlug={currentGroup?.slug}
