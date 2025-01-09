@@ -5,7 +5,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from 'components/ui/tooltip'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { cn } from 'util/index'
 
 export default function GlobalNavItem ({
@@ -16,6 +16,7 @@ export default function GlobalNavItem ({
   tooltip,
   url
 }) {
+  const navigate = useNavigate()
   const selected = useLocation().pathname.startsWith(url)
 
   const style = {}
@@ -25,12 +26,18 @@ export default function GlobalNavItem ({
     style.backgroundPosition = 'center'
   }
 
+  const handleClick = () => {
+    if (url) {
+      navigate(url)
+    }
+  }
+
   return (
     <Tooltip>
       <div className='mb-4'>
         <TooltipTrigger asChild>
-          <Link
-            to={url}
+          <div
+            onClick={handleClick}
             className={cn(
               'bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 hover:opacity-100 scale-90 hover:scale-100 hover:drop-shadow-lg',
               {
@@ -46,7 +53,7 @@ export default function GlobalNavItem ({
           >
             {children}
             {badgeCount > 0 && <Badge number={badgeCount} className='absolute -top-2 -left-2' expanded />}
-          </Link>
+          </div>
         </TooltipTrigger>
         {tooltip && <TooltipContent side='right' arrow>{tooltip}</TooltipContent>}
       </div>

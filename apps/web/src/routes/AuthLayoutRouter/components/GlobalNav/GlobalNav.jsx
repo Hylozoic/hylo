@@ -15,7 +15,7 @@ import Badge from 'components/Badge'
 import BadgedIcon from 'components/BadgedIcon'
 import Icon from 'components/Icon'
 import GlobalNavItem from './GlobalNavItem'
-import { toggleDrawer, toggleGroupMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import { toggleDrawer, toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { hyloLogo, publicLogo } from 'util/assets'
 import { isMobileDevice, downloadApp } from 'util/mobile'
@@ -42,14 +42,14 @@ export default function GlobalNav (props) {
         </div> */}
         {/* <Link
           to={baseUrl(pick(['context', 'groupSlug'], routeParams))}
-          onClick={handleToggleGroupMenu}
-          className={cn(styles.currentContext, { [styles.groupMenuOpen]: isGroupMenuOpen })}
+          onClick={handleToggleNavMenu}
+          className={cn(styles.currentContext, { [styles.groupMenuOpen]: isNavOpen })}
           id='currentContext'
         >
           <Logo {...{ group, isPublic }} />
           <Title group={group} isPublic={isPublic} isMyHome={isMyHome} />
         </Link> */}
-        <GlobalNavItem img={get('avatarUrl', currentUser)} tooltip={t('Your Profile')} url='/my/posts' className={cn('opacity-1')}/>
+        <GlobalNavItem img={get('avatarUrl', currentUser)} tooltip={t('Your Profile')} url='/my/posts' className={cn('opacity-1')} />
 
         <Suspense fallback={<GlobalNavItem className={cn('opacity-1')}><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>

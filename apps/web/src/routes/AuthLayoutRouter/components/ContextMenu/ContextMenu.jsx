@@ -16,7 +16,7 @@ import NavLink from './NavLink'
 import MenuLink from './MenuLink'
 import TopicNavigation from './TopicNavigation'
 import useRouteParams from 'hooks/useRouteParams'
-import { toggleGroupMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
@@ -102,12 +102,12 @@ export default function ContextMenu (props) {
 
   const isEditting = getQuerystringParam('cme', location) === 'yes' && canAdminister
 
-  const isGroupMenuOpen = useSelector(state => get('AuthLayoutRouter.isGroupMenuOpen', state))
+  const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const streamFetchPostsParam = useSelector(state => get('Stream.fetchPostsParam', state))
 
   const [isDragging, setIsDragging] = useState(false)
   const [activeWidget, setActiveWidget] = useState(null)
-  const toggleGroupMenuAction = useCallback(() => dispatch(toggleGroupMenu()), [])
+  const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
 
   const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
@@ -233,8 +233,8 @@ export default function ContextMenu (props) {
   const canView = !group || group.memberCount !== 0
   const links = regularLinks
   return (
-    <div className={cn('Navigation bg-background z-40 overflow-y-auto h-lvh min-w-280 border-r border-foreground/20 shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
-      <div className='ContextDetails w-full'>
+    <div className={cn('Navigation bg-background z-40 overflow-y-auto h-lvh min-w-280 border-r border-foreground/20 shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
+      <div className='ContextDetails w-full z-20 relative'>
         {routeParams.context === 'groups'
           ? <GroupMenuHeader group={group} />
           : isPublic
@@ -281,7 +281,7 @@ export default function ContextMenu (props) {
         </div>
       )}
       {hasContextWidgets && (
-        <div className='relative translate-x-0 translate-y-0 flex flex-col items-center overflow-hidden'>
+        <div className='relative translate-x-0 translate-y-0 flex flex-col items-center overflow-hidden z-20'>
           <Routes>
             <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
           </Routes>
@@ -322,7 +322,7 @@ export default function ContextMenu (props) {
             </div>)}
         </div>
       )}
-      {!hasContextWidgets && <div className={classes.closeBg} onClick={toggleGroupMenuAction} />}
+      {isNavOpen && <div className={cn('opacity-50 fixed right-0 top-0 w-full h-full z-10 transition-all duration-250 ease-in-out', { 'sm:block': isNavOpen })} onClick={toggleNavMenuAction} />}
     </div>
   )
 }
@@ -430,8 +430,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                 <span className='text-sm font-bold ml-2'>{title}</span>
               </MenuLink>
             </span>
-
-          )
+            )
           : (
             <div>
               {widget.view &&
@@ -458,7 +457,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   </li>}
               </ul>
             </div>)}
-        
+
       </div>
       {showEdit && (
         <div className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground'>
