@@ -510,7 +510,7 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-events', type: 'events', view: 'events' },
       { title: 'widget-projects', type: 'projects', view: 'projects' },
       { title: 'widget-groups', type: 'groups', view: 'groups' },
-      { title: 'widget-decisions', type: 'decisions', view: 'proposals' },
+      { title: 'widget-decisions', type: 'decisions', view: 'decisions' },
       { title: 'widget-about', type: 'about', view: 'about' },
       { title: 'widget-map', type: 'map', view: 'map' }
     ]
@@ -1036,6 +1036,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   async doesMenuUpdate ({ groupIds, post, customView, groupRelation = false }) {
     if (!post && !customView && !groupRelation) return
+    console.log('broken here post', post)
     const postType = post && post.get('type')
     // Skip processing if it's a chat post and no other conditions are present
     if (postType === 'chat' && !customView && !groupRelation) return

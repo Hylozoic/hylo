@@ -133,7 +133,7 @@ export default function ContextMenu (props) {
   const mapPath = viewUrl('map', routeParams)
   const membersPath = !isAllOrPublicPath && viewUrl('members', routeParams)
   const projectsPath = viewUrl('projects', routeParams)
-  const proposalPath = viewUrl('proposals', routeParams)
+  const decisionsPath = viewUrl('decisions', routeParams)
 
   const customViews = (group && group.customViews && group.customViews.toRefArray()) || []
 
@@ -176,10 +176,10 @@ export default function ContextMenu (props) {
       icon: 'People',
       to: membersPath
     },
-    proposalPath && {
+    decisionsPath && {
       label: t('Decisions'),
       icon: 'Proposal',
-      to: proposalPath
+      to: decisionsPath
     },
     (hasRelatedGroups) && groupsPath && {
       label: t('Groups'),

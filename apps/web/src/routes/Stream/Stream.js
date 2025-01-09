@@ -108,7 +108,7 @@ export default function Stream (props) {
   // TODO: merge this and getTypes
   const determinePostTypeFilter = useCallback(() => {
     if (view === 'projects') return 'project'
-    if (view === 'proposals') return 'proposal'
+    if (view === 'decisions') return 'proposal'
     if (view === 'events') return 'event'
     return querystringParams.t || defaultPostType
   }, [querystringParams, defaultPostType, view])
@@ -177,7 +177,7 @@ export default function Stream (props) {
   const pending = useSelector(state => state.pending[FETCH_POSTS])
   const pendingModerationActions = useSelector(state => state.pending[FETCH_MODERATION_ACTIONS])
 
-  const decisionView = getQuerystringParam('d', location) || 'proposals'
+  const decisionView = getQuerystringParam('d', location) || 'decisions'
   const fetchModerationActionParam = {
     slug: groupSlug,
     groupId,

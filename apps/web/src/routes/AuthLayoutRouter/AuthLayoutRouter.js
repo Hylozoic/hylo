@@ -376,8 +376,8 @@ export default function AuthLayoutRouter (props) {
               <Route path='public/stream/*' element={<Stream context='public' />} />
               <Route path='all/projects/*' element={<Stream context='all' view='projects' />} />
               <Route path='public/projects/*' element={<Stream context='public' view='projects' />} />
-              <Route path='all/proposals/*' element={<Stream context='all' view='proposals' />} />
-              <Route path='public/proposals/*' element={<Stream context='public' view='proposals' />} />
+              <Route path='all/decisions/*' element={<Stream context='all' view='decisions' />} />
+              <Route path='public/decisions/*' element={<Stream context='public' view='decisions' />} />
               <Route path='all/events/*' element={<Stream context='all' />} />
               <Route path='public/events/*' element={<Stream context='public' />} />
               <Route path='all/map/*' element={<MapExplorer context='all' />} />
@@ -400,7 +400,7 @@ export default function AuthLayoutRouter (props) {
               )}
               <Route path='groups/:groupSlug/map/*' element={<MapExplorer context='groups' view='map' />} />
               <Route path='groups/:groupSlug/stream/*' element={<Stream context='groups' view='stream' />} />
-              <Route path='groups/:groupSlug/proposals/*' element={<Stream context='groups' view='proposals' />} />
+              <Route path='groups/:groupSlug/decisions/*' element={<Stream context='groups' view='decisions' />} />
               <Route path='groups/:groupSlug/explore/*' element={<LandingPage context='groups' />} />
               <Route path='groups/:groupSlug/ask-and-offer/*' element={<Stream context='groups' view='ask-and-offer' />} />
               <Route path='groups/:groupSlug/projects/*' element={<Stream context='groups' view='projects' />} />
