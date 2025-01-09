@@ -30,7 +30,7 @@ export default function reducer (state = initialState, action) {
   }
 
   if (action.type === LOCATION_CHANGE) {
-    return { ...state, isDrawerOpen: false, isNavOpen: false }
+    return { ...state, isDrawerOpen: false }
   }
 
   // Links current user to rollbar config

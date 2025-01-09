@@ -264,9 +264,9 @@ export default function ContextMenu (props) {
                 />
               ))}
               <li className={cn(classes.item, classes.topicItem)}>
-                <Link to={topicsUrl(routeParams)}>
+                <MenuLink to={topicsUrl(routeParams)}>
                   <Icon name='Topics' />
-                </Link>
+                </MenuLink>
               </li>
             </ul>
           )}
@@ -322,7 +322,7 @@ export default function ContextMenu (props) {
             </div>)}
         </div>
       )}
-      {isNavOpen && <div className={cn('opacity-50 fixed right-0 top-0 w-full h-full z-10 transition-all duration-250 ease-in-out', { 'sm:block': isNavOpen })} onClick={toggleNavMenuAction} />}
+      {isNavOpen && <div className={cn('ContextMenuCloseBg opacity-50 fixed right-0 top-0 w-full h-full z-10 transition-all duration-250 ease-in-out', { 'sm:block': isNavOpen })} onClick={toggleNavMenuAction} />}
     </div>
   )
 }
@@ -529,11 +529,11 @@ function SpecialTopElementRenderer ({ widget, group }) {
 
   if (widget.type === 'members' && canAddMembers) {
     return (
-      <Link to={groupUrl(group.slug, 'settings/invite')}>
+      <MenuLink to={groupUrl(group.slug, 'settings/invite')}>
         <div className='inline-block px-4 py-2 text-sm font-medium text-foreground bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
           {t('Add Members')}
         </div>
-      </Link>
+      </MenuLink>
     )
   }
 
@@ -551,19 +551,19 @@ function SpecialTopElementRenderer ({ widget, group }) {
 
     const listItemComponent = ({ title, url }) => (
       <li className='py-2 px-2 border'>
-        <Link to={url} className='text-sm text-foreground'>
+        <MenuLink to={url} className='text-sm text-foreground'>
           {title}
-        </Link>
+        </MenuLink>
       </li>
     )
 
     return (
       <>
-        <Link to={groupUrl(group.slug, 'settings')}>
+        <MenuLink to={groupUrl(group.slug, 'settings')}>
           <div className='inline-block px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
             {t('Settings')}
           </div>
-        </Link>
+        </MenuLink>
         <ul className='mt-4'>
           {!group.avatarUrl && listItemComponent({
             title: t('Add Avatar'),
@@ -633,7 +633,7 @@ function GroupSettingsMenu ({ group }) {
         <ul className='flex flex-col gap-2 p-0' onClick={() => { console.log('menu') }}>
           {SETTINGS_MENU_ITEMS.map(item => (
             <li key={item.url}>
-              <Link
+              <MenuLink
                 to={groupUrl(group.slug, item.url)}
                 className={cn(
                   'inline-block w-full ml-2 mr-4 py-1 px-2 text-md text-foreground rounded-xl border-foreground/50 border-2 hover:border-secondary cursor-pointer',
@@ -641,7 +641,7 @@ function GroupSettingsMenu ({ group }) {
                 )}
               >
                 {item.title}
-              </Link>
+              </MenuLink>
             </li>
           ))}
         </ul>

@@ -39,7 +39,7 @@ export default function GlobalNavItem ({
           <div
             onClick={handleClick}
             className={cn(
-              'bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 hover:opacity-100 scale-90 hover:scale-100 hover:drop-shadow-lg',
+              'bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 rounded-lg drop-shadow-md opacity-60 hover:opacity-100 scale-90 hover:scale-100 hover:drop-shadow-lg',
               {
                 'border-3 border-secondary opacity-100 scale-100 hover:scale-110': selected,
                 'border-3 border-accent opacity-100 scale-100': badgeCount > 0
