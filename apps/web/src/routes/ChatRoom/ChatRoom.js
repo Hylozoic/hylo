@@ -465,8 +465,8 @@ export default function ChatRoom (props) {
             )}
       </div>
       {/* Post chat box */}
-      <div className='ChatBoxContainer px-4 w-full max-w-[750px]'>
-        <div className='ChatBox relative w-full px-2 mt-2 mx-auto shadow-md p-2 border-t border-l border-r border-border shadow-lg rounded-t-xl bg-card'>
+      <div className='ChatBoxContainer px-4 w-full max-w-[750px] mx-auto '>
+        <div className='ChatBox relative w-full px-2 mt-2 shadow-md p-2 border-t border-l border-r border-border shadow-lg rounded-t-xl bg-card'>
           <HyloEditor
             contentHTML={newPost.details}
             groupIds={groupIds}

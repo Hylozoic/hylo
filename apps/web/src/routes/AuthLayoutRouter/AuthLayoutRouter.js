@@ -23,7 +23,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import { getSignupInProgress } from 'store/selectors/getAuthState'
-import { toggleDrawer as toggleDrawerAction } from './AuthLayoutRouter.store'
+import { toggleDrawer, toggleNavMenu } from './AuthLayoutRouter.store'
 import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
 import {
   POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl,
@@ -106,7 +106,6 @@ export default function AuthLayoutRouter (props) {
 
   const currentGroupSlug = pathMatchParams?.groupSlug
   const isMapView = pathMatchParams?.view === 'map'
-  const hideSidebar = isMapView || pathMatchParams?.view === 'topics'
   const isWelcomeContext = pathMatchParams?.context === 'welcome'
 
   // Store
@@ -115,7 +114,7 @@ export default function AuthLayoutRouter (props) {
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
   const currentUser = useSelector(getMe)
   const isDrawerOpen = useSelector(state => get('AuthLayoutRouter.isDrawerOpen', state))
-  // const isGroupMenuOpen = useSelector(state => get('AuthLayoutRouter.isGroupMenuOpen', state))
+  const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state)) // For mobile nav
   const lastViewedGroup = useSelector(getLastViewedGroup)
   const memberships = useSelector(getMyMemberships)
   const returnToPath = useSelector(getReturnToPath)
@@ -192,7 +191,7 @@ export default function AuthLayoutRouter (props) {
     name: currentUser.name,
     userId: currentUser.id
   }
-  const handleCloseDrawer = () => isDrawerOpen && dispatch(toggleDrawerAction())
+  const handleCloseNav = () => isNavOpen && dispatch(toggleNavMenu())
   const showMenuBadge = some(m => m.newPostCount > 0, memberships)
   const isSingleColumn = (currentGroupSlug && !currentGroupMembership) ||
     matchPath({ path: '/members/:personId' }, location.pathname)
@@ -303,13 +302,13 @@ export default function AuthLayoutRouter (props) {
       </Routes>
 
       <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
-        <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })} onClick={handleCloseDrawer}>
-          <div className={cn('NavigationContainer flex flex-row nin-w-320 max-w-420')}>
+        <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
+          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row nin-w-320 max-w-420 h-full', { 'flex absolute sm:relative': isNavOpen })}>
             {!withoutNav && (
               <>
                 {/* Depends on `pathMatchParams` */}
                 <GlobalNav
-                  onClick={handleCloseDrawer}
+                  // onClick={handleCloseNav}
                   group={currentGroup}
                   currentUser={currentUser}
                   routeParams={pathMatchParams}
@@ -364,8 +363,9 @@ export default function AuthLayoutRouter (props) {
                 />
               </Routes>
             )}
-          </div>
-          <div className={cn(classes.center, { [classes.fullWidth]: hideSidebar, [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
+          </div> {/* END NavContainer */}
+
+          <div className={cn(classes.center, { [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
             {/* NOTE: It could be more clear to group the following switched routes by component  */}
             <Routes>
               {/* **** Member Routes **** */}
@@ -376,8 +376,8 @@ export default function AuthLayoutRouter (props) {
               <Route path='public/stream/*' element={<Stream context='public' />} />
               <Route path='all/projects/*' element={<Stream context='all' view='projects' />} />
               <Route path='public/projects/*' element={<Stream context='public' view='projects' />} />
-              <Route path='all/proposals/*' element={<Stream context='all' view='proposals' />} />
-              <Route path='public/proposals/*' element={<Stream context='public' view='proposals' />} />
+              <Route path='all/decisions/*' element={<Stream context='all' view='decisions' />} />
+              <Route path='public/decisions/*' element={<Stream context='public' view='decisions' />} />
               <Route path='all/events/*' element={<Stream context='all' />} />
               <Route path='public/events/*' element={<Stream context='public' />} />
               <Route path='all/map/*' element={<MapExplorer context='all' />} />
@@ -400,7 +400,7 @@ export default function AuthLayoutRouter (props) {
               )}
               <Route path='groups/:groupSlug/map/*' element={<MapExplorer context='groups' view='map' />} />
               <Route path='groups/:groupSlug/stream/*' element={<Stream context='groups' view='stream' />} />
-              <Route path='groups/:groupSlug/proposals/*' element={<Stream context='groups' view='proposals' />} />
+              <Route path='groups/:groupSlug/decisions/*' element={<Stream context='groups' view='decisions' />} />
               <Route path='groups/:groupSlug/explore/*' element={<LandingPage context='groups' />} />
               <Route path='groups/:groupSlug/ask-and-offer/*' element={<Stream context='groups' view='ask-and-offer' />} />
               <Route path='groups/:groupSlug/projects/*' element={<Stream context='groups' view='projects' />} />

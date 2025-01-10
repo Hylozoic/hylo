@@ -8,8 +8,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow-y: hidden;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .links {
@@ -21,13 +20,6 @@
 
 .topicItem, .item {
   display: none;
-}
-
-@media screen and (max-width: 930px) {
-  .navigation {
-    overflow: hidden;
-    overflow-y: auto;
-  }
 }
 
 @media screen and (max-width: 600px) {

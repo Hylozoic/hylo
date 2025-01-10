@@ -83,7 +83,7 @@ const StreamViewControls = ({
   const postTypeOptionsForFilter = customPostTypes && customPostTypes.length > 1 ? POST_TYPE_OPTIONS.filter(postType => postType.label === 'All Posts' || customPostTypes.includes(postType.id)) : POST_TYPE_OPTIONS
   const postTypeFilterDropdown = makeDropdown(postTypeFilter, postTypeOptionsForFilter, changeTab, t)
 
-  if (view === 'proposals') {
+  if (view === 'decisions') {
     decisionViewDropdown = makeDropdown(decisionView, DECISIONS_OPTIONS, changeDecisionView, t)
   }
 
@@ -158,8 +158,8 @@ const StreamViewControls = ({
         </div>
         {view === 'events' && timeframeDropdown}
         {view !== 'events' && makeDropdown(sortBy, customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS, changeSort, t)}
-        {!['events', 'projects', 'proposals', 'ask-and-offer'].includes(view) && postTypeFilterDropdown}
-        {view === 'proposals' && decisionViewDropdown}
+        {!['events', 'projects', 'decisions', 'ask-and-offer'].includes(view) && postTypeFilterDropdown}
+        {view === 'decisions' && decisionViewDropdown}
         <Tooltip id='stream-viewmode-tip' position='bottom' />
       </div>
       {searchActive &&

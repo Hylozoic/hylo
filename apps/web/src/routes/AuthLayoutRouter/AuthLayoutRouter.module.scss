@@ -21,8 +21,7 @@ body {
   display: flex;
   height: 100%;
   width: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   &.map-view {
     width: 100%;
     max-width: 100%;
@@ -426,9 +425,9 @@ $drawer-z-index: 51;
     overflow: hidden;
   }
 
-  .center.full-width {
-    max-width: calc(100% - 80px);
-  }
+  // .center.full-width {
+  //   max-width: calc(100% - 80px);
+  // }
 }
 
 @media screen and (max-width: 700px) {
@@ -492,9 +491,9 @@ $drawer-z-index: 51;
     }
   }
 
-  .center {
-    padding: 0 0 150px 0;
-  }
+  // .center {
+  //   padding: 0 0 150px 0;
+  // }
 
   .center.full-width {
     padding: 0 0 0 0;

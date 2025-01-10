@@ -47,8 +47,6 @@ export default function GroupSettings () {
   const routeParams = useParams()
   const { t } = useTranslation()
 
-  // TODO: store previous location so we can go back to it when the settings "modal" is closed?
-
   // State selectors
   const slug = routeParams.groupSlug
   const rawGroup = useSelector(state => getGroupForSlug(state, slug))

@@ -16,7 +16,7 @@ import NavLink from './NavLink'
 import MenuLink from './MenuLink'
 import TopicNavigation from './TopicNavigation'
 import useRouteParams from 'hooks/useRouteParams'
-import { toggleGroupMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
@@ -104,12 +104,12 @@ export default function ContextMenu (props) {
 
   const isEditting = getQuerystringParam('cme', location) === 'yes' && canAdminister
 
-  const isGroupMenuOpen = useSelector(state => get('AuthLayoutRouter.isGroupMenuOpen', state))
+  const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const streamFetchPostsParam = useSelector(state => get('Stream.fetchPostsParam', state))
 
   const [isDragging, setIsDragging] = useState(false)
   const [activeWidget, setActiveWidget] = useState(null)
-  const toggleGroupMenuAction = useCallback(() => dispatch(toggleGroupMenu()), [])
+  const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
 
   const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
@@ -135,7 +135,7 @@ export default function ContextMenu (props) {
   const mapPath = viewUrl('map', routeParams)
   const membersPath = !isAllOrPublicPath && viewUrl('members', routeParams)
   const projectsPath = viewUrl('projects', routeParams)
-  const proposalPath = viewUrl('proposals', routeParams)
+  const decisionsPath = viewUrl('decisions', routeParams)
 
   const customViews = (group && group.customViews && group.customViews.toRefArray()) || []
 
@@ -178,10 +178,10 @@ export default function ContextMenu (props) {
       icon: 'People',
       to: membersPath
     },
-    proposalPath && {
+    decisionsPath && {
       label: t('Decisions'),
       icon: 'Proposal',
-      to: proposalPath
+      to: decisionsPath
     },
     (hasRelatedGroups) && groupsPath && {
       label: t('Groups'),
@@ -235,8 +235,8 @@ export default function ContextMenu (props) {
   const canView = !group || group.memberCount !== 0
   const links = regularLinks
   return (
-    <div className={cn('Navigation bg-background z-40 overflow-y-auto h-lvh min-w-280 border-r border-foreground/20 shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isGroupMenuOpen }, className)}>
-      <div className='ContextDetails w-full'>
+    <div className={cn('Navigation bg-background z-40 overflow-y-auto h-lvh min-w-280 border-r border-foreground/20 shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
+      <div className='ContextDetails w-full z-20 relative'>
         {routeParams.context === 'groups'
           ? <GroupMenuHeader group={group} />
           : isPublic
@@ -266,9 +266,9 @@ export default function ContextMenu (props) {
                 />
               ))}
               <li className={cn(classes.item, classes.topicItem)}>
-                <Link to={topicsUrl(routeParams)}>
+                <MenuLink to={topicsUrl(routeParams)}>
                   <Icon name='Topics' />
-                </Link>
+                </MenuLink>
               </li>
             </ul>
           )}
@@ -283,7 +283,7 @@ export default function ContextMenu (props) {
         </div>
       )}
       {hasContextWidgets && (
-        <div className='relative translate-x-0 translate-y-0 flex flex-col items-center overflow-hidden'>
+        <div className='relative translate-x-0 translate-y-0 flex flex-col items-center overflow-hidden z-20'>
           <Routes>
             <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
           </Routes>
@@ -324,7 +324,7 @@ export default function ContextMenu (props) {
             </div>)}
         </div>
       )}
-      {!hasContextWidgets && <div className={classes.closeBg} onClick={toggleGroupMenuAction} />}
+      {isNavOpen && <div className={cn('ContextMenuCloseBg opacity-50 fixed right-0 top-0 w-full h-full z-10 transition-all duration-250 ease-in-out', { 'sm:block': isNavOpen })} onClick={toggleNavMenuAction} />}
     </div>
   )
 }
@@ -432,8 +432,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                 <span className='text-sm font-bold ml-2'>{title}</span>
               </MenuLink>
             </span>
-
-          )
+            )
           : (
             <div>
               {widget.view &&
@@ -460,7 +459,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   </li>}
               </ul>
             </div>)}
-        
+
       </div>
       {showEdit && (
         <div className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground'>
@@ -532,11 +531,11 @@ function SpecialTopElementRenderer ({ widget, group }) {
 
   if (widget.type === 'members' && canAddMembers) {
     return (
-      <Link to={groupUrl(group.slug, 'settings/invite')}>
+      <MenuLink to={groupUrl(group.slug, 'settings/invite')}>
         <div className='inline-block px-4 py-2 text-sm font-medium text-foreground bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
           {t('Add Members')}
         </div>
-      </Link>
+      </MenuLink>
     )
   }
 
@@ -554,19 +553,19 @@ function SpecialTopElementRenderer ({ widget, group }) {
 
     const listItemComponent = ({ title, url }) => (
       <li className='py-2 px-2 border'>
-        <Link to={url} className='text-sm text-foreground'>
+        <MenuLink to={url} className='text-sm text-foreground'>
           {title}
-        </Link>
+        </MenuLink>
       </li>
     )
 
     return (
       <>
-        <Link to={groupUrl(group.slug, 'settings')}>
+        <MenuLink to={groupUrl(group.slug, 'settings')}>
           <div className='inline-block px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
             {t('Settings')}
           </div>
-        </Link>
+        </MenuLink>
         <ul className='mt-4'>
           {!group.avatarUrl && listItemComponent({
             title: t('Add Avatar'),
@@ -636,7 +635,7 @@ function GroupSettingsMenu ({ group }) {
         <ul className='flex flex-col gap-2 p-0' onClick={() => { console.log('menu') }}>
           {SETTINGS_MENU_ITEMS.map(item => (
             <li key={item.url}>
-              <Link
+              <MenuLink
                 to={groupUrl(group.slug, item.url)}
                 className={cn(
                   'inline-block w-full ml-2 mr-4 py-1 px-2 text-md text-foreground rounded-xl border-foreground/50 border-2 hover:border-secondary cursor-pointer',
@@ -644,7 +643,7 @@ function GroupSettingsMenu ({ group }) {
                 )}
               >
                 {item.title}
-              </Link>
+              </MenuLink>
             </li>
           ))}
         </ul>
