@@ -39,7 +39,7 @@ export default function HomeNavigator ({ navigation }) {
   useReturnToOnAuthPath()
 
   const navigatorProps = {
-    initialRouteName: 'Group Navigation',
+    // initialRouteName: 'Group Navigation',
     screenOptions: {
       animationEnabled: !initialURL,
       transitionSpec: {
@@ -69,7 +69,7 @@ export default function HomeNavigator ({ navigation }) {
 
   return (
     <HomeTab.Navigator {...navigatorProps}>
-      <HomeTab.Screen name='Group Navigation' component={GroupNavigation} />
+      {/* <HomeTab.Screen name='Group Navigation' component={GroupNavigation} /> */}
       <HomeTab.Screen name='Stream' component={Stream} />
       <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
       <HomeTab.Screen name='Projects' component={Stream} initialParams={{ streamType: 'project' }} />

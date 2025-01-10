@@ -7,8 +7,10 @@ import Icon from 'components/Icon'
 import useCurrentUser from 'hooks/useCurrentUser'
 import { Globe } from 'lucide-react-native'
 import useCurrentGroup from 'hooks/useCurrentGroup'
-import { GroupRow } from 'screens/DrawerMenu/DrawerMenu'
+import { GroupRow, NavRow } from 'screens/DrawerMenu/DrawerMenu'
 import useChangeToGroup from 'hooks/useChangeToGroup'
+import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'
+import { PUBLIC_GROUP } from 'urql-shared/presenters/GroupPresenter'
 
 export default function GlobalNav() {
   const { t } = useTranslation()
@@ -20,6 +22,28 @@ export default function GlobalNav() {
   const myGroups = memberships
     .map(m => m.group)
     .sort((a, b) => a.name.localeCompare(b.name))
+
+  const navigateToPublicStream = () => {
+    dispatch(setCurrentGroupSlug(PUBLIC_GROUP.slug))
+    navigation.navigate('Home Tab', { screen: 'Stream', initial: false })
+  }
+
+  const navigateToMyHome = () => {
+    // navigation.navigate('Group Navigation', { myHome: true, groupSlug: MY_CONTEXT_GROUP.slug })
+    dispatch(setCurrentGroupSlug(MY_CONTEXT_GROUP.slug))
+    
+    navigation.navigate('My Posts', { initial: false })
+  }
+
+  const navItems = [
+    { ...PUBLIC_GROUP, navigateTo: navigateToPublicStream, name: t('Public Stream') },
+    {
+      name: t('My Home'),
+      navigateTo: navigateToMyHome,
+      id: 'myHome',
+      avatarUrl: currentUser?.avatarUrl
+    }
+  ]
   
   /* 
     Aspirations for GlobalNav
@@ -29,6 +53,14 @@ export default function GlobalNav() {
   return (
     <View className="flex-col h-full bg-background items-center py-2 px-3">
       <View className="flex-1 overflow-y-scroll">
+        {navItems.map(item => (
+          <NavRow
+            key={item.id}
+            item={item}
+            changeToGroup={changeToGroup}
+            currentGroupSlug={currentGroup?.slug}
+          />
+        ))}
         {myGroups?.map(group => (
           <GroupRow
             key={group.id}

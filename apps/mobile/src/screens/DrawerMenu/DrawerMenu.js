@@ -9,15 +9,19 @@ import useCurrentGroup from 'hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import useHasResponsibility from 'hooks/useHasResponsibility'
+import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'
+import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { PUBLIC_GROUP, ALL_GROUP, MY_CONTEXT_GROUP } from 'urql-shared/presenters/GroupPresenter'
 import styles from './DrawerMenu.styles'
 import Button from 'components/Button'
+import GlobalNav from 'navigation/menus/GlobalNav'
+import ContextMenu from 'navigation/menus/ContextMenu'
 import { bannerlinearGradientColors } from 'style/colors'
 // import groupExplorerUrl from 'assets/group-explorer.png'
 import earthUrl from 'assets/earth.png'
 import myHomeUrl from 'assets/my-home.png'
-import GlobalNav from 'navigation/menus/GlobalNav/GlobalNav'
+
 
 export default function DrawerMenu () {
   const { t } = useTranslation()
@@ -32,8 +36,7 @@ export default function DrawerMenu () {
   const myGroups = memberships
     .map(m => m.group)
     .sort((a, b) => a.name.localeCompare(b.name))
-
-  const contextWidgets = currentGroup?.contextWidgets || []
+  const contextWidgets = getContextWidgetsForGroup(currentGroup)
 
   const goToCreateGroup = () => {
     navigation.navigate('Create Group', { screen: 'CreateGroupName', params: { reset: true } })
@@ -45,7 +48,7 @@ export default function DrawerMenu () {
   const changeToGroup = useChangeToGroup()
 
   const navigateToPublicStream = () => {
-    navigation.navigate('Group Navigation', { groupSlug: PUBLIC_GROUP.slug })
+    dispatch(setCurrentGroupSlug(PUBLIC_GROUP.slug))
     navigation.navigate('Stream', { initial: false })
   }
 
@@ -59,7 +62,9 @@ export default function DrawerMenu () {
   // }
 
   const navigateToMyHome = () => {
-    navigation.navigate('Group Navigation', { myHome: true, groupSlug: MY_CONTEXT_GROUP.slug })
+    // navigation.navigate('Group Navigation', { myHome: true, groupSlug: MY_CONTEXT_GROUP.slug })
+    dispatch(setCurrentGroupSlug(MY_CONTEXT_GROUP.slug))
+    
     navigation.navigate('My Posts', { initial: false })
   }
 
@@ -137,7 +142,7 @@ export default function DrawerMenu () {
             <GlobalNav />
           </View>
           <View className="flex-1 bg-white">
-            {/* Content for the second column */}
+            <ContextMenu />
           </View>
         </View>}
       </View>

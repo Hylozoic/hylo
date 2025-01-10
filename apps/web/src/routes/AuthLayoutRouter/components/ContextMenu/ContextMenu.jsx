@@ -20,7 +20,7 @@ import { toggleGroupMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
-import { getContextWidgets, orderContextWidgetsForContextMenu } from 'store/selectors/contextWidgetSelectors'
+import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import getMe from 'store/selectors/getMe'
 import { removeWidgetFromMenu, updateContextWidget } from 'store/actions/contextWidgets'
 import resetNewPostCount from 'store/actions/resetNewPostCount'
@@ -33,6 +33,8 @@ import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath,
 
 import classes from './ContextMenu.module.scss'
 import { getStaticMenuWidgets, isWidgetDroppable, widgetIsValidChild, widgetTitleResolver } from 'util/contextWidgets'
+import { WidgetHelpers } from '@hylo/shared'
+const { orderContextWidgetsForContextMenu } = WidgetHelpers
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'

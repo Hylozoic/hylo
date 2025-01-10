@@ -16,7 +16,7 @@ import { white, rhino80 } from 'style/colors'
 // For now this list needs to be kept in sync with the names of the initial
 // routes for each stack in navigation/TabsNavigator.
 export const TAB_STACK_ROOTS = [
-  'Group Navigation',
+  // 'Group Navigation',
   'Messages Tab',
   'Search Tab',
   'Profile Tab',
@@ -64,7 +64,7 @@ export default function TabStackHeader ({
           : navigation.openDrawer
 
         if (canGoBack && !navigation.canGoBack()) {
-          onPress = () => navigation.navigate('Group Navigation')
+          onPress = navigation.openDrawer
         }
       }
 
