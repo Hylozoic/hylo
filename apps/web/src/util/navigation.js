@@ -167,7 +167,7 @@ export function topicUrl (topicName, opts) {
 }
 
 export function chatUrl (chatName, opts) {
-  return `${topicsUrl(opts)}/${chatName}`
+  return `${baseUrl({ ...opts, view: 'chat' })}/${chatName}`
 }
 
 export function customViewUrl (customViewId, rootPath, opts) {

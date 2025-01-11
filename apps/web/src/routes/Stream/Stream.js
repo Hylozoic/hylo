@@ -20,7 +20,6 @@ import PostLabel from 'components/PostLabel'
 import PostPrompt from './PostPrompt'
 import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
-import TopicFeedHeader from 'components/TopicFeedHeader'
 import ViewHeader from 'components/ViewHeader'
 import useRouteParams from 'hooks/useRouteParams'
 import { ViewHelpers } from '@hylo/shared'
@@ -76,11 +75,8 @@ export default function Stream (props) {
   const currentUserHasMemberships = useSelector(state => !isEmpty(getMyMemberships(state)))
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id || 0
-  const topic = useSelector(state => getTopicForCurrentRoute(state, { match: { params: routeParams } })) // TODO: is this correct?
-  const groupTopic = useSelector(state => {
-    const gt = getGroupTopicForCurrentRoute(state, groupSlug, topicName)
-    return gt && { ...gt.ref, group: gt.group, topic: gt.topic }
-  })
+  const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
+
   const systemView = ViewHelpers.COMMON_VIEWS[view]
   const customView = useSelector(state => getCustomView(state, customViewId))
 
@@ -121,6 +117,8 @@ export default function Stream (props) {
     return null
   }, [])
 
+  const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
+
   const fetchPostsParam = useMemo(() => {
     const params = {
       activePostsOnly: customView?.type === 'stream' ? customView?.activePostsOnly : false,
@@ -131,9 +129,7 @@ export default function Stream (props) {
       search,
       slug: groupSlug,
       sortBy,
-      topic: topic?.id,
-      topicName,
-      topics: customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : [],
+      topics,
       types: getTypes({ customView, view })
     }
     if (view === 'events') {
@@ -146,6 +142,10 @@ export default function Stream (props) {
 
   let name = customView?.name || systemView?.name || ''
   let icon = customView?.icon || systemView?.icon
+  if (topicName) {
+    name = '#' + topicName
+  }
+
   if (context === CONTEXT_MY) {
     switch (view) {
       case VIEW_MENTIONS:
@@ -211,10 +211,13 @@ export default function Stream (props) {
         dispatch(fetchTopic(topicName))
       }
     }
+  }, [topicName])
+
+  useEffect(() => {
     if (decisionView === 'moderation') {
       fetchModerationActionsAction(0)
-    } else if (!customViewId || customView?.type === 'stream') {
-      // Fetch posts, unless the custom view has not fully loaded yet
+    } else if ((!customViewId || customView?.type === 'stream') && (!topicName || topic)) {
+      // Fetch posts, unless the custom view has not fully loaded yet, or the topic has not fully loaded yet
       fetchPostsFrom(0)
     }
   }, [fetchPostsParam, decisionView])
@@ -253,8 +256,6 @@ export default function Stream (props) {
 
   const newPost = useCallback(() => dispatch(push(createPostUrl(routeParams, querystringParams))), [routeParams, querystringParams])
 
-  if (topicLoading) return <Loading />
-
   const ViewComponent = viewComponent[viewMode]
   const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'
 
@@ -271,7 +272,11 @@ export default function Stream (props) {
         {customView?.topics.length > 0 && customView?.topics.map(t => <span key={t.id}>#{t.name}</span>)}
       </div>
       )
-    : customView?.type === 'collection' ? 'Curated Post Collection' : null
+    : customView?.type === 'collection'
+      ? 'Curated Post Collection'
+      : topicName
+        ? `Filtered by topic #${topicName}`
+        : null
 
   const noPostsMessage = view === 'events' ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') }) : 'No posts'
 
@@ -287,26 +292,6 @@ export default function Stream (props) {
       </Routes>
 
       <ViewHeader title={name} icon={icon} info={info} />
-
-      {/* {topicName
-        && (
-          <TopicFeedHeader
-            isSubscribed={groupTopic && groupTopic.isSubscribed}
-            toggleSubscribe={
-              groupTopic
-                ? () => dispatch(toggleGroupTopicSubscribe(groupTopic))
-                : null
-            }
-            groupSlug={groupSlug}
-            topicName={topicName}
-            postsTotal={groupTopic?.postsTotal || topic?.postsTotal}
-            followersTotal={groupTopic?.followersTotal || topic?.followersTotal}
-            type={postTypeFilter}
-            currentUser={currentUser}
-            bannerUrl={group && group.bannerUrl}
-            newPost={newPost}
-          />
-          )} */}
 
       <div id='stream-inner-container' className='flex flex-col flex-1 w-full max-w-[750px] mx-auto overflow-auto p-4'>
         {hasPostPrompt && (
@@ -328,7 +313,7 @@ export default function Stream (props) {
         />
         {decisionView !== 'moderation' && (
           <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
-            {!pending && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+            {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
             {posts.map(post => {
               const groupSlugs = post.groups.map(group => group.slug)
               return (
@@ -362,7 +347,7 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {pending && <Loading />}
+        {(pending || topicLoading) && <Loading />}
 
         <ScrollListener
           onBottom={() => fetchPostsFrom(posts.length)}

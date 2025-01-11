@@ -271,6 +271,7 @@ export default function AuthLayoutRouter (props) {
         <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+        <Route path='groups/:groupSlug/chat/:topicName/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
@@ -410,10 +411,11 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/members/create/*' element={<Members context='groups' />} />
               <Route path='groups/:groupSlug/members/:personId/*' element={<MemberProfile context='groups' />} />
               <Route path='groups/:groupSlug/members/*' element={<Members context='groups' />} />
-              <Route path='groups/:groupSlug/topics/:topicName/*' element={<ChatRoom context='groups' />} />
+              <Route path='groups/:groupSlug/topics/:topicName/*' element={<Stream context='groups' />} />
               <Route path='groups/:groupSlug/topics' element={<AllTopics context='groups' />} />
+              <Route path='groups/:groupSlug/chat/:topicName/*' element={<ChatRoom context='groups' />} />
               <Route path='groups/:groupSlug/settings/*' element={<GroupSettings context='groups' />} />
-              <Route path='groups/:groupSlug/grid-view' element={<AllView context='groups' />} />
+              <Route path='groups/:groupSlug/all-views' element={<AllView context='groups' />} />
               <Route path='groups/:groupSlug/*' element={homeRoute} />
               <Route path='post/:postId/*' element={<PostDetail />} />
               {/* **** My Routes **** */}
