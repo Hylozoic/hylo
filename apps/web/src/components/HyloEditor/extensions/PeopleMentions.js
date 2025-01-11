@@ -59,7 +59,7 @@ export const PeopleMentions = ({ groupIds, onSelection, suggestionsThemeName }) 
         class: 'mention'
       },
       renderHTML: ({ options, node }) => {
-        return ['span', { class: 'topic' }, node.attrs.label ?? node.attrs.id]
+        return ['span', { class: 'mention', 'data-id': node.attrs.id }, node.attrs.label ?? node.attrs.id]
       },
       suggestion: {
         char: '@',
