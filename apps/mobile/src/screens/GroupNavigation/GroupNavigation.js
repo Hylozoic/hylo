@@ -55,7 +55,7 @@ export default function GroupNavigation () {
         },
         {
           label: t('Decisions'),
-          iconName: 'Proposal',
+          iconName: 'Commonwealth',
           onPress: () => navigate('Decisions'),
           hidden: isContextGroup(currentGroup?.slug)
         },
