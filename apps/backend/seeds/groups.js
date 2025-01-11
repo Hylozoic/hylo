@@ -118,6 +118,7 @@ exports.seed = function (knex, Promise) {
     .then(() => knex('linked_account').del())
     .then(() => knex('group_memberships').del())
     .then(() => knex('group_widgets').del())
+    .then(() => knex('posts_users').del())
     .then(() => knex('posts').del())
     .then(async () => {
       await knex('groups').del()
