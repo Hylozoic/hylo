@@ -311,7 +311,7 @@ export default function ContextMenu (props) {
           {(!isMyContext && !isPublic && !isAllContext) && (
             <div className='w-[calc(100%-1.5em)] p-2 mb-[0.05em]'>
               <ContextMenuItem
-                widget={{ title: 'widget-all', type: 'grid-view', view: 'grid-view', childWidgets: [] }}
+                widget={{ title: 'widget-all', type: 'all-views', view: 'all-views', childWidgets: [] }}
                 groupSlug={routeParams.groupSlug}
                 rootPath={rootPath}
                 canAdminister={canAdminister}
