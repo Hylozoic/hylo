@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import { useSelector } from 'react-redux'
@@ -10,6 +10,7 @@ import Icon from 'components/Icon'
 import RoundImage from 'components/RoundImage'
 import GroupNetworkMap from 'components/GroupNetworkMap'
 import HyloHTML from 'components/HyloHTML'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useGetJoinRequests } from 'hooks/useGetJoinRequests'
 import useRouteParams from 'hooks/useRouteParams'
 import {
@@ -58,6 +59,12 @@ function Groups () {
       }))
     )
   )
+
+  const { setTitle, setIcon } = useViewHeader()
+  useEffect(() => {
+    setTitle('Groups')
+    setIcon('Groups')
+  }, [])
 
   const networkData = mapNodesAndLinks(parentGroups, childGroups, group)
   const groupRelationshipCount = childGroups.length + parentGroups.length

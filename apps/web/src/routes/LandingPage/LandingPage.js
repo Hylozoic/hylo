@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useParams } from 'react-router-dom'
 import Loading from 'components/Loading'
 import Widget from 'components/Widget'
-import ViewHeader from 'components/ViewHeader'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchPosts from 'store/actions/fetchPosts'
 import presentGroup from 'store/presenters/presentGroup'
 import presentPost from 'store/presenters/presentPost'
@@ -40,12 +40,16 @@ const LandingPage = () => {
     dispatch(fetchPosts(fetchPostsParam))
   }, [dispatch, fetchPostsParam])
 
+  const { setTitle, setIcon } = useViewHeader()
+  useEffect(() => {
+    setTitle('Explore')
+    setIcon('RaisedHand')
+  }, [])
+
   if (!group) return <Loading />
 
   return (
     <div>
-      <ViewHeader title='Explore' icon='RaisedHand' />
-
       {widgets && widgets.map(widget => (
         <Widget
           {...widget}

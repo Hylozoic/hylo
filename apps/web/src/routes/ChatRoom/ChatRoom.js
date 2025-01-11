@@ -31,8 +31,8 @@ import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
-import ViewHeader from 'components/ViewHeader'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import ChatPost from './ChatPost'
 import createPost from 'store/actions/createPost'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
@@ -258,6 +258,12 @@ export default function ChatRoom (props) {
     }
   }, [])
 
+  const { setTitle, setIcon } = useViewHeader()
+  useEffect(() => {
+    setTitle(`#${topicName}`)
+    setIcon('Message')
+  }, [topicName])
+
   useEffect(() => {
     // New chat room loaded, reset everything
     dispatch(clearLinkPreview())
@@ -437,8 +443,6 @@ export default function ChatRoom (props) {
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
-
-      <ViewHeader title={`#${topicName}`} />
 
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden' ref={setContainer}>
         {initialPostToScrollTo === null

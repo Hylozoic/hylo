@@ -14,6 +14,7 @@ import SettingsControl from 'components/SettingsControl'
 import SkillsSection from 'components/SkillsSection'
 import SwitchStyled from 'components/SwitchStyled'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import {
   DEFAULT_BANNER,
@@ -121,6 +122,12 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     }
     return { color: 'green', style: 'general.settingChanged', text: t('Changes not saved') }
   }
+
+  const { setTitle, setIcon } = useViewHeader()
+  useEffect(() => {
+    setTitle('Group Settings')
+    setIcon('Settings')
+  }, [])
 
   if (!group) return <Loading />
 

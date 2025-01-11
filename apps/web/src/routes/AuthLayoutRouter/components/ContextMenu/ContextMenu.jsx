@@ -2,7 +2,7 @@ import { cn } from 'util/index'
 import { compact, get } from 'lodash/fp'
 import { ChevronLeft } from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
-import { Link, useNavigate, useLocation, Routes, Route } from 'react-router-dom'
+import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -47,7 +47,7 @@ const getGroupMembership = ormCreateSelector(
 export default function ContextMenu (props) {
   const {
     className,
-    groupId,
+    currentGroup,
     mapView
   } = props
 
@@ -57,7 +57,7 @@ export default function ContextMenu (props) {
   const currentUser = useSelector(getMe)
   const { t } = useTranslation()
 
-  const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const group = useSelector(state => currentGroup || getGroupForSlug(state, routeParams.groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const rootPath = baseUrl({ ...routeParams, view: null })
   const isAllOrPublicPath = ['/all', '/public'].includes(rootPath)
@@ -274,7 +274,7 @@ export default function ContextMenu (props) {
             <TopicNavigation
               backUrl={rootPath}
               routeParams={routeParams}
-              groupId={groupId}
+              groupId={group?.id}
               location={location}
             />
           )}
