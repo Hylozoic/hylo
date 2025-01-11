@@ -19,6 +19,7 @@ export default function UserSettingsWebView ({ path: pathProp, route }) {
   const messageHandler = ({ type, data }) => {
     switch (type) {
       case WebViewMessageTypes.LEFT_GROUP: {
+        // TODO: URQL - Change to mutation through useMutation
         return data.groupId && dispatch({ type: LEAVE_GROUP, meta: { id: data.groupId } })
       }
 
