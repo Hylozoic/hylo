@@ -1,14 +1,87 @@
+import { postCommentsQuery, childCommentsQuery } from "components/Comments/Comments"
 import { gql } from 'urql'
 
-export default function createComment (result, args, cache) {
-  if (args?.data?.parentCommentId) {
-    cache.invalidate({ __typename: 'Comment', id: args?.data?.parentCommentId })
-  } else {
-    const postKey = cache.keyOfEntity({ __typename: 'Post', id: args.data.postId })
-    const postCommentsFields = cache.inspectFields(postKey).filter(fi => fi.fieldName === 'comments')
+// export default function createComment (result, args, cache) {
+//   if (args?.data?.parentCommentId) {
+//     cache.invalidate({ __typename: 'Comment', id: args?.data?.parentCommentId })
+//   } else {
+//     const postKey = cache.keyOfEntity({ __typename: 'Post', id: args.data.postId })
+//     const postCommentsFields = cache.inspectFields(postKey).filter(fi => fi.fieldName === 'comments')
 
-    postCommentsFields.forEach(({ fieldKey }) => {
-      cache.invalidate(postKey, fieldKey)
+//     postCommentsFields.forEach(({ fieldKey }) => {
+//       cache.invalidate(postKey, fieldKey)
+//     })
+//   }
+// }
+
+export default function createCommentUpdateQueries (result, args, cache) {
+  if (args.data.parentCommentId) {
+    cache.updateQuery({
+      query: postCommentsQuery,
+      variables: {
+        postId: args.data.postId
+      }
+    }, data => {
+      console.log('!!!!!!!! data.post', data.post)
+      const comments = data.post.comments.items.map(comment => {
+        if (comment.id === args.data.parentCommentId) {
+          return {
+            ...comment,
+            '`childComments({"first":2,"order":"desc"})`': {
+              ...comment.childComments,
+              items: [
+                ...comment.childComments.items,
+                result.createComment
+              ]
+            }
+          }
+        } else {
+          return comment
+        }
+      })
+      // delete data.post.comments
+      const output = {
+        post: {
+          ...data.post,
+          comments
+        }
+      }
+      console.log('!@!!! output', output)
+      return output
+    })
+  } else {
+    cache.updateQuery({
+      query: postCommentsQuery,
+      variables: {
+        postId: args.data.postId
+      }
+    }, data => {
+      return {
+        post: {
+          ...data.post,
+          comments: {
+            ...data.post.comments,
+            items: [
+              ...data.post.comments.items.map(comment => ({
+                ...comment,
+                'childComments({"first":2,"order":"desc"})': comment.childComments
+              })),
+              {
+                ...result.createComment,
+                text: 'blah',
+                // parentComment: null,
+                // myReactions: [],
+                // commentReactions: [],
+                'childComments({"first":2,"order":"desc"})': {
+                    hasMore: false,
+                    items: [],
+                    total: 0
+                }
+              }
+            ]
+          }
+        }
+      }
     })
   }
 }
@@ -126,70 +199,83 @@ export default function createComment (result, args, cache) {
 //   }
 // }
 
-// export function createCommentUpdateQueries (result, args, cache) {
+// export default function createComment (result, args, cache) {
 //   if (args.data.parentCommentId) {
-//     cache.updateQuery({
-//       query: postCommentsQuery,
-//       variables: {
-//         postId: args.data.postId
+//     // // cache.invalidate({ __typename: 'Comment', id: args?.data?.parentCommentId })
+//     const { createComment: newComment } = result
+//     const parentCommentKey = cache.keyOfEntity({ __typename: 'Comment', id: args.data.parentCommentId })
+//     cache.inspectFields(parentCommentKey).filter(field => field.fieldName === 'childComments').forEach(childCommentsField => {
+//       // console.log("cache.resolve(parentCommentKey, childCommentsField.fieldKey, 'items')", cache.resolve(cache.resolve(parentCommentKey, childCommentsField.fieldKey), 'items'))
+//       const childComments = cache.resolve(parentCommentKey, childCommentsField.fieldKey)
+//       const newChildCommentsContent = {
+//         items: [
+//           ...cache.resolve(childComments, 'items'),
+//           newComment
+//         ],
+//         hasMore: cache.resolve(childComments, 'hasMore'),
+//         total: cache.resolve(childComments, 'total')
 //       }
-//     }, data => {
-//       console.log('!!!!!!!! data.post', data.post)
-//       const comments = data.post.comments.items.map(comment => {
-//         if (comment.id === args.data.parentCommentId) {
-//           return {
-//             ...comment,
-//             '`childComments({"first":2,"order":"desc"})`': {
-//               ...comment.childComments,
-//               items: [
-//                 ...comment.childComments.items,
-//                 result.createComment
-//               ]
-//             }
-//           }
-//         } else {
-//           return comment
-//         }
-//       })
-//       // delete data.post.comments
-//       const output = {
-//         post: {
-//           ...data.post,
-//           comments
-//         }
-//       }
-//       console.log('!@!!! output', output)
-//       return output
+//       console.log('!!! should link: ', childCommentsField.fieldKey, 'to: ', newChildCommentsContent)
+//       cache.link(parentCommentKey, childCommentsField.fieldKey, newChildCommentsContent)
 //     })
+//     // NOTE: This won't work as-is because the childComments in PostDetails come from the postCommentsQuery and only from childCommentsQuery
+//     // if we have clicked "Show more" on a post for subcomments. So, the childCommentsQuery will not be in the cache unless we've done that,
+//     // and in those cases the cursor arg which was provided is unknown to use here (though we could iterate over cache entries to find it)
+//     // const data = cache.updateQuery({ query: childCommentsQuery, variables: { commentId: args.data.parentCommentId } }, data => {
+//     //   console.log('!!!! data', data)
+//     //   const { comment } = data
+//     //   const { createComment: newComment } = result
+//     //   return {
+//     //     comment: {
+//     //       ...comment,
+//     //       childComments: {
+//     //         ...comment.childComments,
+//     //         items: [
+//     //           ...comment.childComments.items,
+//     //           newComment
+//     //         ]
+//     //       }
+//     //     }
+//     //   }
+//     // })
 //   } else {
-//     cache.updateQuery({
-//       query: postCommentsQuery,
-//       variables: {
-//         postId: args.data.postId
+//     const data = cache.updateQuery({ query: postCommentsQuery, variables: { postId: args.data.postId } }, data => {
+//       const { post } = data
+//       const { createComment: newComment } = result
+//       delete newComment.childComments
+//       newComment['`childComments({"first":2,"order":"desc"})`'] = {
+//         __typename: 'CommentQuerySet',
+//         hasMore: false,
+//         total: 0,
+//         items: []
 //       }
-//     }, data => {
+//       console.log('!!!! post.comments.items[0]:', post.comments.items[0])
+
 //       return {
 //         post: {
-//           ...data.post,
+//           ...post,
 //           comments: {
-//             ...data.post.comments,
+//             ...post.comments,
 //             items: [
-//               ...data.post.comments.items,
-//               {
-//                 ...result.createComment,
-//                 parentComment: null,
-//                 myReactions: [],
-//                 commentReactions: [],
-//                 '`childComments({"first":2,"order":"desc"})`': {
-//                     hasMore: false,
-//                     items: [],
-//                     total: 0
-//                 }
-//               }
+//               ...post.comments.items.map(comment => ({
+//                 ...comment,
+//                 '`childComments({"first":2,"order":"desc"})`': comment.childComments
+//               })),
+//               newComment
 //             ]
 //           }
 //         }
 //       }
 //     })
 //   }
+//   // if (args?.data?.parentCommentId) {
+//   //   cache.invalidate({ __typename: 'Comment', id: args?.data?.parentCommentId })
+//   // } else {
+//   //   const postKey = cache.keyOfEntity({ __typename: 'Post', id: args.data.postId })
+//   //   const postCommentsFields = cache.inspectFields(postKey).filter(fi => fi.fieldName === 'comments')
+
+//   //   postCommentsFields.forEach(({ fieldKey }) => {
+//   //     cache.invalidate(postKey, fieldKey)
+//   //   })
+//   // }
 // }

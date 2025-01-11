@@ -1,5 +1,37 @@
 import { gql } from 'urql'
 
+export const createCommentFieldsFragment = gql`
+  fragment CreateCommentFieldsFragment on Comment {
+    id
+    text
+    creator {
+      id
+    }
+    attachments {
+      id
+      position
+      type
+      url
+    }
+    parentComment {
+      id
+    }
+    myReactions {
+      emojiFull
+      id
+    }
+    commentReactions {
+      emojiFull
+      id
+      user {
+        id
+        name
+      }
+    }
+    createdAt
+  }
+`
+
 export default gql`
   mutation CreateCommentMutation (
     $postId: String,
@@ -13,21 +45,8 @@ export default gql`
       text: $text,
       attachments: $attachments,
     }) {
-      id
-      text
-      creator {
-        id
-      }
-      parentComment {
-        id
-      }
-      attachments {
-        type
-        url
-        position
-        id
-      }
-      createdAt
+      ...CreateCommentFieldsFragment
     }
   }
+  ${createCommentFieldsFragment}
 `

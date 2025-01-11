@@ -90,6 +90,7 @@ export function useCurrentGroupSlug (setToGroupSlug) {
     currentGroupSlug = savedCurrentGroupSlug
   // The lastViewedGroup
   } else {
+    console.log('!!! resetting to lastviewed group')
     dispatch(setCurrentGroupSlug(lastViewedGroup?.slug))
     currentGroupSlug = lastViewedGroup?.slug
   }
