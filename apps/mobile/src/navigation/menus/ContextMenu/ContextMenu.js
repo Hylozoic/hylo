@@ -5,7 +5,7 @@ import { useNavigation, useLinkTo } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import useCurrentUser from 'hooks/useCurrentUser'
-import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentGroup, { useCurrentGroupSlug } from 'hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import useHasResponsibility from 'hooks/useHasResponsibility'
 import { RESP_ADD_MEMBERS } from 'store/constants'
@@ -21,7 +21,7 @@ function ContextMenuItem({ widget, groupSlug, rootPath }) {
   const navigation = useNavigation()
   const title = widgetTitleResolver({ widget, t })
   const url = widgetUrl({ widget, rootPath, groupSlug })
-  console.log(url, 'jajja')
+
   const handlePress = () => {
     if (url) {
       linkTo(url)
@@ -122,10 +122,11 @@ function ContextWidgetList({ contextWidgets, groupSlug, rootPath }) {
 
 export default function ContextMenu() {
   const [currentGroup] = useCurrentGroup()
+  const currentGroupSlug = useCurrentGroupSlug()
   const { myHome } = useRouteParams()
   const contextWidgets = getContextWidgetsForGroup(currentGroup)
-  const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
-
+  const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets, currentGroup, myHome])
+  console.log(currentGroupSlug, 'currentGroupSlugsssss')
   if (!currentGroup || myHome) return null
 
   return (

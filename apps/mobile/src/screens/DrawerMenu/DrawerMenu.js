@@ -12,7 +12,7 @@ import useHasResponsibility from 'hooks/useHasResponsibility'
 import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'
 import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
-import { PUBLIC_GROUP, ALL_GROUP, MY_CONTEXT_GROUP } from 'urql-shared/presenters/GroupPresenter'
+import { PUBLIC_GROUP, ALL_GROUP, MY_CONTEXT_GROUP, isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 import styles from './DrawerMenu.styles'
 import Button from 'components/Button'
 import GlobalNav from 'navigation/menus/GlobalNav'
@@ -30,6 +30,7 @@ export default function DrawerMenu () {
   const [currentGroup, { fetching: currentGroupFetching }] = useCurrentGroup()
   const memberships = currentUser?.memberships
   const { myHome } = useRouteParams()
+  const soIsItAContextGroup = isContextGroup(currentGroup?.slug)
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
   const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
@@ -37,7 +38,7 @@ export default function DrawerMenu () {
     .map(m => m.group)
     .sort((a, b) => a.name.localeCompare(b.name))
   const contextWidgets = getContextWidgetsForGroup(currentGroup)
-
+  console.log('This is dumb as hell', currentGroup, 'nioicencoine')
   const goToCreateGroup = () => {
     navigation.navigate('Create Group', { screen: 'CreateGroupName', params: { reset: true } })
   }

@@ -2,6 +2,7 @@ import React, { Suspense } from 'react'
 import { View, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
+import { useDispatch } from 'react-redux'
 import FastImage from 'react-native-fast-image'
 import Icon from 'components/Icon'
 import useCurrentUser from 'hooks/useCurrentUser'
@@ -15,6 +16,7 @@ import { PUBLIC_GROUP } from 'urql-shared/presenters/GroupPresenter'
 export default function GlobalNav() {
   const { t } = useTranslation()
   const navigation = useNavigation()
+  const dispatch = useDispatch()
   const [currentUser] = useCurrentUser()
   const [currentGroup] = useCurrentGroup()
   const memberships = currentUser?.memberships
@@ -28,21 +30,8 @@ export default function GlobalNav() {
     navigation.navigate('Home Tab', { screen: 'Stream', initial: false })
   }
 
-  const navigateToMyHome = () => {
-    // navigation.navigate('Group Navigation', { myHome: true, groupSlug: MY_CONTEXT_GROUP.slug })
-    dispatch(setCurrentGroupSlug(MY_CONTEXT_GROUP.slug))
-    
-    navigation.navigate('My Posts', { initial: false })
-  }
-
   const navItems = [
     { ...PUBLIC_GROUP, navigateTo: navigateToPublicStream, name: t('Public Stream') },
-    {
-      name: t('My Home'),
-      navigateTo: navigateToMyHome,
-      id: 'myHome',
-      avatarUrl: currentUser?.avatarUrl
-    }
   ]
   
   /* 

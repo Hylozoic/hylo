@@ -25,18 +25,28 @@ import GroupWelcomeCheck from 'components/GroupWelcomeCheck'
 import ModerationList from 'components/ModerationList'
 import { bannerlinearGradientColors } from 'style/colors'
 import styles from './Stream.styles'
+import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'
+import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
+import { useDispatch } from 'react-redux'
 
 export default function Stream ({ topicName: providedTopicName }) {
   const ref = useRef(null)
   const { t } = useTranslation()
   const navigation = useNavigation()
+  const dispatch = useDispatch()
   const route = useRoute()
   const { customViewId, streamType, myHome, topicName: routeTopicName } = useRouteParams()
+
+  if (myHome && ![MY_CONTEXT_SLUG, ALL_GROUPS_CONTEXT_SLUG].includes(currentGroup?.slug)){
+    // Safety reset
+    dispatch(setCurrentGroupSlug(MY_CONTEXT_SLUG))
+  }
 
   const [currentUser] = useCurrentUser()
   const [currentGroup] = useCurrentGroup()
   const changeToGroup = useChangeToGroup()
   const goToTopicDefault = useGoToTopic()
+
 
   const customView = currentGroup?.customViews?.items?.filter(customView => customView.id === customViewId)
   const customViewType = customView?.type

@@ -35,7 +35,7 @@ export default function TabStackHeader ({
   ...otherProps
 }) {
   const canGoBack = !rootsScreenNames.includes(route?.name)
-
+  // console.log(rootsScreenNames, route?.name, 'route nammmmes')
   const props = {
     headerBackTitleVisible: false,
     title: getFocusedRouteNameFromRoute(route) || getHeaderTitle(options, route.name),
@@ -59,13 +59,13 @@ export default function TabStackHeader ({
       let onPress = options.headerLeftOnPress
 
       if (!onPress) {
-        onPress = canGoBack
-          ? navigation.goBack
-          : navigation.openDrawer
+        // onPress = canGoBack
+        //   ? navigation.goBack
+        //   : navigation.openDrawer
 
-        if (canGoBack && !navigation.canGoBack()) {
+        //   if (canGoBack && !navigation.canGoBack()) {
           onPress = navigation.openDrawer
-        }
+        // }
       }
 
       return (
