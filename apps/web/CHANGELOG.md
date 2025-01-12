@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [5.11.3] - 2024-01-12
+
+### Fixed
+- Clicking on a mention or topic in a post
+- Tooltips on proposal votes
+- Remove random 0 at the bottom of proposal options
+- Flagging of public posts
+
 ## [5.11.2] - 2024-01-06
 
 ### Fixed

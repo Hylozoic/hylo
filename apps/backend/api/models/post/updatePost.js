@@ -1,4 +1,3 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
 import { isEqual } from 'lodash'
@@ -7,6 +6,7 @@ import {
   updateAllMedia,
   updateFollowers
 } from './util'
+const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export default function updatePost (userId, id, params) {
   if (!id) throw new GraphQLYogaError('updatePost called with no ID')
