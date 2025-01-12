@@ -20,7 +20,7 @@ import PostLabel from 'components/PostLabel'
 import PostPrompt from './PostPrompt'
 import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
-import ViewHeader from 'components/ViewHeader'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { ViewHelpers } from '@hylo/shared'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
@@ -280,6 +280,13 @@ export default function Stream (props) {
 
   const noPostsMessage = view === 'events' ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') }) : 'No posts'
 
+  const { setTitle, setIcon, setInfo } = useViewHeader()
+  useEffect(() => {
+    setTitle(name)
+    setIcon(icon)
+    setInfo(info)
+  }, [name, icon, info])
+
   return (
     <div id='stream-outer-container' className='flex flex-col h-full' ref={setContainer}>
       <Helmet>
@@ -290,8 +297,6 @@ export default function Stream (props) {
       <Routes>
         <Route path='post/:postId' element={<PostDialog container={container} />} />
       </Routes>
-
-      <ViewHeader title={name} icon={icon} info={info} />
 
       <div id='stream-inner-container' className='flex flex-col flex-1 w-full max-w-[750px] mx-auto overflow-auto p-4'>
         {hasPostPrompt && (

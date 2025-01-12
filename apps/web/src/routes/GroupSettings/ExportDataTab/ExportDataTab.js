@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Loading from 'components/Loading'
 import Button from 'components/Button'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetch from 'isomorphic-fetch'
 import { getHost } from 'store/middleware/apiMiddleware'
 import classes from './ExportDataTab.module.scss'
@@ -22,6 +23,12 @@ export default function ExportDataTab (props) {
     setClicked(true)
     triggerMemberExport(group.id, success, failure)
   }
+
+  const { setTitle, setIcon } = useViewHeader()
+  useEffect(() => {
+    setTitle('Group Settings -> Export Data')
+    setIcon('Settings')
+  }, [])
 
   if (!group) return <Loading />
 

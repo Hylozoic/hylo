@@ -5,7 +5,13 @@ import { cn } from 'util/index'
 import Loading from 'components/Loading'
 import Icon from 'components/Icon'
 import SettingsControl from 'components/SettingsControl'
-import { fetchResponsibilitiesForGroup, addGroupResponsibility, deleteGroupResponsibility, updateGroupResponsibility } from 'store/actions/responsibilities'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
+import {
+  fetchResponsibilitiesForGroup,
+  addGroupResponsibility,
+  deleteGroupResponsibility,
+  updateGroupResponsibility
+} from 'store/actions/responsibilities'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss' // eslint-disable-line no-unused-vars
@@ -102,6 +108,12 @@ export default function ResponsibilitiesTab ({ group }) {
       window.alert(t('A responsibility must have at least three characters for its title'))
     }
   }
+
+  const { setTitle, setIcon } = useViewHeader()
+  useEffect(() => {
+    setTitle('Group Settings / Responsibilities')
+    setIcon('Settings')
+  }, [])
 
   const unsavedRolePresent = responsibilities.length > 0 ? responsibilities[responsibilities.length - 1]?.draft : false
 

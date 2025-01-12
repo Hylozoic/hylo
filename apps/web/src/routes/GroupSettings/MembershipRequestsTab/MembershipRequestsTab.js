@@ -1,65 +1,65 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import PropTypes from 'prop-types'
-import React, { Component } from 'react'
+import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import isWebView from 'util/webView'
-import { personUrl } from 'util/navigation'
+import { groupUrl, personUrl } from 'util/navigation'
 import Avatar from 'components/Avatar'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
+import {
+  acceptJoinRequest,
+  declineJoinRequest,
+  fetchJoinRequests
+} from './MembershipRequestsTab.store'
 import { jollyAxolotl } from 'util/assets'
 
 import classes from './MembershipRequestsTab.module.scss'
 
-const { array, func, object } = PropTypes
+export default function MembershipRequestsTab ({
+  joinRequests,
+  group,
+  viewMembers
+}) {
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
 
-export default class MembershipRequestsTab extends Component {
-  static propTypes = {
-    joinRequests: array,
-    group: object,
-    acceptJoinRequest: func,
-    declineJoinRequest: func,
-    viewMembers: func
+  useEffect(() => {
+    dispatch(fetchJoinRequests(group.id))
+  }, [group.id])
+
+  const submitAccept = (joinRequestId) => {
+    dispatch(acceptJoinRequest(joinRequestId))
   }
 
-  state = {
-    modalVisible: false
+  const submitDecline = (joinRequestId) => {
+    dispatch(declineJoinRequest(joinRequestId))
   }
 
-  componentDidMount () {
-    const { groupId } = this.props
-    this.props.fetchJoinRequests(groupId)
+  const handleViewMembers = () => {
+    dispatch(navigate(groupUrl(group.slug, 'members')))
   }
 
-  submitAccept = (joinRequestId) => {
-    this.props.acceptJoinRequest(joinRequestId)
-  }
+  const { setTitle, setIcon } = useViewHeader()
+  useEffect(() => {
+    setTitle('Membership Requests')
+    setIcon('Settings')
+  }, [])
 
-  submitDecline = (joinRequestId) => {
-    this.props.declineJoinRequest(joinRequestId)
-  }
+  if (!joinRequests) return <Loading />
 
-  viewMembers = () => {
-    const { group } = this.props
-    this.props.viewMembers(group.slug)
-  }
-
-  render () {
-    const { group, joinRequests } = this.props
-
-    if (!joinRequests) return <Loading />
-
-    return joinRequests.length
-      ? <NewRequests
-          accept={this.submitAccept}
-          decline={this.submitDecline}
-          group={group}
-          joinRequests={joinRequests}
-        />
-      : <NoRequests group={group} viewMembers={this.viewMembers} />
-  }
+  return joinRequests.length
+    ? <NewRequests
+        accept={submitAccept}
+        decline={submitDecline}
+        group={group}
+        joinRequests={joinRequests}
+      />
+    : <NoRequests group={group} viewMembers={handleViewMembers} />
 }
 
 export function NoRequests ({ group, viewMembers }) {
@@ -85,7 +85,7 @@ export function NoRequests ({ group, viewMembers }) {
   )
 }
 
-export function NewRequests ({ accept, decline, group, joinRequests }) {
+function NewRequests ({ accept, decline, group, joinRequests }) {
   const { t } = useTranslation()
   return (
     <>
@@ -96,20 +96,22 @@ export function NewRequests ({ accept, decline, group, joinRequests }) {
           <span className={classes.responseTime}>Your average response time: 1 day</span> */}
         </div>
         <div className={classes.requestList}>
-          {joinRequests.map(r => <JoinRequest
-            key={r.id}
-            accept={accept}
-            decline={decline}
-            group={group}
-            request={r}
-                                 />)}
+          {joinRequests.map(r => (
+            <JoinRequest
+              key={r.id}
+              accept={accept}
+              decline={decline}
+              group={group}
+              request={r}
+            />
+          ))}
         </div>
       </div>
     </>
   )
 }
 
-export function JoinRequest ({ accept, decline, group, request }) {
+function JoinRequest ({ accept, decline, group, request }) {
   const { questionAnswers, user } = request
   const { t } = useTranslation()
 
