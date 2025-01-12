@@ -5,12 +5,6 @@ import { groupRoom, pushToSockets } from '../../services/Websockets'
 const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export default async function createPost (userId, params) {
-  if (params.isPublic) {
-    // Don't allow creating a public post unless at least one of the post's groups has allow_in_public set to true
-    const groups = await Group.query(q => q.whereIn('id', params.group_ids)).fetchAll()
-    const allowedToMakePublic = groups.find(g => g.get('allow_in_public'))
-    if (!allowedToMakePublic) params.isPublic = false
-  }
   return setupPostAttrs(userId, merge(Post.newPostAttrs(), params), true)
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
