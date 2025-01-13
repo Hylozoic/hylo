@@ -28,7 +28,9 @@ const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
   // TODO: URQL - network-only seems to be required only for SocialAuth,
   // but can't yet figure out why. Explore further and hopefully reset
-  // to network-and-cache or cache-first (default)
+  // to cache-and-network or cache-first (default). It may be fine here, but it is
+  // the only place we should do this with useCurrentUser as it would be expensive
+  // lower in the stack where it may get called in any loops and such.
   const [currentUser, { fetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
   const [loading, setLoading] = useState(true)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
