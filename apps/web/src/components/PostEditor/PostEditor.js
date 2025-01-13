@@ -885,7 +885,6 @@ function PostEditor ({
                 value={currentPost.startTime?.toDate?.()} // toDate transforms from Moment to native
                 placeholder={t('Select Start')}
                 onChange={handleStartTimeChange}
-                // className='dtPicker'
               />
               <div className={styles.footerSectionHelper}>{t('To')}</div>
               <DateTimePicker
@@ -894,7 +893,6 @@ function PostEditor ({
                 value={currentPost.endTime?.toDate?.()} // toDate transforms from Moment to native
                 placeholder={t('Select End')}
                 onChange={handleEndTimeChange}
-                // className='dtPicker'
               />
             </div>
           </div>
