@@ -11,6 +11,7 @@ import { modalScreenName } from 'hooks/useIsModalScreen'
 import resetNotificationsCountMutation from 'graphql/mutations/resetNotificationsCountMutation'
 import fetchNotificationsQuery, { NOTIFICATIONS_PAGE_SIZE } from 'graphql/queries/notificationsQuery'
 import commonRolesQuery from 'graphql/queries/commonRolesQuery'
+import useCurrentUser from 'hooks/useCurrentUser'
 import usePlatformAgreements from 'hooks/usePlatformAgreements'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import CreateGroupTabsNavigator from 'navigation/CreateGroupTabsNavigator'
@@ -24,7 +25,6 @@ import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import { white } from 'style/colors'
-import useCurrentUser from 'hooks/useCurrentUser'
 
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
@@ -60,7 +60,7 @@ export default function AuthRootNavigator () {
         setLoading(false)
       }
     })()
-  }, [fetching, error])
+  }, [currentUser, fetching, error])
 
   if (loading) return <LoadingScreen />
   // TODO: What do we want to happen if there is an error loading the current user?
@@ -98,6 +98,7 @@ export default function AuthRootNavigator () {
           <AuthRoot.Screen name={modalScreenName('Thread')} component={Thread} />
           <AuthRoot.Screen name={modalScreenName('Notifications')} component={NotificationsList} />
         </AuthRoot.Group>
+        <AuthRoot.Screen name='Loading' component={LoadingScreen} options={{ headerShown: false, animationEnabled: false }} />
       </AuthRoot.Navigator>
     </HyloHTMLConfigProvider>
   )

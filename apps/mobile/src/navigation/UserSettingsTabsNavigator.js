@@ -1,22 +1,22 @@
 import React, { useLayoutEffect } from 'react'
 import { StyleSheet } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs'
 import { isIOS } from 'util/platform'
 import ModalHeader from 'navigation/headers/ModalHeader'
-import { alabaster, capeCod, rhino, rhino30, rhino40 } from 'style/colors'
-import logout from 'store/actions/logout'
+import useLogout from 'urql-shared/hooks/useLogout'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
 import UserSettingsWebView from 'screens/UserSettingsWebView'
 import BlockedUsers from 'screens/BlockedUsers'
 import LocaleSelector from 'components/LocaleSelector/LocaleSelector'
-import { useTranslation } from 'react-i18next'
+import { alabaster, capeCod, rhino, rhino30, rhino40 } from 'style/colors'
 
 const UserSettings = createMaterialTopTabNavigator()
 export default function UserSettingsTabsNavigator ({ navigation, route }) {
   const initialURL = useSelector(state => state.initialURL)
   const { t } = useTranslation()
-  const dispatch = useDispatch()
+  const logout = useLogout()
   const navigatorProps = {
     screenOptions: {
       animationEnabled: !initialURL,
@@ -64,7 +64,7 @@ export default function UserSettingsTabsNavigator ({ navigation, route }) {
             confirmationMessage: 'Are you sure you want to logout?',
             continueButtonText: 'Cancel',
             disgardButtonText: 'Yes',
-            onDiscard: async () => dispatch(logout()),
+            onDiscard: async () => logout(),
             t
           })}
           headerRightButtonStyle={{ color: alabaster }}

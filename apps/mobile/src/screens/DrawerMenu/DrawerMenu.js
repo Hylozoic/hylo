@@ -17,6 +17,7 @@ import { bannerlinearGradientColors } from 'style/colors'
 // import groupExplorerUrl from 'assets/group-explorer.png'
 import earthUrl from 'assets/earth.png'
 import myHomeUrl from 'assets/my-home.png'
+import Loading from 'components/Loading'
 
 export default function DrawerMenu () {
   const { t } = useTranslation()
@@ -28,9 +29,6 @@ export default function DrawerMenu () {
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
   const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
-  const myGroups = memberships
-    .map(m => m.group)
-    .sort((a, b) => a.name.localeCompare(b.name))
 
   const goToCreateGroup = () => {
     navigation.navigate('Create Group', { screen: 'CreateGroupName', params: { reset: true } })
@@ -59,6 +57,14 @@ export default function DrawerMenu () {
     navigation.navigate('Group Navigation', { myHome: true, groupSlug: MY_CONTEXT_GROUP.slug })
     navigation.navigate('My Posts', { initial: false })
   }
+
+  if (!currentUser) {
+    return <Loading />
+  }
+
+  const myGroups = memberships
+    .map(m => m.group)
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   const publicMap = {
     name: t('Public Map'),

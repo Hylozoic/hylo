@@ -71,11 +71,11 @@ const renderers = {
 }
 
 export function HyloHTMLConfigProvider ({ children }) {
-  const [currentlySelectedGroup] = useCurrentGroup()
+  const [currentGroup] = useCurrentGroup()
 
   const handleLinkPress = useCallback(
     async (_, href) => openURL(href),
-    [currentlySelectedGroup?.slug]
+    [currentGroup?.slug]
   )
 
   const renderersProps = useMemo(() => ({

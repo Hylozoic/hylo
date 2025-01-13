@@ -1,27 +1,14 @@
 import { gql } from 'urql'
+import meAuthFieldsFragment from 'graphql/fragments/meAuthFieldsFragment'
 
 export default gql`
   mutation LoginMutation ($email: String, $password: String) {
     login(email: $email, password: $password) {
       me {
-        id
-        email
-        emailValidated
-        hasRegistered
-        name
-        settings {
-          alreadySeenTour
-          digestFrequency
-          dmNotifications
-          commentNotifications
-          signupInProgress
-          streamChildPosts
-          streamViewMode
-          streamSortBy
-          streamPostType
-        }
+        ...MeAuthFieldsFragment
       }
       error
     }
+    ${meAuthFieldsFragment}
   }
 `

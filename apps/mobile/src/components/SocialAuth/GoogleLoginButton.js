@@ -32,7 +32,7 @@ class GoogleLoginButton extends React.Component {
       this.props.onLoginFinished(accessToken)
     } catch (error) {
       if (error.code !== statusCodes.SIGN_IN_CANCELLED) {
-        this.props.createErrorNotification(t('Could not sign in with your Google account'))
+        await this.props.createErrorNotification(t('Could not sign in with your Google account'))
       }
     }
   }

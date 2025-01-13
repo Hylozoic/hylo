@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux'
 import { pickBy, identity } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
 import register from 'store/actions/register'
-import logout from 'store/actions/logout'
+import useLogout from 'urql-shared/hooks/useLogout'
 import useForm from 'hooks/useForm'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
 import SettingControl from 'components/SettingControl'
@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 
 export default function SignupRegistration ({ navigation, route }) {
   const { t } = useTranslation()
+  const logout = useLogout()
   const dispatch = useDispatch()
   const passwordControlRef = useRef()
   const confirmPasswordControlRef = useRef()
@@ -64,7 +65,7 @@ export default function SignupRegistration ({ navigation, route }) {
           disgardButtonText: t('Yes'),
           continueButtonText: t('No'),
           onDiscard: () => {
-            dispatch(logout())
+            logout()
             navigation.navigate('Signup Intro')
           },
           t

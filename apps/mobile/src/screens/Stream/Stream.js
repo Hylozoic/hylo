@@ -79,13 +79,12 @@ export default function Stream ({ topicName: providedTopicName }) {
     })
   }, [navigation, currentGroup?.id, streamType, myHome])
 
-  if (!currentUser) return <Loading style={{ flex: 1 }} />
-
   // Navigation helpers
   const goToPostDetails = useCallback(id => navigation.navigate('Post Details', { id }), [navigation])
   const goToCreateGroup = useCallback(() => navigation.navigate('Create Group'), [navigation])
   const goToMember = useCallback(id => navigation.navigate('Member', { id }), [navigation])
 
+  if (!currentUser) return <Loading style={{ flex: 1 }} />
   if (!currentGroup) return null
 
   if (isEmpty(currentUser.memberships) && currentGroup.id !== PUBLIC_GROUP_ID) {
