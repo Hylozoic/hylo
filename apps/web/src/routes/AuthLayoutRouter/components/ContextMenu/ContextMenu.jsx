@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { compact, get } from 'lodash/fp'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, GripHorizontal } from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -346,7 +346,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
       ))}
       <li className='mb-2'>
         <DropZone isDragging={isDragging} hide={!isEditting} height='h-20' isDroppable droppableParams={{ id: 'bottom-of-list-' + groupSlug, data: { addToEnd: true, parentId: null } }}>
-          <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} />
+          <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer' />
         </DropZone>
       </li>
     </ul>
@@ -418,7 +418,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   return (
     <>
       <DropZone isDragging={isDragging} height={isDroppable && isEditting ? 'h-5' : ''} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }}>
-        <Icon name='Plus' onClick={() => handlePositionedAdd({ widget })} />
+        <Icon name='Plus' onClick={() => handlePositionedAdd({ widget })} className='cursor-pointer' />
       </DropZone>
       <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem] '>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
@@ -452,7 +452,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                 {widget.id &&
                   <li>
                     <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} height='h-12' droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
-                      <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} />
+                      <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className='cursor-pointer' />
                     </DropZone>
                   </li>}
               </ul>
@@ -472,8 +472,8 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
 function GrabMe ({ children, ...props }) {
   return (
-    <span className='text-sm font-bold' {...props}>
-      {children || 'Grab me'}
+    <span className='text-sm font-bold cursor-grab' {...props}>
+      <GripHorizontal />
     </span>
   )
 }
@@ -510,7 +510,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
   return (
     <React.Fragment key={item.id + itemTitle}>
       <DropZone height={isItemDraggable ? 'h-8' : ''} hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
-        <Icon name='Plus' onClick={() => handlePositionedAdd({ id: `${item.id}`, widget: item })} />
+        <Icon name='Plus' onClick={() => handlePositionedAdd({ id: `${item.id}`, widget: item })} className='cursor-pointer' />
       </DropZone>
       <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify-between items-center content-center'>
         <WidgetIconResolver widget={item} />
