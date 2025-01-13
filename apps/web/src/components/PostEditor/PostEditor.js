@@ -19,7 +19,7 @@ import GroupsSelector from 'components/GroupsSelector'
 import TopicSelector from 'components/TopicSelector'
 import MemberSelector from 'components/MemberSelector'
 import LinkPreview from './LinkPreview'
-import DatePicker from 'components/DatePicker'
+import { DateTimePicker } from 'components/ui/datetimepicker'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import SendAnnouncementModal from 'components/SendAnnouncementModal'
 import PublicToggle from 'components/PublicToggle'
@@ -879,16 +879,22 @@ function PostEditor ({
           <div className={styles.footerSection}>
             <div className={styles.footerSectionLabel}>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
             <div className={styles.datePickerModule}>
-              <DatePicker
-                value={currentPost.startTime}
+              <DateTimePicker
+                hourCycle={12}
+                granularity='minute'
+                value={currentPost.startTime?.toDate?.()} // toDate transforms from Moment to native
                 placeholder={t('Select Start')}
                 onChange={handleStartTimeChange}
+                // className='dtPicker'
               />
               <div className={styles.footerSectionHelper}>{t('To')}</div>
-              <DatePicker
-                value={currentPost.endTime}
+              <DateTimePicker
+                hourCycle={12}
+                granularity='minute'
+                value={currentPost.endTime?.toDate?.()} // toDate transforms from Moment to native
                 placeholder={t('Select End')}
                 onChange={handleEndTimeChange}
+                // className='dtPicker'
               />
             </div>
           </div>
