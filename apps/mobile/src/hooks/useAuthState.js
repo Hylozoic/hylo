@@ -45,6 +45,8 @@ export function getAuthState (currentUser) {
 
 export default function useAuthState (useQueryOptions = {}) {
   const [{ data, fetching, error }, checkAuth] = useQuery({
+    // TODO: URQL - Will always make a request after cache retrieval, may be unnecessary
+    requestPolicy: 'cache-and-network',
     ...useQueryOptions,
     query: meCheckAuthQuery
   })
