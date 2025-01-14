@@ -9,7 +9,6 @@ import pendingMiddleware from './pendingMiddleware'
 import promiseMiddleware from 'redux-promise'
 import userFetchedMiddleware from './userFetchedMiddleware'
 import groupFetchedMiddleware from './groupFetchedMiddleware'
-import userBlockingMiddleware from './userBlockingMiddleware'
 import mixpanelMiddleware from './mixpanelMiddleware'
 
 const middleware = compact([
@@ -21,7 +20,6 @@ const middleware = compact([
   promiseMiddleware,
   userFetchedMiddleware,
   groupFetchedMiddleware,
-  userBlockingMiddleware,
   mixpanelMiddleware,
   isDev &&
     createLogger({

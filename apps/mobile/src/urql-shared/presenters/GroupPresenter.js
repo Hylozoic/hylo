@@ -5,8 +5,6 @@ import allGroupsAvatarUrl from 'assets/All_Groups2.png'
 import myHomeAvatarUrl from 'assets/my-home.png'
 import allGroupshHeaderAvatarUrl from 'assets/All_Groups.png'
 import publicGroupAvatarUrl from 'assets/public.png'
-import presentCollection from 'store/presenters/presentCollection'
-import presentTopic from 'store/presenters/presentTopic'
 import GREEN_HERO_BANNER_PATH from 'assets/green-hero.jpg'
 import GREEN_ICON_AVATAR_PATH from 'assets/green-icon.jpg'
 import PURPLE_HERO_BANNER_PATH from 'assets/purple-hero.jpg'
@@ -26,15 +24,17 @@ export default function GroupPresenter (group) {
         primaryImage: a.attachments.length > 0 ? a.attachments[0].url : false
       }))
       : [],
-    customViews: group.customViews
-      ? group.customViews.items.map(cv => ({
-        ...cv,
-        collection: cv.collection ? presentCollection(cv.collection) : null,
-        topics: cv.topics.map(topic => presentTopic(topic, {}))
-      }))
-      : [],
-    groupToGroupJoinQuestions: group.groupToGroupJoinQuestions ? group.groupToGroupJoinQuestions.toRefArray() : [],
-    groupTopics: group.groupTopics
+    // TODO: URQL - convert
+    customViews: group?.customViews?.items || [],
+    // customViews: group.customViews
+    //   ? group.customViews.items.map(cv => ({
+    //     ...cv,
+    //     collection: cv.collection ? presentCollection(cv.collection) : null,
+    //     topics: cv.topics.map(topic => presentTopic(topic, {}))
+    //   }))
+    //   : [],
+    groupToGroupJoinQuestions: group?.groupToGroupJoinQuestions || [],
+    groupTopics: group?.groupTopics?.items
       ? group.groupTopics.items.map(groupTopic => ({ ...groupTopic, name: groupTopic.topic.name }))
       : [],
     joinQuestions: group.joinQuestions ? group.joinQuestions.items : [],

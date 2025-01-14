@@ -1,9 +1,7 @@
 import { combineReducers } from 'redux'
-import orm from './ormReducer'
 import pending from './pending'
 import session from './sessionReducer'
 import initialURL from './initialURL'
-import queryResults from './queryResults'
 import mixpanel from './mixpanel'
 import returnToOnAuthPath from './returnToOnAuthPathReducer'
 import resetStore from './resetStore'
@@ -18,11 +16,9 @@ import GroupWelcomeFlow from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
 
 export const createCombinedReducers = () => combineReducers({
   // Global store
-  orm,
   pending,
   initialURL,
   session,
-  queryResults,
   mixpanel,
   returnToOnAuthPath,
   // Local store (Component)

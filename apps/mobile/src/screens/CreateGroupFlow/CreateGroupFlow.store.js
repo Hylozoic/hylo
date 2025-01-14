@@ -1,7 +1,5 @@
-import { createSelector as ormCreateSelector } from 'redux-orm'
 import { get } from 'lodash/fp'
 import { gql } from 'urql'
-import orm from 'store/models'
 import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'urql-shared/presenters/GroupPresenter'
 import groupFieldsFragment, { groupPrerequisiteGroupsFieldsFragment } from 'graphql/fragments/groupFieldsFragment'
 
@@ -130,12 +128,11 @@ export function clearCreateGroupStore () {
   }
 }
 
-// TODO: URQL - convert off of ReduxORM
-export const getNewGroupParentGroups = ormCreateSelector(
-  orm,
-  getGroupData,
-  (session, { parentIds }) => session.Group.all()
-    .toRefArray()
-    .filter(g => parentIds.includes(g.id))
-    .sort((a, b) => a.name.localeCompare(b.name))
-)
+// export const getNewGroupParentGroups = ormCreateSelector(
+//   orm,
+//   getGroupData,
+//   (session, { parentIds }) => session.Group.all()
+//     .toRefArray()
+//     .filter(g => parentIds.includes(g.id))
+//     .sort((a, b) => a.name.localeCompare(b.name))
+// )

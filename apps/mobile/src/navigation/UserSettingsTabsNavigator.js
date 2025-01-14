@@ -8,7 +8,6 @@ import ModalHeader from 'navigation/headers/ModalHeader'
 import useLogout from 'urql-shared/hooks/useLogout'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
 import UserSettingsWebView from 'screens/UserSettingsWebView'
-import BlockedUsers from 'screens/BlockedUsers'
 import LocaleSelector from 'components/LocaleSelector/LocaleSelector'
 import { alabaster, capeCod, rhino, rhino30, rhino40 } from 'style/colors'
 
@@ -116,10 +115,6 @@ export default function UserSettingsTabsNavigator ({ navigation, route }) {
         initialParams={{
           path: '/settings/saved-searches'
         }}
-      />
-      <UserSettings.Screen
-        name='Blocked Users'
-        component={BlockedUsers}
       />
       <UserSettings.Screen
         name='Terms & Privacy'

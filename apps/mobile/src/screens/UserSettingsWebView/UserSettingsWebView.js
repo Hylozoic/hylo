@@ -1,14 +1,11 @@
 import React, { useRef } from 'react'
-import { useDispatch } from 'react-redux'
 import { WebViewMessageTypes } from '@hylo/shared'
 import useRouteParams from 'hooks/useRouteParams'
-import { LEAVE_GROUP } from 'store/constants'
 import HyloWebView from 'components/HyloWebView'
 import useLogout from 'urql-shared/hooks/useLogout'
 import useCurrentUser from 'hooks/useCurrentUser'
 
 export default function UserSettingsWebView ({ path: pathProp, route }) {
-  const dispatch = useDispatch()
   const [,, queryCurrentUser] = useCurrentUser({ pause: true })
   const webViewRef = useRef(null)
   const logout = useLogout()

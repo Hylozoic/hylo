@@ -1,4 +1,5 @@
 import { uniq } from 'lodash/fp'
+import { butterflyBush, caribbeanGreen, fakeAlpha, flushOrange, gold, pictonBlue, sunsetOrange } from 'style/colors'
 
 export default function PostPresenter (post, forGroupId) {
   if (!post) return post
@@ -28,3 +29,51 @@ export default function PostPresenter (post, forGroupId) {
     // topics: post.topics.map(topic => presentTopic(topic, {}))
   }
 }
+
+export const POST_TYPES = {
+  discussion: {
+    primaryColor: pictonBlue,
+    backgroundColor: fakeAlpha(pictonBlue, 0.2),
+    map: false
+  },
+  event: {
+    primaryColor: sunsetOrange,
+    backgroundColor: fakeAlpha(sunsetOrange, 0.2),
+    map: true
+  },
+  offer: {
+    primaryColor: caribbeanGreen,
+    backgroundColor: fakeAlpha(caribbeanGreen, 0.2),
+    map: true
+  },
+  resource: {
+    primaryColor: gold,
+    backgroundColor: fakeAlpha(gold, 0.2),
+    map: true
+  },
+  project: {
+    primaryColor: flushOrange,
+    backgroundColor: fakeAlpha(flushOrange, 0.2),
+    map: false
+  },
+  request: {
+    primaryColor: caribbeanGreen,
+    backgroundColor: fakeAlpha(caribbeanGreen, 0.2),
+    map: true
+  },
+  proposal: {
+    primaryColor: butterflyBush,
+    backgroundColor: fakeAlpha(butterflyBush, 0.2),
+    map: true
+  }
+}
+
+// proposal status
+export const PROPOSAL_STATUS_DISCUSSION = 'discussion'
+export const PROPOSAL_STATUS_VOTING = 'voting'
+export const PROPOSAL_STATUS_CASUAL = 'casual'
+export const PROPOSAL_STATUS_COMPLETED = 'completed'
+
+// Voting methods
+export const VOTING_METHOD_SINGLE = 'single'
+export const VOTING_METHOD_MULTI_UNRESTRICTED = 'multi-unrestricted'
