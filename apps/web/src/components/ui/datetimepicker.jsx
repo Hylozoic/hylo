@@ -466,7 +466,7 @@ const TimePicker = React.forwardRef(({ date, onChange, hourCycle = 24, granulari
   )
 })
 TimePicker.displayName = 'TimePicker'
-const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
+const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
   const [month, setMonth] = React.useState(value ?? defaultPopupValue)
   const buttonRef = useRef(null)
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
@@ -474,7 +474,7 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
    * carry over the current time when a user clicks a new day
    * instead of resetting to 00:00
    */
-  const handleSelect = (newDay) => {
+  const handleMonthChange = (newDay) => {
     if (!newDay) {
       return
     }
@@ -488,7 +488,7 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
     const diffInDays = diff / (1000 * 60 * 60 * 24)
     const newDateFull = add(defaultPopupValue, { days: Math.ceil(diffInDays) })
     newDateFull.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
-    onChange?.(newDateFull)
+    onMonthChange?.(newDateFull)
     setMonth(newDateFull)
   }
   const onSelect = (newDay) => {
@@ -542,7 +542,7 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
               newDate.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
               onSelect(newDate)
             }
-          }} onMonthChange={handleSelect} yearRange={yearRange} locale={locale} {...props}
+          }} onMonthChange={handleMonthChange} yearRange={yearRange} locale={locale} {...props}
         />
         {granularity !== 'day' && (
           <div className='border-t border-border p-3'>
