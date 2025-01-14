@@ -19,6 +19,7 @@ import GroupsSelector from 'components/GroupsSelector'
 import TopicSelector from 'components/TopicSelector'
 import MemberSelector from 'components/MemberSelector'
 import LinkPreview from './LinkPreview'
+import { DateTime } from 'luxon'
 import { DateTimePicker } from 'components/ui/datetimepicker'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import SendAnnouncementModal from 'components/SendAnnouncementModal'
@@ -244,6 +245,16 @@ function PostEditor ({
     }
   }, [])
 
+  const calcEndTime = (startTime) => {
+    var msDiff = 3600000 // ms in one hour
+    if (currentPost.startTime && currentPost.endTime) {
+      const start = DateTime.fromJSDate(currentPost.startTime)
+      const end = DateTime.fromJSDate(currentPost.endTime)
+      msDiff = end.diff(start)
+    }
+    return DateTime.fromJSDate(startTime).plus({millisecond: msDiff}).toJSDate()
+  }
+
   const onUpdateLinkPreview = () => {
     setCurrentPost({ ...currentPost, linkPreview })
   }
@@ -312,18 +323,12 @@ function PostEditor ({
   }
 
   const handleStartTimeChange = (startTime) => {
-    if (currentPost.endTime) {
-      validateTimeChange(startTime, currentPost.endTime)
-      setCurrentPost({ ...currentPost, startTime })
-      setValid(isValid({ startTime }))
-      return
-    }
-    // special case: endTime empty, initialize to one hour later
-    const endTime = new Date(startTime)
-    endTime.setHours(endTime.getHours() + 1)
+    // force endTime to track startTime
+    const endTime = calcEndTime(startTime)
+    validateTimeChange(startTime, endTime)
     setCurrentPost({ ...currentPost, startTime, endTime })
-    endTimeRef.current.setValue(endTime)
     setValid(isValid({ startTime, endTime }))
+    endTimeRef.current.setValue(endTime)
   }
 
   const handleEndTimeChange = (endTime) => {
