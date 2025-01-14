@@ -225,9 +225,9 @@ function MapExplorer (props) {
       null
   }, [centerParam, reduxState.centerLocation, group?.locationObject?.center, currentUser?.locationObject?.center, browserLocation])
 
-  const { setDetails } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setDetails({
+    setHeaderDetails({
       title: t('Map'),
       icon: 'Globe',
       info: ''

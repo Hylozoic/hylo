@@ -16,9 +16,9 @@ function DeleteSettingsTab ({ group, deleteGroup }) {
     }
   }, [deleteGroup, name])
 
-  const { setDetails } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setDetails({
+    setHeaderDetails({
       title: `${t('Group Settings')} > ${t('Delete Group')}`,
       icon: 'Settings',
       info: ''

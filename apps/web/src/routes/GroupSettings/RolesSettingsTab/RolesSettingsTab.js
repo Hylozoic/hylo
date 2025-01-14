@@ -56,7 +56,7 @@ function RolesSettingsTab ({ group, commonRoles }) {
   const { t } = useTranslation()
 
   const [roles, setRoles] = useState(group?.groupRoles?.items || [])
-  const { setDetails } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
 
   useEffect(() => {
     if (group?.groupRoles) {
@@ -65,7 +65,7 @@ function RolesSettingsTab ({ group, commonRoles }) {
   }, [group])
 
   useEffect(() => {
-    setDetails({
+    setHeaderDetails({
       title: `${t('Group Settings')} > ${t('Roles & Badges')}`,
       icon: 'Settings',
       info: ''

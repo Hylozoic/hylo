@@ -365,6 +365,7 @@ export default function AuthLayoutRouter (props) {
                   {currentGroupSlug && !currentGroupMembership && (
                     <Route path='groups/:groupSlug' element={<GroupDetail context='groups' group={currentGroup} />} />
                   )}
+                  <Route path='groups/:groupSlug/about/*' element={<GroupDetail context='groups' />} />
                   <Route path='groups/:groupSlug/map/*' element={<MapExplorer context='groups' view='map' />} />
                   <Route path='groups/:groupSlug/stream/*' element={<Stream context='groups' view='stream' />} />
                   <Route path='groups/:groupSlug/decisions/*' element={<Stream context='groups' view='decisions' />} />

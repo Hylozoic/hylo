@@ -42,9 +42,9 @@ const LandingPage = () => {
     dispatch(fetchPosts(fetchPostsParam))
   }, [dispatch, fetchPostsParam])
 
-  const { setDetails } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setDetails({
+    setHeaderDetails({
       title: t('Explore'),
       icon: 'RaisedHand',
       info: ''

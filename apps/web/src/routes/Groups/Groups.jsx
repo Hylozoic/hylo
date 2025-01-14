@@ -60,9 +60,9 @@ function Groups () {
     )
   )
 
-  const { setDetails } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setDetails({
+    setHeaderDetails({
       title: t('Groups'),
       icon: 'Groups',
       info: ''

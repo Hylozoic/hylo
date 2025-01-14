@@ -14,8 +14,8 @@ const ViewHeader = () => {
   const { context, groupSlug } = useRouteParams()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const currentUser = useSelector(getMe)
-  const { details } = useViewHeader()
-  const { title, icon, info } = details
+  const { headerDetails } = useViewHeader()
+  const { title, icon, info } = headerDetails
 
   return (
     <header className='flex flex-row items-center z-10 px-4 bg-background shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>

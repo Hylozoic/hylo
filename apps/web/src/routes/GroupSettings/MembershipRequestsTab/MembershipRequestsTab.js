@@ -45,9 +45,9 @@ export default function MembershipRequestsTab ({
     dispatch(navigate(groupUrl(group.slug, 'members')))
   }
 
-  const { setDetails } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setDetails({
+    setHeaderDetails({
       title: `${t('Group Settings')} > ${t('Join Requests')}`,
       icon: 'Settings',
       info: ''

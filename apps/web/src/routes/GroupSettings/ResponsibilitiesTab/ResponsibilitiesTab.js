@@ -109,9 +109,9 @@ export default function ResponsibilitiesTab ({ group }) {
     }
   }
 
-  const { setDetails } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setDetails({
+    setHeaderDetails({
       title: `${t('Group Settings')} > ${t('Responsibilities')}`,
       icon: 'Settings',
       info: ''

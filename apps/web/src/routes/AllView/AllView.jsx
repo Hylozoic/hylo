@@ -152,9 +152,9 @@ export default function AllViews () {
     })
   }, [visibleWidgets, rootPath, routeParams.groupSlug])
 
-  const { setDetails } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setDetails({
+    setHeaderDetails({
       title: t('All Views'),
       icon: 'Window'
     })
