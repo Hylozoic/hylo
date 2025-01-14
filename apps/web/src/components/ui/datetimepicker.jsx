@@ -535,7 +535,7 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
             : (<span>{placeholder}</span>)}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className='w-auto p-0 z-200'>
+      <PopoverContent className='w-auto p-0 z-40'>
         <Calendar
           mode='single' selected={displayDate} month={month} onSelect={(newDate) => {
             if (newDate) {

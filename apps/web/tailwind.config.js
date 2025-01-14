@@ -87,9 +87,6 @@ export default {
       },
       fontSize: {
         '2xs': '0.625rem'
-      },
-      zIndex: {
-        '200': '200'
       }
     }
   },
