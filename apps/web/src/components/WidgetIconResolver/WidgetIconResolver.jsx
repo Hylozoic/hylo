@@ -1,5 +1,6 @@
 import React from 'react'
 import Avatar from 'components/Avatar'
+import { Grid3x3 } from 'lucide-react'
 import Icon from 'components/Icon'
 import { widgetTypeResolver } from 'util/contextWidgets'
 import { ViewHelpers } from '@hylo/shared'
@@ -46,6 +47,9 @@ export function WidgetIconResolver ({ widget, style, className }) {
       return <Icon name='Posticon' style={style} />
     case 'about':
       return <Icon name='Info' style={style} />
+    case 'all-views':
+      return <Grid3x3 className='h-[16px]'/>
+      
   }
   return null
 }

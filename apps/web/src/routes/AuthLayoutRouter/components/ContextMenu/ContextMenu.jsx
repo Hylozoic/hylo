@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { compact, get } from 'lodash/fp'
-import { ChevronLeft, GripHorizontal } from 'lucide-react'
+import { ChevronLeft, GripHorizontal, Pencil } from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -287,7 +287,7 @@ export default function ContextMenu (props) {
           </Routes>
 
           <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
-            <div>
+            <div className='w-full'>
               <ContextWidgetList
                 isDragging={isDragging}
                 isEditting={isEditting}
@@ -309,7 +309,7 @@ export default function ContextMenu (props) {
             </DragOverlay>
           </DndContext>
           {(!isMyContext && !isPublic && !isAllContext) && (
-            <div className='w-[calc(100%-1.5em)] p-2 mb-[0.05em]'>
+            <div className='px-2 w-full mb-[0.05em]'>
               <ContextMenuItem
                 widget={{ title: 'widget-all', type: 'all-views', view: 'all-views', childWidgets: [] }}
                 groupSlug={routeParams.groupSlug}
@@ -427,7 +427,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
             <span className='flex items-center content-center'>
               <WidgetIconResolver widget={widget} />
               <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
-                <span className='text-sm font-bold ml-2'>{title}</span>
+                <span className='text-base font-normal ml-2'>{title}</span>
               </MenuLink>
             </span>
             )
@@ -460,9 +460,10 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
       </div>
       {showEdit && (
-        <div className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground'>
-          <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })}>
-            <span className='text-lg font-bold'>{t('Edit')}</span>
+        <div className='mb-[30px]'>
+          <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })} className='transition-all border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground opacity-50 hover:opacity-100 flex items-center text-foreground hover:text-foreground'>
+            <Pencil className='h-[16px]' />
+            <span className='text-base'>{t('Edit Menu')}</span>
           </MenuLink>
         </div>
       )}
@@ -539,10 +540,10 @@ function SpecialTopElementRenderer ({ widget, group }) {
 
   if (widget.type === 'about') {
     return (
-      <>
+      <div className='w-full'>
         <p className='text-sm text-gray-600 break-words w-[12.5rem] min-h-fit'>{group.purpose}</p>
         <p className='text-sm text-gray-600 break-words w-[12.5rem] min-h-fit'>{group.description}</p>
-      </>
+      </div>
     )
   }
 
@@ -550,7 +551,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
     const settingsUrl = groupUrl(group.slug, 'settings')
 
     const listItemComponent = ({ title, url }) => (
-      <li className='py-2 px-2 border'>
+      <li className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem]'>
         <MenuLink to={url} className='text-sm text-foreground'>
           {title}
         </MenuLink>
@@ -564,7 +565,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
             {t('Settings')}
           </div>
         </MenuLink>
-        <ul className='mt-4'>
+        <ul className='mt-4 pl-0 w-full'>
           {!group.avatarUrl && listItemComponent({
             title: t('Add Avatar'),
             url: settingsUrl
