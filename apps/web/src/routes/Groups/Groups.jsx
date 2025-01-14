@@ -60,10 +60,13 @@ function Groups () {
     )
   )
 
-  const { setTitle, setIcon } = useViewHeader()
+  const { setDetails } = useViewHeader()
   useEffect(() => {
-    setTitle('Groups')
-    setIcon('Groups')
+    setDetails({
+      title: t('Groups'),
+      icon: 'Groups',
+      info: ''
+    })
   }, [])
 
   const networkData = mapNodesAndLinks(parentGroups, childGroups, group)

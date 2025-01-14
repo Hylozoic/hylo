@@ -225,10 +225,13 @@ function MapExplorer (props) {
       null
   }, [centerParam, reduxState.centerLocation, group?.locationObject?.center, currentUser?.locationObject?.center, browserLocation])
 
-  const { setTitle, setIcon } = useViewHeader()
+  const { setDetails } = useViewHeader()
   useEffect(() => {
-    setTitle('Map')
-    setIcon('Globe')
+    setDetails({
+      title: t('Map'),
+      icon: 'Globe',
+      info: ''
+    })
   }, [])
 
   let defaultZoom

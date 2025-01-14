@@ -24,10 +24,13 @@ export default function ExportDataTab (props) {
     triggerMemberExport(group.id, success, failure)
   }
 
-  const { setTitle, setIcon } = useViewHeader()
+  const { setDetails } = useViewHeader()
   useEffect(() => {
-    setTitle('Group Settings -> Export Data')
-    setIcon('Settings')
+    setDetails({
+      title: `${t('Group Settings')} > ${t('Export Data')}`,
+      icon: 'Settings',
+      info: ''
+    })
   }, [])
 
   if (!group) return <Loading />

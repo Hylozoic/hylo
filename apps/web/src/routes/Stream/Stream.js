@@ -264,7 +264,7 @@ export default function Stream (props) {
       <div className='flex flex-row gap-2 items-center'>
         <span className='text-sm'>
           {t('Displaying')}:&nbsp;
-          {customView?.activePostsOnly ? 'Only active' : ''}
+          {customView?.activePostsOnly ? t('Only active') : ''}
         </span>
 
         {customView?.postTypes.length === 0 ? t('None') : customView?.postTypes.map((p, i) => <span key={i}><PostLabel key={p} type={p} className='align-middle mr-1' />{p}s&nbsp;</span>)}
@@ -273,18 +273,20 @@ export default function Stream (props) {
       </div>
       )
     : customView?.type === 'collection'
-      ? 'Curated Post Collection'
+      ? t('Curated Post Collection')
       : topicName
-        ? `Filtered by topic #${topicName}`
+        ? t('Filtered by topic #{{topicName}}', { topicName })
         : null
 
   const noPostsMessage = view === 'events' ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') }) : 'No posts'
 
-  const { setTitle, setIcon, setInfo } = useViewHeader()
+  const { setDetails } = useViewHeader()
   useEffect(() => {
-    setTitle(name)
-    setIcon(icon)
-    setInfo(info)
+    setDetails({
+      title: name,
+      icon,
+      info
+    })
   }, [name, icon, info])
 
   return (

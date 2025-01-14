@@ -3,12 +3,10 @@ import React, { useState } from 'react'
 import { ViewHeaderContext } from './index'
 
 export const ViewHeaderProvider = ({ children }) => {
-  const [title, setTitle] = useState()
-  const [icon, setIcon] = useState()
-  const [info, setInfo] = useState()
+  const [details, setDetails] = useState({ title: '', icon: '', info: '' })
 
   return (
-    <ViewHeaderContext.Provider value={{ title, setTitle, icon, setIcon, info, setInfo }}>
+    <ViewHeaderContext.Provider value={{ details, setDetails }}>
       {children}
     </ViewHeaderContext.Provider>
   )

@@ -96,10 +96,13 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const [showExpandGroupsButton, setShowExpandGroupsButton] = useState(false)
   const groupsRef = useRef(null)
 
-  const { setTitle, setIcon } = useViewHeader()
+  const { setDetails } = useViewHeader()
   useEffect(() => {
-    setTitle('Member Profile: ' + (person ? person.name : 'Loading...'))
-    setIcon('Person')
+    setDetails({
+      title: t('Member Profile') + ': ' + (person ? person.name : t('Loading...')),
+      icon: 'Person',
+      info: ''
+    })
   }, [person])
 
   useEffect(() => {

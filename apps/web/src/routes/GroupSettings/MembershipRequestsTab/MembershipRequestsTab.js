@@ -2,7 +2,7 @@ import { cn } from 'util/index'
 import { get } from 'lodash/fp'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import isWebView from 'util/webView'
 import { groupUrl, personUrl } from 'util/navigation'
@@ -21,16 +21,17 @@ import { jollyAxolotl } from 'util/assets'
 import classes from './MembershipRequestsTab.module.scss'
 
 export default function MembershipRequestsTab ({
-  joinRequests,
-  group,
-  viewMembers
+  group
 }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   useEffect(() => {
     dispatch(fetchJoinRequests(group.id))
   }, [group.id])
+
+  const joinRequests = useSelector(state => get('MembershipRequests', state))
 
   const submitAccept = (joinRequestId) => {
     dispatch(acceptJoinRequest(joinRequestId))
@@ -44,10 +45,13 @@ export default function MembershipRequestsTab ({
     dispatch(navigate(groupUrl(group.slug, 'members')))
   }
 
-  const { setTitle, setIcon } = useViewHeader()
+  const { setDetails } = useViewHeader()
   useEffect(() => {
-    setTitle('Membership Requests')
-    setIcon('Settings')
+    setDetails({
+      title: `${t('Group Settings')} > ${t('Join Requests')}`,
+      icon: 'Settings',
+      info: ''
+    })
   }, [])
 
   if (!joinRequests) return <Loading />
@@ -59,10 +63,10 @@ export default function MembershipRequestsTab ({
         group={group}
         joinRequests={joinRequests}
       />
-    : <NoRequests group={group} viewMembers={handleViewMembers} />
+    : <NoRequests group={group} handleViewMembers={handleViewMembers} />
 }
 
-export function NoRequests ({ group, viewMembers }) {
+export function NoRequests ({ group, handleViewMembers }) {
   const { t } = useTranslation()
   return (
     <>
@@ -76,7 +80,7 @@ export function NoRequests ({ group, viewMembers }) {
         {!isWebView() && (
           <Button
             label={t('View Current Members')}
-            onClick={viewMembers}
+            onClick={handleViewMembers}
             className={classes.viewMembers}
           />
         )}

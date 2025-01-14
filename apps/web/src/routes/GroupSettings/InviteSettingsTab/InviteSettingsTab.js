@@ -119,10 +119,13 @@ I'm inviting you to join {{name}} on Hylo.
 
   const hasPendingInvites = !isEmpty(pendingInvites)
 
-  const { setTitle, setIcon } = useViewHeader()
+  const { setDetails } = useViewHeader()
   useEffect(() => {
-    setTitle('Invite People')
-    setIcon('Cooperative')
+    setDetails({
+      title: t('Invite People'),
+      icon: 'People',
+      info: ''
+    })
   }, [])
 
   return (

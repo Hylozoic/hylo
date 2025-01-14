@@ -106,10 +106,13 @@ function RelatedGroupsTab () {
     ]
   }
 
-  const { setTitle, setIcon } = useViewHeader()
+  const { setDetails } = useViewHeader()
   useEffect(() => {
-    setTitle('Group Settings / Related Groups')
-    setIcon('Settings')
+    setDetails({
+      title: `${t('Group Settings')} > ${t('Related Groups')}`,
+      icon: 'Settings',
+      info: ''
+    })
   }, [])
 
   return (

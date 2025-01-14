@@ -258,10 +258,13 @@ export default function ChatRoom (props) {
     }
   }, [])
 
-  const { setTitle, setIcon } = useViewHeader()
+  const { setDetails } = useViewHeader()
   useEffect(() => {
-    setTitle(`#${topicName}`)
-    setIcon('Message')
+    setDetails({
+      title: `#${topicName}`,
+      icon: 'Message',
+      info: ''
+    })
   }, [topicName])
 
   useEffect(() => {
