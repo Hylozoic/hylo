@@ -76,7 +76,6 @@ export default function AllViews () {
     return true
   })
 
-
   const handleWidgetHomePromotion = useCallback((widget) => {
     if (window.confirm(t('Are you sure you want to set this widget as the home/default widget for this group?'))) {
       dispatch(setHomeWidget({ contextWidgetId: widget.id, groupId: group.id }))
@@ -91,10 +90,16 @@ export default function AllViews () {
     }))
   }, [updateContextWidget])
 
+  const widgetsSorted = useMemo(() => {
+    return visibleWidgets.map(widget => {
+      return { ...widget, title: widgetTitleResolver({ widget, t }) }
+    }).sort((a, b) => a.title.localeCompare(b.title))
+  }, [visibleWidgets])
+
   // Create widget cards
   const widgetCards = useMemo(() => {
-    return visibleWidgets.map(widget => {
-      const title = widgetTitleResolver({ widget, t })
+    return widgetsSorted.map(widget => {
+      const title = widget.title
       const url = widgetUrl({ widget, rootPath, groupSlug: routeParams.groupSlug, context: 'group' })
       const type = widgetTypeResolver({ widget })
       const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1)
