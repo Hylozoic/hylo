@@ -173,8 +173,8 @@ function PostEditor ({
     votingMethod: VOTING_METHOD_SINGLE,
     quorum: 0,
     ...(inputPost || {}),
-    startTime: Moment(inputPost?.startTime || ''),
-    endTime: Moment(inputPost?.endTime || '')
+    startTime: typeof(inputPost?.startTime) === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
+    endTime: typeof(inputPost?.endTime) === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
   }), [inputPost?.id, postType, currentGroup, topic, context])
 
   const titlePlaceholderForPostType = (type) => {
@@ -311,13 +311,13 @@ function PostEditor ({
   }
 
   const handleStartTimeChange = (startTime) => {
-    validateTimeChange(startTime, currentPost.endTime)
+    currentPost.endTime && validateTimeChange(startTime, currentPost.endTime)
     setCurrentPost({ ...currentPost, startTime })
     setValid(isValid({ startTime }))
   }
 
   const handleEndTimeChange = (endTime) => {
-    validateTimeChange(currentPost.startTime, endTime)
+    currentPost.startTime && validateTimeChange(currentPost.startTime, endTime)
     setCurrentPost({ ...currentPost, endTime })
     setValid(isValid({ endTime }))
   }
@@ -882,7 +882,7 @@ function PostEditor ({
               <DateTimePicker
                 hourCycle={12}
                 granularity='minute'
-                value={currentPost.startTime?.toDate?.()} // toDate transforms from Moment to native
+                value={currentPost.startTime}
                 placeholder={t('Select Start')}
                 onChange={handleStartTimeChange}
               />
@@ -890,7 +890,7 @@ function PostEditor ({
               <DateTimePicker
                 hourCycle={12}
                 granularity='minute'
-                value={currentPost.endTime?.toDate?.()} // toDate transforms from Moment to native
+                value={currentPost.endTime}
                 placeholder={t('Select End')}
                 onChange={handleEndTimeChange}
               />
