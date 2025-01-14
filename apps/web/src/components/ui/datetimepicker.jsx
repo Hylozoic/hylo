@@ -345,7 +345,7 @@ const TimePeriodSelect = React.forwardRef(({ period, setPeriod, date, onDateChan
   )
 })
 TimePeriodSelect.displayName = 'TimePeriodSelect'
-const TimePickerInput = React.forwardRef(({ className, type = 'tel', value, id, name, date = new Date(new Date().setHours(0, 0, 0, 0)), onDateChange, onChange, onKeyDown, picker, period, onLeftFocus, onRightFocus, ...props }, ref) => {
+const TimePickerInput = React.forwardRef(({ className, type = 'tel', value, id, name, date = new Date(new Date().setMinutes(0, 0, 0)), onDateChange, onChange, onKeyDown, picker, period, onLeftFocus, onRightFocus, ...props }, ref) => {
   const [flag, setFlag] = React.useState(false)
   const [prevIntKey, setPrevIntKey] = React.useState('0')
   /**
@@ -466,7 +466,7 @@ const TimePicker = React.forwardRef(({ date, onChange, hourCycle = 24, granulari
   )
 })
 TimePicker.displayName = 'TimePicker'
-const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = new Date(new Date().setHours(0, 0, 0, 0)), value, onChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
+const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
   const [month, setMonth] = React.useState(value ?? defaultPopupValue)
   const buttonRef = useRef(null)
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
