@@ -19,7 +19,7 @@ import GroupsSelector from 'components/GroupsSelector'
 import TopicSelector from 'components/TopicSelector'
 import MemberSelector from 'components/MemberSelector'
 import LinkPreview from './LinkPreview'
-import { DateTime } from 'luxon'
+import moment from 'moment-timezone'
 import { DateTimePicker } from 'components/ui/datetimepicker'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import SendAnnouncementModal from 'components/SendAnnouncementModal'
@@ -246,13 +246,11 @@ function PostEditor ({
   }, [])
 
   const calcEndTime = (startTime) => {
-    var msDiff = 3600000 // ms in one hour
+    let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      const start = DateTime.fromJSDate(currentPost.startTime)
-      const end = DateTime.fromJSDate(currentPost.endTime)
-      msDiff = end.diff(start)
+      msDiff = moment(currentPost.endTime) - moment(currentPost.startTime)
     }
-    return DateTime.fromJSDate(startTime).plus({millisecond: msDiff}).toJSDate()
+    return new Date(moment(startTime) + msDiff)
   }
 
   const onUpdateLinkPreview = () => {

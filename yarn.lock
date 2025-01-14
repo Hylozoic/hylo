@@ -9372,13 +9372,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/luxon@npm:^3":
-  version: 3.4.2
-  resolution: "@types/luxon@npm:3.4.2"
-  checksum: 10/fd89566e3026559f2bc4ddcc1e70a2c16161905ed50be9473ec0cfbbbe919165041408c4f6e06c4bcf095445535052e2c099087c76b1b38e368127e618fc968d
-  languageName: node
-  linkType: hard
-
 "@types/mapbox-gl@npm:>=1.0.0":
   version: 3.4.1
   resolution: "@types/mapbox-gl@npm:3.4.1"
@@ -24571,13 +24564,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"luxon@npm:^3.5.0":
-  version: 3.5.0
-  resolution: "luxon@npm:3.5.0"
-  checksum: 10/48f86e6c1c96815139f8559456a3354a276ba79bcef0ae0d4f2172f7652f3ba2be2237b0e103b8ea0b79b47715354ac9fac04eb1db3485dcc72d5110491dd47f
-  languageName: node
-  linkType: hard
-
 "lz-string@npm:^1.5.0":
   version: 1.5.0
   resolution: "lz-string@npm:1.5.0"
@@ -37034,7 +37020,6 @@ __metadata:
     "@types/glob": "npm:^8.1.0"
     "@types/hoist-non-react-statics": "npm:^3.3.5"
     "@types/identity-obj-proxy": "npm:^3"
-    "@types/luxon": "npm:^3"
     "@types/react": "npm:^18.3.5"
     "@types/react-css-modules": "npm:^4.6.8"
     "@typescript-eslint/eslint-plugin": "npm:^8.18.2"
@@ -37114,7 +37099,6 @@ __metadata:
     lodash: "npm:~4.17.21"
     lru-cache: "npm:^4.1.1"
     lucide-react: "npm:^0.453.0"
-    luxon: "npm:^3.5.0"
     mapbox-gl: "npm:^3.7.0"
     mime: "npm:^2.0.3"
     mixpanel-browser: "npm:^2.45.0"
