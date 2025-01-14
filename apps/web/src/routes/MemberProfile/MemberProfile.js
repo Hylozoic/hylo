@@ -96,9 +96,9 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const [showExpandGroupsButton, setShowExpandGroupsButton] = useState(false)
   const groupsRef = useRef(null)
 
-  const { setDetails } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setDetails({
+    setHeaderDetails({
       title: t('Member Profile') + ': ' + (person ? person.name : t('Loading...')),
       icon: 'Person',
       info: ''

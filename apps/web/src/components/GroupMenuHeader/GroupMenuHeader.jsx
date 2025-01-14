@@ -58,7 +58,7 @@ export default function GroupMenuHeader ({
         </div>
       )}
       <div className='relative flex flex-row items-center text-background'>
-        <img src={avatarUrl} alt='Group Avatar' className='rounded-lg h-10 w-10 mr-2 shadow-md' />
+        <div style={bgImageStyle(avatarUrl)} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' />
         <div className={`flex flex-col flex-1 text-${textColor} drop-shadow-md`}>
           <h1 className='text-xl font-bold m-0 text-white'>{group.name}</h1>
           <span className='text-xs align-middle  text-white'>

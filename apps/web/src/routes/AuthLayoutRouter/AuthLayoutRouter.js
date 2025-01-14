@@ -34,6 +34,7 @@ import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import AllTopics from 'routes/AllTopics'
 import AllView from 'routes/AllView'
 import ChatRoom from 'routes/ChatRoom'
+import CreateGroup from 'routes/CreateGroup'
 import CreateModal from 'components/CreateModal'
 import GroupDetail from 'routes/GroupDetail'
 import GroupSettings from 'routes/GroupSettings'
@@ -356,6 +357,7 @@ export default function AuthLayoutRouter (props) {
                   <Route path='all/*' element={returnDefaultView(false, 'all')} />
                   <Route path='public/*' element={returnDefaultView(false, 'public')} />
                   {/* **** Group Routes **** */}
+                  <Route path='create-group/*' element={<CreateGroup />} />
                   <Route path='groups/:joinGroupSlug/join/:accessCode' element={<JoinGroup />} />
                   <Route path='h/use-invitation' element={<JoinGroup />} />
                   {currentGroupLoading && (
