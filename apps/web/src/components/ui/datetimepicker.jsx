@@ -501,7 +501,8 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
   }
   useImperativeHandle(ref, () => ({
     ...buttonRef.current,
-    value: displayDate
+    value: displayDate,
+    setValue: val => setDisplayDate(val)
   }), [displayDate])
   const initHourFormat = {
     hour24: displayFormat?.hour24 ??

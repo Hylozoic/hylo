@@ -155,6 +155,7 @@ function PostEditor ({
   const titleInputRef = useRef()
   const editorRef = useRef()
   const groupsSelectorRef = useRef()
+  const endTimeRef = useRef()
 
   const initialPost = useMemo(() => ({
     title: '',
@@ -311,13 +312,22 @@ function PostEditor ({
   }
 
   const handleStartTimeChange = (startTime) => {
-    currentPost.endTime && validateTimeChange(startTime, currentPost.endTime)
-    setCurrentPost({ ...currentPost, startTime })
-    setValid(isValid({ startTime }))
+    if (currentPost.endTime) {
+      validateTimeChange(startTime, currentPost.endTime)
+      setCurrentPost({ ...currentPost, startTime })
+      setValid(isValid({ startTime }))
+      return
+    }
+    // special case: endTime empty, initialize to one hour later
+    const endTime = new Date(startTime)
+    endTime.setHours(endTime.getHours() + 1)
+    setCurrentPost({ ...currentPost, startTime, endTime })
+    endTimeRef.current.setValue(endTime)
+    setValid(isValid({ startTime, endTime }))
   }
 
   const handleEndTimeChange = (endTime) => {
-    currentPost.startTime && validateTimeChange(currentPost.startTime, endTime)
+    validateTimeChange(currentPost.startTime, endTime)
     setCurrentPost({ ...currentPost, endTime })
     setValid(isValid({ endTime }))
   }
@@ -888,6 +898,7 @@ function PostEditor ({
               />
               <div className={styles.footerSectionHelper}>{t('To')}</div>
               <DateTimePicker
+                ref={endTimeRef}
                 hourCycle={12}
                 granularity='minute'
                 value={currentPost.endTime}
