@@ -240,7 +240,7 @@ export default function ContextMenu (props) {
           : isPublic
             ? (
               <div className='flex flex-col p-2'>
-                <h2 className='text-foreground font-bold leading-3 text-lg'>The Commons</h2>
+                <h2 className='text-foreground font-bold leading-3 text-lg'>{t('The Commons')}</h2>
               </div>
               )
             : isMyContext || isAllContext
@@ -299,7 +299,7 @@ export default function ContextMenu (props) {
                 group={group}
               />
             </div>
-            <DragOverlay>
+            <DragOverlay wrapperElement='ul'>
               {activeWidget && !activeWidget.parentId && (
                 <ContextMenuItem widget={activeWidget} isOverlay group={group} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} />
               )}
