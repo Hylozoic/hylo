@@ -1,7 +1,7 @@
 /* globals Nexudus */
 require("@babel/register")
 var skiff = require('./lib/skiff') // this must be required first
-var moment = require('moment-timezone')
+var DateTime = require('luxon')
 var rollbar = require('./lib/rollbar')
 var sails = skiff.sails
 var digest2 = require('./lib/group/digest2')
@@ -83,7 +83,7 @@ var runJob = Promise.method(name => {
     throw new Error(`Unknown job name: "${name}"`)
   }
   sails.log.debug(`Running ${name} job`)
-  const now = moment.tz('America/Los_Angeles')
+  const now = DateTime.setZone('America/Los_Angeles').now()
   return Promise.all(job(now))
 })
 

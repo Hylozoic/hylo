@@ -3,7 +3,6 @@ import { filter, isFunction } from 'lodash'
 import React, { PureComponent } from 'react'
 import { withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import moment from 'moment-timezone'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import BadgeEmoji from 'components/BadgeEmoji'
@@ -117,7 +116,7 @@ class PostHeader extends PureComponent {
     if (fulfilledAt && fulfilledAt <= endTime) {
       endString = t('Completed: {{endTime}}', { endTime: to })
     } else {
-      endString = endTime !== moment() && TextHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: to }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: to }) : false
+      endString = TextHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: to }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: to }) : false
     }
 
     let timeWindow = ''

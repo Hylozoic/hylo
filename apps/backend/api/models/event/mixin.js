@@ -1,5 +1,5 @@
 import { uniq, difference } from 'lodash/fp'
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 
 export default {
   isEvent () {

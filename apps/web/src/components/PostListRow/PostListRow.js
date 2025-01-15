@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
-import Moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 
 import { isEmpty } from 'lodash/fp'
 import { personUrl, topicUrl } from 'util/navigation'
@@ -47,7 +47,7 @@ const PostListRow = (props) => {
   const creatorUrl = personUrl(creator.id, routeParams.slug)
   const numOtherCommentors = commentersTotal - 1
   const unread = false
-  const startTimeMoment = Moment(post.startTime)
+  const start = DateTime.fromJSDate(post.startTime)
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
   return (
@@ -62,8 +62,8 @@ const PostListRow = (props) => {
             {post.type === 'event'
               ? (
                 <div className={classes.date}>
-                  <span>{startTimeMoment.format('MMM')}</span>
-                  <span>{startTimeMoment.format('D')}</span>
+                  <span>{start.toFormat('MMM')}</span>
+                  <span>{start.toFormat('d')}</span>
                 </div>
                 )
               : (

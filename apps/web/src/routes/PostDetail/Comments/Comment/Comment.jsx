@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import React, { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { filter, isFunction, isEmpty } from 'lodash/fp'
@@ -123,11 +123,11 @@ function Comment ({
       <div className={styles.header}>
         <Avatar avatarUrl={creator.avatarUrl} url={profileUrl} className={styles.avatar} />
         <Link to={profileUrl} className={styles.userName}>{creator.name}</Link>
-        <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={moment(createdAt).format('llll')}>
+        <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(createdAt).toFormat('D t ZZZZ')}>
           {timestamp}
         </span>
         {(editedTimestamp) && (
-          <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={moment(editedAt).format('llll')}>
+          <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(editedAt).toFormat('D t ZZZZ')}>
             ({editedTimestamp})
           </span>
         )}

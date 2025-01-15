@@ -1,16 +1,16 @@
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import { includes } from 'lodash'
 import { get, pick, some } from 'lodash/fp'
 
 export const defaultTimezone = 'America/Los_Angeles'
 
 export const defaultTimeRange = type => {
-  const today = moment.tz(defaultTimezone).startOf('day').add(12, 'hours')
+  const today = DateTime.now().setZone(defaultTimezone).startOf('day').plus({hours: 12})
   switch (type) {
     case 'daily':
-      return [today.clone().subtract(1, 'day'), today]
+      return [today.minus({day: 1}), today]
     case 'weekly':
-      return [today.clone().subtract(7, 'day'), today]
+      return [today.minus({day: 7}), today]
   }
 }
 
