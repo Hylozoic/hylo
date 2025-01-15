@@ -1,10 +1,12 @@
+import React, { useState } from 'react'
 import { isEmpty, sortBy } from 'lodash/fp'
-import React, { Component } from 'react'
-import { withTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector } from 'react-redux'
 import AsyncCreatableSelect from 'react-select/async-creatable'
 import { Validators } from '@hylo/shared'
 import Icon from 'components/Icon'
-import connector from './TopicSelector.connector'
+import findTopics from 'store/actions/findTopics'
+import getDefaultTopics from 'store/selectors/getDefaultTopics'
 
 import classes from './TopicSelector.module.scss'
 
@@ -29,97 +31,80 @@ const inputStyles = {
   placeholder: styles => ({ ...styles, color: 'rgb(192, 197, 205)' })
 }
 
-class SingleTopicSelector extends Component {
-  static defaultProps = {
-    currentGroup: null,
-    defaultTopics: []
-  }
+function SingleTopicSelector ({ currentGroup = null, forGroups = [], onSelectTopic }) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const [value, setValue] = useState(null)
+  const defaultTopics = useSelector(state => getDefaultTopics(state, { groups: forGroups }))
 
-  static defaultState = {
-    value: null
-  }
-
-  constructor (props) {
-    super(props)
-    this.state = SingleTopicSelector.defaultState
-  }
-
-  handleInputChange = async (value) => {
-    this.setState({ value })
+  const handleInputChange = async (value) => {
+    setValue(value)
     if (!isEmpty(value)) {
-      const results = await this.props.findTopics({ autocomplete: value })
-      const { currentGroup, defaultTopics } = this.props
+      const results = await dispatch(findTopics({ autocomplete: value }))
       const topicResults = (results.payload?.data?.groupTopics?.items || []).map(t => (t.topic))
       const sortedTopics = sortBy([t => t.name === value ? -1 : 1, 'followersTotal', 'postsTotal'], topicResults)
       return defaultTopics ? [{ label: currentGroup.name + ' topics', options: defaultTopics }, { label: 'All Topics', options: sortedTopics }] : sortedTopics
     } else {
-      this.setState({ value: null })
+      setValue(null)
       return []
     }
   }
 
-  handleSelectTopic = newTopic => {
+  const handleSelectTopic = newTopic => {
     const topic = Validators.validateTopicName(newTopic) ? newTopic : ''
 
-    if (this.props.onSelectTopic) {
-      this.props.onSelectTopic(topic)
-      this.setState({ value: null })
+    if (onSelectTopic) {
+      onSelectTopic(topic)
+      setValue(null)
       return
     }
-    this.setState({
-      value: topic
-    })
+    setValue(topic)
   }
 
-  render () {
-    const { currentGroup, defaultTopics, placeholder = this.props.t('Find/add a topic'), t } = this.props
-    const { value } = this.state
+  const defaultsToShow = defaultTopics ? [{ label: t('{{currentGroup.name}} topics', { currentGroup }), options: defaultTopics }] : []
 
-    const defaultsToShow = defaultTopics ? [{ label: t('{{currentGroup.name}} topics', { currentGroup }), options: defaultTopics }] : []
+  return (
+    <AsyncCreatableSelect
+      placeholder={t('Find/add a topic')}
+      name='topic-selector'
+      value={value}
+      isClearable
+      classNamePrefix='topic-selector'
+      defaultOptions={defaultsToShow}
+      styles={inputStyles}
+      loadOptions={handleInputChange}
+      onChange={handleSelectTopic}
+      getNewOptionData={(inputValue, optionLabel) => ({ name: inputValue, label: inputValue, value: inputValue, __isNew__: true })}
+      noOptionsMessage={() => {
+        return t('Start typing to find/create a topic to add')
+      }}
+      isOptionDisabled={option => option.__isNew__ && option.value.length < 3}
+      formatOptionLabel={(item, { context, inputValue, selectValue }) => {
+        if (context === 'value') {
+          return <div className={classes.topicLabel}>#{item.label}</div>
+        }
+        if (item.__isNew__) {
+          return <div>{item.value.length < 3 ? t('Topics must be longer than 2 characters') : t('Create topic "{{item.value}}"', { item })}</div>
+        }
+        const { name, postsTotal, followersTotal } = item
+        const formatCount = count => isNaN(count)
+          ? 0
+          : count < 1000
+            ? count
+            : (count / 1000).toFixed(1) + 'k'
 
-    return (
-      <AsyncCreatableSelect
-        placeholder={placeholder}
-        name='topic-selector'
-        value={value}
-        isClearable
-        classNamePrefix='topic-selector'
-        defaultOptions={defaultsToShow}
-        styles={inputStyles}
-        loadOptions={this.handleInputChange}
-        onChange={this.handleSelectTopic}
-        getNewOptionData={(inputValue, optionLabel) => ({ name: inputValue, label: inputValue, value: inputValue, __isNew__: true })}
-        noOptionsMessage={() => {
-          return t('Start typing to find/create a topic to add')
-        }}
-        isOptionDisabled={option => option.__isNew__ && option.value.length < 3}
-        formatOptionLabel={(item, { context, inputValue, selectValue }) => {
-          if (context === 'value') {
-            return <div className={classes.topicLabel}>#{item.label}</div>
-          }
-          if (item.__isNew__) {
-            return <div>{item.value.length < 3 ? t('Topics must be longer than 2 characters') : t('Create topic "{{item.value}}"', { item })}</div>
-          }
-          const { name, postsTotal, followersTotal } = item
-          const formatCount = count => isNaN(count)
-            ? 0
-            : count < 1000
-              ? count
-              : (count / 1000).toFixed(1) + 'k'
-
-          return (
-            <div className={classes.item}>
-              <div className={classes.menuTopicLabel}>#{name}</div>
-              <div className={classes.suggestionMeta}>
-                <span className={classes.column}><Icon name='Star' className={classes.icon} />{formatCount(followersTotal)} {t('subscribers')}</span>
-                <span className={classes.column}><Icon name='Events' className={classes.icon} />{formatCount(postsTotal)} {t('posts')}</span>
-              </div>
+        return (
+          <div className={classes.item}>
+            <div className={classes.menuTopicLabel}>#{name}</div>
+            <div className={classes.suggestionMeta}>
+              <span className={classes.column}><Icon name='Star' className={classes.icon} />{formatCount(followersTotal)} {t('subscribers')}</span>
+              <span className={classes.column}><Icon name='Events' className={classes.icon} />{formatCount(postsTotal)} {t('posts')}</span>
             </div>
-          )
-        }}
-      />
-    )
-  }
+          </div>
+        )
+      }}
+    />
+  )
 }
 
-export default withTranslation()(connector(SingleTopicSelector))
+export default SingleTopicSelector
