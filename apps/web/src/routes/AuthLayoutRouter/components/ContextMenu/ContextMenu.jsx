@@ -1,8 +1,8 @@
 import { cn } from 'util/index'
 import { compact, get } from 'lodash/fp'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, GripHorizontal, Pencil } from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
-import { Link, useNavigate, useLocation, Routes, Route } from 'react-router-dom'
+import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -47,7 +47,7 @@ const getGroupMembership = ormCreateSelector(
 export default function ContextMenu (props) {
   const {
     className,
-    groupId,
+    currentGroup,
     mapView
   } = props
 
@@ -57,7 +57,7 @@ export default function ContextMenu (props) {
   const currentUser = useSelector(getMe)
   const { t } = useTranslation()
 
-  const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const group = useSelector(state => currentGroup || getGroupForSlug(state, routeParams.groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const rootPath = baseUrl({ ...routeParams, view: null })
   const isAllOrPublicPath = ['/all', '/public'].includes(rootPath)
@@ -240,7 +240,7 @@ export default function ContextMenu (props) {
           : isPublic
             ? (
               <div className='flex flex-col p-2'>
-                <h2 className='text-foreground font-bold leading-3 text-lg'>The Commons</h2>
+                <h2 className='text-foreground font-bold leading-3 text-lg'>{t('The Commons')}</h2>
               </div>
               )
             : isMyContext || isAllContext
@@ -274,7 +274,7 @@ export default function ContextMenu (props) {
             <TopicNavigation
               backUrl={rootPath}
               routeParams={routeParams}
-              groupId={groupId}
+              groupId={group?.id}
               location={location}
             />
           )}
@@ -287,7 +287,7 @@ export default function ContextMenu (props) {
           </Routes>
 
           <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
-            <div>
+            <div className='w-full'>
               <ContextWidgetList
                 isDragging={isDragging}
                 isEditting={isEditting}
@@ -299,7 +299,7 @@ export default function ContextMenu (props) {
                 group={group}
               />
             </div>
-            <DragOverlay>
+            <DragOverlay wrapperElement='ul'>
               {activeWidget && !activeWidget.parentId && (
                 <ContextMenuItem widget={activeWidget} isOverlay group={group} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} />
               )}
@@ -309,7 +309,7 @@ export default function ContextMenu (props) {
             </DragOverlay>
           </DndContext>
           {(!isMyContext && !isPublic && !isAllContext) && (
-            <div className='w-[calc(100%-1.5em)] p-2 mb-[0.05em]'>
+            <div className='px-2 w-full mb-[0.05em]'>
               <ContextMenuItem
                 widget={{ title: 'widget-all', type: 'all-views', view: 'all-views', childWidgets: [] }}
                 groupSlug={routeParams.groupSlug}
@@ -346,7 +346,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
       ))}
       <li className='mb-2'>
         <DropZone isDragging={isDragging} hide={!isEditting} height='h-20' isDroppable droppableParams={{ id: 'bottom-of-list-' + groupSlug, data: { addToEnd: true, parentId: null } }}>
-          <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} />
+          <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer' />
         </DropZone>
       </li>
     </ul>
@@ -418,7 +418,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   return (
     <>
       <DropZone isDragging={isDragging} height={isDroppable && isEditting ? 'h-5' : ''} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }}>
-        <Icon name='Plus' onClick={() => handlePositionedAdd({ widget })} />
+        <Icon name='Plus' onClick={() => handlePositionedAdd({ widget })} className='cursor-pointer' />
       </DropZone>
       <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem] '>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
@@ -427,8 +427,9 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
             <span className='flex items-center content-center'>
               <WidgetIconResolver widget={widget} />
               <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
-                <span className='text-sm font-bold ml-2'>{title}</span>
+                <span className='text-base font-normal ml-2'>{title}</span>
               </MenuLink>
+              {canDnd && isDroppable && <div className='ml-auto'><GrabMe {...listeners} {...attributes} /></div>}
             </span>
             )
           : (
@@ -452,7 +453,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                 {widget.id &&
                   <li>
                     <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} height='h-12' droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
-                      <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} />
+                      <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className='cursor-pointer' />
                     </DropZone>
                   </li>}
               </ul>
@@ -460,9 +461,10 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
       </div>
       {showEdit && (
-        <div className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground'>
-          <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })}>
-            <span className='text-lg font-bold'>{t('Edit')}</span>
+        <div className='mb-[30px]'>
+          <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })} className='transition-all border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground opacity-50 hover:opacity-100 flex items-center text-foreground hover:text-foreground'>
+            <Pencil className='h-[16px]' />
+            <span className='text-base'>{t('Edit Menu')}</span>
           </MenuLink>
         </div>
       )}
@@ -472,8 +474,8 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
 function GrabMe ({ children, ...props }) {
   return (
-    <span className='text-sm font-bold' {...props}>
-      {children || 'Grab me'}
+    <span className='text-sm font-bold cursor-grab' {...props}>
+      <GripHorizontal />
     </span>
   )
 }
@@ -510,7 +512,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
   return (
     <React.Fragment key={item.id + itemTitle}>
       <DropZone height={isItemDraggable ? 'h-8' : ''} hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
-        <Icon name='Plus' onClick={() => handlePositionedAdd({ id: `${item.id}`, widget: item })} />
+        <Icon name='Plus' onClick={() => handlePositionedAdd({ id: `${item.id}`, widget: item })} className='cursor-pointer' />
       </DropZone>
       <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify-between items-center content-center'>
         <WidgetIconResolver widget={item} />
@@ -539,10 +541,10 @@ function SpecialTopElementRenderer ({ widget, group }) {
 
   if (widget.type === 'about') {
     return (
-      <>
+      <div className='w-full'>
         <p className='text-sm text-gray-600 break-words w-[12.5rem] min-h-fit'>{group.purpose}</p>
         <p className='text-sm text-gray-600 break-words w-[12.5rem] min-h-fit'>{group.description}</p>
-      </>
+      </div>
     )
   }
 
@@ -550,7 +552,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
     const settingsUrl = groupUrl(group.slug, 'settings')
 
     const listItemComponent = ({ title, url }) => (
-      <li className='py-2 px-2 border'>
+      <li className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem]'>
         <MenuLink to={url} className='text-sm text-foreground'>
           {title}
         </MenuLink>
@@ -564,7 +566,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
             {t('Settings')}
           </div>
         </MenuLink>
-        <ul className='mt-4'>
+        <ul className='mt-4 pl-0 w-full'>
           {!group.avatarUrl && listItemComponent({
             title: t('Add Avatar'),
             url: settingsUrl

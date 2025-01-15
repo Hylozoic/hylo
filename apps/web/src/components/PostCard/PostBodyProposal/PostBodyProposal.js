@@ -123,7 +123,7 @@ export default function PostBodyProposal ({
     })}
     >
       <div className={classes.proposalStatus}>
-        {isAnonymousVote && <Icon name='Hidden' className={classes.anonymousVoting} tooltipContent={t('Anonymous voting')} tooltipId='anon-tt' />}
+        {isAnonymousVote && <Icon name='Hidden' className={classes.anonymousVoting} tooltipContent={t('Anonymous voting')} tooltipId={`anon-tt-${id}`} />}
         {proposalStatus === PROPOSAL_STATUS_DISCUSSION && t('Discussion in progress')}
         {proposalStatus === PROPOSAL_STATUS_VOTING && t('Voting open') + ', ' + votePrompt}
         {votingComplete && t('Voting ended')}
@@ -133,7 +133,7 @@ export default function PostBodyProposal ({
         backgroundColor='rgba(35, 65, 91, 1.0)'
         effect='solid'
         delayShow={0}
-        id='anon-tt'
+        id={`anon-tt-${id}`}
       />
       <div className={classes.proposalTiming}>
         {startTime && proposalStatus !== PROPOSAL_STATUS_COMPLETED && `${new Date(startTime).toLocaleDateString()} - ${new Date(endTime).toLocaleDateString()}`}
@@ -161,7 +161,7 @@ export default function PostBodyProposal ({
                 {option.text}
               </div>
             </div>
-            <div className={classes.proposalOptionVotesContainer} data-tooltip-content={`<pre>${voterNames.join('\r\n')}</pre>`} data-tooltip-id='voters-tt'>
+            <div className={classes.proposalOptionVotesContainer} data-tooltip-html={voterNames.length > 0 ? `<pre>${voterNames.join('\r\n')}</pre>` : ''} data-tooltip-id={`voters-tt-${id}`}>
               {(!isAnonymousVote || votingComplete) &&
                 <div className={classes.proposalOptionVoteCount}>
                   {optionVotes.length}
@@ -179,11 +179,10 @@ export default function PostBodyProposal ({
         backgroundColor='rgba(35, 65, 91, 1.0)'
         effect='solid'
         delayShow={0}
-        html
-        id='voters-tt'
+        id={`voters-tt-${id}`}
       />
-      {quorum && (quorum > 0) && <QuorumBar totalVoters={numberOfPossibleVoters} quorum={quorum} actualVoters={proposalVoterCount} proposalStatus={proposalStatus} />}
-      {proposalOutcome && fulfilledAt && <div className={classes.proposalOutcome}>  {t('Outcome')}: {proposalOutcome}</div>}
+      {!!quorum && (quorum > 0) && <QuorumBar totalVoters={numberOfPossibleVoters} quorum={quorum} actualVoters={proposalVoterCount} proposalStatus={proposalStatus} />}
+      {!!proposalOutcome && fulfilledAt && <div className={classes.proposalOutcome}>  {t('Outcome')}: {proposalOutcome}</div>}
     </div>
   )
 }

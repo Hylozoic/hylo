@@ -18,6 +18,7 @@ import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
 import JoinSection from './JoinSection'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupDetails from 'store/actions/fetchGroupDetails'
 import { FETCH_GROUP_DETAILS, RESP_ADMINISTRATION } from 'store/constants'
 import {
@@ -103,6 +104,11 @@ function GroupDetail ({ popup = false }) {
   }
 
   const fullPage = !routeParams.detailGroupSlug && !popup
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({ title: t('About ') + ' ' + group.name, icon: 'Info' })
+  }, [group.name])
 
   if (!group && !pending) return <NotFound />
   if (pending) return <Loading />

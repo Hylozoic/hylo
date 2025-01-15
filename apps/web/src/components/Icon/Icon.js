@@ -44,7 +44,7 @@ export const IconWithRef = forwardRef(({
 
   return (
     <span
-      className={cn(classes.icon, { [classes.green]: green, [classes.blue]: blue }, iconClassName, className)}
+      className={cn('text-foreground fill-foreground text-base', { [classes.green]: green, [classes.blue]: blue }, iconClassName, className)}
       onClick={onClick}
       data-tooltip-content={tooltipContent}
       data-tooltip-id={tooltipId}

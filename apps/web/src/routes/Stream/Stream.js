@@ -20,7 +20,7 @@ import PostLabel from 'components/PostLabel'
 import PostPrompt from './PostPrompt'
 import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
-import ViewHeader from 'components/ViewHeader'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { ViewHelpers } from '@hylo/shared'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
@@ -264,7 +264,7 @@ export default function Stream (props) {
       <div className='flex flex-row gap-2 items-center'>
         <span className='text-sm'>
           {t('Displaying')}:&nbsp;
-          {customView?.activePostsOnly ? 'Only active' : ''}
+          {customView?.activePostsOnly ? t('Only active') : ''}
         </span>
 
         {customView?.postTypes.length === 0 ? t('None') : customView?.postTypes.map((p, i) => <span key={i}><PostLabel key={p} type={p} className='align-middle mr-1' />{p}s&nbsp;</span>)}
@@ -273,12 +273,21 @@ export default function Stream (props) {
       </div>
       )
     : customView?.type === 'collection'
-      ? 'Curated Post Collection'
+      ? t('Curated Post Collection')
       : topicName
-        ? `Filtered by topic #${topicName}`
+        ? t('Filtered by topic #{{topicName}}', { topicName })
         : null
 
   const noPostsMessage = view === 'events' ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') }) : 'No posts'
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: name,
+      icon,
+      info
+    })
+  }, [name, icon, info])
 
   return (
     <div id='stream-outer-container' className='flex flex-col h-full' ref={setContainer}>
@@ -290,8 +299,6 @@ export default function Stream (props) {
       <Routes>
         <Route path='post/:postId' element={<PostDialog container={container} />} />
       </Routes>
-
-      <ViewHeader title={name} icon={icon} info={info} />
 
       <div id='stream-inner-container' className='flex flex-col flex-1 w-full max-w-[750px] mx-auto overflow-auto p-4'>
         {hasPostPrompt && (

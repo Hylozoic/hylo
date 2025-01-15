@@ -2,8 +2,9 @@ import React, { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import { cn } from 'util/index'
 
-export default function MenuLink ({ to, children, onClick, externalLink }) {
+export default function MenuLink ({ to, children, onClick, externalLink, className }) {
   const dispatch = useDispatch()
 
   const handleClick = useCallback(() => {
@@ -26,7 +27,7 @@ export default function MenuLink ({ to, children, onClick, externalLink }) {
   }
 
   return (
-    <Link to={to} onClick={handleClick} className='text-foreground text-sm'>
+    <Link to={to} onClick={handleClick} className={cn('text-foreground text-sm', className)}>
       {children}
     </Link>
   )

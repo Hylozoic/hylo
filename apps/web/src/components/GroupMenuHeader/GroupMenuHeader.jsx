@@ -1,10 +1,8 @@
-import { ChevronRight, ChevronDown, Settings, UsersRound } from 'lucide-react'
+import { ChevronRight, Settings, UsersRound } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import GroupDetail from 'routes/GroupDetail'
-import { Popover, PopoverTrigger, PopoverContent } from 'components/ui/popover'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -17,7 +15,6 @@ export default function GroupMenuHeader ({
   const navigate = useNavigate()
   const avatarUrl = group.avatarUrl || DEFAULT_AVATAR
   const bannerUrl = group.bannerUrl || DEFAULT_BANNER
-  const [detailsOpen, setDetailsOpen] = useState(false)
   const [textColor, setTextColor] = useState('background')
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
 
@@ -61,7 +58,7 @@ export default function GroupMenuHeader ({
         </div>
       )}
       <div className='relative flex flex-row items-center text-background'>
-        <img src={avatarUrl} alt='Group Avatar' className='rounded-lg h-10 w-10 mr-2 shadow-md' />
+        <div style={bgImageStyle(avatarUrl)} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' />
         <div className={`flex flex-col flex-1 text-${textColor} drop-shadow-md`}>
           <h1 className='text-xl font-bold m-0 text-white'>{group.name}</h1>
           <span className='text-xs align-middle  text-white'>
@@ -69,14 +66,7 @@ export default function GroupMenuHeader ({
             <Link className='text-white underline' to={groupUrl(group.slug, 'members', {})}>{t('{{count}} Members', { count: group.memberCount })}</Link>
           </span>
         </div>
-        <Popover onOpenChange={setDetailsOpen} open={detailsOpen}>
-          <PopoverTrigger>
-            {detailsOpen ? <ChevronDown className={`text-${textColor}`} /> : <ChevronRight className={`text-${textColor}`} />}
-          </PopoverTrigger>
-          <PopoverContent side='bottom' align='end' alignOffset={-10} className='!p-0 !w-[340px] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto overflow-x-hidden'>
-            <GroupDetail group={group} popup />
-          </PopoverContent>
-        </Popover>
+        <ChevronRight className={`text-${textColor} cursor-pointer`} onClick={() => navigate(groupUrl(group.slug, 'about', {}))} />
       </div>
     </div>
   )

@@ -25,6 +25,7 @@ import { createPolygonLayerFromGroups } from 'components/Map/layers/polygonLayer
 import SwitchStyled from 'components/SwitchStyled'
 import Tooltip from 'components/Tooltip'
 import LayoutFlagsContext from 'contexts/LayoutFlagsContext'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { locationObjectToViewport } from 'util/geo'
@@ -223,6 +224,15 @@ function MapExplorer (props) {
       browserLocation ||
       null
   }, [centerParam, reduxState.centerLocation, group?.locationObject?.center, currentUser?.locationObject?.center, browserLocation])
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Map'),
+      icon: 'Globe',
+      info: ''
+    })
+  }, [])
 
   let defaultZoom
   if (centerLocation) {

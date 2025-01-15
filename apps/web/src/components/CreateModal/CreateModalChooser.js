@@ -55,7 +55,7 @@ export default function CreateModalChooser () {
       })}
       {/* Creating a Group by location is not currently supported in HyloApp */}
       {!isWebView() && (
-        <Link to={`${location.pathname}/group`}>
+        <Link to='/create-group'>
           <div key='group'>
             <Icon name='Groups' className={classes.postIcon} />
             <b>

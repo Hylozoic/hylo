@@ -8,6 +8,7 @@ import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import RoundImage from 'components/RoundImage'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { GROUP_RELATIONSHIP_TYPE } from 'store/models/GroupRelationshipInvite'
@@ -104,6 +105,15 @@ function RelatedGroupsTab () {
       }
     ]
   }
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: `${t('Group Settings')} > ${t('Related Groups')}`,
+      icon: 'Settings',
+      info: ''
+    })
+  }, [])
 
   return (
     <div className={classes.container}>

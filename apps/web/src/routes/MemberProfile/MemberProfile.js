@@ -28,6 +28,7 @@ import MemberReactions from './MemberReactions'
 import PostDialog from 'components/PostDialog'
 import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 
 import blockUser from 'store/actions/blockUser'
 import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
@@ -94,6 +95,15 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const [showAllGroups, setShowAllGroups] = useState(false)
   const [showExpandGroupsButton, setShowExpandGroupsButton] = useState(false)
   const groupsRef = useRef(null)
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Member Profile') + ': ' + (person ? person.name : t('Loading...')),
+      icon: 'Person',
+      info: ''
+    })
+  }, [person])
 
   useEffect(() => {
     if (personId) fetchPersonAction(personId)
