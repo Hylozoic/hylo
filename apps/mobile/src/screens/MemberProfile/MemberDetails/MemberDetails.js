@@ -6,14 +6,13 @@ import {
   ScrollView
 } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
 import { useMutation, useQuery } from 'urql'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
 import { debounce, get, isEmpty, pick } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
-import logoutAction from 'store/actions/logout'
+import useLogout from 'urql-shared/hooks/useLogout'
 import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
 import personQuery from 'graphql/queries/personQuery'
 import useCurrentUser from 'hooks/useCurrentUser'
@@ -32,9 +31,9 @@ import styles from './MemberDetails.styles'
 
 export default function MemberDetails () {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
   const navigation = useNavigation()
   const route = useRoute()
+  const logout = useLogout()
   const { id, editing: editingParam } = useRouteParams()
   const [currentGroup] = useCurrentGroup()
   const [currentUser] = useCurrentUser()
@@ -68,8 +67,6 @@ export default function MemberDetails () {
       setChanged(false)
     }
   }
-
-  const logout = () => dispatch(logoutAction)
 
   const setHeader = () => {
     const title = editing

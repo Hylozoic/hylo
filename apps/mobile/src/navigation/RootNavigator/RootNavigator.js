@@ -30,7 +30,7 @@ export default function RootNavigator () {
   // Handle Push Notifications opened
   useEffect(() => {
     const notificationClickHandler = ({ notification }) => {
-      const path = notification?.additionalData?.path;
+      const path = notification?.additionalData?.path
       if (path) {
         openURL(path)
       }
@@ -69,7 +69,6 @@ export default function RootNavigator () {
             <Root.Screen name={NON_AUTH_ROOT_SCREEN_NAME} component={NonAuthRootNavigator} options={{ headerShown: false }} />
           )}
           {/* Screens always available */}
-          <Root.Screen name='Loading' component={LoadingScreen} />
           <Root.Screen
             name='LoginByTokenHandler'
             options={{ headerShown: false, animationEnabled: false }}

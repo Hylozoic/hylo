@@ -59,8 +59,8 @@ export default function useHasResponsibility ({
 } = {}) {
   const [currentGroup, { fetching: currentGroupFetching, error: currentGroupError }] = useCurrentGroup({ useQueryArgs: { pause: !forCurrentGroup } })
   const [currentUser, { fetching: currentUserFetching, error: currentUserError }] = useCurrentUser({ pause: !forCurrentUser })
-  const [hookPersonById, { fetching: hookPersonByIdFetching, error: hookPersonByIdError }] = usePerson({ id: hookPersonId, pause: !hookPersonId })
 
+  const [hookPersonById, { fetching: hookPersonByIdFetching, error: hookPersonByIdError }] = usePerson({ id: hookPersonId, pause: !hookPersonId })
   const hookPersonError = currentUserError || hookPersonByIdError
   const hookPersonFetching = hookPersonByIdFetching || currentUserFetching
   const hookPerson = providedHookPerson || hookPersonById || currentUser
@@ -68,7 +68,7 @@ export default function useHasResponsibility ({
   const [{ data: commonRolesData, fetching: commonRolesFetching, error: commonRolesError }] = useQuery({ query: commonRolesQuery })
   const commonRoles = commonRolesData?.commonRoles || []
 
-  const fetching = currentGroupFetching || hookPersonFetching || commonRolesFetching
+  const fetching = currentGroupFetching || currentUserFetching || hookPersonFetching || commonRolesFetching
 
   const getGroupIdsAndPerson = useCallback(({
     person: functionPerson,
@@ -87,7 +87,8 @@ export default function useHasResponsibility ({
       throw new Error('error fetching "commonRoles"')
     }
 
-    if (fetching) {
+    // Give dummy empty result when fetching or if currentUser is requested but empty (implies not auth'd)
+    if (fetching || (forCurrentUser && !currentUser || (forCurrentGroup && !currentGroup))) {
       return { groupIds: [], person: { groupRoles: [], membershipCommonRoles: [] } }
     }
 
@@ -153,6 +154,9 @@ export default function useHasResponsibility ({
 
   const hasResponsibility = useCallback((providedResponsibilities, groupIdsAndPersonArgs = {}) => {
     const { groupIds, person } = getGroupIdsAndPerson(groupIdsAndPersonArgs)
+
+    if (!groupIds || !person) return false
+
     const requiredResponsibilities = [].concat(providedResponsibilities)
     const allResponsibilities = groupIds.map(groupId => (
       new Set(getResponsibilities(groupId, person).map(r => r.title))

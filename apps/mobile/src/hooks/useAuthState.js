@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery } from 'urql'
-import meCheckLoginQuery from 'graphql/queries/meCheckLoginQuery'
+import meCheckAuthQuery from 'graphql/queries/meCheckAuthQuery'
 
 /*
 
@@ -44,9 +44,11 @@ export function getAuthState (currentUser) {
 }
 
 export default function useAuthState (useQueryOptions = {}) {
-  const [{ data, fetching }, checkLogin] = useQuery({
+  const [{ data, fetching, error }, checkAuth] = useQuery({
+    // TODO: URQL - Will always make a request after cache retrieval, may be unnecessary
+    requestPolicy: 'cache-and-network',
     ...useQueryOptions,
-    query: meCheckLoginQuery
+    query: meCheckAuthQuery
   })
   const currentUser = data?.me
   const authState = useMemo(() => getAuthState(currentUser), [currentUser])
@@ -85,6 +87,6 @@ export default function useAuthState (useQueryOptions = {}) {
       isSignupInProgress,
       isSignupComplete
     },
-    checkLogin
+    checkAuth
   ]
 }

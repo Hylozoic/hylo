@@ -6,6 +6,7 @@ import keys from './keys'
 import resolvers from './resolvers'
 import optimistic from './optimistic'
 import updates from './updates'
+import { setSessionCookie } from 'util/session'
 
 const GRAPHQL_ENDPOINT_URL = `${apiHost}/noo/graphql`
 
@@ -17,8 +18,23 @@ const cache = cacheExchange({
 })
 
 const client = createClient({
+  exchanges: [
+    devtoolsExchange,
+    cache,
+    fetchExchange
+  ],
+  fetch: async (...args) => {
+    const response = await fetch(...args)
+
+    if (response.headers.get('set-cookie')) {
+      console.log('!!! setting cookie in urql fetch', response.headers.get('set-cookie'))
+      await setSessionCookie(response)
+    }
+
+    return response
+  },
+  fetchOptions: { credentials: 'include' },
   url: GRAPHQL_ENDPOINT_URL,
-  exchanges: [devtoolsExchange, cache, fetchExchange]
 })
 
 export default client

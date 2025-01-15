@@ -146,3 +146,5 @@ export const hyloSimplePagination = ({
     }
   };
 };
+
+export default hyloSimplePagination;

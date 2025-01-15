@@ -51,38 +51,24 @@ if (Platform.OS === 'android') {
 AppRegistry.registerComponent(appName, () => App)
 
 if (__DEV__) {
-  const suppressedMessages = [
-    'Selector unknown returned a different result when called with the same parameters',
-    'Support for defaultProps will be removed from memo components',
-    'Sending `onAnimatedValueUpdate` with no listeners registered.'
-  ]
-  console.log()
-  console.log('🗒️ NOTE: Logging and warnings suppressed for these known messages/issues:')
-  suppressedMessages.forEach(message => console.log(`⚠️ ${message}`))
-  console.log()
+  // 2025.01.11 - This currently only suppressed defaultProps error from react-native-render-html
+  // This error is actually a deprecation warning, and has no material impact at our
+  // current version of React Native 0.74.5. However, may become actual issue in upgrades.
+  // Library lost its maintainer and is currently, track progress of migration here:
+  // https://github.com/meliorence/react-native-render-html/issues/674
+  const ignoreErrors = ["Support for defaultProps will be removed"];
 
-  LogBox.ignoreLogs(suppressedMessages)
+  const error = console.error;
+  console.error = (...arg) => {
+    for (const error of ignoreErrors) if (arg[0].includes(error)) return;
+    error(...arg);
+  };
 
-  const connectConsoleTextFromArgs = (arrayOfStrings) =>
-    arrayOfStrings
-      .slice(1)
-      .reduce(
-        (baseString, currentString) => baseString.replace('%s', currentString),
-        arrayOfStrings[0]
-      )
+  LogBox.ignoreLogs(ignoreErrors);
 
-  const filterIgnoredMessages = (logger) => (...args) => {
-    const output = connectConsoleTextFromArgs(args)
-
-    if (output && !suppressedMessages.some((log) => output.includes(log))) {
-      logger(...args)
-    }
-  }
-
-  console.log = filterIgnoredMessages(console.log)
-  console.info = filterIgnoredMessages(console.info)
-  console.warn = filterIgnoredMessages(console.warn)
-  console.error = filterIgnoredMessages(console.error)
+  // Ignore warning coming from React Navigation and Navigation.reset
+  // See: https://github.com/react-navigation/react-navigation/issues/11564#issuecomment-2433008812
+  LogBox.ignoreLogs(['Sending `onAnimatedValueUpdate` with no listeners registered.']);
 }
 
 enableScreens()

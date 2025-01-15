@@ -1,9 +1,8 @@
 import { gql } from 'urql'
 
 export default gql`
-  query MeCheckLoginQuery {
-    me {
-      id
+  fragment MeAuthFieldsFragment on Me {
+    id
       avatarUrl
       email
       emailValidated
@@ -21,6 +20,5 @@ export default gql`
         streamSortBy
         streamPostType
       }
-    }
   }
 `

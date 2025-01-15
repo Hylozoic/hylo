@@ -7,7 +7,9 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
+import { getSocket } from 'util/websockets'
 import useRouteParams from 'hooks/useRouteParams'
+import useAuthState from 'hooks/useAuthState'
 import loginMutation from 'graphql/mutations/loginMutation'
 import validator from 'validator'
 import errorMessages from 'util/errorMessages'
@@ -20,6 +22,7 @@ export default function Login () {
   const navigation = useNavigation()
   const passwordInputRef = useRef()
   const [, login] = useMutation(loginMutation)
+  const [{ authState, fetching }, checkAuth] = useAuthState({ pause: true })
   const defaultLoginEmail = useSelector(state => state.session?.defaultLoginEmail)
 
   const [email, providedSetEmail] = useState(defaultLoginEmail)
@@ -68,15 +71,6 @@ export default function Login () {
     providedSetPassword(passwordValue)
   }
 
-  const handleSocialAuthStart = () => {
-    setLoggingIn(true)
-  }
-
-  const handleSocialAuthComplete = error => {
-    if (error) setBannerError(error)
-    setLoggingIn(false)
-  }
-
   const handleLogin = async () => {
     try {
       setLoggingIn(true)
@@ -86,10 +80,25 @@ export default function Login () {
       if (loginData?.login?.error) {
         throw loginData?.login?.error
       }
+
+      // NOTE: This, and the other instance below, may be unnecessary
+      // keeping for not to make WebSockets connection more reliable
+      await getSocket()
     } catch (err) {
       setLoggingIn(false)
       setError(err)
     }
+  }
+
+  const handleSocialAuthStart = () => {
+    setLoggingIn(true)
+  }
+
+  const handleSocialAuthComplete = async error => {
+    if (error) setBannerError(error)
+    await getSocket()
+    await checkAuth()
+    setLoggingIn(false)
   }
 
   const togglePassword = () => {
