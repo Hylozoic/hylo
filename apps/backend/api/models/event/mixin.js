@@ -1,5 +1,4 @@
 import { uniq, difference } from 'lodash/fp'
-import { DateTime } from 'luxon'
 
 export default {
   isEvent () {
