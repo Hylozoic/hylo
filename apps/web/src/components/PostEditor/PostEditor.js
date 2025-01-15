@@ -19,7 +19,8 @@ import GroupsSelector from 'components/GroupsSelector'
 import TopicSelector from 'components/TopicSelector'
 import MemberSelector from 'components/MemberSelector'
 import LinkPreview from './LinkPreview'
-import DatePicker from 'components/DatePicker'
+import moment from 'moment-timezone'
+import { DateTimePicker } from 'components/ui/datetimepicker'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import SendAnnouncementModal from 'components/SendAnnouncementModal'
 import PublicToggle from 'components/PublicToggle'
@@ -155,6 +156,7 @@ function PostEditor ({
   const titleInputRef = useRef()
   const editorRef = useRef()
   const groupsSelectorRef = useRef()
+  const endTimeRef = useRef()
 
   const initialPost = useMemo(() => ({
     title: '',
@@ -173,8 +175,8 @@ function PostEditor ({
     votingMethod: VOTING_METHOD_SINGLE,
     quorum: 0,
     ...(inputPost || {}),
-    startTime: Moment(inputPost?.startTime || ''),
-    endTime: Moment(inputPost?.endTime || '')
+    startTime: typeof(inputPost?.startTime) === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
+    endTime: typeof(inputPost?.endTime) === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
   }), [inputPost?.id, postType, currentGroup, topic, context])
 
   const titlePlaceholderForPostType = (type) => {
@@ -243,6 +245,18 @@ function PostEditor ({
     }
   }, [])
 
+  const calcEndTime = (startTime) => {
+    let msDiff = 3600000 // ms in one hour
+    if (currentPost.startTime && currentPost.endTime) {
+      msDiff = moment(currentPost.endTime) - moment(currentPost.startTime)
+    }
+    return new Date(moment(startTime) + msDiff)
+  }
+
+  const onUpdateLinkPreview = () => {
+    setCurrentPost({ ...currentPost, linkPreview })
+  }
+
   const handlePostTypeSelection = (type) => (event) => {
     setIsDirty(true)
     navigate({
@@ -306,11 +320,14 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, acceptContributions: !currentPost.acceptContributions })
   }, [currentPost])
 
-  const handleStartTimeChange = useCallback((startTime) => {
-    validateTimeChange(startTime, currentPost.endTime)
-    setCurrentPost({ ...currentPost, startTime })
-    setValid(isValid({ startTime }))
-  }, [currentPost])
+  const handleStartTimeChange = (startTime) => {
+    // force endTime to track startTime
+    const endTime = calcEndTime(startTime)
+    validateTimeChange(startTime, endTime)
+    setCurrentPost({ ...currentPost, startTime, endTime })
+    setValid(isValid({ startTime, endTime }))
+    endTimeRef.current.setValue(endTime)
+  }
 
   const handleEndTimeChange = useCallback((endTime) => {
     validateTimeChange(currentPost.startTime, endTime)
@@ -875,13 +892,18 @@ function PostEditor ({
           <div className={styles.footerSection}>
             <div className={styles.footerSectionLabel}>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
             <div className={styles.datePickerModule}>
-              <DatePicker
+              <DateTimePicker
+                hourCycle={12}
+                granularity='minute'
                 value={currentPost.startTime}
                 placeholder={t('Select Start')}
                 onChange={handleStartTimeChange}
               />
               <div className={styles.footerSectionHelper}>{t('To')}</div>
-              <DatePicker
+              <DateTimePicker
+                ref={endTimeRef}
+                hourCycle={12}
+                granularity='minute'
                 value={currentPost.endTime}
                 placeholder={t('Select End')}
                 onChange={handleEndTimeChange}
