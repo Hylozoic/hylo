@@ -429,6 +429,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
               <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
                 <span className='text-base font-normal ml-2'>{title}</span>
               </MenuLink>
+              {canDnd && isDroppable && <div className='ml-auto'><GrabMe {...listeners} {...attributes} /></div>}
             </span>
             )
           : (
