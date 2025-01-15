@@ -281,7 +281,7 @@ export default function ContextMenu (props) {
         </div>
       )}
       {hasContextWidgets && (
-        <div className='relative translate-x-0 translate-y-0 flex flex-col items-center overflow-hidden z-20'>
+        <div className='relative flex flex-col items-center overflow-hidden z-20'>
           <Routes>
             <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
           </Routes>
