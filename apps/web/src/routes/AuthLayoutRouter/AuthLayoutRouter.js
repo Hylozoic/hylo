@@ -184,7 +184,6 @@ export default function AuthLayoutRouter (props) {
       </div>
     )
   }
-)
   // Layout props, flags, and event handlers
   const intercomProps = {
     hideDefaultLauncher: true,
