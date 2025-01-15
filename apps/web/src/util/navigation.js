@@ -181,7 +181,7 @@ export function addQuerystringToPath (path, querystringParams) {
 }
 
 export function removePostFromUrl (url) {
-  const matchForReplaceRegex = `/post/${POST_ID_MATCH}`
+  const matchForReplaceRegex = `/post/${POST_ID_MATCH}(/.*)?`
   return url.replace(new RegExp(matchForReplaceRegex), '')
 }
 
