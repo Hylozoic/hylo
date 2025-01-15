@@ -986,7 +986,7 @@ function PostEditor ({
                 className={styles.textInput}
                 placeholder={t('Add a donation link (must be valid URL)')}
                 value={currentPost.donationsLink || ''}
-                onChange={handledonationsLinkChange}
+                onChange={handleDonationsLinkChange}
                 disabled={loading}
               />
             </div>
