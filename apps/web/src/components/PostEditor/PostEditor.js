@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty } from 'lodash/fp'
 import Moment from 'moment-timezone'
-import React, { useMemo, useRef, useEffect, useState } from 'react'
+import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -19,7 +19,8 @@ import GroupsSelector from 'components/GroupsSelector'
 import TopicSelector from 'components/TopicSelector'
 import MemberSelector from 'components/MemberSelector'
 import LinkPreview from './LinkPreview'
-import DatePicker from 'components/DatePicker'
+import moment from 'moment-timezone'
+import { DateTimePicker } from 'components/ui/datetimepicker'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import SendAnnouncementModal from 'components/SendAnnouncementModal'
 import PublicToggle from 'components/PublicToggle'
@@ -155,6 +156,7 @@ function PostEditor ({
   const titleInputRef = useRef()
   const editorRef = useRef()
   const groupsSelectorRef = useRef()
+  const endTimeRef = useRef()
 
   const initialPost = useMemo(() => ({
     title: '',
@@ -173,8 +175,8 @@ function PostEditor ({
     votingMethod: VOTING_METHOD_SINGLE,
     quorum: 0,
     ...(inputPost || {}),
-    startTime: Moment(inputPost?.startTime || ''),
-    endTime: Moment(inputPost?.endTime || '')
+    startTime: typeof(inputPost?.startTime) === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
+    endTime: typeof(inputPost?.endTime) === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
   }), [inputPost?.id, postType, currentGroup, topic, context])
 
   const titlePlaceholderForPostType = (type) => {
@@ -234,7 +236,7 @@ function PostEditor ({
   }, [initialPost.id, initialPost.details])
 
   useEffect(() => {
-    onUpdateLinkPreview()
+    setCurrentPost({ ...currentPost, linkPreview })
   }, [linkPreview])
 
   useEffect(() => {
@@ -242,6 +244,14 @@ function PostEditor ({
       dispatch(clearLinkPreview())
     }
   }, [])
+
+  const calcEndTime = (startTime) => {
+    let msDiff = 3600000 // ms in one hour
+    if (currentPost.startTime && currentPost.endTime) {
+      msDiff = moment(currentPost.endTime) - moment(currentPost.startTime)
+    }
+    return new Date(moment(startTime) + msDiff)
+  }
 
   const onUpdateLinkPreview = () => {
     setCurrentPost({ ...currentPost, linkPreview })
@@ -261,7 +271,7 @@ function PostEditor ({
     setShowPostTypeMenu(!showPostTypeMenu)
   }
 
-  const postTypeButtonProps = (forPostType) => {
+  const postTypeButtonProps = useCallback((forPostType) => {
     const { type } = currentPost
     const active = type === forPostType
     const className = cn(
@@ -288,9 +298,9 @@ function PostEditor ({
       color: '',
       className
     }
-  }
+  }, [currentPost, loading])
 
-  const handleTitleChange = (event) => {
+  const handleTitleChange = useCallback((event) => {
     const title = event.target.value
     if (title !== currentPost.title) {
       title.length >= MAX_TITLE_LENGTH
@@ -300,56 +310,59 @@ function PostEditor ({
       setCurrentPost({ ...currentPost, title })
       setValid(isValid({ title }))
     }
-  }
+  }, [currentPost])
 
-  const handleDetailsChange = () => {
+  const handleDetailsChange = useCallback(() => {
     setIsDirty(true)
-  }
+  }, [])
 
-  const handleToggleContributions = () => {
+  const handleToggleContributions = useCallback(() => {
     setCurrentPost({ ...currentPost, acceptContributions: !currentPost.acceptContributions })
-  }
+  }, [currentPost])
 
   const handleStartTimeChange = (startTime) => {
-    validateTimeChange(startTime, currentPost.endTime)
-    setCurrentPost({ ...currentPost, startTime })
-    setValid(isValid({ startTime }))
+    // force endTime to track startTime
+    const endTime = calcEndTime(startTime)
+    validateTimeChange(startTime, endTime)
+    setCurrentPost({ ...currentPost, startTime, endTime })
+    setValid(isValid({ startTime, endTime }))
+    endTimeRef.current.setValue(endTime)
   }
 
-  const handleEndTimeChange = (endTime) => {
+  const handleEndTimeChange = useCallback((endTime) => {
     validateTimeChange(currentPost.startTime, endTime)
     setCurrentPost({ ...currentPost, endTime })
     setValid(isValid({ endTime }))
-  }
+  }, [currentPost])
 
-  const handledonationsLinkChange = (evt) => {
+  const handleDonationsLinkChange = useCallback((evt) => {
     const donationsLink = evt.target.value
     setCurrentPost({ ...currentPost, donationsLink })
     setValid(isValid({ donationsLink }))
-  }
+  }, [currentPost])
 
-  const handleProjectManagementLinkChange = (evt) => {
+  const handleProjectManagementLinkChange = useCallback((evt) => {
     const projectManagementLink = evt.target.value
     setCurrentPost({ ...currentPost, projectManagementLink })
     setValid(isValid({ projectManagementLink }))
-  }
+  }, [currentPost])
 
-  const validateTimeChange = (startTime, endTime) => {
+  const validateTimeChange = useCallback((startTime, endTime) => {
     if (endTime) {
       startTime < endTime
         ? setDateError(false)
         : setDateError(true)
     }
-  }
+  }, [])
 
-  const handleLocationChange = (locationObject) => {
+  const handleLocationChange = useCallback((locationObject) => {
     setCurrentPost({
       ...currentPost,
       location: locationObject.fullText,
       locationId: locationObject.id
     })
     setValid(isValid({ locationId: locationObject.id }))
-  }
+  }, [currentPost])
 
   // Checks for linkPreview every 1/2 second
   const handleAddLinkPreview = debounce(500, (url, force) => {
@@ -358,31 +371,31 @@ function PostEditor ({
     pollingFetchLinkPreview(dispatch, url)
   })
 
-  const handleTopicSelectorOnChange = topics => {
+  const handleTopicSelectorOnChange = useCallback(topics => {
     setCurrentPost({ ...currentPost, topics })
     setAllowAddTopic(false)
     setIsDirty(true)
-  }
+  }, [currentPost])
 
-  const handleAddTopic = topic => {
+  const handleAddTopic = useCallback((topic) => {
     const { topics } = currentPost
 
     if (!allowAddTopic || topics?.length >= MAX_POST_TOPICS) return
 
     setCurrentPost({ ...currentPost, topics: [...topics, topic] })
     setIsDirty(true)
-  }
+  }, [currentPost, allowAddTopic])
 
-  const handleFeatureLinkPreview = featured => {
+  const handleFeatureLinkPreview = useCallback(featured => {
     setCurrentPost({ ...currentPost, linkPreviewFeatured: featured })
-  }
+  }, [currentPost])
 
-  const handleRemoveLinkPreview = () => {
+  const handleRemoveLinkPreview = useCallback(() => {
     dispatch(removeLinkPreview())
     setCurrentPost({ ...currentPost, linkPreview: null, linkPreviewFeatured: false })
-  }
+  }, [currentPost])
 
-  const handleSetSelectedGroups = (groups) => {
+  const handleSetSelectedGroups = useCallback((groups) => {
     const hasChanged = !isEqual(initialPost.groups, groups)
 
     setCurrentPost({ ...currentPost, groups })
@@ -391,32 +404,32 @@ function PostEditor ({
     if (hasChanged) {
       setIsDirty(true)
     }
-  }
+  }, [currentPost])
 
-  const togglePublic = () => {
+  const togglePublic = useCallback(() => {
     const { isPublic } = currentPost
     setCurrentPost({ ...currentPost, isPublic: !isPublic })
-  }
+  }, [currentPost])
 
-  const toggleAnonymousVote = () => {
+  const toggleAnonymousVote = useCallback(() => {
     const { isAnonymousVote } = currentPost
     setCurrentPost({ ...currentPost, isAnonymousVote: !isAnonymousVote })
-  }
+  }, [currentPost])
 
   // const toggleStrictProposal = () => {
   //   const { isStrictProposal } = currentPost
   //   setCurrentPost({ ...currentPost, isStrictProposal: !isStrictProposal })
   // }
 
-  const handleUpdateProjectMembers = (members) => {
+  const handleUpdateProjectMembers = useCallback((members) => {
     setCurrentPost({ ...currentPost, members })
-  }
+  }, [currentPost])
 
-  const handleUpdateEventInvitations = (eventInvitations) => {
+  const handleUpdateEventInvitations = useCallback((eventInvitations) => {
     setCurrentPost({ ...currentPost, eventInvitations })
-  }
+  }, [currentPost])
 
-  const isValid = (postUpdates = {}) => {
+  const isValid = useCallback((postUpdates = {}) => {
     const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions } = Object.assign(
       {},
       currentPost,
@@ -443,7 +456,7 @@ function PostEditor ({
       groups?.length > 0 &&
       title?.length > 0 && title?.length <= MAX_TITLE_LENGTH
     )
-  }
+  }, [currentPost])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -452,7 +465,7 @@ function PostEditor ({
   //   }
   // }
 
-  const save = async () => {
+  const save = useCallback(async () => {
     const {
       acceptContributions,
       donationsLink,
@@ -534,39 +547,39 @@ function PostEditor ({
     } else {
       goToPost(action)
     }
-  }
+  }, [currentPost, isEditing, onClose])
 
-  const goToPost = (createPostAction) => {
+  const goToPost = useCallback((createPostAction) => {
     const id = get('payload.data.createPost.id', createPostAction)
     const querystringWhitelist = ['s', 't', 'q', 'search', 'zoom', 'center', 'lat', 'lng']
     const querystringParams = urlLocation && getQuerystringParam(querystringWhitelist, urlLocation)
     const postPath = postUrl(id, routeParams, querystringParams)
     navigate(postPath)
-  }
+  }, [currentPost, isEditing, onClose, urlLocation, routeParams])
 
-  const buttonLabel = () => {
+  const buttonLabel = useCallback(() => {
     if (postPending) return t('Posting...')
     if (isEditing) return t('Save')
     return t('Post')
-  }
+  }, [postPending, isEditing])
 
-  const toggleAnnouncementModal = () => {
+  const toggleAnnouncementModal = useCallback(() => {
     setShowAnnouncementModal(!showAnnouncementModal)
-  }
+  }, [showAnnouncementModal])
 
-  const togglePostTypeMenu = () => {
+  const togglePostTypeMenu = useCallback(() => {
     setShowPostTypeMenu(!showPostTypeMenu)
-  }
+  }, [showPostTypeMenu])
 
-  const handleSetQuorum = (quorum) => {
+  const handleSetQuorum = useCallback((quorum) => {
     setCurrentPost({ ...currentPost, quorum })
-  }
+  }, [currentPost])
 
-  const handleSetProposalType = (votingMethod) => {
+  const handleSetProposalType = useCallback((votingMethod) => {
     setCurrentPost({ ...currentPost, votingMethod })
-  }
+  }, [currentPost])
 
-  const handleUseTemplate = (template) => {
+  const handleUseTemplate = useCallback((template) => {
     const templateData = PROPOSAL_TEMPLATES[template]
     setCurrentPost({
       ...currentPost,
@@ -576,23 +589,23 @@ function PostEditor ({
       votingMethod: templateData.form.votingMethod
     })
     setValid(isValid({ proposalOptions: templateData.form.proposalOptions }))
-  }
+  }, [currentPost])
 
-  const handleAddOption = () => {
+  const handleAddOption = useCallback(() => {
     const { proposalOptions } = currentPost
     const newOptions = [...proposalOptions, { text: '', emoji: '', color: '', tempId: generateTempID() }]
     setCurrentPost({ ...currentPost, proposalOptions: newOptions })
     setValid(isValid({ proposalOptions: newOptions }))
-  }
+  }, [currentPost])
 
-  const canMakeAnnouncement = () => {
+  const canMakeAnnouncement = useCallback(() => {
     const { groups = [] } = currentPost
     const myAdminGroupsSlugs = myAdminGroups.map(group => group.slug)
     for (let index = 0; index < groups.length; index++) {
       if (!myAdminGroupsSlugs.includes(groups[index].slug)) return false
     }
     return true
-  }
+  }, [currentPost, myAdminGroups])
 
   const canHaveTimes = currentPost.type !== 'discussion'
   const hasLocation = currentPost.type !== 'chat'
@@ -879,13 +892,18 @@ function PostEditor ({
           <div className={styles.footerSection}>
             <div className={styles.footerSectionLabel}>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
             <div className={styles.datePickerModule}>
-              <DatePicker
+              <DateTimePicker
+                hourCycle={12}
+                granularity='minute'
                 value={currentPost.startTime}
                 placeholder={t('Select Start')}
                 onChange={handleStartTimeChange}
               />
               <div className={styles.footerSectionHelper}>{t('To')}</div>
-              <DatePicker
+              <DateTimePicker
+                ref={endTimeRef}
+                hourCycle={12}
+                granularity='minute'
                 value={currentPost.endTime}
                 placeholder={t('Select End')}
                 onChange={handleEndTimeChange}

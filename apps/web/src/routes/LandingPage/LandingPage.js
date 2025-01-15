@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import Loading from 'components/Loading'
 import Widget from 'components/Widget'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -18,6 +19,7 @@ import { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 const LandingPage = () => {
   const dispatch = useDispatch()
   const params = useParams()
+  const { t } = useTranslation()
 
   const groupSlug = params.groupSlug
   const fetchPostsParam = useMemo(() => ({ slug: groupSlug, context: 'groups', sortBy: 'created' }), [groupSlug])
@@ -40,10 +42,13 @@ const LandingPage = () => {
     dispatch(fetchPosts(fetchPostsParam))
   }, [dispatch, fetchPostsParam])
 
-  const { setTitle, setIcon } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setTitle('Explore')
-    setIcon('RaisedHand')
+    setHeaderDetails({
+      title: t('Explore'),
+      icon: 'RaisedHand',
+      info: ''
+    })
   }, [])
 
   if (!group) return <Loading />

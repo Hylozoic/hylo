@@ -17,7 +17,7 @@ import {
   addPostToCollection,
   createCollection,
   removePostFromCollection,
-  reorderPostInCollection,
+  reorderPostInCollection
 } from '../GroupSettings/GroupSettings.store'
 import useDebounce from 'hooks/useDebounce'
 
@@ -34,6 +34,7 @@ import {
   SelectValue
 } from 'components/ui/select'
 import Icon from 'components/Icon'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { CustomViewRow } from 'routes/GroupSettings/CustomViewsTab/CustomViewsTab'
 import { createTopic } from 'components/CreateTopic/CreateTopic.store'
 import { cleanCustomView } from 'util'
@@ -76,7 +77,6 @@ export default function AllViews () {
     return true
   })
 
-
   const handleWidgetHomePromotion = useCallback((widget) => {
     if (window.confirm(t('Are you sure you want to set this widget as the home/default widget for this group?'))) {
       dispatch(setHomeWidget({ contextWidgetId: widget.id, groupId: group.id }))
@@ -91,10 +91,16 @@ export default function AllViews () {
     }))
   }, [updateContextWidget])
 
+  const widgetsSorted = useMemo(() => {
+    return visibleWidgets.map(widget => {
+      return { ...widget, title: widgetTitleResolver({ widget, t }) }
+    }).sort((a, b) => a.title.localeCompare(b.title))
+  }, [visibleWidgets])
+
   // Create widget cards
   const widgetCards = useMemo(() => {
-    return visibleWidgets.map(widget => {
-      const title = widgetTitleResolver({ widget, t })
+    return widgetsSorted.map(widget => {
+      const title = widget.title
       const url = widgetUrl({ widget, rootPath, groupSlug: routeParams.groupSlug, context: 'group' })
       const type = widgetTypeResolver({ widget })
       const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1)
@@ -145,6 +151,14 @@ export default function AllViews () {
       )
     })
   }, [visibleWidgets, rootPath, routeParams.groupSlug])
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('All Views'),
+      icon: 'Window'
+    })
+  }, [])
 
   return (
     <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4'>
@@ -414,19 +428,20 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
               ? <CommandEmpty>{t('Loading...')}</CommandEmpty>
               : items.length === 0
                 ? <CommandEmpty>{textOptions[addChoice].noResults}</CommandEmpty>
-                : <CommandGroup heading={textOptions[addChoice].heading}>
-                  {items.map((item) => (
-                    <CommandItem
-                      key={item.id}
-                      value={item.name}
-                      onSelect={(value) => {
-                        setSelectedItem(item)
-                      }}
-                    >
-                      <span>{item.name}</span>
-                    </CommandItem>
-                  ))}
-                  </CommandGroup>}
+                : (
+                  <CommandGroup heading={textOptions[addChoice].heading}>
+                    {items.map((item) => (
+                      <CommandItem
+                        key={item.id}
+                        value={item.name}
+                        onSelect={(value) => {
+                          setSelectedItem(item)
+                        }}
+                      >
+                        <span>{item.name}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>)}
           </CommandList>
         </Command>
       )}
@@ -641,7 +656,7 @@ function CustomViewCreator ({ group, selectedItem, setSelectedItem, widgetData, 
   )
 }
 
-function ContainerCreator ({ group, addChoice, widgetData, setWidgetData, }) {
+function ContainerCreator ({ group, addChoice, widgetData, setWidgetData }) {
   const { t } = useTranslation()
   return (
     <div>
@@ -673,7 +688,8 @@ function WidgetSettings ({ setWidgetData, widgetData, addChoice }) {
         <Label htmlFor='visibility'>{t('Visibility')}</Label>
         <Select
           value={widgetData.visibility}
-          onValueChange={(value) => setWidgetData(prev => ({ ...prev, visibility: value }))}>
+          onValueChange={(value) => setWidgetData(prev => ({ ...prev, visibility: value }))}
+        >
           <SelectTrigger>
             <SelectValue placeholder={t('All members')} />
           </SelectTrigger>

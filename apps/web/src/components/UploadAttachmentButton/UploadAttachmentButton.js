@@ -1,32 +1,35 @@
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
-import { ID_FOR_NEW } from 'components/AttachmentManager/AttachmentManager.store'
-import Icon from 'components/Icon'
-import { cn } from 'util/index'
-import classes from './UploadAttachmentButton.module.scss'
+import { useDispatch } from 'react-redux'
 import {
   uploadedFileToAttachment,
   filestackPicker
 } from 'client/filestack'
+import { ID_FOR_NEW } from 'components/AttachmentManager/AttachmentManager.store'
+import Icon from 'components/Icon'
+import uploadAttachment from 'store/actions/uploadAttachment'
+import { cn } from 'util/index'
+
+import classes from './UploadAttachmentButton.module.scss'
 
 export default function UploadAttachmentButton ({
   type,
   id = ID_FOR_NEW,
   attachmentType,
+  onInitialUpload, // If set then we won't upload the file to the server, we'll call this instead
   onSuccess,
   onError = () => {},
   customRender,
   allowMultiple,
   disable,
   maxFiles = 1,
-  // provided by connector
-  uploadAttachment,
   // passed to customRender
   ...uploadButtonProps
 }) {
   const [loading, setLoading] = useState(false)
   const { t } = useTranslation()
+  const dispatch = useDispatch()
 
   const uploadAttachmentComplete = response => {
     if (!response) {
@@ -40,8 +43,13 @@ export default function UploadAttachmentButton ({
 
   const onFileUploadFinished = async fileUploaded => {
     const attachment = uploadedFileToAttachment({ ...fileUploaded, attachmentType })
-    const uploadedAttachment = await uploadAttachment(type, id, attachment)
-    return uploadAttachmentComplete(uploadedAttachment)
+    if (onInitialUpload) {
+      // If set then we won't upload the file to the server, we'll call this instead
+      onInitialUpload(attachment)
+    } else {
+      const uploadedAttachment = await dispatch(uploadAttachment(type, id, attachment))
+      return uploadAttachmentComplete(uploadedAttachment)
+    }
   }
 
   const onUploadDone = async ({ filesUploaded }) => {
@@ -93,7 +101,7 @@ UploadAttachmentButton.propTypes = {
   uploadAttachment: PropTypes.func.isRequired
 }
 
-export function UploadButton ({
+function UploadButton ({
   onClick,
   loading,
   className,
@@ -103,7 +111,7 @@ export function UploadButton ({
   const loadingIconName = loading ? 'Clock' : iconName
 
   return (
-    <div onClick={onClick} className={className} data-testid='upload-attachment-button'>
+    <div onClick={onClick} className={cn(className, 'cursor-pointer')} data-testid='upload-attachment-button'>
       {children && children}
       {!children && <Icon name={loadingIconName} className={cn(classes.icon)} />}
     </div>

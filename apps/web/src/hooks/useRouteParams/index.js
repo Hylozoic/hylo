@@ -33,6 +33,12 @@ export default function useRouteParams () {
     }
   }
 
+  // Set groupSlug
+  if (params.context === 'groups') {
+    params.groupSlug = pathParts[2]
+  }
+
+  // Set memberId
   if (params.view === 'members') {
     params.memberId = params.context === 'groups' ? pathParts[4] : pathParts[3]
   }

@@ -76,10 +76,13 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
     updateGroupSettings({ ...state.edits })
   }
 
-  const { setIcon, setTitle } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setIcon('Settings')
-    setTitle('Group Settings / Privacy')
+    setHeaderDetails({
+      title: `${t('Group Settings')} > ${t('Privacy')}`,
+      icon: 'Settings',
+      info: ''
+    })
   }, [])
 
   if (!group) return <Loading />

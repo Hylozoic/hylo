@@ -123,10 +123,13 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     return { color: 'green', style: 'general.settingChanged', text: t('Changes not saved') }
   }
 
-  const { setTitle, setIcon } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setTitle('Group Settings')
-    setIcon('Settings')
+    setHeaderDetails({
+      title: t('Group Settings'),
+      icon: 'Settings',
+      info: ''
+    })
   }, [])
 
   if (!group) return <Loading />

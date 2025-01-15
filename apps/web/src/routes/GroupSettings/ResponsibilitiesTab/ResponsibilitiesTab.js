@@ -109,10 +109,13 @@ export default function ResponsibilitiesTab ({ group }) {
     }
   }
 
-  const { setTitle, setIcon } = useViewHeader()
+  const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setTitle('Group Settings / Responsibilities')
-    setIcon('Settings')
+    setHeaderDetails({
+      title: `${t('Group Settings')} > ${t('Responsibilities')}`,
+      icon: 'Settings',
+      info: ''
+    })
   }, [])
 
   const unsavedRolePresent = responsibilities.length > 0 ? responsibilities[responsibilities.length - 1]?.draft : false
