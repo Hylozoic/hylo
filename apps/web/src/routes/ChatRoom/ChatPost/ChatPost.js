@@ -1,5 +1,5 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
@@ -274,8 +274,8 @@ export default function ChatPost ({
               </div>
             </div>
             <div className={styles.date}>
-              {moment(createdAt).format('h:mm a')}
-              {editedAt && <span>&nbsp;({t('edited')} {moment(editedAt).format('h:mm a')})</span>}
+              {DateTime.fromISO(createdAt).toFormat('t')}
+              {editedAt && <span>&nbsp;({t('edited')} {DateTime.fromISO(editedAt).toFormat('t')})</span>}
             </div>
           </div>
         )}

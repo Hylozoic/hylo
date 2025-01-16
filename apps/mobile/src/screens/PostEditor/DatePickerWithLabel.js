@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import DatePicker from 'react-native-date-picker'
 import Icon from 'components/Icon'
 import styles, { typeSelectorStyles } from './PostEditor.styles'
@@ -22,7 +22,7 @@ export default function DatePickerWithLabel ({
     labelWrapper: styles.pressSelection,
     valueText: styles.pressSelectionValue
   },
-  dateFormat = 'MM/DD/YYYY LT z'
+  dateFormat = 'MM/dd/yyyy t ZZZZ'
 }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -50,7 +50,7 @@ export default function DatePickerWithLabel ({
           </View>
         </View>
         {date && !open && (
-          <Text style={styleTemplate.valueText}>{moment.tz(date, moment.tz.guess()).format(dateFormat)}</Text>
+          <Text style={styleTemplate.valueText}>{DateTime.fromJSDate(date).toFormat(dateFormat)}</Text>
         )}
       </TouchableOpacity>
       <DatePicker

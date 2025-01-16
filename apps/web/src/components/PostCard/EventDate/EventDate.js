@@ -1,14 +1,14 @@
 import React from 'react'
-import Moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import classes from './EventDate.module.scss'
 
 export default function EventDate ({ startTime }) {
   if (!startTime) return null
-  const startTimeMoment = Moment(startTime)
+  const start = DateTime.fromJSDate(startTime)
   return (
     <div className={classes.eventDate}>
-      <span className={classes.month}>{startTimeMoment.format('MMM')}</span>
-      <span className={classes.day}>{startTimeMoment.format('D')}</span>
+      <span className={classes.month}>{start.toFormat('MMM')}</span>
+      <span className={classes.day}>{start.toFormat('d')}</span>
     </div>
   )
 }

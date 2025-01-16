@@ -1,5 +1,5 @@
 import { filter, isFunction } from 'lodash'
-import Moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -344,7 +344,7 @@ function Project ({ memberCap, project, routeParams, showDetails }) {
     <div className={styles.project} onClick={() => showDetails(id, { ...routeParams })}>
       <div>
         <div className={styles.title}>{title} </div>
-        <div className={styles.meta}>{creator.name} - {Moment(createdAt).fromNow()} </div>
+        <div className={styles.meta}>{creator.name} - {DateTime.fromJSDate(createdAt).toRelative()} </div>
       </div>
       <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: members.items.length > memberCap })} inline imageUrls={members.items.map(m => m.avatarUrl)} cap={memberCap} />
     </div>
@@ -356,8 +356,8 @@ function Event ({ memberCap, event, routeParams, showDetails }) {
   return (
     <div className={styles.event} onClick={() => showDetails(id, { ...routeParams })}>
       <div className={styles.date}>
-        <div className={styles.month}>{Moment(startTime).format('MMM')}</div>
-        <div className={styles.day}>{Moment(startTime).format('DD')}</div>
+        <div className={styles.month}>{DateTime.fromJSDate(startTime).toFormat('MMM')}</div>
+        <div className={styles.day}>{DateTime.fromJSDate(startTime).toFormat('dd')}</div>
       </div>
       <div className={styles.details}>
         <div className={styles.title}>{title}</div>
