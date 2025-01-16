@@ -569,7 +569,7 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
   const expanded = context.selectedPostId === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
   const previousDay = prevData?.createdAt ? DateTime.fromJSDate(prevData.createdAt) : DateTime.now()
-  const currentDay = DateTime.fromISO(post.createdAt)
+  const currentDay = DateTime.fromJSDate(post.createdAt)
   const displayDay = previousDay.hasSame(currentDay, 'day') ? null : currentDay.toRelativeCalendar(null, {unit: 'days'})
   const createdTimeDiff = Math.abs(currentDay.diff(previousDay, 'minutes'))
 
