@@ -45,7 +45,7 @@ export default function GlobalNav() {
   */
   return (
     <View className="flex-col h-full bg-theme-background z-50 items-center py-2 px-3">
-      <View className="flex-1 overflow-y-scroll">
+      <View className="flex-1 overflow-y-scroll gap-1">
         {navItems.map(item => (
           <NavRow
             key={item.id}

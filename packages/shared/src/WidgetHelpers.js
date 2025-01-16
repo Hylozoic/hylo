@@ -289,3 +289,9 @@ export const orderContextWidgetsForContextMenu = (contextWidgets) => {
   return parentWidgets
 }
 
+export const doNotDisplayWidget = ({isEditting = false, widget}) => {
+  return (!['members', 'setup'].includes(widget.type) && !isEditting && !widget.view && widget?.childWidgets.length === 0 &&
+  !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
+  !widget.viewChat && !widget.customView)
+}
+

@@ -7,36 +7,78 @@ import FastImage from 'react-native-fast-image'
 import useCurrentUser from 'hooks/useCurrentUser'
 import useCurrentGroup, { useCurrentGroupSlug } from 'hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
+import useGatherItems from 'hooks/useGatherItems'
 import useHasResponsibility from 'hooks/useHasResponsibility'
-import { RESP_ADD_MEMBERS } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup'
 import useOpenURL from 'hooks/useOpenURL'
+import { doNotDisplayWidget } from '@hylo/shared/src/WidgetHelpers'
 
 const { widgetTitleResolver, getStaticMenuWidgets, orderContextWidgetsForContextMenu } = WidgetHelpers
 const { widgetUrl } = NavigatorHelpers
 
 function ContextMenuItem({ widget, groupSlug, rootPath }) {
   const { t } = useTranslation()
+  const { listItems, loading } = useGatherItems({ widget, groupSlug })
 
   //TODO: sort out nav. Of these three hooks, only useNavigation seems to avoid throwing an invalid hook call.
   const linkTo = useLinkTo()
   const navigation = useNavigation()
   const handleOpenURL = useOpenURL()
-  
+  const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
+  const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
   
   const title = widgetTitleResolver({ widget, t })
   const url = widgetUrl({ widget, rootPath, groupSlug })
 
+  if (doNotDisplayWidget({widget})) return null
+  if (widget.visibility === 'admin' && !canAdmin) return null
+
+  if (widget.type === 'logout') {
+    return (
+      <TouchableOpacity 
+        onPress={() => console.log('logout weee')}
+        className="flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md mb-2 gap-2"
+      >
+        <WidgetIconResolver widget={widget} className="mr-2" />
+        <Text className="text-sm font-bold text-foreground">{title}</Text>
+      </TouchableOpacity>
+    )
+  }
+
+  if (url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))) {
+    return (
+      <TouchableOpacity 
+        onPress={() => navigation.navigate('Stream')}
+        className="flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md mb-2 gap-2"
+      >
+        <WidgetIconResolver widget={widget} className="mr-2" />
+        <Text className="text-sm font-bold text-foreground">{title}</Text>
+      </TouchableOpacity>
+    )
+  }
+
+
   return (
-    <TouchableOpacity 
-      onPress={() => navigation.navigate('Stream')}
-      className="flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md mb-2 gap-2"
-    >
-      <WidgetIconResolver widget={widget} className="mr-2" />
-      <Text className="text-sm font-bold text-foreground">{title}</Text>
-    </TouchableOpacity>
+    <View className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem]'>
+      { widget.view && (
+        <View className='flex justify-between items-center content-center'>
+          {/* add title and the ability to navigate from here */}
+        </View>
+      )}
+      { !widget.view && (
+        <View className='flex justify-between items-center content-center'>
+          <Text className='text-sm font-semibold text-foreground'>{title}</Text>
+        </View>
+      )}
+      <View className='flex flex-col justify-center items-center relative'>
+        {/* Need to add the SpecialTopElementRenderer here */}
+      </View>
+      {loading && <Text>{t('Loading...')}</Text>}
+      {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} />)}
+    </View>
   )
 }
 
@@ -96,7 +138,7 @@ function ContextWidgetList({ contextWidgets, groupSlug, rootPath }) {
   return (
     <ScrollView className="p-2">
       {contextWidgets.map(widget => (
-        <View key={widget.id} className="mb-2">
+        <View key={widget.id} className="mb-1">
           <ContextMenuItem 
             widget={widget} 
             groupSlug={groupSlug} 

@@ -38,6 +38,7 @@ import { getStaticMenuWidgets, isWidgetDroppable, widgetIsValidChild, widgetTitl
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
+import { doNotDisplayWidget } from '@hylo/shared/src/WidgetHelpers'
 
 const getGroupMembership = ormCreateSelector(
   orm,
@@ -368,12 +369,13 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
     await dispatch(logout())
   }
 
+  const title = widgetTitleResolver({ widget, t })
+  const url = widgetUrl({ widget, rootPath, groupSlug })
   // Draggable setup
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, transform } = useDraggable({ id: widget.id })
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 
-  const title = widgetTitleResolver({ widget, t })
-  const url = widgetUrl({ widget, rootPath, groupSlug })
+  // Editting logic
   const canDnd = !allView && isEditting && widget.type !== 'home'
   const showEdit = allView && canAdminister
   const hideDropZone = isOverlay || allView || !canDnd
@@ -389,20 +391,11 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   }
 
   // Check if the widget should be rendered
-  if (!['members', 'setup'].includes(widget.type) && !isEditting && !widget.view && widget.childWidgets.length === 0 &&
-      !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
-      !widget.viewChat && !widget.customView) {
-    return null
-  }
-
+  if (doNotDisplayWidget({ isEditting, widget })) return null
   // Check admin visibility
-  if (widget.visibility === 'admin' && !canAdminister) {
-    return null
-  }
-
-  if (activeWidget && activeWidget.id === widget.id) {
-    return null
-  }
+  if (widget.visibility === 'admin' && !canAdminister) return null
+  // If widget is being dragged, remove it from rendering
+  if (activeWidget && activeWidget.id === widget.id) return null
 
   if (widget.type === 'logout') {
     return (
@@ -450,7 +443,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                 <SpecialTopElementRenderer widget={widget} group={group} />
               </div>
               <ul>
-                {loading && <li key='loading'>Loading...</li>}
+                {loading && <li key='loading'>{t('Loading...')}</li>}
                 {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                 {widget.id &&
                   <li>
