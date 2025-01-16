@@ -406,7 +406,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
   if (widget.type === 'logout') {
     return (
-      <div key={widget.id} style={style} className='border border-gray-700 rounded-md p-2 bg-white'>
+      <div key={widget.id} style={style} className='border border-gray-700 rounded-md p-2 bg-background'>
         <span className='flex justify-between items-center content-center'>
           <WidgetIconResolver widget={widget} />
           <MenuLink onClick={handleLogout}>

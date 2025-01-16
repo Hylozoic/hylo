@@ -2,37 +2,37 @@ import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation, useLinkTo } from '@react-navigation/native'
+import { WidgetHelpers, NavigatorHelpers, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG, ALL_GROUPS_CONTEXT_SLUG } from  '@hylo/shared'
 import FastImage from 'react-native-fast-image'
-import WidgetIconResolver from 'components/WidgetIconResolver'
 import useCurrentUser from 'hooks/useCurrentUser'
 import useCurrentGroup, { useCurrentGroupSlug } from 'hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import useHasResponsibility from 'hooks/useHasResponsibility'
 import { RESP_ADD_MEMBERS } from 'store/constants'
-import { WidgetHelpers, NavigatorHelpers } from  '@hylo/shared'
+import WidgetIconResolver from 'components/WidgetIconResolver'
+import GroupMenuHeader from 'components/GroupMenuHeader'
 import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup'
+import useOpenURL from 'hooks/useOpenURL'
 
 const { widgetTitleResolver, getStaticMenuWidgets, orderContextWidgetsForContextMenu } = WidgetHelpers
 const { widgetUrl } = NavigatorHelpers
 
 function ContextMenuItem({ widget, groupSlug, rootPath }) {
   const { t } = useTranslation()
+
+  //TODO: sort out nav. Of these three hooks, only useNavigation seems to avoid throwing an invalid hook call.
   const linkTo = useLinkTo()
   const navigation = useNavigation()
+  const handleOpenURL = useOpenURL()
+  
+  
   const title = widgetTitleResolver({ widget, t })
   const url = widgetUrl({ widget, rootPath, groupSlug })
 
-  const handlePress = () => {
-    if (url) {
-      linkTo(url)
-      // navigation.navigate('Stream')
-    }
-  }
-
   return (
     <TouchableOpacity 
-      onPress={handlePress}
-      className="flex-row items-center p-3 bg-background rounded-md mb-2 gap-2"
+      onPress={() => navigation.navigate('Stream')}
+      className="flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md mb-2 gap-2"
     >
       <WidgetIconResolver widget={widget} className="mr-2" />
       <Text className="text-sm font-bold text-foreground">{title}</Text>
@@ -120,6 +120,31 @@ function ContextWidgetList({ contextWidgets, groupSlug, rootPath }) {
   )
 }
 
+function ContextHeader({ group }) {
+  const { t } = useTranslation()
+
+  const isPublic = group?.slug === PUBLIC_CONTEXT_SLUG
+  const isMyContext = group?.slug === MY_CONTEXT_SLUG
+  const isAllContext = group?.slug === ALL_GROUPS_CONTEXT_SLUG
+  const isGroupContext = !isAllContext && !isMyContext && !isPublic
+
+  return (
+    <View className="w-full relative">
+      {isGroupContext ? (
+        <GroupMenuHeader group={group} />
+      ) : isPublic ? (
+        <View className="flex flex-col p-2">
+          <Text className="text-foreground font-bold text-lg">{t('The Commons')}</Text>
+        </View>
+      ) : (isMyContext || isAllContext) ? (
+        <View className="flex flex-col p-2">
+          <Text className="text-foreground font-bold text-lg">{t('My Home')}</Text>
+        </View>
+      ) : null}
+    </View>
+  )
+}
+
 export default function ContextMenu() {
   const [currentGroup] = useCurrentGroup()
   const currentGroupSlug = useCurrentGroupSlug()
@@ -131,6 +156,9 @@ export default function ContextMenu() {
 
   return (
     <View className="flex-1 bg-background">
+      <ContextHeader 
+        group={currentGroup}
+      />
       <ContextWidgetList
         contextWidgets={orderedWidgets}
         groupSlug={currentGroup.slug}
