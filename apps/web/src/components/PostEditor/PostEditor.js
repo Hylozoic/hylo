@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty } from 'lodash/fp'
 import { DateTime } from 'luxon'
-import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react'
+import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -37,6 +37,7 @@ import {
   PROPOSAL_MULTIPLE_CHOICE,
   PROPOSAL_POLL_SINGLE,
   PROPOSAL_TEMPLATES,
+  POST_TYPES_SHOW_LOCATION_BY_DEFAULT,
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE,
   PROPOSAL_YESNO
@@ -74,11 +75,12 @@ import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
 import { postUrl, setQuerystringParam } from 'util/navigation'
 import { sanitizeURL } from 'util/url'
+import ActionsBar from './ActionsBar'
 
 import styles from './PostEditor.module.scss'
 
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
-export const MAX_TITLE_LENGTH = 80
+const MAX_TITLE_LENGTH = 80
 
 const getMyAdminGroups = createSelector(
   [
@@ -139,6 +141,8 @@ function PostEditor ({
   const editingPost = useMemo(() => presentPost(_editingPost), [_editingPost])
   const _fromPost = useSelector(state => getPost(state, fromPostId))
   const fromPost = useMemo(() => presentPost(_fromPost), [_fromPost])
+
+  console.log('posteditorinputPost', inputPost)
 
   let isEditing = false
   if (editing) {
@@ -222,10 +226,15 @@ function PostEditor ({
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
   const [allowAddTopic, setAllowAddTopic] = useState(true)
+  const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type))
 
   useEffect(() => {
     setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
   }, [])
+
+  useEffect(() => {
+    setShowLocation(showLocation || POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type))
+  }, [initialPost.type])
 
   useEffect(() => {
     groupsSelectorRef.current.reset()
@@ -233,6 +242,7 @@ function PostEditor ({
     setCurrentPost(initialPost)
     editorRef.current.focus()
   }, [initialPost.id, initialPost.details])
+
 
   useEffect(() => {
     setCurrentPost({ ...currentPost, linkPreview })
@@ -382,7 +392,6 @@ function PostEditor ({
     const { topics } = currentPost
 
     if (!allowAddTopic || topics?.length >= MAX_POST_TOPICS) return
-
     setCurrentPost({ ...currentPost, topics: [...topics, topic] })
     setIsDirty(true)
   }, [currentPost, allowAddTopic])
@@ -550,6 +559,17 @@ function PostEditor ({
     }
   }, [currentPost, isEditing, onClose])
 
+  const doSave = useCallback(() => {
+    const _save = announcementSelected ? toggleAnnouncementModal : save
+    if (currentPost.type === 'proposal' && isEditing && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions)) {
+      if (window.confirm(t('Changing proposal options will reset the votes. Are you sure you want to continue?'))) {
+        _save()
+      }
+    } else {
+      _save()
+    }
+  }, [currentPost, isEditing, initialPost, save])
+
   const goToPost = useCallback((createPostAction) => {
     const id = get('payload.data.createPost.id', createPostAction)
     const querystringWhitelist = ['s', 't', 'q', 'search', 'zoom', 'center', 'lat', 'lng']
@@ -609,530 +629,415 @@ function PostEditor ({
   }, [currentPost, myAdminGroups])
 
   const canHaveTimes = currentPost.type !== 'discussion'
-  const hasLocation = currentPost.type !== 'chat'
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
   const invalidPostWarning = currentPost.type === 'proposal' ? t('You need a title, a group and at least one option for a proposal') : t('You need a title and at least one group to post')
 
   return (
-    <div className={cn(styles.wrapper, { [styles.hide]: showAnnouncementModal })}>
-      <div className={styles.header}>
-        <div className={styles.initial}>
-          <div>
-            {currentPost.type && <Button noDefaultStyles {...postTypeButtonProps(currentPost.type)} />}
-            {showPostTypeMenu && (
-              <div className={styles.postTypeMenu}>
-                {postTypes
-                  .filter((postType) => postType !== currentPost.type)
-                  .map((postType) => (
-                    <Button noDefaultStyles {...postTypeButtonProps(postType)} key={postType} />
-                  ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className={styles.body}>
-        <div className={styles.bodyColumn}>
-          <RoundImage
-            medium
-            className={styles.titleAvatar}
-            url={currentUser && currentUser.avatarUrl}
-          />
-        </div>
-        <div className={styles.bodyColumn}>
-          <input
-            type='text'
-            className={styles.titleInput}
-            placeholder={titlePlaceholder}
-            value={currentPost.title || ''}
-            onChange={handleTitleChange}
-            disabled={loading}
-            ref={titleInputRef}
-            maxLength={MAX_TITLE_LENGTH}
-          />
-          {titleLengthError && (
-            <span className={styles.titleError}>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
-          )}
-          {currentPost.details === null || loading
-            ? <div className={styles.editor}><Loading /></div>
-            : <HyloEditor
-                key={currentPost.id}
-                className={styles.editor}
-                placeholder={detailPlaceholder}
-                onUpdate={handleDetailsChange}
-                // Disable edit cancel through escape due to event bubbling issues
-                // onEscape={handleCancel}
-                onAddTopic={handleAddTopic}
-                onAddLink={handleAddLinkPreview}
-                contentHTML={currentPost.details}
-                showMenu
-                readOnly={loading}
-                ref={editorRef}
-              />}
-        </div>
-      </div>
-      {(currentPost.linkPreview || fetchLinkPreviewPending) && (
-        <LinkPreview
-          loading={fetchLinkPreviewPending}
-          linkPreview={currentPost.linkPreview}
-          featured={currentPost.linkPreviewFeatured}
-          onFeatured={handleFeatureLinkPreview}
-          onClose={handleRemoveLinkPreview}
-        />
-      )}
-      <AttachmentManager
-        type='post'
-        id={currentPost.id}
-        attachmentType='image'
-        showAddButton
-        showLabel
-        showLoading
-      />
-      <AttachmentManager
-        type='post'
-        id={currentPost.id}
-        attachmentType='file'
-        showAddButton
-        showLabel
-        showLoading
-      />
-      <div className={styles.footer}>
-        {currentPost.type === 'project' && (
-          <div className={styles.footerSection}>
-            <div className={styles.footerSectionLabel}>{t('Project Members')}</div>
-            <div className={styles.footerSectionGroups}>
-              <MemberSelector
-                initialMembers={currentPost.members || []}
-                onChange={handleUpdateProjectMembers}
-                forGroups={currentPost.groups}
-                readOnly={loading}
-              />
+    <div className={cn('flex flex-col rounded-lg border border border-border bg-popover p-3', { [styles.hide]: showAnnouncementModal })}>
+      <div className='PostEditorHeader relative my-1'>
+        <div>
+          {currentPost.type && <Button noDefaultStyles {...postTypeButtonProps(currentPost.type)} />}
+          {showPostTypeMenu && (
+            <div className={styles.postTypeMenu}>
+              {postTypes
+                .filter((postType) => postType !== currentPost.type)
+                .map((postType) => (
+                  <Button noDefaultStyles {...postTypeButtonProps(postType)} key={postType} />
+                ))}
             </div>
-          </div>
+          )}
+        </div>
+      </div>
+      <div className={cn('PostEditorTo', styles.section)}>
+        <div className={styles.sectionLabel}>{t('To')}*</div>
+        <div className={styles.sectionGroups}>
+          <GroupsSelector
+            options={groupOptions}
+            selected={currentPost.groups}
+            onChange={handleSetSelectedGroups}
+            readOnly={loading}
+            ref={groupsSelectorRef}
+          />
+        </div>
+      </div>
+      <div className={cn('PostEditorTitle', styles.section)}>
+        Title:
+        <input
+          type='text'
+          className='bg-transparent focus:outline-none flex-1'
+          value={currentPost.title || ''}
+          onChange={handleTitleChange}
+          disabled={loading}
+          ref={titleInputRef}
+          maxLength={MAX_TITLE_LENGTH}
+        />
+        {titleLengthError && (
+          <span className={styles.titleError}>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
         )}
-        <div className={styles.footerSection}>
-          <div className={styles.footerSectionLabel}>{t('Topics')}</div>
-          <div className={styles.footerSectionTopics}>
-            <TopicSelector
-              forGroups={currentPost?.groups || [currentGroup]}
-              selectedTopics={currentPost.topics}
-              onChange={handleTopicSelectorOnChange}
-            />
-          </div>
-        </div>
-        <div className={styles.footerSection}>
-          <div className={styles.footerSectionLabel}>{t('Post in')}*</div>
-          <div className={styles.footerSectionGroups}>
-            <GroupsSelector
-              options={groupOptions}
-              selected={currentPost.groups}
-              onChange={handleSetSelectedGroups}
+      </div>
+      <div className={cn('PostEditorContent', styles.section)}>
+        {currentPost.details === null || loading
+          ? <div className={styles.editor}><Loading /></div>
+          : <HyloEditor
+              key={currentPost.id}
+              className={styles.editor}
+              placeholder={detailPlaceholder}
+              onUpdate={handleDetailsChange}
+              // Disable edit cancel through escape due to event bubbling issues
+              // onEscape={handleCancel}
+              onAddTopic={handleAddTopic}
+              onAddLink={handleAddLinkPreview}
+              contentHTML={currentPost.details}
+              showMenu
               readOnly={loading}
-              ref={groupsSelectorRef}
+              ref={editorRef}
+            />}
+        {(currentPost.linkPreview || fetchLinkPreviewPending) && (
+          <LinkPreview
+            loading={fetchLinkPreviewPending}
+            linkPreview={currentPost.linkPreview}
+            featured={currentPost.linkPreviewFeatured}
+            onFeatured={handleFeatureLinkPreview}
+            onClose={handleRemoveLinkPreview}
+          />
+        )}
+        <AttachmentManager
+          type='post'
+          id={currentPost.id}
+          attachmentType='image'
+          showAddButton
+          showLabel
+          showLoading
+        />
+        <AttachmentManager
+          type='post'
+          id={currentPost.id}
+          attachmentType='file'
+          showAddButton
+          showLabel
+          showLoading
+        />
+      </div>
+      {currentPost.type === 'project' && (
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>{t('Project Members')}</div>
+          <div className={styles.sectionGroups}>
+            <MemberSelector
+              initialMembers={currentPost.members || []}
+              onChange={handleUpdateProjectMembers}
+              forGroups={currentPost.groups}
+              readOnly={loading}
             />
           </div>
         </div>
+      )}
+      {/* <div className={styles.section}>
+        <div className={styles.sectionLabel}>{t('Topics')}</div>
+        <div className={styles.sectionTopics}>
+          <TopicSelector
+            forGroups={currentPost?.groups || [currentGroup]}
+            selectedTopics={currentPost.topics}
+            onChange={handleTopicSelectorOnChange}
+          />
+        </div>
+      </div> */}
+      <div className={cn('PostEditorPublic', styles.section)}>
         <PublicToggle
           togglePublic={togglePublic}
           isPublic={!!currentPost.isPublic}
         />
-        {currentPost.type === 'proposal' && currentPost.proposalOptions.length === 0 && (
-          <div className={styles.footerSection}>
-            <div className={styles.footerSectionLabel}>{t('Proposal template')}</div>
-
-            <div className={styles.inputContainer}>
-              <Dropdown
-                className={styles.dropdown}
-                toggleChildren={
-                  <span className={styles.dropdownLabel}>
-                    {t('Select pre-set')}
-                    <Icon name='ArrowDown' blue />
-                  </span>
-                }
-                items={[
-                  { label: t(PROPOSAL_YESNO), onClick: () => handleUseTemplate(PROPOSAL_YESNO) },
-                  { label: t(PROPOSAL_POLL_SINGLE), onClick: () => handleUseTemplate(PROPOSAL_POLL_SINGLE) },
-                  { label: t(PROPOSAL_MULTIPLE_CHOICE), onClick: () => handleUseTemplate(PROPOSAL_MULTIPLE_CHOICE) },
-                  { label: t(PROPOSAL_ADVICE), onClick: () => handleUseTemplate(PROPOSAL_ADVICE) },
-                  { label: t(PROPOSAL_CONSENT), onClick: () => handleUseTemplate(PROPOSAL_CONSENT) },
-                  { label: t(PROPOSAL_CONSENSUS), onClick: () => handleUseTemplate(PROPOSAL_CONSENSUS) },
-                  { label: t(PROPOSAL_GRADIENT), onClick: () => handleUseTemplate(PROPOSAL_GRADIENT) }
-                ]}
-              />
-            </div>
-          </div>
-        )}
-        {currentPost.type === 'proposal' && currentPost.proposalOptions && (
-          <div className={styles.footerSection}>
-            <div className={styles.footerSectionLabel}>
-              {t('Proposal options')}*
-            </div>
-            <div className={styles.optionsContainer}>
-              {currentPost.proposalOptions.map((option, index) => (
-                <div className={styles.proposalOption} key={index}>
-                  {/* emojiPicker dropdown */}
-                  <Dropdown
-                    className={styles.optionDropdown}
-                    toggleChildren={
-                      <span className={cn(styles.optionDropdownLabel, styles.dropdownLabel)}>
-                        {option.emoji || t('Emoji')}
-                        <Icon name='ArrowDown' blue className={cn(styles.optionDropdownIcon, styles.blue)} />
-                      </span>
-                    }
-                  >
-                    <div className={styles.emojiGrid}>
-                      {emojiOptions.map((emoji, i) => (
-                        <div
-                          key={i}
-                          className={styles.emojiOption}
-                          onClick={() => {
-                            const newOptions = [...currentPost.proposalOptions]
-                            newOptions[index].emoji = emoji
-                            setCurrentPost({ ...currentPost, proposalOptions: newOptions })
-                          }}
-                        >
-                          {emoji}
-                        </div>
-                      ))}
-                    </div>
-                  </Dropdown>
-                  <input
-                    type='text'
-                    className={styles.optionTextInput}
-                    placeholder={t('Describe option')}
-                    value={option.text}
-                    onChange={(evt) => {
-                      const newOptions = [...currentPost.proposalOptions]
-                      newOptions[index].text = evt.target.value
-                      setCurrentPost({ ...currentPost, proposalOptions: newOptions })
-                    }}
-                    disabled={loading}
-                  />
-                  <Icon
-                    name='Ex'
-                    className={styles.icon}
-                    onClick={() => {
-                      const newOptions = currentPost.proposalOptions.filter(element => {
-                        if (option.id) return element.id !== option.id
-                        return element.tempId !== option.tempId
-                      })
-
-                      setCurrentPost({ ...currentPost, proposalOptions: newOptions })
-                      setValid(isValid({ proposalOptions: newOptions }))
-                    }}
-                  />
-                </div>
-              ))}
-              <div className={styles.proposalOption} onClick={() => handleAddOption()}>
-                <Icon name='Plus' className={styles.iconPlus} blue />
-                <span className={styles.optionText}>{t('Add an option to vote on...')}</span>
-              </div>
-              {currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
-                <div className={cn(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
-                  <Icon name='Hand' className={styles.iconPlus} />
-                  <span className={styles.optionText}>{t('If you save changes to options, all votes will be discarded')}</span>
-                </div>
-              )}
-              {currentPost.proposalOptions.length === 0 && (
-                <div className={cn(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
-                  <Icon name='Hand' className={styles.iconPlus} />
-                  <span className={styles.optionText}>{t('Proposals require at least one option')}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        {currentPost.type === 'proposal' && (
-          <div className={styles.footerSection}>
-            <div className={styles.footerSectionLabel}>{t('Voting method')}</div>
-
-            <div className={styles.inputContainer}>
-              <Dropdown
-                className={styles.dropdown}
-                toggleChildren={
-                  <span className={styles.dropdownLabel}>
-                    {currentPost.votingMethod === VOTING_METHOD_SINGLE ? t('Single vote per person') : t('Multiple votes allowed')}
-                    <Icon name='ArrowDown' blue />
-                  </span>
-                }
-                items={[
-                  { label: t('Single vote per person'), onClick: () => handleSetProposalType(VOTING_METHOD_SINGLE) },
-                  { label: t('Multiple votes allowed'), onClick: () => handleSetProposalType(VOTING_METHOD_MULTI_UNRESTRICTED) }
-                ]}
-              />
-            </div>
-          </div>
-        )}
-        {currentPost.type === 'proposal' && (
-          <div className={styles.footerSection}>
-            <div className={styles.footerSectionLabel}>{t('Quorum')} <Icon name='Info' className={cn(styles.quorumTooltip)} data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
-            <SliderInput percentage={currentPost.quorum || 0} setPercentage={handleSetQuorum} />
-            <ReactTooltip
-              backgroundColor='rgba(35, 65, 91, 1.0)'
-              effect='solid'
-              delayShow={0}
-              id='quorum-tt'
-            />
-          </div>
-        )}
-        {currentPost.type === 'proposal' && (
-          <AnonymousVoteToggle
-            isAnonymousVote={!!currentPost.isAnonymousVote}
-            toggleAnonymousVote={toggleAnonymousVote}
-          />
-        )}
-        {/* {isProposal && (
-          <StrictProposalToggle
-            isStrictProposal={!!currentPost.isStrictProposal}
-            toggleStrictProposal={toggleStrictProposal}
-          />
-        )} */}
-        {canHaveTimes && (
-          <div className={styles.footerSection}>
-            <div className={styles.footerSectionLabel}>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-            <div className={styles.datePickerModule}>
-              <DateTimePicker
-                hourCycle={12}
-                granularity='minute'
-                value={currentPost.startTime}
-                placeholder={t('Select Start')}
-                onChange={handleStartTimeChange}
-              />
-              <div className={styles.footerSectionHelper}>{t('To')}</div>
-              <DateTimePicker
-                ref={endTimeRef}
-                hourCycle={12}
-                granularity='minute'
-                value={currentPost.endTime}
-                placeholder={t('Select End')}
-                onChange={handleEndTimeChange}
-              />
-            </div>
-          </div>
-        )}
-        {canHaveTimes && dateError && (
-          <span className={styles.datepickerError}>
-            {t('End Time must be after Start Time')}
-          </span>
-        )}
-        {hasLocation && (
-          <div className={styles.footerSection}>
-            <div className={cn(styles.footerSectionLabel, styles.alignedLabel)}>{t('Location')}</div>
-            <LocationInput
-              saveLocationToDB
-              locationObject={currentPost.locationObject}
-              location={postLocation}
-              onChange={handleLocationChange}
-              placeholder={locationPrompt}
-            />
-          </div>
-        )}
-        {currentPost.type === 'event' && (
-          <div className={styles.footerSection}>
-            <div className={styles.footerSectionLabel}>{t('Invite People')}</div>
-            <div className={styles.footerSectionGroups}>
-              <MemberSelector
-                initialMembers={currentPost.eventInvitations || []}
-                onChange={handleUpdateEventInvitations}
-                forGroups={currentPost.groups}
-                readOnly={loading}
-              />
-            </div>
-          </div>
-        )}
-        {currentPost.type === 'project' && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
-          <div className={styles.footerSection}>
-            <div className={styles.footerSectionLabel}>{t('Accept Contributions')}</div>
-            {hasStripeAccount && (
-              <div
-                className={cn(styles.footerSectionGroups, styles.acceptContributions)}
-              >
-                <Switch
-                  value={currentPost.acceptContributions}
-                  onClick={handleToggleContributions}
-                  className={styles.acceptContributionsSwitch}
-                />
-                {!currentPost.acceptContributions && (
-                  <div className={styles.acceptContributionsHelp}>
-                    {t(`If you turn 'Accept Contributions' on, people will be able
-                    to send money to your Stripe connected account to support
-                    this project.`)}
-                  </div>
-                )}
-              </div>
-            )}
-            {!hasStripeAccount && (
-              <div
-                className={cn(
-                  styles.footerSectionGroups,
-                  styles.acceptContributionsHelp
-                )}
-              >
-                {t(`To accept financial contributions for this project, you have
-                to connect a Stripe account. Go to`)}
-                <a href='/settings/payment'>{t('Settings')}</a>{' '}{t('to set it up.')}
-                {t('(Remember to save your changes before leaving this form)')}
-              </div>
-            )}
-          </div>
-        )}
-        {currentPost.type === 'project' && (
-          <div className={styles.footerSection}>
-            <div className={cn(styles.footerSectionLabel, { [styles.warning]: !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
-            <div className={styles.footerSectionGroups}>
-              <input
-                type='text'
-                className={styles.textInput}
-                placeholder={t('Add a donation link (must be valid URL)')}
-                value={currentPost.donationsLink || ''}
-                onChange={handleDonationsLinkChange}
-                disabled={loading}
-              />
-            </div>
-          </div>
-        )}
-        {currentPost.type === 'project' && (
-          <div className={styles.footerSection}>
-            <div className={cn(styles.footerSectionLabel, { [styles.warning]: !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
-            <div className={styles.footerSectionGroups}>
-              <input
-                type='text'
-                className={styles.textInput}
-                placeholder={t('Add a project management link (must be valid URL)')}
-                value={currentPost.projectManagementLink || ''}
-                onChange={handleProjectManagementLinkChange}
-                disabled={loading}
-              />
-            </div>
-          </div>
-        )}
-        <ActionsBar
-          id={currentPost.id}
-          addAttachment={addAttachment}
-          showImages={showImages}
-          showFiles={showFiles}
-          valid={valid}
-          loading={loading}
-          submitButtonLabel={buttonLabel()}
-          save={() => {
-            if (currentPost.type === 'proposal' && isEditing && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions)) {
-              if (window.confirm(t('Changing proposal options will reset the votes. Are you sure you want to continue?'))) {
-                save()
+      </div>
+      {currentPost.type === 'proposal' && currentPost.proposalOptions.length === 0 && (
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>{t('Proposal template')}</div>
+          <div className={styles.inputContainer}>
+            <Dropdown
+              className={styles.dropdown}
+              toggleChildren={
+                <span className={styles.dropdownLabel}>
+                  {t('Select pre-set')}
+                  <Icon name='ArrowDown' blue />
+                </span>
               }
-            } else {
-              save()
-            }
-          }}
-          setAnnouncementSelected={setAnnouncementSelected}
-          announcementSelected={announcementSelected}
-          canMakeAnnouncement={canMakeAnnouncement()}
-          toggleAnnouncementModal={toggleAnnouncementModal}
-          showAnnouncementModal={showAnnouncementModal}
-          groupCount={get('groups', currentPost).length}
-          myAdminGroups={myAdminGroups}
-          groups={currentPost.groups}
-          invalidPostWarning={invalidPostWarning}
-          t={t}
-        />
-      </div>
-    </div>
-  )
-}
+              items={[
+                { label: t(PROPOSAL_YESNO), onClick: () => handleUseTemplate(PROPOSAL_YESNO) },
+                { label: t(PROPOSAL_POLL_SINGLE), onClick: () => handleUseTemplate(PROPOSAL_POLL_SINGLE) },
+                { label: t(PROPOSAL_MULTIPLE_CHOICE), onClick: () => handleUseTemplate(PROPOSAL_MULTIPLE_CHOICE) },
+                { label: t(PROPOSAL_ADVICE), onClick: () => handleUseTemplate(PROPOSAL_ADVICE) },
+                { label: t(PROPOSAL_CONSENT), onClick: () => handleUseTemplate(PROPOSAL_CONSENT) },
+                { label: t(PROPOSAL_CONSENSUS), onClick: () => handleUseTemplate(PROPOSAL_CONSENSUS) },
+                { label: t(PROPOSAL_GRADIENT), onClick: () => handleUseTemplate(PROPOSAL_GRADIENT) }
+              ]}
+            />
+          </div>
+        </div>
+      )}
+      {currentPost.type === 'proposal' && currentPost.proposalOptions && (
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>
+            {t('Proposal options')}*
+          </div>
+          <div className={styles.optionsContainer}>
+            {currentPost.proposalOptions.map((option, index) => (
+              <div className={styles.proposalOption} key={index}>
+                {/* emojiPicker dropdown */}
+                <Dropdown
+                  className={styles.optionDropdown}
+                  toggleChildren={
+                    <span className={cn(styles.optionDropdownLabel, styles.dropdownLabel)}>
+                      {option.emoji || t('Emoji')}
+                      <Icon name='ArrowDown' blue className={cn(styles.optionDropdownIcon, styles.blue)} />
+                    </span>
+                  }
+                >
+                  <div className={styles.emojiGrid}>
+                    {emojiOptions.map((emoji, i) => (
+                      <div
+                        key={i}
+                        className={styles.emojiOption}
+                        onClick={() => {
+                          const newOptions = [...currentPost.proposalOptions]
+                          newOptions[index].emoji = emoji
+                          setCurrentPost({ ...currentPost, proposalOptions: newOptions })
+                        }}
+                      >
+                        {emoji}
+                      </div>
+                    ))}
+                  </div>
+                </Dropdown>
+                <input
+                  type='text'
+                  className={styles.optionTextInput}
+                  placeholder={t('Describe option')}
+                  value={option.text}
+                  onChange={(evt) => {
+                    const newOptions = [...currentPost.proposalOptions]
+                    newOptions[index].text = evt.target.value
+                    setCurrentPost({ ...currentPost, proposalOptions: newOptions })
+                  }}
+                  disabled={loading}
+                />
+                <Icon
+                  name='Ex'
+                  className={styles.icon}
+                  onClick={() => {
+                    const newOptions = currentPost.proposalOptions.filter(element => {
+                      if (option.id) return element.id !== option.id
+                      return element.tempId !== option.tempId
+                    })
 
-export function ActionsBar ({
-  id,
-  addAttachment,
-  showImages,
-  showFiles,
-  valid,
-  loading,
-  submitButtonLabel,
-  save,
-  setAnnouncementSelected,
-  announcementSelected,
-  toggleAnnouncementModal,
-  showAnnouncementModal,
-  groupCount,
-  canMakeAnnouncement,
-  myAdminGroups,
-  groups,
-  invalidPostWarning,
-  t
-}) {
-  const dispatch = useDispatch()
-  return (
-    <div className={styles.actionsBar}>
-      <div className={styles.actions}>
-        <UploadAttachmentButton
-          type='post'
-          id={id}
-          attachmentType='image'
-          onSuccess={(attachment) => dispatch(addAttachment('post', id, attachment))}
-          allowMultiple
-          disable={showImages}
-        >
-          <Icon
-            name='AddImage'
-            className={cn(styles.actionIcon, { [styles.highlightIcon]: showImages })}
-            dataTestId='add-image-icon'
-          />
-        </UploadAttachmentButton>
-        <UploadAttachmentButton
-          type='post'
-          id={id}
-          attachmentType='file'
-          onSuccess={(attachment) => dispatch(addAttachment('post', id, attachment))}
-          allowMultiple
-          disable={showFiles}
-        >
-          <Icon
-            name='Paperclip'
-            className={cn(styles.actionIcon, { [styles.highlightIcon]: showFiles })}
-            dataTestId='add-file-icon'
-          />
-        </UploadAttachmentButton>
-        {canMakeAnnouncement && (
-          <span data-tooltip-content='Send Announcement' data-tooltip-id='announcement-tt'>
-            <Icon
-              dataTestId='announcement-icon'
-              name='Announcement'
-              onClick={() => setAnnouncementSelected(!announcementSelected)}
-              className={cn(styles.actionIcon, {
-                [styles.highlightIcon]: announcementSelected
-              })}
+                    setCurrentPost({ ...currentPost, proposalOptions: newOptions })
+                    setValid(isValid({ proposalOptions: newOptions }))
+                  }}
+                />
+              </div>
+            ))}
+            <div className={styles.proposalOption} onClick={() => handleAddOption()}>
+              <Icon name='Plus' className={styles.iconPlus} blue />
+              <span className={styles.optionText}>{t('Add an option to vote on...')}</span>
+            </div>
+            {currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
+              <div className={cn(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
+                <Icon name='Hand' className={styles.iconPlus} />
+                <span className={styles.optionText}>{t('If you save changes to options, all votes will be discarded')}</span>
+              </div>
+            )}
+            {currentPost.proposalOptions.length === 0 && (
+              <div className={cn(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
+                <Icon name='Hand' className={styles.iconPlus} />
+                <span className={styles.optionText}>{t('Proposals require at least one option')}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {currentPost.type === 'proposal' && (
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>{t('Voting method')}</div>
+
+          <div className={styles.inputContainer}>
+            <Dropdown
+              className={styles.dropdown}
+              toggleChildren={
+                <span className={styles.dropdownLabel}>
+                  {currentPost.votingMethod === VOTING_METHOD_SINGLE ? t('Single vote per person') : t('Multiple votes allowed')}
+                  <Icon name='ArrowDown' blue />
+                </span>
+              }
+              items={[
+                { label: t('Single vote per person'), onClick: () => handleSetProposalType(VOTING_METHOD_SINGLE) },
+                { label: t('Multiple votes allowed'), onClick: () => handleSetProposalType(VOTING_METHOD_MULTI_UNRESTRICTED) }
+              ]}
             />
-            <ReactTooltip
-              effect='solid'
-              delayShow={550}
-              id='announcement-tt'
-            />
-          </span>
-        )}
-        {showAnnouncementModal && (
-          <SendAnnouncementModal
-            closeModal={toggleAnnouncementModal}
-            save={save}
-            groupCount={groupCount}
-            myAdminGroups={myAdminGroups}
-            groups={groups}
+          </div>
+        </div>
+      )}
+      {currentPost.type === 'proposal' && (
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>{t('Quorum')} <Icon name='Info' className={cn(styles.quorumTooltip)} data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
+          <SliderInput percentage={currentPost.quorum || 0} setPercentage={handleSetQuorum} />
+          <ReactTooltip
+            backgroundColor='rgba(35, 65, 91, 1.0)'
+            effect='solid'
+            delayShow={0}
+            id='quorum-tt'
           />
-        )}
-      </div>
-      <Button
-        onClick={announcementSelected ? toggleAnnouncementModal : save}
-        disabled={!valid || loading}
-        className={styles.postButton}
-        label={submitButtonLabel}
-        color='green'
-        dataTip={!valid ? invalidPostWarning : ''}
-        dataFor='submit-tt'
-      />
-      <Tooltip
-        delay={150}
-        position='bottom'
-        id='submit-tt'
+        </div>
+      )}
+      {currentPost.type === 'proposal' && (
+        <AnonymousVoteToggle
+          isAnonymousVote={!!currentPost.isAnonymousVote}
+          toggleAnonymousVote={toggleAnonymousVote}
+        />
+      )}
+      {/* {isProposal && (
+        <StrictProposalToggle
+          isStrictProposal={!!currentPost.isStrictProposal}
+          toggleStrictProposal={toggleStrictProposal}
+        />
+      )} */}
+      {canHaveTimes && (
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+          <div className={styles.datePickerModule}>
+            <DateTimePicker
+              hourCycle={12}
+              granularity='minute'
+              value={currentPost.startTime}
+              placeholder={t('Select Start')}
+              onChange={handleStartTimeChange}
+            />
+            <div className={styles.sectionHelper}>{t('To')}</div>
+            <DateTimePicker
+              ref={endTimeRef}
+              hourCycle={12}
+              granularity='minute'
+              value={currentPost.endTime}
+              placeholder={t('Select End')}
+              onChange={handleEndTimeChange}
+            />
+          </div>
+        </div>
+      )}
+      {canHaveTimes && dateError && (
+        <span className={styles.datepickerError}>
+          {t('End Time must be after Start Time')}
+        </span>
+      )}
+      {showLocation && (
+        <div className={styles.section}>
+          <div className={cn(styles.sectionLabel, styles.alignedLabel)}>{t('Location')}</div>
+          <LocationInput
+            saveLocationToDB
+            locationObject={currentPost.locationObject}
+            location={postLocation}
+            onChange={handleLocationChange}
+            placeholder={locationPrompt}
+          />
+        </div>
+      )}
+      {currentPost.type === 'event' && (
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>{t('Invite People')}</div>
+          <div className={styles.sectionGroups}>
+            <MemberSelector
+              initialMembers={currentPost.eventInvitations || []}
+              onChange={handleUpdateEventInvitations}
+              forGroups={currentPost.groups}
+              readOnly={loading}
+            />
+          </div>
+        </div>
+      )}
+      {currentPost.type === 'project' && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>{t('Accept Contributions')}</div>
+          {hasStripeAccount && (
+            <div
+              className={cn(styles.sectionGroups, styles.acceptContributions)}
+            >
+              <Switch
+                value={currentPost.acceptContributions}
+                onClick={handleToggleContributions}
+                className={styles.acceptContributionsSwitch}
+              />
+              {!currentPost.acceptContributions && (
+                <div className={styles.acceptContributionsHelp}>
+                  {t(`If you turn 'Accept Contributions' on, people will be able
+                  to send money to your Stripe connected account to support
+                  this project.`)}
+                </div>
+              )}
+            </div>
+          )}
+          {!hasStripeAccount && (
+            <div
+              className={cn(
+                styles.sectionGroups,
+                styles.acceptContributionsHelp
+              )}
+            >
+              {t(`To accept financial contributions for this project, you have
+              to connect a Stripe account. Go to`)}
+              <a href='/settings/payment'>{t('Settings')}</a>{' '}{t('to set it up.')}
+              {t('(Remember to save your changes before leaving this form)')}
+            </div>
+          )}
+        </div>
+      )}
+      {currentPost.type === 'project' && (
+        <div className={styles.section}>
+          <div className={cn(styles.sectionLabel, { [styles.warning]: !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
+          <div className={styles.sectionGroups}>
+            <input
+              type='text'
+              className={styles.textInput}
+              placeholder={t('Add a donation link (must be valid URL)')}
+              value={currentPost.donationsLink || ''}
+              onChange={handledonationsLinkChange}
+              disabled={loading}
+            />
+          </div>
+        </div>
+      )}
+      {currentPost.type === 'project' && (
+        <div className={styles.section}>
+          <div className={cn(styles.sectionLabel, { [styles.warning]: !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
+          <div className={styles.sectionGroups}>
+            <input
+              type='text'
+              className={styles.textInput}
+              placeholder={t('Add a project management link (must be valid URL)')}
+              value={currentPost.projectManagementLink || ''}
+              onChange={handleProjectManagementLinkChange}
+              disabled={loading}
+            />
+          </div>
+        </div>
+      )}
+      <ActionsBar
+        id={currentPost.id}
+        addAttachment={addAttachment}
+        announcementSelected={announcementSelected}
+        canMakeAnnouncement={canMakeAnnouncement()}
+        groupCount={get('groups', currentPost).length}
+        groups={currentPost.groups}
+        invalidPostWarning={invalidPostWarning}
+        loading={loading}
+        myAdminGroups={myAdminGroups}
+        save={doSave}
+        setAnnouncementSelected={setAnnouncementSelected}
+        setShowLocation={setShowLocation}
+        showAnnouncementModal={showAnnouncementModal}
+        showFiles={showFiles}
+        showImages={showImages}
+        showLocation={showLocation}
+        submitButtonLabel={buttonLabel()}
+        toggleAnnouncementModal={toggleAnnouncementModal}
+        valid={valid}
       />
     </div>
   )

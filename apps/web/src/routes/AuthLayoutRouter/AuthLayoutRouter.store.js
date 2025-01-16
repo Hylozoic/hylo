@@ -26,7 +26,7 @@ export default function reducer (state = initialState, action) {
   }
 
   if (action.type === TOGGLE_NAV_MENU) {
-    return { ...state, isNavOpen: !state.isNavOpen }
+    return { ...state, isNavOpen: action.value !== undefined ? action.value : !state.isNavOpen }
   }
 
   if (action.type === LOCATION_CHANGE) {
@@ -56,9 +56,10 @@ export function toggleDrawer () {
   }
 }
 
-export function toggleNavMenu () {
+export function toggleNavMenu (value) {
   return {
-    type: TOGGLE_NAV_MENU
+    type: TOGGLE_NAV_MENU,
+    value
   }
 }
 

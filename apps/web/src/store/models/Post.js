@@ -22,6 +22,8 @@ export const PROPOSAL_STATUS_VOTING = 'voting'
 export const PROPOSAL_STATUS_CASUAL = 'casual'
 export const PROPOSAL_STATUS_COMPLETED = 'completed'
 
+export const POST_TYPES_SHOW_LOCATION_BY_DEFAULT = ['request', 'offer', 'resource', 'project', 'event']
+
 export class PostFollower extends Model {}
 PostFollower.modelName = 'PostFollower'
 PostFollower.fields = {

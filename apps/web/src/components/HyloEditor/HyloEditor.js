@@ -70,6 +70,7 @@ const HyloEditor = React.forwardRef(({
     Placeholder.configure({ placeholder }),
 
     Link.extend({
+      inclusive: false, // Link doesnt extend as you keep typing text
       // This expands concatenated links back to full href for editing
       parseHTML () {
         return [
