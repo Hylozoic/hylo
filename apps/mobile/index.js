@@ -75,6 +75,14 @@ enableScreens()
 // FastImage.clearDiskCache()
 // FastImage.clearMemoryCache()
 
+// URQL debug (WIP)
+// const { unsubscribe } = client.subscribeToDebugTarget(event => {
+//   if (event.source === 'cacheExchange') {
+//     return
+//   }
+//   console.log(event) // { type, message, operation, data, source, timestamp }
+// })
+
 export default function App () {
   const [appState, setAppState] = useState(AppState.currentState)
 
