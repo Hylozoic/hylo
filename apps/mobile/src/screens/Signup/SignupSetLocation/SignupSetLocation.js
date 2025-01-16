@@ -12,7 +12,6 @@ import updateUserSettings from 'store/actions/updateUserSettings'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Button from 'components/Button'
 import SettingControl from 'components/SettingControl'
-import LocationPicker from 'screens/LocationPicker/LocationPicker'
 import styles from './SignupSetLocation.styles'
 
 export default function SignupSetLocation ({ navigation }) {
@@ -21,7 +20,7 @@ export default function SignupSetLocation ({ navigation }) {
   const [currentUser] = useCurrentUser()
   const [location, setLocation] = useState(currentUser?.location)
   const [locationId, setLocationId] = useState(currentUser?.locationId)
-  const [currentLocation, getLocation] = useCurrentLocation()
+  const [{ currentLocation }, getLocation] = useCurrentLocation()
   const controlRef = useRef()
 
   useEffect(() => { getLocation() }, [])
@@ -44,17 +43,18 @@ export default function SignupSetLocation ({ navigation }) {
     await dispatch(checkLogin())
   }
 
+  // TODO: ItemSelectorModal
   const showLocationPicker = locationText => {
-    LocationPicker({
-      navigation,
-      currentLocation,
-      initialSearchTerm: locationText,
-      onPick: pickedLocation => {
-        setLocation(pickedLocation?.fullText)
-        pickedLocation?.id !== 'NEW' && setLocationId(pickedLocation?.id)
-      },
-      t
-    })
+    // LocationPicker({
+    //   navigation,
+    //   currentLocation,
+    //   initialSearchTerm: locationText,
+    //   onPick: pickedLocation => {
+    //     setLocation(pickedLocation?.fullText)
+    //     pickedLocation?.id !== 'NEW' && setLocationId(pickedLocation?.id)
+    //   },
+    //   t
+    // })
   }
 
   return (

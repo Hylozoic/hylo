@@ -7,7 +7,6 @@ import returnToOnAuthPath from './returnToOnAuthPathReducer'
 import resetStore from './resetStore'
 import { handleSetState, composeReducers } from './util'
 // Local store
-import ItemChooser from 'screens/ItemChooser/ItemChooser.store'
 import MessageInput from 'components/MessageInput/MessageInput.store'
 import PeopleTyping from 'components/PeopleTyping/PeopleTyping.store'
 import SocketListener from 'components/SocketListener/SocketListener.store'
@@ -22,7 +21,6 @@ export const createCombinedReducers = () => combineReducers({
   mixpanel,
   returnToOnAuthPath,
   // Local store (Component)
-  ItemChooser,
   MessageInput,
   PeopleTyping,
   SocketListener,

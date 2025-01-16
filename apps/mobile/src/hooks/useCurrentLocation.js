@@ -1,13 +1,9 @@
 import { useState } from 'react'
-import {
-  Alert, Linking, Platform,
-  PermissionsAndroid, ToastAndroid
-} from 'react-native'
+import { Alert, Linking, Platform, PermissionsAndroid, ToastAndroid } from 'react-native'
 import Geolocation from 'react-native-geolocation-service'
 
-// TODO: WIP -- has not been used or tested yet
 export default function useCurrentLocation () {
-  // BEGIN react-native-geolocation-service sample code
+  const [loading, setLoading] = useState(false)
   const [forceLocation, setForceLocation] = useState(true)
   const [highAccuracy, setHighAccuracy] = useState(true)
   const [locationDialog, setLocationDialog] = useState(true)
@@ -86,19 +82,23 @@ export default function useCurrentLocation () {
   }
 
   const getLocation = async () => {
+    setLoading(true)
     const hasPermission = await hasLocationPermission()
 
     if (!hasPermission) {
+      setLoading(false)
       return
     }
 
     Geolocation.getCurrentPosition(
       (position) => {
         setCurrentLocation(position)
+        setLoading(false)
       },
       (error) => {
         Alert.alert(`Code ${error.code}`, error.message)
         setCurrentLocation(null)
+        setLoading(false)
         console.log(error)
       },
       {
@@ -117,5 +117,5 @@ export default function useCurrentLocation () {
     )
   }
 
-  return [currentLocation, getLocation]
+  return [{ currentLocation, fetching: loading }, getLocation]
 }

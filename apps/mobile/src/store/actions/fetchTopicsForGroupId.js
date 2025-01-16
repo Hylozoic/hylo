@@ -1,4 +1,5 @@
-import { FETCH_TOPICS_FOR_GROUP_ID } from '../constants'
+import { FETCH_TOPICS_FOR_GROUP_ID } from 'store/constants'
+import topicsForGroupIdQuery from 'graphql/queries/topicsForGroupIdQuery'
 
 // TODO make this work for all groups & multiple specific groups
 export default function fetchTopicsForGroupId (groupId) {
@@ -6,20 +7,7 @@ export default function fetchTopicsForGroupId (groupId) {
     return {
       type: FETCH_TOPICS_FOR_GROUP_ID,
       graphql: {
-        query: `query ($searchTerm: String, $groupId: ID) {
-          group(id: $groupId) {
-            groupTopics(autocomplete: $searchTerm, first: 20) {
-              items {
-                topic {
-                  id
-                  followersTotal
-                  name
-                  postsTotal
-                }
-              }
-            }
-          }
-        }`,
+        query: topicsForGroupIdQuery,
         variables: {
           searchTerm,
           groupId

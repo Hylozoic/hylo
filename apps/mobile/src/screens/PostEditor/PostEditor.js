@@ -26,23 +26,22 @@ import createPostMutation from 'graphql/mutations/createPostMutation'
 import createProjectMutation from 'graphql/mutations/createProjectMutation'
 import updatePostMutation from 'graphql/mutations/updatePostMutation'
 import uploadAction from 'store/actions/upload'
-import { pollingFindOrCreateLocation as providedPollingFindOrCreateLocation } from 'screens/LocationPicker/LocationPicker.store'
+import {
+  pollingFindOrCreateLocation as providedPollingFindOrCreateLocation
+} from 'components/LocationSelectorModal/LocationSelectorModalItemRow'
 import postQuery from 'graphql/queries/postQuery'
 import PostPresenter from 'urql-shared/presenters/PostPresenter'
 // Components
 import DatePickerWithLabel from './DatePickerWithLabel'
 import TypeSelector from './TypeSelector'
-import LocationPicker from 'screens/LocationPicker/LocationPicker'
-// TODO: Convert all 3 of the below to LocationPicker style calls
-// ProjectMembers Chooser
-import scopedFetchPeopleAutocomplete from 'store/actions/scopedFetchPeopleAutocomplete'
-import scopedGetPeopleAutocomplete from 'store/selectors/scopedGetPeopleAutocomplete'
-// Topics Picker
-import fetchTopicsForGroupId from 'store/actions/fetchTopicsForGroupId'
-import getTopicsForAutocompleteWithNew from 'store/selectors/getTopicsForAutocompleteWithNew'
+import ItemSelectorModal from 'components/ItemSelectorModal'
+import LocationSelectorModal from 'components/LocationSelectorModal'
 import TopicRow from 'screens/TopicList/TopicRow'
-// Group Chooser
-import GroupChooserItemRow from 'screens/ItemChooser/GroupChooserItemRow'
+// ProjectMembers Chooser
+import peopleAutocompleteQuery from 'graphql/queries/peopleAutocompleteQuery'
+// Topics Picker
+import topicsForGroupIdQuery from 'graphql/queries/topicsForGroupIdQuery'
+// import getTopicsForAutocompleteWithNew from 'store/selectors/getTopicsForAutocompleteWithNew'
 import GroupsList from 'components/GroupsList'
 import Button from 'components/Button'
 import FileSelector, { showFilePicker as fileSelectorShowFilePicker } from './FileSelector'
@@ -50,7 +49,6 @@ import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
 import ImagePicker from 'components/ImagePicker'
 import ImageSelector from './ImageSelector'
-import ItemChooserItemRow from 'screens/ItemChooser/ItemChooserItemRow'
 import Loading from 'components/Loading'
 import ProjectMembersSummary from 'components/ProjectMembersSummary'
 import Topics from 'components/Topics'
@@ -112,16 +110,15 @@ export default function PostEditor (props) {
     images: [],
     files: [],
     postMemberships: []
-
   })
   const canAdminister = hasResponsibility(RESP_ADMINISTRATION, {
     groupIds: post?.groups?.map(group => group.id)
   })
 
-  const updatePost = useCallback(postUpdates => setPost(p => {
-    p.announcement = !canAdminister && p.announcement
-    return PostPresenter(({ ...p, ...postUpdates }))
-  }), [canAdminister])
+  const updatePost = useCallback(postUpdates => setPost(prevPost => {
+    prevPost.announcement = !canAdminister && prevPost.announcement
+    return PostPresenter(({ ...prevPost, ...postUpdates }))
+  }), [setPost, canAdminister])
 
   // Actions
   const [, createNewPost] = useMutation(createPostMutation)
@@ -150,6 +147,22 @@ export default function PostEditor (props) {
   const [topicsPicked, setTopicsPicked] = useState(false)
   const [filePickerPending, setFilePickerPending] = useState(false)
 
+  const handleShowFilePicker = async () => {
+    setFilePickerPending(true)
+    await fileSelectorShowFilePicker({
+      upload,
+      type: 'post',
+      id: post?.id,
+      onAdd: attachment => handleAddAttachment('file', attachment),
+      onError: (errorMessage, attachment) => {
+        setFilePickerPending(true)
+        handleAttachmentUploadError('file', errorMessage, attachment)
+      },
+      onComplete: () => setFilePickerPending(false),
+      onCancel: () => setFilePickerPending(false)
+    })
+  }
+
   useEffect(() => {
     if (selectedPostData?.post) {
       setPost(PostPresenter(selectedPostData.post))
@@ -169,7 +182,7 @@ export default function PostEditor (props) {
           lng: parseFloat(mapCoordinate.lng),
         }
       }
-      pollingFindOrCreateLocation(locationObject, handlePickLocation)
+      pollingFindOrCreateLocation(locationObject, handleUpdateLocation)
     }
 
     const removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
@@ -286,6 +299,33 @@ export default function PostEditor (props) {
     })
   }, [isValid, isSaving, post])
 
+  const handleTogglePublicPost = () => {
+    updatePost({ isPublic: !post.isPublic })
+  }
+
+  const handleToggleAnnouncement = () => {
+    updatePost({ announcement: !post.announcement })
+  }
+
+  const handleAddGroup = group => {
+    updatePost({
+      groups: uniqBy(c => c.id, [...post.groups, group])
+    })
+  }
+
+  const handleRemoveGroup = groupSlug => {
+    updatePost({
+      groups: post.groups.filter(group => group.slug !== groupSlug)
+    })
+  }
+
+  const handleUpdateLocation = locationObject => {
+    updatePost({
+      location: locationObject.fullText,
+      locationObject: locationObject?.id !== 'NEW' ? locationObject : null
+    })
+  }
+
   const handleAddTopic = (providedTopic, picked) => {
     const ignoreHash = name => name[0] === '#' ? name.slice(1) : name
     const topic = { ...providedTopic, name: ignoreHash(providedTopic.name) }
@@ -301,17 +341,12 @@ export default function PostEditor (props) {
     setTopicsPicked(true)
   }
 
-  const handlePickLocation = locationObject => updatePost({
-    location: locationObject.fullText,
-    locationObject: locationObject?.id !== 'NEW' ? locationObject : null
-  })
-
-  const handleAddGroup = group => {
-    updatePost({ groups: uniqBy(c => c.id, [...post.groups, group]) })
-  }
-
-  const handleRemoveGroup = groupSlug => {
-    updatePost({ groups: post.groups.filter(group => group.slug !== groupSlug) })
+  const handleAddMember = member => {
+    updatePost({
+      members: {
+        items: [...(post?.members?.items || []), member]
+      }
+    })
   }
 
   const handleAddAttachment = (type, attachment) => {
@@ -331,75 +366,12 @@ export default function PostEditor (props) {
     Alert.alert(errorMessage)
   }
 
-  const handleTogglePublicPost = () => updatePost({ isPublic: !post.isPublic })
+  const groupSelectorModalRef = useRef(null)
+  const topicSelectorModalRef = useRef(null)
+  const locationSelectorModalRef = useRef(null)
+  const projectMembersSelectorModalRef = useRef(null)
 
-  const handleToggleAnnouncement = () => updatePost({ announcement: !post.announcement })
-
-  const handleShowProjectMembersEditor = () => {
-    const screenTitle = t('Project Members')
-    navigation.navigate('ItemChooser', {
-      screenTitle,
-      searchPlaceholder: t('Type in the names of people to add to project'),
-      ItemRowComponent: ItemChooserItemRow,
-      initialItems: post.members,
-      updateItems: members => updatePost({ members }),
-      fetchSearchSuggestions: scopedFetchPeopleAutocomplete,
-      getSearchSuggestions: scopedGetPeopleAutocomplete(screenTitle)
-    })
-  }
-
-  const handleShowTopicsPicker = () => {
-    const screenTitle = t('Pick a Topic')
-    navigation.navigate('ItemChooser', {
-      screenTitle,
-      searchPlaceholder: t('Search for a topic by name'),
-      ItemRowComponent: TopicRow,
-      pickItem: topic => { handleAddTopic(topic, true) },
-      // FIX: Will only find topics for first group
-      fetchSearchSuggestions: fetchTopicsForGroupId(get('[0].id', post.groups)),
-      getSearchSuggestions: getTopicsForAutocompleteWithNew
-    })
-  }
-
-  const handleShowGroupsEditor = () => {
-    const screenTitle = t('Post in Groups')
-    navigation.navigate('ItemChooser', {
-      screenTitle,
-      searchPlaceholder: t('Search for group by name'),
-      defaultSuggestedItemsLabel: t('Your Groups'),
-      defaultSuggestedItems: groupOptions,
-      ItemRowComponent: GroupChooserItemRow,
-      pickItem: handleAddGroup,
-      fetchSearchSuggestions: () => ({ type: 'none' }),
-      getSearchSuggestions: (_, { autocomplete: searchTerm }) =>
-        groupOptions.filter(c => c.name.toLowerCase().match(searchTerm?.toLowerCase()))
-    })
-  }
-
-  const handleShowLocationPicker = () => {
-    LocationPicker({
-      navigation,
-      initialSearchTerm: post?.location,
-      onPick: handlePickLocation,
-      t
-    })
-  }
-
-  const handleShowFilePicker = async () => {
-    setFilePickerPending(true)
-    await fileSelectorShowFilePicker({
-      upload,
-      type: 'post',
-      id: post?.id,
-      onAdd: attachment => handleAddAttachment('file', attachment),
-      onError: (errorMessage, attachment) => {
-        setFilePickerPending(true)
-        handleAttachmentUploadError('file', errorMessage, attachment)
-      },
-      onComplete: () => setFilePickerPending(false),
-      onCancel: () => setFilePickerPending(false)
-    })
-  }
+  console.log('!!!! post.members.items', post?.members)
 
   const renderForm = () => {
     t('Create a post')
@@ -454,17 +426,27 @@ export default function PostEditor (props) {
 
           <TouchableOpacity
             style={[styles.pressSelectionSection, styles.topics]}
-            onPress={handleShowTopicsPicker}
+            onPress={() => topicSelectorModalRef.current.show()}
           >
             <View style={styles.pressSelection}>
               <Text style={styles.pressSelectionLeftText}>{t('Topics')}</Text>
               <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
             </View>
+            <ItemSelectorModal
+              ref={topicSelectorModalRef}
+              title={t('Pick a Topic')}
+              onItemPress={topic => handleAddTopic(topic, true)}
+              searchPlaceholder={t('Search for a topic by name')}
+              renderItem={TopicRow}
+              // // Note: Only finds topics for first group
+              // fetchSearchSuggestions: fetchTopicsForGroupId(get('[0].id', post.groups)),
+              // getSearchSuggestions: getTopicsForAutocompleteWithNew
+            />
             <Topics
               style={styles.pressSelectionValue}
               pillStyle={styles.topicPillStyle}
               textStyle={styles.topicTextStyle}
-              onPress={handleShowTopicsPicker}
+              onPress={() => topicSelectorModalRef.current.show()}
               onPressRemove={handleRemoveTopic}
               topics={post.topics}
             />
@@ -477,12 +459,35 @@ export default function PostEditor (props) {
           )}
 
           {post.type === 'project' && (
-            <TouchableOpacity style={styles.pressSelectionSection} onPress={handleShowProjectMembersEditor}>
+            <TouchableOpacity style={styles.pressSelectionSection} onPress={() => projectMembersSelectorModalRef?.current.show()}>
               <View style={styles.pressSelection}>
                 <Text style={styles.pressSelectionLeftText}>{t('Project Members')}</Text>
                 <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
               </View>
-              {post.members.length > 0 && <ProjectMembersSummary style={styles.pressSelectionValue} members={post.members} />}
+              <ItemSelectorModal
+                ref={projectMembersSelectorModalRef}
+                itemsUseQueryArgs={({ searchTerm }) => ({
+                  query: peopleAutocompleteQuery,
+                  variables: { autocomplete: searchTerm }
+                })}
+                itemsUseQuerySelector={data => data?.people?.items}
+                title={t('Project Members')}
+                searchPlaceholder={t('Type in the names of people to add to project')}
+                chooser
+                chosenItems={post?.members?.items || []}
+                // onItemPress={handleAddMember}
+                onClose={chosenItems => {
+                  console.log('!!! chosenItems', chosenItems)
+                  chosenItems && updatePost({ members: { items: chosenItems } })
+                }}
+              />
+              {post.members.items.length > 0 && (
+                <ProjectMembersSummary
+                  style={styles.pressSelectionValue}
+                  members={post.members.items}
+                  onPress={() => projectMembersSelectorModalRef?.current.show()}
+                />
+              )}
             </TouchableOpacity>
           )}
 
@@ -493,7 +498,7 @@ export default function PostEditor (props) {
                 label={t('Start Time')}
                 date={post.startTime}
                 minimumDate={new Date()}
-                onSelect={startTime => updatePost({ startTime: startTime })}
+                onSelect={startTime => updatePost({ startTime })}
               />
               <DatePickerWithLabel
                 style={styles.pressSelectionSection}
@@ -507,31 +512,27 @@ export default function PostEditor (props) {
           )}
 
           <TouchableOpacity
-            style={[styles.pressSelectionSection, styles.topics]}
-            onPress={handleShowLocationPicker}
-          >
-            <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeftText}>{t('Location')}</Text>
-              <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View>
-            </View>
-            {(post.location || post.locationObject) && (
-              <Text style={styles.pressSelectionValue}>{post.location || post.locationObject.fullText}</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
             style={styles.pressSelectionSection}
-            onPress={handleShowGroupsEditor}
+            onPress={() => groupSelectorModalRef.current.show()}
           >
             <View style={styles.pressSelection}>
               <Text style={styles.pressSelectionLeftText}>{t('Post In')}</Text>
               <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
             </View>
+            <ItemSelectorModal
+              ref={groupSelectorModalRef}
+              title={t('Post in Groups')}
+              items={groupOptions}
+              itemsFilter={(item, searchTerm) => searchTerm ? item.name.toLowerCase().match(searchTerm?.toLowerCase()) : item}
+              chosenItems={post.groups}
+              onItemPress={handleAddGroup}
+              searchPlaceholder={t('Search for group by name')}
+            />
             <GroupsList
               style={[styles.pressSelectionValue]}
               groups={post.groups}
               columns={1}
-              onPress={handleShowGroupsEditor}
+              onPress={() => groupSelectorModalRef.current.show()}
               onRemove={handleRemoveGroup}
               RemoveIcon={() => (
                 <Icon name='Ex' style={styles.groupRemoveIcon} />
@@ -541,10 +542,15 @@ export default function PostEditor (props) {
 
           <TouchableOpacity
             style={[styles.pressSelectionSection, styles.topics]}
-            onPress={handleShowLocationPicker}
+            onPress={() => locationSelectorModalRef.current.show()}
           >
+            <LocationSelectorModal
+              ref={locationSelectorModalRef}
+              onItemPress={handleUpdateLocation}
+              searchTerm={post?.location}
+            />
             <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeft}>{t('Location')}</Text>
+              <Text style={styles.pressSelectionLeftText}>{t('Location')}</Text>
               <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View>
             </View>
             {(post.location || post.locationObject) && (

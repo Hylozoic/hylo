@@ -13,11 +13,14 @@ import {
   addUserTyping,
   clearUserTyping
 } from 'components/PeopleTyping/PeopleTyping.store'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
+// import getCurrentGroup from 'store/selectors/getCurrentGroup'
+
+// TODO: URQL - convert sockets
 
 export function mapStateToProps (state, props) {
   return {
-    group: getCurrentGroup(state, props)
+    // group: getCurrentGroup(state, props)
+    group: null
   }
 }
 

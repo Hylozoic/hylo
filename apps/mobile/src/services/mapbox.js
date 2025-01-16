@@ -1,21 +1,39 @@
 import Config from 'react-native-config'
 
 const MAPBOX_GEOCODING_API_URL = 'https://api.tiles.mapbox.com/geocoding/v5/mapbox.places'
+const DEFAULT_PROXIMITY = '0,0' // Default to coordinates (longitude, latitude)
 
 export async function fetchMapboxLocations (searchTerm, {
-  proximity,
+  proximity = DEFAULT_PROXIMITY,
   bbox = '',
   types = ''
 } = {}) {
-  const uri = MAPBOX_GEOCODING_API_URL +
-    '/' +
-    encodeURIComponent(searchTerm) +
-    '.json?access_token=' +
-    Config.MAPBOX_TOKEN +
-    // used to center map, send the existing location you're editing or current location
-    (proximity ? '&proximity=' + proximity : '') +
-    (bbox ? '&bbox=' + bbox : '') +
-    (types ? '&types=' + encodeURIComponent(types) : '')
+  let uri
+
+  if (searchTerm) {
+    // Forward Geocoding
+    uri = MAPBOX_GEOCODING_API_URL +
+      '/' +
+      encodeURIComponent(searchTerm) +
+      '.json?access_token=' +
+      Config.MAPBOX_TOKEN +
+      (proximity ? '&proximity=' + proximity : '') +
+      (bbox ? '&bbox=' + bbox : '') +
+      (types ? '&types=' + encodeURIComponent(types) : '')
+  } else {
+    // Reverse Geocoding
+    if (proximity === DEFAULT_PROXIMITY) {
+      console.warn(`No proximity provided. Defaulting to ${DEFAULT_PROXIMITY} (longitude, latitude).`)
+    }
+
+    const [lng, lat] = proximity.split(',')
+    uri = MAPBOX_GEOCODING_API_URL +
+      '/' +
+      encodeURIComponent(`${lng},${lat}`) +
+      '.json?access_token=' +
+      Config.MAPBOX_TOKEN +
+      (types ? '&types=' + encodeURIComponent(types) : '')
+  }
 
   const response = await fetch(uri, {
     method: 'GET',

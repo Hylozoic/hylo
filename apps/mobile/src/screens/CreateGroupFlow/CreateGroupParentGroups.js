@@ -3,8 +3,6 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useFocusEffect } from '@react-navigation/native'
 import { Text, TouchableOpacity, FlatList } from 'react-native'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-// NOTE: Make a local copy of this if modification is needed
-import ItemChooserItemRow from 'screens/ItemChooser/ItemChooserItemRow'
 import { white } from 'style/colors'
 import { GROUP_ACCESSIBILITY } from 'urql-shared/presenters/GroupPresenter'
 import { getGroupData, updateGroupData } from './CreateGroupFlow.store'
@@ -42,13 +40,14 @@ export default function CreateGroupParentGroups ({ navigation }) {
     <KeyboardFriendlyView style={styles.container}>
       <Text style={styles.heading}>{t('Is this group a member of other groups?')}</Text>
       <Text style={stepStyles.subHeading}>{t('Please select below:')}</Text>
-      <FlatList
+      {/* TODO: ItemSelectorModal  */}
+      {/* <FlatList
         style={stepStyles.parentGroupListContainer}
         data={parentGroupOptions}
         renderItem={({ item }) => (
           <ItemChooserItemRow item={item} chosen={isChosen(item)} toggleChosen={toggleChosen} />
         )}
-      />
+      /> */}
       <TouchableOpacity onPress={clear}>
         <Text style={stepStyles.clearButton}>{t('Clear')}</Text>
       </TouchableOpacity>

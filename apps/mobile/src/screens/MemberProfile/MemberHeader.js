@@ -9,7 +9,6 @@ import Icon from 'components/Icon'
 import PopupMenuButton from 'components/PopupMenuButton'
 import { filter, get, isEmpty } from 'lodash/fp'
 import { AXOLOTL_ID } from 'urql-shared/presenters/PersonPresenter'
-import LocationPicker from 'screens/LocationPicker/LocationPicker'
 import Control from 'screens/MemberProfile/Control'
 import { openURL } from 'hooks/useOpenURL'
 import { useNavigation } from '@react-navigation/native'
@@ -39,16 +38,17 @@ export default function MemberHeader ({
   const { name, tagline } = person
   const locationText = get('location', person) || get('locationObject.fullText', person)
   const isAxolotl = AXOLOTL_ID === get('id', person)
+  // TODO: ItemSelectorModal
   const showLocationPicker = () => {
-    LocationPicker({
-      navigation,
-      initialSearchTerm: locationText,
-      onPick: location => {
-        updateSetting('location', location?.fullText)
-        updateSetting('locationId', location?.id)
-      },
-      t
-    })
+    // LocationPicker({
+    //   navigation,
+    //   initialSearchTerm: locationText,
+    //   onPick: location => {
+    //     updateSetting('location', location?.fullText)
+    //     updateSetting('locationId', location?.id)
+    //   },
+    //   t
+    // })
   }
 
   const handleBlockUserWithConfirmation = () => {
