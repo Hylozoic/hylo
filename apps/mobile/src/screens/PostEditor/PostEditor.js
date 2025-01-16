@@ -262,42 +262,41 @@ export default function PostEditor (props) {
     }
   }, [post, detailsEditorRef])
 
-  useEffect(() => {
-    navigation.setOptions({
-      headerShown: true,
-      header: () => {
-        const headerRightButtonLabel = isSaving
-          ? t('Saving-ellipsis')
-          : editingPost
-            ? t('Save')
-            : t('Post')
+  const header = useMemo(() => {
+    const headerRightButtonLabel = isSaving
+      ? t('Saving-ellipsis')
+      : editingPost
+        ? t('Save')
+        : t('Post')
 
-        return (
-          <View style={styles.headerContainer}>
-            <View style={styles.header}>
-              <HeaderLeftCloseIcon
-                style={styles.headerCloseIcon}
-                color={rhino30}
-                onPress={() => navigation.goBack()}
-              />
-              <TypeSelector
-                disabled={isSaving || post.type === 'proposal'}
-                onValueChange={type => updatePost({ type })}
-                placeholder={{}}
-                value={post?.type || 'discussion'}
-              />
-              <Button
-                style={styles.headerSaveButton}
-                disabled={isSaving || !isValid}
-                onPress={handleSave}
-                text={headerRightButtonLabel}
-              />
-            </View>
-          </View>
-        )
-      }
-    })
-  }, [isValid, isSaving, post])
+    return () => (
+      <View style={styles.headerContainer}>
+        <View style={styles.header}>
+          <HeaderLeftCloseIcon
+            style={styles.headerCloseIcon}
+            color={rhino30}
+            onPress={() => navigation.goBack()}
+          />
+          <TypeSelector
+            disabled={isSaving || post.type === 'proposal'}
+            onValueChange={type => updatePost({ type })}
+            placeholder={{}}
+            value={post?.type || 'discussion'}
+          />
+          <Button
+            style={styles.headerSaveButton}
+            disabled={isSaving || !isValid}
+            onPress={handleSave}
+            text={headerRightButtonLabel}
+          />
+        </View>
+      </View>
+    )
+  }, [isValid, isSaving, post?.type])
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: true, header })
+  }, [header])
 
   const handleTogglePublicPost = () => {
     updatePost({ isPublic: !post.isPublic })
@@ -371,17 +370,7 @@ export default function PostEditor (props) {
   const locationSelectorModalRef = useRef(null)
   const projectMembersSelectorModalRef = useRef(null)
 
-  console.log('!!!! post.members.items', post?.members)
-
   const renderForm = () => {
-    t('Create a post')
-    t('What are you looking for help with?')
-    t('What help can you offer?')
-    t('What resource is available?')
-    t('What would you like to call your project?')
-    t('What is your proposal?')
-    t('What is your event called?')
-
     return (
       <View style={styles.formContainer}>
 
