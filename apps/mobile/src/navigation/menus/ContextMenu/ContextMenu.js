@@ -64,12 +64,12 @@ function ContextMenuItem({ widget, groupSlug, rootPath }) {
   return (
     <View className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem]'>
       { widget.view && (
-        <View className='flex justify-between items-center content-center'>
-          {/* add title and the ability to navigate from here */}
-        </View>
+        <TouchableOpacity onPress={()=>{}} className='flex-row justify-between items-center content-center'>
+          <Text className='text-sm font-semibold text-foreground'>{title}</Text>
+        </TouchableOpacity>
       )}
       { !widget.view && (
-        <View className='flex justify-between items-center content-center'>
+        <View className='flex-row justify-between items-center content-center'>
           <Text className='text-sm font-semibold text-foreground'>{title}</Text>
         </View>
       )}
@@ -90,17 +90,18 @@ function ListItemRenderer({ item, rootPath, groupSlug }) {
 
   const handlePress = () => {
     if (itemUrl) {
-      linkTo(itemUrl)
+      // linkTo(itemUrl)
     }
   }
 
   return (
     <TouchableOpacity 
+      key={item.id + itemTitle}
       onPress={handlePress}
-      className="flex-row items-center py-2 gap-4"
+      className="flex-row items-center ml-8 h-12 py-2 gap-2 content-center border-b border-foreground/20"
     >
-      <WidgetIconResolver widget={item} className="mr-2" />
-      <Text className="text-sm text-primary">{itemTitle}</Text>
+      <View className='w-5'><WidgetIconResolver widget={item} className="mr-2" /></View>
+      <Text className="text-sm text-primary-accent">{itemTitle}</Text>
     </TouchableOpacity>
   )
 }
@@ -193,7 +194,7 @@ export default function ContextMenu() {
   const { myHome } = useRouteParams()
   const contextWidgets = getContextWidgetsForGroup(currentGroup)
   const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets, currentGroup, myHome])
-  console.log(currentGroupSlug, 'currentGroupSlugsssss')
+
   if (!currentGroup || myHome) return null
 
   return (

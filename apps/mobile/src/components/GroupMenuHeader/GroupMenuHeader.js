@@ -58,9 +58,9 @@ export default function GroupMenuHeader ({ group }) {
         <FastImage
           source={{ uri: avatarUrl }}
           style={{
-            height: 24,
-            width: 24,
-            marginRight: 8,
+            height: 36,
+            width: 36,
+            marginRight: 6,
             borderRadius: 4
           }}
         />

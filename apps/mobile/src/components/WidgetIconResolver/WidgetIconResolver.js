@@ -43,24 +43,24 @@ export function WidgetIconResolver({ widget, style, className }) {
   }
 
   if (ViewHelpers.COMMON_VIEWS[type]) {
-    return <Icon name={ViewHelpers.COMMON_VIEWS[type].icon} style={style} />
+    return <Icon name={ViewHelpers.COMMON_VIEWS[type].icon} style={style} className={className} />
   }
 
   switch (type) {
     case 'chats':
-      return <Icon name='Message' style={style} />
+      return <Icon name='Message' style={style} className={className} />
     case 'setup':
-      return <Icon name='Settings' style={style} />
+      return <Icon name='Settings' style={style} className={className} />
     case 'custom-views':
-      return <Icon name='Stack' style={style} />
+      return <Icon name='Stack' style={style} className={className} />
     case 'viewChat':
-      return <Icon name='Message' style={style} />
+      return <Icon name='Message' style={style} className={className} />
     case 'chat':
-      return <Icon name='Message' style={style} />
+      return <Icon name='Message' style={style} className={className} />
     case 'viewPost':
-      return <Icon name='Posticon' style={style} />
+      return <Icon name='Posticon' style={style} className={className} />
     case 'about':
-      return <Icon name='Info' style={style} />
+      return <Icon name='Info' style={style} className={className} />
   }
   return null
 }
