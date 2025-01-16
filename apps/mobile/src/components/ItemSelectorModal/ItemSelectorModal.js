@@ -1,12 +1,11 @@
 import React, { useEffect, useState, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react'
 import { View, Modal, FlatList, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { useTranslation } from 'react-i18next'
 import { useQuery } from 'urql'
 import { isEmpty, isFunction, debounce } from 'lodash/fp'
 import getFirstRootField from 'urql-shared/getFirstRootFieldFromData'
 import SearchBar from 'components/SearchBar'
 import RoundCheckbox from 'components/RoundCheckBox'
-import { havelockBlue, rhino80, rhino50, white, caribbeanGreen } from 'style/colors'
+import { havelockBlue, rhino80, rhino50, white, caribbeanGreen, rhino20, rhino10 } from 'style/colors'
 import Avatar from 'components/Avatar'
 
 const ItemSelectorModalHeader = ({
@@ -18,7 +17,6 @@ const ItemSelectorModalHeader = ({
   onFocus,
   loading
 }) => {
-  const { t } = useTranslation()
   const clearSearchTerm = () => setSearchTerm()
 
   if (!setSearchTerm) return null
@@ -245,7 +243,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd'
+    borderBottomColor: rhino10
 },
   itemAvatar: {
     marginRight: 12
@@ -253,12 +251,6 @@ const styles = StyleSheet.create({
   itemName: {
     fontFamily: 'Circular-Bold',
     flex: 1
-  },
-  checkbox: {
-    marginLeft: 'auto',
-    width: 50,
-    alignItems: 'center',
-    justifyContent: 'flex-start'
   },
 
   // from old ItemChooser
