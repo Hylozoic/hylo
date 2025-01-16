@@ -480,7 +480,7 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
     }
     if (!defaultPopupValue) {
       newDay.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
-      onChange?.(newDay)
+      (onMonthChange || onChange)?.(newDay)
       setMonth(newDay)
       return
     }
@@ -488,7 +488,7 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
     const diffInDays = diff / (1000 * 60 * 60 * 24)
     const newDateFull = add(defaultPopupValue, { days: Math.ceil(diffInDays) })
     newDateFull.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
-    onMonthChange?.(newDateFull)
+    (onMonthChange || onChange)?.(newDateFull)
     setMonth(newDateFull)
   }
   const onSelect = (newDay) => {
