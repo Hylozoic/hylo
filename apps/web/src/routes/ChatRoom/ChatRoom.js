@@ -560,7 +560,7 @@ const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
   return (
     <div className={cn(styles.displayDay, '!absolute top-0')}>
-      <div className={cn('bg-background', styles.day)}>{firstItem?.createdAt ? DateTime.fromJSDate(firstItem.createdAt).toRelativeCalendar({unit: 'days'}) : ''}</div>
+      <div className={cn('bg-background', styles.day)}>{firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt).toRelativeCalendar({unit: 'days'}) : ''}</div>
     </div>
   )
 }
@@ -568,9 +568,9 @@ const StickyHeader = ({ data, prevData }) => {
 const ItemContent = ({ data: post, context, prevData, nextData }) => {
   const expanded = context.selectedPostId === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
-  const previousDay = prevData?.createdAt ? DateTime.fromJSDate(prevData.createdAt) : DateTime.now()
-  const currentDay = DateTime.fromJSDate(post.createdAt)
-  const displayDay = previousDay.hasSame(currentDay, 'day') ? null : currentDay.toRelativeCalendar(null, {unit: 'days'})
+  const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
+  const currentDay = DateTime.fromISO(post.createdAt)
+  const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : currentDay.toRelativeCalendar({unit: 'days'})
   const createdTimeDiff = Math.abs(currentDay.diff(previousDay, 'minutes'))
 
   /* Display the author header if
