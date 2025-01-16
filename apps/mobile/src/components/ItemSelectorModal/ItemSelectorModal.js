@@ -60,7 +60,7 @@ export const DefaultItem = ({ item, onPress, chooser, chosen, toggleChosen }) =>
       {chooser && (
         <RoundCheckbox
           style={styles.checkbox}
-          checked={chosen || false}
+          checked={!!chosen || false}
           backgroundColor={caribbeanGreen}
           onValueChange={() => toggleChosen(item)}
         />
