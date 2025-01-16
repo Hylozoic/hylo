@@ -170,18 +170,18 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   } = contentDropDownItems.find(contentItem => contentItem.id === currentTabState)
 
   return (
-    <div className='h-full overflow-auto' ref={setContainer}>
-      <div className={cn(styles.memberProfile, { [styles.isSingleColumn]: isSingleColumn })}>
+    <div className='h-full overflow-auto flex flex-col items-center' ref={setContainer}>
+      <div className={cn('w-full', styles.memberProfile, { [styles.isSingleColumn]: isSingleColumn })}>
         <Helmet>
           <title>{person.name} | Hylo</title>
           <meta name='description' content={`${person.name}: ${t('Member Profile')}`} />
         </Helmet>
-        <div className={styles.header}>
+        <div className='flex flex-col items-center w-full'>
           {isCurrentUser &&
             <Button className={styles.editProfileButton} onClick={() => push(currentUserSettingsUrl())}>
               <Icon name='Edit' /> {t('Edit Profile')}
             </Button>}
-          <div className={styles.headerBanner} style={bgImageStyle(person.bannerUrl)}>
+          <div className={'w-full h-[40vh] flex flex-col items-center items-end justify-end pb-10'} style={bgImageStyle(person.bannerUrl)}>
             <RoundImage className={styles.headerMemberAvatar} url={person.avatarUrl} xlarge />
             <h1 className={styles.headerMemberName}>{person.name}</h1>
             <div className={styles.badgeRow}>
@@ -200,24 +200,25 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             <ActionButtons items={actionButtonsItems} />
             <ActionDropdown items={actionDropdownItems} />
           </div>
-          {person.tagline && <div className={styles.tagline}>{person.tagline}</div>}
-          {person.bio && (
-            <div className={styles.bio}>
-              <ClickCatcher>
-                <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
-              </ClickCatcher>
-            </div>
-          )}
-          <div className={styles.memberDetails}>
-            <div className={styles.profileSubhead}>
+          {(person.tagline || person.bio) && <div className='flex items-center flex-col'>
+              {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}
+              {person.bio && (
+                <div className={cn('text-foreground text-center max-w-[720px]')}>
+                  <ClickCatcher>
+                    <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
+                  </ClickCatcher>
+                </div>
+              )}
+          </div>}
+          <div className='flex flex-col max-w-[720px]'>
+            <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>
               {t('Skills & Interests')}
             </div>
             <SkillsSection personId={personId} editable={false} t={t} />
-            <div className={styles.profileSubhead}>
+            <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>
               {t('What I\'m Learning')}
             </div>
             <SkillsToLearnSection personId={personId} editable={false} t={t} />
-
             {memberships && memberships.length > 0 && <div className={styles.profileSubhead}>{t('Hylo Groups')}</div>}
             <div
               ref={groupsRef}
@@ -229,12 +230,12 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
               {memberships && memberships.length > 0 && memberships.map((m, index) => <Membership key={m.id} index={index} membership={m} />)}
             </div>
             {showExpandGroupsButton && (
-              <button onClick={toggleShowAllGroups} className={styles.showMoreButton}>
+              <button onClick={toggleShowAllGroups} className={'text-sm font-bold mt-4 mb-2 text-center w-full block'}>
                 {showAllGroups ? 'Show Less' : 'Show More'}
               </button>
             )}
 
-            {affiliations && affiliations.length > 0 && <div className={styles.profileSubhead}>{t('Other Affiliations')}</div>}
+            {affiliations && affiliations.length > 0 && <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center w-full block'>{t('Other Affiliations')}</div>}
             {affiliations && affiliations.length > 0 && affiliations.map((a, index) => <Affiliation key={a.id} index={index} affiliation={a} />)}
 
             {events && events.length > 0 && <div className={styles.profileSubhead}>{t('Upcoming Events')}</div>}
@@ -244,7 +245,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             {projects && projects.length > 0 && projects.map((p, index) => <Project key={index} memberCap={3} project={p} routeParams={routeParams} showDetails={showDetails} />)}
           </div>
         </div>
-        <div className={styles.content}>
+        <div className='flex flex-col align-items-center max-w-[720px]'>
           <div className={styles.contentControls}>
             <h2 className={styles.contentHeader}>{currentContentTitle}</h2>
             <Dropdown
@@ -302,7 +303,7 @@ function ActionButtons ({ items }) {
       <React.Fragment key={index}>
         <Icon
           key={index}
-          className={styles.actionIconButton}
+          className='text-foreground bg-background w-[50px] h-[50px] flex items-center justify-center rounded-full cursor-pointer mx-2'
           name={iconName}
           onClick={onClick}
           {...tooltipProps}

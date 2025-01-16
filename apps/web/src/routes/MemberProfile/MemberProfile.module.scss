@@ -218,18 +218,10 @@
 
 .tagline {
   @include column-margins();
-  composes: hdr-headline from 'css/typography.scss';
   color: $color-rhino-60;
   text-align: center;
   margin-bottom: $space-6x;
 }
-
-.bio {
-  @include column-margins();
-  composes: bdy-lt-lg from 'css/typography.scss';
-  margin-bottom: $space-6x;
-}
-
 // MEMBER DETAILS
 
 .member-details {
@@ -242,8 +234,6 @@
 }
 
 .bio {
-  composes: bdy-lt-lg from 'css/typography.scss';
-  margin-bottom: $space-5x;
 }
 
 .profile-subhead {
