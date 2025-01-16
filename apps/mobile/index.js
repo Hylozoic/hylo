@@ -2,8 +2,6 @@ import 'react-native-gesture-handler'
 import { enableScreens } from 'react-native-screens'
 import React, { useEffect, useState } from 'react'
 import Config from 'react-native-config'
-// Required for react-native-root-toast
-import { RootSiblingParent } from 'react-native-root-siblings'
 import { Provider as UrqlProvider } from 'urql'
 import { Provider } from 'react-redux'
 import { AppRegistry, Platform, AppState, UIManager, LogBox } from 'react-native'
@@ -112,26 +110,24 @@ export default function App () {
     <SafeAreaProvider>
       <ErrorBoundary>
         <ActionSheetProvider>
-          <RootSiblingParent>
-            {/*
-              `TRenderEngineProvider` is the react-native-render-html rendering engine.
-              It is app-wide for performance reasons. The styles applied are global and
-              not readily overridden. For more details see: https://bit.ly/3MeJCIR
-            */}
-            <TRenderEngineProvider
-              baseStyle={baseStyle}
-              tagsStyles={tagsStyles}
-              classesStyles={classesStyles}
-              systemFonts={[...defaultSystemFonts, 'Circular-Book']}
-            >
-              <Provider store={store}>
-                <UrqlProvider value={client}>
-                  <VersionCheck />
-                  <RootNavigator />
-                </UrqlProvider>
-              </Provider>
-            </TRenderEngineProvider>
-          </RootSiblingParent>
+          {/*
+            `TRenderEngineProvider` is the react-native-render-html rendering engine.
+            It is app-wide for performance reasons. The styles applied are global and
+            not readily overridden. For more details see: https://bit.ly/3MeJCIR
+          */}
+          <TRenderEngineProvider
+            baseStyle={baseStyle}
+            tagsStyles={tagsStyles}
+            classesStyles={classesStyles}
+            systemFonts={[...defaultSystemFonts, 'Circular-Book']}
+          >
+            <Provider store={store}>
+              <UrqlProvider value={client}>
+                <VersionCheck />
+                <RootNavigator />
+              </UrqlProvider>
+            </Provider>
+          </TRenderEngineProvider>
         </ActionSheetProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
