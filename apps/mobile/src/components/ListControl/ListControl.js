@@ -1,10 +1,10 @@
 import { Text, TouchableOpacity } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { find } from 'lodash/fp'
 import { isIOS } from 'util/platform'
 import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import Icon from 'components/Icon'
 import { rhino } from 'style/colors'
-import { useTranslation } from 'react-i18next'
 
 export default function ListControl ({ selected, options, onChange }) {
   const { t } = useTranslation()

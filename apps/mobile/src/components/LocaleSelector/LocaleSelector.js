@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useMutation } from 'urql'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import useCurrentUser from 'hooks/useCurrentUser'
 import { white80onCaribbeanGreen } from 'style/colors'
 import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
-import { useMutation } from 'urql'
 
 const LocaleSelector = ({ small, dark }) => {
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)

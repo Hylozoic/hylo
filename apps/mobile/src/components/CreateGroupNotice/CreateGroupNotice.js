@@ -1,8 +1,8 @@
 import React from 'react'
 import { View, Text, Image } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import Button from 'components/Button'
 import styles from './CreateGroupNotice.styles'
-import { useTranslation } from 'react-i18next'
 
 const axolotlImage = require('assets/hey-axolotl.png')
 
