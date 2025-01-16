@@ -143,8 +143,6 @@ export default function PostCard (props) {
               constrained={constrained}
               currentUser={currentUser}
               isFlagged={isFlagged}
-              onAddReaction={onAddReaction}
-              onRemoveReaction={onRemoveReaction}
               highlightProps={highlightProps}
               mapDrawer={mapDrawer}
             />
@@ -160,9 +158,11 @@ export default function PostCard (props) {
         </div> */}
         <PostFooter
           {...post}
-          onClick={onClick}
           constrained={constrained}
           currentUser={currentUser}
+          onClick={onClick}
+          onAddReaction={onAddReaction}
+          onRemoveReaction={onRemoveReaction}
           postId={post.id}
         />
       </div>

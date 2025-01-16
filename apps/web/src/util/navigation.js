@@ -42,6 +42,8 @@ export function baseUrl ({
 
   if (safeMemberId) {
     return personUrl(safeMemberId, groupSlug)
+  } else if (view === 'chat' && topicName) {
+    return chatUrl(topicName, { context, groupSlug })
   } else if (topicName) {
     return topicUrl(topicName, { context, groupSlug })
   } else if (view) {
@@ -166,8 +168,8 @@ export function topicUrl (topicName, opts) {
   return `${topicsUrl(opts)}/${topicName}`
 }
 
-export function chatUrl (chatName, opts) {
-  return `${baseUrl({ ...opts, view: 'chat' })}/${chatName}`
+export function chatUrl (chatName, { context, groupSlug }) {
+  return `${baseUrl({ context, groupSlug })}/chat/${chatName}`
 }
 
 export function customViewUrl (customViewId, rootPath, opts) {

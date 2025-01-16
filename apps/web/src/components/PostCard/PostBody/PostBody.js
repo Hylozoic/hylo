@@ -5,7 +5,6 @@ import { useDispatch } from 'react-redux'
 import PostTitle from '../PostTitle'
 import PostContent from '../PostContent'
 import PostBodyProposal from '../PostBodyProposal'
-import EmojiRow from 'components/EmojiRow'
 import { recordClickthrough } from 'store/actions/moderationActions'
 
 import classes from './PostBody.module.scss'
@@ -21,8 +20,6 @@ export default function PostBody (props) {
     isFlagged,
     mapDrawer = false,
     onClick,
-    onAddReaction = () => {},
-    onRemoveReaction = () => {},
     ...post
   } = props
   const dispatch = useDispatch()
@@ -56,14 +53,6 @@ export default function PostBody (props) {
         />
       </div>
       {post.type === 'proposal' && !mapDrawer && <PostBodyProposal {...post} isFlagged={isFlagged && !post.clickthrough} currentUser={currentUser} />}
-      <div className={classes.reactions}>
-        <EmojiRow
-          post={post}
-          currentUser={currentUser}
-          onAddReaction={onAddReaction}
-          onRemoveReaction={onRemoveReaction}
-        />
-      </div>
     </div>
   )
 }

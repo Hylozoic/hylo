@@ -11,7 +11,7 @@ export default function MenuLink ({ to, children, onClick, externalLink, classNa
     if (onClick) {
       onClick()
     }
-    dispatch(toggleNavMenu())
+    dispatch(toggleNavMenu(false))
   }, [onClick])
 
   if (externalLink) {

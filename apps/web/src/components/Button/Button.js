@@ -7,7 +7,7 @@ const { string, bool, func, object, oneOfType, node } = PropTypes
 
 export default function Button ({
   active,
-  borderRadius = '25px',
+  borderRadius = 'auto',
   children,
   className,
   color = 'green',

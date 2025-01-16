@@ -1,11 +1,7 @@
 @use "sass:color";
 
 .button {
-  height: 39px;
-  line-height: 39px;
   min-width: max-content;
-  padding: 0px 40px;
-  display: inline-block;
   cursor: pointer;
   user-select: none;
 
@@ -33,8 +29,6 @@
 }
 
 .green {
-  border: 1px solid $color-caribbean-green;
-  background-color: $color-caribbean-green;
   color: $color-white;
   @media (hover: hover) and (pointer: fine) {
     &:hover, &.hover {

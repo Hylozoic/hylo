@@ -91,14 +91,13 @@ UploadAttachmentButton.propTypes = {
   type: PropTypes.string.isRequired,
   id: PropTypes.string,
   attachmentType: PropTypes.string, // for useFilestackLibrary
-  onSuccess: PropTypes.func.isRequired,
+  onInitialUpload: PropTypes.func,
+  onSuccess: PropTypes.func,
   onError: PropTypes.func,
   customRender: PropTypes.func,
   allowMultiple: PropTypes.bool,
   disable: PropTypes.bool,
-  // provided by connector
-  loading: PropTypes.bool,
-  uploadAttachment: PropTypes.func.isRequired
+  loading: PropTypes.bool
 }
 
 function UploadButton ({

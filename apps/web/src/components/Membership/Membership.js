@@ -25,14 +25,14 @@ export default function Membership ({ membership, index, archive, rowStyle }) {
   }
 
   return (
-    <div className={cn(classes.membership, { [classes.even]: index % 2 === 0, [classes.odd]: index % 2 !== 0, [classes.rowStyle]: rowStyle })}>
-      <Button className={classes.group} color='green-white'>
-        <Link to={groupUrl(group.slug)}>
+    <div className={cn({ [classes.even]: index % 2 === 0, [classes.odd]: index % 2 !== 0, [classes.rowStyle]: rowStyle })}>
+      <Button className='rounded-lg bg-black/10 flex transition-all text-foreground items-center align-center px-5 h-[40px] mx-2'>
+        <Link to={groupUrl(group.slug)} className='text-foreground flex space-x-2'>
           <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} small />
-          {group.name}
+          <div>{group.name}</div>
         </Link>
 
-        <div className={classes.roles}>
+        <div className={cn('ml-2 opacity-20', classes.roles)}>
           {roles.map(role => (
             <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={membership.id} />
           ))}

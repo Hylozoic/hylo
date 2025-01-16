@@ -11,7 +11,7 @@
   /* Placeholder (at the top) */
   .ProseMirror p.is-editor-empty:first-child::before {
     // Matches placeholder text in `PostEditor`
-    color: var(--text-foreground);
+    color: hsl(var(--foreground) / .5);
     content: attr(data-placeholder);
     float: left;
     height: 0;
@@ -52,36 +52,12 @@
 
 .topMenuBar,
 .bottomMenuBar {
+  position: relative;
   max-width: 580px;
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
   line-height: 1em;
-
-  button {
-    background-color: transparent;
-    margin: 0;
-    background: none;
-    border: 0;
-    color: $color-rhino-60;
-    font-size: 14px;
-    border-radius: 3px;
-    transition: all .25s ease;
-    padding: 3px 4px;
-
-    &.is-active {
-      background-color: $color-rhino-80;
-      color: whitesmoke;
-
-      &:hover {
-        background-color: $color-rhino;
-      }
-    }
-    &:hover {
-      background-color: rgba(107, 121, 139, .1);
-      cursor: pointer;
-    }
-  }
 
   .divider {
     display: inline-block;

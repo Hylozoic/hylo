@@ -107,19 +107,19 @@ export default function AllViews () {
       const capitalizedView = widget.view ? widget.view.charAt(0).toUpperCase() + widget.view.slice(1) : ''
       const cardContent = (
         <div>
-          <h3 className='text-lg font-semibold'>{title}</h3>
+          <h3 className='text-lg font-semibold text-foreground'>{title}</h3>
           {widgetTypeResolver({ widget }) && (
-            <span className='text-sm text-gray-600'>
+            <span className='text-sm  text-foreground'>
               {t('Type')}: {t(capitalizedType)}
             </span>
           )}
           {widget.view && (
-            <span className='text-sm text-gray-600 block'>
+            <span className='text-sm block text-foreground'>
               {t('View')}: {t(capitalizedView)}
             </span>
           )}
           {isEditting && isValidHomeWidget(widget) && (
-            <span className='text-sm text-gray-600 block'>
+            <span className='text-sm  block text-foreground'>
               <Icon
                 name='Home'
                 onClick={(evt) => {
@@ -130,7 +130,7 @@ export default function AllViews () {
             </span>
           )}
           {isEditting && !widget.order && (
-            <span className='text-sm text-gray-600 block'>
+            <span className='text-sm text-foreground block'>
               <Icon
                 name='Plus'
                 onClick={(evt) => {
@@ -143,8 +143,8 @@ export default function AllViews () {
         </div>
       )
       return (
-        <div key={widget.id} onClick={() => url ? navigate(url) : null} className={`p-4 border border-gray-300 rounded-md shadow-sm ${url ? 'cursor-pointer' : ''}`}>
-          <div className='block text-center'>
+        <div key={widget.id} onClick={() => url ? navigate(url) : null} className={`p-4 border border-background rounded-md shadow-sm ${url ? 'cursor-pointer' : ''}`}>
+          <div className='block text-center text-foreground'>
             {cardContent}
           </div>
         </div>
@@ -165,7 +165,7 @@ export default function AllViews () {
       <div onClick={() => navigate(addQuerystringToPath(location.pathname, { addview: 'yes', cme: 'yes' }))} className='p-4 border border-gray-300 rounded-md shadow-sm cursor-pointer'>
         <div className='block text-center'>
           <div>
-            <h3 className='text-lg font-semibold'>{t('Add View')}</h3>
+            <h3 className='text-lg font-semibold  text-foreground'>{t('Add View')}</h3>
             <span className='text-sm text-gray-600 block'>
               <Icon name='Plus' style={{ fontSize: 30 }} />
             </span>
