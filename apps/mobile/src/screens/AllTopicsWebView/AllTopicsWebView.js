@@ -5,7 +5,7 @@ import HyloWebView from 'components/HyloWebView'
 
 export default function AllTopicsWebView () {
   const navigation = useNavigation()
-  const [currentGroup] = useCurrentGroup()
+  const [{ currentGroup }] = useCurrentGroup()
   const path = currentGroup?.slug === 'all'
     ? `/${currentGroup?.slug}/topics`
     : `/groups/${currentGroup?.slug}/topics`

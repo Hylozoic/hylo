@@ -33,8 +33,8 @@ export default function Stream ({ topicName: providedTopicName }) {
   const route = useRoute()
   const { customViewId, streamType, myHome, topicName: routeTopicName } = useRouteParams()
 
-  const [currentUser] = useCurrentUser()
-  const [currentGroup] = useCurrentGroup()
+  const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroup }] = useCurrentGroup()
   const changeToGroup = useChangeToGroup()
   const goToTopicDefault = useGoToTopic()
 

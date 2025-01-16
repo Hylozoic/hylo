@@ -12,7 +12,7 @@ const GroupSettings = createMaterialTopTabNavigator()
 export default function GroupSettingsTabsNavigator () {
   const navigation = useNavigation()
   const route = useRoute()
-  const [selectedGroup, , refetchCurrentGroup] = useCurrentGroup()
+  const [{ currentGroup: selectedGroup }, refetchCurrentGroup] = useCurrentGroup()
   const groupName = selectedGroup?.name
   const navigatorProps = {
     screenOptions: {

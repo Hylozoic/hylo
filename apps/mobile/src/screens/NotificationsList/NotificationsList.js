@@ -37,7 +37,7 @@ export default function NotificationsList (props) {
   const [, markActivityRead] = useMutation(markActivityReadMutation)
   // TODO: markAllActivitiesRead needs to optimistically updated
   const [, markAllActivitiesRead] = useMutation(markAllActivitiesReadMutation)
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const [{ data, fetching }] = useQuery({ query: notificationsQuery, variables: { first: NOTIFICATIONS_PAGE_SIZE, offset } })
 
   const notifications = refineNotifications(data?.notifications?.items, navigation)

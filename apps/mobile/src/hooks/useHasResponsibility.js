@@ -57,8 +57,8 @@ export default function useHasResponsibility ({
   personId: hookPersonId,
   person: providedHookPerson
 } = {}) {
-  const [currentGroup, { fetching: currentGroupFetching, error: currentGroupError }] = useCurrentGroup({ useQueryArgs: { pause: !forCurrentGroup } })
-  const [currentUser, { fetching: currentUserFetching, error: currentUserError }] = useCurrentUser({ pause: !forCurrentUser })
+  const [{ currentGroup, fetching: currentGroupFetching, error: currentGroupError }] = useCurrentGroup({ useQueryArgs: { pause: !forCurrentGroup } })
+  const [{ currentUser, fetching: currentUserFetching, error: currentUserError }] = useCurrentUser({ pause: !forCurrentUser })
 
   const [hookPersonById, { fetching: hookPersonByIdFetching, error: hookPersonByIdError }] = usePerson({ id: hookPersonId, pause: !hookPersonId })
   const hookPersonError = currentUserError || hookPersonByIdError

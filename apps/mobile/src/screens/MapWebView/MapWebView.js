@@ -16,7 +16,7 @@ export const MATCHER_GROUP_ALL_AND_PUBLIC_ROOT_PATH = `/(${ALL_GROUP_ID}|${PUBLI
 export default function MapWebView ({ navigation }) {
   const { t } = useTranslation()
   const webViewRef = useRef(null)
-  const [group] = useCurrentGroup()
+  const [{ currentGroup: group }] = useCurrentGroup()
   const openURL = useOpenURL()
   const [path, setPath] = useState()
   const [canGoBack, setCanGoBack] = useState(false)

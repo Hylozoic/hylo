@@ -18,7 +18,7 @@ export default function CreateGroupName ({ route }) {
   const { t } = useTranslation()
   // Add current group in as pre-selected as a parent group for Parent Groups Step
   const edited = useSelector(getEdited)
-  const [currentGroup] = useCurrentGroup()
+  const [{ currentGroup }] = useCurrentGroup()
   const groupData = useSelector(getGroupData)
   const [groupName, setGroupName] = useState()
   const [error, setError] = useState()

@@ -22,7 +22,7 @@ const ModerationListItem = ({
 }) => {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const hasResponsibility = useHasResponsibility({ groupId: group.id })
   const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
 

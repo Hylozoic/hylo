@@ -39,7 +39,7 @@ export default function Comment ({
   const { showHyloActionSheet } = useHyloActionSheet()
   const { reactOnEntity, deleteReactionFromEntity } = useReactOnEntity()
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: !groupId, forCurrentUser: true, groupId  })
 
   const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)

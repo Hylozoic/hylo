@@ -15,7 +15,7 @@ import styles from './SignupSetLocation.styles'
 export default function SignupSetLocation ({ navigation }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const [location, setLocation] = useState(currentUser?.location)
   const [locationId, setLocationId] = useState(currentUser?.locationId)
   const [{ currentLocation }, getLocation] = useCurrentLocation()

@@ -33,7 +33,7 @@ export default function GroupExploreWebView () {
   const { groupSlug } = useRouteParams()
   const [, fetchGroupDetails] = useQuery({ query: groupDetailsQueryMaker(), pause: true })
   const [, fetchGroupModerators] = useQuery({ query: groupStewardsQuery, pause: true })
-  const currentGroup = useGroup({ groupSlug })
+  const [{ group: currentGroup }] = useGroup({ groupSlug })
   const [path, setPath] = useState()
   const [canGoBack, setCanGoBack] = useState(false)
 

@@ -44,9 +44,9 @@ export function useGroup ({
     return null
   }, [contextGroup, data])
 
-  return [group, { fetching, error }, reQuery]
+  return [{ group, fetching, error }, reQuery]
 }
-// TODO: URQL delete store/actions/setCurrentGroupSlug.js (after Sockets conversion)
+
 export function setCurrentGroupSlug (groupSlug) {
   return {
     type: SET_CURRENT_GROUP_SLUG,
@@ -56,10 +56,8 @@ export function setCurrentGroupSlug (groupSlug) {
 
 export function useCurrentGroupSlug (setToGroupSlug, useQueryArgs = {}) {
   const dispatch = useDispatch()
-
+  const [{ currentUser, fetching, error }] = useCurrentUser({ pause: useQueryArgs?.pause || setToGroupSlug || savedCurrentGroupSlug })
   const savedCurrentGroupSlug = useSelector(state => state.session?.groupSlug)
-
-  const [currentUser, { fetching, error }] = useCurrentUser({ pause: useQueryArgs?.pause || setToGroupSlug || savedCurrentGroupSlug })
 
   const lastViewedGroup = useMemo(() => {
     if (fetching || !currentUser?.memberships) return null
@@ -79,7 +77,7 @@ export function useCurrentGroupSlug (setToGroupSlug, useQueryArgs = {}) {
     return null
   }, [setToGroupSlug, savedCurrentGroupSlug, lastViewedGroup])
 
-  return [groupSlug, { fetching, error }]
+  return [{ currentGroupSlug: groupSlug, fetching, error }]
 }
 
 export default function useCurrentGroup ({
@@ -90,13 +88,13 @@ export default function useCurrentGroup ({
   },
   useQueryArgs = {}
 } = {}) {
-  const [groupSlug, { fetching: slugFetching, error: slugError }] = useCurrentGroupSlug(setToGroupSlug, useQueryArgs)
-  const [group, { fetching: groupFetching, error }, reQuery] = useGroup({
+  const [{ currentGroupSlug: groupSlug, fetching: slugFetching, error: slugError }] = useCurrentGroupSlug(setToGroupSlug, useQueryArgs)
+  const [{ group, fetching: groupFetching, error }, reQuery] = useGroup({
     groupSlug,
     groupQueryScope,
     useQueryArgs
   })
   const fetching = slugFetching || groupFetching
 
-  return [group, { fetching, error: slugError || error }, reQuery]
+  return [{ currentGroup: group, fetching, error: slugError || error }, reQuery]
 }

@@ -22,8 +22,8 @@ import Loading from 'components/Loading'
 export default function DrawerMenu () {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const [currentUser, { fetching: currentUserFetching }] = useCurrentUser()
-  const [currentGroup, { fetching: currentGroupFetching }] = useCurrentGroup()
+  const [{ currentUser, fetching: currentUserFetching }] = useCurrentUser()
+  const [{ currentGroup, fetching: currentGroupFetching }] = useCurrentGroup()
   const memberships = currentUser?.memberships
   const { myHome } = useRouteParams()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })

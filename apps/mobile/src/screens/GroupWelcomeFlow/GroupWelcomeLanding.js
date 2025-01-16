@@ -55,8 +55,8 @@ export default function GroupWelcomeLanding ({ route }) {
   const [, removeSkill] = useMutation(removeSkillMutation)
   const [, updateMembershipSettings] = useMutation(updateMembershipMutation)
   const navigation = useNavigation()
-  const [currentUser] = useCurrentUser()
-  const [currentGroup] = useGroup({ groupId })
+  const [{ currentUser }] = useCurrentUser()
+  const [{ group: currentGroup }] = useGroup({ groupId })
   const group = GroupPresenter(currentGroup)
   const currentStepIndex = useSelector(getCurrentStepIndex)
   const currentMemberships = currentUser?.memberships

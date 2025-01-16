@@ -86,7 +86,7 @@ export default function StreamList (props) {
   } = props
   const navigation = useNavigation()
   const isFocused = useIsFocused()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const [filter, setFilter] = useState()
   const [sortBy, setSortBy] = useState(
     get('settings.streamSortBy', currentUser) ||

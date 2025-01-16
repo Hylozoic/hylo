@@ -40,7 +40,7 @@ export default function Thread (props) {
   const navigation = useNavigation()
   const dispatch = useDispatch()
   const isConnected = useSelector(state => state.SocketListener.connected)
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const { id: threadId } = useRouteParams()
 
   const messageListRef = useRef()

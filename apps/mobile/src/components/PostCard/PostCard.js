@@ -35,7 +35,7 @@ export default function PostCard ({
   const images = useMemo(() => post.imageUrls && post.imageUrls.map(uri => ({ uri })), [post])
   const locationText = useMemo(() => LocationHelpers.generalLocationString(post.locationObject, post.location), [post])
   const isFlagged = useMemo(() => post.flaggedGroups && post.flaggedGroups.includes(groupId), [post])
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
 
   return (
     <>

@@ -92,7 +92,7 @@ export default function TabStackHeader ({
 }
 
 export function NotificationsIcon ({ showNotifications }) {
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const showBadge = !!get('newNotificationCount', currentUser)
 
   return (
@@ -106,7 +106,7 @@ export function NotificationsIcon ({ showNotifications }) {
 }
 
 export function MenuButton ({ canGoBack, onPress }) {
-  const [currentGroup] = useCurrentGroup()
+  const [{ currentGroup }] = useCurrentGroup()
   const avatarUrl = currentGroup?.headerAvatarUrl ||
     currentGroup?.avatarUrl
 

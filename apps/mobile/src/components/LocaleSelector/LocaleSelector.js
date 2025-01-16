@@ -11,7 +11,7 @@ const LocaleSelector = ({ small, dark }) => {
   const { t, i18n } = useTranslation()
   const selectedLocale = i18n.language
   const [dropdownVisible, setDropdownVisible] = useState(false)
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
 
   const handleSelectLocale = (locale) => {
     i18n.changeLanguage(locale)

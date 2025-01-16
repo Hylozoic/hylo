@@ -13,7 +13,7 @@ export default function useFetchPostParam ({
   timeframe,
   topicName
 }) {
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const fetchPostParam = useMemo(() => omitBy(x => isNull(x) || isUndefined(x), {
     activePostsOnly: customView?.activePostsOnly || null,
     afterTime: streamType === 'event'

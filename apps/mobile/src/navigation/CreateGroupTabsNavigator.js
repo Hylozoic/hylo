@@ -17,7 +17,7 @@ import useCurrentUser from 'hooks/useCurrentUser'
 const CreateGroupTabs = createBottomTabNavigator()
 
 export default function CreateGroupTabsNavigator () {
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const memberships = currentUser?.memberships
   const parentGroupOptions = memberships
     .filter(m => m.hasModeratorRole || m.group.accessibility === GROUP_ACCESSIBILITY.Open)

@@ -12,5 +12,5 @@ export default function useCurrentUser (useQueryArgs = {}) {
     return null
   }
 
-  return [data?.me, { fetching, error, stale }, queryCurrentUser]
+  return [{ currentUser: data?.me, fetching, error, stale }, queryCurrentUser]
 }

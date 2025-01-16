@@ -10,7 +10,7 @@ export default function GroupWelcomeCheck ({ groupId }) {
     return null
   }
   const navigation = useNavigation()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const currentMemberships = currentUser.memberships
   const currentMembership = currentMemberships.find(m => m.group.id === groupId)
 

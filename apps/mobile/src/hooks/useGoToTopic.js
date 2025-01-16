@@ -6,7 +6,7 @@ import useIsModalScreen from './useIsModalScreen'
 export default function useGoToTopic () {
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
-  const currentGroupSlug = useCurrentGroupSlug()
+  const [{ currentGroupSlug }] = useCurrentGroupSlug()
 
   return topicName => {
     if (isModalScreen) {

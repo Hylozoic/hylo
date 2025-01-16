@@ -16,7 +16,7 @@ import styles from './SignupUploadAvatar.styles'
 export default function SignupUploadAvatar ({ navigation }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl)
   const [avatarImageSource, setAvatarImageSource] = useState({ uri: avatarUrl })
   const [imagePickerPending, setImagePickerPending] = useState(false)

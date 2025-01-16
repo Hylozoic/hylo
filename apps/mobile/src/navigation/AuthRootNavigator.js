@@ -31,7 +31,7 @@ export default function AuthRootNavigator () {
   // to cache-and-network or cache-first (default). It may be fine here, but it is
   // the only place we should do this with useCurrentUser as it would be expensive
   // lower in the stack where it may get called in any loops and such.
-  const [currentUser, { fetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
+  const [{ currentUser, fetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
   const [loading, setLoading] = useState(true)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   const [, registerDevice] = useMutation(registerDeviceMutation)

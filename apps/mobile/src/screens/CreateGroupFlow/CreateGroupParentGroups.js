@@ -13,7 +13,7 @@ import useCurrentUser from 'hooks/useCurrentUser'
 export default function CreateGroupParentGroups ({ navigation }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const groupData = useSelector(getGroupData)
   const [parentIds, setParentGroupIds] = useState(groupData.parentIds)
   const memberships = currentUser?.memberships

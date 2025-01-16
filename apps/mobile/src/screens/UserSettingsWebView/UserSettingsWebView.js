@@ -6,7 +6,8 @@ import useLogout from 'urql-shared/hooks/useLogout'
 import useCurrentUser from 'hooks/useCurrentUser'
 
 export default function UserSettingsWebView ({ path: pathProp, route }) {
-  const [,, queryCurrentUser] = useCurrentUser({ pause: true })
+  // TODO: URQL - Untested, intention is to refresh cache
+  const [, queryCurrentUser] = useCurrentUser({ requestPolicy: 'network-only', pause: true })
   const webViewRef = useRef(null)
   const logout = useLogout()
   const { path: routePath } = useRouteParams()
@@ -18,7 +19,6 @@ export default function UserSettingsWebView ({ path: pathProp, route }) {
 
   const messageHandler = ({ type, data }) => {
     switch (type) {
-      // TODO: URQL - Untested
       case WebViewMessageTypes.LEFT_GROUP: {
         if (data.groupId) {
           queryCurrentUser()

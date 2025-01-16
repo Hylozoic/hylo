@@ -40,7 +40,7 @@ export default function PostHeader ({
     closeOnDelete,
     setFlaggingVisible
   })
-  const [currentGroup] = useCurrentGroup()
+  const [{ currentGroup }] = useCurrentGroup()
   const handleShowMember = () => showMember && showMember(creator.id)
 
   const creatorHasResponsibility = useHasResponsibility({ person: creator, forCurrentGroup: true })

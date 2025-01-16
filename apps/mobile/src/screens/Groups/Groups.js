@@ -96,8 +96,8 @@ export const groupMemberCountQuery = gql`
 export default function Groups () {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const [currentUser] = useCurrentUser()
-  const [currentGroup] = useCurrentGroup()
+  const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroup }] = useCurrentGroup()
   const [{ fetching: meMembershipsMemberCountQueryFetching }] = useQuery({ query: meMembershipsMemberCountQuery })
   const [{ fetching: groupsMemberCountQueryFetching }] = useQuery({ query: groupsMemberCountQuery, variables: { id: currentGroup?.id } })
   const [{ fetching: groupMemberCountQueryFetching }] = useQuery({ query: groupMemberCountQuery, variables: { id: currentGroup?.id } })

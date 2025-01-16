@@ -29,7 +29,7 @@ export default function MemberHeader ({
 }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   // TODO: URQL - analytics: AnalyticsEvents.BLOCK_USER
   const [, blockUser] = useMutation(blockUserMutation)
 

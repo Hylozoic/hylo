@@ -23,7 +23,7 @@ export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agre
   const disableContinue = !!workflowOptions?.disableContinue
   const [completeButtonDisabled, setCompleteButtonDisabled] = useState(false)
   // TODO: URQL - untested
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const currentMemberships = currentUser?.memberships
   const currentMembership = currentMemberships && currentMemberships.find(m => m.group.id === group.id)
 
