@@ -8,7 +8,7 @@ jest.mock('luxon', () => ({
   default: () => ({
     fromNow: () => 'a few seconds ago',
     format: () => '2024-07-23 16:30'
-  })()
+  })
 }))
 
 const defaultProps = {
