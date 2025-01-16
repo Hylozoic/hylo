@@ -4,7 +4,6 @@ import Button from 'components/Button'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
 import { getWorkflowOptions, getCurrentStepIndex, getRouteNames, decrementCurrentStepIndex, incrementCurrentStepIndex, GROUP_WELCOME_AGREEMENTS, GROUP_WELCOME_JOIN_QUESTIONS } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
-import getMyMemberships from 'store/selectors/getMyMemberships'
 import { isIOS } from 'util/platform'
 import isEmpty from 'lodash/isEmpty'
 import {
@@ -13,6 +12,7 @@ import {
 import { useKeyboard } from '@react-native-community/hooks'
 import { ALL_GROUP } from 'urql-shared/presenters/GroupPresenter'
 import { useTranslation } from 'react-i18next'
+import useCurrentUser from 'hooks/useCurrentUser'
 
 export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agreements, handleAccept, allQuestionsAnswered }) {
   const { t } = useTranslation()
@@ -22,8 +22,10 @@ export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agre
   const currentStepIndex = useSelector(getCurrentStepIndex)
   const disableContinue = !!workflowOptions?.disableContinue
   const [completeButtonDisabled, setCompleteButtonDisabled] = useState(false)
-  const currentMemberships = useSelector(state => getMyMemberships(state))
-  const currentMembership = currentMemberships.find(m => m.group.id === group.id)
+  // TODO: URQL - untested
+  const [currentUser] = useCurrentUser()
+  const currentMemberships = currentUser?.memberships
+  const currentMembership = currentMemberships && currentMemberships.find(m => m.group.id === group.id)
 
   const routeNames = getRouteNames(group, currentMembership)
   const prevStepScreenName = routeNames[currentStepIndex - 1]

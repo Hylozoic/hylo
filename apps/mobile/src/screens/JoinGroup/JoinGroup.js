@@ -6,60 +6,63 @@ import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
 import useAuthState from 'hooks/useAuthState'
 import useRouteParams from 'hooks/useRouteParams'
 import { openURL } from 'hooks/useOpenURL'
-import useInvitation from 'store/actions/useInvitation'
-import checkInvitation from 'store/actions/checkInvitation'
+
+// TODO: URQL - convert join group
+import checkInvitationQuery from 'graphql/queries/checkInvitationQuery'
+import acceptInvitationMutation from 'graphql/mutations/acceptInvitationMutation'
+
 import LoadingScreen from 'screens/LoadingScreen'
 
 export const SIGNUP_PATH = '/signup'
 export const EXPIRED_INVITE_PATH = '/invite-expired'
 
 export default function JoinGroup (props) {
-  const navigation = useNavigation()
-  const route = useRoute()
-  const dispatch = useDispatch()
-  const [{ isAuthorized }] = useAuthState()
-  const { token: invitationToken, accessCode } = useRouteParams()
+  // const navigation = useNavigation()
+  // const route = useRoute()
+  // const dispatch = useDispatch()
+  // const [{ isAuthorized }] = useAuthState()
+  // const { token: invitationToken, accessCode } = useRouteParams()
 
-  // Might be more clear to simply use `useEffect`
-  useFocusEffect(
-    useCallback(() => {
-      (async function () {
-        try {
-          const invitationTokenAndCode = { invitationToken, accessCode }
+  // // Might be more clear to simply use `useEffect`
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     (async function () {
+  //       try {
+  //         const invitationTokenAndCode = { invitationToken, accessCode }
 
-          if (every(isEmpty, invitationTokenAndCode)) {
-            throw new Error('Please provide either a `token` query string parameter or `accessCode` route param')
-          }
+  //         if (every(isEmpty, invitationTokenAndCode)) {
+  //           throw new Error('Please provide either a `token` query string parameter or `accessCode` route param')
+  //         }
 
-          if (isAuthorized) {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            const result = await dispatch(useInvitation(invitationTokenAndCode))
-            const newMembership = result?.payload?.getData()?.membership
-            const groupSlug = newMembership?.group?.slug
+  //         if (isAuthorized) {
+  //           // eslint-disable-next-line react-hooks/rules-of-hooks
+  //           const result = await dispatch(useInvitation(invitationTokenAndCode))
+  //           const newMembership = result?.payload?.getData()?.membership
+  //           const groupSlug = newMembership?.group?.slug
 
-            if (groupSlug) {
-              openURL(`/groups/${groupSlug}/explore`, true)
-            } else {
-              throw new Error('Join group was unsuccessful')
-            }
-          } else {
-            const result = await dispatch(checkInvitation(invitationTokenAndCode))
-            const isValidInvite = result?.payload?.getData()?.valid
+  //           if (groupSlug) {
+  //             openURL(`/groups/${groupSlug}/explore`, true)
+  //           } else {
+  //             throw new Error('Join group was unsuccessful')
+  //           }
+  //         } else {
+  //           const result = await dispatch(checkInvitation(invitationTokenAndCode))
+  //           const isValidInvite = result?.payload?.getData()?.valid
 
-            if (isValidInvite) {
-              dispatch(setReturnToOnAuthPath(route.params?.originalLinkingPath))
-              openURL('/signup?message=Signup or login to join this group.', true)
-            } else {
-              openURL('/signup?error=invite-expired', true)
-            }
-          }
-        } catch (error) {
-          console.log('!!! error', error)
-          navigation.canGoBack() ? navigation.goBack() : openURL('/')
-        }
-      })()
-    }, [])
-  )
+  //           if (isValidInvite) {
+  //             dispatch(setReturnToOnAuthPath(route.params?.originalLinkingPath))
+  //             openURL('/signup?message=Signup or login to join this group.', true)
+  //           } else {
+  //             openURL('/signup?error=invite-expired', true)
+  //           }
+  //         }
+  //       } catch (error) {
+  //         console.log('!!! error', error)
+  //         navigation.canGoBack() ? navigation.goBack() : openURL('/')
+  //       }
+  //     })()
+  //   }, [])
+  // )
 
   return <LoadingScreen />
 }

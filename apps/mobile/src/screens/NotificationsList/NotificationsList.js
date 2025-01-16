@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
 import { useMutation, useQuery } from 'urql'
 import { FlatList, TouchableOpacity, View, Text, StyleSheet } from 'react-native'
 import { useIsFocused, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash'
-import getMemberships from 'store/selectors/getMemberships'
 import {
   markActivityReadMutation,
   markAllActivitiesReadMutation,
@@ -18,6 +16,7 @@ import Loading from 'components/Loading'
 import cardStyles from 'components/NotificationCard/NotificationCard.styles'
 import notificationsQuery, { NOTIFICATIONS_PAGE_SIZE } from 'graphql/queries/notificationsQuery'
 import resetNotificationsCountMutation from 'graphql/mutations/resetNotificationsCountMutation'
+import useCurrentUser from 'hooks/useCurrentUser'
 
 const styles = StyleSheet.create({
   notificationsList: {
@@ -38,11 +37,12 @@ export default function NotificationsList (props) {
   const [, markActivityRead] = useMutation(markActivityReadMutation)
   // TODO: markAllActivitiesRead needs to optimistically updated
   const [, markAllActivitiesRead] = useMutation(markAllActivitiesReadMutation)
+  const [currentUser] = useCurrentUser()
   const [{ data, fetching }] = useQuery({ query: notificationsQuery, variables: { first: NOTIFICATIONS_PAGE_SIZE, offset } })
 
   const notifications = refineNotifications(data?.notifications?.items, navigation)
   const hasMore = notifications?.hasMore
-  const memberships = useSelector(getMemberships)
+  const memberships = currentUser?.memberships
   const currentUserHasMemberships = !isEmpty(memberships)
   const setHeader = () => {
     navigation.setOptions({
