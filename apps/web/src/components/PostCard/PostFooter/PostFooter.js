@@ -1,6 +1,7 @@
 import React from 'react'
 import { withTranslation } from 'react-i18next'
 import { cn } from 'util/index'
+import EmojiRow from 'components/EmojiRow'
 import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import PeopleInfo from '../PeopleInfo'
@@ -24,13 +25,22 @@ class PostFooter extends React.PureComponent {
       commentersTotal,
       constrained,
       onClick,
-      postId
+      onAddReaction = () => {},
+      onRemoveReaction = () => {},
+      postId,
+      ...post
     } = this.props
 
     const tooltipId = 'postfooter-tt-' + postId
 
     return (
-      <div onClick={onClick} className={cn('w-full text-foreground', { [classes.constrained]: constrained })} data-testid='post-footer'>
+      <div onClick={onClick} className={cn('w-full text-foreground flex p-2', { [classes.constrained]: constrained })} data-testid='post-footer'>
+        <EmojiRow
+          post={post}
+          currentUser={currentUser}
+          onAddReaction={onAddReaction}
+          onRemoveReaction={onRemoveReaction}
+        />
         <PeopleInfo constrained={constrained} people={commenters} peopleTotal={commentersTotal} excludePersonId={get('id', currentUser)} />
         <Tooltip
           delay={550}

@@ -43,8 +43,6 @@ export default function GlobalNavItem ({
               {
                 'border-3 border-secondary opacity-100 scale-100 hover:scale-110': selected,
                 'border-3 border-accent opacity-100 scale-100': badgeCount > 0
-
-                // Todo: figure out how to make /my/, notifications, messages and commons all be bigger and fully opaque
               },
               className
             )}

@@ -60,7 +60,7 @@ export default function PeopleInfo ({
     avatarUrls = people.map(p => p.avatarUrl)
   }
   return (
-    <span className={cn('bg-black flex items-center', classes.peopleContainer, { [classes.constrained]: constrained }, className)}>
+    <span className={cn('flex items-center bg-black/20 p-2 rounded-lg hover:bg-black/30 transition-all', classes.peopleContainer, { [classes.constrained]: constrained }, className)}>
       <RoundImageRow imageUrls={avatarUrls.slice(0, 3)} className={classes.people} onClick={onClick} small={small} tiny={tiny} />
       <span className={cn('ml-2 text-foreground text-sm')} onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'inherit' }}>
         {caption}
