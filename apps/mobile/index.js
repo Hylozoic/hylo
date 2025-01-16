@@ -26,10 +26,6 @@ import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHT
 
 Sentry.init(sentryConfig)
 
-if (__DEV__) {
-  require('./ReactotronConfig')
-}
-
 // For Layout animation support: https://reactnative.dev/docs/layoutanimation
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true)
