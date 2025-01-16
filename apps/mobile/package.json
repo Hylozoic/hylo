@@ -56,6 +56,7 @@
     "intl-pluralrules": "^2.0.1",
     "lodash": "^4.17.21",
     "lucide-react-native": "0.471.0",
+    "luxon": "3.5.0",
     "mixpanel-react-native": "^2.3.1",
     "moment-timezone": "^0.5.46",
     "nativewind": "^4.1.23",
