@@ -201,14 +201,14 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             <ActionDropdown items={actionDropdownItems} />
           </div>
           {(person.tagline || person.bio) && <div className='flex items-center flex-col'>
-              {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}
-              {person.bio && (
-                <div className={cn('text-foreground text-center max-w-[720px]')}>
-                  <ClickCatcher>
-                    <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
-                  </ClickCatcher>
-                </div>
-              )}
+            {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}
+            {person.bio && (
+              <div className={cn('text-foreground text-center max-w-[720px]')}>
+                <ClickCatcher>
+                  <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
+                </ClickCatcher>
+              </div>
+            )}
           </div>}
           <div className='flex flex-col max-w-[720px]'>
             <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>
@@ -219,10 +219,10 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
               {t('What I\'m Learning')}
             </div>
             <SkillsToLearnSection personId={personId} editable={false} t={t} />
-            {memberships && memberships.length > 0 && <div className={styles.profileSubhead}>{t('Hylo Groups')}</div>}
+            {memberships && memberships.length > 0 && <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>{t('Hylo Groups')}</div>}
             <div
               ref={groupsRef}
-              className={styles.groups}
+              className='flex flex-row flex-wrap items-center w-full overflow-hidden relative space-y-2'
               style={{
                 maxHeight: showAllGroups ? 'none' : `${GROUPS_DIV_HEIGHT}px`
               }}
