@@ -37,7 +37,7 @@ export default function PostGridItem ({
   const creatorUrl = personUrl(creator.id, routeParams.slug)
   const unread = false
   // will reintegrate once I have attachment vars
-  /* const startTimeMoment = Moment(post.startTime) */
+  /* const start = DateTime.fromISO(post.startTime) */
 
   const showDetails = useCallback(() => {
     navigate(postUrl(post.id, routeParams, { ...locationParams, ...querystringParams }))

@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty } from 'lodash/fp'
-import Moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
@@ -19,7 +19,6 @@ import GroupsSelector from 'components/GroupsSelector'
 import TopicSelector from 'components/TopicSelector'
 import MemberSelector from 'components/MemberSelector'
 import LinkPreview from './LinkPreview'
-import moment from 'moment-timezone'
 import { DateTimePicker } from 'components/ui/datetimepicker'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import SendAnnouncementModal from 'components/SendAnnouncementModal'
@@ -168,7 +167,7 @@ function PostEditor ({
     isPublic: context === 'public',
     locationId: null,
     location: '',
-    timezone: Moment.tz.guess(),
+    timezone: DateTime.now().zoneName,
     proposalOptions: [],
     isAnonymousVote: false,
     isStrictProposal: false,
@@ -248,9 +247,11 @@ function PostEditor ({
   const calcEndTime = (startTime) => {
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      msDiff = moment(currentPost.endTime) - moment(currentPost.startTime)
+      let start = DateTime.fromJSDate(currentPost.startTime);
+      let end = DateTime.fromJSDate(currentPost.endTime);
+      msDiff = end.diff(start)
     }
-    return new Date(moment(startTime) + msDiff)
+    return DateTime.fromJSDate(startTime).plus({milliseconds: msDiff}).toJSDate()
   }
 
   const onUpdateLinkPreview = () => {
@@ -986,7 +987,7 @@ function PostEditor ({
                 className={styles.textInput}
                 placeholder={t('Add a donation link (must be valid URL)')}
                 value={currentPost.donationsLink || ''}
-                onChange={handledonationsLinkChange}
+                onChange={handleDonationsLinkChange}
                 disabled={loading}
               />
             </div>

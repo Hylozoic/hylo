@@ -1,4 +1,4 @@
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import formatData from '../../../lib/group/digest2/formatData'
 import personalizeData from '../../../lib/group/digest2/personalizeData'
 import { defaultTimezone, shouldSendData, getRecipients } from '../../../lib/group/digest2/util'
@@ -48,7 +48,7 @@ const linkPreview = model({
 describe('group digest v2', () => {
   describe('formatData', () => {
     it('organizes new posts and comments', () => {
-      const eventStart = moment.tz(new Date(), moment.tz.guess())
+      const eventStart = DateTime.now()
 
       const data = {
         comments: [
@@ -429,7 +429,7 @@ describe('group digest v2', () => {
 
     before(async () => {
       spyify(Email, 'sendSimpleEmail', function () { args = arguments })
-      const six = moment.tz(defaultTimezone).startOf('day').add(6, 'hours')
+      const six = DateTime.now().setZone(defaultTimezone).startOf('day').plus({hours: 6}).toISO()
 
       u1 = await factories.user({
         active: true,
