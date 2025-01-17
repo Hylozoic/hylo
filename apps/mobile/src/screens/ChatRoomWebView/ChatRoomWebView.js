@@ -10,7 +10,7 @@ import GroupWelcomeCheck from 'components/GroupWelcomeCheck'
 export default function ChatRoom () {
   const navigation = useNavigation()
   const route = useRoute()
-  const [currentGroup] = useCurrentGroup()
+  const [{ currentGroup }] = useCurrentGroup()
   const { topicName } = useRouteParams()
   const path = `/groups/${currentGroup.slug}/topics/${topicName}`
   const handledWebRoutes = [

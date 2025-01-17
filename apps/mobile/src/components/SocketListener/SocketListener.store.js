@@ -1,6 +1,6 @@
 import { has } from 'lodash/fp'
 import { noncircular } from 'util/index'
-import { showMessagesBadge } from 'store/reducers/ormReducer/util'
+// import { showMessagesBadge } from 'store/reducers/ormReducer/util'
 
 const MODULE_NAME = 'SocketListener'
 export const RECEIVE_MESSAGE = `${MODULE_NAME}/RECEIVE_MESSAGE`
@@ -9,6 +9,8 @@ export const RECEIVE_POST = `${MODULE_NAME}/RECEIVE_POST`
 export const RECEIVE_THREAD = `${MODULE_NAME}/RECEIVE_THREAD`
 export const RECEIVE_NOTIFICATION = `${MODULE_NAME}/RECEIVE_NOTIFICATION`
 export const HANDLE_EVENT = `${MODULE_NAME}/HANDLE_EVENT`
+
+// TODO: URQL - convert sockets
 
 export function receiveMessage (message, opts = {}) {
   return {
@@ -121,34 +123,34 @@ export default function reducer (state = {}, action) {
 }
 
 export function ormSessionReducer (session, action) {
-  const { Me, MessageThread, Post } = session
+  // const { Me, MessageThread, Post } = session
   const { type, payload } = action
 
   switch (type) {
     case RECEIVE_NOTIFICATION:
-      // TODO: eventually we might want to refactor this out into a more
-      // structured activity.action handler for the various counts that need
-      // bumping (or handle every single damn thing in ModelExtractor).
-      const { notification: { activity } } = payload.data
-      Me.first().increment('newNotificationCount')
+      // // TODO: eventually we might want to refactor this out into a more
+      // // structured activity.action handler for the various counts that need
+      // // bumping (or handle every single damn thing in ModelExtractor).
+      // const { notification: { activity } } = payload.data
+      // Me.first().increment('newNotificationCount')
 
-      if (activity.action === 'newComment' && Post.idExists(activity.post.id)) {
-        const post = Post.withId(activity.post.id)
-        post.increment('commentsTotal')
-      }
+      // if (activity.action === 'newComment' && Post.idExists(activity.post.id)) {
+      //   const post = Post.withId(activity.post.id)
+      //   post.increment('commentsTotal')
+      // }
       break
 
     case RECEIVE_THREAD:
-      Me.first().increment('unseenThreadCount')
+      // Me.first().increment('unseenThreadCount')
       break
 
     case RECEIVE_MESSAGE:
-      const { message: { messageThread, createdAt } } = payload.data
-      if (MessageThread.idExists(messageThread)) {
-        MessageThread.withId(messageThread).update({ updatedAt: createdAt })
-      }
+      // const { message: { messageThread, createdAt } } = payload.data
+      // if (MessageThread.idExists(messageThread)) {
+      //   MessageThread.withId(messageThread).update({ updatedAt: createdAt })
+      // }
 
-      showMessagesBadge(session)
+      // showMessagesBadge(session)
       break
   }
 }

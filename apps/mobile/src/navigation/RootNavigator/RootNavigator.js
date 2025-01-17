@@ -13,7 +13,6 @@ import useAuthState from 'hooks/useAuthState'
 import { openURL } from 'hooks/useOpenURL'
 import SocketListener from 'components/SocketListener'
 import ModalHeader from 'navigation/headers/ModalHeader'
-import ItemChooser from 'screens/ItemChooser'
 import JoinGroup from 'screens/JoinGroup'
 import LoginByTokenHandler from 'screens/LoginByTokenHandler'
 import AuthRootNavigator from 'navigation/AuthRootNavigator'
@@ -80,7 +79,6 @@ export default function RootNavigator () {
               component={JoinGroup}
               options={{ title: 'Joining Group...' }}
             />
-            <Root.Screen name='ItemChooser' component={ItemChooser} />
           </Root.Group>
         </Root.Navigator>
       </NavigationContainer>

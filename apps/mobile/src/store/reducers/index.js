@@ -1,15 +1,12 @@
 import { combineReducers } from 'redux'
-import orm from './ormReducer'
 import pending from './pending'
 import session from './sessionReducer'
 import initialURL from './initialURL'
-import queryResults from './queryResults'
 import mixpanel from './mixpanel'
 import returnToOnAuthPath from './returnToOnAuthPathReducer'
 import resetStore from './resetStore'
 import { handleSetState, composeReducers } from './util'
 // Local store
-import ItemChooser from 'screens/ItemChooser/ItemChooser.store'
 import MessageInput from 'components/MessageInput/MessageInput.store'
 import PeopleTyping from 'components/PeopleTyping/PeopleTyping.store'
 import SocketListener from 'components/SocketListener/SocketListener.store'
@@ -18,15 +15,12 @@ import GroupWelcomeFlow from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
 
 export const createCombinedReducers = () => combineReducers({
   // Global store
-  orm,
   pending,
   initialURL,
   session,
-  queryResults,
   mixpanel,
   returnToOnAuthPath,
   // Local store (Component)
-  ItemChooser,
   MessageInput,
   PeopleTyping,
   SocketListener,

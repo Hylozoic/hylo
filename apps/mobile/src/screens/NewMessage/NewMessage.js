@@ -1,23 +1,20 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { View, ScrollView, Text, TouchableOpacity } from 'react-native'
-import { useSelector } from 'react-redux'
 import { gql, useClient, useMutation, useQuery } from 'urql'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import { isArray } from 'lodash/fp'
+import { isArray, isEmpty } from 'lodash/fp'
 import useRouteParams from 'hooks/useRouteParams'
-import scopedFetchPeopleAutocomplete from 'store/actions/scopedFetchPeopleAutocomplete'
-import { getRecentContacts } from 'store/selectors/getContactList'
+import peopleAutocompleteQuery from 'graphql/queries/peopleAutocompleteQuery'
 import findOrCreateThreadMutation from 'graphql/mutations/findOrCreateThreadMutation'
 import createMessageMutation from 'graphql/mutations/createMessageMutation'
-import scopedGetPeopleAutocomplete from 'store/selectors/scopedGetPeopleAutocomplete'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
+import ItemSelectorModal from 'components/ItemSelectorModal'
 import Button from 'components/Button'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import PersonPickerItemRow from 'screens/ItemChooser/PersonPickerItemRow'
 import styles from './NewMessage.styles'
 
 export const recentContactsQuery = gql`
@@ -54,52 +51,69 @@ export const participantQuery = gql`
   }
 `
 
-export default function NewMessage (props) {
+const useParticipantsQuery = (participantIds = []) => {
+  const client = useClient()
+  const [fetching, setFetching] = useState(true)
+  const [error, setError] = useState()
+  const [participants, setParticipants] = useState()
+
+  useEffect(() => {
+    if (!participantIds) return
+
+    const fetchData = async () => {
+      try {
+        const fetchedParticipants = await Promise.all(
+          participantIds.map(async id => {
+            const result = await client.query(participantQuery, { id }).toPromise()
+            return result.data?.person || null
+          })
+        )
+        setParticipants(fetchedParticipants.filter(Boolean))
+      } catch (e) {
+        setError(e)
+      } finally {
+        setFetching(false)
+      }
+    }
+
+    setFetching(true)
+    fetchData()
+  }, [participantIds?.join(',')])
+
+  return [{ participants, fetching, error }]
+}
+
+export default function NewMessage () {
   const navigation = useNavigation()
   const { t } = useTranslation()
-  const client = useClient()
-  const [, fetchRecentContacts] = useQuery({ query: recentContactsQuery })
-  const [, findOrCreateThread] = useMutation(findOrCreateThreadMutation)
-  const [, createMessage] = useMutation(createMessageMutation)
   const { prompt, participants: routeParticipants } = useRouteParams()
-
-  const [participants, setParticipants] = useState([])
-  const [loading, setLoading] = useState(true)
-  const recentContacts = useSelector(getRecentContacts)
   const initialParticipantIds = !isArray(routeParticipants)
     ? routeParticipants?.split(',')
     : routeParticipants || []
 
-  console.log('!!! initialParticipantsIds', initialParticipantIds)
-  // useEffect(() => {
-  //   setLoading(true)
+  const participantsSelectorRef = useRef(null)
+  const [participants, setParticipants] = useState([])
+  const [loading, setLoading] = useState()
 
-  //   async function fetchParticipants () {
-  //     try {
-  //       const fetchedParticipants = await Promise.all(
-  //         initialParticipantIds.map(async id => {
-  //           const result = await client.query(participantQuery, { id }).toPromise()
+  const [, findOrCreateThread] = useMutation(findOrCreateThreadMutation)
+  const [, createMessage] = useMutation(createMessageMutation)
+  const [{ participants: initialParticipants, fetching: participantsFetching }] = useParticipantsQuery(initialParticipantIds)
+  const [{ data: recentContactsData, fetching: recentContactsFetching }] = useQuery({
+    query: recentContactsQuery,
+    pause: initialParticipantIds
+  })
+  const recentContacts = recentContactsData?.connections?.items &&
+    recentContactsData?.connections?.items.map(item => item.person)
 
-  //           return result.data?.person || null
-  //         })
-  //       )
+  useEffect(() => {
+    if (initialParticipants) {
+      setParticipants(initialParticipants)
+    }
+  }, [initialParticipants])
 
-  //       setParticipants(fetchedParticipants.filter(p => p))
-  //     } catch (error) {
-  //       console.error('Error fetching participants:', error)
-  //     } finally {
-  //       setLoading(false)
-  //     }
-  //   }
-
-  //   if (initialParticipantIds) {
-  //     fetchParticipants()
-  //   } else {
-  //     setLoading(false)
-  //   }
-  // }, [initialParticipantIds, client])
-
-  // fetchRecentContacts()
+  useEffect(() => {
+    setLoading(participantsFetching || recentContactsFetching)
+  }, [participantsFetching, recentContactsFetching])
 
   const handleCreateMessage = async text => {
     const { data: messageThreadData, error: messageThreadError } = await findOrCreateThread({ participantIds: participants.map(p => p.id) })
@@ -121,28 +135,8 @@ export default function NewMessage (props) {
     navigation.replace('Thread', { id: messageThreadId })
   }
 
-  const handleAddParticipant = participant => {
-    setParticipants([...participants, participant])
-  }
-
-  const handleRemoveParticipant = participant => {
-    setParticipants(participants.filter(p => p.id !== participant.id))
-  }
-
-  const openParticipantChooser = useCallback(() => {
-    const screenTitle = t('Add Participant')
-    const chooserProps = {
-      screenTitle,
-      fetchSearchSuggestions: scopedFetchPeopleAutocomplete,
-      getSearchSuggestions: scopedGetPeopleAutocomplete(screenTitle),
-      initialItems: participants,
-      pickItem: handleAddParticipant,
-      ItemRowComponent: PersonPickerItemRow,
-      defaultSuggestedItemsLabel: t('Recent Contacts'),
-      defaultSuggestedItems: recentContacts
-    }
-    navigation.navigate('ItemChooser', chooserProps)
-  }, [recentContacts, participants])
+  const handleAddParticipant = participant => setParticipants([...participants, participant])
+  const handleRemoveParticipant = participant => setParticipants(participants.filter(p => p.id !== participant.id))
 
   if (loading) return <Loading />
 
@@ -151,7 +145,23 @@ export default function NewMessage (props) {
   return (
     <KeyboardFriendlyView style={styles.container}>
       <ScrollView>
-        <TouchableOpacity onPress={openParticipantChooser} style={styles.participants}>
+        <ItemSelectorModal
+          ref={participantsSelectorRef}
+          title={t('Add Participant')}
+          searchPlaceholder={t('Search by name')}
+          defaultItems={recentContacts}
+          chosenItems={participants}
+          onItemPress={handleAddParticipant}
+          itemsUseQueryArgs={({ searchTerm }) => {
+            // Don't query if no searchTerm so defaultItems will show
+            return !isEmpty(searchTerm) && {
+              query: peopleAutocompleteQuery,
+              variables: { autocomplete: searchTerm }
+            }
+          }}
+          itemsUseQuerySelector={data => data?.people?.items}
+        />
+        <TouchableOpacity onPress={() => participantsSelectorRef.current.show()} style={styles.participants}>
           {participants.map((participant, index) =>
             <Participant
               participant={participant}
@@ -163,7 +173,7 @@ export default function NewMessage (props) {
           <Button
             text={t('Add Participant')}
             style={styles.addParticipantButton}
-            onPress={() => openParticipantChooser()}
+            onPress={() => participantsSelectorRef.current.show()}
           />
         </View>
       </ScrollView>

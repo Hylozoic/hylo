@@ -17,6 +17,7 @@ export default function sessionReducer (state = initialState, action) {
     case LOGIN_WITH_FACEBOOK:
     case LOGIN_WITH_GOOGLE: {
       return {
+        // TODO: don't we need to keep existing state, e.g. ...state?
         defaultLoginEmail: meta?.email
       }
     }

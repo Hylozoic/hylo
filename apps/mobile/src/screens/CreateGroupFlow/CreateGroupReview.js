@@ -11,8 +11,7 @@ import { accessibilityDescription, visibilityDescription } from 'urql-shared/pre
 import Avatar from 'components/Avatar'
 import { formatDomainWithUrl } from './util'
 import {
-  createGroupMutation, clearCreateGroupStore, getGroupData,
-  getNewGroupParentGroups
+  createGroupMutation, clearCreateGroupStore, getGroupData
 } from './CreateGroupFlow.store'
 import { white } from 'style/colors'
 import styles from './CreateGroupFlow.styles'
@@ -24,7 +23,8 @@ export default function CreateGroupReview () {
   const dispatch = useDispatch()
   const [, createGroup] = useMutation(createGroupMutation)
   const groupData = useSelector(getGroupData)
-  const parentGroups = useSelector(getNewGroupParentGroups)
+  // TODO: URQL - query for parent groups, remove related method in store
+  // const parentGroups = useSelector(getNewGroupParentGroups)
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -132,7 +132,7 @@ export default function CreateGroupReview () {
           />
         </View>
 
-        {parentGroups.length > 0 && (
+        {/* {parentGroups.length > 0 && (
           <View style={styles.textInputContainer}>
             <View style={stepStyles.itemHeader}>
               <Text style={stepStyles.textInputLabel}>{t('Is this group a member of other groups?')}</Text>
@@ -142,7 +142,7 @@ export default function CreateGroupReview () {
               {parentGroups.map(parentGroup => <GroupRow group={parentGroup} key={parentGroup.id} />)}
             </View>
           </View>
-        )}
+        )} */}
 
         {error && <View style={styles.errorBubble}><ErrorBubble text={error} /></View>}
       </ScrollView>

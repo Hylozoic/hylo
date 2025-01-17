@@ -14,7 +14,7 @@ import createCommentMutation from 'graphql/mutations/createCommentMutation'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import styles from './CommentEditor.styles'
 import Icon from 'components/Icon'
-import { firstName } from 'store/models/Person'
+import { firstName } from 'urql-shared/presenters/PersonPresenter'
 
 export const KeyboardAccessoryCommentEditor = forwardRef(function KeyboardAccessoryCommentEditor ({
   renderScrollable,

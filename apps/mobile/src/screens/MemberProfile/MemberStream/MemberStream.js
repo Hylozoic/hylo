@@ -3,7 +3,7 @@ import { Text, View, TouchableOpacity, FlatList } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, gql } from 'urql'
 import { useNavigation } from '@react-navigation/native'
-import { personPostsQueryFragment } from 'graphql/fragments/postsQueryFragment'
+import { personPostsQuerySetFragment } from 'graphql/fragments/postsQuerySetFragment'
 import respondToEventMutation from 'graphql/mutations/respondToEventMutation'
 import PostCard from 'components/PostCard'
 import Comment from 'components/Comment'
@@ -40,10 +40,10 @@ export const personPostsQuery = gql`
   ) {
     person (id: $id) {
       id
-      ...PersonPostsQueryFragment
+      ...PersonPostsQuerySetFragment
     }
   }
-  ${personPostsQueryFragment}
+  ${personPostsQuerySetFragment}
 `
 
 export const personCommentsQuery = gql`

@@ -36,7 +36,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
   const [, providedLeaveProject] = useMutation(leaveProjectMutation)
 
   const navigation = useNavigation()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const changeToGroup = useChangeToGroup()
   const goToMember = useGoToMember()
   const goToTopic = useGoToTopic()

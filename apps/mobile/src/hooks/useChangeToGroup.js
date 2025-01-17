@@ -12,8 +12,8 @@ export default function useChangeToGroup () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigation = useNavigation()
-  const [currentUser] = useCurrentUser()
-  const [currentGroup] = useCurrentGroup()
+  const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroup }] = useCurrentGroup()
   const myMemberships = currentUser?.memberships
   
 

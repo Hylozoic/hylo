@@ -8,15 +8,14 @@ import { useTranslation } from 'react-i18next'
 import Icon from 'components/Icon'
 import PopupMenuButton from 'components/PopupMenuButton'
 import { filter, get, isEmpty } from 'lodash/fp'
-import styles from './MemberHeader.styles'
-import { AXOLOTL_ID } from 'store/models/Person'
-import LocationPicker from 'screens/LocationPicker/LocationPicker'
+import { AXOLOTL_ID } from 'urql-shared/presenters/PersonPresenter'
 import Control from 'screens/MemberProfile/Control'
 import { openURL } from 'hooks/useOpenURL'
 import { useNavigation } from '@react-navigation/native'
 import useCurrentUser from 'hooks/useCurrentUser'
 import { useMutation } from 'urql'
 import blockUserMutation from 'graphql/mutations/blockUserMutation'
+import styles from './MemberHeader.styles'
 
 export default function MemberHeader ({
   person,
@@ -30,7 +29,8 @@ export default function MemberHeader ({
 }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
+  // TODO: URQL - analytics: AnalyticsEvents.BLOCK_USER
   const [, blockUser] = useMutation(blockUserMutation)
 
   if (!person) return null
@@ -38,16 +38,17 @@ export default function MemberHeader ({
   const { name, tagline } = person
   const locationText = get('location', person) || get('locationObject.fullText', person)
   const isAxolotl = AXOLOTL_ID === get('id', person)
+  // TODO: ItemSelectorModal
   const showLocationPicker = () => {
-    LocationPicker({
-      navigation,
-      initialSearchTerm: locationText,
-      onPick: location => {
-        updateSetting('location', location?.fullText)
-        updateSetting('locationId', location?.id)
-      },
-      t
-    })
+    // LocationPicker({
+    //   navigation,
+    //   initialSearchTerm: locationText,
+    //   onPick: location => {
+    //     updateSetting('location', location?.fullText)
+    //     updateSetting('locationId', location?.id)
+    //   },
+    //   t
+    // })
   }
 
   const handleBlockUserWithConfirmation = () => {

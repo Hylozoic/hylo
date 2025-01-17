@@ -1,5 +1,5 @@
 import { isIOS } from 'util/platform'
-import { POST_TYPES } from 'store/models/Post'
+import { POST_TYPES } from 'urql-shared/presenters/PostPresenter'
 import {
   caribbeanGreen,
   rhino30,

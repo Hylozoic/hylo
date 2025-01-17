@@ -52,7 +52,7 @@ export default function TabsNavigator () {
       headerShown: false
     })
   }
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
 
   const handleSupportTabPress = () => {
     Intercom.present()

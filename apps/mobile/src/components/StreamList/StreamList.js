@@ -17,7 +17,7 @@ import styles from './StreamList.styles'
 
 /* === CONSTANTS === */
 
-// tracks: `hylo-evo/src/components/StreamViewControls/StreamViewControls.js`
+// tracks: `apps/web/src/components/StreamViewControls/StreamViewControls.js`
 export const POST_TYPE_OPTIONS = [
   { id: undefined, label: 'All Posts' },
   { id: 'discussion', label: 'Discussions' },
@@ -28,20 +28,20 @@ export const POST_TYPE_OPTIONS = [
   { id: 'request', label: 'Requests' },
   { id: 'resource', label: 'Resources' }
 ]
-// tracks: `hylo/hylo-evo/src/util/constants.js`
+// tracks: `apps/web/src/util/constants.js`
 export const STREAM_SORT_OPTIONS = [
   { id: 'updated', label: 'Latest activity' },
   { id: 'created', label: 'Post Date' },
   { id: 'reactions', label: 'Popular' }
 ]
-// tracks: `hylo/hylo-evo/src/util/constants.js`
+// tracks: `apps/web/src/util/constants.js`
 export const COLLECTION_SORT_OPTIONS = [
   { id: 'order', label: 'Manual' },
   { id: 'updated', label: 'Latest activity' },
   { id: 'created', label: 'Post Date' },
   { id: 'reactions', label: 'Popular' }
 ]
-// tracks: `hylo-evo/src/routes/Events/Events.js`
+// tracks: `apps/web/src/routes/Events/Events.js`
 export const EVENT_STREAM_TIMEFRAME_OPTIONS = [
   { id: 'future', label: 'Upcoming Events' },
   { id: 'past', label: 'Past Events' }
@@ -86,7 +86,7 @@ export default function StreamList (props) {
   } = props
   const navigation = useNavigation()
   const isFocused = useIsFocused()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const [filter, setFilter] = useState()
   const [sortBy, setSortBy] = useState(
     get('settings.streamSortBy', currentUser) ||

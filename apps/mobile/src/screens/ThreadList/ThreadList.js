@@ -14,8 +14,9 @@ import Loading from 'components/Loading'
 export default function ThreadList () {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const [offset, setOffset] = useState(0)
+
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const updateLastViewed = () => updateUserSettings({ changes: { settings: { lastViewedMessageAt: new Date() } } })
 

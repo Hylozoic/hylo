@@ -8,16 +8,16 @@ import {
   ScrollView,
   TextInput
 } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import validator from 'validator'
 import { openURL } from 'hooks/useOpenURL'
 import { useNavigation, useRoute, useNavigationState } from '@react-navigation/native'
 import useRouteParams from 'hooks/useRouteParams'
+import useAuthState, { AuthState } from 'hooks/useAuthState'
 import FormattedError from 'components/FormattedError'
 import sendEmailVerification from 'store/actions/sendEmailVerification'
-import { getAuthState, AuthState } from 'store/selectors/getAuthState'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Button from 'components/Button'
 import providedStyles from './Signup.styles'
@@ -33,7 +33,7 @@ export default function Signup () {
   const currentRouteName = useNavigationState(state => state?.routes[state.index]?.name)
   const safeAreaInsets = useSafeAreaInsets()
   const dispatch = useDispatch()
-  const authState = useSelector(getAuthState)
+  const [{ authState }] = useAuthState()
   const { email: routeEmail, error: routeError, bannerError: routeBannerError } = useRouteParams()
   const [email, providedSetEmail] = useState(routeEmail)
   const [loading, setLoading] = useState(false)

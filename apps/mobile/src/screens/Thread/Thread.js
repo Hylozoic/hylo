@@ -40,7 +40,7 @@ export default function Thread (props) {
   const navigation = useNavigation()
   const dispatch = useDispatch()
   const isConnected = useSelector(state => state.SocketListener.connected)
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const { id: threadId } = useRouteParams()
 
   const messageListRef = useRef()
@@ -71,7 +71,7 @@ export default function Thread (props) {
   // TODO: URQL - convert
   const updateThreadReadTime = () => dispatch(updateThreadReadTimeAction(threadId))
 
-  const [{ data, fetching, error }, refetchThread] = useQuery({
+  const [{ data, fetching }, refetchThread] = useQuery({
     query: messageThreadMessagesQuery,
     variables: {
       id: threadId,

@@ -6,22 +6,19 @@ import { useTranslation } from 'react-i18next'
 import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentLocation from 'hooks/useCurrentLocation'
 import useCurrentUser from 'hooks/useCurrentUser'
-import checkLogin from 'store/actions/checkLogin'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
-import updateUserSettings from 'store/actions/updateUserSettings'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Button from 'components/Button'
 import SettingControl from 'components/SettingControl'
-import LocationPicker from 'screens/LocationPicker/LocationPicker'
 import styles from './SignupSetLocation.styles'
 
 export default function SignupSetLocation ({ navigation }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const [location, setLocation] = useState(currentUser?.location)
   const [locationId, setLocationId] = useState(currentUser?.locationId)
-  const [currentLocation, getLocation] = useCurrentLocation()
+  const [{ currentLocation }, getLocation] = useCurrentLocation()
   const controlRef = useRef()
 
   useEffect(() => { getLocation() }, [])
@@ -31,7 +28,14 @@ export default function SignupSetLocation ({ navigation }) {
       headerLeftOnPress: () => {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
-        dispatch(updateUserSettings({ settings: { signupInProgress: false } }))
+
+
+
+        // dispatch(updateUserSettings({ settings: { signupInProgress: false } }))
+
+
+
+
         dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
       }
     })
@@ -39,22 +43,27 @@ export default function SignupSetLocation ({ navigation }) {
 
   const finish = async () => {
     controlRef.current && controlRef.current.blur()
-    await dispatch(updateUserSettings({ location, locationId, settings: { signupInProgress: false } }))
+    // await dispatch(updateUserSettings({ location, locationId, settings: { signupInProgress: false } }))
+
+
     await dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
-    await dispatch(checkLogin())
+
+
+    // await dispatch(checkLogin())
   }
 
+  // TODO: ItemSelectorModal
   const showLocationPicker = locationText => {
-    LocationPicker({
-      navigation,
-      currentLocation,
-      initialSearchTerm: locationText,
-      onPick: pickedLocation => {
-        setLocation(pickedLocation?.fullText)
-        pickedLocation?.id !== 'NEW' && setLocationId(pickedLocation?.id)
-      },
-      t
-    })
+    // LocationPicker({
+    //   navigation,
+    //   currentLocation,
+    //   initialSearchTerm: locationText,
+    //   onPick: pickedLocation => {
+    //     setLocation(pickedLocation?.fullText)
+    //     pickedLocation?.id !== 'NEW' && setLocationId(pickedLocation?.id)
+    //   },
+    //   t
+    // })
   }
 
   return (

@@ -58,8 +58,8 @@ export default function usePostActionSheet ({
   const [, pinPost] = useMutation(pinPostMutation)
   const { showHyloActionSheet } = useHyloActionSheet()
   const mixpanelTrack = useMixpanelTrack()
-  const [currentGroup] = useCurrentGroup()
-  const [currentUser] = useCurrentUser()
+  const [{ currentGroup }] = useCurrentGroup()
+  const [{ currentUser }] = useCurrentUser()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
 

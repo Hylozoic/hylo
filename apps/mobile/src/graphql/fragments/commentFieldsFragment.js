@@ -1,6 +1,6 @@
 import { gql } from 'urql'
 
-export const commentFieldsFragment = gql`
+export default gql`
   fragment CommentFieldsFragment on Comment {
     id
     text
@@ -57,5 +57,3 @@ export const commentFieldsFragment = gql`
     createdAt
   }
 `
-
-export default commentFieldsFragment

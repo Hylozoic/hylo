@@ -1,15 +1,13 @@
 import React, { useRef } from 'react'
-import { useDispatch } from 'react-redux'
 import { WebViewMessageTypes } from '@hylo/shared'
 import useRouteParams from 'hooks/useRouteParams'
-import { LEAVE_GROUP } from 'store/constants'
 import HyloWebView from 'components/HyloWebView'
 import useLogout from 'urql-shared/hooks/useLogout'
 import useCurrentUser from 'hooks/useCurrentUser'
 
 export default function UserSettingsWebView ({ path: pathProp, route }) {
-  const dispatch = useDispatch()
-  const [,, queryCurrentUser] = useCurrentUser({ pause: true })
+  // TODO: URQL - Untested, intention is to refresh cache
+  const [, queryCurrentUser] = useCurrentUser({ requestPolicy: 'network-only', pause: true })
   const webViewRef = useRef(null)
   const logout = useLogout()
   const { path: routePath } = useRouteParams()
@@ -21,7 +19,6 @@ export default function UserSettingsWebView ({ path: pathProp, route }) {
 
   const messageHandler = ({ type, data }) => {
     switch (type) {
-      // TODO: URQL - Untested
       case WebViewMessageTypes.LEFT_GROUP: {
         if (data.groupId) {
           queryCurrentUser()

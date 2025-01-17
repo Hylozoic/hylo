@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next'
 import { PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import topicQuery from 'graphql/queries/topicQuery'
 import useRouteParams from 'hooks/useRouteParams'
-import { firstName } from 'store/models/Person'
+import { firstName } from 'urql-shared/presenters/PersonPresenter'
 import Avatar from 'components/Avatar'
 import Button from 'components/Button'
 import CreateGroupNotice from 'components/CreateGroupNotice'
@@ -42,8 +42,8 @@ export default function Stream ({ topicName: providedTopicName }) {
     dispatch(setCurrentGroupSlug(MY_CONTEXT_SLUG))
   }
 
-  const [currentUser] = useCurrentUser()
-  const [currentGroup] = useCurrentGroup()
+  const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroup }] = useCurrentGroup()
   const changeToGroup = useChangeToGroup()
   const goToTopicDefault = useGoToTopic()
 

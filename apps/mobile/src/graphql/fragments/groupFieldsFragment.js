@@ -1,6 +1,6 @@
 import { gql } from 'urql'
 
-export const groupFieldsFragment = gql`
+export default gql`
   fragment GroupFieldsFragment on Group {
     id
     aboutVideoUri
@@ -228,65 +228,14 @@ export const groupGroupExtensionsFieldsFragment = gql`
 `
 
 export const groupWidgetsFieldsFragment = gql`
-  fragment GroupContextWidgetsFieldsFragment on Group {
-    contextWidgets {
+  fragment GroupWidgetsFieldsFragment on Group {
+    widgets {
       items {
         id
-        title
-        type
+        name
+        context
         order
-        visibility
-        view
-        icon
-        highlightNumber
-        secondaryNumber
-        parentId
-        viewGroup {
-          id
-          avatarUrl
-          bannerUrl
-          name
-          memberCount
-          visibility
-          accessibility
-          slug
-        }
-        viewPost {
-          id
-          announcement
-          title
-          details
-          type
-          createdAt
-          startTime
-          endTime
-          isPublic
-        }
-        customView {
-          id
-          groupId
-          collectionId
-          externalLink
-          isActive
-          icon
-          name
-          order
-          postTypes
-          topics {
-            id
-            name
-          }
-          type
-        }
-        viewUser {
-          id
-          name
-          avatarUrl
-        }
-        viewChat {
-          id
-          name
-        }
+        isVisible
       }
     }
   }

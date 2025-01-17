@@ -1,7 +1,7 @@
 import { gql } from 'urql'
-import postsQueryFragment from 'graphql/fragments/postsQueryFragment'
-import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
 import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
+import postsQuerySetFragment from 'graphql/fragments/postsQuerySetFragment'
+import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
 
 export const makeQuery = ({
   activePostsOnly,
@@ -94,9 +94,9 @@ const postsQuery = gql`
     $topics: [ID],
     $types: [String]
   ) {
-    ...PostsQueryFragment
+    ...PostsQuerySetFragment
   }
-  ${postsQueryFragment}
+  ${postsQuerySetFragment}
 `
 
 // TODO: URQL - eliminate Group.viewPosts and add "includeChildPost" filter (or similar)

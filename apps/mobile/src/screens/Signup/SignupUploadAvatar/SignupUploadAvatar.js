@@ -6,7 +6,6 @@ import { useDispatch } from 'react-redux'
 import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentUser from 'hooks/useCurrentUser'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
-import updateUserSettings from 'store/actions/updateUserSettings'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import ImagePicker from 'components/ImagePicker'
 import Button from 'components/Button'
@@ -17,7 +16,7 @@ import styles from './SignupUploadAvatar.styles'
 export default function SignupUploadAvatar ({ navigation }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const [currentUser] = useCurrentUser()
+  const [{ currentUser }] = useCurrentUser()
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl)
   const [avatarImageSource, setAvatarImageSource] = useState({ uri: avatarUrl })
   const [imagePickerPending, setImagePickerPending] = useState(false)
@@ -27,7 +26,15 @@ export default function SignupUploadAvatar ({ navigation }) {
       headerLeftOnPress: () => {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
-        dispatch(updateUserSettings({ settings: { signupInProgress: false } }))
+
+
+
+        // dispatch(updateUserSettings({ settings: { signupInProgress: false } }))
+
+
+
+
+
         dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
       }
     })

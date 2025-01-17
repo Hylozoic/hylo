@@ -100,7 +100,7 @@ export default function MemberList ({
   const { t } = useTranslation()
   const scrollRef = React.useRef(null)
   useScrollToTop(scrollRef)
-  const [group] = useCurrentGroup()
+  const [{ currentGroup: group }] = useCurrentGroup()
 
   const [searchString, setSearchString] = useState('')
   // these keys must match the values that hylo-node can handle

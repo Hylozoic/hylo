@@ -1,11 +1,11 @@
 import React from 'react'
 import { View, Text } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { uniq, merge } from 'lodash/fp'
 import LinkButton from 'components/LinkButton'
 import Triangle from 'react-native-triangle'
 import { amaranth, white } from 'style/colors'
 import errorMessages from 'util/errorMessages'
-import { useTranslation } from 'react-i18next'
 
 export const defaultStyles = {
   errorWrapper: {

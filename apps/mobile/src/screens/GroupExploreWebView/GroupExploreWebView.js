@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { gql, useQuery } from 'urql'
-import { useSelector } from 'react-redux'
 import { URL } from 'react-native-url-polyfill'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { DEFAULT_APP_HOST } from 'navigation/linking'
@@ -11,7 +10,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
 import HyloWebView from 'components/HyloWebView'
 import ModalHeaderTransparent from 'navigation/headers/ModalHeaderTransparent'
-import getGroup from 'store/selectors/getGroup'
+import { useGroup } from 'hooks/useCurrentGroup'
 
 const groupStewardsQuery = gql`
   query GroupStewardsQuery ($id: ID, $slug: String) {
@@ -34,7 +33,7 @@ export default function GroupExploreWebView () {
   const { groupSlug } = useRouteParams()
   const [, fetchGroupDetails] = useQuery({ query: groupDetailsQueryMaker(), pause: true })
   const [, fetchGroupModerators] = useQuery({ query: groupStewardsQuery, pause: true })
-  const currentGroup = useSelector(state => getGroup(state, { slug: groupSlug }))
+  const [{ group: currentGroup }] = useGroup({ groupSlug })
   const [path, setPath] = useState()
   const [canGoBack, setCanGoBack] = useState(false)
 

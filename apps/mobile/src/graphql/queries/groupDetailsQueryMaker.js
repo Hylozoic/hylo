@@ -1,12 +1,11 @@
-import groupFieldsFragment, {
-  groupGroupExtensionsFieldsFragment,
-  groupGroupTopicsFieldsFragment,
-  groupJoinQuestionsFieldsFragment,
-  groupPendingInvitationsFieldsFragment,
-  groupPrerequisiteGroupsFieldsFragment,
-  groupWidgetsFieldsFragment
-} from 'graphql/fragments/groupFieldsFragment'
 import { gql } from 'urql'
+import groupFieldsFragment from 'graphql/fragments/groupFieldsFragment'
+import groupGroupExtensionsFieldsFragment from 'graphql/fragments/groupGroupExtensionsFieldsFragment'
+import groupGroupTopicsFieldsFragment from 'graphql/fragments/groupGroupTopicsFieldsFragment'
+import groupJoinQuestionsFieldsFragment from 'graphql/fragments/groupJoinQuestionsFieldsFragment'
+import groupPendingInvitationsFieldsFragment from 'graphql/fragments/groupPendingInvitationsFieldsFragment'
+import groupPrerequisiteGroupsFieldsFragment from 'graphql/fragments/groupPrerequisiteGroupsFieldsFragment'
+import groupWidgetsFieldsFragment from 'graphql/fragments/groupWidgetsFieldsFragment'
 
 // Note: The previous defaults args for fetchGroupDetails were:
 // withExtensions = true,

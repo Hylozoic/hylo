@@ -2,7 +2,7 @@ import React from 'react'
 import { Text, ScrollView, View, TouchableOpacity } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import { isContextGroup, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
+import GroupPresenter, { isContextGroup, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import useCurrentGroup from 'hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import { openURL } from 'hooks/useOpenURL'
@@ -15,8 +15,9 @@ export default function GroupNavigation () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const { myHome, groupSlug } = useRouteParams()
+  const [{ currentGroup: currentGroupRaw, fetching }] = useCurrentGroup({ setToGroupSlug: groupSlug })
+  const currentGroup = GroupPresenter(currentGroupRaw)
 
-  const [currentGroup, { fetching }] = useCurrentGroup({ setToGroupSlug: groupSlug })
   const childGroups = currentGroup?.childGroups?.items
   const parentGroups = currentGroup?.parentGroups?.items
 

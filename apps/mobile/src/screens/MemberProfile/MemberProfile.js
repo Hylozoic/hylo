@@ -25,8 +25,8 @@ function MemberProfile ({ isFocused }) {
   const { id } = useRouteParams()
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
-  const [currentGroup] = useCurrentGroup()
-  const [currentUser] = useCurrentUser()
+  const [{ currentGroup }] = useCurrentGroup()
+  const [{ currentUser }] = useCurrentUser()
 
   const [{ data, fetching, error }] = useQuery({ query: personQuery, variables: { id }, pause: !id })
   const person = id ? data?.person : currentUser

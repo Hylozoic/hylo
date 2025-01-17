@@ -2,8 +2,6 @@ import 'react-native-gesture-handler'
 import { enableScreens } from 'react-native-screens'
 import React, { useEffect, useState } from 'react'
 import Config from 'react-native-config'
-// Required for react-native-root-toast
-import { RootSiblingParent } from 'react-native-root-siblings'
 import { Provider as UrqlProvider } from 'urql'
 import { Provider } from 'react-redux'
 import { AppRegistry, Platform, AppState, UIManager, LogBox } from 'react-native'
@@ -28,10 +26,6 @@ import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHT
 // import FastImage from 'react-native-fast-image'
 
 Sentry.init(sentryConfig)
-
-if (__DEV__) {
-  require('./ReactotronConfig')
-}
 
 // For Layout animation support: https://reactnative.dev/docs/layoutanimation
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -78,6 +72,14 @@ enableScreens()
 // FastImage.clearDiskCache()
 // FastImage.clearMemoryCache()
 
+// URQL debug (WIP)
+// const { unsubscribe } = client.subscribeToDebugTarget(event => {
+//   if (event.source === 'cacheExchange') {
+//     return
+//   }
+//   console.log(event) // { type, message, operation, data, source, timestamp }
+// })
+
 export default function App () {
   const [appState, setAppState] = useState(AppState.currentState)
 
@@ -113,26 +115,24 @@ export default function App () {
     <SafeAreaProvider>
       <ErrorBoundary>
         <ActionSheetProvider>
-          <RootSiblingParent>
-            {/*
-              `TRenderEngineProvider` is the react-native-render-html rendering engine.
-              It is app-wide for performance reasons. The styles applied are global and
-              not readily overridden. For more details see: https://bit.ly/3MeJCIR
-            */}
-            <TRenderEngineProvider
-              baseStyle={baseStyle}
-              tagsStyles={tagsStyles}
-              classesStyles={classesStyles}
-              systemFonts={[...defaultSystemFonts, 'Circular-Book']}
-            >
-              <Provider store={store}>
-                <UrqlProvider value={client}>
-                  <VersionCheck />
-                  <RootNavigator />
-                </UrqlProvider>
-              </Provider>
-            </TRenderEngineProvider>
-          </RootSiblingParent>
+          {/*
+            `TRenderEngineProvider` is the react-native-render-html rendering engine.
+            It is app-wide for performance reasons. The styles applied are global and
+            not readily overridden. For more details see: https://bit.ly/3MeJCIR
+          */}
+          <TRenderEngineProvider
+            baseStyle={baseStyle}
+            tagsStyles={tagsStyles}
+            classesStyles={classesStyles}
+            systemFonts={[...defaultSystemFonts, 'Circular-Book']}
+          >
+            <Provider store={store}>
+              <UrqlProvider value={client}>
+                <VersionCheck />
+                <RootNavigator />
+              </UrqlProvider>
+            </Provider>
+          </TRenderEngineProvider>
         </ActionSheetProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

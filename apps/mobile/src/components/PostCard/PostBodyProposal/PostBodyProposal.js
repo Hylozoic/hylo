@@ -1,7 +1,14 @@
 import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useDispatch } from 'react-redux'
-import { PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED, PROPOSAL_STATUS_DISCUSSION, PROPOSAL_STATUS_VOTING, VOTING_METHOD_MULTI_UNRESTRICTED, VOTING_METHOD_SINGLE } from 'store/models/Post'
+import {
+  PROPOSAL_STATUS_CASUAL,
+  PROPOSAL_STATUS_COMPLETED,
+  PROPOSAL_STATUS_DISCUSSION,
+  PROPOSAL_STATUS_VOTING,
+  VOTING_METHOD_MULTI_UNRESTRICTED,
+  VOTING_METHOD_SINGLE
+} from 'urql-shared/presenters/PostPresenter'
 import { addProposalVote, removeProposalVote, swapProposalVote } from 'store/actions/proposals'
 import QuorumBar from 'components/QuorumBar'
 import Icon from 'components/Icon'
