@@ -3,16 +3,17 @@ import { View, TouchableOpacity, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { useDispatch } from 'react-redux'
+import { openURL } from 'hooks/useOpenURL'
 import FastImage from 'react-native-fast-image'
 import { StyleSheet } from 'react-native'
 import { isIOS } from 'util/platform'
 import Icon from 'components/Icon'
 import { cn } from '../../../util'
 import useCurrentUser from 'hooks/useCurrentUser'
-import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentGroup, { useGroup } from 'hooks/useCurrentGroup'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'
-import { PUBLIC_GROUP } from 'urql-shared/presenters/GroupPresenter'
+import GroupPresenter, { PUBLIC_GROUP } from 'urql-shared/presenters/GroupPresenter'
 import {
   bigStone, rhino, rhino50, persimmon, rhino40, black10onRhino, white, rhino30
 } from 'style/colors'
@@ -72,9 +73,14 @@ function GroupRow ({ group, changeToGroup, currentGroupSlug, addPadding, isMembe
   const { id, avatarUrl, name, slug } = group
   const newPostCount = Math.min(99, group.newPostCount)
   const highlight = slug === currentGroupSlug
+  const [{ group: groupDetail }] = useGroup({ groupSlug: slug })
+  const destinationGroup = GroupPresenter(groupDetail)
+  // if (group.name === "Building Hylo" || group.slug === 'dawn-time') {
+  //   console.log(destinationGroup, 'its lunchtime already', groupDetail)
+  // }
   // TODO: this is only partially restructured based off the updated web version of this
   return (
-    <TouchableOpacity onPress={() => changeToGroup(group?.slug, false)} style={styles.rowTouchable}>
+    <TouchableOpacity onPress={() => changeToGroup(group?.slug, false, destinationGroup)} style={styles.rowTouchable}>
       <View
         className={cn(
           'bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90',

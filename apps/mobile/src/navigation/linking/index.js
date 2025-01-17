@@ -36,12 +36,16 @@ export const routingConfig = {
 
   '/hylo-editor':                                            `${AUTH_ROOT_SCREEN_NAME}/HyloEditor`,
 
-  // context group routes (/all, /public)
+  // context group routes (/all, /public, /my)
   '/:groupSlug(all|public)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab`,
   '/:groupSlug(all|public)/post/:id':                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
   '/:groupSlug(all|public)/post/:id/comments/:commentId':    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
   '/:groupSlug(all)/members/:id':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member`,
   '/:groupSlug(all)/topics/:topicName':                      `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:groupSlug(my)/posts':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/My Posts`,
+  '/:groupSlug(my)/interactions':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Interactions`,
+  '/:groupSlug(my)/mentions':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Mentions`,
+  '/:groupSlug(my)/announcements':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Announcements`,
 
   // map routes
   '/:groupSlug(all|public)/map':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,

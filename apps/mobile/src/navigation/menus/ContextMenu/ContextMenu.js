@@ -189,7 +189,7 @@ function ContextHeader({ group }) {
 }
 
 export default function ContextMenu() {
-  const [currentGroup] = useCurrentGroup()
+  const [{ currentGroup }] = useCurrentGroup()
   const currentGroupSlug = useCurrentGroupSlug()
   const { myHome } = useRouteParams()
   const contextWidgets = getContextWidgetsForGroup(currentGroup)

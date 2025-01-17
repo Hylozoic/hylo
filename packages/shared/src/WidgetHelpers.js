@@ -25,7 +25,8 @@ export function isValidHomeWidget (widget) {
 export function wrapItemInWidget (item, type) {
   return {
     [type]: item,
-    id: 'fake-id-' + crypto.randomUUID()
+    id: 'fake-id-' + crypto.randomUUID(),
+    childWidget: []
   }
 }
 
@@ -69,8 +70,11 @@ export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl, isAll
 }
 
 export function findHomeView (group) {
+  if (!group) return null
+  if (group.homeWidget) return group.homeWidget
   if (!group?.contextWidgets) {
-    throw new Error('Group has no contextWidgets')
+    return null
+    // throw new Error('Group has no contextWidgets') temp revoke this until all groups have switched over
   }
   const homeWidget = group.contextWidgets.items.find(w => w.type === 'home')
   return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)

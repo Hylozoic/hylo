@@ -18,7 +18,8 @@ export function useGroup ({
   groupId,
   groupQueryScope = {
     withJoinQuestions: true,
-    withPrerequisiteGroups: true
+    withPrerequisiteGroups: true,
+    withContextWidgets: true
   },
   useQueryArgs = {}
 } = {}) {

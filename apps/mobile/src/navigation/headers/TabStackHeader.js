@@ -21,6 +21,7 @@ export const TAB_STACK_ROOTS = [
   'Search Tab',
   'Profile Tab',
   'Group Welcome'
+  // TOOD redesign: so this is where I could add many specific screens that can be 'bottom of the stack' before the drawer comes out
 ]
 
 export default function TabStackHeader ({

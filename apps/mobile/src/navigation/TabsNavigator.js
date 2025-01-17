@@ -17,6 +17,7 @@ import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'
 import { MY_CONTEXT_SLUG } from '@hylo/shared'
 import { useNavigation } from '@react-navigation/native'
 import { useDispatch } from 'react-redux'
+import { openURL } from 'hooks/useOpenURL'
 
 const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
@@ -59,8 +60,10 @@ export default function TabsNavigator () {
   }
 
   const handleProfileTabPress = () => {
-    dispatch(setCurrentGroupSlug(MY_CONTEXT_SLUG))
-    navigation.navigate('My Posts')
+    // dispatch(setCurrentGroupSlug(MY_CONTEXT_SLUG))
+    console.log('sending a group to the moon')
+    openURL('/my/posts')
+    // navigation.navigate('My Posts')
   }
 
   return (
