@@ -21,11 +21,11 @@ export default function GlobalNav() {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const dispatch = useDispatch()
-  const [currentUser] = useCurrentUser()
-  const [currentGroup] = useCurrentGroup()
+  const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroup }] = useCurrentGroup()
   const memberships = currentUser?.memberships
   const changeToGroup = useChangeToGroup()
-  const myGroups = memberships
+  const myGroups = memberships && memberships
     .map(m => m.group)
     .sort((a, b) => a.name.localeCompare(b.name))
 

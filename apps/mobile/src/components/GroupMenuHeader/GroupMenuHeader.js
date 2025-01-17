@@ -6,15 +6,15 @@ import { useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
 import Avatar from 'components/Avatar'
 import { RESP_ADMINISTRATION } from 'store/constants'
-import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
+// import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import useHasResponsibility from 'hooks/useHasResponsibility'
 import { cn } from '../../util'
 
 export default function GroupMenuHeader ({ group }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const avatarUrl = group.avatarUrl || DEFAULT_AVATAR
-  const bannerUrl = group.bannerUrl || DEFAULT_BANNER
+  const avatarUrl = group.avatarUrl
+  const bannerUrl = group.bannerUrl
   const [textColor, setTextColor] = useState('background')
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)

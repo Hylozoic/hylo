@@ -36,7 +36,6 @@ export default function DrawerMenu () {
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
   const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
   const contextWidgets = getContextWidgetsForGroup(currentGroup)
-  console.log('This is dumb as hell', currentGroup, 'nioicencoine')
 
   const goToCreateGroup = () => {
     navigation.navigate('Create Group', { screen: 'CreateGroupName', params: { reset: true } })
