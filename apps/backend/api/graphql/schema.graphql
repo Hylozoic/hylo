@@ -676,6 +676,8 @@ type Group {
   description: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
   geoShape: JSON
+  # home widget
+  homeWidget: ContextWidget
   # The current invite link for this group
   invitePath: String
   # A string describing the physical location of this group in the world

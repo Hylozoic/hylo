@@ -98,7 +98,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   contextWidgets () {
-    return this.hasMany(ContextWidget) // TODO CONTEXT: sometimes we want all widgets, sometimes only want the ordered ones. need to handle this
+    return this.hasMany(ContextWidget)
   },
 
   creator: function () {
@@ -141,6 +141,24 @@ module.exports = bookshelf.Model.extend(merge({
       q.select(['questions.text', 'questions.id as questionId'])
       q.join('questions', 'group_to_group_join_questions.question_id', 'questions.id')
     })
+  },
+
+  homeWidget () {
+    return ContextWidget.query(q => {
+      q.with('home_widget', qb => {
+        qb.from('context_widgets')
+          .where({
+            group_id: this.id,
+            type: 'home'
+          })
+          .select('id')
+      })
+      .from('context_widgets')
+      .whereRaw('parent_id = (select id from home_widget)')
+      .andWhere('group_id', this.id)
+      .orderBy('order', 'asc')
+      .limit(1)
+    }).fetch()
   },
 
   isHidden() {
