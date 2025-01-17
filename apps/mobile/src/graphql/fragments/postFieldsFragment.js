@@ -1,7 +1,7 @@
 import { gql } from 'urql'
 
 // Note the first set of comments are always loaded with this
-export const postFieldsFragment = gql`
+export default gql`
   fragment PostFieldsFragment on Post {
     id
     announcement
@@ -177,5 +177,3 @@ export const postFieldsFragment = gql`
     }
   }
 `
-
-export default postFieldsFragment

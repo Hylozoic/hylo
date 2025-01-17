@@ -71,7 +71,7 @@ export default function Thread (props) {
   // TODO: URQL - convert
   const updateThreadReadTime = () => dispatch(updateThreadReadTimeAction(threadId))
 
-  const [{ data, fetching, error }, refetchThread] = useQuery({
+  const [{ data, fetching }, refetchThread] = useQuery({
     query: messageThreadMessagesQuery,
     variables: {
       id: threadId,

@@ -1,7 +1,7 @@
-import { get } from 'lodash/fp'
 import { gql } from 'urql'
 import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'urql-shared/presenters/GroupPresenter'
-import groupFieldsFragment, { groupPrerequisiteGroupsFieldsFragment } from 'graphql/fragments/groupFieldsFragment'
+import groupFieldsFragment from 'graphql/fragments/groupFieldsFragment'
+import groupPrerequisiteGroupsFieldsFragment from 'graphql/fragments/groupPrerequisiteGroupsFieldsFragment'
 
 export const MODULE_NAME = 'CreateGroupFlow'
 export const UPDATE_GROUP_DATA = `${MODULE_NAME}/UPDATE_GROUP_DATA`

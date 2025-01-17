@@ -34,18 +34,18 @@ const postsQuerySetFieldsBlock = `
   }
 `
 
-export const personPostsQueryFragment = gql`
-  fragment PersonPostsQueryFragment on Person {
+export const personPostsQuerySetFragment = gql`
+  fragment PersonPostsQuerySetFragment on Person {
     ${postsQuerySetFieldsBlock}
   }
   ${postFieldsFragment}
 `
 
-export const postsQueryFragment = gql`
-  fragment PostsQueryFragment on Query {
+export const postsQuerySetFragment = gql`
+  fragment PostsQuerySetFragment on Query {
     ${postsQuerySetFieldsBlock}
   }
   ${postFieldsFragment}
 `
 
-export default postsQueryFragment
+export default postsQuerySetFragment
