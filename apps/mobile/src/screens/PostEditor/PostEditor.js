@@ -21,14 +21,12 @@ import useRouteParams from 'hooks/useRouteParams'
 import useCurrentUser from 'hooks/useCurrentUser'
 import useCurrentGroup from 'hooks/useCurrentGroup'
 import useHasResponsibility from 'hooks/useHasResponsibility'
+import useFindOrCreateLocationObject from 'components/LocationSelectorModal/useFindOrCreateLocationObject'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import createPostMutation from 'graphql/mutations/createPostMutation'
 import createProjectMutation from 'graphql/mutations/createProjectMutation'
 import updatePostMutation from 'graphql/mutations/updatePostMutation'
 import uploadAction from 'store/actions/upload'
-import {
-  pollingFindOrCreateLocation as providedPollingFindOrCreateLocation
-} from 'components/LocationSelectorModal/LocationSelectorModalItemRow'
 import postQuery from 'graphql/queries/postQuery'
 import PostPresenter from 'urql-shared/presenters/PostPresenter'
 // Components
@@ -124,6 +122,7 @@ export default function PostEditor (props) {
   const [, createNewPost] = useMutation(createPostMutation)
   const [, createNewProject] = useMutation(createProjectMutation)
   const [, updateSelectedPost] = useMutation(updatePostMutation)
+  const [, findOrCreateLocation] = useFindOrCreateLocationObject()
   const upload = useCallback(params => dispatch(uploadAction(params)), [dispatch])
   const canHaveTimeframe = useMemo(() => post.type !== 'discussion', [post])
 
@@ -169,20 +168,17 @@ export default function PostEditor (props) {
     }
   }, [selectedPostData?.post])
 
-  const pollingFindOrCreateLocation = useCallback((locationData, callback) => {
-    return providedPollingFindOrCreateLocation(dispatch, locationData, locationObject => callback(locationObject))
-  }, [dispatch])
-
   useEffect(() => {
     if (!editingPost && mapCoordinate) {
-      const locationObject = {
+      findOrCreateLocation({
         fullText: `${mapCoordinate.lat},${mapCoordinate.lng}`,
         center: {
           lat: parseFloat(mapCoordinate.lat),
           lng: parseFloat(mapCoordinate.lng),
         }
-      }
-      pollingFindOrCreateLocation(locationObject, handleUpdateLocation)
+      }).then(({ locationObject }) => {
+        handleUpdateLocation(locationObject)
+      })
     }
 
     const removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
@@ -198,7 +194,7 @@ export default function PostEditor (props) {
     return () => {
       removeBeforeRemove()
     }
-  }, [editingPost, mapCoordinate, pollingFindOrCreateLocation, navigation, t])
+  }, [editingPost, mapCoordinate, findOrCreateLocation, navigation, t])
 
   const handleSave = useCallback(async () => {
     if (!detailsEditorRef?.current) {

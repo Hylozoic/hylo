@@ -3,10 +3,10 @@ import { View, Modal, FlatList, Text, TouchableOpacity, StyleSheet } from 'react
 import { useQuery } from 'urql'
 import { isEmpty, isFunction, debounce } from 'lodash/fp'
 import getFirstRootField from 'urql-shared/getFirstRootFieldFromData'
-import SearchBar from 'components/SearchBar'
-import RoundCheckbox from 'components/RoundCheckBox'
-import { havelockBlue, rhino80, rhino50, white, caribbeanGreen, rhino20, rhino10 } from 'style/colors'
 import Avatar from 'components/Avatar'
+import RoundCheckbox from 'components/RoundCheckBox'
+import SearchBar from 'components/SearchBar'
+import { havelockBlue, rhino80, rhino50, white, caribbeanGreen, rhino10 } from 'style/colors'
 
 const ItemSelectorModalHeader = ({
   searchTerm,
@@ -39,9 +39,6 @@ const ItemSelectorModalHeader = ({
           <Text style={styles.listHeaderText}>
             <Text>{headerText}</Text>
           </Text>
-          {/* <TouchableOpacity onPress={clearSearchTerm}>
-            <Text style={styles.listHeaderClear}>{t('Clear Search')}</Text>
-          </TouchableOpacity> */}
         </View>
       )}
     </View>
@@ -227,16 +224,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: 10,
     backgroundColor: '#ccc',
-    borderRadius: 5,
-    // alignItems: 'center'
+    borderRadius: 5
   },
   closeText: {
     fontSize: 16,
     color: '#333'
   },
 
-  // Item
-
+  // Default Item
   item: {
     padding: 15,
     flexDirection: 'row',
@@ -244,7 +239,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     borderBottomWidth: 1,
     borderBottomColor: rhino10
-},
+  },
   itemAvatar: {
     marginRight: 12
   },
@@ -253,8 +248,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
 
-  // from old ItemChooser
-
+  // From ItemChooser, for reference
   sectionHeader: {
     backgroundColor: 'white',
     paddingHorizontal: 10,
