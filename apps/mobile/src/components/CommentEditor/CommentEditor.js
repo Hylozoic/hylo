@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -16,11 +16,11 @@ import styles from './CommentEditor.styles'
 import Icon from 'components/Icon'
 import { firstName } from 'urql-shared/presenters/PersonPresenter'
 
-export const KeyboardAccessoryCommentEditor = forwardRef(function KeyboardAccessoryCommentEditor ({
+export const KeyboardAccessoryCommentEditor = React.forwardRef(({
   renderScrollable,
   isModal,
   ...commentFormProps
-}, ref) {
+}, ref) => {
   const safeAreaInsets = useSafeAreaInsets()
 
   return (
@@ -48,12 +48,12 @@ export const KeyboardAccessoryCommentEditor = forwardRef(function KeyboardAccess
   )
 })
 
-export const CommentEditor = forwardRef(function CommentEditor ({
+export const CommentEditor = React.forwardRef(({
   post,
   replyingTo,
   scrollToReplyingTo,
   clearReplyingTo
-}, ref) {
+}, ref) => {
   const { t } = useTranslation()
   const [, createComment] = useMutation(createCommentMutation)
   const [hasContent, setHasContent] = useState()

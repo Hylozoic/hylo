@@ -110,12 +110,13 @@ export default function PostEditor (props) {
     postMemberships: []
   })
   const canAdminister = hasResponsibility(RESP_ADMINISTRATION, {
-    groupIds: post?.groups?.map(group => group.id)
+    groupIds: post?.groups && post.groups.map(group => group.id)
   })
 
   const updatePost = useCallback(postUpdates => setPost(prevPost => {
     prevPost.announcement = !canAdminister && prevPost.announcement
-    return PostPresenter(({ ...prevPost, ...postUpdates }))
+    const newPost = PostPresenter(({ ...prevPost, ...postUpdates }))
+    return newPost
   }), [setPost, canAdminister])
 
   // Actions
@@ -237,6 +238,7 @@ export default function PostEditor (props) {
         }
 
         const id = data[Object.keys(data)[0]].id
+
         navigation.navigate('Post Details', { id })
       } catch (e) {
         console.log('!!!! error saving post', e)
@@ -288,7 +290,7 @@ export default function PostEditor (props) {
         </View>
       </View>
     )
-  }, [isValid, isSaving, post?.type])
+  }, [isValid, isSaving, handleSave, post?.type])
 
   useEffect(() => {
     navigation.setOptions({ headerShown: true, header })
@@ -327,6 +329,7 @@ export default function PostEditor (props) {
 
     if (Validators.validateTopicName(topic.name) === null) {
       if (picked !== undefined) setTopicsPicked(picked)
+      console.log(uniqBy((t) => t.name, [...post.topics, topic]).slice(0, 3))
       updatePost({ topics: uniqBy((t) => t.name, [...post.topics, topic]).slice(0, 3) })
     }
   }
@@ -334,14 +337,6 @@ export default function PostEditor (props) {
   const handleRemoveTopic = topic => {
     updatePost({ topics: post.topics.filter(t => t.id !== topic.id) })
     setTopicsPicked(true)
-  }
-
-  const handleAddMember = member => {
-    updatePost({
-      members: {
-        items: [...(post?.members?.items || []), member]
-      }
-    })
   }
 
   const handleAddAttachment = (type, attachment) => {
@@ -420,12 +415,26 @@ export default function PostEditor (props) {
             <ItemSelectorModal
               ref={topicSelectorModalRef}
               title={t('Pick a Topic')}
-              onItemPress={topic => handleAddTopic(topic, true)}
               searchPlaceholder={t('Search for a topic by name')}
+              onItemPress={topic => handleAddTopic(topic, true)}
+              itemsUseQueryArgs={({ searchTerm }) => ({
+                query: topicsForGroupIdQuery,
+                variables: {
+                  searchTerm,
+                  // Note: Only finds topics for first group
+                  groupId: get('[0].id', post.groups)
+                }
+              })}
+              itemsUseQuerySelector={data => 
+                data?.group?.groupTopics?.items &&
+                data?.group?.groupTopics?.items.map(item => item.topic)}
+              itemsTransform={(items, searchTerm) => {
+                if (!items.find(item => item.name.match(searchTerm))) {
+                  items.unshift({ id: searchTerm, name: searchTerm })
+                }
+                return items
+              }}
               renderItem={TopicRow}
-              // // Note: Only finds topics for first group
-              // fetchSearchSuggestions: fetchTopicsForGroupId(get('[0].id', post.groups)),
-              // getSearchSuggestions: getTopicsForAutocompleteWithNew
             />
             <Topics
               style={styles.pressSelectionValue}
@@ -460,9 +469,7 @@ export default function PostEditor (props) {
                 searchPlaceholder={t('Type in the names of people to add to project')}
                 chooser
                 chosenItems={post?.members?.items || []}
-                // onItemPress={handleAddMember}
                 onClose={chosenItems => {
-                  console.log('!!! chosenItems', chosenItems)
                   chosenItems && updatePost({ members: { items: chosenItems } })
                 }}
               />
@@ -508,7 +515,12 @@ export default function PostEditor (props) {
               ref={groupSelectorModalRef}
               title={t('Post in Groups')}
               items={groupOptions}
-              itemsFilter={(item, searchTerm) => searchTerm ? item.name.toLowerCase().match(searchTerm?.toLowerCase()) : item}
+              itemsTransform={(items, searchTerm) => (
+                items.filter(item => searchTerm
+                  ? item.name.toLowerCase().match(searchTerm?.toLowerCase())
+                  : item
+                )
+              )}
               chosenItems={post.groups}
               onItemPress={handleAddGroup}
               searchPlaceholder={t('Search for group by name')}
@@ -532,7 +544,7 @@ export default function PostEditor (props) {
             <LocationSelectorModal
               ref={locationSelectorModalRef}
               onItemPress={handleUpdateLocation}
-              searchTerm={post?.location}
+              initialSearchTerm={post?.location || post?.locationObject?.fullText}
             />
             <View style={styles.pressSelection}>
               <Text style={styles.pressSelectionLeftText}>{t('Location')}</Text>

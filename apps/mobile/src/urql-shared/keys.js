@@ -12,6 +12,10 @@ export default {
   GroupQuerySet: () => null,
   GroupRole: () => null,
   GroupRoleQuerySet: () => null,
+  // This is due to out-of-scheme return { groupTopics(autocomplete: $searchTerm, first: 20) { topic { ... } } }
+  // in topicsForGroupIdQuery. May have adverse side-effects, and should be fixed in the backend to comply with scheme
+  // or scheme updated
+  GroupTopic: data => data?.id || data?.topic?.id,
   GroupWidgetQuerySet: () => null,
   GroupSettings: () => null,
   GroupTopicQuerySet: () => null,

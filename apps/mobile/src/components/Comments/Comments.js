@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import React, { useState, useRef, useImperativeHandle, forwardRef, useCallback } from 'react'
+import React, { useState, useRef, useImperativeHandle, useCallback } from 'react'
 import { Text, TouchableOpacity, View, SectionList } from 'react-native'
 import { gql, useQuery } from 'urql'
 import { isIOS } from 'util/platform'
@@ -11,7 +11,8 @@ import styles from './Comments.styles'
 export const postCommentsQuery = gql`
   query PostCommentsQuery (
     $postId: ID,
-    $cursor: ID
+    $cursor: ID,
+    $first: Int = 10
   ) {
     post(id: $postId) {
       id
@@ -22,7 +23,7 @@ export const postCommentsQuery = gql`
       }
       commentersTotal
       commentsTotal
-      comments(first: 10, cursor: $cursor, order: "desc") {
+      comments(first: $first, cursor: $cursor, order: "desc") {
         items {
           ...CommentFieldsFragment
           childComments(first: 2, order: "desc") {
@@ -47,11 +48,12 @@ export const postCommentsQuery = gql`
 export const childCommentsQuery = gql`
   query ChildCommentsQuery (
     $commentId: ID,
-    $cursor: ID
+    $cursor: ID,
+    $first: Int = 10
   ) {
     comment(id: $commentId) {
       id
-      childComments(first: 10, cursor: $cursor, order: "desc") {
+      childComments(first: $first, cursor: $cursor, order: "desc") {
         items {
           post {
             id
@@ -66,7 +68,7 @@ export const childCommentsQuery = gql`
   ${commentFieldsFragment}
 `
 
-function Comments ({
+export const Comments = React.forwardRef(({
   groupId,
   postId,
   header: providedHeader = null,
@@ -74,7 +76,7 @@ function Comments ({
   showMember,
   panHandlers,
   onSelect
-}, ref) {
+}, ref) => {
   const [{ data, fetching }] = useQuery({ query: postCommentsQuery, variables: { postId } })
   const post = data?.post
   const commentsQuerySet = post?.comments
@@ -178,11 +180,11 @@ function Comments ({
       />
     )
   }
-  
+
   if (fetching) {
     return <Loading />
   }
-  
+
   return (
     <SectionList
       style={style}
@@ -202,9 +204,7 @@ function Comments ({
       {...panHandlers}
     />
   )
-}
-
-export default forwardRef(Comments)
+})
 
 export function ShowMore ({ postOrComment, style = {} }) {
   const forSubcomments = !!postOrComment?.childComments
@@ -220,14 +220,17 @@ export function ShowMore ({ postOrComment, style = {} }) {
   const total = commentQuerySet?.total || 0
   const hasMore = commentQuerySet?.hasMore
   const extra = total - commentQuerySet?.items?.length || 0
+  // console.log('!!!! extra', extra, total, hasMore)
 
-  if (!hasMore || extra < 1) return null
+  if (!hasMore) return null
 
   return (
     <TouchableOpacity>
       <Text style={[styles.showMore, style]} onPress={() => fetchComments()}>
-        View {extra} previous {forSubcomments ? 'replies' : `comment${extra > 1 ? 's' : ''}`}
+        View {extra > 0 ? extra : ''} previous {forSubcomments ? 'replies' : `comment${extra > 1 ? 's' : ''}`}
       </Text>
     </TouchableOpacity>
   )
 }
+
+export default Comments

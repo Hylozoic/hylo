@@ -44,7 +44,8 @@ export default function PostCard ({
           <View style={styles.childPostInner}>
             <Icon name='Subgroup' style={styles.childPostIcon} /><Text style={styles.childPostText}>{' '}{t('post from child group')}</Text>
           </View>
-        </View>)}
+        </View>
+      )}
       <View style={styles.container}>
         <PostHeader
           announcement={post.announcement}

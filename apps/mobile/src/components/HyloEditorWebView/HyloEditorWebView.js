@@ -7,7 +7,7 @@ import HyloWebView, { sendMessageFromWebView } from 'components/HyloWebView'
 const DEFAULT_WIDTH_OFFSET_IOS = 18
 const EMPTY_STATE = '<p></p>'
 
-export function HyloEditorWebView ({
+export const HyloEditorWebView = React.forwardRef(({
   contentHTML: providedContentHTML,
   groupIds,
   onAddTopic,
@@ -24,7 +24,7 @@ export function HyloEditorWebView ({
   style,
   containerStyle,
   customEditorCSS = ''
-}, ref) {
+}, ref) => {
   const webViewRef = useRef()
   const [path] = useState('/hyloApp/editor')
   const [isEmpty, setIsEmpty] = useState(true)
@@ -178,6 +178,6 @@ export function HyloEditorWebView ({
     // setting here in case we set a different default for HyloWebView
     showsVerticalScrollIndicator: true
   })
-}
+})
 
-export default React.forwardRef(HyloEditorWebView)
+export default HyloEditorWebView
