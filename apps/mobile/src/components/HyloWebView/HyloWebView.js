@@ -1,4 +1,4 @@
-import React, { useCallback, forwardRef, useState, useEffect } from 'react'
+import React, { useCallback, useState, useEffect } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import Config from 'react-native-config'
 import Loading from 'components/Loading'
@@ -10,7 +10,31 @@ import { getSessionCookie } from 'util/session'
 import { match, pathToRegexp } from 'path-to-regexp'
 import { parseWebViewMessage } from '.'
 
-const HyloWebView = forwardRef(function HyloWebView ({
+const handledWebRoutesJavascriptCreator = loadedPath => allowRoutesParam => {
+  const handledWebRoutes = [loadedPath, ...allowRoutesParam]
+  const handledWebRoutesRegExps = handledWebRoutes.map(allowedRoute => pathToRegexp(allowedRoute)?.regexp)
+  const handledWebRoutesRegExpsLiteralString = JSON.parse(JSON.stringify(handledWebRoutesRegExps.map(a => a.toString())))
+
+  return `
+    if (window.ReactNativeWebView.reactRouterHistory) {
+      window.ReactNativeWebView.reactRouterHistory.block(({ pathname, search }) => {
+        const handledWebRoutesRegExps = [${handledWebRoutesRegExpsLiteralString}]
+        const handled = handledWebRoutesRegExps.some(allowedRoutePathRegExp => {
+          return allowedRoutePathRegExp.test(pathname)
+        })
+
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: '${WebViewMessageTypes.NAVIGATION}',
+          data: { handled, pathname, search }
+        }))
+
+        return handled
+      })
+    }
+  `
+}
+
+const HyloWebView = React.forwardRef(({
   handledWebRoutes = [],
   messageHandler,
   nativeRouteHandler,
@@ -19,7 +43,7 @@ const HyloWebView = forwardRef(function HyloWebView ({
   style,
   source,
   ...forwardedProps
-}, webViewRef) {
+}, webViewRef) => {
   const [cookie, setCookie] = useState()
   const [uri, setUri] = useState()
   const { postId, path: routePath } = useRouteParams()
@@ -139,27 +163,3 @@ const HyloWebView = forwardRef(function HyloWebView ({
 })
 
 export default HyloWebView
-
-const handledWebRoutesJavascriptCreator = loadedPath => allowRoutesParam => {
-  const handledWebRoutes = [loadedPath, ...allowRoutesParam]
-  const handledWebRoutesRegExps = handledWebRoutes.map(allowedRoute => pathToRegexp(allowedRoute)?.regexp)
-  const handledWebRoutesRegExpsLiteralString = JSON.parse(JSON.stringify(handledWebRoutesRegExps.map(a => a.toString())))
-
-  return `
-    if (window.ReactNativeWebView.reactRouterHistory) {
-      window.ReactNativeWebView.reactRouterHistory.block(({ pathname, search }) => {
-        const handledWebRoutesRegExps = [${handledWebRoutesRegExpsLiteralString}]
-        const handled = handledWebRoutesRegExps.some(allowedRoutePathRegExp => {
-          return allowedRoutePathRegExp.test(pathname)
-        })
-
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: '${WebViewMessageTypes.NAVIGATION}',
-          data: { handled, pathname, search }
-        }))
-
-        return handled
-      })
-    }
-  `
-}

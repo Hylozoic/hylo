@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash/fp'
 import { LocationHelpers } from '@hylo/shared'
@@ -29,7 +29,7 @@ export async function locationSearch (searchTerm, proximity) {
   return locations
 }
 
-const LocationSelectorModal = forwardRef((forwardedProps, ref) => {
+export const LocationSelectorModal = React.forwardRef((forwardedProps, ref) => {
   const { t } = useTranslation()
   const [{ currentLocation, fetching: fetchingCurrentLocation }, getLocation] = useCurrentLocation()
   const [locations, setLocations] = useState([])
