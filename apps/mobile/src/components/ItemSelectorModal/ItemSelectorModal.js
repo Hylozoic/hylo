@@ -71,8 +71,9 @@ export const ItemSelectorModal = forwardRef(({
   onClose,
   onItemPress,
   renderItem: CustomItem,
-  // Always ran on items, even on results of fetchItems or itemsUseQueryArgs
-  itemsFilter,
+  // Final items transformation (after fetchItems and itemsUseQueryArgs)
+  // e.g., (items, searchTerm) => return items
+  itemsTransform,
   // For initiating async queries either provide a fetchItems or itemsUseQueryArgs prop.
   // If both are provided itemsUseQueryArgs will be ignored.
   fetchItems,
@@ -146,30 +147,35 @@ export const ItemSelectorModal = forwardRef(({
 
   // 1) Gets items from useQuery data using itemsUseQuerySelector (defaults to getFirstRootField)
   // 2) If not a chooser (multiple selection) then chosenItems serves as an exclude list from results
-  // 3) Finally, apply itemsFilter on result of the above if it was provided
-  // 4) If no itemsFilter, is a chooser, and no searchTerm, show current chosenItems
+  // 3) Finally, apply itemsTransform on result of the above if it was provided
+  // 4) If no itemsTransform, is a chooser, and no searchTerm, show current chosenItems
   // 5) Resets items to defaultItems when no other items are shown (e.g. empty search result after filters)
   useEffect(() => {
     if (visible && !fetching) {
       let filteredItems = providedItems || (itemsUseQueryArgs && itemsUseQuerySelector(data)) || []
 
+      if (!filteredItems) {
+        throw new Error(
+          'No items provided or results from query + itemsUseQuerySelector is not null or an array. Items found:', filteredItems
+        )
+      }
+
       // chosenItems are excluded when not in chooser (multiple selection) mode
       if (!chooser) {
-        console.log('!!! should filter out already chosen items', chosenItems)
         filteredItems = filteredItems.filter(item => !isChosen(item))
       }
 
-      // filter items if itemsFilter (may need to add chosen: isChosen(item) to callback)
-      if (itemsFilter) {
-        filteredItems = filteredItems.filter(item => itemsFilter(item, debouncedSearchTerm))
+      // filter items if itemsFilter
+      if (isFunction(itemsTransform)) {
+        filteredItems = itemsTransform(filteredItems, debouncedSearchTerm)
       // shown chosenItems by default when chooser and no itemsFilter or searchTerm is present
-      } else if (chooser && !debouncedSearchTerm) {
+      } else if (chooser && isEmpty(debouncedSearchTerm)) {
         filteredItems = chosenItems
       }
 
       // Resets items to defaultItems when no other items are shown (e.g. empty search result)
       if (isEmpty(filteredItems) && !isEmpty(defaultItems)) {
-        setItems(defaultItems)
+        setItems(isFunction(defaultItems))
       } else {
         setItems(filteredItems)
       }

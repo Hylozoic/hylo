@@ -110,7 +110,7 @@ export default function PostEditor (props) {
     postMemberships: []
   })
   const canAdminister = hasResponsibility(RESP_ADMINISTRATION, {
-    groupIds: post?.groups?.map(group => group.id)
+    groupIds: post?.groups && post.groups.map(group => group.id)
   })
 
   const updatePost = useCallback(postUpdates => setPost(prevPost => {
@@ -337,14 +337,6 @@ export default function PostEditor (props) {
     setTopicsPicked(true)
   }
 
-  const handleAddMember = member => {
-    updatePost({
-      members: {
-        items: [...(post?.members?.items || []), member]
-      }
-    })
-  }
-
   const handleAddAttachment = (type, attachment) => {
     updatePost({ attachments: [...post.attachments, { type, url: attachment.remote, ...attachment }] })
   }
@@ -421,12 +413,26 @@ export default function PostEditor (props) {
             <ItemSelectorModal
               ref={topicSelectorModalRef}
               title={t('Pick a Topic')}
-              onItemPress={topic => handleAddTopic(topic, true)}
               searchPlaceholder={t('Search for a topic by name')}
+              onItemPress={topic => handleAddTopic(topic, true)}
+              itemsUseQueryArgs={({ searchTerm }) => ({
+                query: topicsForGroupIdQuery,
+                variables: {
+                  searchTerm,
+                  // Note: Only finds topics for first group
+                  groupId: get('[0].id', post.groups)
+                }
+              })}
+              itemsUseQuerySelector={data => 
+                data?.group?.groupTopics?.items &&
+                data?.group?.groupTopics?.items.map(item => item.topic)}
+              itemsTransform={(items, searchTerm) => {
+                if (!items.find(item => item.name.match(searchTerm))) {
+                  items.unshift({ id: searchTerm, name: searchTerm })
+                }
+                return items
+              }}
               renderItem={TopicRow}
-              // // Note: Only finds topics for first group
-              // fetchSearchSuggestions: fetchTopicsForGroupId(get('[0].id', post.groups)),
-              // getSearchSuggestions: getTopicsForAutocompleteWithNew
             />
             <Topics
               style={styles.pressSelectionValue}
@@ -507,7 +513,12 @@ export default function PostEditor (props) {
               ref={groupSelectorModalRef}
               title={t('Post in Groups')}
               items={groupOptions}
-              itemsFilter={(item, searchTerm) => searchTerm ? item.name.toLowerCase().match(searchTerm?.toLowerCase()) : item}
+              itemsTransform={(items, searchTerm) => (
+                items.filter(item => searchTerm
+                  ? item.name.toLowerCase().match(searchTerm?.toLowerCase())
+                  : item
+                )
+              )}
               chosenItems={post.groups}
               onItemPress={handleAddGroup}
               searchPlaceholder={t('Search for group by name')}
