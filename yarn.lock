@@ -26035,6 +26035,7 @@ __metadata:
     react-native-localization: "npm:^2.3.2"
     react-native-modal: "npm:^13.0.1"
     react-native-onesignal: "npm:^5.2.8"
+    react-native-pager-view: "npm:5.1.5"
     react-native-picker-select: "npm:^9.3.1"
     react-native-prompt-android: "npm:^1.1.0"
     react-native-reanimated: "npm:3.16.7"
@@ -30843,6 +30844,16 @@ __metadata:
   dependencies:
     invariant: "npm:^2.2.2"
   checksum: 10/c9c94d285b829658b0881f1709b23103e3b95e9f71f0255769e21f8beae53a231aa10fb46394ea9f2c236c1c7b027f146ecca69b60245e4b6634773875e0fe99
+  languageName: node
+  linkType: hard
+
+"react-native-pager-view@npm:5.1.5":
+  version: 5.1.5
+  resolution: "react-native-pager-view@npm:5.1.5"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 10/20ca003e384895a62d257ec3bc79141a91d61d1c56dee92f179716faa8711dcdddcbe63cafef33dbaea3cdf5ff8a141ce719a6d1284e030d6a864994c1acc6d0
   languageName: node
   linkType: hard
 

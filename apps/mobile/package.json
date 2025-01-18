@@ -86,6 +86,7 @@
     "react-native-localization": "^2.3.2",
     "react-native-modal": "^13.0.1",
     "react-native-onesignal": "^5.2.8",
+    "react-native-pager-view": "5.1.5",
     "react-native-picker-select": "^9.3.1",
     "react-native-prompt-android": "^1.1.0",
     "react-native-reanimated": "3.16.7",
