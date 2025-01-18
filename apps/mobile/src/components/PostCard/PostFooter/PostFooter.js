@@ -75,28 +75,34 @@ export default function PostFooter ({
   return (
     <>
       <View style={styles.dashedBorder} />
-      <LinearGradient style={[styles.container, style]} colors={postCardLinearGradientColors}>
-        <PeopleListModal
-          people={sortedPeople}
-          onPressPerson={goToMember}
-          toggleModal={togglePeopleModal}
-          isVisible={peopleModalVisible}
-        />
-        <TouchableOpacity onPress={togglePeopleModal} onLongPress={togglePeopleModal} style={styles.comments}>
-          {avatarUrls.slice(0, 3).map((avatarUrl, index) => {
-            return (
-              <Avatar
-                key={index}
-                avatarUrl={avatarUrl}
-                size='small'
-                hasBorder
-                hasOverlap={index > 0}
-                zIndex={3 - index}
-              />
-            )
-          })}
-          <Text style={[styles.commentsText, !isEmpty(avatarUrls) && styles.commentsTextWithAvatars]}>{caption}</Text>
-        </TouchableOpacity>
+      <LinearGradient style={[styles.gradient, style]} colors={postCardLinearGradientColors}>
+        {/*
+          extra view container needed to out-of-date LinearGradient component, ref:
+          https://github.com/react-native-linear-gradient/react-native-linear-gradient/issues/668#issuecomment-2448866210
+        */}
+        <View style={styles.container}>
+          <PeopleListModal
+            people={sortedPeople}
+            onPressPerson={goToMember}
+            toggleModal={togglePeopleModal}
+            isVisible={peopleModalVisible}
+          />
+          <TouchableOpacity onPress={togglePeopleModal} onLongPress={togglePeopleModal} style={styles.comments}>
+            {avatarUrls.slice(0, 3).map((avatarUrl, index) => {
+              return (
+                <Avatar
+                  key={index}
+                  avatarUrl={avatarUrl}
+                  size='small'
+                  hasBorder
+                  hasOverlap={index > 0}
+                  zIndex={3 - index}
+                />
+              )
+            })}
+            <Text style={[styles.commentsText, !isEmpty(avatarUrls) && styles.commentsTextWithAvatars]}>{caption}</Text>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
       {forDetails && (
         <View style={styles.dashedBorder} />
@@ -149,9 +155,11 @@ export const peopleSetup = (
 }
 
 const styles = {
-  container: {
+  gradient: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center'
+  },
+  container: {
     paddingLeft: 12,
     paddingVertical: 8
   },
