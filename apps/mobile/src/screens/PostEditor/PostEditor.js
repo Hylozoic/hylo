@@ -238,6 +238,7 @@ export default function PostEditor (props) {
         }
 
         const id = data[Object.keys(data)[0]].id
+
         navigation.navigate('Post Details', { id })
       } catch (e) {
         console.log('!!!! error saving post', e)
@@ -289,7 +290,7 @@ export default function PostEditor (props) {
         </View>
       </View>
     )
-  }, [isValid, isSaving, post?.type])
+  }, [isValid, isSaving, handleSave, post?.type])
 
   useEffect(() => {
     navigation.setOptions({ headerShown: true, header })
@@ -328,6 +329,7 @@ export default function PostEditor (props) {
 
     if (Validators.validateTopicName(topic.name) === null) {
       if (picked !== undefined) setTopicsPicked(picked)
+      console.log(uniqBy((t) => t.name, [...post.topics, topic]).slice(0, 3))
       updatePost({ topics: uniqBy((t) => t.name, [...post.topics, topic]).slice(0, 3) })
     }
   }

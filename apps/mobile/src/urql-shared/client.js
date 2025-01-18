@@ -36,7 +36,7 @@ const client = createClient({
     return response
   },
   fetchOptions: { credentials: 'include' },
-  url: GRAPHQL_ENDPOINT_URL,
+  url: GRAPHQL_ENDPOINT_URL
 })
 
 export default client
