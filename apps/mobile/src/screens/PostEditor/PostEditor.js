@@ -115,7 +115,8 @@ export default function PostEditor (props) {
 
   const updatePost = useCallback(postUpdates => setPost(prevPost => {
     prevPost.announcement = !canAdminister && prevPost.announcement
-    return PostPresenter(({ ...prevPost, ...postUpdates }))
+    const newPost = PostPresenter(({ ...prevPost, ...postUpdates }))
+    return newPost
   }), [setPost, canAdminister])
 
   // Actions
@@ -460,9 +461,7 @@ export default function PostEditor (props) {
                 searchPlaceholder={t('Type in the names of people to add to project')}
                 chooser
                 chosenItems={post?.members?.items || []}
-                // onItemPress={handleAddMember}
                 onClose={chosenItems => {
-                  console.log('!!! chosenItems', chosenItems)
                   chosenItems && updatePost({ members: { items: chosenItems } })
                 }}
               />
@@ -532,7 +531,7 @@ export default function PostEditor (props) {
             <LocationSelectorModal
               ref={locationSelectorModalRef}
               onItemPress={handleUpdateLocation}
-              searchTerm={post?.location}
+              initialSearchTerm={post?.location || post?.locationObject?.fullText}
             />
             <View style={styles.pressSelection}>
               <Text style={styles.pressSelectionLeftText}>{t('Location')}</Text>

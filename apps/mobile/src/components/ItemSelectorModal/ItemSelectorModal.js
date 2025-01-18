@@ -88,7 +88,6 @@ export const ItemSelectorModal = forwardRef(({
   const [items, setItems] = useState(defaultItems)
   const [chosenItems, setChosenItems] = useState(providedChosenItems || [])
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm)
-
   const [debouncedSearchTerm, providedSetDebouncedSearchTerm] = useState(initialSearchTerm)
   const setDebouncedSearchTerm = useCallback(debounce(300, (value) => { providedSetDebouncedSearchTerm(value) }), [])
 
@@ -109,11 +108,24 @@ export const ItemSelectorModal = forwardRef(({
     [chosenItems]
   )
 
+  const handleOnOpen = useCallback(() => {
+    setItems(providedItems)
+    setChosenItems(providedChosenItems)
+    setSearchTerm(initialSearchTerm)
+    providedSetDebouncedSearchTerm(initialSearchTerm)
+    setVisible(true)
+  }, [providedItems, providedChosenItems, initialSearchTerm])
+
   const handleOnClose = useCallback(() => {
     setSearchTerm && setSearchTerm()
-    onClose && onClose(items.filter(item => item?.chosen))
+    onClose && onClose(chosenItems)
     setVisible(false)
-  }, [setSearchTerm, onClose, setVisible])
+  }, [setSearchTerm, onClose, setVisible, items, chosenItems])
+
+  useImperativeHandle(ref, () => ({
+    show: () => handleOnOpen(),
+    hide: () => handleOnClose()
+  }))
 
   const handleItemPress = useCallback(item => {
     if (onItemPress) {
@@ -123,34 +135,27 @@ export const ItemSelectorModal = forwardRef(({
   }, [onItemPress, handleOnClose])
 
   const handleToggleChosen = useCallback(toggleItem => {
-    if (isChosen(toggleItem)) {
-      setChosenItems(prevState => prevState.filter(chosenItem => chosenItem.id !== toggleItem.id))
-    } else {
-      setChosenItems(prevState => ([...prevState, toggleItem]))
-    }
+    setChosenItems(prevState => {
+      if (isChosen(toggleItem)) {
+        return prevState.filter(chosenItem => chosenItem.id !== toggleItem.id)
+      } else {
+        return [...prevState, toggleItem]
+      }
+    })
   }, [chosenItems])
 
-  useImperativeHandle(ref, () => ({
-    show: () => setVisible(true),
-    hide: () => handleOnClose()
-  }))
-
-  useEffect(() => {
-    isEmpty(items) && !isEmpty(defaultItems) && setItems(defaultItems)
-  }, [defaultItems, items])
-
-  useEffect(() => {
-    if (visible && fetchItems) {
-      (async () => fetchItems({ searchTerm: debouncedSearchTerm }))()
-    }
-  }, [visible, debouncedSearchTerm])
-
+  // 1) Gets items from useQuery data using itemsUseQuerySelector (defaults to getFirstRootField)
+  // 2) If not a chooser (multiple selection) then chosenItems serves as an exclude list from results
+  // 3) Finally, apply itemsFilter on result of the above if it was provided
+  // 4) If no itemsFilter, is a chooser, and no searchTerm, show current chosenItems
+  // 5) Resets items to defaultItems when no other items are shown (e.g. empty search result after filters)
   useEffect(() => {
     if (visible && !fetching) {
       let filteredItems = providedItems || (itemsUseQueryArgs && itemsUseQuerySelector(data)) || []
 
       // chosenItems are excluded when not in chooser (multiple selection) mode
       if (!chooser) {
+        console.log('!!! should filter out already chosen items', chosenItems)
         filteredItems = filteredItems.filter(item => !isChosen(item))
       }
 
@@ -162,7 +167,12 @@ export const ItemSelectorModal = forwardRef(({
         filteredItems = chosenItems
       }
 
-      setItems(filteredItems)
+      // Resets items to defaultItems when no other items are shown (e.g. empty search result)
+      if (isEmpty(filteredItems) && !isEmpty(defaultItems)) {
+        setItems(defaultItems)
+      } else {
+        setItems(filteredItems)
+      }
     }
   }, [visible, debouncedSearchTerm, providedItems, providedChosenItems, chosenItems, fetching])
 
@@ -173,6 +183,13 @@ export const ItemSelectorModal = forwardRef(({
       setDebouncedSearchTerm.cancel && setDebouncedSearchTerm.cancel()
     }
   }, [searchTerm])
+
+  // Runs fetchItems on searches if a fetchItems method was provided
+  useEffect(() => {
+    if (visible && fetchItems) {
+      (async () => fetchItems({ searchTerm: debouncedSearchTerm }))()
+    }
+  }, [visible, debouncedSearchTerm])
 
   const renderItem = useCallback(({ item }) => {
     const ItemComponent = CustomItem || DefaultItem
