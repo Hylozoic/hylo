@@ -72,6 +72,13 @@ export default function UserSettingsTabsNavigator ({ navigation, route }) {
     })
   }, [navigation, route])
 
+
+  // Note: "ERROR  Warning: A props object containing a "key" prop is being spread into JSX"
+  // will appear in logs from this area. This is a known issue in React Navigation material-top-tabs
+  // and RN 0.76. It is only a deprecation warning, and can be patched as per
+  // https://github.com/react-navigation/react-navigation/issues/11989
+  // otherwise it will likely be resolved when we move up to React Navigation 7
+
   return (
     <UserSettings.Navigator {...navigatorProps}>
       <UserSettings.Screen

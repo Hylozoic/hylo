@@ -118,7 +118,7 @@ export function MenuButton ({ canGoBack, onPress }) {
         <View style={styles.container}>
           {!canGoBack
             ? <Icon name='Hamburger' style={styles.menuIcon} />
-            : <Icon name='ArrowBack' style={styles.backIcon} />}
+            : <Icon name='ArrowForward' style={styles.backIcon} />}
           <FastImage source={{ uri: avatarUrl }} style={styles.avatar} />
         </View>
       )}
