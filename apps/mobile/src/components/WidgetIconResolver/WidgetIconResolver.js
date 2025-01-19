@@ -1,13 +1,13 @@
 import React from 'react'
 import FastImage from 'react-native-fast-image'
 import Icon from 'components/Icon'
+import { Grid3x3 } from 'lucide-react-native'
 import Avatar from 'components/Avatar'
 import { ViewHelpers, WidgetHelpers } from '@hylo/shared'
 const { widgetTypeResolver } = WidgetHelpers
 
 export function WidgetIconResolver({ widget, style, className }) {
   const type = widgetTypeResolver({ widget })
-
   if (widget.icon) {
     return <Icon name={widget.icon} style={style} className={className} />
   }
@@ -61,6 +61,8 @@ export function WidgetIconResolver({ widget, style, className }) {
       return <Icon name='Posticon' style={style} className={className} />
     case 'about':
       return <Icon name='Info' style={style} className={className} />
+    case 'all-views':
+      return <Grid3x3 className='h-[16px]'/>
   }
   return null
 }

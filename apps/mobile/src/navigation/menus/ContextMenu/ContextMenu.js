@@ -194,8 +194,14 @@ export default function ContextMenu() {
   const { myHome } = useRouteParams()
   const contextWidgets = getContextWidgetsForGroup(currentGroup)
   const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets, currentGroup, myHome])
+  const navigation = useNavigation()
+  const { t } = useTranslation()
 
   if (!currentGroup || myHome) return null
+
+  const isPublic = currentGroup.slug === PUBLIC_CONTEXT_SLUG
+  const isMyContext = currentGroup.slug === MY_CONTEXT_SLUG
+  const isAllContext = currentGroup.slug === ALL_GROUPS_CONTEXT_SLUG
 
   return (
     <View className="flex-1 bg-background">
@@ -207,6 +213,18 @@ export default function ContextMenu() {
         groupSlug={currentGroup.slug}
         rootPath={`/groups/${currentGroup.slug}`}
       />
+      {/* Add the All Views widget at the bottom, matching web behavior */}
+      {(!isMyContext && !isPublic && !isAllContext) && (
+        <View className="px-2 mb-2">
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('All Views')}
+            className="flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md gap-2"
+          >
+            <WidgetIconResolver widget={{ type: 'all-views' }} className="mr-2" />
+            <Text className="text-sm font-bold text-foreground">{t('All Views')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   )
 }
