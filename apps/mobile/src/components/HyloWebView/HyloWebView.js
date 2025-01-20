@@ -12,7 +12,7 @@ import { parseWebViewMessage } from '.'
 
 const handledWebRoutesJavascriptCreator = loadedPath => allowRoutesParam => {
   const handledWebRoutes = [loadedPath, ...allowRoutesParam]
-  const handledWebRoutesRegExps = handledWebRoutes.map(allowedRoute => pathToRegexp(allowedRoute)?.regexp)
+  const handledWebRoutesRegExps = handledWebRoutes.map(allowedRoute => pathToRegexp(allowedRoute))
   const handledWebRoutesRegExpsLiteralString = JSON.parse(JSON.stringify(handledWebRoutesRegExps.map(a => a.toString())))
 
   return `
