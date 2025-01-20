@@ -2,7 +2,7 @@ import { getStateFromPath as getStateFromPathDefault } from '@react-navigation/n
 import { isEmpty } from 'lodash/fp'
 import { match } from 'path-to-regexp'
 import { URL } from 'react-native-url-polyfill'
-import * as QueryString from 'query-string'
+import QueryString from 'query-string'
 import store from 'store'
 import useAuthState from 'hooks/useAuthState'
 import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
