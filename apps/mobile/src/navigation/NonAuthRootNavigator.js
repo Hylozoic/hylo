@@ -7,12 +7,12 @@ import ForgotPassword from 'screens/ForgotPassword'
 import SignupNavigator from 'navigation/SignupNavigator'
 import { useNavigation } from '@react-navigation/native'
 import { white } from 'style/colors'
-import useAuthState from 'hooks/useAuthState'
+import useAuthStatus from 'hooks/useAuthStatus'
 
 const NonAuthRoot = createStackNavigator()
 export default function NonAuthRootNavigator () {
   const navigation = useNavigation()
-  const [{ isAuthenticated, fetching }] = useAuthState()
+  const [{ isAuthenticated, fetching }] = useAuthStatus()
 
   // If user authenticated we know they are not authorized also
   // as authorization is handled by `RootNavigator`.

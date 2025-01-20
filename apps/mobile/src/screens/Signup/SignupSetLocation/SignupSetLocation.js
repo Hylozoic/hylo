@@ -1,13 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { ScrollView, View, Text } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { useDispatch } from 'react-redux'
+import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { AnalyticsEvents } from '@hylo/shared'
-import useCurrentLocation from 'hooks/useCurrentLocation'
-import useCurrentUser from 'hooks/useCurrentUser'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
+import useCurrentUser from 'hooks/useCurrentUser'
+import useAuthStatus from 'hooks/useAuthStatus'
+import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
+import LocationSelectorModal from 'components/LocationSelectorModal'
 import Button from 'components/Button'
 import SettingControl from 'components/SettingControl'
 import styles from './SignupSetLocation.styles'
@@ -15,27 +18,20 @@ import styles from './SignupSetLocation.styles'
 export default function SignupSetLocation ({ navigation }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const locationSelectorModalRef = useRef()
   const [{ currentUser }] = useCurrentUser()
   const [location, setLocation] = useState(currentUser?.location)
   const [locationId, setLocationId] = useState(currentUser?.locationId)
-  const [{ currentLocation }, getLocation] = useCurrentLocation()
+  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
+  const [, checkAuth] = useAuthStatus({ pause: true })
   const controlRef = useRef()
-
-  useEffect(() => { getLocation() }, [])
 
   useFocusEffect(() => {
     navigation.setOptions({
       headerLeftOnPress: () => {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
-
-
-
-        // dispatch(updateUserSettings({ settings: { signupInProgress: false } }))
-
-
-
-
+        updateUserSettings({ changes: { settings: { signupInProgress: false } } })
         dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
       }
     })
@@ -43,27 +39,23 @@ export default function SignupSetLocation ({ navigation }) {
 
   const finish = async () => {
     controlRef.current && controlRef.current.blur()
-    // await dispatch(updateUserSettings({ location, locationId, settings: { signupInProgress: false } }))
-
-
+    await updateUserSettings({
+      changes: {
+        location,
+        locationId,
+        settings: { signupInProgress: false }
+      }
+    })
     await dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
-
-
-    // await dispatch(checkLogin())
+    // Confirm whether this is necessary
+    await checkAuth()
   }
 
-  // TODO: ItemSelectorModal
-  const showLocationPicker = locationText => {
-    // LocationPicker({
-    //   navigation,
-    //   currentLocation,
-    //   initialSearchTerm: locationText,
-    //   onPick: pickedLocation => {
-    //     setLocation(pickedLocation?.fullText)
-    //     pickedLocation?.id !== 'NEW' && setLocationId(pickedLocation?.id)
-    //   },
-    //   t
-    // })
+  const showLocationPicker = () => locationSelectorModalRef.current.show()
+
+  const handleUpdateLocation = pickedLocation => {
+    setLocation(pickedLocation?.fullText)
+    pickedLocation?.id !== 'NEW' && setLocationId(pickedLocation?.id)
   }
 
   return (
@@ -76,6 +68,10 @@ export default function SignupSetLocation ({ navigation }) {
           </Text>
         </View>
         <View style={styles.content}>
+          <LocationSelectorModal
+            ref={locationSelectorModalRef}
+            onItemPress={handleUpdateLocation}
+          />
           <SettingControl
             ref={controlRef}
             label={t('Where do you call home')}

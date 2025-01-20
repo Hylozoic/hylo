@@ -1,10 +1,9 @@
 import React, { useRef, useState } from 'react'
 import { ScrollView, View, Text } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
-import { useDispatch } from 'react-redux'
+import { gql, useMutation } from 'urql'
 import { pickBy, identity } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
-import register from 'store/actions/register'
 import useLogout from 'urql-shared/hooks/useLogout'
 import useForm from 'hooks/useForm'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
@@ -15,28 +14,49 @@ import Loading from 'components/Loading'
 import styles from './SignupRegistration.styles'
 import { useTranslation } from 'react-i18next'
 
+// TODO: URQL - Analytics
+// analytics: {
+//   eventName: AnalyticsEvents.SIGNUP_REGISTERED
+// }
+export const registerMutation = gql`
+  mutation RegisterMutation ($name: String!, $password: String!) {
+    register(name: $name, password: $password) {
+      me {
+        id
+        avatarUrl
+        email
+        emailValidated
+        hasRegistered
+        name
+        settings {
+          alreadySeenTour
+          digestFrequency
+          dmNotifications
+          commentNotifications
+          signupInProgress
+          streamViewMode
+          streamSortBy
+          streamPostType
+        }
+      }
+    }
+  }
+`
+
 export default function SignupRegistration ({ navigation, route }) {
   const { t } = useTranslation()
+  const [, register] = useMutation(registerMutation)
   const logout = useLogout()
-  const dispatch = useDispatch()
   const passwordControlRef = useRef()
   const confirmPasswordControlRef = useRef()
   const [loading, setLoading] = useState()
   // WIP: Need to display response error somewhere on page
   const [error, setError] = useState()
 
-  const validator = ({ name, password, confirmPassword }) => {
-    return pickBy(identity, {
-      name: Validators.validateUser.name(name),
-      password: Validators.validateUser.password(password),
-      confirmPassword: (password?.length > 8) && (password !== confirmPassword) && t('Passwords must match')
-    })
-  }
-
   const saveAndNext = async () => {
     try {
       setLoading(true)
-      const response = await dispatch(register(values.name, values.password))
+      const response = await register({ name: values.name, password: values.password })
       const { error: responseError = null } = response.payload.getData()
 
       if (responseError) {
@@ -49,12 +69,15 @@ export default function SignupRegistration ({ navigation, route }) {
     }
   }
 
-  const {
-    values,
-    errors,
-    handleChange,
-    handleSubmit
-  } = useForm(saveAndNext, validator)
+  const validator = ({ name, password, confirmPassword }) => {
+    return pickBy(identity, {
+      name: Validators.validateUser.name(name),
+      password: Validators.validateUser.password(password),
+      confirmPassword: (password?.length > 8) && (password !== confirmPassword) && t('Passwords must match')
+    })
+  }
+
+  const { values, errors, handleChange, handleSubmit } = useForm(saveAndNext, validator)
 
   useFocusEffect(() => {
     navigation.setOptions({
