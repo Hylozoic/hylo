@@ -1,6 +1,6 @@
 export default function getFirstRootField(data) {
   if (!data || typeof data !== 'object') {
-    throw new Error('Invalid data object')
+    return null
   }
   const keys = Object.keys(data)
   if (keys.length !== 1) {

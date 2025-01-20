@@ -26007,7 +26007,7 @@ __metadata:
     mixpanel-react-native: "npm:^3.0.8"
     moment-timezone: "npm:^0.5.46"
     nativewind: "npm:^4.1.23"
-    path-to-regexp: "npm:^8.2.0"
+    path-to-regexp: "npm:^6.2.2"
     postinstall-postinstall: "npm:^2.1.0"
     prettier: "npm:2.8.8"
     prop-types: "npm:^15.8.1"
@@ -26035,7 +26035,7 @@ __metadata:
     react-native-localization: "npm:^2.3.2"
     react-native-modal: "npm:^13.0.1"
     react-native-onesignal: "npm:^5.2.8"
-    react-native-pager-view: "npm:5.1.5"
+    react-native-pager-view: "npm:^6.6.1"
     react-native-picker-select: "npm:^9.3.1"
     react-native-prompt-android: "npm:^1.1.0"
     react-native-reanimated: "npm:3.16.7"
@@ -28099,17 +28099,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"path-to-regexp@npm:^6.3.0":
+"path-to-regexp@npm:^6.2.2, path-to-regexp@npm:^6.3.0":
   version: 6.3.0
   resolution: "path-to-regexp@npm:6.3.0"
   checksum: 10/6822f686f01556d99538b350722ef761541ec0ce95ca40ce4c29e20a5b492fe8361961f57993c71b2418de12e604478dcf7c430de34b2c31a688363a7a944d9c
-  languageName: node
-  linkType: hard
-
-"path-to-regexp@npm:^8.2.0":
-  version: 8.2.0
-  resolution: "path-to-regexp@npm:8.2.0"
-  checksum: 10/23378276a172b8ba5f5fb824475d1818ca5ccee7bbdb4674701616470f23a14e536c1db11da9c9e6d82b82c556a817bbf4eee6e41b9ed20090ef9427cbb38e13
   languageName: node
   linkType: hard
 
@@ -30847,13 +30840,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-pager-view@npm:5.1.5":
-  version: 5.1.5
-  resolution: "react-native-pager-view@npm:5.1.5"
+"react-native-pager-view@npm:^6.6.1":
+  version: 6.6.1
+  resolution: "react-native-pager-view@npm:6.6.1"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 10/20ca003e384895a62d257ec3bc79141a91d61d1c56dee92f179716faa8711dcdddcbe63cafef33dbaea3cdf5ff8a141ce719a6d1284e030d6a864994c1acc6d0
+  checksum: 10/f56c3598a0e88fc66bdea806abacb0dd366bbd16a0c371a9a0c4dc21b2e53b020321bb896e1ae0f07c75caea16aaed292ae66c1a7546ade9c6d2a14aee8b9d63
   languageName: node
   linkType: hard
 

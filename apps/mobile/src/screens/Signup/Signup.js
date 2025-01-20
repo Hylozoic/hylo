@@ -8,16 +8,16 @@ import {
   ScrollView,
   TextInput
 } from 'react-native'
-import { useDispatch } from 'react-redux'
+import { gql, useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import validator from 'validator'
+import { AnalyticsEvents } from '@hylo/shared'
 import { openURL } from 'hooks/useOpenURL'
 import { useNavigation, useRoute, useNavigationState } from '@react-navigation/native'
 import useRouteParams from 'hooks/useRouteParams'
 import useAuthState, { AuthState } from 'hooks/useAuthState'
 import FormattedError from 'components/FormattedError'
-import sendEmailVerification from 'store/actions/sendEmailVerification'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Button from 'components/Button'
 import providedStyles from './Signup.styles'
@@ -26,13 +26,27 @@ import SocialAuth from 'components/SocialAuth'
 const backgroundImage = require('assets/signin_background.png')
 const merkabaImage = require('assets/merkaba_white.png')
 
+// TODO: URQL - Analytics
+// analytics: {
+//   eventName: AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_SENT,
+//   email
+// }
+export const sendEmailVerificationMutation = gql`
+  mutation SendEmailVerificationMutation ($email: String!) {
+    sendEmailVerification(email: $email) {
+      success
+      error
+    }
+  }
+`
+
 export default function Signup () {
   const { t } = useTranslation()
   const route = useRoute()
   const navigation = useNavigation()
   const currentRouteName = useNavigationState(state => state?.routes[state.index]?.name)
   const safeAreaInsets = useSafeAreaInsets()
-  const dispatch = useDispatch()
+  const [, sendEmailVerification] = useMutation(sendEmailVerificationMutation)
   const [{ authState }] = useAuthState()
   const { email: routeEmail, error: routeError, bannerError: routeBannerError } = useRouteParams()
   const [email, providedSetEmail] = useState(routeEmail)
@@ -87,9 +101,9 @@ export default function Signup () {
     try {
       setLoading(true)
 
-      const result = await dispatch(sendEmailVerification(email))
-
-      if (result.payload.getData().success) {
+      const { data } = await sendEmailVerification({ email })
+      // lorenjohnson+kljsjhdfkljh@gmail.com
+      if (data?.sendEmailVerification?.success) {
         openURL(`/signup/verify-email?email=${encodeURIComponent(email)}`)
       } else {
         throw genericError
