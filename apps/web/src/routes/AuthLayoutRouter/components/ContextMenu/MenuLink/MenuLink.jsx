@@ -29,7 +29,7 @@ export default function MenuLink ({ to, children, onClick, externalLink, classNa
   }
 
   return (
-    <Link to={to} onClick={handleClick} className={cn('text-foreground text-sm', className, { 'text-accent': isCurrentLocation })}>
+    <Link to={to} onClick={handleClick} className={cn('text-foreground text-sm focus:text-foreground', className, { 'opacity-100 border-selected': isCurrentLocation })}>
       {children}
     </Link>
   )
