@@ -16,7 +16,6 @@ const { widgetToMobileNavObject } = NavigatorHelpers
 function WidgetCard({ widget, onPress }) {
   const { t } = useTranslation()
   if (!widget) return null
-  console.log(widget, 'hahahah')
   const title = widgetTitleResolver({ widget, t })
   const type = widgetTypeResolver({ widget })
   const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1)
