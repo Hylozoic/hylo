@@ -29,7 +29,7 @@ export default function SignupUploadAvatar ({ navigation }) {
       headerLeftOnPress: () => {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
-        updateUserSettingsMutation({ changes: { signupInProgress: false } })
+        updateUserSettings({ changes: { signupInProgress: false } })
         // TODO: URQL - Analytics ? This may actually be fine.
         dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
       }
