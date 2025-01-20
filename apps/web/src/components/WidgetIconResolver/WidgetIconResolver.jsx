@@ -48,7 +48,7 @@ export function WidgetIconResolver ({ widget, style, className }) {
     case 'about':
       return <Icon name='Info' style={style} />
     case 'all-views':
-      return <Grid3x3 className='h-[16px]'/>
+      return <Grid3x3 className='h-[16px] inline-block'/>
       
   }
   return null
