@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
 import { getSocket } from 'util/websockets'
 import useRouteParams from 'hooks/useRouteParams'
-import useAuthState from 'hooks/useAuthState'
+import useAuthStatus from 'hooks/useAuthStatus'
 import loginMutation from 'graphql/mutations/loginMutation'
 import validator from 'validator'
 import errorMessages from 'util/errorMessages'
@@ -22,7 +22,7 @@ export default function Login () {
   const navigation = useNavigation()
   const passwordInputRef = useRef()
   const [, login] = useMutation(loginMutation)
-  const [{ authState, fetching }, checkAuth] = useAuthState({ pause: true })
+  const [, checkAuth] = useAuthStatus({ pause: true })
   const defaultLoginEmail = useSelector(state => state.session?.defaultLoginEmail)
 
   const [email, providedSetEmail] = useState(defaultLoginEmail)

@@ -16,7 +16,7 @@ import { AnalyticsEvents } from '@hylo/shared'
 import { openURL } from 'hooks/useOpenURL'
 import { useNavigation, useRoute, useNavigationState } from '@react-navigation/native'
 import useRouteParams from 'hooks/useRouteParams'
-import useAuthState, { AuthState } from 'hooks/useAuthState'
+import useAuthStatus, { AuthState } from 'hooks/useAuthStatus'
 import FormattedError from 'components/FormattedError'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Button from 'components/Button'
@@ -47,7 +47,7 @@ export default function Signup () {
   const currentRouteName = useNavigationState(state => state?.routes[state.index]?.name)
   const safeAreaInsets = useSafeAreaInsets()
   const [, sendEmailVerification] = useMutation(sendEmailVerificationMutation)
-  const [{ authState }] = useAuthState()
+  const [{ authState }] = useAuthStatus()
   const { email: routeEmail, error: routeError, bannerError: routeBannerError } = useRouteParams()
   const [email, providedSetEmail] = useState(routeEmail)
   const [loading, setLoading] = useState(false)

@@ -6,17 +6,20 @@ import { useDispatch } from 'react-redux'
 import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentUser from 'hooks/useCurrentUser'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
+import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import ImagePicker from 'components/ImagePicker'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import styles from './SignupUploadAvatar.styles'
+import { useMutation } from 'urql'
 
 export default function SignupUploadAvatar ({ navigation }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const [{ currentUser }] = useCurrentUser()
+  const [{ currentUser, fetching }] = useCurrentUser()
+  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl)
   const [avatarImageSource, setAvatarImageSource] = useState({ uri: avatarUrl })
   const [imagePickerPending, setImagePickerPending] = useState(false)
@@ -26,15 +29,8 @@ export default function SignupUploadAvatar ({ navigation }) {
       headerLeftOnPress: () => {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
-
-
-
-        // dispatch(updateUserSettings({ settings: { signupInProgress: false } }))
-
-
-
-
-
+        updateUserSettingsMutation({ changes: { signupInProgress: false } })
+        // TODO: URQL - Analytics ? This may actually be fine.
         dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
       }
     })
@@ -46,10 +42,12 @@ export default function SignupUploadAvatar ({ navigation }) {
   }
 
   const saveAndNext = async () => {
-    const response = await dispatch(updateUserSettings({ avatarUrl }))
-    const responseError = response.payload.getData()?.error
+    const { error } = await updateUserSettings({ changes: { avatarUrl } })
+    if (!error) navigation.navigate('SignupSetLocation')
+  }
 
-    if (!responseError) navigation.navigate('SignupSetLocation')
+  if (fetching) {
+    return <Loading />
   }
 
   return (

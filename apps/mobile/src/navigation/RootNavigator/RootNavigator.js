@@ -9,7 +9,7 @@ import customLinking, {
   AUTH_ROOT_SCREEN_NAME,
   NON_AUTH_ROOT_SCREEN_NAME
 } from 'navigation/linking'
-import useAuthState from 'hooks/useAuthState'
+import useAuthStatus from 'hooks/useAuthStatus'
 import { openURL } from 'hooks/useOpenURL'
 import SocketListener from 'components/SocketListener'
 import ModalHeader from 'navigation/headers/ModalHeader'
@@ -24,7 +24,7 @@ const Root = createStackNavigator()
 export default function RootNavigator () {
   // Here and `JoinGroup` should be the only place we check for a session from the API.
   // Routes will not be available until this check is complete.
-  const [{ isAuthorized, fetching }] = useAuthState()
+  const [{ isAuthorized, fetching }] = useAuthStatus()
 
   // Handle Push Notifications opened
   useEffect(() => {

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
-import useAuthState from 'hooks/useAuthState'
+import useAuthStatus from 'hooks/useAuthStatus'
 import loginByToken from 'store/actions/loginByToken'
 import loginByJWT from 'store/actions/loginByJWT'
 import { openURL } from 'hooks/useOpenURL'
@@ -12,7 +12,7 @@ import LoadingScreen from 'screens/LoadingScreen'
 export default function LoginByTokenHandler () {
   const route = useRoute()
   const dispatch = useDispatch()
-  const [{ isAuthorized }, checkLogin] = useAuthState({ pause: true })
+  const [{ isAuthorized }, checkLogin] = useAuthStatus({ pause: true })
   const returnToURLFromLink = decodeURIComponent(route?.params?.n)
   const jwt = decodeURIComponent(route?.params?.token)
   const loginToken = decodeURIComponent(route?.params?.t || route?.params?.loginToken)

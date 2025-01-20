@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux'
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native'
 import { every, isEmpty } from 'lodash/fp'
 import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
-import useAuthState from 'hooks/useAuthState'
+import useAuthStatus from 'hooks/useAuthStatus'
 import useRouteParams from 'hooks/useRouteParams'
 import { openURL } from 'hooks/useOpenURL'
 
@@ -20,7 +20,7 @@ export default function JoinGroup (props) {
   // const navigation = useNavigation()
   // const route = useRoute()
   // const dispatch = useDispatch()
-  // const [{ isAuthorized }] = useAuthState()
+  // const [{ isAuthorized }] = useAuthStatus()
   // const { token: invitationToken, accessCode } = useRouteParams()
 
   // // Might be more clear to simply use `useEffect`
