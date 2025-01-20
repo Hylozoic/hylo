@@ -5,6 +5,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin'
 import Intercom from '@intercom/intercom-react-native'
 import apiHost from 'util/apiHost'
 import { clearSessionCookie } from 'util/session'
+import mixpanel from 'services/mixpanel'
 import logoutMutation from 'graphql/mutations/logoutMutation'
 
 export const logout = async () => {
@@ -13,6 +14,9 @@ export const logout = async () => {
     await clearSessionCookie()
 
     Intercom.logout()
+
+    mixpanel.flush()
+    mixpanel.reset()
 
     if (await GoogleSignin.isSignedIn()) {
       await GoogleSignin.signOut()

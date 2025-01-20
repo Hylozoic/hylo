@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react'
+import { Platform } from 'react-native'
 import { createStackNavigator } from '@react-navigation/stack'
-import { OneSignal } from 'react-native-onesignal'
+import Intercom from '@intercom/intercom-react-native'
+import { LogLevel, OneSignal } from 'react-native-onesignal'
 import { useMutation, useQuery } from 'urql'
 import i18n from '../../i18n'
+import mixpanel from 'services/mixpanel'
+import { version as hyloAppVersion } from '../../package.json'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import resetNotificationsCountMutation from 'graphql/mutations/resetNotificationsCountMutation'
@@ -49,21 +53,40 @@ export default function AuthRootNavigator () {
       if (currentUser && !fetching && !error) {
         const locale = currentUser?.settings?.locale || 'en'
 
+        // Locale setting
         i18n.changeLanguage(locale)
+        OneSignal.Debug.setLogLevel(LogLevel.Verbose)
 
+        // OneSignal registration and identification
         const onesignalPushSubscriptionId = await OneSignal.User.pushSubscription.getIdAsync()
 
         if (onesignalPushSubscriptionId) {
           await registerDevice({
             playerId: onesignalPushSubscriptionId,
             platform: Platform.OS + (__DEV__ ? '_dev' : ''),
-            version: '2' // TODO supply real version here                  
+            version: hyloAppVersion
           })
           OneSignal.login(currentUser?.id)
           OneSignal.Notifications.requestPermission(true)
         } else {
           console.warn('Not registering to OneSignal for push notifications. OneSignal did not successfully retrieve a userId')
         }
+
+        // Intercom user setup
+        // Intercom.setUserHash(user.hash)
+        Intercom.loginUserWithUserAttributes({
+          userId: currentUser?.id,
+          name: currentUser?.name,
+          email: currentUser?.email
+        })
+
+        // MixPanel user identify
+        mixpanel.identify(currentUser?.id)
+        mixpanel.getPeople().set({
+          $name: currentUser?.name,
+          $email: currentUser?.email,
+          $location: currentUser?.location
+        })
 
         setLoading(false)
       }
