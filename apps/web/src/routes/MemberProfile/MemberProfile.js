@@ -181,7 +181,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             <Button className={styles.editProfileButton} onClick={() => push(currentUserSettingsUrl())}>
               <Icon name='Edit' /> {t('Edit Profile')}
             </Button>}
-          <div className={'w-full h-[40vh] flex flex-col items-center items-end justify-end pb-10'} style={bgImageStyle(person.bannerUrl)}>
+          <div className={'w-full h-[40vh] flex flex-col items-center items-end justify-end pb-10 bg-cover'} style={bgImageStyle(person.bannerUrl)}>
             <RoundImage className={styles.headerMemberAvatar} url={person.avatarUrl} xlarge />
             <h1 className={styles.headerMemberName}>{person.name}</h1>
             <div className={styles.badgeRow}>

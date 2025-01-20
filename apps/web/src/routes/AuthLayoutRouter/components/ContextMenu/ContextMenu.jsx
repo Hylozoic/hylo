@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { compact, get } from 'lodash/fp'
-import { ChevronLeft, GripHorizontal, Pencil, UserPlus } from 'lucide-react'
+import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut } from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -404,11 +404,11 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
   if (widget.type === 'logout') {
     return (
-      <div key={widget.id} style={style} className='border border-gray-700 rounded-md p-2 bg-background'>
+      <div key={widget.id} className='mt-6'>
         <span className='flex justify-between items-center content-center'>
           <WidgetIconResolver widget={widget} />
-          <MenuLink onClick={handleLogout}>
-            <span className='text-lg font-bold'>{title}</span>
+          <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex'>
+            <LogOut className='h-[20px] mr-2'/> <span>{title}</span>
           </MenuLink>
         </span>
       </div>
@@ -541,9 +541,17 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
           </MenuLink>
           {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
         </>}
-        {item.type != 'chat' && <>
+        {item.type != 'chat' && rootPath != '/my' && <>
           <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='transition-all px-2 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100'>
             <WidgetIconResolver widget={item} className='pr-2' /> 
+            <span className='text-sm'>{itemTitle}</span>
+          </MenuLink>
+          {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
+        </>}
+
+        {rootPath === '/my' && <>
+          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+            <WidgetIconResolver widget={item}  className={'mr-2'} />
             <span className='text-sm'>{itemTitle}</span>
           </MenuLink>
           {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
@@ -590,7 +598,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
     return (
       <div className='mb-4'>
         <MenuLink to={groupUrl(group.slug, 'settings')}>
-          <div className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full  transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+          <div className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             {t('Settings')}
           </div>
         </MenuLink>

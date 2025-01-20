@@ -29,7 +29,7 @@ export function WidgetIconResolver ({ widget, style, className }) {
   }
 
   if (ViewHelpers.COMMON_VIEWS[type]) {
-    return <Icon name={ViewHelpers.COMMON_VIEWS[type].icon} style={style} />
+    return <Icon name={ViewHelpers.COMMON_VIEWS[type].icon} style={style} className={className}  />
   }
 
   switch (type) {
