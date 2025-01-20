@@ -6,14 +6,13 @@ import useCurrentGroup, { useGroup } from 'hooks/useCurrentGroup'
 import useCurrentUser from 'hooks/useCurrentUser'
 import GroupPresenter, { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import { openURL } from 'hooks/useOpenURL'
 import { WidgetHelpers, NavigatorHelpers } from '@hylo/shared'
 import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'
 
 const { findHomeView } = WidgetHelpers
-const { widgetUrl } = NavigatorHelpers
+const { widgetToMobileNavObject } = NavigatorHelpers
 
-export default function useChangeToGroup () {
+export default function TuseChangeToGroup () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigation = useNavigation()
@@ -23,12 +22,6 @@ export default function useChangeToGroup () {
   const myMemberships = currentUser?.memberships
   
   return (groupSlug, confirm = true, destinationGroup) => {
-    let url
-    if (destinationGroup) {
-      const homeView = findHomeView(destinationGroup)
-      url = widgetUrl({ widget: homeView, rootPath: '/', groupSlug })
-    }
-
     if (!myMemberships) {
       throw new Error('Must provide current user memberships as 2nd parameter')
     }
@@ -40,14 +33,18 @@ export default function useChangeToGroup () {
 
     if (canViewGroup) {
       const goToGroup = () => {
-        // navigation.navigate('Group Navigation', { groupSlug })
         dispatch(setCurrentGroupSlug(groupSlug))
-
-        // TODO CONTEXT MENU: look up home widget for the new groupand navigate to that
-        // navigation.navigate('Home Tab', { screen: 'Stream', initial: false })
-        console.log('I scream and shout just before')
-        openURL(url)
-        console.log('And I get all quiet just after')
+        
+        if (destinationGroup) {
+          const homeView = findHomeView(destinationGroup)
+          const navArgs = widgetToMobileNavObject({ widget: homeView, destinationGroup })
+          if (navArgs) {
+            navigation.navigate(...navArgs)
+          } else {
+            console.warning('Navigation error!', navArgs)
+            navigation.navigate('Home Tab', {screen: 'Chat', topicName: 'general'})
+          }
+        }
       }
 
       confirm

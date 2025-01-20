@@ -14,14 +14,27 @@ import Icon from 'components/Icon'
 import { white, rhino80 } from 'style/colors'
 
 // For now this list needs to be kept in sync with the names of the initial
-// routes for each stack in navigation/TabsNavigator.
+// routes for each stack in navigation/TabsNavigator. And because Home Navigator doesn't have an initital screen, we need to add all teh appropriate ones.
 export const TAB_STACK_ROOTS = [
-  // 'Group Navigation',
+  'All Views',
+  'Announcements',
+  'Chat',
+  'Decisions',
+  'Events',
+  'Group Explore',
+  'Group Relationships',
+  'Group Welcome',
+  'Interactions',
+  'Map',
+  'Members',
+  'Mentions',
   'Messages Tab',
-  'Search Tab',
+  'My Posts',
   'Profile Tab',
-  'Group Welcome'
-  // TOOD redesign: so this is where I could add many specific screens that can be 'bottom of the stack' before the drawer comes out
+  'Projects',
+  'Search Tab',
+  'Stream',
+  'Topics'
 ]
 
 export default function TabStackHeader ({
@@ -60,13 +73,13 @@ export default function TabStackHeader ({
       let onPress = options.headerLeftOnPress
 
       if (!onPress) {
-        // onPress = canGoBack
-        //   ? navigation.goBack
-        //   : navigation.openDrawer
+        onPress = canGoBack
+          ? navigation.goBack
+          : navigation.openDrawer
 
-        //   if (canGoBack && !navigation.canGoBack()) {
+          if (canGoBack && !navigation.canGoBack()) {
           onPress = navigation.openDrawer
-        // }
+        }
       }
 
       return (

@@ -4,10 +4,13 @@ import { createStackNavigator } from '@react-navigation/stack'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import useReturnToOnAuthPath from 'hooks/useReturnToOnAuthPath'
 import getReturnToOnAuthPath from 'store/selectors/getReturnToOnAuthPath'
+import useCurrentGroup from 'hooks/useCurrentGroup'
+import { WidgetHelpers, NavigatorHelpers } from '@hylo/shared'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
 // Screens
 import AllTopicsWebView from 'screens/AllTopicsWebView'
+import AllView from 'screens/AllView/AllView'
 import ChatRoom from 'screens/ChatRoomWebView'
 import Stream from 'screens/Stream'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
@@ -24,16 +27,29 @@ import { GROUP_WELCOME_LANDING } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow
 import { useTranslation } from 'react-i18next'
 
 const HomeTab = createStackNavigator()
+const { findHomeView } = WidgetHelpers
+const { widgetToMobileNavObject } = NavigatorHelpers
+
 export default function HomeNavigator ({ navigation }) {
   const initialURL = useSelector(state => state.initialURL)
   const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
+  const [{ currentGroup }] = useCurrentGroup()
   const { t } = useTranslation()
 
   useEffect(() => {
     if (!initialURL && !returnToOnAuthPath) {
-      setTimeout(() => navigation.navigate('Stream'), 400)
+      if (currentGroup) {
+        const homeView = findHomeView(currentGroup)
+        const navArgs = widgetToMobileNavObject({ widget: homeView, destinationGroup: currentGroup })
+        if (navArgs) {
+          setTimeout(() => navigation.navigate(...navArgs), 200)
+        } else {
+          // Fallback to Stream if we can't determine the home view navigation
+          setTimeout(() => navigation.navigate('Stream'), 200)
+        }
+      }
     }
-  }, [])
+  }, [initialURL, returnToOnAuthPath, currentGroup])
 
   useOpenInitialURL()
   useReturnToOnAuthPath()
@@ -71,6 +87,7 @@ export default function HomeNavigator ({ navigation }) {
     <HomeTab.Navigator {...navigatorProps}>
       {/* <HomeTab.Screen name='Group Navigation' component={GroupNavigation} /> */}
       <HomeTab.Screen name='Stream' component={Stream} />
+      <HomeTab.Screen name='All Views' component={AllView} />
       <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
       <HomeTab.Screen name='Projects' component={Stream} initialParams={{ streamType: 'project' }} />
       <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />

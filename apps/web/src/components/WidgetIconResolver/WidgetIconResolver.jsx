@@ -6,6 +6,7 @@ import { widgetTypeResolver } from 'util/contextWidgets'
 import { ViewHelpers } from '@hylo/shared'
 
 export function WidgetIconResolver ({ widget, style, className }) {
+  if (!widget) return null
   const type = widgetTypeResolver({ widget })
 
   if (widget.viewUser) {
@@ -49,7 +50,6 @@ export function WidgetIconResolver ({ widget, style, className }) {
       return <Icon name='Info' style={style} />
     case 'all-views':
       return <Grid3x3 className='h-[16px]'/>
-      
   }
   return null
 }

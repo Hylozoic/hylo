@@ -14,7 +14,7 @@ export default function AllTopicsWebView () {
     '/:groupSlug(all)/topics/:topicName': ({ routeParams: { topicName } }) => {
       navigation.navigate('Stream', { topicName })
     },
-    '(.*)/topics/:topicName': ({ routeParams: { topicName } }) => {
+    '(.*)/chats/:topicName': ({ routeParams: { topicName } }) => {
       navigation.navigate('Chat', { topicName })
     }
   })

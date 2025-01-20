@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
-import { WidgetHelpers } from '@hylo/shared'
+import { WidgetHelpers, NavigatorHelpers } from '@hylo/shared'
 import { Plus } from 'lucide-react-native'
 import useCurrentGroup from 'hooks/useCurrentGroup'
 import useHasResponsibility from 'hooks/useHasResponsibility'
@@ -11,6 +11,7 @@ import WidgetIconResolver from 'components/WidgetIconResolver'
 import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup'
 
 const { widgetTitleResolver, widgetTypeResolver } = WidgetHelpers
+const { widgetToMobileNavObject } = NavigatorHelpers
 
 function WidgetCard({ widget, onPress }) {
   const { t } = useTranslation()
@@ -64,15 +65,14 @@ export default function AllView() {
   }, [contextWidgets, canAdminister])
 
   const handleWidgetPress = (widget) => {
-      // TODO redesign: navigation needs to be fixed
-    if (widget.type === 'chat') {
-      navigation.navigate('Chat', { topicName: widget?.viewChat?.name })
-    } else if (widget.type === 'stream') {
-      navigation.navigate('Stream', { widgetId: widget.id })
+    const navArgs = widgetToMobileNavObject({ widget, destinationGroup: currentGroup })
+    if (navArgs) {
+      navigation.navigate(...navArgs)
+    } else {
+      console.warn('Could not determine navigation for widget:', widget)
     }
-    // Add more navigation cases as needed
   }
-  console.log(contextWidgets)
+
   return (
     <ScrollView className='flex-1 bg-background p-4'>
       <View className='grid grid-cols-2 gap-4'>

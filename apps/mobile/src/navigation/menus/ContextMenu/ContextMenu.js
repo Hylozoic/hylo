@@ -16,22 +16,28 @@ import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup
 import useOpenURL from 'hooks/useOpenURL'
 import { doNotDisplayWidget } from '@hylo/shared/src/WidgetHelpers'
 
-const { widgetTitleResolver, getStaticMenuWidgets, orderContextWidgetsForContextMenu } = WidgetHelpers
-const { widgetUrl } = NavigatorHelpers
+const { widgetTitleResolver, getStaticMenuWidgets, orderContextWidgetsForContextMenu, widgetTypeResolver } = WidgetHelpers
+const { widgetUrl, widgetToMobileNavObject } = NavigatorHelpers
 
 function ContextMenuItem({ widget, groupSlug, rootPath }) {
   const { t } = useTranslation()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
-
-  //TODO: sort out nav. Of these three hooks, only useNavigation seems to avoid throwing an invalid hook call.
-  const linkTo = useLinkTo()
   const navigation = useNavigation()
-  const handleOpenURL = useOpenURL()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
+  const [{ currentGroup }] = useCurrentGroup()
   
   const title = widgetTitleResolver({ widget, t })
   const url = widgetUrl({ widget, rootPath, groupSlug })
+
+  const handleWidgetPress = (widget) => {
+    const navArgs = widgetToMobileNavObject({ widget, destinationGroup: currentGroup })
+    if (navArgs) {
+      navigation.navigate(...navArgs)
+    } else {
+      console.warn('Could not determine navigation for widget:', widget)
+    }
+  }
 
   if (doNotDisplayWidget({widget})) return null
   if (widget.visibility === 'admin' && !canAdmin) return null
@@ -51,7 +57,7 @@ function ContextMenuItem({ widget, groupSlug, rootPath }) {
   if (url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))) {
     return (
       <TouchableOpacity 
-        onPress={() => navigation.navigate('Stream')}
+        onPress={() => handleWidgetPress(widget)}
         className="flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md mb-2 gap-2"
       >
         <WidgetIconResolver widget={widget} className="mr-2" />
@@ -60,11 +66,10 @@ function ContextMenuItem({ widget, groupSlug, rootPath }) {
     )
   }
 
-
   return (
     <View className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem]'>
       { widget.view && (
-        <TouchableOpacity onPress={()=>{}} className='flex-row justify-between items-center content-center'>
+        <TouchableOpacity onPress={() => handleWidgetPress(widget)} className='flex-row justify-between items-center content-center'>
           <Text className='text-sm font-semibold text-foreground'>{title}</Text>
         </TouchableOpacity>
       )}
@@ -77,27 +82,21 @@ function ContextMenuItem({ widget, groupSlug, rootPath }) {
         {/* Need to add the SpecialTopElementRenderer here */}
       </View>
       {loading && <Text>{t('Loading...')}</Text>}
-      {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} />)}
+      {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} handleWidgetPress={handleWidgetPress} />)}
     </View>
   )
 }
 
-function ListItemRenderer({ item, rootPath, groupSlug }) {
+function ListItemRenderer({ item, rootPath, groupSlug, handleWidgetPress }) {
   const { t } = useTranslation()
   const linkTo = useLinkTo()
   const itemTitle = widgetTitleResolver({ widget: item, t })
   const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
 
-  const handlePress = () => {
-    if (itemUrl) {
-      // linkTo(itemUrl)
-    }
-  }
-
   return (
     <TouchableOpacity 
       key={item.id + itemTitle}
-      onPress={handlePress}
+      onPress={() => handleWidgetPress(item)}
       className="flex-row items-center ml-8 h-12 py-2 gap-2 content-center border-b border-foreground/20"
     >
       <View className='w-5'><WidgetIconResolver widget={item} className="mr-2" /></View>
@@ -145,18 +144,6 @@ function ContextWidgetList({ contextWidgets, groupSlug, rootPath }) {
             groupSlug={groupSlug} 
             rootPath={rootPath}
           />
-          {/* {widget.childWidgets?.length > 0 && (
-            <View className="ml-4">
-              {widget.childWidgets.map(item => (
-                <ListItemRenderer
-                  key={item.id}
-                  item={item}
-                  rootPath={rootPath}
-                  groupSlug={groupSlug}
-                />
-              ))}
-            </View>
-          )} */}
         </View>
       ))}
     </ScrollView>

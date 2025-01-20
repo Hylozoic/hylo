@@ -60,10 +60,8 @@ export default function TabsNavigator () {
   }
 
   const handleProfileTabPress = () => {
-    // dispatch(setCurrentGroupSlug(MY_CONTEXT_SLUG))
-    console.log('sending a group to the moon')
-    openURL('/my/posts')
-    // navigation.navigate('My Posts')
+    dispatch(setCurrentGroupSlug(MY_CONTEXT_SLUG))
+    navigation.getParent('DrawerNavigator')?.openDrawer()
   }
 
   return (

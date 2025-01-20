@@ -298,4 +298,3 @@ export const doNotDisplayWidget = ({isEditting = false, widget}) => {
   !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
   !widget.viewChat && !widget.customView)
 }
-

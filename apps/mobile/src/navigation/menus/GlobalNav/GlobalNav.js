@@ -75,68 +75,58 @@ function GroupRow ({ group, changeToGroup, currentGroupSlug, addPadding, isMembe
   const highlight = slug === currentGroupSlug
   const [{ group: groupDetail }] = useGroup({ groupSlug: slug })
   const destinationGroup = GroupPresenter(groupDetail)
-  // if (group.name === "Building Hylo" || group.slug === 'dawn-time') {
-  //   console.log(destinationGroup, 'its lunchtime already', groupDetail)
-  // }
-  // TODO: this is only partially restructured based off the updated web version of this
+
   return (
-    <TouchableOpacity onPress={() => changeToGroup(group?.slug, false, destinationGroup)} style={styles.rowTouchable}>
+    <TouchableOpacity 
+      key={id} 
+      onPress={() => changeToGroup(group?.slug, false, destinationGroup)} 
+      style={styles.rowTouchable}
+      activeOpacity={0.7}
+    >
       <View
         className={cn(
-          'bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90',
+          'bg-primary relative flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90',
           {
-            'border-3 border-secondary opacity-100 scale-100 hover:scale-110': highlight,
+            'border-3 border-secondary opacity-100 scale-100': highlight,
             'border-3 border-accent opacity-100 scale-100': badgeCount > 0
-
-            // Todo: figure out how to make /my/, notifications, messages and commons all be bigger and fully opaque
           },
           className
         )}
       >
-          {!!avatarUrl &&
-            <FastImage source={{ uri: avatarUrl }} style={styles.groupAvatar} />}
-          {/* <Text
-            style={[styles.groupRowText, highlight && styles.highlight, isMember && styles.isMember]}
-            ellipsizeMode='tail'
-            numberOfLines={1}
-          >
-            {name}
-          </Text> */}
-          {!!newPostCount && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{newPostCount}</Text>
-            </View>
-          )}
+        {!!avatarUrl && (
+          <FastImage source={{ uri: avatarUrl }} style={styles.groupAvatar} />
+        )}
+        {!!newPostCount && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{newPostCount}</Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
-
   )
 }
 
 function NavRow ({ item, addPadding }) {
   const { avatarUrl, name, navigateTo } = item
   const highlight = 0
+
   return (
-    <TouchableOpacity onPress={() => navigateTo()} style={styles.rowTouchable}>
+    <TouchableOpacity 
+      onPress={() => navigateTo()} 
+      style={styles.rowTouchable}
+      activeOpacity={0.7}
+    >
       <View
         className={cn(
-          'bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90',
+          'bg-primary relative flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90',
           {
-            'border-3 border-secondary opacity-100 scale-100 hover:scale-110': highlight,
-
-            // Todo: figure out how to make /my/, notifications, messages and commons all be bigger and fully opaque
+            'border-3 border-secondary opacity-100 scale-100': highlight
           }
         )}
       >
-        {!!avatarUrl &&
-          <FastImage source={{ uri: avatarUrl }} style={styles.groupAvatar} />}
-        {/* <Text
-          style={styles.groupRowText}
-          ellipsizeMode='tail'
-          numberOfLines={1}
-        >
-          {name}
-        </Text> */}
+        {!!avatarUrl && (
+          <FastImage source={{ uri: avatarUrl }} style={styles.groupAvatar} />
+        )}
       </View>
     </TouchableOpacity>
   )
