@@ -1,4 +1,4 @@
-import { cx } from 'util/index'
+import { cn } from 'util/index'
 import { isEmpty, trim } from 'lodash'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
