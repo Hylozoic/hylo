@@ -1,9 +1,10 @@
 import React, { Suspense } from 'react'
-import { View, TouchableOpacity, Text } from 'react-native'
+import { View, TouchableOpacity, Text, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { useDispatch } from 'react-redux'
 import { openURL } from 'hooks/useOpenURL'
+import { Globe, Plus, CircleHelp } from 'lucide-react-native'
 import FastImage from 'react-native-fast-image'
 import { StyleSheet } from 'react-native'
 import { isIOS } from 'util/platform'
@@ -46,15 +47,20 @@ export default function GlobalNav() {
   */
   return (
     <View className="flex-col h-full bg-theme-background z-50 items-center py-2 px-3">
-      <View className="flex-1 overflow-y-scroll gap-1">
-        {navItems.map(item => (
-          <NavRow
-            key={item.id}
-            item={item}
-            changeToGroup={changeToGroup}
-            currentGroupSlug={currentGroup?.slug}
-          />
-        ))}
+      <ScrollView className="flex-1 w-full" contentContainerClassName="gap-1">
+          <TouchableOpacity 
+            onPress={() => navigateToPublicStream()} 
+            style={styles.rowTouchable}
+            activeOpacity={0.7}
+          >
+            <View
+              className={cn(
+                'bg-primary relative flex flex-col text-primary-foreground items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90',
+              )}
+            >
+              <Globe />
+            </View>
+        </TouchableOpacity>
         {myGroups?.map(group => (
           <GroupRow
             key={group.id}
@@ -64,6 +70,35 @@ export default function GlobalNav() {
             addPadding
           />
         ))}
+      </ScrollView>
+
+      <View className='w-full mt-auto bg-theme-background pt-4'>
+        <TouchableOpacity 
+          onPress={() => {}} // Needs to open some creation dialog? 
+          style={styles.rowTouchable}
+          activeOpacity={0.7}
+        >
+          <View
+            className={cn(
+              'bg-primary relative flex flex-col text-primary-foreground items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90',
+            )}
+          >
+            <Plus />
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => {}} // Needs to open some creation dialog? 
+          style={styles.rowTouchable}
+          activeOpacity={0.7}
+        >
+          <View
+            className={cn(
+              'bg-primary relative flex flex-col text-primary-foreground items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90',
+            )}
+          >
+            <CircleHelp />
+          </View>
+        </TouchableOpacity>
       </View>
     </View>
   )
@@ -100,32 +135,6 @@ function GroupRow ({ group, changeToGroup, currentGroupSlug, addPadding, isMembe
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{newPostCount}</Text>
           </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  )
-}
-
-function NavRow ({ item, addPadding }) {
-  const { avatarUrl, name, navigateTo } = item
-  const highlight = 0
-
-  return (
-    <TouchableOpacity 
-      onPress={() => navigateTo()} 
-      style={styles.rowTouchable}
-      activeOpacity={0.7}
-    >
-      <View
-        className={cn(
-          'bg-primary relative flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90',
-          {
-            'border-3 border-secondary opacity-100 scale-100': highlight
-          }
-        )}
-      >
-        {!!avatarUrl && (
-          <FastImage source={{ uri: avatarUrl }} style={styles.groupAvatar} />
         )}
       </View>
     </TouchableOpacity>
