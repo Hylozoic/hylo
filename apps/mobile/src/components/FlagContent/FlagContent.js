@@ -42,11 +42,6 @@ const FlagContent = ({ onClose, submitFlagContent, linkData, type = 'content' })
     }
   }
 
-  const cancel = () => {
-    setHighlightRequired(false)
-    closeModal()
-  }
-
   const showPrompt = (category) => {
     setSelectedCategory(category)
 
@@ -59,8 +54,8 @@ const FlagContent = ({ onClose, submitFlagContent, linkData, type = 'content' })
       'Flag',
       subtitle,
       [
-        { text: t('Cancel'), onPress: cancel, style: 'cancel' },
-        { text: t('Submit'), onPress: (value) => submit(value) }
+        { text: t('Cancel'), onPress: closeModal, style: 'cancel' },
+        { text: t('Submit'), onPress: value => submit(value) }
       ],
       { cancelable: false }
     )
@@ -75,31 +70,29 @@ const FlagContent = ({ onClose, submitFlagContent, linkData, type = 'content' })
   ]
 
   return (
-    <View>
-      <Modal transparent visible={visible} onRequestClose={closeModal}>
-        <View style={styles.dialog}>
-          <View style={styles.dialogOverlay} />
-          <View style={styles.spacer} />
-          <View style={styles.dialogContent}>
-            <View style={styles.title}>
-              <Text style={styles.titleText}>
-                {t('FLAG THIS')} {toUpper(type)}
-              </Text>
-              <TouchableOpacity onPress={closeModal}>
-                <Icon name='Ex' style={styles.icon} />
-              </TouchableOpacity>
-            </View>
-            <FlatList
-              data={options}
-              renderItem={({ item }) => (
-                <FlagOption id={item.id} title={item.title} onPress={() => showPrompt(item.id)} />
-              )}
-              keyExtractor={item => item.id}
-            />
+    <Modal transparent visible={visible} onRequestClose={closeModal}>
+      <View style={styles.dialog}>
+        <View style={styles.dialogOverlay} />
+        <View style={styles.spacer} />
+        <View style={styles.dialogContent}>
+          <View style={styles.title}>
+            <Text style={styles.titleText}>
+              {t('FLAG THIS')} {toUpper(type)}
+            </Text>
+            <TouchableOpacity onPress={closeModal}>
+              <Icon name='Ex' style={styles.icon} />
+            </TouchableOpacity>
           </View>
+          <FlatList
+            data={options}
+            renderItem={({ item }) => (
+              <FlagOption id={item.id} title={item.title} onPress={() => showPrompt(item.id)} />
+            )}
+            keyExtractor={item => item.id}
+          />
         </View>
-      </Modal>
-    </View>
+      </View>
+    </Modal>
   )
 }
 
