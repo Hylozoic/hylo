@@ -5,19 +5,23 @@ import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import LinearGradient from 'react-native-linear-gradient'
 import useCurrentUser from 'hooks/useCurrentUser'
-import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentGroup, { setCurrentGroupSlug } from 'hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import useHasResponsibility from 'hooks/useHasResponsibility'
+import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
-import { PUBLIC_GROUP, ALL_GROUP, MY_CONTEXT_GROUP } from 'urql-shared/presenters/GroupPresenter'
+import { PUBLIC_GROUP, ALL_GROUP, MY_CONTEXT_GROUP, isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 import styles from './DrawerMenu.styles'
 import Button from 'components/Button'
+import GlobalNav from 'navigation/menus/GlobalNav'
+import ContextMenu from 'navigation/menus/ContextMenu'
 import { bannerlinearGradientColors } from 'style/colors'
 // import groupExplorerUrl from 'assets/group-explorer.png'
 import earthUrl from 'assets/earth.png'
 import myHomeUrl from 'assets/my-home.png'
 import Loading from 'components/Loading'
+
 
 export default function DrawerMenu () {
   const { t } = useTranslation()
@@ -26,9 +30,11 @@ export default function DrawerMenu () {
   const [{ currentGroup, fetching: currentGroupFetching }] = useCurrentGroup()
   const memberships = currentUser?.memberships
   const { myHome } = useRouteParams()
+  const soIsItAContextGroup = isContextGroup(currentGroup?.slug)
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
   const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
+  const contextWidgets = getContextWidgetsForGroup(currentGroup)
 
   const goToCreateGroup = () => {
     navigation.navigate('Create Group', { screen: 'CreateGroupName', params: { reset: true } })
@@ -40,7 +46,7 @@ export default function DrawerMenu () {
   const changeToGroup = useChangeToGroup()
 
   const navigateToPublicStream = () => {
-    navigation.navigate('Group Navigation', { groupSlug: PUBLIC_GROUP.slug })
+    dispatch(setCurrentGroupSlug(PUBLIC_GROUP.slug))
     navigation.navigate('Stream', { initial: false })
   }
 
@@ -54,7 +60,14 @@ export default function DrawerMenu () {
   // }
 
   const navigateToMyHome = () => {
-    navigation.navigate('Group Navigation', { myHome: true, groupSlug: MY_CONTEXT_GROUP.slug })
+    // TODO: redesign - for consistency and nav handling it's important that setCurrentGroupSlug is only 
+    // ran as part of useCurrentGroup in the form of useCurrentGroup({ setToGroupSlug: group.slug }),
+    // or as a side effect of setCurrentGroupSlug. If either are not doing what is expected or needed
+    // then we need to fix it there, and not break out to calling directly.
+
+    // navigation.navigate('Group Navigation', { myHome: true, groupSlug: MY_CONTEXT_GROUP.slug })
+    dispatch(setCurrentGroupSlug(MY_CONTEXT_GROUP.slug))
+    
     navigation.navigate('My Posts', { initial: false })
   }
 
@@ -132,7 +145,21 @@ export default function DrawerMenu () {
 
   if (currentUserFetching || currentGroupFetching) return null
 
-  return (
+  const newSchool = (
+    <View style={styles.container}>
+      {currentGroup &&
+        <View className="flex flex-row h-full">
+          <View className="w-20 bg-gray-200">
+            <GlobalNav />
+          </View>
+          <View className="flex-1 bg-white">
+            <ContextMenu />
+          </View>
+        </View>}
+      </View>
+  )
+
+  const oldSchool = (
     <View style={styles.container}>
       {currentGroup && !myHome && (
         <FastImage source={groupBannerImage} style={styles.headerBackgroundImage}>
@@ -176,6 +203,8 @@ export default function DrawerMenu () {
       <Button text={t('Start a Group')} onPress={goToCreateGroup} style={styles.createGroupButton} />
     </View>
   )
+
+  return contextWidgets.length > 0 ? newSchool : oldSchool
 }
 
 export function TextButton ({ text, onPress }) {

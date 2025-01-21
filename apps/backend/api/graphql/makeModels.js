@@ -463,6 +463,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'banner_url',
         'created_at',
         'description',
+        'homeWidget',
         'location',
         'geo_shape',
         'memberCount',
@@ -615,6 +616,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       getters: {
         // commonRoles: async g => g.commonRoles(),
+        homeWidget: g => g.homeWidget(),
         invitePath: g =>
           GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
             .then(canInvite => canInvite ? Frontend.Route.invitePath(g) : null),

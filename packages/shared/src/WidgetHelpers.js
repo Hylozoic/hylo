@@ -1,6 +1,4 @@
-// These import/exports are included here just to have a central record of context widget utilities
-export { widgetUrl } from './navigation'
-export { default as useGatherItems } from 'hooks/useGatherItems'
+// TODO: bring tests over from /backend, where they currently reside
 
 export function widgetTitleResolver ({ widget, t }) {
   let title = widget.title
@@ -27,7 +25,8 @@ export function isValidHomeWidget (widget) {
 export function wrapItemInWidget (item, type) {
   return {
     [type]: item,
-    id: 'fake-id-' + crypto.randomUUID()
+    id: 'fake-id-' + crypto.randomUUID(),
+    childWidget: []
   }
 }
 
@@ -71,8 +70,11 @@ export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl, isAll
 }
 
 export function findHomeView (group) {
+  if (!group) return null
+  if (group.homeWidget) return group.homeWidget
   if (!group?.contextWidgets) {
-    throw new Error('Group has no contextWidgets')
+    return null
+    // throw new Error('Group has no contextWidgets') temp revoke this until all groups have switched over
   }
   const homeWidget = group.contextWidgets.items.find(w => w.type === 'home')
   return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
@@ -140,7 +142,6 @@ export function widgetIsValidChild ({ childWidget = {}, parentWidget }) {
   return true
 }
 
-// TODO CONTEXT: add this to /shared
 export function reorderTree ({ priorWidgetState = {}, newWidgetPosition, allWidgets }) {
   // Remove the old widget position
   const oldWidgetDetails = allWidgets.find(widget => widget.id === priorWidgetState?.id)
@@ -189,25 +190,24 @@ export function reorderTree ({ priorWidgetState = {}, newWidgetPosition, allWidg
     return settledPeer || widget
   })
 }
-// TODO CONTEXT: add this to /shared
+
 function getPeers (widgets, widget) {
   if (widget.parentId) return widgets.filter(w => w.parentId === widget.parentId)
   return widgets.filter(w => !w.parentId && !!w.order)
 }
-// TODO CONTEXT: add this to /shared
+
 function settle (items) {
   return items.sort((a, b) => a.order - b.order).map((item, index) => ({
     ...item,
     order: item.order !== index + 1 ? item.order - 1 : item.order
   }))
 }
-// TODO CONTEXT: add this to /shared
+
 function findHomeChild (widgets) {
   const homeParentId = widgets.find(widget => widget.type === 'home')?.id
   return { homeChild: widgets.find(widget => widget.parentId === homeParentId), homeParentId }
 }
 
-// TODO CONTEXT: add this to /shared
 export function replaceHomeWidget ({ widgets, newHomeWidgetId }) {
   const { homeChild, homeParentId } = findHomeChild(widgets)
   const priorWidgetState = widgets.find(widget => widget.id === newHomeWidgetId)
@@ -258,4 +258,41 @@ export function replaceHomeWidget ({ widgets, newHomeWidgetId }) {
     parentId: homeParentId
   })
   return updatedWidgets
+}
+
+export const orderContextWidgetsForContextMenu = (contextWidgets) => {
+  // Step 1: Filter out widgets without an order, as these are not displayed in the context menu
+  const orderedWidgets = contextWidgets.filter(widget => widget.order !== null)
+
+  // Step 2: Split into parentWidgets and childWidgets
+  const parentWidgets = orderedWidgets.filter(widget => !widget?.parentId)
+  const childWidgets = orderedWidgets.filter(widget => widget?.parentId)
+
+  // Step 3: Add an empty array for childWidgets to each parentWidget
+  parentWidgets.forEach(parent => {
+    parent.childWidgets = []
+  })
+
+  // Step 4: Append each childWidget to the appropriate parentWidget
+  childWidgets.forEach(child => {
+    const parent = parentWidgets.find(parent => parent.id === child?.parentId)
+    if (parent) {
+      parent.childWidgets.push(child)
+    }
+  })
+
+  // Step 5: Sort parentWidgets and each childWidgets array by order
+  parentWidgets.sort((a, b) => a.order - b.order)
+  parentWidgets.forEach(parent => {
+    parent.childWidgets.sort((a, b) => a.order - b.order)
+  })
+
+  // Return the sorted parentWidgets with nested childWidgets
+  return parentWidgets
+}
+
+export const doNotDisplayWidget = ({ isEditing = false, widget }) => {
+  return (!['members', 'setup'].includes(widget.type) && !isEditing && !widget.view && widget?.childWidgets.length === 0 &&
+  !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
+  !widget.viewChat && !widget.customView)
 }

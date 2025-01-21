@@ -10,7 +10,7 @@ import {
   VOTING_METHOD_SINGLE
 } from 'urql-shared/presenters/PostPresenter'
 import { addProposalVote, removeProposalVote, swapProposalVote } from 'store/actions/proposals'
-import QuorumBar from 'components/QuorumBar/QuorumBar'
+import QuorumBar from 'components/QuorumBar'
 import Icon from 'components/Icon'
 import Avatar from 'components/Avatar'
 import { useTranslation } from 'react-i18next'

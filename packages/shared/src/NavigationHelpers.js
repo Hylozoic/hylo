@@ -1,6 +1,4 @@
 import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
-import qs from 'query-string'
-import { host } from 'config/index'
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
@@ -42,8 +40,6 @@ export function baseUrl ({
 
   if (safeMemberId) {
     return personUrl(safeMemberId, groupSlug)
-  } else if (view === 'chat' && topicName) {
-    return chatUrl(topicName, { context, groupSlug })
   } else if (topicName) {
     return topicUrl(topicName, { context, groupSlug })
   } else if (view) {
@@ -161,15 +157,17 @@ export function personUrl (id, groupSlug) {
 
 // Topics URLs
 export function topicsUrl (opts, defaultUrl = allGroupsUrl()) {
-  return baseUrl({ ...opts, view: 'topics' }, defaultUrl)
+  // TODO: redesign - changed from topics to chats, is that correct now always?
+  // do we need also or otherwise legacy route redirect support for topics?
+  return baseUrl({ ...opts, view: 'chats' }, defaultUrl)
 }
 
 export function topicUrl (topicName, opts) {
   return `${topicsUrl(opts)}/${topicName}`
 }
 
-export function chatUrl (chatName, { context, groupSlug }) {
-  return `${baseUrl({ context, groupSlug })}/chat/${chatName}`
+export function chatUrl (chatName, opts) {
+  return `${topicsUrl(opts)}/${chatName}`
 }
 
 export function customViewUrl (customViewId, rootPath, opts) {
@@ -177,8 +175,10 @@ export function customViewUrl (customViewId, rootPath, opts) {
 }
 
 export function widgetUrl ({ widget, rootPath, groupSlug, context = 'groups' }) {
-  let url = ''
+  let url = null
+
   if (widget.url) return widget.url
+
   if (widget.view === 'about') {
     url = groupDetailUrl(groupSlug, { rootPath, groupSlug, context })
   } else if (widget.view) {
@@ -209,11 +209,11 @@ export function setQuerystringParam (key, value, location) {
 export function addQuerystringToPath (path, querystringParams) {
   // The weird query needed to ignore empty arrays but allow for boolean values and numbers
   querystringParams = omitBy(x => isEmpty(x) && x !== true && !isNumber(x), querystringParams)
-  return `${path}${!isEmpty(querystringParams) ? '?' + qs.stringify(querystringParams) : ''}`
+  return `${path}${!isEmpty(querystringParams) ? '?' + stringify(querystringParams) : ''}`
 }
 
 export function removePostFromUrl (url) {
-  const matchForReplaceRegex = `/post/${POST_ID_MATCH}(/.*)?`
+  const matchForReplaceRegex = `/post/${POST_ID_MATCH}`
   return url.replace(new RegExp(matchForReplaceRegex), '')
 }
 
@@ -241,4 +241,76 @@ export function isMapView (path) {
 
 export function isGroupsView (path) {
   return (path.includes('/groups/'))
+}
+
+function stringify(object, options = {}) {
+  if (!object) return '';
+
+  // Default options
+  const {
+    arrayFormat = 'none',
+    skipNull = false,
+    skipEmptyString = false,
+    encode = true,
+    strict = true
+  } = options;
+
+  // Helper function to encode values
+  function encodeValue(value) {
+    if (!encode) return value;
+    const encoded = encodeURIComponent(value);
+    return strict 
+      ? encoded.replace(/[!'()*]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+      : encoded;
+  }
+
+  function formatArray(key, array) {
+    if (array.length === 0) return '';
+
+    switch (arrayFormat) {
+      case 'index':
+        return array.map((value, index) => 
+          `${encodeValue(key)}[${index}]=${encodeValue(value)}`).join('&');
+      
+      case 'bracket':
+        return array.map(value => 
+          `${encodeValue(key)}[]=${encodeValue(value)}`).join('&');
+      
+      case 'comma':
+        return `${encodeValue(key)}=${array.map(encodeValue).join(',')}`;
+      
+      default: // 'none'
+        return array.map(value => 
+          `${encodeValue(key)}=${encodeValue(value)}`).join('&');
+    }
+  }
+
+  // Convert object to query string
+  const parts = [];
+  
+  Object.keys(object)
+    .sort() // Sort keys alphabetically
+    .forEach(key => {
+      const value = object[key];
+      
+      // Skip null/undefined values if skipNull is true
+      if (skipNull && (value === null || value === undefined)) return;
+      
+      // Skip empty strings if skipEmptyString is true
+      if (skipEmptyString && value === '') return;
+
+      // Handle different value types
+      if (Array.isArray(value)) {
+        const arrayString = formatArray(key, value);
+        if (arrayString) parts.push(arrayString);
+      } else if (value !== undefined) {
+        if (value === null) {
+          parts.push(encodeValue(key));
+        } else {
+          parts.push(`${encodeValue(key)}=${encodeValue(value.toString())}`);
+        }
+      }
+    });
+
+  return parts.join('&');
 }

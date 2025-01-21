@@ -8,6 +8,33 @@ export default gql`
     avatarUrl
     bannerUrl
     description
+    homeWidget {
+      id
+      type
+      view
+      highlightNumber
+      secondaryNumber
+      customView {
+        id
+        groupId
+        collectionId
+        externalLink
+        isActive
+        icon
+        name
+        order
+        postTypes
+        topics {
+          id
+          name
+        }
+        type
+      }
+      viewChat {
+        id
+        name
+      }
+    }
     geoShape
     location
     memberCount

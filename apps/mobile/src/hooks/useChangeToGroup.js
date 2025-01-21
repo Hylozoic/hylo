@@ -1,19 +1,24 @@
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
+import { useDispatch } from 'react-redux'
 import confirmNavigate from 'util/confirmNavigate'
-import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentGroup, { useGroup, setCurrentGroupSlug } from 'hooks/useCurrentGroup'
 import useCurrentUser from 'hooks/useCurrentUser'
-import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
+import GroupPresenter, { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import { modalScreenName } from 'hooks/useIsModalScreen'
+import { WidgetHelpers, NavigatorHelpers } from '@hylo/shared'
+import { openURL } from './useOpenURL'
 
 export default function useChangeToGroup () {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
+
   const myMemberships = currentUser?.memberships
 
-  return (groupSlug, confirm = true) => {
+  return (groupSlug, confirm = true, destinationGroup) => {
     if (!myMemberships) {
       throw new Error('Must provide current user memberships as 2nd parameter')
     }
@@ -25,8 +30,22 @@ export default function useChangeToGroup () {
 
     if (canViewGroup) {
       const goToGroup = () => {
-        navigation.navigate('Group Navigation', { groupSlug })
-        navigation.navigate('Stream', { initial: false })
+        dispatch(setCurrentGroupSlug(groupSlug))
+
+        if (destinationGroup) {
+          const homeView = WidgetHelpers.findHomeView(destinationGroup)
+          const group = NavigatorHelpers.widgetUrl({
+            widget: homeView,
+            groupSlug: destinationGroup?.slug
+          })
+          if (groupHomeUrl) {
+            openURL(groupHomeUrl)
+          } else {
+            // TODO: For clarity/consistency it's probably best to use openURL here too:
+            // openURL('/groups/${currentGroup?.slug}/chats/general') ?
+            navigation.navigate('Home Tab', { screen: 'Chat', topicName: 'general' })
+          }
+        }
       }
 
       confirm

@@ -12,6 +12,7 @@ import {
 import { useKeyboard } from '@react-native-community/hooks'
 import { ALL_GROUP } from 'urql-shared/presenters/GroupPresenter'
 import { useTranslation } from 'react-i18next'
+import { setCurrentGroupSlug } from 'hooks/useCurrentGroup'
 import useCurrentUser from 'hooks/useCurrentUser'
 
 export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agreements, handleAccept, allQuestionsAnswered }) {
@@ -72,7 +73,7 @@ export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agre
     const getOutTitle = enforceAgreements ? t('Exit this Group & Return Home') : t('Skip')
     const getOutFunc = enforceAgreements
       ? () => {
-          navigation.navigate('Group Navigation', { groupSlug: ALL_GROUP.slug })
+          dispatch(setCurrentGroupSlug(ALL_GROUP.slug))
           navigation.navigate('Stream', { initial: false })
         }
       : () => completeWorkflow()

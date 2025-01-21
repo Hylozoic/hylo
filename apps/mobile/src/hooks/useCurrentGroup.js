@@ -18,7 +18,8 @@ export function useGroup ({
   groupId,
   groupQueryScope = {
     withJoinQuestions: true,
-    withPrerequisiteGroups: true
+    withPrerequisiteGroups: true,
+    withContextWidgets: true
   },
   useQueryArgs = {}
 } = {}) {
@@ -83,6 +84,7 @@ export function useCurrentGroupSlug (setToGroupSlug, useQueryArgs = {}) {
 export default function useCurrentGroup ({
   setToGroupSlug,
   groupQueryScope = {
+    withContextWidgets: true,
     withJoinQuestions: true,
     withPrerequisiteGroups: true
   },

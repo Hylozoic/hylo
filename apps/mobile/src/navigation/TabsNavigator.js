@@ -13,9 +13,16 @@ import HomeNavigator from 'navigation/HomeNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
 import MessagesNavigator from 'navigation/MessagesNavigator'
 import UserSettingsTabsNavigator from './UserSettingsTabsNavigator'
+import { setCurrentGroupSlug } from 'hooks/useCurrentGroup'
+import { MY_CONTEXT_SLUG } from '@hylo/shared'
+import { useNavigation } from '@react-navigation/native'
+import { useDispatch } from 'react-redux'
+import { openURL } from 'hooks/useOpenURL'
 
 const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
+  const navigation = useNavigation()
+  const dispatch = useDispatch()
   const navigatorProps = {
     screenOptions: ({ route }) => ({
       // TODO: Required for Android, not iOS
@@ -52,6 +59,15 @@ export default function TabsNavigator () {
     Intercom.present()
   }
 
+  const handleProfileTabPress = () => {
+    // TODO: redesign - for consistency and nav handling it's important that setCurrentGroupSlug is only 
+    // ran as part of useCurrentGroup in the form of useCurrentGroup({ setToGroupSlug: group.slug }),
+    // or as a side effect of setCurrentGroupSlug. If either are not doing what is expected or needed
+    // then we need to fix it there, and not break out to calling directly.
+    dispatch(setCurrentGroupSlug(MY_CONTEXT_SLUG))
+    navigation.getParent('DrawerNavigator')?.openDrawer()
+  }
+
   return (
     <Tabs.Navigator {...navigatorProps}>
       <Tabs.Screen name='Home Tab' component={HomeNavigator} />
@@ -76,6 +92,13 @@ export default function TabsNavigator () {
       <Tabs.Screen
         name='Settings Tab'
         component={UserSettingsTabsNavigator}
+        listeners={{
+          tabPress: (e) => {
+            handleProfileTabPress()
+
+            e.preventDefault()
+          }
+        }}
         options={{
           tabBarIcon: ({ focused }) => (
             <Avatar
