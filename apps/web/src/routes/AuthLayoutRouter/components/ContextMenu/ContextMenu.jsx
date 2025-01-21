@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { compact, get } from 'lodash/fp'
-import { ChevronLeft, GripHorizontal, Pencil } from 'lucide-react'
+import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut } from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -236,7 +236,7 @@ export default function ContextMenu (props) {
   const canView = !group || group.memberCount !== 0
   const links = regularLinks
   return (
-    <div className={cn('Navigation bg-background z-20 overflow-y-auto h-lvh min-w-280 border-r border-foreground/20 shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
+    <div className={cn('Navigation bg-background z-20 overflow-y-auto h-lvh min-w-280 shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
       <div className='ContextDetails w-full z-20 relative'>
         {routeParams.context === 'groups'
           ? <GroupMenuHeader group={group} />
@@ -312,7 +312,7 @@ export default function ContextMenu (props) {
             </DragOverlay>
           </DndContext>
           {(!isMyContext && !isPublic && !isAllContext) && (
-            <div className='px-2 w-full mb-[0.05em]'>
+            <div className='px-2 w-full mb-[0.05em] mt-6'>
               <ContextMenuItem
                 widget={{ title: 'widget-all', type: 'all-views', view: 'all-views', childWidgets: [] }}
                 groupSlug={routeParams.groupSlug}
@@ -399,11 +399,11 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
   if (widget.type === 'logout') {
     return (
-      <div key={widget.id} style={style} className='border border-gray-700 rounded-md p-2 bg-background'>
+      <div key={widget.id} className='mt-6'>
         <span className='flex justify-between items-center content-center'>
           <WidgetIconResolver widget={widget} />
-          <MenuLink onClick={handleLogout}>
-            <span className='text-lg font-bold'>{title}</span>
+          <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex'>
+            <LogOut className='h-[20px] mr-2'/> <span>{title}</span>
           </MenuLink>
         </span>
       </div>
@@ -415,14 +415,15 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
       <DropZone isDragging={isDragging} height={isDroppable && isEditting ? 'h-5' : ''} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }}>
         <Icon name='Plus' onClick={() => handlePositionedAdd({ widget })} className='cursor-pointer' />
       </DropZone>
-      <div key={widget.id} ref={setDraggableNodeRef} style={style} className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem] '>
+      <div key={widget.id} ref={setDraggableNodeRef} style={style}>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
         {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (
-            <span className='flex items-center content-center'>
+            <span>
+              <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+                
               <WidgetIconResolver widget={widget} />
-              <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}>
-                <span className='text-base font-normal ml-2'>{title}</span>
+              <span className='text-base font-normal ml-2'>{title}</span>
               </MenuLink>
               {canDnd && isDroppable && <div className='ml-auto'><GrabMe {...listeners} {...attributes} /></div>}
             </span>
@@ -431,33 +432,50 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
             <div>
               {widget.view &&
                 <span className='flex justify-between items-center content-center'>
-                  <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}> <h3 className='text-sm font-semibold text-foreground'>{title}</h3></MenuLink>
+                  <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}> <h3 className='text-sm font-light opacity-50 text-foreground'>{title}</h3></MenuLink>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {!widget.view &&
                 <span className='flex justify-between items-center content-center'>
-                  <h3 className='text-sm font-semibold text-foreground'>{title}</h3>
+                  <h3 className='text-sm font-light opacity-50 text-foreground'>{title}</h3>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
-              <div className='flex flex-col justify-center items-center relative'>
+              {widget.type != 'members' &&
+                <div className='flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground'>
+                  <SpecialTopElementRenderer widget={widget} group={group} />
+                  <ul className='p-0'>
+                    {loading && <li key='loading'>{t('Loading...')}</li>}
+                    {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
+                    {widget.id &&
+                      <li >
+                        <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} height='h-12' droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
+                          <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className='cursor-pointer' />
+                        </DropZone>
+                      </li>}
+                  </ul>
+                </div>
+              }
+              {widget.type == 'members' &&
+              <div className='flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground'>
                 <SpecialTopElementRenderer widget={widget} group={group} />
+                <ul className='p-0'>
+                  {loading && <li key='loading'>{t('Loading...')}</li>}
+                  {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
+                  {widget.id &&
+                    <li className='flex flex-row'>
+                      <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} height='h-12' droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
+                        <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className='cursor-pointer' />
+                      </DropZone>
+                    </li>}
+                </ul>
               </div>
-              <ul>
-                {loading && <li key='loading'>{t('Loading...')}</li>}
-                {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
-                {widget.id &&
-                  <li>
-                    <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} height='h-12' droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
-                      <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className='cursor-pointer' />
-                    </DropZone>
-                  </li>}
-              </ul>
+              }
             </div>)}
 
       </div>
       {showEdit && (
         <div className='mb-[30px]'>
-          <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })} className='transition-all border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground opacity-50 hover:opacity-100 flex items-center text-foreground hover:text-foreground'>
+          <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })} className='flex items-center text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             <Pencil className='h-[16px]' />
             <span className='text-base'>{t('Edit Menu')}</span>
           </MenuLink>
@@ -509,12 +527,30 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
       <DropZone height={isItemDraggable ? 'h-8' : ''} hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
         <Icon name='Plus' onClick={() => handlePositionedAdd({ id: `${item.id}`, widget: item })} className='cursor-pointer' />
       </DropZone>
-      <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify-between items-center content-center'>
-        <WidgetIconResolver widget={item} />
-        <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}>
-          <span className='text-sm text-blue-500 underline'>{itemTitle}</span>
-        </MenuLink>
-        {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
+      <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center'>
+
+        {item.type === 'chat' && <>
+          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+            <WidgetIconResolver widget={item} className='pr-2' /> 
+            <span className='text-sm'>{itemTitle}</span>
+          </MenuLink>
+          {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
+        </>}
+        {(item.type != 'chat' && rootPath != '/my' && rootPath != '/all') && <>
+          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='transition-all px-2 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100'>
+            <WidgetIconResolver widget={item} className='pr-2' /> 
+            <span className='text-sm'>{itemTitle}</span>
+          </MenuLink>
+          {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
+        </>}
+
+        {(rootPath === '/my' || rootPath === '/all') && <>
+          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+            <WidgetIconResolver widget={item}  className={'mr-2'} />
+            <span className='text-sm'>{itemTitle}</span>
+          </MenuLink>
+          {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
+        </>}
       </li>
     </React.Fragment>
   )
@@ -527,8 +563,8 @@ function SpecialTopElementRenderer ({ widget, group }) {
   if (widget.type === 'members' && canAddMembers) {
     return (
       <MenuLink to={groupUrl(group.slug, 'settings/invite')}>
-        <div className='inline-block px-4 py-2 text-sm font-medium text-foreground bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
-          {t('Add Members')}
+        <div className='inline-block px-2 py-2 text-sm font-medium text-foreground bg-foreground/20 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
+          <UserPlus className='inline-block h-[20px] mr-1' /> {t('Add Members')}
         </div>
       </MenuLink>
     )
@@ -547,21 +583,21 @@ function SpecialTopElementRenderer ({ widget, group }) {
     const settingsUrl = groupUrl(group.slug, 'settings')
 
     const listItemComponent = ({ title, url }) => (
-      <li className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem]'>
-        <MenuLink to={url} className='text-sm text-foreground'>
+      <li className='w-full'>
+        <MenuLink to={url} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
           {title}
         </MenuLink>
       </li>
     )
 
     return (
-      <>
+      <div className='mb-4'>
         <MenuLink to={groupUrl(group.slug, 'settings')}>
-          <div className='inline-block px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
+          <div className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             {t('Settings')}
           </div>
         </MenuLink>
-        <ul className='mt-4 pl-0 w-full'>
+        <ul className='mt-0 pl-0 w-full'>
           {!group.avatarUrl && listItemComponent({
             title: t('Add Avatar'),
             url: settingsUrl
@@ -583,7 +619,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
             url: settingsUrl
           })}
         </ul>
-      </>
+      </div>
     )
   }
 
@@ -633,7 +669,7 @@ function GroupSettingsMenu ({ group }) {
               <MenuLink
                 to={groupUrl(group.slug, item.url)}
                 className={cn(
-                  'inline-block w-full ml-2 mr-4 py-1 px-2 text-md text-foreground rounded-xl border-foreground/50 border-2 hover:border-secondary cursor-pointer',
+                  'block w-full ml-2 mr-4 py-1 px-2 text-md text-foreground rounded-xl border-foreground/50 border-2 hover:border-secondary cursor-pointer',
                   { 'text-secondary border-secondary': location.pathname === groupUrl(group.slug, item.url) }
                 )}
               >

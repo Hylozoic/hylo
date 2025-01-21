@@ -53,7 +53,7 @@ export default function GroupMenuHeader ({
       {canAdminister && (
         <div className='absolute top-2 right-2'>
           <button onClick={() => { navigate(groupUrl(group.slug, 'settings', {})) }}>
-            <Settings className={`w-6 h-6 text-${textColor} drop-shadow-md`} />
+            <Settings className={`w-6 h-6 text-foreground drop-shadow-md`} />
           </button>
         </div>
       )}

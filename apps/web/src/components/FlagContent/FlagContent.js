@@ -84,7 +84,7 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
             <Select
               onChange={updateSelected}
               fullWidth
-              className={cx({
+              className={cn({
                 [classes.reasonRequired]: reasonRequired
               })}
               selected={selectedCategory}

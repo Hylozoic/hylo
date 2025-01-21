@@ -909,6 +909,7 @@ function PostEditor ({
               value={currentPost.startTime}
               placeholder={t('Select Start')}
               onChange={handleStartTimeChange}
+              onMonthChange={() => {}}
             />
             <div className={styles.sectionHelper}>{t('To')}</div>
             <DateTimePicker
@@ -918,6 +919,7 @@ function PostEditor ({
               value={currentPost.endTime}
               placeholder={t('Select End')}
               onChange={handleEndTimeChange}
+              onMonthChange={() => {}}
             />
           </div>
         </div>
