@@ -1,7 +1,7 @@
 import { useLayoutEffect } from 'react'
 import { isEqual } from 'lodash'
 import { isDev } from 'config'
-import { getSocket, socketUrl } from 'util/websockets'
+import { getSocket, socketUrl } from 'services/websockets'
 
 let socket, handler
 

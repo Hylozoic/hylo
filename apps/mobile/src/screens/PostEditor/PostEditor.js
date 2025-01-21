@@ -39,7 +39,6 @@ import TopicRow from 'screens/TopicList/TopicRow'
 import peopleAutocompleteQuery from 'graphql/queries/peopleAutocompleteQuery'
 // Topics Picker
 import topicsForGroupIdQuery from 'graphql/queries/topicsForGroupIdQuery'
-// import getTopicsForAutocompleteWithNew from 'store/selectors/getTopicsForAutocompleteWithNew'
 import GroupsList from 'components/GroupsList'
 import Button from 'components/Button'
 import FileSelector, { showFilePicker as fileSelectorShowFilePicker } from './FileSelector'
