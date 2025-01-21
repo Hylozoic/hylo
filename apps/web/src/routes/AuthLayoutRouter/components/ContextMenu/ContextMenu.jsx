@@ -541,15 +541,15 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
           </MenuLink>
           {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
         </>}
-        {(item.type != 'chat' && rootPath != '/my' && rootPath != '/all') && <>
+        {(item.type != 'chat' && rootPath != '/my' && rootPath != '/all' && !item.title) && <>
           <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='transition-all px-2 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100'>
-            <WidgetIconResolver widget={item} className='pr-2' /> 
+            <WidgetIconResolver widget={item} className='pr-2' />
             <span className='text-sm'>{itemTitle}</span>
           </MenuLink>
           {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
         </>}
 
-        {(rootPath === '/my' || rootPath === '/all') && <>
+        {(rootPath === '/my' || rootPath === '/all' || rootPath === !'/members' || (item.title && item.type != 'chat')) && <>
           <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             <WidgetIconResolver widget={item}  className={'mr-2'} />
             <span className='text-sm'>{itemTitle}</span>
