@@ -13,7 +13,7 @@ import HomeNavigator from 'navigation/HomeNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
 import MessagesNavigator from 'navigation/MessagesNavigator'
 import UserSettingsTabsNavigator from './UserSettingsTabsNavigator'
-import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'
+import { setCurrentGroupSlug } from 'hooks/useCurrentGroup'
 import { MY_CONTEXT_SLUG } from '@hylo/shared'
 import { useNavigation } from '@react-navigation/native'
 import { useDispatch } from 'react-redux'
@@ -60,6 +60,10 @@ export default function TabsNavigator () {
   }
 
   const handleProfileTabPress = () => {
+    // TODO: redesign - for consistency and nav handling it's important that setCurrentGroupSlug is only 
+    // ran as part of useCurrentGroup in the form of useCurrentGroup({ setToGroupSlug: group.slug }),
+    // or as a side effect of setCurrentGroupSlug. If either are not doing what is expected or needed
+    // then we need to fix it there, and not break out to calling directly.
     dispatch(setCurrentGroupSlug(MY_CONTEXT_SLUG))
     navigation.getParent('DrawerNavigator')?.openDrawer()
   }

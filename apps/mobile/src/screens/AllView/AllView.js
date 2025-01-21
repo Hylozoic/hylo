@@ -9,15 +9,13 @@ import useHasResponsibility from 'hooks/useHasResponsibility'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup'
-
-const { widgetTitleResolver, widgetTypeResolver } = WidgetHelpers
-const { widgetToMobileNavObject } = NavigatorHelpers
+import { openURL } from 'hooks/useOpenURL'
 
 function WidgetCard({ widget, onPress }) {
   const { t } = useTranslation()
   if (!widget) return null
-  const title = widgetTitleResolver({ widget, t })
-  const type = widgetTypeResolver({ widget })
+  const title = WidgetHelpers.widgetTitleResolver({ widget, t })
+  const type = WidgetHelpers.widgetTypeResolver({ widget })
   const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1)
   const capitalizedView = widget.view ? widget.view.charAt(0).toUpperCase() + widget.view.slice(1) : ''
 
@@ -64,9 +62,10 @@ export default function AllView() {
   }, [contextWidgets, canAdminister])
 
   const handleWidgetPress = (widget) => {
-    const navArgs = widgetToMobileNavObject({ widget, destinationGroup: currentGroup })
-    if (navArgs) {
-      navigation.navigate(...navArgs)
+    const widgetUrl = NavigationHelpers.widgetUrl({ widget, groupSlug: currentGroup?.slug })
+
+    if (widgetUrl) {
+      openURL(widgetUrl)
     } else {
       console.warn('Could not determine navigation for widget:', widget)
     }

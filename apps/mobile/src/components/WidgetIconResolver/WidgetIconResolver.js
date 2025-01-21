@@ -46,6 +46,8 @@ export function WidgetIconResolver({ widget, style, className }) {
     return <Icon name={ViewHelpers.COMMON_VIEWS[type].icon} style={style} className={className} />
   }
 
+  // TODO: redesign - make a iconName method in WidgetHelpers / WidgetPresenter
+  // the name icon name is shared by web mobile?
   switch (type) {
     case 'chats':
       return <Icon name='Message' style={style} className={className} />

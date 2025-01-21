@@ -142,7 +142,6 @@ export function widgetIsValidChild ({ childWidget = {}, parentWidget }) {
   return true
 }
 
-// TODO CONTEXT: add this to /shared
 export function reorderTree ({ priorWidgetState = {}, newWidgetPosition, allWidgets }) {
   // Remove the old widget position
   const oldWidgetDetails = allWidgets.find(widget => widget.id === priorWidgetState?.id)
@@ -191,25 +190,24 @@ export function reorderTree ({ priorWidgetState = {}, newWidgetPosition, allWidg
     return settledPeer || widget
   })
 }
-// TODO CONTEXT: add this to /shared
+
 function getPeers (widgets, widget) {
   if (widget.parentId) return widgets.filter(w => w.parentId === widget.parentId)
   return widgets.filter(w => !w.parentId && !!w.order)
 }
-// TODO CONTEXT: add this to /shared
+
 function settle (items) {
   return items.sort((a, b) => a.order - b.order).map((item, index) => ({
     ...item,
     order: item.order !== index + 1 ? item.order - 1 : item.order
   }))
 }
-// TODO CONTEXT: add this to /shared
+
 function findHomeChild (widgets) {
   const homeParentId = widgets.find(widget => widget.type === 'home')?.id
   return { homeChild: widgets.find(widget => widget.parentId === homeParentId), homeParentId }
 }
 
-// TODO CONTEXT: add this to /shared
 export function replaceHomeWidget ({ widgets, newHomeWidgetId }) {
   const { homeChild, homeParentId } = findHomeChild(widgets)
   const priorWidgetState = widgets.find(widget => widget.id === newHomeWidgetId)
@@ -293,8 +291,8 @@ export const orderContextWidgetsForContextMenu = (contextWidgets) => {
   return parentWidgets
 }
 
-export const doNotDisplayWidget = ({isEditting = false, widget}) => {
-  return (!['members', 'setup'].includes(widget.type) && !isEditting && !widget.view && widget?.childWidgets.length === 0 &&
+export const doNotDisplayWidget = ({ isEditing = false, widget }) => {
+  return (!['members', 'setup'].includes(widget.type) && !isEditing && !widget.view && widget?.childWidgets.length === 0 &&
   !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
   !widget.viewChat && !widget.customView)
 }

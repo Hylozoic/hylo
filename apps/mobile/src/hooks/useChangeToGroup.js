@@ -2,25 +2,22 @@ import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import confirmNavigate from 'util/confirmNavigate'
-import useCurrentGroup, { useGroup } from 'hooks/useCurrentGroup'
+import useCurrentGroup, { useGroup, setCurrentGroupSlug } from 'hooks/useCurrentGroup'
 import useCurrentUser from 'hooks/useCurrentUser'
 import GroupPresenter, { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import { WidgetHelpers, NavigatorHelpers } from '@hylo/shared'
-import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'
+import { openURL } from './useOpenURL'
 
-const { findHomeView } = WidgetHelpers
-const { widgetToMobileNavObject } = NavigatorHelpers
-
-export default function TuseChangeToGroup () {
+export default function useChangeToGroup () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
-  
+
   const myMemberships = currentUser?.memberships
-  
+
   return (groupSlug, confirm = true, destinationGroup) => {
     if (!myMemberships) {
       throw new Error('Must provide current user memberships as 2nd parameter')
@@ -34,15 +31,19 @@ export default function TuseChangeToGroup () {
     if (canViewGroup) {
       const goToGroup = () => {
         dispatch(setCurrentGroupSlug(groupSlug))
-        
+
         if (destinationGroup) {
-          const homeView = findHomeView(destinationGroup)
-          const navArgs = widgetToMobileNavObject({ widget: homeView, destinationGroup })
-          if (navArgs) {
-            navigation.navigate(...navArgs)
+          const homeView = WidgetHelpers.findHomeView(destinationGroup)
+          const group = NavigatorHelpers.widgetUrl({
+            widget: homeView,
+            groupSlug: destinationGroup?.slug
+          })
+          if (groupHomeUrl) {
+            openURL(groupHomeUrl)
           } else {
-            console.warning('Navigation error!', navArgs)
-            navigation.navigate('Home Tab', {screen: 'Chat', topicName: 'general'})
+            // TODO: For clarity/consistency it's probably best to use openURL here too:
+            // openURL('/groups/${currentGroup?.slug}/chats/general') ?
+            navigation.navigate('Home Tab', { screen: 'Chat', topicName: 'general' })
           }
         }
       }
