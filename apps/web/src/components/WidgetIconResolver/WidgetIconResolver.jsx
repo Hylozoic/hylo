@@ -29,7 +29,7 @@ export function WidgetIconResolver ({ widget, style, className }) {
   }
 
   if (ViewHelpers.COMMON_VIEWS[type]) {
-    return <Icon name={ViewHelpers.COMMON_VIEWS[type].icon} style={style} />
+    return <Icon name={ViewHelpers.COMMON_VIEWS[type].icon} style={style} className={className}  />
   }
 
   switch (type) {
@@ -48,7 +48,7 @@ export function WidgetIconResolver ({ widget, style, className }) {
     case 'about':
       return <Icon name='Info' style={style} />
     case 'all-views':
-      return <Grid3x3 className='h-[16px]'/>
+      return <Grid3x3 className='h-[16px] inline-block'/>
       
   }
   return null
