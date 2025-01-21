@@ -67,6 +67,7 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/custom/:customViewId':       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/explore':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explore`,
   '/:context(groups)/:groupSlug/proposals':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(groups)/:groupSlug/stream':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/all-views':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/All Views`,
   '/:context(groups)/:groupSlug/create':                     `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   '/:context(groups)/:groupSlug/post/:id':                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,

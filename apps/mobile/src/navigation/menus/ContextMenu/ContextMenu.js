@@ -10,6 +10,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import useGatherItems from 'hooks/useGatherItems'
 import useHasResponsibility from 'hooks/useHasResponsibility'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import useLogout from 'urql-shared/hooks/useLogout'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup'
@@ -25,6 +26,7 @@ function ContextMenuItem({ widget, groupSlug, rootPath }) {
   const navigation = useNavigation()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
+  const logout = useLogout()
   const [{ currentGroup }] = useCurrentGroup()
   
   const title = widgetTitleResolver({ widget, t })
@@ -45,7 +47,7 @@ function ContextMenuItem({ widget, groupSlug, rootPath }) {
   if (widget.type === 'logout') {
     return (
       <TouchableOpacity 
-        onPress={() => console.log('logout weee')}
+        onPress={() => logout()}
         className="flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md mb-2 gap-2"
       >
         <WidgetIconResolver widget={widget} className="mr-2" />
