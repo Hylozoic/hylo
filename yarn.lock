@@ -25565,7 +25565,6 @@ __metadata:
     redux: "npm:^4.2.0"
     redux-logger: "npm:^3.0.6"
     redux-mock-store: "npm:^1.5.5"
-    redux-orm: "npm:^0.16.2"
     redux-promise: "npm:^0.6.0"
     reselect: "npm:^4.1.6"
     reselect-tools: "npm:^0.0.7"
