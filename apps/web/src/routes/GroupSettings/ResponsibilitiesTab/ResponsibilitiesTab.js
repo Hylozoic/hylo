@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import Loading from 'components/Loading'
 import Icon from 'components/Icon'
 import SettingsControl from 'components/SettingsControl'
-import { fetchResponsibilitiesForGroup, addGroupResponsibility, deleteGroupResponsibility, updateGroupResponsibility } from 'store/actions/responsibilities'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
+import {
+  fetchResponsibilitiesForGroup,
+  addGroupResponsibility,
+  deleteGroupResponsibility,
+  updateGroupResponsibility
+} from 'store/actions/responsibilities'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss' // eslint-disable-line no-unused-vars
@@ -103,6 +109,15 @@ export default function ResponsibilitiesTab ({ group }) {
     }
   }
 
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: `${t('Group Settings')} > ${t('Responsibilities')}`,
+      icon: 'Settings',
+      info: ''
+    })
+  }, [])
+
   const unsavedRolePresent = responsibilities.length > 0 ? responsibilities[responsibilities.length - 1]?.draft : false
 
   if (!responsibilities) return <Loading />
@@ -146,7 +161,7 @@ export default function ResponsibilitiesTab ({ group }) {
           />
         ))}
         {!unsavedRolePresent && (
-          <div className={cx(styles.addRole)} onClick={handleAddResponsibility}>
+          <div className={cn(styles.addRole)} onClick={handleAddResponsibility}>
             <h4>{t('Create new responsibility')}</h4>
             <Icon name='Circle-Plus' className={styles.newRole} />
           </div>
@@ -174,7 +189,7 @@ function ResponsibilityRow ({
   const inactiveStyle = draft ? styles.inactive : ''
   if (showType !== type) return null
   return (
-    <div className={cx(styles.responsibilityContainer, inactiveStyle)}>
+    <div className={cn(styles.responsibilityContainer, inactiveStyle)}>
       <div className={styles.actionContainer}>
         {draft && (<span onClick={onDelete} className={styles.action}><Icon name='CircleEx' /> {t('Cancel')}</span>)}
         {!draft && type !== 'system' && !changed && (<span className={styles.action} onClick={onServerDelete}><Icon name='Trash' /> {t('Delete')}</span>)}

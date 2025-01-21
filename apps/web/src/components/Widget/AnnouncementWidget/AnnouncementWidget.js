@@ -1,6 +1,6 @@
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import React, { useCallback, useState } from 'react'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { Link } from 'react-router-dom'
 import Slider from 'react-slick'
 import { postUrl } from 'util/navigation'
@@ -39,13 +39,13 @@ export default ({ items = [], group, routeParams }) => {
     <div className={classes.announcements}>
       <Slider {...settings} onSwipe={handleSwiped}>
         {items.map(a => (
-          <div className={cx(classes.announcement, { [classes.narrow]: items.length > 1 })} key={a.id}>
+          <div className={cn(classes.announcement, { [classes.narrow]: items.length > 1 })} key={a.id}>
             <Link to={postUrl(a.id, routeParams)} onClickCapture={handleOnItemClick}>
               <div className={classes.content}>
                 <div>
                   <div className={classes.meta}>
                     <span className={classes.author}>{a.author}</span>
-                    <span className={classes.created}>{moment(a.createdAt).fromNow()}</span>
+                    <span className={classes.created}>{DateTime.fromJSDate(a.createdAt).toRelative()}</span>
                   </div>
                   <div className={classes.title}>{a.title}</div>
                 </div>

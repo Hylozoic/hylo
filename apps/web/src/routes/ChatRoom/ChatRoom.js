@@ -1,12 +1,11 @@
-import cx from 'classnames'
-import { debounce, get, includes, isEmpty, trim, uniqueId } from 'lodash/fp'
-import moment from 'moment-timezone'
+import { debounce, includes, isEmpty, trim, uniqueId } from 'lodash/fp'
+import { SendHorizontal, ImagePlus } from 'lucide-react'
+import { DateTime } from 'luxon'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
-import { SendHorizontal } from 'lucide-react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams, useLocation } from 'react-router-dom'
+import { useParams, useLocation, Routes, Route } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData } from '@virtuoso.dev/message-list'
 
@@ -20,7 +19,6 @@ import {
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import Button from 'components/Button'
 import HyloEditor from 'components/HyloEditor'
-import Icon from 'components/Icon'
 import LinkPreview from 'components/PostEditor/LinkPreview'
 import {
   FETCH_LINK_PREVIEW,
@@ -32,14 +30,14 @@ import {
 import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import PostCard from 'components/PostCard'
-import TopicFeedHeader from 'components/TopicFeedHeader'
+import PostDialog from 'components/PostDialog'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import ChatPost from './ChatPost'
 import createPost from 'store/actions/createPost'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopic from 'store/actions/fetchTopic'
-import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import updateGroupTopicLastReadPost from 'store/actions/updateGroupTopicLastReadPost'
 import { FETCH_TOPIC, FETCH_GROUP_TOPIC } from 'store/constants'
 import orm from 'store/models'
@@ -52,6 +50,7 @@ import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { MAX_POST_TOPICS } from 'util/constants'
+import { cn } from 'util/index'
 import isWebView from 'util/webView'
 
 import styles from './ChatRoom.module.scss'
@@ -106,7 +105,6 @@ export default function ChatRoom (props) {
   const dispatch = useDispatch()
   const routeParams = useParams()
   const location = useLocation()
-
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
 
@@ -124,12 +122,12 @@ export default function ChatRoom (props) {
   const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: 'new', attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
   const linkPreview = useSelector(getLinkPreview) // TODO: check
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
-  const followersTotal = useMemo(() => get('followersTotal', groupSlug ? groupTopic : topic), [groupSlug, groupTopic, topic])
+  // const followersTotal = useMemo(() => get('followersTotal', groupSlug ? groupTopic : topic), [groupSlug, groupTopic, topic])
   const querystringParams = getQuerystringParam(['search', 'postId'], location)
   const search = querystringParams?.search
   const postIdToStartAt = querystringParams?.postId
 
-  const containerRef = useRef()
+  const [container, setContainer] = React.useState(null)
   const editorRef = useRef()
   const messageListRef = useRef(null)
 
@@ -229,7 +227,7 @@ export default function ChatRoom (props) {
 
   const clearImageAttachments = useCallback(() => dispatch(clearAttachments('post', 'new', 'image')), [dispatch])
 
-  const toggleGroupTopicSubscribeAction = useCallback((groupTopic) => dispatch(toggleGroupTopicSubscribe(groupTopic)), [dispatch])
+  // const toggleGroupTopicSubscribeAction = useCallback((groupTopic) => dispatch(toggleGroupTopicSubscribe(groupTopic)), [dispatch])
 
   const updateGroupTopicLastReadPostAction = useCallback((groupTopicId, postId) => dispatch(updateGroupTopicLastReadPost(groupTopicId, postId)), [dispatch])
 
@@ -259,6 +257,15 @@ export default function ChatRoom (props) {
         })
     }
   }, [])
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: `#${topicName}`,
+      icon: 'Message',
+      info: ''
+    })
+  }, [topicName])
 
   useEffect(() => {
     // New chat room loaded, reset everything
@@ -435,26 +442,12 @@ export default function ChatRoom (props) {
   if (topicLoading) return <Loading />
 
   return (
-    <div className={cx(styles.container, { [styles.withoutNav]: withoutNav })}>
+    <div className={cn('h-full shadow-md flex flex-col overflow-hidden', { [styles.withoutNav]: withoutNav })}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
 
-      <TopicFeedHeader
-        bannerUrl={group && group.bannerUrl}
-        currentUser={currentUser}
-        followersTotal={followersTotal}
-        groupSlug={groupSlug}
-        isSubscribed={groupTopic && groupTopic.isSubscribed}
-        newPost={newPost}
-        toggleSubscribe={
-          groupTopic
-            ? () => toggleGroupTopicSubscribeAction(groupTopic)
-            : null
-        }
-        topicName={topicName}
-      />
-      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden' ref={containerRef}>
+      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden' ref={setContainer}>
         {initialPostToScrollTo === null
           ? <div className={styles.loadingContainer}><Loading /></div>
           : (
@@ -478,64 +471,74 @@ export default function ChatRoom (props) {
             </VirtuosoMessageListLicense>
             )}
       </div>
-      <div className={styles.postChatBox}>
-        <HyloEditor
-          contentHTML={newPost.details}
-          groupIds={groupIds}
-          // Disable edit cancel through escape due to event bubbling issues
-          // onEscape={this.handleCancel}
-          onAddTopic={handleAddTopic}
-          onAddLink={handleAddLinkPreview}
-          onUpdate={handleDetailsUpdate}
-          onEnter={postChatMessage}
-          placeholder={`Send a message to #${topicName}`}
-          readOnly={loadingPast || loadingFuture}
-          ref={editorRef}
-          showMenu={!isWebView()}
-          className={styles.editor}
-        />
-        {(linkPreview || fetchLinkPreviewPending) && (
-          <LinkPreview
-            className={styles.linkPreview}
-            loading={fetchLinkPreviewPending}
-            linkPreview={linkPreview}
-            featured={newPost.linkPreviewFeatured}
-            onFeatured={handleFeatureLinkPreview}
-            onClose={handleRemoveLinkPreview}
+      {/* Post chat box */}
+      <div className='ChatBoxContainer px-4 w-full max-w-[750px] mx-auto '>
+        <div className='ChatBox relative w-full px-2 mt-2 shadow-md p-2 border-t border-l border-r border-border shadow-lg rounded-t-xl bg-card'>
+          <HyloEditor
+            contentHTML={newPost.details}
+            groupIds={groupIds}
+            // Disable edit cancel through escape due to event bubbling issues
+            // onEscape={this.handleCancel}
+            onAddTopic={handleAddTopic}
+            onAddLink={handleAddLinkPreview}
+            onUpdate={handleDetailsUpdate}
+            onEnter={postChatMessage}
+            placeholder={`Send a message to #${topicName}`}
+            readOnly={loadingPast || loadingFuture}
+            ref={editorRef}
+            showMenu={!isWebView()}
+            className={cn(styles.editor)}
           />
-        )}
-        <AttachmentManager
-          type='post'
-          id='new'
-          attachmentType='image'
-          showAddButton
-          showLabel
-          showLoading
-        />
-        <div className={styles.postChatBoxFooter}>
-          <UploadAttachmentButton
+          {(linkPreview || fetchLinkPreviewPending) && (
+            <LinkPreview
+              className={styles.linkPreview}
+              loading={fetchLinkPreviewPending}
+              linkPreview={linkPreview}
+              featured={newPost.linkPreviewFeatured}
+              onFeatured={handleFeatureLinkPreview}
+              onClose={handleRemoveLinkPreview}
+            />
+          )}
+          <AttachmentManager
             type='post'
-            className={styles.uploadAttachment}
             id='new'
             attachmentType='image'
-            onSuccess={(attachment) => dispatch(addAttachment('post', 'new', attachment))}
-            allowMultiple
-          >
-            <Icon
-              name='AddImage'
-              className={cx(styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
-            />
-          </UploadAttachmentButton>
-          <Button
-            borderRadius='6px'
-            disabled={!postInProgress}
-            onClick={postChatMessage}
-            className={styles.sendMessageButton}
-          >
-            <SendHorizontal color={!postInProgress ? 'gray' : 'white'} size={18} style={{ display: 'inline' }} />
-          </Button>
+            showAddButton
+            showLabel
+            showLoading
+          />
+          <div className='w-full'>
+            <UploadAttachmentButton
+              type='post'
+              className={styles.uploadAttachment}
+              id='new'
+              attachmentType='image'
+              onSuccess={(attachment) => dispatch(addAttachment('post', 'new', attachment))}
+              allowMultiple
+            >
+              <ImagePlus className={cn('text-foreground hover:cursor-pointer hover:text-accent', { 'text-primary': imageAttachments && imageAttachments.length > 0 })} />
+            {/* Remove when it's confirmed to be working
+              <Icon
+                name='AddImage'
+                className={cn('text-foreground', styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
+              />
+              */}
+            </UploadAttachmentButton>
+            <Button
+              borderRadius='6px'
+              disabled={!postInProgress}
+              onClick={postChatMessage}
+              className={styles.sendMessageButton}
+            >
+              <SendHorizontal color={!postInProgress ? 'gray' : 'white'} size={18} style={{ display: 'inline' }} />
+            </Button>
+          </div>
         </div>
       </div>
+
+      <Routes>
+        <Route path='post/:postId' element={<PostDialog container={container} />} />
+      </Routes>
     </div>
   )
 }
@@ -556,8 +559,8 @@ const Footer = ({ context }) => {
 const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
   return (
-    <div className={cx(styles.displayDay, '!absolute top-0')}>
-      <div className={styles.day}>{firstItem?.createdAt ? moment(firstItem.createdAt).calendar(null, dayFormats) : ''}</div>
+    <div className={cn(styles.displayDay, '!absolute top-0')}>
+      <div className={cn('bg-background', styles.day)}>{firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt).toRelativeCalendar({unit: 'days'}) : ''}</div>
     </div>
   )
 }
@@ -565,9 +568,9 @@ const StickyHeader = ({ data, prevData }) => {
 const ItemContent = ({ data: post, context, prevData, nextData }) => {
   const expanded = context.selectedPostId === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
-  const previousDay = moment(prevData?.createdAt)
-  const currentDay = moment(post.createdAt)
-  const displayDay = previousDay.isSame(currentDay, 'day') ? null : currentDay.calendar(null, dayFormats)
+  const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
+  const currentDay = DateTime.fromISO(post.createdAt)
+  const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : currentDay.toRelativeCalendar({unit: 'days'})
   const createdTimeDiff = Math.abs(currentDay.diff(previousDay, 'minutes'))
 
   /* Display the author header if
@@ -586,7 +589,7 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
       {firstUnread && !displayDay
         ? (
           <div className={styles.firstUnread}>
-            <div className={styles.divider} />
+            <div className={cn('border-dashed border-b-2 border-background')} />
             <div className={styles.newPost}>NEW</div>
           </div>
           )
@@ -594,31 +597,35 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
       {firstUnread && displayDay
         ? (
           <div className={styles.unreadAndDay}>
-            <div className={styles.divider} />
+            <div className={cn('border-dashed border-b-2 border-background')} />
             <div className={styles.newPost}>NEW</div>
-            <div className={styles.day}>{displayDay}</div>
+            <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground bg-background rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
           </div>
           )
         : null}
       {!firstUnread && displayDay
         ? (
           <div className={styles.displayDay}>
-            <div className={styles.divider} />
-            <div className={styles.day}>{displayDay}</div>
+            <div className={cn('border-dashed border-b-2 border-background')} />
+            <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground bg-background rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
           </div>
           )
         : null}
       {post.type === 'chat'
-        ? <ChatPost
-            expanded={expanded}
-            group={context.group}
-            showHeader={showHeader}
-            post={post}
-            onAddReaction={context.onAddReaction}
-            onRemoveReaction={context.onRemoveReaction}
-          />
+        ? (
+          <div className='mx-auto px-4 max-w-[750px]'>
+            <ChatPost
+              expanded={expanded}
+              group={context.group}
+              showHeader={showHeader}
+              post={post}
+              onAddReaction={context.onAddReaction}
+              onRemoveReaction={context.onRemoveReaction}
+            />
+          </div>
+          )
         : (
-          <div className={cx(styles.cardItem, { [styles.expanded]: expanded })}>
+          <div className='mx-auto px-4 max-w-[750px]'>
             <PostCard
               group={context.group}
               expanded={expanded}

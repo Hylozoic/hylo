@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
@@ -89,7 +89,7 @@ export function GroupStewardsSection ({ descriptor, stewards, groupId, slug }) {
   const { t } = useTranslation()
   return (
     <div className={classes.leaderSection}>
-      <div className={cx(classes.header, classes.leaderHeader)}>{t('Group {{locationDescriptor}}', { locationDescriptor: descriptor })}</div>
+      <div className={cn(classes.header, classes.leaderHeader)}>{t('Group {{locationDescriptor}}', { locationDescriptor: descriptor })}</div>
       {stewards.map(s => <GroupSteward steward={s} slug={slug} key={s.id} groupId={groupId} />)}
     </div>
   )

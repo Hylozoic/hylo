@@ -1,4 +1,3 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
 import { isEqual } from 'lodash'
@@ -7,6 +6,7 @@ import {
   updateAllMedia,
   updateFollowers
 } from './util'
+const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export default function updatePost (userId, id, params) {
   if (!id) throw new GraphQLYogaError('updatePost called with no ID')
@@ -53,6 +53,7 @@ export function afterUpdatingPost (post, opts) {
       Tag.updateForPost(post, topicNames, userId, transacting),
       updateFollowers(post, transacting)
     ]))
+    .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post, groupIds: group_ids }))
     .then(() => post.get('type') === 'project' && memberIds && post.setProjectMembers(memberIds, { transacting }))
     .then(() => post.get('type') === 'event' && eventInviteeIds && post.updateEventInvitees(eventInviteeIds, userId, { transacting }))
     .then(() => post.get('type') === 'proposal' && proposalOptions && post.updateProposalOptions({ options: proposalOptions, userId, opts: { transacting } }))

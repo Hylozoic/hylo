@@ -13,6 +13,38 @@ module.exports = {
     }, attrs))
   },
 
+  customView: attrs => {
+    return new CustomView(merge({
+      name: faker.random.words(3),
+      group_id: null,
+      created_at: new Date(),
+      updated_at: new Date()
+    }, attrs))
+  },
+
+  groupTag: attrs => {
+    return new GroupTag(merge({
+      group_id: null,
+      tag_id: null,
+      visibility: 0,
+      created_at: new Date(),
+      updated_at: new Date()
+    }, attrs))
+  },
+
+  contextWidget: attrs => {
+    return new ContextWidget(merge({
+      title: faker.random.words(2),
+      group_id: null,
+      created_at: new Date(),
+      updated_at: new Date()
+    }, attrs))
+  },
+
+  location: attrs => {
+    return new Location(attrs)
+  },
+
   group: attrs => {
     return new Group(merge({
       name: faker.random.words(6),
@@ -36,6 +68,10 @@ module.exports = {
       active: true,
       name: faker.random.words(4)
     }, attrs))
+  },
+
+  postTag: attrs => {
+    return new PostTag(attrs)
   },
 
   postUser: attrs => {

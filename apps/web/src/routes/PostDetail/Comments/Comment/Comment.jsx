@@ -1,5 +1,5 @@
-import cx from 'classnames'
-import moment from 'moment-timezone'
+import { cn } from 'util/index'
+import { DateTime } from 'luxon'
 import React, { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { filter, isFunction, isEmpty } from 'lodash/fp'
@@ -116,18 +116,18 @@ function Comment ({
   return (
     <div
       ref={commentRef}
-      className={cx(styles.commentContainer, { [styles.selectedComment]: selectedCommentId === comment.id })}
+      className={cn(styles.commentContainer, { [styles.selectedComment]: selectedCommentId === comment.id })}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => { if (!isEmojiPickerOpen) { setShowActions(false) } }}
     >
       <div className={styles.header}>
         <Avatar avatarUrl={creator.avatarUrl} url={profileUrl} className={styles.avatar} />
         <Link to={profileUrl} className={styles.userName}>{creator.name}</Link>
-        <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={moment(createdAt).format('llll')}>
+        <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(createdAt).toFormat('D t ZZZZ')}>
           {timestamp}
         </span>
         {(editedTimestamp) && (
-          <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={moment(editedAt).format('llll')}>
+          <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(editedAt).toFormat('D t ZZZZ')}>
             ({editedTimestamp})
           </span>
         )}
@@ -136,8 +136,8 @@ function Comment ({
             <Icon name='Ex' className={styles.cancelIcon} onClick={handleEditCancel} />
           )}
           {currentUser && (
-            <div className={cx(styles.commentActions, { [styles.showActions]: showActions })}>
-              <div className={cx(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
+            <div className={cn(styles.commentActions, { [styles.showActions]: showActions })}>
+              <div className={cn(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
                 <Icon name='Replies' />
               </div>
               {dropdownItems.map(item => (
@@ -146,7 +146,7 @@ function Comment ({
                 </div>
               ))}
               <EmojiRow
-                className={cx(styles.emojis, styles.hiddenReactions)}
+                className={cn(styles.emojis, styles.hiddenReactions)}
                 comment={comment}
                 currentUser={currentUser}
                 post={post}
@@ -176,7 +176,7 @@ function Comment ({
             <HyloHTML className={styles.text} html={text} />
           </ClickCatcher>
           <EmojiRow
-            className={cx(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}
+            className={cn(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}
             comment={comment}
             currentUser={currentUser}
             post={post}

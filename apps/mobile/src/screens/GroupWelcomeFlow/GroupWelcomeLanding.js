@@ -78,22 +78,22 @@ export default function GroupWelcomeLanding ({ route }) {
 
   // Join Questions logic
   const [questionAnswers, setQuestionAnswers] = useState(joinQuestions.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
-  const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!group?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
+  const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!currentGroup?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
 
   useEffect(() => {
     if (!showJoinForm &&
       !agreementsChanged &&
       (joinQuestionsAnsweredAt ||
-      !group.settings?.askJoinQuestions)) {
+      !currentGroup.settings?.askJoinQuestions)) {
       navigation.navigate('Stream', { groupId, initial: false })
     }
   }, [showJoinForm, agreementsChanged, joinQuestionsAnsweredAt])
 
   useEffect(() => {
     if (numAgreements > 0) {
-      setAcceptedAgreements(group.agreements.map(a => a.accepted))
+      setAcceptedAgreements(currentGroup.agreements.map(a => a.accepted))
     }
-  }, [group?.id])
+  }, [currentGroup?.id])
 
   const handleCheckAgreement = ({ checked, index }) => {
     const accepted = checked
@@ -155,10 +155,10 @@ export default function GroupWelcomeLanding ({ route }) {
           {currentStepIndex === 0 && <LandingBodyContent description={description} purpose={purpose} currentStepIndex={currentStepIndex} />}
           {routeNames[currentStepIndex] === GROUP_WELCOME_AGREEMENTS && <AgreementsBodyContent agreements={agreements} agreementsChanged={agreementsChanged} acceptedAgreements={acceptedAgreements} handleCheckAgreement={handleCheckAgreement} acceptedAllAgreements={acceptedAllAgreements} handleCheckAllAgreements={handleCheckAllAgreements} numAgreements={numAgreements} />}
           {routeNames[currentStepIndex] === GROUP_WELCOME_JOIN_QUESTIONS && <JoinQuestionsBodyContent questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} setAllQuestionsAnswered={setAllQuestionsAnswered} />}
-          {routeNames[currentStepIndex] === GROUP_WELCOME_SUGGESTED_SKILLS && <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
+          {routeNames[currentStepIndex] === GROUP_WELCOME_SUGGESTED_SKILLS && <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={currentGroup} removeSkill={removeSkill} />}
         </View>
       </ScrollView>
-      <GroupWelcomeTabBar group={group} agreements={agreements} acceptedAllAgreements={acceptedAllAgreements} handleAccept={handleAccept} allQuestionsAnswered={allQuestionsAnswered} />
+      <GroupWelcomeTabBar group={currentGroup} agreements={agreements} acceptedAllAgreements={acceptedAllAgreements} handleAccept={handleAccept} allQuestionsAnswered={allQuestionsAnswered} />
     </View>
   )
 }

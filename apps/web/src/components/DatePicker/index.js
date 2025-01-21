@@ -1,11 +1,11 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import classes from './datePicker.module.scss'
-import Datetime from 'react-datetime'
+import Datetime from 'luxon'
 import React from 'react'
 
 function isValidDate (current) {
-  const yesterday = Datetime.moment().subtract(1, 'day')
-  return current.isAfter(yesterday)
+  const yesterday = Datetime.now().minus({day: 1})
+  return Datetime.fromJSDate(current) > yesterday
 }
 
 function DatePicker (props) {
@@ -13,7 +13,7 @@ function DatePicker (props) {
   return (
     <Datetime
       {...props}
-      className={cx(classes.datePicker, props.className)}
+      className={cn(classes.datePicker, props.className)}
       isValidDate={isValidDate}
       inputProps={{ placeholder }}
     />

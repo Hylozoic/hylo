@@ -38,7 +38,8 @@ import {
   fetchGroupSettings,
   removePostFromCollection,
   reorderPostInCollection,
-  updateGroupSettings
+  updateGroupSettings,
+  transitionGroupToNewMenu
 } from './GroupSettings.store'
 
 export default function GroupSettings () {
@@ -65,7 +66,7 @@ export default function GroupSettings () {
   const removePostFromCollectionAction = (collectionId, postId) => dispatch(removePostFromCollection(collectionId, postId))
   const reorderPostInCollectionAction = (collectionId, postId, newOrderIndex) => dispatch(reorderPostInCollection(collectionId, postId, newOrderIndex))
   const updateGroupSettingsAction = changes => group && dispatch(updateGroupSettings(group.id, changes))
-
+  const transitionGroupToNewMenuAction = () => dispatch(transitionGroupToNewMenu(group.id))
   const deleteGroupAction = () => {
     if (group) {
       dispatch(deleteGroup(group.id)).then(({ error }) => {
@@ -100,6 +101,7 @@ export default function GroupSettings () {
         group={group}
         parentGroups={parentGroups}
         updateGroupSettings={updateGroupSettingsAction}
+        transitionGroupToNewMenu={transitionGroupToNewMenuAction}
       />
     )
   }
@@ -184,7 +186,7 @@ export default function GroupSettings () {
 
   const deleteSettings = {
     name: t('Delete'),
-    path: 'settings/delete',
+    path: 'delete',
     component: <DeleteSettingsTab group={group} deleteGroup={deleteGroupAction} />
   }
 

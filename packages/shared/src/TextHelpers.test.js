@@ -1,5 +1,5 @@
 import * as TextHelpers from '../src/TextHelpers'
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 
 describe('presentHTMLToText', () => {
   it("shouldn't include text of href on links", () => {
@@ -40,11 +40,11 @@ describe('markdown', () => {
 
 describe('formatDatePair', () => {
   it('displays differences of dates', () => {
-    const d1 = moment.tz(1551908483315, 'Etc/GMT').month(1).day(1).hour(18)
-    const d2 = moment.tz(d1, 'Etc/GMT').hour(21)
-    const d3 = moment.tz(d2, 'Etc/GMT').day(2)
-    const d4 = moment.tz(d3, 'Etc/GMT').month(2)
-    const d5 = moment.tz(d3, 'Etc/GMT').year(2050)
+    const d1 = DateTime.fromMillis(1551908483315, {zone: 'Etc/GMT'}).set({month: 1, day: 1, hour: 18})
+    const d2 = d1.set({hour: 21})
+    const d3 = d2.set({day: 2})
+    const d4 = d3.set({month: 2})
+    const d5 = d4.set({year: 2050})
 
     expect(TextHelpers.formatDatePair(d1)).toMatchSnapshot()
     expect(TextHelpers.formatDatePair(d1, d2)).toMatchSnapshot()
@@ -54,8 +54,8 @@ describe('formatDatePair', () => {
   })
 
   it('can accept a custom timezone', () => {
-    const d1 = moment.tz(1551908483315, 'Etc/GMT').month(1).day(1).hour(18)
-    const d2 = moment.tz(d1, 'Etc/GMT').hour(21)
+    const d1 = DateTime.fromMillis(1551908483315, {zone: 'Etc/GMT'}).set({month: 1, day: 1, hour: 18})
+    const d2 = d1.set({hour: 21})
     expect(TextHelpers.formatDatePair(d1, d2, false, 'America/New_York')).toMatchSnapshot()
   })
 })

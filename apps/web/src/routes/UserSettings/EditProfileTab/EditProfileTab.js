@@ -3,7 +3,6 @@ import { withTranslation } from 'react-i18next'
 import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import { Helmet } from 'react-helmet'
-import cx from 'classnames'
 import SettingsControl from 'components/SettingsControl'
 import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
@@ -11,7 +10,7 @@ import Button from 'components/Button'
 import Icon from 'components/Icon'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import Loading from 'components/Loading'
-import { bgImageStyle } from 'util/index'
+import { bgImageStyle, cn } from 'util/index'
 import { DEFAULT_BANNER } from 'store/models/Me'
 import classes from './EditProfileTab.module.scss'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
@@ -186,7 +185,7 @@ class EditProfileTab extends Component {
         />
         <div style={{ height: '80px' }} />
         <div className={classes.saveChanges}>
-          <span className={cx({ [classes.settingChanged]: changed })}>{changed ? t('Changes not saved') : t('Current settings up to date')}</span>
+          <span className={cn({ [classes.settingChanged]: changed })}>{changed ? t('Changes not saved') : t('Current settings up to date')}</span>
           <Button label={t('Save Changes')} color={changed && validateName(name) ? 'green' : 'gray'} onClick={changed && validateName(name) ? this.save : null} className={classes.saveButton} />
         </div>
       </div>

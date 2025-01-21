@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { Component } from 'react'
 import classes from './DropdownButton.module.scss'
 
@@ -30,7 +30,7 @@ export default class DropdownButton extends Component {
       <div>
         <div
           role='button'
-          className={cx(
+          className={cn(
             classes.dropdownButton,
             classes.green,
             classes.narrow,
@@ -42,7 +42,7 @@ export default class DropdownButton extends Component {
         >
           {label}&nbsp;&nbsp;|&nbsp;&nbsp;▾
         </div>
-        <div className={cx(classes.dropdown, { [classes.expanded]: expanded, [classes.top]: position === 'top' })} data-testid='dropdown-button-choices'>
+        <div className={cn(classes.dropdown, { [classes.expanded]: expanded, [classes.top]: position === 'top' })} data-testid='dropdown-button-choices'>
           {choices.map(({ label, value }) =>
             <span className={classes.choice} key={value} onClick={(e) => { e.preventDefault(); e.stopPropagation(); this.onChoose(value, label) }}>{label}</span>)}
         </div>

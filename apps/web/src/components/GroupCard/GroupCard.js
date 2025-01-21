@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
@@ -44,7 +44,7 @@ export default function GroupCard ({
       <div
         onClick={onClick}
         data-testid='group-card'
-        className={cx(classes.card, { [classes.expanded]: expanded, [classes.constrained]: constrained }, className)}
+        className={cn(classes.card, { [classes.expanded]: expanded, [classes.constrained]: constrained }, className)}
       >
         <GroupHeader
           {...group}

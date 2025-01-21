@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useEffect, useState } from 'react'
 import Div100vh from 'react-div-100vh'
 import { useDispatch } from 'react-redux'
@@ -40,7 +40,7 @@ export default function PublicPostDetail (props) {
   return (
     <Div100vh className={classes.publicContainer}>
       <PublicPageHeader />
-      <div className={cx(classes.centerColumn, classes.nonMapView)} id={DETAIL_COLUMN_ID}>
+      <div className={cn(classes.centerColumn, classes.nonMapView)} id={DETAIL_COLUMN_ID}>
         <div>
           <PostDetail {...props} />
         </div>

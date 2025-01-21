@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import SwitchStyled from 'components/SwitchStyled'
 import Icon from 'components/Icon'
 import classes from './AnonymousVoteToggle.module.scss'
@@ -21,7 +21,7 @@ class AnonymousVoteToggle extends Component {
     const { isAnonymousVote, toggleAnonymousVote, t } = this.props
 
     return (
-      <div className={cx(classes.toggleContainer, { [classes.toggleIsActive]: isAnonymousVote })}>
+      <div className={cn(classes.toggleContainer, { [classes.toggleIsActive]: isAnonymousVote })}>
         <div className={classes.toggle}>
           <Icon name='Hidden' className={classes.toggleIcon} /> {t('Anonymous Vote:')}
           <SwitchStyled checked={isAnonymousVote} onChange={toggleAnonymousVote} backgroundColor={isAnonymousVote ? '#0DC39F' : '#8B96A4'} />

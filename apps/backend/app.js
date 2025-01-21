@@ -18,7 +18,7 @@
  * `node app.js --silent --port=80 --prod`
  */
 
-require('dotenv').load()
+require('dotenv').config()
 require("@babel/register")
 
 if (process.env.ROLLBAR_SERVER_TOKEN && process.env.NODE_ENV !== 'test') {

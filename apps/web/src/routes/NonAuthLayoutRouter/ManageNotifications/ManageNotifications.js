@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { isEmpty } from 'lodash'
 import React, { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
@@ -48,7 +48,7 @@ export default function ManageNotifications (props) {
   const groupNotificationOptions = [{ id: 'keep', label: t('Existing per Group Settings') }, ...notificationOptions]
 
   return (
-    <div className={cx(props.className, styles.wrapper)}>
+    <div className={cn(props.className, styles.wrapper)}>
       <h1>{t('Hi {{userName}}', { userName })}</h1>
       <p>{t('You can change your Hylo notification settings here')}</p>
       {isEmpty(settings)

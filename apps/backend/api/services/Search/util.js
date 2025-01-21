@@ -1,6 +1,6 @@
 import { GraphQLYogaError } from '@graphql-yoga/node'
 import { chain, curry, includes, isEmpty, values } from 'lodash'
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import addTermToQueryBuilder from './addTermToQueryBuilder'
 
 export const filterAndSortPosts = curry((opts, q) => {
@@ -51,19 +51,19 @@ export const filterAndSortPosts = curry((opts, q) => {
   const { CHAT, DISCUSSION, REQUEST, OFFER, PROJECT, EVENT, RESOURCE, PROPOSAL } = Post.Type
 
   if (isAnnouncement) {
-    q.where('announcement', true).andWhere('posts.created_at', '>=', moment().subtract(1, 'month').toDate())
+    q.where('announcement', true).andWhere('posts.created_at', '>=', DateTime.now().minus({months: 1}).toISODate())
   }
 
   if (isFulfilled === true) {
     q.where(q2 => {
       q2.whereNotNull('posts.fulfilled_at')
-      .orWhere('posts.end_time', '<', moment().toDate())
+      .orWhere('posts.end_time', '<', DateTime.now().toISODate())
     })
   } else if (isFulfilled === false) {
     q.whereNull('posts.fulfilled_at')
     .andWhere(q2 => {
       q2.whereNull('posts.end_time')
-      .orWhere('posts.end_time', '>=', moment().toDate())
+      .orWhere('posts.end_time', '>=', DateTime.now().toISODate())
     })
   }
 
@@ -71,7 +71,7 @@ export const filterAndSortPosts = curry((opts, q) => {
     q.whereNull('posts.fulfilled_at')
     .andWhere(q2 => {
       q2.whereNull('posts.end_time')
-      .orWhere('posts.end_time', '>=', moment().toDate())
+      .orWhere('posts.end_time', '>=', DateTime.now().toISODate())
     })
   }
 

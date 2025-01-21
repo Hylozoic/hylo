@@ -1,4 +1,4 @@
-var moment = require('moment-timezone');
+var DateTime = require('luxon');
 
 module.exports = {
 
@@ -14,7 +14,7 @@ module.exports = {
         return false; // break from each
       }
 
-      if (!moment(value).isValid()) {
+      if (!DateTime.fromISO(value).isValid) {
         res.badRequest(attr + ' is not a valid ISO8601 date string');
         valid = false;
         return false; // break from each

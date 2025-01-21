@@ -58,12 +58,12 @@ query FetchGroupMembers ($slug: String, $first: Int, $sortBy: String, $offset: I
   }
 }`
 
-export function fetchGroupMembers (slug, sortBy, offset, search) {
+export function fetchGroupMembers ({ slug, sortBy, offset, search, first = 20 }) {
   return {
     type: FETCH_MEMBERS,
     graphql: {
       query: groupMembersQuery,
-      variables: { slug, first: 20, offset, sortBy, search }
+      variables: { slug, first, offset, sortBy, search }
     },
     meta: {
       extractModel: 'Group',
@@ -92,9 +92,9 @@ export function removeMember (personId, groupId) {
     }
   }
 }
-
+// I don't know why there is this duplication (see fetchGroupMembers). Not taking the time to refactor.
 export function fetchMembers ({ slug, sortBy, offset, search }) {
-  return fetchGroupMembers(slug, sortBy, offset, search)
+  return fetchGroupMembers({ slug, sortBy, offset, search })
 }
 
 export default function reducer (state = {}, action) {

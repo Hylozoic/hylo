@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import classes from './Button.module.scss'
 
 const { string, bool, func, object, oneOfType, node } = PropTypes
 
 export default function Button ({
   active,
-  borderRadius = '25px',
+  borderRadius = 'auto',
   children,
   className,
   color = 'green',
@@ -24,7 +24,7 @@ export default function Button ({
   small,
   tabIndex = 0
 }) {
-  const combinedClassName = cx(
+  const combinedClassName = cn(
     classes[color.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())],
     {
       [classes.button]: !noDefaultStyles,

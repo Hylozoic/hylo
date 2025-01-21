@@ -1,6 +1,5 @@
-import cx from 'classnames'
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
@@ -25,7 +24,7 @@ import RoundImageRow from 'components/RoundImageRow'
 import useReactionActions from 'hooks/useReactionActions'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
-import { bgImageStyle } from 'util/index'
+import { bgImageStyle, cn } from 'util/index'
 import isWebView from 'util/webView'
 import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
@@ -226,7 +225,7 @@ export default function ChatPost ({
   return (
     <Highlight {...highlightProps}>
       <div
-        className={cx(className, styles.container, {
+        className={cn('hover:bg-black/10 hover:cursor-pointer rounded-lg', className, styles.container, {
           [styles.longPressed]: isLongPress,
           [styles.hovered]: isHovered
         })}
@@ -275,8 +274,8 @@ export default function ChatPost ({
               </div>
             </div>
             <div className={styles.date}>
-              {moment(createdAt).format('h:mm a')}
-              {editedAt && <span>&nbsp;({t('edited')} {moment(editedAt).format('h:mm a')})</span>}
+              {DateTime.fromISO(createdAt).toFormat('t')}
+              {editedAt && <span>&nbsp;({t('edited')} {DateTime.fromISO(editedAt).toFormat('t')})</span>}
             </div>
           </div>
         )}
@@ -289,7 +288,7 @@ export default function ChatPost ({
             placeholder='Edit Post'
             ref={editorRef}
             showMenu={!isWebView()}
-            className={cx(styles.postContentContainer, styles.editing, styles.postContent)}
+            className={cn(styles.postContentContainer, styles.editing, styles.postContent)}
           />
         )}
         {details && !editing && (
@@ -318,7 +317,7 @@ export default function ChatPost ({
           <CardFileAttachments attachments={fileAttachments} />
         )}
         <EmojiRow
-          className={cx(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
+          className={cn(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
           post={post}
           currentUser={currentUser}
           onAddReaction={onAddReaction}

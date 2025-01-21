@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { capitalize } from 'lodash/fp'
 import React from 'react'
 
@@ -10,7 +10,7 @@ export default function SimpleTabBar ({ currentTab, tabNames, selectTab }) {
       {tabNames.map(name =>
         <li
           key={name}
-          className={cx(classes.tab, { [classes.tabActive]: name === currentTab })}
+          className={cn(classes.tab, { [classes.tabActive]: name === currentTab })}
           onClick={() => selectTab(name)}
         >
           {capitalize(name)}

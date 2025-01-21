@@ -15,7 +15,6 @@ import AllTopics from 'routes/AllTopics/AllTopics.store'
 import AttachmentManager from 'components/AttachmentManager/AttachmentManager.store'
 import CreateGroup from 'components/CreateGroup/CreateGroup.store'
 import CreateTopic from 'components/CreateTopic/CreateTopic.store'
-import Events from 'routes/Events/Events.store'
 import FullPageModal from 'routes/FullPageModal/FullPageModal.store'
 import MapExplorer from 'routes/MapExplorer/MapExplorer.store'
 import Messages from 'routes/Messages/Messages.store'
@@ -50,7 +49,6 @@ export const createCombinedReducers = routerReducer => combineReducers({
   AttachmentManager,
   CreateGroup,
   CreateTopic,
-  Events,
   FullPageModal,
   MembershipRequests,
   MapExplorer,

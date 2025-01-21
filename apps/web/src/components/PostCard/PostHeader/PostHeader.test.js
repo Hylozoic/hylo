@@ -3,7 +3,7 @@ import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import PostHeader, { TopicsLine } from './PostHeader'
 import { RESP_ADMINISTRATION } from 'store/constants'
 
-jest.mock('moment-timezone', () => ({
+jest.mock('luxon', () => ({
   __esModule: true,
   default: () => ({
     fromNow: () => 'a few seconds ago',

@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import Icon from 'components/Icon'
@@ -123,9 +123,9 @@ export default function IconSelector ({ selectedIcon, updateIcon, selectedIconCl
         {selectedIcon ? <Icon green name={selectedIcon} className={selectedIconClass} /> : <div className={classes.text}>{t('No icon selected')}</div>}
         <Icon name='ArrowDown' />
       </div>
-      <div className={cx(classes.iconOptions, { [classes.open]: modalOpen })}>
+      <div className={cn(classes.iconOptions, { [classes.open]: modalOpen })}>
         {iconList.map((icon) => (
-          <Icon key={icon} className={cx(classes.icon, { [classes.green]: icon === selectedIcon })} name={icon} onClick={() => { updateIcon(icon); setModalOpen(false) }} />
+          <Icon key={icon} className={cn(classes.icon, { [classes.green]: icon === selectedIcon })} name={icon} onClick={() => { updateIcon(icon); setModalOpen(false) }} />
         ))}
       </div>
     </div>

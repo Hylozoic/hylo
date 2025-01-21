@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { omit } from 'lodash/fp'
 import React, { useState } from 'react'
 
@@ -31,9 +31,9 @@ export default function TextInput (props) {
   }
 
   return (
-    <div className={cx(theme.wrapperStyle || styles.wrapper, theme.wrapper || className)}>
+    <div className={cn(theme.wrapperStyle || styles.wrapper, theme.wrapper || className)}>
       <input
-        className={cx(styles[theme.inputStyle] || styles.input, theme.input)}
+        className={cn(styles[theme.inputStyle] || styles.input, theme.input)}
         {...{ onKeyDown, ...otherProps }}
         ref={inputRef}
         aria-label={label || internalLabel}
@@ -43,11 +43,11 @@ export default function TextInput (props) {
         id={props.id}
       />
       {internalLabel && (
-        <label htmlFor={props.id} className={cx(styles.internalLabel, active || (value && value.length > 0) ? styles.active : '')}>{internalLabel}</label>
+        <label htmlFor={props.id} className={cn(styles.internalLabel, active || (value && value.length > 0) ? styles.active : '')}>{internalLabel}</label>
       )}
 
       {value && !noClearButton &&
-        <div className={cx(styles.clear, theme.clear)} onClick={clear} role='button' aria-label='clear'>
+        <div className={cn(styles.clear, theme.clear)} onClick={clear} role='button' aria-label='clear'>
           <Icon name='Ex' />
         </div>}
       {loading && <Loading type='inline' className={styles.loading} />}

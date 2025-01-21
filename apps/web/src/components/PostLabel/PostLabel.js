@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import Icon from 'components/Icon'
 import { Tooltip } from 'react-tooltip'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import classes from './PostLabel.module.scss'
 
 const { string } = PropTypes
@@ -12,9 +12,9 @@ export default function PostLabel ({ type, className }) {
   const typeName = type.charAt(0).toUpperCase() + typeLowercase.slice(1)
 
   return (
-    <div className={cx(classes.label, classes[type], className)}>
+    <div className={cn(classes.label, classes[type], className)}>
       <div
-        className={cx(classes.labelInner)}
+        className={cn(classes.labelInner)}
         data-tooltip-content={typeName}
         data-tooltip-id='typeTip'
       >

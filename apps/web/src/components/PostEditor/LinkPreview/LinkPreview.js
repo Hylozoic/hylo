@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react'
 import ReactPlayer from 'react-player'
 import { useTranslation } from 'react-i18next'
 import { Expand, Shrink } from 'lucide-react'
-import { bgImageStyle } from 'util/index'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
-import cx from 'classnames'
+import { cn, bgImageStyle } from 'util/index'
+
 import classes from './LinkPreview.module.scss'
 
 export default function LinkPreview ({ loading, featured: providedFeatured, ...props }) {
@@ -43,7 +43,7 @@ export default function LinkPreview ({ loading, featured: providedFeatured, ...p
 
   return (
     <>
-      <div className={cx(classes.container, className)}>
+      <div className={cn(classes.container, className)}>
         {featured && (
           <span className={classes.featured}>
             <span><strong>{t('Featured:')}</strong> {t('This video will be full-width, displayed above the description, and playable.')}</span>
@@ -53,10 +53,10 @@ export default function LinkPreview ({ loading, featured: providedFeatured, ...p
           {imageUrl && (
             <div style={imageStyle} className={classes.image}>
               {isVideo && !featured && (
-                <Expand className={cx(classes.featureButton, { [classes.featured]: featured })} onClick={toggleFeatured} />
+                <Expand className={cn(classes.featureButton, { [classes.featured]: featured })} onClick={toggleFeatured} />
               )}
               {isVideo && featured && (
-                <Shrink className={cx(classes.featureButton, { [classes.featured]: featured })} onClick={toggleFeatured} />
+                <Shrink className={cn(classes.featureButton, { [classes.featured]: featured })} onClick={toggleFeatured} />
               )}
             </div>
           )}

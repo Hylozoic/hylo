@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import classes from './SendAnnouncementModal.module.scss'
 import Button from '../Button'
 
@@ -31,8 +31,8 @@ export default function SendAnnouncementModal ({
             <p className={classes.modalParagraph}>{t('This will only be sent as an Announcement to the groups where you are a Moderator. For other groups it will be shared as a regular Post.')}</p>
           </span>}
         <div>
-          <Button className={cx(classes.closeButton, classes.small)} onClick={closeModal}>{t('Go Back')}</Button>
-          <Button className={cx(classes.sendButton, classes.small)} onClick={save}>{t('Send It')}</Button>
+          <Button className={cn(classes.closeButton, classes.small)} onClick={closeModal}>{t('Go Back')}</Button>
+          <Button className={cn(classes.sendButton, classes.small)} onClick={save}>{t('Send It')}</Button>
         </div>
       </div>
     </div>

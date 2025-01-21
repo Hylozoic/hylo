@@ -1,13 +1,12 @@
-import cx from 'classnames'
 import PropTypes from 'prop-types'
 import React from 'react'
 import { withTranslation } from 'react-i18next'
-import { bgImageStyle } from 'util/index'
 import BadgeEmoji from 'components/BadgeEmoji'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import SkillLabel from 'components/SkillLabel'
 import { RESP_REMOVE_MEMBERS } from 'store/constants'
+import { cn, bgImageStyle } from 'util/index'
 
 import classes from './Member.module.scss'
 
@@ -37,7 +36,7 @@ class Member extends React.Component {
     const { id, name, location, tagline, avatarUrl, skills } = member
 
     return (
-      <div className={cx(classes.member, className)} data-testid='member-card'>
+      <div className={cn(classes.member, className)} data-testid='member-card'>
         {(currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)) &&
           <Dropdown
             className={classes.dropdown}

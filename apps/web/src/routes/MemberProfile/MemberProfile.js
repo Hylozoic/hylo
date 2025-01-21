@@ -1,22 +1,14 @@
-import cx from 'classnames'
 import { filter, isFunction } from 'lodash'
-import Moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
-import { Tooltip } from 'react-tooltip'
 import { Helmet } from 'react-helmet'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useSelector, useDispatch } from 'react-redux'
+import { Tooltip } from 'react-tooltip'
+import { useParams, useNavigate, Routes, Route } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
-import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
-import { bgImageStyle } from 'util/index'
-import {
-  currentUserSettingsUrl,
-  messagePersonUrl,
-  messagesUrl,
-  gotoExternalUrl,
-  postUrl
-} from 'util/navigation'
+
 import Affiliation from 'components/Affiliation'
 import Button from 'components/Button'
 import BadgeEmoji from 'components/BadgeEmoji'
@@ -33,13 +25,13 @@ import MemberPosts from './MemberPosts'
 import MemberComments from './MemberComments'
 import Membership from 'components/Membership'
 import MemberReactions from './MemberReactions'
+import PostDialog from 'components/PostDialog'
 import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 
-import styles from './MemberProfile.module.scss'
-
-import { useSelector, useDispatch } from 'react-redux'
 import blockUser from 'store/actions/blockUser'
+import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
@@ -53,6 +45,16 @@ import {
   FETCH_MEMBER_REACTIONS,
   getPresentedPerson
 } from './MemberProfile.store'
+import { bgImageStyle, cn } from 'util/index'
+import {
+  currentUserSettingsUrl,
+  messagePersonUrl,
+  messagesUrl,
+  gotoExternalUrl,
+  postUrl
+} from 'util/navigation'
+
+import styles from './MemberProfile.module.scss'
 
 const GROUPS_DIV_HEIGHT = 200
 
@@ -65,6 +67,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const navigate = useNavigate()
   const routeParams = useParams()
   const { t } = useTranslation()
+  const [container, setContainer] = useState(null)
 
   const personId = routeParams.personId
   const error = !Number.isSafeInteger(Number(personId)) ? MESSAGES.invalid : null
@@ -92,6 +95,15 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const [showAllGroups, setShowAllGroups] = useState(false)
   const [showExpandGroupsButton, setShowExpandGroupsButton] = useState(false)
   const groupsRef = useRef(null)
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Member Profile') + ': ' + (person ? person.name : t('Loading...')),
+      icon: 'Person',
+      info: ''
+    })
+  }, [person])
 
   useEffect(() => {
     if (personId) fetchPersonAction(personId)
@@ -158,92 +170,98 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   } = contentDropDownItems.find(contentItem => contentItem.id === currentTabState)
 
   return (
-    <div className={cx(styles.memberProfile, { [styles.isSingleColumn]: isSingleColumn })}>
-      <Helmet>
-        <title>{person.name} | Hylo</title>
-        <meta name='description' content={`${person.name}: ${t('Member Profile')}`} />
-      </Helmet>
-      <div className={styles.header}>
-        {isCurrentUser &&
-          <Button className={styles.editProfileButton} onClick={() => push(currentUserSettingsUrl())}>
-            <Icon name='Edit' /> {t('Edit Profile')}
-          </Button>}
-        <div className={styles.headerBanner} style={bgImageStyle(person.bannerUrl)}>
-          <RoundImage className={styles.headerMemberAvatar} url={person.avatarUrl} xlarge />
-          <h1 className={styles.headerMemberName}>{person.name}</h1>
-          <div className={styles.badgeRow}>
-            {roles.map(role => (
-              <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={person.id} />
-            ))}
-          </div>
-          {person.location && (
-            <div className={styles.headerMemberLocation}>
-              <Icon name='Location' className={styles.headerMemberLocationIcon} />
-              {locationWithoutUsa}
+    <div className='h-full overflow-auto flex flex-col items-center' ref={setContainer}>
+      <div className={cn('w-full', styles.memberProfile, { [styles.isSingleColumn]: isSingleColumn })}>
+        <Helmet>
+          <title>{person.name} | Hylo</title>
+          <meta name='description' content={`${person.name}: ${t('Member Profile')}`} />
+        </Helmet>
+        <div className='flex flex-col items-center w-full'>
+          {isCurrentUser &&
+            <Button className={styles.editProfileButton} onClick={() => push(currentUserSettingsUrl())}>
+              <Icon name='Edit' /> {t('Edit Profile')}
+            </Button>}
+          <div className={'w-full h-[40vh] flex flex-col items-center items-end justify-end pb-10 bg-cover'} style={bgImageStyle(person.bannerUrl)}>
+            <RoundImage className={styles.headerMemberAvatar} url={person.avatarUrl} xlarge />
+            <h1 className={styles.headerMemberName}>{person.name}</h1>
+            <div className={styles.badgeRow}>
+              {roles.map(role => (
+                <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={person.id} />
+              ))}
             </div>
-          )}
+            {person.location && (
+              <div className={styles.headerMemberLocation}>
+                <Icon name='Location' className={styles.headerMemberLocationIcon} />
+                {locationWithoutUsa}
+              </div>
+            )}
+          </div>
+          <div className={styles.actionIcons}>
+            <ActionButtons items={actionButtonsItems} />
+            <ActionDropdown items={actionDropdownItems} />
+          </div>
+          {(person.tagline || person.bio) && <div className='flex items-center flex-col'>
+            {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}
+            {person.bio && (
+              <div className={cn('text-foreground text-center max-w-[720px]')}>
+                <ClickCatcher>
+                  <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
+                </ClickCatcher>
+              </div>
+            )}
+          </div>}
+          <div className='flex flex-col max-w-[720px]'>
+            <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>
+              {t('Skills & Interests')}
+            </div>
+            <SkillsSection personId={personId} editable={false} t={t} />
+            <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>
+              {t('What I\'m Learning')}
+            </div>
+            <SkillsToLearnSection personId={personId} editable={false} t={t} />
+            {memberships && memberships.length > 0 && <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>{t('Hylo Groups')}</div>}
+            <div
+              ref={groupsRef}
+              className='flex flex-row flex-wrap items-center w-full overflow-hidden relative space-y-2'
+              style={{
+                maxHeight: showAllGroups ? 'none' : `${GROUPS_DIV_HEIGHT}px`
+              }}
+            >
+              {memberships && memberships.length > 0 && memberships.map((m, index) => <Membership key={m.id} index={index} membership={m} />)}
+            </div>
+            {showExpandGroupsButton && (
+              <button onClick={toggleShowAllGroups} className={'text-sm font-bold mt-4 mb-2 text-center w-full block'}>
+                {showAllGroups ? 'Show Less' : 'Show More'}
+              </button>
+            )}
+
+            {affiliations && affiliations.length > 0 && <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center w-full block'>{t('Other Affiliations')}</div>}
+            {affiliations && affiliations.length > 0 && affiliations.map((a, index) => <Affiliation key={a.id} index={index} affiliation={a} />)}
+
+            {events && events.length > 0 && <div className={styles.profileSubhead}>{t('Upcoming Events')}</div>}
+            {events && events.length > 0 && events.map((e, index) => <Event key={index} memberCap={3} event={e} routeParams={routeParams} showDetails={showDetails} />)}
+
+            {projects && projects.length > 0 && <div className={styles.profileSubhead}>{t('Projects')}</div>}
+            {projects && projects.length > 0 && projects.map((p, index) => <Project key={index} memberCap={3} project={p} routeParams={routeParams} showDetails={showDetails} />)}
+          </div>
         </div>
-        <div className={styles.actionIcons}>
-          <ActionButtons items={actionButtonsItems} />
-          <ActionDropdown items={actionDropdownItems} />
-        </div>
-        {person.tagline && <div className={styles.tagline}>{person.tagline}</div>}
-        {person.bio && (
-          <div className={styles.bio}>
-            <ClickCatcher>
-              <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
-            </ClickCatcher>
+        <div className='flex flex-col align-items-center max-w-[720px]'>
+          <div className={styles.contentControls}>
+            <h2 className={styles.contentHeader}>{currentContentTitle}</h2>
+            <Dropdown
+              className={styles.contentDropdown}
+              items={contentDropDownItems}
+              toggleChildren={
+                <span>{currentTabState} <Icon className={styles.contentDropdownIcon} name='ArrowDown' /></span>
+  }
+            />
           </div>
-        )}
-        <div className={styles.memberDetails}>
-          <div className={styles.profileSubhead}>
-            {t('Skills & Interests')}
-          </div>
-          <SkillsSection personId={personId} editable={false} t={t} />
-          <div className={styles.profileSubhead}>
-            {t('What I\'m Learning')}
-          </div>
-          <SkillsToLearnSection personId={personId} editable={false} t={t} />
-
-          {memberships && memberships.length > 0 && <div className={styles.profileSubhead}>{t('Hylo Groups')}</div>}
-          <div
-            ref={groupsRef}
-            className={styles.groups}
-            style={{
-              maxHeight: showAllGroups ? 'none' : `${GROUPS_DIV_HEIGHT}px`
-            }}
-          >
-            {memberships && memberships.length > 0 && memberships.map((m, index) => <Membership key={m.id} index={index} membership={m} />)}
-          </div>
-          {showExpandGroupsButton && (
-            <button onClick={toggleShowAllGroups} className={styles.showMoreButton}>
-              {showAllGroups ? 'Show Less' : 'Show More'}
-            </button>
-          )}
-
-          {affiliations && affiliations.length > 0 && <div className={styles.profileSubhead}>{t('Other Affiliations')}</div>}
-          {affiliations && affiliations.length > 0 && affiliations.map((a, index) => <Affiliation key={a.id} index={index} affiliation={a} />)}
-
-          {events && events.length > 0 && <div className={styles.profileSubhead}>{t('Upcoming Events')}</div>}
-          {events && events.length > 0 && events.map((e, index) => <Event key={index} memberCap={3} event={e} routeParams={routeParams} showDetails={showDetails} />)}
-
-          {projects && projects.length > 0 && <div className={styles.profileSubhead}>{t('Projects')}</div>}
-          {projects && projects.length > 0 && projects.map((p, index) => <Project key={index} memberCap={3} project={p} routeParams={routeParams} showDetails={showDetails} />)}
+          <CurrentContentComponent routeParams={routeParams} loading={contentLoading} />
         </div>
       </div>
-      <div className={styles.content}>
-        <div className={styles.contentControls}>
-          <h2 className={styles.contentHeader}>{currentContentTitle}</h2>
-          <Dropdown
-            className={styles.contentDropdown}
-            items={contentDropDownItems}
-            toggleChildren={
-              <span>{currentTabState} <Icon className={styles.contentDropdownIcon} name='ArrowDown' /></span>
-}
-          />
-        </div>
-        <CurrentContentComponent routeParams={routeParams} loading={contentLoading} />
-      </div>
+      <Routes>
+        <Route path='post/:postId' element={<PostDialog container={container} />} />
+      </Routes>
     </div>
   )
 }
@@ -259,7 +277,7 @@ function ActionTooltip ({ content, hideCopyTip, onClick }) {
       </span>
       {!hideCopyTip && (
         <CopyToClipboard text={content} onCopy={() => setCopied(true)}>
-          <Button className={cx(styles.actionIconTooltipButton, { [styles.copied]: copied })}>
+          <Button className={cn(styles.actionIconTooltipButton, { [styles.copied]: copied })}>
             <Icon name='Copy' />
             {copied ? t('Copied!') : t('Copy')}
           </Button>
@@ -285,7 +303,7 @@ function ActionButtons ({ items }) {
       <React.Fragment key={index}>
         <Icon
           key={index}
-          className={styles.actionIconButton}
+          className='text-foreground bg-background w-[50px] h-[50px] flex items-center justify-center rounded-full cursor-pointer mx-2'
           name={iconName}
           onClick={onClick}
           {...tooltipProps}
@@ -316,7 +334,7 @@ function ActionDropdown ({ items }) {
       alignRight
       items={activeItems}
       toggleChildren={
-        <Icon className={cx(styles.actionIconButton, styles.actionMenu)} name='More' />
+        <Icon className={cn(styles.actionIconButton, styles.actionMenu)} name='More' />
       }
     />
 }
@@ -327,9 +345,9 @@ function Project ({ memberCap, project, routeParams, showDetails }) {
     <div className={styles.project} onClick={() => showDetails(id, { ...routeParams })}>
       <div>
         <div className={styles.title}>{title} </div>
-        <div className={styles.meta}>{creator.name} - {Moment(createdAt).fromNow()} </div>
+        <div className={styles.meta}>{creator.name} - {DateTime.fromJSDate(createdAt).toRelative()} </div>
       </div>
-      <RoundImageRow className={cx(styles.members, { [styles.membersPlus]: members.items.length > memberCap })} inline imageUrls={members.items.map(m => m.avatarUrl)} cap={memberCap} />
+      <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: members.items.length > memberCap })} inline imageUrls={members.items.map(m => m.avatarUrl)} cap={memberCap} />
     </div>
   )
 }
@@ -339,14 +357,14 @@ function Event ({ memberCap, event, routeParams, showDetails }) {
   return (
     <div className={styles.event} onClick={() => showDetails(id, { ...routeParams })}>
       <div className={styles.date}>
-        <div className={styles.month}>{Moment(startTime).format('MMM')}</div>
-        <div className={styles.day}>{Moment(startTime).format('DD')}</div>
+        <div className={styles.month}>{DateTime.fromJSDate(startTime).toFormat('MMM')}</div>
+        <div className={styles.day}>{DateTime.fromJSDate(startTime).toFormat('dd')}</div>
       </div>
       <div className={styles.details}>
         <div className={styles.title}>{title}</div>
         <div className={styles.meta}><Icon name='Location' />{location}</div>
       </div>
-      <RoundImageRow className={cx(styles.members, { [styles.membersPlus]: eventInvitations.items.length > memberCap })} inline imageUrls={eventInvitations.items.map(e => e.person.avatarUrl)} cap={memberCap} />
+      <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: eventInvitations.items.length > memberCap })} inline imageUrls={eventInvitations.items.map(e => e.person.avatarUrl)} cap={memberCap} />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -78,7 +78,7 @@ export default function PostBigGridItem ({
     return attachmentType === 'image' || post.type === 'event' ? showDetails() : null
   }
   return (
-    <div className={cx(classes.postGridItemContainer, { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType], classes[detailClass], classes[post.type])} onClick={attachmentType !== 'image' && post.type !== 'event' ? showDetails : null}>
+    <div className={cn(classes.postGridItemContainer, { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType], classes[detailClass], classes[post.type])} onClick={attachmentType !== 'image' && post.type !== 'event' ? showDetails : null}>
       <div className={classes.contentSummary}>
         {childPost && (
           <div
@@ -104,12 +104,12 @@ export default function PostBigGridItem ({
         <h3 className={classes.title} onClick={showDetailsTargeted}>{title}</h3>
 
         {attachmentType === 'image'
-          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cx(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} onClick={showDetails} />
+          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cn(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} onClick={showDetails} />
           : null}
 
         {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
 
-        <div className={cx({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+        <div className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
           <HyloHTML html={details} onClick={showDetailsTargeted} className={classes.details} />
         </div>
 

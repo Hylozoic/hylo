@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import SwitchStyled from 'components/SwitchStyled'
 import Icon from 'components/Icon'
 import classes from './PublicToggle.module.scss'
@@ -21,7 +21,7 @@ class PublicToggle extends Component {
     const { isPublic, togglePublic, t } = this.props
 
     return (
-      <div className={cx(classes.publicToggleContainer, { [classes.postIsPublic]: isPublic })}>
+      <div className={cn(classes.publicToggleContainer, { [classes.postIsPublic]: isPublic })}>
         <div className={classes.publicToggle}>
           <Icon name='Public' className={classes.publicToggleIcon} /> {t('Make Public:')}
           <SwitchStyled checked={isPublic} onChange={togglePublic} backgroundColor={isPublic ? '#0DC39F' : '#8B96A4'} />

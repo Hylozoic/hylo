@@ -1,4 +1,5 @@
 import React, { useRef, useImperativeHandle, useEffect, useState } from 'react'
+import { cn } from 'util/index'
 import { useTranslation } from 'react-i18next'
 import { useEditor, EditorContent, Extension, BubbleMenu } from '@tiptap/react'
 import Highlight from '@tiptap/extension-highlight'
@@ -69,6 +70,7 @@ const HyloEditor = React.forwardRef(({
     Placeholder.configure({ placeholder }),
 
     Link.extend({
+      inclusive: false, // Link doesnt extend as you keep typing text
       // This expands concatenated links back to full href for editing
       parseHTML () {
         return [
@@ -193,11 +195,11 @@ const HyloEditor = React.forwardRef(({
   editorRef.current = editor
 
   return (
-    <div className={containerClassName} style={{ flex: 1 }}>
+    <div className={cn('flex-1', containerClassName)}>
       {showMenu && (
         <HyloEditorMenuBar editor={editor} />
       )}
-      <EditorContent className={className} editor={editor} />
+      <EditorContent className={cn('text-foreground', className)} editor={editor} />
       {editor && (
         <BubbleMenu
           editor={editor}

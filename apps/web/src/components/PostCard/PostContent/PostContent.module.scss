@@ -1,0 +1,122 @@
+.postDetails {
+  /* empty */
+  overflow-x: hidden;
+}
+
+.cardPadding {
+  padding: 0px 10px;
+}
+
+.constrained .cardPadding {
+  padding: 0px 0px;
+}
+
+.body {
+  margin-bottom: 36px;
+}
+
+.smallMargin {
+  margin-bottom: 12px;
+}
+
+.title {
+  composes: cardPadding;
+  margin-bottom: 12px;
+}
+
+.constrained {
+  position: relative;
+}
+
+.fade {
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  opacity: .8;
+  display: none;
+  left: 0;
+  height: 50%;
+  background: -webkit-linear-gradient(rgba(255, 255, 255, 0) 0%, #FFFFFF 100%);
+  background: -o-linear-gradient(rgba(255, 255, 255, 0) 0%, #FFFFFF 100%);
+  background: linear-gradient(rgba(255, 255, 255, 0) 0%, #FFFFFF 100%);
+}
+
+.constrained .fade {
+  display: block;
+}
+
+.details {
+  composes: cardPadding;
+  // Extract typography? This one is exactly half way between
+  // BDY-LT-LG and BDY-LT-SM
+  @include font-regular;
+  color: hsl(var(--foreground));
+  font-size: 16px;
+  line-height: 24px;
+  margin-bottom: 20px;
+
+  h1, h2, h3 {
+    font-family: 'Circular Bold';
+    color: rgba(35, 65, 91, 1.0);
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+  h3, h4, h5 {
+    font-size: 16px;
+  }
+
+  ol, ul {
+    list-style: revert;
+  }
+}
+
+.timestamp {
+  // KMT: composes seems to be ignored, need help to understand what I'm doing wrong
+  // composes: timestamp from 'css/typography.scss';
+  composes: cardPadding;
+  @include font-regular;
+  color: $color-rhino-40;
+  font-size: 12px;
+  letter-spacing: 0;
+  line-height: 16px;
+  white-space: nowrap;
+  padding: 0px 10px 10px 10px;
+  display: inline-block;
+}
+
+.constrained .details {
+  font-size: 12px;
+  line-height: 20px;
+  overflow: hidden;
+  max-height: 100px;
+}
+
+@media screen and (max-width: 425px) {
+  .details.cardPadding {
+    padding: 0 5px;
+    margin: 0;
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .details {
+    font-size: 14px;
+    line-height: 20px;
+  }
+}
+
+@media screen and (max-width: 375px) {
+  .details {
+    font-size: 12px;
+    line-height: 16px;
+  }
+}
