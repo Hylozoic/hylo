@@ -1,5 +1,4 @@
 import { has } from 'lodash/fp'
-import { noncircular } from 'util/index'
 // import { showMessagesBadge } from 'store/reducers/ormReducer/util'
 
 const MODULE_NAME = 'SocketListener'
@@ -9,6 +8,28 @@ export const RECEIVE_POST = `${MODULE_NAME}/RECEIVE_POST`
 export const RECEIVE_THREAD = `${MODULE_NAME}/RECEIVE_THREAD`
 export const RECEIVE_NOTIFICATION = `${MODULE_NAME}/RECEIVE_NOTIFICATION`
 export const HANDLE_EVENT = `${MODULE_NAME}/HANDLE_EVENT`
+
+function safeStringify (obj, space) {
+  let cache = []
+
+  const stringified = JSON.stringify(obj, function (key, value) {
+    if (typeof value === 'object' && value !== null) {
+      if (cache.indexOf(value) !== -1) {
+        return 'removed circular reference'
+      }
+      cache.push(value)
+    }
+    return value
+  }, space)
+  cache = null
+
+  return stringified
+}
+// remove circular references
+function noncircular (obj) {
+  if (typeof obj !== 'object') return obj
+  return JSON.parse(safeStringify(obj))
+}
 
 // TODO: URQL - convert sockets
 

@@ -1,10 +1,22 @@
 import { isString, isObject } from 'lodash/fp'
 import { useDispatch } from 'react-redux'
-import fetchGraphQLAction from 'store/actions/fetchGraphQL'
+import { FETCH_GRAPHQL } from 'store/constants'
 
 const usageError = new Error(
   'parameter is required, like: `graphqlAction(graphqlOperationOrReduxAction, optionalVariables)`'
 )
+
+
+export function fetchGraphqlAction ({ query, variables = {}, meta = {} }) {
+  return {
+    type: FETCH_GRAPHQL,
+    graphql: {
+      query,
+      variables
+    },
+    meta
+  }
+}
 
 export default function useGraphqlAction () {
   const dispatch = useDispatch()
@@ -18,7 +30,7 @@ export default function useGraphqlAction () {
       if (
         isString(graphqlOperationOrReduxAction)
       ) {
-        response = await dispatch(fetchGraphQLAction({
+        response = await dispatch(fetchGraphqlAction({
           query: graphqlOperationOrReduxAction,
           variables
         }))
@@ -26,7 +38,7 @@ export default function useGraphqlAction () {
         isObject(graphqlOperationOrReduxAction) &&
         Object.hasOwn(graphqlOperationOrReduxAction, 'definitions')
       ) {
-        response = await dispatch(fetchGraphQLAction({
+        response = await dispatch(fetchGraphqlAction({
           query: graphqlOperationOrReduxAction,
           variables
         }))

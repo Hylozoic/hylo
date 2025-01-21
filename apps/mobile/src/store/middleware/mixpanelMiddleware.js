@@ -1,5 +1,5 @@
 import { get, isString, isObject, omit } from 'lodash/fp'
-import getMixpanel from '../selectors/getMixpanel'
+import mixpanel from 'services/mixpanel'
 
 export default function mixpanelMiddleware (store) {
   return next => async action => {
@@ -12,7 +12,6 @@ export default function mixpanelMiddleware (store) {
       // NOTE: the mixpanel object is created during initialization of the mixpanel
       // reducer
       const state = store.getState()
-      const mixpanel = await getMixpanel(state)
 
       if (!mixpanel) return next(action)
 

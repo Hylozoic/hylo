@@ -1,58 +1,52 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Modal, Text, TouchableOpacity, View, FlatList } from 'react-native'
-import Icon from 'components/Icon'
-import { toUpper, isEmpty, trim } from 'lodash'
+import { useTranslation, withTranslation } from 'react-i18next'
 import prompt from 'react-native-prompt-android'
-import { withTranslation } from 'react-i18next'
+import { toUpper, isEmpty, trim } from 'lodash'
+import { gql, useMutation } from 'urql'
+import Icon from 'components/Icon'
 
-class FlagContent extends React.PureComponent {
-  state = {
-    promptVisible: false,
-    highlightRequired: false
+const flagInappropriateContentMutation = gql`
+  mutation FlagInappropriateContentMutation ($category: String, $reason: String, $linkData: LinkDataInput) {
+    flagInappropriateContent(data: {category: $category, reason: $reason, linkData: $linkData}) {
+      success
+    }
   }
+`
 
-  static defaultProps = {
-    promptVisible: false,
-    highlightRequired: false
-  }
+const FlagContent = ({ onClose, submitFlagContent, linkData, type = 'content' }) => {
+  const { t } = useTranslation()
+  const [, flagInappropriateContent] = useMutation(flagInappropriateContentMutation)
+  const [visible, setVisible] = useState(false)
+  const [highlightRequired, setHighlightRequired] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState('')
 
-  closeModal = () => {
-    this.setState({ promptVisible: false, highlightRequired: false })
-    if (this.props.onClose) {
-      this.props.onClose()
+  const closeModal = () => {
+    setVisible(false)
+    setHighlightRequired(false)
+    if (onClose) {
+      onClose()
     }
   }
 
-  isOptionalExplanation = (selectedCategory) =>
-    (selectedCategory || this.state.selectedCategory) !== 'other'
+  const isOptionalExplanation = (category) => 
+    (category || selectedCategory) !== 'other'
 
-  submit = (value) => {
-    const { submitFlagContent, linkData } = this.props
-    const { selectedCategory } = this.state
-
-    if (!this.isOptionalExplanation() && isEmpty(trim(value))) {
-      this.setState({ highlightRequired: true })
-      this.showPrompt(selectedCategory)
+  const submit = (value) => {
+    if (!isOptionalExplanation() && isEmpty(trim(value))) {
+      setHighlightRequired(true)
+      showPrompt(selectedCategory)
     } else {
-      submitFlagContent(selectedCategory, trim(value), linkData)
-      this.closeModal()
+      flagInappropriateContent({ category: selectedCategory, reason: trim(value), linkData })
+      closeModal()
     }
   }
 
-  cancel = () => {
-    this.setState({
-      highlightRequired: false
-    })
-    this.closeModal()
-  }
+  const showPrompt = (category) => {
+    setSelectedCategory(category)
 
-  showPrompt (selectedCategory) {
-    this.setState({ selectedCategory })
-    const { type = 'content', t } = this.props
-    const { highlightRequired } = this.state
-
-    let subtitle = `${t('Why was this')} ${type} '${selectedCategory}'`
-    if (!this.isOptionalExplanation(selectedCategory) && highlightRequired) {
+    let subtitle = `${t('Why was this')} ${type} '${category}'`
+    if (!isOptionalExplanation(category) && highlightRequired) {
       subtitle += t(' (explanation required)')
     }
 
@@ -60,66 +54,53 @@ class FlagContent extends React.PureComponent {
       'Flag',
       subtitle,
       [
-        { text: t('Cancel'), onPress: this.cancel, style: 'cancel' },
-        { text: t('Submit'), onPress: value => this.submit(value) }
+        { text: t('Cancel'), onPress: closeModal, style: 'cancel' },
+        { text: t('Submit'), onPress: value => submit(value) }
       ],
-      {
-        cancelable: false
-      }
+      { cancelable: false }
     )
   }
 
-  render () {
-    const { type = 'content', t } = this.props
+  const options = [
+    { title: t('Inappropriate Content'), id: 'inappropriate' },
+    { title: t('Spam'), id: 'spam' },
+    { title: t('Offensive'), id: 'offensive' },
+    { title: t('Illegal'), id: 'illegal' },
+    { title: t('Other'), id: 'other' }
+  ]
 
-    const options = [
-      { title: t('Inappropriate Content'), id: 'inappropriate' },
-      { title: t('Spam'), id: 'spam' },
-      { title: t('Offensive'), id: 'offensive' },
-      { title: t('Illegal'), id: 'illegal' },
-      { title: t('Other'), id: 'other' }
-    ]
-
-
-    return (
-      <View>
-        <Modal
-          transparent
-          visible
-          onRequestClose={() => this.closeModal()}
-        >
-          <View style={styles.dialog}>
-            <View style={styles.dialogOverlay} />
-            <View style={styles.spacer} />
-            <View style={styles.dialogContent}>
-              <View style={styles.title}>
-                <Text style={styles.titleText}>
-                  {t('FLAG THIS')} {toUpper(type)}
-                </Text>
-                <TouchableOpacity onPress={() => this.closeModal()}>
-                  <Icon name='Ex' style={styles.icon} />
-                </TouchableOpacity>
-              </View>
-              <FlatList
-                data={options}
-                renderItem={({ item }) => <FlagOption id={item.id} title={item.title} onPress={() => this.showPrompt(item.id)} />}
-                keyExtractor={item => item.id}
-              />
-            </View>
-          </View>
-        </Modal>
-      </View>
-    )
-  }
-}
-
-export function FlagOption ({ id, title, onPress }) {
   return (
-    <TouchableOpacity style={styles.actionButton} onPress={onPress}>
-      <Text style={styles.actionText}>{title}</Text>
-    </TouchableOpacity>
+    <Modal transparent visible={visible} onRequestClose={closeModal}>
+      <View style={styles.dialog}>
+        <View style={styles.dialogOverlay} />
+        <View style={styles.spacer} />
+        <View style={styles.dialogContent}>
+          <View style={styles.title}>
+            <Text style={styles.titleText}>
+              {t('FLAG THIS')} {toUpper(type)}
+            </Text>
+            <TouchableOpacity onPress={closeModal}>
+              <Icon name='Ex' style={styles.icon} />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={options}
+            renderItem={({ item }) => (
+              <FlagOption id={item.id} title={item.title} onPress={() => showPrompt(item.id)} />
+            )}
+            keyExtractor={item => item.id}
+          />
+        </View>
+      </View>
+    </Modal>
   )
 }
+
+export const FlagOption = ({ id, title, onPress }) => (
+  <TouchableOpacity style={styles.actionButton} onPress={onPress}>
+    <Text style={styles.actionText}>{title}</Text>
+  </TouchableOpacity>
+)
 
 const styles = {
   dialog: {
@@ -183,4 +164,4 @@ const styles = {
   }
 }
 
-export default withTranslation()(FlagContent)
+export default FlagContent
