@@ -424,14 +424,15 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
         {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (
-            <span>
-              <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
-                
-              <WidgetIconResolver widget={widget} />
-              <span className='text-base font-normal ml-2'>{title}</span>
+            <>
+              <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+                <div>
+                  <WidgetIconResolver widget={widget} />
+                  <span className='text-base font-normal ml-2'>{title}</span>
+                </div>
+                {canDnd && isDroppable && <div className=''><GrabMe {...listeners} {...attributes} /></div>}
               </MenuLink>
-              {canDnd && isDroppable && <div className='ml-auto'><GrabMe {...listeners} {...attributes} /></div>}
-            </span>
+            </>
             )
           : (
             <div>
@@ -492,24 +493,31 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
 function GrabMe ({ children, ...props }) {
   return (
-    <span className='text-sm font-bold cursor-grab' {...props}>
+    <span className='text-sm font-bold cursor-grab' {...props} >
       <GripHorizontal />
     </span>
   )
 }
 
-function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false, children }) {
-  const { setNodeRef } = useDroppable(droppableParams)
+function DropZone({ droppableParams, isDroppable = true, height = '', hide = false, children }) {
+  const { setNodeRef, isOver } = useDroppable(droppableParams);
 
   if (hide || !isDroppable) {
-    return null
+    return null;
   }
-  // TODO CONTEXT: remove isDragging or actually use it
+
   return (
-    <div ref={setNodeRef} className={`bg-green-100 ${isDroppable && height} ${droppableParams.id === 'remove' && 'bg-orange-300'}`}>
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "transition-all duration-200 rounded-lg bg-foreground/20",
+        height,
+        isOver ? "bg-selected/70 border-foreground p-5" : "bg-transparent border-transparent p-0"
+      )}
+    >
       {children}
     </div>
-  )
+  );
 }
 
 function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = false, activeWidget, invalidChild = false, handlePositionedAdd }) {
@@ -533,28 +541,29 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
         <Icon name='Plus' onClick={() => handlePositionedAdd({ id: `${item.id}`, widget: item })} className='cursor-pointer' />
       </DropZone>
       <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center'>
-
         {item.type === 'chat' && <>
-          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
-            <WidgetIconResolver widget={item} className='pr-2' /> 
-            <span className='text-sm'>{itemTitle}</span>
+          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between'>
+            <div>
+              <WidgetIconResolver widget={item} />
+              <span className='text-sm ml-2'>{itemTitle}</span>
+            </div>
+            {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
           </MenuLink>
-          {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
         </>}
         {(item.type != 'chat' && rootPath != '/my' && rootPath != '/all' && !item.title) && <>
           <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='transition-all px-2 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100'>
-            <WidgetIconResolver widget={item} className='pr-2' />
-            <span className='text-sm'>{itemTitle}</span>
+            <WidgetIconResolver widget={item} />
+            <span className='text-sm ml-2'>{itemTitle}</span>
+            {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
           </MenuLink>
-          {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
         </>}
 
         {(rootPath === '/my' || rootPath === '/all' || rootPath === !'/members' || (item.title && item.type != 'chat')) && <>
           <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
-            <WidgetIconResolver widget={item}  className={'mr-2'} />
-            <span className='text-sm'>{itemTitle}</span>
+            <WidgetIconResolver widget={item}  />
+            <span className='text-sm ml-2'>{itemTitle}</span>
+            {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
           </MenuLink>
-          {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
         </>}
       </li>
     </React.Fragment>
