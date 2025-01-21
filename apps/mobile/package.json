@@ -53,6 +53,7 @@
     "i18next": "^23.12.2",
     "intl-pluralrules": "^2.0.1",
     "lodash": "^4.17.21",
+    "luxon": "^3.5.0",
     "mixpanel-react-native": "^3.0.8",
     "moment-timezone": "^0.5.46",
     "path-to-regexp": "^6.2.2",
