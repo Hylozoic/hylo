@@ -1,6 +1,6 @@
 // import getMyMemberships from '../selectors/getMyMemberships'
 // import getCurrentGroup from '../selectors/getCurrentGroup'
-// import getMixpanel from '../selectors/getMixpanel'
+// import mixpanel from 'services/mixpanel'
 
 // TODO: URQL - convert mixpanel handling
 export default function groupFetchedMiddleware ({ getState }) {
@@ -17,8 +17,6 @@ export default function groupFetchedMiddleware ({ getState }) {
 }
 
 // async function identifyMixpanelGroup (state) {
-//   const mixpanel = getMixpanel(state)
-//   await mixpanel.init()
 //   const memberships = getMyMemberships(state)
 //   mixpanel.setGroup('groupId', memberships.map(m => m.group.id))
 //   const currentGroup = getCurrentGroup(state)

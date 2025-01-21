@@ -49,7 +49,7 @@ export default function GroupMenuHeader ({
 
   return (
     <div className='relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md' data-testid='group-header'>
-      <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle(bannerUrl), opacity: 0.7 }} />
+      <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} />
       {canAdminister && (
         <div className='absolute top-2 right-2'>
           <button onClick={() => { navigate(groupUrl(group.slug, 'settings', {})) }}>

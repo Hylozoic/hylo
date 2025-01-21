@@ -3,7 +3,7 @@ import { introspectionQuery } from 'graphql'
 import fetch from 'cross-fetch'
 
 // Function to fetch GraphQL schema from the server using introspection query
-export async function fetchGraphQLSchema(endpoint) {
+export async function fetchGraphqlSchema(endpoint) {
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

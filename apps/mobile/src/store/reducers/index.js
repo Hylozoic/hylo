@@ -5,13 +5,19 @@ import initialURL from './initialURL'
 import mixpanel from './mixpanel'
 import returnToOnAuthPath from './returnToOnAuthPathReducer'
 import resetStore from './resetStore'
-import { handleSetState, composeReducers } from './util'
+import { SET_STATE } from 'store/constants'
 // Local store
 import MessageInput from 'components/MessageInput/MessageInput.store'
 import PeopleTyping from 'components/PeopleTyping/PeopleTyping.store'
 import SocketListener from 'components/SocketListener/SocketListener.store'
 import CreateGroupFlow from 'screens/CreateGroupFlow/CreateGroupFlow.store'
 import GroupWelcomeFlow from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
+
+export const composeReducers = (...reducers) => (state, action) =>
+  reducers.reduce((newState, reducer) => reducer(newState, action), state)
+
+export const handleSetState = (state = {}, { type, payload }) =>
+  type === SET_STATE ? payload : state
 
 export const createCombinedReducers = () => combineReducers({
   // Global store

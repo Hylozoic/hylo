@@ -53,7 +53,7 @@ export default client
 // TODO: Switch to this from isomorphic-fetch on Web as well
 // import fetch from 'cross-fetch'
 //
-// export async function fetchGraphQLSchema (endpoint) {
+// export async function fetchGraphqlSchema (endpoint) {
 //   const response = await fetch(endpoint, {
 //     method: 'POST',
 //     headers: { 'Content-Type': 'application/json' },
@@ -67,7 +67,7 @@ export default client
 // }
 
 // export async function setupUrqlClient () {
-//   const schema = await fetchGraphQLSchema(GRAPHQL_ENDPOINT_URL)
+//   const schema = await fetchGraphqlSchema(GRAPHQL_ENDPOINT_URL)
 //   const cache = cacheExchange({
 //     keys,
 //     resolvers,

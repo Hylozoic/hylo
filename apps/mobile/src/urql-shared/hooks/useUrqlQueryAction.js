@@ -1,7 +1,7 @@
 import { isString, isObject, isFunction } from 'lodash/fp'
 import { useState, useEffect, useCallback } from 'react'
 import useDeepCompareMemoize from './useDeepCompareMemoize'
-import fetchGraphqlActionCreator from 'store/actions/fetchGraphQL'
+import { fetchGraphqlAction } from 'hooks/useGraphqlAction'
 import { useClient } from 'urql'
 import { useDispatch } from 'react-redux'
 
