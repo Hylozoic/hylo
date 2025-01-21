@@ -14,34 +14,35 @@ import useLogout from 'urql-shared/hooks/useLogout'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup'
-import useOpenURL from 'hooks/useOpenURL'
-import { doNotDisplayWidget } from '@hylo/shared/src/WidgetHelpers'
-
-const { widgetTitleResolver, getStaticMenuWidgets, orderContextWidgetsForContextMenu, widgetTypeResolver } = WidgetHelpers
-const { widgetUrl, widgetToMobileNavObject } = NavigatorHelpers
+import useOpenURL, { openURL } from 'hooks/useOpenURL'
 
 function ContextMenuItem({ widget, groupSlug, rootPath }) {
   const { t } = useTranslation()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
   const navigation = useNavigation()
+  const logout = useLogout()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
-  const logout = useLogout()
   const [{ currentGroup }] = useCurrentGroup()
   
-  const title = widgetTitleResolver({ widget, t })
-  const url = widgetUrl({ widget, rootPath, groupSlug })
+  const title = WidgetHelpers.widgetTitleResolver({ widget, t })
+  const url = NavigatorHelpers.widgetUrl({ widget, rootPath, groupSlug })
 
-  const handleWidgetPress = (widget) => {
-    const navArgs = widgetToMobileNavObject({ widget, destinationGroup: currentGroup })
-    if (navArgs) {
-      navigation.navigate(...navArgs)
-    } else {
-      console.warn('Could not determine navigation for widget:', widget)
-    }
+  const handleWidgetPress = widget => {
+    openURL(
+      NavigatorHelpers.widgetUrl({ widget, groupSlug: currentGroup?.slug })
+    )
+    // // NOTE: widgetToMobileNavObject has been moved out of shared into urql-shared/presenters/WidgetPresenter
+    // // for the time being, but I think we should deprecate it now that openURL is functioning
+    // const navArgs = widgetToMobileNavObject({ widget, destinationGroup: currentGroup })
+    // if (navArgs) {
+    //   navigation.navigate(...navArgs)
+    // } else {
+    //   console.warn('Could not determine navigation for widget:', widget)
+    // }
   }
 
-  if (doNotDisplayWidget({widget})) return null
+  if (WidgetHelpers.doNotDisplayWidget({widget})) return null
   if (widget.visibility === 'admin' && !canAdmin) return null
 
   if (widget.type === 'logout') {
@@ -71,7 +72,10 @@ function ContextMenuItem({ widget, groupSlug, rootPath }) {
   return (
     <View className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem]'>
       { widget.view && (
-        <TouchableOpacity onPress={() => handleWidgetPress(widget)} className='flex-row justify-between items-center content-center'>
+        <TouchableOpacity 
+          onPress={() => handleWidgetPress(widget)}
+          className='flex-row justify-between items-center content-center'
+        >
           <Text className='text-sm font-semibold text-foreground'>{title}</Text>
         </TouchableOpacity>
       )}
@@ -92,8 +96,8 @@ function ContextMenuItem({ widget, groupSlug, rootPath }) {
 function ListItemRenderer({ item, rootPath, groupSlug, handleWidgetPress }) {
   const { t } = useTranslation()
   const linkTo = useLinkTo()
-  const itemTitle = widgetTitleResolver({ widget: item, t })
-  const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
+  const itemTitle = WidgetHelpers.widgetTitleResolver({ widget: item, t })
+  const itemUrl = NavigatorHelpers.widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
 
   return (
     <TouchableOpacity 
@@ -182,7 +186,9 @@ export default function ContextMenu() {
   const currentGroupSlug = useCurrentGroupSlug()
   const { myHome } = useRouteParams()
   const contextWidgets = getContextWidgetsForGroup(currentGroup)
-  const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets, currentGroup, myHome])
+  const orderedWidgets = useMemo(() => 
+    WidgetHelpers.orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets, currentGroup, myHome]
+  )
   const navigation = useNavigation()
   const { t } = useTranslation()
 
@@ -193,7 +199,7 @@ export default function ContextMenu() {
   const isAllContext = currentGroup.slug === ALL_GROUPS_CONTEXT_SLUG
 
   return (
-    <View className="flex-1 bg-background">
+    <View className='flex-1 bg-background'>
       <ContextHeader 
         group={currentGroup}
       />
@@ -204,13 +210,13 @@ export default function ContextMenu() {
       />
       {/* Add the All Views widget at the bottom, matching web behavior */}
       {(!isMyContext && !isPublic && !isAllContext) && (
-        <View className="px-2 mb-2">
+        <View className='px-2 mb-2'>
           <TouchableOpacity 
             onPress={() => navigation.navigate('All Views')}
-            className="flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md gap-2"
+            className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md gap-2'
           >
-            <WidgetIconResolver widget={{ type: 'all-views' }} className="mr-2" />
-            <Text className="text-sm font-bold text-foreground">{t('All Views')}</Text>
+            <WidgetIconResolver widget={{ type: 'all-views' }} className='mr-2' />
+            <Text className='text-sm font-bold text-foreground'>{t('All Views')}</Text>
           </TouchableOpacity>
         </View>
       )}

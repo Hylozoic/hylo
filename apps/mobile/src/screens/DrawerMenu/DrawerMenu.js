@@ -5,11 +5,10 @@ import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import LinearGradient from 'react-native-linear-gradient'
 import useCurrentUser from 'hooks/useCurrentUser'
-import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentGroup, { setCurrentGroupSlug } from 'hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import useHasResponsibility from 'hooks/useHasResponsibility'
-import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'
 import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { PUBLIC_GROUP, ALL_GROUP, MY_CONTEXT_GROUP, isContextGroup } from 'urql-shared/presenters/GroupPresenter'
@@ -61,6 +60,11 @@ export default function DrawerMenu () {
   // }
 
   const navigateToMyHome = () => {
+    // TODO: redesign - for consistency and nav handling it's important that setCurrentGroupSlug is only 
+    // ran as part of useCurrentGroup in the form of useCurrentGroup({ setToGroupSlug: group.slug }),
+    // or as a side effect of setCurrentGroupSlug. If either are not doing what is expected or needed
+    // then we need to fix it there, and not break out to calling directly.
+
     // navigation.navigate('Group Navigation', { myHome: true, groupSlug: MY_CONTEXT_GROUP.slug })
     dispatch(setCurrentGroupSlug(MY_CONTEXT_GROUP.slug))
     

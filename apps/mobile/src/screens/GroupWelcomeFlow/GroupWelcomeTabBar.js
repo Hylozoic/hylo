@@ -12,7 +12,7 @@ import {
 import { useKeyboard } from '@react-native-community/hooks'
 import { ALL_GROUP } from 'urql-shared/presenters/GroupPresenter'
 import { useTranslation } from 'react-i18next'
-import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'
+import { setCurrentGroupSlug } from 'hooks/useCurrentGroup'
 import useCurrentUser from 'hooks/useCurrentUser'
 
 export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agreements, handleAccept, allQuestionsAnswered }) {

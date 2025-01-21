@@ -10,9 +10,8 @@ import { isIOS } from 'util/platform'
 import Icon from 'components/Icon'
 import { cn } from '../../../util'
 import useCurrentUser from 'hooks/useCurrentUser'
-import useCurrentGroup, { useGroup } from 'hooks/useCurrentGroup'
+import useCurrentGroup, { useGroup, setCurrentGroupSlug } from 'hooks/useCurrentGroup'
 import useChangeToGroup from 'hooks/useChangeToGroup'
-import setCurrentGroupSlug from 'store/actions/setCurrentGroupSlug'
 import GroupPresenter, { PUBLIC_GROUP } from 'urql-shared/presenters/GroupPresenter'
 import {
   bigStone, rhino, rhino50, persimmon, rhino40, black10onRhino, white, rhino30
@@ -31,6 +30,10 @@ export default function GlobalNav() {
     .sort((a, b) => a.name.localeCompare(b.name))
 
   const navigateToPublicStream = () => {
+    // TODO: redesign - for consistency and nav handling it's important that setCurrentGroupSlug is only 
+    // ran as part of useCurrentGroup in the form of useCurrentGroup({ setToGroupSlug: group.slug }),
+    // or as a side effect of setCurrentGroupSlug. If either are not doing what is expected or needed
+    // then we need to fix it there, and not break out to calling directly.
     dispatch(setCurrentGroupSlug(PUBLIC_GROUP.slug))
     navigation.navigate('Home Tab', { screen: 'Stream', initial: false })
   }

@@ -25,10 +25,10 @@ import MapWebView from 'screens/MapWebView/MapWebView'
 import GroupWelcomeLanding from 'screens/GroupWelcomeFlow/GroupWelcomeLanding'
 import { GROUP_WELCOME_LANDING } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
 import { useTranslation } from 'react-i18next'
+import { openURL } from 'hooks/useOpenURL'
 
 const HomeTab = createStackNavigator()
 const { findHomeView } = WidgetHelpers
-const { widgetToMobileNavObject } = NavigatorHelpers
 
 export default function HomeNavigator ({ navigation }) {
   const initialURL = useSelector(state => state.initialURL)
@@ -39,10 +39,10 @@ export default function HomeNavigator ({ navigation }) {
   useEffect(() => {
     if (!initialURL && !returnToOnAuthPath) {
       if (currentGroup) {
-        const homeView = findHomeView(currentGroup)
-        const navArgs = widgetToMobileNavObject({ widget: homeView, destinationGroup: currentGroup })
-        if (navArgs) {
-          setTimeout(() => navigation.navigate(...navArgs), 200)
+        const homeView = WidgetHelpers.findHomeView(currentGroup)
+        const groupHomeUrl = NavigatorHelpers.widgetUrl({ widget: homeView, groupSlug: currentGroup?.slug })
+        if (groupHomeUrl) {
+          setTimeout(() => openURL(groupHomeUrl), 200)
         } else {
           // Fallback to Stream if we can't determine the home view navigation
           setTimeout(() => navigation.navigate('Stream'), 200)
