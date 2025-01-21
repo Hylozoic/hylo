@@ -336,18 +336,17 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
   }
 
   return (
-    <ul className='m-2 p-0'>
+    <ul className='m-2 p-0 mb-6'>
       {isEditting &&
-        <DropZone isDragging={isDragging} height='h-16' droppableParams={{ id: 'remove' }}>
+        <DropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
           Drag here to remove from menu
         </DropZone>}
       {contextWidgets.map(widget => (
         <li className='mb-2 items-start' key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} /></li>
       ))}
       <li className='mb-2'>
-        <DropZone isDragging={isDragging} hide={!isEditting} height='h-20' isDroppable droppableParams={{ id: 'bottom-of-list-' + groupSlug, data: { addToEnd: true, parentId: null } }}>
-          <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer' />
-        </DropZone>
+        <DropZone isDragging={isDragging} hide={!isEditting} isDroppable droppableParams={{ id: 'bottom-of-list-' + groupSlug, data: { addToEnd: true, parentId: null } }}></DropZone>
+        <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'><Icon name='Plus'/>Add new view</button>
       </li>
     </ul>
   )
@@ -417,8 +416,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
   return (
     <>
-      <DropZone isDragging={isDragging} height={isDroppable && isEditting ? 'h-5' : ''} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }}>
-        <Icon name='Plus' onClick={() => handlePositionedAdd({ widget })} className='cursor-pointer' />
+      <DropZone isDragging={isDragging} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }}>
       </DropZone>
       <div key={widget.id} ref={setDraggableNodeRef} style={style}>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
@@ -454,9 +452,10 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                     {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                     {widget.id &&
                       <li >
-                        <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} height='h-12' droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
-                          <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className='cursor-pointer' />
-                        </DropZone>
+                        <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}></DropZone>
+                        <button  onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className='cursor-pointer text-sm text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+                            <Icon name='Plus' /> Add new view
+                        </button>
                       </li>}
                   </ul>
                 </div>
@@ -469,7 +468,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                   {widget.id &&
                     <li className='flex flex-row'>
-                      <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} height='h-12' droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
+                      <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
                         <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className='cursor-pointer' />
                       </DropZone>
                     </li>}
@@ -510,7 +509,7 @@ function DropZone({ droppableParams, isDroppable = true, height = '', hide = fal
     <div
       ref={setNodeRef}
       className={cn(
-        "transition-all duration-200 rounded-lg bg-foreground/20",
+        "transition-all duration-200 rounded-lg bg-foreground/20 mb-2",
         height,
         isOver ? "bg-selected/70 border-foreground p-5" : "bg-transparent border-transparent p-0"
       )}
@@ -537,8 +536,8 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
 
   return (
     <React.Fragment key={item.id + itemTitle}>
-      <DropZone height={isItemDraggable ? 'h-8' : ''} hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
-        <Icon name='Plus' onClick={() => handlePositionedAdd({ id: `${item.id}`, widget: item })} className='cursor-pointer' />
+      <DropZone hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
+       
       </DropZone>
       <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center'>
         {item.type === 'chat' && <>
@@ -551,17 +550,21 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
           </MenuLink>
         </>}
         {(item.type != 'chat' && rootPath != '/my' && rootPath != '/all' && !item.title) && <>
-          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='transition-all px-2 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100'>
-            <WidgetIconResolver widget={item} />
-            <span className='text-sm ml-2'>{itemTitle}</span>
+          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='transition-all px-2 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between'>
+            <div>
+              <WidgetIconResolver widget={item} />
+              <span className='text-sm ml-2'>{itemTitle}</span>
+            </div>
             {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
           </MenuLink>
         </>}
 
         {(rootPath === '/my' || rootPath === '/all' || rootPath === !'/members' || (item.title && item.type != 'chat')) && <>
-          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
-            <WidgetIconResolver widget={item}  />
-            <span className='text-sm ml-2'>{itemTitle}</span>
+          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex align-items justify-between'>
+            <div>
+              <WidgetIconResolver widget={item}  />
+              <span className='text-sm ml-2'>{itemTitle}</span>
+            </div>
             {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
           </MenuLink>
         </>}
@@ -587,8 +590,8 @@ function SpecialTopElementRenderer ({ widget, group }) {
   if (widget.type === 'about') {
     return (
       <div className='w-full'>
-        <p className='text-sm text-gray-600 break-words w-[12.5rem] min-h-fit'>{group.purpose}</p>
-        <p className='text-sm text-gray-600 break-words w-[12.5rem] min-h-fit'>{group.description}</p>
+        <p className='text-xs text-foreground break-words w-[12.5rem] min-h-fit'>{group.purpose}</p>
+        <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[240px]'>{group.description}</p>
       </div>
     )
   }
@@ -605,7 +608,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
     )
 
     return (
-      <div className='mb-4'>
+      <div className='mb-6'>
         <MenuLink to={groupUrl(group.slug, 'settings')}>
           <div className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             {t('Settings')}
