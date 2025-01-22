@@ -338,16 +338,16 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
   return (
     <ul className='m-2 p-0 mb-6'>
       {isEditting &&
-        <DropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
-          Drag here to remove from menu
-        </DropZone>}
+        <div>
+          <DropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
+            Drag here to remove from menu
+          </DropZone>
+          <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'><Icon name='Plus'/>Add new view</button>
+        </div>
+      }
       {contextWidgets.map(widget => (
         <li className='mb-2 items-start' key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} /></li>
       ))}
-      <li className='mb-2'>
-        <DropZone isDragging={isDragging} hide={!isEditting} isDroppable droppableParams={{ id: 'bottom-of-list-' + groupSlug, data: { addToEnd: true, parentId: null } }}></DropZone>
-        <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'><Icon name='Plus'/>Add new view</button>
-      </li>
     </ul>
   )
 }
@@ -450,10 +450,10 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
                     {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
-                    {widget.id &&
-                      <li >
+                    {widget.id && isEditting &&
+                      <li>
                         <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}></DropZone>
-                        <button  onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className='cursor-pointer text-sm text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+                        <button onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className={cn('cursor-pointer text-sm text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100')}>
                             <Icon name='Plus' /> Add new view
                         </button>
                       </li>}
