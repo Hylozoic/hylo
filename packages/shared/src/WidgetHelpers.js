@@ -72,7 +72,7 @@ export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl, isAll
 export function findHomeView (group) {
   if (!group) return null
   if (group.homeWidget) return group.homeWidget
-  if (!group?.contextWidgets) {
+  if (!group?.contextWidgets?.items) {
     return null
     // throw new Error('Group has no contextWidgets') temp revoke this until all groups have switched over
   }
