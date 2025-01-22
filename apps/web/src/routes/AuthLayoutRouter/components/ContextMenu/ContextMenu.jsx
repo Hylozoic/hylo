@@ -436,7 +436,6 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
             )
           : (
             <div>
-              {widget.type}
               {widget.view &&
                 <span className='flex justify-between items-center content-center'>
                   <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}> <h3 className='text-base font-light opacity-50 text-foreground'>{title}</h3></MenuLink>
