@@ -593,8 +593,8 @@ function SpecialTopElementRenderer ({ widget, group }) {
   if (widget.type === 'about') {
     return (
       <div className='w-full'>
-        <p className='text-xs text-foreground break-words w-[12.5rem] min-h-fit'>{group.purpose}</p>
-        <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[240px]'>{group.description}</p>
+        {group.purpose && <p className='text-xs text-foreground break-words w-[12.5rem] min-h-fit m-0'>{group.purpose}</p>}
+        {group.description && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0'>{group.description}</p>}
       </div>
     )
   }
