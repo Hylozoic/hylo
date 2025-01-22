@@ -80,8 +80,6 @@ export default function GlobalNav (props) {
         <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-100'>&nbsp;</div>
       </div>
 
-      <Link to='/search'><Icon name='Search' className={styles.icon} /></Link>
-
       <GlobalNavItem url={`${location.pathname}/create`} className={cn('opacity-1')}>
         +
       </GlobalNavItem>
