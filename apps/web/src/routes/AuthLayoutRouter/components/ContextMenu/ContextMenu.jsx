@@ -342,7 +342,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
           <DropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
             Drag here to remove from menu
           </DropZone>
-          <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'><Icon name='Plus'/>Add new view</button>
+          <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'><Icon name='Plus'/>Add new view</button>
         </div>
       }
       {contextWidgets.map(widget => (
@@ -423,7 +423,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
         {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (
             <>
-              <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+              <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
                 <div>
                   <WidgetIconResolver widget={widget} />
                   <span className='text-base font-normal ml-2'>{title}</span>
@@ -436,12 +436,12 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
             <div>
               {widget.view &&
                 <span className='flex justify-between items-center content-center'>
-                  <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}> <h3 className='text-sm font-light opacity-50 text-foreground'>{title}</h3></MenuLink>
+                  <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}> <h3 className='text-base font-light opacity-50 text-foreground'>{title}</h3></MenuLink>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {!widget.view &&
                 <span className='flex justify-between items-center content-center'>
-                  <h3 className='text-sm font-light opacity-50 text-foreground'>{title}</h3>
+                  <h3 className='text-base font-light opacity-50 text-foreground'>{title}</h3>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {widget.type != 'members' &&
@@ -453,7 +453,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                     {widget.id && isEditting &&
                       <li>
                         <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}></DropZone>
-                        <button onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className={cn('cursor-pointer text-sm text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100')}>
+                        <button onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className={cn('cursor-pointer text-base text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100')}>
                             <Icon name='Plus' /> Add new view
                         </button>
                       </li>}
@@ -480,7 +480,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
       </div>
       {showEdit && (
         <div className='mb-[30px]'>
-          <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })} className='flex items-center text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+          <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })} className='flex items-center text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             <Pencil className='h-[16px]' />
             <span className='text-base'>{t('Edit Menu')}</span>
           </MenuLink>
@@ -541,10 +541,10 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
       </DropZone>
       <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center'>
         {item.type === 'chat' && <>
-          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between'>
+          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between'>
             <div>
               <WidgetIconResolver widget={item} />
-              <span className='text-sm ml-2'>{itemTitle}</span>
+              <span className='text-base ml-2'>{itemTitle}</span>
             </div>
             {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
           </MenuLink>
@@ -553,17 +553,17 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
           <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='transition-all px-2 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between'>
             <div>
               <WidgetIconResolver widget={item} />
-              <span className='text-sm ml-2'>{itemTitle}</span>
+              <span className='text-base ml-2'>{itemTitle}</span>
             </div>
             {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
           </MenuLink>
         </>}
 
         {(rootPath === '/my' || rootPath === '/all' || rootPath === !'/members' || (item.title && item.type != 'chat')) && <>
-          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex align-items justify-between'>
+          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex align-items justify-between'>
             <div>
               <WidgetIconResolver widget={item}  />
-              <span className='text-sm ml-2'>{itemTitle}</span>
+              <span className='text-base ml-2'>{itemTitle}</span>
             </div>
             {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
           </MenuLink>
@@ -580,7 +580,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
   if (widget.type === 'members' && canAddMembers) {
     return (
       <MenuLink to={groupUrl(group.slug, 'settings/invite')}>
-        <div className='inline-block px-2 py-2 text-sm font-medium text-foreground bg-foreground/20 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
+        <div className='inline-block px-2 py-2 text-base font-medium text-foreground bg-foreground/20 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
           <UserPlus className='inline-block h-[20px] mr-1' /> {t('Add Members')}
         </div>
       </MenuLink>
@@ -601,7 +601,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
 
     const listItemComponent = ({ title, url }) => (
       <li className='w-full'>
-        <MenuLink to={url} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+        <MenuLink to={url} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
           {title}
         </MenuLink>
       </li>
@@ -610,7 +610,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
     return (
       <div className='mb-6'>
         <MenuLink to={groupUrl(group.slug, 'settings')}>
-          <div className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+          <div className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             {t('Settings')}
           </div>
         </MenuLink>
@@ -674,8 +674,8 @@ function GroupSettingsMenu ({ group }) {
   }, [confirm, previousLocation, group.slug])
 
   return (
-    <div className='fixed h-full w-full top-0 left-[90px] w-[230px] bg-background/50 z-10'>
-      <div className='absolute h-full w-full top-0 left-14 flex flex-col gap-2 bg-background shadow-xl pl-2 pr-5'>
+    <div className='fixed h-full w-full top-0 left-[90px] w-[230px] bg-background/60 z-10'>
+      <div className='absolute h-full w-full top-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] pl-2 pr-5 z-10'>
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
           {t('Group Settings')}
@@ -696,6 +696,7 @@ function GroupSettingsMenu ({ group }) {
           ))}
         </ul>
       </div>
+      <div className='absolute top-0 left-0 z-0 w-full h-full' onClick={closeMenu}></div>
     </div>
   )
 }
