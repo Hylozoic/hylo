@@ -436,6 +436,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
             )
           : (
             <div>
+              {widget.type}
               {widget.view &&
                 <span className='flex justify-between items-center content-center'>
                   <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}> <h3 className='text-base font-light opacity-50 text-foreground'>{title}</h3></MenuLink>
@@ -470,12 +471,6 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
                     {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
-                    {widget.id &&
-                      <li className='flex flex-row'>
-                        <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
-                          <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className='cursor-pointer' />
-                        </DropZone>
-                      </li>}
                   </ul>
                 </div>}
             </div>)}
@@ -539,38 +534,55 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
 
   return (
     <React.Fragment key={item.id + itemTitle}>
-      <DropZone hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
-        &nbsp;
-      </DropZone>
-      <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center'>
-        {item.type === 'chat' && (
-          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between'>
-            <div>
-              <WidgetIconResolver widget={item} />
-              <span className='text-base ml-2'>{itemTitle}</span>
-            </div>
-            {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
-          </MenuLink>
-        )}
-        {(item.type !== 'chat' && rootPath !== '/my' && rootPath !== '/all' && !item.title) && (
-          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='transition-all px-2 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between'>
-            <div>
-              <WidgetIconResolver widget={item} />
-              <span className='text-base ml-2'>{itemTitle}</span>
-            </div>
-            {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
-          </MenuLink>
-        )}
-
-        {(rootPath === '/my' || rootPath === '/all' || rootPath !== '/members' || (item.title && item.type !== 'chat')) && (
-          <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex align-items justify-between'>
-            <div>
-              <WidgetIconResolver widget={item} />
-              <span className='text-base ml-2'>{itemTitle}</span>
-            </div>
-            {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
-          </MenuLink>
-        )}
+    <DropZone hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
+    &nbsp;
+    </DropZone>
+      <li ref={setItemDraggableNodeRef} style={itemStyle} className="flex justify items-center content-center">
+        {(() => {
+          if (item.type === "chat") {
+            return (
+              <MenuLink
+                to={itemUrl}
+                externalLink={item?.customView?.type === "externalLink" ? item.customView.externalLink : null}
+                className="text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between"
+              >
+                <div>
+                  <WidgetIconResolver widget={item} />
+                  <span className="text-base ml-2">{itemTitle}</span>
+                </div>
+                {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
+              </MenuLink>
+            );
+          } else if (rootPath !== "/my" && rootPath !== "/all" && !item.title) {
+            return (
+              <MenuLink
+                to={itemUrl}
+                externalLink={item?.customView?.type === "externalLink" ? item.customView.externalLink : null}
+                className="transition-all px-2 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between"
+              >
+                <div>
+                  <WidgetIconResolver widget={item} />
+                  <span className="text-base ml-2">{itemTitle}</span>
+                </div>
+                {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
+              </MenuLink>
+            );
+          } else if (rootPath === "/my" || rootPath === "/all" || rootPath !== "/members" || (item.title && item.type !== "chat")) {
+            return (
+              <MenuLink
+                to={itemUrl}
+                externalLink={item?.customView?.type === "externalLink" ? item.customView.externalLink : null}
+                className="text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex align-items justify-between"
+              >
+                <div>
+                  <WidgetIconResolver widget={item} />
+                  <span className="text-base ml-2">{itemTitle}</span>
+                </div>
+                {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
+              </MenuLink>
+            );
+          }
+        })()}
       </li>
     </React.Fragment>
   )
