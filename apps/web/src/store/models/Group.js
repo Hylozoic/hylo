@@ -75,6 +75,13 @@ export const LOCATION_PRECISION = {
   region: 'Display only nearest city and dont show on the map'
 }
 
+export class ChatRoom extends Model { }
+ChatRoom.modelName = 'ChatRoom'
+ChatRoom.fields = {
+  group: fk('Group', 'chatrooms'),
+  topic: fk('GroupTopic', 'chatrooms')
+}
+
 export class GroupSteward extends Model { }
 GroupSteward.modelName = 'GroupSteward'
 GroupSteward.fields = {
@@ -144,6 +151,7 @@ Group.fields = {
     as: 'announcements',
     relatedName: 'announcementGroups'
   }),
+  chatRooms: many('ChatRoom'),
   childGroups: many({
     to: 'Group',
     relatedName: 'parentGroups',

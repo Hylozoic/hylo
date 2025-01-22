@@ -66,6 +66,7 @@ export default function HyloEditorMenuBar ({ editor }) {
           </button>
         ) : (
           <button
+            tabIndex='-1'
             title="add a link"
             onClick={() => setModal(!modal)}
             className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer'

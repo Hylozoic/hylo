@@ -557,22 +557,24 @@ type ContextWidget {
   parentId: ID
 
   # Relationships
+  # Child widgets if this is a parent widget
+  childWidgets: [ContextWidget]
+  # Custom view this widget is pointing at
+  customView: CustomView
+  # Group Topic this widget is pointing at, for chat rooms
+  groupTopic: GroupTopic
   # The group that owns this widget
   ownerGroup: Group
   # Parent widget if this is a child widget
   parentWidget: ContextWidget
-  # Child widgets if this is a parent widget
-  childWidgets: [ContextWidget]
+  # Chat this widget is pointing at
+  viewChat: Topic
   # Group this widget is pointing at
   viewGroup: Group
   # Post this widget is pointing at
   viewPost: Post
-  # Custom view this widget is pointing at
-  customView: CustomView
   # User this widget is pointing at
   viewUser: Person
-  # Chat this widget is pointing at
-  viewChat: Topic
 }
 
 type ContextWidgetQuerySet {
@@ -731,6 +733,8 @@ type Group {
 
   # The agreements required to participate in this Group
   agreements: AgreementQuerySet
+
+  chatRooms: ContextWidgetQuerySet
 
   # Child groups of this group
   childGroups(
@@ -2732,13 +2736,13 @@ input CommentInput {
 input ContextWidgetInput {
   # The group this widget belongs to
   ownerGroupId: ID
-  
+
   # Type: null is default and valid. Only include widget type for special behaviors.
   type: String
-  
+
   # The title of the widget
   title: String
-  
+
   # The display order of the widget
   orderInFrontOfWidgetId: ID
 
@@ -2747,34 +2751,34 @@ input ContextWidgetInput {
 
   # If true, remove this widget from the menu.
   remove: Boolean
-  
+
   # The visibility settings of the widget. Currently null or admin
   visibility: String
-  
+
   # The view that this widget is pointing at
   view: String
-  
+
   # Icon for the widget
   icon: String
-  
+
   # ID of the parent widget if this is a child widget
   parentId: ID
-  
+
   # Group this widget is pointing at
   viewGroupId: ID
-  
+
   # Post this widget is pointing at
   viewPostId: ID
-  
+
   # Custom view this widget is pointing at
   customViewId: ID
-  
+
   # User this widget is pointing at
   viewUserId: ID
-  
+
   # Chat this widget is pointing at
   viewChatId: ID
-  
+
   # Create a custom view when creating a widget
   customViewInput: CustomViewInput
 }
