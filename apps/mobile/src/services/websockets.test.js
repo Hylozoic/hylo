@@ -1,5 +1,5 @@
-import { getSocket, clearSingletons } from './index'
-import { setSessionCookie } from '../session'
+import { getSocket, clearSingletons } from './websockets'
+import { setSessionCookie } from 'util/session'
 import { times } from 'lodash'
 
 const mockStorage = {}

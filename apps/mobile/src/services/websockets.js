@@ -1,7 +1,7 @@
 import socketIo from 'socket.io-client'
 import sailsIo from 'sails.io.js'
-import apiHost from '../apiHost'
-import { getSessionCookie } from '../session'
+import apiHost from 'util/apiHost'
+import { getSessionCookie } from 'util/session'
 import { curry } from 'lodash/fp'
 
 const socketHost = apiHost

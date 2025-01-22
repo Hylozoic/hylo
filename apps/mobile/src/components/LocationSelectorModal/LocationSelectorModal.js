@@ -6,7 +6,6 @@ import { fetchMapboxLocations, convertMapboxToLocation } from 'services/mapbox'
 import useCurrentLocation from 'hooks/useCurrentLocation'
 import ItemSelectorModal from 'components/ItemSelectorModal'
 import LocationSelectorModalItemRow from './LocationSelectorModalItemRow'
-import Loading from 'components/Loading'
 
 export async function locationSearch (searchTerm, proximity) {
   const coordinate = LocationHelpers.parseCoordinate(searchTerm).coordinate
@@ -31,27 +30,16 @@ export async function locationSearch (searchTerm, proximity) {
 
 export const LocationSelectorModal = React.forwardRef((forwardedProps, ref) => {
   const { t } = useTranslation()
-  const [{ currentLocation, fetching: fetchingCurrentLocation }, getLocation] = useCurrentLocation()
+  const [, getLocation] = useCurrentLocation()
   const [locations, setLocations] = useState([])
 
-  useEffect(() => {
-    (async () => {
-      if (!currentLocation) {
-        await getLocation()
-      }
-    })()
-  }, [currentLocation])
-
-  const fetchItems = useCallback(async ({ searchTerm }) => {
+  const fetchItems = async ({ searchTerm }) => {
+    const currentLocation = await getLocation()
     const proximity = currentLocation?.coords
       ? `${currentLocation.coords.longitude},${currentLocation.coords.latitude}`
       : '0,0'
     const results = await locationSearch(searchTerm, proximity)
     setLocations(results)
-  }, [currentLocation])
-
-  if (fetchingCurrentLocation) {
-    return <Loading />
   }
 
   return (

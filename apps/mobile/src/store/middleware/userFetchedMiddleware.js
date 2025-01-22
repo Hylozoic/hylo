@@ -1,4 +1,4 @@
-// import getMixpanel from '../selectors/getMixpanel'
+// import mixpanel from 'services/mixpanel'
 // import Intercom from '@intercom/intercom-react-native'
 // import { isProduction } from 'config' // I think we should still make these calls in dev, but using the test mixpanel project
 
@@ -22,8 +22,6 @@ export default function userFetchedMiddleware ({ getState }) {
 
 // async function identifyMixpanelUser (state) {
 //   const user = getMe(state)
-//   const mixpanel = getMixpanel(state)
-//   await mixpanel.init()
 //   mixpanel.identify(user.id)
 //   mixpanel.people.set({
 //     $name: user.name,

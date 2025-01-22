@@ -1,5 +1,5 @@
 import React, { useLayoutEffect } from 'react'
-import { getSocket, socketUrl } from 'util/websockets'
+import { getSocket, socketUrl } from 'services/websockets'
 
 let socket, handler
 

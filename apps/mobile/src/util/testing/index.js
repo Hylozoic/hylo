@@ -4,7 +4,6 @@ import { NavigationContainer } from '@react-navigation/native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { TRenderEngineProvider } from 'react-native-render-html'
 import { getEmptyState } from 'store'
-import orm from 'store/models'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
 
 export function createMockStore (state = {}) {

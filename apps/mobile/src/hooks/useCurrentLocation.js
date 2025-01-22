@@ -90,16 +90,23 @@ export default function useCurrentLocation () {
       return
     }
 
+    let resolve, reject;
+    const promise = new Promise((res, rej) => {
+      resolve = res
+      reject = rej
+    })
+
     Geolocation.getCurrentPosition(
       (position) => {
         setCurrentLocation(position)
         setLoading(false)
+        resolve(position)
       },
       (error) => {
         Alert.alert(`Code ${error.code}`, error.message)
         setCurrentLocation(null)
         setLoading(false)
-        console.log(error)
+        resolve(null)
       },
       {
         accuracy: {
@@ -115,6 +122,8 @@ export default function useCurrentLocation () {
         showLocationDialog: locationDialog
       }
     )
+
+    return promise
   }
 
   return [{ currentLocation, fetching: loading }, getLocation]
