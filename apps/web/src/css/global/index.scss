@@ -73,10 +73,36 @@
     --chart-5: 340 75% 55%;
     --theme-background: 33 9% 23%;
   }
-
   * {
-    @apply border-border;
+    /* Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: hsl(240 10% 3.9% / 0.2) transparent;
+
+    /* Chrome, Edge, Safari */
+    &::-webkit-scrollbar {
+      width: 8px;               /* narrower width often looks better */
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
   }
+  .dark * {
+    /* Firefox */
+    scrollbar-color: hsl(40 100% 99% / 0.2) transparent;
+
+    /* Chrome, Edge, Safari */
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.4);
+      }
+    }
+  }
+
+
 
   body {
     @apply bg-background text-foreground;
