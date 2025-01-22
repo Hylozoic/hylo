@@ -34,14 +34,14 @@ export default function useChangeToGroup () {
 
         if (destinationGroup) {
           const homeView = WidgetHelpers.findHomeView(destinationGroup)
-          const group = NavigatorHelpers.widgetUrl({
+          const groupHomeUrl = NavigatorHelpers.widgetUrl({
             widget: homeView,
             groupSlug: destinationGroup?.slug
           })
           if (groupHomeUrl) {
             openURL(groupHomeUrl)
           } else {
-            // TODO: For clarity/consistency it's probably best to use openURL here too:
+            // TODO redesign: For clarity/consistency it's probably best to use openURL here too:
             // openURL('/groups/${currentGroup?.slug}/chats/general') ?
             navigation.navigate('Home Tab', { screen: 'Chat', topicName: 'general' })
           }

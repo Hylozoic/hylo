@@ -1,6 +1,6 @@
 
 
-// TODO: redesign - decide what to do with WidgetHelpers vs WidgetPresenter pattern
+// TODO redesign: - decide what to do with WidgetHelpers vs WidgetPresenter pattern
 // either of which should be in a shared location. 
 
 // This particular method is deprecated.

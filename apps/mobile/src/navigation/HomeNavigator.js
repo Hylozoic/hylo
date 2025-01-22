@@ -26,6 +26,7 @@ import GroupWelcomeLanding from 'screens/GroupWelcomeFlow/GroupWelcomeLanding'
 import { GROUP_WELCOME_LANDING } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
 import { useTranslation } from 'react-i18next'
 import { openURL } from 'hooks/useOpenURL'
+import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 
 const HomeTab = createStackNavigator()
 const { findHomeView } = WidgetHelpers
@@ -38,7 +39,7 @@ export default function HomeNavigator ({ navigation }) {
 
   useEffect(() => {
     if (!initialURL && !returnToOnAuthPath) {
-      if (currentGroup) {
+      if (currentGroup && !isContextGroup(currentGroup.slug)) {
         const homeView = WidgetHelpers.findHomeView(currentGroup)
         const groupHomeUrl = NavigatorHelpers.widgetUrl({ widget: homeView, groupSlug: currentGroup?.slug })
         if (groupHomeUrl) {

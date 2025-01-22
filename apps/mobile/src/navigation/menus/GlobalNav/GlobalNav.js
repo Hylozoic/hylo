@@ -31,7 +31,7 @@ export default function GlobalNav() {
     .sort((a, b) => a.name.localeCompare(b.name))
 
   const navigateToPublicStream = () => {
-    // TODO: redesign - for consistency and nav handling it's important that setCurrentGroupSlug is only 
+    // TODO redesign: - for consistency and nav handling it's important that setCurrentGroupSlug is only 
     // ran as part of useCurrentGroup in the form of useCurrentGroup({ setToGroupSlug: group.slug }),
     // or as a side effect of setCurrentGroupSlug. If either are not doing what is expected or needed
     // then we need to fix it there, and not break out to calling directly.

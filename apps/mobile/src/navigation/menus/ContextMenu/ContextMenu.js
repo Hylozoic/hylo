@@ -15,6 +15,7 @@ import WidgetIconResolver from 'components/WidgetIconResolver'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup'
 import useOpenURL, { openURL } from 'hooks/useOpenURL'
+import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 
 function ContextMenuItem({ widget, groupSlug, rootPath }) {
   const { t } = useTranslation()
@@ -29,8 +30,10 @@ function ContextMenuItem({ widget, groupSlug, rootPath }) {
   const url = NavigatorHelpers.widgetUrl({ widget, rootPath, groupSlug })
 
   const handleWidgetPress = widget => {
+    const context = isContextGroup(currentGroup?.slug) ? currentGroup?.slug : 'groups'
+    console.log('this totes got pressed', NavigatorHelpers.widgetUrl({ widget, groupSlug: isContextGroup(currentGroup?.slug) ? null : currentGroup?.slug }))
     openURL(
-      NavigatorHelpers.widgetUrl({ widget, groupSlug: currentGroup?.slug })
+      NavigatorHelpers.widgetUrl({ widget, groupSlug: isContextGroup(currentGroup?.slug) ? null : currentGroup?.slug })
     )
     // // NOTE: widgetToMobileNavObject has been moved out of shared into urql-shared/presenters/WidgetPresenter
     // // for the time being, but I think we should deprecate it now that openURL is functioning
@@ -95,7 +98,6 @@ function ContextMenuItem({ widget, groupSlug, rootPath }) {
 
 function ListItemRenderer({ item, rootPath, groupSlug, handleWidgetPress }) {
   const { t } = useTranslation()
-  const linkTo = useLinkTo()
   const itemTitle = WidgetHelpers.widgetTitleResolver({ widget: item, t })
   const itemUrl = NavigatorHelpers.widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
 

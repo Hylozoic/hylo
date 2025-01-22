@@ -157,24 +157,25 @@ export function personUrl (id, groupSlug) {
 
 // Topics URLs
 export function topicsUrl (opts, defaultUrl = allGroupsUrl()) {
-  // TODO: redesign - changed from topics to chats, is that correct now always?
-  // do we need also or otherwise legacy route redirect support for topics?
-  return baseUrl({ ...opts, view: 'chats' }, defaultUrl)
+  return baseUrl({ ...opts, view: 'topics' }, defaultUrl)
 }
 
 export function topicUrl (topicName, opts) {
   return `${topicsUrl(opts)}/${topicName}`
 }
 
-export function chatUrl (chatName, opts) {
-  return `${topicsUrl(opts)}/${chatName}`
+export function chatUrl (chatName, { context, groupSlug }) {
+  return `${baseUrl({ context, groupSlug })}/chat/${chatName}`
 }
 
 export function customViewUrl (customViewId, rootPath, opts) {
   return `${rootPath}/custom/${customViewId}`
 }
 
-export function widgetUrl ({ widget, rootPath, groupSlug, context = 'groups' }) {
+export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context }) {
+  if (!widget) return null
+  // TODO redesign: replace this with isContextGroup and name that function something else
+  const groupSlug = ['my', 'all', 'public'].includes(providedSlug) ? null : providedSlug
   let url = null
 
   if (widget.url) return widget.url
