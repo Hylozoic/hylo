@@ -31,7 +31,7 @@ export default function ActionsBar ({
   showImages,
   submitButtonLabel,
   toggleAnnouncementModal,
-  valid,
+  valid
 }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
@@ -104,7 +104,6 @@ export default function ActionsBar ({
         disabled={!valid || loading}
         className={styles.postButton}
         label={submitButtonLabel}
-        color='green'
         dataTip={!valid ? invalidPostWarning : ''}
         dataFor='submit-tt'
       />

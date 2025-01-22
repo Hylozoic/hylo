@@ -10,6 +10,7 @@ import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import { bgImageStyle, cn } from 'util/index'
+import { onEnter } from 'util/textInput'
 
 const ViewHeader = () => {
   const dispatch = useDispatch()
@@ -47,6 +48,18 @@ const ViewHeader = () => {
           </TooltipContent>
         </Tooltip>
       )}
+      <div className='flex-1 flex justify-center relative'>
+        <div className='relative w-28 flex items-center'>
+          <Icon name='Search' className='left-1 absolute' />
+          <input
+            type='text'
+            placeholder='Search'
+            className='w-full pl-6'
+            onKeyDown={onEnter((e) => navigate(`/search?t=${e.target.value}`))}
+          />
+        </div>
+      </div>
+
     </header>
   )
 }

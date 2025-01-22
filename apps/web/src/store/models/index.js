@@ -8,7 +8,7 @@ import Comment from './Comment'
 import CommonRole from './CommonRole'
 import CustomView from './CustomView'
 import EventInvitation from './EventInvitation'
-import Group, { GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
+import Group, { ChatRoom, GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
 import GroupRelationshipInvite, { GroupToGroupJoinRequestQuestionAnswer } from './GroupRelationshipInvite'
 import GroupTopic from './GroupTopic'
 import Invitation from './Invitation'
@@ -37,6 +37,7 @@ orm.register(
   Activity,
   Agreement,
   Attachment,
+  ChatRoom,
   Collection,
   CollectionPost,
   Comment,

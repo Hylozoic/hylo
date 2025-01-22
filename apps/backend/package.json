@@ -203,12 +203,14 @@
       "GroupRole",
       "GroupRoleResponsibility",
       "GroupTag",
+      "GroupToGroupJoinQuestion",
       "GroupToGroupJoinRequestQuestionAnswer",
       "GroupWidget",
       "Invitation",
       "JoinRequest",
       "LinkedAccount",
       "LinkPreview",
+      "Location",
       "ModerationAction",
       "Media",
       "MemberCommonRole",
@@ -248,6 +250,7 @@
       "UserSession",
       "UserVerificationCode",
       "Validation",
+      "Widget",
       "ZapierTrigger",
       "ZapierTriggerGroup"
     ]

@@ -1,7 +1,7 @@
 import { set, trim } from 'lodash'
 import PropTypes from 'prop-types'
 import React, { useState, useEffect } from 'react'
-import { withTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
@@ -29,9 +29,10 @@ import styles from './GroupSettingsTab.module.scss'
 
 const { object, func } = PropTypes
 
-function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, updateGroupSettings, transitionGroupToNewMenu, t }) {
+function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, updateGroupSettings, transitionGroupToNewMenu }) {
   const dispatch = useDispatch()
   const [state, setState] = useState(defaultEditState())
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (!fetchPending) {
@@ -292,8 +293,7 @@ GroupSettingsTab.propTypes = {
   fetchLocation: func,
   fetchPending: object,
   updateGroupSettings: func,
-  transitionGroupToNewMenu: func,
-  t: func
+  transitionGroupToNewMenu: func
 }
 
-export default withTranslation()(GroupSettingsTab)
+export default GroupSettingsTab

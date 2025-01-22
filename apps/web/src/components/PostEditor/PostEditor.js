@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import { debounce, get, isEqual, isEmpty } from 'lodash/fp'
+import { debounce, get, isEqual, isEmpty, uniqBy } from 'lodash/fp'
 import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
@@ -15,7 +15,7 @@ import HyloEditor from 'components/HyloEditor'
 import Button from 'components/Button'
 import Loading from 'components/Loading'
 import Switch from 'components/Switch'
-import GroupsSelector from 'components/GroupsSelector'
+import ToField from 'components/ToField'
 import TopicSelector from 'components/TopicSelector'
 import MemberSelector from 'components/MemberSelector'
 import LinkPreview from './LinkPreview'
@@ -28,6 +28,7 @@ import SliderInput from 'components/SliderInput/SliderInput'
 import Dropdown from 'components/Dropdown/Dropdown'
 import Tooltip from 'components/Tooltip'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
+import fetchMyMemberships from 'store/actions/fetchMyMemberships'
 import {
   POST_TYPES,
   PROPOSAL_ADVICE,
@@ -112,9 +113,10 @@ function PostEditor ({
 
   const currentUser = useSelector(getMe)
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
-  const groupOptions = useMemo(() =>
-    currentUser ? currentUser.memberships.toModelArray().map((m) => m.group).sort((a, b) => a.name.localeCompare(b.name)) : []
-  , [currentUser?.memberships])
+  const groupOptions = useMemo(() => {
+    return currentUser ? currentUser.memberships.toModelArray().map((m) => m.group).sort((a, b) => a.name.localeCompare(b.name)) : []
+  }, [currentUser?.memberships])
+
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
   const editingPostId = routeParams.postId
@@ -142,8 +144,6 @@ function PostEditor ({
   const _fromPost = useSelector(state => getPost(state, fromPostId))
   const fromPost = useMemo(() => presentPost(_fromPost), [_fromPost])
 
-  console.log('posteditorinputPost', inputPost)
-
   let isEditing = false
   if (editing) {
     inputPost = editingPost
@@ -158,7 +158,7 @@ function PostEditor ({
 
   const titleInputRef = useRef()
   const editorRef = useRef()
-  const groupsSelectorRef = useRef()
+  const toFieldRef = useRef()
   const endTimeRef = useRef()
 
   const initialPost = useMemo(() => ({
@@ -178,47 +178,11 @@ function PostEditor ({
     votingMethod: VOTING_METHOD_SINGLE,
     quorum: 0,
     ...(inputPost || {}),
-    startTime: typeof(inputPost?.startTime) === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
-    endTime: typeof(inputPost?.endTime) === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
+    startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
+    endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
   }), [inputPost?.id, postType, currentGroup, topic, context])
 
-  const titlePlaceholderForPostType = (type) => {
-    const titlePlaceHolders = {
-      offer: t('Add a title'),
-      request: t('Add a title'),
-      resource: t('Add a title'),
-      project: t('Add a title'),
-      event: t('Add a title'),
-      proposal: t('Add a title'),
-      default: t('Add a title')
-    }
-
-    return (
-      titlePlaceHolders[type] ||
-      titlePlaceHolders.default
-    )
-  }
-
-  const detailPlaceholderForPostType = (type) => {
-    // XXX: right now we can't change these for post types otherwise changing post type will reset the HyloEditor content and lose content
-    const detailPlaceHolders = {
-      offer: t('Add a description'),
-      request: t('Add a description'),
-      resource: t('Add a description'),
-      project: t('Add a description'),
-      event: t('Add a description'),
-      proposal: t('Add a description'),
-      default: t('Add a description')
-    }
-    return (
-      detailPlaceHolders[type] ||
-      detailPlaceHolders.default
-    )
-  }
-
   const [currentPost, setCurrentPost] = useState(initialPost)
-  const [titlePlaceholder, setTitlePlaceholder] = useState(titlePlaceholderForPostType(initialPost.type))
-  const [detailPlaceholder, setDetailPlaceholder] = useState(detailPlaceholderForPostType(initialPost.type))
   const [valid, setValid] = useState(editing || !!initialPost.title)
   const [announcementSelected, setAnnouncementSelected] = useState(false)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
@@ -228,8 +192,29 @@ function PostEditor ({
   const [allowAddTopic, setAllowAddTopic] = useState(true)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type))
 
+  const toOptions = useMemo(() => {
+    return groupOptions.map((g) => [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
+      .concat(g.chatRooms.toModelArray()
+        .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
+        .sort((a, b) => a.name.localeCompare(b.name)))
+      .flat()).flat()
+  }, [groupOptions])
+
+  const selectedToOptions = useMemo(() => {
+    return currentPost.groups.map((g) => [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
+      .concat(g.chatRooms.toModelArray()
+        .filter(cr => currentPost.topics.some(t => t.id === cr.groupTopic?.topic?.id))
+        .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
+      )
+      .flat()).flat()
+  }, [currentPost.groups])
+
   useEffect(() => {
     setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+    dispatch(fetchMyMemberships())
+    return () => {
+      dispatch(clearLinkPreview())
+    }
   }, [])
 
   useEffect(() => {
@@ -237,35 +222,24 @@ function PostEditor ({
   }, [initialPost.type])
 
   useEffect(() => {
-    groupsSelectorRef.current.reset()
+    toFieldRef.current.reset()
     editorRef.current.setContent(initialPost.details)
     setCurrentPost(initialPost)
     editorRef.current.focus()
-  }, [initialPost.id, initialPost.details])
-
+  }, [initialPost.id])
 
   useEffect(() => {
     setCurrentPost({ ...currentPost, linkPreview })
   }, [linkPreview])
 
-  useEffect(() => {
-    return () => {
-      dispatch(clearLinkPreview())
-    }
-  }, [])
-
   const calcEndTime = (startTime) => {
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      let start = DateTime.fromJSDate(currentPost.startTime);
-      let end = DateTime.fromJSDate(currentPost.endTime);
+      const start = DateTime.fromJSDate(currentPost.startTime)
+      const end = DateTime.fromJSDate(currentPost.endTime)
       msDiff = end.diff(start)
     }
-    return DateTime.fromJSDate(startTime).plus({milliseconds: msDiff}).toJSDate()
-  }
-
-  const onUpdateLinkPreview = () => {
-    setCurrentPost({ ...currentPost, linkPreview })
+    return DateTime.fromJSDate(startTime).plus({ milliseconds: msDiff }).toJSDate()
   }
 
   const handlePostTypeSelection = (type) => (event) => {
@@ -276,8 +250,6 @@ function PostEditor ({
     }, { replace: true })
 
     setCurrentPost({ ...currentPost, type })
-    setTitlePlaceholder(titlePlaceholderForPostType(type))
-    setDetailPlaceholder(detailPlaceholderForPostType(type))
     setValid(isValid({ type }))
     setShowPostTypeMenu(!showPostTypeMenu)
   }
@@ -405,11 +377,13 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, linkPreview: null, linkPreviewFeatured: false })
   }, [currentPost])
 
-  const handleSetSelectedGroups = useCallback((groups) => {
-    const hasChanged = !isEqual(initialPost.groups, groups)
+  const handleAddToOption = useCallback((toOptions) => {
+    const groups = uniqBy('id', toOptions.map(toOption => toOption.group))
+    const topics = uniqBy('id', toOptions.filter(toOption => toOption.topic).map(toOption => toOption.topic))
+    const hasChanged = !isEqual(initialPost.groups, groups) || !isEqual(initialPost.topics, topics)
 
-    setCurrentPost({ ...currentPost, groups })
-    setValid(isValid({ groups }))
+    setCurrentPost({ ...currentPost, groups, topics })
+    setValid(isValid({ groups, topics }))
 
     if (hasChanged) {
       setIsDirty(true)
@@ -653,12 +627,12 @@ function PostEditor ({
       <div className={cn('PostEditorTo', styles.section)}>
         <div className={styles.sectionLabel}>{t('To')}*</div>
         <div className={styles.sectionGroups}>
-          <GroupsSelector
-            options={groupOptions}
-            selected={currentPost.groups}
-            onChange={handleSetSelectedGroups}
+          <ToField
+            options={toOptions}
+            selected={selectedToOptions}
+            onChange={handleAddToOption}
             readOnly={loading}
-            ref={groupsSelectorRef}
+            ref={toFieldRef}
           />
         </div>
       </div>
@@ -683,7 +657,7 @@ function PostEditor ({
           : <HyloEditor
               key={currentPost.id}
               className={styles.editor}
-              placeholder={detailPlaceholder}
+              placeholder={t('Add a description')}
               onUpdate={handleDetailsChange}
               // Disable edit cancel through escape due to event bubbling issues
               // onEscape={handleCancel}
@@ -999,7 +973,7 @@ function PostEditor ({
               className={styles.textInput}
               placeholder={t('Add a donation link (must be valid URL)')}
               value={currentPost.donationsLink || ''}
-              onChange={handledonationsLinkChange}
+              onChange={handleDonationsLinkChange}
               disabled={loading}
             />
           </div>

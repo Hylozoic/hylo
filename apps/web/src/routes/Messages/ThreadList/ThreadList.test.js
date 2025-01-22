@@ -1,6 +1,7 @@
 import React from 'react'
 import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
-import ThreadList, { ThreadListItem } from './ThreadList'
+import ThreadList from './ThreadList'
+import ThreadListItem from './ThreadListItem'
 import orm from 'store/models'
 
 describe('ThreadList', () => {

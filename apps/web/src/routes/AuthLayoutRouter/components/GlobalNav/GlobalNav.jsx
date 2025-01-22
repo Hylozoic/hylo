@@ -59,13 +59,9 @@ export default function GlobalNav (props) {
           />
         </Suspense>
 
-        <Suspense fallback={<GlobalNavItem><BadgedIcon name='Messages' className={styles.icon} /></GlobalNavItem>}>
-          <MessagesDropdown renderToggleChildren={showBadge =>
-            <GlobalNavItem tooltip='Messages' className={cn('opacity-1')}>
-              <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' showBadge={showBadge} />
-            </GlobalNavItem>}
-          />
-        </Suspense>
+        <GlobalNavItem tooltip={t('Messages')} url='/messages' className={cn('opacity-1')}>
+          <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' />
+        </GlobalNavItem>
 
         <GlobalNavItem tooltip={t('Public')} url='/public/stream' className={cn('opacity-1')}>
           <Globe color='hsl(var(--primary-foreground))' />
@@ -83,8 +79,6 @@ export default function GlobalNav (props) {
 
         <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-100'>&nbsp;</div>
       </div>
-
-      <Link to='/search'><Icon name='Search' className={styles.icon} /></Link>
 
       <GlobalNavItem url={`${location.pathname}/create`} className={cn('opacity-1')}>
         +
