@@ -85,42 +85,49 @@ export default function UserSettingsTabsNavigator ({ navigation, route }) {
         name='Edit Profile'
         component={UserSettingsWebView}
         initialParams={{
-          path: '/settings'
+          path: '/my/edit-profile'
         }}
       />
       <UserSettings.Screen
         name='Afflilations'
         component={UserSettingsWebView}
         initialParams={{
-          path: '/settings/groups'
+          path: '/my/groups'
         }}
       />
       <UserSettings.Screen
         name='Invites &amp; Requests'
         component={UserSettingsWebView}
         initialParams={{
-          path: '/settings/invitations'
+          path: '/my/invitations'
         }}
       />
       <UserSettings.Screen
         name='Notifications'
         component={UserSettingsWebView}
         initialParams={{
-          path: '/settings/notifications'
+          path: '/my/notifications'
+        }}
+      />
+      <UserSettings.Screen
+        name='Locale'
+        component={UserSettingsWebView}
+        initialParams={{
+          path: '/my/locale'
         }}
       />
       <UserSettings.Screen
         name='Account'
         component={UserSettingsWebView}
         initialParams={{
-          path: '/settings/account'
+          path: '/my/account'
         }}
       />
       <UserSettings.Screen
         name='Saved Searches'
         component={UserSettingsWebView}
         initialParams={{
-          path: '/settings/saved-searches'
+          path: '/my/saved-searches'
         }}
       />
       <UserSettings.Screen

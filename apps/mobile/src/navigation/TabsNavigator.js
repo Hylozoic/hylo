@@ -65,7 +65,7 @@ export default function TabsNavigator () {
     // or as a side effect of setCurrentGroupSlug. If either are not doing what is expected or needed
     // then we need to fix it there, and not break out to calling directly.
     dispatch(setCurrentGroupSlug(MY_CONTEXT_SLUG))
-    navigation.getParent('DrawerNavigator')?.openDrawer()
+    // navigation.getParent('DrawerNavigator')?.openDrawer()
   }
 
   return (
@@ -92,13 +92,13 @@ export default function TabsNavigator () {
       <Tabs.Screen
         name='Settings Tab'
         component={UserSettingsTabsNavigator}
-        listeners={{
-          tabPress: (e) => {
-            handleProfileTabPress()
+        // listeners={{
+        //   tabPress: (e) => {
+        //     handleProfileTabPress()
 
-            e.preventDefault()
-          }
-        }}
+        //     // e.preventDefault()
+        //   }
+        // }}
         options={{
           tabBarIcon: ({ focused }) => (
             <Avatar

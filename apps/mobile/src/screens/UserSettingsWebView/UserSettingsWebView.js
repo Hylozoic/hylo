@@ -6,12 +6,13 @@ import useLogout from 'urql-shared/hooks/useLogout'
 import useCurrentUser from 'hooks/useCurrentUser'
 
 export default function UserSettingsWebView ({ path: pathProp, route }) {
+  console.log('!!!! pathProp'. pathProp)
   // TODO: URQL - Untested, intention is to refresh cache
   const [, queryCurrentUser] = useCurrentUser({ requestPolicy: 'network-only', pause: true })
   const webViewRef = useRef(null)
   const logout = useLogout()
-  const { path: routePath } = useRouteParams()
-  const path = pathProp || routePath
+  const { path: originalLinkingPath } = useRouteParams()
+  const path = pathProp || originalLinkingPath
   const source = route?.params.uri && { uri: route?.params.uri }
   const sourceOrPath = source
     ? { source}
