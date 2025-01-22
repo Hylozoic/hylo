@@ -46,7 +46,7 @@ function ThreadList () {
       if (!messageThreadId) {
         const firstThread = threads[0]
         if (firstThread) {
-          navigate(`/messages/${firstThread.id}`)
+          navigate(`/messages/${firstThread.id}`, { replace: true })
         }
       }
     })
