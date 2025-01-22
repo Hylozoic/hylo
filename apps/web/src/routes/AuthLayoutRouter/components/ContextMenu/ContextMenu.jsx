@@ -454,7 +454,8 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                       <li>
                         <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}></DropZone>
                         <button onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className={cn('cursor-pointer text-base text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100')}>
-                            <Icon name='Plus' /> Add new view
+                            <Icon name='Plus' /> 
+                            {widget.type === 'chats' ? <span>Add new chat </span> : <span>Add new view</span>}
                         </button>
                       </li>}
                   </ul>
