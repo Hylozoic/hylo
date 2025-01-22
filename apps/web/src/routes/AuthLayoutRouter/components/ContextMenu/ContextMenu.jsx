@@ -233,7 +233,7 @@ export default function ContextMenu (props) {
   const canView = !group || group.memberCount !== 0
   const links = regularLinks
   return (
-    <div className={cn('Navigation bg-background z-20 overflow-y-auto h-lvh min-w-280 shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
+    <div className={cn('ContextMenu bg-background z-20 overflow-y-auto h-lvh min-w-280 shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
       <div className='ContextDetails w-full z-20 relative'>
         {routeParams.context === 'groups'
           ? <GroupMenuHeader group={group} />
@@ -342,9 +342,10 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
           <DropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
             Drag here to remove from menu
           </DropZone>
-          <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'><Icon name='Plus'/>Add new view</button>
-        </div>
-      }
+          <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+            <Icon name='Plus' />Add new view
+          </button>
+        </div>}
       {contextWidgets.map(widget => (
         <li className='mb-2 items-start' key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} /></li>
       ))}
@@ -407,7 +408,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
         <span className='flex justify-between items-center content-center'>
           <WidgetIconResolver widget={widget} />
           <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex'>
-            <LogOut className='h-[20px] mr-2'/> <span>{title}</span>
+            <LogOut className='h-[20px] mr-2' /> <span>{title}</span>
           </MenuLink>
         </span>
       </div>
@@ -417,6 +418,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   return (
     <>
       <DropZone isDragging={isDragging} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }}>
+        &nbsp;
       </DropZone>
       <div key={widget.id} ref={setDraggableNodeRef} style={style}>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
@@ -444,7 +446,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <h3 className='text-base font-light opacity-50 text-foreground'>{title}</h3>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
-              {widget.type != 'members' &&
+              {widget.type !== 'members' &&
                 <div className='flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground'>
                   <SpecialTopElementRenderer widget={widget} group={group} />
                   <ul className='p-0'>
@@ -452,30 +454,30 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                     {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                     {widget.id && isEditting &&
                       <li>
-                        <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}></DropZone>
+                        <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
+                          &nbsp;
+                        </DropZone>
                         <button onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className={cn('cursor-pointer text-base text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100')}>
-                            <Icon name='Plus' /> 
-                            {widget.type === 'chats' ? <span>Add new chat </span> : <span>Add new view</span>}
+                          <Icon name='Plus' />
+                          {widget.type === 'chats' ? <span>Add new chat </span> : <span>Add new view</span>}
                         </button>
                       </li>}
                   </ul>
-                </div>
-              }
-              {widget.type == 'members' &&
-              <div className='flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground'>
-                <SpecialTopElementRenderer widget={widget} group={group} />
-                <ul className='p-0'>
-                  {loading && <li key='loading'>Loading...</li>}
-                  {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
-                  {widget.id &&
-                    <li className='flex flex-row'>
-                      <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
-                        <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className='cursor-pointer' />
-                      </DropZone>
-                    </li>}
-                </ul>
-              </div>
-              }
+                </div>}
+              {widget.type === 'members' &&
+                <div className='flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground'>
+                  <SpecialTopElementRenderer widget={widget} group={group} />
+                  <ul className='p-0'>
+                    {loading && <li key='loading'>Loading...</li>}
+                    {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
+                    {widget.id &&
+                      <li className='flex flex-row'>
+                        <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
+                          <Icon name='Plus' onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className='cursor-pointer' />
+                        </DropZone>
+                      </li>}
+                  </ul>
+                </div>}
             </div>)}
 
       </div>
@@ -493,31 +495,31 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
 function GrabMe ({ children, ...props }) {
   return (
-    <span className='text-sm font-bold cursor-grab' {...props} >
+    <span className='text-sm font-bold cursor-grab' {...props}>
       <GripHorizontal />
     </span>
   )
 }
 
-function DropZone({ droppableParams, isDroppable = true, height = '', hide = false, children }) {
-  const { setNodeRef, isOver } = useDroppable(droppableParams);
+function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false, children }) {
+  const { setNodeRef, isOver } = useDroppable(droppableParams)
 
   if (hide || !isDroppable) {
-    return null;
+    return null
   }
 
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "transition-all duration-200 rounded-lg bg-foreground/20 mb-2",
+        'transition-all duration-200 rounded-lg bg-foreground/20 mb-2',
         height,
-        isOver ? "bg-selected/70 border-foreground p-5" : "bg-transparent border-transparent p-0"
+        isOver ? 'bg-selected/70 border-foreground p-5' : 'bg-transparent border-transparent p-0'
       )}
     >
       {children}
     </div>
-  );
+  )
 }
 
 function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = false, activeWidget, invalidChild = false, handlePositionedAdd }) {
@@ -538,10 +540,10 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
   return (
     <React.Fragment key={item.id + itemTitle}>
       <DropZone hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
-       
+        &nbsp;
       </DropZone>
       <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center'>
-        {item.type === 'chat' && <>
+        {item.type === 'chat' && (
           <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between'>
             <div>
               <WidgetIconResolver widget={item} />
@@ -549,8 +551,8 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
             </div>
             {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
           </MenuLink>
-        </>}
-        {(item.type != 'chat' && rootPath != '/my' && rootPath != '/all' && !item.title) && <>
+        )}
+        {(item.type !== 'chat' && rootPath !== '/my' && rootPath !== '/all' && !item.title) && (
           <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='transition-all px-2 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between'>
             <div>
               <WidgetIconResolver widget={item} />
@@ -558,17 +560,17 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
             </div>
             {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
           </MenuLink>
-        </>}
+        )}
 
-        {(rootPath === '/my' || rootPath === '/all' || rootPath === !'/members' || (item.title && item.type != 'chat')) && <>
+        {(rootPath === '/my' || rootPath === '/all' || rootPath !== '/members' || (item.title && item.type !== 'chat')) && (
           <MenuLink to={itemUrl} externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex align-items justify-between'>
             <div>
-              <WidgetIconResolver widget={item}  />
+              <WidgetIconResolver widget={item} />
               <span className='text-base ml-2'>{itemTitle}</span>
             </div>
             {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
           </MenuLink>
-        </>}
+        )}
       </li>
     </React.Fragment>
   )
@@ -697,7 +699,7 @@ function GroupSettingsMenu ({ group }) {
           ))}
         </ul>
       </div>
-      <div className='absolute top-0 left-0 z-0 w-full h-full' onClick={closeMenu}></div>
+      <div className='absolute top-0 left-0 z-0 w-full h-full' onClick={closeMenu} />
     </div>
   )
 }
