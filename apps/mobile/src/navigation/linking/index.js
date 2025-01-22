@@ -41,7 +41,7 @@ export const routingConfig = {
   '/:groupSlug(all|public)/post/:id':                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
   '/:groupSlug(all|public)/post/:id/comments/:commentId':    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
   '/:groupSlug(all)/members/:id':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member`,
-  '/:groupSlug(all)/topics/:topicName':                      `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:groupSlug(all)/chat/:topicName':                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:groupSlug(my)/posts':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/My Posts`,
   '/:groupSlug(my)/interactions':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Interactions`,
   '/:groupSlug(my)/mentions':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Mentions`,
@@ -60,14 +60,14 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/settings/delete':            `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Delete`,
   '/:context(groups)/:groupSlug/settings':                   `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Settings`,
   '/:context(groups)/:groupSlug/groups':                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Relationships`,
-  '/:context(groups)/:groupSlug/chats/:topicName':          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat`,
+  '/:context(groups)/:groupSlug/chat/:topicName':            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat`,
   '/:context(groups)/:groupSlug/members/:id':                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member`,
   '/:context(groups)/:groupSlug/members':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Members`,
   '/:context(groups)/:groupSlug':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/custom/:customViewId':       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/explore':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explore`,
   '/:context(groups)/:groupSlug/proposals':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug/stream':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(groups)/:groupSlug/stream':                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/all-views':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/All Views`,
   '/:context(groups)/:groupSlug/create':                     `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   '/:context(groups)/:groupSlug/post/:id':                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
@@ -102,7 +102,6 @@ export const routingConfig = {
 // These screens will always be present and be first for the key'd navigator
 export const initialRouteNamesConfig = {
   [AUTH_ROOT_SCREEN_NAME]: 'Drawer',
-  'Home Tab': 'Group Navigation',
   'Messages Tab': 'Messages'
 }
 

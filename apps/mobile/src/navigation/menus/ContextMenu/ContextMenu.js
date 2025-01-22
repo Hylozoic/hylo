@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useNavigation, useLinkTo } from '@react-navigation/native'
+import { useNavigation } from '@react-navigation/native'
 import { WidgetHelpers, NavigatorHelpers, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG, ALL_GROUPS_CONTEXT_SLUG } from  '@hylo/shared'
 import FastImage from 'react-native-fast-image'
 import useCurrentUser from 'hooks/useCurrentUser'
@@ -14,8 +14,10 @@ import useLogout from 'urql-shared/hooks/useLogout'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import getContextWidgetsForGroup from 'store/selectors/getContextWidgetsForGroup'
-import useOpenURL, { openURL } from 'hooks/useOpenURL'
+import useOpenURL, { openURL, useLinkTo } from 'hooks/useOpenURL'
 import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
+import { DEFAULT_APP_HOST } from 'navigation/linking'
+import { URL } from 'react-native-url-polyfill'
 
 function ContextMenuItem({ widget, groupSlug, rootPath }) {
   const { t } = useTranslation()
@@ -31,18 +33,9 @@ function ContextMenuItem({ widget, groupSlug, rootPath }) {
 
   const handleWidgetPress = widget => {
     const context = isContextGroup(currentGroup?.slug) ? currentGroup?.slug : 'groups'
-    console.log('this totes got pressed', NavigatorHelpers.widgetUrl({ widget, groupSlug: isContextGroup(currentGroup?.slug) ? null : currentGroup?.slug }))
-    openURL(
-      NavigatorHelpers.widgetUrl({ widget, groupSlug: isContextGroup(currentGroup?.slug) ? null : currentGroup?.slug })
-    )
-    // // NOTE: widgetToMobileNavObject has been moved out of shared into urql-shared/presenters/WidgetPresenter
-    // // for the time being, but I think we should deprecate it now that openURL is functioning
-    // const navArgs = widgetToMobileNavObject({ widget, destinationGroup: currentGroup })
-    // if (navArgs) {
-    //   navigation.navigate(...navArgs)
-    // } else {
-    //   console.warn('Could not determine navigation for widget:', widget)
-    // }
+    const linkingPath = NavigatorHelpers.widgetUrl({ widget, groupSlug: isContextGroup(currentGroup?.slug) ? null : currentGroup?.slug })
+
+    openURL(linkingPath)
   }
 
   if (WidgetHelpers.doNotDisplayWidget({widget})) return null
