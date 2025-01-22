@@ -151,6 +151,7 @@ export const createRequestHandler = () =>
         await User.query().where({ id: req.session.userId }).update({ last_active_at: new Date() })
       }
     },
+    logging: true,
     graphiql: true
   })
 
@@ -204,7 +205,21 @@ function createSchema (expressContext) {
 
   return makeExecutableSchema({
     typeDefs: [schemaText],
-    resolvers: Object.assign(allResolvers, resolvers)
+    resolvers: Object.assign(allResolvers, resolvers, {
+      Subscription: {
+        countdown: {
+          // This will return values every second until it reaches 0
+          subscribe: async function* (_, { from }) {
+            for (let i = from; i >= 0; i--) {
+              await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second
+              console.log(`Sending countdown: ${i}`);
+              yield { countdown: i }; // Send the value to the subscriber
+            }
+            console.log('Countdown completed.');
+          }
+        }
+      }
+    })
   })
 }
 

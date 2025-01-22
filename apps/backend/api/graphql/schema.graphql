@@ -306,6 +306,10 @@ type Query {
   ): TopicQuerySet
 }
 
+type Subscription {
+  countdown(from: Int!): Int!
+}
+
 # The meta data associated with an Activity
 type ActivityMeta {
   """
