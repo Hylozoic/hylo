@@ -65,7 +65,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       attributes: [
         'id',
         'title',
-        'type', 
+        'type',
         'order',
         'visibility',
         'view',
@@ -77,15 +77,19 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'secondaryNumber'
       ],
       relations: [
+        'customView',
         'ownerGroup',
         'parentWidget',
         { children: { alias: 'childWidgets', querySet: true } },
         'viewGroup',
-        'viewPost', 
-        'customView',
+        'viewPost',
         'viewUser',
         'viewChat'
       ],
+      getters: {
+        // XXX: has to be a getter not a relation because belongsTo doesn't support multiple keys
+        groupTopic: cw => cw.groupTopic().fetch()
+      },
       fetchMany: ({ groupId, includeUnordered }) => {
         return ContextWidget.collection().query(q => {
           q.where({ group_id: groupId })
@@ -95,7 +99,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           q.orderBy('order', 'asc')
         })
       }
-},
+    },
 
     Me: {
       model: User,
@@ -376,7 +380,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'locationObject',
         { members: { querySet: true } },
         { eventInvitations: { querySet: true } },
-        { moderationActions: { querySet: true} },
+        { moderationActions: { querySet: true } },
         { proposalOptions: { querySet: true } },
         { proposalVotes: { querySet: true } },
         'linkPreview',
@@ -477,6 +481,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         { activeMembers: { querySet: true } },
         { agreements: { querySet: true } },
+        { chatRooms: { querySet: true } },
         { childGroups: { querySet: true } },
         { contextWidgets: { querySet: true } },
         { customViews: { querySet: true } },
@@ -646,7 +651,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           const precision = g.getSetting('location_display_precision') || LOCATION_DISPLAY_PRECISION.Precise
           if (precision === LOCATION_DISPLAY_PRECISION.Precise ||
                 (userId && await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION))) {
-                  // TODO: add RESP for this
+            // TODO: add RESP for this
             return g.locationObject().fetch()
           } else if (precision === LOCATION_DISPLAY_PRECISION.Near) {
             // For near only include region, city, country columns, and move the exact location around every load

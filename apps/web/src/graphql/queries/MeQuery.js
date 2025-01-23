@@ -125,6 +125,19 @@ export default gql`
         id
         avatarUrl
         bannerUrl
+        chatRooms {
+          items {
+            id
+            groupTopic {
+              id
+              followersTotal
+              topic {
+                id
+                name
+              }
+            }
+          }
+        }
         name
         memberCount
         stewardDescriptor

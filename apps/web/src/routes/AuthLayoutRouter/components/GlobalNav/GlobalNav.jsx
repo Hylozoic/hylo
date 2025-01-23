@@ -35,7 +35,7 @@ export default function GlobalNav (props) {
 
   return (
     <div className={cn('flex flex-col bg-theme-background h-full z-50 items-center pb-0 pt-2')} onClick={onClick}>
-      <div className='overflow-y-auto pt-2 flex flex-col items-center pl-5 pr-3 relative bg-theme-background overflow-x-hidden'>
+      <div className={cn('overflow-y-auto pt-2 flex flex-col items-center pl-5 pr-3 relative bg-theme-background overflow-x-hidden', styles.globalNavContainer)}>
         {/* <div className={styles.drawerToggle} id='toggleDrawer'>
           <button className={styles.drawerToggleButton} onClick={handleToggleDrawer}><Icon name='Hamburger' className={styles.menuIcon} /></button>
           {showMenuBadge && <Badge number='1' className={styles.logoBadge} border />}
@@ -59,13 +59,9 @@ export default function GlobalNav (props) {
           />
         </Suspense>
 
-        <Suspense fallback={<GlobalNavItem><BadgedIcon name='Messages' className={styles.icon} /></GlobalNavItem>}>
-          <MessagesDropdown renderToggleChildren={showBadge =>
-            <GlobalNavItem tooltip='Messages' className={cn('opacity-1')}>
-              <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' showBadge={showBadge} />
-            </GlobalNavItem>}
-          />
-        </Suspense>
+        <GlobalNavItem tooltip={t('Messages')} url='/messages' className={cn('opacity-1')}>
+          <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' />
+        </GlobalNavItem>
 
         <GlobalNavItem tooltip={t('Public')} url='/public/stream' className={cn('opacity-1')}>
           <Globe color='hsl(var(--primary-foreground))' />
@@ -83,8 +79,6 @@ export default function GlobalNav (props) {
 
         <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-100'>&nbsp;</div>
       </div>
-
-      <Link to='/search'><Icon name='Search' className={styles.icon} /></Link>
 
       <GlobalNavItem url={`${location.pathname}/create`} className={cn('opacity-1')}>
         +

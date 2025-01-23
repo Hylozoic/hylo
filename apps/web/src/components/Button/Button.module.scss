@@ -30,6 +30,7 @@
 
 .green {
   color: $color-white;
+  background-color: $color-caribbean-green;
   @media (hover: hover) and (pointer: fine) {
     &:hover, &.hover {
       background-color: color.adjust($color-caribbean-green, $lightness: 2%);

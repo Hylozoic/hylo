@@ -80,6 +80,10 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
+  chatRooms () {
+    return this.hasMany(ContextWidget).where('type', 'chat')
+  },
+
   childGroups () {
     return this.belongsToMany(Group)
       .through(GroupRelationship, 'parent_group_id', 'child_group_id')
@@ -406,6 +410,7 @@ module.exports = bookshelf.Model.extend(merge({
       // Based on the role attribute, add or remove the user to the Coordinator common role
       // TODO: RESP, change this to directly pass in and set commonRoles, instead of the role attribute
       await MemberCommonRole.updateCoordinatorRole({ userId: id, groupId: this.id, role: updatedAttribs.role, transacting })
+
       // Subscribe each user to the default tags in the group
       await User.followTags(id, this.id, defaultTagIds, transacting)
     }
@@ -485,7 +490,7 @@ module.exports = bookshelf.Model.extend(merge({
     return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, {transacting}))
   },
 
-  async setupContextWidgets(trx) {
+  async setupContextWidgets (trx) {
     // Create home widget first
     const homeWidget = await ContextWidget.forge({
       group_id: this.id,
@@ -545,8 +550,9 @@ module.exports = bookshelf.Model.extend(merge({
       }).save(null, { transacting: trx })
     ))
   },
+
   // This is idempotent
-  async transitionToNewMenu(existingTrx) {
+  async transitionToNewMenu (existingTrx) {
     const doWork = async (trx) => {
       // Get all widgets for this group
       const widgets = await ContextWidget.where({ group_id: this.id }).fetchAll({ transacting: trx })
@@ -557,7 +563,7 @@ module.exports = bookshelf.Model.extend(merge({
 
       if (!chatsWidget?.get('auto_added')) {
         // TODO CONTEXT: port this section to the new chat model
-        const chatResults = await bookshelf.knex.raw(`
+        const chatPostResults = await bookshelf.knex.raw(`
           SELECT DISTINCT t.id as tag_id, t.name, gt.visibility
           FROM posts p
           JOIN groups_posts gp ON gp.post_id = p.id
@@ -567,7 +573,7 @@ module.exports = bookshelf.Model.extend(merge({
           WHERE gp.group_id = ? AND p.type = 'chat'
         `, [this.id], { transacting: trx })
 
-        const groupChats = chatResults.rows.filter(tag => tag.name !== 'general')
+        const groupChats = chatPostResults.rows.filter(tag => tag.name !== 'general')
 
         if (groupChats.length > 0) {
           await Promise.all(groupChats.map(chat =>
@@ -577,7 +583,7 @@ module.exports = bookshelf.Model.extend(merge({
               type: 'chat',
               parent_id: chat.visibility === 2 ? chatsWidgetId : null,
               view_chat_id: chat.tag_id,
-              addToEnd: (chat.visibility === 2),
+              addToEnd: (chat.visibility === 2)
             }, { transacting: trx })
           ))
         }

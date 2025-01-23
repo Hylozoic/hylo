@@ -22,6 +22,7 @@ import 'intl-pluralrules'
 import './src/style/global.css'
 import { ActionSheetProvider } from '@expo/react-native-action-sheet'
 import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
+import './src/style/global.css'
 
 // import FastImage from 'react-native-fast-image'
 

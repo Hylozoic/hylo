@@ -2,14 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-
-/* copied over as of 16 JAN 2025 */
+/* copied over as of 22 JAN 2025 */
 @layer base {
 
   :root {
     --background: 40 31% 96%;
     --midground: 45 33% 96%;
     --foreground: 240 10% 3.9%;
+    --selected: 169 44% 48%;
     --card: 40 100% 99%;
     --card-foreground: 34 9% 15%;
     --popover: 0 0% 100%;
@@ -68,15 +68,6 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
     --theme-background: 33 9% 23%;
-  }
-
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-    overflow-x: hidden;
   }
 
   #__filestack-picker {

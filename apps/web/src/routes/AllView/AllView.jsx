@@ -294,7 +294,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
               onClick={() => handleReset()}
               className='bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600'
             >
-              {t('Reset')}
+              {t('Back')}
             </Button>}
           <Button
             variant='secondary'
@@ -453,7 +453,7 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
                 <h2>
                   {t('Selected User')}: <span className='font-extrabold'>{selectedItem.name}</span>
                 </h2>
-                <p className='text-sm text-gray-500'>{t('The default name of the widget will be the name of the user')}</p>
+                <p className='text-sm text-gray-500'>{t('The name of the widget will be the name of the user')}</p>
               </>
             )}
             {addChoice === POST && (
@@ -461,7 +461,7 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
                 <h2>
                   {t('Selected Post')}: <span className='font-extrabold'>{selectedItem.title}</span> by <span className='font-extrabold'>{selectedItem.creator?.name}</span>
                 </h2>
-                <p className='text-sm text-gray-500'>{t('The default name of the widget will be the title of the post')}</p>
+                <p className='text-sm text-gray-500'>{t('The name of the widget will be the title of the post')}</p>
               </>
             )}
             {addChoice === CHAT && (
@@ -469,7 +469,7 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
                 <h2>
                   {t('Selected Chat Topic')}: <span className='font-extrabold'>{selectedItem.name}</span>
                 </h2>
-                <p className='text-sm text-gray-500'>{t('The default name of the widget will be the name of the chat topic')}</p>
+                <p className='text-sm text-gray-500'>{t('The name of the widget will be the name of the chat topic')}</p>
               </>
             )}
             {addChoice === GROUP && (
@@ -477,7 +477,7 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
                 <h2>
                   {t('Selected Group')}: <span className='font-extrabold'>{selectedItem.name}</span>
                 </h2>
-                <p className='text-sm text-gray-500'>{t('The default name of the widget will be the name of the group')}</p>
+                <p className='text-sm text-gray-500'>{t('The name of the widget will be the name of the group')}</p>
               </>
             )}
           </div>
@@ -670,11 +670,11 @@ function ContainerCreator ({ group, addChoice, widgetData, setWidgetData }) {
 function WidgetSettings ({ setWidgetData, widgetData, addChoice }) {
   const { t } = useTranslation()
   const isContainer = addChoice === CONTAINER
-  const isCustomView = addChoice === CUSTOM_VIEW
   return (
     <div>
-      {!isCustomView &&
+      {isContainer &&
         <div className='grid w-full max-w-sm items-center gap-1.5'>
+          {/* not allowing overriding names right now, only showing name field for containers, but could bring back */}
           <Label htmlFor='override-name'>{isContainer ? t('Name') : t('Override Name')}</Label>
           <Input
             id='override-name'

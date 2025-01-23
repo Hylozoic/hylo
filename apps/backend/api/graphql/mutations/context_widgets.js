@@ -65,8 +65,8 @@ export async function reorderContextWidget({ userId, contextWidgetId, parentId, 
     throw new GraphQLYogaError("You don't have permission to reorder context widgets for this group")
   }
 
-  return ContextWidget.reorder({ 
-    id: contextWidgetId, 
+  return ContextWidget.reorder({
+    id: contextWidgetId,
     parentId,
     orderInFrontOfWidgetId,
     addToEnd
@@ -132,11 +132,11 @@ export async function transitionGroupToNewMenu({ userId, groupId }) {
 
   try {
     const existingWidgets = await ContextWidget.where({ group_id: groupId }).fetch()
-    
+
     if (!existingWidgets) {
       await group.setupContextWidgets()
     }
-    
+
     await group.transitionToNewMenu()
     return group
   } catch (err) {

@@ -9,8 +9,10 @@ import { useResizeDetector } from 'react-resize-detector'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
 import config, { isTest } from 'config/index'
-import isWebView from 'util/webView'
-import { localeLocalStorageSync } from 'util/locale'
+import CreateModal from 'components/CreateModal'
+import GlobalNav from './components/GlobalNav'
+import SocketListener from 'components/SocketListener'
+import SocketSubscriber from 'components/SocketSubscriber'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import { ViewHeaderProvider } from 'contexts/ViewHeaderContext/ViewHeaderProvider'
 import getReturnToPath from 'store/selectors/getReturnToPath'
@@ -19,6 +21,7 @@ import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchPlatformAgreements from 'store/actions/fetchPlatformAgreements'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchThreads from 'store/actions/fetchThreads'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -35,7 +38,6 @@ import AllTopics from 'routes/AllTopics'
 import AllView from 'routes/AllView'
 import ChatRoom from 'routes/ChatRoom'
 import CreateGroup from 'routes/CreateGroup'
-import CreateModal from 'components/CreateModal'
 import GroupDetail from 'routes/GroupDetail'
 import GroupSettings from 'routes/GroupSettings'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
@@ -57,14 +59,14 @@ import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import SiteTour from 'routes/AuthLayoutRouter/components/SiteTour'
-import SocketListener from 'components/SocketListener'
-import SocketSubscriber from 'components/SocketSubscriber'
-import GlobalNav from './components/GlobalNav'
+import ThreadList from 'routes/Messages/ThreadList'
 
 import UserSettings from 'routes/UserSettings'
 import { GROUP_TYPES } from 'store/models/Group'
 import classes from './AuthLayoutRouter.module.scss'
 import { findHomeView } from 'util/contextWidgets'
+import { localeLocalStorageSync } from 'util/locale'
+import isWebView from 'util/webView'
 
 export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
@@ -131,7 +133,8 @@ export default function AuthLayoutRouter (props) {
       await dispatch(fetchCommonRoles())
       await dispatch(fetchForCurrentUser())
       setCurrentUserLoading(false)
-      await dispatch(fetchPlatformAgreements())
+      dispatch(fetchPlatformAgreements())
+      dispatch(fetchThreads())
     })()
   }, [])
 
@@ -306,7 +309,7 @@ export default function AuthLayoutRouter (props) {
 
       <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
-          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row nin-w-320 max-w-420 h-full', { 'flex absolute sm:relative': isNavOpen })}>
+          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full', { 'flex absolute sm:relative': isNavOpen })}>
             {!withoutNav && (
               <>
                 {/* Depends on `pathMatchParams` */}
@@ -327,6 +330,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
+                <Route path='messages/:messageThreadId' element={<ThreadList />} />
+                <Route path='messages' element={<ThreadList />} />
               </Routes>}
           </div> {/* END NavContainer */}
 
@@ -397,6 +402,7 @@ export default function AuthLayoutRouter (props) {
                   {/* **** Other Routes **** */}
                   <Route path='welcome/*' element={<WelcomeWizardRouter />} />
                   <Route path='messages/:messageThreadId' element={<Messages />} />
+                  <Route path='messages' element={<Loading />} />
                   {/* Keep old settings paths for mobile */}
                   <Route path='settings/*' element={<UserSettings />} />
                   <Route path='search' element={<Search />} />

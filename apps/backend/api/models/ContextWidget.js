@@ -1,60 +1,58 @@
-const { reorderTree, replaceHomeWidget } = require("./util/contextWidgets")
+import { reorderTree, replaceHomeWidget } from './util/contextWidgets'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'context_widgets',
   requireFetch: false,
   hasTimestamps: true,
 
-  initialize() {
+  initialize () {
     this.on('fetching', (model, columns, options) => {
       if (!options.withRelated) {
         options.withRelated = []
       }
       const relationsToLoad = []
-        
-        if (model.get('custom_view_id')) relationsToLoad.push('customView')
-        if (model.get('view_chat_id')) relationsToLoad.push('viewChat')
-        if (model.get('view_post_id')) relationsToLoad.push('viewPost')
-        if (model.get('view_group_id')) relationsToLoad.push('viewGroup')
-        if (model.get('view_user_id')) relationsToLoad.push('viewUser')
-        relationsToLoad.push('children')
 
-        options.withRelated = options.withRelated.concat(relationsToLoad)
+      if (model.get('custom_view_id')) relationsToLoad.push('customView')
+      if (model.get('view_chat_id')) relationsToLoad.push('viewChat')
+      if (model.get('view_post_id')) relationsToLoad.push('viewPost')
+      if (model.get('view_group_id')) relationsToLoad.push('viewGroup')
+      if (model.get('view_user_id')) relationsToLoad.push('viewUser')
+      relationsToLoad.push('children')
+
+      options.withRelated = options.withRelated.concat(relationsToLoad)
     })
   },
 
   // Relationships
 
-
-  children() {
+  children () {
     return this.hasMany(ContextWidget, 'parent_id')
   },
 
-  customView() {
+  customView () {
     return this.belongsTo(CustomView, 'custom_view_id')
   },
-  ownerGroup() {
+  ownerGroup () {
     return this.belongsTo(Group, 'group_id')
   },
 
-  highlightNumber() {
+  highlightNumber () {
     // TODO CONTEXT: these will need to determine a useful number based on the entity the widget is linked to
     return 3
   },
 
-  secondaryNumber() {
+  secondaryNumber () {
     // TODO CONTEXT: these will need to determine a useful number based on the entity the widget is linked to
     return 8
   },
 
-  parentWidget() {
+  parentWidget () {
     return this.belongsTo(ContextWidget, 'parent_id')
   },
 
-  peers(trx) {
+  peers (trx) {
     const groupId = this.get('group_id')
     const parentId = this.get('parent_id')
-    const id = this.get('id')
     if (parentId) {
       // If it has a parent, get all widgets with same parent (including self)
       return ContextWidget.collection().query(q => {
@@ -78,29 +76,37 @@ module.exports = bookshelf.Model.extend({
     }
   },
 
-  isLeaf() {
+  isLeaf () {
     return this.related('children')?.length === 0
   },
 
-  reorder({ order, trx }) {
+  reorder ({ order, trx }) {
     return ContextWidget.reorder({ id: this.get('id'), order, trx })
   },
 
-  viewChat() {
+  // XXX Tibet: has to be a query, not a relationship, because the view_chat_id is not a foreign key and i couldnt get it to work
+  groupTopic () {
+    return GroupTag.where({
+      group_id: this.get('group_id'),
+      tag_id: this.get('view_chat_id')
+    })
+  },
+
+  viewChat () {
     return this.belongsTo(Tag, 'view_chat_id')
   },
 
-  viewGroup() {
+  viewGroup () {
     return this.belongsTo(Group, 'view_group_id')
   },
 
-  viewPost() {
-    return this.belongsTo(Post, 'view_post_id') 
+  viewPost () {
+    return this.belongsTo(Post, 'view_post_id')
   },
 
-  viewUser() {
+  viewUser () {
     return this.belongsTo(User, 'view_user_id')
-  },
+  }
 
 }, {
 
@@ -117,7 +123,8 @@ module.exports = bookshelf.Model.extend({
   create: async function(data) {
     return await bookshelf.transaction(async trx => {
       let customViewId = data.custom_view_id
-            // Check if any view fields are being updated
+
+      // Check if any view fields are being updated
       const viewFields = Object.values(this.ViewFields)
       const hasViewUpdate = viewFields.some(field => data[field] !== undefined) || data.custom_view_input
 
@@ -140,13 +147,13 @@ module.exports = bookshelf.Model.extend({
         await currentView.updateTopics(topics, trx)
         customViewId = currentView.get('id')
       }
-      
+
       // Create the widget within the transaction
       let widget = await this.forge({
-        icon: data.icon, 
-        title: data.title, 
-        type: data.type, 
-        auto_added: true, 
+        icon: data.icon,
+        title: data.title,
+        type: data.type,
+        auto_added: true,
         visibility: data.visibility,
         group_id: data.group_id,
         view: data.view,
@@ -163,7 +170,7 @@ module.exports = bookshelf.Model.extend({
       // pull out the addToEnd and orderInFrontOfWidgetId
       const addToEnd = data.add_to_end || data.addToEnd
       const orderInFrontOfWidgetId = data.order_in_front_of_widget_id || data.orderInFrontOfWidgetId
-      
+
       if (addToEnd || data.parent_id !== undefined || orderInFrontOfWidgetId !== undefined) {
         await ContextWidget.reorder({
           id: widget.get('id'),
@@ -172,7 +179,7 @@ module.exports = bookshelf.Model.extend({
           parentId: data.parent_id,
           trx
         })
-      // widget.refresh() wasn't enough to ensure the reordered widget would actually be refreshed, so needed this
+        // widget.refresh() wasn't enough to ensure the reordered widget would actually be refreshed, so needed this
         widget = await this.where({ id: widget.get('id') }).fetch({ transacting: trx })
       }
 
@@ -197,20 +204,20 @@ module.exports = bookshelf.Model.extend({
       if (!currentOrder) return // Widget wasn't ordered, nothing to do
 
       const allWidgets = await ContextWidget.findForGroup(removedWidget.get('group_id'), { transacting: trx })
-      .map(widget => ({
-        id: widget.get('id'),
-        parentId: widget.get('parent_id'),
-        order: widget.get('order')
-      }))
+        .map(widget => ({
+          id: widget.get('id'),
+          parentId: widget.get('parent_id'),
+          order: widget.get('order')
+        }))
 
       // Get widgets that need order updates (all peers with higher order)
       const reorderedWidgets = reorderTree({priorWidgetState: removedWidget, newWidgetPosition: {remove: true}, allWidgets})
       if (reorderedWidgets.length > 0) {
         // Update all affected widgets in a single query
         const query = `
-          UPDATE context_widgets 
-          SET 
-            "order" = CASE id 
+          UPDATE context_widgets
+          SET
+            "order" = CASE id
               ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.order}`).join('\n')}
             END,
             parent_id = CASE id
@@ -244,7 +251,7 @@ module.exports = bookshelf.Model.extend({
         parentId: movedWidget.get('parent_id'),
         order: movedWidget.get('order')
       }
-  
+
       // Fetch all widgets for the group
       const allWidgets = await ContextWidget.findForGroup(movedWidget.get('group_id'), { transacting: trx })
         .map(widget => ({
@@ -252,30 +259,30 @@ module.exports = bookshelf.Model.extend({
           parentId: widget.get('parent_id'),
           order: widget.get('order')
         }))
-  
+
       // Define the new widget position
       const newWidgetPosition = { id, addToEnd, orderInFrontOfWidgetId, parentId }
-  
+
       // Reorder the widgets
       const reorderedWidgets = reorderTree({priorWidgetState, newWidgetPosition, allWidgets})
 
       // Update all affected widgets in a single query
       const query = `
-        UPDATE context_widgets 
-        SET 
-          "order" = CASE id 
+        UPDATE context_widgets
+        SET
+          "order" = CASE id
             ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.order}`).join('\n')}
           END,
           parent_id = CASE id
             ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.parentId === null ? 'NULL' : w.parentId}`).join('\n')}
           END,
-          auto_added = CASE 
+          auto_added = CASE
             ${reorderedWidgets.map(w => `WHEN id = ${w.id} AND ${w.order} IS NOT NULL THEN true`).join('\n')}
             ELSE auto_added
           END
         WHERE id IN (${reorderedWidgets.map(w => w.id).join(',')})
       `
-    
+
       await bookshelf.knex.raw(query).transacting(trx)
       movedWidget.refresh()
       return movedWidget
@@ -298,23 +305,24 @@ module.exports = bookshelf.Model.extend({
           type: widget.get('type')
         }))
       const reorderedWidgets = replaceHomeWidget({ widgets: allWidgets, newHomeWidgetId: id })
-            // Update all affected widgets in a single query
+
+      // Update all affected widgets in a single query
       const query = `
-        UPDATE context_widgets 
-        SET 
-          "order" = CASE id 
+        UPDATE context_widgets
+        SET
+          "order" = CASE id
             ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.order}`).join('\n')}
           END,
           parent_id = CASE id
             ${reorderedWidgets.map(w => `WHEN ${w.id} THEN ${w.parentId === null ? 'NULL' : w.parentId}`).join('\n')}
           END,
-          auto_added = CASE 
+          auto_added = CASE
             ${reorderedWidgets.map(w => `WHEN id = ${w.id} AND ${w.order} IS NOT NULL THEN true`).join('\n')}
             ELSE auto_added
           END
         WHERE id IN (${reorderedWidgets.map(w => w.id).join(',')})
       `
-    
+
       await bookshelf.knex.raw(query).transacting(trx)
       return { success: true }
     }
@@ -349,11 +357,11 @@ module.exports = bookshelf.Model.extend({
       const orderInFrontOfWidgetId = data.order_in_front_of_widget_id || data.orderInFrontOfWidgetId
 
       // Update the widget with the new data. If a widget is updated, we don't want to auto-add it later.
-      await widget.save({ 
-        icon: data.icon, 
-        title: data.title, 
-        type: data.type, 
-        auto_added: true, 
+      await widget.save({
+        icon: data.icon,
+        title: data.title,
+        type: data.type,
+        auto_added: true,
         visibility: data.visibility,
         group_id: data.group_id,
         view: data.view,
@@ -362,9 +370,9 @@ module.exports = bookshelf.Model.extend({
         view_post_id: data.view_post_id,
         view_user_id: data.view_user_id,
         custom_view_id: data.custom_view_id,
-      }, { 
-        patch: true, 
-        transacting: trx 
+      }, {
+        patch: true,
+        transacting: trx
       })
       await widget.refresh()
 
