@@ -171,8 +171,8 @@ function createSchema (expressContext) {
     mixpanel.people.set(userId)
 
     allResolvers = {
-      Query: makeAuthenticatedQueries(userId, fetchOne, fetchMany),
-      Mutation: makeMutations(expressContext, userId, isAdmin, fetchOne),
+      Query: makeAuthenticatedQueries({ userId, fetchOne, fetchMany }),
+      Mutation: makeMutations({ expressContext, userId, isAdmin, fetchOne }),
 
       FeedItemContent: {
         __resolveType (data, context, info) {
@@ -192,39 +192,25 @@ function createSchema (expressContext) {
   } else if (api_client) {
     // TODO: check scope here, just api:write, just api:read, or both?
     allResolvers = {
-      Query: makeApiQueries(fetchOne, fetchMany),
+      Query: makeApiQueries({ fetchOne, fetchMany }),
       Mutation: makeApiMutations()
     }
   } else {
     // Not authenticated, only allow for public queries
     allResolvers = {
-      Query: makePublicQueries(userId, fetchOne, fetchMany),
-      Mutation: makePublicMutations(expressContext, fetchOne)
+      Query: makePublicQueries({ userId, fetchOne, fetchMany }),
+      Mutation: makePublicMutations({ expressContext, fetchOne })
     }
   }
 
   return makeExecutableSchema({
     typeDefs: [schemaText],
-    resolvers: Object.assign(allResolvers, resolvers, {
-      Subscription: {
-        countdown: {
-          // This will return values every second until it reaches 0
-          subscribe: async function* (_, { from }) {
-            for (let i = from; i >= 0; i--) {
-              await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second
-              console.log(`Sending countdown: ${i}`);
-              yield { countdown: i }; // Send the value to the subscriber
-            }
-            console.log('Countdown completed.');
-          }
-        }
-      }
-    })
+    resolvers: Object.assign(allResolvers, resolvers)
   })
 }
 
 // Queries that non-logged in users can make
-export function makePublicQueries (userId, fetchOne, fetchMany) {
+export function makePublicQueries ({ fetchOne, fetchMany }) {
   return {
     checkInvitation: (root, { invitationToken, accessCode }) =>
       InvitationService.check(invitationToken, accessCode),
@@ -238,7 +224,7 @@ export function makePublicQueries (userId, fetchOne, fetchMany) {
 }
 
 // Queries that logged in users can make
-export function makeAuthenticatedQueries (userId, fetchOne, fetchMany) {
+export function makeAuthenticatedQueries ({ userId, fetchOne, fetchMany }) {
   return {
     activity: (root, { id }) => fetchOne('Activity', id),
     checkInvitation: (root, { invitationToken, accessCode }) =>
@@ -306,7 +292,7 @@ export function makeAuthenticatedQueries (userId, fetchOne, fetchMany) {
   }
 }
 
-export function makePublicMutations (expressContext, fetchOne) {
+export function makePublicMutations ({ expressContext, fetchOne }) {
   return {
     login: login(fetchOne, expressContext),
     logout: logout(expressContext),
@@ -317,14 +303,14 @@ export function makePublicMutations (expressContext, fetchOne) {
   }
 }
 
-export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
+export function makeMutations ({ expressContext, userId, fetchOne }) {
   const { req } = expressContext
   const sessionId = req.session.id
 
   return {
     // Currently injecting all Public Mutations here so those resolvers remain
     // available between auth'd and non-auth'd sessions
-    ...makePublicMutations(expressContext, fetchOne),
+    ...makePublicMutations({ expressContext, fetchOne }),
 
     acceptGroupRelationshipInvite: (root, { groupRelationshipInviteId }) => acceptGroupRelationshipInvite(userId, groupRelationshipInviteId),
 
@@ -368,7 +354,7 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
 
     createCollection: (root, { data }) => createCollection(userId, data),
 
-    createComment: (root, { data }) => createComment(userId, data),
+    createComment: (root, { data }, context) => createComment(userId, data, context),
 
     createContextWidget: (root, { groupId, data }) => 
       createContextWidget({ userId, groupId, data }),
@@ -579,7 +565,7 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
   }
 }
 
-export function makeApiQueries (fetchOne, fetchMany) {
+export function makeApiQueries ({ fetchOne, fetchMany }) {
   return {
     // you can specify id or slug, but not both
     group: async (root, { id, slug }) => fetchOne('Group', slug || id, slug ? 'slug' : 'id'),

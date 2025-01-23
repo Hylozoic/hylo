@@ -644,7 +644,7 @@ module.exports = bookshelf.Model.extend(merge({
   }),
 
   clearSessionsFor: async function ({ userId, sessionId }) {
-    const redisClient = await RedisClient.create()
+    const redisClient = RedisClient.create()
     for await (const key of redisClient.scanIterator({ MATCH: `sess:${userId}:*` })) {
       if (key !== 'sess:' + sessionId) {
         await redisClient.del(key)
