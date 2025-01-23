@@ -8,7 +8,8 @@ import resolvers from './resolvers'
 import optimistic from './optimistic'
 import updates from './updates'
 import directives from './directives'
-import { EventSource } from 'react-native-sse'
+import EventSource from 'react-native-sse'
+import { URL } from 'react-native-url-polyfill'
 
 const GRAPHQL_ENDPOINT_URL = `${apiHost}/noo/graphql`
 
@@ -27,7 +28,7 @@ const client = createClient({
     cache,
     fetchExchange,
     subscriptionExchange({
-      forwardSubscription(operation) {
+      forwardSubscription: (operation) => {
         const url = new URL(GRAPHQL_ENDPOINT_URL)
 
         url.searchParams.append('query', operation.query)
@@ -40,22 +41,37 @@ const client = createClient({
         }
 
         return {
-          subscribe(sink) {
-            const eventsource = new EventSource(url.toString(), {
-              withCredentials: true // This is required for cookies
+          subscribe: (sink) => {
+            const eventSource = new EventSource(url.toString(), {
+              withCredentials: true, // This is required for cookies
+              credentials: 'include',
+              method: 'GET',
+              lineEndingCharacter: '\n'
             })
-            eventsource.onmessage = (event) => {
+
+            eventSource.addEventListener('message', (event) => {
+              console.log('!!! event', event)
               const data = JSON.parse(event.data)
+
               sink.next(data)
-              if (eventsource.readyState === 2) {
+
+              if (eventSource.readyState === 2) {
                 sink.complete()
               }
-            }
-            eventsource.onerror = (error) => {
-              sink.error(error)
-            }
+            })
+
+            eventSource.addEventListener('error', (event) => {
+              if (event.type === 'error') {
+                console.error('Connection error:', event.message)
+              } else if (event.type === 'exception') {
+                console.error('Error:', event.message, event.error)
+              }
+
+              sink.error(event)
+            })
+            
             return {
-              unsubscribe: () => eventsource.close()
+              unsubscribe: () => eventSource.close()
             }
           }
         }

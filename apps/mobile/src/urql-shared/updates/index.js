@@ -5,8 +5,14 @@ import { Subscription } from 'urql'
 
 export default {
   Subscription: {
-    countdown: (parent, _args, cache) => {
-      console.log('!!!!! parent, _args', parent, _args)
+    countdown: (result, parent, _args, cache) => {
+      console.log('!!!!! countdown - result, parent, _args', result, parent, _args)
+      // const list = cache.resolve('Query', 'list') || [];
+      // list.push(parent.alphabet);
+      // cache.link('Query', 'list', list);
+    },
+    commentAdded: (result, args, cache, info) => {
+      console.log('!!!!! commentAdded - result, args, info:', result, args, info)
       // const list = cache.resolve('Query', 'list') || [];
       // list.push(parent.alphabet);
       // cache.link('Query', 'list', list);

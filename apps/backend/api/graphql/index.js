@@ -125,17 +125,23 @@ import {
 } from './mutations'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
+import makeSubscriptions from './makeSubscriptions'
 import { makeExecutableSchema } from 'graphql-tools'
 import { inspect } from 'util'
 import { red } from 'chalk'
 import { merge, reduce } from 'lodash'
+import RedisPubSub from '../services/RedisPubSub'
+import useMutationSubscriptionResponder from './useMutationSubscriptionResponder'
 const { createServer, GraphQLYogaError } = require('@graphql-yoga/node')
 
 const schemaText = readFileSync(join(__dirname, 'schema.graphql')).toString()
 
 export const createRequestHandler = () =>
   createServer({
-    plugins: [useLazyLoadedSchema(createSchema)],
+    plugins: [
+      useLazyLoadedSchema(createSchema),
+      useMutationSubscriptionResponder()
+    ],
     context: async ({ query, req, variables }) => {
       if (process.env.DEBUG_GRAPHQL) {
         sails.log.info('\n' +
@@ -149,6 +155,12 @@ export const createRequestHandler = () =>
       // Update user last active time unless this is an oAuth login
       if (req.session.userId && !req.api_client) {
         await User.query().where({ id: req.session.userId }).update({ last_active_at: new Date() })
+      }
+
+      // This is unrelated to the above which is using context as a hook,
+      // this is putting the subscriptions pubSub method on context
+      return {
+        pubSub: RedisPubSub
       }
     },
     logging: true,
@@ -173,6 +185,7 @@ function createSchema (expressContext) {
     allResolvers = {
       Query: makeAuthenticatedQueries({ userId, fetchOne, fetchMany }),
       Mutation: makeMutations({ expressContext, userId, isAdmin, fetchOne }),
+      Subscription: makeSubscriptions({ resolvers, expressContext, userId, isAdmin, fetchOne }),
 
       FeedItemContent: {
         __resolveType (data, context, info) {

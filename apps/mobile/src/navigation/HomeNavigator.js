@@ -24,37 +24,19 @@ import { GROUP_WELCOME_LANDING } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow
 import { useTranslation } from 'react-i18next'
 import { gql, useSubscription } from 'urql'
 
-const testSubscription = gql`
-  subscription TestSubscription {
-    countdown(from: 5)
-  }
-`
-
-const handleSubscription = (messages = [], response) => {
-  console.log(messages, response)
-  // return [response.newMessages, ...messages]
-}
-
 const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
   const initialURL = useSelector(state => state.initialURL)
   const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
   const { t } = useTranslation()
 
-  const [subResult, execSub] = useSubscription({
-    query: gql`
-      subscription TestSubscription {
-          countdown(from: 10)
-        }
-    `
-  }, test => { 
-    console.log('!!!! test callback', test)
-    return  test
-  })
-
-  console.log('!!! subResult', subResult)
-
-
+  // const [subResult, execSub] = useSubscription({
+  //   query: gql`
+  //     subscription CountDownSub {
+  //         countdown(from: 1000)
+  //       }
+  //   `
+  // })
 
   useEffect(() => {
     if (!initialURL && !returnToOnAuthPath) {

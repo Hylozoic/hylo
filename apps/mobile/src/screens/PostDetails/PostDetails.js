@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { View, Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useDispatch } from 'react-redux'
-import { gql, useQuery } from 'urql'
+import { gql, useQuery, useSubscription } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
@@ -40,6 +40,19 @@ export default function PostDetails () {
   const post = useMemo(() => PostPresenter(data?.post, currentGroup?.id), [data?.post, currentGroup?.id])
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()
+
+  useSubscription({
+    query: gql`
+      subscription CommentAddedSub($postId: ID!) {
+        commentAdded(postId: $postId) {
+          id
+          text
+        }
+      }
+    `,
+    variables: { postId: post?.id },
+    pause: !post?.id
+  })
 
   const [selectedComment, setSelectedComment] = useState(null)
   const groupId = get('groups.0.id', post)
