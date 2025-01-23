@@ -1,6 +1,10 @@
 import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
-import { useDispatch } from 'react-redux'
+import { useMutation, useQuery } from 'urql'
+import QuorumBar from 'components/QuorumBar/QuorumBar'
+import Icon from 'components/Icon'
+import Avatar from 'components/Avatar'
+import { useTranslation } from 'react-i18next'
 import {
   PROPOSAL_STATUS_CASUAL,
   PROPOSAL_STATUS_COMPLETED,
@@ -9,11 +13,7 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'urql-shared/presenters/PostPresenter'
-import { addProposalVote, removeProposalVote, swapProposalVote } from 'store/actions/proposals'
-import QuorumBar from 'components/QuorumBar/QuorumBar'
-import Icon from 'components/Icon'
-import Avatar from 'components/Avatar'
-import { useTranslation } from 'react-i18next'
+import { addProposalVoteMutation, removeProposalVoteMutation, swapProposalVoteMutation } from 'store/actions/proposals'
 
 const calcNumberOfVoters = (votes) => {
   return votes.reduce((acc, vote) => {
@@ -77,7 +77,11 @@ export default function PostBodyProposal ({
   id
 }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
+
+  // Add URQL mutation hooks
+  const [, addProposalVote] = useMutation(addProposalVoteMutation)
+  const [, removeProposalVote] = useMutation(removeProposalVoteMutation)
+  const [, swapProposalVote] = useMutation(swapProposalVoteMutation)
 
   const proposalOptionsArray = useMemo(() => proposalOptions?.items || [], [proposalOptions])
   const proposalVotesArray = useMemo(() => proposalVotes?.items || [], [proposalVotes])
@@ -94,21 +98,22 @@ export default function PostBodyProposal ({
   const votePrompt = votingMethod === VOTING_METHOD_SINGLE ? 'Select one' : 'Select one or more'
 
   function handleVote (optionId) {
+    console.log('how are we handling the voting?', optionId)
     if (votingMethod === VOTING_METHOD_SINGLE) {
       if (currentUserVotesOptionIds.includes(optionId)) {
-        dispatch(removeProposalVote({ optionId, postId: id }))
+        removeProposalVote({ optionId, postId: id })
       } else if (currentUserVotesOptionIds.length === 0) {
-        dispatch(addProposalVote({ optionId, postId: id }))
+        addProposalVote({ optionId, postId: id })
       } else {
         const removeOptionId = currentUserVotesOptionIds[0]
-        dispatch(swapProposalVote({ postId: id, addOptionId: optionId, removeOptionId }))
+        swapProposalVote({ postId: id, addOptionId: optionId, removeOptionId })
       }
     }
     if (votingMethod === VOTING_METHOD_MULTI_UNRESTRICTED) {
       if (currentUserVotesOptionIds.includes(optionId)) {
-        dispatch(removeProposalVote({ optionId, postId: id }))
+        removeProposalVote({ optionId, postId: id })
       } else {
-        dispatch(addProposalVote({ optionId, postId: id }))
+        addProposalVote({ optionId, postId: id })
       }
     }
   }
