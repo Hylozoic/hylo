@@ -1,5 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
-
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { values, isEmpty, trim } from 'lodash'
 import { Validators } from '@hylo/shared'
 import { notifyModeratorsPost, notifyModeratorsMember, notifyModeratorsComment } from './flaggedItem/notifyUtils'
@@ -16,9 +15,9 @@ module.exports = bookshelf.Model.extend({
     if (!this.get('object_id')) throw new GraphQLYogaError('No object_id defined for Flagged Item')
     switch (this.get('object_type')) {
       case FlaggedItem.Type.POST:
-        return Post.find(this.get('object_id'), {withRelated: 'groups'})
+        return Post.find(this.get('object_id'), { withRelated: 'groups' })
       case FlaggedItem.Type.COMMENT:
-        return Comment.find(this.get('object_id'), {withRelated: 'post.groups'})
+        return Comment.find(this.get('object_id'), { withRelated: 'post.groups' })
       case FlaggedItem.Type.MEMBER:
         return User.find(this.get('object_id'))
       default:
@@ -27,7 +26,7 @@ module.exports = bookshelf.Model.extend({
   },
 
   async getMessageText (group) {
-    const isPublic = !group ? true : false
+    const isPublic = !group
     const link = await this.getContentLink(group, isPublic)
 
     return `${this.relations.user.get('name')} flagged a ${this.get('object_type')} in ${group ? group.get('name') : 'Public'} for being ${this.get('category')}\n` +
@@ -67,8 +66,8 @@ module.exports = bookshelf.Model.extend({
   },
 
   find (id, opts = {}) {
-    return FlaggedItem.where({id})
-    .fetch(opts)
+    return FlaggedItem.where({ id })
+      .fetch(opts)
   },
 
   create: function (attrs) {
@@ -97,7 +96,7 @@ module.exports = bookshelf.Model.extend({
   },
 
   async notifyModerators ({ id }) {
-    const flaggedItem = await FlaggedItem.find(id, {withRelated: 'user'})
+    const flaggedItem = await FlaggedItem.find(id, { withRelated: 'user' })
     switch (flaggedItem.get('object_type')) {
       case FlaggedItem.Type.POST:
         return notifyModeratorsPost(flaggedItem)

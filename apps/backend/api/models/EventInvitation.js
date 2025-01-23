@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 
 /* eslint-disable camelcase */
 module.exports = bookshelf.Model.extend({
@@ -26,7 +26,7 @@ module.exports = bookshelf.Model.extend({
     INTERESTED: 'interested'
   },
 
-  create: function ({userId, inviterId, eventId, response}, trxOpts) {
+  create: function ({ userId, inviterId, eventId, response }, trxOpts) {
     if (!userId) {
       throw new GraphQLYogaError('must provide a user_id')
     }
@@ -35,20 +35,20 @@ module.exports = bookshelf.Model.extend({
       throw new GraphQLYogaError('must provide an event_id')
     }
 
-    return this.find({userId, inviterId, eventId}, trxOpts)
-    .then(existing => {
-      if (existing) return existing
+    return this.find({ userId, inviterId, eventId }, trxOpts)
+      .then(existing => {
+        if (existing) return existing
 
-      return new EventInvitation({
-        user_id: userId,
-        inviter_id: inviterId,
-        event_id: eventId,
-        response,
-        created_at: new Date(),
-        updated_at: new Date()
+        return new EventInvitation({
+          user_id: userId,
+          inviter_id: inviterId,
+          event_id: eventId,
+          response,
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+          .save(null, trxOpts)
       })
-      .save(null, trxOpts)
-    })
   },
 
   find: function ({ userId, inviterId, eventId }, opts) {

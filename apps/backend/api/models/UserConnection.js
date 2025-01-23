@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 
 /* eslint-disable camelcase */
 module.exports = bookshelf.Model.extend({
@@ -32,16 +32,16 @@ module.exports = bookshelf.Model.extend({
       created_at: new Date(),
       updated_at: new Date()
     })
-    .save(null, { returning: '*' })
+      .save(null, { returning: '*' })
   },
 
   createOrUpdate: function (userId, otherUserId, type) {
     return this.find(userId, otherUserId, type)
       .then(connection => {
-        if (connection) return connection.save(
+        if (connection) {return connection.save(
           { updated_at: new Date() },
           { returning: '*' }
-        )
+        )}
         return this.create(userId, otherUserId, type)
       })
   },

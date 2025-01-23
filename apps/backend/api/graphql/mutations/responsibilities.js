@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 
 export async function addGroupResponsibility ({ groupId, title, description, userId }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')

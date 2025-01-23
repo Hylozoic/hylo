@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import validator from 'validator'
 
 export async function canDeleteAffiliation (userId, affiliationId) {
