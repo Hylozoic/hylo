@@ -62,7 +62,7 @@ export default function AllView() {
   }, [contextWidgets, canAdminister])
 
   const handleWidgetPress = (widget) => {
-    const widgetUrl = NavigationHelpers.widgetUrl({ widget, groupSlug: currentGroup?.slug })
+    const widgetUrl = NavigatorHelpers.widgetUrl({ widget, groupSlug: currentGroup?.slug })
 
     if (widgetUrl) {
       openURL(widgetUrl)
