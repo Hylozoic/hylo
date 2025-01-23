@@ -98,7 +98,6 @@ export default function PostBodyProposal ({
   const votePrompt = votingMethod === VOTING_METHOD_SINGLE ? 'Select one' : 'Select one or more'
 
   function handleVote (optionId) {
-    console.log('how are we handling the voting?', optionId)
     if (votingMethod === VOTING_METHOD_SINGLE) {
       if (currentUserVotesOptionIds.includes(optionId)) {
         removeProposalVote({ optionId, postId: id })
