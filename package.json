@@ -28,6 +28,7 @@
     "@hylo/shared": "workspace:*"
   },
   "devDependencies": {
+    "standard": "^17.1.2",
     "typescript": "5.0.4"
   },
   "resolutions": {

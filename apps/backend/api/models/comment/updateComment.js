@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { difference, uniq, isEqual } from 'lodash'
 import { updateMedia } from './util'
 

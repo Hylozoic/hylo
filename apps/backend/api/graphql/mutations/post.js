@@ -1,7 +1,7 @@
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import validatePostData from '../../models/post/validatePostData'
 import underlyingCreatePost from '../../models/post/createPost'
 import underlyingUpdatePost from '../../models/post/updatePost'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export function createPost (userId, data) {
   return convertGraphqlPostData(data)

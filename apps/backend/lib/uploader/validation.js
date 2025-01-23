@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { values } from 'lodash'
 import * as types from './types'
 

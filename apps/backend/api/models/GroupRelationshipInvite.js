@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import EnsureLoad from './mixins/EnsureLoad'
 
 module.exports = bookshelf.Model.extend(Object.assign({
@@ -200,9 +200,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
       q.whereNull('used_by_id')
       q.whereNull('expired_by_id')
     })
-    .fetchAll({withRelated: ['creator', 'group', 'tag']})
-    .tap(invitations => Promise.map(invitations.models, i => i.send()))
-    .then(invitations => invitations.pluck('id'))
+      .fetchAll({ withRelated: ['creator', 'group', 'tag'] })
+      .tap(invitations => Promise.map(invitations.models, i => i.send()))
+      .then(invitations => invitations.pluck('id'))
   }
 
 })

@@ -1,4 +1,5 @@
 import knexPostgis from 'knex-postgis'
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { clone, defaults, difference, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
 import mbxGeocoder from '@mapbox/mapbox-sdk/services/geocoding'
 import fetch from 'node-fetch'
@@ -15,8 +16,6 @@ import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
 import { es } from '../../lib/i18n/es'
 import { en } from '../../lib/i18n/en'
-
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 const locales = { es, en }
 

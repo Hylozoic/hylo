@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 
 export async function createModerationAction ({ userId, data }) {
   const { groupId, text, anonymous, agreements, platformAgreements, postId } = data

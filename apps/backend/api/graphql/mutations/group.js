@@ -1,8 +1,7 @@
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import GroupService from '../../services/GroupService'
 import convertGraphqlData from './convertGraphqlData'
 import underlyingDeleteGroupTopic from '../../models/group/deleteGroupTopic'
-
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 // Util function
 async function getStewardedGroup (userId, groupId, additionalResponsibility = '', opts = {}) {
