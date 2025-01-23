@@ -13,11 +13,14 @@ import HomeNavigator from 'navigation/HomeNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
 import MessagesNavigator from 'navigation/MessagesNavigator'
 import UserSettingsTabsNavigator from './UserSettingsTabsNavigator'
-import { setCurrentGroupSlug } from 'hooks/useCurrentGroup'
+import useCurrentGroup, { setCurrentGroupSlug } from 'hooks/useCurrentGroup'
 import { MY_CONTEXT_SLUG } from '@hylo/shared'
 import { useNavigation } from '@react-navigation/native'
 import { useDispatch } from 'react-redux'
 import { openURL } from 'hooks/useOpenURL'
+import { NotificationsIcon } from './headers/TabStackHeader'
+import { PlusSquare } from 'lucide-react-native'
+import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 
 const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
@@ -54,6 +57,7 @@ export default function TabsNavigator () {
     })
   }
   const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroup }] = useCurrentGroup()
 
   const handleSupportTabPress = () => {
     Intercom.present()
@@ -71,27 +75,26 @@ export default function TabsNavigator () {
   return (
     <Tabs.Navigator {...navigatorProps}>
       <Tabs.Screen name='Home Tab' component={HomeNavigator} />
-      <Tabs.Screen name='Search Tab' component={SearchNavigator} />
-      <Tabs.Screen name='Messages Tab' component={MessagesNavigator} />
       <Tabs.Screen
-        name='Support Tab'
-        component={HomeNavigator} // it will never navigate to this but we need to pass a valid component here anyway
+        name='Create'
+        component={UserSettingsTabsNavigator}
         listeners={{
           tabPress: (e) => {
-            handleSupportTabPress()
+            navigation.navigate('Edit Post', {
+              groupId: isContextGroup(currentGroup.slug) ? null : currentGroup.id,
+            })
 
             e.preventDefault()
           }
         }}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 28, fontFamily: 'Circular-Bold', color: focused ? black10OnCaribbeanGreen : rhino60 }}>?</Text>
-          )
-        }}
+            <PlusSquare />
+        )}}
       />
       <Tabs.Screen
-        name='Settings Tab'
-        component={UserSettingsTabsNavigator}
+        name='My Context'
+        component={HomeNavigator}
         listeners={{
           tabPress: (e) => {
             handleProfileTabPress()
@@ -110,6 +113,40 @@ export default function TabsNavigator () {
               hasBorder
               avatarUrl={currentUser?.avatarUrl}
             />
+          )
+        }}
+      />
+      <Tabs.Screen name='Search Tab' component={SearchNavigator} />
+      <Tabs.Screen name='Messages Tab' component={MessagesNavigator} />
+      {/* <Tabs.Screen
+        name='Support Tab'
+        component={HomeNavigator} // it will never navigate to this but we need to pass a valid component here anyway
+        listeners={{
+          tabPress: (e) => {
+            handleSupportTabPress()
+
+            e.preventDefault()
+          }
+        }}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 28, fontFamily: 'Circular-Bold', color: focused ? black10OnCaribbeanGreen : rhino60 }}>?</Text>
+          )
+        }}
+      /> */}
+      <Tabs.Screen
+        name='Notifications'
+        component={UserSettingsTabsNavigator}
+        listeners={{
+          tabPress: (e) => {
+            navigation.navigate(modalScreenName('Notifications'))
+
+            e.preventDefault()
+          }
+        }}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <NotificationsIcon showNotifications={ ()=>{} } />
           )
         }}
       />

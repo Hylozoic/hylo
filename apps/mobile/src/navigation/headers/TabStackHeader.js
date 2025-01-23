@@ -97,7 +97,7 @@ export default function TabStackHeader ({
           alignItems: 'center'
         }}
       >
-        <NotificationsIcon showNotifications={() => navigation.navigate(modalScreenName('Notifications'))} />
+        {/* <NotificationsIcon showNotifications={() => navigation.navigate(modalScreenName('Notifications'))} /> */}
       </View>
     ))
   }
@@ -143,7 +143,7 @@ export function MenuButton ({ canGoBack, onPress }) {
 export const styles = StyleSheet.create({
   headerIcon: {
     opacity: 0.75,
-    color: white,
+    color: rhino80,
     backgroundColor: 'transparent',
     fontSize: 32,
     marginRight: 12

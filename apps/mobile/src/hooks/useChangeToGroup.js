@@ -39,7 +39,7 @@ export default function useChangeToGroup () {
             groupSlug: destinationGroup?.slug
           })
           if (groupHomeUrl) {
-            openURL(groupHomeUrl)
+            // openURL(groupHomeUrl)
           } else {
             // TODO redesign: For clarity/consistency it's probably best to use openURL here too:
             // openURL('/groups/${currentGroup?.slug}/chats/general') ?
