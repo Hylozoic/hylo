@@ -442,7 +442,7 @@ export default function ChatRoom (props) {
   if (topicLoading) return <Loading />
 
   return (
-    <div className={cn('h-full shadow-md flex flex-col overflow-hidden', { [styles.withoutNav]: withoutNav })}>
+    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
@@ -472,8 +472,8 @@ export default function ChatRoom (props) {
             )}
       </div>
       {/* Post chat box */}
-      <div className='ChatBoxContainer px-4 w-full max-w-[750px] mx-auto '>
-        <div className='ChatBox relative w-full px-2 mt-2 shadow-md p-2 border-t border-l border-r border-border shadow-lg rounded-t-xl bg-card'>
+      <div className='ChatBoxContainer w-full max-w-[750px]'>
+        <div className='ChatBox relative w-full px-2 shadow-md p-2 border-2 border-foreground/15 shadow-xlg rounded-t-xl bg-card'>
           <HyloEditor
             contentHTML={newPost.details}
             groupIds={groupIds}
@@ -499,39 +499,41 @@ export default function ChatRoom (props) {
               onClose={handleRemoveLinkPreview}
             />
           )}
-          <AttachmentManager
-            type='post'
-            id='new'
-            attachmentType='image'
-            showAddButton
-            showLabel
-            showLoading
-          />
-          <div className='w-full'>
-            <UploadAttachmentButton
+          <div>
+            <AttachmentManager
               type='post'
-              className={styles.uploadAttachment}
               id='new'
               attachmentType='image'
-              onSuccess={(attachment) => dispatch(addAttachment('post', 'new', attachment))}
-              allowMultiple
-            >
-              <ImagePlus className={cn('text-foreground hover:cursor-pointer hover:text-accent', { 'text-primary': imageAttachments && imageAttachments.length > 0 })} />
-            {/* Remove when it's confirmed to be working
-              <Icon
-                name='AddImage'
-                className={cn('text-foreground', styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
-              />
-              */}
-            </UploadAttachmentButton>
-            <Button
-              borderRadius='6px'
-              disabled={!postInProgress}
-              onClick={postChatMessage}
-              className={styles.sendMessageButton}
-            >
-              <SendHorizontal color={!postInProgress ? 'gray' : 'white'} size={18} style={{ display: 'inline' }} />
-            </Button>
+              showAddButton
+              showLabel
+              showLoading
+            />
+            <div className='flex w-full justify-between items-center px-2'>
+              <UploadAttachmentButton
+                type='post'
+                className='w-[20px] h-[20px] opacity-70 hover:opacity-100 transition-all'
+                id='new'
+                attachmentType='image'
+                onSuccess={(attachment) => dispatch(addAttachment('post', 'new', attachment))}
+                allowMultiple
+              >
+                <ImagePlus className={cn('text-foreground hover:cursor-pointer hover:text-accent w-[20px] h-[20px]', { 'text-primary': imageAttachments && imageAttachments.length > 0 })} />
+              {/* Remove when it's confirmed to be working
+                <Icon
+                  name='AddImage'
+                  className={cn('text-foreground', styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
+                />
+                */}
+              </UploadAttachmentButton>
+
+              <Button
+                disabled={!postInProgress}
+                onClick={postChatMessage}
+                className='bg-foreground/30 px-2 py-1 rounded flex items-center'
+              >
+                <SendHorizontal className={!postInProgress ? 'text-background' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -607,7 +609,7 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
         ? (
           <div className={styles.displayDay}>
             <div className={cn('border-dashed border-b-2 border-background')} />
-            <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground bg-background rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
+            <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground/50 bg-background rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
           </div>
           )
         : null}
