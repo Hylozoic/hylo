@@ -27,7 +27,7 @@ export default function HyloEditorMenuBar ({ editor }) {
   const [modal, setModal] = useState(false)
 
   return (
-    <div className={classes.topMenuBar}>
+    <div className='flex items-center w-full opacity-70 hover:opacity-100 transition-all'>
       <HyloEditorMenuBarButton
         Icon={Bold}
         setModal={setModal}
