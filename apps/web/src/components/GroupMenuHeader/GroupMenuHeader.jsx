@@ -1,4 +1,4 @@
-import { ChevronRight, Settings, UsersRound } from 'lucide-react'
+import { BadgeInfo, Settings, UsersRound } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
@@ -60,13 +60,13 @@ export default function GroupMenuHeader ({
       <div className='relative flex flex-row items-center text-background'>
         <div style={bgImageStyle(avatarUrl)} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' />
         <div className={`flex flex-col flex-1 text-${textColor} drop-shadow-md`}>
-          <h1 className='text-xl font-bold m-0 text-white'>{group.name}</h1>
+          <h1 className='text-xl/5 font-bold m-0 text-white'>{group.name}</h1>
           <span className='text-xs align-middle  text-white'>
             <UsersRound className='w-4 h-4 inline mr-1 align-bottom' />
             <Link className='text-white underline' to={groupUrl(group.slug, 'members', {})}>{t('{{count}} Members', { count: group.memberCount })}</Link>
           </span>
         </div>
-        <ChevronRight className={`text-${textColor} cursor-pointer`} onClick={() => navigate(groupUrl(group.slug, 'about', {}))} />
+        <BadgeInfo className={`text-${textColor} cursor-pointer w-[20px] h-[20px]`} onClick={() => navigate(groupUrl(group.slug, 'about', {}))} />
       </div>
     </div>
   )

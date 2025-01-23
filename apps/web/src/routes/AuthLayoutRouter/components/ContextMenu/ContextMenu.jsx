@@ -688,8 +688,8 @@ function GroupSettingsMenu ({ group }) {
   }, [confirm, previousLocation, group.slug])
 
   return (
-    <div className='fixed h-full w-full top-0 left-[90px] w-[230px] bg-background/60 z-10'>
-      <div className='absolute h-full w-full top-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] pl-2 pr-5 z-10'>
+    <div className='fixed h-full top-0 left-[100px] w-[280px] bg-background/60 z-10'>
+      <div className='absolute h-full top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] pl-2 pr-5 z-10'>
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
           {t('Group Settings')}
