@@ -1,37 +1,53 @@
-export default function makeSubscriptions ({ resolvers, expressContext, userId, isAdmin, fetchOne, fetchMany }) {
+import { pipe } from '@graphql-yoga/node'
+import { get } from 'lodash/fp'
+
+/**
+ * Filters out subscription events where the current user is the creator.
+ * @param {Object} options - Options for filtering.
+ * @param {Object} options.context - The GraphQL context containing `currentUserId`.
+ * @param {Function} [options.getter] - Optional custom getter to extract the creator ID.
+ * @returns {Function} - A function that filters subscription payloads.
+ */
+const withDontSendToCreator = ({ context, getter } = {}) => {
+  return async function * (asyncIterator) {
+    for await (const payload of asyncIterator) {
+      const currentUserId = context.currentUserId
+      const inferredKey = Object.keys(payload)[0]
+      const creatorId = getter
+        ? getter(payload)
+        : get(`${inferredKey}.user.id`, payload)
+
+      console.log(
+        'Filtering event:',
+        'Payload:', payload,
+        'Skipping:', creatorId === currentUserId,
+        'Creator ID:', creatorId,
+        'Current User ID:', currentUserId
+      )
+
+      if (creatorId !== currentUserId) {
+        yield payload
+      }
+    }
+  }
+}
+
+export default function makeSubscriptions({ models, resolvers, expressContext, userId, isAdmin, fetchOne, fetchMany }) {
   return {
-    countdown: {
-      subscribe: async function * (_, { from }) {
-        for (let i = from; i >= 0; i--) {
-          await new Promise(resolve => setTimeout(resolve, 1000)) // Wait for 1 second
-          yield { countdown: i } // Send the value to the subscriber
-        }
+    commentCreated: {
+      subscribe: (parent, { postId }, context) => pipe(
+        context.pubSub.subscribe(`commentCreated-postId-${postId}`),
+        withDontSendToCreator({ context })
+      ),
+      resolve: (payload) => {
+        // Rehydrate the JSON serialized and re-parsed Bookshelf instance
+        return new Comment(payload.commentCreated)
       }
     },
 
-    commentAdded: {
-      subscribe: (_, args, context) => {
-        return context.pubSub.subscribe(`createComment-forPostId-${args.postId}`)
-      },
-      resolve: (payload, args, context, info) => {
-        console.log('!!! payload in commentAdded subscription resolver:', payload, args, context, info)
-      }
-      //   return payload
-      // }
-        // console.log("!!!! info.schema.getType('Comment').resolve", info.schema.getType('Comment'))
-        // console.log('!!!! commentAdded - comment:')
-        // console.dir(payload)
-        // console.log('!!! commentAdded - info :', info)
-        // console.dir(info)
-        // console.log('!!! commentAdded - context :')
-        // console.dir(context)
-        // Let GraphQL handle the rest of the field resolution dynamically
-      //   return payload?.commentAdded
-      // }
-    },
-
-    messageAdded: {
+    messageCreated: {
       subscribe: (_, { threadId }, context) => {
+        console.log('!!!! currentUserId', context.currentUserId)
         const channel = `MESSAGE_ADDED_${threadId}`
         return context.pubSub.subscribe(channel)
       }

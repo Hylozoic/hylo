@@ -1,23 +1,8 @@
 import reactOn from './reactOn'
 import createComment from './createComment'
 import meCheckAuthQuery from 'graphql/queries/meCheckAuthQuery'
-import { Subscription } from 'urql'
 
 export default {
-  Subscription: {
-    countdown: (result, parent, _args, cache) => {
-      console.log('!!!!! countdown - result, parent, _args', result, parent, _args)
-      // const list = cache.resolve('Query', 'list') || [];
-      // list.push(parent.alphabet);
-      // cache.link('Query', 'list', list);
-    },
-    commentAdded: (result, args, cache, info) => {
-      console.log('!!!!! commentAdded - result, args, info:', result, args, info)
-      // const list = cache.resolve('Query', 'list') || [];
-      // list.push(parent.alphabet);
-      // cache.link('Query', 'list', list);
-    }
-  },
   Mutation: {
     createComment,
     createMessage: (result, args, cache, info) => {
@@ -68,6 +53,14 @@ export default {
       if (result[info.fieldName].success) {
         cache.invalidate(cache.keyOfEntity({ __typename: 'Post', id: args.id }), 'myEventResponse')
       }
+    }
+  },
+  Subscription: {
+    countdown: (result, parent, _args, cache) => {
+      console.log('!!!!! countdown - result, parent, _args', result, parent, _args)
+    },
+    commentCreated: (result, args, cache, info) => {
+      console.log('!!!!! commentCreated - result, args, info:', result, args, info)
     }
   }
 }

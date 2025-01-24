@@ -37,6 +37,8 @@ export async function createComment (userId, data, context) {
   const parentComment = data.parentCommentId ? await Comment.find(data.parentCommentId) : null
   const comment = await underlyingCreateComment(userId, merge(data, { post, parentComment }))
 
+  context.pubSub.publish(`commentCreated-postId-${post.id}`, { commentCreated: comment })
+
   return comment
 }
 

@@ -12,12 +12,12 @@ import useIsModalScreen from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
+import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
 import PostPresenter from 'urql-shared/presenters/PostPresenter'
 import { KeyboardAccessoryCommentEditor } from 'components/CommentEditor/CommentEditor'
 import Comments from 'components/Comments'
 import Loading from 'components/Loading'
 import PostCardForDetails from 'components/PostCard/PostCardForDetails'
-import SocketSubscriber from 'components/SocketSubscriber'
 import { white } from 'style/colors'
 
 export const postDetailsQuery = gql`
@@ -27,6 +27,15 @@ export const postDetailsQuery = gql`
     }
   }
   ${postFieldsFragment}
+`
+
+export const commentCreatedSubscription = gql`
+  subscription CommentCreatedSubscription($postId: ID!) {
+    commentCreated(postId: $postId) {
+      ...CommentFieldsFragment
+    }
+  }
+  ${commentFieldsFragment}
 `
 
 export default function PostDetails () {
@@ -42,14 +51,7 @@ export default function PostDetails () {
   const goToMember = useGoToMember()
 
   useSubscription({
-    query: gql`
-      subscription CommentAddedSub($postId: ID!) {
-        commentAdded(postId: $postId) {
-          id
-          text
-        }
-      }
-    `,
+    query: commentCreatedSubscription,
     variables: { postId: post?.id },
     pause: !post?.id
   })
@@ -129,7 +131,6 @@ export default function PostDetails () {
         scrollToReplyingTo={scrollToSelectedComment}
         clearReplyingTo={clearSelectedComment}
       />
-      <SocketSubscriber type='post' id={post.id} />
     </View>
   )
 }

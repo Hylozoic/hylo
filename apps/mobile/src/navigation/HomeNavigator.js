@@ -22,21 +22,12 @@ import MapWebView from 'screens/MapWebView/MapWebView'
 import GroupWelcomeLanding from 'screens/GroupWelcomeFlow/GroupWelcomeLanding'
 import { GROUP_WELCOME_LANDING } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
 import { useTranslation } from 'react-i18next'
-import { gql, useSubscription } from 'urql'
 
 const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
   const initialURL = useSelector(state => state.initialURL)
   const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
   const { t } = useTranslation()
-
-  // const [subResult, execSub] = useSubscription({
-  //   query: gql`
-  //     subscription CountDownSub {
-  //         countdown(from: 1000)
-  //       }
-  //   `
-  // })
 
   useEffect(() => {
     if (!initialURL && !returnToOnAuthPath) {

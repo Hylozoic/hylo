@@ -307,9 +307,8 @@ type Query {
 }
 
 type Subscription {
-  countdown(from: Int!): Int!,
-  commentAdded(postId: ID!): Comment,
-  messageAdded(threadId: ID!): Comment
+  commentCreated(postId: ID, parentCommentId: ID): Comment,
+  messageCreated(threadId: ID!): Comment
 }
 
 # The meta data associated with an Activity

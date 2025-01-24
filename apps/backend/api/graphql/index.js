@@ -1,7 +1,11 @@
+import { makeExecutableSchema } from 'graphql-tools'
 import { createServer, GraphQLYogaError } from '@graphql-yoga/node'
 import { useLazyLoadedSchema } from '@envelop/core'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { inspect } from 'util'
+import { merge, reduce } from 'lodash'
+import { red } from 'chalk'
 import setupBridge from '../../lib/graphql-bookshelf-bridge'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
 import mixpanel from '../../lib/mixpanel'
@@ -125,23 +129,15 @@ import {
   verifyEmail
 } from './mutations'
 import InvitationService from '../services/InvitationService'
+import RedisPubSub from '../services/RedisPubSub'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
-import { makeExecutableSchema } from 'graphql-tools'
-import { inspect } from 'util'
-import { red } from 'chalk'
-import { merge, reduce } from 'lodash'
-import RedisPubSub from '../services/RedisPubSub'
-import useMutationSubscriptionResponder from './useMutationSubscriptionResponder'
 
 const schemaText = readFileSync(join(__dirname, 'schema.graphql')).toString()
 
 export const createRequestHandler = () =>
   createServer({
-    plugins: [
-      useLazyLoadedSchema(createSchema),
-      useMutationSubscriptionResponder()
-    ],
+    plugins: [useLazyLoadedSchema(createSchema)],
     context: async ({ query, req, variables }) => {
       if (process.env.DEBUG_GRAPHQL) {
         sails.log.info('\n' +
@@ -160,7 +156,8 @@ export const createRequestHandler = () =>
       // This is unrelated to the above which is using context as a hook,
       // this is putting the subscriptions pubSub method on context
       return {
-        pubSub: RedisPubSub
+        pubSub: RedisPubSub,
+        currentUserId: req.session.userId
       }
     },
     logging: true,
@@ -185,7 +182,7 @@ function createSchema (expressContext) {
     allResolvers = {
       Query: makeAuthenticatedQueries({ userId, fetchOne, fetchMany }),
       Mutation: makeMutations({ expressContext, userId, isAdmin, fetchOne }),
-      Subscription: makeSubscriptions({ resolvers, expressContext, userId, isAdmin, fetchOne }),
+      Subscription: makeSubscriptions({ models, resolvers, expressContext, userId, isAdmin, fetchOne }),
 
       FeedItemContent: {
         __resolveType (data, context, info) {
