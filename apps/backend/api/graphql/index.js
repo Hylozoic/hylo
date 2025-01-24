@@ -128,6 +128,7 @@ import {
   useInvitation,
   verifyEmail
 } from './mutations'
+import peopleTyping from './mutations/peopleTyping'
 import InvitationService from '../services/InvitationService'
 import RedisPubSub from '../services/RedisPubSub'
 import makeModels from './makeModels'
@@ -376,13 +377,13 @@ export function makeMutations ({ expressContext, userId, fetchOne }) {
 
     createJoinRequest: (root, { groupId, questionAnswers }) => createJoinRequest(userId, groupId, questionAnswers),
 
-    createMessage: (root, { data }) => createMessage(userId, data),
+    createMessage: (root, { data }, context) => createMessage(userId, data, context),
 
     createModerationAction: (root, { data }) => createModerationAction({ data, userId }),
 
-    createPost: (root, { data }) => createPost(userId, data),
+    createPost: (root, { data }, context) => createPost(userId, data, context),
 
-    createProject: (root, { data }) => createProject(userId, data),
+    createProject: (root, { data }, context) => createProject(userId, data, context),
 
     createProjectRole: (root, { projectId, roleName }) => createProjectRole(userId, projectId, roleName),
 
@@ -457,6 +458,8 @@ export function makeMutations ({ expressContext, userId, fetchOne }) {
 
     pinPost: (root, { postId, groupId }) =>
       pinPost(userId, postId, groupId),
+
+    peopleTyping,
 
     processStripeToken: (root, { postId, token, amount }) =>
       processStripeToken(userId, postId, token, amount),

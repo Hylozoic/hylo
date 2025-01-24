@@ -2,34 +2,11 @@
 
 exports[`returns the expected value 1`] = `
 {
-  "addUserTyping": [Function],
-  "clearUserTyping": [Function],
   "group": null,
-  "receiveComment": [Function],
-  "receiveMessage": [Function],
   "receiveNotification": [Function],
   "receivePost": [Function],
   "receiveThread": [Function],
   "setupCoreEventHandlers": [Function],
-}
-`;
-
-exports[`returns the expected value 2`] = `
-{
-  "payload": {
-    "id": "11",
-    "name": "Joe",
-  },
-  "type": "PeopleTyping/ADD_USER_TYPING",
-}
-`;
-
-exports[`returns the expected value 3`] = `
-{
-  "payload": {
-    "id": "11",
-  },
-  "type": "PeopleTyping/CLEAR_USER_TYPING",
 }
 `;
 

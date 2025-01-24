@@ -1,9 +1,6 @@
 import { has } from 'lodash/fp'
-// import { showMessagesBadge } from 'store/reducers/ormReducer/util'
 
 const MODULE_NAME = 'SocketListener'
-export const RECEIVE_MESSAGE = `${MODULE_NAME}/RECEIVE_MESSAGE`
-export const RECEIVE_COMMENT = `${MODULE_NAME}/RECEIVE_COMMENT`
 export const RECEIVE_POST = `${MODULE_NAME}/RECEIVE_POST`
 export const RECEIVE_THREAD = `${MODULE_NAME}/RECEIVE_THREAD`
 export const RECEIVE_NOTIFICATION = `${MODULE_NAME}/RECEIVE_NOTIFICATION`
@@ -32,35 +29,6 @@ function noncircular (obj) {
 }
 
 // TODO: URQL - convert sockets
-
-export function receiveMessage (message, opts = {}) {
-  return {
-    type: RECEIVE_MESSAGE,
-    payload: {
-      data: {
-        message
-      }
-    },
-    meta: {
-      extractModel: 'Message',
-      bumpUnreadCount: opts.bumpUnreadCount
-    }
-  }
-}
-
-export function receiveComment (comment) {
-  return {
-    type: RECEIVE_COMMENT,
-    payload: {
-      data: {
-        comment
-      }
-    },
-    meta: {
-      extractModel: 'Comment'
-    }
-  }
-}
 
 export function receiveThread (thread) {
   return {
@@ -159,19 +127,6 @@ export function ormSessionReducer (session, action) {
       //   const post = Post.withId(activity.post.id)
       //   post.increment('commentsTotal')
       // }
-      break
-
-    case RECEIVE_THREAD:
-      // Me.first().increment('unseenThreadCount')
-      break
-
-    case RECEIVE_MESSAGE:
-      // const { message: { messageThread, createdAt } } = payload.data
-      // if (MessageThread.idExists(messageThread)) {
-      //   MessageThread.withId(messageThread).update({ updatedAt: createdAt })
-      // }
-
-      // showMessagesBadge(session)
       break
   }
 }

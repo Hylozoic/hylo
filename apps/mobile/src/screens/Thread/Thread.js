@@ -3,11 +3,11 @@ import { FlatList } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { useDispatch, useSelector } from 'react-redux'
-import { useMutation, useQuery } from 'urql'
+import { gql, useMutation, useQuery, useSubscription } from 'urql'
 import { debounce } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
-import { getSocket, sendIsTyping as providedSendIsTyping } from 'services/websockets'
 import messageThreadMessagesQuery from 'graphql/queries/messageThreadMessagesQuery'
+import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
 import createMessageMutation from 'graphql/mutations/createMessageMutation'
 import confirmNavigate from 'util/confirmNavigate'
 import useCurrentUser from 'hooks/useCurrentUser'
@@ -16,9 +16,9 @@ import Loading from 'components/Loading'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
-import NotificationOverlay from 'components/NotificationOverlay'
+// import NotificationOverlay from 'components/NotificationOverlay'
 import PeopleTyping from 'components/PeopleTyping'
-import SocketSubscriber from 'components/SocketSubscriber'
+// import SocketSubscriber from 'components/SocketSubscriber'
 import ThreadHeaderTitle from './ThreadHeaderTitle'
 import styles from './Thread.styles'
 import { rhino10 } from 'style/colors'
@@ -35,11 +35,22 @@ export function updateThreadReadTimeAction (id) {
     meta: { id }
   }
 }
+
+export const commentCreatedSubscription = gql`
+  subscription CommentCreatedSubscription($postId: ID!) {
+    commentCreated(postId: $postId) {
+      ...CommentFieldsFragment
+    }
+  }
+  ${commentFieldsFragment}
+`
+
 export default function Thread (props) {
   const { t } = useTranslation()
+  const peopleTypingRef = useRef()
   const navigation = useNavigation()
   const dispatch = useDispatch()
-  const isConnected = useSelector(state => state.SocketListener.connected)
+  // const isConnected = useSelector(state => state.SocketListener.connected)
   const [{ currentUser }] = useCurrentUser()
   const { id: threadId } = useRouteParams()
 
@@ -67,8 +78,7 @@ export default function Thread (props) {
   }
 
   const [, createMessage] = useMutation(createMessageMutation)
-  const sendIsTyping = () => providedSendIsTyping(threadId, true)
-  // TODO: URQL - convert
+
   const updateThreadReadTime = () => dispatch(updateThreadReadTimeAction(threadId))
 
   const [{ data, fetching }, refetchThread] = useQuery({
@@ -80,6 +90,8 @@ export default function Thread (props) {
     }
   })
   const thread = data?.messageThread
+
+  useSubscription({ query: commentCreatedSubscription, variables: { postId: threadId } })
 
   // TODO: URQL handle consolidation of multiple messages from same user
   // function refineMessage ({ id, createdAt, creator, text }, i, messages) {
@@ -129,11 +141,12 @@ export default function Thread (props) {
   }
 
   useEffect(() => {
-    getSocket().then(socket => socket.on('reconnect', refetchThread))
+    // <SocketSubscriber type='post' id={threadId} />
+    // getSocket().then(socket => socket.on('reconnect', refetchThread))
     scrollToBottom()
     markAsRead()
     setHeader()
-    return () => getSocket().then(socket => socket.off('reconnect', refetchThread))
+    // return () => getSocket().then(socket => socket.off('reconnect', refetchThread))
   }, [])
 
   // Was UNSAFE_componentWillUpdate (nextProps) and componentDidUpdate (prevProps)
@@ -212,10 +225,10 @@ export default function Thread (props) {
     }
   }
 
-  const showNotificationOverlay = notify
-  const overlayMessage = !isConnected
-    ? '' // 'RECONNECTING...'
-    : `${newMessages} ${t('NEW MESSAGE')}${newMessages > 1 ? 'S' : ''}`
+  // const showNotificationOverlay = notify
+  // const overlayMessage = !isConnected
+  //   ? '' // 'RECONNECTING...'
+  //   : `${newMessages} ${t('NEW MESSAGE')}${newMessages > 1 ? 'S' : ''}`
 
   return (
     <KeyboardFriendlyView style={styles.container}>
@@ -236,11 +249,11 @@ export default function Thread (props) {
         blurOnSubmit={false}
         multiline
         onSubmit={messageText => handleSubmit(messageText)}
-        sendIsTyping={sendIsTyping}
+        sendIsTyping={peopleTypingRef?.current?.sendTyping}
         placeholder={t('Write something')}
       />
-      <PeopleTyping />
-      {showNotificationOverlay && (
+      <PeopleTyping postId={threadId} ref={peopleTypingRef} />
+      {/* {showNotificationOverlay && (
         <NotificationOverlay
           position='bottom'
           type={isConnected ? 'info' : 'error'}
@@ -248,8 +261,7 @@ export default function Thread (props) {
           message={overlayMessage}
           onPress={() => scrollToBottom()}
         />
-      )}
-      <SocketSubscriber type='post' id={threadId} />
+      )} */}
     </KeyboardFriendlyView>
   )
 }

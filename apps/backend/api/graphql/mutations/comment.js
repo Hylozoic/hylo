@@ -33,23 +33,29 @@ export function deleteComment (userId, commentId) {
 export async function createComment (userId, data, context) {
   await validateCommentCreateData(userId, data)
 
-  const post = await Post.find(data.postId)
-  const parentComment = data.parentCommentId ? await Comment.find(data.parentCommentId) : null
-  const comment = await underlyingCreateComment(userId, merge(data, { post, parentComment }))
+  const { postId, parentCommentId } = data
+  const post = await Post.find(postId)
+  const parentComment = parentCommentId ? await Comment.find(parentCommentId) : null
+  const bookshelfComment = await underlyingCreateComment(userId, merge(data, { post, parentComment }))
 
-  context.pubSub.publish(`commentCreated-postId-${post.id}`, { commentCreated: comment })
+  context.pubSub.publish(
+    parentCommentId
+      ? `commentCreated:parentCommentId:${parentCommentId}`
+      : `commentCreated:postId:${postId}`,
+    { commentCreated: bookshelfComment }
+  )
 
-  return comment
+  return bookshelfComment
 }
 
-export async function createMessage (userId, data) {
+export async function createMessage (userId, data, context) {
   const post = await Post.find(data.messageThreadId)
   const followers = await post.followers().fetch()
   const blockedUserIds = (await BlockedUser.blockedFor(userId)).rows.map(r => r.user_id)
   const otherParticipants = followers.filter(f => f.id !== userId && !includes(f.id, blockedUserIds))
   if (otherParticipants.length < 1) throw new GraphQLYogaError('cannot send a message to this thread')
   data.postId = data.messageThreadId
-  return createComment(userId, data)
+  return createComment(userId, data, context)
 }
 
 export function updateComment (userId, { id, data }) {

@@ -1,6 +1,16 @@
 import { pipe } from '@graphql-yoga/node'
 import { get } from 'lodash/fp'
 
+// From WebSockets
+// const validMessageTypes = [
+//   x'commentAdded',
+//   x'messageAdded',
+//   x'userTyping',
+//   'newThread',
+//   'newNotification',
+//   'newPost'
+// ]
+
 /**
  * Filters out subscription events where the current user is the creator.
  * @param {Object} options - Options for filtering.
@@ -25,7 +35,8 @@ const withDontSendToCreator = ({ context, getter } = {}) => {
         'Current User ID:', currentUserId
       )
 
-      if (creatorId !== currentUserId) {
+      // NOTE: For ease of testing this will for now still send for currentUser while in development
+      if (creatorId !== currentUserId || process.env.NODE_ENV === 'development') {
         yield payload
       }
     }
@@ -35,8 +46,8 @@ const withDontSendToCreator = ({ context, getter } = {}) => {
 export default function makeSubscriptions({ models, resolvers, expressContext, userId, isAdmin, fetchOne, fetchMany }) {
   return {
     commentCreated: {
-      subscribe: (parent, { postId }, context) => pipe(
-        context.pubSub.subscribe(`commentCreated-postId-${postId}`),
+      subscribe: (parent, { userId, postId, parentCommentId }, context) => pipe(
+        context.pubSub.subscribe(parentCommentId ? `commentCreated:parentCommentId:${parentCommentId}` : `commentCreated:postId:${postId}`),
         withDontSendToCreator({ context })
       ),
       resolve: (payload) => {
@@ -45,11 +56,15 @@ export default function makeSubscriptions({ models, resolvers, expressContext, u
       }
     },
 
-    messageCreated: {
-      subscribe: (_, { threadId }, context) => {
-        console.log('!!!! currentUserId', context.currentUserId)
-        const channel = `MESSAGE_ADDED_${threadId}`
-        return context.pubSub.subscribe(channel)
+    peopleTyping: {
+      subscribe: (parent, { postId, commentId }, context) => pipe(
+        context.pubSub.subscribe(postId ? `peopleTyping:postId:${postId}` : `peopleTyping:commentId:${commentId}`),
+        withDontSendToCreator({ context })
+      ),
+      resolve: (payload) => {
+        // TODO: Monitor performance-- this is a very quick query (~6ms in local dev),
+        // but will happen every 3-5 second while someone is actively typing.
+        return User.find(payload.user.id)
       }
     }
   }

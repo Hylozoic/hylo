@@ -308,7 +308,7 @@ type Query {
 
 type Subscription {
   commentCreated(postId: ID, parentCommentId: ID): Comment,
-  messageCreated(threadId: ID!): Comment
+  peopleTyping(postId: ID, commentId: ID): Person
 }
 
 # The meta data associated with an Activity
@@ -2447,6 +2447,8 @@ type Mutation {
   messageGroupStewards(groupId: ID): ID
   # Pin a post within a Group. Only a group moderator can call this.
   pinPost(postId: ID, groupId: ID): GenericResult
+  # Called when typing in front end, matches with peopleTyping subscription
+  peopleTyping(postId: ID, commentId: ID): GenericResult,
   # NOT USED RIGHT NOW
   processStripeToken(postId: ID, token: String, amount: Int): GenericResult
   # react to a post or comment

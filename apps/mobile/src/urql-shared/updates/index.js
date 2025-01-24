@@ -56,10 +56,18 @@ export default {
     }
   },
   Subscription: {
-    countdown: (result, parent, _args, cache) => {
-      console.log('!!!!! countdown - result, parent, _args', result, parent, _args)
-    },
     commentCreated: (result, args, cache, info) => {
+      // import { showMessagesBadge } from 'store/reducers/ormReducer/util'
+      // case RECEIVE_THREAD:
+      //   // Me.first().increment('unseenThreadCount')
+      //   break
+      // case RECEIVE_MESSAGE:
+      //   // const { message: { messageThread, createdAt } } = payload.data
+      //   // if (MessageThread.idExists(messageThread)) {
+      //   //   MessageThread.withId(messageThread).update({ updatedAt: createdAt })
+      //   // }
+      //   // showMessagesBadge(session)
+      //   break
       console.log('!!!!! commentCreated - result, args, info:', result, args, info)
     }
   }

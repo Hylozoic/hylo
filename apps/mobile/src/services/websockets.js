@@ -47,11 +47,6 @@ export function socketUrl (path) {
   return `${socketHost}/${path.replace(/^\//, '')}`
 }
 
-export const sendIsTyping = curry((postId, isTyping) => {
-  const url = socketUrl(`/noo/post/${postId}/typing`)
-  getSocket().then(socket => socket.post(url, { isTyping }))
-})
-
 // for testing
 export function clearSingletons () {
   socketPromise = null

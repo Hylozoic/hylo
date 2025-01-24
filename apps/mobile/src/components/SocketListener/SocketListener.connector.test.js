@@ -29,19 +29,11 @@ it('returns the expected value', () => {
   expect(mergedProps).toMatchSnapshot()
 
   const {
-    addUserTyping,
-    clearUserTyping,
-    receiveComment,
-    receiveMessage,
     receiveNotification,
     receivePost,
     receiveThread
   } = mergedProps
 
-  expect(addUserTyping('11', 'Joe')).toMatchSnapshot()
-  expect(clearUserTyping('11')).toMatchSnapshot()
-  expect(receiveComment({ id: '1', text: 'hi' })).toMatchSnapshot()
-  expect(receiveMessage(message)).toMatchSnapshot()
   expect(receiveNotification({ id: '1', text: 'hi' })).toMatchSnapshot()
   expect(receivePost({ id: '1', title: 'hi' })).toMatchSnapshot()
   expect(receiveThread({

@@ -7,18 +7,9 @@ let socket, handler
 
 export default function SocketListener (props) {
   const handlers = {
-    commentAdded: props.receiveComment,
-    messageAdded: props.receiveMessage,
     newNotification: props.receiveNotification,
     newPost: props.receivePost,
-    newThread: props.newThread,
-    userTyping: ({ userId, userName, isTyping }) => {
-      const { addUserTyping, clearUserTyping } = props
-
-      isTyping
-        ? addUserTyping(userId, userName)
-        : clearUserTyping(userId)
-    }
+    newThread: props.newThread
   }
 
   useLayoutEffect(() => {

@@ -2,17 +2,11 @@ import { bindActionCreators } from 'redux'
 import { connect } from 'react-redux'
 import { get } from 'lodash/fp'
 import {
-  receiveComment,
-  receiveMessage,
   receiveNotification,
   receivePost,
   receiveThread,
   handleEvent
 } from './SocketListener.store'
-import {
-  addUserTyping,
-  clearUserTyping
-} from 'components/PeopleTyping/PeopleTyping.store'
 // import getCurrentGroup from 'store/selectors/getCurrentGroup'
 
 // TODO: URQL - convert sockets
@@ -28,19 +22,9 @@ export function mapDispatchToProps (dispatch, props) {
   return {
     receiveThread: data => dispatch(receiveThread(convertToThread(data))),
     receiveNotification: data => dispatch(receiveNotification(data)),
-    receiveComment: data => dispatch(receiveComment(data)),
     setupCoreEventHandlers: setupCoreEventHandlers(dispatch),
 
-    receiveMessage: data => {
-      const message = convertToMessage(data)
-      return dispatch(receiveMessage(message, {
-        bumpUnreadCount: !isActiveThread(props, data) // TODO
-      }))
-    },
-
     ...bindActionCreators({
-      addUserTyping,
-      clearUserTyping,
       receivePost
     }, dispatch)
   }
@@ -105,12 +89,6 @@ function convertToMessage (data) {
     creator: user_id,
     messageThread: postId
   }
-}
-
-function isActiveThread (location, data) {
-  return false // TODO
-  // const [ namespace, id ] = location.pathname.split('/').slice(1, 3)
-  // return namespace === 't' && data.postId === id
 }
 
 const setupCoreEventHandlers = dispatch => socket => {

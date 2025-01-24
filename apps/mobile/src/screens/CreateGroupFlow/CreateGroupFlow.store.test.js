@@ -2,11 +2,7 @@ import reducer,
 {
   createGroup,
   fetchGroupExists,
-  saveGroupUrl,
-  saveGroupName,
   clearCreateGroupStore,
-  UPDATE_GROUP_NAME,
-  SAVE_GROUP_URL,
   CLEAR_CREATE_GROUP_STORE,
   FETCH_URL_EXISTS,
   initialState
