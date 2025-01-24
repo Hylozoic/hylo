@@ -1,5 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
-
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import request from 'request'
 import { decodeHyloJWT } from '../../../lib/HyloJWT'
 
@@ -99,9 +98,9 @@ export const login = (fetchOne, { req }) => async (_, { email, password }) => {
     const user = await User.authenticate(email, password)
 
     await UserSession.login(req, user, 'password')
-    
+
     return { me: fetchOne('Me', user.id) }
-  } catch(error) {
+  } catch (error) {
     return { error: error.message }
   }
 }
@@ -117,7 +116,7 @@ export const logout = ({ req }) => async () => {
 export const sendPasswordReset = async (_, { email }) => {
   try {
     const user = await User.query(q => q.whereRaw('lower(email) = ?', email.toLowerCase())).fetch()
-    
+
     if (user) {
       const nextUrl = Frontend.Route.evo.passwordSetting()
       const token = user.generateJWT()
@@ -180,7 +179,7 @@ export async function unblockUser (userId, blockedUserId) {
 
 export async function updateStripeAccount (userId, accountId) {
   // TODO: add validation on accountId
-  const user = await User.find(userId, {withRelated: 'stripeAccount'})
+  const user = await User.find(userId, { withRelated: 'stripeAccount' })
 
   await user.updateStripeAccount(accountId)
 
@@ -188,7 +187,7 @@ export async function updateStripeAccount (userId, accountId) {
 }
 
 export async function registerStripeAccount (userId, authorizationCode) {
-  const user = await User.find(userId, {withRelated: 'stripeAccount'})
+  const user = await User.find(userId, { withRelated: 'stripeAccount' })
   const options = {
     uri: 'https://connect.stripe.com/oauth/token',
     form: {
@@ -198,15 +197,15 @@ export async function registerStripeAccount (userId, authorizationCode) {
     },
     json: true
   }
-  
+
   // TODO: this should be in a promise chain
-  request.post(options, async (err, response, body) => {
+  request.post(options, async (_err, response, body) => {
     const accountId = body.stripe_user_id
     const refreshToken = body.refresh_token
     if (accountId && refreshToken) {
       await user.updateStripeAccount(accountId, refreshToken)
     }
   })
-  
+
   return { success: true }
 }

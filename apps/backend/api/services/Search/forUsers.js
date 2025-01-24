@@ -1,6 +1,6 @@
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { countTotal } from '../../../lib/util/knex'
 import { filterAndSortUsers } from './util'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export default function (opts) {
   const { groups } = opts

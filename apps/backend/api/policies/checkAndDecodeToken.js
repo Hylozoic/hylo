@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 
 module.exports = function checkAndDecodeToken (req, res, next) {
   const token = req.param('token')
