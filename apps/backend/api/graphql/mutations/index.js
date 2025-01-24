@@ -66,7 +66,7 @@ export {
 export {
   findOrCreateLocation
 } from './location'
-export { updateMembership } from './membership'
+export { updateAllMemberships, updateMembership } from './membership'
 export { registerDevice } from './mobile'
 export {
   createPost,

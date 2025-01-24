@@ -66,8 +66,8 @@ export async function getRecipients (groupId, type) {
 
   const group = await Group.find(groupId)
   const recipients = await group.members().query(q => {
-    q.whereRaw(`users.settings->>'digest_frequency' = '${type}'`)
-    q.whereRaw(`(group_memberships.settings->>'sendEmail')::boolean = true`)
+    q.whereRaw(`group_memberships.settings->>'digestFrequency' = '${type}'`)
+    q.whereRaw('(group_memberships.settings->>\'sendEmail\')::boolean = true')
   }).fetch().then(get('models'))
 
   return recipients

@@ -357,6 +357,8 @@ module.exports = bookshelf.Model.extend(merge({
         active: true,
         role: GroupMembership.Role.DEFAULT,
         settings: {
+          postNotifications: 'all',
+          digestFrequency: 'daily',
           sendEmail: true,
           sendPushNotifications: true
         }

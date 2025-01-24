@@ -26,3 +26,10 @@ export async function updateMembership (userId, { groupId, data, data: { setting
     return membership
   })
 }
+
+export function updateAllMemberships (userId, { data: { settings } }) {
+  const whitelist = pick(settings, ['postNotifications', 'digestFrequency'])
+  if (isEmpty(whitelist)) return Promise.resolve(null)
+  const whitelistString = Object.entries(whitelist).map(([key, value]) => `'${key}', '${value}'`).join(', ')
+  return bookshelf.knex.raw('update group_memberships set settings = settings || jsonb_build_object(' + whitelistString + ') where user_id = ' + userId)
+}

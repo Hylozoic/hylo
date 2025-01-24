@@ -3,7 +3,7 @@
 }
 
 label {
-  color: $color-regent-70;
+  color: hsl(var(--foreground));
   transition: color .25s ease;
 }
 

@@ -17,7 +17,9 @@ export default function fetchMyMemberships () {
               }
               settings {
                 agreementsAcceptedAt
+                digestFrequency
                 joinQuestionsAnsweredAt
+                postNotifications
                 sendEmail
                 sendPushNotifications
                 showJoinForm
