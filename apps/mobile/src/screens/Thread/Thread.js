@@ -53,7 +53,7 @@ export default function Thread() {
   const messageListRef = useRef()
   const [cursor, setCursor] = useState(null)
   // Not currently used, but once we have subscription applied we can turn it back on
-  const [newMessages, setNewMessages] = useState(0)
+  const [newMessages, setNewMessages] = useState()
   const [yOffset, setYOffset] = useState(0)
   const atBottom = useMemo(() => yOffset < BOTTOM_THRESHOLD, [yOffset])
 
@@ -107,7 +107,7 @@ export default function Thread() {
   const handleScrollToBottom = () => {
     messageListRef?.current?.scrollToOffset({ offset: 0 })
   }
-  
+
   const handleSubmit = (text) => {
     createMessage({
       messageThreadId: threadId,
@@ -131,7 +131,7 @@ export default function Thread() {
 
   useEffect(() => {
     if (messages.length && atBottom) {
-      setNewMessages(0)
+      setNewMessages(1)
     }
   }, [messages, atBottom])
 
@@ -153,6 +153,13 @@ export default function Thread() {
         ref={messageListRef}
         renderItem={renderItem}
       />
+      {!!(newMessages && !atBottom) && (
+        <NotificationOverlay
+          position='bottom'
+          message={t('New messages')}
+          onPress={handleScrollToBottom}
+        />
+      )}
       <MessageInput
         blurOnSubmit={false}
         multiline
@@ -160,17 +167,6 @@ export default function Thread() {
         placeholder={t('Write something')}
       />
       <PeopleTyping postId={threadId} />
-      {/* Should show when new messages appear from subscription AND the user is not already at bottom */}
-      {/* {showNotificationOverlay && (
-        <NotificationOverlay
-          position='bottom'
-          // type={isConnected ? 'info' : 'error'}
-          type='info'
-          // message={overlayMessage}
-          message='New messages'
-          onPress={handleScrollToBottom}
-        />
-      )} */}
     </KeyboardFriendlyView>
   )
 }

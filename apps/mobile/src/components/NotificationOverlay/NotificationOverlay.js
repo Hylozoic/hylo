@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { StyleSheet, Text, TouchableOpacity } from 'react-native'
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay } from 'react-native-reanimated'
+import { isEmpty } from 'lodash/fp'
 import { amaranth, persimmon } from 'style/colors'
 
 const fontSize = 13
@@ -26,6 +27,8 @@ const NotificationOverlay = ({ message, onPress, onComplete, position = 'top', t
   const animatedStyle = useAnimatedStyle(() => ({
     height: heightAnim.value
   }))
+
+  if (isEmpty(message)) return null
 
   return (
     <Animated.View style={[styles.container, styles[`${position}Position`], animatedStyle]}>
