@@ -1,6 +1,6 @@
-const Redis = require('ioredis')
+import Redis from 'ioredis'
 
-module.exports = {
+export default {
   create: function () {
     const client = new Redis(process.env.REDIS_URL)
 
