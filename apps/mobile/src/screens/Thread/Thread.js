@@ -13,6 +13,7 @@ import useCurrentUser from 'hooks/useCurrentUser'
 import useRouteParams from 'hooks/useRouteParams'
 import Loading from 'components/Loading'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
+import NotificationOverlay from 'components/NotificationOverlay'
 import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
 import PeopleTyping from 'components/PeopleTyping'
@@ -103,6 +104,10 @@ export default function Thread() {
     if (contentOffset.y < BOTTOM_THRESHOLD) markAsRead()
   }
 
+  const handleScrollToBottom = () => {
+    messageListRef?.current?.scrollToOffset({ offset: 0 })
+  }
+  
   const handleSubmit = (text) => {
     createMessage({
       messageThreadId: threadId,
@@ -155,13 +160,15 @@ export default function Thread() {
         placeholder={t('Write something')}
       />
       <PeopleTyping postId={threadId} />
+      {/* Should show when new messages appear from subscription AND the user is not already at bottom */}
       {/* {showNotificationOverlay && (
         <NotificationOverlay
           position='bottom'
-          type={isConnected ? 'info' : 'error'}
-          permanent={!isConnected}
-          message={overlayMessage}
-          onPress={() => scrollToBottom()}
+          // type={isConnected ? 'info' : 'error'}
+          type='info'
+          // message={overlayMessage}
+          message='New messages'
+          onPress={handleScrollToBottom}
         />
       )} */}
     </KeyboardFriendlyView>
