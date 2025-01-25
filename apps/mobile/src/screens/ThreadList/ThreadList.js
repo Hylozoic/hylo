@@ -3,7 +3,6 @@ import { FlatList, TouchableOpacity, View, Text } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from 'urql'
-import { getSocket } from 'services/websockets'
 import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
 import messageThreadsQuery from 'graphql/queries/messageThreadsQuery'
 import useCurrentUser from 'hooks/useCurrentUser'
@@ -38,13 +37,10 @@ export default function ThreadList () {
 
   useEffect(() => {
     updateLastViewed()
-    getSocket().then(socket => socket.on('reconnect', refreshThreads))
-    return () => getSocket().then(socket => socket.off('reconnect', refreshThreads))
   }, [])
 
-  // NOTE: Currently messageThreadsQuery only retrieves 1 message for each thread, so this is extraneous
   const getLatestMessage = useCallback(messageThread => {
-    return messageThread.messages.items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
+    return messageThread.messages.items[0]
   }, [])
 
   return (
