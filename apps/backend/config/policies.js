@@ -29,10 +29,6 @@ module.exports.policies = {
     '*': true
   },
 
-  NexudusController: {
-    '*': true
-  },
-
   SessionController: {
     createWithJWT: ['checkJWT'],
     '*': true

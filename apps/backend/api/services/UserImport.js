@@ -206,18 +206,3 @@ export const run = (options) => {
   })
   .then(() => Promise.all(promises))
 }
-
-if (require.main === module) {
-  var skiff = require('../../lib/skiff')
-  skiff.lift({
-    log: {level: 'warn'},
-    start: () =>
-      Group.find('impact-hub-baltimore')
-      .then(group => runImport({
-        json: true,
-        filename: './nexudus.json',
-        group
-      }))
-      .then(skiff.lower)
-  })
-}
