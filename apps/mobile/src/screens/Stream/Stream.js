@@ -160,7 +160,7 @@ export default function Stream ({ topicName: providedTopicName }) {
 
   return (
     <>
-      <GroupWelcomeCheck groupId={currentGroup?.id} />
+      <GroupWelcomeCheck />
       {streamType !== 'moderation' && (
         <StreamList
           scrollRef={ref}

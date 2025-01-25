@@ -15,8 +15,7 @@ export default function GroupNavigation () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const { myHome, groupSlug } = useRouteParams()
-  const [{ currentGroup: currentGroupRaw, fetching }] = useCurrentGroup({ setToGroupSlug: groupSlug })
-  const currentGroup = GroupPresenter(currentGroupRaw)
+  const [{ currentGroup, fetching }] = useCurrentGroup({ setToGroupSlug: groupSlug })
 
   const childGroups = currentGroup?.childGroups?.items
   const parentGroups = currentGroup?.parentGroups?.items
