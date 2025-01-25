@@ -467,7 +467,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
               {widget.type === 'members' &&
                 <div className='flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground'>
                   <SpecialTopElementRenderer widget={widget} group={group} />
-                  <ul className='p-0'>
+                  <ul className='px-1 pt-1 pb-2'>
                     {loading && <li key='loading'>Loading...</li>}
                     {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                   </ul>
@@ -537,6 +537,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
     &nbsp;
     </DropZone>
       <li ref={setItemDraggableNodeRef} style={itemStyle} className="flex justify items-center content-center">
+       
         {(() => {
           if (item.type === "chat") {
             return (
@@ -557,7 +558,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
               <MenuLink
                 to={itemUrl}
                 externalLink={item?.customView?.type === "externalLink" ? item.customView.externalLink : null}
-                className="transition-all px-2 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between"
+                className="transition-all px-2 py-1 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between"
               >
                 <div>
                   <WidgetIconResolver widget={item} />
