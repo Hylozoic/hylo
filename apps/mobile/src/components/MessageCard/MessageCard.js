@@ -1,10 +1,9 @@
 import React from 'react'
-import PropTypes from 'prop-types'
-import { Text, View } from 'react-native'
+import { Text, View, StyleSheet } from 'react-native'
 import { TextHelpers } from '@hylo/shared'
 import HyloHTML from 'components/HyloHTML'
 import Avatar from 'components/Avatar'
-import styles from './MessageCard.style'
+import { alabaster, capeCod, rhino30 } from 'style/colors'
 
 export default function MessageCard ({ message }) {
   const { createdAt, creator, suppressCreator, suppressDate, text } = message
@@ -30,17 +29,33 @@ export default function MessageCard ({ message }) {
   )
 }
 
-MessageCard.propTypes = {
-  message: PropTypes.shape({
-    id: PropTypes.any,
-    createdAt: PropTypes.string,
-    creator: PropTypes.shape({
-      id: PropTypes.any,
-      name: PropTypes.string,
-      avatarUrl: PropTypes.string
-    }),
-    suppressCreator: PropTypes.bool,
-    suppressDate: PropTypes.bool,
-    text: PropTypes.string
-  })
-}
+const styles = StyleSheet.create({
+  body: {
+    flexDirection: 'column',
+    flex: 0.9,
+    paddingLeft: 10
+  },
+  container: {
+    flexDirection: 'row',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    backgroundColor: alabaster // flag-messages-background-color
+  },
+  date: {
+    fontSize: 12,
+    color: rhino30,
+    fontFamily: 'Circular-Book',
+    marginTop: -8
+  },
+  name: {
+    color: capeCod,
+    fontFamily: 'Circular-Bold'
+  },
+  padTopNoCreator: {
+    paddingTop: 0,
+    marginTop: 0
+  },
+  padLeftNoAvatar: {
+    paddingLeft: 44
+  }
+})
