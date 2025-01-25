@@ -20,7 +20,6 @@ import CreateGroupNotice from 'components/CreateGroupNotice'
 import Icon from 'components/Icon'
 import StreamList from 'components/StreamList'
 import Loading from 'components/Loading'
-import SocketSubscriber from 'components/SocketSubscriber'
 import GroupWelcomeCheck from 'components/GroupWelcomeCheck'
 import ModerationList from 'components/ModerationList'
 import { bannerlinearGradientColors } from 'style/colors'
@@ -187,9 +186,6 @@ export default function Stream ({ topicName: providedTopicName }) {
           route={route}
           streamType={streamType}
         />
-      )}
-      {!topicName && currentGroup && (
-        <SocketSubscriber type='group' id={currentGroup.id} />
       )}
     </>
   )

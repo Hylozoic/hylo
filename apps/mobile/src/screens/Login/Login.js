@@ -7,7 +7,6 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
-import { getSocket } from 'services/websockets'
 import useRouteParams from 'hooks/useRouteParams'
 import useAuthStatus from 'hooks/useAuthStatus'
 import loginMutation from 'graphql/mutations/loginMutation'
@@ -80,10 +79,6 @@ export default function Login () {
       if (loginData?.login?.error) {
         throw loginData?.login?.error
       }
-
-      // NOTE: This, and the other instance below, may be unnecessary
-      // keeping for not to make WebSockets connection more reliable
-      await getSocket()
     } catch (err) {
       setLoggingIn(false)
       setError(err)
@@ -96,7 +91,6 @@ export default function Login () {
 
   const handleSocialAuthComplete = async error => {
     if (error) setBannerError(error)
-    await getSocket()
     await checkAuth()
     setLoggingIn(false)
   }

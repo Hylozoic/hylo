@@ -11,7 +11,6 @@ import customLinking, {
 } from 'navigation/linking'
 import useAuthStatus from 'hooks/useAuthStatus'
 import { openURL } from 'hooks/useOpenURL'
-import SocketListener from 'components/SocketListener'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import JoinGroup from 'screens/JoinGroup'
 import LoginByTokenHandler from 'screens/LoginByTokenHandler'
@@ -82,7 +81,6 @@ export default function RootNavigator () {
           </Root.Group>
         </Root.Navigator>
       </NavigationContainer>
-      {isAuthorized && <SocketListener />}
     </View>
   )
 }

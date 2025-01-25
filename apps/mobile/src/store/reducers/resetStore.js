@@ -7,8 +7,7 @@ export const KEYS_PRESERVED_ON_LOGOUT = [
 ]
 
 export const KEYS_PRESERVED_ON_RESET = [
-  'session',
-  'SocketListener'
+  'session'
 ]
 
 export default function (state = null, action) {
