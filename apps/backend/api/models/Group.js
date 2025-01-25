@@ -1045,7 +1045,7 @@ module.exports = bookshelf.Model.extend(merge({
   async doesMenuUpdate ({ groupIds, post, customView, groupRelation = false }) {
     if (!post && !customView && !groupRelation) return
     console.log('broken here post', post)
-    const postType = post && post.get('type')
+    const postType = post && post.type
     // Skip processing if it's a chat post and no other conditions are present
     if (postType === 'chat' && !customView && !groupRelation) return
     await bookshelf.transaction(async trx => {

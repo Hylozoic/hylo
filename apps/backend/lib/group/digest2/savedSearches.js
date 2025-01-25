@@ -26,13 +26,13 @@ const presentPost = async (p, context, slug) => {
 const prepareDigestData = async (searchId) => {
   const search = await SavedSearch.where({ id: searchId }).fetch()
   const context = search.get('context')
-  let group, slug
+  let group, slug, membership
+  const user = await User.where({ id: search.get('user_id') }).fetch()
   if (context === 'groups') {
     group = await search.group()
     slug = group.get('slug')
+    membership = await GroupMembership.forPair(user, group)
   }
-  const user = await User.where({ id: search.get('user_id') }).fetch()
-  const membership = await GroupMembership.forPair(user, group)
   const lastPostId = parseInt(search.get('last_post_id'))
   const data = {
     context,
@@ -58,7 +58,8 @@ const prepareDigestData = async (searchId) => {
 const shouldSendData = (data, membership, type) => {
   const postTypes = ['requests', 'offers', 'events', 'discussions', 'projects', 'resources']
   const hasNewPosts = Object.keys(pick(postTypes, data)).some(s => postTypes.includes(s))
-  const userSettingMatchesType = membership.get('settings').digestFrequency === type
+  // TODO: fix non group based saves search digests
+  const userSettingMatchesType = membership && membership.getSetting('digestFrequency') === type
   return hasNewPosts && userSettingMatchesType
 }
 
