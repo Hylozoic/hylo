@@ -30,7 +30,7 @@ const withDontSendToCreator = ({ context, getter } = {}) => {
       console.log(
         'Filtering event:',
         'Payload:', payload,
-        'Skipping:', creatorId === currentUserId,
+        'Skipping (except in dev):', creatorId === currentUserId,
         'Creator ID:', creatorId,
         'Current User ID:', currentUserId
       )
@@ -45,14 +45,22 @@ const withDontSendToCreator = ({ context, getter } = {}) => {
 
 export default function makeSubscriptions({ models, resolvers, expressContext, userId, isAdmin, fetchOne, fetchMany }) {
   return {
-    commentCreated: {
-      subscribe: (parent, { userId, postId, parentCommentId }, context) => pipe(
-        context.pubSub.subscribe(parentCommentId ? `commentCreated:parentCommentId:${parentCommentId}` : `commentCreated:postId:${postId}`),
+    // NOTE: comment:id and comment:parentCommentId subscriptions are here for completeness
+    // though they are not as of 20250125 not used in either Web or Mobile
+    comment: {
+      subscribe: (parent, { userId, id, postId, parentCommentId }, context) => pipe(
+        context.pubSub.subscribe(
+          id
+            ? `comment:${id}`
+            : parentCommentId
+              ? `comment:parentCommentId:${parentCommentId}`
+              : `comment:postId:${postId}`
+        ),
         withDontSendToCreator({ context })
       ),
       resolve: (payload) => {
         // Rehydrate the JSON serialized and re-parsed Bookshelf instance
-        return new Comment(payload.commentCreated)
+        return new Comment(payload.comment)
       }
     },
 

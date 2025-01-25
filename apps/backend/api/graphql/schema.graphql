@@ -307,7 +307,7 @@ type Query {
 }
 
 type Subscription {
-  commentCreated(postId: ID, parentCommentId: ID): Comment,
+  comment(postId: ID, parentCommentId: ID): Comment,
   peopleTyping(postId: ID, commentId: ID): Person
 }
 

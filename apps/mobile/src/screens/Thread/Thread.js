@@ -34,9 +34,9 @@ export function updateThreadReadTimeAction(id) {
   }
 }
 
-export const commentCreatedSubscription = gql`
-  subscription CommentCreatedSubscription($postId: ID!) {
-    commentCreated(postId: $postId) {
+export const commentSubscription = gql`
+  subscription CommentSubscription($postId: ID!) {
+    comment(postId: $postId) {
       ...CommentFieldsFragment
     }
   }
@@ -47,16 +47,12 @@ export default function Thread() {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const dispatch = useDispatch()
+  const messageListRef = useRef()
   const [{ currentUser }] = useCurrentUser()
   const { id: threadId } = useRouteParams()
 
-  const messageListRef = useRef()
+  const [, createMessage] = useMutation(createMessageMutation)
   const [cursor, setCursor] = useState(null)
-  // Not currently used, but once we have subscription applied we can turn it back on
-  const [newMessages, setNewMessages] = useState()
-  const [yOffset, setYOffset] = useState(0)
-  const atBottom = useMemo(() => yOffset < BOTTOM_THRESHOLD, [yOffset])
-
   const [{ data, fetching }] = useQuery({
     query: messageThreadMessagesQuery,
     variables: { id: threadId, first: MESSAGE_PAGE_SIZE, cursor }
@@ -65,8 +61,12 @@ export default function Thread() {
   const messages = data?.messageThread?.messages?.items || []
   const hasMore = data?.messageThread?.messages?.hasMore
 
-  const [, createMessage] = useMutation(createMessageMutation)
+  useSubscription({ query: commentSubscription, variables: { postId: threadId } })
 
+  // Not currently used, but once we have subscription applied we can turn it back on
+  const [newMessages, setNewMessages] = useState()
+  const [yOffset, setYOffset] = useState(0)
+  const atBottom = useMemo(() => yOffset < BOTTOM_THRESHOLD, [yOffset])  
   const markAsRead = debounce(1000, () => {
     dispatch(updateThreadReadTimeAction(threadId))
   })

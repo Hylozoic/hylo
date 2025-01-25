@@ -56,7 +56,7 @@ export default {
     }
   },
   Subscription: {
-    commentCreated: (result, args, cache, info) => {
+    comment: (result, args, cache, info) => {
       // import { showMessagesBadge } from 'store/reducers/ormReducer/util'
       // case RECEIVE_THREAD:
       //   // Me.first().increment('unseenThreadCount')
@@ -68,7 +68,7 @@ export default {
       //   // }
       //   // showMessagesBadge(session)
       //   break
-      console.log('!!!!! commentCreated - result, args, info:', result, args, info)
+      console.log('!!!!! comment - result, args, info:', result, args, info)
     }
   }
 }

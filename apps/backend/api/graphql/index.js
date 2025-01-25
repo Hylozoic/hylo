@@ -567,7 +567,7 @@ export function makeMutations ({ expressContext, userId, fetchOne }) {
 
     updateProposalOutcome: (root, { postId, proposalOutcome }) => updateProposalOutcome({ userId, postId, proposalOutcome }),
 
-    updateComment: (root, args) => updateComment(userId, args),
+    updateComment: (root, args, context) => updateComment(userId, args, context),
 
     updateStripeAccount: (root, { accountId }) => updateStripeAccount(userId, accountId),
 
