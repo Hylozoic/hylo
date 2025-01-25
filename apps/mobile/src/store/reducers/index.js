@@ -7,7 +7,6 @@ import returnToOnAuthPath from './returnToOnAuthPathReducer'
 import resetStore from './resetStore'
 import { SET_STATE } from 'store/constants'
 // Local store
-import MessageInput from 'components/MessageInput/MessageInput.store'
 import SocketListener from 'components/SocketListener/SocketListener.store'
 import CreateGroupFlow from 'screens/CreateGroupFlow/CreateGroupFlow.store'
 import GroupWelcomeFlow from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
@@ -26,7 +25,6 @@ export const createCombinedReducers = () => combineReducers({
   mixpanel,
   returnToOnAuthPath,
   // Local store (Component)
-  MessageInput,
   SocketListener,
   CreateGroupFlow,
   GroupWelcomeFlow
