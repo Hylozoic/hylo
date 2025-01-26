@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'collections',

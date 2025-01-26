@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import bcrypt from 'bcrypt'
 import Promise from 'bluebird'
 import { get, isEmpty } from 'lodash'

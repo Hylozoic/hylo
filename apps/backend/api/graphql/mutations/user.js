@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import request from 'request'
 import { decodeHyloJWT } from '../../../lib/HyloJWT'
 

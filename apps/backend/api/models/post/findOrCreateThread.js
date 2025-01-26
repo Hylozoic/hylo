@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { pick } from 'lodash'
 import { uniq } from 'lodash/fp'
 import { personFilter } from '../../graphql/filters'

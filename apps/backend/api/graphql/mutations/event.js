@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { values, includes } from 'lodash/fp'
 
 export async function respondToEvent (userId, eventId, response) {

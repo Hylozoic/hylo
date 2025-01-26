@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { countTotal } from '../../../lib/util/knex'
 import { snakeCase } from 'lodash'
 

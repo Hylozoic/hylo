@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 
 export async function createJoinRequest (userId, groupId, questionAnswers = []) {
   if (groupId && userId) {

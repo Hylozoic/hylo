@@ -1,5 +1,5 @@
 import { isEmpty, mapKeys, pick, snakeCase } from 'lodash'
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 
 export async function addPostToCollection (userId, collectionId, postId) {
   await Collection.findValidCollectionForUser(userId, collectionId)

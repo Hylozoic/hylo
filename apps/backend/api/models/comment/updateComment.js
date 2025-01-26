@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { difference, uniq, isEqual } from 'lodash'
 import { updateMedia } from './util'
 

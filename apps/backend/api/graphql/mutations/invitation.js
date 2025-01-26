@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { es } from '../../../lib/i18n/es'
 import { en } from '../../../lib/i18n/en'
 import InvitationService from '../../services/InvitationService'

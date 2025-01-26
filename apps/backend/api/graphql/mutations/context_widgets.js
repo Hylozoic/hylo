@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
 
 export async function createContextWidget ({ userId, groupId, data }) {

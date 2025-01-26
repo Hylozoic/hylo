@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { chain, curry, includes, isEmpty, values } from 'lodash'
 import { DateTime } from 'luxon'
 import addTermToQueryBuilder from './addTermToQueryBuilder'

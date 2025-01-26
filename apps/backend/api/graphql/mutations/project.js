@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { uniq } from 'lodash/fp'
 import { createPost } from './post'
 

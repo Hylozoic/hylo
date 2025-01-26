@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 
 export async function topicMutationPermissionCheck (userId, groupId) {
   const group = await Group.find(groupId)

@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 
 /* eslint-disable camelcase */
 module.exports = bookshelf.Model.extend({

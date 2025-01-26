@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { includes, isEmpty, trim } from 'lodash'
 
 export default function validatePostData (userId, data) {

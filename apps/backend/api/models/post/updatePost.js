@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
 import { isEqual } from 'lodash'

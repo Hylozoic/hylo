@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 
 export async function addGroupResponsibility ({ groupId, title, description, userId }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')

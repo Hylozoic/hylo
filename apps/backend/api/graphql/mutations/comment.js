@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { merge, trim } from 'lodash'
 import { includes } from 'lodash/fp'
 
