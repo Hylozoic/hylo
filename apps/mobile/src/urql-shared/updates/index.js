@@ -5,6 +5,12 @@ import meCheckAuthQuery from 'graphql/queries/meCheckAuthQuery'
 export default {
   Mutation: {
     createComment,
+    createModerationAction: (result, args, cache, info) => {
+      if (result[info.fieldName].id) {
+        const postId = args?.data?.postId
+        cache.invalidate({ __typename: 'Post', id: postId })
+      }
+    },
     createMessage: (result, args, cache, info) => {
       cache.invalidate({ __typename: 'MessageThread', id: args.data.messageThreadId })
     },
