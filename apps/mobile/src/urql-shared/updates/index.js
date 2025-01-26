@@ -45,6 +45,12 @@ export default {
       }
     },
     reactOn,
+    recordClickthrough: (result, args, cache, info) => {
+      if (result[info.fieldName].success) {
+        const postId = args?.postId
+        cache.invalidate({ __typename: 'Post', id: postId })
+      }
+    },
     removePost: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         cache.invalidate({ __typename: 'Post', id: args.postId })
