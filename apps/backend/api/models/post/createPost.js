@@ -84,7 +84,7 @@ export function afterCreatingPost (post, opts) {
     .then(() => Queue.classMethod('Post', 'createActivities', { postId: post.id }))
     .then(() => Queue.classMethod('Post', 'notifySlack', { postId: post.id }))
     .then(() => Queue.classMethod('Post', 'zapierTriggers', { postId: post.id }))
-    .catch((err) => { throw new GraphQLYogaError(`afterCreatingPost failed: ${err}`) })
+    .catch((err) => { throw new GraphQLError(`afterCreatingPost failed: ${err}`) })
 }
 
 async function updateTagsAndGroups (post, localId, trx) {

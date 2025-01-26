@@ -16,7 +16,7 @@ const PostController = {
 
     const type = req.param('type')
     if (!includes(Object.keys(namePrefixes), type)) {
-      return res.serverError(new GraphQLYogaError(`invalid type: ${type}`))
+      return res.serverError(new GraphQLError(`invalid type: ${type}`))
     }
 
     const attributes = {

@@ -51,7 +51,7 @@ module.exports = bookshelf.Model.extend({
     })
 
     if (!collection) {
-      throw new GraphQLYogaError('Not a valid collection')
+      throw new GraphQLError('Not a valid collection')
     }
     return collection
   },

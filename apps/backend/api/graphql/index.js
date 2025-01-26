@@ -1,5 +1,6 @@
 import { makeExecutableSchema } from 'graphql-tools'
-import { createServer, GraphQLYogaError } from '@graphql-yoga/node'
+import { createServer } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { useLazyLoadedSchema } from '@envelop/core'
 import { readFileSync } from 'fs'
 import { join } from 'path'
@@ -193,7 +194,7 @@ function createSchema (expressContext) {
           if (data instanceof bookshelf.Model) {
             return info.schema.getType('Post')
           }
-          throw new GraphQLYogaError('Post is the only implemented FeedItemContent type')
+          throw new GraphQLError('Post is the only implemented FeedItemContent type')
         }
       },
       SearchResultContent: {
@@ -276,7 +277,7 @@ export function makeAuthenticatedQueries ({ userId, fetchOne, fetchMany }) {
             return { exists: false }
           })
       }
-      throw new GraphQLYogaError('Slug is invalid')
+      throw new GraphQLError('Slug is invalid')
     },
     groupExtension: (root, args) => fetchOne('GroupExtension', args),
     groupExtensions: (root, args) => fetchMany('GroupExtension', args),

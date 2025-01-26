@@ -58,11 +58,11 @@ export const register = (fetchOne, { req }) => async (_, { name, password }) => 
     const user = await User.find(req.session.userId, {}, false)
 
     if (!user) {
-      throw new GraphQLYogaError('Not authorized')
+      throw new GraphQLError('Not authorized')
     }
 
     if (!user.get('email_validated')) {
-      throw new GraphQLYogaError('Email not validated')
+      throw new GraphQLError('Email not validated')
     }
 
     await bookshelf.transaction(async transacting => {
@@ -168,7 +168,7 @@ export async function blockUser (userId, blockedUserId) {
 export async function unblockUser (userId, blockedUserId) {
   const blockedUser = await BlockedUser.find(userId, blockedUserId)
 
-  if (!blockedUser) throw new GraphQLYogaError('user is not blocked')
+  if (!blockedUser) throw new GraphQLError('user is not blocked')
 
   await blockedUser.destroy()
 

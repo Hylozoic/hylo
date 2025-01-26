@@ -36,7 +36,7 @@ module.exports = bookshelf.Model.extend({
       })
       return this
     }
-    throw new GraphQLYogaError('Invalid join request')
+    throw new GraphQLError('Invalid join request')
   }
 }, {
 

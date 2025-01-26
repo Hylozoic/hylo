@@ -5,7 +5,7 @@ export async function createZapierTrigger (userId, groupIds, targetUrl, type, pa
     if (groupIds && groupIds.length > 0) {
       const memberships = await GroupMembership.query(q => q.where({ user_id: userId }).whereIn('group_id', groupIds)).fetchAll({ transacting })
       if (!memberships || memberships.length === 0) {
-        throw new GraphQLYogaError('You don\'t have access to any of these groups')
+        throw new GraphQLError('You don\'t have access to any of these groups')
       }
       await trigger.groups().attach(memberships.map(m => m.get('group_id')), { transacting })
     }

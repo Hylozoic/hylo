@@ -6,6 +6,6 @@ module.exports = function checkAndDecodeToken (req, res, next) {
     res.locals.tokenData = Email.decodeFormToken(token)
     next()
   } catch (e) {
-    res.badRequest(new GraphQLYogaError('Invalid token: ' + token))
+    res.badRequest(new GraphQLError('Invalid token: ' + token))
   }
 }

@@ -18,7 +18,7 @@ export default function (opts) {
 
     if (opts.sort === 'join') {
       if (!groups || groups.length !== 1) {
-        throw new GraphQLYogaError('When sorting by join date, you must specify exactly one group.')
+        throw new GraphQLError('When sorting by join date, you must specify exactly one group.')
       }
     }
 
