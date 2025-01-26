@@ -1,7 +1,6 @@
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { isEmpty, mapKeys, pick, snakeCase, size, trim } from 'lodash'
 import convertGraphqlData from './convertGraphqlData'
-
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export {
   createAffiliation,
@@ -166,8 +165,8 @@ export function updateGroupTopic (id, data) {
   const whitelist = mapKeys(pick(data, ['visibility', 'isDefault']), (v, k) => snakeCase(k))
   if (isEmpty(whitelist)) return Promise.resolve(null)
 
-  return GroupTag.query().where({id}).update(whitelist)
-  .then(() => ({success: true}))
+  return GroupTag.query().where({ id }).update(whitelist)
+    .then(() => ({ success: true }))
 }
 
 export function updateGroupTopicFollow (userId, { id, data }) {
@@ -181,27 +180,27 @@ export function updateGroupTopicFollow (userId, { id, data }) {
 
 export function markActivityRead (userId, activityid) {
   return Activity.find(activityid)
-  .then(a => {
-    if (a.get('reader_id') !== userId) return
-    return a.save({unread: false})
-  })
+    .then(a => {
+      if (a.get('reader_id') !== userId) return
+      return a.save({ unread: false })
+    })
 }
 
 export function markAllActivitiesRead (userId) {
-  return Activity.query().where('reader_id', userId).update({unread: false})
-  .then(() => ({success: true}))
+  return Activity.query().where('reader_id', userId).update({ unread: false })
+    .then(() => ({ success: true }))
 }
 
 export function unlinkAccount (userId, provider) {
   return User.find(userId)
-  .then(user => {
-    if (!user) throw new GraphQLYogaError(`Couldn't find user with id ${userId}`)
-    return user.unlinkAccount(provider)
-  })
-  .then(() => ({success: true}))
+    .then(user => {
+      if (!user) throw new GraphQLYogaError(`Couldn't find user with id ${userId}`)
+      return user.unlinkAccount(provider)
+    })
+    .then(() => ({ success: true }))
 }
 
-async function createSkill(name) {
+async function createSkill (name) {
   name = trim(name)
   if (isEmpty(name)) {
     throw new GraphQLYogaError('Skill cannot be blank')
@@ -210,7 +209,7 @@ async function createSkill(name) {
   }
   let skill
   try {
-    skill = await Skill.forge({name}).save()
+    skill = await Skill.forge({ name }).save()
   } catch (err) {
     if (!err.message || !err.message.includes('duplicate')) {
       throw err
@@ -269,26 +268,26 @@ export async function addSuggestedSkillToGroup (userId, groupId, name) {
 
 export function removeSkill (userId, skillIdOrName) {
   return Skill.find(skillIdOrName)
-  .then(skill => {
-    if (!skill) throw new GraphQLYogaError(`Couldn't find skill with ID or name ${skillIdOrName}`)
-    return skill.users().detach({ user_id: userId, type: Skill.Type.HAS })
-  })
-  .then(() => ({success: true}))
+    .then(skill => {
+      if (!skill) throw new GraphQLYogaError(`Couldn't find skill with ID or name ${skillIdOrName}`)
+      return skill.users().detach({ user_id: userId, type: Skill.Type.HAS })
+    })
+    .then(() => ({ success: true }))
 }
 
 export function removeSkillToLearn (userId, skillIdOrName) {
   return Skill.find(skillIdOrName)
-  .then(skill => {
-    if (!skill) throw new GraphQLYogaError(`Couldn't find skill with ID or name ${skillIdOrName}`)
-    return skill.usersLearning().detach({ user_id: userId, type: Skill.Type.LEARNING })
-  })
-  .then(() => ({success: true}))
+    .then(skill => {
+      if (!skill) throw new GraphQLYogaError(`Couldn't find skill with ID or name ${skillIdOrName}`)
+      return skill.usersLearning().detach({ user_id: userId, type: Skill.Type.LEARNING })
+    })
+    .then(() => ({ success: true }))
 }
 
 export async function removeSuggestedSkillFromGroup (userId, groupId, skillIdOrName) {
   const group = await Group.find(groupId)
   if (!group) throw new GraphQLYogaError('Invalid group')
-  const isAdministrator  = GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION)
+  const isAdministrator = GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION)
   if (!isAdministrator) throw new GraphQLYogaError('You don\'t have permission to remove skill from group')
 
   return Skill.find(skillIdOrName)
@@ -325,7 +324,7 @@ export function flagInappropriateContent (userId, { category, reason, linkData }
     object_id: linkData.id,
     object_type: linkData.type
   })
-    .tap(flaggedItem => Queue.classMethod('FlaggedItem', 'notifyModerators', {id: flaggedItem.id}))
+    .tap(flaggedItem => Queue.classMethod('FlaggedItem', 'notifyModerators', { id: flaggedItem.id }))
     .then(() => ({ success: true }))
 }
 

@@ -1,8 +1,8 @@
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { flatten, merge, pick, uniq } from 'lodash'
 import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
 import { groupRoom, pushToSockets } from '../../services/Websockets'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export default async function createPost (userId, params) {
   return setupPostAttrs(userId, merge(Post.newPostAttrs(), params), true)

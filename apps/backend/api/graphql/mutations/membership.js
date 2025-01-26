@@ -1,5 +1,5 @@
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { isEmpty, mapKeys, pick, snakeCase } from 'lodash'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export async function updateMembership (userId, { groupId, data, data: { settings } }) {
   const whitelist = mapKeys(pick(data, [

@@ -52,8 +52,6 @@ module.exports.routes = {
   // 'POST   /noo/access-token':                             'AccessTokenController.create',
   // 'DELETE /noo/access-token/revoke':                      'AccessTokenController.destroy',
 
-  'GET     /noo/nexudus':                                 'NexudusController.create',
-
   'POST    /noo/subscription':                            'SubscriptionController.create',
 
   'GET     /noo/mobile/check-should-update':              'MobileAppController.checkShouldUpdate',

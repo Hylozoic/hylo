@@ -1,7 +1,7 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import convertGraphqlData from './convertGraphqlData'
 
-export async function createContextWidget({ userId, groupId, data }) {
+export async function createContextWidget ({ userId, groupId, data }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')
   if (!groupId) throw new GraphQLYogaError('No groupId passed into function')
   const convertedData = convertGraphqlData(data)
@@ -22,12 +22,12 @@ export async function createContextWidget({ userId, groupId, data }) {
     ...convertedData,
     group_id: groupId
   })
-  .catch(err => {
-    throw new GraphQLYogaError(`Creation of context widget failed: ${err.message}`)
-  })
+    .catch(err => {
+      throw new GraphQLYogaError(`Creation of context widget failed: ${err.message}`)
+    })
 }
 
-export async function updateContextWidget({ userId, contextWidgetId, data }) {
+export async function updateContextWidget ({ userId, contextWidgetId, data }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')
   if (!contextWidgetId) throw new GraphQLYogaError('No context widget id passed into function')
   const convertedData = convertGraphqlData(data)
@@ -52,7 +52,7 @@ export async function updateContextWidget({ userId, contextWidgetId, data }) {
     })
 }
 
-export async function reorderContextWidget({ userId, contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd }) {
+export async function reorderContextWidget ({ userId, contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')
   if (!contextWidgetId) throw new GraphQLYogaError('No context widget id passed into function')
 
@@ -71,13 +71,12 @@ export async function reorderContextWidget({ userId, contextWidgetId, parentId, 
     orderInFrontOfWidgetId,
     addToEnd
   })
-  .catch(err => {
-    throw new GraphQLYogaError(`Reordering of context widget failed: ${err.message}`)
-  })
+    .catch(err => {
+      throw new GraphQLYogaError(`Reordering of context widget failed: ${err.message}`)
+    })
 }
 
-
-export async function removeWidgetFromMenu({ userId, contextWidgetId, groupId }) {
+export async function removeWidgetFromMenu ({ userId, contextWidgetId, groupId }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')
   if (!contextWidgetId) throw new GraphQLYogaError('No context widget id passed into function')
 
@@ -90,13 +89,13 @@ export async function removeWidgetFromMenu({ userId, contextWidgetId, groupId })
     throw new GraphQLYogaError("You don't have permission to modify context widgets for this group")
   }
 
-  return ContextWidget.removeFromMenu({id: contextWidgetId})
+  return ContextWidget.removeFromMenu({ id: contextWidgetId })
     .catch(err => {
       throw new GraphQLYogaError(`Removing widget from menu failed: ${err.message}`)
     })
 }
 
-export async function setHomeWidget({ userId, contextWidgetId, groupId }) {
+export async function setHomeWidget ({ userId, contextWidgetId, groupId }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')
   if (!groupId) throw new GraphQLYogaError('No groupId passed into function')
 
@@ -116,7 +115,7 @@ export async function setHomeWidget({ userId, contextWidgetId, groupId }) {
     })
 }
 
-export async function transitionGroupToNewMenu({ userId, groupId }) {
+export async function transitionGroupToNewMenu ({ userId, groupId }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')
   if (!groupId) throw new GraphQLYogaError('No groupId passed into function')
 

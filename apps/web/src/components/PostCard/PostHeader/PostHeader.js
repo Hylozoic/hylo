@@ -7,7 +7,6 @@ import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import BadgeEmoji from 'components/BadgeEmoji'
 import Dropdown from 'components/Dropdown'
-import PostLabel from 'components/PostLabel'
 import Highlight from 'components/Highlight'
 import FlagContent from 'components/FlagContent'
 import FlagGroupContent from 'components/FlagGroupContent/FlagGroupContent'
@@ -132,10 +131,10 @@ class PostHeader extends PureComponent {
     const showNormal = ((canBeCompleted && canEdit && expanded) && (topics?.length > 0 || (canHaveTimes && timeWindow.length > 0))) || false
     return (
       <div className={cn('relative', { 'mb-0 h-12 px-2': constrained }, className)}>
-        <div className='w-full bg-card rounded-t-lg'>
-          <div className='flex justify-start items-center p-2 border-b border-border'>
+        <div className='w-full bg-transparent rounded-t-lg'>
+          <div className='flex justify-start items-center p-2'>
             <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
-            <div className='flex flex-wrap flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible max-w-[calc(100%-160px)] xs:max-w-auto'>
+            <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
               <Highlight {...highlightProps}>
                 <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
                   {creator.name}
@@ -168,8 +167,6 @@ class PostHeader extends PureComponent {
                 id='flag-tt'
               />
               {pinned && <Icon name='Pin' className='top-1 mr-3 text-xl text-accent font-bold' />}
-              {fulfilledAt && <div data-tooltip-content='Completed' data-tooltip-id={`announcement-tt-${id}`}><PostLabel type='completed' className='mr-2 xs:mr-3' /></div>}
-              {type && <PostLabel type={type} className='mr-1' />}
               {dropdownItems.length > 0 &&
                 <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' />} items={dropdownItems} alignRight />}
               {close &&
