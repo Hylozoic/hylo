@@ -56,7 +56,6 @@ export default function makeSubscriptions () {
         withDontSendToCreator({ context })
       ),
       resolve: (payload) => {
-        // Rehydrate the JSON serialized and re-parsed Bookshelf instance
         return new Comment(payload.comment)
       }
     },
@@ -69,7 +68,6 @@ export default function makeSubscriptions () {
       ),
       resolve: (payload) => {
         console.log('!! message:', payload)
-        // Rehydrate the JSON serialized and re-parsed Bookshelf instance
         return new Comment(payload.message)
       }
     },
@@ -81,7 +79,6 @@ export default function makeSubscriptions () {
         withDontSendToCreator({ context })
       ),
       resolve: (payload) => {
-        // Rehydrate the JSON serialized and re-parsed Bookshelf instance
         console.log('!! newMessageThread:', payload)
         return new Post(payload.newMessageThread)
       }
@@ -93,26 +90,22 @@ export default function makeSubscriptions () {
         context.pubSub.subscribe(`notification:${context.currentUserId}`)
       ),
       resolve: (payload) => {
-        // Rehydrate the JSON serialized and re-parsed Bookshelf instance
-        console.log('!! notification:', payload)
         return new Notification(payload.notification)
       }
     },
 
     peopleTyping: {
       subscribe: (parent, { messageThreadId, postId, commentId }, context) => pipe(
-        context.pubSub.subscribe(messageThreadId
-          ? `peopleTyping:postId:${messageThreadId}`
-          : postId 
-            ? `peopleTyping:postId:${postId}`
-            : `peopleTyping:commentId:${commentId}`
+        context.pubSub.subscribe(
+          messageThreadId
+            ? `peopleTyping:messageThreadId:${messageThreadId}`
+            : postId 
+              ? `peopleTyping:postId:${postId}`
+              : `peopleTyping:commentId:${commentId}`
         ),
         withDontSendToCreator({ context })
       ),
       resolve: (payload) => {
-        console.log('!! peopleTyping:', payload)
-        // TODO: Monitor performance-- this is a very quick query (~6ms in local dev),
-        // but will happen every 3-5 second while someone is actively typing.
         return User.find(payload.user.id)
       }
     },

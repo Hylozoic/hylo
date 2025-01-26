@@ -1,5 +1,10 @@
-export default async function peopleTyping (parent, { postId, commentId }, context, info) {
-  context.pubSub.publish(postId ? `peopleTyping:postId:${postId}` : `peopleTyping:postId:${commentId}`, { user: { id: context.currentUserId } })
+export default async function peopleTyping (parent, { messageThreadId, postId, commentId }, context, info) {
+  context.pubSub.publish(messageThreadId
+    ? `peopleTyping:messageThreadId:${messageThreadId}`
+    : postId
+      ? `peopleTyping:postId:${postId}`
+      : `peopleTyping:commentId:${commentId}`
+  , { user: { id: context.currentUserId } })
 
   return { success: true }
 }

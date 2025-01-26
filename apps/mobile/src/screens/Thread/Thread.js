@@ -52,6 +52,7 @@ export default function Thread() {
   const navigation = useNavigation()
   const dispatch = useDispatch()
   const messageListRef = useRef()
+  const peopleTypingRef = useRef()
   const [{ currentUser }] = useCurrentUser()
   const { id: threadId } = useRouteParams()
 
@@ -167,10 +168,14 @@ export default function Thread() {
       <MessageInput
         blurOnSubmit={false}
         multiline
+        sendIsTyping={() => {
+          console.log('!!! here')
+          peopleTypingRef?.current?.sendTyping()
+        }}
         onSubmit={handleSubmit}
         placeholder={t('Write something')}
       />
-      <PeopleTyping postId={threadId} />
+      <PeopleTyping messageThreadId={threadId} ref={peopleTypingRef} />
     </KeyboardFriendlyView>
   )
 }
