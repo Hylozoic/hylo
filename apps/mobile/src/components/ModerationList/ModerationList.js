@@ -98,7 +98,7 @@ export default function ModerationList ({ forGroup, header, scrollRef, streamTyp
     <View style={styles.container}>
       <FlatList
         ref={scrollRef}
-        data={moderationActions?.items || []}
+        data={moderationActions || []}
         renderItem={renderModerationItem}
         onRefresh={handleRefresh}
         refreshing={!!pending}
