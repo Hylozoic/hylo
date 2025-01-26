@@ -1,5 +1,6 @@
 import { pipe } from '@graphql-yoga/node'
 import { get } from 'lodash/fp'
+import { getTypeForInstance } from './index'
 
 // From WebSockets
 // const validMessageTypes = [
@@ -43,18 +44,14 @@ const withDontSendToCreator = ({ context, getter } = {}) => {
   }
 }
 
-export default function makeSubscriptions({ models, resolvers, expressContext, userId, isAdmin, fetchOne, fetchMany }) {
+export default function makeSubscriptions () {
   return {
-    // NOTE: comment:id and comment:parentCommentId subscriptions are here for completeness
-    // though they are not as of 20250125 not used in either Web or Mobile
     comment: {
-      subscribe: (parent, { userId, id, postId, parentCommentId }, context) => pipe(
+      subscribe: (parent, { id, postId, parentCommentId }, context) => pipe(
         context.pubSub.subscribe(
-          id
-            ? `comment:${id}`
-            : parentCommentId
-              ? `comment:parentCommentId:${parentCommentId}`
-              : `comment:postId:${postId}`
+          parentCommentId
+            ? `comment:parentCommentId:${parentCommentId}`
+            : `comment:postId:${postId}`
         ),
         withDontSendToCreator({ context })
       ),
@@ -64,15 +61,75 @@ export default function makeSubscriptions({ models, resolvers, expressContext, u
       }
     },
 
-    peopleTyping: {
-      subscribe: (parent, { postId, commentId }, context) => pipe(
-        context.pubSub.subscribe(postId ? `peopleTyping:postId:${postId}` : `peopleTyping:commentId:${commentId}`),
+    // Deprecated in preference to updates subscription
+    message: {
+      subscribe: (parent, { id, messageThreadId }, context) => pipe(
+        context.pubSub.subscribe(`message:messageThreadId:${messageThreadId}`),
         withDontSendToCreator({ context })
       ),
       resolve: (payload) => {
+        console.log('!! message:', payload)
+        // Rehydrate the JSON serialized and re-parsed Bookshelf instance
+        return new Comment(payload.message)
+      }
+    },
+
+    // Deprecated in preference to updates subscription
+    newMessageThread: {
+      subscribe: (parent, args, context) => pipe(
+        context.pubSub.subscribe(`newMessageThread:${context.currentUserId}`),
+        withDontSendToCreator({ context })
+      ),
+      resolve: (payload) => {
+        // Rehydrate the JSON serialized and re-parsed Bookshelf instance
+        console.log('!! newMessageThread:', payload)
+        return new Post(payload.newMessageThread)
+      }
+    },
+
+    // Deprecated in preference to updates subscription
+    notification: {
+      subscribe: (parent, args, context) => pipe(
+        context.pubSub.subscribe(`notification:${context.currentUserId}`)
+      ),
+      resolve: (payload) => {
+        // Rehydrate the JSON serialized and re-parsed Bookshelf instance
+        console.log('!! notification:', payload)
+        return new Notification(payload.notification)
+      }
+    },
+
+    peopleTyping: {
+      subscribe: (parent, { messageThreadId, postId, commentId }, context) => pipe(
+        context.pubSub.subscribe(messageThreadId
+          ? `peopleTyping:postId:${messageThreadId}`
+          : postId 
+            ? `peopleTyping:postId:${postId}`
+            : `peopleTyping:commentId:${commentId}`
+        ),
+        withDontSendToCreator({ context })
+      ),
+      resolve: (payload) => {
+        console.log('!! peopleTyping:', payload)
         // TODO: Monitor performance-- this is a very quick query (~6ms in local dev),
         // but will happen every 3-5 second while someone is actively typing.
         return User.find(payload.user.id)
+      }
+    },
+
+    updates: {
+      subscribe: (parent, args, context) => pipe(
+        context.pubSub.subscribe(`updates:${context.currentUserId}`)
+        // withDontSendToCreator({ context })
+      ),
+      resolve: (payload) => {
+        if (payload?.message) {
+          const message = new Comment(payload.message)
+          message.makeModelsType = 'Message'
+          return message
+        }
+        if (payload?.messageThread) return new MessageThread(payload.messageThread)
+        if (payload?.notification) return new Notification(payload.notification)
       }
     }
   }

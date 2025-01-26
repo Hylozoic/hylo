@@ -183,7 +183,9 @@ function createSchema (expressContext) {
     allResolvers = {
       Query: makeAuthenticatedQueries({ userId, fetchOne, fetchMany }),
       Mutation: makeMutations({ expressContext, userId, isAdmin, fetchOne }),
-      Subscription: makeSubscriptions({ models, resolvers, expressContext, userId, isAdmin, fetchOne }),
+      Subscription: makeSubscriptions(),
+
+      // Custom Type resolvers
 
       FeedItemContent: {
         __resolveType (data, context, info) {
@@ -193,10 +195,20 @@ function createSchema (expressContext) {
           throw new GraphQLYogaError('Post is the only implemented FeedItemContent type')
         }
       },
-
       SearchResultContent: {
         __resolveType (data, context, info) {
           return getTypeForInstance(data, models)
+        }
+      },
+      // Type resolver for the Update graphql union type used in update subscription
+      Update: {
+        __resolveType (data, context, info) {
+          // This is a special case for Message in particular as there is no apparent way to
+          // distinguish it from a Comment which matches first by model name in our makeModels mapping
+          if (data?.makeModelsType) return data.makeModelsType
+          const foundType = getTypeForInstance(data, models)
+          if (foundType) return foundType
+          throw new Error(`Unable to determine GraphQL type for instance: ${data}`)
         }
       }
     }
@@ -600,7 +612,7 @@ export function makeApiMutations () {
 
 let modelToTypeMap
 
-function getTypeForInstance (instance, models) {
+export function getTypeForInstance (instance, models) {
   if (!modelToTypeMap) {
     modelToTypeMap = reduce(models, (m, v, k) => {
       const tableName = v.model.forge().tableName

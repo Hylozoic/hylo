@@ -57,10 +57,10 @@ export default {
   },
   Subscription: {
     comment: (result, args, cache, info) => {
+      console.log('!!!!! comment - result, args, info:', result, args, info)
+    },
+    message: (result, args, cache, info) => {
       // import { showMessagesBadge } from 'store/reducers/ormReducer/util'
-      // case RECEIVE_THREAD:
-      //   // Me.first().increment('unseenThreadCount')
-      //   break
       // case RECEIVE_MESSAGE:
       //   // const { message: { messageThread, createdAt } } = payload.data
       //   // if (MessageThread.idExists(messageThread)) {
@@ -68,7 +68,19 @@ export default {
       //   // }
       //   // showMessagesBadge(session)
       //   break
-      console.log('!!!!! comment - result, args, info:', result, args, info)
+      cache.invalidate({ __typename: 'MessageThread', id: args.messageThreadId })
+    },
+    newMessageThread: (result, args, cache, info) => {
+      // case RECEIVE_THREAD:
+      //   // Me.first().increment('unseenThreadCount')
+      //   break
+      console.log('!!!!! newMessageThread - result, args, info:', result, args, info)
+    },
+    notification: (result, args, cache, info) => {
+      console.log('!!!!! notification - result, args, info:', result, args, info)
+    },
+    updates: (result, args, cache, info) => {
+      console.log('!!!!! updates - result, args, info:', result, args, info)
     }
   }
 }

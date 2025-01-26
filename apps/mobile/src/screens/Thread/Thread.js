@@ -7,7 +7,6 @@ import { gql, useMutation, useQuery, useSubscription } from 'urql'
 import { debounce } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import messageThreadMessagesQuery from 'graphql/queries/messageThreadMessagesQuery'
-import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
 import createMessageMutation from 'graphql/mutations/createMessageMutation'
 import useCurrentUser from 'hooks/useCurrentUser'
 import useRouteParams from 'hooks/useRouteParams'
@@ -34,13 +33,18 @@ export function updateThreadReadTimeAction(id) {
   }
 }
 
-export const commentSubscription = gql`
-  subscription CommentSubscription($postId: ID!) {
-    comment(postId: $postId) {
-      ...CommentFieldsFragment
+export const messageSubscription = gql`
+  subscription MessageSubscription($messageThreadId: ID!) {
+    message(messageThreadId: $messageThreadId) {
+      id
+      createdAt
+      text
+      creator {
+        id
+        name
+      }
     }
   }
-  ${commentFieldsFragment}
 `
 
 export default function Thread() {
@@ -61,7 +65,7 @@ export default function Thread() {
   const messages = data?.messageThread?.messages?.items || []
   const hasMore = data?.messageThread?.messages?.hasMore
 
-  useSubscription({ query: commentSubscription, variables: { postId: threadId } })
+  useSubscription({ query: messageSubscription, variables: { messageThreadId: threadId } })
 
   // Not currently used, but once we have subscription applied we can turn it back on
   const [newMessages, setNewMessages] = useState()

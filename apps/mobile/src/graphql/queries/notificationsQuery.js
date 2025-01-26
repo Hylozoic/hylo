@@ -1,47 +1,16 @@
 import { gql } from 'urql'
-
+import notificationFieldsFragment from 'graphql/fragments/notificationFieldsFragment'
 export const NOTIFICATIONS_PAGE_SIZE = 20
 
 export default gql`
-  query NotificationsQuery ($first: Int, $offset: Int) {
+  query NotificationsQuery ($first: Int = ${NOTIFICATIONS_PAGE_SIZE}, $offset: Int = 0) {
     notifications (first: $first, offset: $offset, order: "desc") {
       total
       hasMore
       items {
-        id
-        createdAt
-        activity {
-          id
-          actor {
-            id
-            name
-            avatarUrl
-          }
-          comment {
-            id
-            text
-          }
-          post {
-            id
-            title
-            details
-            groups {
-              id
-              slug
-            }  
-          }
-          group {
-            id
-            name
-            slug
-          }
-          meta {
-            reasons
-          }
-          action
-          unread
-        }
+        ...NotificationFieldsFragment
       }
     }
   }
+  ${notificationFieldsFragment}
 `

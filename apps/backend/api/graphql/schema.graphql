@@ -306,9 +306,15 @@ type Query {
   ): TopicQuerySet
 }
 
+union Update = Notification | Message | MessageThread
+
 type Subscription {
+  updates: Update
   comment(postId: ID, parentCommentId: ID): Comment,
-  peopleTyping(postId: ID, commentId: ID): Person
+  message(messageThreadId: ID): Message,
+  newMessageThread: MessageThread,
+  notification: Notification,
+  peopleTyping(messageThreadId: ID, postId: ID, commentId: ID): Person
 }
 
 # The meta data associated with an Activity
@@ -2448,7 +2454,7 @@ type Mutation {
   # Pin a post within a Group. Only a group moderator can call this.
   pinPost(postId: ID, groupId: ID): GenericResult
   # Called when typing in front end, matches with peopleTyping subscription
-  peopleTyping(postId: ID, commentId: ID): GenericResult,
+  peopleTyping(messageThreadId: ID, postId: ID, commentId: ID): GenericResult,
   # NOT USED RIGHT NOW
   processStripeToken(postId: ID, token: String, amount: Int): GenericResult
   # react to a post or comment
