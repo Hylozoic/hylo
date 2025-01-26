@@ -1,4 +1,4 @@
-import { makeExecutableSchema } from 'graphql-tools'
+import { createSchema } from 'graphql-yoga'
 import { GraphQLError } from 'graphql'
 import { readFileSync } from 'fs'
 import { join } from 'path'
@@ -192,7 +192,7 @@ export default async function makeSchema ({ req }) {
     }
   }
 
-  return makeExecutableSchema({
+  return createSchema({
     typeDefs: [schemaText],
     resolvers: Object.assign(allResolvers, resolvers)
   })
