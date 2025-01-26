@@ -282,12 +282,12 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
 
 export function makePublicMutations ({ fetchOne }) {
   return {
-    login: (root, args, context) => login(fetchOne, context.req),
-    logout: (root, args, context) => logout(context.req),
+    login: login(fetchOne),
+    logout,
     sendEmailVerification,
     sendPasswordReset,
-    register: (root, args, context) => register(fetchOne, context.req),
-    verifyEmail: (root, args, context) => verifyEmail(fetchOne, context.req)
+    register: register(fetchOne),
+    verifyEmail: verifyEmail(fetchOne)
   }
 }
 
@@ -530,9 +530,7 @@ export function makeApiQueries ({ fetchOne, fetchMany }) {
   return {
     // you can specify id or slug, but not both
     group: async (root, { id, slug }) => fetchOne('Group', slug || id, slug ? 'slug' : 'id'),
-
     groups: (root, args) => fetchMany('Group', args),
-
     // you can query by id or email, with id taking preference
     person: (root, { id, email }) => fetchOne('Person', id || email, id ? 'id' : 'email')
   }
