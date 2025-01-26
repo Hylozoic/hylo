@@ -7,9 +7,9 @@ import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import { Text, View, ImageBackground, ScrollView, TouchableOpacity, TextInput } from 'react-native'
 import CheckBox from 'react-native-bouncy-checkbox'
-import { useGroup } from 'hooks/useCurrentGroup'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 import useCurrentUser from 'hooks/useCurrentUser'
-import GroupPresenter, { DEFAULT_AVATAR, DEFAULT_BANNER } from 'urql-shared/presenters/GroupPresenter'
+import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'urql-shared/presenters/GroupPresenter'
 import {
   GROUP_WELCOME_AGREEMENTS,
   GROUP_WELCOME_JOIN_QUESTIONS,
@@ -49,21 +49,18 @@ export const updateMembershipMutation = gql`
 
 export default function GroupWelcomeLanding ({ route }) {
   const { t } = useTranslation()
-  const { params } = route
-  const { groupId } = params
   const [, addSkill] = useMutation(addSkillMutation)
   const [, removeSkill] = useMutation(removeSkillMutation)
   const [, updateMembershipSettings] = useMutation(updateMembershipMutation)
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
-  const [{ group: currentGroup }] = useGroup({ groupId })
-  const group = GroupPresenter(currentGroup)
+  const [{ currentGroup }] = useCurrentGroup()
   const currentStepIndex = useSelector(getCurrentStepIndex)
   const currentMemberships = currentUser?.memberships
-  const currentMembership = currentMemberships.find(m => m.group.id === groupId)
-  const routeNames = getRouteNames(group, currentMembership)
+  const currentMembership = currentMemberships.find(m => m.group.id === currentGroup?.id)
+  const routeNames = getRouteNames(currentGroup, currentMembership)
 
-  const { name, avatarUrl, purpose, bannerUrl, description, agreements, joinQuestions } = group
+  const { name, avatarUrl, purpose, bannerUrl, description, agreements, joinQuestions } = currentGroup
   const { agreementsAcceptedAt, joinQuestionsAnsweredAt,showJoinForm } = currentMembership?.settings || {}
   const imageSource = { uri: avatarUrl || DEFAULT_AVATAR }
   const bgImageSource = { uri: bannerUrl || DEFAULT_BANNER }
@@ -85,7 +82,8 @@ export default function GroupWelcomeLanding ({ route }) {
       !agreementsChanged &&
       (joinQuestionsAnsweredAt ||
       !currentGroup.settings?.askJoinQuestions)) {
-      navigation.navigate('Stream', { groupId, initial: false })
+      // TODO: Should use useChangeToGroup hook, or simply navigate to Stream because this is already the currentGroup
+      navigation.navigate('Stream', { groupId: currentGroup?.id, initial: false })
     }
   }, [showJoinForm, agreementsChanged, joinQuestionsAnsweredAt])
 
@@ -111,7 +109,7 @@ export default function GroupWelcomeLanding ({ route }) {
 
   const handleAccept = async () => {
     await updateMembershipSettings({
-      groupId: group.id,
+      groupId: currentGroup?.id,
       data: {
         acceptAgreements: true,
         questionAnswers: questionAnswers
