@@ -5,12 +5,12 @@ import { has, isEmpty, merge, omit, pick, intersectionBy } from 'lodash'
 import fetch from 'node-fetch'
 import { v4 as uuidv4 } from 'uuid'
 import validator from 'validator'
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { Validators } from '@hylo/shared'
 import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import MemberCommonRole from './MemberCommonRole'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -644,7 +644,7 @@ module.exports = bookshelf.Model.extend(merge({
   }),
 
   clearSessionsFor: async function ({ userId, sessionId }) {
-    const redisClient = await RedisClient.create()
+    const redisClient = RedisClient.create()
     for await (const key of redisClient.scanIterator({ MATCH: `sess:${userId}:*` })) {
       if (key !== 'sess:' + sessionId) {
         await redisClient.del(key)

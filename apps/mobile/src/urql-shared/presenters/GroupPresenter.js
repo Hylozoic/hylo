@@ -138,8 +138,8 @@ export const ALL_GROUP = {
   avatarUrl: Image.resolveAssetSource(allGroupsAvatarUrl).uri,
   bannerUrl: Image.resolveAssetSource(allGroupsBannerImage).uri,
   name: 'All My Groups',
-  parentGroups: { toModelArray: () => [] },
-  childGroups: { toModelArray: () => [] }
+  parentGroups: { items: [], hasMore: false, total: 0 },
+  childGroups: { items: [], hasMore: false, total: 0 }
 }
 
 export const PUBLIC_GROUP_ID = PUBLIC_CONTEXT_SLUG
@@ -150,8 +150,8 @@ export const PUBLIC_GROUP = {
   avatarUrl: Image.resolveAssetSource(publicGroupAvatarUrl).uri,
   bannerUrl: Image.resolveAssetSource(GREEN_HERO_BANNER_PATH).uri,
   name: 'Public Stream',
-  parentGroups: { toModelArray: () => [] },
-  childGroups: { toModelArray: () => [] }
+  parentGroups: { items: [], hasMore: false, total: 0 },
+  childGroups: { items: [], hasMore: false, total: 0 }
 }
 
 export const MY_CONTEXT_ID = 'my'
@@ -163,10 +163,16 @@ export const MY_CONTEXT_GROUP = {
   avatarUrl: Image.resolveAssetSource(myHomeAvatarUrl).uri,
   bannerUrl: Image.resolveAssetSource(PURPLE_HERO_BANNER_PATH).uri,
   name: 'My Home',
-  parentGroups: { toModelArray: () => [] },
-  childGroups: { toModelArray: () => [] }
+  parentGroups: { items: [], hasMore: false, total: 0 },
+  childGroups: { items: [], hasMore: false, total: 0 }
 }
 
-// TODO: URQL - Move into hylo-shared (PathsHelper?)
 export const isContextGroup = slug =>
   [ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(slug)
+
+export function getContextGroup (groupSlug, groupId) {
+  if (groupId === ALL_GROUP_ID || groupSlug === ALL_GROUP_ID) return ALL_GROUP
+  if (groupId === PUBLIC_GROUP_ID || groupSlug === PUBLIC_GROUP_ID) return PUBLIC_GROUP
+  if (groupId === MY_CONTEXT_ID || groupSlug === MY_CONTEXT_ID) return MY_CONTEXT_GROUP
+  return null
+}

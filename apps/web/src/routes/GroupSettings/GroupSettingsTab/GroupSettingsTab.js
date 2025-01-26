@@ -7,6 +7,7 @@ import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
+import { ImageUp } from 'lucide-react'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import EditableMap from 'components/Map/EditableMap/EditableMap'
 import EditableMapModal from 'components/Map/EditableMap/EditableMapModal'
@@ -148,32 +149,39 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
   t('Display only nearest city and dont show on the map')
 
   return (
-    <div className={general.groupSettings}>
-      <span className={styles.nameBox}>
-        <label className={styles.label} htmlFor='nameField'>{t('Group Name')}</label>
-        <input type='text' className={styles.name} onChange={updateSetting('name')} value={name || ''} id='nameField' />
-      </span>
-      <label className={styles.label}>{t('Banner and Avatar Images')}</label>
-      <UploadAttachmentButton
-        type='groupBanner'
-        id={group.id}
-        onSuccess={({ url }) => updateSettingDirectly('bannerUrl')(url)}
-        className={styles.changeBanner}
-      >
-        <div style={bgImageStyle(bannerUrl)} className={styles.bannerImage}>
-          <Icon name='AddImage' className={styles.uploadIcon} />
-        </div>
-      </UploadAttachmentButton>
-      <UploadAttachmentButton
+    <div className='w-full flex flex-col'>
+      <div className='w-full h-[30vh] bg-background mb-[50px]'>
+        <UploadAttachmentButton
+            type='groupBanner'
+            id={group.id}
+            onSuccess={({ url }) => updateSettingDirectly('bannerUrl')(url)}
+            className='relative z-0'
+          >
+          <div style={bgImageStyle(bannerUrl)} className='w-full group h-[30vh] hover:scale-105 rounded-xl transition-all relative z-0 hover:scale-105 shadow-xl hover:shadow-2xl'>
+            <div className='absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[100px] h-[100px] bg-black/60 opacity-0 group-hover:opacity-100 transition-all rounded-xl text-xs flex flex-col justify-center items-center text-center'>
+              <ImageUp className='w-[30px] h-[30px]' />
+              <div>{t('Change group banner')}</div>
+            </div>
+          </div>
+        </UploadAttachmentButton>
+        <UploadAttachmentButton
         type='groupAvatar'
         id={group.id}
         onSuccess={({ url }) => updateSettingDirectly('avatarUrl')(url)}
-        className={styles.changeAvatar}
-      >
-        <div style={bgImageStyle(avatarUrl)} className={styles.avatarImage}>
-          <Icon name='AddImage' className={styles.uploadIcon} />
-        </div>
-      </UploadAttachmentButton>
+        className='relative z-1 bg-background w-full'
+        >
+          <div style={bgImageStyle(avatarUrl)} className='w-[100px] group h-[100px] rounded-xl bg-cover absolute top-[-50px] left-[50%] translate-x-[-50%] flex justify-center items-center shadow-xl hover:shadow-2xl hover:scale-105 transition-all'>
+            <div className='absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[100px] h-[100px] bg-black/60 opacity-0 group-hover:opacity-100 transition-all rounded-xl text-xs flex flex-col justify-center items-center text-center'>
+              <ImageUp className='w-[30px] h-[30px]' />
+              <div>{t('Change group icon')}</div>
+            </div>
+          </div>
+        </UploadAttachmentButton>
+      </div>
+      <div className='w-full flex justify-center items-center mt-2'>
+        <input type='text' onChange={updateSetting('name')} value={name || ''} id='nameField' className='bg-transparent text-foreground text-center text-2xl font-bold outline-none focus:border-2 focus:border-dashed focus:border-foreground/80 rounded-lg hover:scale-105 transition-all hover:border-2 hover:border-foreground/50 border-dashed border-2 border-transparent hover:border-dashed'/>
+      </div>
+
       <SettingsControl
         helpText={t('purposeHelpText')}
         label={t('Purpose Statement')}
@@ -279,9 +287,16 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
       <Button label='Transition to new menu' onClick={transitionGroupToNewMenu} />
       <br />
 
-      <div className={general.saveChanges}>
+      <div className={cn(
+        'sticky bottom-4 left-[50%] translate-x-[-50%] w-[60%] bg-background/80 rounded-xl p-4 flex justify-between items-center translate-y-[200px] transition-all opacity-0 scale-0',
+        {
+          'border-2 border-accent border-dashed text-accent translate-y-[0px] opacity-100 scale-100' : changed
+        }
+      )}>
         <span className={saveButtonContent().style}>{saveButtonContent().text}</span>
-        <Button label={t('Save Changes')} color={saveButtonContent().color} onClick={changed && !error ? save : null} className={cn('saveButton', general.saveButton)} />
+        <button onClick={changed && !error ? save : null} className='bg-foreground rounded text-background px-2 text-bold'>
+          {t('Save Changes')}
+        </button>
       </div>
     </div>
   )

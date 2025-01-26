@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { merge, trim } from 'lodash'
 import { includes } from 'lodash/fp'
 
@@ -22,21 +22,22 @@ export function canUpdateComment (userId, comment) {
 
 export function deleteComment (userId, commentId) {
   return Comment.find(commentId)
-  .then(comment => canDeleteComment(userId, comment)
-    .then(canDelete => {
-      if (!canDelete) throw new GraphQLYogaError("You don't have permission to delete this comment")
-      return underlyingDeleteComment(comment, userId)
-    }))
-  .then(() => ({success: true}))
+    .then(comment => canDeleteComment(userId, comment)
+      .then(canDelete => {
+        if (!canDelete) throw new GraphQLYogaError("You don't have permission to delete this comment")
+        return underlyingDeleteComment(comment, userId)
+      }))
+    .then(() => ({ success: true }))
 }
 
-export function createComment (userId, data) {
-  return validateCommentCreateData(userId, data)
-  .then(() => Promise.props({
-    post: Post.find(data.postId),
-    parentComment: data.parentCommentId ? Comment.find(data.parentCommentId) : null
-  }))
-  .then(extraData => underlyingCreateComment(userId, merge(data, extraData)))
+export async function createComment (userId, data, context) {
+  await validateCommentCreateData(userId, data)
+
+  const post = await Post.find(data.postId)
+  const parentComment = data.parentCommentId ? await Comment.find(data.parentCommentId) : null
+  const comment = await underlyingCreateComment(userId, merge(data, { post, parentComment }))
+
+  return comment
 }
 
 export async function createMessage (userId, data) {
@@ -51,26 +52,26 @@ export async function createMessage (userId, data) {
 
 export function updateComment (userId, { id, data }) {
   return Comment.find(id)
-  .then(comment => canUpdateComment(userId, comment))
-  .then(canUpdate => {
-    if (!canUpdate) throw new GraphQLYogaError("You don't have permission to edit this comment")
-    return validateCommentUpdateData(userId, data)
-    .then(validatedData => underlyingUpdateComment(userId, id, validatedData))
-  })
+    .then(comment => canUpdateComment(userId, comment))
+    .then(canUpdate => {
+      if (!canUpdate) throw new GraphQLYogaError("You don't have permission to edit this comment")
+      return validateCommentUpdateData(userId, data)
+        .then(validatedData => underlyingUpdateComment(userId, id, validatedData))
+    })
 }
 
 export function validateCommentCreateData (userId, data) {
   return Post.isVisibleToUser(data.postId, userId)
-  .then(isVisible => {
-    if (isVisible) {
-      if (!data.imageUrl && !trim(data.text)) {
-        throw new GraphQLYogaError("Can't create a blank comment")
+    .then(isVisible => {
+      if (isVisible) {
+        if (!data.imageUrl && !trim(data.text)) {
+          throw new GraphQLYogaError("Can't create a blank comment")
+        }
+        return Promise.resolve()
+      } else {
+        throw new GraphQLYogaError('post not found')
       }
-      return Promise.resolve()
-    } else {
-      throw new GraphQLYogaError('post not found')
-    }
-  })
+    })
 }
 
 export function validateCommentUpdateData (userId, data) {

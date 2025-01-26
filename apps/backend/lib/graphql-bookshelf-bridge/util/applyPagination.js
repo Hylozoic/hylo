@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { countTotal } from '../../../lib/util/knex'
 import { snakeCase } from 'lodash'
 
