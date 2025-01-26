@@ -10,6 +10,21 @@ import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import { personUrl } from 'util/navigation'
 
+const formatEventDate = (startTime) => {
+  if (!startTime) return null
+  try {
+    const dateTime = DateTime.fromJSDate(startTime)
+    if (!dateTime.isValid) return null
+    return {
+      month: dateTime.toFormat('MMM'),
+      day: dateTime.toFormat('D')
+    }
+  } catch (error) {
+    console.error('Error formatting event date:', error)
+    return null
+  }
+}
+
 const PostListRow = (props) => {
   const {
     childPost,
@@ -39,7 +54,7 @@ const PostListRow = (props) => {
   const creatorUrl = personUrl(creator.id, slug)
   const numOtherCommentors = commentersTotal - 1
   const unread = false
-  const start = DateTime.fromJSDate(post.startTime)
+  const eventDate = formatEventDate(post.startTime)
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
   const { t } = useTranslation()
 
@@ -59,11 +74,11 @@ const PostListRow = (props) => {
             <Icon name={typeName} />
           </View>
           <View style={styles.participants}>
-            {post.type === 'event'
+            {post.type === 'event' && eventDate
               ? (
                 <View style={styles.date}>
-                  <Text style={styles.dateText}>{start.toFormat('MMM')}</Text>
-                  <Text style={styles.dateText}>{start.toFormat('D')}</Text>
+                  <Text style={styles.dateText}>{eventDate.month}</Text>
+                  <Text style={styles.dateText}>{eventDate.day}</Text>
                 </View>
                 )
               : (

@@ -12,7 +12,8 @@ import {
   DEFAULT_APP_HOST
 } from '.'
 
-// This is a very custom way of handling deep links in React Navigation
+// Takes the providedPath, gets a routeMatch object, then builds a nav state
+// making any queryString params as params for the target screen
 export default function getStateFromPath (providedPath) {
   // Not sure this trim is ever necessary, has been
   // historically been there so keeping it for now
@@ -41,6 +42,8 @@ export default function getStateFromPath (providedPath) {
   return getStateFromPathDefault(path, screenConfig)
 }
 
+// Takes a path and our linking routingConfig (linking) and returns the first
+// matching route (see object below that it returns), or nothing at all
 export function getRouteMatchForPath (providedPath, routes = routingConfig) {
   const url = new URL(providedPath, DEFAULT_APP_HOST)
   const pathname = url.pathname.toLowerCase()

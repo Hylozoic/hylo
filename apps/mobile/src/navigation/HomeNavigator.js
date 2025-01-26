@@ -4,10 +4,13 @@ import { createStackNavigator } from '@react-navigation/stack'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import useReturnToOnAuthPath from 'hooks/useReturnToOnAuthPath'
 import getReturnToOnAuthPath from 'store/selectors/getReturnToOnAuthPath'
+import useCurrentGroup from 'hooks/useCurrentGroup'
+import { WidgetHelpers, NavigatorHelpers } from '@hylo/shared'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
 // Screens
 import AllTopicsWebView from 'screens/AllTopicsWebView'
+import AllView from 'screens/AllView/AllView'
 import ChatRoom from 'screens/ChatRoomWebView'
 import Stream from 'screens/Stream'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
@@ -22,24 +25,38 @@ import MapWebView from 'screens/MapWebView/MapWebView'
 import GroupWelcomeLanding from 'screens/GroupWelcomeFlow/GroupWelcomeLanding'
 import { GROUP_WELCOME_LANDING } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
 import { useTranslation } from 'react-i18next'
+import { openURL } from 'hooks/useOpenURL'
+import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 
 const HomeTab = createStackNavigator()
+const { findHomeView } = WidgetHelpers
+
 export default function HomeNavigator ({ navigation }) {
   const initialURL = useSelector(state => state.initialURL)
   const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
+  const [{ currentGroup }] = useCurrentGroup()
   const { t } = useTranslation()
 
   useEffect(() => {
     if (!initialURL && !returnToOnAuthPath) {
-      setTimeout(() => navigation.navigate('Stream'), 400)
+      if (currentGroup && !isContextGroup(currentGroup.slug)) {
+        const homeView = WidgetHelpers.findHomeView(currentGroup)
+        const groupHomeUrl = NavigatorHelpers.widgetUrl({ widget: homeView, groupSlug: currentGroup?.slug })
+        if (groupHomeUrl) {
+          setTimeout(() => openURL(groupHomeUrl), 200)
+        } else {
+          // Fallback to Stream if we can't determine the home view navigation
+          setTimeout(() => navigation.navigate('Stream'), 200)
+        }
+      }
     }
-  }, [])
+  }, [initialURL, returnToOnAuthPath, currentGroup])
 
   useOpenInitialURL()
   useReturnToOnAuthPath()
 
   const navigatorProps = {
-    initialRouteName: 'Group Navigation',
+    initialRouteName: 'Stream',
     screenOptions: {
       animationEnabled: !initialURL,
       transitionSpec: {
@@ -69,8 +86,8 @@ export default function HomeNavigator ({ navigation }) {
 
   return (
     <HomeTab.Navigator {...navigatorProps}>
-      <HomeTab.Screen name='Group Navigation' component={GroupNavigation} />
       <HomeTab.Screen name='Stream' component={Stream} />
+      <HomeTab.Screen name='All Views' component={AllView} />
       <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
       <HomeTab.Screen name='Projects' component={Stream} initialParams={{ streamType: 'project' }} />
       <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />

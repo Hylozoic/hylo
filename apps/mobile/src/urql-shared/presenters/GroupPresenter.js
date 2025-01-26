@@ -24,6 +24,9 @@ export default function GroupPresenter (group) {
         primaryImage: a.attachments.length > 0 ? a.attachments[0].url : false
       }))
       : [],
+    contextWidgets: group.contextWidgets
+      ? group.contextWidgets.items
+      : [],
     // TODO: URQL - convert
     customViews: group?.customViews?.items || [],
     // customViews: group.customViews

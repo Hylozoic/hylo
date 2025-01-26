@@ -38,6 +38,18 @@ export default function DatePickerWithLabel ({
     setOpen(false)
   }
 
+  const formatDate = (dateToFormat) => {
+    if (!dateToFormat) return ''
+    try {
+      const dateTime = DateTime.fromJSDate(dateToFormat)
+      if (!dateTime.isValid) return ''
+      return dateTime.toFormat(dateFormat)
+    } catch (error) {
+      console.error('Error formatting date:', error)
+      return ''
+    }
+  }
+
   return (
     <>
       <TouchableOpacity style={style} onPress={handleOnPress}>
@@ -50,7 +62,7 @@ export default function DatePickerWithLabel ({
           </View>
         </View>
         {date && !open && (
-          <Text style={styleTemplate.valueText}>{DateTime.fromJSDate(date).toFormat(dateFormat)}</Text>
+          <Text style={styleTemplate.valueText}>{formatDate(date)}</Text>
         )}
       </TouchableOpacity>
       <DatePicker

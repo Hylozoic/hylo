@@ -14,13 +14,27 @@ import Icon from 'components/Icon'
 import { white, rhino80 } from 'style/colors'
 
 // For now this list needs to be kept in sync with the names of the initial
-// routes for each stack in navigation/TabsNavigator.
+// routes for each stack in navigation/TabsNavigator. And because Home Navigator doesn't have an initital screen, we need to add all teh appropriate ones.
 export const TAB_STACK_ROOTS = [
-  'Group Navigation',
+  'All Views',
+  'Announcements',
+  'Chat',
+  'Decisions',
+  'Events',
+  'Group Explore',
+  'Group Relationships',
+  'Group Welcome',
+  'Interactions',
+  'Map',
+  'Members',
+  'Mentions',
   'Messages Tab',
-  'Search Tab',
+  'My Posts',
   'Profile Tab',
-  'Group Welcome'
+  'Projects',
+  'Search Tab',
+  'Stream',
+  'Topics'
 ]
 
 export default function TabStackHeader ({
@@ -35,7 +49,7 @@ export default function TabStackHeader ({
   ...otherProps
 }) {
   const canGoBack = !rootsScreenNames.includes(route?.name)
-
+  // console.log(rootsScreenNames, route?.name, 'route nammmmes')
   const props = {
     headerBackTitleVisible: false,
     title: getFocusedRouteNameFromRoute(route) || getHeaderTitle(options, route.name),
@@ -63,8 +77,8 @@ export default function TabStackHeader ({
           ? navigation.goBack
           : navigation.openDrawer
 
-        if (canGoBack && !navigation.canGoBack()) {
-          onPress = () => navigation.navigate('Group Navigation')
+          if (canGoBack && !navigation.canGoBack()) {
+          onPress = navigation.openDrawer
         }
       }
 
@@ -83,7 +97,7 @@ export default function TabStackHeader ({
           alignItems: 'center'
         }}
       >
-        <NotificationsIcon showNotifications={() => navigation.navigate(modalScreenName('Notifications'))} />
+        {/* <NotificationsIcon showNotifications={() => navigation.navigate(modalScreenName('Notifications'))} /> */}
       </View>
     ))
   }
@@ -129,7 +143,7 @@ export function MenuButton ({ canGoBack, onPress }) {
 export const styles = StyleSheet.create({
   headerIcon: {
     opacity: 0.75,
-    color: white,
+    color: rhino80,
     backgroundColor: 'transparent',
     fontSize: 32,
     marginRight: 12

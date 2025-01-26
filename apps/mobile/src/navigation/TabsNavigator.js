@@ -13,9 +13,19 @@ import HomeNavigator from 'navigation/HomeNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
 import MessagesNavigator from 'navigation/MessagesNavigator'
 import UserSettingsTabsNavigator from './UserSettingsTabsNavigator'
+import useCurrentGroup, { setCurrentGroupSlug } from 'hooks/useCurrentGroup'
+import { MY_CONTEXT_SLUG } from '@hylo/shared'
+import { useNavigation } from '@react-navigation/native'
+import { useDispatch } from 'react-redux'
+import { openURL } from 'hooks/useOpenURL'
+import { NotificationsIcon } from './headers/TabStackHeader'
+import { PlusSquare } from 'lucide-react-native'
+import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 
 const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
+  const navigation = useNavigation()
+  const dispatch = useDispatch()
   const navigatorProps = {
     screenOptions: ({ route }) => ({
       // TODO: Required for Android, not iOS
@@ -47,17 +57,68 @@ export default function TabsNavigator () {
     })
   }
   const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroup }] = useCurrentGroup()
 
   const handleSupportTabPress = () => {
     Intercom.present()
   }
 
+  const handleProfileTabPress = () => {
+    // TODO redesign: - for consistency and nav handling it's important that setCurrentGroupSlug is only 
+    // ran as part of useCurrentGroup in the form of useCurrentGroup({ setToGroupSlug: group.slug }),
+    // or as a side effect of setCurrentGroupSlug. If either are not doing what is expected or needed
+    // then we need to fix it there, and not break out to calling directly.
+    dispatch(setCurrentGroupSlug(MY_CONTEXT_SLUG))
+    navigation.getParent('DrawerNavigator')?.openDrawer()
+  }
+
   return (
     <Tabs.Navigator {...navigatorProps}>
       <Tabs.Screen name='Home Tab' component={HomeNavigator} />
+      <Tabs.Screen
+        name='Create'
+        component={UserSettingsTabsNavigator}
+        listeners={{
+          tabPress: (e) => {
+            navigation.navigate('Edit Post', {
+              groupId: isContextGroup(currentGroup.slug) ? null : currentGroup.id,
+            })
+
+            e.preventDefault()
+          }
+        }}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <PlusSquare />
+        )}}
+      />
+      <Tabs.Screen
+        name='My Context'
+        component={HomeNavigator}
+        listeners={{
+          tabPress: (e) => {
+            handleProfileTabPress()
+
+            e.preventDefault()
+          }
+        }}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <Avatar
+              style={{
+                borderWidth: 2,
+                borderColor: focused ? black10OnCaribbeanGreen : rhino05
+              }}
+              dimension={34}
+              hasBorder
+              avatarUrl={currentUser?.avatarUrl}
+            />
+          )
+        }}
+      />
       <Tabs.Screen name='Search Tab' component={SearchNavigator} />
       <Tabs.Screen name='Messages Tab' component={MessagesNavigator} />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name='Support Tab'
         component={HomeNavigator} // it will never navigate to this but we need to pass a valid component here anyway
         listeners={{
@@ -72,21 +133,20 @@ export default function TabsNavigator () {
             <Text style={{ fontSize: 28, fontFamily: 'Circular-Bold', color: focused ? black10OnCaribbeanGreen : rhino60 }}>?</Text>
           )
         }}
-      />
+      /> */}
       <Tabs.Screen
-        name='Settings Tab'
+        name='Notifications'
         component={UserSettingsTabsNavigator}
+        listeners={{
+          tabPress: (e) => {
+            navigation.navigate(modalScreenName('Notifications'))
+
+            e.preventDefault()
+          }
+        }}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Avatar
-              style={{
-                borderWidth: 2,
-                borderColor: focused ? black10OnCaribbeanGreen : rhino05
-              }}
-              dimension={34}
-              hasBorder
-              avatarUrl={currentUser?.avatarUrl}
-            />
+            <NotificationsIcon showNotifications={ ()=>{} } />
           )
         }}
       />

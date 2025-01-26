@@ -79,9 +79,8 @@ export default {
     marginRight: 11
   },
   groupAvatar: {
-    height: 24,
-    width: 24,
-    marginRight: 8,
+    height: 30,
+    width: 30,
     borderRadius: 4
   },
   groupRowText: {
