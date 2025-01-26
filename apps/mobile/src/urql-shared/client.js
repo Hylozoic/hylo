@@ -50,7 +50,6 @@ const client = createClient({
             })
 
             eventSource.addEventListener('message', (event) => {
-              console.log('!!! event', event)
               const data = JSON.parse(event.data)
 
               sink.next(data)
@@ -62,14 +61,14 @@ const client = createClient({
 
             eventSource.addEventListener('error', (event) => {
               if (event.type === 'error') {
-                console.error('Connection error:', event.message)
+                console.error('Connection error:', event?.message)
               } else if (event.type === 'exception') {
-                console.error('Error:', event.message, event.error)
+                console.error('Error:', event?.message, event?.error)
               }
 
               sink.error(event)
             })
-            
+
             return {
               unsubscribe: () => eventSource.close()
             }

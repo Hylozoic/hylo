@@ -6,16 +6,16 @@ import { useTranslation } from 'react-i18next'
 const MAX_TYPING_PAUSE = 3000
 
 const peopleTypingMutation = gql`
-  mutation PeopleTypingMutation($postId: ID, $commentId: ID) {
-    peopleTyping(postId: $postId, commentId: $commentId) {
+  mutation PeopleTypingMutation($messageThreadId: ID, $postId: ID, $commentId: ID) {
+    peopleTyping(messageThreadId: $messageThreadId, postId: $postId, commentId: $commentId) {
       success
     }
   }
 `
 
 const peopleTypingSubscription = gql`
-  subscription PeopleTypingMutation($postId: ID, $commentId: ID) {
-    peopleTyping(postId: $postId, commentId: $commentId) {
+  subscription PeopleTypingMutation($messageThreadId: ID, $postId: ID, $commentId: ID) {
+    peopleTyping(messageThreadId: $messageThreadId, postId: $postId, commentId: $commentId) {
       id
       name
       avatarUrl
@@ -23,12 +23,12 @@ const peopleTypingSubscription = gql`
   }
 `
 
-export const usePeopleTyping = ({ postId, commentId, timerLength = MAX_TYPING_PAUSE }) => {
+export const usePeopleTyping = ({ messageThreadId, postId, commentId, timerLength = MAX_TYPING_PAUSE }) => {
   const { t } = useTranslation()
   const [typingUsers, setTypingUsers] = useState([])
   const [mutationResult, providedSendTyping] = useMutation(peopleTypingMutation)
 
-  const variables = postId ? { postId } : { commentId }
+  const variables = { messageThreadId, postId, commentId }
 
   // Handle incoming subscription events
   useSubscription(

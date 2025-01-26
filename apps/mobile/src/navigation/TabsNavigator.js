@@ -56,7 +56,7 @@ export default function TabsNavigator () {
     <Tabs.Navigator {...navigatorProps}>
       <Tabs.Screen name='Home Tab' component={HomeNavigator} />
       <Tabs.Screen name='Search Tab' component={SearchNavigator} />
-      <Tabs.Screen name='Messages Tab' component={MessagesNavigator} />
+      <Tabs.Screen name='Messages Tab' component={MessagesNavigator} options={{ tabBarBadge: 999 }} />
       <Tabs.Screen
         name='Support Tab'
         component={HomeNavigator} // it will never navigate to this but we need to pass a valid component here anyway

@@ -3,8 +3,8 @@ import { Text, View, StyleSheet } from 'react-native'
 import { usePeopleTyping } from 'urql-shared/hooks/usePeopleTyping'
 import { rhino30 } from 'style/colors'
 
-const PeopleTyping = forwardRef(({ postId, commentId }, ref) => {
-  const { sendTyping, typingMessage } = usePeopleTyping({ postId, commentId })
+const PeopleTyping = forwardRef(({ messageThreadId, postId, commentId }, ref) => {
+  const { sendTyping, typingMessage } = usePeopleTyping({ messageThreadId, postId, commentId })
 
   // Expose sendTyping via ref for parent component
   useImperativeHandle(ref, () => ({
