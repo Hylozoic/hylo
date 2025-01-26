@@ -54,8 +54,8 @@ const getCurrentSettings = (me, settingKey) => convertEnumToFlags(me.settings?.[
 const getAllGroupsSettings = createSelector(
   getMyMemberships,
   memberships => ({
-    sendEmail: every(m => m.settings && m.settings.sendEmail, memberships),
-    sendPushNotifications: every(m => m.settings && m.settings.sendPushNotifications, memberships),
+    sendEmail: every(m => m.settings?.sendEmail, memberships),
+    sendPushNotifications: every(m => m.settings?.sendPushNotifications, memberships),
     postNotifications: memberships.length > 0 && every(m => m.settings?.postNotifications === memberships[0].settings?.postNotifications, memberships)
       ? memberships[0].settings?.postNotifications
       : 'mixed',
