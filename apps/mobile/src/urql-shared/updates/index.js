@@ -73,8 +73,8 @@ export default {
     }
   },
   Subscription: {
-    comment: (result, args, cache, info) => {
-      console.log('!!!!! comment - result, args, info:', result, args, info)
+    comments: (result, args, cache, info) => {
+      console.log('!!!!! comments - result, args, info:', result, args, info)
     },
     updates: (result, args, cache, info) => {
       const update = result?.updates
