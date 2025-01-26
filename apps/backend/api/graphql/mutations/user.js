@@ -29,7 +29,7 @@ export const sendEmailVerification = async (_, { email }) => {
   }
 }
 
-export const verifyEmail = (fetchOne, { req }) => async (_, { email: providedEmail, code: providedCode, token }) => {
+export const verifyEmail = (fetchOne, req) => async (_, { email: providedEmail, code: providedCode, token }) => {
   try {
     const decodedToken = token && decodeHyloJWT(token)
     const email = decodedToken?.sub || providedEmail
@@ -53,7 +53,7 @@ export const verifyEmail = (fetchOne, { req }) => async (_, { email: providedEma
   }
 }
 
-export const register = (fetchOne, { req }) => async (_, { name, password }) => {
+export const register = (fetchOne, req) => async (_, { name, password }) => {
   try {
     const user = await User.find(req.session.userId, {}, false)
 
@@ -68,7 +68,7 @@ export const register = (fetchOne, { req }) => async (_, { name, password }) => 
     await bookshelf.transaction(async transacting => {
       await user.save({ name, active: true }, { transacting })
       await UserSession.login(req, user, 'password', { transacting }) // XXX: this does another save of the user, ideally we just do one of those
-      await LinkedAccount.create(user.id, { type: 'password', password }, { transacting })
+      await LinkedAccount.create(req.id, { type: 'password', password }, { transacting })
       await Analytics.trackSignup(user.id, req)
     })
 
@@ -81,7 +81,7 @@ export const register = (fetchOne, { req }) => async (_, { name, password }) => 
 
 // Login and Logout
 
-export const login = (fetchOne, { req }) => async (_, { email, password }) => {
+export const login = (fetchOne, req) => async (_, { email, password }) => {
   try {
     const isLoggedIn = await UserSession.isLoggedIn(req)
 
@@ -105,7 +105,7 @@ export const login = (fetchOne, { req }) => async (_, { email, password }) => {
   }
 }
 
-export const logout = ({ req }) => async () => {
+export const logout = (req) => async () => {
   await req.session.destroy()
 
   return { success: true }

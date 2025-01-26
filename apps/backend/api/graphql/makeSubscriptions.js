@@ -1,6 +1,5 @@
-import { pipe } from '@graphql-yoga/node'
+import { pipe } from 'graphql-yoga'
 import { get } from 'lodash/fp'
-import { getTypeForInstance } from './index'
 
 // From WebSockets
 // const validMessageTypes = [
