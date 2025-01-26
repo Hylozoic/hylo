@@ -45,7 +45,7 @@ export default function ChatRoom () {
 
   return (
     <KeyboardFriendlyView style={{ flex: 1 }}>
-      <GroupWelcomeCheck groupId={currentGroup?.id} />
+      <GroupWelcomeCheck />
       <HyloWebView
         handledWebRoutes={handledWebRoutes}
         nativeRouteHandler={nativeRouteHandler}

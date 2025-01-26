@@ -1,37 +1,29 @@
 import { useEffect } from 'react'
-import { useQuery } from 'urql'
 import { useNavigation } from '@react-navigation/native'
 import useCurrentUser from 'hooks/useCurrentUser'
-import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
-import GroupPresenter, { ALL_GROUP, MY_CONTEXT_GROUP, PUBLIC_GROUP } from 'urql-shared/presenters/GroupPresenter'
+import useCurrentGroup from 'hooks/useCurrentGroup'
 
-export default function GroupWelcomeCheck ({ groupId }) {
-  if (groupId === ALL_GROUP.id || groupId === PUBLIC_GROUP.id || groupId === MY_CONTEXT_GROUP.id) {
-    return null
-  }
+export default function GroupWelcomeCheck () {
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
-  const currentMemberships = currentUser.memberships
-  const currentMembership = currentMemberships.find(m => m.group.id === groupId)
+  const [{ currentGroup, isContextGroup, fetching }] = useCurrentGroup()
+  const currentMembership = currentUser?.memberships &&
+    currentUser.memberships.find(m => m.group.id === currentGroup?.id)
 
-  const [{ data, fetching }] = useQuery({ query: groupDetailsQueryMaker(), variables: { id: groupId }})
-  const currentGroup = data?.group || {}
-  const group = GroupPresenter(currentGroup)
-  const { agreements, settings } = group
   const { agreementsAcceptedAt, joinQuestionsAnsweredAt, showJoinForm } = currentMembership?.settings || {}
 
-  const numAgreements = agreements?.total || 0
+  const numAgreements = currentGroup?.agreements?.total || 0
 
-  const agreementsChanged = numAgreements > 0 &&
-    (!agreementsAcceptedAt || agreementsAcceptedAt < currentGroup.settings.agreementsLastUpdatedAt)
+  const agreementsChanged = (!isContextGroup && numAgreements > 0) &&
+    (!agreementsAcceptedAt || agreementsAcceptedAt < currentGroup?.settings?.agreementsLastUpdatedAt)
 
   useEffect(() => {
     if (!fetching) {
-      if (showJoinForm || agreementsChanged || (settings?.askJoinQuestions && !joinQuestionsAnsweredAt)) {
-        navigation.navigate('Group Welcome', { groupId })
+      if ((!isContextGroup && showJoinForm) || agreementsChanged || (currentGroup?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt)) {
+        navigation.navigate('Group Welcome', { groupId: currentGroup?.id })
       }
     }
-  }, [fetching, showJoinForm, agreementsChanged, joinQuestionsAnsweredAt])
+  }, [isContextGroup, fetching, showJoinForm, agreementsChanged, joinQuestionsAnsweredAt])
 
   return null
 }
