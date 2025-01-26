@@ -46,51 +46,20 @@ const withDontSendToCreator = ({ context, getter } = {}) => {
 
 export default function makeSubscriptions () {
   return {
-    comment: {
+    // Not currently used in the frontends, keeping as it could be easily employed as an isTyping
+  // for post or extended slightly for chatroom/topic. Could also just be deprecated, but serves
+    // as a good example for other similar atomic subscriptions.
+    comments: {
       subscribe: (parent, { id, postId, parentCommentId }, context) => pipe(
         context.pubSub.subscribe(
           parentCommentId
-            ? `comment:parentCommentId:${parentCommentId}`
-            : `comment:postId:${postId}`
+            ? `comments:parentCommentId:${parentCommentId}`
+            : `comments:postId:${postId}`
         ),
         withDontSendToCreator({ context })
       ),
       resolve: (payload) => {
         return new Comment(payload.comment)
-      }
-    },
-
-    // Deprecated in preference to updates subscription
-    message: {
-      subscribe: (parent, { id, messageThreadId }, context) => pipe(
-        context.pubSub.subscribe(`message:messageThreadId:${messageThreadId}`),
-        withDontSendToCreator({ context })
-      ),
-      resolve: (payload) => {
-        console.log('!! message:', payload)
-        return new Comment(payload.message)
-      }
-    },
-
-    // Deprecated in preference to updates subscription
-    newMessageThread: {
-      subscribe: (parent, args, context) => pipe(
-        context.pubSub.subscribe(`newMessageThread:${context.currentUserId}`),
-        withDontSendToCreator({ context })
-      ),
-      resolve: (payload) => {
-        console.log('!! newMessageThread:', payload)
-        return new Post(payload.newMessageThread)
-      }
-    },
-
-    // Deprecated in preference to updates subscription
-    notification: {
-      subscribe: (parent, args, context) => pipe(
-        context.pubSub.subscribe(`notification:${context.currentUserId}`)
-      ),
-      resolve: (payload) => {
-        return new Notification(payload.notification)
       }
     },
 
@@ -121,7 +90,11 @@ export default function makeSubscriptions () {
           message.makeModelsType = 'Message'
           return message
         }
-        if (payload?.messageThread) return new MessageThread(payload.messageThread)
+        if (payload?.messageThread) {
+          const messageThread = new Post(payload.messageThread)
+          messageThread.makeModelsType = 'MessageThread'
+          return messageThread
+        }
         if (payload?.notification) return new Notification(payload.notification)
       }
     }

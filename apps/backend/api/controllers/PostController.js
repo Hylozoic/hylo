@@ -1,7 +1,8 @@
+import { GraphQLYogaError } from '@graphql-yoga/node'
+import RedisPubSub from '../services/RedisPubSub'
 import { includes } from 'lodash'
 import createPost from '../models/post/createPost'
 import { joinRoom, leaveRoom } from '../services/Websockets'
-import { GraphQLYogaError } from '@graphql-yoga/node'
 
 const PostController = {
   createFromEmailForm: function (req, res) {
@@ -76,6 +77,9 @@ const PostController = {
   typing: function (req, res) {
     const { post } = res.locals
     const { body: { isTyping }, socket } = req
+
+    // NOTE: Assumes MessageThread
+    RedisPubSub.publish(`peopleTyping:messageThreadId:${post.id}`, { user: { id: req.session.userId } })
 
     return User.find(req.session.userId)
       .then(user => post.pushTypingToSockets(user.id, user.get('name'), isTyping, socket))

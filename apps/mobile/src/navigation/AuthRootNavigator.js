@@ -47,6 +47,9 @@ const updatesSubscription = gql`
           id
           name
         }
+        messageThread {
+          id
+        }
       }
       
     }

@@ -52,7 +52,6 @@ const Messages = () => {
   const location = useLocation()
   const routeParams = useParams()
   const { messageThreadId } = routeParams
-  console.log('messageThreadId', messageThreadId)
 
   // State from mapStateToProps
   const contacts = useSelector(state => getContactsList(state))
@@ -224,7 +223,7 @@ const Messages = () => {
                         ref={formRef}
                         updateMessageText={updateMessageTextAction}
                         messageText={messageText}
-                        sendIsTyping={sendIsTyping}
+                        sendIsTyping={status => sendIsTyping(messageThreadId, status)}
                         pending={messageCreatePending}
                       />
                     </div>}

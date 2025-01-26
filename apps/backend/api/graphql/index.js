@@ -158,6 +158,7 @@ export const createRequestHandler = () =>
       // this is putting the subscriptions pubSub method on context
       return {
         pubSub: RedisPubSub,
+        socket: req.socket,
         currentUserId: req.session.userId
       }
     },
@@ -200,11 +201,12 @@ function createSchema (expressContext) {
           return getTypeForInstance(data, models)
         }
       },
-      // Type resolver for the Update graphql union type used in update subscription
+      // Type resolver for the Update graphql union type used in update subscription (see makeSubscriptions)
       Update: {
         __resolveType (data, context, info) {
-          // This is a special case for Message in particular as there is no apparent way to
-          // distinguish it from a Comment which matches first by model name in our makeModels mapping
+          // Message and MessageThread are not the isDefaultTypeForTable for Comment and Post
+          // in makeModels, and there is apparently no other way to infer the types, so the
+          // correct type is set on makeModelsType by the subscription resolver to be used here
           if (data?.makeModelsType) return data.makeModelsType
           const foundType = getTypeForInstance(data, models)
           if (foundType) return foundType

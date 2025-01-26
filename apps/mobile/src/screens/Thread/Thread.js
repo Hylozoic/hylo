@@ -33,20 +33,6 @@ export function updateThreadReadTimeAction(id) {
   }
 }
 
-export const messageSubscription = gql`
-  subscription MessageSubscription($messageThreadId: ID!) {
-    message(messageThreadId: $messageThreadId) {
-      id
-      createdAt
-      text
-      creator {
-        id
-        name
-      }
-    }
-  }
-`
-
 export default function Thread() {
   const { t } = useTranslation()
   const navigation = useNavigation()
@@ -65,8 +51,6 @@ export default function Thread() {
 
   const messages = data?.messageThread?.messages?.items || []
   const hasMore = data?.messageThread?.messages?.hasMore
-
-  useSubscription({ query: messageSubscription, variables: { messageThreadId: threadId } })
 
   // Not currently used, but once we have subscription applied we can turn it back on
   const [newMessages, setNewMessages] = useState()
@@ -112,6 +96,8 @@ export default function Thread() {
   const handleScrollToBottom = () => {
     messageListRef?.current?.scrollToOffset({ offset: 0 })
   }
+
+  const handleSendTyping = () => peopleTypingRef?.current?.sendTyping()
 
   const handleSubmit = (text) => {
     createMessage({
@@ -168,10 +154,7 @@ export default function Thread() {
       <MessageInput
         blurOnSubmit={false}
         multiline
-        sendIsTyping={() => {
-          console.log('!!! here')
-          peopleTypingRef?.current?.sendTyping()
-        }}
+        sendIsTyping={handleSendTyping}
         onSubmit={handleSubmit}
         placeholder={t('Write something')}
       />

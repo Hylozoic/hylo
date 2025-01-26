@@ -309,12 +309,15 @@ type Query {
 union Update = Notification | Message | MessageThread
 
 type Subscription {
-  updates: Update
-  comment(postId: ID, parentCommentId: ID): Comment,
-  message(messageThreadId: ID): Message,
-  newMessageThread: MessageThread,
-  notification: Notification,
+  # Pushes new comments on the comments key for the given postId or parentCommentId
+  comments(postId: ID, parentCommentId: ID): Comment,
+  # Pushes peopleTyping from peopleTyping mutation for given ID (currently also pushes WebSocket userTyping event)
   peopleTyping(messageThreadId: ID, postId: ID, commentId: ID): Person
+  # Pushes new Notifications Messages or MessageThreads (see related union Type above and type resolver in graphql/index.js)
+  # in most cases this subscription will be used to indicate new activity in UI state (i.e. badges), but if enough data is
+  # requested in the subscription query it is also where new messages and messageThreads can be received in the UI. See
+  # example usage of this in Mobile.
+  updates: Update
 }
 
 # The meta data associated with an Activity

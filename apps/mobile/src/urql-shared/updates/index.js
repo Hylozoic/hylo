@@ -59,28 +59,27 @@ export default {
     comment: (result, args, cache, info) => {
       console.log('!!!!! comment - result, args, info:', result, args, info)
     },
-    message: (result, args, cache, info) => {
-      // import { showMessagesBadge } from 'store/reducers/ormReducer/util'
-      // case RECEIVE_MESSAGE:
-      //   // const { message: { messageThread, createdAt } } = payload.data
-      //   // if (MessageThread.idExists(messageThread)) {
-      //   //   MessageThread.withId(messageThread).update({ updatedAt: createdAt })
-      //   // }
-      //   // showMessagesBadge(session)
-      //   break
-      cache.invalidate({ __typename: 'MessageThread', id: args.messageThreadId })
-    },
-    newMessageThread: (result, args, cache, info) => {
-      // case RECEIVE_THREAD:
-      //   // Me.first().increment('unseenThreadCount')
-      //   break
-      console.log('!!!!! newMessageThread - result, args, info:', result, args, info)
-    },
-    notification: (result, args, cache, info) => {
-      console.log('!!!!! notification - result, args, info:', result, args, info)
-    },
     updates: (result, args, cache, info) => {
-      console.log('!!!!! updates - result, args, info:', result, args, info)
+      const update = result?.updates
+
+      switch (update?.__typename) {
+        case 'Message': {
+          console.log('!!!! updates TODO: new Message. Increment Messages tab badge', result, args)
+          cache.invalidate({ __typename: 'MessageThread', id: update?.messageThread?.id })
+          break
+        }
+        case 'MessageThread': {
+          console.log('!!!! updates TODO: new MessageThread. Increment Messages tab badge', result, args)
+          break
+        }
+        case 'Notification': {
+          console.log('!!!! updates TODO: new Notification. Increment Notifications badge', result, args)
+          break
+        }
+        default: {
+          console.log('!!! Unhandled update from updates subscription', result)
+        }
+      }
     }
   }
 }

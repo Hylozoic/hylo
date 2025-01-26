@@ -43,10 +43,10 @@ export async function createComment (userId, data, context) {
   const parentComment = parentCommentId ? await Comment.find(parentCommentId) : null
   const comment = await underlyingCreateComment(userId, merge(data, { post, parentComment }))
 
-  context.pubSub.publish(`comment:postId:${postId}`, { comment })
+  context.pubSub.publish(`comments:postId:${postId}`, { comment })
 
   if (parentComment && parentCommentId) {
-    context.pubSub.publish(`comment:parentCommentId:${parentCommentId}`, { comment })
+    context.pubSub.publish(`comments:parentCommentId:${parentCommentId}`, { comment })
   }
 
   return comment
@@ -68,9 +68,6 @@ export async function createMessage (userId, data, context) {
 
   const comment = await underlyingCreateComment(userId, merge(data, { post }))
 
-  // TODO: PROBABLY deprecate message subscription
-  context.pubSub.publish(`message:messageThreadId:${postId}`, { message: comment })
-
   // Notify all participants of a new messageThread after first new message (comment) created
   otherParticipants.forEach(participant => {
     if (newThread) {
@@ -91,10 +88,10 @@ export async function updateComment (userId, { id, data }, context) {
 
   const comment = await underlyingUpdateComment(userId, id, data)
 
-  context.pubSub.publish(`comment:postId:${comment.get('post_id')}`, { comment })
+  context.pubSub.publish(`comments:postId:${comment.get('post_id')}`, { comment })
 
   if (comment.get('comment_id')) {
-    context.pubSub.publish(`comment:parentCommentId:${comment.get('comment_id')}`, { comment })
+    context.pubSub.publish(`comments:parentCommentId:${comment.get('comment_id')}`, { comment })
   }
 
   return comment
