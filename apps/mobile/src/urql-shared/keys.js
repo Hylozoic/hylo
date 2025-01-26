@@ -27,6 +27,8 @@ export default {
   MembershipQuerySet: () => null,
   MessageQuerySet: () => null,
   MessageThreadQuerySet: () => null,
+  ModerationAction: data => data?.id,
+  ModerationActionQuerySet: () => null,
   NotificationQuerySet: () => null,
   PersonConnectionQuerySet: () => null,
   PersonQuerySet: () => null,

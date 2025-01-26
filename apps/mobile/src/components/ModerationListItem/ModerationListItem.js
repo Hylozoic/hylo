@@ -23,7 +23,7 @@ const ModerationListItem = ({
   const { t } = useTranslation()
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
-  const hasResponsibility = useHasResponsibility({ groupId: group.id })
+  const hasResponsibility = useHasResponsibility({ groupId: group.id, forCurrentGroup: true, forCurrentUser: true })
   const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
 
   const {
