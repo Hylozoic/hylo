@@ -50,11 +50,9 @@ export default function makeSubscriptions () {
   // for post or extended slightly for chatroom/topic. Could also just be deprecated, but serves
     // as a good example for other similar atomic subscriptions.
     comments: {
-      subscribe: (parent, { id, postId, parentCommentId }, context) => pipe(
+      subscribe: (parent, { id, postId, commentId }, context) => pipe(
         context.pubSub.subscribe(
-          parentCommentId
-            ? `comments:parentCommentId:${parentCommentId}`
-            : `comments:postId:${postId}`
+          commentId ? `comments:commentId:${commentId}` : `comments:postId:${postId}`
         ),
         withDontSendToCreator({ context })
       ),

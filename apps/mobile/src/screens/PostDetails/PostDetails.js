@@ -29,9 +29,9 @@ export const postDetailsQuery = gql`
   ${postFieldsFragment}
 `
 
-export const commentSubscription = gql`
+export const commentsSubscription = gql`
   subscription CommentSubscription($postId: ID!) {
-    comment(postId: $postId) {
+    comments(postId: $postId) {
       ...CommentFieldsFragment
     }
   }
@@ -51,7 +51,7 @@ export default function PostDetails () {
   const goToMember = useGoToMember()
 
   useSubscription({
-    query: commentSubscription,
+    query: commentsSubscription,
     variables: { postId: post?.id },
     pause: !post?.id
   })

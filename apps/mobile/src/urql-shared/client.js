@@ -22,7 +22,6 @@ const cache = cacheExchange({
 })
 
 const client = createClient({
-  // fetchSubscriptions: true,
   exchanges: [
     devtoolsExchange,
     cache,

@@ -46,7 +46,7 @@ export async function createComment (userId, data, context) {
   context.pubSub.publish(`comments:postId:${postId}`, { comment })
 
   if (parentComment && parentCommentId) {
-    context.pubSub.publish(`comments:parentCommentId:${parentCommentId}`, { comment })
+    context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
   }
 
   return comment
@@ -91,7 +91,7 @@ export async function updateComment (userId, { id, data }, context) {
   context.pubSub.publish(`comments:postId:${comment.get('post_id')}`, { comment })
 
   if (comment.get('comment_id')) {
-    context.pubSub.publish(`comments:parentCommentId:${comment.get('comment_id')}`, { comment })
+    context.pubSub.publish(`comments:commentId:${comment.get('comment_id')}`, { comment })
   }
 
   return comment
