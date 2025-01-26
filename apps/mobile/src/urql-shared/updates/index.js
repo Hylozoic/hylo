@@ -4,6 +4,11 @@ import meCheckAuthQuery from 'graphql/queries/meCheckAuthQuery'
 
 export default {
   Mutation: {
+    clearModerationAction: (result, args, cache, info) => {
+      if (result[info.fieldName].success) {
+        cache.invalidate({ __typename: 'ModerationAction', id: args.moderationActionId })
+      }
+    },
     createComment,
     createModerationAction: (result, args, cache, info) => {
       if (result[info.fieldName].id) {

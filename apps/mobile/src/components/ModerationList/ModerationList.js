@@ -19,6 +19,7 @@ export const moderationActionsQuery = gql`
     moderationActions (slug: $slug, offset: $offset, sortBy: $sortBy, first: $first) {
       hasMore
       items {
+        __typename
         id
         postId
         groupId
