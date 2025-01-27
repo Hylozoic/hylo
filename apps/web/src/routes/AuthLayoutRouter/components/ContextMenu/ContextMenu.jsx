@@ -33,7 +33,7 @@ import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath,
 
 import classes from './ContextMenu.module.scss'
 import { getStaticMenuWidgets, orderContextWidgetsForContextMenu } from '@hylo/shared/src/ContextMenuPresenter'
-import { isWidgetDroppable, widgetIsValidChild, widgetTitleResolver } from '@hylo/shared/src/ContextWidgetPresenter'
+import { ContextWidgetPresenter, isWidgetDroppable, widgetIsValidChild } from '@hylo/shared/src/ContextWidgetPresenter'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
@@ -85,12 +85,16 @@ export default function ContextMenu (props) {
     return false
   })
 
-  const contextWidgets = useSelector(state => {
+  const rawContextWidgets = useSelector(state => {
     if (isMyContext || isPublic || isAllContext) {
       return getStaticMenuWidgets({ isPublic, isMyContext, profileUrl, isAllContext })
     }
     return getContextWidgets(state, group)
   })
+
+  const contextWidgets =  useMemo(() => {
+    return rawContextWidgets.map(widget => ContextWidgetPresenter({ widget, t }))
+  }, [rawContextWidgets])
 
   const hasContextWidgets = useMemo(() => {
     if (group || isMyContext || isPublic || isAllContext) {
@@ -361,6 +365,10 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const dispatch = useDispatch()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
 
+  const presentedlistItems = useMemo(() => {
+    return listItems.map(widget => ContextWidgetPresenter({ widget, t }))
+  }, [listItems])
+
   const isDroppable = isWidgetDroppable({ widget })
   const isCreating = widget.id === 'creating'
 
@@ -373,7 +381,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, transform } = useDraggable({ id: widget.id })
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 
-  const title = widgetTitleResolver({ widget, t })
+  const title = widget.title
   const url = widgetUrl({ widget, rootPath, groupSlug })
   const canDnd = !allView && isEditting && widget.type !== 'home'
   const showEdit = allView && canAdminister
@@ -454,7 +462,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <SpecialTopElementRenderer widget={widget} group={group} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
-                    {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
+                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                     {widget.id && isEditting && !['home', 'setup'].includes(widget.type) &&
                       <li>
                         <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
@@ -472,7 +480,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <SpecialTopElementRenderer widget={widget} group={group} />
                   <ul className='px-1 pt-1 pb-2'>
                     {loading && <li key='loading'>Loading...</li>}
-                    {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
+                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                   </ul>
                 </div>}
             </div>)}
@@ -524,7 +532,7 @@ function DropZone ({ droppableParams, isDroppable = true, height = '', hide = fa
 
 function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = false, activeWidget, invalidChild = false, handlePositionedAdd }) {
   const { t } = useTranslation()
-  const itemTitle = widgetTitleResolver({ widget: item, t })
+  const itemTitle = item.title
   const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
   let hideDropZone = isOverlay
 

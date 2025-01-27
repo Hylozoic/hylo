@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash'
-import { ContextWidgetPresenter, widgetIsValidChild, humanReadableTypes, isValidHomeWidget, widgetTypeInferrer } from '@hylo/shared/src/ContextWidgetPresenter'
+import { ContextWidgetPresenter, widgetIsValidChild, humanReadableTypes, isValidHomeWidget } from '@hylo/shared/src/ContextWidgetPresenter'
 import { addQuerystringToPath, baseUrl, widgetUrl } from 'util/navigation'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -102,13 +102,13 @@ export default function AllViews () {
     return widgetsSorted.map(widget => {
       const title = widget.title
       const url = widgetUrl({ widget, rootPath, groupSlug: routeParams.groupSlug, context: 'group' })
-      const type = widgetTypeInferrer({ widget })
+      const type = widget.type
       const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1)
       const capitalizedView = widget.view ? widget.view.charAt(0).toUpperCase() + widget.view.slice(1) : ''
       const cardContent = (
         <div>
           <h3 className='text-lg font-semibold text-foreground'>{title}</h3>
-          {widgetTypeInferrer({ widget }) && (
+          {type && (
             <span className='text-sm  text-foreground'>
               {t('Type')}: {t(capitalizedType)}
             </span>

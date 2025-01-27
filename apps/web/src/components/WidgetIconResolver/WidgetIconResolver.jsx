@@ -2,12 +2,11 @@ import React from 'react'
 import Avatar from 'components/Avatar'
 import { Grid3x3 } from 'lucide-react'
 import Icon from 'components/Icon'
-import { widgetTypeInferrer } from '@hylo/shared/src/ContextWidgetPresenter'
 import { ViewHelpers } from '@hylo/shared'
 
 export function WidgetIconResolver ({ widget, style, className }) {
   if (!widget) return null
-  const type = widgetTypeInferrer({ widget })
+  const type = widget.type
 
   if (widget.viewUser) {
     return <Avatar avatarUrl={widget.viewUser.avatarUrl} name={widget.viewUser.name} small style={style} className={className} />
@@ -34,14 +33,12 @@ export function WidgetIconResolver ({ widget, style, className }) {
   }
 
   switch (type) {
-    case 'chats':
-      return <Icon name='Message' style={style} />
     case 'setup':
       return <Icon name='Settings' style={style} />
     case 'custom-views':
       return <Icon name='Stack' style={style} />
+    case 'chats':
     case 'viewChat':
-      return <Icon name='Message' style={style} />
     case 'chat':
       return <Icon name='Message' style={style} />
     case 'viewPost':

@@ -4,6 +4,7 @@ export function ContextWidgetPresenter ({ widget, t }) {
 
   return {
     ...widget,
+    type: widgetTypeInferrer({ widget }),
     title: widgetTitleResolver({ widget, t })
   }
 
@@ -52,7 +53,6 @@ export function findHomeView (group) {
   return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
 }
 
-// export function widgetTypeResolver ({ widget }) {
   export function widgetTypeInferrer ({ widget }) {
   switch (true) {
     case !!widget.type:
