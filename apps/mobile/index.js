@@ -8,7 +8,7 @@ import { AppRegistry, Platform, AppState, UIManager, LogBox } from 'react-native
 import Timer from 'react-native-background-timer'
 import * as Sentry from '@sentry/react-native'
 import { OneSignal } from 'react-native-onesignal'
-import client from 'urql-shared/client'
+import makeUrqlClient from 'urql-shared/makeUrqlClient'
 import { sentryConfig } from 'config'
 import store from 'store'
 import { name as appName } from './app.json'
@@ -22,6 +22,7 @@ import 'intl-pluralrules'
 import { ActionSheetProvider } from '@expo/react-native-action-sheet'
 import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
 import './src/style/global.css'
+import Loading from 'components/Loading'
 
 // import FastImage from 'react-native-fast-image'
 
@@ -82,27 +83,37 @@ enableScreens()
 
 export default function App () {
   const [appState, setAppState] = useState(AppState.currentState)
+  const [urqlClient, setUrqlClient] = useState()
 
   useEffect(() => {
-    OneSignal.initialize(Config.ONESIGNAL_APP_ID)
-
-    // Uncomment for OneSignal debugging
-    // OneSignal.Debug.setLogLevel(LogLevel.Verbose);
-
-    // Method for handling notifications received while app in foreground
-    const foregroundWillDisplayHandler = notIfReceivedEvent => {
-      // Complete with null means don't show a notification.
-      notIfReceivedEvent.complete()
-    }
-    OneSignal.Notifications.addEventListener('foregroundWillDisplay', foregroundWillDisplayHandler)
-
-    const appStateHandler = AppState.addEventListener('change', handleAppStateChange)
-
-    return () => {
-      appStateHandler && appStateHandler.remove()
-      OneSignal.Notifications.removeEventListener('foregroundWillDisplay', foregroundWillDisplayHandler)
-    }
+    (async () => {
+      const client = await makeUrqlClient()
+      setUrqlClient(client)
+    })()
   }, [])
+
+  useEffect(() => {
+    if (urqlClient) {
+      OneSignal.initialize(Config.ONESIGNAL_APP_ID)
+
+      // Uncomment for OneSignal debugging
+      // OneSignal.Debug.setLogLevel(LogLevel.Verbose);
+
+      // Method for handling notifications received while app in foreground
+      const foregroundWillDisplayHandler = notIfReceivedEvent => {
+        // Complete with null means don't show a notification.
+        notIfReceivedEvent.complete()
+      }
+      OneSignal.Notifications.addEventListener('foregroundWillDisplay', foregroundWillDisplayHandler)
+
+      const appStateHandler = AppState.addEventListener('change', handleAppStateChange)
+
+      return () => {
+        appStateHandler && appStateHandler.remove()
+        OneSignal.Notifications.removeEventListener('foregroundWillDisplay', foregroundWillDisplayHandler)
+      }
+    }
+  }, [urqlClient])
 
   const handleAppStateChange = nextAppState => {
     if (appState.match(/inactive|background/) && nextAppState === 'active') {
@@ -110,6 +121,8 @@ export default function App () {
     }
     setAppState(nextAppState)
   }
+
+  if (!urqlClient) return null
 
   return (
     <SafeAreaProvider>
@@ -127,7 +140,7 @@ export default function App () {
             systemFonts={[...defaultSystemFonts, 'Circular-Book']}
           >
             <Provider store={store}>
-              <UrqlProvider value={client}>
+              <UrqlProvider value={urqlClient}>
                 <VersionCheck />
                 <RootNavigator />
               </UrqlProvider>

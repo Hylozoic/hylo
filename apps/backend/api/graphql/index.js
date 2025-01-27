@@ -33,8 +33,7 @@ export const yoga = createYoga({
       currentUserId: req.session.userId
     }
   },
-  // 'info' is the default
-  logging: 'info',
+  logging: process.env.GRAPHQL_YOGA_LOG_LEVEL || 'info',
   graphiql: true
 })
 

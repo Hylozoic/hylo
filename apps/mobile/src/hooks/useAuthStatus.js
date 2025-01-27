@@ -1,25 +1,6 @@
 import { useMemo } from 'react'
-import { useQuery } from 'urql'
-import client from 'urql-shared/client'
+import { useClient, useQuery } from 'urql'
 import meCheckAuthQuery from 'graphql/queries/meCheckAuthQuery'
-
-// TODO: URQL - this needs to be tested, wasn't returning expected results
-export function checkAuth (useQueryOptions = {}) {
-  try {
-    // Make the query call using the URQL client
-    const { data, error, fetching } = client.query(meCheckAuthQuery, useQueryOptions.variables, {
-      // Add the request policy option
-      requestPolicy: 'cache-and-network'
-    })
-    const currentUser = data?.me
-    const authState = getAuthState(currentUser)
-    const isAuthorized = authState === AuthState.Complete
-
-    return { isAuthorized, authState, fetching, error }
-  } catch (error) {
-    return { isAuthorized: AuthState.None, fetching: false, error }
-  }
-}
 
 /*
 
