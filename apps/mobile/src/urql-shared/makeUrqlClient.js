@@ -15,7 +15,7 @@ import directives from './directives'
 
 export const GRAPHQL_ENDPOINT_URL = `${apiHost}/noo/graphql`
 
-export default async function fetchGraphqlSchema (endpoint) {
+export async function fetchGraphqlSchema (endpoint) {
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -28,7 +28,7 @@ export default async function fetchGraphqlSchema (endpoint) {
   return result.data
 }
 
-export const makeUrqlClient = async () => {
+export default async function makeUrqlClient () {
   const schema = await fetchGraphqlSchema(GRAPHQL_ENDPOINT_URL)
 
   const cache = cacheExchange({
