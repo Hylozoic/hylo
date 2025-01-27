@@ -4,8 +4,10 @@ import { inspect } from 'util'
 import RedisPubSub from '../services/RedisPubSub'
 import makeSchema from './makeSchema'
 
+export const GRAPHQL_ENDPOINT = '/noo/graphql'
+
 export const yoga = createYoga({
-  graphqlEndpoint: '/noo/graphql',
+  graphqlEndpoint: GRAPHQL_ENDPOINT,
   schema: makeSchema,
   // plugins: [useLazyLoadedSchema(createSchema)],
   context: async ({ req, params }) => {

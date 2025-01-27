@@ -1,4 +1,4 @@
-import yoga from '../api/graphql'
+import yoga, { GRAPHQL_ENDPOINT } from '../api/graphql'
 import bodyParser from 'body-parser'
 import kue from 'kue'
 import kueUI from 'kue-ui'
@@ -27,13 +27,13 @@ export default function (app) {
   app.use('/admin/kue/api', kue.app)
   app.use('/admin/kue', kueUI.app)
 
-  app.use(yoga.graphqlEndpoint, cors({
+  app.use(GRAPHQL_ENDPOINT, cors({
     origin: '*',
     methods: 'GET, POST, PUT, DELETE, OPTIONS, HEAD',
     credentials: true
   }))
 
-  app.use(yoga.graphqlEndpoint, accessTokenAuth) // TODO: remove once all our URLs use JWTs
-  app.use(yoga.graphqlEndpoint, checkClientCredentials) // To auth API calls
-  app.use(yoga.graphqlEndpoint, yoga)
+  app.use(GRAPHQL_ENDPOINT, accessTokenAuth) // TODO: remove once all our URLs use JWTs
+  app.use(GRAPHQL_ENDPOINT, checkClientCredentials) // To auth API calls
+  app.use(GRAPHQL_ENDPOINT, yoga)
 }
