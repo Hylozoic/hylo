@@ -40,7 +40,7 @@ export const makeUrqlClient = async () => {
     schema
   })
 
-  return createClient({
+  const client = createClient({
     exchanges: [
       devtoolsExchange,
       cache,
@@ -61,11 +61,13 @@ export const makeUrqlClient = async () => {
     fetchOptions: { credentials: 'include' },
     url: GRAPHQL_ENDPOINT_URL
   })
-}
 
-// Optional logging for debugging
-// const { unsubscribe } = client.subscribeToDebugTarget(event => {
-//   if (event.source === 'cacheExchange') { return }
-//   // { type, message, operation, data, source, timestamp }
-//   console.log(event)
-// })
+  // Graphcache debugging:
+  // const { unsubscribe } = client.subscribeToDebugTarget(event => {
+  //   if (event.source === 'cacheExchange') { return }
+  //   // { type, message, operation, data, source, timestamp }
+  //   console.log(event)
+  // })
+
+  return client
+}
