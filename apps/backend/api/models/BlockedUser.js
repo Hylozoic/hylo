@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 
 /* eslint-disable camelcase */
 module.exports = bookshelf.Model.extend({
@@ -30,22 +30,21 @@ module.exports = bookshelf.Model.extend({
     }
 
     return this.find(userId, blockedUserId)
-    .then(existing => {
-      if (existing) return existing
+      .then(existing => {
+        if (existing) return existing
 
-      return new BlockedUser({
-        user_id: userId,
-        blocked_user_id: blockedUserId,
-        created_at: new Date(),
-        updated_at: new Date()
+        return new BlockedUser({
+          user_id: userId,
+          blocked_user_id: blockedUserId,
+          created_at: new Date(),
+          updated_at: new Date()
+        }).save()
       })
-      .save()
-    })
   },
 
   find: function (user_id, blocked_user_id) {
     if (!user_id) throw new GraphQLYogaError('Parameter user_id must be supplied.')
-    return BlockedUser.where({user_id, blocked_user_id}).fetch()
+    return BlockedUser.where({ user_id, blocked_user_id }).fetch()
   },
 
   blockedFor: function (userId) {

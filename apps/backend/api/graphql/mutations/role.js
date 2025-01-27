@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLYogaError } from '@graphql-yoga/node'
 
 export async function addGroupRole ({ groupId, color, name, description, emoji, userId }) {
   if (!userId) throw new GraphQLYogaError('No userId passed into function')
@@ -6,7 +6,7 @@ export async function addGroupRole ({ groupId, color, name, description, emoji, 
   if (groupId && name && emoji) {
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
 
-    if ( responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+    if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
       return GroupRole.forge({ group_id: groupId, name, description, emoji, active: true, color }).save().then((savedGroupRole) => savedGroupRole)
     } else {
       throw new GraphQLYogaError('User doesn\'t have required privileges to create group role')
@@ -23,7 +23,7 @@ export async function updateGroupRole ({ groupRoleId, color, name, description, 
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
       return bookshelf.transaction(async transacting => {
-        const groupRole = await GroupRole.where({ id: groupRoleId}).fetch()
+        const groupRole = await GroupRole.where({ id: groupRoleId }).fetch()
         const verifiedActiveParam = (active == null) ? groupRole.get('active') : active
         const updatedAttributes = {
           color: color || groupRole.get('color'),
@@ -41,7 +41,6 @@ export async function updateGroupRole ({ groupRoleId, color, name, description, 
   } else {
     throw new GraphQLYogaError(`Invalid/undefined parameters to update group role: received ${JSON.stringify({ groupId, name, emoji, groupRoleId, active })}`)
   }
-
 }
 
 export async function addRoleToMember ({ userId, roleId, personId, groupId, isCommonRole }) {
@@ -69,10 +68,10 @@ export async function removeRoleFromMember ({ userId, roleId, personId, groupId,
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION) || userId === personId) {
       const useThisModel = isCommonRole
         ? MemberCommonRole.query(q => {
-            return q.where('user_id', personId)
-              .andWhere('common_role_id', roleId)
-              .andWhere('group_id', groupId)
-          })
+          return q.where('user_id', personId)
+            .andWhere('common_role_id', roleId)
+            .andWhere('group_id', groupId)
+        })
         : MemberGroupRole.query(q => {
           return q.where('user_id', personId)
             .andWhere('group_role_id', roleId)
@@ -87,5 +86,4 @@ export async function removeRoleFromMember ({ userId, roleId, personId, groupId,
   } else {
     throw new GraphQLYogaError(`Invalid/undefined parameters to remove role from member: received ${JSON.stringify({ personId, roleId, groupId })}`)
   }
-
 }

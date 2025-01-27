@@ -4,7 +4,21 @@ import meCheckAuthQuery from 'graphql/queries/meCheckAuthQuery'
 
 export default {
   Mutation: {
+    addProposalVote: (result, args, cache, info) => { 
+      cache.invalidate({ __typename: 'Post', id: args.postId })
+    },
+    clearModerationAction: (result, args, cache, info) => {
+      if (result[info.fieldName].success) {
+        cache.invalidate({ __typename: 'ModerationAction', id: args.moderationActionId })
+      }
+    },
     createComment,
+    createModerationAction: (result, args, cache, info) => {
+      if (result[info.fieldName].id) {
+        const postId = args?.data?.postId
+        cache.invalidate({ __typename: 'Post', id: postId })
+      }
+    },
     createMessage: (result, args, cache, info) => {
       cache.invalidate({ __typename: 'MessageThread', id: args.data.messageThreadId })
     },
@@ -39,10 +53,19 @@ export default {
       }
     },
     reactOn,
+    recordClickthrough: (result, args, cache, info) => {
+      if (result[info.fieldName].success) {
+        const postId = args?.postId
+        cache.invalidate({ __typename: 'Post', id: postId })
+      }
+    },
     removePost: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         cache.invalidate({ __typename: 'Post', id: args.postId })
       }
+    },
+    removeProposalVote: (result, args, cache, info) => { 
+      cache.invalidate({ __typename: 'Post', id: args.postId })
     },
     pinPost: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
@@ -53,6 +76,9 @@ export default {
       if (result[info.fieldName].success) {
         cache.invalidate(cache.keyOfEntity({ __typename: 'Post', id: args.id }), 'myEventResponse')
       }
-    }
+    },
+    swapProposalVote: (result, args, cache, info) => { 
+      cache.invalidate({ __typename: 'Post', id: args.postId })
+    },
   }
 }

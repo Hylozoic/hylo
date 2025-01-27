@@ -339,16 +339,18 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
     <ul className='m-2 p-0 mb-6'>
       {isEditting &&
         <div>
-          <DropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
+          <DropZone removalDropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
             Drag here to remove from menu
           </DropZone>
-          <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
-            <Icon name='Plus' />Add new view
-          </button>
         </div>}
       {contextWidgets.map(widget => (
         <li className='mb-2 items-start' key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} /></li>
       ))}
+      {isEditting && (
+        <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+          <Icon name='Plus' />Add new view
+        </button>
+      )}
     </ul>
   )
 }
@@ -452,7 +454,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
                     {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
-                    {widget.id && isEditting &&
+                    {widget.id && isEditting && !['home', 'setup'].includes(widget.type) &&
                       <li>
                         <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
                           &nbsp;
@@ -467,7 +469,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
               {widget.type === 'members' &&
                 <div className='flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground'>
                   <SpecialTopElementRenderer widget={widget} group={group} />
-                  <ul className='p-0'>
+                  <ul className='px-1 pt-1 pb-2'>
                     {loading && <li key='loading'>Loading...</li>}
                     {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                   </ul>
@@ -495,7 +497,7 @@ function GrabMe ({ children, ...props }) {
   )
 }
 
-function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false, children }) {
+function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false, children, removalDropZone }) {
   const { setNodeRef, isOver } = useDroppable(droppableParams)
 
   if (hide || !isDroppable) {
@@ -508,7 +510,10 @@ function DropZone ({ droppableParams, isDroppable = true, height = '', hide = fa
       className={cn(
         'transition-all duration-200 rounded-lg bg-foreground/20 mb-2',
         height,
-        isOver ? 'bg-selected/70 border-foreground p-5' : 'bg-transparent border-transparent p-0'
+        isOver && !removalDropZone && 'bg-selected/70 border-foreground p-5',
+        !isOver && !removalDropZone && 'bg-transparent border-transparent p-0',
+        isOver && removalDropZone && 'bg-destructive/70 border-foreground p-5',
+        !isOver && removalDropZone && 'bg-destructive/40 border-transparent p-2'
       )}
     >
       {children}
@@ -556,8 +561,8 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
             return (
               <MenuLink
                 to={itemUrl}
-                externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
-                className='transition-all px-2 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between'
+                externalLink={item?.customView?.type === "externalLink" ? item.customView.externalLink : null}
+                className="transition-all px-2 py-1 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between"
               >
                 <div>
                   <WidgetIconResolver widget={item} />
@@ -688,8 +693,8 @@ function GroupSettingsMenu ({ group }) {
   }, [confirm, previousLocation, group.slug])
 
   return (
-    <div className='fixed h-full w-full top-0 left-[90px] w-[230px] bg-background/60 z-10'>
-      <div className='absolute h-full w-full top-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] pl-2 pr-5 z-10'>
+    <div className='fixed h-full top-0 left-[100px] w-[280px] bg-background/60 z-10'>
+      <div className='absolute h-full top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] pl-2 pr-5 z-10'>
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
           {t('Group Settings')}

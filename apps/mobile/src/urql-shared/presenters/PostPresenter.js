@@ -24,7 +24,9 @@ export default function PostPresenter (post, forGroupId) {
     imageUrls: uniq(images.map(image => image.url)),
     pinned: groupPostMembership && groupPostMembership.pinned,
     startTime: post.startTime ? new Date(post.startTime) : post.startTime,
-    endTime: post.endTime ? new Date(post.endTime) : post.endTime
+    endTime: post.endTime ? new Date(post.endTime) : post.endTime,
+    startTimeRaw: post.startTime,
+    endTimeRaw: post.endTime,
     // TODO: URQL -- Doesn't seem to still be necessary, but confirm before removing
     // topics: post.topics.map(topic => presentTopic(topic, {}))
   }

@@ -1,3 +1,4 @@
+import { createServer, GraphQLYogaError } from '@graphql-yoga/node'
 import { useLazyLoadedSchema } from '@envelop/core'
 import { readFileSync } from 'fs'
 import { join } from 'path'
@@ -130,7 +131,6 @@ import { makeExecutableSchema } from 'graphql-tools'
 import { inspect } from 'util'
 import { red } from 'chalk'
 import { merge, reduce } from 'lodash'
-const { createServer, GraphQLYogaError } = require('@graphql-yoga/node')
 
 const schemaText = readFileSync(join(__dirname, 'schema.graphql')).toString()
 

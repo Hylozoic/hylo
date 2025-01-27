@@ -60,11 +60,11 @@ export default function PeopleInfo ({
     avatarUrls = people.map(p => p.avatarUrl)
   }
   return (
-    <span className={cn('flex items-center bg-black/20 p-2 rounded-lg hover:bg-black/30 transition-all', classes.peopleContainer, { [classes.constrained]: constrained }, className)}>
+    <div className={cn('flex items-center bg-black/20 px-4 rounded-lg hover:bg-black/30 transition-all', classes.peopleContainer, { [classes.constrained]: constrained }, className)}>
       <RoundImageRow imageUrls={avatarUrls.slice(0, 3)} className={classes.people} onClick={onClick} small={small} tiny={tiny} />
-      <span className={cn('ml-2 text-foreground text-sm')} onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'inherit' }}>
+      <span className={cn('px-2text-foreground text-sm')} onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'inherit' }}>
         {caption}
       </span>
-    </span>
+    </div>
   )
 }

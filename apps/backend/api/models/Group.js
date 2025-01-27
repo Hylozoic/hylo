@@ -1,4 +1,5 @@
 import knexPostgis from 'knex-postgis'
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { clone, defaults, difference, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
 import mbxGeocoder from '@mapbox/mapbox-sdk/services/geocoding'
 import fetch from 'node-fetch'
@@ -15,8 +16,6 @@ import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
 import { es } from '../../lib/i18n/es'
 import { en } from '../../lib/i18n/en'
-
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 const locales = { es, en }
 
@@ -102,7 +101,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   contextWidgets () {
-    return this.hasMany(ContextWidget) // TODO CONTEXT: sometimes we want all widgets, sometimes only want the ordered ones. need to handle this
+    return this.hasMany(ContextWidget)
   },
 
   creator: function () {
@@ -145,6 +144,24 @@ module.exports = bookshelf.Model.extend(merge({
       q.select(['questions.text', 'questions.id as questionId'])
       q.join('questions', 'group_to_group_join_questions.question_id', 'questions.id')
     })
+  },
+
+  homeWidget () {
+    return ContextWidget.query(q => {
+      q.with('home_widget', qb => {
+        qb.from('context_widgets')
+          .where({
+            group_id: this.id,
+            type: 'home'
+          })
+          .select('id')
+      })
+      .from('context_widgets')
+      .whereRaw('parent_id = (select id from home_widget)')
+      .andWhere('group_id', this.id)
+      .orderBy('order', 'asc')
+      .limit(1)
+    }).fetch()
   },
 
   isHidden() {

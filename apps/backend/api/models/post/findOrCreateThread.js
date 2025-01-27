@@ -1,7 +1,7 @@
+import { GraphQLYogaError } from '@graphql-yoga/node'
 import { pick } from 'lodash'
 import { uniq } from 'lodash/fp'
 import { personFilter } from '../../graphql/filters'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export function findThread (userIds) {
   return Post.havingExactFollowers(userIds)
