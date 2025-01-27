@@ -92,9 +92,8 @@ export function humanReadableTypes (type) {
   }
 }
 
-// TODO redesign: create tests for this
 export function widgetIsValidChild ({ childWidget = {}, parentWidget }) {
-  // TODO redesign: stop container widgets from becoming children
+  // TODO redesign: create tests for this
   if (parentWidget?.viewGroup?.id) return false
   if (parentWidget?.viewUser?.id) return false
   if (parentWidget?.viewPost?.id) return false
@@ -107,5 +106,6 @@ export function widgetIsValidChild ({ childWidget = {}, parentWidget }) {
   if (childWidget?.type === 'home') return false
   if (childWidget?.id?.startsWith('fake-id')) return false
   if (childWidget?.id === parentWidget?.id) return false
+  if (childWidget.type === 'container') return false
   return true
 }
