@@ -339,7 +339,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
     <ul className='m-2 p-0 mb-6'>
       {isEditting &&
         <div>
-          <DropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
+          <DropZone removalDropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
             Drag here to remove from menu
           </DropZone>
         </div>}
@@ -454,7 +454,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
                     {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
-                    {widget.id && isEditting &&
+                    {widget.id && isEditting && !['home', 'setup'].includes(widget.type) &&
                       <li>
                         <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
                           &nbsp;
@@ -497,7 +497,7 @@ function GrabMe ({ children, ...props }) {
   )
 }
 
-function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false, children }) {
+function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false, children, removalDropZone }) {
   const { setNodeRef, isOver } = useDroppable(droppableParams)
 
   if (hide || !isDroppable) {
@@ -510,7 +510,10 @@ function DropZone ({ droppableParams, isDroppable = true, height = '', hide = fa
       className={cn(
         'transition-all duration-200 rounded-lg bg-foreground/20 mb-2',
         height,
-        isOver ? 'bg-selected/70 border-foreground p-5' : 'bg-transparent border-transparent p-0'
+        isOver && !removalDropZone && 'bg-selected/70 border-foreground p-5',
+        !isOver && !removalDropZone && 'bg-transparent border-transparent p-0',
+        isOver && removalDropZone && 'bg-destructive/70 border-foreground p-5',
+        !isOver && removalDropZone && 'bg-destructive/40 border-transparent p-2'
       )}
     >
       {children}
