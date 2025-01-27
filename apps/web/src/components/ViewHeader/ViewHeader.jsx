@@ -53,12 +53,12 @@ const ViewHeader = () => {
         </Tooltip>
       )}
       <div className='flex-1 flex justify-center relative'>
-        <div className='relative w-28 flex items-center'>
-          <Icon name='Search' className='left-1 absolute' />
+        <div className='relative flex items-center'>
+          <Icon name='Search' className='left-2 absolute opacity-50' />
           <input
             type='text'
             placeholder='Search'
-            className='w-full pl-6'
+            className='bg-black/20 rounded-lg text-foreground placeholder-foreground/40 w-[90px] py-1 pl-7 focus:w-[200px] transition-all outline-none focus:outline-focus focus:outline-2'
             onKeyDown={onEnter((e) => navigate(`/search?t=${e.target.value}`))}
           />
         </div>

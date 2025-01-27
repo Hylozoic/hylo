@@ -695,7 +695,7 @@ function GroupSettingsMenu ({ group }) {
 
   return (
     <div className='fixed h-full top-0 left-[100px] w-[280px] bg-background/60 z-10'>
-      <div className='absolute h-full top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] pl-2 pr-5 z-10'>
+      <div className='absolute h-full top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10'>
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
           {t('Group Settings')}
@@ -706,7 +706,7 @@ function GroupSettingsMenu ({ group }) {
               <MenuLink
                 to={groupUrl(group.slug, item.url)}
                 className={cn(
-                  'block w-full ml-2 mr-4 py-1 px-2 text-md text-foreground rounded-xl border-foreground/50 border-2 hover:border-secondary cursor-pointer',
+                  'text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100',
                   { 'text-secondary border-secondary': location.pathname === groupUrl(group.slug, item.url) }
                 )}
               >
