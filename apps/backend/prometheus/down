@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Set the working directory to the script's location
+cd "$(dirname "$0")" || exit
+
+echo "Stopping and removing Prometheus with Docker Compose..."
+
+docker compose down
+
+# Check if the service stopped successfully
+if [ $? -eq 0 ]; then
+  echo "Prometheus stopped and removed successfully."
+else
+  echo "Failed to stop Prometheus. Check the logs for errors."
+fi

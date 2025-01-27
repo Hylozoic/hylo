@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Set the working directory to the script's location
+cd "$(dirname "$0")" || exit
+
+echo "Starting Prometheus with Docker Compose..."
+
+docker-compose up -d
+
+# Check if the service started successfully
+if [ $? -eq 0 ]; then
+  echo "Prometheus started successfully."
+  echo "Visit Prometheus UI at http://localhost:9090"
+  echo "(To stop the service run \`yarn prometheus:down\` or \`yarn workspace backend prometheus:down\`)"
+else
+  echo "Failed to start Prometheus. Check the logs for errors."
+fi

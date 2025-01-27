@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s # How often to scrape targets by default.
+  evaluation_interval: 15s # How often to evaluate rules.
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # GraphQL Yoga metrics job
+  - job_name: 'graphql-yoga'
+    metrics_path: '/noo/graphql/metrics' # Path to the metrics endpoint
+    scrape_interval: 5s # Scrape more frequently for detailed metrics
+    static_configs:
+      - targets: ['host.docker.internal:3001']

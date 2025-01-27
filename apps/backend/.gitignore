@@ -18,6 +18,7 @@ npm-debug.log
 .DS_STORE
 .netbeans
 nbproject
+prometheus/data
 .idea
 .node_history
 *.iml
