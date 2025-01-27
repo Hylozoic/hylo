@@ -106,6 +106,6 @@ export function widgetIsValidChild ({ childWidget = {}, parentWidget }) {
   if (childWidget?.type === 'home') return false
   if (childWidget?.id?.startsWith('fake-id')) return false
   if (childWidget?.id === parentWidget?.id) return false
-  if (childWidget.type === 'container') return false
+  if (childWidget?.type === 'container') return false
   return true
 }
