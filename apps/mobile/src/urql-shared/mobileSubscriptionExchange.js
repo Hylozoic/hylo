@@ -1,7 +1,7 @@
 import { subscriptionExchange } from 'urql'
 import EventSource from 'react-native-sse'
 import { URL } from 'react-native-url-polyfill'
-import { GRAPHQL_ENDPOINT_URL } from './client'
+import { GRAPHQL_ENDPOINT_URL } from './makeUrqlClient'
 
 export default subscriptionExchange({
   forwardSubscription: (operation) => {
