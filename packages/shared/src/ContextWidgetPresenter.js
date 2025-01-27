@@ -1,5 +1,5 @@
 
-export function ContextWidgetPresenter ({ widget, t }) {
+export default function ContextWidgetPresenter (widget, { t }) {
   if (!widget) return widget
 
   return {

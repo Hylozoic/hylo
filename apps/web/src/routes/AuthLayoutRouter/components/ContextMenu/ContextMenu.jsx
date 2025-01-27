@@ -33,7 +33,7 @@ import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath,
 
 import classes from './ContextMenu.module.scss'
 import { getStaticMenuWidgets, orderContextWidgetsForContextMenu } from '@hylo/shared/src/ContextMenuPresenter'
-import { ContextWidgetPresenter, isWidgetDroppable, widgetIsValidChild } from '@hylo/shared/src/ContextWidgetPresenter'
+import ContextWidgetPresenter, { isWidgetDroppable, widgetIsValidChild } from '@hylo/shared/src/ContextWidgetPresenter'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
@@ -93,7 +93,7 @@ export default function ContextMenu (props) {
   })
 
   const contextWidgets =  useMemo(() => {
-    return rawContextWidgets.map(widget => ContextWidgetPresenter({ widget, t }))
+    return rawContextWidgets.map(widget => ContextWidgetPresenter(widget, { t }))
   }, [rawContextWidgets])
 
   const hasContextWidgets = useMemo(() => {
@@ -366,7 +366,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
 
   const presentedlistItems = useMemo(() => {
-    return listItems.map(widget => ContextWidgetPresenter({ widget, t }))
+    return listItems.map(widget => ContextWidgetPresenter(widget, { t }))
   }, [listItems])
 
   const isDroppable = isWidgetDroppable({ widget })

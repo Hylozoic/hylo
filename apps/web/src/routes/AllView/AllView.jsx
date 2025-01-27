@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash'
-import { ContextWidgetPresenter, widgetIsValidChild, humanReadableTypes, isValidHomeWidget } from '@hylo/shared/src/ContextWidgetPresenter'
+import ContextWidgetPresenter, { widgetIsValidChild, humanReadableTypes, isValidHomeWidget } from '@hylo/shared/src/ContextWidgetPresenter'
 import { addQuerystringToPath, baseUrl, widgetUrl } from 'util/navigation'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -93,7 +93,7 @@ export default function AllViews () {
 
   const widgetsSorted = useMemo(() => {
     return visibleWidgets.map(widget => {
-      return ContextWidgetPresenter({ widget, t })
+      return ContextWidgetPresenter(widget, { t })
     }).sort((a, b) => a.title.localeCompare(b.title))
   }, [visibleWidgets])
 
