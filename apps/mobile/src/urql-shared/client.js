@@ -48,7 +48,7 @@ const client = createClient({
               lineEndingCharacter: '\n'
             })
 
-            eventSource.addEventListener('message', (event) => {
+            eventSource.addEventListener('next', (event) => {
               const data = JSON.parse(event.data)
 
               sink.next(data)
@@ -86,6 +86,7 @@ const client = createClient({
 
     return response
   },
+  // Note: This didn't seem to change anything and can probably be removed
   fetchOptions: { credentials: 'include' },
   url: GRAPHQL_ENDPOINT_URL
 })

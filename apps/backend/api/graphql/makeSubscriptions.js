@@ -69,7 +69,7 @@ export default function makeSubscriptions () {
               ? `peopleTyping:postId:${postId}`
               : `peopleTyping:commentId:${commentId}`
         ),
-        withDontSendToCreator({ context })
+        withDontSendToCreator({ context, getter: get('user.id') })
       ),
       resolve: (payload) => {
         return User.find(payload.user.id)
