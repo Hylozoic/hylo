@@ -73,6 +73,8 @@ export default function CalendarEvent({
   const { events, setSelectedEvent, setManageEventDialogOpen, date } =
     useCalendarContext()
   const style = month ? {} : calculateEventPosition(event, events)
+  // TODO format for multi-day events
+  const toolTipTitle = `${event.title}<br />${format(event.start, 'h:mm a')} - ${format(event.end, 'h:mm a')}`
 
   // Generate a unique key that includes the current month to prevent animation conflicts
   const isEventInCurrentMonth = isSameMonth(event.start, date)
@@ -134,16 +136,16 @@ export default function CalendarEvent({
             )}
             layout="position"
           >
-            <p className={cn('font-bold truncate', month && 'text-xs', 'm-0')} data-tooltip-id={`title-tip-${event.id}`} data-tooltip-content={event.title}>
+            <p className={cn('font-bold truncate', month && 'text-xs', 'm-0')} data-tooltip-id={`title-tip-${event.id}`} data-tooltip-html={toolTipTitle}>
               {event.title}
             </p>
-            <p className={cn('text-sm', month && 'text-xs', 'm-0')}>
+            {/* <p className={cn('text-sm', month && 'text-xs', 'm-0')}>
               <span>{format(event.start, 'h:mma')}</span>
               <span className={cn('mx-1', month && 'hidden')}>-</span>
               <span className={cn(month && 'hidden')}>
                 {format(event.end, 'h:mma')}
               </span>
-            </p>
+            </p> */}
           </motion.div>
         </motion.div>
       </AnimatePresence>
