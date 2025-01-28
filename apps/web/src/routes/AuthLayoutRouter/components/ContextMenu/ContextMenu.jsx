@@ -32,7 +32,7 @@ import { makeDropQueryResults } from 'store/reducers/queryResults'
 import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
 
 import classes from './ContextMenu.module.scss'
-import { getStaticMenuWidgets, orderContextWidgetsForContextMenu } from '@hylo/shared/src/ContextMenuPresenter'
+import { getStaticMenuWidgets, orderContextWidgetsForContextMenu } from '@hylo/shared/src/ContextMenuHelpers'
 import ContextWidgetPresenter, { widgetIsValidChild } from '@hylo/shared/src/ContextWidgetPresenter'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
