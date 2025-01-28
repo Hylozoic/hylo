@@ -107,6 +107,7 @@ import {
   unblockUser,
   unfulfillPost,
   unlinkAccount,
+  updateAllMemberships,
   updateComment,
   updateContextWidget,
   updateGroup,
@@ -355,7 +356,7 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
 
     createComment: (root, { data }) => createComment(userId, data),
 
-    createContextWidget: (root, { groupId, data }) => 
+    createContextWidget: (root, { groupId, data }) =>
       createContextWidget({ userId, groupId, data }),
 
     createGroup: (root, { data }) => createGroup(userId, data),
@@ -469,7 +470,7 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
 
     rejectGroupRelationshipInvite: (root, { groupRelationshipInviteId }) => rejectGroupRelationshipInvite(userId, groupRelationshipInviteId),
 
-    removeWidgetFromMenu: (root, { contextWidgetId, groupId }) => 
+    removeWidgetFromMenu: (root, { contextWidgetId, groupId }) =>
       removeWidgetFromMenu({ userId, contextWidgetId, groupId }),
 
     removeMember: (root, { personId, groupId }) =>
@@ -494,7 +495,7 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
     removeSkillToLearn: (root, { id, name }) => removeSkillToLearn(userId, id || name),
     removeSuggestedSkillFromGroup: (root, { groupId, id, name }) => removeSuggestedSkillFromGroup(userId, groupId, id || name),
 
-    reorderContextWidget: (root, { contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd }) => 
+    reorderContextWidget: (root, { contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd }) =>
       reorderContextWidget({ userId, contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd }),
 
     reorderPostInCollection: (root, { collectionId, postId, newOrderIndex }) =>
@@ -527,7 +528,9 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
     unlinkAccount: (root, { provider }) =>
       unlinkAccount(userId, provider),
 
-    updateContextWidget: (root, { contextWidgetId, data }) => 
+    updateAllMemberships: (root, args) => updateAllMemberships(userId, args),
+
+    updateContextWidget: (root, { contextWidgetId, data }) =>
       updateContextWidget({ userId, contextWidgetId, data }),
 
     updateGroupResponsibility: (root, { groupId, responsibilityId, title, description }) =>

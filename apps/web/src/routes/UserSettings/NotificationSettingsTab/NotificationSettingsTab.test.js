@@ -1,21 +1,17 @@
 import React from 'react'
 import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
-import NotificationSettingsTab, {
-  MessageSettingsRow,
-  AllGroupsSettingsRow,
-  MembershipSettingsRow,
-  SettingsRow,
-  SettingsIcon
-} from './NotificationSettingsTab'
+import NotificationSettingsTab from './NotificationSettingsTab'
+import AllGroupsSettingsRow from './AllGroupsSettingRow'
+import MembershipSettingsRow from './MembershipSettingRow'
+import SettingsRow from './SettingToggles'
+import SettingsIcon from './SettingIcon'
 
 describe('NotificationSettingsTab', () => {
   const currentUser = {
     hasDevice: true,
     settings: {
-      digestFrequency: 'daily',
       dmNotifications: 'none',
       commentNotifications: 'email',
-      postNotifications: 'important',
       sendPushNotifications: true,
       sendEmail: true
     }
@@ -133,21 +129,8 @@ describe('NotificationSettingsTab', () => {
 
       const pushNotificationToggle = screen.getAllByText('Off')[1]
       fireEvent.click(pushNotificationToggle)
-      expect(updateAllMemberships).toHaveBeenCalledWith([1, 2], { sendPushNotifications: true })
+      expect(updateAllMemberships).toHaveBeenCalledWith({ sendPushNotifications: true })
     })
-  })
-})
-
-describe('MessageSettingsRow', () => {
-  it('renders correctly', () => {
-    render(
-      <MessageSettingsRow
-        settings={{ sendEmail: true }}
-        updateMessageSettings={() => {}}
-      />
-    )
-    expect(screen.getByText('Messages')).toBeInTheDocument()
-    expect(screen.getByText('On')).toBeInTheDocument()
   })
 })
 

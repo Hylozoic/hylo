@@ -538,27 +538,26 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
 
   return (
     <React.Fragment key={item.id + itemTitle}>
-    <DropZone hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
-    &nbsp;
-    </DropZone>
-      <li ref={setItemDraggableNodeRef} style={itemStyle} className="flex justify items-center content-center">
-       
+      <DropZone hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
+        &nbsp;
+      </DropZone>
+      <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center'>
         {(() => {
-          if (item.type === "chat") {
+          if (item.type === 'chat') {
             return (
               <MenuLink
                 to={itemUrl}
-                externalLink={item?.customView?.type === "externalLink" ? item.customView.externalLink : null}
-                className="text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between"
+                externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
+                className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between'
               >
                 <div>
                   <WidgetIconResolver widget={item} />
-                  <span className="text-base ml-2">{itemTitle}</span>
+                  <span className='text-base ml-2'>{itemTitle}</span>
                 </div>
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
               </MenuLink>
-            );
-          } else if (rootPath !== "/my" && rootPath !== "/all" && !item.title) {
+            )
+          } else if (rootPath !== '/my' && rootPath !== '/all' && !item.title) {
             return (
               <MenuLink
                 to={itemUrl}
@@ -567,25 +566,25 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
               >
                 <div>
                   <WidgetIconResolver widget={item} />
-                  <span className="text-base ml-2">{itemTitle}</span>
+                  <span className='text-base ml-2'>{itemTitle}</span>
                 </div>
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
               </MenuLink>
-            );
-          } else if (rootPath === "/my" || rootPath === "/all" || rootPath !== "/members" || (item.title && item.type !== "chat")) {
+            )
+          } else if (rootPath === '/my' || rootPath === '/all' || rootPath !== '/members' || (item.title && item.type !== 'chat')) {
             return (
               <MenuLink
                 to={itemUrl}
-                externalLink={item?.customView?.type === "externalLink" ? item.customView.externalLink : null}
-                className="text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex align-items justify-between"
+                externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
+                className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex align-items justify-between'
               >
                 <div>
                   <WidgetIconResolver widget={item} />
-                  <span className="text-base ml-2">{itemTitle}</span>
+                  <span className='text-base ml-2'>{itemTitle}</span>
                 </div>
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
               </MenuLink>
-            );
+            )
           }
         })()}
       </li>

@@ -412,7 +412,6 @@ describe('on UPDATE_USER_SETTINGS_PENDING', () => {
     location: 'original location',
     tagline: 'old tagline',
     settings: {
-      digestFrequency: 'weekly',
       dmNotifications: 'both'
     }
   })
@@ -423,9 +422,7 @@ describe('on UPDATE_USER_SETTINGS_PENDING', () => {
       changes: {
         tagline: 'new tagline',
         settings: {
-          digestFrequency: 'daily',
-          commentNotifications: 'email',
-          postNotifications: 'important'
+          commentNotifications: 'email'
         }
       }
     }
