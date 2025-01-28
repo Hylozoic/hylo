@@ -251,9 +251,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     me: (root, args, context) => fetchOne('Me', context.currentUserId),
     messageThread: (root, { id }) => fetchOne('MessageThread', id),
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
-    notifications: (root, { first, offset, resetCount, order = 'desc' }, context) => {
-      return fetchMany('Notification', { first, offset, order })
-        .tap(() => resetCount && User.resetNewNotificationCount(context.currentUserId))
+    notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
+      const notifications = await fetchMany('Notification', { first, offset, order })
+      resetCount && User.resetNewNotificationCount(context.currentUserId)
+      return notifications
     },
     people: (root, args) => fetchMany('Person', args),
     // you can query by id or email, with id taking preference

@@ -29,9 +29,6 @@ export const postCommentsQuery = gql`
           childComments(first: 2, order: "desc") {
             items {
               ...CommentFieldsFragment
-              post {
-                id
-              }
             }
             total
             hasMore
@@ -55,9 +52,6 @@ export const childCommentsQuery = gql`
       id
       childComments(first: $first, cursor: $cursor, order: "desc") {
         items {
-          post {
-            id
-          }
           ...CommentFieldsFragment
         }
         total
@@ -87,7 +81,7 @@ export const Comments = React.forwardRef(({
   const sections = comments?.map((comment, index) => {
     return ({
       comment,
-      data: comment.childComments?.items || []
+      data: comment?.childComments?.items || []
     })
   })
 
@@ -143,6 +137,7 @@ export const Comments = React.forwardRef(({
 
   // Comment rendering (parent)
   const SectionFooter = ({ section: { comment } }) => {
+    if (!comment) return null
     return (
       <>
         <ShowMore postOrComment={comment} style={styles.childCommentsShowMore} />
@@ -150,7 +145,7 @@ export const Comments = React.forwardRef(({
           clearHighlighted={() => setHighlightedComment(null)}
           comment={comment}
           groupId={groupId}
-          highlighted={comment.id === highlightedComment?.id}
+          highlighted={comment?.id === highlightedComment?.id}
           onReply={selectComment}
           postTitle={post?.title}
           scrollTo={viewPosition => scrollToComment(comment, viewPosition)}
@@ -164,6 +159,7 @@ export const Comments = React.forwardRef(({
 
   // comment.childComments rendering
   const Item = ({ item: comment }) => {
+    if (!comment) return null
     return (
       <Comment
         clearHighlighted={() => setHighlightedComment(null)}

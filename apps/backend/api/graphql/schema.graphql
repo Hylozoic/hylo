@@ -400,6 +400,7 @@ type Affiliation {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type AffiliationQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Affiliation]
@@ -420,6 +421,7 @@ type Agreement {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type AgreementQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Agreement]
@@ -481,6 +483,7 @@ type CollectionsPost {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type CollectionsPostQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [CollectionsPost]
@@ -525,6 +528,7 @@ type Comment {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type CommentQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Comment]
@@ -592,6 +596,7 @@ type ContextWidget {
 }
 
 type ContextWidgetQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [ContextWidget]
@@ -638,6 +643,7 @@ type CustomView {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type CustomViewQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [CustomView]
@@ -654,6 +660,7 @@ type EventInvitation {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type EventInvitationQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [EventInvitation]
@@ -1001,6 +1008,7 @@ type Group {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type GroupQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Group]
@@ -1023,6 +1031,7 @@ type GroupExtension {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type GroupExtensionQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [GroupExtension]
@@ -1038,6 +1047,7 @@ type GroupJoinQuestion {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type GroupJoinQuestionQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [GroupJoinQuestion]
@@ -1060,6 +1070,7 @@ type GroupJoinQuestionAnswer {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type GroupJoinQuestionAnswerQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [GroupJoinQuestionAnswer]
@@ -1123,6 +1134,7 @@ type GroupRelationshipInvite {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type GroupRelationshipInviteQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [GroupRelationshipInvite]
@@ -1154,6 +1166,7 @@ type GroupToGroupJoinQuestion {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type GroupToGroupJoinQuestionQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [GroupToGroupJoinQuestion]
@@ -1189,6 +1202,7 @@ type GroupTopic {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type GroupRoleQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [GroupRole]
@@ -1196,6 +1210,7 @@ type GroupRoleQuerySet {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type ResponsibilityQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Responsibility]
@@ -1203,6 +1218,7 @@ type ResponsibilityQuerySet {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type CommonRoleQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [CommonRole]
@@ -1210,6 +1226,7 @@ type CommonRoleQuerySet {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type GroupTopicQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [GroupTopic]
@@ -1241,6 +1258,7 @@ type GroupWidgetSettings {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type GroupWidgetQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [GroupWidget]
@@ -1271,6 +1289,7 @@ type Invitation {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type InvitationQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Invitation]
@@ -1293,6 +1312,7 @@ type JoinRequest {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type JoinRequestQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [JoinRequest]
@@ -1534,6 +1554,7 @@ type Membership {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type MembershipQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Membership]
@@ -1549,6 +1570,7 @@ type MembershipAgreement {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type MembershipAgreementQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [MembershipAgreement]
@@ -1571,6 +1593,7 @@ type MembershipCommonRole {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type MembershipCommonRoleQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [MembershipCommonRole]
@@ -1593,6 +1616,7 @@ type MembershipGroupRole {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type MembershipGroupRoleQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [MembershipGroupRole]
@@ -1626,6 +1650,7 @@ type Message {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type MessageQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Message]
@@ -1652,6 +1677,7 @@ type MessageThread {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type MessageThreadQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [MessageThread]
@@ -1689,6 +1715,7 @@ type ModerationAction {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type ModerationActionQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [ModerationAction]
@@ -1704,6 +1731,7 @@ type Notification {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type NotificationQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Notification]
@@ -1849,6 +1877,7 @@ type Person {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type PersonQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Person]
@@ -1867,6 +1896,7 @@ type PersonConnection {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type PersonConnectionQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [PersonConnection]
@@ -2012,6 +2042,7 @@ type Post {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type PostQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Post]
@@ -2098,6 +2129,7 @@ type Reaction {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type ReactionQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Reaction]
@@ -2149,6 +2181,7 @@ type SavedSearchTopic {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type SavedSearchQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [SavedSearch]
@@ -2165,6 +2198,7 @@ type SearchResult {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type SearchResultQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [SearchResult]
@@ -2179,6 +2213,7 @@ type Skill {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type SkillQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Skill]
@@ -2213,6 +2248,7 @@ type Topic {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type TopicQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [Topic]
@@ -2250,6 +2286,7 @@ type UserSettings {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type ProposalOptionQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [ProposalOption]
@@ -2257,6 +2294,7 @@ type ProposalOptionQuerySet {
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type ProposalVoteQuerySet {
+  id: String
   total: Int
   hasMore: Boolean
   items: [ProposalVote]
