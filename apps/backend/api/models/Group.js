@@ -1061,7 +1061,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   async doesMenuUpdate ({ groupIds, post, customView, groupRelation = false }) {
     if (!post && !customView && !groupRelation) return
-    const postType = post && post.type
+    const postType = post?.type
     // Skip processing if it's a chat post and no other conditions are present
     if (postType === 'chat' && !customView && !groupRelation) return
     await bookshelf.transaction(async trx => {
@@ -1124,7 +1124,7 @@ module.exports = bookshelf.Model.extend(merge({
           }
 
           // Check location
-          if (post.location_id) {
+          if (post?.location_id) {
             const mapWidget = widgets.find(w => w.get('view') === 'map')
             if (mapWidget && !mapWidget.get('auto_added')) {
               await ContextWidget.reorder({
