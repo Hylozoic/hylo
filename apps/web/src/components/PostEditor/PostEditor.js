@@ -522,15 +522,9 @@ function PostEditor ({
       type
     }
 
-    const saveFunc = isEditing ? updatePost : createPost
     setAnnouncementSelected(false)
-    const action = await dispatch(saveFunc(postToSave))
 
-    if (isEditing) {
-      onClose()
-    } else {
-      goToPost(action)
-    }
+    onClose()
   }, [currentPost, isEditing, onClose])
 
   const doSave = useCallback(() => {
@@ -543,14 +537,6 @@ function PostEditor ({
       _save()
     }
   }, [currentPost, isEditing, initialPost, save])
-
-  const goToPost = useCallback((createPostAction) => {
-    const id = get('payload.data.createPost.id', createPostAction)
-    const querystringWhitelist = ['s', 't', 'q', 'search', 'zoom', 'center', 'lat', 'lng']
-    const querystringParams = urlLocation && getQuerystringParam(querystringWhitelist, urlLocation)
-    const postPath = postUrl(id, routeParams, querystringParams)
-    navigate(postPath)
-  }, [currentPost, isEditing, onClose, urlLocation, routeParams])
 
   const buttonLabel = useCallback(() => {
     if (postPending) return t('Posting...')
