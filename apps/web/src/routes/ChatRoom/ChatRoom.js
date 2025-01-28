@@ -528,12 +528,12 @@ export default function ChatRoom (props) {
                 allowMultiple
               >
                 <ImagePlus className={cn('text-foreground hover:cursor-pointer hover:text-accent w-[20px] h-[20px]', { 'text-primary': imageAttachments && imageAttachments.length > 0 })} />
-              {/* Remove when it's confirmed to be working
-                <Icon
-                  name='AddImage'
-                  className={cn('text-foreground', styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
-                />
-                */}
+                {/* Remove when it's confirmed to be working
+                  <Icon
+                    name='AddImage'
+                    className={cn('text-foreground', styles.actionIcon, { [styles.highlightIcon]: imageAttachments && imageAttachments.length > 0 })}
+                  />
+                  */}
               </UploadAttachmentButton>
 
               <Button
@@ -580,7 +580,7 @@ const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
   return (
     <div className={cn(styles.displayDay, '!absolute top-0')}>
-      <div className={cn('bg-background', styles.day)}>{firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt).toRelativeCalendar({unit: 'days'}) : ''}</div>
+      <div className={cn('bg-background', styles.day)}>{firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt).toRelativeCalendar({ unit: 'days' }) : ''}</div>
     </div>
   )
 }
@@ -590,7 +590,7 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
   const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
   const currentDay = DateTime.fromISO(post.createdAt)
-  const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : currentDay.toRelativeCalendar({unit: 'days'})
+  const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : currentDay.toRelativeCalendar({ unit: 'days' })
   const createdTimeDiff = Math.abs(currentDay.diff(previousDay, 'minutes'))
 
   /* Display the author header if
