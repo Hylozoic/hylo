@@ -77,8 +77,35 @@ export default {
         cache.invalidate(cache.keyOfEntity({ __typename: 'Post', id: args.id }), 'myEventResponse')
       }
     },
-    swapProposalVote: (result, args, cache, info) => { 
+    swapProposalVote: (result, args, cache, info) => {
       cache.invalidate({ __typename: 'Post', id: args.postId })
+    }
+  },
+  Subscription: {
+    comments: (result, args, cache, info) => {
+      console.log('!!!!! comments - result, args, info:', result, args, info)
     },
+    updates: (result, args, cache, info) => {
+      const update = result?.updates
+
+      switch (update?.__typename) {
+        case 'Message': {
+          console.log('!!!! updates TODO: new Message. Increment Messages tab badge', result, args)
+          cache.invalidate({ __typename: 'MessageThread', id: update?.messageThread?.id })
+          break
+        }
+        case 'MessageThread': {
+          console.log('!!!! updates TODO: new MessageThread. Increment Messages tab badge', result, args)
+          break
+        }
+        case 'Notification': {
+          console.log('!!!! updates TODO: new Notification. Increment Notifications badge', result, args)
+          break
+        }
+        default: {
+          console.log('!!! Unhandled update from updates subscription', result)
+        }
+      }
+    }
   }
 }

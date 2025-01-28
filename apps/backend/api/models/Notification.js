@@ -3,8 +3,8 @@ import { get, includes } from 'lodash/fp'
 import decode from 'ent/decode'
 import { TextHelpers } from '@hylo/shared'
 import { refineOne } from './util/relations'
-import rollbar from '../../lib/rollbar'
 import { broadcast, userRoom } from '../services/Websockets'
+import RedisPubSub from '../services/RedisPubSub'
 import { getSlug } from '../services/Frontend'
 
 const TYPE = {
@@ -839,7 +839,7 @@ module.exports = bookshelf.Model.extend({
         }
       )
     }
-
+    RedisPubSub.publish(`updates:${userId}`, { notification: this })
     broadcast(userRoom(userId), 'newNotification', payload)
   }
 }, {

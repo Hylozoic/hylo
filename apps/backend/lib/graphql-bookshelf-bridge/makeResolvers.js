@@ -74,7 +74,7 @@ export function createResolverForModel (spec, fetcher) {
 
       const emitterName = `__${graphqlName}__total_emitter`
 
-      result[graphqlName] = async (instance, args) => {
+      result[graphqlName] = async (instance, args, context, info) => {
         const fetchOpts = Object.assign(
           {
             querySet: opts.querySet,
