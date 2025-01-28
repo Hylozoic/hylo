@@ -272,7 +272,7 @@ function JoinQuestionsBodyContent ({ questionAnswers, setQuestionAnswers, setAll
 
 function SuggestedSkills ({ addSkill, currentUser, group, removeSkill }) {
   const { t } = useTranslation()
-  const [selectedSkills, setSelectedSkills] = useState(currentUser.skills ? currentUser.skills.toRefArray().map(s => s.id) : [])
+  const [selectedSkills, setSelectedSkills] = useState(currentUser.skills ? currentUser?.skills?.items.map(s => s.id) : [])
   const [pills] = useState(group.suggestedSkills.map(skill => ({
     ...skill,
     label: skill.name
