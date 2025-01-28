@@ -1,73 +1,45 @@
-import React from 'react'
-import { Animated, StyleSheet, Text, TouchableOpacity } from 'react-native'
-import { func, string } from 'prop-types'
+import React, { useEffect } from 'react'
+import { StyleSheet, Text, TouchableOpacity } from 'react-native'
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay } from 'react-native-reanimated'
+import { isEmpty } from 'lodash/fp'
 import { amaranth, persimmon } from 'style/colors'
-import { compact } from 'lodash'
-
-export default class NotificationOverlay extends React.Component {
-  static propTypes = {
-    message: string.isRequired,
-    onPress: func
-  }
-
-  constructor () {
-    super()
-    this.state = {
-      heightAnim: new Animated.Value(0)
-    }
-  }
-
-  componentDidMount () {
-    this.animate()
-  }
-
-  componentDidUpdate (prevProps) {
-    if (prevProps.message !== this.props.message) {
-      this.animate()
-    }
-  }
-
-  animate () {
-    const { onComplete, permanent } = this.props
-    const height = lineHeight + padding * 2
-    Animated.sequence(compact([
-      Animated.timing(
-        this.state.heightAnim,
-        { toValue: height, duration: 800, useNativeDriver: false }
-      ),
-      !permanent && Animated.delay(4000),
-      !permanent && Animated.timing(
-        this.state.heightAnim,
-        { toValue: 0, duration: 800, useNativeDriver: false },
-      )
-    ])).start(({ finished }) => {
-      if (finished && onComplete) onComplete()
-    })
-  }
-
-  render () {
-    const { position = 'top', type = 'error', onPress, message } = this.props
-
-    return (
-      <Animated.View style={[
-        styles.container,
-        styles[position + 'Position'],
-        { height: this.state.heightAnim }
-      ]}
-    >
-        <TouchableOpacity onPress={onPress}>
-          <Text style={[styles.message, styles[type]]}>
-            {message}
-          </Text>
-        </TouchableOpacity>
-      </Animated.View>
-    )
-  }
-}
 
 const fontSize = 13
 const lineHeight = 14
 const padding = 6
+
+const NotificationOverlay = ({ message, onPress, onComplete, position = 'top', type = 'error', permanent = false }) => {
+  const heightAnim = useSharedValue(0)
+  const height = lineHeight + padding * 2
+
+  // Animation logic
+  useEffect(() => {
+    heightAnim.value = withTiming(height, { duration: 800 }, () => {
+      if (!permanent) {
+        heightAnim.value = withDelay(4000, withTiming(0, { duration: 800 }, () => {
+          if (onComplete) onComplete()
+        }))
+      }
+    })
+  }, [message])
+
+  // Animated style for the container
+  const animatedStyle = useAnimatedStyle(() => ({
+    height: heightAnim.value
+  }))
+
+  if (isEmpty(message)) return null
+
+  return (
+    <Animated.View style={[styles.container, styles[`${position}Position`], animatedStyle]}>
+      <TouchableOpacity onPress={onPress}>
+        <Text style={[styles.message, styles[type]]}>
+          {message}
+        </Text>
+      </TouchableOpacity>
+    </Animated.View>
+  )
+}
 
 const styles = StyleSheet.create({
   message: {
@@ -75,8 +47,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontFamily: 'Circular-Bold',
     fontSize,
-    // Note: letterSpacing not supported on Android
-    // letterSpacing: 0.2,
     lineHeight,
     padding,
     textAlign: 'center'
@@ -100,3 +70,5 @@ const styles = StyleSheet.create({
     bottom: 0
   }
 })
+
+export default NotificationOverlay

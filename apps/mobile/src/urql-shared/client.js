@@ -1,4 +1,4 @@
-import { createClient, fetchExchange } from 'urql'
+import { createClient, fetchExchange, subscriptionExchange } from 'urql'
 import { cacheExchange } from '@urql/exchange-graphcache'
 import { devtoolsExchange } from '@urql/devtools'
 import apiHost from 'util/apiHost'
@@ -8,6 +8,8 @@ import resolvers from './resolvers'
 import optimistic from './optimistic'
 import updates from './updates'
 import directives from './directives'
+import EventSource from 'react-native-sse'
+import { URL } from 'react-native-url-polyfill'
 
 const GRAPHQL_ENDPOINT_URL = `${apiHost}/noo/graphql`
 
@@ -23,7 +25,56 @@ const client = createClient({
   exchanges: [
     devtoolsExchange,
     cache,
-    fetchExchange
+    fetchExchange,
+    subscriptionExchange({
+      forwardSubscription: (operation) => {
+        const url = new URL(GRAPHQL_ENDPOINT_URL)
+
+        url.searchParams.append('query', operation.query)
+
+        if (operation.variables) {
+          url.searchParams.append(
+            'variables',
+            JSON.stringify(operation.variables)
+          )
+        }
+
+        return {
+          subscribe: (sink) => {
+            const eventSource = new EventSource(url.toString(), {
+              withCredentials: true, // This is required for cookies
+              credentials: 'include',
+              method: 'GET',
+              lineEndingCharacter: '\n'
+            })
+
+            eventSource.addEventListener('message', (event) => {
+              const data = JSON.parse(event.data)
+
+              sink.next(data)
+
+              if (eventSource.readyState === 2) {
+                sink.complete()
+              }
+            })
+
+            eventSource.addEventListener('error', (event) => {
+              if (event.type === 'error') {
+                console.error('Connection error:', event?.message)
+              } else if (event.type === 'exception') {
+                console.error('Error:', event?.message, event?.error)
+              }
+
+              sink.error(event)
+            })
+
+            return {
+              unsubscribe: () => eventSource.close()
+            }
+          }
+        }
+      }
+    })
   ],
   fetch: async (...args) => {
     const response = await fetch(...args)

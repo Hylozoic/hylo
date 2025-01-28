@@ -49,6 +49,11 @@ import useCurrentGroup from './useCurrentGroup'
  *    )
  */
 
+export const RESP_ADD_MEMBERS = 'Add Members'
+export const RESP_ADMINISTRATION = 'Administration'
+export const RESP_MANAGE_CONTENT = 'Manage Content'
+export const RESP_REMOVE_MEMBERS = 'Remove Members'
+
 export default function useHasResponsibility ({
   forCurrentGroup = false,
   forCurrentUser = false,

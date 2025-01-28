@@ -14,7 +14,7 @@ import NotificationCard from 'components/NotificationCard'
 import CreateGroupNotice from 'components/CreateGroupNotice'
 import Loading from 'components/Loading'
 import cardStyles from 'components/NotificationCard/NotificationCard.styles'
-import notificationsQuery, { NOTIFICATIONS_PAGE_SIZE } from 'graphql/queries/notificationsQuery'
+import notificationsQuery from 'graphql/queries/notificationsQuery'
 import resetNotificationsCountMutation from 'graphql/mutations/resetNotificationsCountMutation'
 import useCurrentUser from 'hooks/useCurrentUser'
 
@@ -38,7 +38,7 @@ export default function NotificationsList (props) {
   // TODO: markAllActivitiesRead needs to optimistically updated
   const [, markAllActivitiesRead] = useMutation(markAllActivitiesReadMutation)
   const [{ currentUser }] = useCurrentUser()
-  const [{ data, fetching }] = useQuery({ query: notificationsQuery, variables: { first: NOTIFICATIONS_PAGE_SIZE, offset } })
+  const [{ data, fetching }] = useQuery({ query: notificationsQuery, variables: { offset } })
 
   const notifications = refineNotifications(data?.notifications?.items, navigation)
   const hasMore = notifications?.hasMore

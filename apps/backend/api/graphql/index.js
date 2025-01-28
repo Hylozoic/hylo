@@ -1,7 +1,11 @@
+import { makeExecutableSchema } from 'graphql-tools'
 import { createServer, GraphQLYogaError } from '@graphql-yoga/node'
 import { useLazyLoadedSchema } from '@envelop/core'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { inspect } from 'util'
+import { merge, reduce } from 'lodash'
+import { red } from 'chalk'
 import setupBridge from '../../lib/graphql-bookshelf-bridge'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
 import mixpanel from '../../lib/mixpanel'
@@ -125,12 +129,11 @@ import {
   useInvitation,
   verifyEmail
 } from './mutations'
+import peopleTyping from './mutations/peopleTyping'
 import InvitationService from '../services/InvitationService'
+import RedisPubSub from '../services/RedisPubSub'
 import makeModels from './makeModels'
-import { makeExecutableSchema } from 'graphql-tools'
-import { inspect } from 'util'
-import { red } from 'chalk'
-import { merge, reduce } from 'lodash'
+import makeSubscriptions from './makeSubscriptions'
 
 const schemaText = readFileSync(join(__dirname, 'schema.graphql')).toString()
 
@@ -151,7 +154,16 @@ export const createRequestHandler = () =>
       if (req.session.userId && !req.api_client) {
         await User.query().where({ id: req.session.userId }).update({ last_active_at: new Date() })
       }
+
+      // This is unrelated to the above which is using context as a hook,
+      // this is putting the subscriptions pubSub method on context
+      return {
+        pubSub: RedisPubSub,
+        socket: req.socket,
+        currentUserId: req.session.userId
+      }
     },
+    logging: true,
     graphiql: true
   })
 
@@ -171,8 +183,11 @@ function createSchema (expressContext) {
     mixpanel.people.set(userId)
 
     allResolvers = {
-      Query: makeAuthenticatedQueries(userId, fetchOne, fetchMany),
-      Mutation: makeMutations(expressContext, userId, isAdmin, fetchOne),
+      Query: makeAuthenticatedQueries({ userId, fetchOne, fetchMany }),
+      Mutation: makeMutations({ expressContext, userId, isAdmin, fetchOne }),
+      Subscription: makeSubscriptions(),
+
+      // Custom Type resolvers
 
       FeedItemContent: {
         __resolveType (data, context, info) {
@@ -182,24 +197,35 @@ function createSchema (expressContext) {
           throw new GraphQLYogaError('Post is the only implemented FeedItemContent type')
         }
       },
-
       SearchResultContent: {
         __resolveType (data, context, info) {
           return getTypeForInstance(data, models)
+        }
+      },
+      // Type resolver for the Update graphql union type used in update subscription (see makeSubscriptions)
+      Update: {
+        __resolveType (data, context, info) {
+          // Message and MessageThread are not the isDefaultTypeForTable for Comment and Post
+          // in makeModels, and there is apparently no other way to infer the types, so the
+          // correct type is set on makeModelsType by the subscription resolver to be used here
+          if (data?.makeModelsType) return data.makeModelsType
+          const foundType = getTypeForInstance(data, models)
+          if (foundType) return foundType
+          throw new Error(`Unable to determine GraphQL type for instance: ${data}`)
         }
       }
     }
   } else if (api_client) {
     // TODO: check scope here, just api:write, just api:read, or both?
     allResolvers = {
-      Query: makeApiQueries(fetchOne, fetchMany),
+      Query: makeApiQueries({ fetchOne, fetchMany }),
       Mutation: makeApiMutations()
     }
   } else {
     // Not authenticated, only allow for public queries
     allResolvers = {
-      Query: makePublicQueries(userId, fetchOne, fetchMany),
-      Mutation: makePublicMutations(expressContext, fetchOne)
+      Query: makePublicQueries({ userId, fetchOne, fetchMany }),
+      Mutation: makePublicMutations({ expressContext, fetchOne })
     }
   }
 
@@ -210,7 +236,7 @@ function createSchema (expressContext) {
 }
 
 // Queries that non-logged in users can make
-export function makePublicQueries (userId, fetchOne, fetchMany) {
+export function makePublicQueries ({ fetchOne, fetchMany }) {
   return {
     checkInvitation: (root, { invitationToken, accessCode }) =>
       InvitationService.check(invitationToken, accessCode),
@@ -224,7 +250,7 @@ export function makePublicQueries (userId, fetchOne, fetchMany) {
 }
 
 // Queries that logged in users can make
-export function makeAuthenticatedQueries (userId, fetchOne, fetchMany) {
+export function makeAuthenticatedQueries ({ userId, fetchOne, fetchMany }) {
   return {
     activity: (root, { id }) => fetchOne('Activity', id),
     checkInvitation: (root, { invitationToken, accessCode }) =>
@@ -292,7 +318,7 @@ export function makeAuthenticatedQueries (userId, fetchOne, fetchMany) {
   }
 }
 
-export function makePublicMutations (expressContext, fetchOne) {
+export function makePublicMutations ({ expressContext, fetchOne }) {
   return {
     login: login(fetchOne, expressContext),
     logout: logout(expressContext),
@@ -303,14 +329,14 @@ export function makePublicMutations (expressContext, fetchOne) {
   }
 }
 
-export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
+export function makeMutations ({ expressContext, userId, fetchOne }) {
   const { req } = expressContext
   const sessionId = req.session.id
 
   return {
     // Currently injecting all Public Mutations here so those resolvers remain
     // available between auth'd and non-auth'd sessions
-    ...makePublicMutations(expressContext, fetchOne),
+    ...makePublicMutations({ expressContext, fetchOne }),
 
     acceptGroupRelationshipInvite: (root, { groupRelationshipInviteId }) => acceptGroupRelationshipInvite(userId, groupRelationshipInviteId),
 
@@ -354,7 +380,7 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
 
     createCollection: (root, { data }) => createCollection(userId, data),
 
-    createComment: (root, { data }) => createComment(userId, data),
+    createComment: (root, { data }, context) => createComment(userId, data, context),
 
     createContextWidget: (root, { groupId, data }) =>
       createContextWidget({ userId, groupId, data }),
@@ -366,13 +392,13 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
 
     createJoinRequest: (root, { groupId, questionAnswers }) => createJoinRequest(userId, groupId, questionAnswers),
 
-    createMessage: (root, { data }) => createMessage(userId, data),
+    createMessage: (root, { data }, context) => createMessage(userId, data, context),
 
     createModerationAction: (root, { data }) => createModerationAction({ data, userId }),
 
-    createPost: (root, { data }) => createPost(userId, data),
+    createPost: (root, { data }, context) => createPost(userId, data, context),
 
-    createProject: (root, { data }) => createProject(userId, data),
+    createProject: (root, { data }, context) => createProject(userId, data, context),
 
     createProjectRole: (root, { projectId, roleName }) => createProjectRole(userId, projectId, roleName),
 
@@ -447,6 +473,8 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
 
     pinPost: (root, { postId, groupId }) =>
       pinPost(userId, postId, groupId),
+
+    peopleTyping,
 
     processStripeToken: (root, { postId, token, amount }) =>
       processStripeToken(userId, postId, token, amount),
@@ -556,7 +584,7 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
 
     updateProposalOutcome: (root, { postId, proposalOutcome }) => updateProposalOutcome({ userId, postId, proposalOutcome }),
 
-    updateComment: (root, args) => updateComment(userId, args),
+    updateComment: (root, args, context) => updateComment(userId, args, context),
 
     updateStripeAccount: (root, { accountId }) => updateStripeAccount(userId, accountId),
 
@@ -567,7 +595,7 @@ export function makeMutations (expressContext, userId, isAdmin, fetchOne) {
   }
 }
 
-export function makeApiQueries (fetchOne, fetchMany) {
+export function makeApiQueries ({ fetchOne, fetchMany }) {
   return {
     // you can specify id or slug, but not both
     group: async (root, { id, slug }) => fetchOne('Group', slug || id, slug ? 'slug' : 'id'),
@@ -589,7 +617,7 @@ export function makeApiMutations () {
 
 let modelToTypeMap
 
-function getTypeForInstance (instance, models) {
+export function getTypeForInstance (instance, models) {
   if (!modelToTypeMap) {
     modelToTypeMap = reduce(models, (m, v, k) => {
       const tableName = v.model.forge().tableName
