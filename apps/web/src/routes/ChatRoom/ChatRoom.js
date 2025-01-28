@@ -1,11 +1,13 @@
 import { debounce, includes, isEmpty, trim, uniqueId } from 'lodash/fp'
-import { SendHorizontal, ImagePlus } from 'lucide-react'
+import { Copy, Send, SendHorizontal, ImagePlus } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
+import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams, useLocation, Routes, Route } from 'react-router-dom'
+import { useParams, useLocation, Routes, Route, useNavigate } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData } from '@virtuoso.dev/message-list'
 
@@ -17,7 +19,6 @@ import {
   getAttachments
 } from 'components/AttachmentManager/AttachmentManager.store'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
-import Button from 'components/Button'
 import HyloEditor from 'components/HyloEditor'
 import LinkPreview from 'components/PostEditor/LinkPreview'
 import {
@@ -32,6 +33,7 @@ import NoPosts from 'components/NoPosts'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import { Button } from 'components/ui/button'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import ChatPost from './ChatPost'
 import createPost from 'store/actions/createPost'
@@ -51,6 +53,7 @@ import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { MAX_POST_TOPICS } from 'util/constants'
 import { cn } from 'util/index'
+import { groupInviteUrl, groupUrl } from 'util/navigation'
 import isWebView from 'util/webView'
 
 import styles from './ChatRoom.module.scss'
@@ -258,6 +261,14 @@ export default function ChatRoom (props) {
     }
   }, [])
 
+  const resetInitialPostToScrollTo = useCallback(() => {
+    if (loadedPast && loadedFuture) {
+      setInitialPostToScrollTo((postsPast && postsPast.length > 0 ? postsPast.length - 1 : 0) + Math.min(postsFuture && postsFuture.length > 0 ? postsFuture.length - 1 : 0, 3))
+    } else {
+      setInitialPostToScrollTo(null)
+    }
+  }, [loadedPast, loadedFuture, postsPast, postsFuture])
+
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
@@ -291,7 +302,6 @@ export default function ChatRoom (props) {
   useEffect(() => {
     // New group topic
     if (groupTopic?.id) {
-      setInitialPostToScrollTo(null)
       setLoadedFuture(false)
       fetchPostsFuture(0).then(() => setLoadedFuture(true))
 
@@ -301,6 +311,8 @@ export default function ChatRoom (props) {
       } else {
         setLoadedPast(true)
       }
+
+      resetInitialPostToScrollTo()
 
       // Reset last read post
       setLastReadPostId(groupTopic.lastReadPostId)
@@ -317,9 +329,7 @@ export default function ChatRoom (props) {
 
   // Do once after loading posts for the room to get things ready
   useEffect(() => {
-    if (loadedPast && loadedFuture) {
-      setInitialPostToScrollTo((postsPast && postsPast.length > 0 ? postsPast.length - 1 : 0) + Math.min(postsFuture && postsFuture.length > 0 ? postsFuture.length - 1 : 0, 3))
-    }
+    resetInitialPostToScrollTo()
   }, [loadedPast, loadedFuture])
 
   // When text is entered in a draft post set postInProgress to true
@@ -455,7 +465,7 @@ export default function ChatRoom (props) {
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto', paddingBottom: '20px' }}
                 ref={messageListRef}
-                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction }}
+                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction, topicName, numPosts: postsForDisplay.length }}
                 initialData={postsForDisplay}
                 initialLocation={{ index: initialPostToScrollTo, align: 'end' }}
                 shortSizeAlign='bottom-smooth'
@@ -547,7 +557,15 @@ export default function ChatRoom (props) {
 
 /** * Virtuoso Components ***/
 const EmptyPlaceholder = ({ context }) => {
-  return (<div>{context.loadingPast || context.loadingFuture ? <Loading /> : <NoPosts className={styles.noPosts} />}</div>)
+  return (
+    <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
+      {context.loadingPast || context.loadingFuture
+        ? <Loading />
+        : context.topicName === 'general' && context.numPosts === 0
+          ? <HomeChatWelcome group={context.group} />
+          : <NoPosts className={styles.noPosts} />}
+    </div>
+  )
 }
 
 const Header = ({ context }) => {
@@ -638,5 +656,23 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
           </div>
           )}
     </>
+  )
+}
+
+const HomeChatWelcome = ({ group }) => {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  return (
+    <div className='mx-auto px-4 max-w-[500px] flex flex-col items-center justify-center'>
+      <img src='/home-chat-welcome.png' alt='Golden Starburst' />
+      <h1 className='text-center'>{t('homeChatWelcomeTitle')}</h1>
+      <p className='text-center'>{t('homeChatWelcomeDescription', { group_name: group.name })}</p>
+      <div className='flex gap-2 items-center justify-center'>
+        <Button onClick={() => navigate(groupUrl(group.slug, 'settings/invite'))}><Send /> {t('Send Invites')}</Button>
+        <CopyToClipboard text={groupInviteUrl(group)}>
+          <Button><Copy /> {t('Copy Invite Link')}</Button>
+        </CopyToClipboard>
+      </div>
+    </div>
   )
 }
