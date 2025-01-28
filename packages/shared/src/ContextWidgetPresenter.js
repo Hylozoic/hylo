@@ -54,24 +54,14 @@ export function findHomeView (group) {
 }
 
   export function widgetTypeInferrer ({ widget }) {
-  switch (true) {
-    case !!widget.type:
-      return widget.type
-    case !!widget.view:
-      return widget.view
-    case !!widget.viewGroup:
-      return 'viewGroup'
-    case !!widget.viewPost:
-      return 'viewPost'
-    case !!widget.viewUser:
-      return 'viewUser'
-    case !!widget.viewChat:
-      return 'viewChat'
-    case !!widget.customView:
-      return 'customView'
-    default:
-      return 'container'
-  }
+    return widget?.type
+      || widget?.view
+      || widget?.viewGroup && 'viewGroup'
+      || widget?.viewPost && 'viewPost'
+      || widget?.viewUser && 'viewUser'
+      || widget?.viewChat && 'viewChat'
+      || widget?.customView && 'customView'
+      || 'container'
 }
 
 // TODO redesign: This has mainly been a dev helper, need to decide how we present things in the ALL VIEW
