@@ -637,7 +637,7 @@ function PostEditor ({
         </div>
       </div>
       <div className={cn('PostEditorTitle', styles.section)}>
-        Title:
+        <div className={styles.sectionLabel}>{t('Title')}*</div>
         <input
           type='text'
           className='bg-transparent focus:outline-none flex-1'
