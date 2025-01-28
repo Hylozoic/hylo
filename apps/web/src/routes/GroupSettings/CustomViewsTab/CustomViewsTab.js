@@ -255,7 +255,8 @@ export function CustomViewRow ({
     cards: t('Cards'),
     list: t('List'),
     bigGrid: t('Big Grid'),
-    grid: t('Small Grid')
+    grid: t('Small Grid'),
+    calendar: t('Calendar')
   }
 
   const togglePostType = (type, checked) => {

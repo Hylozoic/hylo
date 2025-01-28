@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "es6",
-    "jsx": "react",
+    "jsx": "react-jsx",
     "checkJs": false,
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
