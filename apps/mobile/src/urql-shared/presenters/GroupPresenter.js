@@ -44,7 +44,7 @@ export default function GroupPresenter (group) {
     prerequisiteGroups: group.prerequisiteGroups
       ? group.prerequisiteGroups.items?.map(prereq => ({ ...prereq, joinQuestions: prereq.joinQuestions || [] }))
       : [],
-    suggestedSkills: group.suggestedSkills || [],
+    suggestedSkills: group?.suggestedSkills?.items || [],
     upcomingEvents: group.upcomingEvents
       ? group.upcomingEvents.map(p => ({ ...p, primaryImage: p.attachments.length > 0 ? p.attachments[0].url : false }))
       : [],
