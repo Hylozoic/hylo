@@ -492,11 +492,17 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   async setupContextWidgets (trx) {
+    // First check if widgets already exist for this group
+    const existingWidgets = await ContextWidget.where({ group_id: this.id }).fetchAll({ transacting: trx })
+    if (existingWidgets.length > 0) {
+      return // Group already has widgets set up
+    }
+
     // Create home widget first
     const homeWidget = await ContextWidget.forge({
       group_id: this.id,
       type: 'home',
-      title: 'widget-home',
+      title: 'widget-home', 
       order: 1,
       created_at: new Date(),
       updated_at: new Date()
