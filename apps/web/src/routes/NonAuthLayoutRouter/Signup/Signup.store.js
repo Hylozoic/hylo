@@ -53,10 +53,8 @@ export function verifyEmail (email, code, token) {
               name
               settings {
                 alreadySeenTour
-                digestFrequency
                 dmNotifications
                 commentNotifications
-                postNotifications
                 locale
                 signupInProgress
                 streamChildPosts

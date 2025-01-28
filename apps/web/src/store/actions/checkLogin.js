@@ -16,10 +16,8 @@ export default function checkLogin () {
             name
             settings {
               alreadySeenTour
-              digestFrequency
               dmNotifications
               commentNotifications
-              postNotifications
               signupInProgress
               streamChildPosts
               streamViewMode

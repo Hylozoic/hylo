@@ -1,255 +1,212 @@
-import React, { Component } from 'react'
-import { useTranslation, withTranslation } from 'react-i18next'
-import { compact } from 'lodash/fp'
-import PropTypes from 'prop-types'
+import { includes, every } from 'lodash/fp'
+import React, { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector } from 'react-redux'
+import { createSelector } from 'reselect'
 import Tooltip from 'components/Tooltip'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
-import Select from 'components/Select'
-import { bgImageStyle, cn } from 'util/index'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from 'components/ui/select'
+import InfoButton from 'components/ui/info'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
+import getMe from 'store/selectors/getMe'
+import getMyMemberships from 'store/selectors/getMyMemberships'
+import MembershipSettingsRow from './MembershipSettingRow'
+import SettingsToggles from './SettingToggles'
 
+import {
+  updateMembershipSettings,
+  updateAllMemberships,
+  updateUserSettings
+} from '../UserSettings.store'
+
+import { bgImageStyle } from 'util/index'
 import classes from './NotificationSettingsTab.module.scss'
 
 const allGroupsLogo = '/hylo-merkaba.png'
 
-const { object, func } = PropTypes
-
 const iOSAppURL = 'https://itunes.apple.com/app/appName/id1002185140'
 const androidAppURL = 'https://play.google.com/store/apps/details?id=com.hylo.hyloandroid'
 
-class NotificationSettingsTab extends Component {
-  static propTypes = {
-    currentUser: object,
-    updateUserSettings: func
-  }
+// Utility function to convert enum value to boolean flags
+const convertEnumToFlags = (value) => ({
+  sendEmail: includes(value, ['email', 'both']),
+  sendPushNotifications: includes(value, ['push', 'both'])
+})
 
-  updateMessageSettings = changes => {
-    const { messageSettings, updateUserSettings } = this.props
-    const newMessageSettings = {
-      ...messageSettings,
+// Utility function to convert boolean flags to enum value
+const convertFlagsToEnum = ({ sendEmail, sendPushNotifications }) => {
+  if (sendEmail && sendPushNotifications) return 'both'
+  if (sendEmail) return 'email'
+  if (sendPushNotifications) return 'push'
+  return 'none'
+}
+
+// Generic function to get current settings for any notification type
+const getCurrentSettings = (me, settingKey) => convertEnumToFlags(me.settings?.[settingKey])
+
+const getAllGroupsSettings = createSelector(
+  getMyMemberships,
+  memberships => ({
+    sendEmail: every(m => m.settings?.sendEmail, memberships),
+    sendPushNotifications: every(m => m.settings?.sendPushNotifications, memberships),
+    postNotifications: memberships.length > 0 && every(m => m.settings?.postNotifications === memberships[0].settings?.postNotifications, memberships)
+      ? memberships[0].settings?.postNotifications
+      : 'mixed',
+    digestFrequency: memberships.length > 0 && every(m => m.settings?.digestFrequency === memberships[0].settings?.digestFrequency, memberships)
+      ? memberships[0].settings?.digestFrequency
+      : 'mixed'
+  })
+)
+
+function NotificationSettingsTab ({
+  currentUser,
+  memberships
+}) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const me = useSelector(getMe) // Assuming getMe is a selector that fetches the current user
+  const allGroupsSettings = useSelector(getAllGroupsSettings)
+
+  const updateUserSetting = settingKey => changes => {
+    const currentSettings = getCurrentSettings(me, settingKey)
+    const newSettings = {
+      ...currentSettings,
       ...changes
     }
-    let dmNotifications
-    if (newMessageSettings.sendEmail && newMessageSettings.sendPushNotifications) {
-      dmNotifications = 'both'
-    } else if (newMessageSettings.sendEmail) {
-      dmNotifications = 'email'
-    } else if (newMessageSettings.sendPushNotifications) {
-      dmNotifications = 'push'
-    } else {
-      dmNotifications = 'none'
-    }
-    updateUserSettings({
+    const value = convertFlagsToEnum(newSettings)
+    dispatch(updateUserSettings({
       settings: {
-        dmNotifications
+        [settingKey]: value
       }
+    }))
+  }
+
+  const updateAllGroups = changes => {
+    dispatch(updateAllMemberships(changes))
+  }
+
+  const updateAllGroupsAlert = (changes) => {
+    const key = Object.keys(changes)[0]
+    const value = changes[key]
+    const numGroups = memberships.length
+
+    if (window.confirm(t('You wish to set {{key}} to \'{{value}}\' for all groups? This will affect {{numGroups}} {{groups}}.', { key, value, numGroups, groups: numGroups === 1 ? t('group') : t('groups') }))) {
+      updateAllGroups(changes)
+    }
+  }
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      icon: 'Notifications',
+      title: t('Notifications')
     })
-  }
+  }, [setHeaderDetails])
 
-  updateAllGroups = changes => {
-    const { memberships, updateAllMemberships } = this.props
-    updateAllMemberships(memberships.map(m => m.group.id), changes)
-  }
+  if (!currentUser) return <Loading />
 
-  updateAllGroupsAlert = changes => {
-    const { t } = this.props
-
-    const key = ('sendEmail' in changes) ? 'sendEmail' : 'sendPushNotifications'
-
-    const type = key === 'sendEmail' ? t('Email') : t('Push Notifications')
-    const onOrOff = changes[key] ? t('ON') : t('OFF')
-    const numGroups = this.props.memberships.length
-
-    if (window.confirm(t('You wish to turn {{onOrOff}} {{type}} for all groups? This will affect {{numGroups}} {{groups}}.', { onOrOff, type, numGroups, groups: numGroups === 1 ? t('group') : t('groups') }))) {
-      this.updateAllGroups(changes)
-    }
-  }
-
-  render () {
-    const {
-      currentUser, updateUserSettings, memberships, updateMembershipSettings, allGroupsSettings,
-      messageSettings, t
-    } = this.props
-
-    if (!currentUser) return <Loading />
-
-    const { settings = {}, hasDevice } = currentUser
-
-    const updateSetting = setting => value => {
-      updateUserSettings({ settings: { [setting]: value } })
-    }
-
-    const notificationOptions = compact([
-      { id: 'none', label: t('None') },
-      { id: 'email', label: t('Email') },
-      hasDevice && { id: 'push', label: t('Mobile App') },
-      hasDevice && { id: 'both', label: t('Both') }
-    ])
-
-    const getSetting = setting => {
-      if (!hasDevice && settings[setting] === 'both') return 'email'
-      return settings[setting]
-    }
-    return (
+  return (
+    <div>
       <div>
-        <div className={classes.title}><Icon name='Notifications' />{t('Notifications')}</div>
-        <div className={classes.globalSetting}>
-          <div className={classes.prompt}>{t('How often would you like to receive email digests for new posts in your groups and saved searches?')}
-          </div>
-          <div className={classes.settingSelect}>
-            <div className={classes.selectExplanation}>{t('Send me a digest')}</div>
-            <Select
-              onChange={updateSetting('digestFrequency')}
-              selected={settings.digestFrequency}
-              options={[
-                { id: 'daily', label: t('Daily') },
-                { id: 'weekly', label: t('Weekly') },
-                { id: 'never', label: t('Never') }
-              ]}
-            />
-          </div>
-        </div>
-        <div className={classes.globalSetting}>
-          <div className={classes.prompt}>{t('Would you like to receive a notification for each new post in your groups?')}
-          </div>
-          <div className={classes.settingSelect}>
-            <Select
-              onChange={updateSetting('postNotifications')}
-              selected={settings.postNotifications}
-              options={[
-                { id: 'none', label: t('No Posts') },
-                { id: 'important', label: t('Important Posts (Announcements & Mentions)') },
-                { id: 'all', label: t('Every Post') }
-              ]}
-            />
-          </div>
-        </div>
-        <div className={classes.globalSetting}>
-          <div className={classes.prompt}>
-            {t('How would you like to receive notifications about')}&nbsp;
-            {t('new comments on posts you\'re following?')}
-          </div>
-          <div className={classes.settingSelect}>
-            <div className={classes.selectExplanation}>{t('Notify me via')}</div>
+        <div>{t('GLOBAL NOTIFICATIONS')}</div>
 
-            <Select
-              onChange={updateSetting('commentNotifications')}
-              selected={getSetting('commentNotifications')}
-              options={notificationOptions}
-            />
-          </div>
-        </div>
-        <div>
-          <div className={classes.individualGroups}>{t('NOTIFICATIONS')}</div>
-
-          <MessageSettingsRow
-            settings={messageSettings}
-            updateMessageSettings={this.updateMessageSettings}
+        <div className='border-b border-gray-200 mb-2 py-2'>
+          <SettingsToggles
+            label={<span className='text-xl'><Icon name='Messages' className='mr-2' />{t('Messages')}</span>}
+            settings={getCurrentSettings(me, 'dmNotifications')}
+            update={updateUserSetting('dmNotifications')}
           />
+        </div>
 
-          <div className={classes.individualGroups}>{t('GROUP NOTIFICATIONS')}</div>
+        <div className='border-b border-gray-200 mb-2 py-2'>
+          <SettingsToggles
+            label={<span className='text-xl'><Icon name='Messages' className='mr-2' />{t('Comments on followed posts')}</span>}
+            settings={getCurrentSettings(me, 'commentNotifications')}
+            update={updateUserSetting('commentNotifications')}
+          />
+        </div>
 
-          <AllGroupsSettingsRow
+        <div className='mt-6'>{t('GROUP NOTIFICATIONS')}</div>
+
+        <div className='border border-gray-200 mb-2 py-2'>
+          <div className='flex items-center'>
+            <div style={bgImageStyle(allGroupsLogo)} className='w-6 h-6 inline-block mr-2 bg-cover' />
+            <span className='text-xl'>{t('All Groups')}</span>
+          </div>
+          <SettingsToggles
+            label={<span className='flex items-center'>Receive group notifications by <InfoButton content='This controls how you receive notifications for all your groups.' /></span>}
             settings={allGroupsSettings}
-            updateAllGroups={this.updateAllGroupsAlert}
+            update={updateAllGroupsAlert}
           />
-          {memberships.map(membership => <MembershipSettingsRow
+
+          <div className='flex items-center justify-between mt-2'>
+            <span>{t('Send new post notifications in this group for')}</span>
+            <Select
+              value={allGroupsSettings.postNotifications}
+              onValueChange={value => updateAllGroupsAlert({ postNotifications: value })}
+            >
+              <SelectTrigger className='inline-flex w-auto'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='none'>{t('No Posts')}</SelectItem>
+                <SelectItem value='important'>{t('Important Posts (Announcements & Mentions)')}</SelectItem>
+                <SelectItem value='all'>{t('Every Post')}</SelectItem>
+                <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className='flex items-center justify-between mt-2'>
+            <span className=''>{t('Send me an email digest for this group')}</span>
+            <Select
+              value={allGroupsSettings.digestFrequency}
+              onValueChange={value => updateAllGroupsAlert({ digestFrequency: value })}
+            >
+              <SelectTrigger className='inline-flex w-auto'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='daily'>{t('Daily')}</SelectItem>
+                <SelectItem value='weekly'>{t('Weekly')}</SelectItem>
+                <SelectItem value='never'>{t('Never')}</SelectItem>
+                <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {memberships.map(membership => (
+          <MembershipSettingsRow
             key={membership.id}
             membership={membership}
-            updateMembershipSettings={changes => updateMembershipSettings(membership.group.id, changes)}
-                                         />)}
-        </div>
-
-        <div className={classes.help}>
-          <p className={classes.helpParagraph}>
-            {t('Download our')}{' '}<a href={iOSAppURL} rel='noreferrer' target='_blank'>iOS</a>
-            {' '}{t('or')}{' '}
-            <a href={androidAppURL} rel='noreferrer' target='_blank'>Android</a>
-            {t(' app to receive push notifications.')}
-          </p>
-        </div>
-
-        <Tooltip
-          delay={250}
-          id='helpTip'
-          position='top'
-        />
+            updateMembershipSettings={changes => dispatch(updateMembershipSettings(membership.group.id, changes))}
+          />
+        ))}
       </div>
-    )
-  }
-}
 
-export function MessageSettingsRow ({ settings, updateMessageSettings }) {
-  const { t } = useTranslation()
-  return (
-    <SettingsRow
-      iconName='Messages'
-      name={t('Messages')}
-      settings={settings}
-      update={updateMessageSettings}
-    />
-  )
-}
-
-export function AllGroupsSettingsRow ({ settings, updateAllGroups }) {
-  const { t } = useTranslation()
-  return (
-    <SettingsRow
-      imageUrl={allGroupsLogo}
-      name={t('All Groups')}
-      settings={settings}
-      update={updateAllGroups}
-    />
-  )
-}
-
-export function MembershipSettingsRow ({ membership, updateMembershipSettings }) {
-  return (
-    <SettingsRow
-      imageUrl={membership.group.avatarUrl}
-      name={membership.group.name}
-      settings={membership.settings}
-      update={updateMembershipSettings}
-    />
-  )
-}
-
-export class SettingsRow extends React.Component {
-  render () {
-    const { iconName, imageUrl, name, settings, update } = this.props
-
-    const imageStyle = bgImageStyle(imageUrl)
-
-    return (
-      <div className={classes.settingsRow}>
-        <div className={classes.nameRow}>
-          {iconName && <Icon name={iconName} className={classes.avatarIcon} />}
-          {!iconName && <div className={classes.groupAvatar} style={imageStyle} />}
-          <span className={classes.name}>{name}</span>
-        </div>
-        <div className={classes.iconRow}>
-          <SettingsIcon settingKey='sendPushNotifications' name='PushNotification' settings={settings} update={update} />
-          <SettingsIcon settingKey='sendEmail' name='EmailNotification' settings={settings} update={update} />
-        </div>
+      <div className={classes.help}>
+        <p className={classes.helpParagraph}>
+          {t('Download our')}{' '}<a href={iOSAppURL} rel='noreferrer' target='_blank'>iOS</a>
+          {' '}{t('or')}{' '}
+          <a href={androidAppURL} rel='noreferrer' target='_blank'>Android</a>
+          {t(' app to receive push notifications.')}
+        </p>
       </div>
-    )
-  }
-}
 
-export function SettingsIcon ({ settingKey, name, update, settings }) {
-  const settingStatus = settings[settingKey] ? 'On' : 'Off'
-  const { t } = useTranslation()
-
-  return (
-    <div
-      className={cn(classes.settingControls, { [classes.highlightIcon]: settings[settingKey] })}
-      onClick={() => update({ [settingKey]: !settings[settingKey] })}
-      data-tooltip-content={`Turn ${name === 'EmailNotification' ? 'Email' : 'Mobile Push'} Notifications ${settings[settingKey] ? t('Off') : t('On')}`}
-      data-tooltip-id='helpTip'
-    >
-      <Icon name={name} className={cn(classes.icon, { [classes.highlightIcon]: settings[settingKey] })} />
-      <span className={classes.settingStatus}>{t(settingStatus)}</span>
+      <Tooltip
+        delay={250}
+        id='helpTip'
+        position='top'
+      />
     </div>
   )
 }
-export default withTranslation()(NotificationSettingsTab)
+
+export default NotificationSettingsTab

@@ -3,7 +3,7 @@
 }
 
 label {
-  color: $color-regent-70;
+  color: hsl(var(--foreground));
   transition: color .25s ease;
 }
 
@@ -33,25 +33,21 @@ label {
 }
 
 .onOff {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  right: 0;
 
   div {
     font-size: 10px;
     height: 20px;
     border-radius: 20px;
-    border: 1px solid rgba(125, 140, 157, 1.000);
-    color: rgba(125, 140, 157, 1.000);
+    border: 2px solid hsl(var(--foreground) / 20%);
+    color: hsl(var(--foreground) / 60%);
     padding: 0 10px;
-    line-height: 20px;
+    line-height: 16px;
   }
 
   .on {
     display: none;
-    border: 1px solid rgba(0, 163, 227, 1.000);
-    color: rgba(0, 163, 227, 1.000);
+    border: 2px solid hsl(var(--selected) / 100%);
+    color: hsl(var(--selected) / 100%);
   }
 }
 

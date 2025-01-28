@@ -44,6 +44,7 @@ export default {
         background: 'hsl(var(--background) / <alpha-value>)',
         midground: 'hsl(var(--midground) / <alpha-value>)',
         foreground: 'hsl(var(--foreground) / <alpha-value>)',
+        focus: 'hsl(var(--focus) / <alpha-value>)',
         selected: 'hsl(var(--selected) / <alpha-value>)',
         card: {
           DEFAULT: 'hsl(var(--card))',

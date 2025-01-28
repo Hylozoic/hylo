@@ -27,16 +27,17 @@ export const prepareDigestData = (id, type, opts = {}) => {
     startTime = range[0]
     endTime = range[1]
   }
-  return Group.find(id).then(g =>
-    getPostsAndComments(g, startTime, endTime)
-    .then(formatData(g))
-    .then(data => merge({
-      group_id: g.id,
-      group_name: g.get('name'),
-      group_avatar_url: g.get('avatar_url'),
-      group_url: Frontend.Route.group(g),
-      time_period: timePeriod(type)
-    }, data)))
+  return Group.find(id).then(g => {
+    return getPostsAndComments(g, startTime, endTime)
+      .then(formatData(g))
+      .then(data => merge({
+        group_id: g.id,
+        group_name: g.get('name'),
+        group_avatar_url: g.get('avatar_url'),
+        group_url: Frontend.Route.group(g),
+        time_period: timePeriod(type)
+      }, data))
+  })
 }
 
 export const sendToUser = (user, type, data, opts = {}) => {
@@ -51,15 +52,15 @@ export const sendToUser = (user, type, data, opts = {}) => {
   }
 
   return personalizeData(user, type, data, merge(opts, { versionName }))
-  .then(data =>
-    opts.dryRun ||
-    Email.sendSimpleEmail(user.get('email'), templateId, data, {
-      sender: {
+    .then(data => {
+      return opts.dryRun ||
+        Email.sendSimpleEmail(user.get('email'), templateId, data, {
+          sender: {
         name: senderName,
         reply_to: 'DoNotReply@hylo.com'
       },
       version_name: versionName
-    }))
+    })})
 }
 
 export const sendDigest = (id, type, opts = {}) => {

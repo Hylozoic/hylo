@@ -10,6 +10,8 @@ describe('Membership', () => {
         lastViewedAt: '2020-12-11T01:21:22.424Z',
         newPostCount: null,
         settings: {
+          digestFrequency: 'daily',
+          postNotifications: 'all',
           sendEmail: null,
           sendPushNotifications: null
         },
