@@ -1,5 +1,6 @@
 import { cn } from 'util/index'
 import classes from './datePicker.module.scss'
+import Datetime from 'react-datetime'
 import { DateTime } from 'luxon'
 import React from 'react'
 
@@ -11,7 +12,7 @@ function isValidDate (current) {
 function DatePicker (props) {
   const { placeholder } = props
   return (
-    <DateTime
+    <Datetime
       {...props}
       className={cn(classes.datePicker, props.className)}
       isValidDate={isValidDate}
