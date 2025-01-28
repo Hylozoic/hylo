@@ -17,11 +17,6 @@ export default function presentQuerySet (models, options, querySetId) {
     total = Number(models[0].get(PAGINATION_TOTAL_COLUMN_NAME))
   }
 
-  console.log(
-    `querySetId: ${querySetId || null} `,
-    !querySetId ? `<== with models of: ${models}` : ''
-  )
-
   return {
     id: querySetId || null,
     total,

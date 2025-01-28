@@ -125,34 +125,7 @@ export default class Fetcher {
   }
 
   async _loadMany (relation, { method, loader, tap, fetchOpts }) {
-    const modelName = isFunction(relation.tableName) ? relation.tableName() : (relation.tableName || '')
-    const parentTableName = relation?.relatedData?.parentTableName || ''
-    const parentId = relation?.relatedData?.parentId || ''
-
-    const querySetId = [parentTableName, parentId, modelName].filter(key => !isEmpty(key)).join('.')
-
-    // if (!modelName || !parentTableName || !parentId) {
-    //   // console.log('!!! in _loadMany -- relation, fetchinOpts', relation, fetchOpts)
-    //   console.error(
-    //     querySetId,
-    //     ' --- ERROR GENERATING querySetID for:',
-    //     `Model Name: ${modelName} ` +
-    //     `Parent Table Name: ${parentTableName} ` +
-    //     `Parent ID: ${parentId}`
-    //   )
-    // } else {
-    //   console.log(`${querySetId} (querySetId)`)
-    // }
-
     const instances = await this.loaders.relations.load({ relation, method })
-
-    // Converted from Bluebird promise code which had this method which in a promise chain
-    // simply runs the function while passing along the value it was sent without modifying
-    // it. So in async/await we just run it. Probably wasn't a promise but we await it just
-    // in case.
-    // LIKELY ENTIRELY DEPRECATED
-    // THIS IS PASSED THROUGH FROM fetchMany and I couldn't find anywhere it anywhere.
-    // isFunction(tap) && await tap()
 
     // N.B. this caching doesn't take into account data added by withPivot
     instances.forEach(x => loader.clear(x.id).prime(x.id, x))
@@ -160,6 +133,21 @@ export default class Fetcher {
     const models = await loader.loadMany(instances.map('id'))
 
     if (!fetchOpts.querySet) return models
+
+    // NOTE: querySetId generation, which may prove useful for graphql cache reconciliation in the
+    // front ends, but didn't prove yet necessary or useful. Can be removed at any point it seems that
+    // won't change. As it is, if you add an `id: String` field to any queryset and query on it you will
+    // get this key for the QuerySet otherwise it is ignored:
+    const modelName = isFunction(relation.tableName) ? relation.tableName() : (relation.tableName || '')
+    const parentTableName = relation?.relatedData?.parentTableName || ''
+    const parentId = relation?.relatedData?.parentId || ''
+    const querySetId = [parentTableName, parentId, modelName].filter(key => !isEmpty(key)).join('.')
+    // Debugging setup for querySetId:
+    // console.log(
+    //   `querySetId: ${querySetId || null} `,
+    //   !querySetId ? `<== with models of: ${models}` : ''
+    // )
+    // !querySetId && console.dir(fetchOpts)
 
     const cleanOpts = omitBy(x => isNull(x) || isUndefined(x), fetchOpts)
     const optsWithDefaults = Object.assign({ offset: 0, first: 20 }, cleanOpts)
