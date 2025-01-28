@@ -4,6 +4,9 @@ import meCheckAuthQuery from 'graphql/queries/meCheckAuthQuery'
 
 export default {
   Mutation: {
+    addProposalVote: (result, args, cache, info) => { 
+      cache.invalidate({ __typename: 'Post', id: args.postId })
+    },
     clearModerationAction: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         cache.invalidate({ __typename: 'ModerationAction', id: args.moderationActionId })
@@ -61,6 +64,9 @@ export default {
         cache.invalidate({ __typename: 'Post', id: args.postId })
       }
     },
+    removeProposalVote: (result, args, cache, info) => { 
+      cache.invalidate({ __typename: 'Post', id: args.postId })
+    },
     pinPost: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         cache.invalidate({ __typename: 'Post', id: args.postId })
@@ -70,6 +76,9 @@ export default {
       if (result[info.fieldName].success) {
         cache.invalidate(cache.keyOfEntity({ __typename: 'Post', id: args.id }), 'myEventResponse')
       }
+    },
+    swapProposalVote: (result, args, cache, info) => {
+      cache.invalidate({ __typename: 'Post', id: args.postId })
     }
   },
   Subscription: {

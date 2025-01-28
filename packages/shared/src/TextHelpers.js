@@ -163,10 +163,11 @@ export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
   let to = ''
   let from = ''
 
+  // TODO post-redesign: This was previously trying to add YYYY if it wasn't this year but that was just adding YYYY to the string
   if (isThisYear) {
     from = endTime ? start.toFormat("EEE, DD 'at' t") : start.toFormat("EEE, DD 'at' t ZZZZ")
   } else {
-    from = endTime ? start.toFormat("EEE, DD, YYYY 'at' t") : start.toFormat("EEE, DD, YYYY 'at' t ZZZZ")
+    from = endTime ? start.toFormat("EEE, DD 'at' t") : start.toFormat("EEE, DD 'at' t ZZZZ")
   }
 
   if (endTime) {

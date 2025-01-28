@@ -121,13 +121,13 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
       )}
       <PostBody
         details={post.details}
-        endTime={post.endTime}
+        endTime={post.endTimeRaw}
         linkPreview={post.linkPreview}
         linkPreviewFeatured={post.linkPreviewFeatured}
         myEventResponse={post.myEventResponse}
         respondToEvent={handleRespondToEvent}
         isFlagged={isFlagged && !post.clickthrough}
-        startTime={post.startTime}
+        startTime={post.startTimeRaw}
         title={post.title}
         type={post.type}
         post={post}

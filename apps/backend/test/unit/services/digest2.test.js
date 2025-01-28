@@ -433,7 +433,6 @@ describe('group digest v2', () => {
 
       u1 = await factories.user({
         active: true,
-        settings: { digest_frequency: 'daily' },
         avatar_url: 'av1'
       }).save()
       u2 = await factories.user({ avatar_url: 'av2' }).save()
@@ -520,17 +519,16 @@ describe('group digest v2', () => {
 })
 
 describe('getRecipients', () => {
-  var g, uIn1, uOut1, uOut2, uOut3, uOut4, uOut5, uIn2
+  let g, uIn1, uOut1, uOut2, uOut3, uOut4, uOut5, uIn2
 
   before(async () => {
-    const settings = {digest_frequency: 'daily'}
-    uIn1 = factories.user({settings})
-    uOut1 = factories.user({active: false, settings})                // inactive user
-    uOut2 = factories.user({settings})                               // inactive membership
-    uOut3 = factories.user({settings})                               // send_email = false
-    uOut4 = factories.user({settings: {digest_frequency: 'weekly'}}) // digest_frequency = 'weekly'
-    uOut5 = factories.user({settings})                               // not in the group
-    uIn2 = factories.user({settings})
+    uIn1 = factories.user({})
+    uOut1 = factories.user({ active: false })                // inactive user
+    uOut2 = factories.user({})                               // inactive membership
+    uOut3 = factories.user({})                               // send_email = false
+    uOut4 = factories.user({})              // digestFrequency = 'weekly'
+    uOut5 = factories.user({})                               // not in the group
+    uIn2 = factories.user({})
     g = factories.group()
     await Promise.join(
       uIn1.save(),
@@ -544,10 +542,14 @@ describe('getRecipients', () => {
     )
 
     await g.addMembers([uIn1, uOut1, uOut2, uOut4, uIn2], {
-      settings: {sendEmail: true}
+      settings: { sendEmail: true }
     })
 
-    await g.addMembers([uOut3], {settings: {sendEmail: false}})
+    await g.addMembers([uOut4], {
+      settings: { sendEmail: true, digestFrequency: 'weekly' }
+    })
+
+    await g.addMembers([uOut3], { settings: { sendEmail: false }})
     await g.removeMembers([uOut2])
   })
 

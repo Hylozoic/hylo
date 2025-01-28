@@ -55,10 +55,8 @@ export default gql`
     }
     settings {
       alreadySeenTour
-      digestFrequency
       dmNotifications
       commentNotifications
-      postNotifications
       locale
       mapBaseLayer
       signupInProgress

@@ -81,9 +81,7 @@ export function createUser (attrs, options) {
     // TODO handle skills as tags
     return User.create(_.merge(attrs, {
       group: group,
-      settings: {
-        digest_frequency: 'weekly'
-      },
+      settings: {},
       created_at: new Date(),
       updated_at: new Date()
     }))

@@ -374,6 +374,8 @@ module.exports = bookshelf.Model.extend(merge({
         active: true,
         role: GroupMembership.Role.DEFAULT,
         settings: {
+          postNotifications: 'all',
+          digestFrequency: 'daily',
           sendEmail: true,
           sendPushNotifications: true
         }
@@ -1059,8 +1061,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   async doesMenuUpdate ({ groupIds, post, customView, groupRelation = false }) {
     if (!post && !customView && !groupRelation) return
-    console.log('broken here post', post)
-    const postType = post && post.get('type')
+    const postType = post && post.type
     // Skip processing if it's a chat post and no other conditions are present
     if (postType === 'chat' && !customView && !groupRelation) return
     await bookshelf.transaction(async trx => {
@@ -1137,7 +1138,6 @@ module.exports = bookshelf.Model.extend(merge({
 
           // Check projects
           if (postType === 'project') {
-            console.log('does this happen?')
             const projectsWidget = widgets.find(w => w.get('view') === 'projects')
             if (projectsWidget && !projectsWidget.get('auto_added')) {
               await ContextWidget.reorder({

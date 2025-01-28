@@ -186,6 +186,7 @@
   "Closed": "Closed",
   "Collection": "Collection",
   "Comments": "Comments",
+  "Comments on followed posts": "Comments on followed posts",
   "Common Roles": "Common Roles",
   "Common roles cannot have their responsibilities edited": "Common roles cannot have their responsibilities edited",
   "Communication & marketing": "Communication & marketing",
@@ -333,7 +334,7 @@
   "Flag anonymously (moderators will see your name)": "Flag anonymously (moderators will see your name)",
   "For place based groups, draw the area where your group is active (or paste in GeoJSON here)": "For place based groups, draw the area where your group is active (or paste in GeoJSON here)",
   "Forgot password?": "Forgot password?",
-  "GLOBAL": "GLOBAL",
+  "GLOBAL NOTIFICATIONS": "GLOBAL NOTIFICATIONS",
   "GROUP NOTIFICATIONS": "GROUP NOTIFICATIONS",
   "GROUP PURPOSE": "GROUP PURPOSE",
   "Gather your collaborators & people who share your interests": "Gather your collaborators & people who share your interests",
@@ -755,6 +756,8 @@
   "Send Invites via email": "Send Invites via email",
   "Send It": "Send It",
   "Send me a digest": "Send me a digest",
+  "Send me an email digest for this group": "Send me an email digest for this group",
+  "Send new post notifications in this group for": "Send new post notifications in this group for",
   "Send notifications for each new post in your group?": "Send notifications for each new post in your group?",
   "Sent": "Sent",
   "Sent {{numGood}} {{email}}": "Sent {{numGood}} {{email}}",
@@ -971,7 +974,7 @@
   "You need a title, a group and at least one option for a proposal": "You need a title, a group and at least one option for a proposal",
   "You need to include text to post a comment": "You need to include text to post a comment",
   "You should receive an email with the member export in a few minutes": "You should receive an email with the member export in a few minutes",
-  "You wish to turn {{onOrOff}} {{type}} for all groups? This will affect {{numGroups}} {{groups}}.": "You wish to turn {{onOrOff}} {{type}} for all groups? This will affect {{numGroups}} {{groups}}.",
+  "You wish to set {{key}} to '{{value}}' for all groups? This will affect {{numGroups}} {{groups}}": "You wish to set {{key}} to '{{value}}' for all groups? This will affect {{numGroups}} {{groups}}",
   "You won't be able to use Hylo unless you create a brand new account": "You won't be able to use Hylo unless you create a brand new account",
   "You won't be able to use Hylo unless you log back in": "You won't be able to use Hylo unless you log back in",
   "You won't receive platform notifications": "You won't receive platform notifications",
@@ -1211,5 +1214,6 @@
   "{{othersCount}} others": "{{othersCount}} others",
   "{{parentGroup.name}} requires groups to answer the following questions before joining": "{{parentGroup.name}} requires groups to answer the following questions before joining",
   "{{personOne}} and {{personTwo}}": "{{personOne}} and {{personTwo}}",
-  "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total Topics"
+  "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total Topics",
+  "~ Mixed ~": "~ Mixed ~"
 }

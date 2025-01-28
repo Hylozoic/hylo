@@ -53,7 +53,7 @@ export function afterUpdatingPost (post, opts) {
       Tag.updateForPost(post, topicNames, userId, transacting),
       updateFollowers(post, transacting)
     ]))
-    .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post, groupIds: group_ids }))
+    .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.type, location_id: post.location_id }, groupIds: group_ids }))
     .then(() => post.get('type') === 'project' && memberIds && post.setProjectMembers(memberIds, { transacting }))
     .then(() => post.get('type') === 'event' && eventInviteeIds && post.updateEventInvitees(eventInviteeIds, userId, { transacting }))
     .then(() => post.get('type') === 'proposal' && proposalOptions && post.updateProposalOptions({ options: proposalOptions, userId, opts: { transacting } }))

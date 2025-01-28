@@ -26,17 +26,19 @@ const presentPost = async (p, context, slug) => {
 const prepareDigestData = async (searchId) => {
   const search = await SavedSearch.where({ id: searchId }).fetch()
   const context = search.get('context')
-  let group, slug
+  let group, slug, membership
+  const user = await User.where({ id: search.get('user_id') }).fetch()
   if (context === 'groups') {
     group = await search.group()
     slug = group.get('slug')
+    membership = await GroupMembership.forPair(user, group)
   }
-  const user = await User.where({ id: search.get('user_id') }).fetch()
   const lastPostId = parseInt(search.get('last_post_id'))
   const data = {
     context,
     group_name: group && group.get('name'),
     lastPostId,
+    membership,
     search,
     user
   }
@@ -53,25 +55,26 @@ const prepareDigestData = async (searchId) => {
   return data
 }
 
-const shouldSendData = (data, user, type) => {
+const shouldSendData = (data, membership, type) => {
   const postTypes = ['requests', 'offers', 'events', 'discussions', 'projects', 'resources']
   const hasNewPosts = Object.keys(pick(postTypes, data)).some(s => postTypes.includes(s))
-  const userSettingMatchesType = user.get('settings')['digest_frequency'] === type
+  // TODO: fix non group based saves search digests
+  const userSettingMatchesType = membership && membership.getSetting('digestFrequency') === type
   return hasNewPosts && userSettingMatchesType
 }
 
 const sendDigest = async (searchId, type) => {
   return await prepareDigestData(searchId).then(async data => {
-    const { lastPostId, user } = data
-    if (shouldSendData(data, user, type)) return merge(await sendToUser(user, type, data), { lastPostId })
+    const { lastPostId, membership, user } = data
+    if (shouldSendData(data, membership, type)) return merge(await sendToUser(user, type, data), { lastPostId })
   })
-  .then(async (sent = {}) => {
-    const { lastPostId, success } = sent
-    if (success) {
-      const search = await SavedSearch.where({ id: searchId }).fetch()
-      return await search.updateLastPost(searchId, lastPostId)
-    }
-  })
+    .then(async (sent = {}) => {
+      const { lastPostId, success } = sent
+      if (success) {
+        const search = await SavedSearch.where({ id: searchId }).fetch()
+        return await search.updateLastPost(searchId, lastPostId)
+      }
+    })
 }
 
 export const sendAllDigests = async (type) => {

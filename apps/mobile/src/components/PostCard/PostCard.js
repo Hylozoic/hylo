@@ -105,7 +105,7 @@ export default function PostCard ({
           details={post.details}
           post={post}
           currentUser={currentUser}
-          endTime={post.endTime}
+          endTime={post.endTimeRaw}
           hideDetails={hideDetails}
           isFlagged={isFlagged && !post.clickthrough}
           linkPreview={post.linkPreview}
@@ -113,7 +113,7 @@ export default function PostCard ({
           myEventResponse={post.myEventResponse}
           respondToEvent={respondToEvent}
           shouldTruncate
-          startTime={post.startTime}
+          startTime={post.startTimeRaw}
           title={post.title}
           type={post.type}
         />

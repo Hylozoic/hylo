@@ -251,8 +251,9 @@ export default function AuthLayoutRouter (props) {
         <Route path='public/settings' element={<Navigate to='/public' replace />} />
         <Route path='all/members' element={<Navigate to='/all' replace />} />
         <Route path='all/settings' element={<Navigate to='/all' replace />} />
+
         {/* Redirect manage notifications page to settings page when logged in */}
-        <Route path='notifications)' element={<Navigate to='/settings/notifications' replace />} />
+        <Route path='notifications' element={<Navigate to='/my/notifications' replace />} />
 
         {/* First time viewing a group redirect to explore page */}
         {currentGroupMembership && !get('lastViewedAt', currentGroupMembership) && (
@@ -407,6 +408,7 @@ export default function AuthLayoutRouter (props) {
                   {/* Keep old settings paths for mobile */}
                   <Route path='settings/*' element={<UserSettings />} />
                   <Route path='search' element={<Search />} />
+                  <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
                   {/* **** Default Route (404) **** */}
                   <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />
                 </Routes>
