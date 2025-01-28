@@ -7,6 +7,9 @@ export default {
     addProposalVote: (result, args, cache, info) => { 
       cache.invalidate({ __typename: 'Post', id: args.postId })
     },
+    addSkill: (result, args, cache, info) => {
+      cache.invalidate('Query', 'me')
+    },
     clearModerationAction: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         cache.invalidate({ __typename: 'ModerationAction', id: args.moderationActionId })
@@ -79,6 +82,14 @@ export default {
     },
     swapProposalVote: (result, args, cache, info) => {
       cache.invalidate({ __typename: 'Post', id: args.postId })
+    },
+    removeSkill: (result, args, cache, info) => {
+      cache.invalidate('Query', 'me')
+    },
+    updateMembership: (result, args, cache, info) => {
+      if (result[info.fieldName].id) {
+        cache.invalidate('Query', 'me')
+      }
     }
   },
   Subscription: {
