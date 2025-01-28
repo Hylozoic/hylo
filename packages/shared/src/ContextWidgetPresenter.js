@@ -5,7 +5,10 @@ export default function ContextWidgetPresenter (widget, { t }) {
   return {
     ...widget,
     type: widgetTypeInferrer({ widget }),
-    title: widgetTitleResolver({ widget, t })
+    title: widgetTitleResolver({ widget, t }),
+    isDroppable: isWidgetDroppable({ widget }),
+    humanReadableType: humanReadableTypes(widgetTypeInferrer({ widget })),
+    isValidHomeWidget: isValidHomeWidget(widget)
   }
 
 }
@@ -53,15 +56,15 @@ export function findHomeView (group) {
   return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
 }
 
-  export function widgetTypeInferrer ({ widget }) {
-    return widget?.type
-      || widget?.view
-      || widget?.viewGroup && 'viewGroup'
-      || widget?.viewPost && 'viewPost'
-      || widget?.viewUser && 'viewUser'
-      || widget?.viewChat && 'viewChat'
-      || widget?.customView && 'customView'
-      || 'container'
+export function widgetTypeInferrer ({ widget }) {
+  return widget?.type
+    || widget?.view
+    || widget?.viewGroup && 'viewGroup'
+    || widget?.viewPost && 'viewPost'
+    || widget?.viewUser && 'viewUser'
+    || widget?.viewChat && 'viewChat'
+    || widget?.customView && 'customView'
+    || 'container'
 }
 
 // TODO redesign: This has mainly been a dev helper, need to decide how we present things in the ALL VIEW

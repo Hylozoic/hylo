@@ -33,7 +33,7 @@ import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath,
 
 import classes from './ContextMenu.module.scss'
 import { getStaticMenuWidgets, orderContextWidgetsForContextMenu } from '@hylo/shared/src/ContextMenuPresenter'
-import ContextWidgetPresenter, { isWidgetDroppable, widgetIsValidChild } from '@hylo/shared/src/ContextWidgetPresenter'
+import ContextWidgetPresenter, { widgetIsValidChild } from '@hylo/shared/src/ContextWidgetPresenter'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
@@ -369,7 +369,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
     return listItems.map(widget => ContextWidgetPresenter(widget, { t }))
   }, [listItems])
 
-  const isDroppable = isWidgetDroppable({ widget })
+  const isDroppable = widget.isDroppable
   const isCreating = widget.id === 'creating'
 
   const handleLogout = async () => {
@@ -536,7 +536,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
   const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
   let hideDropZone = isOverlay
 
-  const isItemDraggable = isWidgetDroppable({ widget: item }) && canDnd
+  const isItemDraggable = item.isDroppable && canDnd
   const { attributes: itemAttributes, listeners: itemListeners, setNodeRef: setItemDraggableNodeRef, transform: itemTransform } = useDraggable({ id: item.id })
   const itemStyle = itemTransform ? { transform: `translate3d(${itemTransform.x}px, ${itemTransform.y}px, 0)` } : undefined
 
