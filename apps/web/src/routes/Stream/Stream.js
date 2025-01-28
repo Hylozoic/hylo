@@ -11,6 +11,7 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import Loading from 'components/Loading'
 import ModerationListItem from 'components/ModerationListItem/ModerationListItem'
 import NoPosts from 'components/NoPosts'
+import EventCalendar from 'components/EventCalendar'
 import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
 import PostCard from 'components/PostCard'
@@ -50,7 +51,8 @@ const viewComponent = {
   cards: PostCard,
   list: PostListRow,
   grid: PostGridItem,
-  bigGrid: PostBigGridItem
+  bigGrid: PostBigGridItem,
+  calendar: EventCalendar
 }
 
 const getCustomView = ormCreateSelector(
@@ -177,6 +179,7 @@ export default function Stream (props) {
   const pending = useSelector(state => state.pending[FETCH_POSTS])
   const pendingModerationActions = useSelector(state => state.pending[FETCH_MODERATION_ACTIONS])
 
+  const calendarView = viewMode === 'calendar'
   const decisionView = getQuerystringParam('d', location) || 'decisions'
   const fetchModerationActionParam = {
     slug: groupSlug,
@@ -318,7 +321,7 @@ export default function Stream (props) {
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
           decisionView={decisionView} changeDecisionView={changeDecisionView} changeTimeframe={changeTimeframe} timeframe={timeframe}
         />
-        {decisionView !== 'moderation' && (
+        {decisionView !== 'moderation' && !calendarView && (
           <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
             {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
             {posts.map(post => {
@@ -339,7 +342,7 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {decisionView === 'moderation' && (
+        {decisionView === 'moderation' && !calendarView && (
           <div className='streamItems'>
             {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
             {moderationActions.map(modAction => {
@@ -352,6 +355,13 @@ export default function Stream (props) {
                 />
               )
             })}
+          </div>
+        )}
+        {!pending && calendarView && (
+          <div class='calendarView'>
+              <EventCalendar
+                posts={posts}
+              />
           </div>
         )}
         {(pending || topicLoading) && <Loading />}

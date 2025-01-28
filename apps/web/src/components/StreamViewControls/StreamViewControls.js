@@ -155,6 +155,15 @@ const StreamViewControls = ({
           >
             <Icon name='SmallGridView' className={classes.gridViewIcon} />
           </div>
+
+          <div
+            className={cn({ [classes.modeActive]: viewMode === 'grid' }, classes.calendar)}
+            onClick={() => changeView('calendar')}
+            data-tooltip-content={t('Calendar')}
+            data-tooltip-id='stream-viewmode-tip'
+          >
+            <Icon name='Calendar' className={classes.gridViewIcon} />
+          </div>
         </div>
         {view === 'events' && timeframeDropdown}
         {view !== 'events' && makeDropdown(sortBy, customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS, changeSort, t)}
