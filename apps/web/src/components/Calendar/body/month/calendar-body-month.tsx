@@ -82,7 +82,7 @@ export default function CalendarBodyMonth() {
                 key={day.toISOString()}
                 className={cn(
                   'relative flex flex-col border-b border-r p-2 aspect-square cursor-pointer',
-                  !isCurrentMonth && 'bg-muted/50 hidden md:flex'
+                  !isCurrentMonth && 'bg-muted hidden md:flex'
                 )}
                 onClick={(e) => {
                   e.stopPropagation()
@@ -93,7 +93,9 @@ export default function CalendarBodyMonth() {
                 <div
                   className={cn(
                     'text-sm font-medium w-fit p-1 flex flex-col items-center justify-center rounded-full aspect-square',
-                    isToday && 'bg-black text-white'
+                    isToday && isCurrentMonth && 'bg-black text-white',
+                    isToday && !isCurrentMonth && 'bg-black/50 text-white',
+                    !isToday && !isCurrentMonth && 'text-gray-600/50'
                   )}
                 >
                   {format(day, 'd')}
