@@ -17,10 +17,10 @@ export default function ThreadList () {
   const [offset, setOffset] = useState(0)
 
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
-  const updateLastViewed = () => updateUserSettings({ changes: { settings: { lastViewedMessageAt: new Date() } } })
+  const updateLastViewed = () => updateUserSettings({ changes: { settings: { lastViewedMessagesAt: new Date() } } })
 
   const [{ data, fetching }] = useQuery({ query: messageThreadsQuery, variables: { first: 10, offset } })
-  const threads = data?.me?.messageThreads.items
+  const threads = data?.me?.messageThreads?.items
   const hasMore = data?.me?.messageThreads?.hasMore
 
   const fetchMoreThreads = () => {

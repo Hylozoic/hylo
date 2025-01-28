@@ -6,6 +6,8 @@ import Avatar from 'components/Avatar'
 import { alabaster, capeCod, rhino30 } from 'style/colors'
 
 export default function MessageCard ({ message }) {
+  if (!message) return null
+
   const { createdAt, creator, suppressCreator, suppressDate, text } = message
   // TODO: Markdown is being used on both Web and Mobile as some messages are HTML
   //       and others are plain text with purposeful linebreaks.

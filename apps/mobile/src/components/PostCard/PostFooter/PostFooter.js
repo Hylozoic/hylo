@@ -25,7 +25,7 @@ export default function PostFooter ({
   const [peopleModalVisible, setPeopleModalVisible] = useState(false)
   const togglePeopleModal = () => setPeopleModalVisible(!peopleModalVisible)
   const goToMember = person => navigation.navigate('Member', { id: person.id })
-  const eventAttendees = filter(ei => ei.response === RESPONSES.YES, eventInvitations)
+  const eventAttendees = filter(ei => ei?.response === RESPONSES.YES, eventInvitations)
 
   let peopleRowResult
 

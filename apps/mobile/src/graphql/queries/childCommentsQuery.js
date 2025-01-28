@@ -4,16 +4,14 @@ import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
 export default gql`
   query ChildCommentsQuery (
     $commentId: ID,
-    $cursor: ID
+    $cursor: ID,
+    $first: Int = 10
   ) {
     comment(id: $commentId) {
       id
-      childComments(first: 10, cursor: $cursor, order: "desc") {
+      childComments(first: $first, cursor: $cursor, order: "desc") {
         items {
           ...CommentFieldsFragment
-          post {
-            id
-          }
         }
         total
         hasMore

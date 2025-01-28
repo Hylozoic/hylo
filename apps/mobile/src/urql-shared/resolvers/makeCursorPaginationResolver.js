@@ -7,7 +7,7 @@
 // A perhaps more complete implementation to evaluate:
 // https://gist.github.com/austin43/ecd8d70e68d0571905f36b40d99fdf29#file-cursorpagination-ts
 
-const hyloCursorPagination = () => {
+export default function makeCursorPaginationResolver () {
   return (_parent, fieldArgs, cache, info) => {
     const { parentKey, fieldName } = info
     const allFields = cache.inspectFields(parentKey)
@@ -53,5 +53,3 @@ const hyloCursorPagination = () => {
     }
   }
 }
-
-export default hyloCursorPagination

@@ -1,17 +1,19 @@
-import hyloSimplePagination from './hyloSimplePagination'
-import hyloCursorPagination from './hyloCursorPagination'
+import makeCursorPaginationResolver from './makeCursorPaginationResolver'
+import makeOffsetPaginationResolver from './makeOffsetPaginationResolver'
 
 export default {
   Query: {
-    posts: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' }),
-    search: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' })
+    post: (parent, args, cache, info) => ({ __typename: 'Post', id: args.id }),
+    comment: (parent, args, cache, info) => ({ __typename: 'Comment', id: args.id }),
+    posts: makeOffsetPaginationResolver(),
+    search: makeOffsetPaginationResolver()
   },
   Group: {
-    posts: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' }),
-    viewPosts: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' })
+    posts: makeOffsetPaginationResolver(),
+    viewPosts: makeOffsetPaginationResolver()
   },
   Post: {
-    comments: hyloCursorPagination(),
+    comments: makeCursorPaginationResolver(),
     attachments: (parent, args, cache, info) => {
       const attachments = cache.resolve(parent, info.fieldName)
       return attachments.sort((a, b) => {
@@ -20,16 +22,16 @@ export default {
     }
   },
   Me: {
-    messageThreads: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' })
+    messageThreads: makeOffsetPaginationResolver()
   },
   MessageThread: {
-    messages: hyloCursorPagination()
+    messages: makeCursorPaginationResolver()
   },
   Person: {
-    posts: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' }),
-    comments: hyloSimplePagination({ offsetArgument: 'offset', limitArgument: 'first' })
+    posts: makeOffsetPaginationResolver(),
+    comments: makeOffsetPaginationResolver()
   },
   Comment: {
-    childComments: hyloCursorPagination()
+    childComments: makeCursorPaginationResolver()
   }
 }

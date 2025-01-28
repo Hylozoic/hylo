@@ -7,31 +7,36 @@ export default gql`
   mutation CreateMessageMutation (
     $messageThreadId: String,
     $text: String
-    # $createdAt: Date
+    $createdAt: Date
   ) {
     createMessage(data: {
       messageThreadId: $messageThreadId,
       text: $text
-      # createdAt: $createdAt
+      createdAt: $createdAt
     }) {
-      # id
+      id
       text
-      # createdAt
-      # creator {
-      #   id
-      #   name
-      #   avatarUrl
-      # }
-      # messageThread {
-      #   id
-      #   createdAt
-      #   updatedAt
-      #   participants {
-      #     id
-      #     name
-      #     avatarUrl
-      #   }
-      # }
+      createdAt
+      creator {
+        id
+        name
+        avatarUrl
+      }
+      messageThread {
+        id
+        createdAt
+        updatedAt
+        messages {
+          items {
+            id
+          }
+        }
+        participants {
+          id
+          name
+          avatarUrl
+        }
+      }
     }
   }
 `

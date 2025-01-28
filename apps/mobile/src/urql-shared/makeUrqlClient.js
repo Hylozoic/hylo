@@ -28,8 +28,8 @@ export async function fetchGraphqlSchema (endpoint) {
   return result.data
 }
 
-export default async function makeUrqlClient () {
-  const schema = await fetchGraphqlSchema(GRAPHQL_ENDPOINT_URL)
+export default async function makeUrqlClient ({ schemaAwareness = false } = {}) {
+  const schema = schemaAwareness && await fetchGraphqlSchema(GRAPHQL_ENDPOINT_URL)
 
   const cache = cacheExchange({
     keys,
@@ -62,7 +62,7 @@ export default async function makeUrqlClient () {
     url: GRAPHQL_ENDPOINT_URL
   })
 
-  // Graphcache debugging:
+  // // Graphcache debugging:
   // const { unsubscribe } = client.subscribeToDebugTarget(event => {
   //   if (event.source === 'cacheExchange') { return }
   //   // { type, message, operation, data, source, timestamp }
