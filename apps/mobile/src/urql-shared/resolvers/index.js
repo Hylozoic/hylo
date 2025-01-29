@@ -1,37 +1,34 @@
-import makeCursorPaginationResolver from './makeCursorPaginationResolver'
-import makeOffsetPaginationResolver from './makeOffsetPaginationResolver'
+import makePaginationResolver from './makePaginationResolver'
 
 export default {
   Query: {
-    post: (parent, args, cache, info) => ({ __typename: 'Post', id: args.id }),
-    comment: (parent, args, cache, info) => ({ __typename: 'Comment', id: args.id }),
-    posts: makeOffsetPaginationResolver(),
-    search: makeOffsetPaginationResolver()
+    posts: makePaginationResolver(),
+    search: makePaginationResolver()
+  },
+  Comment: {
+    childComments: makePaginationResolver()
   },
   Group: {
-    posts: makeOffsetPaginationResolver(),
-    viewPosts: makeOffsetPaginationResolver()
+    viewPosts: makePaginationResolver()
+  },
+  Me: {
+    messageThreads: makePaginationResolver()
+  },
+  MessageThread: {
+    messages: makePaginationResolver()
+  },
+  Person: {
+    posts: makePaginationResolver(),
+    comments: makePaginationResolver()
   },
   Post: {
-    comments: makeCursorPaginationResolver(),
+    // This is here mostly as an example of things you can do in a resolver, however
+    // the ordering of post.attachments is probably already reliable from the server
     attachments: (parent, args, cache, info) => {
       const attachments = cache.resolve(parent, info.fieldName)
       return attachments.sort((a, b) => {
         return cache.resolve(b, 'position') - cache.resolve(a, 'position')
       })
     }
-  },
-  Me: {
-    messageThreads: makeOffsetPaginationResolver()
-  },
-  MessageThread: {
-    messages: makeCursorPaginationResolver()
-  },
-  Person: {
-    posts: makeOffsetPaginationResolver(),
-    comments: makeOffsetPaginationResolver()
-  },
-  Comment: {
-    childComments: makeCursorPaginationResolver()
   }
 }

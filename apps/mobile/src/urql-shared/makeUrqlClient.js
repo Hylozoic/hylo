@@ -2,7 +2,7 @@ import { createClient, fetchExchange } from 'urql'
 import { getIntrospectionQuery } from 'graphql'
 import { cacheExchange } from '@urql/exchange-graphcache'
 import { devtoolsExchange } from '@urql/devtools'
-// TODO: Switch to this from isomorphic-fetch on Web as well
+// TODO: URQL - Switch to this from isomorphic-fetch on Web as well
 import fetch from 'cross-fetch'
 import apiHost from 'util/apiHost'
 import { setSessionCookie } from 'util/session'
@@ -30,6 +30,7 @@ export async function fetchGraphqlSchema (endpoint) {
 
 export default async function makeUrqlClient ({ schemaAwareness = false } = {}) {
   const schema = schemaAwareness && await fetchGraphqlSchema(GRAPHQL_ENDPOINT_URL)
+  if (schema) console.log('URQL Schema Awareness turned on')
 
   const cache = cacheExchange({
     keys,
@@ -57,12 +58,10 @@ export default async function makeUrqlClient ({ schemaAwareness = false } = {}) 
 
       return response
     },
-    // Note: This didn't seem to change anything and can probably be removed
-    fetchOptions: { credentials: 'include' },
     url: GRAPHQL_ENDPOINT_URL
   })
 
-  // // Graphcache debugging:
+  // Graphcache debugging (verbose):
   // const { unsubscribe } = client.subscribeToDebugTarget(event => {
   //   if (event.source === 'cacheExchange') { return }
   //   // { type, message, operation, data, source, timestamp }

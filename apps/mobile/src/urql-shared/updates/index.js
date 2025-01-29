@@ -72,31 +72,33 @@ export default {
     //   }
     // }
   },
-  // Subscription: {
-  //   comments: (result, args, cache, info) => {
-  //     console.log('!!!!! comments - result, args, info:', result, args, info)
-  //   },
-  //   updates: (result, args, cache, info) => {
-  //     const update = result?.updates
+  Subscription: {
+    comments: (result, args, cache, info) => {
+      console.log('!!!!! comments - result, args, info:', result, args, info)
+    },
+    updates: (result, args, cache, info) => {
+      const update = result?.updates
 
-  //     switch (update?.__typename) {
-  //       case 'Message': {
-  //         console.log('!!!! updates TODO: new Message. Increment Messages tab badge', result, args)
-  //         cache.invalidate({ __typename: 'MessageThread', id: update?.messageThread?.id })
-  //         break
-  //       }
-  //       case 'MessageThread': {
-  //         console.log('!!!! updates TODO: new MessageThread. Increment Messages tab badge', result, args)
-  //         break
-  //       }
-  //       case 'Notification': {
-  //         console.log('!!!! updates TODO: new Notification. Increment Notifications badge', result, args)
-  //         break
-  //       }
-  //       default: {
-  //         console.log('!!! Unhandled update from updates subscription', result)
-  //       }
-  //     }
-  //   }
-  // }
+      switch (update?.__typename) {
+        case 'Message': {
+          console.log('!!!! updates TODO: new Message. Increment Messages tab badge', result, args)
+          cache.invalidate({ __typename: 'MessageThread', id: update?.messageThread?.id })
+          break
+        }
+        case 'MessageThread': {
+          console.log('!!!! updates TODO: new MessageThread. Increment Messages tab badge', result, args)
+          cache.invalidate({ __typename: 'MessageThread', id: update?.messageThread?.id })
+          break
+        }
+        case 'Notification': {
+          console.log('!!!! updates TODO: new Notification. Increment Notifications badge', result, args)
+          cache.invalidate('Query', 'notifications')
+          break
+        }
+        default: {
+          console.log('!!! Unhandled update from updates subscription', result)
+        }
+      }
+    }
+  }
 }

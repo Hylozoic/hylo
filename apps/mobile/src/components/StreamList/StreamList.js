@@ -6,7 +6,7 @@ import { useIsFocused, useNavigation } from '@react-navigation/native'
 import { ALL_GROUP_ID, isContextGroup, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
 import useFetchPostParam from './useFetchPostParam'
 import useCurrentUser from 'hooks/useCurrentUser'
-import { makeQuery } from './StreamList.store'
+import { makeStreamQuery } from './StreamList.store'
 import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
 import Icon from 'components/Icon'
 import ListControl from 'components/ListControl'
@@ -105,7 +105,7 @@ export default function StreamList (props) {
     timeframe,
     topicName
   })
-  const [{ data, fetching }, refetchPosts] = useQuery(makeQuery({ ...fetchPostParam, first: 10, offset }))
+  const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...fetchPostParam, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore
   const posts = postsQuerySet?.items
@@ -114,8 +114,8 @@ export default function StreamList (props) {
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
 
-  // TODO: Can this be simplified? Also, does this perhaps follow the same logic as
-  // group( updateLastViewed: true ) and could we combine this? Currrently that extra
+  // TODO: URQL - Can this be simplified? Also, does this perhaps follow the same logic as
+  // group(updateLastViewed: true) and could we combine this? Currently that extra
   // query arg for GroupDetailsQuery makes the URQL caching not merged, so it would be nice
   // to run it independently or make it a mutation, like this resetGroupNewPostCount
   useEffect(() => {
@@ -139,19 +139,21 @@ export default function StreamList (props) {
   // Only custom views can be sorted by manual order
   useEffect(() => {
     if (!customView && sortBy === 'order') {
+      setOffset(0)
       setSortBy('updated')
     }
   }, [customView, sortBy])
 
   const refreshPosts = useCallback(() => {
     if (fetchPostParam) {
+      setOffset(0)
       refetchPosts({ requestPolicy: 'network-only' })
     }
   }, [fetchPostParam, refetchPosts])
 
   const fetchMorePosts = useCallback(() => {
-    if (postIds && hasMore && !fetching) {
-      setOffset(postIds?.length)
+    if (posts && !fetching) {
+      setOffset(curOffset => curOffset + posts?.length)
     }
   }, [hasMore, fetching, postIds])
 
@@ -206,7 +208,12 @@ export default function StreamList (props) {
             )}
             {streamType === 'proposal' && (
               <View style={[styles.listControls]}>
-                <ListControl selected={streamType} onChange={() => navigation.navigate('Decisions', { streamType: 'moderation', initial: false, options: { title: 'Moderation' } })} options={DECISIONS_OPTIONS} />
+                <ListControl
+                  selected={streamType}
+                  onChange={() => (
+                    navigation.navigate('Decisions', { streamType: 'moderation', initial: false, options: { title: 'Moderation' } })
+                  )} options={DECISIONS_OPTIONS}
+                />
               </View>
             )}
           </View>
