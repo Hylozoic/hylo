@@ -581,7 +581,7 @@ const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
   return (
     <div className={cn(styles.displayDay, '!absolute top-0')}>
-      <div className={cn('bg-background', styles.day)}>{firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt).toRelativeCalendar({ unit: 'days' }) : ''}</div>
+      <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt).toRelativeCalendar({unit: 'days'}) : ''}</div>
     </div>
   )
 }
@@ -620,15 +620,15 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
           <div className={styles.unreadAndDay}>
             <div className={cn('border-dashed border-b-2 border-background')} />
             <div className={styles.newPost}>NEW</div>
-            <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground bg-background rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
+            <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
           </div>
           )
         : null}
       {!firstUnread && displayDay
         ? (
-          <div className={styles.displayDay}>
-            <div className={cn('border-dashed border-b-2 border-background')} />
-            <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground/50 bg-background rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
+          <div className='w-full flex items-center'>
+            <div className={cn('border-dashed border-b-2 border-background/50 w-full')} />
+            <div className={cn('uppercase text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
           </div>
           )
         : null}
