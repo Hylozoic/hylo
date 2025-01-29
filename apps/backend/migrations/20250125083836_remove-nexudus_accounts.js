@@ -3,7 +3,7 @@ exports.up = function(knex) {
 }
 
 exports.down = function(knex) {
-  return knex.schema.createTable('user_connections', table => {
+  return knex.schema.createTable('nexudus_accounts', table => {
     table.increments().primary()
     table.bigInteger('community_id')
     table.bigInteger('other_user_id').references('id').inTable('users')

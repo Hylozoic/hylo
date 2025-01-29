@@ -1,45 +1,45 @@
 exports.up = async function(knex) {
-  const generalTag = await knex.raw(`
-    SELECT id FROM tags WHERE name = 'general' LIMIT 1
-  `)
-  const homeTag = await knex.raw(`
-    SELECT id FROM tags WHERE name = 'home' LIMIT 1
-  `)
+  // const generalTag = await knex.raw(`
+  //   SELECT id FROM tags WHERE name = 'general' LIMIT 1
+  // `)
+  // const homeTag = await knex.raw(`
+  //   SELECT id FROM tags WHERE name = 'home' LIMIT 1
+  // `)
 
-  if (!generalTag?.rows?.[0] || !homeTag?.rows?.[0]) {
-    console.log('Missing required tags, skipping migration')
-    return
-  }
+  // if (!generalTag?.rows?.[0] || !homeTag?.rows?.[0]) {
+  //   console.log('Missing required tags, skipping migration')
+  //   return
+  // }
 
-  const generalTagId = generalTag.rows[0].id
-  const homeTagId = homeTag.rows[0].id
+  // const generalTagId = generalTag.rows[0].id
+  // const homeTagId = homeTag.rows[0].id
 
-  await knex.raw(`
-    UPDATE posts_tags 
-    SET tag_id = ?
-    WHERE tag_id = ?
-  `, [homeTagId, generalTagId])
+  // await knex.raw(`
+  //   UPDATE posts_tags
+  //   SET tag_id = ?
+  //   WHERE tag_id = ?
+  // `, [homeTagId, generalTagId])
 };
 
 exports.down = async function(knex) {
-  const generalTag = await knex.raw(`
-    SELECT id FROM tags WHERE name = 'general' LIMIT 1
-  `)
-  const homeTag = await knex.raw(`
-    SELECT id FROM tags WHERE name = 'home' LIMIT 1
-  `)
+  // const generalTag = await knex.raw(`
+  //   SELECT id FROM tags WHERE name = 'general' LIMIT 1
+  // `)
+  // const homeTag = await knex.raw(`
+  //   SELECT id FROM tags WHERE name = 'home' LIMIT 1
+  // `)
 
-  if (!generalTag?.rows?.[0] || !homeTag?.rows?.[0]) {
-    console.log('Missing required tags, skipping migration')
-    return
-  }
+  // if (!generalTag?.rows?.[0] || !homeTag?.rows?.[0]) {
+  //   console.log('Missing required tags, skipping migration')
+  //   return
+  // }
 
-  const generalTagId = generalTag.rows[0].id
-  const homeTagId = homeTag.rows[0].id
+  // const generalTagId = generalTag.rows[0].id
+  // const homeTagId = homeTag.rows[0].id
 
-  await knex.raw(`
-    UPDATE posts_tags 
-    SET tag_id = ?
-    WHERE tag_id = ?
-  `, [generalTagId, homeTagId])
+  // await knex.raw(`
+  //   UPDATE posts_tags
+  //   SET tag_id = ?
+  //   WHERE tag_id = ?
+  // `, [generalTagId, homeTagId])
 };
