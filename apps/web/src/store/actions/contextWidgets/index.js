@@ -13,6 +13,7 @@ export function createContextWidget ({ groupId, data }) {
       query: `mutation ($groupId: ID, $data: ContextWidgetInput) {
         createContextWidget(groupId: $groupId, data: $data) {
           id
+          autoAdded
           title
           type
           order

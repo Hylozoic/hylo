@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { isEmpty, mapKeys, pick, snakeCase } from 'lodash'
 
 export async function updateMembership (userId, { groupId, data, data: { settings } }) {
@@ -11,7 +11,7 @@ export async function updateMembership (userId, { groupId, data, data: { setting
 
   return bookshelf.transaction(async transacting => {
     const membership = await GroupMembership.forIds(userId, groupId).fetch({ transacting })
-    if (!membership) throw new GraphQLYogaError("Couldn't find membership for group with id", groupId)
+    if (!membership) throw new GraphQLError(`Couldn't find membership for group with id ${groupId}`)
     if (!isEmpty(settings)) membership.addSetting(settings)
     if (!isEmpty(whitelist)) membership.set(whitelist)
     if (data.acceptAgreements) {

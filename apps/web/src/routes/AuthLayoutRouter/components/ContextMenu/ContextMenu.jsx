@@ -90,7 +90,7 @@ export default function ContextMenu (props) {
     }
     return getContextWidgets(state, group)
   })
-
+  
   const hasContextWidgets = useMemo(() => {
     if (group || isMyContext || isPublic || isAllContext) {
       return contextWidgets.length > 0
@@ -233,7 +233,7 @@ export default function ContextMenu (props) {
   const canView = !group || group.memberCount !== 0
   const links = regularLinks
   return (
-    <div className={cn('ContextMenu bg-background z-20 overflow-y-auto h-lvh min-w-280 shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
+    <div className={cn('ContextMenu bg-background z-20 overflow-y-auto h-lvh w-280 shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
       <div className='ContextDetails w-full z-20 relative'>
         {routeParams.context === 'groups'
           ? <GroupMenuHeader group={group} />
@@ -646,7 +646,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
             title: t('Add Purpose'),
             url: settingsUrl
           })}
-          {!group.description && listItemComponent({
+          {(!group.description || group.description === 'This is a long-form description of the group') && listItemComponent({
             title: t('Add Description'),
             url: settingsUrl
           })}

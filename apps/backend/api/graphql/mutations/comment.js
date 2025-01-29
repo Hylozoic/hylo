@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { merge, trim } from 'lodash'
 import { includes } from 'lodash/fp'
 
@@ -7,76 +7,112 @@ import underlyingCreateComment from '../../models/comment/createComment'
 import underlyingUpdateComment from '../../models/comment/updateComment'
 
 export async function canDeleteComment (userId, comment) {
-  if (comment.get('user_id') === userId) return Promise.resolve(true)
-  return comment.load('post.groups')
-    .then(comment => Promise.any(
-      comment.relations.post.relations.groups.map(g =>
-        GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_MANAGE_CONTENT))
-    ))
+  if (comment.get('user_id') === userId) return true
+
+  const commentWithGroups = await comment.load('post.groups')
+
+  return commentWithGroups.relations.post.relations.groups.map(g =>
+    GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_MANAGE_CONTENT)
+  )
 }
 
-export function canUpdateComment (userId, comment) {
-  if (comment.get('user_id') === userId) return Promise.resolve(true)
-  return Promise.resolve(false)
+export async function canUpdateComment (userId, comment) {
+  if (comment.get('user_id') === userId) {
+    return true
+  } else {
+    throw new GraphQLError("You don't have permission to edit this comment")
+  }
 }
 
-export function deleteComment (userId, commentId) {
-  return Comment.find(commentId)
-    .then(comment => canDeleteComment(userId, comment)
-      .then(canDelete => {
-        if (!canDelete) throw new GraphQLYogaError("You don't have permission to delete this comment")
-        return underlyingDeleteComment(comment, userId)
-      }))
-    .then(() => ({ success: true }))
+export async function deleteComment (userId, commentId) {
+  const comment = await Comment.find(commentId)
+  const canDelete = await canDeleteComment(userId, comment)
+
+  if (!canDelete) throw new GraphQLError("You don't have permission to delete this comment")
+
+  await underlyingDeleteComment(comment, userId)
+
+  return { success: true }
 }
 
 export async function createComment (userId, data, context) {
   await validateCommentCreateData(userId, data)
 
-  const post = await Post.find(data.postId)
-  const parentComment = data.parentCommentId ? await Comment.find(data.parentCommentId) : null
+  const { postId, parentCommentId } = data
+  const post = await Post.find(postId)
+  const parentComment = parentCommentId ? await Comment.find(parentCommentId) : null
   const comment = await underlyingCreateComment(userId, merge(data, { post, parentComment }))
+
+  context.pubSub.publish(`comments:postId:${postId}`, { comment })
+
+  if (parentComment && parentCommentId) {
+    context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
+  }
 
   return comment
 }
 
-export async function createMessage (userId, data) {
-  const post = await Post.find(data.messageThreadId)
+export async function createMessage (userId, data, context) {
+  const { messageThreadId: postId } = data
+  await validateCommentCreateData(userId, { ...data, postId })
+
+  const post = await Post.find(postId)
+  const postCommentsTotal = await post.commentsTotal()
+  const newThread = !postCommentsTotal || postCommentsTotal < 1
   const followers = await post.followers().fetch()
-  const blockedUserIds = (await BlockedUser.blockedFor(userId)).rows.map(r => r.user_id)
+  const blockedUsers = await BlockedUser.blockedFor(userId)
+  const blockedUserIds = blockedUsers.rows.map(r => r.user_id)
   const otherParticipants = followers.filter(f => f.id !== userId && !includes(f.id, blockedUserIds))
-  if (otherParticipants.length < 1) throw new GraphQLYogaError('cannot send a message to this thread')
-  data.postId = data.messageThreadId
-  return createComment(userId, data)
+
+  if (otherParticipants.length < 1) throw new GraphQLError('cannot send a message to this thread')
+
+  const comment = await underlyingCreateComment(userId, merge(data, { post }))
+
+  // Notify all participants of a new messageThread after first new message (comment) created
+  otherParticipants.forEach(participant => {
+    if (newThread) {
+      context.pubSub.publish(`updates:${participant.id}`, { messageThread: post })
+    } else {
+      context.pubSub.publish(`updates:${participant.id}`, { message: comment })
+    }
+  })
+
+  return comment
 }
 
-export function updateComment (userId, { id, data }) {
-  return Comment.find(id)
-    .then(comment => canUpdateComment(userId, comment))
-    .then(canUpdate => {
-      if (!canUpdate) throw new GraphQLYogaError("You don't have permission to edit this comment")
-      return validateCommentUpdateData(userId, data)
-        .then(validatedData => underlyingUpdateComment(userId, id, validatedData))
-    })
-}
+export async function updateComment (userId, { id, data }, context) {
+  await validateCommentUpdateData(userId, data)
 
-export function validateCommentCreateData (userId, data) {
-  return Post.isVisibleToUser(data.postId, userId)
-    .then(isVisible => {
-      if (isVisible) {
-        if (!data.imageUrl && !trim(data.text)) {
-          throw new GraphQLYogaError("Can't create a blank comment")
-        }
-        return Promise.resolve()
-      } else {
-        throw new GraphQLYogaError('post not found')
-      }
-    })
-}
+  const commentToValidate = await Comment.find(id)
+  await canUpdateComment(userId, commentToValidate)
 
-export function validateCommentUpdateData (userId, data) {
-  if (!data.imageUrl && !trim(data.text)) {
-    throw new GraphQLYogaError("Can't create a blank comment")
+  const comment = await underlyingUpdateComment(userId, id, data)
+
+  context.pubSub.publish(`comments:postId:${comment.get('post_id')}`, { comment })
+
+  if (comment.get('comment_id')) {
+    context.pubSub.publish(`comments:commentId:${comment.get('comment_id')}`, { comment })
   }
-  return Promise.resolve(data)
+
+  return comment
+}
+
+export async function validateCommentCreateData (userId, data) {
+  const isVisible = await Post.isVisibleToUser(data.postId, userId)
+
+  if (isVisible) {
+    if (!data.imageUrl && !trim(data.text)) {
+      throw new GraphQLError("Can't create a blank comment")
+    }
+    return data
+  } else {
+    throw new GraphQLError('post not found')
+  }
+}
+
+export async function validateCommentUpdateData (userId, data) {
+  if (!data.imageUrl && !trim(data.text)) {
+    throw new GraphQLError("Can't create a blank comment")
+  }
+  return data
 }

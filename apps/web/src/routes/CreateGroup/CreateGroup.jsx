@@ -6,17 +6,23 @@ import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { useLocation, useParams } from 'react-router-dom'
 import { Button } from 'components/ui/button'
-import Dropdown from 'components/Dropdown'
 import GroupsSelector from 'components/GroupsSelector'
 import Icon from 'components/Icon'
-import TextInput from 'components/TextInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from 'components/ui/select'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import {
   accessibilityDescription,
   accessibilityIcon,
   accessibilityString,
+  DEFAULT_AVATAR,
   GROUP_ACCESSIBILITY,
   GROUP_VISIBILITY,
   visibilityString,
@@ -160,6 +166,7 @@ function CreateGroup () {
     let { accessibility, avatarUrl, bannerUrl, name, parentGroups, purpose, slug, visibility } = state
     name = typeof name === 'string' ? trim(name) : name
     purpose = typeof purpose === 'string' ? trim(purpose) : purpose
+    avatarUrl = avatarUrl || DEFAULT_AVATAR
 
     if (isValid()) {
       dispatch(createGroup({ accessibility, avatarUrl, bannerUrl, name, slug, parentIds: parentGroups.map(g => g.id), purpose, visibility }))
@@ -180,149 +187,134 @@ function CreateGroup () {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({ title: t('Create Group'), icon: 'Plus', backButton: true })
+    setHeaderDetails({ title: t('Create a new group'), icon: '', info: '', backButton: true, search: false })
   }, [])
 
   return (
-    <div className='CreateGroupContainer w-full h-full flex items-center justify-center'>
-      <div className='CreateGroupInnerContainer flex flex-col items-center justify-center mx-auto w-full max-w-screen-sm h-full max-h-[500px]'>
+    <div className='CreateGroupContainer w-full h-full flex justify-center mt-10'>
+      <div className='CreateGroupInnerContainer flex flex-col mx-auto w-full max-w-screen-sm items-center'>
         <div
-          className={cn('CreateGroupBannerContainer relative w-full flex-1 flex flex-col items-center justify-center border border-dashed border-gray-300 rounded-lg shadow-md bg-cover bg-center', { 'border-none': !!bannerUrl })}
+          className={cn('CreateGroupBannerContainer relative w-full h-[400px] flex flex-col items-center justify-center border border-dashed border-gray-300 rounded-lg shadow-md bg-cover bg-center', { 'border-none': !!bannerUrl })}
           style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), url(${bannerUrl})` }}
         >
           <UploadAttachmentButton
             type='groupBanner'
             onInitialUpload={({ url }) => updateField('bannerUrl')(url)}
-            className='absolute -top-3 -right-3'
+            className=''
           >
             <div className=''>
-              <ImagePlus className='' />
+              <ImagePlus className='inline-block' />
+              <span className='ml-2 text-sm'>{t('Set group banner')}</span>
             </div>
           </UploadAttachmentButton>
+        </div>
 
-          <UploadAttachmentButton
-            type='groupAvatar'
-            onInitialUpload={({ url }) => updateField('avatarUrl')(url)}
+        <UploadAttachmentButton
+          type='groupAvatar'
+          onInitialUpload={({ url }) => updateField('avatarUrl')(url)}
+          className='relative -top-10 bg-background'
+        >
+          <div
+            style={bgImageStyle(avatarUrl)}
+            className={cn('relative w-20 h-20 rounded-lg border border-dashed border-gray-300 shadow-md flex items-center justify-center bg-cover bg-center', { 'border-none': !!avatarUrl })}
           >
-            <div
-              style={bgImageStyle(avatarUrl)}
-              className={cn('relative w-20 h-20 rounded-lg border border-dashed border-gray-300 shadow-md flex items-center justify-center bg-cover bg-center', { 'border-none': !!avatarUrl })}
-            >
-              {!avatarUrl && <Image className='w-10 h-10 text-gray-500' />}
-              <ImagePlus className='absolute -top-3 -right-3' />
-            </div>
-          </UploadAttachmentButton>
+            {!avatarUrl && <Image className='w-10 h-10 text-gray-500' />}
+            <ImagePlus className='absolute -top-3 -right-3' />
+          </div>
+        </UploadAttachmentButton>
 
-          <div className='mt-10'>
-            <div className=''>
+        <div className='w-full bg-foreground/5 p-4 rounded-lg flex flex-col gap-2'>
+          <div className='flex items-center gap-2'>
+            <input
+              autoFocus
+              type='text'
+              name='name'
+              onChange={updateField('name')}
+              value={name}
+              className='text-2xl border-none bg-transparent focus:outline-none flex-1'
+              placeholder={t('Name your group')}
+              maxLength='60'
+              onKeyDown={onEnter(onSubmit)}
+              id='groupName'
+            />
+            <label htmlFor='groupName' className=''>
+              <SquarePen className='text-gray-500 inline w-4 h-4' />
+            </label>
+            <span className='text-xs'>{nameCharacterCount} / 60</span>
+          </div>
+          {errors.name && <span className=''>{errors.name}</span>}
+
+          <div>
+            <div className='flex items-center'>
+              <label htmlFor='groupSlug' className=''>
+                https://hylo.com/groups/
+              </label>
               <input
-                autoFocus
                 type='text'
-                name='name'
-                onChange={updateField('name')}
-                value={name}
-                className='text-2xl border-none bg-transparent focus:outline-none'
-                placeholder={t('Name your group')}
-                maxLength='60'
+                name='slug'
+                onChange={updateField('slug')}
+                value={slug}
+                onClick={focusSlug}
+                className='text-xs border-none bg-transparent focus:outline-none flex-1'
                 onKeyDown={onEnter(onSubmit)}
+                maxLength='40'
+                ref={slugRef}
+                id='groupSlug'
               />
-              <span className=''>{nameCharacterCount} / 60</span>
             </div>
-            {errors.name && <span className=''>{errors.name}</span>}
-
-            <div>
-              <span className=''>
-                <button tabIndex='-1' className='' onClick={focusSlug}>
-                  <SquarePen className='text-gray-500 inline w-4 h-4 mr-2' />
-                  https://hylo.com/groups/
-                </button>
-                <input
-                  type='text'
-                  name='slug'
-                  onChange={updateField('slug')}
-                  value={slug}
-                  onClick={focusSlug}
-                  className='text-xs border-none bg-transparent focus:outline-none'
-                  onKeyDown={onEnter(onSubmit)}
-                  maxLength='40'
-                  ref={slugRef}
-                />
-              </span>
-              {errors.slug && <div className='text-error'>{errors.slug}</div>}
-            </div>
+            {errors.slug && <div className='text-error text-sm'>{errors.slug}</div>}
           </div>
         </div>
 
-        {/* <div className=''>
-          <div className=''>
-            <Dropdown
-              className=''
-              toggleChildren={(
-                <span>
-                  <div className=''>
-                    <Icon name={visibilityIcon(visibility)} className='' />
-                    <div>
-                      <div className=''>{t('WHO CAN SEE THIS GROUP?')}</div>
-                      <div className=''>
-                        <b>{t(visibilityString(visibility))}</b>
-                        <span>{t(visibilityDescription(visibility))}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Icon name='ArrowDown' className='' />
-                </span>
-              )}
-              items={Object.keys(GROUP_VISIBILITY).map(label => ({
-                key: label,
-                label: (
+        <div className='w-full bg-foreground/5 p-4 rounded-lg mt-4 flex justify-between gap-4'>
+          <Select
+            value={visibility}
+            onValueChange={(value) => updateField('visibility')(GROUP_VISIBILITY[value])}
+          >
+            <SelectTrigger className='inline-flex'>
+              <SelectValue>
+                <Icon name={visibilityIcon(visibility)} className='mr-2' />
+                <span>{t(visibilityString(visibility))}</span>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(GROUP_VISIBILITY).map(label => (
+                <SelectItem key={label} value={label} className='pl-2'>
                   <div className=''>
                     <Icon name={visibilityIcon(GROUP_VISIBILITY[label])} />
-                    <div className=''>
-                      <b>{t(label)}</b>
-                      <span> {t(visibilityDescription(GROUP_VISIBILITY[label]))}</span>
-                    </div>
+                    <b className='ml-2'>{t(label)}:</b>
+                    <span className=''> {t(visibilityDescription(GROUP_VISIBILITY[label]))}</span>
                   </div>
-                ),
-                onClick: () => updateField('visibility')(GROUP_VISIBILITY[label])
-              }))}
-            />
-          </div>
-          <div className=''>
-            <Dropdown
-              className=''
-              toggleChildren={(
-                <span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={accessibility}
+            onValueChange={(value) => updateField('accessibility')(GROUP_ACCESSIBILITY[value])}
+          >
+            <SelectTrigger className='inline-flex'>
+              <SelectValue>
+                <Icon name={accessibilityIcon(accessibility)} className='mr-2' />
+                <span>{t(accessibilityString(accessibility))}</span>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(GROUP_ACCESSIBILITY).map(label => (
+                <SelectItem key={label} value={label} className='pl-2'>
                   <div className=''>
-                    <Icon name={accessibilityIcon(accessibility)} className='' />
-                    <div>
-                      <div className=''>{t('WHO CAN JOIN THIS GROUP?')}</div>
-                      <div className=''>
-                        <b>{t(accessibilityString(accessibility))}</b>
-                        <span>{t(accessibilityDescription(accessibility))}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Icon name='ArrowDown' className='' />
-                </span>
-              )}
-              items={Object.keys(GROUP_ACCESSIBILITY).map(label => ({
-                key: label,
-                label: (
-                  <div className='' key={label}>
                     <Icon name={accessibilityIcon(GROUP_ACCESSIBILITY[label])} />
-                    <div className=''>
-                      <b>{t(label)}</b>
-                      <span> {t(accessibilityDescription(GROUP_ACCESSIBILITY[label]))}</span>
-                    </div>
+                    <b className='ml-2'>{t(label)}:</b>
+                    <span className=''> {t(accessibilityDescription(GROUP_ACCESSIBILITY[label]))}</span>
                   </div>
-                ),
-                onClick: () => updateField('accessibility')(GROUP_ACCESSIBILITY[label])
-              }))}
-            />
-          </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {parentGroupOptions && parentGroupOptions.length > 0 && (
+        {/* {parentGroupOptions && parentGroupOptions.length > 0 && (
           <div className=''>
             <div className=''>
               <span className=''>{t('IS THIS GROUP A MEMBER OF OTHER GROUPS?')}</span>
@@ -339,7 +331,7 @@ function CreateGroup () {
               />
             </div>
           </div>
-        )} */}
+        )}  */}
 
         <div className='mt-10'>
           <Button

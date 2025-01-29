@@ -3,10 +3,10 @@ import { postRoom, pushToSockets, userRoom } from '../../services/Websockets'
 import { refineOne, refineMany } from '../util/relations'
 
 export default async function createComment (commenterId, opts = {}) {
-  let { text, post, parentComment } = opts
+  const { text, post, parentComment } = opts
 
-  var attrs = {
-    text: text,
+  let attrs = {
+    text,
     created_at: new Date(),
     recent: true,
     user_id: commenterId,
@@ -16,7 +16,7 @@ export default async function createComment (commenterId, opts = {}) {
     created_from: opts.created_from || null
   }
 
-  var existingFollowers, isThread
+  let existingFollowers, isThread
   const mentioned = RichText.getUserMentions(text)
 
   existingFollowers = await post.followers().fetch().then(f => f.pluck('id'))
@@ -25,15 +25,16 @@ export default async function createComment (commenterId, opts = {}) {
   const newFollowers = difference(uniq(mentioned.concat(commenterId)), existingFollowers)
 
   return bookshelf.transaction(async (trx) => {
-    const comment = await new Comment(attrs).save(null, {transacting: trx})
+    const comment = await new Comment(attrs).save(null, { transacting: trx })
     await createMedia(comment, opts, trx)
     return comment
   }).then(async (comment) => {
     await createOrUpdateConnections(commenterId, existingFollowers)
     await post.addFollowers(newFollowers)
     await notifySockets(comment, post, isThread)
+
     if (isThread) {
-      await Queue.classMethod('Comment', 'notifyAboutMessage', {commentId: comment.id})
+      await Queue.classMethod('Comment', 'notifyAboutMessage', { commentId: comment.id })
     } else {
       await comment.createActivities()
     }
@@ -55,7 +56,7 @@ export const createMedia = (comment, opts, trx) => {
         type: attachment.attachmentType,
         url: attachment.url,
         position: i
-      }, trx)),
+      }, trx))
   ]))
 }
 
@@ -101,18 +102,18 @@ export async function pushMessageToSockets (message, thread) {
 
 function pushCommentToSockets (comment) {
   return comment.ensureLoad('user')
-  .then(() => pushToSockets(
-    postRoom(comment.get('post_id')),
-    'commentAdded',
-    Object.assign({},
-      refineOne(comment, ['id', 'text', 'created_at']),
-      {
-        creator: refineOne(comment.relations.user, ['id', 'name', 'avatar_url']),
-        post: comment.get('post_id'),
-        parentComment: comment.get('comment_id')
-      }
-    )
-  ))
+    .then(() => pushToSockets(
+      postRoom(comment.get('post_id')),
+      'commentAdded',
+      Object.assign({},
+        refineOne(comment, ['id', 'text', 'created_at']),
+        {
+          creator: refineOne(comment.relations.user, ['id', 'name', 'avatar_url']),
+          post: comment.get('post_id'),
+          parentComment: comment.get('comment_id')
+        }
+      )
+    ))
 }
 
 const createOrUpdateConnections = (userId, existingFollowers) => {

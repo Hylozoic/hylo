@@ -1,5 +1,5 @@
 import knexPostgis from 'knex-postgis'
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { clone, defaults, difference, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
 import mbxGeocoder from '@mapbox/mapbox-sdk/services/geocoding'
 import fetch from 'node-fetch'
@@ -844,7 +844,7 @@ module.exports = bookshelf.Model.extend(merge({
             ge.set({ data: extData.data })
             await ge.save({}, { transacting })
           } else {
-            throw new GraphQLYogaError('Invalid extension type ' + extData.type)
+            throw new GraphQLError('Invalid extension type ' + extData.type)
           }
         }
       }
@@ -897,7 +897,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   validate: function () {
     if (!trim(this.get('name'))) {
-      return Promise.reject(new GraphQLYogaError('Name cannot be blank'))
+      return Promise.reject(new GraphQLError('Name cannot be blank'))
     }
 
     return Promise.resolve()
@@ -965,11 +965,11 @@ module.exports = bookshelf.Model.extend(merge({
 
   async create (userId, data) {
     if (!data.slug) {
-      throw new GraphQLYogaError('Missing required field: slug')
+      throw new GraphQLError('Missing required field: slug')
     }
     const existingGroup = await Group.find(data.slug)
     if (existingGroup) {
-      throw new GraphQLYogaError('A group with that URL slug already exists')
+      throw new GraphQLError('A group with that URL slug already exists')
     }
 
     const trimAttrs = ['name', 'purpose']
@@ -1010,7 +1010,7 @@ module.exports = bookshelf.Model.extend(merge({
             const ge = new GroupExtension({ group_id: group.id, extension_id: ext.id, data: extData.data })
             await ge.save(null, { transacting: trx })
           } else {
-            throw new GraphQLYogaError('Invalid extension type ' + extData.type)
+            throw new GraphQLError('Invalid extension type ' + extData.type)
           }
         }
       }
@@ -1067,7 +1067,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   async doesMenuUpdate ({ groupIds, post, customView, groupRelation = false }) {
     if (!post && !customView && !groupRelation) return
-    const postType = post && post.type
+    const postType = post?.type
     // Skip processing if it's a chat post and no other conditions are present
     if (postType === 'chat' && !customView && !groupRelation) return
     await bookshelf.transaction(async trx => {
@@ -1130,7 +1130,7 @@ module.exports = bookshelf.Model.extend(merge({
           }
 
           // Check location
-          if (post.location_id) {
+          if (post?.location_id) {
             const mapWidget = widgets.find(w => w.get('view') === 'map')
             if (mapWidget && !mapWidget.get('auto_added')) {
               await ContextWidget.reorder({

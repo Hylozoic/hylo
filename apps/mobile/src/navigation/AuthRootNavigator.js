@@ -3,14 +3,16 @@ import { Platform } from 'react-native'
 import { createStackNavigator } from '@react-navigation/stack'
 import Intercom from '@intercom/intercom-react-native'
 import { LogLevel, OneSignal } from 'react-native-onesignal'
-import { useMutation, useQuery } from 'urql'
+import { gql, useMutation, useQuery, useSubscription } from 'urql'
 import i18n from '../../i18n'
 import mixpanel from 'services/mixpanel'
 import { version as hyloAppVersion } from '../../package.json'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import resetNotificationsCountMutation from 'graphql/mutations/resetNotificationsCountMutation'
-import fetchNotificationsQuery, { NOTIFICATIONS_PAGE_SIZE } from 'graphql/queries/notificationsQuery'
+import notificationsQuery from 'graphql/queries/notificationsQuery'
+import messageThreadFieldsFragment from 'graphql/fragments/messageThreadFieldsFragment'
+import notificationFieldsFragment from 'graphql/fragments/notificationFieldsFragment'
 import registerDeviceMutation from 'graphql/mutations/registerDeviceMutation'
 import commonRolesQuery from 'graphql/queries/commonRolesQuery'
 import useCurrentUser from 'hooks/useCurrentUser'
@@ -28,6 +30,34 @@ import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import { white } from 'style/colors'
 
+const updatesSubscription = gql`
+  subscription UpdatesSubscription($firstMessages: Int = 1) {
+    updates {
+      ... on Notification {
+        ...NotificationFieldsFragment
+      }
+      ... on MessageThread {
+        ...MessageThreadFieldsFragment
+      }
+      ... on Message {
+        id
+        createdAt
+        text
+        creator {
+          id
+          name
+        }
+        messageThread {
+          id
+        }
+      }
+      
+    }
+  }
+  ${notificationFieldsFragment}
+  ${messageThreadFieldsFragment}
+`
+
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
   // TODO: URQL - network-only seems to be required only for SocialAuth,
@@ -40,9 +70,10 @@ export default function AuthRootNavigator () {
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   const [, registerDevice] = useMutation(registerDeviceMutation)
 
-  useQuery({ query: fetchNotificationsQuery, variables: { first: NOTIFICATIONS_PAGE_SIZE, offset: 0 } })
+  useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
+  useSubscription({ query: updatesSubscription })
 
   useEffect(() => {
     resetNotificationsCount()

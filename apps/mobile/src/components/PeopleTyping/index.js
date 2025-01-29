@@ -1,3 +1,3 @@
-import PeopleTyping from './PeopleTyping'
-import connector from './PeopleTyping.connector'
-export default connector(PeopleTyping)
+import component from './PeopleTyping'
+
+export default component

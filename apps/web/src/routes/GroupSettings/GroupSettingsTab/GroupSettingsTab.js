@@ -265,7 +265,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
         <div className='pb-[30px]'>
           <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Relevant skills & interests')}</h3>
           <p className='text-foreground text-base'>{t('What skills and interests are particularly relevant to this group?')}</p>
-  
+
           <SkillsSection
             group={group}
             label={t('Add a relevant skill or interest')}

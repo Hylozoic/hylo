@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'join_requests',
@@ -36,7 +36,7 @@ module.exports = bookshelf.Model.extend({
       })
       return this
     }
-    throw new GraphQLYogaError('Invalid join request')
+    throw new GraphQLError('Invalid join request')
   }
 }, {
 

@@ -85,7 +85,9 @@ export default function createPost (postParams) {
         isPublic,
         topics: topicNames,
         type
-      }
+      },
+      type,
+      groupIds
     }
   }
 }

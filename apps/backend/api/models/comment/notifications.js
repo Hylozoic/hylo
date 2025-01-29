@@ -34,7 +34,7 @@ export async function notifyAboutMessage ({ commentId }) {
 }
 
 export const sendDigests = async () => {
-  const redisClient = await RedisClient.create()
+  const redisClient = RedisClient.create()
   const now = new Date()
   const fallbackTime = () => new Date(now - 10 * 60000)
 

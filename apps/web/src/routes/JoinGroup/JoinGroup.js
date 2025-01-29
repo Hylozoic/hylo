@@ -42,7 +42,7 @@ export default function JoinGroup (props) {
           const groupSlug = newMembership?.group?.slug
 
           if (groupSlug) {
-            setRedirectTo(groupUrl(groupSlug, redirectToView || 'explore'))
+            setRedirectTo(groupUrl(groupSlug, redirectToView || 'chat/general'))
           } else {
             throw new Error(t('Join group was unsuccessful'))
           }

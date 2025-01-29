@@ -5,7 +5,7 @@ import { has, isEmpty, merge, omit, pick, intersectionBy } from 'lodash'
 import fetch from 'node-fetch'
 import { v4 as uuidv4 } from 'uuid'
 import validator from 'validator'
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { Validators } from '@hylo/shared'
 import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
@@ -622,23 +622,23 @@ module.exports = bookshelf.Model.extend(merge({
   authenticate: Promise.method(function (email, password) {
     const compare = Promise.promisify(bcrypt.compare, bcrypt)
 
-    if (!email) throw new GraphQLYogaError('no email provided')
-    if (!password) throw new GraphQLYogaError('no password provided')
+    if (!email) throw new GraphQLError('no email provided')
+    if (!password) throw new GraphQLError('no password provided')
 
     return User.query('whereRaw', 'lower(email) = lower(?)', email)
       .fetch({ withRelated: ['linkedAccounts'] })
       .then(function (user) {
-        if (!user) throw new GraphQLYogaError('email not found')
+        if (!user) throw new GraphQLError('email not found')
 
         const account = user.relations.linkedAccounts.find(a => a.get('provider_key') === 'password')
 
         if (!account) {
           const keys = user.relations.linkedAccounts.pluck('provider_key')
-          throw new GraphQLYogaError(`password account not found. available: [${keys.join(',')}]`)
+          throw new GraphQLError(`password account not found. available: [${keys.join(',')}]`)
         }
 
         return compare(password, account.get('provider_user_id')).then(function (match) {
-          if (!match) throw new GraphQLYogaError('password does not match')
+          if (!match) throw new GraphQLError('password does not match')
 
           return user
         })
@@ -855,12 +855,12 @@ module.exports = bookshelf.Model.extend(merge({
 function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
   if (has(attrs, 'password')) {
     const invalidReason = Validators.validateUser.password(attrs.password)
-    if (invalidReason) return Promise.reject(new GraphQLYogaError(invalidReason))
+    if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
   }
 
   if (has(attrs, 'name')) {
     const invalidReason = Validators.validateUser.name(attrs.name)
-    if (invalidReason) return Promise.reject(new GraphQLYogaError(invalidReason))
+    if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
   }
 
   // for an existing user, the email field can be omitted.
@@ -868,11 +868,11 @@ function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
   const oldEmail = existingUser ? existingUser.get('email') : null
 
   if (!validator.isEmail(attrs.email)) {
-    return Promise.reject(new GraphQLYogaError('invalid-email'))
+    return Promise.reject(new GraphQLError('invalid-email'))
   }
 
   return User.isEmailUnique(attrs.email, oldEmail, { transacting })
-    .then(unique => unique || Promise.reject(new GraphQLYogaError('duplicate-email')))
+    .then(unique => unique || Promise.reject(new GraphQLError('duplicate-email')))
 }
 
 export function addProtocol (url) {

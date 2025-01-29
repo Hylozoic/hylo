@@ -48,19 +48,19 @@ export default function GroupMenuHeader ({
   }, [bannerUrl])
 
   return (
-    <div className='relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md' data-testid='group-header'>
+    <div className='GroupMenuHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md' data-testid='group-header'>
       <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} />
       {canAdminister && (
         <div className='absolute top-2 right-2'>
           <button onClick={() => { navigate(groupUrl(group.slug, 'settings', {})) }}>
-            <Settings className={`w-6 h-6 text-foreground drop-shadow-md`} />
+            <Settings className='w-6 h-6 text-foreground drop-shadow-md' />
           </button>
         </div>
       )}
       <div className='relative flex flex-row items-center text-background'>
         <div style={bgImageStyle(avatarUrl)} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' />
-        <div className={`flex flex-col flex-1 text-${textColor} drop-shadow-md`}>
-          <h1 className='text-xl/5 font-bold m-0 text-white'>{group.name}</h1>
+        <div className={`flex flex-col flex-1 text-${textColor} drop-shadow-md overflow-hidden`}>
+          <h1 className='GroupMenuHeaderName text-xl/5 font-bold m-0 text-white'>{group.name}</h1>
           <span className='text-xs align-middle  text-white'>
             <UsersRound className='w-4 h-4 inline mr-1 align-bottom' />
             <Link className='text-white underline' to={groupUrl(group.slug, 'members', {})}>{t('{{count}} Members', { count: group.memberCount })}</Link>
