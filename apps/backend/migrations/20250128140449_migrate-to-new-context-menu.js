@@ -1,9 +1,18 @@
-/* globals Group */
+/* globals Group, Tag */
 require("@babel/register")
 const models = require('../api/models')
 
 exports.up = async function(knex) {
   models.init()
+
+  let homeTag = await Tag.where({ name: 'home' }).fetch({ transacting })
+  if (!homeTag) {
+    homeTag = await Tag.forge({
+      name: 'home',
+      created_at: new Date(),
+      updated_at: new Date()
+    }).save(null, { transacting })
+  }
 
   // Find all groups that don't have context widgets
   const groupsWithoutWidgets = await knex.raw(`
