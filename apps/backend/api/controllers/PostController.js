@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import RedisPubSub from '../services/RedisPubSub'
 import { includes } from 'lodash'
 import createPost from '../models/post/createPost'
@@ -16,7 +16,7 @@ const PostController = {
 
     const type = req.param('type')
     if (!includes(Object.keys(namePrefixes), type)) {
-      return res.serverError(new GraphQLYogaError(`invalid type: ${type}`))
+      return res.serverError(new GraphQLError(`invalid type: ${type}`))
     }
 
     const attributes = {

@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { merge, trim } from 'lodash'
 import { includes } from 'lodash/fp'
 
@@ -20,7 +20,7 @@ export async function canUpdateComment (userId, comment) {
   if (comment.get('user_id') === userId) {
     return true
   } else {
-    throw new GraphQLYogaError("You don't have permission to edit this comment")
+    throw new GraphQLError("You don't have permission to edit this comment")
   }
 }
 
@@ -28,7 +28,7 @@ export async function deleteComment (userId, commentId) {
   const comment = await Comment.find(commentId)
   const canDelete = await canDeleteComment(userId, comment)
 
-  if (!canDelete) throw new GraphQLYogaError("You don't have permission to delete this comment")
+  if (!canDelete) throw new GraphQLError("You don't have permission to delete this comment")
 
   await underlyingDeleteComment(comment, userId)
 
@@ -64,7 +64,7 @@ export async function createMessage (userId, data, context) {
   const blockedUserIds = blockedUsers.rows.map(r => r.user_id)
   const otherParticipants = followers.filter(f => f.id !== userId && !includes(f.id, blockedUserIds))
 
-  if (otherParticipants.length < 1) throw new GraphQLYogaError('cannot send a message to this thread')
+  if (otherParticipants.length < 1) throw new GraphQLError('cannot send a message to this thread')
 
   const comment = await underlyingCreateComment(userId, merge(data, { post }))
 
@@ -102,17 +102,17 @@ export async function validateCommentCreateData (userId, data) {
 
   if (isVisible) {
     if (!data.imageUrl && !trim(data.text)) {
-      throw new GraphQLYogaError("Can't create a blank comment")
+      throw new GraphQLError("Can't create a blank comment")
     }
     return data
   } else {
-    throw new GraphQLYogaError('post not found')
+    throw new GraphQLError('post not found')
   }
 }
 
 export async function validateCommentUpdateData (userId, data) {
   if (!data.imageUrl && !trim(data.text)) {
-    throw new GraphQLYogaError("Can't create a blank comment")
+    throw new GraphQLError("Can't create a blank comment")
   }
   return data
 }

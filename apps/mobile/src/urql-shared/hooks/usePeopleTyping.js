@@ -18,7 +18,6 @@ const peopleTypingSubscription = gql`
     peopleTyping(messageThreadId: $messageThreadId, postId: $postId, commentId: $commentId) {
       id
       name
-      avatarUrl
     }
   }
 `
@@ -36,6 +35,7 @@ export const usePeopleTyping = ({ messageThreadId, postId, commentId, timerLengt
     (_, data) => {
       if (data?.peopleTyping) {
         const { id, name } = data.peopleTyping
+
         setTypingUsers((prevUsers) => {
           const existingUser = prevUsers.find((user) => user.id === id)
           if (existingUser) {
