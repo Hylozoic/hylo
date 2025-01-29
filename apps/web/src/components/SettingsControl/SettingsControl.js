@@ -6,7 +6,7 @@ import { cn } from 'util/index'
 import classes from './SettingsControl.module.scss'
 
 export default function SettingsControl (props) {
-  const { id, helpText, label, value = '', onChange, renderControl, type, error, controlClass, ...otherProps } = props
+  const { id, helpText, label, value = '', onChange, renderControl, type, error, controlClass, inputStyle, ...otherProps } = props
   let control
 
   if (renderControl) {
@@ -73,6 +73,7 @@ export default function SettingsControl (props) {
             readOnly={!onChange}
             className='bg-black/20 rounded-lg text-foreground placeholder-foreground/40  w-full p-4 outline-none focus:outline-focus focus:outline-2'
             type='text'
+            style={inputStyle}
             value={value}
             {...otherProps}
           />
@@ -82,7 +83,7 @@ export default function SettingsControl (props) {
   }
 
   return (
-    <div className={cn('w-full bg-transparent mb-10 text-foreground', { [classes.error]: error }, controlClass)}>
+    <div className={cn('w-full bg-transparent text-foreground', { [classes.error]: error }, controlClass)}>
       <label className={cn('w-full text-foreground/50 text-sm mb-2 block', { [classes.error]: error })} htmlFor={id}>
         {label}
         {helpText

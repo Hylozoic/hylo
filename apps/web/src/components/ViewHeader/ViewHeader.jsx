@@ -23,7 +23,7 @@ const ViewHeader = () => {
   const { backButton, title, icon, info, search } = headerDetails
 
   return (
-    <header className='flex flex-row items-center z-10 px-4 bg-background shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
+    <header className='flex flex-row items-center z-10 p-2 bg-midground/50 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
       {!isWebView() && (
         <>
           <ChevronLeft
