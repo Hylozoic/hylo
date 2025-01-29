@@ -27,7 +27,7 @@ const withDontSendToCreator = ({ context, getter } = {}) => {
 
       // NOTE: For ease of testing the subscriptions-debug header can be sent with any value to enable
       // subscriptions publishing to the creator.
-      if (creatorId !== currentUserId || context.context.request.headers.get('subscriptions-debug')) {
+      if (creatorId !== currentUserId || context.request.headers.get('subscriptions-debug')) {
         yield payload
       }
     }
