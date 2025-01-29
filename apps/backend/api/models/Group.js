@@ -432,9 +432,9 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   createDefaultTopics: async function (group_id, user_id, transacting) {
-    return Tag.where({ name: 'general' }).fetch({ transacting })
-      .then(generalTag => {
-        return GroupTag.create({ updated_at: new Date(), group_id, tag_id: generalTag.get('id'), user_id, is_default: true }, { transacting })
+    return Tag.where({ name: 'home' }).fetch({ transacting })
+      .then(homeTag => {
+        return GroupTag.create({ updated_at: new Date(), group_id, tag_id: homeTag.get('id'), user_id, is_default: true }, { transacting })
       })
   },
 
@@ -508,15 +508,14 @@ module.exports = bookshelf.Model.extend(merge({
       updated_at: new Date()
     }).save(null, { transacting: trx })
 
-    // Get general tag id for the hearth widget
-    const generalTag = await Tag.where({ name: 'general' }).fetch({ transacting: trx })
+    // Get home tag id for the home chat
+    const homeTag = await Tag.where({ name: 'home' }).fetch({ transacting: trx })
 
     // Create hearth widget as child of home
     await ContextWidget.forge({
       group_id: this.id,
-      title: 'widget-hearth',
       type: 'chat',
-      view_chat_id: generalTag.id,
+      view_chat_id: homeTag.id,
       parent_id: homeWidget.id,
       order: 1,
       created_at: new Date(),

@@ -62,7 +62,7 @@ describe('mutations/context_widgets', () => {
       const children = homeWidget.related('children')
       
       expect(children.length).to.equal(1)
-      expect(children.first().get('title')).to.equal('widget-hearth')
+      expect(children.first().get('type')).to.equal('chat')
       expect(children.first().get('order')).to.equal(1)
     })
   })
