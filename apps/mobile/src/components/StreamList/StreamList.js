@@ -181,6 +181,12 @@ export default function StreamList (props) {
         onRefresh={refreshPosts}
         refreshing={false}
         keyExtractor={item => `post${item.id}`}
+        // TODO: URQL - Without further setup FlatList will call this many many times while still at the bottom
+        // currently URQL is protecting us from this by caching an throttling the many api requests it creates,
+        // but it definitely needs to be elaborated such that only a single call is send and that call can start
+        // probably a higher than default bottom threshold so the additional posts are closer to already
+        // there by the time the user gets to the bottom bottom. All pretty to easy to fix, and should make
+        // our infinite scroll smoother than it is at the moment due to this hammer of requests.
         onEndReached={fetchMorePosts}
         ListHeaderComponent={
           <View>

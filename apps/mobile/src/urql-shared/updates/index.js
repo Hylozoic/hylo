@@ -1,4 +1,3 @@
-import reactOn from './reactOn'
 import createComment from './createComment'
 import meCheckAuthQuery from 'graphql/queries/meCheckAuthQuery'
 
@@ -21,9 +20,6 @@ export default {
         const postId = args?.data?.postId
         cache.invalidate({ __typename: 'Post', id: postId })
       }
-    },
-    createMessage: (result, args, cache, info) => {
-      cache.invalidate({ __typename: 'MessageThread', id: args.data.messageThreadId })
     },
     deleteComment: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
@@ -55,7 +51,6 @@ export default {
         cache.updateQuery({ query: meCheckAuthQuery }, data => ({ me: null }))
       }
     },
-    reactOn,
     recordClickthrough: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         const postId = args?.postId
@@ -72,7 +67,11 @@ export default {
     },
     pinPost: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
-        cache.invalidate({ __typename: 'Post', id: args.postId })
+        // Any Post invalidation will result in the full Group/Stream query being re-fetched.
+        // That is probably entirely ok, but there are several ways to do better. One way we could
+        // potentially solve this is by creating a singular post resolver so URQL knows how to manage
+        // this better. Still researching here and around...
+        cache.invalidate(cache.keyOfEntity({ __typename: 'Post', id: args.postId }), 'postMemberships')
       }
     },
     respondToEvent: (result, args, cache, info) => {
@@ -102,7 +101,9 @@ export default {
       switch (update?.__typename) {
         case 'Message': {
           console.log('!!!! updates TODO: new Message. Increment Messages tab badge', result, args)
-          cache.invalidate({ __typename: 'MessageThread', id: update?.messageThread?.id })
+          // TODO: URQL - This one may want an updater to keep from killing the cache with each message
+          // leaving the cache invalidation off for now.
+          // cache.invalidate({ __typename: 'MessageThread', id: update?.messageThread?.id })
           break
         }
         case 'MessageThread': {
