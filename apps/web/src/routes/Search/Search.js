@@ -78,7 +78,8 @@ export default function Search (props) {
   useEffect(() => {
     setHeaderDetails({
       title: t('Search'),
-      icon: 'Search'
+      icon: 'Search',
+      search: false
     })
   }, [])
 

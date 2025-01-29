@@ -274,7 +274,8 @@ export default function ChatRoom (props) {
     setHeaderDetails({
       title: `#${topicName}`,
       icon: 'Message',
-      info: ''
+      info: '',
+      search: true
     })
   }, [topicName])
 
