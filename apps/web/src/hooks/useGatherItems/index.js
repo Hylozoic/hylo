@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { fetchGroupMembers } from 'routes/Members/Members.store'
-import { wrapItemInWidget } from 'util/contextWidgets'
+import { wrapItemInWidget } from '@hylo/shared/src/ContextWidgetPresenter'
 
 // Different widgets have different sorts of children to display. This function ensures that they are always returned via a consistent interface.
 export default function useGatherItems ({ widget, groupSlug }) {
