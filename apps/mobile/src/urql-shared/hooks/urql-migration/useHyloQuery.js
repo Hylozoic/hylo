@@ -2,7 +2,7 @@ import { isString, isObject, isFunction } from 'lodash/fp'
 import { useState, useEffect, useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 import useDeepCompareMemoize from './useDeepCompareMemoize'
-import { fetchGraphqlActionCreator } from 'hooks/useGraphqlAction'
+import { fetchGraphqlActionCreator } from './useGraphqlAction'
 
 const usageError = new Error(
   'A value for either "query" or "action" is required'

@@ -1,6 +1,6 @@
 export default {
   // TODO: This doesn't end-up with an optimistic result that goes into the
-  // comment selections sets it should go into. Likely the reason is that 
+  // comment selections sets it should go into. Likely the reason is that
   // some part of the expected data for the comment is not being returned in
   // the optimistic response constructed below, and therefore results in a cache
   // miss and isn't added to the list until a fetch is complete (which the
