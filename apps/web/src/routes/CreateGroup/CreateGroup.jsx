@@ -85,6 +85,8 @@ function CreateGroup () {
     }
   })
 
+  const [isNameFocused, setIsNameFocused] = useState(false)
+
   // Refs
   const groupsSelector = useRef()
   const slugRef = useRef()
@@ -213,7 +215,7 @@ function CreateGroup () {
         <UploadAttachmentButton
           type='groupAvatar'
           onInitialUpload={({ url }) => updateField('avatarUrl')(url)}
-          className='relative -top-10 bg-background -mb-6 group'
+          className='relative -top-10 bg-midground -mb-6 group'
         >
           <div
             style={bgImageStyle(avatarUrl)}
@@ -227,7 +229,7 @@ function CreateGroup () {
           </div>
         </UploadAttachmentButton>
 
-        <div className='w-full bg-foreground/5 p-4 rounded-lg flex flex-col gap-2'>
+        <div className={cn('w-full bg-foreground/5 p-4 rounded-lg flex flex-col gap-2 border-2 border-focus/0 transition-all', {'border-2 border-focus': isNameFocused})}>
           <div className='flex items-center gap-2'>
             <input
               autoFocus
@@ -240,6 +242,8 @@ function CreateGroup () {
               maxLength='60'
               onKeyDown={onEnter(onSubmit)}
               id='groupName'
+              onFocus={() => setIsNameFocused(true)}
+              onBlur={() => setIsNameFocused(false)}
             />
             <label htmlFor='groupName' className=''>
               <SquarePen className='text-foreground inline w-4 h-4' />
@@ -250,7 +254,7 @@ function CreateGroup () {
 
           <div>
             <div className='flex items-center'>
-              <label htmlFor='groupSlug' className=''>
+              <label htmlFor='groupSlug' className='text-xs opacity-50'>
                 https://hylo.com/groups/
               </label>
               <input
@@ -259,7 +263,7 @@ function CreateGroup () {
                 onChange={updateField('slug')}
                 value={slug}
                 onClick={focusSlug}
-                className='text-xs border-none bg-transparent focus:outline-none flex-1'
+                className='text-xs border-none bg-transparent focus:outline-none flex-1 opacity-80'
                 onKeyDown={onEnter(onSubmit)}
                 maxLength='40'
                 ref={slugRef}
@@ -275,7 +279,7 @@ function CreateGroup () {
             value={visibility}
             onValueChange={(value) => updateField('visibility')(GROUP_VISIBILITY[value])}
           >
-            <SelectTrigger className='inline-flex'>
+            <SelectTrigger className='inline-flex border-0'>
               <SelectValue>
                 <Icon name={visibilityIcon(visibility)} className='mr-2' />
                 <span>{t(visibilityString(visibility))}</span>
@@ -298,7 +302,7 @@ function CreateGroup () {
             value={accessibility}
             onValueChange={(value) => updateField('accessibility')(GROUP_ACCESSIBILITY[value])}
           >
-            <SelectTrigger className='inline-flex'>
+            <SelectTrigger className='inline-flex border-0'>
               <SelectValue>
                 <Icon name={accessibilityIcon(accessibility)} className='mr-2' />
                 <span>{t(accessibilityString(accessibility))}</span>
