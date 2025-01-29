@@ -34,7 +34,7 @@ export default function GlobalNavItem ({
 
   return (
     <Tooltip>
-      <div className='mb-4'>
+      <div className='GlobalNavItem mb-4'>
         <TooltipTrigger asChild>
           <div
             onClick={handleClick}
