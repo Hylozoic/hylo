@@ -148,8 +148,8 @@ function RolesSettingsTab ({ group, commonRoles }) {
   return (
     <>
       <SettingsSection>
-        <h3>{t('Common Roles')}</h3>
-        <div className={styles.helpText}>{t('adminRolesHelpText')}</div>
+        <h2 className='text-foreground'>{t('Common Roles')}</h2>
+        <div className='text-foreground text-sm'>{t('adminRolesHelpText')}</div>
         {commonRoles.map((role, i) => (
           <RoleRow
             group={group}
@@ -224,7 +224,7 @@ function RoleRow ({
   const isDraftRole = active === ''
   const inactiveStyle = (!active && !isDraftRole && !isCommonRole) ? styles.inactive : ''
   return (
-    <div className={cn(styles.roleContainer, inactiveStyle)}>
+    <div className={cn('bg-foreground/5 rounded-lg my-4', inactiveStyle)}>
       {!isCommonRole &&
         <div className={styles.actionContainer}>
           {isDraftRole && (<span onClick={onDelete} className={styles.action}><Icon name='Trash' /> {t('Delete')}</span>)}
@@ -232,13 +232,13 @@ function RoleRow ({
           {!isDraftRole && changed && (<span className={styles.action} onClick={onReset}><Icon name='Back' /> {t('Revert')}</span>)}
           {!isDraftRole && !changed && (<span className={styles.action} onClick={onToggleActivation}><Icon name={active ? 'CircleEx' : 'CircleArrow'} /> {active ? t('Deactivate') : t('Reactivate')}</span>)}
         </div>}
-      <div className={styles.roleRow}>
-        <EmojiPicker forReactions={false} emoji={emoji} handleReaction={onChange('emoji')} className={styles.emojiPicker} />
-        <div className={styles.roleStack}>
-          <SettingsControl label='Name' controlClass={styles.settingsControl} onChange={onChange('name')} value={name} />
-          <SettingsControl label='Description' controlClass={styles.settingsControl} onChange={onChange('description')} value={description} type='textarea' />
+        <div className='flex flex-col relative w-full p-2'>
+          <EmojiPicker forReactions={false} emoji={emoji} handleReaction={onChange('emoji')} className='absolute top-[2.7rem] left-[1rem] w-[40px] h-[40px] bg-foreground/5 rounded flex items-center justify-center cursor-pointer hover:bg-foreground/10 hover:shadow-xl border-2 border-foreground/50 hover:border-foreground/100 transition-all' />
+          <SettingsControl label='Name & Badge' onChange={onChange('name')} value={name} inputStyle={{paddingLeft: '3.5rem'}}/>
         </div>
-      </div>
+        <div className='p-2'>
+          <SettingsControl label='Description' onChange={onChange('description')} value={description} type='textarea' />
+        </div>
       {
         isDraftRole
           ? (
@@ -247,7 +247,6 @@ function RoleRow ({
             </div>
             )
           : (active || isCommonRole) && (
-            <SettingsSection>
               <RoleList
                 {...{ addRoleToMember, suggestions, clearStewardSuggestions, fetchMembersForGroupRole, fetchMembersForCommonRole, fetchStewardSuggestions, removeRoleFromMember, active }}
                 key='grList'
@@ -257,7 +256,6 @@ function RoleRow ({
                 t={t}
                 slug={group.slug}
               />
-            </SettingsSection>
             )
       }
     </div>

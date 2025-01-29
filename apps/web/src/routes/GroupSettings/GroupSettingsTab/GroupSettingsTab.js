@@ -7,7 +7,7 @@ import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
-import { ImageUp } from 'lucide-react'
+import { ImageUp, Info, CircleFadingArrowUp } from 'lucide-react'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import EditableMap from 'components/Map/EditableMap/EditableMap'
 import EditableMapModal from 'components/Map/EditableMap/EditableMapModal'
@@ -204,9 +204,9 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
         <div className='mb-10'>
           <label className='w-full text-foreground/50 text-sm mb-2 block'>{t('Display location')}</label>
           <Dropdown
-            className={styles.locationObfuscationDropdown}
+            className='bg-black/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2 text-base'
             toggleChildren={(
-              <span className={styles.locationObfuscationDropdownLabel}>
+              <span className='text-base w-full flex justify-between'>
                 {LOCATION_PRECISION[locationDisplayPrecision || 'precise']}
                 <Icon name='ArrowDown' />
               </span>
@@ -216,7 +216,10 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
               onClick: () => updateSettingDirectly('settings.locationDisplayPrecision')(value)
             }))}
           />
-          <p className='text-sm'>{t('Note: Administrators will always see exact location')}</p>
+          <p className='text-sm opacity-50 flex items-center'>
+            <Info className='h-[16px]' />
+            {t('Administrators will always see exact location')}
+          </p>
         </div>
         <SettingsControl
         label={t('Define your regional boundary')}
@@ -290,9 +293,15 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           </div>
         </div>
       </SettingsSection>
-
-      <Button label='Transition to new menu' onClick={transitionGroupToNewMenu} />
-
+      <SettingsSection>
+        <h3 className='text-foreground text-xl mb-4 mt-0'>{t('New group menu interface')}</h3>
+        <p>The new group menu is faster, easier to use and more customizable.</p>
+          
+          <Button className='flex items-center p-2 rounded-lg justify-center m-8' onClick={transitionGroupToNewMenu}>
+            <CircleFadingArrowUp className='h-[20px]'/>
+            <span>Upgrade this group's menu</span>
+          </Button>
+      </SettingsSection>
       <div className={cn(
         'sticky bottom-4 left-[50%] translate-x-[-50%] w-[60%] bg-background/80 rounded-xl p-4 flex justify-between items-center translate-y-[200px] transition-all opacity-0 scale-0',
         {
@@ -300,7 +309,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
         }
       )}>
         <span className={saveButtonContent().style}>{saveButtonContent().text}</span>
-        <button onClick={changed && !error ? save : null} className='bg-foreground rounded text-background px-2 text-bold'>
+        <button onClick={changed && !error ? save : null} className='bg-foreground rounded text-background py-1 px-2 text-bold'>
           {t('Save Changes')}
         </button>
       </div>

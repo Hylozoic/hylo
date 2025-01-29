@@ -316,7 +316,7 @@ export default function ContextMenu (props) {
           {(!isMyContext && !isPublic && !isAllContext) && (
             <div className='px-2 w-full mb-[0.05em] mt-6'>
               <ContextMenuItem
-                widget={{ title: 'widget-all', type: 'all-views', view: 'all-views', childWidgets: [] }}
+                widget={{ title: t('widget-all'), type: 'all-views', view: 'all-views', childWidgets: [] }}
                 groupSlug={routeParams.groupSlug}
                 rootPath={rootPath}
                 canAdminister={canAdminister}
@@ -458,7 +458,9 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {widget.type !== 'members' &&
-                <div className='flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground'>
+                <div className={cn('flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground', {
+                  'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditting
+                })}>
                   <SpecialTopElementRenderer widget={widget} group={group} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
