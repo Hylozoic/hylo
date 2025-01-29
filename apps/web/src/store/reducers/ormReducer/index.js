@@ -407,7 +407,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case FETCH_POSTS_PENDING: {
       // When looking at group for first time, immediately set lastViewedAt so we know first view has happened
-      // This is so that we can go to /explore page on first view then every time after go to regular home page
+      // This is so that we can go to special welcome page/post on first view then every time after go to regular home page
       if (meta.slug) {
         group = Group.safeGet({ slug: meta.slug })
         me = Me.first()

@@ -1,5 +1,5 @@
 import RedisClient from './RedisClient'
-import { createPubSub } from '@graphql-yoga/common'
+import { createPubSub } from 'graphql-yoga'
 import { createRedisEventTarget } from '@graphql-yoga/redis-event-target'
 
 // https://the-guild.dev/graphql/yoga-server/v2/features/subscriptions#distributed-pubsub-for-production

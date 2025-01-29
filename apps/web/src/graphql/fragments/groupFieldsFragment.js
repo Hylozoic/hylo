@@ -6,6 +6,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   bannerUrl
   description
   geoShape
+  invitePath
   location
   memberCount
   stewardDescriptor

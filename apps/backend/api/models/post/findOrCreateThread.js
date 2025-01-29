@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { pick } from 'lodash'
 import { uniq } from 'lodash/fp'
 import { personFilter } from '../../graphql/filters'
@@ -35,12 +35,12 @@ export async function validateThreadData (userId, participantIds) {
   }
 
   if (!(participantIds && participantIds.length)) {
-    throw new GraphQLYogaError("participantIds can't be empty")
+    throw new GraphQLError("participantIds can't be empty")
   }
   const validParticipantIds = await personFilter(userId)(User.where('id', 'in', participantIds)).fetchAll()
 
   if (validParticipantIds.length !== participantIds.length) {
-    throw new GraphQLYogaError("Cannot message a participant who doesn't share a group")
+    throw new GraphQLError("Cannot message a participant who doesn't share a group")
   }
   return true
 }

@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
 import { isEqual } from 'lodash'
@@ -9,11 +9,11 @@ import {
 } from './util'
 
 export default function updatePost (userId, id, params) {
-  if (!id) throw new GraphQLYogaError('updatePost called with no ID')
+  if (!id) throw new GraphQLError('updatePost called with no ID')
   return setupPostAttrs(userId, params)
     .then(attrs => bookshelf.transaction(transacting =>
       Post.find(id).then(post => {
-        if (!post) throw new GraphQLYogaError('Post not found')
+        if (!post) throw new GraphQLError('Post not found')
         const updatableTypes = [
           Post.Type.CHAT,
           Post.Type.DISCUSSION,
@@ -25,7 +25,7 @@ export default function updatePost (userId, id, params) {
           Post.Type.RESOURCE
         ]
         if (!updatableTypes.includes(post.get('type'))) {
-          throw new GraphQLYogaError("This post can't be modified")
+          throw new GraphQLError("This post can't be modified")
         }
 
         if (!isEqual(post.details(), params.description) || !isEqual(post.title(), params.name)) {

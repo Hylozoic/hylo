@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { es } from '../../../lib/i18n/es'
 import { en } from '../../../lib/i18n/en'
 import InvitationService from '../../services/InvitationService'
@@ -11,11 +11,11 @@ export async function createInvitation (userId, groupId, data) {
   const locale = user.getLocale()
   return GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADD_MEMBERS)
     .then(ok => {
-      if (!ok) throw new GraphQLYogaError("You don't have permission to create an invitation for this group")
+      if (!ok) throw new GraphQLError("You don't have permission to create an invitation for this group")
     })
     .then(() => Group.find(groupId))
     .then((group) => {
-      if (!group) throw new GraphQLYogaError('Cannot find group to send invites for')
+      if (!group) throw new GraphQLError('Cannot find group to send invites for')
       return InvitationService.create({
         sessionUserId: userId,
         groupId,
@@ -31,7 +31,7 @@ export async function createInvitation (userId, groupId, data) {
 export function expireInvitation (userId, invitationId) {
   return InvitationService.checkPermission(userId, invitationId)
     .then(ok => {
-      if (!ok) throw new GraphQLYogaError("You don't have permission to modify this invitation")
+      if (!ok) throw new GraphQLError("You don't have permission to modify this invitation")
     })
     .then(() => InvitationService.expire(userId, invitationId))
     .then(() => ({ success: true }))
@@ -40,7 +40,7 @@ export function expireInvitation (userId, invitationId) {
 export function resendInvitation (userId, invitationId) {
   return InvitationService.checkPermission(userId, invitationId)
     .then(ok => {
-      if (!ok) throw new GraphQLYogaError("You don't have permission to modify this invitation")
+      if (!ok) throw new GraphQLError("You don't have permission to modify this invitation")
     })
     .then(() => InvitationService.resend(invitationId))
     .then(() => ({ success: true }))
@@ -50,7 +50,7 @@ export async function reinviteAll (userId, groupId) {
   const group = await Group.find(groupId)
   return GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADD_MEMBERS)
     .then(ok => {
-      if (!ok) throw new GraphQLYogaError("You don't have permission to modify this invitation")
+      if (!ok) throw new GraphQLError("You don't have permission to modify this invitation")
     })
     .then(() => InvitationService.reinviteAll({ sessionUserId: userId, groupId }))
     .then(() => ({ success: true }))
