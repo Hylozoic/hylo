@@ -16,8 +16,7 @@ export default function createComment (result, args, cache) {
         const items = cache.resolve(commentsKey, 'items') || []
         const newCommentKey = cache.keyOfEntity(newComment)
 
-        // Append the new comment to the items array
-        const updatedItems = [...items, newCommentKey]
+        const updatedItems = [newCommentKey, ...items]
 
         // Link the updated items array back to the comments field
         cache.link(commentsKey, 'items', updatedItems)
