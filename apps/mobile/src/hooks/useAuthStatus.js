@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useClient, useQuery } from 'urql'
+import { useQuery } from 'urql'
 import meCheckAuthQuery from 'graphql/queries/meCheckAuthQuery'
 
 /*
