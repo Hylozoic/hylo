@@ -316,7 +316,7 @@ export default function ContextMenu (props) {
           {(!isMyContext && !isPublic && !isAllContext) && (
             <div className='px-2 w-full mb-[0.05em] mt-6'>
               <ContextMenuItem
-                widget={{ title: 'widget-all', type: 'all-views', view: 'all-views', childWidgets: [] }}
+                widget={{ title: t('widget-all'), type: 'all-views', view: 'all-views', childWidgets: [] }}
                 groupSlug={routeParams.groupSlug}
                 rootPath={rootPath}
                 canAdminister={canAdminister}
