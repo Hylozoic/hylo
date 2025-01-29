@@ -1,5 +1,5 @@
 import { connect } from 'react-redux'
-import { origin } from 'util/navigation'
+import { groupInviteUrl } from 'util/navigation'
 import { regenerateAccessCode, FETCH_GROUP_SETTINGS } from '../GroupSettings.store'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import {
@@ -14,7 +14,7 @@ import {
 export function mapStateToProps (state, props) {
   const { group } = props
   const pending = state.pending[FETCH_GROUP_SETTINGS]
-  const inviteLink = origin() + group.invitePath
+  const inviteLink = groupInviteUrl(group)
   const pendingInvites = getPendingInvites(state, { groupId: group.id })
 
   return {

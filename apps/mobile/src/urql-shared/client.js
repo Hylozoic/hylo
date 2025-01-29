@@ -3,13 +3,14 @@ import { cacheExchange } from '@urql/exchange-graphcache'
 import { devtoolsExchange } from '@urql/devtools'
 import apiHost from 'util/apiHost'
 import { setSessionCookie } from 'util/session'
+import mobileSubscriptionExchange from './mobileSubscriptionExchange'
 import keys from './keys'
 import resolvers from './resolvers'
 import optimistic from './optimistic'
 import updates from './updates'
 import directives from './directives'
 
-const GRAPHQL_ENDPOINT_URL = `${apiHost}/noo/graphql`
+export const GRAPHQL_ENDPOINT_URL = `${apiHost}/noo/graphql`
 
 const cache = cacheExchange({
   keys,
@@ -23,7 +24,8 @@ const client = createClient({
   exchanges: [
     devtoolsExchange,
     cache,
-    fetchExchange
+    fetchExchange,
+    mobileSubscriptionExchange
   ],
   fetch: async (...args) => {
     const response = await fetch(...args)
@@ -35,6 +37,7 @@ const client = createClient({
 
     return response
   },
+  // Note: This didn't seem to change anything and can probably be removed
   fetchOptions: { credentials: 'include' },
   url: GRAPHQL_ENDPOINT_URL
 })

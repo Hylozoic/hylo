@@ -40,6 +40,7 @@ export default function groupQueryFragment () {
     }
     description
     geoShape
+    invitePath
     location
     memberCount
     stewardDescriptor
@@ -300,6 +301,7 @@ export default function groupQueryFragment () {
     contextWidgets {
       items {
         id
+        autoAdded
         title
         type
         order

@@ -1,13 +1,13 @@
-export function reorderTree ({ priorWidgetState = {}, newWidgetPosition, allWidgets }) {
+export function reorderTree ({ widgetToBeMovedId, newWidgetPosition, allWidgets }) {
   // Remove the old widget position
-  const oldWidgetDetails = allWidgets.find(widget => widget.id === priorWidgetState?.id)
-  // TODO CONTEXT: are oldWidgetDetails and priorWidgetState the same? Refractor this?
-  let updatedWidgets = allWidgets.filter(widget => widget.id !== priorWidgetState?.id)
+  const oldWidgetDetails = allWidgets.find(widget => widget.id === widgetToBeMovedId)
+
+  let updatedWidgets = allWidgets.filter(widget => widget.id !== widgetToBeMovedId)
   let replacedWidget
   let oldPeers = []
   // Get the peers of the widget being moved
-  if (priorWidgetState.order) {
-    oldPeers = settle(getPeers(updatedWidgets, priorWidgetState))
+  if (oldWidgetDetails.order) {
+    oldPeers = settle(getPeers(updatedWidgets, oldWidgetDetails))
   }
   updatedWidgets = updatedWidgets.map(widget => {
     const settledPeer = oldPeers.find(peer => peer.id === widget.id)
@@ -67,7 +67,7 @@ function findHomeChild (widgets) {
 // TODO CONTEXT: add this to /shared
 export function replaceHomeWidget ({ widgets, newHomeWidgetId }) {
   const { homeChild, homeParentId } = findHomeChild(widgets)
-  const priorWidgetState = widgets.find(widget => widget.id === newHomeWidgetId)
+  const widgetToBeMoved = widgets.find(widget => widget.id === newHomeWidgetId)
   let updatedWidgets = widgets.filter(widget => {
     if (widget.id === newHomeWidgetId) return false
     if (homeChild && widget.id === homeChild.id) return false
@@ -76,8 +76,8 @@ export function replaceHomeWidget ({ widgets, newHomeWidgetId }) {
 
   let oldPeers = []
   // Get the peers of the widget being moved, and settle them
-  if (priorWidgetState.order) {
-    oldPeers = settle(getPeers(updatedWidgets, priorWidgetState))
+  if (widgetToBeMoved.order) {
+    oldPeers = settle(getPeers(updatedWidgets, widgetToBeMoved))
   }
 
   updatedWidgets = updatedWidgets.map(widget => {
@@ -110,7 +110,7 @@ export function replaceHomeWidget ({ widgets, newHomeWidgetId }) {
   }
 
   updatedWidgets.push({
-    ...priorWidgetState,
+    ...widgetToBeMoved,
     order: 1,
     parentId: homeParentId
   })

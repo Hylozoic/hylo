@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Text, TouchableOpacity, View } from 'react-native'
+import { Text, TouchableOpacity, View, StyleSheet } from 'react-native'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import { firstName } from 'urql-shared/presenters/PersonPresenter'
 import Avatar from 'components/Avatar'
@@ -60,7 +60,7 @@ export function participantNamesSummary (names, t) {
   return `${names[0]} & ${names.length - 1} ${t('others')}`
 }
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -77,4 +77,4 @@ const styles = {
     fontSize: 18,
     fontFamily: 'Circular-Bold'
   }
-}
+})

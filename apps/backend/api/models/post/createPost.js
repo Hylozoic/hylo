@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { flatten, merge, pick, uniq } from 'lodash'
 import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
@@ -80,11 +80,11 @@ export function afterCreatingPost (post, opts) {
     .then(() => post.isProposal() && post.setProposalOptions({ options: opts.proposalOptions || [], userId, opts: trxOpts }))
     .then(() => Tag.updateForPost(post, opts.topicNames, userId, trx))
     .then(() => updateTagsAndGroups(post, opts.localId, trx))
-    .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.type, location_id: post.location_id }, groupIds: opts.group_ids }))
+    .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.get('type'), location_id: post.get('location_id') }, groupIds: opts.group_ids }))
     .then(() => Queue.classMethod('Post', 'createActivities', { postId: post.id }))
     .then(() => Queue.classMethod('Post', 'notifySlack', { postId: post.id }))
     .then(() => Queue.classMethod('Post', 'zapierTriggers', { postId: post.id }))
-    .catch((err) => { throw new GraphQLYogaError(`afterCreatingPost failed: ${err}`) })
+    .catch((err) => { throw new GraphQLError(`afterCreatingPost failed: ${err}`) })
 }
 
 async function updateTagsAndGroups (post, localId, trx) {

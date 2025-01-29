@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { countTotal } from '../../../lib/util/knex'
 import { snakeCase } from 'lodash'
 
@@ -8,7 +8,7 @@ export default function applyPagination (query, tableName, opts) {
   const { first, cursor, order, offset, sortBy = 'id' } = opts
 
   if (cursor && sortBy !== 'id') {
-    throw new GraphQLYogaError('Specifying both cursor and sortBy is not supported.')
+    throw new GraphQLError('Specifying both cursor and sortBy is not supported.')
   }
 
   // skip special sorts

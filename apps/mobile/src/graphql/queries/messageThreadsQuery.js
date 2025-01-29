@@ -1,4 +1,5 @@
 import { gql } from 'urql'
+import messageThreadFieldsFragment from 'graphql/fragments/messageThreadFieldsFragment'
 
 export default gql` 
   query MessageThreadsQuery ($first: Int = 10, $offset: Int, $firstMessages: Int = 1) {
@@ -8,29 +9,10 @@ export default gql`
         total
         hasMore
         items {
-          id
-          unreadCount
-          lastReadAt
-          createdAt
-          updatedAt
-          participants {
-            id
-            name
-            avatarUrl
-          }
-          messages(first: $firstMessages, order: "desc") {
-            items {
-              id
-              createdAt
-              text
-              creator {
-                id
-                name
-              }
-            }
-          }
+          ...MessageThreadFieldsFragment
         }
       }
     }
   }
+  ${messageThreadFieldsFragment}
 `

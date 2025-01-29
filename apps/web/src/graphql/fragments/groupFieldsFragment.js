@@ -6,6 +6,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   bannerUrl
   description
   geoShape
+  invitePath
   location
   memberCount
   stewardDescriptor
@@ -219,6 +220,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
       contextWidgets {
         items {
           id
+          autoAdded
           title
           type
           order

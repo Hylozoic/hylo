@@ -306,6 +306,20 @@ type Query {
   ): TopicQuerySet
 }
 
+union Update = Notification | Message | MessageThread
+
+type Subscription {
+  # Pushes new comments on the comments key for the given postId or parentCommentId
+  comments(postId: ID, parentCommentId: ID): Comment,
+  # Pushes peopleTyping from peopleTyping mutation for given ID (currently also pushes WebSocket userTyping event)
+  peopleTyping(messageThreadId: ID, postId: ID, commentId: ID): Person
+  # Pushes new Notifications Messages or MessageThreads (see related union Type above and type resolver in graphql/index.js)
+  # in most cases this subscription will be used to indicate new activity in UI state (i.e. badges), but if enough data is
+  # requested in the subscription query it is also where new messages and messageThreads can be received in the UI. See
+  # example usage of this in Mobile.
+  updates: Update
+}
+
 # The meta data associated with an Activity
 type ActivityMeta {
   """
@@ -533,6 +547,8 @@ type CommonRole {
 # A ContextWidget for a Group
 type ContextWidget {
   id: ID
+  # Whether the widget has been editted or previously added to the menu
+  autoAdded: Boolean
   # The title of the widget
   title: String
   # The type of widget
@@ -2444,6 +2460,8 @@ type Mutation {
   messageGroupStewards(groupId: ID): ID
   # Pin a post within a Group. Only a group moderator can call this.
   pinPost(postId: ID, groupId: ID): GenericResult
+  # Called when typing in front end, matches with peopleTyping subscription
+  peopleTyping(messageThreadId: ID, postId: ID, commentId: ID): GenericResult,
   # NOT USED RIGHT NOW
   processStripeToken(postId: ID, token: String, amount: Int): GenericResult
   # react to a post or comment

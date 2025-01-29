@@ -1,4 +1,4 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import GroupService from '../../services/GroupService'
 import convertGraphqlData from './convertGraphqlData'
 import underlyingDeleteGroupTopic from '../../models/group/deleteGroupTopic'
@@ -7,12 +7,12 @@ import underlyingDeleteGroupTopic from '../../models/group/deleteGroupTopic'
 async function getStewardedGroup (userId, groupId, additionalResponsibility = '', opts = {}) {
   const group = await Group.find(groupId, opts)
   if (!group) {
-    throw new GraphQLYogaError('Group not found')
+    throw new GraphQLError('Group not found')
   }
 
   const isSteward = await GroupMembership.hasResponsibility(userId, group, additionalResponsibility, opts)
   if (!isSteward) {
-    throw new GraphQLYogaError("You don't have the right responsibilities for this group")
+    throw new GraphQLError("You don't have the right responsibilities for this group")
   }
 
   return group
@@ -64,25 +64,25 @@ export async function deleteGroupRelationship (userId, parentId, childId) {
     await groupRelationship.save({ active: false })
     return { success: true }
   }
-  throw new GraphQLYogaError("You don't have permission to do this")
+  throw new GraphQLError("You don't have permission to do this")
 }
 
 // Called when a user joins an open group
 export async function joinGroup (groupId, userId, questionAnswers) {
   const user = await User.find(userId)
-  if (!user) throw new GraphQLYogaError(`User id ${userId} not found`)
+  if (!user) throw new GraphQLError(`User id ${userId} not found`)
   const group = await Group.find(groupId)
-  if (!group) throw new GraphQLYogaError(`Group id ${groupId} not found`)
+  if (!group) throw new GraphQLError(`Group id ${groupId} not found`)
   // TODO: what about hidden groups? can you join them? for now we are going with yes if not closed
   if (group.get('accessibility') !== Group.Accessibility.OPEN) {
-    throw new GraphQLYogaError('You do not have permisson to do that')
+    throw new GraphQLError('You do not have permisson to do that')
   }
   // Make sure user is first a member of all prerequisite groups
   const prerequisiteGroups = await group.prerequisiteGroups().fetch()
   await Promise.map(prerequisiteGroups.models, async (prereq) => {
     const isMemberOfPrereq = await GroupMembership.forPair(userId, prereq.id).fetch()
     if (!isMemberOfPrereq) {
-      throw new GraphQLYogaError(`You must be a member of group ${prereq.get('name')} first`)
+      throw new GraphQLError(`You must be a member of group ${prereq.get('name')} first`)
     }
   })
   return user.joinGroup(group, { questionAnswers })
@@ -125,17 +125,17 @@ export async function updateGroup (userId, groupId, changes) {
 export async function inviteGroupToGroup (userId, fromId, toId, type, questionAnswers = [], opts = {}) {
   const toGroup = await Group.find(toId, opts)
   if (!toGroup) {
-    throw new GraphQLYogaError('Group not found')
+    throw new GraphQLError('Group not found')
   }
 
   if (!Object.values(GroupRelationshipInvite.TYPE).includes(type)) {
-    throw new GraphQLYogaError('Invalid group relationship type')
+    throw new GraphQLError('Invalid group relationship type')
   }
 
   const fromGroup = await getStewardedGroup(userId, fromId, Responsibility.constants.RESP_ADMINISTRATION, opts)
 
   if (await GroupRelationship.forPair(fromGroup, toGroup).fetch(opts)) {
-    throw new GraphQLYogaError('Groups are already related')
+    throw new GraphQLError('Groups are already related')
   }
 
   // If current user is an administrator of both the from group and the to group they can automatically join the groups together
@@ -177,10 +177,10 @@ export async function acceptGroupRelationshipInvite (userId, groupRelationshipIn
       return { success: !!groupRelationship, groupRelationship }
       
     } else {
-      throw new GraphQLYogaError('You do not have permission to do this')
+      throw new GraphQLError('You do not have permission to do this')
     }
   } else {
-    throw new GraphQLYogaError('Invalid parameters to accept invite')
+    throw new GraphQLError('Invalid parameters to accept invite')
   }
 }
 
@@ -190,10 +190,10 @@ export async function cancelGroupRelationshipInvite (userId, groupRelationshipIn
     if (GroupMembership.hasResponsibility(userId, invite.get('from_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
       return { success: await invite.cancel(userId) }
     } else {
-      throw new GraphQLYogaError('You do not have permission to do this')
+      throw new GraphQLError('You do not have permission to do this')
     }
   } else {
-    throw new GraphQLYogaError('Invalid parameters to cancel invite')
+    throw new GraphQLError('Invalid parameters to cancel invite')
   }
 }
 
@@ -203,10 +203,10 @@ export async function rejectGroupRelationshipInvite (userId, groupRelationshipIn
     if (GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
       return { success: await invite.reject(userId) }
     } else {
-      throw new GraphQLYogaError('You do not have permission to do this')
+      throw new GraphQLError('You do not have permission to do this')
     }
   } else {
-    throw new GraphQLYogaError('Invalid parameters to reject invite')
+    throw new GraphQLError('Invalid parameters to reject invite')
   }
 }
 

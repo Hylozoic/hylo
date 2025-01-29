@@ -79,7 +79,9 @@ export default function createProject (postParams) {
         eventName: AnalyticsEvents.POST_CREATED,
         detailsLength: TextHelpers.textLengthHTML(details),
         isAnnouncement: sendAnnouncement
-      }
+      },
+      postType: 'project',
+      groupIds
     }
   }
 }
