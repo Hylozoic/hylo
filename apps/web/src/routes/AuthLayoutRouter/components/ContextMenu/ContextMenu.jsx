@@ -458,7 +458,9 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {widget.type !== 'members' &&
-                <div className='flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground'>
+                <div className={cn('flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground', {
+                  'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditting
+                })}>
                   <SpecialTopElementRenderer widget={widget} group={group} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
