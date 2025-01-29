@@ -525,7 +525,7 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
     }
   }
   return (
-    <Popover >
+    <Popover>
       <PopoverTrigger asChild disabled={disabled}>
         <Button variant='outline' className={cn('w-full justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />

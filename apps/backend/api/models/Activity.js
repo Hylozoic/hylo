@@ -290,7 +290,12 @@ module.exports = bookshelf.Model.extend({
     const emailable = membershipsPermitting('sendEmail')
     const pushable = membershipsPermitting('sendPushNotifications')
 
-    const newPostsSetting = user.getSetting('post_notifications')
+    const newPostsSetting = relevantMemberships.reduce((acc, mem) => {
+      const setting = mem.getSetting('postNotifications')
+      if (setting === 'all') return 'all'
+      if (setting === 'important' && acc !== 'all') return 'important'
+      return acc
+    }, 'none')
 
     // Send notifications if not just about a new post, or notifications for all new posts are on, or notifications for important posts are on and its an announcement or mention
     const sendNotification = !isNewPost(activity) ||

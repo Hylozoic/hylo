@@ -156,7 +156,9 @@ export default function AllViews () {
   useEffect(() => {
     setHeaderDetails({
       title: t('All Views'),
-      icon: 'Window'
+      icon: 'Window',
+      info: '',
+      search: true
     })
   }, [])
 

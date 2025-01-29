@@ -10,7 +10,6 @@ export default gql`
       name
       settings {
         alreadySeenTour
-        digestFrequency
         dmNotifications
         commentNotifications
         locale

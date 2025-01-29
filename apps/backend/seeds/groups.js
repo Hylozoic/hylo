@@ -89,7 +89,7 @@ exports.seed = function (knex, Promise) {
     banner_url: 'https://d3ngex8q79bk55.cloudfront.net/misc/default_user_banner.jpg',
     extra_info: '[www.hylo.com](http://www.hylo.com/)',
     new_notification_count: 0,
-    settings: '{"locale": "en", "digest_frequency": "daily", "dm_notifications": "email", "post_notifications": "important", "comment_notifications": "email"}',
+    settings: '{"locale": "en", "dm_notifications": "email", "comment_notifications": "email"}',
     url: 'http://www.hylo.com/'
   }
 

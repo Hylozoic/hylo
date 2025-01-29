@@ -98,6 +98,10 @@ export function groupDetailUrl (slug, opts = {}, querystringParams = {}) {
   return addQuerystringToPath(result, querystringParams)
 }
 
+export function groupInviteUrl (group) {
+  return group.invitePath ? origin() + group.invitePath : ''
+}
+
 // Post URLS
 export function postUrl (id, opts = {}, querystringParams = {}) {
   const action = get('action', opts)

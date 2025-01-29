@@ -55,10 +55,8 @@ export default gql`
     }
     settings {
       alreadySeenTour
-      digestFrequency
       dmNotifications
       commentNotifications
-      postNotifications
       locale
       mapBaseLayer
       signupInProgress
@@ -116,7 +114,9 @@ export default gql`
       }
       settings {
         agreementsAcceptedAt
+        digestFrequency
         joinQuestionsAnsweredAt
+        postNotifications
         sendEmail
         sendPushNotifications
         showJoinForm

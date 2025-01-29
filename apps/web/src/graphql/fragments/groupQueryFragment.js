@@ -40,6 +40,7 @@ export default function groupQueryFragment () {
     }
     description
     geoShape
+    invitePath
     location
     memberCount
     stewardDescriptor

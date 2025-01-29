@@ -114,7 +114,9 @@ export function createGroup (data) {
               }
               settings {
                 agreementsAcceptedAt
+                digestFrequency
                 joinQuestionsAnsweredAt
+                postNotifications
                 sendEmail
                 showJoinForm
                 sendPushNotifications

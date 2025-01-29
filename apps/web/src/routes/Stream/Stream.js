@@ -285,7 +285,8 @@ export default function Stream (props) {
     setHeaderDetails({
       title: name,
       icon,
-      info
+      info,
+      search: true
     })
   }, [name, icon, info])
 

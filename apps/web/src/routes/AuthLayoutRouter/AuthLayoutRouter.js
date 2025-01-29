@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { matchPath, Route, Routes, Navigate, useLocation } from 'react-router-dom'
+import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
@@ -71,7 +71,7 @@ import isWebView from 'util/webView'
 export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
   const { width } = useResizeDetector({ handleHeight: false, targetRef: resizeRef })
-
+  const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
 
@@ -229,6 +229,15 @@ export default function AuthLayoutRouter (props) {
     return <Navigate to={postUrl(paramPostId, { context: 'all', groupSlug: null })} />
   }
 
+  /* First time viewing a group redirect to home chat */
+  // XXX: this is a hack, figure out better way to do this
+  if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
+    currentGroupMembership.update({ lastViewedAt: (new Date()).toISOString() })
+    setTimeout(() => {
+      navigate(`/groups/${currentGroupSlug}/chat/general`, { replace: true })
+    }, 100)
+  }
+
   if (currentGroupSlug && !currentGroup && !currentGroupLoading) {
     return <NotFound />
   }
@@ -251,13 +260,9 @@ export default function AuthLayoutRouter (props) {
         <Route path='public/settings' element={<Navigate to='/public' replace />} />
         <Route path='all/members' element={<Navigate to='/all' replace />} />
         <Route path='all/settings' element={<Navigate to='/all' replace />} />
-        {/* Redirect manage notifications page to settings page when logged in */}
-        <Route path='notifications)' element={<Navigate to='/settings/notifications' replace />} />
 
-        {/* First time viewing a group redirect to explore page */}
-        {currentGroupMembership && !get('lastViewedAt', currentGroupMembership) && (
-          <Route path='groups/:groupSlug' element={<Navigate to={`/groups/${currentGroupSlug}/explore`} replace />} />
-        )}
+        {/* Redirect manage notifications page to settings page when logged in */}
+        <Route path='notifications' element={<Navigate to='/my/notifications' replace />} />
 
         {!isWebView() && (
           <>
@@ -407,6 +412,7 @@ export default function AuthLayoutRouter (props) {
                   {/* Keep old settings paths for mobile */}
                   <Route path='settings/*' element={<UserSettings />} />
                   <Route path='search' element={<Search />} />
+                  <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
                   {/* **** Default Route (404) **** */}
                   <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />
                 </Routes>

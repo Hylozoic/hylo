@@ -65,7 +65,7 @@ function Groups () {
     setHeaderDetails({
       title: t('Groups'),
       icon: 'Groups',
-      info: ''
+      search: true
     })
   }, [])
 

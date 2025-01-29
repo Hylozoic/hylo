@@ -5,19 +5,19 @@ import { get, pick, some } from 'lodash/fp'
 export const defaultTimezone = 'America/Los_Angeles'
 
 export const defaultTimeRange = type => {
-  const today = DateTime.now().setZone(defaultTimezone).startOf('day').plus({hours: 12})
+  const today = DateTime.now().setZone(defaultTimezone).startOf('day').plus({ hours: 19 })
   switch (type) {
     case 'daily':
-      return [today.minus({day: 1}), today]
+      return [today.minus({ day: 1 }), today]
     case 'weekly':
-      return [today.minus({day: 7}), today]
+      return [today.minus({ day: 7 }), today]
   }
 }
 
 export const isValidPostType = q =>
   q.where(function () {
     this.whereNotIn('posts.type', ['welcome'])
-    .orWhere('posts.type', null)
+      .orWhere('posts.type', null)
   })
 
 export const relatedUserColumns = (relationName = 'user') => ({
@@ -66,8 +66,8 @@ export async function getRecipients (groupId, type) {
 
   const group = await Group.find(groupId)
   const recipients = await group.members().query(q => {
-    q.whereRaw(`users.settings->>'digest_frequency' = '${type}'`)
-    q.whereRaw(`(group_memberships.settings->>'sendEmail')::boolean = true`)
+    q.whereRaw(`group_memberships.settings->>'digestFrequency' = '${type}'`)
+    q.whereRaw('(group_memberships.settings->>\'sendEmail\')::boolean = true')
   }).fetch().then(get('models'))
 
   return recipients

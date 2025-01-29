@@ -7,7 +7,8 @@ export const ViewHeaderProvider = ({ children }) => {
     backButton: false,
     icon: '',
     info: '',
-    title: ''
+    title: '',
+    search: false
   })
 
   return (

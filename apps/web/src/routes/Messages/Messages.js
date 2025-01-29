@@ -157,7 +157,7 @@ const Messages = () => {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({ title: forNewThread ? t('New Message') : t('Messages'), icon: 'Messages' })
+    setHeaderDetails({ title: forNewThread ? t('New Message') : t('Messages'), icon: 'Messages', search: false })
   }, [forNewThread])
 
   return (
