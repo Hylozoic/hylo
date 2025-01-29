@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentGroup from 'urql-shared/hooks/useCurrentGroup'
 import useOpenURL from 'hooks/useOpenURL'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'

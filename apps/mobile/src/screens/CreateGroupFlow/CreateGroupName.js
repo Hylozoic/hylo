@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useFocusEffect } from '@react-navigation/native'
 import { Text, View, ScrollView, TextInput } from 'react-native'
-import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentGroup from 'urql-shared/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import {
   getGroupData, getEdited, updateGroupData, setWorkflowOptions,

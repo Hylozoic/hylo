@@ -7,7 +7,7 @@ import ForgotPassword from 'screens/ForgotPassword'
 import SignupNavigator from 'navigation/SignupNavigator'
 import { useNavigation } from '@react-navigation/native'
 import { white } from 'style/colors'
-import useAuthStatus from 'hooks/useAuthStatus'
+import useAuthStatus from 'urql-shared/hooks/useAuthStatus'
 
 const NonAuthRoot = createStackNavigator()
 export default function NonAuthRootNavigator () {

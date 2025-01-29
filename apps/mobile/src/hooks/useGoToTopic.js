@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native'
 import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
-import { useCurrentGroupSlug } from 'hooks/useCurrentGroup'
+import { useCurrentGroupSlug } from 'urql-shared/hooks/useCurrentGroup'
 import useIsModalScreen from './useIsModalScreen'
 
 export default function useGoToTopic () {

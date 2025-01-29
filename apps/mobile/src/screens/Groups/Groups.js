@@ -10,8 +10,8 @@ import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import styles from './Groups.styles'
 import { useTranslation } from 'react-i18next'
-import useCurrentUser from 'hooks/useCurrentUser'
-import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentGroup from 'urql-shared/hooks/useCurrentGroup'
 
 // Note: The most reliable query here for getting memberCount
 // was on `me.memberships`. `group(id: x)` nor `groups(groupIds: [x])

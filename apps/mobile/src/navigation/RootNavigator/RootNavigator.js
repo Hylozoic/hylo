@@ -9,7 +9,7 @@ import customLinking, {
   AUTH_ROOT_SCREEN_NAME,
   NON_AUTH_ROOT_SCREEN_NAME
 } from 'navigation/linking'
-import useAuthStatus from 'hooks/useAuthStatus'
+import useAuthStatus from 'urql-shared/hooks/useAuthStatus'
 import { openURL } from 'hooks/useOpenURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import JoinGroup from 'screens/JoinGroup'

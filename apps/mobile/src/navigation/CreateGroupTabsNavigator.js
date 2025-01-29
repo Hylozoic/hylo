@@ -12,7 +12,7 @@ import CreateGroupPurpose from 'screens/CreateGroupFlow/CreateGroupPurpose'
 import CreateGroupParentGroups from 'screens/CreateGroupFlow/CreateGroupParentGroups'
 import CreateGroupReview from 'screens/CreateGroupFlow/CreateGroupReview'
 import { white20onCaribbeanGreen } from 'style/colors'
-import useCurrentUser from 'hooks/useCurrentUser'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 
 const CreateGroupTabs = createBottomTabNavigator()
 

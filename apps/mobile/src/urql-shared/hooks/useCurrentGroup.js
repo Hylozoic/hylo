@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { useMemo } from 'react'
 import { useQuery } from 'urql'
-import useCurrentUser from 'hooks/useCurrentUser'
+import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
 import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
 import GroupPresenter, { getContextGroup, isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 

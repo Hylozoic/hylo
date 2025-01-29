@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import { Text, View, ScrollView, TextInput } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import useRouteParams from 'hooks/useRouteParams'
-import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentGroup from 'urql-shared/hooks/useCurrentGroup'
 import {
   getGroupData, getEdited, updateGroupData, setWorkflowOptions,
   clearCreateGroupStore

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
-import useAuthStatus from 'hooks/useAuthStatus'
+import useAuthStatus from 'urql-shared/hooks/useAuthStatus'
 import loginByToken from 'store/actions/loginByToken'
 import loginByJWT from 'store/actions/loginByJWT'
 import { openURL } from 'hooks/useOpenURL'
