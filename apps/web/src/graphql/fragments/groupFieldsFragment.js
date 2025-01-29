@@ -219,6 +219,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
       contextWidgets {
         items {
           id
+          autoAdded
           title
           type
           order
