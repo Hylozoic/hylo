@@ -211,7 +211,7 @@ module.exports = bookshelf.Model.extend({
         }))
 
       // Get widgets that need order updates (all peers with higher order)
-      const reorderedWidgets = reorderTree({priorWidgetState: removedWidget, newWidgetPosition: {remove: true}, allWidgets})
+      const reorderedWidgets = reorderTree({widgetToBeMovedId: removedWidget.get('id'), newWidgetPosition: {remove: true}, allWidgets})
       if (reorderedWidgets.length > 0) {
         // Update all affected widgets in a single query
         const query = `
@@ -246,12 +246,6 @@ module.exports = bookshelf.Model.extend({
       const movedWidget = await ContextWidget.where({ id }).fetch({ transacting: trx })
       if (!movedWidget) throw new Error('Context widget not found')
 
-      const priorWidgetState = {
-        id: movedWidget.get('id'),
-        parentId: movedWidget.get('parent_id'),
-        order: movedWidget.get('order')
-      }
-
       // Fetch all widgets for the group
       const allWidgets = await ContextWidget.findForGroup(movedWidget.get('group_id'), { transacting: trx })
         .map(widget => ({
@@ -264,7 +258,7 @@ module.exports = bookshelf.Model.extend({
       const newWidgetPosition = { id, addToEnd, orderInFrontOfWidgetId, parentId }
 
       // Reorder the widgets
-      const reorderedWidgets = reorderTree({priorWidgetState, newWidgetPosition, allWidgets})
+      const reorderedWidgets = reorderTree({widgetToBeMovedId: movedWidget.get('id'), newWidgetPosition, allWidgets})
 
       // Update all affected widgets in a single query
       const query = `
