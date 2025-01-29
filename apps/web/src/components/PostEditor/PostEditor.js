@@ -522,8 +522,9 @@ function PostEditor ({
       type
     }
 
+    const saveFunc = isEditing ? updatePost : createPost
     setAnnouncementSelected(false)
-
+    await dispatch(saveFunc(postToSave))
     onClose()
   }, [currentPost, isEditing, onClose])
 
