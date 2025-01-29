@@ -144,7 +144,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
   const { locationDisplayPrecision, showSuggestedSkills } = settings
   const editableMapLocation = group?.locationObject || currentUser.locationObject
 
-  t('Display exact location')
+  t('Show my groups exact location')
   t('Display only nearest city and show nearby location on the map')
   t('Display only nearest city and dont show on the map')
 
@@ -192,100 +192,106 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
       />
       <SettingsControl label={t('Description')} onChange={updateSetting('description')} value={description} type='textarea' id='descriptionField' />
       <SettingsControl label={t('About Video URL')} onChange={updateSetting('aboutVideoUri')} value={aboutVideoUri} />
-      <SettingsControl
-        label={t('Location')}
-        onChange={updateSettingDirectly('location', true)}
-        location={location}
-        locationObject={group.locationObject}
-        type='location'
-      />
-      <label className={styles.label}>{t('Location Privacy:')}</label>
-      <Dropdown
-        className={styles.locationObfuscationDropdown}
-        toggleChildren={(
-          <span className={styles.locationObfuscationDropdownLabel}>
-            {LOCATION_PRECISION[locationDisplayPrecision || 'precise']}
-            <Icon name='ArrowDown' />
-          </span>
-        )}
-        items={Object.keys(LOCATION_PRECISION).map(value => ({
-          label: t(LOCATION_PRECISION[value]),
-          onClick: () => updateSettingDirectly('settings.locationDisplayPrecision')(value)
-        }))}
-      />
-      <p className={general.detailText}>{t('Note: with Administration rights you will always see the exact location displayed')}</p>
-      <br />
-
-      <SettingsControl
-        label={t('Word used to describe a group Steward')}
-        onChange={updateSetting('stewardDescriptor')}
-        value={stewardDescriptor}
-      />
-
-      <SettingsControl
-        label={t('Plural word used to describe group Stewards')}
-        onChange={updateSetting('stewardDescriptorPlural')}
-        value={stewardDescriptorPlural}
-      />
-
-      <br />
-
       <SettingsSection>
-        <h3>{t('Relevant skills & interests')}</h3>
-        <p className={general.detailText}>{t('What skills and interests are particularly relevant to this group?')}</p>
-        <div className={cn(styles.skillsSetting, { [general.on]: showSuggestedSkills })}>
-          <div className={general.switchContainer}>
-            <SwitchStyled
-              checked={showSuggestedSkills}
-              onChange={() => updateSettingDirectly('settings.showSuggestedSkills')(!showSuggestedSkills)}
-              backgroundColor={showSuggestedSkills ? '#0DC39F' : '#8B96A4'}
-            />
-            <span className={general.toggleDescription}>{t('Ask new members whether they have these skills and interests?')}</span>
-            <div className={general.onOff}>
-              <div className={general.off}>{t('OFF')}</div>
-              <div className={general.on}>{t('ON')}</div>
-            </div>
-          </div>
-        </div>
-        <SkillsSection
-          group={group}
-          label={t('Add a relevant skill or interest')}
-          placeholder={t('What skills and interests are most relevant to your group?')}
+        <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Location Settings')}</h3>
+        <SettingsControl
+          label={t('Group Location')}
+          onChange={updateSettingDirectly('location', true)}
+          location={location}
+          locationObject={group.locationObject}
+          type='location'
         />
-      </SettingsSection>
-
-      <br />
-
-      <SettingsControl
-        label={t('What area does your group cover?')}
+        <div className='mb-10'>
+          <label className='w-full text-foreground/50 text-sm mb-2 block'>{t('Display location')}</label>
+          <Dropdown
+            className={styles.locationObfuscationDropdown}
+            toggleChildren={(
+              <span className={styles.locationObfuscationDropdownLabel}>
+                {LOCATION_PRECISION[locationDisplayPrecision || 'precise']}
+                <Icon name='ArrowDown' />
+              </span>
+            )}
+            items={Object.keys(LOCATION_PRECISION).map(value => ({
+              label: t(LOCATION_PRECISION[value]),
+              onClick: () => updateSettingDirectly('settings.locationDisplayPrecision')(value)
+            }))}
+          />
+          <p className='text-sm'>{t('Note: Administrators will always see exact location')}</p>
+        </div>
+        <SettingsControl
+        label={t('Define your regional boundary')}
         onChange={updateSetting('geoShape')}
-        placeholder={t('For place based groups, draw the area where your group is active (or paste in GeoJSON here)')}
+        placeholder={t('Paste GeoJSON here or draw on the map below')}
         type='text'
         value={geoShape || ''}
-      />
-      <div className={styles.editableMapContainer}>
-        {state.isModal
-          ? (
-            <EditableMapModal group={group} toggleModal={toggleModal}>
+        />
+        <div className='w-full h-[275px] mt-[-2rem] rounded-lg overflow-hidden'>
+          {state.isModal
+            ? (
+              <EditableMapModal group={group} toggleModal={toggleModal}>
+                <EditableMap
+                  locationObject={editableMapLocation}
+                  polygon={geoShape}
+                  savePolygon={savePolygon}
+                  toggleModal={toggleModal}
+                />
+              </EditableMapModal>
+              )
+            : (
               <EditableMap
                 locationObject={editableMapLocation}
                 polygon={geoShape}
                 savePolygon={savePolygon}
                 toggleModal={toggleModal}
               />
-            </EditableMapModal>
-            )
-          : (
-            <EditableMap
-              locationObject={editableMapLocation}
-              polygon={geoShape}
-              savePolygon={savePolygon}
-              toggleModal={toggleModal}
-            />
-            )}
-      </div>
+              )}
+        </div>
+      </SettingsSection>
+      <SettingsSection>
+        <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Customize group terms')}</h3>
+        <SettingsControl
+          label={t('Word used to describe a group Steward')}
+          onChange={updateSetting('stewardDescriptor')}
+          value={stewardDescriptor}
+        />
+        <SettingsControl
+          label={t('Plural word used to describe group Stewards')}
+          onChange={updateSetting('stewardDescriptorPlural')}
+          value={stewardDescriptorPlural}
+        />
+      </SettingsSection>
+
+      <SettingsSection>
+        <div className='pb-[30px]'>
+          <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Relevant skills & interests')}</h3>
+          <p className='text-foreground text-base'>{t('What skills and interests are particularly relevant to this group?')}</p>
+
+          <SkillsSection
+            group={group}
+            label={t('Add a relevant skill or interest')}
+            placeholder={t('What skills and interests are most relevant to your group?')}
+          />
+
+          <div className={cn('absolute bottom-0 left-0 w-full bg-foreground/10', { [general.on]: showSuggestedSkills })}>
+            <div className='w-full h-[40px] flex items-center p-2 justify-between'>
+              <div>
+                <SwitchStyled
+                  checked={showSuggestedSkills}
+                  onChange={() => updateSettingDirectly('settings.showSuggestedSkills')(!showSuggestedSkills)}
+                  backgroundColor={showSuggestedSkills ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
+                />
+                <span className='text-foreground text-sm pl-2'>{t('Ask new members whether they have these skills and interests?')}</span>
+              </div>
+              <div className={general.onOff}>
+                <div className={general.off}>{t('OFF')}</div>
+                <div className={general.on}>{t('ON')}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </SettingsSection>
+
       <Button label='Transition to new menu' onClick={transitionGroupToNewMenu} />
-      <br />
 
       <div className={cn(
         'sticky bottom-4 left-[50%] translate-x-[-50%] w-[60%] bg-background/80 rounded-xl p-4 flex justify-between items-center translate-y-[200px] transition-all opacity-0 scale-0',

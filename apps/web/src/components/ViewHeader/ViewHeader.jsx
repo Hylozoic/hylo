@@ -1,9 +1,9 @@
-import { Globe, Info, ChevronLeft } from 'lucide-react'
+import { Globe, ChevronLeft } from 'lucide-react'
 import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import Icon from 'components/Icon'
-import { Tooltip, TooltipTrigger, TooltipContent } from 'components/ui/tooltip'
+import InfoButton from 'components/ui/info'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import isWebView from 'util/webView'
@@ -20,7 +20,7 @@ const ViewHeader = () => {
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const currentUser = useSelector(getMe)
   const { headerDetails } = useViewHeader()
-  const { backButton, title, icon, info } = headerDetails
+  const { backButton, title, icon, info, search } = headerDetails
 
   return (
     <header className='flex flex-row items-center z-10 px-4 bg-background shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
@@ -42,28 +42,20 @@ const ViewHeader = () => {
         </>)}
       {icon && <Icon name={icon} className='mr-3 text-lg' />}
       <h2 className='text-foreground'>{title}</h2>
-      {info && (
-        <Tooltip>
-          <TooltipTrigger>
-            <Info className='w-4 h-4 ml-2' />
-          </TooltipTrigger>
-          <TooltipContent>
-            {info}
-          </TooltipContent>
-        </Tooltip>
-      )}
-      <div className='flex-1 flex justify-center relative'>
-        <div className='relative w-28 flex items-center'>
-          <Icon name='Search' className='left-1 absolute' />
-          <input
-            type='text'
+      {info && <InfoButton content={info} className='ml-2' />}
+      {search && (
+        <div className='flex-1 flex justify-center relative'>
+          <div className='relative flex items-center'>
+            <Icon name='Search' className='left-2 absolute opacity-50' />
+            <input
+              type='text'
             placeholder='Search'
-            className='w-full pl-6'
-            onKeyDown={onEnter((e) => navigate(`/search?t=${e.target.value}`))}
-          />
+            className='bg-black/20 rounded-lg text-foreground placeholder-foreground/40 w-[90px] py-1 pl-7 focus:w-[200px] transition-all outline-none focus:outline-focus focus:outline-2'
+              onKeyDown={onEnter((e) => navigate(`/search?t=${e.target.value}`))}
+            />
+          </div>
         </div>
-      </div>
-
+      )}
     </header>
   )
 }

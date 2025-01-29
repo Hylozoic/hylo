@@ -108,6 +108,7 @@ import {
   unblockUser,
   unfulfillPost,
   unlinkAccount,
+  updateAllMemberships,
   updateComment,
   updateContextWidget,
   updateGroup,
@@ -492,6 +493,8 @@ export function makeMutations ({ fetchOne }) {
     unfulfillPost: (root, { postId }, context) => unfulfillPost(context.currentUserId, postId),
 
     unlinkAccount: (root, { provider }, context) => unlinkAccount(context.currentUserId, provider),
+
+    updateAllMemberships: (root, args, context) => updateAllMemberships(context.currentUserId, args),
 
     updateContextWidget: (root, { contextWidgetId, data }, context) => updateContextWidget({ userId: context.currentUserId, contextWidgetId, data }),
 

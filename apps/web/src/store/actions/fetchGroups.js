@@ -79,6 +79,7 @@ query FetchGroups (
       id
       avatarUrl
       bannerUrl
+      invitePath
       name
       purpose
       type

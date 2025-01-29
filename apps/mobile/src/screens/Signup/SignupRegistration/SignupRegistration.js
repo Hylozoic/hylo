@@ -30,7 +30,6 @@ export const registerMutation = gql`
         name
         settings {
           alreadySeenTour
-          digestFrequency
           dmNotifications
           commentNotifications
           signupInProgress

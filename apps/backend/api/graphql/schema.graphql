@@ -1602,8 +1602,12 @@ type MembershipGroupRoleQuerySet {
 type MembershipSettings {
   # When the member last accepted the agreements of the group
   agreementsAcceptedAt: Date
+  # How often this person wants to receive the email digest about new posts and comments in this group: daily, weekly, or never
+  digestFrequency: String
   # When the member filled out the join questions
   joinQuestionsAnsweredAt: Date
+  # How this person wants to receive notifications for post in this group: none, important, or all
+  postNotifications: String
   # Whether the user wants to get email notifications from this group
   sendEmail: Boolean
   # Whether this user has yet seen the form that appears when first joining a new group
@@ -2224,8 +2228,6 @@ type UserSettings {
   alreadySeenTour: Boolean
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
   commentNotifications: String
-  # How often this person wants to receive the email digest about new posts and comments: daily, weekly, or never
-  digestFrequency: String
   # How this person wants to receive notifications about Direct Messages: email, push, both, or none
   dmNotifications: String
   # When person wants last viewed their Direct Messages
@@ -2560,6 +2562,8 @@ type Mutation {
   unblockUser(blockedUserId: ID): GenericResult
   # Mark a post as unfulfilled/uncompleted
   unfulfillPost(postId: ID): GenericResult
+  # Update settings for all your group memberships at once
+  updateAllMemberships(data: MembershipInput): GenericResult
   # Edit a comment
   updateComment(id: ID, data: CommentInput): Comment
   # Update a context widget
@@ -3084,8 +3088,12 @@ input MembershipInput {
 
 # Personal settings for a User's relationship to a Group
 input MembershipSettingsInput {
+  # How often this person wants to receive the email digest about new posts and comments in this group: daily, weekly, or never
+  digestFrequency: String
   # When the member filled out the join questions
   joinQuestionsAnsweredAt: Date
+  # How this person wants to receive notifications for post in this group: none, important, or all
+  postNotifications: String
   # Whether to receive email notifications for this Group
   sendEmail: Boolean
   # Whether to show the form displayed upon first viewing a Group this Person just joined
@@ -3254,8 +3262,6 @@ input UserSettingsInput {
   alreadySeenTour: Boolean
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
   commentNotifications: String
-  # How often this person wants to receive the email digest about new posts and comments: daily, weekly, or never
-  digestFrequency: String
   # How this person wants to receive notifications about Direct Messages: email, push, both, or none
   dmNotifications: String
   # When person wants last viewed their Direct Messages
@@ -3264,8 +3270,6 @@ input UserSettingsInput {
   locale: String
   # The most recent map base later viewed by this person
   mapBaseLayer: String
-  # How this person wants to receive notifications for each post in their groups. none, important, or all
-  postNotifications: String
   # Whether this person has finished viewing the welcome wizard after first signing up
   signupInProgress: Boolean
   # Include child group posts in user's stream

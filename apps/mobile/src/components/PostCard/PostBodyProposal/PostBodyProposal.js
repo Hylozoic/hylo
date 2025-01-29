@@ -1,6 +1,10 @@
 import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
-import { useDispatch } from 'react-redux'
+import { useMutation, useQuery } from 'urql'
+import QuorumBar from 'components/QuorumBar/QuorumBar'
+import Icon from 'components/Icon'
+import Avatar from 'components/Avatar'
+import { useTranslation } from 'react-i18next'
 import {
   PROPOSAL_STATUS_CASUAL,
   PROPOSAL_STATUS_COMPLETED,
@@ -9,11 +13,7 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'urql-shared/presenters/PostPresenter'
-import { addProposalVote, removeProposalVote, swapProposalVote } from 'store/actions/proposals'
-import QuorumBar from 'components/QuorumBar/QuorumBar'
-import Icon from 'components/Icon'
-import Avatar from 'components/Avatar'
-import { useTranslation } from 'react-i18next'
+import { addProposalVoteMutation, removeProposalVoteMutation, swapProposalVoteMutation } from 'store/actions/proposals'
 
 const calcNumberOfVoters = (votes) => {
   return votes.reduce((acc, vote) => {
@@ -77,8 +77,12 @@ export default function PostBodyProposal ({
   id
 }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
 
+  const [{ fetching: addProposalVoteFetching }, addProposalVote] = useMutation(addProposalVoteMutation)
+  const [{ fetching: removeProposalVoteFetching }, removeProposalVote] = useMutation(removeProposalVoteMutation)
+  const [{ fetching: swapProposalVoteFetching }, swapProposalVote] = useMutation(swapProposalVoteMutation)
+
+  const isVoting = addProposalVoteFetching || removeProposalVoteFetching || swapProposalVoteFetching
   const proposalOptionsArray = useMemo(() => proposalOptions?.items || [], [proposalOptions])
   const proposalVotesArray = useMemo(() => proposalVotes?.items || [], [proposalVotes])
 
@@ -90,25 +94,25 @@ export default function PostBodyProposal ({
 
   const votingComplete = proposalStatus === PROPOSAL_STATUS_COMPLETED || fulfilledAt
 
-  // const votePrompt = votingMethod === VOTING_METHOD_SINGLE ? t('select one option') : t('select one or more options')
-  const votePrompt = votingMethod === VOTING_METHOD_SINGLE ? 'Select one' : 'Select one or more'
+  const votePrompt = votingMethod === VOTING_METHOD_SINGLE ? t('select one option') : t('select one or more options')
 
   function handleVote (optionId) {
+    if (isVoting) return null
     if (votingMethod === VOTING_METHOD_SINGLE) {
       if (currentUserVotesOptionIds.includes(optionId)) {
-        dispatch(removeProposalVote({ optionId, postId: id }))
+        removeProposalVote({ optionId, postId: id })
       } else if (currentUserVotesOptionIds.length === 0) {
-        dispatch(addProposalVote({ optionId, postId: id }))
+        addProposalVote({ optionId, postId: id })
       } else {
         const removeOptionId = currentUserVotesOptionIds[0]
-        dispatch(swapProposalVote({ postId: id, addOptionId: optionId, removeOptionId }))
+        swapProposalVote({ postId: id, addOptionId: optionId, removeOptionId })
       }
     }
     if (votingMethod === VOTING_METHOD_MULTI_UNRESTRICTED) {
       if (currentUserVotesOptionIds.includes(optionId)) {
-        dispatch(removeProposalVote({ optionId, postId: id }))
+        removeProposalVote({ optionId, postId: id })
       } else {
-        dispatch(addProposalVote({ optionId, postId: id }))
+        addProposalVote({ optionId, postId: id })
       }
     }
   }
@@ -134,8 +138,9 @@ export default function PostBodyProposal ({
       {!isFlagged && proposalOptionsArray && proposalOptionsArray.map((option, i) => {
         const optionVotes = proposalVotesArray.filter(vote => vote.optionId === option.id)
         const avatarUrls = optionVotes.map(vote => vote.user.avatarUrl)
+        const votingPermitted = isVotingOpen(proposalStatus) && !isVoting && !votingComplete
         return (
-          <TouchableOpacity key={`${option.id}+${currentUserVotesOptionIds.includes(option.id)}`} style={[styles.proposalOption, votingComplete && styles.completed, proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, currentUserVotesOptionIds.includes(option.id) && styles.selected, votingComplete && styles.completed, votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote]} onPress={isVotingOpen(proposalStatus) && !votingComplete ? () => handleVote(option.id) : () => {}}>
+          <TouchableOpacity key={`${option.id}+${currentUserVotesOptionIds.includes(option.id)}`} style={[styles.proposalOption, votingComplete && styles.completed, proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, currentUserVotesOptionIds.includes(option.id) && styles.selected, votingComplete && styles.completed, votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote]} onPress={votingPermitted ? () => handleVote(option.id) : () => {}}>
             <View style={styles.proposalOptionTextContainer}>
               <View style={styles.proposalOptionEmoji}>
                 <Text>

@@ -1,11 +1,12 @@
 import { cn } from 'util/index'
 import classes from './datePicker.module.scss'
-import Datetime from 'luxon'
+import Datetime from 'react-datetime'
+import { DateTime } from 'luxon'
 import React from 'react'
 
 function isValidDate (current) {
-  const yesterday = Datetime.now().minus({day: 1})
-  return Datetime.fromJSDate(current) > yesterday
+  const yesterday = DateTime.now().minus({day: 1})
+  return DateTime.fromJSDate(current) > yesterday
 }
 
 function DatePicker (props) {
