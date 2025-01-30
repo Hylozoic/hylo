@@ -511,6 +511,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Get home tag id for the home chat
     const homeTag = await Tag.where({ name: 'home' }).fetch({ transacting: trx })
+
     // XXX: make sure there is a home tag for every group
     const homeGroupTag = await GroupTag.where({ group_id: this.id, tag_id: homeTag.id }).fetch({ transacting: trx })
     if (!homeGroupTag) {
@@ -1023,9 +1024,9 @@ module.exports = bookshelf.Model.extend(merge({
       await group.createStarterPosts(trx)
 
       // await group.createInitialWidgets(trx)
-      await group.setupContextWidgets(trx)
 
-      await group.createDefaultTopics(group.id, userId, trx)
+      // await group.createDefaultTopics(group.id, userId, trx) // TODO: not sure if this should be here or in setupContextWidgets
+      await group.setupContextWidgets(trx)
 
       await group.addMembers([userId], { role: GroupMembership.Role.MODERATOR }, { transacting: trx })
 
