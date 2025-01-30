@@ -6,6 +6,9 @@ import CalendarManageEventDialog from './dialog/calendar-manage-event-dialog'
 
 export default function CalendarProvider({
   events,
+  routeParams,
+  locationParams,
+  querystringParams,
   setEvents,
   mode,
   setMode,
@@ -15,6 +18,9 @@ export default function CalendarProvider({
   children,
 }: {
   events: CalendarEvent[]
+  routeParams: String
+  locationParams: String
+  querystringParams: String
   setEvents: (events: CalendarEvent[]) => void
   mode: Mode
   setMode: (mode: Mode) => void
@@ -31,6 +37,9 @@ export default function CalendarProvider({
     <CalendarContext.Provider
       value={{
         events,
+        routeParams,
+        locationParams,
+        querystringParams,
         setEvents,
         mode,
         setMode,
