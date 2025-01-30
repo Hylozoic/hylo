@@ -4,7 +4,7 @@ import classes from './EventDate.module.scss'
 
 export default function EventDate ({ startTime }) {
   if (!startTime) return null
-  const start = DateTime.fromJSDate(startTime)
+  const start = DateTime.fromISO(startTime)
   return (
     <div className={classes.eventDate}>
       <span className={classes.month}>{start.toFormat('MMM')}</span>
