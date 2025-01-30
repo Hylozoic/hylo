@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { TextHelpers } from '@hylo/shared'
 import Button from 'components/Button'
-import EmojiRow from 'components/EmojiRow'
 import EventInviteDialog from 'components/EventInviteDialog'
 import EventDate from '../EventDate'
 import EventRSVP from '../EventRSVP'
@@ -102,10 +101,6 @@ function EventBody (props) {
             </div>
           )}
         </div>
-        <EmojiRow
-          post={event}
-          currentUser={currentUser}
-        />
         {showInviteDialog && (
           <EventInviteDialog
             eventId={id}
