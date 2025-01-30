@@ -11,7 +11,6 @@ export default function CalendarHeaderDate() {
       <CalendarHeaderDateIcon />
       <div>
         <div className="flex items-center gap-1">
-          <p className="text-lg font-semibold">{format(date, 'MMMM yyyy')}</p>
           <CalendarHeaderDateBadge />
         </div>
         <CalendarHeaderDateChevrons />
