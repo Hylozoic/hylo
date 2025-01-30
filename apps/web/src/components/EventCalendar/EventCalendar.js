@@ -5,8 +5,6 @@ import Calendar from '../Calendar/calendar'
 import { DateTime } from 'luxon'
 
 export default function EventCalendar({posts, routeParams, locationParams, querystringParams}) {
-  if (posts.length === 0) return
-
   const [mode, setMode] = useState('month')
   const [date, setDate] = useState(new Date())
 
