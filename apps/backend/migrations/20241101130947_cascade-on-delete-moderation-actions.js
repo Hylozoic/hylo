@@ -1,5 +1,4 @@
 exports.up = function (knex) {
-  console.log("Cascade on delete moderation actions")
   return knex.raw(`
     ALTER TABLE moderation_actions
     DROP CONSTRAINT moderation_actions_group_id_foreign,

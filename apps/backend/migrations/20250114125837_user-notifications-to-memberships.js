@@ -1,7 +1,6 @@
 exports.up = function (knex) {
   // Move digest frequency and post notifications from user settings to per group membership settings
   // TODO: remove them from the user settings
-  console.log("User notifications to memberships")
   return knex.raw(`
     UPDATE group_memberships
     SET settings = jsonb_set(

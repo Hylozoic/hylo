@@ -1,5 +1,4 @@
 exports.up = function(knex) {
-  console.log("Fix location constraints")
   return knex.raw(`
     ALTER TABLE public.posts
       DROP CONSTRAINT posts_location_id_foreign,

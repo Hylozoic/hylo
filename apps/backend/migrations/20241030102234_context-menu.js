@@ -1,5 +1,4 @@
 exports.up = function(knex) {
-  console.log("Context menu migration")
   return knex.schema
     .createTable('context_widgets', table => {
       table.bigIncrements('id').primary()
