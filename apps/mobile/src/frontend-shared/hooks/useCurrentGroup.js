@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { useMemo } from 'react'
 import { useQuery } from 'urql'
 import useCurrentUser from 'frontend-shared/hooks/useCurrentUser'
-import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
+import groupDetailsQueryMaker from 'frontend-shared/graphql/queries/groupDetailsQueryMaker'
 import GroupPresenter, { getContextGroup, isContextGroup } from 'frontend-shared/presenters/GroupPresenter'
 
 // Zustand store for managing currentGroupSlug

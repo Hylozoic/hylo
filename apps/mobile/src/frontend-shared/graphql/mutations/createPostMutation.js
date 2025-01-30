@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
+import postFieldsFragment from 'frontend-shared/graphql/fragments/postFieldsFragment'
 
 // TODO: URQL - analytics:
 // analytics: {

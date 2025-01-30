@@ -14,7 +14,7 @@ import { openURL } from 'hooks/useOpenURL'
 import { useNavigation } from '@react-navigation/native'
 import useCurrentUser from 'frontend-shared/hooks/useCurrentUser'
 import { useMutation } from 'urql'
-import blockUserMutation from 'graphql/mutations/blockUserMutation'
+import blockUserMutation from 'frontend-shared/graphql/mutations/blockUserMutation'
 import styles from './MemberHeader.styles'
 
 export default function MemberHeader ({

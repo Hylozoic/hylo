@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useCallback } from 'react'
 import { useQuery, useMutation } from 'urql'
-import meCheckAuthQuery from 'graphql/queries/meCheckAuthQuery'
-import loginMutation from 'graphql/mutations/loginMutation'
-import logoutMutation from 'graphql/mutations/logoutMutation'
+import meCheckAuthQuery from 'frontend-shared/graphql/queries/meCheckAuthQuery'
+import loginMutation from 'frontend-shared/graphql/mutations/loginMutation'
+import logoutMutation from 'frontend-shared/graphql/mutations/logoutMutation'
 
 /*
 

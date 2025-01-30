@@ -4,7 +4,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin'
 import Intercom from '@intercom/intercom-react-native'
 import mixpanel from 'services/mixpanel'
 import { clearSessionCookie } from 'util/session'
-import { useAuth } from 'contexts/AuthContext'
+import { useAuth } from 'frontend-shared/contexts/contexts/AuthContext'
 
 export const logoutServices = async () => {
   try {

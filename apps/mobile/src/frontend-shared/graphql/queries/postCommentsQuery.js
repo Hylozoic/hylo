@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
+import commentFieldsFragment from 'frontend-shared/graphql/fragments/commentFieldsFragment'
 
 export default gql`
   query PostCommentsQuery (

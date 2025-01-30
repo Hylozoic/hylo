@@ -1,4 +1,4 @@
-import messageThreadFieldsFragment from 'graphql/fragments/messageThreadFieldsFragment'
+import messageThreadFieldsFragment from 'frontend-shared/graphql/fragments/messageThreadFieldsFragment'
 import { gql } from 'urql'
 
 // TODO: URQL - analytics: AnalyticsEvents.DIRECT_MESSAGE_SENT

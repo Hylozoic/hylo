@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useQuery } from 'urql'
 import useCurrentUser from './useCurrentUser'
 import usePerson from './usePerson'
-import commonRolesQuery from 'graphql/queries/commonRolesQuery'
+import commonRolesQuery from 'frontend-shared/graphql/queries/commonRolesQuery'
 import useCurrentGroup from './useCurrentGroup'
 
 /**

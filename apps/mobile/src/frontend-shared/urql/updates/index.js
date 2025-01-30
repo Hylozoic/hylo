@@ -1,5 +1,5 @@
 import createComment from './createComment'
-import meCheckAuthQuery from 'graphql/queries/meCheckAuthQuery'
+import meCheckAuthQuery from 'frontend-shared/graphql/queries/meCheckAuthQuery'
 
 export default {
   Mutation: {

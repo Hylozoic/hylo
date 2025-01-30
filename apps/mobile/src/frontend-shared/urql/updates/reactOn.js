@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import meQuery from 'graphql/queries/meQuery'
+import meQuery from 'frontend-shared/graphql/queries/meQuery'
 
 export default (_results, args, cache, info) => {
   const { entityType, entityId, emojiFull } = args.data

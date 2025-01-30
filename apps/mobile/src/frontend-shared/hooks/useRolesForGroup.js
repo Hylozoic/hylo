@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery } from 'urql'
-import commonRolesQuery from 'graphql/queries/commonRolesQuery'
+import commonRolesQuery from 'frontend-shared/graphql/queries/commonRolesQuery'
 
 export default function useRolesForGroup (groupId, person) {
   const [{ data: commonRolesData, fetching: commonRolesFetching }] = useQuery({ query: commonRolesQuery })

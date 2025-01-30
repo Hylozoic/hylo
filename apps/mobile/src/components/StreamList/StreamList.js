@@ -7,7 +7,7 @@ import { ALL_GROUP_ID, isContextGroup, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from 'fr
 import useFetchPostParam from './useFetchPostParam'
 import useCurrentUser from 'frontend-shared/hooks/useCurrentUser'
 import { makeStreamQuery } from './StreamList.store'
-import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
+import updateUserSettingsMutation from 'frontend-shared/graphql/mutations/updateUserSettingsMutation'
 import Icon from 'components/Icon'
 import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'

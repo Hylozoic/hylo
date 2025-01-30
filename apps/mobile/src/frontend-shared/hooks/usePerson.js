@@ -1,5 +1,5 @@
 import { useQuery } from 'urql'
-import personQuery from 'graphql/queries/personQuery'
+import personQuery from 'frontend-shared/graphql/queries/personQuery'
 
 export default function usePerson ({ id }, useQueryArgs = {}) {
   const [{ data, fetching, error }, reQuery] = useQuery({ ...useQueryArgs, query: personQuery, variables: { id } })

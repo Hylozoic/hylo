@@ -3,7 +3,7 @@ import { View, Text, TextInput, FlatList, TouchableOpacity, Pressable } from 're
 import { useTranslation } from 'react-i18next'
 import { gql, useQuery } from 'urql'
 import { debounce } from 'lodash/fp'
-import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
+import postFieldsFragment from 'frontend-shared/graphql/fragments/postFieldsFragment'
 import Loading from 'components/Loading'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'

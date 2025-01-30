@@ -1,5 +1,5 @@
 import { useQuery } from 'urql'
-import platformAgreementsQuery from 'graphql/queries/platformAgreementsQuery'
+import platformAgreementsQuery from 'frontend-shared/graphql/queries/platformAgreementsQuery'
 
 export default function usePlatformAgreements () {
   const [{ data: platformAgreementsData, fetching }] = useQuery({ query: platformAgreementsQuery })

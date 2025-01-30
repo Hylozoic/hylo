@@ -1,4 +1,4 @@
-import meAuthFieldsFragment from 'graphql/fragments/meAuthFieldsFragment'
+import meAuthFieldsFragment from 'frontend-shared/graphql/fragments/meAuthFieldsFragment'
 import { gql } from 'urql'
 
 export const updateUserSettingsMutation = gql`

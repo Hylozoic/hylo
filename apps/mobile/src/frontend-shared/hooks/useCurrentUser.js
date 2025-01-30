@@ -1,5 +1,5 @@
 import { useQuery } from 'urql'
-import meQuery from 'graphql/queries/meQuery'
+import meQuery from 'frontend-shared/graphql/queries/meQuery'
 
 export default function useCurrentUser (useQueryArgs = {}) {
   const [{ data, fetching, error, stale }, queryCurrentUser] = useQuery({
