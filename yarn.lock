@@ -3553,6 +3553,30 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@hylo/graphql@workspace:*, @hylo/graphql@workspace:packages/graphql":
+  version: 0.0.0-use.local
+  resolution: "@hylo/graphql@workspace:packages/graphql"
+  dependencies:
+    "@babel/runtime": "npm:^7.25.0"
+  languageName: unknown
+  linkType: soft
+
+"@hylo/hooks@workspace:*, @hylo/hooks@workspace:packages/hooks":
+  version: 0.0.0-use.local
+  resolution: "@hylo/hooks@workspace:packages/hooks"
+  dependencies:
+    "@babel/runtime": "npm:^7.25.0"
+  languageName: unknown
+  linkType: soft
+
+"@hylo/presenters@workspace:*, @hylo/presenters@workspace:packages/presenters":
+  version: 0.0.0-use.local
+  resolution: "@hylo/presenters@workspace:packages/presenters"
+  dependencies:
+    "@babel/runtime": "npm:^7.25.0"
+  languageName: unknown
+  linkType: soft
+
 "@hylo/shared@workspace:*, @hylo/shared@workspace:packages/shared":
   version: 0.0.0-use.local
   resolution: "@hylo/shared@workspace:packages/shared"
@@ -3575,6 +3599,14 @@ __metadata:
     trunc-text: "npm:^1.0.2"
     typescript: "npm:5.0.4"
     validator: "npm:^13.7.0"
+  languageName: unknown
+  linkType: soft
+
+"@hylo/urql@workspace:*, @hylo/urql@workspace:packages/urql":
+  version: 0.0.0-use.local
+  resolution: "@hylo/urql@workspace:packages/urql"
+  dependencies:
+    "@babel/runtime": "npm:^7.25.0"
   languageName: unknown
   linkType: soft
 
@@ -25274,7 +25306,11 @@ __metadata:
     "@expo/react-native-action-sheet": "npm:^4.1.0"
     "@flyerhq/react-native-keyboard-accessory-view": "npm:^2.4.0"
     "@hylo/contexts": "workspace:*"
+    "@hylo/graphql": "workspace:*"
+    "@hylo/hooks": "workspace:*"
+    "@hylo/presenters": "workspace:*"
     "@hylo/shared": "workspace:*"
+    "@hylo/urql": "workspace:*"
     "@intercom/intercom-react-native": "npm:^8.1.0"
     "@invertase/react-native-apple-authentication": "npm:^2.4.0"
     "@native-html/iframe-plugin": "npm:^2.6.1"
@@ -36280,7 +36316,11 @@ __metadata:
     "@eslint/js": "npm:^9.14.0"
     "@faker-js/faker": "npm:^6.0.0-alpha.5"
     "@hylo/contexts": "workspace:*"
+    "@hylo/graphql": "workspace:*"
+    "@hylo/hooks": "workspace:*"
+    "@hylo/presenters": "workspace:*"
     "@hylo/shared": "workspace:*"
+    "@hylo/urql": "workspace:*"
     "@loaders.gl/core": "npm:^4.3.2"
     "@loaders.gl/loader-utils": "npm:^4.3.2"
     "@luma.gl/constants": "npm:^9.0.27"
