@@ -23,12 +23,17 @@ const config = {
     // * May need to makes-sure to carry-over defaults
     // assetExts: ['html', 'css', 'jpg', 'png', 'ttf', 'graphql'],
     assetExts: ['png', 'jpg', 'graphql'],
-    sourceExts: ['js', 'json', 'ts', 'tsx', 'cjs', 'svg']
+    sourceExts: ['js', 'json', 'ts', 'tsx', 'cjs', 'svg'],
+    nodeModulesPaths: [
+      path.resolve(__dirname, '../../node_modules'),
+      path.resolve(__dirname, 'node_modules')
+    ]
   },
   // Hoisted monorepo deps, and shared packages
   watchFolders: [
     path.resolve(__dirname, '../../node_modules'),
-    path.resolve(__dirname, '../../packages/shared')
+    path.resolve(__dirname, '../../packages/shared'),
+    path.resolve(__dirname, '../../packages/contexts')
   ]
 };
 
