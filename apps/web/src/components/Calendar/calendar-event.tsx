@@ -102,11 +102,8 @@ export default function CalendarEvent({
             className
           )}
           style={style}
-          onClick={(e) => {
-            e.stopPropagation()
-            setSelectedEvent(event)
-            setManageEventDialogOpen(true)
-          }}
+          onClick={showDetails}
+          data-tooltip-id={`title-tip-${event.id}`} data-tooltip-html={toolTipTitle}
           initial={{
             opacity: 0,
             y: -3,
@@ -145,19 +142,10 @@ export default function CalendarEvent({
               month && 'flex-row items-center justify-between'
             )}
             layout="position"
-            onClick={showDetails}
-            data-tooltip-id={`title-tip-${event.id}`} data-tooltip-html={toolTipTitle}
           >
             <p className={cn('font-bold truncate', month && 'text-xs', 'm-0')}>
               {event.title}
             </p>
-            {/* <p className={cn('text-sm', month && 'text-xs', 'm-0')}>
-              <span>{format(event.start, 'h:mma')}</span>
-              <span className={cn('mx-1', month && 'hidden')}>-</span>
-              <span className={cn(month && 'hidden')}>
-                {format(event.end, 'h:mma')}
-              </span>
-            </p> */}
           </motion.div>
         </motion.div>
       </AnimatePresence>
