@@ -11,11 +11,16 @@ export default function CalendarBodyHeader({
   const isToday = isSameDay(date, new Date())
 
   return (
-    <div className="flex items-center justify-center gap-1 py-2 w-full sticky top-0 bg-background z-10 border-b">
+    <div
+      className={cn(
+        'flex items-center justify-center gap-1 py-2 w-full sticky top-0 bg-background z-10 border-b',
+        isToday ? 'bg-black' : 'bg-background'
+      )}
+    >
       <span
         className={cn(
           'text-xs font-medium',
-          isToday ? 'text-primary' : 'text-muted-foreground'
+          isToday ? 'text-white font-bold bg-black' : 'text-muted-foreground'
         )}
       >
         {format(date, 'EEE')}
@@ -24,7 +29,7 @@ export default function CalendarBodyHeader({
         <span
           className={cn(
             'text-xs font-medium',
-            isToday ? 'text-primary font-bold' : 'text-foreground'
+            isToday ? 'text-white font-bold bg-black' : 'text-foreground'
           )}
         >
           {format(date, 'dd')}
