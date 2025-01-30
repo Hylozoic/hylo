@@ -499,10 +499,11 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     // Create home widget first
+    // TODO: this should be default view instead of home
     const homeWidget = await ContextWidget.forge({
       group_id: this.id,
       type: 'home',
-      title: 'widget-home', 
+      title: 'widget-home',
       order: 1,
       created_at: new Date(),
       updated_at: new Date()
@@ -511,7 +512,7 @@ module.exports = bookshelf.Model.extend(merge({
     // Get home tag id for the home chat
     const homeTag = await Tag.where({ name: 'home' }).fetch({ transacting: trx })
 
-    // Create hearth widget as child of home
+    // Create home chat widget as child of default view
     await ContextWidget.forge({
       group_id: this.id,
       type: 'chat',

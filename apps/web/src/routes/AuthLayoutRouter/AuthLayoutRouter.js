@@ -62,7 +62,7 @@ import SiteTour from 'routes/AuthLayoutRouter/components/SiteTour'
 import ThreadList from 'routes/Messages/ThreadList'
 
 import UserSettings from 'routes/UserSettings'
-import { GROUP_TYPES } from 'store/models/Group'
+import { DEFAULT_CHAT_TOPIC, GROUP_TYPES } from 'store/models/Group'
 import classes from './AuthLayoutRouter.module.scss'
 import { findHomeView } from '@hylo/shared/src/ContextWidgetPresenter'
 import { localeLocalStorageSync } from 'util/locale'
@@ -234,7 +234,7 @@ export default function AuthLayoutRouter (props) {
   if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
     currentGroupMembership.update({ lastViewedAt: (new Date()).toISOString() })
     setTimeout(() => {
-      navigate(`/groups/${currentGroupSlug}/chat/general`, { replace: true })
+      navigate(`/groups/${currentGroupSlug}/chat/${DEFAULT_CHAT_TOPIC}`, { replace: true })
     }, 100)
   }
 

@@ -638,7 +638,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
     )
 
     return (
-      <div className='mb-6'>
+      <div className='mb-2'>
         <MenuLink to={groupUrl(group.slug, 'settings')}>
           <div className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             {t('Settings')}

@@ -43,6 +43,7 @@ import fetchTopic from 'store/actions/fetchTopic'
 import updateGroupTopicLastReadPost from 'store/actions/updateGroupTopicLastReadPost'
 import { FETCH_TOPIC, FETCH_GROUP_TOPIC } from 'store/constants'
 import orm from 'store/models'
+import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getGroupTopicForCurrentRoute from 'store/selectors/getGroupTopicForCurrentRoute'
@@ -562,7 +563,7 @@ const EmptyPlaceholder = ({ context }) => {
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {context.loadingPast || context.loadingFuture
         ? <Loading />
-        : context.topicName === 'general' && context.numPosts === 0
+        : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
           ? <HomeChatWelcome group={context.group} />
           : <NoPosts className={styles.noPosts} />}
     </div>
