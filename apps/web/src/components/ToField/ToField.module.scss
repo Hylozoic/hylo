@@ -103,6 +103,7 @@
   position: absolute;
   top: 100%;
   left: 0;
+  z-index: 1000;
 }
 
 [class*='tags-empty'] {
@@ -127,6 +128,7 @@
   border-right: 1px solid #D1D1D1;
   border-radius: 0 0 2px 2px;
   box-shadow: 0 0 6px -6px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
 }
 
 .suggestion {
