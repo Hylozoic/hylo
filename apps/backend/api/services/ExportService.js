@@ -1,4 +1,4 @@
-import stringify from 'csv-stringify'
+import * as csv from 'csv'
 import { groupFilter } from '../graphql/filters'
 
 // Toplevel API entrypoint to check auth & route to desired exporter flow based on parameters
@@ -94,7 +94,7 @@ function output (data, columns, email, groupName, questions) {
     return user
   })
 
-  stringify(transformedData, {
+  csv.stringify(transformedData, {
     header: true,
     columns
   }, (err, output) => {

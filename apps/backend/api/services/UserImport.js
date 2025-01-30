@@ -13,7 +13,7 @@
 import { WritableStreamBuffer } from 'stream-buffers'
 const request = require('request')
 const fs = require('fs')
-const csv = require('csv-parser')
+import * as csv from 'csv'
 const validator = require('validator')
 const _ = require('lodash')
 
@@ -42,7 +42,7 @@ const getConverter = convert => {
 }
 
 const runWithCSVStream = function (stream, options, rowAction) {
-  stream.pipe(csv({headers: options.headers})).on('data', rowAction)
+  stream.pipe(csv.parse({headers: options.headers})).on('data', rowAction)
   return promisifyStream(stream)
 }
 

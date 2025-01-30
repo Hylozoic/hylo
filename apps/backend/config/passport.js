@@ -3,8 +3,8 @@ var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy
 var GoogleTokenStrategy = require('passport-google-token').Strategy
 var FacebookStrategy = require('passport-facebook').Strategy
 var FacebookTokenStrategy = require('passport-facebook-token')
-var LinkedinStrategy = require('passport-linkedin-oauth2').Strategy
-var LinkedInTokenStrategy = require('passport-linkedin-token-oauth2').Strategy
+// var LinkedinStrategy = require('passport-linkedin-oauth2').Strategy
+// var LinkedInTokenStrategy = require('passport-linkedin-token-oauth2').Strategy
 import { getPublicKeyFromPem } from '../lib/util'
 
 // -----------
@@ -99,24 +99,24 @@ var googleTokenStrategy = new GoogleTokenStrategy({
 })
 passport.use(googleTokenStrategy)
 
-var linkedinStrategy = new LinkedinStrategy({
-  clientID: process.env.LINKEDIN_API_KEY,
-  clientSecret: process.env.LINKEDIN_API_SECRET,
-  callbackURL: url('/noo/login/linkedin/oauth'),
-  scope: ['r_emailaddress', 'r_basicprofile'],
-  state: true
-}, function (accessToken, refreshToken, profile, done) {
-  done(null, formatProfile(profile))
-})
-passport.use(linkedinStrategy)
+// var linkedinStrategy = new LinkedinStrategy({
+//   clientID: process.env.LINKEDIN_API_KEY,
+//   clientSecret: process.env.LINKEDIN_API_SECRET,
+//   callbackURL: url('/noo/login/linkedin/oauth'),
+//   scope: ['r_emailaddress', 'r_basicprofile'],
+//   state: true
+// }, function (accessToken, refreshToken, profile, done) {
+//   done(null, formatProfile(profile))
+// })
+// passport.use(linkedinStrategy)
 
-var linkedinTokenStrategy = new LinkedInTokenStrategy({
-  clientID: process.env.LINKEDIN_API_KEY,
-  clientSecret: process.env.LINKEDIN_API_SECRET
-}, function (accessToken, refreshToken, profile, done) {
-  done(null, formatProfile(profile))
-})
-passport.use(linkedinTokenStrategy)
+// var linkedinTokenStrategy = new LinkedInTokenStrategy({
+//   clientID: process.env.LINKEDIN_API_KEY,
+//   clientSecret: process.env.LINKEDIN_API_SECRET
+// }, function (accessToken, refreshToken, profile, done) {
+//   done(null, formatProfile(profile))
+// })
+// passport.use(linkedinTokenStrategy)
 
 
 //**** JWT login for email verification, password reset... ****//

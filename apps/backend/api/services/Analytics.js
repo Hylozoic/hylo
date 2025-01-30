@@ -2,14 +2,11 @@ const sails = require('sails')
 import { v4 as uuidv4 } from 'uuid'
 var instance
 
-if (process.env.NODE_ENV === 'test') {
-  instance = {
-    track: function (opts) {
-      sails.log.verbose('Analytics.track: ' + JSON.stringify(opts))
-    }
+// TODO: remove all this
+instance = {
+  track: function (opts) {
+    sails.log.verbose('Analytics.track: ' + JSON.stringify(opts))
   }
-} else {
-  instance = require('analytics-node')(process.env.SEGMENT_KEY)
 }
 
 instance.pixelUrl = function (emailName, props) {
