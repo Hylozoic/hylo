@@ -66,6 +66,10 @@
     }
   }
 
+  &:hover .action-bar {
+    display: flex;
+  }
+
   // The selectors should maintain the same properties:
   &.long-pressed {
     background: #efefef;
