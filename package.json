@@ -35,6 +35,13 @@
     "typescript": "5.0.4"
   },
   "resolutions": {
-    "@deck.gl/core": "9.0.35"
+    "@deck.gl/core": "9.0.35",
+    "@deck.gl/geo-layers": "9.0.35",
+    "@luma.gl/core": "9.0.28",
+    "@luma.gl/engine": "9.0.28",
+    "@luma.gl/constants": "9.0.28",
+    "@luma.gl/gltf": "9.0.28",
+    "@emotion/utils": "^1.1.0",
+    "@emotion/sheet": "^1.1.0"
   }
 }

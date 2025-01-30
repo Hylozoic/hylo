@@ -76,7 +76,7 @@
     "@hylo/urql": "workspace:*",
     "@loaders.gl/core": "^4.3.2",
     "@loaders.gl/loader-utils": "^4.3.2",
-    "@luma.gl/constants": "^9.0.27",
+    "@luma.gl/constants": "~9.0.27",
     "@luma.gl/core": "~9.0.0",
     "@luma.gl/engine": "~9.0.0",
     "@math.gl/core": "^4.1.0",
@@ -291,9 +291,5 @@
     "vite-plugin-graphql-loader": "^4.0.4",
     "vite-plugin-html": "^3.2.2",
     "vite-plugin-svgr": "^4.2.0"
-  },
-  "resolutions": {
-    "@emotion/utils": "^1.1.0",
-    "@emotion/sheet": "^1.1.0"
   }
 }

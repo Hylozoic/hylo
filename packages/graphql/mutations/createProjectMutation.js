@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
+import postFieldsFragment from '../fragments/postFieldsFragment'
 
 // TODO: URQL - analytics
 // analytics: {

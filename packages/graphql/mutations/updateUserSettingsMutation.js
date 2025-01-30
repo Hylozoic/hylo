@@ -1,4 +1,4 @@
-import meAuthFieldsFragment from '@hylo/graphql/fragments/meAuthFieldsFragment'
+import meAuthFieldsFragment from '../fragments/meAuthFieldsFragment'
 import { gql } from 'urql'
 
 export const updateUserSettingsMutation = gql`
