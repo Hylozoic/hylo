@@ -568,7 +568,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
               </MenuLink>
             )
-          } else if (rootPath !== '/my' && rootPath !== '/all' && !item.title) {
+          } else if ((rootPath !== '/my' && rootPath !== '/all' && !item.title) || (item.type === 'viewUser')) {
             return (
               <MenuLink
                 to={itemUrl}

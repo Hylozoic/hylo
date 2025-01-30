@@ -143,6 +143,10 @@ function PostEditor ({
   const editingPost = useMemo(() => presentPost(_editingPost), [_editingPost])
   const _fromPost = useSelector(state => getPost(state, fromPostId))
   const fromPost = useMemo(() => presentPost(_fromPost), [_fromPost])
+  const [titleFocused, setTitleFocused] = useState(false)
+  const [toFieldFocused, setToFieldFocused] = useState(false)
+  const [descriptionFocused, setDescriptionFocused] = useState(false)
+
 
   let isEditing = false
   if (editing) {
@@ -595,9 +599,13 @@ function PostEditor ({
   const hasStripeAccount = get('hasStripeAccount', currentUser)
   const invalidPostWarning = currentPost.type === 'proposal' ? t('You need a title, a group and at least one option for a proposal') : t('You need a title and at least one group to post')
 
+  const handleToFieldContainerClick = () => {
+    toFieldRef.current?.focus()  // This will call the focus method on ToField
+  }
+
   return (
-    <div className={cn('flex flex-col rounded-lg border border border-border bg-popover p-3', { [styles.hide]: showAnnouncementModal })}>
-      <div className='PostEditorHeader relative my-1'>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-xl', { [styles.hide]: showAnnouncementModal })}>
+      <div className='PostEditorHeader relative my-1 pb-2'>
         <div>
           {currentPost.type && <Button noDefaultStyles {...postTypeButtonProps(currentPost.type)} />}
           {showPostTypeMenu && (
@@ -611,28 +619,35 @@ function PostEditor ({
           )}
         </div>
       </div>
-      <div className={cn('PostEditorTo', styles.section)}>
-        <div className={styles.sectionLabel}>{t('To')}*</div>
-        <div className={styles.sectionGroups}>
+      <div 
+        className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section,  {'border-2 border-focus' :  toFieldFocused})}
+        onClick={handleToFieldContainerClick}
+      >
+        <div className='text-xs text-foreground/50 px-2'>{t('To')}</div>
+        <div className={cn('border-foreground w-full', styles.sectionGroups)}>
           <ToField
             options={toOptions}
             selected={selectedToOptions}
             onChange={handleAddToOption}
             readOnly={loading}
             ref={toFieldRef}
+            onFocus={() => setToFieldFocused(true)}
+            onBlur={() => setToFieldFocused(false)}   
           />
         </div>
       </div>
-      <div className={cn('PostEditorTitle', styles.section)}>
-        <div className={styles.sectionLabel}>{t('Title')}*</div>
+      <div className={cn('PostEditorTitle transition-all border-2 border-transparent', styles.section,  {'border-2 border-focus' :  titleFocused})}>
+        <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
         <input
           type='text'
-          className='bg-transparent focus:outline-none flex-1'
+          className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
           value={currentPost.title || ''}
           onChange={handleTitleChange}
           disabled={loading}
           ref={titleInputRef}
           maxLength={MAX_TITLE_LENGTH}
+          onFocus={() => setTitleFocused(true)}
+          onBlur={() => setTitleFocused(false)}
         />
         {titleLengthError && (
           <span className={styles.titleError}>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>

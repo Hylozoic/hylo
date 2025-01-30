@@ -21,11 +21,12 @@ class PublicToggle extends Component {
     const { isPublic, togglePublic, t } = this.props
 
     return (
-      <div className={cn(classes.publicToggleContainer, { [classes.postIsPublic]: isPublic })}>
-        <div className={classes.publicToggle}>
-          <Icon name='Public' className={classes.publicToggleIcon} /> {t('Make Public:')}
-          <SwitchStyled checked={isPublic} onChange={togglePublic} backgroundColor={isPublic ? '#0DC39F' : '#8B96A4'} />
-          <span className={classes.publicGuidance}>{isPublic ? t('Anyone on Hylo can see this post') : t('Currently, only groups you specify above will see this post')}</span>
+      <div className={cn('w-full text-foreground/50 hover:text-foreground/100 text-xs cursor-pointer rounded', { [classes.postIsPublic]: isPublic })} onClick={togglePublic} role="button">
+        <div className='w-full flex gap-2'>
+          <SwitchStyled checked={isPublic} onChange={togglePublic} backgroundColor={isPublic ? 'hsl(var(--selected))' : 'hsl(var(--foreground))'} />
+          <div>
+            <span>{isPublic ? t('Post will be publicly visible and shareable') : t('Make Public - Currently, only groups you specify above will see this post')}</span>
+          </div>
         </div>
       </div>
     )

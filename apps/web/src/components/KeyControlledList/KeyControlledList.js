@@ -109,9 +109,9 @@ const KeyControlledList = forwardRef(({
     })
 
   return (
-    <div className={classes.keyListContainer} ref={ref}>
+    <div className='bg-primary w-full' ref={ref}>
       {tagType && tagType === 'groups' && <div className={classes.keyListLabel}>{t('Groups')}</div>}
-      <ul {...omit(propsToOmit, props)} className={cn(theme.items, classes.keyList)}>
+      <ul {...omit(propsToOmit, props)} className={cn('bg-primary w-full max-h-[200px] overflow-scroll')}>
         {childrenWithRefs}
       </ul>
     </div>
