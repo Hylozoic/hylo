@@ -11252,7 +11252,6 @@ __metadata:
     pg-format: "npm:^1.0.4"
     pluralize: "npm:^8.0.0"
     pretty-data: "npm:^0.40.0"
-    promirepl: "npm:^1.0.1"
     randomstring: "npm:^1.1.0"
     rc: "npm:~0.5.0"
     request: "npm:^2.51.0"
@@ -27956,15 +27955,6 @@ __metadata:
   version: 2.0.3
   resolution: "progress@npm:2.0.3"
   checksum: 10/e6f0bcb71f716eee9dfac0fe8a2606e3704d6a64dd93baaf49fbadbc8499989a610fe14cf1bc6f61b6d6653c49408d94f4a94e124538084efd8e4cf525e0293d
-  languageName: node
-  linkType: hard
-
-"promirepl@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "promirepl@npm:1.0.1"
-  bin:
-    prominode: ./bin/prominode.js
-  checksum: 10/154c3f551abe2339d7932277a7902e67456e003a91640a1ecdc25cc4316c4c3c9896e667ca6d70341fa14ec34772b9c0ba713b9443d5073fb68c834046d605d9
   languageName: node
   linkType: hard
 

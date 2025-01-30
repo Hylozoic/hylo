@@ -124,7 +124,6 @@
     "pg-format": "^1.0.4",
     "pluralize": "^8.0.0",
     "pretty-data": "^0.40.0",
-    "promirepl": "^1.0.1",
     "randomstring": "^1.1.0",
     "rc": "~0.5.0",
     "request": "^2.51.0",
