@@ -1,4 +1,5 @@
 exports.up = function(knex) {
+  console.log("Remove nexudus accounts")
   return knex.schema.dropTable('nexudus_accounts')
 }
 

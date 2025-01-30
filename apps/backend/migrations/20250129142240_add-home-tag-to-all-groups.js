@@ -3,6 +3,7 @@ require("@babel/register")
 const models = require('../api/models')
 
 exports.up = async function(knex) {
+  console.log("Add home tag to all groups")
   models.init()
 
   // Get all groups and their created_by_id

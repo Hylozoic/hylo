@@ -19,6 +19,7 @@ exports.up = function(knex) {
   //   SET tag_id = ?
   //   WHERE tag_id = ?
   // `, [homeTagId, generalTagId])
+  console.log("Port general tag content to home tag")
   return Promise.resolve()
 };
 

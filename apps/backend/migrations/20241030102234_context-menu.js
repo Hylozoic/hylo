@@ -1,4 +1,5 @@
 exports.up = function(knex) {
+  console.log("Context menu migration")
   return knex.schema
     .createTable('context_widgets', table => {
       table.bigIncrements('id').primary()
@@ -9,7 +10,7 @@ exports.up = function(knex) {
       table.string('visibility')
       table.bigInteger('parent_id').references('id').inTable('context_widgets').onDelete('CASCADE')
       table.string('view')
-      table.string('icon') 
+      table.string('icon')
       table.boolean('auto_added').defaultTo(false)
       table.bigInteger('view_group_id').references('id').inTable('groups').onDelete('CASCADE') // view group
       table.bigInteger('view_post_id').references('id').inTable('posts').onDelete('CASCADE') // view post
@@ -24,7 +25,7 @@ exports.up = function(knex) {
     .then(() => knex.raw('ALTER TABLE context_widgets ALTER CONSTRAINT context_widgets_group_id_foreign DEFERRABLE INITIALLY DEFERRED'))
     .then(() => knex.raw('ALTER TABLE context_widgets ALTER CONSTRAINT context_widgets_parent_id_foreign DEFERRABLE INITIALLY DEFERRED'))
     .then(() => knex.raw(`
-      ALTER TABLE context_widgets 
+      ALTER TABLE context_widgets
       ADD CONSTRAINT single_view_reference
       CHECK (
         (CASE WHEN view_group_id IS NOT NULL THEN 1 ELSE 0 END +
