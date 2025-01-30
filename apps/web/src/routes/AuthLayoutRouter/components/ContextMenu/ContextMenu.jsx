@@ -459,7 +459,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                 </span>}
               {widget.type !== 'members' &&
                 <div className={cn('flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground', {
-                  'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditting
+                  'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditting && widget.type !== 'home'
                 })}>
                   <SpecialTopElementRenderer widget={widget} group={group} />
                   <ul className='p-0'>
@@ -490,9 +490,9 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
       </div>
       {showEdit && (
         <div className='mb-[30px]'>
-          <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })} className='flex items-center text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+          <MenuLink to={addQuerystringToPath(url, { cme: isEditting ? 'no' : 'yes' })} className='flex items-center text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             <Pencil className='h-[16px]' />
-            <span className='text-base'>{t('Edit Menu')}</span>
+            <span className='text-base'>{isEditting ? t('Done Editing') : t('Edit Menu')}</span>
           </MenuLink>
         </div>
       )}
@@ -572,8 +572,8 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
             return (
               <MenuLink
                 to={itemUrl}
-                externalLink={item?.customView?.type === "externalLink" ? item.customView.externalLink : null}
-                className="transition-all px-2 py-1 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between"
+                externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
+                className='transition-all px-2 py-1 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between'
               >
                 <div>
                   <WidgetIconResolver widget={item} />

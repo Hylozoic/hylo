@@ -1,4 +1,3 @@
-
 export default function ContextWidgetPresenter (widget, { t }) {
   if (!widget) return widget
 
@@ -10,7 +9,6 @@ export default function ContextWidgetPresenter (widget, { t }) {
     humanReadableType: humanReadableTypes(widgetTypeInferrer({ widget })),
     isValidHomeWidget: isValidHomeWidget(widget)
   }
-
 }
 
 export function widgetTitleResolver ({ widget, t }) {
@@ -70,6 +68,8 @@ export function widgetTypeInferrer ({ widget }) {
 // TODO redesign: This has mainly been a dev helper, need to decide how we present things in the ALL VIEW
 export function humanReadableTypes (type) {
   switch (true) {
+    case type === 'home':
+      return 'home'
     case type === 'group' || type === 'viewGroup':
       return 'group'
     case type === 'viewPost' || type === 'post':
@@ -80,8 +80,10 @@ export function humanReadableTypes (type) {
       return 'chat'
     case type === 'customView' || type === 'customview':
       return 'custom view'
-    default:
+    case type === null:
       return 'container'
+    default:
+      return type
   }
 }
 
