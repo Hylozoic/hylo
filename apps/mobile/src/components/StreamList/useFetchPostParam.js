@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
-import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
+import useCurrentUser from 'frontend-shared/hooks/useCurrentUser'
+import { isContextGroup } from 'frontend-shared/presenters/GroupPresenter'
 
 export default function useFetchPostParam ({
   customView,

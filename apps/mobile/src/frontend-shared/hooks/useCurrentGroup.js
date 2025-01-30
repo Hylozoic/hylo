@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 import { useMemo } from 'react'
 import { useQuery } from 'urql'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'frontend-shared/hooks/useCurrentUser'
 import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
-import GroupPresenter, { getContextGroup, isContextGroup } from 'urql-shared/presenters/GroupPresenter'
+import GroupPresenter, { getContextGroup, isContextGroup } from 'frontend-shared/presenters/GroupPresenter'
 
 // Zustand store for managing currentGroupSlug
 const useCurrentGroupStore = create((set) => ({

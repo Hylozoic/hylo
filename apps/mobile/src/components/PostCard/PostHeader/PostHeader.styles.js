@@ -1,4 +1,4 @@
-import { POST_TYPES } from 'urql-shared/presenters/PostPresenter'
+import { POST_TYPES } from 'frontend-shared/presenters/PostPresenter'
 import {amaranth, rhino30, rhino50, caribbeanGreen, rhino40 } from 'style/colors'
 
 export const styles = {

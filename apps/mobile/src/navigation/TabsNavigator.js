@@ -3,7 +3,7 @@ import { StyleSheet, Text } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import Intercom from '@intercom/intercom-react-native'
 import { isIOS } from 'util/platform'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'frontend-shared/hooks/useCurrentUser'
 // Helper Components
 import Icon from 'components/Icon'
 import Avatar from 'components/Avatar'

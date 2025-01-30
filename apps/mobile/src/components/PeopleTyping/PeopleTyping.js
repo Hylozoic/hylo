@@ -1,6 +1,6 @@
 import React, { forwardRef, useImperativeHandle } from 'react'
 import { Text, View, StyleSheet } from 'react-native'
-import { usePeopleTyping } from 'urql-shared/hooks/usePeopleTyping'
+import { usePeopleTyping } from 'frontend-shared/hooks/usePeopleTyping'
 import { rhino30 } from 'style/colors'
 
 const PeopleTyping = forwardRef(({ messageThreadId, postId, commentId }, ref) => {

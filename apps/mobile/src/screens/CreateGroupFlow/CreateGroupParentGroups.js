@@ -4,11 +4,11 @@ import { useFocusEffect } from '@react-navigation/native'
 import { Text, TouchableOpacity, FlatList } from 'react-native'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import { white } from 'style/colors'
-import { GROUP_ACCESSIBILITY } from 'urql-shared/presenters/GroupPresenter'
+import { GROUP_ACCESSIBILITY } from 'frontend-shared/presenters/GroupPresenter'
 import { getGroupData, updateGroupData } from './CreateGroupFlow.store'
 import styles from './CreateGroupFlow.styles'
 import { useTranslation } from 'react-i18next'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'frontend-shared/hooks/useCurrentUser'
 
 export default function CreateGroupParentGroups ({ navigation }) {
   const dispatch = useDispatch()

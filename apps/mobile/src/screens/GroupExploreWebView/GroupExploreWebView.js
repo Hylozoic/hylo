@@ -10,7 +10,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import groupDetailsQueryMaker from 'graphql/queries/groupDetailsQueryMaker'
 import HyloWebView from 'components/HyloWebView'
 import ModalHeaderTransparent from 'navigation/headers/ModalHeaderTransparent'
-import { useGroup } from 'urql-shared/hooks/useCurrentGroup'
+import { useGroup } from 'frontend-shared/hooks/useCurrentGroup'
 
 const groupStewardsQuery = gql`
   query GroupStewardsQuery ($id: ID, $slug: String) {

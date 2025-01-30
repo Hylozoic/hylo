@@ -16,7 +16,7 @@ import Loading from 'components/Loading'
 import cardStyles from 'components/NotificationCard/NotificationCard.styles'
 import notificationsQuery from 'graphql/queries/notificationsQuery'
 import resetNotificationsCountMutation from 'graphql/mutations/resetNotificationsCountMutation'
-import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
+import useCurrentUser from 'frontend-shared/hooks/useCurrentUser'
 
 const styles = StyleSheet.create({
   notificationsList: {

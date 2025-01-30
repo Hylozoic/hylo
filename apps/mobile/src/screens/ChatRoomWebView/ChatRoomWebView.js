@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import useCurrentGroup from 'urql-shared/hooks/useCurrentGroup'
+import useCurrentGroup from 'frontend-shared/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'

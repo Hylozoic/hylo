@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'urql-shared/presenters/GroupPresenter'
+import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'frontend-shared/presenters/GroupPresenter'
 import groupFieldsFragment from 'graphql/fragments/groupFieldsFragment'
 import groupPrerequisiteGroupsFieldsFragment from 'graphql/fragments/groupPrerequisiteGroupsFieldsFragment'
 

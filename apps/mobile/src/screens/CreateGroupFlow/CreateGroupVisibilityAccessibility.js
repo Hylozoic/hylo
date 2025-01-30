@@ -8,7 +8,7 @@ import {
   GROUP_ACCESSIBILITY, GROUP_VISIBILITY,
   visibilityDescription, accessibilityDescription,
   visibilityIcon, accessibilityIcon
-} from 'urql-shared/presenters/GroupPresenter'
+} from 'frontend-shared/presenters/GroupPresenter'
 import { caribbeanGreen, white20onCaribbeanGreen, white } from 'style/colors'
 import { getGroupData, updateGroupData } from './CreateGroupFlow.store'
 import styles from './CreateGroupFlow.styles'

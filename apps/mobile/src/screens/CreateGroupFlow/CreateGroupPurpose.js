@@ -4,14 +4,14 @@ import { useFocusEffect } from '@react-navigation/native'
 import { Text, View, ScrollView, TextInput } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import useRouteParams from 'hooks/useRouteParams'
-import useCurrentGroup from 'urql-shared/hooks/useCurrentGroup'
+import useCurrentGroup from 'frontend-shared/hooks/useCurrentGroup'
 import {
   getGroupData, getEdited, updateGroupData, setWorkflowOptions,
   clearCreateGroupStore
 } from './CreateGroupFlow.store'
 import ErrorBubble from 'components/ErrorBubble'
 import styles from './CreateGroupFlow.styles'
-import { ALL_GROUP_ID, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
+import { ALL_GROUP_ID, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from 'frontend-shared/presenters/GroupPresenter'
 
 export default function CreateGroupPurpose ({ route }) {
   const { t } = useTranslation()

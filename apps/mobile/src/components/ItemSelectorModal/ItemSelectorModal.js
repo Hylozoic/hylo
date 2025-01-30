@@ -2,7 +2,7 @@ import React, { useEffect, useState, useImperativeHandle, useCallback, useMemo }
 import { View, Modal, FlatList, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useQuery } from 'urql'
 import { isEmpty, isFunction, debounce } from 'lodash/fp'
-import getFirstRootField from 'urql-shared/getFirstRootFieldFromData'
+import getFirstRootField from 'frontend-shared/getFirstRootFieldFromData'
 import Avatar from 'components/Avatar'
 import RoundCheckbox from 'components/RoundCheckBox'
 import SearchBar from 'components/SearchBar'

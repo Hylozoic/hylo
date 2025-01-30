@@ -1,5 +1,5 @@
 import isEmpty from 'lodash/isEmpty'
-import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'urql-shared/presenters/GroupPresenter'
+import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'frontend-shared/presenters/GroupPresenter'
 
 export const MODULE_NAME = 'GroupWelcomeFlow'
 export const UPDATE_GROUP_DATA = `${MODULE_NAME}/UPDATE_GROUP_DATA`
