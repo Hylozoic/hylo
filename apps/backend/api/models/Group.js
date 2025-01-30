@@ -728,7 +728,7 @@ module.exports = bookshelf.Model.extend(merge({
     //         ))
     //       }
     //     }
-    // }
+    }
 
     if (existingTrx) {
       return doWork(existingTrx)
