@@ -1,4 +1,7 @@
+import { useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { CalendarEvent as CalendarEventType } from 'components/Calendar/calendar-types'
+import { postUrl } from 'util/navigation'
 import { useCalendarContext } from 'components/Calendar/calendar-context'
 import { format, isSameDay, isSameMonth } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -70,11 +73,18 @@ export default function CalendarEvent({
   month?: boolean
   className?: string
 }) {
-  const { events, setSelectedEvent, setManageEventDialogOpen, date } =
+  const { events, setSelectedEvent, setManageEventDialogOpen, date, routeParams, locationParams, querystringParams } =
     useCalendarContext()
   const style = month ? {} : calculateEventPosition(event, events)
   // TODO format for multi-day events
   const toolTipTitle = `${event.title}<br />${format(event.start, 'h:mm a')} - ${format(event.end, 'h:mm a')}`
+
+  // our custon event click handler
+  const navigate = useNavigate()
+  const showDetails = useCallback(() => {
+      navigate(postUrl(event.id, routeParams, { ...locationParams, ...querystringParams }))
+    }, [event.id, routeParams, locationParams, querystringParams])
+  
 
   // Generate a unique key that includes the current month to prevent animation conflicts
   const isEventInCurrentMonth = isSameMonth(event.start, date)
@@ -135,6 +145,7 @@ export default function CalendarEvent({
               month && 'flex-row items-center justify-between'
             )}
             layout="position"
+            onClick={showDetails}
           >
             <p className={cn('font-bold truncate', month && 'text-xs', 'm-0')} data-tooltip-id={`title-tip-${event.id}`} data-tooltip-html={toolTipTitle}>
               {event.title}

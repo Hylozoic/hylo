@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Calendar from '../Calendar/calendar'
 import { DateTime } from 'luxon'
 
-export default function EventCalendar({posts}) {
+export default function EventCalendar({posts, routeParams, locationParams, querystringParams}) {
   if (posts.length === 0) return
 
   const [mode, setMode] = useState('month')
@@ -18,7 +18,7 @@ export default function EventCalendar({posts}) {
   const events = posts.map((post) => {
     groupColor[post.group] ||= colors[i++ % colors.length]
     return {
-      id: `event-${post.id}`,
+      id: post.id,
       start: DateTime.fromISO(post.startTime).toJSDate(),
       end: DateTime.fromISO(post.endTime).toJSDate(),
       title: post.title,
@@ -29,6 +29,9 @@ export default function EventCalendar({posts}) {
   return (
     <Calendar
       events={events}
+      routeParams={routeParams}
+      locationParams={locationParams}
+      querystringParams={querystringParams}
       mode={mode}
       setMode={setMode}
       date={date}

@@ -9,6 +9,9 @@ import CalendarProvider from './calendar-provider'
 
 export default function Calendar({
   events,
+  routeParams,
+  locationParams,
+  querystringParams,
   setEvents,
   mode,
   setMode,
@@ -19,6 +22,9 @@ export default function Calendar({
   return (
     <CalendarProvider
       events={events}
+      routeParams={routeParams}
+      locationParams={locationParams}
+      querystringParams={querystringParams}
       setEvents={setEvents}
       mode={mode}
       setMode={setMode}

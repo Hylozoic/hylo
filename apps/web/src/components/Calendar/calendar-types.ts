@@ -1,5 +1,8 @@
 export type CalendarProps = {
   events: CalendarEvent[]
+  routeParams: String
+  locationParams: String
+  querystringParams: String
   setEvents: (events: CalendarEvent[]) => void
   mode: Mode
   setMode: (mode: Mode) => void
@@ -9,6 +12,13 @@ export type CalendarProps = {
 }
 
 export type CalendarContextType = CalendarProps & {
+  routeParams: String
+  locationParams: {
+    [key: string]: String;
+  }
+  querystringParams:  {
+    [key: string]: String;
+  }
   newEventDialogOpen: boolean
   setNewEventDialogOpen: (open: boolean) => void
   manageEventDialogOpen: boolean
