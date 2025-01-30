@@ -1,16 +1,13 @@
 import { useCallback } from 'react'
 import { useNavigation } from '@react-navigation/native'
-import { useMutation } from 'urql'
 import { GoogleSignin } from '@react-native-google-signin/google-signin'
 import Intercom from '@intercom/intercom-react-native'
-import apiHost from 'util/apiHost'
-import { clearSessionCookie } from 'util/session'
 import mixpanel from 'services/mixpanel'
-import logoutMutation from 'graphql/mutations/logoutMutation'
+import { clearSessionCookie } from 'util/session'
+import { useAuth } from 'contexts/AuthContext'
 
-export const logout = async () => {
+export const logoutServices = async () => {
   try {
-    await fetch(apiHost + '/noo/session', { method: 'DELETE' })
     await clearSessionCookie()
 
     Intercom.logout()
@@ -28,7 +25,7 @@ export const logout = async () => {
 
 export const useLogout = () => {
   const navigation = useNavigation()
-  const [, logout] = useMutation(logoutMutation)
+  const { logout } = useAuth()
   const logoutRedirect = useCallback(async () => {
     try {
       navigation.reset({
@@ -36,6 +33,7 @@ export const useLogout = () => {
         routes: [{ name: 'Loading' }]
       })
       await logout()
+      await logoutServices()
     } catch (error) {
       console.error('Error during logout:', error.message)
     }

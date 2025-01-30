@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { AnalyticsEvents } from '@hylo/shared'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import useCurrentUser from 'urql-shared/hooks/useCurrentUser'
-import useAuthStatus from 'urql-shared/hooks/useAuthStatus'
+import { useAuth } from 'contexts/AuthContext'
 import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import LocationSelectorModal from 'components/LocationSelectorModal'
@@ -23,7 +23,7 @@ export default function SignupSetLocation ({ navigation }) {
   const [location, setLocation] = useState(currentUser?.location)
   const [locationId, setLocationId] = useState(currentUser?.locationId)
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
-  const [, checkAuth] = useAuthStatus({ pause: true })
+  const { checkAuth } = useAuth()
   const controlRef = useRef()
 
   useFocusEffect(() => {

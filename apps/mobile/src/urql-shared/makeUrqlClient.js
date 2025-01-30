@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { createClient, fetchExchange } from 'urql'
 import { getIntrospectionQuery } from 'graphql'
 import { cacheExchange } from '@urql/exchange-graphcache'
@@ -69,4 +70,17 @@ export default async function makeUrqlClient ({ schemaAwareness = false } = {}) 
   // })
 
   return client
+}
+
+export function useMakeUrqlClient () {
+  const [urqlClient, setUrqlClient] = useState()
+
+  useEffect(() => {
+    (async () => {
+      const client = await makeUrqlClient()
+      setUrqlClient(client)
+    })()
+  }, [])
+
+  return urqlClient
 }

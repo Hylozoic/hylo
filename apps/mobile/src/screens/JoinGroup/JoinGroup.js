@@ -3,8 +3,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { every, isEmpty } from 'lodash/fp'
 import { useMutation, useQuery } from 'urql'
 import { useDispatch } from 'react-redux'
+import { useAuth } from 'contexts/AuthContext'
 import { openURL } from 'hooks/useOpenURL'
-import useAuthStatus from 'urql-shared/hooks/useAuthStatus'
 import useRouteParams from 'hooks/useRouteParams'
 import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
 import checkInvitationQuery from 'graphql/queries/checkInvitationQuery'
@@ -19,7 +19,7 @@ export default function JoinGroup (props) {
 
   const [, checkInvitation] = useQuery({ query: checkInvitationQuery, variables: invitationTokenAndCode, pause: true })
   const [, acceptInvitation] = useMutation(acceptInvitationMutation)
-  const [{ isAuthorized }] = useAuthStatus()
+  const { isAuthorized } = useAuth()
 
   // Might be more clear to simply use `useEffect`
   useFocusEffect(

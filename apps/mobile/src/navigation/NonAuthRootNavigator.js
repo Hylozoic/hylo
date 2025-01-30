@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
+import { useAuth } from 'contexts/AuthContext'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import Login from 'screens/Login'
@@ -7,12 +8,11 @@ import ForgotPassword from 'screens/ForgotPassword'
 import SignupNavigator from 'navigation/SignupNavigator'
 import { useNavigation } from '@react-navigation/native'
 import { white } from 'style/colors'
-import useAuthStatus from 'urql-shared/hooks/useAuthStatus'
 
 const NonAuthRoot = createStackNavigator()
 export default function NonAuthRootNavigator () {
   const navigation = useNavigation()
-  const [{ isAuthenticated, fetching }] = useAuthStatus()
+  const { isAuthenticated, fetching } = useAuth()
 
   // If user authenticated we know they are not authorized also
   // as authorization is handled by `RootNavigator`.

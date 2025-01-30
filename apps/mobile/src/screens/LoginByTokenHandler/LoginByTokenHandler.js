@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
-import useAuthStatus from 'urql-shared/hooks/useAuthStatus'
+import { useAuth } from 'contexts/AuthContext'
 import loginByToken from 'store/actions/loginByToken'
 import loginByJWT from 'store/actions/loginByJWT'
 import { openURL } from 'hooks/useOpenURL'
@@ -12,7 +12,7 @@ import LoadingScreen from 'screens/LoadingScreen'
 export default function LoginByTokenHandler () {
   const route = useRoute()
   const dispatch = useDispatch()
-  const [{ isAuthorized }, checkLogin] = useAuthStatus({ pause: true })
+  const [{ isAuthorized, checkAuth }] = useAuth()
   const returnToURLFromLink = decodeURIComponent(route?.params?.n)
   const jwt = decodeURIComponent(route?.params?.token)
   const loginToken = decodeURIComponent(route?.params?.t || route?.params?.loginToken)
@@ -30,7 +30,7 @@ export default function LoginByTokenHandler () {
 
               if (response?.error) throw response.error
 
-              await checkLogin()
+              await checkAuth()
             } else if (loginToken && userID) {
               await dispatch(loginByToken(userID, loginToken))
             }
