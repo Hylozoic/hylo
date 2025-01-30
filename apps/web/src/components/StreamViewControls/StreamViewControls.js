@@ -157,7 +157,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn({ [classes.modeActive]: viewMode === 'grid' }, classes.calendar)}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'calendar' }, classes.calendar)}
             onClick={() => changeView('calendar')}
             data-tooltip-content={t('Calendar')}
             data-tooltip-id='stream-viewmode-tip'
