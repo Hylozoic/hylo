@@ -4,21 +4,31 @@ const models = require('../api/models')
 
 exports.up = async function(knex) {
   console.log("Add home tag to all groups")
-  models.init()
+  // models.init()
 
+  console.log("models init")
   // Get all groups and their created_by_id
   // const groups = await knex('groups')
   //   .select(['id', 'created_by_id'])
 
   // console.log(`Adding home tag to ${groups.length} groups`)
 
-  let homeTag = await Tag.where({ name: 'home' }).fetch({ })
+  let homeTag = await knex('tags')
+    .where({ name: 'home' })
+    .first()
+  console.log("home tag", homeTag)
   if (!homeTag) {
-    await Tag.forge({
-      name: 'home',
-      created_at: new Date(),
-      updated_at: new Date()
-    }).save(null, { })
+    const [id] = await knex('tags')
+      .insert({
+        name: 'home',
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+      .returning('id')
+    homeTag = await knex('tags')
+      .where({ id })
+      .first()
+    console.log("new tag forged", homeTag)
   }
 
   // Create GroupTags for each group
@@ -59,13 +69,5 @@ exports.up = async function(knex) {
   return Promise.resolve()
 }
 
-exports.down = async function(knex) {
-  models.init()
-  const homeTag = await Tag.where({ name: 'home' }).fetch()
-  if (homeTag) {
-    return knex('groups_tags')
-      .where({ tag_id: homeTag.get('id') })
-      .del()
-  }
-  return Promise.resolve()
+exports.down = async function(knex, Promise) {
 }
