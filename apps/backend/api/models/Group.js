@@ -511,6 +511,11 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Get home tag id for the home chat
     const homeTag = await Tag.where({ name: 'home' }).fetch({ transacting: trx })
+    // XXX: make sure there is a home tag for every group
+    const homeGroupTag = await GroupTag.where({ group_id: this.id, tag_id: homeTag.id }).fetch({ transacting: trx })
+    if (!homeGroupTag) {
+      await GroupTag.create({ group_id: this.id, tag_id: homeTag.id, user_id: this.get('created_by_id'), is_default: true }, { transacting: trx })
+    }
 
     // Create home chat widget as child of default view
     await ContextWidget.forge({
