@@ -146,8 +146,9 @@ export default function CalendarEvent({
             )}
             layout="position"
             onClick={showDetails}
+            data-tooltip-id={`title-tip-${event.id}`} data-tooltip-html={toolTipTitle}
           >
-            <p className={cn('font-bold truncate', month && 'text-xs', 'm-0')} data-tooltip-id={`title-tip-${event.id}`} data-tooltip-html={toolTipTitle}>
+            <p className={cn('font-bold truncate', month && 'text-xs', 'm-0')}>
               {event.title}
             </p>
             {/* <p className={cn('text-sm', month && 'text-xs', 'm-0')}>
