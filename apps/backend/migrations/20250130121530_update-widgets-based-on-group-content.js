@@ -1,5 +1,9 @@
+/* globals Group  */
+require("@babel/register")
+const models = require('../api/models')
 
 exports.up = async function(knex) {
+  models.init()
 
   // Find all groups that don't have context widgets
   const groups = await knex.raw(`
