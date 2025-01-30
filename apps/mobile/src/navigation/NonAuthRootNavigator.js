@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
-import { useAuth } from 'frontend-shared/contexts/contexts/AuthContext'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import Login from 'screens/Login'

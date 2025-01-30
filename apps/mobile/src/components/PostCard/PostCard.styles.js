@@ -1,4 +1,4 @@
-import { POST_TYPES } from 'frontend-shared/presenters/PostPresenter'
+import { POST_TYPES } from '@hylo/presenters/PostPresenter'
 import { capeCod10, rhino60, caribbeanGreen, white, regent, mangoYellow, black } from 'style/colors'
 
 export default {

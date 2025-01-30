@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
-import { useAuth } from 'frontend-shared/contexts/contexts/AuthContext'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import loginByToken from 'store/actions/loginByToken'
 import loginByJWT from 'store/actions/loginByJWT'
 import { openURL } from 'hooks/useOpenURL'

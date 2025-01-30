@@ -9,7 +9,7 @@ import customLinking, {
   AUTH_ROOT_SCREEN_NAME,
   NON_AUTH_ROOT_SCREEN_NAME
 } from 'navigation/linking'
-import { useAuth } from 'frontend-shared/contexts/contexts/AuthContext'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import { openURL } from 'hooks/useOpenURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import JoinGroup from 'screens/JoinGroup'

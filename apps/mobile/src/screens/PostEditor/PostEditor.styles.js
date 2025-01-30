@@ -1,5 +1,5 @@
 import { isIOS } from 'util/platform'
-import { POST_TYPES } from 'frontend-shared/presenters/PostPresenter'
+import { POST_TYPES } from '@hylo/presenters/PostPresenter'
 import {
   caribbeanGreen,
   rhino30,

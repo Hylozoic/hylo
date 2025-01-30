@@ -8,7 +8,7 @@ import {
   GROUP_ACCESSIBILITY, GROUP_VISIBILITY,
   visibilityDescription, accessibilityDescription,
   visibilityIcon, accessibilityIcon
-} from 'frontend-shared/presenters/GroupPresenter'
+} from '@hylo/presenters/GroupPresenter'
 import { caribbeanGreen, white20onCaribbeanGreen, white } from 'style/colors'
 import { getGroupData, updateGroupData } from './CreateGroupFlow.store'
 import styles from './CreateGroupFlow.styles'

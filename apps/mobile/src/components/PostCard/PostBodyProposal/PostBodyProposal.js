@@ -12,7 +12,7 @@ import {
   PROPOSAL_STATUS_VOTING,
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
-} from 'frontend-shared/presenters/PostPresenter'
+} from '@hylo/presenters/PostPresenter'
 import { addProposalVoteMutation, removeProposalVoteMutation, swapProposalVoteMutation } from 'store/actions/proposals'
 
 const calcNumberOfVoters = (votes) => {

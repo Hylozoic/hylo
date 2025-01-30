@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { useNavigation } from '@react-navigation/native'
-import useCurrentGroup from 'frontend-shared/hooks/useCurrentGroup'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import HyloWebView from 'components/HyloWebView'
 
 export default function AllTopicsWebView () {

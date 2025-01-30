@@ -1,7 +1,7 @@
 import React from 'react'
 import { TouchableOpacity, View } from 'react-native'
 import { useMutation } from 'urql'
-import respondToEventMutation from 'frontend-shared/graphql/mutations/respondToEventMutation'
+import respondToEventMutation from '@hylo/graphql/mutations/respondToEventMutation'
 import PostCard from 'components/PostCard'
 import styles from './PostRow.styles'
 

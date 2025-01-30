@@ -7,10 +7,10 @@ import { DEFAULT_APP_HOST } from 'navigation/linking'
 import { openURL } from 'hooks/useOpenURL'
 import useIsModalScreen, { modalScreenName } from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
-import groupDetailsQueryMaker from 'frontend-shared/graphql/queries/groupDetailsQueryMaker'
+import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
 import HyloWebView from 'components/HyloWebView'
 import ModalHeaderTransparent from 'navigation/headers/ModalHeaderTransparent'
-import { useGroup } from 'frontend-shared/hooks/useCurrentGroup'
+import { useGroup } from '@hylo/hooks/useCurrentGroup'
 
 const groupStewardsQuery = gql`
   query GroupStewardsQuery ($id: ID, $slug: String) {
