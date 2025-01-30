@@ -10678,7 +10678,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"aws-sdk@npm:^2.1565.0":
+"aws-sdk@npm:^2.1692.0":
   version: 2.1692.0
   resolution: "aws-sdk@npm:2.1692.0"
   dependencies:
@@ -11259,7 +11259,7 @@ __metadata:
     apple-signin-auth: "npm:^1.2.1"
     async-repl: "npm:0.4.0"
     autolinker: "npm:^4.0.0"
-    aws-sdk: "npm:^2.1565.0"
+    aws-sdk: "npm:^2.1692.0"
     babel-plugin-istanbul: "npm:^2.0.3"
     bcrypt: "npm:^5.0.1"
     bluebird: "npm:^2.3.11"
