@@ -2725,7 +2725,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@emoji-mart/data@npm:^1.0.6, @emoji-mart/data@npm:^1.2.1":
+"@emoji-mart/data@npm:^1.2.1":
   version: 1.2.1
   resolution: "@emoji-mart/data@npm:1.2.1"
   checksum: 10/a9f50edaf354aadfede604fb26d80055a085e9160db2c924fd5e6afc27033cd5beb0006a9ee48240ce9c543e58e1bf1cf9ed83baba5db83a395154984b30bd91
@@ -11248,7 +11248,7 @@ __metadata:
     "@babel/core": "npm:^7.17.9"
     "@babel/preset-env": "npm:^7.16.11"
     "@babel/register": "npm:^7.17.7"
-    "@emoji-mart/data": "npm:^1.0.6"
+    "@emoji-mart/data": "npm:^1.2.1"
     "@faker-js/faker": "npm:^6.3.1"
     "@graphql-yoga/redis-event-target": "npm:^3.0.3"
     "@hylo/shared": "workspace:*"
@@ -11279,7 +11279,7 @@ __metadata:
     dataloader: "npm:^1.2.0"
     dotenv: "npm:16.4.5"
     ejs: "npm:^2.5.5"
-    emoji-mart: "npm:^5.2.2"
+    emoji-mart: "npm:^5.6.0"
     ent: "npm:^2.2.0"
     file-type: "npm:^6.1.0"
     foreman: "npm:^3.0.1"
@@ -15746,7 +15746,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"emoji-mart@npm:5.6.0, emoji-mart@npm:^5.2.2, emoji-mart@npm:^5.6.0":
+"emoji-mart@npm:5.6.0, emoji-mart@npm:^5.6.0":
   version: 5.6.0
   resolution: "emoji-mart@npm:5.6.0"
   checksum: 10/fbbd6ce6fe6bc30020a7de4bfd6375f3c00da9880a147fdbee37303d985856e5463a48a61177166ad056a355e0bd589df9c0866bd54f9c065d60a9efa80639dd
