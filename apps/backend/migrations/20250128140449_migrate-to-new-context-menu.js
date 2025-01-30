@@ -1,9 +1,11 @@
 /* globals Group, Tag */
-require("@babel/register")
-const models = require('../api/models')
-
-exports.up = async function(knex) {
   // XXX: dont run this yet until it handles existing custom views and external links better
+// require("@babel/register")
+// const models = require('../api/models')
+
+exports.up = function(knex) {
+  console.log("New context menu migration is a noop for now")
+  return Promise.resolve()
   // models.init()
 
   // let homeTag = await Tag.where({ name: 'home' }).fetch({ transacting })
@@ -39,4 +41,5 @@ exports.up = async function(knex) {
 
 exports.down = function(knex) {
   //return knex('context_widgets').del();
+  return Promise.resolve()
 };

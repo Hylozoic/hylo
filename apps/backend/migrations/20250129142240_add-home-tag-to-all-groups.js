@@ -67,4 +67,5 @@ exports.down = async function(knex) {
       .where({ tag_id: homeTag.get('id') })
       .del()
   }
+  return Promise.resolve()
 }

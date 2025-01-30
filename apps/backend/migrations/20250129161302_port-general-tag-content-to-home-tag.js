@@ -1,4 +1,4 @@
-exports.up = async function(knex) {
+exports.up = function(knex) {
   // const generalTag = await knex.raw(`
   //   SELECT id FROM tags WHERE name = 'general' LIMIT 1
   // `)
@@ -19,9 +19,10 @@ exports.up = async function(knex) {
   //   SET tag_id = ?
   //   WHERE tag_id = ?
   // `, [homeTagId, generalTagId])
+  return Promise.resolve()
 };
 
-exports.down = async function(knex) {
+exports.down = function(knex) {
   // const generalTag = await knex.raw(`
   //   SELECT id FROM tags WHERE name = 'general' LIMIT 1
   // `)
@@ -42,4 +43,5 @@ exports.down = async function(knex) {
   //   SET tag_id = ?
   //   WHERE tag_id = ?
   // `, [generalTagId, homeTagId])
+  return Promise.resolve()
 };
