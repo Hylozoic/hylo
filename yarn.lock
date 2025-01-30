@@ -11278,7 +11278,6 @@ __metadata:
     csv-stringify: "npm:^5.6.2"
     dataloader: "npm:^1.2.0"
     dotenv: "npm:16.4.5"
-    dotenv-cli: "npm:7.4.2"
     ejs: "npm:^2.5.5"
     emoji-mart: "npm:^5.2.2"
     ent: "npm:^2.2.0"
@@ -15536,27 +15535,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv-cli@npm:7.4.2":
-  version: 7.4.2
-  resolution: "dotenv-cli@npm:7.4.2"
-  dependencies:
-    cross-spawn: "npm:^7.0.3"
-    dotenv: "npm:^16.3.0"
-    dotenv-expand: "npm:^10.0.0"
-    minimist: "npm:^1.2.6"
-  bin:
-    dotenv: cli.js
-  checksum: 10/48d887ea9be08f7453dc87d6c938311989e951d0b43028eadcbaff3be1ca56180f8c38b8f932fc2e59f0210e59f4b5c59cf8a34da3e6c92f63fe6d7ce4f09f65
-  languageName: node
-  linkType: hard
-
-"dotenv-expand@npm:^10.0.0":
-  version: 10.0.0
-  resolution: "dotenv-expand@npm:10.0.0"
-  checksum: 10/b41eb278bc96b92cbf3037ca5f3d21e8845bf165dc06b6f9a0a03d278c2bd5a01c0cfbb3528ae3a60301ba1a8a9cace30e748c54b460753bc00d4c014b675597
-  languageName: node
-  linkType: hard
-
 "dotenv-expand@npm:^8.0.2":
   version: 8.0.3
   resolution: "dotenv-expand@npm:8.0.3"
@@ -15587,7 +15565,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv@npm:^16.0.0, dotenv@npm:^16.3.0":
+"dotenv@npm:^16.0.0":
   version: 16.4.7
   resolution: "dotenv@npm:16.4.7"
   checksum: 10/f13bfe97db88f0df4ec505eeffb8925ec51f2d56a3d0b6d916964d8b4af494e6fb1633ba5d09089b552e77ab2a25de58d70259b2c5ed45ec148221835fc99a0c
