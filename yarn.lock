@@ -11245,8 +11245,6 @@ __metadata:
     passport-google-oauth: "npm:^2.0.0"
     passport-google-token: "npm:^0.1.2"
     passport-jwt: "npm:^4.0.0"
-    passport-linkedin-oauth2: "npm:^1.2.1"
-    passport-linkedin-token-oauth2: "npm:^0.1.3"
     performance-now: "npm:^2.1.0"
     pg: "npm:^8.4.1"
     pg-format: "npm:^1.0.4"
@@ -26493,26 +26491,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"passport-linkedin-oauth2@npm:^1.2.1":
-  version: 1.6.1
-  resolution: "passport-linkedin-oauth2@npm:1.6.1"
-  dependencies:
-    passport-oauth2: "npm:1.x.x"
-    underscore: "npm:^1.7.0"
-  checksum: 10/7b6bc0cea0469494956f2b4a97bf8b8bedd801c1963a6a84a6a3b64ed432f4ba27ac67612bd4c2f46bcf0fafd2f792c5e3c26e4eaf379eab478b175ac7a58f7e
-  languageName: node
-  linkType: hard
-
-"passport-linkedin-token-oauth2@npm:^0.1.3":
-  version: 0.1.3
-  resolution: "passport-linkedin-token-oauth2@npm:0.1.3"
-  dependencies:
-    passport-oauth: "npm:0.1.x"
-    pkginfo: "npm:0.2.x"
-  checksum: 10/d9dda75e7fc6aec878ba26710039a97581a2a55c3bc86f6352aec275751fdbd0c944be114902c43d2d247673e3d725ef4c1b51e2a72fb721a6208ef3d086c3ba
-  languageName: node
-  linkType: hard
-
 "passport-oauth1@npm:1.x.x":
   version: 1.3.0
   resolution: "passport-oauth1@npm:1.3.0"
@@ -26534,17 +26512,6 @@ __metadata:
     uid2: "npm:0.0.x"
     utils-merge: "npm:1.x.x"
   checksum: 10/31af6c59686bdc0460f3099a857ae4243952b44ad1afc5a12779524711ea97266491e97f83671120f84575b2c6202f3cf0bb8500fdc5a6414e10ff45617454ca
-  languageName: node
-  linkType: hard
-
-"passport-oauth@npm:0.1.x":
-  version: 0.1.15
-  resolution: "passport-oauth@npm:0.1.15"
-  dependencies:
-    oauth: "npm:0.9.x"
-    passport: "npm:~0.1.1"
-    pkginfo: "npm:0.2.x"
-  checksum: 10/44fded39aa0a18852da911b346b46ba004117cf6fab9f26177b4b333dca6fd0bc1d8b8e13f1f1e543f56cdca68194acbf61b6448d91037341884d66e31d7c2a1
   languageName: node
   linkType: hard
 
@@ -26572,16 +26539,6 @@ __metadata:
     passport-strategy: "npm:1.x.x"
     pause: "npm:0.0.1"
   checksum: 10/b23e72028e520c01fcb8bd2733ec4e123c331466ac832a90478af8cae585c67a3e85dc22f6bf401ce56ad2395324d089f02b72ef010263152fb046ba01196af7
-  languageName: node
-  linkType: hard
-
-"passport@npm:~0.1.1":
-  version: 0.1.18
-  resolution: "passport@npm:0.1.18"
-  dependencies:
-    pause: "npm:0.0.1"
-    pkginfo: "npm:0.2.x"
-  checksum: 10/ebbe9649ecdb71f6540b9995fc43b6bc4e7d20ea43aaede14fd25023c5707728540db10993937607a8f7f7b68a9b123950938dd4256561f18b032bcb1efdb660
   languageName: node
   linkType: hard
 
@@ -34430,7 +34387,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"underscore@npm:>=1.3.1, underscore@npm:^1.7.0":
+"underscore@npm:>=1.3.1":
   version: 1.13.7
   resolution: "underscore@npm:1.13.7"
   checksum: 10/1ce3368dbe73d1e99678fa5d341a9682bd27316032ad2de7883901918f0f5d50e80320ccc543f53c1862ab057a818abc560462b5f83578afe2dd8dd7f779766c
