@@ -1,8 +1,7 @@
 import { isString, isObject, isFunction } from 'lodash/fp'
 import { useState, useEffect, useCallback } from 'react'
-import useDeepCompareMemoize from './useDeepCompareMemoize'
-import { fetchGraphqlAction } from './useGraphqlAction'
 import { useClient } from 'urql'
+import useDeepCompareMemoize from './useDeepCompareMemoize'
 import { useDispatch } from 'react-redux'
 
 const usageError = new Error(

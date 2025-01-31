@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import notificationFieldsFragment from '@hylo/graphql/fragments/notificationFieldsFragment'
+import notificationFieldsFragment from '../fragments/notificationFieldsFragment'
 export const NOTIFICATIONS_PAGE_SIZE = 20
 
 export default gql`

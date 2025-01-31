@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
+import postFieldsFragment from '../fragments/postFieldsFragment'
 
 export default gql`
   query PostQuery ($id: ID) {

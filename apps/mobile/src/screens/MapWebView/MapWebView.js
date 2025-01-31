@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useOpenURL from 'hooks/useOpenURL'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
+import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'presenters/GroupPresenter'
 import HyloWebView from 'components/HyloWebView'
 
 // Matches actual group paths (e.g. not /all or /public)
