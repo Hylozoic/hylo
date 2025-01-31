@@ -15,7 +15,7 @@ import {
 export default function CalendarHeaderDateChevrons () {
   const { mode, date, setDate } = useCalendarContext()
 
-  function handleDateBackward () {
+  const handleDateBackward = () => {
     switch (mode) {
       case 'month':
         setDate(subMonths(date, 1))
@@ -29,7 +29,7 @@ export default function CalendarHeaderDateChevrons () {
     }
   }
 
-  function handleDateForward () {
+  const handleDateForward = () => {
     switch (mode) {
       case 'month':
         setDate(addMonths(date, 1))
@@ -48,7 +48,7 @@ export default function CalendarHeaderDateChevrons () {
       <Button
         variant='outline'
         className='h-7 w-7 p-1'
-        onClick={this._handleDateBackward}
+        onClick={handleDateBackward}
       >
         <ChevronLeft className='min-w-5 min-h-5' />
       </Button>
@@ -60,7 +60,7 @@ export default function CalendarHeaderDateChevrons () {
       <Button
         variant='outline'
         className='h-7 w-7 p-1'
-        onClick={this._handleDateForward}
+        onClick={handleDateForward}
       >
         <ChevronRight className='min-w-5 min-h-5' />
       </Button>
