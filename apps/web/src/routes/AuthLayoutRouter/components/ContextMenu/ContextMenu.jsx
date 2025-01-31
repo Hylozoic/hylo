@@ -1,4 +1,3 @@
-import { cn } from 'util/index'
 import { compact, get } from 'lodash/fp'
 import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut } from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
@@ -29,6 +28,7 @@ import { CONTEXT_MY, FETCH_POSTS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import orm from 'store/models'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
+import { bgImageStyle, cn } from 'util/index'
 import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
 
 import classes from './ContextMenu.module.scss'
@@ -244,8 +244,12 @@ export default function ContextMenu (props) {
           ? <GroupMenuHeader group={group} />
           : isPublic
             ? (
-              <div className='flex flex-col p-2'>
-                <h2 className='text-foreground font-bold leading-3 text-lg'>{t('The Commons')}</h2>
+              <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.5 }} />
+                {/* <div style={bgImageStyle('/the-commons.jpg')} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' /> */}
+                <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden'>
+                  <h2 className='text-foreground font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
+                </div>
               </div>
               )
             : isMyContext || isAllContext

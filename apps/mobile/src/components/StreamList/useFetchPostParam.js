@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
-import useCurrentUser from 'hooks/useCurrentUser'
-import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { isContextGroup } from '@hylo/presenters/GroupPresenter'
 
 export default function useFetchPostParam ({
   customView,
@@ -38,7 +38,6 @@ export default function useFetchPostParam ({
       filter ||
       currentUser?.settings?.streamPostType ||
       undefined,
-    first: null,
     forCollection: customView?.collectionId,
     interactedWithBy: myHome === 'Interactions'
       ? [currentUser.id]

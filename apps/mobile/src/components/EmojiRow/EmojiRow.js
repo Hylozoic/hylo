@@ -1,6 +1,6 @@
 import React from 'react'
 import { View } from 'react-native'
-import useReactOnEntity from 'urql-shared/hooks/useReactOnEntity'
+import useReactOnEntity from '@hylo/hooks/useReactOnEntity'
 import EmojiPicker from 'components/EmojiPicker'
 import EmojiPill from 'components/EmojiPill'
 

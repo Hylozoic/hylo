@@ -27,7 +27,6 @@ const ToField = forwardRef(({
     focus: () => tagInputRef.current?.focus()
   }))
 
-
   const findSuggestions = (searchText) => {
     let newSuggestions
     if (searchText && searchText.trim().length > 0) {
@@ -76,8 +75,8 @@ const ToField = forwardRef(({
       readOnly={readOnly}
       theme={styles}
       ref={tagInputRef}
-      onFocus={onFocus}  // Pass through to parent
-      onBlur={onBlur}    // Pass through to parent
+      onFocus={onFocus} // Pass through to parent
+      onBlur={onBlur} // Pass through to parent
     />
   )
 })

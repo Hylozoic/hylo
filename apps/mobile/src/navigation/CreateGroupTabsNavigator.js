@@ -3,7 +3,7 @@ import { isEmpty } from 'lodash/fp'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import WorkflowModalHeader from 'navigation/headers/WorkflowModalHeader'
 import CreateGroupTabBar from 'screens/CreateGroupFlow/CreateGroupTabBar'
-import { GROUP_ACCESSIBILITY } from 'urql-shared/presenters/GroupPresenter'
+import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 // Screens
 import CreateGroupName from 'screens/CreateGroupFlow/CreateGroupName'
 import CreateGroupUrl from 'screens/CreateGroupFlow/CreateGroupUrl'
@@ -12,7 +12,7 @@ import CreateGroupPurpose from 'screens/CreateGroupFlow/CreateGroupPurpose'
 import CreateGroupParentGroups from 'screens/CreateGroupFlow/CreateGroupParentGroups'
 import CreateGroupReview from 'screens/CreateGroupFlow/CreateGroupReview'
 import { white20onCaribbeanGreen } from 'style/colors'
-import useCurrentUser from 'hooks/useCurrentUser'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 const CreateGroupTabs = createBottomTabNavigator()
 

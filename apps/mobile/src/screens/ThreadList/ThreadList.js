@@ -3,9 +3,9 @@ import { FlatList, TouchableOpacity, View, Text } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from 'urql'
-import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
-import messageThreadsQuery from 'graphql/queries/messageThreadsQuery'
-import useCurrentUser from 'hooks/useCurrentUser'
+import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import messageThreadsQuery from '@hylo/graphql/queries/messageThreadsQuery'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import ThreadCard from 'components/ThreadCard'
 import styles from './ThreadList.styles'
 import Loading from 'components/Loading'
@@ -17,10 +17,10 @@ export default function ThreadList () {
   const [offset, setOffset] = useState(0)
 
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
-  const updateLastViewed = () => updateUserSettings({ changes: { settings: { lastViewedMessageAt: new Date() } } })
+  const updateLastViewed = () => updateUserSettings({ changes: { settings: { lastViewedMessagesAt: new Date() } } })
 
   const [{ data, fetching }] = useQuery({ query: messageThreadsQuery, variables: { first: 10, offset } })
-  const threads = data?.me?.messageThreads.items
+  const threads = data?.me?.messageThreads?.items
   const hasMore = data?.me?.messageThreads?.hasMore
 
   const fetchMoreThreads = () => {

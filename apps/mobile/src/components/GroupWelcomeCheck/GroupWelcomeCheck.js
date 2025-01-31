@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigation } from '@react-navigation/native'
-import useCurrentUser from 'hooks/useCurrentUser'
-import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 
 export default function GroupWelcomeCheck () {
   const navigation = useNavigation()

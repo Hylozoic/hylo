@@ -1,5 +1,4 @@
 import React, { useCallback, useRef, useState } from 'react'
-import { useMutation } from 'urql'
 import { useSelector } from 'react-redux'
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
@@ -7,9 +6,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import useRouteParams from 'hooks/useRouteParams'
-import useAuthStatus from 'hooks/useAuthStatus'
-import loginMutation from 'graphql/mutations/loginMutation'
 import validator from 'validator'
 import errorMessages from 'util/errorMessages'
 import SocialAuth from 'components/SocialAuth'
@@ -20,8 +18,7 @@ export default function Login () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const passwordInputRef = useRef()
-  const [, login] = useMutation(loginMutation)
-  const [, checkAuth] = useAuthStatus({ pause: true })
+  const { login, checkAuth } = useAuth()
   const defaultLoginEmail = useSelector(state => state.session?.defaultLoginEmail)
 
   const [email, providedSetEmail] = useState(defaultLoginEmail)
@@ -73,12 +70,7 @@ export default function Login () {
   const handleLogin = async () => {
     try {
       setLoggingIn(true)
-      // TODO: URQL - backend should return errors to land in URQL error value not in data response
-      const { data: loginData } = await login({ email, password })
-
-      if (loginData?.login?.error) {
-        throw loginData?.login?.error
-      }
+      await login({ email, password })
     } catch (err) {
       setLoggingIn(false)
       setError(err)

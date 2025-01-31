@@ -1,16 +1,6 @@
 import { pipe } from 'graphql-yoga'
 import { get } from 'lodash/fp'
 
-// From WebSockets
-// const validMessageTypes = [
-//   x'commentAdded',
-//   x'messageAdded',
-//   x'userTyping',
-//   'newThread',
-//   'newNotification',
-//   'newPost'
-// ]
-
 /**
  * Filters out subscription events where the current user is the creator.
  * @param {Object} options - Options for filtering.
@@ -35,8 +25,9 @@ const withDontSendToCreator = ({ context, getter } = {}) => {
         'Current User ID:', currentUserId
       )
 
-      // NOTE: For ease of testing this will for now still send for currentUser while in development
-      if (creatorId !== currentUserId || process.env.NODE_ENV === 'development') {
+      // NOTE: For ease of testing the subscriptions-debug header can be sent with any value to enable
+      // subscriptions publishing to the creator.
+      if (creatorId !== currentUserId || context.request.headers.get('subscriptions-debug')) {
         yield payload
       }
     }
@@ -45,9 +36,6 @@ const withDontSendToCreator = ({ context, getter } = {}) => {
 
 export default function makeSubscriptions () {
   return {
-    // Not currently used in the frontends, keeping as it could be easily employed as an isTyping
-  // for post or extended slightly for chatroom/topic. Could also just be deprecated, but serves
-    // as a good example for other similar atomic subscriptions.
     comments: {
       subscribe: (parent, { id, postId, commentId }, context) => pipe(
         context.pubSub.subscribe(
