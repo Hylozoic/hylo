@@ -1,72 +1,13 @@
 /* eslint-disable camelcase */
 import React, { useState, useRef, useImperativeHandle, useCallback } from 'react'
 import { Text, TouchableOpacity, View, SectionList } from 'react-native'
-import { gql, useQuery } from 'urql'
+import { useQuery } from 'urql'
 import { isIOS } from 'util/platform'
-import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
+import postCommentsQuery from 'graphql/queries/postCommentsQuery'
+import childCommentsQuery from 'graphql/queries/childCommentsQuery'
 import Comment from 'components/Comment'
 import Loading from 'components/Loading'
 import styles from './Comments.styles'
-
-export const postCommentsQuery = gql`
-  query PostCommentsQuery (
-    $postId: ID,
-    $cursor: ID,
-    $first: Int = 10
-  ) {
-    post(id: $postId) {
-      id
-      commenters(first: 20) {
-        id
-        name
-        avatarUrl
-      }
-      commentersTotal
-      commentsTotal
-      comments(first: $first, cursor: $cursor, order: "desc") {
-        items {
-          ...CommentFieldsFragment
-          childComments(first: 2, order: "desc") {
-            items {
-              ...CommentFieldsFragment
-              post {
-                id
-              }
-            }
-            total
-            hasMore
-          }
-        }
-        total
-        hasMore
-      }
-    }
-  }
-  ${commentFieldsFragment}
-`
-
-export const childCommentsQuery = gql`
-  query ChildCommentsQuery (
-    $commentId: ID,
-    $cursor: ID,
-    $first: Int = 10
-  ) {
-    comment(id: $commentId) {
-      id
-      childComments(first: $first, cursor: $cursor, order: "desc") {
-        items {
-          post {
-            id
-          }
-          ...CommentFieldsFragment
-        }
-        total
-        hasMore
-      }
-    }
-  }
-  ${commentFieldsFragment}
-`
 
 export const Comments = React.forwardRef(({
   groupId,
@@ -87,7 +28,7 @@ export const Comments = React.forwardRef(({
   const sections = comments?.map((comment, index) => {
     return ({
       comment,
-      data: comment.childComments?.items || []
+      data: comment?.childComments?.items || []
     })
   })
 
@@ -143,6 +84,7 @@ export const Comments = React.forwardRef(({
 
   // Comment rendering (parent)
   const SectionFooter = ({ section: { comment } }) => {
+    if (!comment) return null
     return (
       <>
         <ShowMore postOrComment={comment} style={styles.childCommentsShowMore} />
@@ -150,7 +92,7 @@ export const Comments = React.forwardRef(({
           clearHighlighted={() => setHighlightedComment(null)}
           comment={comment}
           groupId={groupId}
-          highlighted={comment.id === highlightedComment?.id}
+          highlighted={comment?.id === highlightedComment?.id}
           onReply={selectComment}
           postTitle={post?.title}
           scrollTo={viewPosition => scrollToComment(comment, viewPosition)}
@@ -164,6 +106,7 @@ export const Comments = React.forwardRef(({
 
   // comment.childComments rendering
   const Item = ({ item: comment }) => {
+    if (!comment) return null
     return (
       <Comment
         clearHighlighted={() => setHighlightedComment(null)}

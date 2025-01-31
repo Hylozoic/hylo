@@ -22,7 +22,13 @@ const peopleTypingSubscription = gql`
   }
 `
 
-export const usePeopleTyping = ({ messageThreadId, postId, commentId, timerLength = MAX_TYPING_PAUSE }) => {
+export const usePeopleTyping = ({
+  messageThreadId,
+  postId,
+  commentId,
+  debug = false,
+  timerLength = MAX_TYPING_PAUSE
+}) => {
   const { t } = useTranslation()
   const [typingUsers, setTypingUsers] = useState([])
   const [mutationResult, providedSendTyping] = useMutation(peopleTypingMutation)
@@ -31,7 +37,10 @@ export const usePeopleTyping = ({ messageThreadId, postId, commentId, timerLengt
 
   // Handle incoming subscription events
   useSubscription(
-    { query: peopleTypingSubscription, variables },
+    {
+      query: peopleTypingSubscription,
+      variables
+    },
     (_, data) => {
       if (data?.peopleTyping) {
         const { id, name } = data.peopleTyping

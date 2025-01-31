@@ -1,4 +1,5 @@
 import { gql } from 'urql'
+import commentFieldsFragment from 'graphql/fragments/commentFieldsFragment'
 
 export default gql`
   mutation CreateCommentMutation (
@@ -13,21 +14,15 @@ export default gql`
       text: $text,
       attachments: $attachments,
     }) {
-      id
-      text
-      creator {
-        id
+      ...CommentFieldsFragment
+      childComments(first: 2, order: "desc") {
+        items {
+          ...CommentFieldsFragment
+        }
+        total
+        hasMore
       }
-      parentComment {
-        id
-      }
-      attachments {
-        type
-        url
-        position
-        id
-      }
-      createdAt
-    }
+    }  
   }
+  ${commentFieldsFragment}
 `

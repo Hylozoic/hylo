@@ -3,7 +3,9 @@ import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
 import postsQuerySetFragment from 'graphql/fragments/postsQuerySetFragment'
 import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
 
-export const makeQuery = ({
+export const STREAM_PAGE_SIZE = 10
+
+export const makeStreamQuery = ({
   activePostsOnly,
   afterTime,
   announcementsOnly,
@@ -14,7 +16,7 @@ export const makeQuery = ({
   createdBy,
   cursor,
   filter,
-  first,
+  first = STREAM_PAGE_SIZE,
   forCollection,
   interactedWithBy,
   mentionsOf,
@@ -52,10 +54,11 @@ export const makeQuery = ({
       createdBy,
       cursor,
       filter,
-      first: first || 20,
+      first,
       forCollection,
       interactedWithBy,
       mentionsOf,
+      myHome,
       offset,
       order,
       search,
@@ -69,7 +72,7 @@ export const makeQuery = ({
 }
 
 const postsQuery = gql`
-  query PostsQuery (
+  query StreamPostsQuery (
     $announcementsOnly: Boolean,
     $context: String,
     $createdBy: [ID],
@@ -83,10 +86,10 @@ const postsQuery = gql`
     $boundingBox: [PointInput],
     $collectionToFilterOut: ID,
     $filter: String,
-    $first: Int,
+    $first: Int = ${STREAM_PAGE_SIZE},
     $forCollection: ID,
     $isFulfilled: Boolean,
-    $offset: Int,
+    $offset: Int = 0,
     $order: String,
     $search: String,
     $sortBy: String,
@@ -104,7 +107,7 @@ const postsQuery = gql`
 // children the current user is a member of. We alias as posts so
 // redux-orm sets up the relationship between group and posts correctly
 const makeGroupPostsQuery = withChildPosts => gql`
-  query GroupPostsQuery (
+  query StreamGroupPostsQuery (
     $slug: String,
     # following vars are in common between postsQuery and groupPostsQuery
     $activePostsOnly: Boolean,
@@ -113,10 +116,10 @@ const makeGroupPostsQuery = withChildPosts => gql`
     $boundingBox: [PointInput],
     $collectionToFilterOut: ID,
     $filter: String,
-    $first: Int,
+    $first: Int = ${STREAM_PAGE_SIZE},
     $forCollection: ID,
     $isFulfilled: Boolean,
-    $offset: Int,
+    $offset: Int = 0,
     $order: String,
     $search: String,
     $sortBy: String,

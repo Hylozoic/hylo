@@ -38,7 +38,6 @@ export default function useFetchPostParam ({
       filter ||
       currentUser?.settings?.streamPostType ||
       undefined,
-    first: null,
     forCollection: customView?.collectionId,
     interactedWithBy: myHome === 'Interactions'
       ? [currentUser.id]

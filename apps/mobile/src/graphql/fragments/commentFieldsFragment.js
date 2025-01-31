@@ -39,6 +39,9 @@ export default gql`
       type
       url
     }
+    post {
+      id
+    }
     parentComment {
       id
     }
