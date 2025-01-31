@@ -1,7 +1,7 @@
 import { gql } from 'urql'
-import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'urql-shared/presenters/GroupPresenter'
-import groupFieldsFragment from 'graphql/fragments/groupFieldsFragment'
-import groupPrerequisiteGroupsFieldsFragment from 'graphql/fragments/groupPrerequisiteGroupsFieldsFragment'
+import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from '@hylo/presenters/GroupPresenter'
+import groupFieldsFragment from '@hylo/graphql/fragments/groupFieldsFragment'
+import groupPrerequisiteGroupsFieldsFragment from '@hylo/graphql/fragments/groupPrerequisiteGroupsFieldsFragment'
 
 export const MODULE_NAME = 'CreateGroupFlow'
 export const UPDATE_GROUP_DATA = `${MODULE_NAME}/UPDATE_GROUP_DATA`

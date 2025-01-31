@@ -1,7 +1,7 @@
 import { gql } from 'urql'
-import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
-import postsQuerySetFragment from 'graphql/fragments/postsQuerySetFragment'
-import postFieldsFragment from 'graphql/fragments/postFieldsFragment'
+import { isContextGroup } from '@hylo/presenters/GroupPresenter'
+import postsQuerySetFragment from '@hylo/graphql/fragments/postsQuerySetFragment'
+import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 
 export const STREAM_PAGE_SIZE = 10
 

@@ -1,70 +1,60 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import Config from 'react-native-config'
+import { useTranslation } from 'react-i18next'
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
 import Button from 'components/Button'
-import { withTranslation } from 'react-i18next'
 
-class GoogleLoginButton extends React.Component {
-  static defaultProps = {
-    style: {}
-  }
+GoogleSignin.configure({
+  iosClientId: Config.IOS_GOOGLE_CLIENT_ID,
+  webClientId: Config.WEB_GOOGLE_CLIENT_ID
+})
 
-  constructor (props) {
-    super(props)
-    this.GoogleSignin = props.mocks ? props.mocks.GoogleSignin : GoogleSignin
-  }
+export default function GoogleLoginButton ({
+  signup,
+  onLoginFinished,
+  createErrorNotification,
+  style: providedStyle = {}
+} = {}) {
+  const { t } = useTranslation()
 
-  componentDidMount () {
-    this.GoogleSignin.configure({
-      iosClientId: Config.IOS_GOOGLE_CLIENT_ID,
-      webClientId: Config.WEB_GOOGLE_CLIENT_ID
-    })
-  }
-
-  signIn = async () => {
-    const { t } = this.props
+  const signIn = useCallback(async () => {
     try {
-      await this.GoogleSignin.hasPlayServices()
-      await this.GoogleSignin.signIn()
+      await GoogleSignin.hasPlayServices()
+      await GoogleSignin.signIn()
 
-      const { accessToken } = await this.GoogleSignin.getTokens()
-
-      this.props.onLoginFinished(accessToken)
+      const { accessToken } = await GoogleSignin.getTokens()
+      onLoginFinished(accessToken)
     } catch (error) {
       if (error.code !== statusCodes.SIGN_IN_CANCELLED) {
-        await this.props.createErrorNotification(t('Could not sign in with your Google account'))
+        await createErrorNotification(t('Could not sign in with your Google account'))
       }
     }
-  }
+  }, [onLoginFinished, createErrorNotification])
 
-  render () {
-    const { t } = this.props
-    const style = {
+  const style = {
+    fontSize: 16,
+    width: 160,
+    height: 40,
+    borderRadius: 5,
+    backgroundColor: '#dd4b39',
+    ...providedStyle,
+    icon: {
       fontSize: 16,
-      width: 160,
-      height: 40,
-      borderRadius: 5,
-      backgroundColor: '#dd4b39',
-      ...this.props.style,
-      icon: {
-        fontSize: 16,
-        marginRight: 3,
-        ...this.props.style.icon ? this.props.style.icon : {}
-      }
+      marginRight: 3,
+      ...providedStyle?.icon ? providedStyle.icon : {}
     }
-    const text = this.props.signup
-      ? t('Sign up with Google')
-      : t('Sign in with Google')
-
-    return (
-      <Button
-        onPress={this.signIn}
-        iconName='Google'
-        style={style}
-        text={text}
-      />
-    )
   }
-}
 
-export default withTranslation()(GoogleLoginButton)
+  const text = signup
+    ? t('Sign up with Google')
+    : t('Sign in with Google')
+
+  return (
+    <Button
+      onPress={signIn}
+      iconName='Google'
+      style={style}
+      text={text}
+    />
+  )
+}

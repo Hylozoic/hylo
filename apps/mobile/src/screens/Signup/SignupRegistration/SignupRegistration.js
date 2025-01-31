@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import { gql, useMutation } from 'urql'
 import { pickBy, identity } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
-import useLogout from 'urql-shared/hooks/useLogout'
+import useLogout from 'hooks/useLogout'
 import useForm from 'hooks/useForm'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
 import SettingControl from 'components/SettingControl'
@@ -83,7 +83,7 @@ export default function SignupRegistration ({ navigation, route }) {
       headerLeftOnPress: () => {
         confirmDiscardChanges({
           title: '',
-          confirmationMessage: t("Were almost done, are you sure you want to cancel signing-up?"),
+          confirmationMessage: t('Were almost done, are you sure you want to cancel signing-up?'),
           disgardButtonText: t('Yes'),
           continueButtonText: t('No'),
           onDiscard: () => {

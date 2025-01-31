@@ -16,7 +16,7 @@ import { AnalyticsEvents } from '@hylo/shared'
 import { openURL } from 'hooks/useOpenURL'
 import { useNavigation, useRoute, useNavigationState } from '@react-navigation/native'
 import useRouteParams from 'hooks/useRouteParams'
-import useAuthStatus, { AuthState } from 'hooks/useAuthStatus'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import FormattedError from 'components/FormattedError'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Button from 'components/Button'
@@ -47,7 +47,7 @@ export default function Signup () {
   const currentRouteName = useNavigationState(state => state?.routes[state.index]?.name)
   const safeAreaInsets = useSafeAreaInsets()
   const [, sendEmailVerification] = useMutation(sendEmailVerificationMutation)
-  const [{ authState }] = useAuthStatus()
+  const { isEmailValidated, isRegistered, isSignupInProgress } = useAuth()
   const { email: routeEmail, error: routeError, bannerError: routeBannerError } = useRouteParams()
   const [email, providedSetEmail] = useState(routeEmail)
   const [loading, setLoading] = useState(false)
@@ -59,16 +59,16 @@ export default function Signup () {
   const genericError = new Error(t('An account may already exist for this email address, Login or try resetting your password'))
 
   const signupRedirect = () => {
-    switch (authState) {
-      case AuthState.EmailValidation: {
+    switch (true) {
+      case isEmailValidated: {
         navigation.navigate('SignupEmailValidation', route.params)
         break
       }
-      case AuthState.Registration: {
+      case isRegistered: {
         navigation.navigate('SignupRegistration', route.params)
         break
       }
-      case AuthState.SignupInProgress: {
+      case isSignupInProgress: {
         if (!['SignupUploadAvatar', 'SignupSetLocation'].includes(currentRouteName)) {
           navigation.navigate('SignupUploadAvatar', route.params)
         }
@@ -79,7 +79,7 @@ export default function Signup () {
 
   useEffect(() => {
     if (!loading) signupRedirect()
-  }, [loading, authState])
+  }, [loading])
 
   const setEmail = validateEmail => {
     setBannerError()

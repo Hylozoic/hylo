@@ -7,9 +7,9 @@ import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import { Text, View, ImageBackground, ScrollView, TouchableOpacity, TextInput } from 'react-native'
 import CheckBox from 'react-native-bouncy-checkbox'
-import useCurrentGroup from 'hooks/useCurrentGroup'
-import useCurrentUser from 'hooks/useCurrentUser'
-import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'urql-shared/presenters/GroupPresenter'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { DEFAULT_AVATAR, DEFAULT_BANNER } from '@hylo/presenters/GroupPresenter'
 import {
   GROUP_WELCOME_AGREEMENTS,
   GROUP_WELCOME_JOIN_QUESTIONS,
