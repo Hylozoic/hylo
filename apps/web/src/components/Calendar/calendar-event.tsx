@@ -101,7 +101,10 @@ export default function CalendarEvent ({
             className
           )}
           style={style}
-          onClick={showDetails}
+          onClick={(e) => {
+            e.stopPropagation()
+            showDetails()
+          }}
           data-tooltip-id={`title-tip-${event.id}`} data-tooltip-html={toolTipTitle}
           initial={{
             opacity: 0,
