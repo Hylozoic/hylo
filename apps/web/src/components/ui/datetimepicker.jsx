@@ -6,7 +6,7 @@ import { add, format } from 'date-fns'
 import { enUS } from 'date-fns/locale'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import * as React from 'react'
-import React, { useImperativeHandle, useRef } from 'react'
+import { useImperativeHandle, useRef } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DayPicker } from 'react-day-picker'
 // ---------- utils start ----------
