@@ -5,7 +5,7 @@ const models = require('../api/models')
 exports.up = async function(knex) {
   models.init()
 
-  // Find all groups that don't have context widgets
+  // Update all groups to have the correct widgets based on their content
   const groups = await knex.raw(`
     SELECT g.id
     FROM groups g
@@ -24,5 +24,5 @@ exports.up = async function(knex) {
 };
 
 exports.down = function(knex) {
-  
+
 };
