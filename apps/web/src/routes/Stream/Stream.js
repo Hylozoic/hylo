@@ -359,7 +359,7 @@ export default function Stream (props) {
           </div>
         )}
         {!pending && calendarView && (
-          <div class='calendarView'>
+          <div className='calendarView'>
               <EventCalendar
                 posts={posts}
                 routeParams={routeParams}
