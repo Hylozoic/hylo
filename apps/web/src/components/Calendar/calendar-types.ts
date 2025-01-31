@@ -16,7 +16,7 @@ export type CalendarContextType = CalendarProps & {
   locationParams: {
     [key: string]: String;
   }
-  querystringParams:  {
+  querystringParams: {
     [key: string]: String;
   }
   newEventDialogOpen: boolean
