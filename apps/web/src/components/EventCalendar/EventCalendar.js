@@ -1,17 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import Calendar from '../Calendar/calendar'
 import { DateTime } from 'luxon'
 
-export default function EventCalendar({posts, routeParams, locationParams, querystringParams}) {
+export default function EventCalendar ({ posts, routeParams, locationParams, querystringParams }) {
   const [mode, setMode] = useState('month')
   const [date, setDate] = useState(new Date())
 
   // map posts objects to calendar objects
   // unique color per group
   const colors = ['blue', 'indigo', 'pink', 'red', 'orange', 'amber', 'emerald']
-  let groupColor = {}
+  const groupColor = {}
   let i = 0
   const events = posts.map((post) => {
     groupColor[post.group] ||= colors[i++ % colors.length]

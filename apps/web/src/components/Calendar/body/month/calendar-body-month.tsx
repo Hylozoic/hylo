@@ -1,3 +1,4 @@
+import React from 'react'
 import { useCalendarContext } from '../../calendar-context'
 import {
   startOfMonth,
@@ -8,13 +9,13 @@ import {
   isSameMonth,
   isSameDay,
   format,
-  isWithinInterval,
+  isWithinInterval
 } from 'date-fns'
 import { cn } from '@/lib/utils'
 import CalendarEvent from '../../calendar-event'
 import { AnimatePresence, motion } from 'framer-motion'
 
-export default function CalendarBodyMonth() {
+export default function CalendarBodyMonth () {
   const { date, events, setDate, setMode } = useCalendarContext()
 
   // Get the first day of the month
@@ -30,7 +31,7 @@ export default function CalendarBodyMonth() {
   // Get all days between start and end
   const calendarDays = eachDayOfInterval({
     start: calendarStart,
-    end: calendarEnd,
+    end: calendarEnd
   })
 
   const today = new Date()
@@ -40,34 +41,34 @@ export default function CalendarBodyMonth() {
     (event) =>
       isWithinInterval(event.start, {
         start: calendarStart,
-        end: calendarEnd,
+        end: calendarEnd
       }) ||
       isWithinInterval(event.end, { start: calendarStart, end: calendarEnd })
   )
 
   return (
-    <div className="flex flex-col flex-grow overflow-hidden">
-      <div className="hidden md:grid grid-cols-7 border-border divide-x divide-border">
+    <div className='flex flex-col flex-grow overflow-hidden'>
+      <div className='hidden md:grid grid-cols-7 border-border divide-x divide-border'>
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
           <div
             key={day}
-            className="py-2 text-center text-sm font-medium text-muted-foreground border-b border-border"
+            className='py-2 text-center text-sm font-medium text-muted-foreground border-b border-border'
           >
             {day}
           </div>
         ))}
       </div>
 
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode='wait' initial={false}>
         <motion.div
           key={monthStart.toISOString()}
-          className="grid md:grid-cols-7 flex-grow overflow-y-auto relative"
+          className='grid md:grid-cols-7 flex-grow overflow-y-auto relative'
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{
             duration: 0.2,
-            ease: 'easeInOut',
+            ease: 'easeInOut'
           }}
         >
           {calendarDays.map((day) => {
@@ -100,13 +101,13 @@ export default function CalendarBodyMonth() {
                 >
                   {format(day, 'd')}
                 </div>
-                <AnimatePresence mode="wait">
-                  <div className="flex flex-col gap-1 mt-1">
+                <AnimatePresence mode='wait'>
+                  <div className='flex flex-col gap-1 mt-1'>
                     {dayEvents.slice(0, 3).map((event) => (
                       <CalendarEvent
                         key={event.id}
                         event={event}
-                        className="relative h-auto"
+                        className='relative h-auto'
                         month
                       />
                     ))}
@@ -117,9 +118,9 @@ export default function CalendarBodyMonth() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{
-                          duration: 0.2,
+                          duration: 0.2
                         }}
-                        className="text-xs text-muted-foreground"
+                        className='text-xs text-muted-foreground'
                         onClick={(e) => {
                           e.stopPropagation()
                           setDate(day)

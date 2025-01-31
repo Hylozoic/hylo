@@ -1,3 +1,14 @@
+export const calendarModes = ['day', 'week', 'month'] as const
+export type Mode = (typeof calendarModes)[number]
+
+export type CalendarEvent = {
+  id: string
+  title: string
+  color: string
+  start: Date
+  end: Date
+}
+
 export type CalendarProps = {
   events: CalendarEvent[]
   routeParams: String
@@ -24,14 +35,3 @@ export type CalendarContextType = CalendarProps & {
     [key: string]: String;
   }
 }
-
-export type CalendarEvent = {
-  id: string
-  title: string
-  color: string
-  start: Date
-  end: Date
-}
-
-export const calendarModes = ['day', 'week', 'month'] as const
-export type Mode = (typeof calendarModes)[number]

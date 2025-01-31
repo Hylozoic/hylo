@@ -1,7 +1,8 @@
+import React from 'react'
 import { CalendarContext } from './calendar-context'
 import { CalendarEvent, Mode } from './calendar-types'
 
-export default function CalendarProvider({
+export default function CalendarProvider ({
   events,
   routeParams,
   locationParams,
@@ -12,7 +13,7 @@ export default function CalendarProvider({
   date,
   setDate,
   calendarIconIsToday = true,
-  children,
+  children
 }: {
   events: CalendarEvent[]
   routeParams: String
@@ -42,7 +43,7 @@ export default function CalendarProvider({
         setMode,
         date,
         setDate,
-        calendarIconIsToday,
+        calendarIconIsToday
       }}
     >
       {children}

@@ -5,7 +5,7 @@ export const CalendarContext = createContext<CalendarContextType | undefined>(
   undefined
 )
 
-export function useCalendarContext() {
+export function useCalendarContext () {
   const context = useContext(CalendarContext)
   if (!context) {
     throw new Error('useCalendarContext must be used within a CalendarProvider')

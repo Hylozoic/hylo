@@ -1,15 +1,14 @@
-"use client"
+'use client'
 
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import * as React from 'react'
+import { DayPicker } from 'react-day-picker'
 
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
+import { cn } from '@/lib/utils'
+import { buttonVariants } from '@/components/ui/button'
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
 
-function Calendar({
+function Calendar ({
   className,
   classNames,
   showOutsideDays = true,
@@ -17,7 +16,7 @@ function Calendar({
 }: CalendarProps) {
   return (
     <DayPicker
-      showOutsideDays={showOutsideDays} fixedWeeks={true} className={cn('p-3', className)} classNames={{
+      showOutsideDays={showOutsideDays} fixedWeeks className={cn('p-3', className)} classNames={{
         months: 'flex-col sm:flex-row space-y-4 sm:space-y-0 justify-center',
         month: 'flex flex-col items-center space-y-4',
         month_caption: 'flex justify-center pt-1 relative items-center',
@@ -43,6 +42,6 @@ function Calendar({
     />
   )
 }
-Calendar.displayName = "Calendar"
+Calendar.displayName = 'Calendar'
 
 export { Calendar }

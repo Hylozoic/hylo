@@ -1,9 +1,10 @@
+import React from 'react'
 import { format, isSameDay } from 'date-fns'
 import { cn } from '../../../lib/utils'
 
-export default function CalendarBodyHeader({
+export default function CalendarBodyHeader ({
   date,
-  onlyDay = false,
+  onlyDay = false
 }: {
   date: Date
   onlyDay?: boolean

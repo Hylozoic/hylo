@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import React, { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CalendarEvent as CalendarEventType } from 'components/Calendar/calendar-types'
 import { postUrl } from 'util/navigation'
@@ -15,7 +15,7 @@ interface EventPosition {
   height: string
 }
 
-function getOverlappingEvents(
+function getOverlappingEvents (
   currentEvent: CalendarEventType,
   events: CalendarEventType[]
 ): CalendarEventType[] {
@@ -29,7 +29,7 @@ function getOverlappingEvents(
   })
 }
 
-function calculateEventPosition(
+function calculateEventPosition (
   event: CalendarEventType,
   allEvents: CalendarEventType[]
 ): EventPosition {
@@ -60,14 +60,14 @@ function calculateEventPosition(
     left,
     width,
     top: `${topPosition}px`,
-    height: `${height}px`,
+    height: `${height}px`
   }
 }
 
-export default function CalendarEvent({
+export default function CalendarEvent ({
   event,
   month = false,
-  className,
+  className
 }: {
   event: CalendarEventType
   month?: boolean
@@ -82,9 +82,8 @@ export default function CalendarEvent({
   // our custon event click handler
   const navigate = useNavigate()
   const showDetails = useCallback(() => {
-      navigate(postUrl(event.id, routeParams, { ...locationParams, ...querystringParams }))
-    }, [event.id, routeParams, locationParams, querystringParams])
-  
+    navigate(postUrl(event.id, routeParams, { ...locationParams, ...querystringParams }))
+  }, [event.id, routeParams, locationParams, querystringParams])
 
   // Generate a unique key that includes the current month to prevent animation conflicts
   const isEventInCurrentMonth = isSameMonth(event.start, date)
@@ -93,8 +92,8 @@ export default function CalendarEvent({
   }`
 
   return (
-    <MotionConfig reducedMotion="user">
-      <AnimatePresence mode="wait">
+    <MotionConfig reducedMotion='user'>
+      <AnimatePresence mode='wait'>
         <motion.div
           className={cn(
             `px-1 py-1 rounded-md truncate cursor-pointer transition-all duration-300 bg-${event.color}-500/10 hover:bg-${event.color}-500/20 border border-${event.color}-500`,
@@ -107,32 +106,32 @@ export default function CalendarEvent({
           initial={{
             opacity: 0,
             y: -3,
-            scale: 0.98,
+            scale: 0.98
           }}
           animate={{
             opacity: 1,
             y: 0,
-            scale: 1,
+            scale: 1
           }}
           exit={{
             opacity: 0,
             scale: 0.98,
             transition: {
               duration: 0.15,
-              ease: 'easeOut',
-            },
+              ease: 'easeOut'
+            }
           }}
           transition={{
             duration: 0.2,
             ease: [0.25, 0.1, 0.25, 1],
             opacity: {
               duration: 0.2,
-              ease: 'linear',
+              ease: 'linear'
             },
             layout: {
               duration: 0.2,
-              ease: 'easeOut',
-            },
+              ease: 'easeOut'
+            }
           }}
           layoutId={`event-${animationKey}-${month ? 'month' : 'day'}`}
         >
@@ -141,7 +140,7 @@ export default function CalendarEvent({
               `flex flex-col w-full text-${event.color}-500`,
               month && 'flex-row items-center justify-between'
             )}
-            layout="position"
+            layout='position'
           >
             <p className={cn('font-bold truncate', month && 'text-xs', 'm-0')}>
               {event.title}
@@ -155,5 +154,5 @@ export default function CalendarEvent({
         position='right'
       />
     </MotionConfig>
-)
+  )
 }

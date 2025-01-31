@@ -6,7 +6,7 @@ import { add, format } from 'date-fns'
 import { enUS } from 'date-fns/locale'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import * as React from 'react'
-import { useImperativeHandle, useRef } from 'react'
+import React, { useImperativeHandle, useRef } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DayPicker } from 'react-day-picker'
 // ---------- utils start ----------
@@ -240,7 +240,7 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
   }
   return (
     <DayPicker
-      showOutsideDays={showOutsideDays} fixedWeeks={true} className={cn('p-3', className)} classNames={{
+      showOutsideDays={showOutsideDays} fixedWeeks className={cn('p-3', className)} classNames={{
         months: 'flex flex-col sm:flex-row space-y-4  sm:space-y-0 justify-center',
         month: 'flex flex-col items-center space-y-4',
         month_caption: 'flex justify-center pt-1 relative items-center',
