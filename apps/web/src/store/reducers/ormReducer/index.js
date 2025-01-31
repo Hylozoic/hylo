@@ -10,6 +10,8 @@ import {
   CREATE_MESSAGE,
   CREATE_MESSAGE_PENDING,
   CREATE_MODERATION_ACTION_PENDING,
+  CREATE_POST_PENDING,
+  CREATE_PROJECT_PENDING,
   CREATE_CONTEXT_WIDGET,
   CREATE_CONTEXT_WIDGET_PENDING,
   DELETE_COMMENT_PENDING,
@@ -261,6 +263,53 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case CREATE_PROJECT_PENDING:
+    case CREATE_POST_PENDING: {
+      const postType = meta?.type
+      if (!postType) break
+      if (postType === 'chat') break
+
+      const groupIds = Array.isArray(meta.groupIds) ? meta.groupIds : [meta.groupId]
+
+      groupIds.forEach(groupId => {
+        const group = Group.withId(groupId)
+        if (!group) return
+
+        const allWidgets = group.contextWidgets.items
+        const autoViewWidget = allWidgets.find(w => w.type === 'auto-view')
+        if (!autoViewWidget) return
+
+        let widgetToMove = null
+
+        if (postType === 'request' || postType === 'offer') {
+          widgetToMove = allWidgets.find(w => w.view === 'ask-and-offer')
+        } else if (postType === 'project') {
+          widgetToMove = allWidgets.find(w => w.view === 'projects')
+        } else if (postType === 'proposal') {
+          widgetToMove = allWidgets.find(w => w.view === 'decisions')
+        } else if (postType === 'event') {
+          widgetToMove = allWidgets.find(w => w.view === 'event')
+        }
+
+        if (widgetToMove && !widgetToMove.autoAdded) {
+          const newWidgetPosition = {
+            ...widgetToMove,
+            parentId: autoViewWidget.id,
+            addToEnd: true
+          }
+
+          const reorderedWidgets = reorderTree({
+            widgetToBeMovedId: widgetToMove.id,
+            newWidgetPosition,
+            allWidgets
+          })
+
+          group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
+        }
+      })
+      break
+    }
+
     case CREATE_CONTEXT_WIDGET_PENDING: {
       const group = Group.withId(meta.groupId)
       const allWidgets = group.contextWidgets.items
@@ -269,8 +318,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         id: 'creating',
         addToEnd: meta.data.addToEnd
       }
-      const reorderedWidgets = reorderTree({ newWidgetPosition, allWidgets })
-      Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
+
+      allWidgets.push(newWidgetPosition)
+      const reorderedWidgets = reorderTree({ widgetToBeMovedId: 'creating', newWidgetPosition, allWidgets })
+      group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
       break
     }
 
@@ -279,7 +330,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const allWidgets = group.contextWidgets.items
       const reorderedWidgets = allWidgets.filter(widget => widget.id !== 'creating')
       reorderedWidgets.push(payload.data.createContextWidget)
-      Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
+      group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
 
       break
     }
@@ -504,7 +555,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case REMOVE_WIDGET_FROM_MENU_PENDING: {
       group = Group.withId(meta.groupId)
       const contextWidgets = group.contextWidgets.items
-      const newContextWidgets = reorderTree({ priorWidgetState: { id: meta.contextWidgetId }, newWidgetPosition: { remove: true }, allWidgets: contextWidgets })
+      const newContextWidgets = reorderTree({ widgetToBeMovedId: meta.contextWidgetId, newWidgetPosition: { remove: true }, allWidgets: contextWidgets })
       group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
       break
     }
@@ -597,14 +648,14 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const group = Group.withId(meta.groupId)
       const allWidgets = group.contextWidgets.items
 
-      const priorWidgetState = allWidgets.find(widget => widget.id === meta.contextWidgetId)
+      const widgetToBeMoved = allWidgets.find(widget => widget.id === meta.contextWidgetId)
       const newWidgetPosition = {
         id: meta.contextWidgetId,
         addToEnd: meta.data.addToEnd,
         orderInFrontOfWidgetId: meta.data.orderInFrontOfWidgetId,
         parentId: meta.data.parentId || null
       }
-      const reorderedWidgets = reorderTree({ priorWidgetState, newWidgetPosition, allWidgets })
+      const reorderedWidgets = reorderTree({ widgetToBeMovedId: widgetToBeMoved.id, newWidgetPosition, allWidgets })
       Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
       break
     }

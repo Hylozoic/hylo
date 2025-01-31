@@ -62,9 +62,9 @@ import SiteTour from 'routes/AuthLayoutRouter/components/SiteTour'
 import ThreadList from 'routes/Messages/ThreadList'
 
 import UserSettings from 'routes/UserSettings'
-import { GROUP_TYPES } from 'store/models/Group'
+import { DEFAULT_CHAT_TOPIC, GROUP_TYPES } from 'store/models/Group'
 import classes from './AuthLayoutRouter.module.scss'
-import { findHomeView } from 'util/contextWidgets'
+import { findHomeView } from '@hylo/shared/src/ContextWidgetPresenter'
 import { localeLocalStorageSync } from 'util/locale'
 import isWebView from 'util/webView'
 
@@ -234,7 +234,7 @@ export default function AuthLayoutRouter (props) {
   if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
     currentGroupMembership.update({ lastViewedAt: (new Date()).toISOString() })
     setTimeout(() => {
-      navigate(`/groups/${currentGroupSlug}/chat/general`, { replace: true })
+      navigate(`/groups/${currentGroupSlug}/chat/${DEFAULT_CHAT_TOPIC}`, { replace: true })
     }, 100)
   }
 
@@ -335,6 +335,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
+                <Route path='groups/:joinGroupSlug/join/:accessCode' />
                 <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='messages/:messageThreadId' element={<ThreadList />} />
                 <Route path='messages' element={<ThreadList />} />

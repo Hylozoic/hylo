@@ -85,6 +85,8 @@ function CreateGroup () {
     }
   })
 
+  const [isNameFocused, setIsNameFocused] = useState(false)
+
   // Refs
   const groupsSelector = useRef()
   const slugRef = useRef()
@@ -193,37 +195,41 @@ function CreateGroup () {
   return (
     <div className='CreateGroupContainer w-full h-full flex justify-center mt-10'>
       <div className='CreateGroupInnerContainer flex flex-col mx-auto w-full max-w-screen-sm items-center'>
-        <div
-          className={cn('CreateGroupBannerContainer relative w-full h-[400px] flex flex-col items-center justify-center border border-dashed border-gray-300 rounded-lg shadow-md bg-cover bg-center', { 'border-none': !!bannerUrl })}
-          style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), url(${bannerUrl})` }}
+        
+        <UploadAttachmentButton
+              type='groupBanner'
+              onInitialUpload={({ url }) => updateField('bannerUrl')(url)}
+              className='w-full group'
         >
-          <UploadAttachmentButton
-            type='groupBanner'
-            onInitialUpload={({ url }) => updateField('bannerUrl')(url)}
-            className=''
+          <div
+            className={cn('CreateGroupBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-black/0 hover:bg-black/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
+            style={{ backgroundImage: `url(${bannerUrl})` }}
           >
-            <div className=''>
-              <ImagePlus className='inline-block' />
-              <span className='ml-2 text-sm'>{t('Set group banner')}</span>
-            </div>
-          </UploadAttachmentButton>
-        </div>
+              <div className='flex flex-col items-center justify-center gap-1'>
+                <ImagePlus className='inline-block' />
+                <span className='ml-2 text-xs opacity-40 group-hover:opacity-100 transition-all'>{t('Set group banner')}</span>
+              </div>
+          </div>
+        </UploadAttachmentButton>
 
         <UploadAttachmentButton
           type='groupAvatar'
           onInitialUpload={({ url }) => updateField('avatarUrl')(url)}
-          className='relative -top-10 bg-background'
+          className='relative -top-10 bg-midground -mb-6 group'
         >
           <div
             style={bgImageStyle(avatarUrl)}
-            className={cn('relative w-20 h-20 rounded-lg border border-dashed border-gray-300 shadow-md flex items-center justify-center bg-cover bg-center', { 'border-none': !!avatarUrl })}
+            className={cn('relative w-20 h-20 rounded-lg border-dashed border-2 border-foreground/50 shadow-md flex items-center justify-center bg-cover bg-center bg-black/0 hover:bg-black/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!avatarUrl })}
           >
-            {!avatarUrl && <Image className='w-10 h-10 text-gray-500' />}
-            <ImagePlus className='absolute -top-3 -right-3' />
+            {!avatarUrl && <div className='flex flex-col items-center justify-center gap-1'>
+              <ImagePlus className='inline-block' />
+              <span className='text-xs opacity-40 group-hover:opacity-100 transition-all'>Add icon</span>
+            </div>}
+            
           </div>
         </UploadAttachmentButton>
 
-        <div className='w-full bg-foreground/5 p-4 rounded-lg flex flex-col gap-2'>
+        <div className={cn('w-full bg-foreground/5 p-4 rounded-lg flex flex-col gap-2 border-2 border-focus/0 transition-all', {'border-2 border-focus': isNameFocused})}>
           <div className='flex items-center gap-2'>
             <input
               autoFocus
@@ -231,14 +237,16 @@ function CreateGroup () {
               name='name'
               onChange={updateField('name')}
               value={name}
-              className='text-2xl border-none bg-transparent focus:outline-none flex-1'
+              className='text-2xl border-none bg-transparent focus:outline-none flex-1 text-foreground placeholder-foreground/30'
               placeholder={t('Name your group')}
               maxLength='60'
               onKeyDown={onEnter(onSubmit)}
               id='groupName'
+              onFocus={() => setIsNameFocused(true)}
+              onBlur={() => setIsNameFocused(false)}
             />
             <label htmlFor='groupName' className=''>
-              <SquarePen className='text-gray-500 inline w-4 h-4' />
+              <SquarePen className='text-foreground inline w-4 h-4' />
             </label>
             <span className='text-xs'>{nameCharacterCount} / 60</span>
           </div>
@@ -246,7 +254,7 @@ function CreateGroup () {
 
           <div>
             <div className='flex items-center'>
-              <label htmlFor='groupSlug' className=''>
+              <label htmlFor='groupSlug' className='text-xs opacity-50'>
                 https://hylo.com/groups/
               </label>
               <input
@@ -255,7 +263,7 @@ function CreateGroup () {
                 onChange={updateField('slug')}
                 value={slug}
                 onClick={focusSlug}
-                className='text-xs border-none bg-transparent focus:outline-none flex-1'
+                className='text-xs border-none bg-transparent focus:outline-none flex-1 opacity-80'
                 onKeyDown={onEnter(onSubmit)}
                 maxLength='40'
                 ref={slugRef}
@@ -271,7 +279,7 @@ function CreateGroup () {
             value={visibility}
             onValueChange={(value) => updateField('visibility')(GROUP_VISIBILITY[value])}
           >
-            <SelectTrigger className='inline-flex'>
+            <SelectTrigger className='inline-flex border-0'>
               <SelectValue>
                 <Icon name={visibilityIcon(visibility)} className='mr-2' />
                 <span>{t(visibilityString(visibility))}</span>
@@ -294,7 +302,7 @@ function CreateGroup () {
             value={accessibility}
             onValueChange={(value) => updateField('accessibility')(GROUP_ACCESSIBILITY[value])}
           >
-            <SelectTrigger className='inline-flex'>
+            <SelectTrigger className='inline-flex border-0'>
               <SelectValue>
                 <Icon name={accessibilityIcon(accessibility)} className='mr-2' />
                 <span>{t(accessibilityString(accessibility))}</span>
@@ -338,7 +346,7 @@ function CreateGroup () {
             disabled={!edited || !isValid()}
             onClick={onSubmit}
             variant='outline'
-            className=''
+            className='border-2 border-foreground/50 hover:border-foreground/100 hover:scale-105 transition-all disabled:bg-background/0 disabled:border-foreground/20 disabled:text-foreground/50'
           >
             {t('Jump In ')}
             <ArrowRight className={cn('w-4 h-4 ml-2', edited && isValid() ? 'text-foreground' : 'text-foreground/50')} />

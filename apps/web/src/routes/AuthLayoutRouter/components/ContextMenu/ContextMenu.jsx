@@ -1,4 +1,3 @@
-import { cn } from 'util/index'
 import { compact, get } from 'lodash/fp'
 import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut } from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
@@ -20,7 +19,7 @@ import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
-import { getContextWidgets, orderContextWidgetsForContextMenu } from 'store/selectors/contextWidgetSelectors'
+import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import getMe from 'store/selectors/getMe'
 import { removeWidgetFromMenu, updateContextWidget } from 'store/actions/contextWidgets'
 import resetNewPostCount from 'store/actions/resetNewPostCount'
@@ -29,10 +28,12 @@ import { CONTEXT_MY, FETCH_POSTS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import orm from 'store/models'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
+import { bgImageStyle, cn } from 'util/index'
 import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
 
 import classes from './ContextMenu.module.scss'
-import { getStaticMenuWidgets, isWidgetDroppable, widgetIsValidChild, widgetTitleResolver } from 'util/contextWidgets'
+import { getStaticMenuWidgets, orderContextWidgetsForContextMenu } from '@hylo/shared/src/ContextMenuHelpers'
+import ContextWidgetPresenter, { widgetIsValidChild } from '@hylo/shared/src/ContextWidgetPresenter'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
@@ -84,12 +85,16 @@ export default function ContextMenu (props) {
     return false
   })
 
-  const contextWidgets = useSelector(state => {
+  const rawContextWidgets = useSelector(state => {
     if (isMyContext || isPublic || isAllContext) {
       return getStaticMenuWidgets({ isPublic, isMyContext, profileUrl, isAllContext })
     }
     return getContextWidgets(state, group)
   })
+
+  const contextWidgets = useMemo(() => {
+    return rawContextWidgets.map(widget => ContextWidgetPresenter(widget, { t }))
+  }, [rawContextWidgets])
 
   const hasContextWidgets = useMemo(() => {
     if (group || isMyContext || isPublic || isAllContext) {
@@ -239,8 +244,12 @@ export default function ContextMenu (props) {
           ? <GroupMenuHeader group={group} />
           : isPublic
             ? (
-              <div className='flex flex-col p-2'>
-                <h2 className='text-foreground font-bold leading-3 text-lg'>{t('The Commons')}</h2>
+              <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.5 }} />
+                {/* <div style={bgImageStyle('/the-commons.jpg')} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' /> */}
+                <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden'>
+                  <h2 className='text-foreground font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
+                </div>
               </div>
               )
             : isMyContext || isAllContext
@@ -311,7 +320,7 @@ export default function ContextMenu (props) {
           {(!isMyContext && !isPublic && !isAllContext) && (
             <div className='px-2 w-full mb-[0.05em] mt-6'>
               <ContextMenuItem
-                widget={{ title: 'widget-all', type: 'all-views', view: 'all-views', childWidgets: [] }}
+                widget={{ title: t('widget-all'), type: 'all-views', view: 'all-views', childWidgets: [] }}
                 groupSlug={routeParams.groupSlug}
                 rootPath={rootPath}
                 canAdminister={canAdminister}
@@ -360,7 +369,11 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const dispatch = useDispatch()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
 
-  const isDroppable = isWidgetDroppable({ widget })
+  const presentedlistItems = useMemo(() => {
+    return listItems.map(widget => ContextWidgetPresenter(widget, { t }))
+  }, [listItems])
+
+  const isDroppable = widget.isDroppable
   const isCreating = widget.id === 'creating'
 
   const handleLogout = async () => {
@@ -372,7 +385,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, transform } = useDraggable({ id: widget.id })
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 
-  const title = widgetTitleResolver({ widget, t })
+  const title = widget.title
   const url = widgetUrl({ widget, rootPath, groupSlug })
   const canDnd = !allView && isEditting && widget.type !== 'home'
   const showEdit = allView && canAdminister
@@ -449,11 +462,13 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {widget.type !== 'members' &&
-                <div className='flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground'>
+                <div className={cn('flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground', {
+                  'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditting && widget.type !== 'home'
+                })}>
                   <SpecialTopElementRenderer widget={widget} group={group} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
-                    {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
+                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                     {widget.id && isEditting && !['home', 'setup'].includes(widget.type) &&
                       <li>
                         <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
@@ -471,7 +486,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <SpecialTopElementRenderer widget={widget} group={group} />
                   <ul className='px-1 pt-1 pb-2'>
                     {loading && <li key='loading'>Loading...</li>}
-                    {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
+                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                   </ul>
                 </div>}
             </div>)}
@@ -479,9 +494,9 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
       </div>
       {showEdit && (
         <div className='mb-[30px]'>
-          <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })} className='flex items-center text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+          <MenuLink to={addQuerystringToPath(url, { cme: isEditting ? 'no' : 'yes' })} className='flex items-center text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             <Pencil className='h-[16px]' />
-            <span className='text-base'>{t('Edit Menu')}</span>
+            <span className='text-base'>{isEditting ? t('Done Editing') : t('Edit Menu')}</span>
           </MenuLink>
         </div>
       )}
@@ -523,11 +538,11 @@ function DropZone ({ droppableParams, isDroppable = true, height = '', hide = fa
 
 function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = false, activeWidget, invalidChild = false, handlePositionedAdd }) {
   const { t } = useTranslation()
-  const itemTitle = widgetTitleResolver({ widget: item, t })
+  const itemTitle = item.title
   const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
   let hideDropZone = isOverlay
 
-  const isItemDraggable = isWidgetDroppable({ widget: item }) && canDnd
+  const isItemDraggable = item.isDroppable && canDnd
   const { attributes: itemAttributes, listeners: itemListeners, setNodeRef: setItemDraggableNodeRef, transform: itemTransform } = useDraggable({ id: item.id })
   const itemStyle = itemTransform ? { transform: `translate3d(${itemTransform.x}px, ${itemTransform.y}px, 0)` } : undefined
 
@@ -557,12 +572,12 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
               </MenuLink>
             )
-          } else if (rootPath !== '/my' && rootPath !== '/all' && !item.title) {
+          } else if ((rootPath !== '/my' && rootPath !== '/all' && !item.title) || (item.type === 'viewUser')) {
             return (
               <MenuLink
                 to={itemUrl}
-                externalLink={item?.customView?.type === "externalLink" ? item.customView.externalLink : null}
-                className="transition-all px-2 py-1 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between"
+                externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
+                className='transition-all px-2 py-1 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between'
               >
                 <div>
                   <WidgetIconResolver widget={item} />
@@ -627,7 +642,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
     )
 
     return (
-      <div className='mb-6'>
+      <div className='mb-2'>
         <MenuLink to={groupUrl(group.slug, 'settings')}>
           <div className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             {t('Settings')}
@@ -646,7 +661,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
             title: t('Add Purpose'),
             url: settingsUrl
           })}
-          {!group.description && listItemComponent({
+          {(!group.description || group.description === 'This is a long-form description of the group') && listItemComponent({
             title: t('Add Description'),
             url: settingsUrl
           })}

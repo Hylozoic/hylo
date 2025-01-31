@@ -124,10 +124,9 @@ export default function ResponsibilitiesTab ({ group }) {
 
   return (
     <>
-      <h1>{t('Responsibilities and permissions')}</h1>
-      <h2>{t('Platform Responsibilities')}</h2>
+      <h2 className='text-foreground'>{t('Platform Responsibilities')}</h2>
       {/* Is this i18n weirdly busted? */}
-      <span className={styles.description}>{t('adminResponsibilitiesHelpText')}</span>
+      <p className='text-foreground mb-8 text-sm'>{t('adminResponsibilitiesHelpText')}</p>
       <SettingsSection>
         {/* <div className={styles.helpText}>{t('Each of these responsibilities gives access to specific functionality related to the platform')}</div> */}
         {responsibilities && responsibilities.map((role, i) => (
@@ -141,8 +140,8 @@ export default function ResponsibilitiesTab ({ group }) {
           />
         ))}
       </SettingsSection>
-      <h4>{t('Custom Responsibilities')}</h4>
-      <span className={styles.description}>{t('adminResponsibilitiesCustomHelpText')}</span>
+      <h2 className='text-foreground mt-14'>{t('Custom Responsibilities')}</h2>
+      <p className='text-foreground mb-8 text-sm'>{t('adminResponsibilitiesCustomHelpText')}</p>
       <SettingsSection>
         {responsibilities && responsibilities.map((role, i) => (
           <ResponsibilityRow
@@ -161,10 +160,10 @@ export default function ResponsibilitiesTab ({ group }) {
           />
         ))}
         {!unsavedRolePresent && (
-          <div className={cn(styles.addRole)} onClick={handleAddResponsibility}>
-            <h4>{t('Create new responsibility')}</h4>
-            <Icon name='Circle-Plus' className={styles.newRole} />
-          </div>
+          <button className='focus:text-foreground text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2' onClick={handleAddResponsibility}>
+            <span>{t('Create new responsibility')}</span>
+            <Icon name='Circle-Plus' className='text-foreground h-[20px]'/>
+          </button>
         )}
       </SettingsSection>
     </>
@@ -189,26 +188,26 @@ function ResponsibilityRow ({
   const inactiveStyle = draft ? styles.inactive : ''
   if (showType !== type) return null
   return (
-    <div className={cn(styles.responsibilityContainer, inactiveStyle)}>
-      <div className={styles.actionContainer}>
-        {draft && (<span onClick={onDelete} className={styles.action}><Icon name='CircleEx' /> {t('Cancel')}</span>)}
-        {!draft && type !== 'system' && !changed && (<span className={styles.action} onClick={onServerDelete}><Icon name='Trash' /> {t('Delete')}</span>)}
+    <div className={cn('bg-foreground/5 mb-2 rounded-lg p-2')}>
+      <div className='flex'>
+        {draft && (<span onClick={onDelete}><Icon name='CircleEx' /> {t('Cancel')}</span>)}
+        {!draft && type !== 'system' && !changed && (<span onClick={onServerDelete}><Icon name='Trash' /> {t('Delete')}</span>)}
         {draft && <span className={styles.action} onClick={onSave}><Icon name='Plus' /> {t('Create')}</span>}
-        {!draft && changed && (<span className={styles.action} onClick={onUpdate}><Icon name='Unlock' /> {t('Save')}</span>)}
-        {!draft && changed && (<span className={styles.action} onClick={onReset}><Icon name='Back' /> {t('Revert')}</span>)}
+        {!draft && changed && (<span onClick={onUpdate}><Icon name='Unlock' /> {t('Save')}</span>)}
+        {!draft && changed && (<span  onClick={onReset}><Icon name='Back' /> {t('Revert')}</span>)}
       </div>
       {type === 'group' &&
         <div className={styles.responsibilityRow}>
           <div className={styles.responsibilityStack}>
-            <SettingsControl label='Title' controlClass={styles.settingsControl} onChange={onChange('title')} value={title} />
-            <SettingsControl label='Description' controlClass={styles.settingsControl} onChange={onChange('description')} value={description} type='textarea' />
+            <SettingsControl label='Title' onChange={onChange('title')} value={title} />
+            <SettingsControl label='Description' onChange={onChange('description')} value={description} type='textarea' />
           </div>
         </div>}
       {type === 'system' &&
-        <div className={styles.responsibilityRow}>
+        <div className='flex flex-col'>
           <div className={styles.systemResponsibilityStack}>
-            <h5>{title}</h5>
-            <span className={styles.description}>{description}</span>
+            <h5 className='m-0 bold'>{title}</h5>
+            <span className='text-foreground text-sm opacity-50'>{description}</span>
           </div>
         </div>}
     </div>

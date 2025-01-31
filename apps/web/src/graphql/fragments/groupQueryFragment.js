@@ -301,6 +301,7 @@ export default function groupQueryFragment () {
     contextWidgets {
       items {
         id
+        autoAdded
         title
         type
         order

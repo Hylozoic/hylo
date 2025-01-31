@@ -64,6 +64,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: ContextWidget,
       attributes: [
         'id',
+        'auto_added',
         'title',
         'type',
         'order',

@@ -39,7 +39,7 @@ const makeDropdown = (selected, options, onChange, t) => {
 
   return (
     <Dropdown
-      className={classes.dropdown}
+      className='bg-primary rounded text-xs px-2 mr-2 hover:scale-125 transition-all'
       toggleChildren={
         <span className={classes.dropdownLabel}>
           <Icon name='ArrowDown' />
@@ -101,27 +101,27 @@ const StreamViewControls = ({
 
   return (
     <div className={cn(classes.streamViewContainer, { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
-      <div className={classes.streamViewCtrls}>
-        <div className={cn(classes.toggle, { [classes.active]: searchActive })} onClick={handleSearchToggle}>
+      <div className='flex w-full flex-row-reverse justify-between'>
+        <div className={cn('bg-primary px-2 flex items-center rounded transition-all', {'bg-selected': searchActive })} onClick={handleSearchToggle}>
           <Icon name='Search' className={cn(classes.toggleIcon, { [classes.active]: searchActive })} />
         </div>
         {![CONTEXT_MY, 'all', 'public'].includes(context) &&
           <div
-            className={cn(classes.toggle, classes.marginRight, { [classes.active]: childPostInclusion === 'yes' })}
+            className={cn('bg-primary rounded text-foreground px-1 flex items-center transition-all hover:scale-125 group')}
             onClick={handleChildPostInclusion}
             data-tooltip-content={childPostInclusion === 'yes' ? t('Hide posts from child groups you are a member of') : t('Show posts from child groups you are a member of')}
             data-tooltip-id='childgroup-toggle-tt'
           >
-            <Icon name='Subgroup' className={cn(classes.toggleIcon, classes.subgroupIcon, { [classes.active]: childPostInclusion === 'yes' })} />
+            <Icon name='Subgroup' className={cn('p-1 rounded transition-all group-hover:bg-selected/50', { 'bg-selected': childPostInclusion === 'yes' })} />
           </div>}
         <Tooltip
           delay={250}
           id='childgroup-toggle-tt'
           position='bottom'
         />
-        <div className={classes.viewMode}>
+        <div className='bg-primary rounded px-1 flex gap-2 items-center'>
           <div
-            className={cn({ [classes.modeActive]: viewMode === 'cards' })}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'cards' })}
             onClick={() => changeView('cards')}
             data-tooltip-content={t('Card view')}
             data-tooltip-id='stream-viewmode-tip'
@@ -130,7 +130,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn({ [classes.modeActive]: viewMode === 'list' })}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'list' })}
             onClick={() => changeView('list')}
             data-tooltip-content={t('List view')}
             data-tooltip-id='stream-viewmode-tip'
@@ -139,7 +139,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn({ [classes.modeActive]: viewMode === 'bigGrid' })}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'bigGrid' })}
             onClick={() => changeView('bigGrid')}
             data-tooltip-content={t('Large Grid')}
             data-tooltip-id='stream-viewmode-tip'
@@ -148,7 +148,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn({ [classes.modeActive]: viewMode === 'grid' }, classes.smallGrid)}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'grid' }, classes.smallGrid)}
             onClick={() => changeView('grid')}
             data-tooltip-content={t('Small Grid')}
             data-tooltip-id='stream-viewmode-tip'
@@ -166,7 +166,7 @@ const StreamViewControls = ({
         <div>
           <input
             autoFocus
-            className={classes.searchBox}
+            className='bg-black/20 px-4 py-2 rounded flex items-center text-foreground w-full mt-2'
             type='text'
             onChange={e => setSearchState(e.target.value)}
             onKeyUp={e => {

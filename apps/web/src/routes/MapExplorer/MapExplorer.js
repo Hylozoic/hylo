@@ -745,7 +745,7 @@ function MapExplorer (props) {
         />
       )}
       <div className={classes.searchAutocomplete}>
-        <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} />
+        <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='focus:outline-none' />
       </div>
       <button className={cn(classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
         {t('Features:')} <strong>{possibleFeatureTypes.filter(t => filters.featureTypes[t]).length}/{possibleFeatureTypes.length}</strong>

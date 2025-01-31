@@ -180,7 +180,10 @@ export function customViewUrl (customViewId, rootPath, opts) {
   return `${rootPath}/custom/${customViewId}`
 }
 
-export function widgetUrl ({ widget, rootPath, groupSlug, context = 'group' }) {
+export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
+  if (!widget) return null
+  // TODO redesign: isContextGroup function or similar could replace this. Needs to be added to shared
+  const groupSlug = ['my', 'all', 'public'].includes(providedSlug) ? null : providedSlug
   let url = ''
   if (widget.url) return widget.url
   if (widget.view === 'about') {
@@ -192,7 +195,7 @@ export function widgetUrl ({ widget, rootPath, groupSlug, context = 'group' }) {
   } else if (widget.viewUser) {
     url = personUrl(widget.viewUser.id, groupSlug)
   } else if (widget.viewPost) {
-    url = postUrl(widget.viewPost.id)
+    url = postUrl(widget.viewPost.id, { groupSlug, context })
   } else if (widget.viewChat) {
     url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
   } else if (widget.customView) {

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import React, { Component } from 'react'
+import React, { Component, forwardRef, useImperativeHandle } from 'react'
 import { withTranslation } from 'react-i18next'
 import { debounce, includes, isEmpty } from 'lodash'
 import { uniqBy } from 'lodash/fp'
@@ -56,6 +56,13 @@ class TagInput extends Component {
     this.list = React.createRef()
   }
 
+  input = React.createRef()
+  focus = () => {
+    if (this.input.current && !this.props.readOnly) {
+      this.input.current.focus()
+    }
+  }
+  
   resetInput = () => {
     if (this.input.current) this.input.current.value = ''
     this.props.handleInputChange('')
@@ -101,7 +108,26 @@ class TagInput extends Component {
   }
 
   focus = () => {
-    this.input.current.focus()
+    if (this.input.current && !this.props.readOnly) {
+      this.input.current.focus()
+    }
+  }
+  handleContainerClick = () => {
+    // Only focus if we're not in readOnly mode
+    if (!this.props.readOnly) {
+      this.focus()
+    }
+  }
+
+  handleFocus = (e) => {
+    this.handleChange('')
+    this.props.onFocus?.(e)  // Propagate focus up
+  }
+
+  handleBlur = (e) => {
+    this.input.current.value = ''
+    this.handleChange(null)
+    this.props.onBlur?.(e)  // Propagate blur up
   }
 
   handleChange = debounce(value => {
@@ -112,14 +138,15 @@ class TagInput extends Component {
     this.props.handleInputChange(strippedValue)
   }, 200)
 
+  
   render () {
     const { tags = [], placeholder = this.props.t('Type...'), suggestions, className, theme, readOnly, maxTags, addLeadingHashtag, renderSuggestion, tagType } = this.props
     const optionalHashtag = addLeadingHashtag ? '#' : ''
 
     const selectedItems = uniqBy('id', tags).map(t =>
-      <li key={t.id} className={theme.selectedTag}>
+      <li key={t.id} className='inline-flex items-center relative top-[2px] mr-2'>
         {t.avatarUrl && <RoundImage url={t.avatarUrl} small className={theme.selectedTagImage} />}
-        <span className={theme.selectedTagName}>
+        <span className='text-foreground'>
           {optionalHashtag}{t.label || t.name}
           {tagType && tagType === 'groups' && this.props.groupSettings && (
             <span>
@@ -151,48 +178,54 @@ class TagInput extends Component {
         : [{ name: this.props.t('no more than {{maxTags}} allowed', { maxTags }), isError: true }]
       : suggestions
     return (
-      <div className={cn(theme.root, { [theme.readOnly]: readOnly }, className)} onClick={this.focus}>
+      <div className={cn('w-full relative h-full', { [theme.readOnly]: readOnly }, className)} onClick={this.handleContainerClick}>
         <ul className={theme.selected}>
           {selectedItems}
-        </ul>
-        <div className={cn(theme.search, { tagsEmpty: selectedItems.length === 0 })}>
-          <div className={theme.searchInput}>
-            <input
-              className={cn(theme.searchInput, { error: maxReached, tagsEmpty: selectedItems.length === 0 })}
-              ref={this.input}
-              type='text'
-              placeholder={placeholder}
-              spellCheck={false}
-              onFocus={() => { this.handleChange('') }}
-              onBlur={() => {
-                this.input.current.value = ''
-                this.handleChange(null)
-              }}
-              onChange={event => this.handleChange(event.target.value)}
-              onKeyDown={this.handleKeys}
-              disabled={readOnly}
-              aria-label='tagInput'
-            />
-          </div>
-          {!isEmpty(suggestionsOrError) &&
-            <div className={theme.suggestions}>
-              <KeyControlledItemList
-                items={suggestionsOrError}
-                tagType={tagType}
-                renderListItem={renderSuggestion}
-                onChange={maxReached ? this.resetInput : this.select}
-                theme={{
-                  items: theme.suggestions,
-                  item: cn(theme.suggestion, { [styles.error]: maxReached }),
-                  itemActive: theme.suggestionActive
-                }}
-                ref={this.list}
+        
+          <li className={cn('text-foreground bg-transparent inline-flex', { tagsEmpty: selectedItems.length === 0 })}>
+            <div className={cn('relative', theme.searchInput)}>
+              <input
+                className={cn('text-foreground bg-transparent inline outline-none pt-1 pr-1', { error: maxReached, tagsEmpty: selectedItems.length === 0 })}
+                ref={this.input}
+                type='text'
+                placeholder={placeholder}
+                spellCheck={false}
+                onFocus={this.handleFocus}
+                onBlur={this.handleBlur}
+                onChange={event => this.handleChange(event.target.value)}
+                onKeyDown={this.handleKeys}
+                disabled={readOnly}
+                aria-label='tagInput'
               />
-            </div>}
-        </div>
+            </div>
+            {!isEmpty(suggestionsOrError) &&
+              <div className={theme.suggestions}>
+                <KeyControlledItemList
+                  items={suggestionsOrError}
+                  tagType={tagType}
+                  renderListItem={renderSuggestion}
+                  onChange={maxReached ? this.resetInput : this.select}
+                  theme={{
+                    items: theme.suggestions,
+                    item: cn(theme.suggestion, { [styles.error]: maxReached }),
+                    itemActive: theme.suggestionActive
+                  }}
+                  ref={this.list}
+                />
+              </div>}
+          </li>
+        </ul>
+        
       </div>
     )
   }
 }
+export default forwardRef((props, ref) => {
+  const component = React.createRef()
+  
+  useImperativeHandle(ref, () => ({
+    focus: () => component.current?.focus()
+  }))
 
-export default withTranslation()(TagInput)
+  return <TagInput {...props} ref={component} />
+})

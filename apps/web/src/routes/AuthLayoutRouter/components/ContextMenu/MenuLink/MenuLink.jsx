@@ -22,7 +22,7 @@ export default function MenuLink ({ to, children, onClick, externalLink, classNa
       : `https://${externalLink}`
 
     return (
-      <a href={url} target='_blank' rel='noreferrer' onClick={onClick} className='MenuLink text-foreground text-sm'>
+      <a href={url} target='_blank' rel='noreferrer' onClick={onClick} className={cn('MenuLink text-foreground text-sm', className, { 'opacity-100 border-selected': isCurrentLocation })}>
         {children}
       </a>
     )

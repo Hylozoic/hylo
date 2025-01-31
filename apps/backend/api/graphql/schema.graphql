@@ -547,6 +547,8 @@ type CommonRole {
 # A ContextWidget for a Group
 type ContextWidget {
   id: ID
+  # Whether the widget has been editted or previously added to the menu
+  autoAdded: Boolean
   # The title of the widget
   title: String
   # The type of widget
