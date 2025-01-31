@@ -1,8 +1,5 @@
 import { CalendarContext } from './calendar-context'
 import { CalendarEvent, Mode } from './calendar-types'
-import { useState } from 'react'
-import CalendarNewEventDialog from './dialog/calendar-new-event-dialog'
-import CalendarManageEventDialog from './dialog/calendar-manage-event-dialog'
 
 export default function CalendarProvider({
   events,
@@ -19,8 +16,12 @@ export default function CalendarProvider({
 }: {
   events: CalendarEvent[]
   routeParams: String
-  locationParams: String
-  querystringParams: String
+  locationParams: {
+    [key: string]: String;
+  }
+  querystringParams: {
+    [key: string]: String;
+  }
   setEvents: (events: CalendarEvent[]) => void
   mode: Mode
   setMode: (mode: Mode) => void
@@ -29,10 +30,6 @@ export default function CalendarProvider({
   calendarIconIsToday: boolean
   children: React.ReactNode
 }) {
-  const [newEventDialogOpen, setNewEventDialogOpen] = useState(false)
-  const [manageEventDialogOpen, setManageEventDialogOpen] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
-
   return (
     <CalendarContext.Provider
       value={{
@@ -46,16 +43,8 @@ export default function CalendarProvider({
         date,
         setDate,
         calendarIconIsToday,
-        newEventDialogOpen,
-        setNewEventDialogOpen,
-        manageEventDialogOpen,
-        setManageEventDialogOpen,
-        selectedEvent,
-        setSelectedEvent,
       }}
     >
-      {/* <CalendarNewEventDialog />
-      <CalendarManageEventDialog /> */}
       {children}
     </CalendarContext.Provider>
   )

@@ -73,7 +73,7 @@ export default function CalendarEvent({
   month?: boolean
   className?: string
 }) {
-  const { events, setSelectedEvent, setManageEventDialogOpen, date, routeParams, locationParams, querystringParams } =
+  const { events, date, routeParams, locationParams, querystringParams } =
     useCalendarContext()
   const style = month ? {} : calculateEventPosition(event, events)
   // TODO format for multi-day events
