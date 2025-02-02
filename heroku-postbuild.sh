@@ -6,25 +6,27 @@ if [ -z "$YARN2_WORKSPACE_PATH" ]; then
   exit 1
 fi
 
-# Execute commands based on the value of YARN2_WORKSPACE_PATH
-case "$YARN2_WORKSPACE_PATH" in
-  "apps/web")
-    echo "Building the web workspace..."
-    yarn workspace web build
-    ;;
-  "apps/backend")
-    echo "Building the shared package..."
-    yarn workspace @hylo/shared build
+WORKSPACE_NAME=$(basename "$YARN2_WORKSPACE_PATH")
 
-    if [ "$YARN2_SKIP_PRUNING" = "true" ]; then
-      echo "Installing dependencies for backend workspace only..."
-      yarn workspaces focus backend --production
-    else
-      echo "Warning: YARN2_SKIP_PRUNING is not set to true. All workspace dependencies are installed..."
-    fi
+case "$WORKSPACE_NAME" in
+  "web")
+    echo "Building $WORKSPACE_NAME"
+
+    yarn workspace "$WORKSPACE_NAME" build
+    ;;
+  "backend")
+    echo "Building @hylo/shared"
+    yarn workspace @hylo/shared build
     ;;
   *)
-    echo "Error: Unrecognized YARN2_WORKSPACE_PATH value: $YARN2_WORKSPACE_PATH"
+    echo "Error: Unrecognized workspace name: $WORKSPACE_NAME"
     exit 1
     ;;
 esac
+
+if [ "$YARN2_SKIP_PRUNING" = "true" ]; then
+  echo "Focusing on the $WORKSPACE_NAME workspace..."
+  yarn workspaces focus "$WORKSPACE_NAME" --production
+else
+  echo "Warning: YARN2_SKIP_PRUNING is not set to true. All workspace dependencies will remain installed..."
+fi
