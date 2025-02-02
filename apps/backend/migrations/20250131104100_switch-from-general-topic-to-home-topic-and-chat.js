@@ -1,4 +1,5 @@
 exports.up = async function (knex) {
+  console.log('Switching from general topic to home topic and chat')
   const generalTag = await knex.select('id').from('tags').where('name', 'general').first()
   const homeTag = await knex.select('id').from('tags').where('name', 'home').first()
 
