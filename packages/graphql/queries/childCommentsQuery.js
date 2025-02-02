@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import commentFieldsFragment from '@hylo/graphql/fragments/commentFieldsFragment'
+import commentFieldsFragment from '../fragments/commentFieldsFragment'
 
 export default gql`
   query ChildCommentsQuery (
