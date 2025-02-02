@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import { isContextGroup } from '@hylo/presenters/GroupPresenter'
+import { isContextGroup } from 'presenters/GroupPresenter'
 import postsQuerySetFragment from '@hylo/graphql/fragments/postsQuerySetFragment'
 import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 

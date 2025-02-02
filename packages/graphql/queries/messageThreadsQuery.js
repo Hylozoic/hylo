@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import messageThreadFieldsFragment from '@hylo/graphql/fragments/messageThreadFieldsFragment'
+import messageThreadFieldsFragment from '../fragments/messageThreadFieldsFragment'
 
 export default gql` 
   query MessageThreadsQuery ($first: Int = 10, $offset: Int, $firstMessages: Int = 1) {
