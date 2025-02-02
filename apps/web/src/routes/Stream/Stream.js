@@ -30,12 +30,12 @@ import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 import { fetchModerationActions, clearModerationAction } from 'store/actions/moderationActions'
-import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
+// import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import { FETCH_MODERATION_ACTIONS, FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import getGroupTopicForCurrentRoute from 'store/selectors/getGroupTopicForCurrentRoute'
+// import getGroupTopicForCurrentRoute from 'store/selectors/getGroupTopicForCurrentRoute'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -360,12 +360,12 @@ export default function Stream (props) {
         )}
         {!pending && calendarView && (
           <div className='calendarView'>
-              <EventCalendar
-                posts={posts}
-                routeParams={routeParams}
-                locationParams={{}}
-                querystringParams={querystringParams}
-              />
+            <EventCalendar
+              posts={posts}
+              routeParams={routeParams}
+              locationParams={{}}
+              querystringParams={querystringParams}
+            />
           </div>
         )}
         {(pending || topicLoading) && <Loading />}
