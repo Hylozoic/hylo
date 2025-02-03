@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import React, { useState, forwardRef, useImperativeHandle } from 'react'
+import React, { useState, forwardRef, useRef, useImperativeHandle } from 'react'
 import { differenceBy } from 'lodash'
 import TagInput from 'components/TagInput'
 import styles from './ToField.module.scss'
@@ -10,15 +10,21 @@ const ToField = forwardRef(({
   options = [],
   onChange,
   readOnly,
-  groupSettings
+  groupSettings,
+  onFocus,
+  onBlur,
+  ...props
 }, ref) => {
   const defaultState = { suggestions: [] }
   const [state, setState] = useState(defaultState)
+  const tagInputRef = useRef()
 
   useImperativeHandle(ref, () => ({
     reset: () => {
       setState(defaultState)
-    }
+    },
+
+    focus: () => tagInputRef.current?.focus()
   }))
 
   const findSuggestions = (searchText) => {
@@ -68,6 +74,9 @@ const ToField = forwardRef(({
       placeholder=''
       readOnly={readOnly}
       theme={styles}
+      ref={tagInputRef}
+      onFocus={onFocus} // Pass through to parent
+      onBlur={onBlur} // Pass through to parent
     />
   )
 })

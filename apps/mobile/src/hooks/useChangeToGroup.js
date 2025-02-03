@@ -2,9 +2,9 @@ import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import confirmNavigate from 'util/confirmNavigate'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
-import { useCurrentGroupSlug } from 'hooks/useCurrentGroup'
-import useCurrentUser from 'hooks/useCurrentUser'
+import { isContextGroup } from 'presenters/GroupPresenter'
+import { useCurrentGroupSlug } from '@hylo/hooks/useCurrentGroup'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 export default function useChangeToGroup () {
   const { t } = useTranslation()

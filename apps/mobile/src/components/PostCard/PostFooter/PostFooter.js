@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { get, find, filter, isEmpty, sortBy } from 'lodash/fp'
 import LinearGradient from 'react-native-linear-gradient'
-import { RESPONSES } from 'urql-shared/presenters/EventInvitationPresenter'
+import { RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import Avatar from 'components/Avatar'
 import PeopleListModal from 'components/PeopleListModal'
 import { postCardLinearGradientColors, rhino40 } from 'style/colors'
@@ -25,7 +25,7 @@ export default function PostFooter ({
   const [peopleModalVisible, setPeopleModalVisible] = useState(false)
   const togglePeopleModal = () => setPeopleModalVisible(!peopleModalVisible)
   const goToMember = person => navigation.navigate('Member', { id: person.id })
-  const eventAttendees = filter(ei => ei.response === RESPONSES.YES, eventInvitations)
+  const eventAttendees = filter(ei => ei?.response === RESPONSES.YES, eventInvitations)
 
   let peopleRowResult
 

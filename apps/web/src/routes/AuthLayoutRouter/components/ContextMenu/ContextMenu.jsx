@@ -1,4 +1,3 @@
-import { cn } from 'util/index'
 import { compact, get } from 'lodash/fp'
 import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut } from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
@@ -29,6 +28,7 @@ import { CONTEXT_MY, FETCH_POSTS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import orm from 'store/models'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
+import { bgImageStyle, cn } from 'util/index'
 import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
 
 import classes from './ContextMenu.module.scss'
@@ -244,8 +244,12 @@ export default function ContextMenu (props) {
           ? <GroupMenuHeader group={group} />
           : isPublic
             ? (
-              <div className='flex flex-col p-2'>
-                <h2 className='text-foreground font-bold leading-3 text-lg'>{t('The Commons')}</h2>
+              <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.5 }} />
+                {/* <div style={bgImageStyle('/the-commons.jpg')} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' /> */}
+                <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden'>
+                  <h2 className='text-foreground font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
+                </div>
               </div>
               )
             : isMyContext || isAllContext
@@ -459,7 +463,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                 </span>}
               {widget.type !== 'members' &&
                 <div className={cn('flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground', {
-                  'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditting
+                  'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditting && widget.type !== 'home'
                 })}>
                   <SpecialTopElementRenderer widget={widget} group={group} />
                   <ul className='p-0'>
@@ -490,9 +494,9 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
       </div>
       {showEdit && (
         <div className='mb-[30px]'>
-          <MenuLink to={addQuerystringToPath(url, { cme: 'yes' })} className='flex items-center text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+          <MenuLink to={addQuerystringToPath(url, { cme: isEditting ? 'no' : 'yes' })} className='flex items-center text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             <Pencil className='h-[16px]' />
-            <span className='text-base'>{t('Edit Menu')}</span>
+            <span className='text-base'>{isEditting ? t('Done Editing') : t('Edit Menu')}</span>
           </MenuLink>
         </div>
       )}
@@ -568,12 +572,12 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
               </MenuLink>
             )
-          } else if (rootPath !== '/my' && rootPath !== '/all' && !item.title) {
+          } else if ((rootPath !== '/my' && rootPath !== '/all' && !item.title) || (item.type === 'viewUser')) {
             return (
               <MenuLink
                 to={itemUrl}
-                externalLink={item?.customView?.type === "externalLink" ? item.customView.externalLink : null}
-                className="transition-all px-2 py-1 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between"
+                externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
+                className='transition-all px-2 py-1 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between'
               >
                 <div>
                   <WidgetIconResolver widget={item} />
@@ -638,7 +642,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
     )
 
     return (
-      <div className='mb-6'>
+      <div className='mb-2'>
         <MenuLink to={groupUrl(group.slug, 'settings')}>
           <div className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             {t('Settings')}

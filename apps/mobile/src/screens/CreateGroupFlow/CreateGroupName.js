@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useFocusEffect } from '@react-navigation/native'
 import { Text, View, ScrollView, TextInput } from 'react-native'
-import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import {
   getGroupData, getEdited, updateGroupData, setWorkflowOptions,
@@ -10,7 +10,7 @@ import {
 } from './CreateGroupFlow.store'
 import ErrorBubble from 'components/ErrorBubble'
 import styles from './CreateGroupFlow.styles'
-import { ALL_GROUP_ID, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from 'urql-shared/presenters/GroupPresenter'
+import { ALL_GROUP_ID, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from 'presenters/GroupPresenter'
 import { useTranslation } from 'react-i18next'
 
 export default function CreateGroupName ({ route }) {

@@ -44,11 +44,11 @@ export default function PostGridItem ({
   }, [post.id, routeParams, locationParams, querystringParams])
 
   return (
-    <div className={cn(classes.postGridItemContainer, { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType])} onClick={showDetails}>
+    <div className={cn('h-[160px] w-full bg-background rounded-lg shadow-lg relative hover:scale-105 transition-all overflow-hidden', { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType])} onClick={showDetails}>
       <div className={classes.contentSummary}>
         {childPost &&
           <div
-            className={classes.iconContainer}
+            className='bg-primary rounded w-[20px] h-[20px] flex items-center absolute top-1 right-1'
             data-tooltip-content={t('Post from child group')}
             data-tooltip-id='childgroup-tt'
           >
@@ -61,7 +61,7 @@ export default function PostGridItem ({
               id='childgroup-tt'
             />
           </div>}
-        <h3 className={cn(classes.title, { [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</h3>
+        <h3 className={cn('text-base text-foreground m-0 px-2', { [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</h3>
         {attachmentType === 'image'
           ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cn(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} />
           : attachmentType === 'file'
@@ -77,7 +77,7 @@ export default function PostGridItem ({
             : ' '}
         {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
 
-        <div className={cn(classes.details, { [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+        <div className={cn('text-foreground text-xs px-2 opacity-75', { [classes.isFlagged]: isFlagged && !post.clickthrough })}>
           <HyloHTML html={details} />
         </div>
         <div className={classes.gridMeta}>
@@ -91,7 +91,7 @@ export default function PostGridItem ({
             </span>
           </div>
         </div>
-        <div className={classes.gridFade} />
+        <div className='absolute bottom-0 left-0 right-0 h-full bg-gradient-to-t from-background to-transparent' />
       </div>
     </div>
   )

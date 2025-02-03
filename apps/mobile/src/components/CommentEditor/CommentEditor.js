@@ -10,11 +10,11 @@ import MaterialIcon from 'react-native-vector-icons/MaterialIcons'
 import { isEmpty } from 'lodash/fp'
 import { isIOS } from 'util/platform'
 import { TextHelpers } from '@hylo/shared'
-import createCommentMutation from 'graphql/mutations/createCommentMutation'
+import createCommentMutation from '@hylo/graphql/mutations/createCommentMutation'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import styles from './CommentEditor.styles'
 import Icon from 'components/Icon'
-import { firstName } from 'urql-shared/presenters/PersonPresenter'
+import { firstName } from '@hylo/presenters/PersonPresenter'
 
 export const KeyboardAccessoryCommentEditor = React.forwardRef(({
   renderScrollable,

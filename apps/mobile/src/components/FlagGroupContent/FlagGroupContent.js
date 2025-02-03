@@ -8,10 +8,10 @@ import Icon from 'components/Icon'
 import Button from 'components/Button'
 import CheckBox from '@react-native-community/checkbox'
 import MultiSelect from 'components/MultiSelect/MultiSelect'
-import createModerationActionMutation from 'graphql/mutations/createModerationActionMutation'
+import createModerationActionMutation from '@hylo/graphql/mutations/createModerationActionMutation'
 import { agreementsURL } from 'store/constants'
-import usePlatformAgreements from 'hooks/usePlatformAgreements'
-import GroupPresenter from 'urql-shared/presenters/GroupPresenter'
+import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
+import GroupPresenter from 'presenters/GroupPresenter'
 import { mangoOrange } from 'style/colors'
 
 const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {

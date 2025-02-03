@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash'
-import ContextWidgetPresenter, { widgetIsValidChild } from '@hylo/shared/src/ContextWidgetPresenter'
+import ContextWidgetPresenter, { humanReadableTypes, widgetIsValidChild } from '@hylo/shared/src/ContextWidgetPresenter'
 import { addQuerystringToPath, baseUrl, widgetUrl } from 'util/navigation'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -21,7 +21,9 @@ import {
 } from '../GroupSettings/GroupSettings.store'
 import useDebounce from 'hooks/useDebounce'
 
+import Icon from 'components/Icon'
 import PostSelector from 'components/PostSelector'
+import WidgetIconResolver from 'components/WidgetIconResolver'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from 'components/ui/command'
 import { Input } from 'components/ui/input'
 import { Button } from 'components/ui/button'
@@ -33,7 +35,6 @@ import {
   SelectTrigger,
   SelectValue
 } from 'components/ui/select'
-import Icon from 'components/Icon'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { CustomViewRow } from 'routes/GroupSettings/CustomViewsTab/CustomViewsTab'
 import { createTopic } from 'components/CreateTopic/CreateTopic.store'
@@ -102,22 +103,25 @@ export default function AllViews () {
     return widgetsSorted.map(widget => {
       const title = widget.title
       const url = widgetUrl({ widget, rootPath, groupSlug: routeParams.groupSlug, context: 'group' })
-      const type = widget.type
+      const type = humanReadableTypes(widget.type)
       const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1)
       const capitalizedView = widget.view ? widget.view.charAt(0).toUpperCase() + widget.view.slice(1) : ''
       const cardContent = (
         <div>
-          <h3 className='text-lg font-semibold text-foreground'>{title}</h3>
+          <h3 className='text-lg font-semibold text-foreground'>
+            <WidgetIconResolver widget={widget} />
+            <span className='ml-2'>{title}</span>
+          </h3>
           {type && (
             <span className='text-sm  text-foreground'>
               {t('Type')}: {t(capitalizedType)}
             </span>
           )}
-          {widget.view && (
+          {/* {widget.view && (
             <span className='text-sm block text-foreground'>
               {t('View')}: {t(capitalizedView)}
             </span>
-          )}
+          )} */}
           {isEditting && widget.isValidHomeWidget && (
             <span className='text-sm  block text-foreground'>
               <Icon

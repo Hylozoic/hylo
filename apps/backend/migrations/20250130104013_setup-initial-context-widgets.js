@@ -22,18 +22,18 @@ exports.up = function(knex) {
                 INSERT INTO context_widgets (
                     group_id, type, view_chat_id, parent_id, "order", created_at, updated_at
                 )
-                SELECT 
-                    group_record.id, 
-                    'chat', 
-                    (SELECT id FROM tags WHERE name = 'home'), 
-                    (SELECT id FROM context_widgets WHERE group_id = group_record.id AND type = 'home'), 
-                    1, 
-                    NOW(), 
+                SELECT
+                    group_record.id,
+                    'chat',
+                    (SELECT id FROM tags WHERE name = 'home'),
+                    (SELECT id FROM home_widget),
+                    1,
+                    NOW(),
                     NOW()
                 WHERE NOT EXISTS (
-                    SELECT 1 FROM context_widgets 
-                    WHERE group_id = group_record.id 
-                    AND type = 'chat' 
+                    SELECT 1 FROM context_widgets
+                    WHERE group_id = group_record.id
+                    AND type = 'chat'
                     AND parent_id = (SELECT id FROM context_widgets WHERE group_id = group_record.id AND type = 'home')
                 )
             ),
@@ -77,5 +77,5 @@ exports.up = function(knex) {
 };
 
 exports.down = function(knex) {
-  return Promise.resolve();
+  return knex('context_widgets').del();
 };

@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import { print } from 'graphql/language/printer'
+import { print } from '@hylo/graphql/language/printer'
 
 export function stringToGraphql (graphqlString) {
   return (typeof graphqlString === 'string' || graphqlString instanceof String)

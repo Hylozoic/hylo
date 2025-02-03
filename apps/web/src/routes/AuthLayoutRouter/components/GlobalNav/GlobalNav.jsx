@@ -63,7 +63,7 @@ export default function GlobalNav (props) {
           <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' />
         </GlobalNavItem>
 
-        <GlobalNavItem tooltip={t('Public')} url='/public/stream' className={cn('opacity-1')}>
+        <GlobalNavItem tooltip={t('The Commons')} url='/public/stream' className={cn('opacity-1')}>
           <Globe color='hsl(var(--primary-foreground))' />
         </GlobalNavItem>
 

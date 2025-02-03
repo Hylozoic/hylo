@@ -1,7 +1,7 @@
 import applyPagination from './util/applyPagination'
 import presentQuerySet from './util/presentQuerySet'
 import initDataLoaders from './util/initDataLoaders'
-import { isNull, isUndefined, mapKeys, omitBy, pick, result, snakeCase, toPairs } from 'lodash/fp'
+import { isNull, isFunction, isUndefined, mapKeys, omitBy, pick, result, snakeCase, toPairs, isEmpty } from 'lodash/fp'
 
 export default class Fetcher {
   constructor (models, options = {}) {
@@ -124,20 +124,35 @@ export default class Fetcher {
     return matches[0][0]
   }
 
-  _loadMany (relation, { method, loader, tap, fetchOpts }) {
-    return this.loaders.relations.load({relation, method})
-    .tap(tap)
-    .then(instances => {
-      // N.B. this caching doesn't take into account data added by withPivot
-      instances.forEach(x => loader.clear(x.id).prime(x.id, x))
-      return loader.loadMany(instances.map('id'))
-      .then(models => {
-        if (!fetchOpts.querySet) return models
-        const cleanOpts = omitBy(x => isNull(x) || isUndefined(x), fetchOpts)
-        const optsWithDefaults = Object.assign({offset: 0, first: 20}, cleanOpts)
-        return presentQuerySet(models, optsWithDefaults)
-      })
-    })
+  async _loadMany (relation, { method, loader, tap, fetchOpts }) {
+    const instances = await this.loaders.relations.load({ relation, method })
+
+    // N.B. this caching doesn't take into account data added by withPivot
+    instances.forEach(x => loader.clear(x.id).prime(x.id, x))
+
+    const models = await loader.loadMany(instances.map('id'))
+
+    if (!fetchOpts.querySet) return models
+
+    // NOTE: querySetId generation, which may prove useful for graphql cache reconciliation in the
+    // front ends, but didn't prove yet necessary or useful. Can be removed at any point it seems that
+    // won't change. As it is, if you add an `id: String` field to any queryset and query on it you will
+    // get this key for the QuerySet otherwise it is ignored:
+    const modelName = isFunction(relation.tableName) ? relation.tableName() : (relation.tableName || '')
+    const parentTableName = relation?.relatedData?.parentTableName || ''
+    const parentId = relation?.relatedData?.parentId || ''
+    const querySetId = [parentTableName, parentId, modelName].filter(key => !isEmpty(key)).join('.')
+    // Debugging setup for querySetId:
+    // console.log(
+    //   `querySetId: ${querySetId || null} `,
+    //   !querySetId ? `<== with models of: ${models}` : ''
+    // )
+    // !querySetId && console.dir(fetchOpts)
+
+    const cleanOpts = omitBy(x => isNull(x) || isUndefined(x), fetchOpts)
+    const optsWithDefaults = Object.assign({ offset: 0, first: 20 }, cleanOpts)
+
+    return presentQuerySet(models, optsWithDefaults, querySetId)
   }
 
   _loadOne (relation, { loader }) {

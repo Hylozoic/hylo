@@ -62,7 +62,7 @@ import SiteTour from 'routes/AuthLayoutRouter/components/SiteTour'
 import ThreadList from 'routes/Messages/ThreadList'
 
 import UserSettings from 'routes/UserSettings'
-import { GROUP_TYPES } from 'store/models/Group'
+import { DEFAULT_CHAT_TOPIC, GROUP_TYPES } from 'store/models/Group'
 import classes from './AuthLayoutRouter.module.scss'
 import { findHomeView } from '@hylo/shared/src/ContextWidgetPresenter'
 import { localeLocalStorageSync } from 'util/locale'
@@ -234,7 +234,7 @@ export default function AuthLayoutRouter (props) {
   if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
     currentGroupMembership.update({ lastViewedAt: (new Date()).toISOString() })
     setTimeout(() => {
-      navigate(`/groups/${currentGroupSlug}/chat/general`, { replace: true })
+      navigate(`/groups/${currentGroupSlug}/chat/${DEFAULT_CHAT_TOPIC}`, { replace: true })
     }, 100)
   }
 
@@ -335,6 +335,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
+                <Route path='groups/:joinGroupSlug/join/:accessCode' />
                 <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='messages/:messageThreadId' element={<ThreadList />} />
                 <Route path='messages' element={<ThreadList />} />
@@ -384,9 +385,11 @@ export default function AuthLayoutRouter (props) {
                   <Route path='groups/:groupSlug/decisions/*' element={<Stream context='groups' view='decisions' />} />
                   <Route path='groups/:groupSlug/explore/*' element={<LandingPage context='groups' />} />
                   <Route path='groups/:groupSlug/ask-and-offer/*' element={<Stream context='groups' view='ask-and-offer' />} />
+                  <Route path='groups/:groupSlug/discussions/*' element={<Stream context='groups' view='discussions' />} />
+                  <Route path='groups/:groupSlug/events/*' element={<Stream context='groups' view='events' />} />
+                  <Route path='groups/:groupSlug/resources/*' element={<Stream context='groups' view='resources' />} />
                   <Route path='groups/:groupSlug/projects/*' element={<Stream context='groups' view='projects' />} />
                   <Route path='groups/:groupSlug/custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
-                  <Route path='groups/:groupSlug/events/*' element={<Stream context='groups' view='events' />} />
                   <Route path='groups/:groupSlug/groups/*' element={<Groups context='groups' />} />
                   <Route path='groups/:groupSlug/members/create/*' element={<Members context='groups' />} />
                   <Route path='groups/:groupSlug/members/:personId/*' element={<MemberProfile context='groups' />} />

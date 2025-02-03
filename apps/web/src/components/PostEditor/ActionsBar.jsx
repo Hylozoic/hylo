@@ -37,7 +37,7 @@ export default function ActionsBar ({
   const { t } = useTranslation()
 
   return (
-    <div className={styles.actionsBar}>
+    <div className='w-full flex justify-between'>
       <div className='flex items-center gap-2'>
         <UploadAttachmentButton
           type='post'

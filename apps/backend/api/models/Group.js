@@ -499,10 +499,11 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     // Create home widget first
+    // TODO: this should be default view instead of home
     const homeWidget = await ContextWidget.forge({
       group_id: this.id,
       type: 'home',
-      title: 'widget-home', 
+      title: 'widget-home',
       order: 1,
       created_at: new Date(),
       updated_at: new Date()
@@ -511,7 +512,13 @@ module.exports = bookshelf.Model.extend(merge({
     // Get home tag id for the home chat
     const homeTag = await Tag.where({ name: 'home' }).fetch({ transacting: trx })
 
-    // Create home chat widget as child of home
+    // XXX: make sure there is a home tag for every group
+    const homeGroupTag = await GroupTag.where({ group_id: this.id, tag_id: homeTag.id }).fetch({ transacting: trx })
+    if (!homeGroupTag) {
+      await GroupTag.create({ group_id: this.id, tag_id: homeTag.id, user_id: this.get('created_by_id'), is_default: true }, { transacting: trx })
+    }
+
+    // Create home chat widget as child of default view
     await ContextWidget.forge({
       group_id: this.id,
       type: 'chat',
@@ -537,6 +544,7 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-ask-and-offer', view: 'ask-and-offer' },
       { title: 'widget-stream', view: 'stream' },
       { title: 'widget-events', type: 'events', view: 'events' },
+      { title: 'widget-resources', type: 'resources', view: 'resources' },
       { title: 'widget-projects', type: 'projects', view: 'projects' },
       { title: 'widget-groups', type: 'groups', view: 'groups' },
       { title: 'widget-decisions', type: 'decisions', view: 'decisions' },
@@ -1016,9 +1024,9 @@ module.exports = bookshelf.Model.extend(merge({
       await group.createStarterPosts(trx)
 
       // await group.createInitialWidgets(trx)
-      await group.setupContextWidgets(trx)
 
-      await group.createDefaultTopics(group.id, userId, trx)
+      // await group.createDefaultTopics(group.id, userId, trx) // TODO: not sure if this should be here or in setupContextWidgets
+      await group.setupContextWidgets(trx)
 
       await group.addMembers([userId], { role: GroupMembership.Role.MODERATOR }, { transacting: trx })
 

@@ -7,7 +7,7 @@ import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { openURL } from 'hooks/useOpenURL'
 import ErrorBubble from 'components/ErrorBubble'
-import { accessibilityDescription, visibilityDescription } from 'urql-shared/presenters/GroupPresenter'
+import { accessibilityDescription, visibilityDescription } from 'presenters/GroupPresenter'
 import Avatar from 'components/Avatar'
 import { formatDomainWithUrl } from './util'
 import {

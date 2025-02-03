@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Text, View, Button, Image } from 'react-native'
 import RNRestart from 'react-native-restart'
 import * as Sentry from '@sentry/react-native'
@@ -6,28 +6,26 @@ import { useTranslation } from 'react-i18next'
 
 const axelFretting = require('assets/Axel_Fretting.png')
 
-export default class ErrorBoundary extends React.Component {
-  constructor (props) {
-    super(props)
-    this.state = { hasError: false }
-  }
+const ErrorBoundary = ({ children, customErrorUI }) => {
+  const [hasError, setHasError] = useState(false)
 
-  componentDidCatch (error, info) {
-    this.setState({ hasError: true })
-
+  const handleError = (error, info) => {
+    setHasError(true)
     Sentry.captureException(error, { extra: info })
   }
 
-  render () {
-    const { customErrorUI } = this.props
-    if (this.state.hasError) {
-      return customErrorUI || <DefaultErrorMessage />
-    }
-    return this.props.children
+  if (hasError) {
+    return customErrorUI || <DefaultErrorMessage />
   }
+
+  return (
+    <Sentry.ErrorBoundary onError={handleError} fallback={customErrorUI || <DefaultErrorMessage />}>
+      {children}
+    </Sentry.ErrorBoundary>
+  )
 }
 
-function DefaultErrorMessage () {
+const DefaultErrorMessage = () => {
   const { t } = useTranslation()
   return (
     <View style={styles.container}>
@@ -58,3 +56,5 @@ const styles = {
     marginTop: 20
   }
 }
+
+export default ErrorBoundary

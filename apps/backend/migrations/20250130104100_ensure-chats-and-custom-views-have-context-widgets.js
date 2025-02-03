@@ -1,5 +1,4 @@
 exports.up = function(knex) {
-
   // This call is idempotent; you can run it many times and it will just sync chats/custcomes up to their needed widgets.
   return knex.raw(`
     WITH RECURSIVE all_groups AS (
@@ -16,11 +15,11 @@ exports.up = function(knex) {
       FROM all_groups g
     ),
     group_existing_widgets AS (
-      SELECT 
+      SELECT
         g.id as group_id,
         cw.id as widget_id,
         cw.type,
-        CASE 
+        CASE
           WHEN cw.type = 'chats' THEN 'chats'
           WHEN cw.type = 'custom-views' THEN 'custom_views'
         END as parent_type
@@ -51,13 +50,14 @@ exports.up = function(knex) {
         AND t.name != 'general'
     ),
     new_custom_view_widgets AS (
-      SELECT 
+      SELECT
         cv.group_id,
         cv.id as custom_view_id,
+        cv.order,
         EXISTS (
-          SELECT 1 
-          FROM context_widgets 
-          WHERE group_id = cv.group_id 
+          SELECT 1
+          FROM context_widgets
+          WHERE group_id = cv.group_id
             AND custom_view_id = cv.id
         ) as has_widget
       FROM custom_views cv
@@ -69,6 +69,7 @@ exports.up = function(knex) {
       title,
       type,
       parent_id,
+      "order",
       view_chat_id,
       custom_view_id,
       auto_added,
@@ -76,19 +77,25 @@ exports.up = function(knex) {
       updated_at
     )
     -- Insert chat widgets
-    SELECT 
+    SELECT
       ncw.group_id,
       ncw.name,
       'chat'::text,
-      CASE 
+      CASE
         WHEN ncw.visibility = 2 THEN (
-          SELECT widget_id 
-          FROM group_existing_widgets 
-          WHERE group_id = ncw.group_id 
+          SELECT widget_id
+          FROM group_existing_widgets
+          WHERE group_id = ncw.group_id
             AND parent_type = 'chats'
           LIMIT 1
         )
-        ELSE NULL 
+        ELSE NULL
+      END,
+      CASE
+        WHEN ncw.visibility = 2 THEN (
+          ROW_NUMBER() OVER (PARTITION BY ncw.group_id ORDER BY ncw.name)
+        )
+        ELSE NULL
       END,
       ncw.tag_id,
       NULL,
@@ -106,12 +113,13 @@ exports.up = function(knex) {
       NULL,
       NULL,
       (
-        SELECT widget_id 
-        FROM group_existing_widgets 
-        WHERE group_id = ncvw.group_id 
+        SELECT widget_id
+        FROM group_existing_widgets
+        WHERE group_id = ncvw.group_id
           AND parent_type = 'custom_views'
         LIMIT 1
       ),
+      ROW_NUMBER() OVER (PARTITION BY ncvw.group_id ORDER BY ncvw.order),
       NULL,
       ncvw.custom_view_id,
       true,
