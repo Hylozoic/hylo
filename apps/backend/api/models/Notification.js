@@ -84,12 +84,12 @@ module.exports = bookshelf.Model.extend({
     const userId = this.reader().id
     switch (this.get('medium')) {
       case MEDIUM.Push:
-        if (process.env.PUSH_NOTIFICATIONS_ENABLED || process.env.HYLO_TESTER_IDS?.includes(userId)) {
+        if (process.env.PUSH_NOTIFICATIONS_ENABLED || User.isTester(userId)) {
           await this.sendPush()
         }
         break
       case MEDIUM.Email:
-        if (process.env.EMAIL_NOTIFICATIONS_ENABLED || process.env.HYLO_TESTER_IDS?.includes(userId)) {
+        if (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || User.isTester(userId)) {
           await this.sendEmail()
         }
         break

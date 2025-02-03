@@ -71,5 +71,5 @@ export async function getRecipients (groupId, type) {
   }).fetch().then(get('models'))
 
   // If email notifications are disabled, only send to testers
-  return recipients.filter(recipient => process.env.EMAIL_NOTIFICATIONS_ENABLED || process.env.HYLO_TESTER_IDS?.includes(recipient.id))
+  return recipients.filter(recipient => process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || recipient.isTester())
 }
