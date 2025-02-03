@@ -144,11 +144,26 @@ export default function PostBodyProposal ({
   }
 
   return (
-    <View style={[styles.proposalBodyContainer, proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, votingComplete && styles.completed]}>
+    <View
+      style={[
+        styles.proposalBodyContainer,
+        proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion,
+        proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting,
+        proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual,
+        votingComplete && styles.completed
+      ]}
+    >
       <View style={styles.proposalStatus}>
         {/* {isAnonymousVote && <Icon name='Hidden' styleName='anonymous-voting' dataTip={t('Anonymous voting')} dataTipFor='anon-tt' />} */}
         {isAnonymousVote && <Icon name='Hidden' styleName='anonymous-voting' dataTip='Anonymous voting' dataTipFor='anon-tt' />}
-        <Text style={[proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, votingComplete && styles.completed]}>
+        <Text
+          style={[
+            proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion,
+            proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting,
+            proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual,
+            votingComplete && styles.completed
+          ]}
+        >
           {proposalStatus === PROPOSAL_STATUS_DISCUSSION && t('Discussion in progress')}
           {votingComplete && t('Voting ended')}
           {proposalStatus === PROPOSAL_STATUS_VOTING && votePrompt}
@@ -156,7 +171,14 @@ export default function PostBodyProposal ({
         </Text>
       </View>
       <View style={styles.proposalTiming}>
-        <Text style={[proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, votingComplete && styles.completed]}>
+        <Text
+          style={[
+            proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion,
+            proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting,
+            proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual,
+            votingComplete && styles.completed
+          ]}
+        >
           {startTime && proposalStatus !== PROPOSAL_STATUS_COMPLETED && `${new Date(startTime).toLocaleDateString()} - ${new Date(endTime).toLocaleDateString()}`}
           {startTime && votingComplete && `${new Date(endTime).toLocaleDateString()}`}
         </Text>
@@ -166,7 +188,20 @@ export default function PostBodyProposal ({
         const avatarUrls = optionVotes.map(vote => vote.user.avatarUrl)
         const votingPermitted = isVotingOpen(proposalStatus) && !isVoting && !votingComplete
         return (
-          <TouchableOpacity key={`${option.id}+${currentUserVotesOptionIds.includes(option.id)}`} style={[styles.proposalOption, votingComplete && styles.completed, proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, currentUserVotesOptionIds.includes(option.id) && styles.selected, votingComplete && styles.completed, votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote]} onPress={votingPermitted ? () => handleVote(option.id) : () => {}}>
+          <TouchableOpacity
+            key={`${option.id}+${currentUserVotesOptionIds.includes(option.id)}`}
+            style={[
+              styles.proposalOption,
+              votingComplete && styles.completed,
+              proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion,
+              proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting,
+              proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual,
+              currentUserVotesOptionIds.includes(option.id) && styles.selected,
+              votingComplete && styles.completed,
+              votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote
+            ]}
+            onPress={votingPermitted ? () => handleVote(option.id) : () => {}}
+          >
             <View style={styles.proposalOptionTextContainer}>
               <View style={styles.proposalOptionEmoji}>
                 <Text>
@@ -174,7 +209,17 @@ export default function PostBodyProposal ({
                 </Text>
               </View>
               <View style={styles.proposalOptionText}>
-                <Text style={[votingComplete && styles.completed, proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, votingComplete && styles.completed, currentUserVotesOptionIds.includes(option.id) && styles.selected, votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote]}>
+                <Text
+                  style={[
+                    votingComplete && styles.completed,
+                    proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion,
+                    proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting,
+                    proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual,
+                    votingComplete && styles.completed,
+                    currentUserVotesOptionIds.includes(option.id) && styles.selected,
+                    votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote
+                  ]}
+                >
                   {option.text}
                 </Text>
               </View>
@@ -184,7 +229,17 @@ export default function PostBodyProposal ({
             <View style={styles.proposalOptionVotesContainer}>
               <View style={styles.proposalOptionVoteCount}>
                 {(!isAnonymousVote || votingComplete) &&
-                  <Text style={[votingComplete && styles.completed, proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, votingComplete && styles.completed, currentUserVotesOptionIds.includes(option.id) && styles.selected, votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote]}>
+                  <Text
+                    style={[
+                      votingComplete && styles.completed,
+                      proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion,
+                      proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting,
+                      proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual,
+                      votingComplete && styles.completed,
+                      currentUserVotesOptionIds.includes(option.id) && styles.selected,
+                      votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote
+                    ]}
+                  >
                     {optionVotes.length}
                   </Text>}
               </View>
