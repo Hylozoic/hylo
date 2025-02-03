@@ -20,8 +20,7 @@ export default function useChangeToGroup () {
 
     if (groupSlug === currentGroupSlug) return
 
-    const canViewGroup = myMemberships.find(m => m.group.slug === groupSlug)
-      || isContextGroup(groupSlug)
+    const canViewGroup = myMemberships.find(m => m.group.slug === groupSlug) || isContextGroup(groupSlug)
 
     if (canViewGroup) {
       const goToGroup = () => {
