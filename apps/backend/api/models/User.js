@@ -170,6 +170,10 @@ module.exports = bookshelf.Model.extend(merge({
       .query({ where: { 'notifications.medium': Notification.MEDIUM.InApp } })
   },
 
+  isTester: function () {
+    return User.isTester(this.id)
+  },
+
   joinRequests: function () {
     return this.hasMany(JoinRequest)
   },
@@ -739,6 +743,11 @@ module.exports = bookshelf.Model.extend(merge({
 
   incNewNotificationCount: function (id) {
     return User.query().where({ id }).increment('new_notification_count', 1)
+  },
+
+  isTester: function (id) {
+    const testerIds = process.env.HYLO_TESTER_IDS ? process.env.HYLO_TESTER_IDS.split(',') : []
+    return testerIds.includes(id)
   },
 
   resetNewNotificationCount: function (id) {
