@@ -11,7 +11,7 @@ import MultiSelect from 'components/MultiSelect/MultiSelect'
 import createModerationActionMutation from '@hylo/graphql/mutations/createModerationActionMutation'
 import { agreementsURL } from 'store/constants'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
-import GroupPresenter from '@hylo/presenters/GroupPresenter'
+import GroupPresenter from 'presenters/GroupPresenter'
 import { mangoOrange } from 'style/colors'
 
 const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {

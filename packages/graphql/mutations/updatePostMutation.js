@@ -1,19 +1,19 @@
 import { gql } from 'urql'
-import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
+import postFieldsFragment from '../fragments/postFieldsFragment'
 
 // TODO: URQL - analytics:
 // analytics: {
-//   eventName: AnalyticsEvents.POST_CREATED,
+//   eventName: AnalyticsEvents.POST_UPDATED,
 //   detailsLength: TextHelpers.textLengthHTML(details),
 //   groupId: groupIds,
-//   isAnnouncement: sendAnnouncement,
 //   isPublic,
 //   topics: topicNames,
 //   type
 // }
 
 export default gql`
-  mutation CreatePostMutation (
+  mutation UpdatePostMutation (
+    $id: ID,
     $type: String,
     $title: String,
     $details: String,
@@ -22,20 +22,19 @@ export default gql`
     $groupIds: [ID],
     $imageUrls: [String],
     $fileUrls: [String],
-    $announcement: Boolean,
     $topicNames: [String],
+    $memberIds: [ID],
     $acceptContributions: Boolean,
     $donationsLink: String,
     $projectManagementLink: String,
     $eventInviteeIds: [ID],
-    $memberIds: [ID],
     $startTime: Date,
     $endTime: Date,
     $location: String,
     $locationId: ID,
     $isPublic: Boolean
   ) {
-    createPost(data: {
+    updatePost(id: $id, data: {
       type: $type,
       title: $title,
       details: $details,
@@ -44,13 +43,12 @@ export default gql`
       groupIds: $groupIds,
       imageUrls: $imageUrls,
       fileUrls: $fileUrls,
-      announcement: $announcement,
       topicNames: $topicNames,
+      memberIds: $memberIds,
       acceptContributions: $acceptContributions,
       donationsLink: $donationsLink,
       projectManagementLink: $projectManagementLink,
       eventInviteeIds: $eventInviteeIds,
-      memberIds: $memberIds,
       startTime: $startTime,
       endTime: $endTime,
       location: $location,

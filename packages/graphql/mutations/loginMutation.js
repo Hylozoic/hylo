@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import meAuthFieldsFragment from '@hylo/graphql/fragments/meAuthFieldsFragment'
+import meAuthFieldsFragment from '../fragments/meAuthFieldsFragment'
 
 export default gql`
   mutation LoginMutation ($email: String, $password: String) {
