@@ -32,6 +32,7 @@ const config = {
   // Hoisted monorepo deps, and shared packages
   watchFolders: [
     path.resolve(__dirname, '../../node_modules'),
+    path.resolve(__dirname, '../../packages/config'),
     path.resolve(__dirname, '../../packages/contexts'),
     path.resolve(__dirname, '../../packages/graphql'),
     path.resolve(__dirname, '../../packages/hooks'),

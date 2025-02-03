@@ -123,6 +123,7 @@ export default defineConfig({
       routes: path.resolve(__dirname, 'src/routes'),
       store: path.resolve(__dirname, 'src/store'),
       util: path.resolve(__dirname, 'src/util'),
+      '@hylo/config': path.resolve(__dirname, '../../packages/config'),
       '@hylo/contexts': path.resolve(__dirname, '../../packages/contexts'),
       '@hylo/graphql': path.resolve(__dirname, '../../packages/graphql'),
       '@hylo/hooks': path.resolve(__dirname, '../../packages/hooks'),
