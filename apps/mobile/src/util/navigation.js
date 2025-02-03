@@ -3,6 +3,7 @@ import { host } from 'config'
 import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
 import qs from 'query-string'
 import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
+import { isContextGroup } from 'presenters/GroupPresenter'
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
@@ -148,13 +149,50 @@ export function personUrl (id, groupSlug) {
   return `${base}/members/${id}`
 }
 
-// Topics URLs
+// Topics and Chat URLs
 export function topicsUrl (opts, defaultUrl = allGroupsUrl()) {
   return baseUrl({ ...opts, view: 'topics' }, defaultUrl)
 }
 
 export function topicUrl (topicName, opts) {
   return `${topicsUrl(opts)}/${topicName}`
+}
+
+export function chatUrl (chatName, { context, groupSlug }) {
+  return `${baseUrl({ context, groupSlug })}/chat/${chatName}`
+}
+
+// CustomView urls
+
+export function customViewUrl (customViewId, rootPath, opts) {
+  return `${rootPath}/custom/${customViewId}`
+}
+
+// Widget urls
+
+export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
+  if (!widget) return null
+
+  const groupSlug = isContextGroup(providedSlug) ? null : providedSlug
+  let url = ''
+  if (widget.url) return widget.url
+  if (widget.view === 'about') {
+    url = groupDetailUrl(groupSlug, { rootPath, groupSlug, context })
+  } else if (widget.view) {
+    url = viewUrl(widget.view, { groupSlug, context: widget.context || context })
+  } else if (widget.viewGroup) {
+    url = groupUrl(widget.viewGroup.slug)
+  } else if (widget.viewUser) {
+    url = personUrl(widget.viewUser.id, groupSlug)
+  } else if (widget.viewPost) {
+    url = postUrl(widget.viewPost.id, { groupSlug, context })
+  } else if (widget.viewChat) {
+    url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
+  } else if (widget.customView) {
+    url = customViewUrl(widget.customView.id, groupUrl(groupSlug))
+  }
+
+  return url
 }
 
 // URL utility functions
