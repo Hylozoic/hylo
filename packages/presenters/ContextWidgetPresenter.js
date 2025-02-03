@@ -1,38 +1,32 @@
+// TODO: Get "t" from current i18n instance so it doesn't need to be passed
 // import i18n from 'react-i18next'
+import { COMMON_VIEWS } from '@hylo/presenters/CustomViewPresenter'
 
 export default function ContextWidgetPresenter (widget, { t }) {
   if (!widget || widget?._presented) return widget
 
   // Resolve type once and pass it explicitly
-  const type = widgetTypeInferrer({ widget })
-  const avatarData = resolveWidgetAvatarData()
+  const type = widgetTypeResolver({ widget })
+  const avatarData = avatarDataResolver()
 
   return {
     ...widget,
-    type,
-    title: widgetTitleResolver({ widget, t }),
-    isDroppable: isWidgetDroppable(widget),
-    humanReadableType: humanReadableTypes(type),
-    isValidHomeWidget: isValidHomeWidget(widget),
-    // Ensures avatarUrl, displayName, iconName
-    // ...resolveWidgetPresentation(widget, type),
     avatarUrl: avatarData?.avatarUrl,
     displayName: avatarData?.displayName,
-    iconName: resolveWidgetIconName(widget, type),
+    humanReadableType: humanReadableTypeResolver(type),
+    iconName: iconNameResolver(widget, type),
+    isDroppable: isDroppableResolver(widget),
+    isValidHomeWidget: isValidHomeWidget(widget),
+    title: titleResolver({ widget, t }),
+    type,
     // Protects us from double presenting a widget
     _presented: true
   }
 }
 
-export function wrapItemInWidget (item, type) {
-  return {
-    [type]: item,
-    id: 'fake-id-' + crypto.randomUUID()
-  }
-}
+/* == Attribute Resolvers == */
 
-// Generates a proper widget title
-export function widgetTitleResolver ({ widget, t }) {
+function titleResolver ({ widget, t }) {
   let title = widget?.title
   if (title && title.startsWith('widget-')) {
     title = t(title)
@@ -53,8 +47,7 @@ export function widgetTitleResolver ({ widget, t }) {
   return title
 }
 
-// Determines whether a widget is a valid home widget
-export function isValidHomeWidget (widget) {
+function isValidHomeWidget (widget) {
   return !!(
     widget?.viewChat?.id ||
     widget?.customView?.id ||
@@ -62,7 +55,7 @@ export function isValidHomeWidget (widget) {
   )
 }
 
-function resolveWidgetAvatarData (widget) {
+function avatarDataResolver (widget) {
   if (widget?.viewUser) {
     return { avatarUrl: widget.viewUser?.avatarUrl, displayName: widget.viewUser?.name }
   }
@@ -73,7 +66,17 @@ function resolveWidgetAvatarData (widget) {
 }
 
 // Determines the correct icon name for a given widget type
-function resolveWidgetIconName (widget, type) {
+const WIDGET_TYPE_TO_ICON_NAME_MAP = {
+  setup: 'Settings',
+  'custom-views': 'Stack',
+  chats: 'Message',
+  viewChat: 'Message',
+  chat: 'Message',
+  viewPost: 'Posticon',
+  about: 'Info',
+  'all-views': 'Grid3x3'
+}
+function iconNameResolver (widget, type) {
   if (widget?.icon) return widget.icon
   if (widget?.customView?.icon) return widget.customView.icon
   if (widget?.context === 'my') return null
@@ -81,7 +84,16 @@ function resolveWidgetIconName (widget, type) {
   return WIDGET_TYPE_TO_ICON_NAME_MAP[type] || COMMON_VIEWS[type]?.icon || null
 }
 
-export function humanReadableTypes (type) {
+// Determines whether a widget can be dropped into another container
+function isDroppableResolver (widget) {
+  if (widget?.type === 'home') return false
+  if (widget?.id?.startsWith('fake-id')) return false
+  return true
+}
+
+// This internal resolver is exported to create mutation data prep in Web AllView#AddViewDialog
+// consider adding a makeCreateVariables method added to this presenter module
+export function humanReadableTypeResolver (type) {
   switch (true) {
     case type === 'home':
       return 'home'
@@ -102,7 +114,7 @@ export function humanReadableTypes (type) {
   }
 }
 
-export function widgetTypeInferrer ({ widget }) {
+function widgetTypeResolver ({ widget }) {
   return (
     widget?.type ||
     widget?.view ||
@@ -115,100 +127,9 @@ export function widgetTypeInferrer ({ widget }) {
   )
 }
 
-// Determines whether a widget can be dropped into another container
-export function isWidgetDroppable (widget) {
-  if (widget?.type === 'home') return false
-  if (widget?.id?.startsWith('fake-id')) return false
-  return true
-}
+/* == ContextWidget collection and utility functions == */
 
-// Determines if a child widget is valid inside a parent widget
-export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
-  return !(
-    parentWidget?.viewGroup?.id ||
-    parentWidget?.viewUser?.id ||
-    parentWidget?.customView?.id ||
-    parentWidget?.type === 'members' ||
-    parentWidget?.type === 'setup' ||
-    (parentWidget?.type === 'chats' && !childWidget?.viewChat?.id) ||
-    (parentWidget?.type === 'custom-views' && !childWidget?.customView?.id) ||
-    childWidget?.type === 'home' ||
-    childWidget?.id?.startsWith('fake-id') ||
-    childWidget?.id === parentWidget?.id ||
-    childWidget?.type === 'container'
-  )
-}
-
-const WIDGET_TYPE_TO_ICON_NAME_MAP = {
-  setup: 'Settings',
-  'custom-views': 'Stack',
-  chats: 'Message',
-  viewChat: 'Message',
-  chat: 'Message',
-  viewPost: 'Posticon',
-  about: 'Info',
-  'all-views': 'Grid3x3'
-}
-
-// What are Views vs ContextWidgets? Placing this here until that gets more clear
-export const COMMON_VIEWS = {
-  'ask-and-offer': {
-    name: 'Ask & Offer',
-    iconName: 'Request',
-    defaultViewMode: 'bigGrid',
-    postTypes: ['request', 'offer'],
-    defaultSortBy: 'created'
-  },
-  decisions: {
-    name: 'Decisions',
-    iconName: 'Proposal',
-    defaultViewMode: 'cards',
-    postTypes: ['proposal'],
-    defaultSortBy: 'created'
-  },
-  discussions: {
-    name: 'Discussions',
-    iconName: 'Message',
-    defaultViewMode: 'list',
-    postTypes: ['discussion'],
-    defaultSortBy: 'updated'
-  },
-  events: {
-    name: 'Events',
-    iconName: 'Calendar',
-    defaultViewMode: 'cards',
-    postTypes: ['event'],
-    defaultSortBy: 'start_time'
-  },
-  groups: {
-    name: 'Groups',
-    iconName: 'Groups'
-  },
-  map: {
-    name: 'Map',
-    iconName: 'Globe'
-  },
-  members: {
-    name: 'Members',
-    iconName: 'People'
-  },
-  projects: {
-    name: 'Projects',
-    iconName: 'Stack',
-    defaultViewMode: 'bigGrid',
-    postTypes: ['project'],
-    defaultSortBy: 'created'
-  },
-  stream: {
-    name: 'Stream',
-    iconName: 'Stream',
-    defaultViewMode: 'cards',
-    defaultSortBy: 'created'
-  }
-}
-
-// Was @hylo/shared/ContextMenuHelpers.js
-
+// Previously in @hylo/shared/ContextMenuHelpers.js
 const PUBLIC_CONTEXT_WIDGETS = [
   { context: 'public', title: 'widget-public-stream', id: 'widget-public-stream', view: 'stream', order: 1, parentId: null },
   { context: 'public', title: 'widget-public-groups', id: 'widget-public-groups', view: 'groups', order: 2, parentId: null },
@@ -216,6 +137,7 @@ const PUBLIC_CONTEXT_WIDGETS = [
   { context: 'public', title: 'widget-public-events', id: 'widget-public-events', view: 'events', order: 4, parentId: null }
 ]
 
+// Previously in @hylo/shared/ContextMenuHelpers.js
 const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { title: 'widget-my-groups-content', id: 'widget-my-groups-content', order: 2, parentId: null },
   { title: 'widget-my-groups-stream', id: 'widget-my-groups-stream', context: 'all', view: 'stream', order: 1, parentId: 'widget-my-groups-content' },
@@ -237,6 +159,30 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', context: 'my', view: 'saved-searches', order: 8, parentId: 'widget-myself' },
   { title: 'widget-my-logout', id: 'widget-my-logout', view: 'logout', type: 'logout', order: 4, parentId: null }
 ]
+
+export function wrapItemInWidget (item, type) {
+  return {
+    [type]: item,
+    id: 'fake-id-' + crypto.randomUUID()
+  }
+}
+
+// Determines if a child widget is valid inside a parent widget
+export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
+  return !(
+    parentWidget?.viewGroup?.id ||
+    parentWidget?.viewUser?.id ||
+    parentWidget?.customView?.id ||
+    parentWidget?.type === 'members' ||
+    parentWidget?.type === 'setup' ||
+    (parentWidget?.type === 'chats' && !childWidget?.viewChat?.id) ||
+    (parentWidget?.type === 'custom-views' && !childWidget?.customView?.id) ||
+    childWidget?.type === 'home' ||
+    childWidget?.id?.startsWith('fake-id') ||
+    childWidget?.id === parentWidget?.id ||
+    childWidget?.type === 'container'
+  )
+}
 
 export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl, isAllContext }) {
   let widgets = []

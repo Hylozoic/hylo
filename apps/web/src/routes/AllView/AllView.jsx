@@ -2,8 +2,8 @@ import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { capitalize } from 'lodash'
-import ContextWidgetPresenter, { humanReadableTypes, isValidChildWidget } from '@hylo/presenters/ContextWidgetPresenter'
+import { capitalize } from 'lodash/fp'
+import ContextWidgetPresenter, { humanReadableTypeResolver, isValidChildWidget } from '@hylo/presenters/ContextWidgetPresenter'
 import { addQuerystringToPath, baseUrl, widgetUrl } from 'util/navigation'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -40,6 +40,8 @@ import { CustomViewRow } from 'routes/GroupSettings/CustomViewsTab/CustomViewsTa
 import { createTopic } from 'components/CreateTopic/CreateTopic.store'
 import { cleanCustomView } from 'util'
 
+// TODO: These constants may belong in a "types" object or similar on ContextWidgetPresenter or CustomViewPresenter
+// like ContextWidgetPresenter.types, or as ContextWidgetPresenter, CHAT_TYPE...
 const CHAT = 'chat'
 const POST = 'post'
 const USER = 'user'
@@ -58,7 +60,7 @@ export default function AllViews () {
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const contextWidgets = group?.contextWidgets?.items || []
 
-  const isEditting = getQuerystringParam('cme', location) === 'yes'
+  const isEditing = getQuerystringParam('cme', location) === 'yes'
   const isAddingView = getQuerystringParam('addview', location) === 'yes'
   const orderInFrontOfWidgetId = getQuerystringParam('orderInFrontOfWidgetId', location)
   const parentId = getQuerystringParam('parentId', location)
@@ -101,28 +103,25 @@ export default function AllViews () {
   // Create widget cards
   const widgetCards = useMemo(() => {
     return widgetsSorted.map(widget => {
-      const title = widget.title
+      // TODO: Integrate into ContextWidgetPresenter as makeUrl() method on presented object (requires shared url makers/helpers)
       const url = widgetUrl({ widget, rootPath, groupSlug: routeParams.groupSlug, context: 'group' })
-      const type = humanReadableTypes(widget.type)
-      const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1)
-      const capitalizedView = widget.view ? widget.view.charAt(0).toUpperCase() + widget.view.slice(1) : ''
       const cardContent = (
         <div>
           <h3 className='text-lg font-semibold text-foreground'>
             <WidgetIconResolver widget={widget} />
-            <span className='ml-2'>{title}</span>
+            <span className='ml-2'>{widget.title}</span>
           </h3>
-          {type && (
+          {widget.humanReadableType && (
             <span className='text-sm  text-foreground'>
-              {t('Type')}: {t(capitalizedType)}
+              {t('Type')}: {t(capitalize(widget.humanReadableType))}
             </span>
           )}
-          {/* {widget.view && (
+          {/* {widget?.view && (
             <span className='text-sm block text-foreground'>
-              {t('View')}: {t(capitalizedView)}
+              {t('View')}: {t(capitalize(widget.view))}
             </span>
           )} */}
-          {isEditting && widget.isValidHomeWidget && (
+          {isEditing && widget.isValidHomeWidget && (
             <span className='text-sm  block text-foreground'>
               <Icon
                 name='Home'
@@ -133,7 +132,7 @@ export default function AllViews () {
               />
             </span>
           )}
-          {isEditting && !widget.order && (
+          {isEditing && !widget.order && (
             <span className='text-sm text-foreground block'>
               <Icon
                 name='Plus'
@@ -253,7 +252,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
       <div className='bg-white rounded-lg shadow-lg p-6 w-full max-w-md'>
-        <div className='text-lg font-semibold mb-4'>{t('Add {{something}} to Menu', { something: addChoice ? t(capitalize(humanReadableTypes(addChoice))) : 'Something' })}</div>
+        <div className='text-lg font-semibold mb-4'>{t('Add {{something}} to Menu', { something: addChoice ? t(capitalize(humanReadableTypeResolver(addChoice))) : 'Something' })}</div>
         <div className='min-h-[25rem]'>
           {!addChoice &&
             <div className='grid grid-cols-2 gap-4'>
@@ -289,9 +288,15 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
                 disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewPost: { id: 'fake-id' } } })}
               />
             </div>}
-          {addChoice && [CHAT, POST, GROUP, USER].includes(addChoice) && <ItemSelector addChoice={addChoice} group={group} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />}
-          {addChoice && addChoice === CUSTOM_VIEW && <CustomViewCreator group={group} addChoice={addChoice} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />}
-          {addChoice && addChoice === CONTAINER && <ContainerCreator group={group} addChoice={addChoice} widgetData={widgetData} setWidgetData={setWidgetData} />}
+          {addChoice && [CHAT, POST, GROUP, USER].includes(addChoice) && (
+            <ItemSelector addChoice={addChoice} group={group} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />
+          )}
+          {addChoice && addChoice === CUSTOM_VIEW && (
+            <CustomViewCreator group={group} addChoice={addChoice} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />
+          )}
+          {addChoice && addChoice === CONTAINER && (
+            <ContainerCreator group={group} addChoice={addChoice} widgetData={widgetData} setWidgetData={setWidgetData} />
+          )}
         </div>
         <div className='flex justify-end gap-1 mt-4'>
           {addChoice &&
