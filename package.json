@@ -15,21 +15,15 @@
     "mobile:android": "yarn workspace mobile run android",
     "mobile:clean": "yarn workspace mobile run clean",
     "mobile:ios": "yarn workspace mobile run ios",
-    "shared:build": "yarn workspace @hylo/shared build:cjs",
+    "shared:build": "yarn workspace @hylo/shared build",
     "reset": "rm -rf **/node_modules **/.yarn/cache **/yarn.lock && yarn install",
-    "heroku-postbuild": "yarn workspace web build && yarn workspace @hylo/shared build:cjs"
+    "heroku-postbuild": "./heroku-postbuild.sh"
   },
   "engines": {
     "node": "^20",
     "yarn": "^4.5.0"
   },
   "packageManager": "yarn@4.5.0",
-  "dependencies": {
-    "@hylo/shared": "workspace:*",
-    "react": "^18.3.1",
-    "urql": "^4.2.1",
-    "zustand": "5.0.3"
-  },
   "devDependencies": {
     "standard": "^17.1.2",
     "typescript": "5.0.4"
