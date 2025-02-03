@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { useQuery } from 'urql'
 import useCurrentUser from './useCurrentUser'
 import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
-import GroupPresenter, { getContextGroup, isContextGroup } from 'presenters/GroupPresenter'
+import GroupPresenter, { getContextGroup, isContextGroup } from '@hylo/presenters/GroupPresenter'
 
 // Zustand store for managing currentGroupSlug
 const useCurrentGroupStore = create((set) => ({
