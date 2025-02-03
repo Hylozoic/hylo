@@ -1,9 +1,6 @@
 import { gql } from 'urql'
-import {
-  ADD_PROPOSAL_VOTE,
-  REMOVE_PROPOSAL_VOTE,
-  SWAP_PROPOSAL_VOTE
-} from 'store/constants'
+
+// TODO: URQL - Move these to @hylo/graphql
 
 export const addProposalVoteMutation = gql`
   mutation AddProposalVoteMutation ($optionId: ID, $postId: ID) {
@@ -31,49 +28,3 @@ export const swapProposalVoteMutation = gql`
     }
   }
 `
-
-export function addProposalVote ({ optionId, postId }) {
-  return {
-    type: ADD_PROPOSAL_VOTE,
-    graphql: {
-      query: addProposalVoteMutation,
-      variables: { optionId, postId }
-    },
-    meta: {
-      optionId,
-      postId,
-      optimistic: true
-    }
-  }
-}
-
-export function removeProposalVote ({ optionId, postId }) {
-  return {
-    type: REMOVE_PROPOSAL_VOTE,
-    graphql: {
-      query: removeProposalVoteMutation,
-      variables: { optionId, postId }
-    },
-    meta: {
-      optionId,
-      postId,
-      optimistic: true
-    }
-  }
-}
-
-export function swapProposalVote ({ postId, addOptionId, removeOptionId }) {
-  return {
-    type: SWAP_PROPOSAL_VOTE,
-    graphql: {
-      query: swapProposalVoteMutation,
-      variables: { postId, addOptionId, removeOptionId }
-    },
-    meta: {
-      postId,
-      addOptionId,
-      removeOptionId,
-      optimistic: true
-    }
-  }
-}
