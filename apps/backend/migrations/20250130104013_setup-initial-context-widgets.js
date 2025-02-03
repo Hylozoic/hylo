@@ -27,7 +27,7 @@ exports.up = function(knex) {
                     group_record.id,
                     'chat',
                     (SELECT id FROM tags WHERE name = 'home'),
-                    (SELECT id FROM context_widgets WHERE group_id = group_record.id AND type = 'home'),
+                    (SELECT id FROM home_widget),
                     1,
                     NOW(),
                     NOW()
