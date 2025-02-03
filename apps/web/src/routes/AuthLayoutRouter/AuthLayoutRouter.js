@@ -64,7 +64,7 @@ import ThreadList from 'routes/Messages/ThreadList'
 import UserSettings from 'routes/UserSettings'
 import { DEFAULT_CHAT_TOPIC, GROUP_TYPES } from 'store/models/Group'
 import classes from './AuthLayoutRouter.module.scss'
-import { findHomeView } from '@hylo/shared/src/ContextWidgetPresenter'
+import { findHomeView } from '@hylo/presenters/ContextWidgetPresenter'
 import { localeLocalStorageSync } from 'util/locale'
 import isWebView from 'util/webView'
 

@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash'
-import ContextWidgetPresenter, { humanReadableTypes, widgetIsValidChild } from '@hylo/shared/src/ContextWidgetPresenter'
+import ContextWidgetPresenter, { humanReadableTypes, isValidChildWidget } from '@hylo/presenters/ContextWidgetPresenter'
 import { addQuerystringToPath, baseUrl, widgetUrl } from 'util/navigation'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -265,28 +265,28 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
               <AddOption
                 title={t('Add Chat')}
                 onClick={() => setAddChoice(CHAT)}
-                disabled={parentId && !widgetIsValidChild({ parentWidget, childWidget: { type: CHAT, viewChat: { id: 'fake-id' } } })}
+                disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { type: CHAT, viewChat: { id: 'fake-id' } } })}
               />
               <AddOption
                 title={t('Add Custom View')}
                 onClick={() => setAddChoice(CUSTOM_VIEW)}
                 description={t('addCustomViewDescription')}
-                disabled={parentId && !widgetIsValidChild({ parentWidget, childWidget: { customView: { id: 'fake-id' } } })}
+                disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { customView: { id: 'fake-id' } } })}
               />
               <AddOption
                 title={t('Add Member')}
                 onClick={() => setAddChoice(USER)}
-                disabled={parentId && !widgetIsValidChild({ parentWidget, childWidget: { viewUser: { id: 'fake-id' } } })}
+                disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewUser: { id: 'fake-id' } } })}
               />
               <AddOption
                 title={t('Add Group')}
                 onClick={() => setAddChoice(GROUP)}
-                disabled={parentId && !widgetIsValidChild({ parentWidget, childWidget: { viewGroup: { id: 'fake-id' } } })}
+                disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewGroup: { id: 'fake-id' } } })}
               />
               <AddOption
                 title={t('Add Post')}
                 onClick={() => setAddChoice(POST)}
-                disabled={parentId && !widgetIsValidChild({ parentWidget, childWidget: { viewPost: { id: 'fake-id' } } })}
+                disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewPost: { id: 'fake-id' } } })}
               />
             </div>}
           {addChoice && [CHAT, POST, GROUP, USER].includes(addChoice) && <ItemSelector addChoice={addChoice} group={group} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />}

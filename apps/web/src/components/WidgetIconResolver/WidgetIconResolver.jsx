@@ -2,52 +2,29 @@ import React from 'react'
 import Avatar from 'components/Avatar'
 import { Grid3x3 } from 'lucide-react'
 import Icon from 'components/Icon'
-import { ViewHelpers } from '@hylo/shared'
+import ContextWidgetPresenter from '@hylo/presenters/ContextWidgetPresenter'
 
 export function WidgetIconResolver ({ widget, style, className }) {
-  if (!widget) return null
-  const type = widget.type
-
-  if (widget.viewUser) {
-    return <Avatar avatarUrl={widget.viewUser.avatarUrl} name={widget.viewUser.name} small style={style} className={className} />
-  }
-
-  if (widget.viewGroup) {
-    return <Avatar avatarUrl={widget.viewGroup.avatarUrl} name={widget.viewGroup.name} small style={style} className={className} />
-  }
-
-  if (widget.customView?.icon) {
-    return <Icon name={widget.customView.icon} style={style} className={className} />
-  }
-
-  if (widget.icon) {
-    return <Icon name={widget.icon} style={style} className={className} />
-  }
-
-  if (widget.context === 'my') {
+  if (!widget) {
+    console.warn('No widget passed into WidgetIconResolver')
     return null
   }
 
-  if (ViewHelpers.COMMON_VIEWS[type]) {
-    return <Icon name={ViewHelpers.COMMON_VIEWS[type].icon} style={style} className={className}  />
+  // Transform widget data using ContextWidgetPresenter
+  const processedWidget = ContextWidgetPresenter(widget, {})
+
+  const { iconName, avatarUrl, displayName } = processedWidget
+
+  if (avatarUrl) {
+    return <Avatar avatarUrl={avatarUrl} name={displayName} small style={style} className={className} />
   }
 
-  switch (type) {
-    case 'setup':
-      return <Icon name='Settings' style={style} />
-    case 'custom-views':
-      return <Icon name='Stack' style={style} />
-    case 'chats':
-    case 'viewChat':
-    case 'chat':
-      return <Icon name='Message' style={style} />
-    case 'viewPost':
-      return <Icon name='Posticon' style={style} />
-    case 'about':
-      return <Icon name='Info' style={style} />
-    case 'all-views':
-      return <Grid3x3 className='h-[16px] inline-block' />
+  if (iconName) {
+    return iconName === 'Grid3x3'
+      ? <Grid3x3 className='h-[16px] inline-block' />
+      : <Icon name={iconName} style={style} className={className} />
   }
+
   return null
 }
 
