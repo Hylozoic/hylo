@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
-import { useMutation, useQuery } from 'urql'
+import { useMutation, gql } from 'urql'
 import QuorumBar from 'components/QuorumBar/QuorumBar'
 import Icon from 'components/Icon'
 import Avatar from 'components/Avatar'
@@ -13,7 +13,6 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from '@hylo/presenters/PostPresenter'
-import { addProposalVoteMutation, removeProposalVoteMutation, swapProposalVoteMutation } from 'store/actions/proposals'
 
 const calcNumberOfVoters = (votes) => {
   return votes.reduce((acc, vote) => {
@@ -59,6 +58,33 @@ const calcHighestVotedOptions = (votes) => {
 }
 
 const isVotingOpen = (proposalStatus) => proposalStatus === PROPOSAL_STATUS_VOTING || proposalStatus === PROPOSAL_STATUS_CASUAL
+
+const addProposalVoteMutation = gql`
+  mutation AddProposalVoteMutation ($optionId: ID, $postId: ID) {
+    addProposalVote (optionId: $optionId, postId: $postId) {
+      success
+      error
+    }
+  }
+`
+
+const removeProposalVoteMutation = gql`
+  mutation RemoveProposalVoteMutation ($optionId: ID, $postId: ID) {
+    removeProposalVote (optionId: $optionId, postId: $postId) {
+      success
+      error
+    }
+  }
+`
+
+const swapProposalVoteMutation = gql`
+  mutation SwapProposalVoteMutation ($addOptionId: ID, $removeOptionId: ID, $postId: ID) {
+    swapProposalVote (addOptionId: $addOptionId, removeOptionId: $removeOptionId, postId: $postId) {
+      success
+      error
+    }
+  }
+`
 
 export default function PostBodyProposal ({
   currentUser,
