@@ -13,24 +13,20 @@ import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import validator from 'validator'
 import { AnalyticsEvents } from '@hylo/shared'
+import { useAuth } from '@hylo/contexts/AuthContext'
+import mixpanel from 'services/mixpanel'
 import { openURL } from 'hooks/useOpenURL'
 import { useNavigation, useRoute, useNavigationState } from '@react-navigation/native'
 import useRouteParams from 'hooks/useRouteParams'
-import { useAuth } from '@hylo/contexts/AuthContext'
 import FormattedError from 'components/FormattedError'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Button from 'components/Button'
-import providedStyles from './Signup.styles'
 import SocialAuth from 'components/SocialAuth'
+import providedStyles from './Signup.styles'
 
 const backgroundImage = require('assets/signin_background.png')
 const merkabaImage = require('assets/merkaba_white.png')
 
-// TODO: URQL! - Analytics
-// analytics: {
-//   eventName: AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_SENT,
-//   email
-// }
 export const sendEmailVerificationMutation = gql`
   mutation SendEmailVerificationMutation ($email: String!) {
     sendEmailVerification(email: $email) {
@@ -102,8 +98,9 @@ export default function Signup () {
       setLoading(true)
 
       const { data } = await sendEmailVerification({ email })
-      // lorenjohnson+kljsjhdfkljh@gmail.com
+
       if (data?.sendEmailVerification?.success) {
+        mixpanel.track(AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_SENT, { email })
         openURL(`/signup/verify-email?email=${encodeURIComponent(email)}`)
       } else {
         throw genericError

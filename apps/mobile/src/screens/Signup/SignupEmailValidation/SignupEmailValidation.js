@@ -1,27 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
+import { gql, useMutation } from 'urql'
 import { CodeField, Cursor, useBlurOnFulfill, useClearByFocusCell } from 'react-native-confirmation-code-field'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
-import errorMessages from 'util/errorMessages'
 import { AnalyticsEvents } from '@hylo/shared'
+import mixpanel from 'services/mixpanel'
+import errorMessages from 'util/errorMessages'
 import { sendEmailVerificationMutation } from '../Signup'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
 import FormattedError from 'components/FormattedError'
 import controlStyles from 'components/SettingControl/SettingControl.styles'
 import styles from './SignupEmailValidation.styles'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { useTranslation } from 'react-i18next'
-import { gql, useMutation } from 'urql'
 
 const CODE_LENGTH = 6
 
-// TODO: URQL! - Analytics
-// analytics: {
-//   eventName: AnalyticsEvents.SIGNUP_EMAIL_VERIFIED,
-//   email
-// }
 export const verifyEmailMutation = gql`
   mutation VerifyEmailMutation($email: String!, $code: String, $token: String) {
     verifyEmail(email: $email, code: $code, token: $token) {
@@ -92,6 +87,8 @@ export default function SignupEmailValidation ({ navigation, route }) {
           return
         }
         setError(responseError)
+      } else {
+        mixpanel.track(AnalyticsEvents.SIGNUP_EMAIL_VERIFIED, { email })
       }
     } catch (e) {
       setError(t('Expired or invalid code'))
