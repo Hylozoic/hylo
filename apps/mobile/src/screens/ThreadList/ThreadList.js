@@ -8,28 +8,27 @@ import messageThreadsQuery from '@hylo/graphql/queries/messageThreadsQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import ThreadCard from 'components/ThreadCard'
 import styles from './ThreadList.styles'
-import Loading from 'components/Loading'
 
 export default function ThreadList () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
   const [offset, setOffset] = useState(0)
-
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const updateLastViewed = () => updateUserSettings({ changes: { settings: { lastViewedMessagesAt: new Date() } } })
 
-  const [{ data, fetching }] = useQuery({ query: messageThreadsQuery, variables: { first: 10, offset } })
+  const [{ data, fetching }, refetchThreads] = useQuery({ query: messageThreadsQuery, variables: { first: 10, offset } })
   const threads = data?.me?.messageThreads?.items
   const hasMore = data?.me?.messageThreads?.hasMore
 
   const fetchMoreThreads = () => {
-    if (hasMore) {
-      setOffset(threads.length)
-    }
+    if (hasMore) setOffset(threads.length)
   }
 
-  const refreshThreads = () => setOffset(0)
+  const refreshThreads = () => {
+    setOffset(0)
+    refetchThreads({ requestPolicy: 'network-only' })
+  }
 
   const showThread = threadOrId => navigation.navigate('Thread', {
     id: threadOrId?.id || threadOrId
@@ -45,9 +44,6 @@ export default function ThreadList () {
 
   return (
     <View style={styles.threadList}>
-      {fetching && (
-        <Loading />
-      )}
       {!fetching && threads && !threads.length === 0 && (
         <Text style={styles.center}>{t('No active conversations')}</Text>
       )}
@@ -62,7 +58,7 @@ export default function ThreadList () {
             participants={item.participants}
             message={getLatestMessage(item)}
             threadId={item.id}
-            unread={item.unread}
+            unread={!!item.unreadCount}
             currentUser={currentUser}
             isLast={index === threads.length - 1}
             showThread={showThread}

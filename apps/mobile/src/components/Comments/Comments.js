@@ -163,7 +163,6 @@ export function ShowMore ({ postOrComment, style = {} }) {
   const total = commentQuerySet?.total || 0
   const hasMore = commentQuerySet?.hasMore
   const extra = total - commentQuerySet?.items?.length || 0
-  // console.log('!!!! extra', extra, total, hasMore)
 
   if (!hasMore) return null
 

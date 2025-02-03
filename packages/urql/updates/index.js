@@ -1,5 +1,7 @@
+import meQuery from '@hylo/graphql/queries/meQuery'
 import createComment from './createComment'
 import meCheckAuthQuery from '@hylo/graphql/queries/meCheckAuthQuery'
+import messageThreadMessagesQuery from '@hylo/graphql/queries/messageThreadMessagesQuery'
 
 export default {
   Mutation: {
@@ -101,19 +103,35 @@ export default {
       switch (update?.__typename) {
         case 'Message': {
           console.log('!!!! updates TODO: new Message. Increment Messages tab badge', result, args)
-          // TODO: URQL - This one may want an updater to keep from killing the cache with each message
-          // leaving the cache invalidation off for now.
           // cache.invalidate({ __typename: 'MessageThread', id: update?.messageThread?.id })
+          cache.updateQuery({ query: messageThreadMessagesQuery }, ({ messageThread }) => {
+            if (!messageThread) return null
+            return {
+              messageThread: {
+                ...messageThread,
+                messages: {
+                  ...messageThread.messages,
+                  items: [...messageThread.messages.items, update?.messageThread]
+                }
+              }
+            }
+          })
           break
         }
+
         case 'MessageThread': {
-          console.log('!!!! updates TODO: new MessageThread. Increment Messages tab badge', result, args)
-          cache.invalidate({ __typename: 'MessageThread', id: update?.messageThread?.id })
+          cache.updateQuery({ query: meQuery }, ({ me }) => {
+            if (!me) return null
+            return { me: { ...me, unseenThreadCount: me.unseenThreadCount + 1 } }
+          })
           break
         }
+
         case 'Notification': {
-          console.log('!!!! updates TODO: new Notification. Increment Notifications badge', result, args)
-          cache.invalidate('Query', 'notifications')
+          cache.updateQuery({ query: meQuery }, ({ me }) => {
+            if (!me) return null
+            return { me: { ...me, newNotificationCount: me.newNotificationCount + 1 } }
+          })
           break
         }
         default: {
