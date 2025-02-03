@@ -73,7 +73,9 @@ export default function GroupNavigation () {
           onPress: customView.type === 'externalLink'
             ? () => openURL(customView.externalLink)
             : () => navigate('Stream', { customViewId: customView?.id })
-        }))
+        })),
+        // TODO redesign: Temporary placement of All Views for testing
+        { label: t('All Views'), iconName: 'Grid3x3', onPress: () => navigate('All Views') }
       ]
 
   const shownNavItems = navItems.filter(navItem => !navItem?.hidden)
