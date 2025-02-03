@@ -13,6 +13,7 @@ import Stream from 'screens/Stream'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
 import GroupNavigation from 'screens/GroupNavigation'
 import Groups from 'screens/Groups'
+import AllView from 'screens/AllView'
 import MemberDetails from 'screens/MemberProfile/MemberDetails'
 import MemberProfile from 'screens/MemberProfile'
 import MembersComponent from 'screens/Members'
@@ -71,6 +72,7 @@ export default function HomeNavigator ({ navigation }) {
     <HomeTab.Navigator {...navigatorProps}>
       <HomeTab.Screen name='Group Navigation' component={GroupNavigation} />
       <HomeTab.Screen name='Stream' component={Stream} />
+      <HomeTab.Screen name='All Views' component={AllView} />
       <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
       <HomeTab.Screen name='Projects' component={Stream} initialParams={{ streamType: 'project' }} />
       <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />
