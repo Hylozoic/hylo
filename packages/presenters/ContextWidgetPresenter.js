@@ -1,36 +1,27 @@
+// import i18n from 'react-i18next'
+
 export default function ContextWidgetPresenter (widget, { t }) {
-  if (!widget) return widget
+  if (!widget || widget?._presented) return widget
+
+  // Resolve type once and pass it explicitly
+  const type = widgetTypeInferrer({ widget })
+  const avatarData = resolveWidgetAvatarData()
 
   return {
     ...widget,
-    type: widgetTypeInferrer({ widget }),
+    type,
     title: widgetTitleResolver({ widget, t }),
-    isDroppable: isWidgetDroppable({ widget }),
-    humanReadableType: humanReadableTypes(widgetTypeInferrer({ widget })),
-    isValidHomeWidget: isValidHomeWidget(widget)
+    isDroppable: isWidgetDroppable(widget),
+    humanReadableType: humanReadableTypes(type),
+    isValidHomeWidget: isValidHomeWidget(widget),
+    // Ensures avatarUrl, displayName, iconName
+    // ...resolveWidgetPresentation(widget, type),
+    avatarUrl: avatarData?.avatarUrl,
+    displayName: avatarData?.displayName,
+    iconName: resolveWidgetIconName(widget, type),
+    // Protects us from double presenting a widget
+    _presented: true
   }
-}
-
-export function widgetTitleResolver ({ widget, t }) {
-  let title = widget.title
-  if (title && title.startsWith('widget-')) {
-    title = t(title)
-  } else if (!title) {
-    title = widget.viewGroup?.name || widget.viewUser?.name ||
-            widget.viewPost?.title || widget.viewChat?.name ||
-            widget.customView?.name || ''
-  } else {
-    title = title.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-  }
-  return title
-}
-
-export function isValidHomeWidget (widget) {
-  if (widget?.viewChat?.id) return true
-  if (widget?.customView?.id) return true
-  if (widget?.view) return true
-
-  return false
 }
 
 export function wrapItemInWidget (item, type) {
@@ -40,32 +31,56 @@ export function wrapItemInWidget (item, type) {
   }
 }
 
-export function isWidgetDroppable ({ widget }) {
-  if (widget.type === 'home') return false
-  if (widget.id?.startsWith('fake-id')) return false
-  return true
-}
-
-export function findHomeView (group) {
-  if (!group?.contextWidgets) {
-    throw new Error('Group has no contextWidgets')
+// Generates a proper widget title
+export function widgetTitleResolver ({ widget, t }) {
+  let title = widget?.title
+  if (title && title.startsWith('widget-')) {
+    title = t(title)
+  } else if (!title) {
+    title =
+      widget?.viewGroup?.name ||
+      widget?.viewUser?.name ||
+      widget?.viewPost?.title ||
+      widget?.viewChat?.name ||
+      widget?.customView?.name ||
+      ''
+  } else {
+    title = title
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
   }
-  const homeWidget = group.contextWidgets.items.find(w => w.type === 'home')
-  return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
+  return title
 }
 
-export function widgetTypeInferrer ({ widget }) {
-  return widget?.type
-    || widget?.view
-    || widget?.viewGroup && 'viewGroup'
-    || widget?.viewPost && 'viewPost'
-    || widget?.viewUser && 'viewUser'
-    || widget?.viewChat && 'viewChat'
-    || widget?.customView && 'customView'
-    || 'container'
+// Determines whether a widget is a valid home widget
+export function isValidHomeWidget (widget) {
+  return !!(
+    widget?.viewChat?.id ||
+    widget?.customView?.id ||
+    widget?.view
+  )
 }
 
-// TODO redesign: This has mainly been a dev helper, need to decide how we present things in the ALL VIEW
+function resolveWidgetAvatarData (widget) {
+  if (widget?.viewUser) {
+    return { avatarUrl: widget.viewUser?.avatarUrl, displayName: widget.viewUser?.name }
+  }
+  if (widget?.viewGroup) {
+    return { avatarUrl: widget.viewGroup?.avatarUrl, displayName: widget.viewGroup?.name }
+  }
+  return null // Ensures avatarUrl & displayName exist but remain null if not applicable
+}
+
+// Determines the correct icon name for a given widget type
+function resolveWidgetIconName (widget, type) {
+  if (widget?.icon) return widget.icon
+  if (widget?.customView?.icon) return widget.customView.icon
+  if (widget?.context === 'my') return null
+
+  return WIDGET_TYPE_TO_ICON_NAME_MAP[type] || COMMON_VIEWS[type]?.icon || null
+}
+
 export function humanReadableTypes (type) {
   switch (true) {
     case type === 'home':
@@ -87,20 +102,183 @@ export function humanReadableTypes (type) {
   }
 }
 
-export function widgetIsValidChild ({ childWidget = {}, parentWidget }) {
-  // TODO redesign: create tests for this
-  if (parentWidget?.viewGroup?.id) return false
-  if (parentWidget?.viewUser?.id) return false
-  if (parentWidget?.viewPost?.id) return false
-  if (parentWidget?.viewChat?.id) return false
-  if (parentWidget?.customView?.id) return false
-  if (parentWidget?.type === 'members') return false
-  if (parentWidget?.type === 'setup') return false
-  if (parentWidget?.type === 'chats' && !childWidget?.viewChat?.id) return false
-  if (parentWidget?.type === 'custom-views' && !childWidget?.customView?.id) return false
-  if (childWidget?.type === 'home') return false
-  if (childWidget?.id?.startsWith('fake-id')) return false
-  if (childWidget?.id === parentWidget?.id) return false
-  if (childWidget?.type === 'container') return false
+export function widgetTypeInferrer ({ widget }) {
+  return (
+    widget?.type ||
+    widget?.view ||
+    (widget?.viewGroup && 'viewGroup') ||
+    (widget?.viewPost && 'viewPost') ||
+    (widget?.viewUser && 'viewUser') ||
+    (widget?.viewChat && 'viewChat') ||
+    (widget?.customView && 'customView') ||
+    'container'
+  )
+}
+
+// Determines whether a widget can be dropped into another container
+export function isWidgetDroppable (widget) {
+  if (widget?.type === 'home') return false
+  if (widget?.id?.startsWith('fake-id')) return false
   return true
+}
+
+// Determines if a child widget is valid inside a parent widget
+export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
+  return !(
+    parentWidget?.viewGroup?.id ||
+    parentWidget?.viewUser?.id ||
+    parentWidget?.customView?.id ||
+    parentWidget?.type === 'members' ||
+    parentWidget?.type === 'setup' ||
+    (parentWidget?.type === 'chats' && !childWidget?.viewChat?.id) ||
+    (parentWidget?.type === 'custom-views' && !childWidget?.customView?.id) ||
+    childWidget?.type === 'home' ||
+    childWidget?.id?.startsWith('fake-id') ||
+    childWidget?.id === parentWidget?.id ||
+    childWidget?.type === 'container'
+  )
+}
+
+const WIDGET_TYPE_TO_ICON_NAME_MAP = {
+  setup: 'Settings',
+  'custom-views': 'Stack',
+  chats: 'Message',
+  viewChat: 'Message',
+  chat: 'Message',
+  viewPost: 'Posticon',
+  about: 'Info',
+  'all-views': 'Grid3x3'
+}
+
+// What are Views vs ContextWidgets? Placing this here until that gets more clear
+export const COMMON_VIEWS = {
+  'ask-and-offer': {
+    name: 'Ask & Offer',
+    iconName: 'Request',
+    defaultViewMode: 'bigGrid',
+    postTypes: ['request', 'offer'],
+    defaultSortBy: 'created'
+  },
+  decisions: {
+    name: 'Decisions',
+    iconName: 'Proposal',
+    defaultViewMode: 'cards',
+    postTypes: ['proposal'],
+    defaultSortBy: 'created'
+  },
+  discussions: {
+    name: 'Discussions',
+    iconName: 'Message',
+    defaultViewMode: 'list',
+    postTypes: ['discussion'],
+    defaultSortBy: 'updated'
+  },
+  events: {
+    name: 'Events',
+    iconName: 'Calendar',
+    defaultViewMode: 'cards',
+    postTypes: ['event'],
+    defaultSortBy: 'start_time'
+  },
+  groups: {
+    name: 'Groups',
+    iconName: 'Groups'
+  },
+  map: {
+    name: 'Map',
+    iconName: 'Globe'
+  },
+  members: {
+    name: 'Members',
+    iconName: 'People'
+  },
+  projects: {
+    name: 'Projects',
+    iconName: 'Stack',
+    defaultViewMode: 'bigGrid',
+    postTypes: ['project'],
+    defaultSortBy: 'created'
+  },
+  stream: {
+    name: 'Stream',
+    iconName: 'Stream',
+    defaultViewMode: 'cards',
+    defaultSortBy: 'created'
+  }
+}
+
+// Was @hylo/shared/ContextMenuHelpers.js
+
+const PUBLIC_CONTEXT_WIDGETS = [
+  { context: 'public', title: 'widget-public-stream', id: 'widget-public-stream', view: 'stream', order: 1, parentId: null },
+  { context: 'public', title: 'widget-public-groups', id: 'widget-public-groups', view: 'groups', order: 2, parentId: null },
+  { context: 'public', title: 'widget-public-map', id: 'widget-public-map', view: 'map', type: 'map', order: 3, parentId: null },
+  { context: 'public', title: 'widget-public-events', id: 'widget-public-events', view: 'events', order: 4, parentId: null }
+]
+
+const MY_CONTEXT_WIDGETS = (profileUrl) => [
+  { title: 'widget-my-groups-content', id: 'widget-my-groups-content', order: 2, parentId: null },
+  { title: 'widget-my-groups-stream', id: 'widget-my-groups-stream', context: 'all', view: 'stream', order: 1, parentId: 'widget-my-groups-content' },
+  { title: 'widget-my-groups-map', id: 'widget-my-groups-map', context: 'all', view: 'map', type: 'map', order: 2, parentId: 'widget-my-groups-content' },
+  { title: 'widget-my-groups-events', id: 'widget-my-groups-events', context: 'all', view: 'events', order: 3, parentId: 'widget-my-groups-content' },
+  { title: 'widget-my-content', id: 'widget-my-content', order: 1, parentId: null },
+  { icon: 'Posticon', title: 'widget-my-posts', id: 'widget-my-posts', view: 'posts', order: 1, parentId: 'widget-my-content', context: 'my' },
+  { icon: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', view: 'interactions', order: 2, parentId: 'widget-my-content', context: 'my' },
+  { icon: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', view: 'mentions', order: 3, parentId: 'widget-my-content', context: 'my' },
+  { icon: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', view: 'announcements', order: 4, parentId: 'widget-my-content', context: 'my' },
+  { title: 'widget-myself', id: 'widget-myself', order: 3, parentId: null },
+  { title: 'widget-my-profile', id: 'widget-my-profile', url: profileUrl, order: 1, parentId: 'widget-myself' },
+  { title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', context: 'my', view: 'edit-profile', order: 2, parentId: 'widget-myself' },
+  { title: 'widget-my-groups', id: 'widget-my-groups', context: 'my', view: 'groups', order: 3, parentId: 'widget-myself' },
+  { title: 'widget-my-invites', id: 'widget-my-invites', context: 'my', view: 'invitations', order: 4, parentId: 'widget-myself' },
+  { title: 'widget-my-notifications', id: 'widget-my-notifications', context: 'my', view: 'notifications', order: 5, parentId: 'widget-myself' },
+  { title: 'widget-my-locale', id: 'widget-my-locale', context: 'my', view: 'locale', order: 6, parentId: 'widget-myself' },
+  { title: 'widget-my-account', id: 'widget-my-account', context: 'my', view: 'account', order: 7, parentId: 'widget-myself' },
+  { title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', context: 'my', view: 'saved-searches', order: 8, parentId: 'widget-myself' },
+  { title: 'widget-my-logout', id: 'widget-my-logout', view: 'logout', type: 'logout', order: 4, parentId: null }
+]
+
+export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl, isAllContext }) {
+  let widgets = []
+
+  if (isPublic) {
+    widgets = PUBLIC_CONTEXT_WIDGETS
+  }
+
+  if (isMyContext || isAllContext) {
+    widgets = MY_CONTEXT_WIDGETS(profileUrl)
+  }
+
+  return widgets
+}
+
+export const orderContextWidgetsForContextMenu = (contextWidgets) => {
+  // Step 1: Filter out widgets without an order, as these are not displayed in the context menu
+  const orderedWidgets = contextWidgets.filter(widget => widget.order !== null)
+
+  // Step 2: Split into parentWidgets and childWidgets
+  const parentWidgets = orderedWidgets.filter(widget => !widget?.parentId)
+  const childWidgets = orderedWidgets.filter(widget => widget?.parentId)
+
+  // Step 3: Add an empty array for childWidgets to each parentWidget
+  parentWidgets.forEach(parent => {
+    parent.childWidgets = []
+  })
+
+  // Step 4: Append each childWidget to the appropriate parentWidget
+  childWidgets.forEach(child => {
+    const parent = parentWidgets.find(parent => parent.id === child?.parentId)
+    if (parent) {
+      parent.childWidgets.push(child)
+    }
+  })
+
+  // Step 5: Sort parentWidgets and each childWidgets array by order
+  parentWidgets.sort((a, b) => a.order - b.order)
+  parentWidgets.forEach(parent => {
+    parent.childWidgets.sort((a, b) => a.order - b.order)
+  })
+
+  // Return the sorted parentWidgets with nested childWidgets
+  return parentWidgets
 }
