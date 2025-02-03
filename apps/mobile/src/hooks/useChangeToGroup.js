@@ -2,7 +2,7 @@ import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import confirmNavigate from 'util/confirmNavigate'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import { isContextGroup } from 'presenters/GroupPresenter'
+import { isContextGroup } from '@hylo/presenters/GroupPresenter'
 import { useCurrentGroupSlug } from '@hylo/hooks/useCurrentGroup'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 

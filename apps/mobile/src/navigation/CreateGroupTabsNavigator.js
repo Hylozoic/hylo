@@ -3,7 +3,7 @@ import { isEmpty } from 'lodash/fp'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import WorkflowModalHeader from 'navigation/headers/WorkflowModalHeader'
 import CreateGroupTabBar from 'screens/CreateGroupFlow/CreateGroupTabBar'
-import { GROUP_ACCESSIBILITY } from 'presenters/GroupPresenter'
+import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 // Screens
 import CreateGroupName from 'screens/CreateGroupFlow/CreateGroupName'
 import CreateGroupUrl from 'screens/CreateGroupFlow/CreateGroupUrl'
