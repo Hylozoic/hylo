@@ -160,6 +160,15 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { title: 'widget-my-logout', id: 'widget-my-logout', view: 'logout', type: 'logout', order: 4, parentId: null }
 ]
 
+// TODO: To be relocated to GroupPresenter once utilized in Web
+export function findHomeView (group) {
+  if (!group?.contextWidgets) {
+    throw new Error('Group has no contextWidgets')
+  }
+  const homeWidget = group.contextWidgets.items.find(w => w.type === 'home')
+  return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
+}
+
 export function wrapItemInWidget (item, type) {
   return {
     [type]: item,
