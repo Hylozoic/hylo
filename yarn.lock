@@ -31745,6 +31745,7 @@ __metadata:
   dependencies:
     "@hylo/shared": "workspace:*"
     react: "npm:^18.3.1"
+    react-i18next: "npm:^13.0.0"
     standard: "npm:^17.1.2"
     typescript: "npm:5.0.4"
     urql: "npm:^4.2.1"

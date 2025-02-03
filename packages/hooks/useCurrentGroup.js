@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { useMemo } from 'react'
 import { useQuery } from 'urql'
+import { useTranslation } from 'react-i18next'
 import useCurrentUser from './useCurrentUser'
 import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
 import GroupPresenter, { getContextGroup, isContextGroup } from 'presenters/GroupPresenter'
@@ -20,6 +21,7 @@ export function useGroup ({
   },
   useQueryArgs = {}
 } = {}) {
+  const { t } = useTranslation()
   const contextGroup = useMemo(() => getContextGroup(groupSlug, groupId), [groupSlug, groupId])
   const pause = contextGroup || useQueryArgs?.pause || (!groupSlug && !groupId)
   const [{ data, fetching, error }, reQuery] = useQuery({
@@ -29,7 +31,7 @@ export function useGroup ({
     pause
   })
   const rawGroup = data?.group || contextGroup
-  const group = useMemo(() => rawGroup && GroupPresenter(rawGroup), [rawGroup])
+  const group = useMemo(() => rawGroup && GroupPresenter(rawGroup, { t }), [rawGroup])
 
   return [{ group, isContextGroup: !!isContextGroup(groupSlug), fetching, error }, contextGroup ? () => {} : reQuery]
 }
@@ -65,7 +67,8 @@ export default function useCurrentGroup ({
   setToGroupSlug,
   groupQueryScope = {
     withJoinQuestions: true,
-    withPrerequisiteGroups: true
+    withPrerequisiteGroups: true,
+    withContextWidgets: true
   },
   useQueryArgs = {}
 } = {}) {

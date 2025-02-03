@@ -27,6 +27,7 @@
   "dependencies": {
     "@hylo/shared": "workspace:*",
     "react": "^18.3.1",
+    "react-i18next": "^13.0.0",
     "urql": "^4.2.1",
     "zustand": "5.0.3"
   },

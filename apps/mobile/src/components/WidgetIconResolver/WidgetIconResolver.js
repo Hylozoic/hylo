@@ -10,6 +10,8 @@ export function WidgetIconResolver({ widget, style, className }) {
     console.warn('No widget passed into iconResolver')
     return null
   }
+  const type = widget.type
+
   if (widget.icon) {
     return <Icon name={widget.icon} style={style} className={className} />
   }

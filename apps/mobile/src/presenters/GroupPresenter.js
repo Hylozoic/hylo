@@ -21,7 +21,6 @@ export function getContextWidgetsForGroup (group){
 
 export default function GroupPresenter (group) {
   if (!group) return null
-
   return {
     ...group,
     activeProjects: group.activeProjects || [],
@@ -34,7 +33,7 @@ export default function GroupPresenter (group) {
       }))
       : [],
     // TODO: URQL - convert
-    contextWidgets: group?.contextWidgets.item
+    contextWidgets: group?.contextWidgets.items
       ? getContextWidgetsForGroup(group)
       : [],
     customViews: group?.customViews?.items || [],

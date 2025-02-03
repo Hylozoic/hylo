@@ -6,6 +6,7 @@ import { WidgetHelpers, NavigatorHelpers } from '@hylo/shared'
 import { Plus } from 'lucide-react-native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
+import ContextWidgetPresenter from '@hylo/shared/src/ContextWidgetPresenter'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import { openURL } from 'hooks/useOpenURL'
 import { widgetUrl } from 'util/navigation'
@@ -13,7 +14,7 @@ import { widgetUrl } from 'util/navigation'
 function WidgetCard({ widget, onPress }) {
   const { t } = useTranslation()
   if (!widget) return null
-  const capitalizedType = widget?.type.charAt(0).toUpperCase() + widget?.type.slice(1)
+  const capitalizedType = widget?.humanReadableType.charAt(0).toUpperCase() + widget?.humanReadableType.slice(1)
   const capitalizedView = widget.view ? widget.view.charAt(0).toUpperCase() + widget.view.slice(1) : ''
 
   return (
@@ -22,8 +23,8 @@ function WidgetCard({ widget, onPress }) {
       className='p-4 border border-foreground/20 rounded-md shadow-sm bg-background'
     >
       <View className='items-center'>
-        <Text className='text-lg font-semibold text-foreground mb-2'>{title}</Text>
-        {type && (
+        <Text className='text-lg font-semibold text-foreground mb-2'>{widget.title}</Text>
+        {widget.humanReadableType && (
           <Text className='text-sm text-foreground/70'>
             {t('Type')}: {t(capitalizedType)}
           </Text>
@@ -47,7 +48,6 @@ export default function AllView() {
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdminister = hasResponsibility(RESP_ADMINISTRATION)
-
   const contextWidgets = currentGroup.contextWidgets
   
   const visibleWidgets = useMemo(() => {
@@ -55,7 +55,7 @@ export default function AllView() {
       if (widget.visibility === 'admin' && !canAdminister) return false
       if (widget.type === 'home') return false
       return true
-    })
+    }).map(widget => ContextWidgetPresenter(widget, { t }))
   }, [contextWidgets, canAdminister])
 
   const handleWidgetPress = (widget) => {
