@@ -92,7 +92,6 @@ export const groupMemberCountQuery = gql`
   }
 `
 
-// TODO: URQL - convert
 export default function Groups () {
   const { t } = useTranslation()
   const navigation = useNavigation()

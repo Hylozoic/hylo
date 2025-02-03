@@ -2,7 +2,7 @@
 // import Intercom from '@intercom/intercom-react-native'
 // import { isProduction } from 'config' // I think we should still make these calls in dev, but using the test mixpanel project
 
-// TODO: URQL - convert mixpanel and intercom identification into another / urql pattern
+// TODO: URQL! - convert mixpanel and intercom identification into another / urql pattern
 export default function userFetchedMiddleware ({ getState }) {
   return next => async action => {
     // const wasMe = getMe(getState())

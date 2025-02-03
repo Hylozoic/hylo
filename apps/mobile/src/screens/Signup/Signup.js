@@ -26,7 +26,7 @@ import SocialAuth from 'components/SocialAuth'
 const backgroundImage = require('assets/signin_background.png')
 const merkabaImage = require('assets/merkaba_white.png')
 
-// TODO: URQL - Analytics
+// TODO: URQL! - Analytics
 // analytics: {
 //   eventName: AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_SENT,
 //   email

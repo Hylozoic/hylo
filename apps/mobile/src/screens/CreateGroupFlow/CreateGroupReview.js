@@ -23,7 +23,7 @@ export default function CreateGroupReview () {
   const dispatch = useDispatch()
   const [, createGroup] = useMutation(createGroupMutation)
   const groupData = useSelector(getGroupData)
-  // TODO: URQL - query for parent groups, remove related method in store
+  // TODO: URQL! - query for parent groups, remove related method in store
   // const parentGroups = useSelector(getNewGroupParentGroups)
   const [error, setError] = useState(null)
 

@@ -2,7 +2,7 @@
 // import getCurrentGroup from '../selectors/getCurrentGroup'
 // import mixpanel from 'services/mixpanel'
 
-// TODO: URQL - convert mixpanel handling
+// TODO: URQL! - convert mixpanel handling
 export default function groupFetchedMiddleware ({ getState }) {
   return next => async action => {
     // const wasCurrentGroup = getCurrentGroup(getState())

@@ -80,7 +80,7 @@ export const CommentEditor = React.forwardRef(({
     if (!isEmpty(commentHTML)) {
       setSubmitting(true)
 
-      // TODO: URQL - analytics
+      // TODO: URQL! - analytics
       // analytics: {
       //   eventName: AnalyticsEvents.COMMENT_CREATED,
       //   commentLength: TextHelpers.textLengthHTML(text),

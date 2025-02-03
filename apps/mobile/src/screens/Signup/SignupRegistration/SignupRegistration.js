@@ -14,7 +14,7 @@ import Loading from 'components/Loading'
 import styles from './SignupRegistration.styles'
 import { useTranslation } from 'react-i18next'
 
-// TODO: URQL - Analytics
+// TODO: URQL! - Analytics
 // analytics: {
 //   eventName: AnalyticsEvents.SIGNUP_REGISTERED
 // }

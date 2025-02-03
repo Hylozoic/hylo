@@ -17,7 +17,7 @@ import { gql, useMutation } from 'urql'
 
 const CODE_LENGTH = 6
 
-// TODO: URQL - Analytics
+// TODO: URQL! - Analytics
 // analytics: {
 //   eventName: AnalyticsEvents.SIGNUP_EMAIL_VERIFIED,
 //   email
