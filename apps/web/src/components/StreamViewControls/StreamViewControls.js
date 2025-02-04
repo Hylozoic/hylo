@@ -75,20 +75,33 @@ const StreamViewControls = ({
   changeTimeframe
 }) => {
   const { t } = useTranslation()
-  let decisionViewDropdown, timeframeDropdown
 
   const [searchActive, setSearchActive] = useState(!!searchValue)
   const [searchState, setSearchState] = useState('')
 
-  const postTypeOptionsForFilter = customPostTypes && customPostTypes.length > 1 ? POST_TYPE_OPTIONS.filter(postType => postType.label === 'All Posts' || customPostTypes.includes(postType.id)) : POST_TYPE_OPTIONS
-  const postTypeFilterDropdown = makeDropdown(postTypeFilter, postTypeOptionsForFilter, changeTab, t)
+  const postTypeOptionsForFilter = customPostTypes && customPostTypes.length > 1
+    ? POST_TYPE_OPTIONS.filter(postType => postType.label === 'All Posts' || customPostTypes.includes(postType.id))
+    : POST_TYPE_OPTIONS
+  const defaultOptionsForFilter = customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS
 
-  if (view === 'decisions') {
-    decisionViewDropdown = makeDropdown(decisionView, DECISIONS_OPTIONS, changeDecisionView, t)
+  let dropdown
+
+  if (viewMode === 'calendar') {
+    const options = [{ id: 'all', label: 'All' }]
+    dropdown = makeDropdown('all', options, (id) => {}, t)
   }
-
-  if (view === 'events') {
-    timeframeDropdown = makeDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t)
+  switch (view) {
+    case 'decisions':
+      dropdown ||= makeDropdown(decisionView, DECISIONS_OPTIONS, changeDecisionView, t)
+      break
+    case 'events':
+      dropdown ||= makeDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t)
+      break
+    case 'calendar':
+      dropdown ||= makeDropdown(postTypeFilter, postTypeOptionsForFilter, changeTab, t)
+      break
+    default:
+      dropdown ||= makeDropdown(sortBy, defaultOptionsForFilter, changeSort, t)
   }
 
   const handleSearchToggle = () => {
@@ -165,10 +178,7 @@ const StreamViewControls = ({
             <Icon name='Calendar' className={classes.gridViewIcon} />
           </div>
         </div>
-        {view === 'events' && timeframeDropdown}
-        {view !== 'events' && makeDropdown(sortBy, customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS, changeSort, t)}
-        {!['events', 'projects', 'decisions', 'ask-and-offer'].includes(view) && postTypeFilterDropdown}
-        {view === 'decisions' && decisionViewDropdown}
+        {dropdown}
         <Tooltip id='stream-viewmode-tip' position='bottom' />
       </div>
       {searchActive &&
