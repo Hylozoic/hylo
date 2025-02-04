@@ -158,3 +158,5 @@ const makeGroupPostsQuery = withChildPosts => gql`
   }
   ${postFieldsFragment}
 `
+
+export default makeStreamQuery

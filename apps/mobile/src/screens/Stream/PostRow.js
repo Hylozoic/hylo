@@ -1,9 +1,8 @@
 import React from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import { useMutation } from 'urql'
 import respondToEventMutation from '@hylo/graphql/mutations/respondToEventMutation'
 import PostCard from 'components/PostCard'
-import styles from './PostRow.styles'
 import { useNavigation } from '@react-navigation/native'
 import useGoToTopic from 'hooks/useGoToTopic'
 import useChangeToGroup from 'hooks/useChangeToGroup'
@@ -48,3 +47,11 @@ export default function PostRow ({ context, post, forGroupId, showGroups }) {
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  postRow: {
+    paddingBottom: 12,
+    marginRight: 0,
+    marginLeft: 0
+  }
+})

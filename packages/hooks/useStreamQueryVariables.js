@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 
 export default function useStreamQueryVariables ({
@@ -25,7 +24,7 @@ export default function useStreamQueryVariables ({
       : null,
     childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
     collectionToFilterOut: null,
-    context: isContextGroupSlug(forGroup.slug)
+    context: isContextGroupSlug(forGroup?.slug)
       ? forGroup.slug
       : myHome
         ? 'my'
@@ -62,14 +61,13 @@ export default function useStreamQueryVariables ({
       ? customView?.postTypes
       : null
   }), [
-
     customView,
     customView?.activePostsOnly,
     customView?.collectionId,
     customView?.type,
     filter,
     forGroup,
-    forGroup.slug,
+    forGroup?.slug,
     myHome,
     sortBy,
     streamType,
