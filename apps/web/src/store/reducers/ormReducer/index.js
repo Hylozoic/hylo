@@ -283,12 +283,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
         if (postType === 'request' || postType === 'offer') {
           widgetToMove = allWidgets.find(w => w.view === 'ask-and-offer')
+        } else if (postType === 'discussion') {
+          widgetToMove = allWidgets.find(w => w.view === 'discussions')
         } else if (postType === 'project') {
           widgetToMove = allWidgets.find(w => w.view === 'projects')
         } else if (postType === 'proposal') {
           widgetToMove = allWidgets.find(w => w.view === 'decisions')
         } else if (postType === 'event') {
           widgetToMove = allWidgets.find(w => w.view === 'event')
+        } else if (postType === 'resource') {
+          widgetToMove = allWidgets.find(w => w.view === 'resources')
         }
 
         if (widgetToMove && !widgetToMove.autoAdded) {

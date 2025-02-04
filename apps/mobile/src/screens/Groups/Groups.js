@@ -5,7 +5,7 @@ import { View, Text, SectionList, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import useChangeToGroup from 'hooks/useChangeToGroup'
-import { visibilityIcon, accessibilityIcon } from 'presenters/GroupPresenter'
+import { visibilityIcon, accessibilityIcon } from '@hylo/presenters/GroupPresenter'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import styles from './Groups.styles'
@@ -92,7 +92,6 @@ export const groupMemberCountQuery = gql`
   }
 `
 
-// TODO: URQL - convert
 export default function Groups () {
   const { t } = useTranslation()
   const navigation = useNavigation()

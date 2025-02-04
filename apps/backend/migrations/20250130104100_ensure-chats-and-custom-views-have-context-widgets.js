@@ -1,16 +1,15 @@
 exports.up = function(knex) {
-  console.log('Ensuring chats and custom views have context widgets')
   // This call is idempotent; you can run it many times and it will just sync chats/custcomes up to their needed widgets.
   return knex.raw(`
     WITH RECURSIVE all_groups AS (
       SELECT id FROM groups WHERE active = true
     ),
     all_groups_with_widgets AS (
-      SELECT
+      SELECT 
         g.id as group_id,
         EXISTS (
-          SELECT 1
-          FROM context_widgets cw
+          SELECT 1 
+          FROM context_widgets cw 
           WHERE cw.group_id = g.id
         ) as has_widgets
       FROM all_groups g
@@ -29,16 +28,16 @@ exports.up = function(knex) {
       WHERE cw.type IN ('chats', 'custom-views')
     ),
     new_chat_widgets AS (
-      SELECT DISTINCT
+      SELECT DISTINCT 
         gp.group_id,
         t.id as tag_id,
         t.name,
         gt.visibility,
         EXISTS (
-          SELECT 1
-          FROM context_widgets
-          WHERE group_id = gp.group_id
-            AND type = 'chat'
+          SELECT 1 
+          FROM context_widgets 
+          WHERE group_id = gp.group_id 
+            AND type = 'chat' 
             AND view_chat_id = t.id
         ) as has_widget
       FROM all_groups g

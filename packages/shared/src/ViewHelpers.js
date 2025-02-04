@@ -46,10 +46,15 @@ export const COMMON_VIEWS = {
     postTypes: ['project'],
     defaultSortBy: 'created'
   },
+  resources: {
+    name: 'Resources',
+    icon: 'Document',
+    defaultViewMode: 'grid',
+    postTypes: ['resource'],
+    defaultSortBy: 'created'
+  },
   stream: {
     name: 'Stream',
-    icon: 'Stream',
-    defaultViewMode: 'cards',
-    defaultSortBy: 'created'
+    icon: 'Stream'
   }
 }

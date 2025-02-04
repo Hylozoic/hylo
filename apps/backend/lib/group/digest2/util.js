@@ -70,5 +70,6 @@ export async function getRecipients (groupId, type) {
     q.whereRaw('(group_memberships.settings->>\'sendEmail\')::boolean = true')
   }).fetch().then(get('models'))
 
-  return recipients
+  // If email notifications are disabled, only send to testers
+  return recipients.filter(recipient => process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || recipient.isTester())
 }

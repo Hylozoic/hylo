@@ -158,7 +158,7 @@ const StreamViewControls = ({
         </div>
         {view === 'events' && timeframeDropdown}
         {view !== 'events' && makeDropdown(sortBy, customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS, changeSort, t)}
-        {!['events', 'projects', 'decisions', 'ask-and-offer'].includes(view) && postTypeFilterDropdown}
+        {!['events', 'projects', 'decisions', 'ask-and-offer', 'resources', 'discussions'].includes(view) && postTypeFilterDropdown}
         {view === 'decisions' && decisionViewDropdown}
         <Tooltip id='stream-viewmode-tip' position='bottom' />
       </div>
