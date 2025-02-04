@@ -102,7 +102,7 @@ const StreamViewControls = ({
   return (
     <div className={cn(classes.streamViewContainer, { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
       <div className='flex w-full flex-row-reverse justify-between'>
-        <div className={cn('bg-primary px-2 flex items-center rounded transition-all', {'bg-selected': searchActive })} onClick={handleSearchToggle}>
+        <div className={cn('bg-primary px-2 flex items-center rounded transition-all', { 'bg-selected': searchActive })} onClick={handleSearchToggle}>
           <Icon name='Search' className={cn(classes.toggleIcon, { [classes.active]: searchActive })} />
         </div>
         {![CONTEXT_MY, 'all', 'public'].includes(context) &&
@@ -121,7 +121,7 @@ const StreamViewControls = ({
         />
         <div className='bg-primary rounded px-1 flex gap-2 items-center'>
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'cards' })}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'cards' })}
             onClick={() => changeView('cards')}
             data-tooltip-content={t('Card view')}
             data-tooltip-id='stream-viewmode-tip'
@@ -130,7 +130,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'list' })}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'list' })}
             onClick={() => changeView('list')}
             data-tooltip-content={t('List view')}
             data-tooltip-id='stream-viewmode-tip'
@@ -139,7 +139,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'bigGrid' })}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'bigGrid' })}
             onClick={() => changeView('bigGrid')}
             data-tooltip-content={t('Large Grid')}
             data-tooltip-id='stream-viewmode-tip'
@@ -148,7 +148,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'grid' }, classes.smallGrid)}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'grid' }, classes.smallGrid)}
             onClick={() => changeView('grid')}
             data-tooltip-content={t('Small Grid')}
             data-tooltip-id='stream-viewmode-tip'
@@ -157,7 +157,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'calendar' }, classes.calendar)}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'calendar' }, classes.calendar)}
             onClick={() => changeView('calendar')}
             data-tooltip-content={t('Calendar')}
             data-tooltip-id='stream-viewmode-tip'
