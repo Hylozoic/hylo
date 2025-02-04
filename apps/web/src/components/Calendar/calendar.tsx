@@ -9,18 +9,15 @@ import CalendarHeaderDate from './header/date/calendar-header-date'
 import CalendarHeaderActionsMode from './header/actions/calendar-header-actions-mode'
 import CalendarProvider from './calendar-provider'
 import { DateTime } from 'luxon'
+import useRouteParams from 'hooks/useRouteParams'
 
-// TODO can we replace props with useRoute return values?
 export default function Calendar ({
   posts,
-  routeParams,
-  locationParams,
-  querystringParams,
-  setEvents,
   calendarIconIsToday = true
 }: CalendarProps) {
   const [mode, setMode] = useState('month')
   const [date, setDate] = useState(new Date())
+  const routeParams = useRouteParams()
 
   // map posts objects to calendar "event" objects
   // unique color per post type
@@ -44,9 +41,6 @@ export default function Calendar ({
     <CalendarProvider
       events={events}
       routeParams={routeParams}
-      locationParams={locationParams}
-      querystringParams={querystringParams}
-      setEvents={setEvents}
       mode={mode}
       setMode={setMode}
       date={date}

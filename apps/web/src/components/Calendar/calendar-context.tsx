@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
-import type { CalendarContextType } from './calendar-types'
+import type { CalendarProps } from './calendar-types'
 
-export const CalendarContext = createContext<CalendarContextType | undefined>(
+export const CalendarContext = createContext<CalendarProps | undefined>(
   undefined
 )
 
