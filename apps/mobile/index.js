@@ -9,6 +9,7 @@ import Timer from 'react-native-background-timer'
 import * as Sentry from '@sentry/react-native'
 import { OneSignal } from 'react-native-onesignal'
 import { AuthProvider } from '@hylo/contexts/AuthContext'
+import mobileSubscriptionExchange from 'urql/mobileSubscriptionExchange'
 import { useMakeUrqlClient } from '@hylo/urql/makeUrqlClient'
 import { sentryConfig } from 'config'
 import store from 'store'
@@ -84,7 +85,7 @@ enableScreens()
 
 export default function App () {
   const [appState, setAppState] = useState(AppState.currentState)
-  const urqlClient = useMakeUrqlClient()
+  const urqlClient = useMakeUrqlClient({ subscriptionExchange: mobileSubscriptionExchange })
 
   useEffect(() => {
     if (urqlClient) {
