@@ -9,17 +9,27 @@ export type CalendarEvent = {
   end: Date
 }
 
+export type HyloPost = {
+  id: string
+  startTime: string
+  endTime: string
+  title: string
+  group: string
+  type: string
+}
+
 export type CalendarProps = {
-  events: CalendarEvent[]
-  routeParams: String
+  posts?: HyloPost[]
+  events?: CalendarEvent[]
+  routeParams: string
   locationParams: {
-    [key: string]: String;
+    [key: string]: string;
   }
   querystringParams: {
-    [key: string]: String;
+    [key: string]: string;
   }
   setEvents: (events: CalendarEvent[]) => void
-  mode: Mode
+  mode: string
   setMode: (mode: Mode) => void
   date: Date
   setDate: (date: Date) => void

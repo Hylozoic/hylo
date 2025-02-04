@@ -11,7 +11,7 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import Loading from 'components/Loading'
 import ModerationListItem from 'components/ModerationListItem/ModerationListItem'
 import NoPosts from 'components/NoPosts'
-import EventCalendar from 'components/EventCalendar'
+import Calendar from 'components/Calendar'
 import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
 import PostCard from 'components/PostCard'
@@ -52,7 +52,7 @@ const viewComponent = {
   list: PostListRow,
   grid: PostGridItem,
   bigGrid: PostBigGridItem,
-  calendar: EventCalendar
+  calendar: Calendar
 }
 
 const getCustomView = ormCreateSelector(
@@ -360,7 +360,7 @@ export default function Stream (props) {
         )}
         {!pending && calendarView && (
           <div className='calendarView'>
-            <EventCalendar
+            <Calendar
               posts={posts}
               routeParams={routeParams}
               locationParams={{}}

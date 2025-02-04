@@ -17,14 +17,14 @@ export default function CalendarProvider ({
 }: {
   events: CalendarEvent[]
   setEvents: (events: CalendarEvent[]) => void
-  routeParams: String
+  routeParams: string
   locationParams: {
-    [key: string]: String;
+    [key: string]: string;
   }
   querystringParams: {
-    [key: string]: String;
+    [key: string]: string;
   }
-  mode: Mode
+  mode: string
   setMode: (mode: Mode) => void
   date: Date
   setDate: (date: Date) => void
