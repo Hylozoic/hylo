@@ -30,7 +30,7 @@ const TIMEFRAME_OPTIONS = [
   { id: 'past', label: 'Past Events' }
 ]
 
-const makeDropdown = (selected, options, onChange, t) => {
+const makeFilterDropdown = (selected, options, onChange, t) => {
   // Load these strings in the component
   t('Proposals')
   t('Moderation')
@@ -84,24 +84,24 @@ const StreamViewControls = ({
     : POST_TYPE_OPTIONS
   const defaultOptionsForFilter = customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS
 
-  let dropdown
+  let filterDropdown
 
   if (viewMode === 'calendar') {
     const options = [{ id: 'all', label: 'All' }]
-    dropdown = makeDropdown('all', options, (id) => {}, t)
+    filterDropdown = makeFilterDropdown('all', options, (id) => {}, t)
   }
   switch (view) {
     case 'decisions':
-      dropdown ||= makeDropdown(decisionView, DECISIONS_OPTIONS, changeDecisionView, t)
+      filterDropdown ||= makeFilterDropdown(decisionView, DECISIONS_OPTIONS, changeDecisionView, t)
       break
     case 'events':
-      dropdown ||= makeDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t)
+      filterDropdown ||= makeFilterDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t)
       break
     case 'calendar':
-      dropdown ||= makeDropdown(postTypeFilter, postTypeOptionsForFilter, changeTab, t)
+      filterDropdown ||= makeFilterDropdown(postTypeFilter, postTypeOptionsForFilter, changeTab, t)
       break
     default:
-      dropdown ||= makeDropdown(sortBy, defaultOptionsForFilter, changeSort, t)
+      filterDropdown ||= makeFilterDropdown(sortBy, defaultOptionsForFilter, changeSort, t)
   }
 
   const handleSearchToggle = () => {
@@ -178,7 +178,7 @@ const StreamViewControls = ({
             <Icon name='Calendar' className={classes.gridViewIcon} />
           </div>
         </div>
-        {dropdown}
+        {filterDropdown}
         <Tooltip id='stream-viewmode-tip' position='bottom' />
       </div>
       {searchActive &&
