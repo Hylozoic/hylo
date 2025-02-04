@@ -1,6 +1,5 @@
 // TODO: Get "t" from current i18n instance so it doesn't need to be passed
 // import i18n from 'react-i18next'
-import { COMMON_VIEWS } from '@hylo/presenters/CustomViewPresenter'
 
 export default function ContextWidgetPresenter (widget, { t }) {
   if (!widget || widget?._presented) return widget
@@ -236,4 +235,68 @@ export const orderContextWidgetsForContextMenu = (contextWidgets) => {
 
   // Return the sorted parentWidgets with nested childWidgets
   return parentWidgets
+}
+
+// What are views? Highly suspect :)
+export const COMMON_VIEWS = {
+  'ask-and-offer': {
+    name: 'Ask & Offer',
+    iconName: 'Request',
+    defaultViewMode: 'bigGrid',
+    postTypes: ['request', 'offer'],
+    defaultSortBy: 'created'
+  },
+  decisions: {
+    name: 'Decisions',
+    iconName: 'Proposal',
+    defaultViewMode: 'cards',
+    postTypes: ['proposal'],
+    defaultSortBy: 'created'
+  },
+  discussions: {
+    name: 'Discussions',
+    iconName: 'Message',
+    defaultViewMode: 'list',
+    postTypes: ['discussion'],
+    defaultSortBy: 'updated'
+  },
+  events: {
+    name: 'Events',
+    iconName: 'Calendar',
+    defaultViewMode: 'cards',
+    postTypes: ['event'],
+    defaultSortBy: 'start_time'
+  },
+  groups: {
+    name: 'Groups',
+    iconName: 'Groups'
+  },
+  map: {
+    name: 'Map',
+    iconName: 'Globe'
+  },
+  members: {
+    name: 'Members',
+    iconName: 'People'
+  },
+  projects: {
+    name: 'Projects',
+    iconName: 'Stack',
+    defaultViewMode: 'bigGrid',
+    postTypes: ['project'],
+    defaultSortBy: 'created'
+  },
+  resources: {
+    name: 'Resources',
+    icon: 'Document',
+    defaultViewMode: 'grid',
+    postTypes: ['resource'],
+    defaultSortBy: 'created'
+  },
+  stream: {
+    name: 'Stream',
+    iconName: 'Stream',
+    defaultViewMode: 'cards',
+    defaultSortBy: 'created'
+  }
 }

@@ -3,7 +3,8 @@ import { isNull, isUndefined, omitBy } from 'lodash/fp'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { isContextGroup } from '@hylo/presenters/GroupPresenter'
 
-export default function useFetchPostParam ({
+export default function useStreamQueryVariables ({
+  currentUser,
   customView,
   filter,
   forGroup,
@@ -13,7 +14,6 @@ export default function useFetchPostParam ({
   timeframe,
   topicName
 }) {
-  const [{ currentUser }] = useCurrentUser()
   const fetchPostParam = useMemo(() => omitBy(x => isNull(x) || isUndefined(x), {
     activePostsOnly: customView?.activePostsOnly || null,
     afterTime: streamType === 'event'

@@ -4,7 +4,7 @@ import { FlatList, View, TouchableOpacity } from 'react-native'
 import { isEmpty, get } from 'lodash/fp'
 import { useIsFocused, useNavigation } from '@react-navigation/native'
 import { ALL_GROUP_ID, isContextGroup, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
-import useFetchPostParam from './useFetchPostParam'
+import useStreamQueryVariables from '@hylo/hooks/useStreamQueryVariables'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { makeStreamQuery } from './StreamList.store'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
@@ -95,7 +95,8 @@ export default function StreamList (props) {
   )
   const [timeframe, setTimeframe] = useState(DEFAULT_TIMEFRAME_ID)
   const [offset, setOffset] = useState(0)
-  const fetchPostParam = useFetchPostParam({
+  const fetchPostParam = useStreamQueryVariables({
+    currentUser,
     customView,
     streamType,
     filter,

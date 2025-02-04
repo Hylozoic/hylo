@@ -8,8 +8,7 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import { push } from 'redux-first-history'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 
-// TODO redesign: This will go into GroupPresenter most likely or some new thing like StaticGroups... TBD
-import { COMMON_VIEWS } from '@hylo/presenters/CustomViewPresenter'
+import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 import Loading from 'components/Loading'
 import ModerationListItem from 'components/ModerationListItem/ModerationListItem'
 import NoPosts from 'components/NoPosts'
