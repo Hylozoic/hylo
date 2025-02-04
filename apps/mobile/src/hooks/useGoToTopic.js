@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native'
-import { isContextGroup } from 'presenters/GroupPresenter'
+import { isContextGroup } from '@hylo/presenters/GroupPresenter'
 import { useCurrentGroupSlug } from '@hylo/hooks/useCurrentGroup'
 import useIsModalScreen from './useIsModalScreen'
 
