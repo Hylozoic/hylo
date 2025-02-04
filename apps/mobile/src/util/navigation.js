@@ -3,7 +3,7 @@ import { host } from 'config'
 import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
 import qs from 'query-string'
 import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
-import { isContextGroup } from 'presenters/GroupPresenter'
+import { isContextGroup } from '@hylo/presenters/GroupPresenter'
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
