@@ -45,26 +45,27 @@ if (Platform.OS === 'android') {
 
 AppRegistry.registerComponent(appName, () => App)
 
-if (__DEV__) {
-  // 2025.01.11 - This currently only suppressed defaultProps error from react-native-render-html
-  // This error is actually a deprecation warning, and has no material impact at our
-  // current version of React Native 0.74.5. However, may become actual issue in upgrades.
-  // Library lost its maintainer and is currently, track progress of migration here:
-  // https://github.com/meliorence/react-native-render-html/issues/674
-  const ignoreErrors = ["Support for defaultProps will be removed"];
+// Turning of this warning/error suppression for now as "arg[0].includes(error)" was failing and then swallowing errors
+// if (__DEV__) {
+//   // 2025.01.11 - This currently only suppressed defaultProps error from react-native-render-html
+//   // This error is actually a deprecation warning, and has no material impact at our
+//   // current version of React Native 0.74.5. However, may become actual issue in upgrades.
+//   // Library lost its maintainer and is currently, track progress of migration here:
+//   // https://github.com/meliorence/react-native-render-html/issues/674
+//   const ignoreErrors = ["Support for defaultProps will be removed"];
 
-  const error = console.error;
-  console.error = (...arg) => {
-    for (const error of ignoreErrors) if (arg[0].includes(error)) return;
-    error(...arg);
-  };
+//   const error = console.error;
+//   console.error = (...arg) => {
+//     for (const error of ignoreErrors) if (arg[0].includes(error)) return;
+//     error(...arg);
+//   };
 
-  LogBox.ignoreLogs(ignoreErrors);
+//   LogBox.ignoreLogs(ignoreErrors);
 
-  // Ignore warning coming from React Navigation and Navigation.reset
-  // See: https://github.com/react-navigation/react-navigation/issues/11564#issuecomment-2433008812
-  LogBox.ignoreLogs(['Sending `onAnimatedValueUpdate` with no listeners registered.']);
-}
+//   // Ignore warning coming from React Navigation and Navigation.reset
+//   // See: https://github.com/react-navigation/react-navigation/issues/11564#issuecomment-2433008812
+//   LogBox.ignoreLogs(['Sending `onAnimatedValueUpdate` with no listeners registered.']);
+// }
 
 enableScreens()
 

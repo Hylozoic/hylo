@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { FlatList, TouchableOpacity, View, Text } from 'react-native'
-import { useNavigation } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from 'urql'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
@@ -17,9 +17,21 @@ export default function ThreadList () {
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const updateLastViewed = () => updateUserSettings({ changes: { settings: { lastViewedMessagesAt: new Date() } } })
 
-  const [{ data, fetching }, refetchThreads] = useQuery({ query: messageThreadsQuery, variables: { first: 10, offset } })
+  const [{ data, fetching }, fetchThreads] = useQuery({
+    query: messageThreadsQuery,
+    variables: { first: 10, offset },
+    requestPolicy: 'cache-and-network',
+    pause: true
+  })
   const threads = data?.me?.messageThreads?.items
   const hasMore = data?.me?.messageThreads?.hasMore
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchThreads()
+      updateLastViewed()
+    }, [])
+  )
 
   const fetchMoreThreads = () => {
     if (hasMore) setOffset(threads.length)
@@ -27,16 +39,12 @@ export default function ThreadList () {
 
   const refreshThreads = () => {
     setOffset(0)
-    refetchThreads({ requestPolicy: 'network-only' })
+    fetchThreads({ requestPolicy: 'network-only' })
   }
 
   const showThread = threadOrId => navigation.navigate('Thread', {
     id: threadOrId?.id || threadOrId
   })
-
-  useEffect(() => {
-    updateLastViewed()
-  }, [])
 
   const getLatestMessage = useCallback(messageThread => {
     return messageThread.messages.items[0]

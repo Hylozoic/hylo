@@ -46,6 +46,7 @@ const updatesSubscription = gql`
         creator {
           id
           name
+          avatarUrl
         }
         messageThread {
           id

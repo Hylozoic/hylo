@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
@@ -45,10 +45,7 @@ export default function Thread() {
     query: messageThreadMessagesQuery,
     variables: { id: threadId, first: MESSAGE_PAGE_SIZE, cursor }
   })
-
   const messages = data?.messageThread?.messages?.items || []
-  const hasMore = data?.messageThread?.messages?.hasMore
-
   const [, providedMarkAsRead] = useMutation(markThreadReadMutation)
   const markAsRead = debounce(1000, () => { providedMarkAsRead({ messageThreadId: threadId }) })
 
@@ -61,11 +58,10 @@ export default function Thread() {
     return Math.abs(new Date(timestamp1) - new Date(timestamp2)) <= BATCH_LIMIT_MS
   }
 
-  const refineMessages = (messages) =>
-    messages.map((msg, i, arr) => {
+  const refineMessages = messages => {
+    return messages.map((msg, i, arr) => {
       const prev = arr[i + 1]
       const next = arr[i - 1]
-
       const suppressCreator = prev && msg.creator.id === prev.creator.id
       const suppressDate =
         next &&
@@ -78,9 +74,10 @@ export default function Thread() {
         suppressDate
       }
     })
+  }
 
   const fetchMore = () => {
-    if (messages && hasMore) {
+    if (!fetching && messages && messages?.length) {
       setCursor(messages[messages.length - 1].id)
     }
   }
@@ -135,6 +132,7 @@ export default function Thread() {
         data={refineMessages(messages)}
         inverted
         keyExtractor={(item) => item.id}
+        refreshing={fetching}
         onEndReached={fetchMore}
         onEndReachedThreshold={0.3}
         onScroll={handleScroll}
