@@ -225,7 +225,7 @@ export default function ChatPost ({
   return (
     <Highlight {...highlightProps}>
       <div
-        className={cn('hover:bg-black/10 hover:cursor-pointer rounded-lg', className, styles.container, {
+        className={cn('rounded-lg', className, styles.container, {
           [styles.longPressed]: isLongPress,
           [styles.hovered]: isHovered
         })}

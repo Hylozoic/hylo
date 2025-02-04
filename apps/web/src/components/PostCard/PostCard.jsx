@@ -9,7 +9,7 @@ import CardImageAttachments from 'components/CardImageAttachments'
 import Icon from 'components/Icon'
 import useRouteParams from 'hooks/useRouteParams'
 import { POST_PROP_TYPES } from 'store/models/Post'
-import { postUrl, editPostUrl } from 'util/navigation'
+import { postUrl } from 'util/navigation'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
 import EventBody from './EventBody'
@@ -50,10 +50,6 @@ export default function PostCard (props) {
   const showDetails = useCallback(() => {
     navigate(postUrl(post.id, routeParams, { ...locationParams, ...querystringParams }))
   }, [post.id, routeParams, locationParams, querystringParams])
-
-  const editPost = useCallback(() => {
-    navigate(editPostUrl(post.id, routeParams, querystringParams))
-  }, [post.id, routeParams, querystringParams])
 
   const handleRespondToEvent = useCallback((response) => {
     dispatch(respondToEvent(post, response))
@@ -110,7 +106,6 @@ export default function PostCard (props) {
             routeParams={routeParams}
             highlightProps={highlightProps}
             currentUser={currentUser}
-            editPost={editPost}
             isFlagged={isFlagged}
             constrained={constrained}
             hasImage={hasImage}

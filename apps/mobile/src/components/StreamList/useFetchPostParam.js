@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { isContextGroup } from 'presenters/GroupPresenter'
+import { isContextGroup } from '@hylo/presenters/GroupPresenter'
 
 export default function useFetchPostParam ({
   customView,

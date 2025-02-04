@@ -4,7 +4,7 @@ import { create } from 'zustand'
 import mixpanel from 'services/mixpanel'
 import useCurrentUser from './useCurrentUser'
 import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
-import GroupPresenter, { getContextGroup, isContextGroup } from 'presenters/GroupPresenter'
+import GroupPresenter, { getContextGroup, isContextGroup } from '@hylo/presenters/GroupPresenter'
 
 // Zustand store for managing currentGroupSlug
 const useCurrentGroupStore = create((set) => ({

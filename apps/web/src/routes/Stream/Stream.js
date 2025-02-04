@@ -82,10 +82,10 @@ export default function Stream (props) {
 
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
 
-  const defaultSortBy = get('settings.streamSortBy', currentUser) || systemView?.defaultSortBy || 'created'
-  const defaultViewMode = get('settings.streamViewMode', currentUser) || systemView?.defaultViewMode || 'cards'
-  const defaultPostType = get('settings.streamPostType', currentUser) || undefined
-  const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || 'yes'
+  const defaultSortBy = systemView?.defaultSortBy || get('settings.streamSortBy', currentUser) || 'created'
+  const defaultViewMode = systemView?.defaultViewMode || get('settings.streamViewMode', currentUser) || 'cards'
+  const defaultPostType = systemView?.defaultPostType || get('settings.streamPostType', currentUser) || undefined
+  const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || systemView?.defaultChildPostInclusion || 'yes'
 
   const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe'], location)
 
