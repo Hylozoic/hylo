@@ -153,6 +153,7 @@ function RolesSettingsTab ({ group, commonRoles }) {
         {commonRoles.map((role, i) => (
           <RoleRow
             group={group}
+            suggestions={suggestions}
             key={i}
             index={i}
             {...role}
@@ -232,13 +233,13 @@ function RoleRow ({
           {!isDraftRole && changed && (<span className={styles.action} onClick={onReset}><Icon name='Back' /> {t('Revert')}</span>)}
           {!isDraftRole && !changed && (<span className={styles.action} onClick={onToggleActivation}><Icon name={active ? 'CircleEx' : 'CircleArrow'} /> {active ? t('Deactivate') : t('Reactivate')}</span>)}
         </div>}
-        <div className='flex flex-col relative w-full p-2'>
-          <EmojiPicker forReactions={false} emoji={emoji} handleReaction={onChange('emoji')} className='absolute top-[2.7rem] left-[1rem] w-[40px] h-[40px] bg-foreground/5 rounded flex items-center justify-center cursor-pointer hover:bg-foreground/10 hover:shadow-xl border-2 border-foreground/50 hover:border-foreground/100 transition-all' />
-          <SettingsControl label='Name & Badge' onChange={onChange('name')} value={name} inputStyle={{paddingLeft: '3.5rem'}}/>
-        </div>
-        <div className='p-2'>
-          <SettingsControl label='Description' onChange={onChange('description')} value={description} type='textarea' />
-        </div>
+      <div className='flex flex-col relative w-full p-2'>
+        <EmojiPicker forReactions={false} emoji={emoji} handleReaction={onChange('emoji')} className='absolute top-[2.7rem] left-[1rem] w-[40px] h-[40px] bg-foreground/5 rounded flex items-center justify-center cursor-pointer hover:bg-foreground/10 hover:shadow-xl border-2 border-foreground/50 hover:border-foreground/100 transition-all' />
+        <SettingsControl label='Name & Badge' onChange={onChange('name')} value={name} inputStyle={{ paddingLeft: '3.5rem' }} />
+      </div>
+      <div className='p-2'>
+        <SettingsControl label='Description' onChange={onChange('description')} value={description} type='textarea' />
+      </div>
       {
         isDraftRole
           ? (
@@ -247,16 +248,15 @@ function RoleRow ({
             </div>
             )
           : (active || isCommonRole) && (
-              <RoleList
-                {...{ addRoleToMember, suggestions, clearStewardSuggestions, fetchMembersForGroupRole, fetchMembersForCommonRole, fetchStewardSuggestions, removeRoleFromMember, active }}
-                key='grList'
-                group={group}
-                isCommonRole={isCommonRole}
-                roleId={id}
-                t={t}
-                slug={group.slug}
-              />
-            )
+            <RoleList
+              {...{ addRoleToMember, suggestions, clearStewardSuggestions, fetchMembersForGroupRole, fetchMembersForCommonRole, fetchStewardSuggestions, removeRoleFromMember, active }}
+              key='grList'
+              group={group}
+              isCommonRole={isCommonRole}
+              roleId={id}
+              t={t}
+              slug={group.slug}
+            />)
       }
     </div>
   )
@@ -438,14 +438,14 @@ function RoleList ({
   const responsibilityFetcher = isCommonRole ? fetchResponsibilitiesForCommonRole : fetchResponsibilitiesForGroupRole
 
   useEffect(() => {
-    dispatch(memberFetcher({ roleId }))
+    dispatch(memberFetcher({ id: group.id, roleId }))
       .then((response) => setMembersForRole(response?.payload?.data?.group?.members?.items || []))
       .catch((e) => { console.error('Error fetching members for role ', e) })
   }, [])
 
   useEffect(() => {
     let isMounted = true
-    dispatch(responsibilityFetcher({ roleId }))
+    dispatch(responsibilityFetcher({ id: group.id, roleId }))
       .then((response) => { if (isMounted) setResponsibilitiesForRole(response?.payload?.data?.responsibilities || []) })
       .catch((e) => { console.error('Error fetching responsibilities for role ', e) })
     return () => { isMounted = false }
@@ -536,6 +536,7 @@ function RoleList ({
         clearSuggestions={clearStewardSuggestions}
         updateLocalMembersForRole={updateLocalMembersForRole}
         roleId={roleId}
+        groupId={group.id}
         isCommonRole={isCommonRole}
       />
     </div>
