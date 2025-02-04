@@ -1,5 +1,4 @@
 exports.up = function(knex) {
-  console.log('Setting up initial context widgets')
   return knex.raw(`
     DO $$
     DECLARE
@@ -11,10 +10,10 @@ exports.up = function(knex) {
                 INSERT INTO context_widgets (
                     group_id, type, title, "order", created_at, updated_at
                 )
-                SELECT
+                SELECT 
                     group_record.id, 'home', 'widget-home', 1, NOW(), NOW()
                 WHERE NOT EXISTS (
-                    SELECT 1 FROM context_widgets
+                    SELECT 1 FROM context_widgets 
                     WHERE group_id = group_record.id AND type = 'home'
                 )
                 RETURNING id
