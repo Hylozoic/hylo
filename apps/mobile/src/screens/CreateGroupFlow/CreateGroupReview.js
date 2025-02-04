@@ -3,19 +3,19 @@ import { useDispatch, useSelector } from 'react-redux'
 import {
   Text, View, TextInput, ScrollView, TouchableOpacity
 } from 'react-native'
+import { useMutation } from 'urql'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
+import { AnalyticsEvents } from '@hylo/shared'
+import mixpanel from 'services/mixpanel'
+import { formatDomainWithUrl } from './util'
+import { createGroupMutation, clearCreateGroupStore, getGroupData } from './CreateGroupFlow.store'
+import { accessibilityDescription, visibilityDescription } from 'presenters/GroupPresenter'
 import { openURL } from 'hooks/useOpenURL'
 import ErrorBubble from 'components/ErrorBubble'
-import { accessibilityDescription, visibilityDescription } from '@hylo/presenters/GroupPresenter'
 import Avatar from 'components/Avatar'
-import { formatDomainWithUrl } from './util'
-import {
-  createGroupMutation, clearCreateGroupStore, getGroupData
-} from './CreateGroupFlow.store'
-import { white } from 'style/colors'
 import styles from './CreateGroupFlow.styles'
-import { useMutation } from 'urql'
+import { white } from 'style/colors'
 
 export default function CreateGroupReview () {
   const { t } = useTranslation()
@@ -23,7 +23,7 @@ export default function CreateGroupReview () {
   const dispatch = useDispatch()
   const [, createGroup] = useMutation(createGroupMutation)
   const groupData = useSelector(getGroupData)
-  // TODO: URQL - query for parent groups, remove related method in store
+  // TODO: URQL! - query for parent groups, remove related method in store
   // const parentGroups = useSelector(getNewGroupParentGroups)
   const [error, setError] = useState(null)
 
@@ -39,6 +39,7 @@ export default function CreateGroupReview () {
       const { data, error } = await createGroup({ data: groupData })
       const newGroup = data?.createGroup
       if (newGroup) {
+        mixpanel.track(AnalyticsEvents.GROUP_CREATED)
         dispatch(clearCreateGroupStore())
         openURL(`/groups/${newGroup.slug}`)
       } else {
