@@ -53,7 +53,7 @@ function PostDetail () {
   const location = useLocation()
   const routeParams = useParams()
   const postId = routeParams.postId || getQuerystringParam('fromPostId', location)
-  const { groupSlug, commentId } = routeParams
+  const { groupSlug, commentId, view } = routeParams
 
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   const postSelector = useSelector(state => getPost(state, postId))
@@ -195,7 +195,7 @@ function PostDetail () {
       <PostHeader
         className={classes.header}
         {...post}
-        routeParams={{ groupSlug, postId, commentId }}
+        routeParams={{ groupSlug, postId, commentId, view }}
         close={onClose}
         expanded
         isFlagged={isFlagged}
@@ -207,7 +207,7 @@ function PostDetail () {
             className={classes.header}
             currentUser={currentUser}
             {...post}
-            routeParams={{ groupSlug, postId, commentId }}
+            routeParams={{ groupSlug, postId, commentId, view }}
             close={onClose}
             isFlagged={isFlagged}
           />

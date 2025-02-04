@@ -1,10 +1,11 @@
-import { create } from 'zustand'
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { useQuery } from 'urql'
 import { useTranslation } from 'react-i18next'
+import { create } from 'zustand'
+import mixpanel from 'services/mixpanel'
 import useCurrentUser from './useCurrentUser'
 import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
-import GroupPresenter, { getContextGroup, isContextGroup } from 'presenters/GroupPresenter'
+import GroupPresenter, { getContextGroup, isContextGroup } from '@hylo/presenters/GroupPresenter'
 
 // Zustand store for managing currentGroupSlug
 const useCurrentGroupStore = create((set) => ({
@@ -79,6 +80,16 @@ export default function useCurrentGroup ({
     useQueryArgs
   })
   const fetching = slugFetching || groupFetching
+
+  useEffect(() => {
+    if (!fetching && group && setToGroupSlug) {
+      mixpanel.getGroup('groupId', group.id).set({
+        $location: group.location,
+        $name: group.name,
+        type: group.type
+      })
+    }
+  }, [fetching, group])
 
   return [{ currentGroup: group, isContextGroup, fetching, error: slugError || error }, reQuery]
 }

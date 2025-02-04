@@ -3,7 +3,7 @@ import { gql, useMutation, useQuery } from 'urql'
 import { FlatList, View, TouchableOpacity } from 'react-native'
 import { isEmpty, get } from 'lodash/fp'
 import { useIsFocused, useNavigation } from '@react-navigation/native'
-import { ALL_GROUP_ID, isContextGroup, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from 'presenters/GroupPresenter'
+import { ALL_GROUP_ID, isContextGroup, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
 import useFetchPostParam from './useFetchPostParam'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { makeStreamQuery } from './StreamList.store'
@@ -181,7 +181,7 @@ export default function StreamList (props) {
         onRefresh={refreshPosts}
         refreshing={false}
         keyExtractor={item => `post${item.id}`}
-        // TODO: URQL - Without further setup FlatList will call this many many times while still at the bottom
+        // TODO: URQL! - Without further setup FlatList will call this many many times while still at the bottom
         // currently URQL is protecting us from this by caching an throttling the many api requests it creates,
         // but it definitely needs to be elaborated such that only a single call is send and that call can start
         // probably a higher than default bottom threshold so the additional posts are closer to already

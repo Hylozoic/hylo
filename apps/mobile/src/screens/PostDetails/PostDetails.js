@@ -1,16 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { View, Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { useDispatch } from 'react-redux'
 import { gql, useQuery, useSubscription } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import mixpanel from 'services/mixpanel'
 import useGoToMember from 'hooks/useGoToMember'
 import useIsModalScreen from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
-import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 import commentFieldsFragment from '@hylo/graphql/fragments/commentFieldsFragment'
 import PostPresenter from '@hylo/presenters/PostPresenter'
@@ -40,7 +39,6 @@ export const commentsSubscription = gql`
 
 export default function PostDetails () {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
   const { id: postId } = useRouteParams()
@@ -75,13 +73,13 @@ export default function PostDetails () {
 
   useEffect(() => {
     if (!fetching && !error && post) {
-      dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_OPENED, {
+      mixpanel.track(AnalyticsEvents.POST_OPENED, {
         postId: post?.id,
         groupId: post.groups.map(g => g.id),
         isPublic: post.isPublic,
         topics: post.topics?.map(t => t.name),
         type: post.type
-      }))
+      })
     }
   }, [fetching, error, post])
 

@@ -2,22 +2,20 @@ import React, { useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { ScrollView, View, Text, ImageBackground, ActivityIndicator } from 'react-native'
-import { useDispatch } from 'react-redux'
+import { useMutation } from 'urql'
 import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import mixpanel from 'services/mixpanel'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import ImagePicker from 'components/ImagePicker'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import styles from './SignupUploadAvatar.styles'
-import { useMutation } from 'urql'
 
 export default function SignupUploadAvatar ({ navigation }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
   const [{ currentUser, fetching }] = useCurrentUser()
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl)
@@ -30,8 +28,7 @@ export default function SignupUploadAvatar ({ navigation }) {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
         updateUserSettings({ changes: { signupInProgress: false } })
-        // TODO: URQL - Analytics ? This may actually be fine.
-        dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
+        mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
       }
     })
   })

@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'presenters/GroupPresenter'
+import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from '@hylo/presenters/GroupPresenter'
 import groupFieldsFragment from '@hylo/graphql/fragments/groupFieldsFragment'
 import groupPrerequisiteGroupsFieldsFragment from '@hylo/graphql/fragments/groupPrerequisiteGroupsFieldsFragment'
 
@@ -55,8 +55,6 @@ export default function reducer (state = initialState, action) {
   return state
 }
 
-// TODO: URQL - analytics
-// AnalyticsEvents.GROUP_CREATED (see action to get metadata that is sent)
 export const createGroupMutation = gql`
   mutation CreateGroupMutation ($data: GroupInput) {
     createGroup(data: $data) {

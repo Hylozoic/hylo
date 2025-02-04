@@ -385,9 +385,11 @@ export default function AuthLayoutRouter (props) {
                   <Route path='groups/:groupSlug/decisions/*' element={<Stream context='groups' view='decisions' />} />
                   <Route path='groups/:groupSlug/explore/*' element={<LandingPage context='groups' />} />
                   <Route path='groups/:groupSlug/ask-and-offer/*' element={<Stream context='groups' view='ask-and-offer' />} />
+                  <Route path='groups/:groupSlug/discussions/*' element={<Stream context='groups' view='discussions' />} />
+                  <Route path='groups/:groupSlug/events/*' element={<Stream context='groups' view='events' />} />
+                  <Route path='groups/:groupSlug/resources/*' element={<Stream context='groups' view='resources' />} />
                   <Route path='groups/:groupSlug/projects/*' element={<Stream context='groups' view='projects' />} />
                   <Route path='groups/:groupSlug/custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
-                  <Route path='groups/:groupSlug/events/*' element={<Stream context='groups' view='events' />} />
                   <Route path='groups/:groupSlug/groups/*' element={<Groups context='groups' />} />
                   <Route path='groups/:groupSlug/members/create/*' element={<Members context='groups' />} />
                   <Route path='groups/:groupSlug/members/:personId/*' element={<MemberProfile context='groups' />} />

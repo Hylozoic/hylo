@@ -544,6 +544,7 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-ask-and-offer', view: 'ask-and-offer' },
       { title: 'widget-stream', view: 'stream' },
       { title: 'widget-events', type: 'events', view: 'events' },
+      { title: 'widget-resources', type: 'resources', view: 'resources' },
       { title: 'widget-projects', type: 'projects', view: 'projects' },
       { title: 'widget-groups', type: 'groups', view: 'groups' },
       { title: 'widget-decisions', type: 'decisions', view: 'decisions' },

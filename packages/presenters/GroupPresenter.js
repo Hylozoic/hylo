@@ -1,15 +1,4 @@
-import { Image } from 'react-native'
 import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
-import { getStaticMenuWidgets } from '@hylo/presenters/ContextWidgetPresenter'
-import allGroupsBannerImage from 'assets/all-groups-banner.png'
-import allGroupsAvatarUrl from 'assets/All_Groups2.png'
-import myHomeAvatarUrl from 'assets/my-home.png'
-import allGroupshHeaderAvatarUrl from 'assets/All_Groups.png'
-import publicGroupAvatarUrl from 'assets/public.png'
-import GREEN_HERO_BANNER_PATH from 'assets/green-hero.jpg'
-import GREEN_ICON_AVATAR_PATH from 'assets/green-icon.jpg'
-import PURPLE_HERO_BANNER_PATH from 'assets/purple-hero.jpg'
-import PURPLE_ICON_AVATAR_PATH from 'assets/purple-icon.jpg'
 
 export function getContextWidgetsForGroup (group) {
   if (!group) return []
@@ -147,14 +136,15 @@ export const LOCATION_PRECISION = {
 
 export const DEFAULT_BANNER = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_banner.jpg'
 export const DEFAULT_AVATAR = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png'
+
 export const ALL_GROUP_ID = ALL_GROUPS_CONTEXT_SLUG
 export const ALL_GROUP_AVATAR_PATH = '/assets/white-merkaba.png'
 export const ALL_GROUP = {
   id: ALL_GROUP_ID,
   slug: ALL_GROUP_ID,
-  headerAvatarUrl: Image.resolveAssetSource(allGroupshHeaderAvatarUrl).uri,
-  avatarUrl: Image.resolveAssetSource(allGroupsAvatarUrl).uri,
-  bannerUrl: Image.resolveAssetSource(allGroupsBannerImage).uri,
+  headerAvatarUrl: 'assets/All_Groups.png',
+  avatarUrl: 'assets/All_Groups2.png',
+  bannerUrl: 'assets/all-groups-banner.png',
   name: 'All My Groups',
   parentGroups: { items: [], hasMore: false, total: 0 },
   childGroups: { items: [], hasMore: false, total: 0 }
@@ -164,9 +154,9 @@ export const PUBLIC_GROUP_ID = PUBLIC_CONTEXT_SLUG
 export const PUBLIC_GROUP = {
   id: PUBLIC_GROUP_ID,
   slug: PUBLIC_GROUP_ID,
-  headerAvatarUrl: Image.resolveAssetSource(GREEN_ICON_AVATAR_PATH).uri,
-  avatarUrl: Image.resolveAssetSource(publicGroupAvatarUrl).uri,
-  bannerUrl: Image.resolveAssetSource(GREEN_HERO_BANNER_PATH).uri,
+  headerAvatarUrl: 'assets/green-icon.jpg',
+  avatarUrl: 'assets/public.png',
+  bannerUrl: 'assets/green-hero.jpg',
   name: 'Public Stream',
   parentGroups: { items: [], hasMore: false, total: 0 },
   childGroups: { items: [], hasMore: false, total: 0 }
@@ -177,9 +167,9 @@ export const MY_CONTEXT_AVATAR_PATH = '/assets/my-home.png'
 export const MY_CONTEXT_GROUP = {
   id: MY_CONTEXT_ID,
   slug: MY_CONTEXT_ID,
-  headerAvatarUrl: Image.resolveAssetSource(PURPLE_ICON_AVATAR_PATH).uri,
-  avatarUrl: Image.resolveAssetSource(myHomeAvatarUrl).uri,
-  bannerUrl: Image.resolveAssetSource(PURPLE_HERO_BANNER_PATH).uri,
+  headerAvatarUrl: 'assets/purple-icon.jpg',
+  avatarUrl: 'assets/my-home.png',
+  bannerUrl: 'assets/purple-hero.jpg',
   name: 'My Home',
   parentGroups: { items: [], hasMore: false, total: 0 },
   childGroups: { items: [], hasMore: false, total: 0 }

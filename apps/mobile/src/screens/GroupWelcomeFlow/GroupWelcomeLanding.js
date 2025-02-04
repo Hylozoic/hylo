@@ -9,7 +9,7 @@ import { Text, View, ImageBackground, ScrollView, TouchableOpacity, TextInput } 
 import CheckBox from 'react-native-bouncy-checkbox'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'presenters/GroupPresenter'
+import { DEFAULT_AVATAR, DEFAULT_BANNER } from '@hylo/presenters/GroupPresenter'
 import {
   GROUP_WELCOME_AGREEMENTS,
   GROUP_WELCOME_JOIN_QUESTIONS,

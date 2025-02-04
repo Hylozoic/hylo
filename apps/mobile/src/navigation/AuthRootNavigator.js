@@ -105,6 +105,7 @@ export default function AuthRootNavigator () {
         }
 
         // Intercom user setup
+        // TODO: URQL - does  setUserHash need to happen? Test. It stopped working.
         // Intercom.setUserHash(user.hash)
         Intercom.loginUserWithUserAttributes({
           userId: currentUser?.id,
