@@ -44,7 +44,7 @@ export default function AllViews () {
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdminister = hasResponsibility(RESP_ADMINISTRATION)
-  const contextWidgets = currentGroup.contextWidgets
+  const contextWidgets = currentGroup?.contextWidgets || []
   const visibleWidgets = useMemo(() => {
     return contextWidgets.filter(widget => {
       if (widget.visibility === 'admin' && !canAdminister) return false

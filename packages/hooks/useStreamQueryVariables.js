@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { isContextGroup } from '@hylo/presenters/GroupPresenter'
+import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 
 export default function useStreamQueryVariables ({
   currentUser,
@@ -25,7 +25,7 @@ export default function useStreamQueryVariables ({
       : null,
     childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
     collectionToFilterOut: null,
-    context: isContextGroup(forGroup.slug)
+    context: isContextGroupSlug(forGroup.slug)
       ? forGroup.slug
       : myHome
         ? 'my'

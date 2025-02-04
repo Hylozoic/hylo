@@ -3,7 +3,7 @@ import { gql, useMutation, useQuery } from 'urql'
 import { FlatList, View, TouchableOpacity } from 'react-native'
 import { isEmpty, get } from 'lodash/fp'
 import { useIsFocused, useNavigation } from '@react-navigation/native'
-import { ALL_GROUP_ID, isContextGroup, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
+import { ALL_GROUP_ID, isContextGroupSlug, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
 import useStreamQueryVariables from '@hylo/hooks/useStreamQueryVariables'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { makeStreamQuery } from './StreamList.store'
@@ -234,22 +234,14 @@ export default function StreamList (props) {
 function renderPostRow ({
   post,
   fetchPostParam,
-  forGroup,
-  showPost,
-  showMember,
-  showTopic,
-  goToGroup
+  forGroup
 }) {
   return (
     <PostRow
       context={fetchPostParam?.context}
       post={post}
       forGroupId={forGroup?.id}
-      showGroups={!forGroup?.id || isContextGroup(forGroup?.slug)}
-      showPost={showPost}
-      showMember={showMember}
-      showTopic={showTopic}
-      goToGroup={goToGroup}
+      showGroups={!forGroup?.id || isContextGroupSlug(forGroup?.slug)}
     />
   )
 }

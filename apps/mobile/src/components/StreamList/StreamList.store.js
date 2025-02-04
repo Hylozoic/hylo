@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import { isContextGroup } from '@hylo/presenters/GroupPresenter'
+import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 import postsQuerySetFragment from '@hylo/graphql/fragments/postsQuerySetFragment'
 import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 
@@ -35,7 +35,7 @@ export const makeStreamQuery = ({
   if (context === 'groups') {
     query = makeGroupPostsQuery(childPostInclusion === 'yes')
   // TODO: URQL - Amend to make 'my' a ContextGroup as well
-  } else if (isContextGroup(context)) {
+  } else if (isContextGroupSlug(context)) {
     query = postsQuery
   } else {
     throw new Error(`makeQuery with context=${context} is not implemented`)

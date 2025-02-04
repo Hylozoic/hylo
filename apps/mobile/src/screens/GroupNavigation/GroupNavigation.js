@@ -2,7 +2,7 @@ import React from 'react'
 import { Text, ScrollView, View, TouchableOpacity } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import { isContextGroup, PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
+import { isContextGroupSlug, PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import { openURL } from 'hooks/useOpenURL'
@@ -24,10 +24,10 @@ export default function GroupNavigation () {
     navigation.setOptions({ title: myHome ? t('My Home') : currentGroup?.name })
   })
 
-  if (fetching) return <Loading />
+  if (fetching && currentGroup) return <Loading />
 
   const { navigate } = navigation
-  const customViews = (currentGroup && currentGroup.customViews) || []
+  const customViews = currentGroup?.customViews?.items || []
   const navItems = myHome
     ? [
         { label: t('Create'), iconName: 'Create', onPress: () => navigate('Edit Post', { id: null }) },
@@ -43,7 +43,7 @@ export default function GroupNavigation () {
           label: t('Explore'),
           iconName: 'Binoculars',
           onPress: () => navigate('Group Explore', { groupSlug: currentGroup?.slug }),
-          hidden: isContextGroup(currentGroup?.slug)
+          hidden: isContextGroupSlug(currentGroup?.slug)
         },
         { label: t('Projects'), iconName: 'Projects', onPress: () => navigate('Projects') },
         { label: t('Events'), iconName: 'Events', onPress: () => navigate('Events') },
@@ -51,13 +51,13 @@ export default function GroupNavigation () {
           label: t('Members'),
           iconName: 'Members',
           onPress: () => navigate('Members'),
-          hidden: isContextGroup(currentGroup?.slug)
+          hidden: isContextGroupSlug(currentGroup?.slug)
         },
         {
           label: t('Decisions'),
           iconName: 'Commonwealth',
           onPress: () => navigate('Decisions'),
-          hidden: isContextGroup(currentGroup?.slug)
+          hidden: isContextGroupSlug(currentGroup?.slug)
         },
         {
           label: t('Groups'),
