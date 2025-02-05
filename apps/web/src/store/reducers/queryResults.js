@@ -313,7 +313,6 @@ export const queryParamWhitelist = [
   'collectionToFilterOut',
   'createdBy',
   'farmQuery',
-  'filter',
   'forCollection',
   'groupSlug',
   'groupSlugs',
@@ -328,8 +327,7 @@ export const queryParamWhitelist = [
   'slug',
   'sortBy',
   'topic',
-  'type', // TODO: why do we have type & filter? should only need one
-  // 'types', TODO: add types?
+  'types',
   'page',
   'nearCoord'
 ]

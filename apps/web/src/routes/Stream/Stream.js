@@ -100,21 +100,13 @@ export default function Stream (props) {
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
 
-  // TODO: merge this and getTypes
-  const determinePostTypeFilter = useCallback(() => {
-    if (view === 'projects') return 'project'
-    if (view === 'decisions') return 'proposal'
-    if (view === 'events') return 'event'
-    return querystringParams.t || defaultPostType
-  }, [querystringParams, defaultPostType, view])
+  const getPostTypes = useCallback(() => {
+    return (customView?.type === 'stream')
+      ? customView?.postTypes
+      : systemView?.postTypes || querystringParams.t || defaultPostType || null
+  }, [customView, systemView])
 
-  const postTypeFilter = determinePostTypeFilter()
-
-  const getTypes = useCallback(({ customView }) => {
-    if (customView?.type === 'stream') return customView?.postTypes
-    if (systemView) return systemView?.postTypes
-    return null
-  }, [systemView])
+  const postTypes = getPostTypes()
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
@@ -123,13 +115,12 @@ export default function Stream (props) {
       activePostsOnly: customView?.type === 'stream' ? customView?.activePostsOnly : false,
       childPostInclusion,
       context,
-      filter: postTypeFilter,
       forCollection: customView?.type === 'collection' ? customView?.collectionId : null,
       search,
       slug: groupSlug,
       sortBy,
       topics,
-      types: getTypes({ customView, view })
+      types: postTypes
     }
     if (view === 'events') {
       params.afterTime = timeframe === 'future' ? new Date().toISOString() : undefined
@@ -137,7 +128,7 @@ export default function Stream (props) {
       params.order = timeframe === 'future' ? 'asc' : 'desc'
     }
     return params
-  }, [childPostInclusion, context, customView, groupSlug, postTypeFilter, timeframe, topic?.id, topicName, sortBy, search, view])
+  }, [childPostInclusion, context, customView, groupSlug, postTypes, timeframe, topic?.id, topicName, sortBy, search, view])
 
   let name = customView?.name || systemView?.name || ''
   let icon = customView?.icon || systemView?.iconName
@@ -308,12 +299,12 @@ export default function Stream (props) {
             newPost={newPost}
             querystringParams={querystringParams}
             routeParams={routeParams}
-            type={postTypeFilter}
+            type={postTypes}
           />
         )}
         <ViewControls
           routeParams={routeParams} view={view} customPostTypes={customView?.type === 'stream' ? customView?.postTypes : null} customViewType={customView?.type}
-          postTypeFilter={postTypeFilter} sortBy={sortBy} viewMode={viewMode} searchValue={search}
+          postTypeFilter={postTypes} sortBy={sortBy} viewMode={viewMode} searchValue={search}
           changeTab={changeTab} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
           decisionView={decisionView} changeDecisionView={changeDecisionView} changeTimeframe={changeTimeframe} timeframe={timeframe}
