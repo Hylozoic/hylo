@@ -1,4 +1,3 @@
-
 exports.up = async function(knex) {
 
   await knex.raw(`
@@ -84,7 +83,7 @@ exports.up = async function(knex) {
   // Process each group in its own transaction
   for (const groupId of groupIds) {
     console.log('Processing group', groupId,)
-    const trx = await knex.transaction();
+    const trx = await knex.transaction()
 
     try {
       await trx.raw(`
@@ -184,7 +183,7 @@ exports.up = async function(knex) {
         UPDATE context_widgets
         SET parent_id = (SELECT id FROM auto_add_widget), "order" = 9
         WHERE (type = 'groups' and group_id = ? AND auto_added = FALSE) AND EXISTS (SELECT 1 FROM has_related_groups);
-      `, [groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId]);
+      `, [groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId, groupId])
 
       await trx.raw(`
         WITH auto_add_widget AS (
@@ -203,15 +202,14 @@ exports.up = async function(knex) {
         WHERE context_widgets.id = numbered_widgets.id
       `, [groupId])
 
-      await trx.commit();
+      await trx.commit()
     } catch (error) {
-      await trx.rollback();
-      throw error;
+      await trx.rollback()
+      throw error
     }
-  }
-  
+  }  
 };
 
 exports.down = function(knex) {
-  
+  return Promise.resolve()
 };
