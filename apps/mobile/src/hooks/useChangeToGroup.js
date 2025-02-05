@@ -2,7 +2,7 @@ import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import confirmNavigate from 'util/confirmNavigate'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import { isContextGroup } from '@hylo/presenters/GroupPresenter'
+import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 import { useCurrentGroupSlug } from '@hylo/hooks/useCurrentGroup'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
@@ -20,7 +20,7 @@ export default function useChangeToGroup () {
 
     if (groupSlug === currentGroupSlug) return
 
-    const canViewGroup = myMemberships.find(m => m.group.slug === groupSlug) || isContextGroup(groupSlug)
+    const canViewGroup = myMemberships.find(m => m.group.slug === groupSlug) || isContextGroupSlug(groupSlug)
 
     if (canViewGroup) {
       const goToGroup = () => {

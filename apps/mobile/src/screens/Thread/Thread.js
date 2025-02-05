@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
@@ -120,10 +120,6 @@ export default function Thread() {
     }
   }, [messages, atBottom])
 
-  const renderItem = ({ item }) => (
-    <MessageCard message={item} />
-  )
-
   return (
     <KeyboardFriendlyView style={styles.container}>
       {fetching && <Loading />}
@@ -137,7 +133,9 @@ export default function Thread() {
         onEndReachedThreshold={0.3}
         onScroll={handleScroll}
         ref={messageListRef}
-        renderItem={renderItem}
+        renderItem={({ item }) => (
+          <MessageCard message={item} />
+        )}
       />
       {!!(newMessages && !atBottom) && (
         <NotificationOverlay

@@ -97,14 +97,21 @@ export function getCurrentStepIndex (state) {
 
 export function getRouteNames (group, currentMembership) {
   const routeNames = [GROUP_WELCOME_LANDING]
-  const { agreements, joinQuestions, suggestedSkills, settings } = group
+  const { agreements, settings } = group
   if (!isEmpty(agreements)) {
     routeNames.push(GROUP_WELCOME_AGREEMENTS)
   }
-  if (settings.askJoinQuestions && !isEmpty(joinQuestions) && !currentMembership?.settings?.joinQuestionsAnsweredAt) {
+  if (
+    settings.askJoinQuestions &&
+    !isEmpty(group?.joinQuestions?.items) &&
+    !currentMembership?.settings?.joinQuestionsAnsweredAt
+  ) {
     routeNames.push(GROUP_WELCOME_JOIN_QUESTIONS)
   }
-  if (!isEmpty(suggestedSkills) && settings?.showSuggestedSkills) {
+  if (
+    !isEmpty(group?.suggestedSkills?.items) &&
+    group?.settings?.showSuggestedSkills
+  ) {
     routeNames.push(GROUP_WELCOME_SUGGESTED_SKILLS)
   }
   return routeNames

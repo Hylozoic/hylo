@@ -1,5 +1,4 @@
 export const _PENDING = '_PENDING'
-export const LOGIN = 'LOGIN'
 export const LOGIN_BY_JWT = 'LOGIN_BY_JWT'
 export const LOGIN_BY_TOKEN = 'LOGIN_BY_TOKEN'
 export const LOGOUT = 'LOGOUT'
