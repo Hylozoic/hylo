@@ -105,7 +105,6 @@ import {
   setHomeWidget,
   subscribe,
   swapProposalVote,
-  transitionGroupToNewMenu,
   unblockUser,
   unfulfillPost,
   unlinkAccount,
@@ -488,8 +487,6 @@ export function makeMutations ({ fetchOne }) {
     subscribe: (root, { groupId, topicId, isSubscribing }, context) => subscribe(context.currentUserId, topicId, groupId, isSubscribing),
 
     swapProposalVote: (root, { postId, removeOptionId, addOptionId }, context) => swapProposalVote({ userId: context.currentUserId, postId, removeOptionId, addOptionId }),
-
-    transitionGroupToNewMenu: (root, { groupId }, context) => transitionGroupToNewMenu({ userId: context.currentUserId, groupId }),
 
     unblockUser: (root, { blockedUserId }, context) => unblockUser(context.currentUserId, blockedUserId),
 
