@@ -99,7 +99,7 @@ export default function CalendarEvent ({
         <motion.div
           className={cn(
             classes[event.type],
-            `px-1 py-1 rounded-md truncate cursor-pointer transition-all duration-300 border border-${event.color}-500`,
+            'px-1 py-1 rounded-md truncate cursor-pointer transition-all duration-300 border',
             !month && 'absolute',
             className
           )}
@@ -143,7 +143,7 @@ export default function CalendarEvent ({
         >
           <motion.div
             className={cn(
-              `flex flex-col w-full text-${event.color}-500`,
+              'flex flex-col w-full',
               month && 'flex-row items-center justify-between'
             )}
             layout='position'
