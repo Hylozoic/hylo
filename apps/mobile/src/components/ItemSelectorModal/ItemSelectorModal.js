@@ -8,6 +8,7 @@ import RoundCheckbox from 'components/RoundCheckBox'
 import SearchBar from 'components/SearchBar'
 import { havelockBlue, rhino80, rhino50, white, caribbeanGreen, rhino10 } from 'style/colors'
 
+// TODO: URQL! Finish styling this modal component
 const ItemSelectorModalHeader = ({
   searchTerm,
   headerText,
