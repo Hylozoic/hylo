@@ -182,7 +182,7 @@ export function customViewUrl (customViewId, rootPath, opts) {
 
 export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
   if (!widget) return null
-  // TODO redesign: isContextGroup function or similar could replace this. Needs to be added to shared
+  // TODO redesign: isContextGroupSlug function or similar could replace this. Needs to be added to shared
   const groupSlug = ['my', 'all', 'public'].includes(providedSlug) ? null : providedSlug
   let url = ''
   if (widget.url) return widget.url

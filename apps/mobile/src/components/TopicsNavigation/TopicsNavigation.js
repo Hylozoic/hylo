@@ -4,7 +4,6 @@ import Icon from 'components/Icon'
 import Loading from 'components/Loading/Loading'
 import useEnsureGroupTopics from 'hooks/useEnsureGroupTopics'
 import useGoToTopic from 'hooks/useGoToTopic'
-import { openURL } from 'hooks/useOpenURL'
 import { rhino05, slateGrey80 } from 'style/colors'
 
 export default function TopicsNavigation ({ group }) {
@@ -12,8 +11,6 @@ export default function TopicsNavigation ({ group }) {
   const goToTopic = useGoToTopic()
 
   if (pending || !group) return (<Loading />)
-
-  // const topics = group?.groupTopics.filter(t => t.isDefault)
 
   return (
     <View style={{ marginBottom: 20 }}>

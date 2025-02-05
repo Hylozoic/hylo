@@ -7,7 +7,6 @@ import { devtoolsExchange } from '@urql/devtools'
 import fetch from 'cross-fetch'
 import apiHost from 'util/apiHost'
 import { setSessionCookie } from 'util/session'
-import mobileSubscriptionExchange from './mobileSubscriptionExchange'
 import keys from './keys'
 import resolvers from './resolvers'
 import optimistic from './optimistic'
@@ -29,7 +28,10 @@ export async function fetchGraphqlSchema (endpoint) {
   return result.data
 }
 
-export default async function makeUrqlClient ({ schemaAwareness = false } = {}) {
+export default async function makeUrqlClient ({
+  subscriptionExchange: providedSubscriptionExchange,
+  schemaAwareness = false
+} = {}) {
   const schema = schemaAwareness && await fetchGraphqlSchema(GRAPHQL_ENDPOINT_URL)
   if (schema) console.log('URQL Schema Awareness turned on')
 
@@ -47,7 +49,7 @@ export default async function makeUrqlClient ({ schemaAwareness = false } = {}) 
       devtoolsExchange,
       cache,
       fetchExchange,
-      mobileSubscriptionExchange
+      providedSubscriptionExchange
     ],
     fetch: async (...args) => {
       const response = await fetch(...args)
@@ -72,12 +74,12 @@ export default async function makeUrqlClient ({ schemaAwareness = false } = {}) 
   return client
 }
 
-export function useMakeUrqlClient () {
+export function useMakeUrqlClient (options = {}) {
   const [urqlClient, setUrqlClient] = useState()
 
   useEffect(() => {
     (async () => {
-      const client = await makeUrqlClient()
+      const client = await makeUrqlClient(options)
       setUrqlClient(client)
     })()
   }, [])

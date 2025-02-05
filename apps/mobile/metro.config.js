@@ -30,6 +30,7 @@ const config = {
     ]
   },
   // Hoisted monorepo deps, and shared packages
+  // Look into https://github.com/mmazzarolo/react-native-monorepo-tools for other another ways to handle this
   watchFolders: [
     path.resolve(__dirname, '../../node_modules'),
     path.resolve(__dirname, '../../packages/config'),

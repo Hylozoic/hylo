@@ -1,5 +1,4 @@
 import React, { useCallback, useRef, useState } from 'react'
-import { useSelector } from 'react-redux'
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
@@ -19,9 +18,7 @@ export default function Login () {
   const navigation = useNavigation()
   const passwordInputRef = useRef()
   const { login, checkAuth } = useAuth()
-  const defaultLoginEmail = useSelector(state => state.session?.defaultLoginEmail)
-
-  const [email, providedSetEmail] = useState(defaultLoginEmail)
+  const [email, providedSetEmail] = useState()
   const [password, providedSetPassword] = useState()
   const [securePassword, setSecurePassword] = useState(true)
   const [emailIsValid, setEmailIsValid] = useState()

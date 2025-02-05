@@ -8,6 +8,7 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import { push } from 'redux-first-history'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 
+import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 import Loading from 'components/Loading'
 import ModerationListItem from 'components/ModerationListItem/ModerationListItem'
 import NoPosts from 'components/NoPosts'
@@ -22,14 +23,12 @@ import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
-import { ViewHelpers } from '@hylo/shared'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 import { fetchModerationActions, clearModerationAction } from 'store/actions/moderationActions'
-import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import { FETCH_MODERATION_ACTIONS, FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
@@ -77,15 +76,15 @@ export default function Stream (props) {
   const groupId = group?.id || 0
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
-  const systemView = ViewHelpers.COMMON_VIEWS[view]
+  const systemView = COMMON_VIEWS[view]
   const customView = useSelector(state => getCustomView(state, customViewId))
 
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
 
-  const defaultSortBy = get('settings.streamSortBy', currentUser) || systemView?.defaultSortBy || 'created'
-  const defaultViewMode = get('settings.streamViewMode', currentUser) || systemView?.defaultViewMode || 'cards'
-  const defaultPostType = get('settings.streamPostType', currentUser) || undefined
-  const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || 'yes'
+  const defaultSortBy = systemView?.defaultSortBy || get('settings.streamSortBy', currentUser) || 'created'
+  const defaultViewMode = systemView?.defaultViewMode || get('settings.streamViewMode', currentUser) || 'cards'
+  const defaultPostType = systemView?.defaultPostType || get('settings.streamPostType', currentUser) || undefined
+  const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || systemView?.defaultChildPostInclusion || 'yes'
 
   const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe'], location)
 
@@ -115,7 +114,7 @@ export default function Stream (props) {
     if (customView?.type === 'stream') return customView?.postTypes
     if (systemView) return systemView?.postTypes
     return null
-  }, [])
+  }, [view])
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
@@ -141,7 +140,7 @@ export default function Stream (props) {
   }, [childPostInclusion, context, customView, groupSlug, postTypeFilter, timeframe, topic?.id, topicName, sortBy, search, view])
 
   let name = customView?.name || systemView?.name || ''
-  let icon = customView?.icon || systemView?.icon
+  let icon = customView?.icon || systemView?.iconName
   if (topicName) {
     name = '#' + topicName
   }

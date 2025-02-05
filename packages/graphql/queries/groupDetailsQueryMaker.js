@@ -6,6 +6,7 @@ import groupJoinQuestionsFieldsFragment from '../fragments/groupJoinQuestionsFie
 import groupPendingInvitationsFieldsFragment from '../fragments/groupPendingInvitationsFieldsFragment'
 import groupPrerequisiteGroupsFieldsFragment from '../fragments/groupPrerequisiteGroupsFieldsFragment'
 import groupWidgetsFieldsFragment from '../fragments/groupWidgetsFieldsFragment'
+import groupContextWidgetsFieldsFragment from '../fragments/groupContextWidgetsFieldsFragment'
 
 // Note: The previous defaults args for fetchGroupDetails were:
 // withExtensions = true,
@@ -19,7 +20,8 @@ export default function groupDetailsQueryMaker ({
   withTopics = false,
   withJoinQuestions = false,
   withPrerequisiteGroups = false,
-  withPendingInvitations = false
+  withPendingInvitations = false,
+  withContextWidgets = false
 } = {}) {
   return gql`
     query GroupDetailsQuery ($slug: String, $id: ID) {
@@ -27,6 +29,7 @@ export default function groupDetailsQueryMaker ({
         ...GroupFieldsFragment
         ${withExtensions ? '...GroupGroupExtensionsFieldsFragment' : ''}
         ${withWidgets ? '...GroupWidgetsFieldsFragment' : ''}
+        ${withContextWidgets ? '...GroupContextWidgetsFieldsFragment' : ''}
         ${withTopics ? '...GroupGroupTopicsFieldsFragment' : ''}
         ${withJoinQuestions ? '...GroupJoinQuestionsFieldsFragment' : ''}
         ${withPrerequisiteGroups ? '...GroupPrerequisiteGroupsFieldsFragment' : ''}
@@ -36,6 +39,7 @@ export default function groupDetailsQueryMaker ({
     ${groupFieldsFragment}
     ${withExtensions ? groupGroupExtensionsFieldsFragment : ''}
     ${withWidgets ? groupWidgetsFieldsFragment : ''}
+    ${withContextWidgets ? groupContextWidgetsFieldsFragment : ''}
     ${withTopics ? groupGroupTopicsFieldsFragment : ''}
     ${withJoinQuestions ? groupJoinQuestionsFieldsFragment : ''}
     ${withPrerequisiteGroups ? groupPrerequisiteGroupsFieldsFragment : ''}

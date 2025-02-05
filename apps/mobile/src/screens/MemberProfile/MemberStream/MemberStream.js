@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { Text, View, TouchableOpacity, FlatList } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, gql } from 'urql'

@@ -8,11 +8,13 @@ import { useTranslation } from 'react-i18next'
 import Icon from 'components/Icon'
 import PopupMenuButton from 'components/PopupMenuButton'
 import { filter, get, isEmpty } from 'lodash/fp'
+import { AnalyticsEvents } from '@hylo/shared'
 import { AXOLOTL_ID } from '@hylo/presenters/PersonPresenter'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import mixpanel from 'services/mixpanel'
 import Control from 'screens/MemberProfile/Control'
 import { openURL } from 'hooks/useOpenURL'
 import { useNavigation } from '@react-navigation/native'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { useMutation } from 'urql'
 import blockUserMutation from '@hylo/graphql/mutations/blockUserMutation'
 import styles from './MemberHeader.styles'
@@ -30,7 +32,6 @@ export default function MemberHeader ({
   const { t } = useTranslation()
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
-  // TODO: URQL - analytics: AnalyticsEvents.BLOCK_USER
   const [, blockUser] = useMutation(blockUserMutation)
 
   if (!person) return null
@@ -54,6 +55,7 @@ export default function MemberHeader ({
   const handleBlockUserWithConfirmation = () => {
     const blockUserFun = async () => {
       await blockUser(person.id)
+      mixpanel.track(AnalyticsEvents.BLOCK_USER)
       navigation.goBack()
     }
 

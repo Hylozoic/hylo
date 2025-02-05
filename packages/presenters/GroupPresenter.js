@@ -1,45 +1,30 @@
 import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
+import ContextWidgetPresenter, { getStaticMenuWidgets } from './ContextWidgetPresenter'
 
 export default function GroupPresenter (group) {
-  if (!group) return null
+  if (!group || group?._presented) return group
 
   return {
     ...group,
-    activeProjects: group.activeProjects || [],
-    agreements: group?.agreements?.items ? group.agreements.items.sort((a, b) => a.order - b.order) : [],
-    announcements: group.announcements
-      ? group.announcements.map(a => ({
-        ...a,
-        author: a.creator.name,
-        primaryImage: a.attachments.length > 0 ? a.attachments[0].url : false
-      }))
-      : [],
-    // TODO: URQL - convert
-    customViews: group?.customViews?.items || [],
-    // customViews: group.customViews
-    //   ? group.customViews.items.map(cv => ({
-    //     ...cv,
-    //     collection: cv.collection ? presentCollection(cv.collection) : null,
-    //     topics: cv.topics.map(topic => presentTopic(topic, {}))
-    //   }))
-    //   : [],
-    groupToGroupJoinQuestions: group?.groupToGroupJoinQuestions || [],
-    groupTopics: group?.groupTopics?.items
-      ? group.groupTopics.items.map(groupTopic => ({ ...groupTopic, name: groupTopic.topic.name }))
-      : [],
-    joinQuestions: group.joinQuestions ? group.joinQuestions.items : [],
-    members: group.members ? group.members : [],
-    stewards: group.stewards ? group.stewards : [],
-    openOffersAndRequests: group.openOffersAndRequests || [],
-    prerequisiteGroups: group.prerequisiteGroups
-      ? group.prerequisiteGroups.items?.map(prereq => ({ ...prereq, joinQuestions: prereq.joinQuestions || [] }))
-      : [],
-    suggestedSkills: group?.suggestedSkills?.items || [],
-    upcomingEvents: group.upcomingEvents
-      ? group.upcomingEvents.map(p => ({ ...p, primaryImage: p.attachments.length > 0 ? p.attachments[0].url : false }))
-      : [],
-    widgets: group.widgets || []
+    // Note: Currently this flattens to the QuerySet attribute of ".items"
+    // Until more is clear we are not flattening items so that non-presented results (most)
+    // from queries work largely the same as presented results (e.g. group?.posts?.items, etc)
+    contextWidgets: contextWidgetsResolver(group),
+    _presented: true
   }
+}
+
+function contextWidgetsResolver (group) {
+  if (isContextGroupSlug(group.slug)) {
+    return getStaticMenuWidgets({
+      isPublic: group.slug === PUBLIC_CONTEXT_SLUG,
+      isMyContext: group.slug === MY_CONTEXT_SLUG,
+      isAllContext: group.slug === ALL_GROUPS_CONTEXT_SLUG,
+      profileUrl: ''
+    })
+  }
+  // TODO redesign: Presented widgets, but they need a t object (or to add global--see note in ContextWidgetPresenter)
+  return (group?.contextWidgets?.items || []).map(ContextWidgetPresenter)
 }
 
 export const GROUP_ACCESSIBILITY = {
@@ -158,7 +143,7 @@ export const MY_CONTEXT_GROUP = {
   childGroups: { items: [], hasMore: false, total: 0 }
 }
 
-export const isContextGroup = slug =>
+export const isContextGroupSlug = slug =>
   [ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(slug)
 
 export function getContextGroup (groupSlug, groupId) {

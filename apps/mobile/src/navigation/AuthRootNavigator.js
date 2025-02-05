@@ -4,8 +4,8 @@ import { createStackNavigator } from '@react-navigation/stack'
 import Intercom from '@intercom/intercom-react-native'
 import { LogLevel, OneSignal } from 'react-native-onesignal'
 import { gql, useMutation, useQuery, useSubscription } from 'urql'
-import i18n from '../../i18n'
 import mixpanel from 'services/mixpanel'
+import { useTranslation } from 'react-i18next'
 import { version as hyloAppVersion } from '../../package.json'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
 import { modalScreenName } from 'hooks/useIsModalScreen'
@@ -46,6 +46,7 @@ const updatesSubscription = gql`
         creator {
           id
           name
+          avatarUrl
         }
         messageThread {
           id
@@ -65,15 +66,16 @@ export default function AuthRootNavigator () {
   // to cache-and-network or cache-first (default). It may be fine here, but it is
   // the only place we should do this with useCurrentUser as it would be expensive
   // lower in the stack where it may get called in any loops and such.
+  const { i18n } = useTranslation()
   const [{ currentUser, fetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
   const [loading, setLoading] = useState(true)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   const [, registerDevice] = useMutation(registerDeviceMutation)
 
+  useSubscription({ query: updatesSubscription })
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
-  useSubscription({ query: updatesSubscription })
 
   useEffect(() => {
     resetNotificationsCount()
@@ -104,6 +106,7 @@ export default function AuthRootNavigator () {
         }
 
         // Intercom user setup
+        // TODO: URQL - does  setUserHash need to happen? Test. It stopped working.
         // Intercom.setUserHash(user.hash)
         Intercom.loginUserWithUserAttributes({
           userId: currentUser?.id,

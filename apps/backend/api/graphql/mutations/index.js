@@ -191,6 +191,12 @@ export function markAllActivitiesRead (userId) {
     .then(() => ({ success: true }))
 }
 
+export async function markThreadRead (root, { messageThreadId }, context) {
+  const messageThread = await Post.find(messageThreadId)
+  await messageThread.markAsRead(context.currentUserId)
+  return messageThread
+}
+
 export function unlinkAccount (userId, provider) {
   return User.find(userId)
     .then(user => {

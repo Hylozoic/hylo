@@ -55,8 +55,6 @@ export default function reducer (state = initialState, action) {
   return state
 }
 
-// TODO: URQL - analytics
-// AnalyticsEvents.GROUP_CREATED (see action to get metadata that is sent)
 export const createGroupMutation = gql`
   mutation CreateGroupMutation ($data: GroupInput) {
     createGroup(data: $data) {
