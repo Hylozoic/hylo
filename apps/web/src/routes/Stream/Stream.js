@@ -114,7 +114,7 @@ export default function Stream (props) {
     if (customView?.type === 'stream') return customView?.postTypes
     if (systemView) return systemView?.postTypes
     return null
-  }, [])
+  }, [view])
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
