@@ -1,47 +1,63 @@
+export default function CustomViewPresenter (customView, { t }) {
+  if (!customView || customView?._presented) return customView
+
+  return {
+    ...customView,
+    // add attributes
+    _presented: true
+  }
+}
+
+/* == Attribute Resolvers == */
+
+// Add resolvers for generating the presenter attributes, name in the form of <attributeName>Resolver
+
+/* == ContextWidget collection and utility functions == */
+
 export const COMMON_VIEWS = {
   'ask-and-offer': {
     name: 'Ask & Offer',
-    icon: 'Request',
+    iconName: 'Request',
     defaultViewMode: 'bigGrid',
     postTypes: ['request', 'offer'],
     defaultSortBy: 'created'
   },
   decisions: {
     name: 'Decisions',
-    icon: 'Proposal',
+    iconName: 'Proposal',
     defaultViewMode: 'cards',
     postTypes: ['proposal'],
     defaultSortBy: 'created'
   },
   discussions: {
     name: 'Discussions',
-    icon: 'Message',
+    iconName: 'Message',
     defaultViewMode: 'list',
     postTypes: ['discussion'],
     defaultSortBy: 'updated'
   },
   events: {
     name: 'Events',
-    icon: 'Calendar',
+    iconName: 'Calendar',
     defaultViewMode: 'cards',
     postTypes: ['event'],
     defaultSortBy: 'start_time'
   },
   groups: {
     name: 'Groups',
-    icon: 'Groups'
+    iconName: 'Groups'
   },
   map: {
     name: 'Map',
-    icon: 'Globe'
+    iconName: 'Globe'
   },
   members: {
     name: 'Members',
-    icon: 'People'
+    iconName: 'People'
   },
   projects: {
     name: 'Projects',
-    icon: 'Stack',
+    iconName: 'Stack',
     defaultViewMode: 'bigGrid',
     postTypes: ['project'],
     defaultSortBy: 'created'
@@ -55,6 +71,8 @@ export const COMMON_VIEWS = {
   },
   stream: {
     name: 'Stream',
-    icon: 'Stream'
+    iconName: 'Stream',
+    defaultViewMode: 'cards',
+    defaultSortBy: 'created'
   }
 }

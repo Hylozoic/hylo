@@ -1,15 +1,21 @@
 import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
 
-export function getContextWidgetsForGroup (group){
+export function getContextWidgetsForGroup (group) {
   if (!group) return []
-  if (isContextGroup(group.slug)){
-    return getStaticMenuWidgets({ isPublic: group.slug === PUBLIC_CONTEXT_SLUG, isMyContext: group.slug === MY_CONTEXT_SLUG, isAllContext: group.slug === ALL_GROUPS_CONTEXT_SLUG, profileUrl: '' })
+  if (isContextGroup(group.slug)) {
+    return getStaticMenuWidgets({
+      isPublic: group.slug === PUBLIC_CONTEXT_SLUG,
+      isMyContext: group.slug === MY_CONTEXT_SLUG,
+      isAllContext: group.slug === ALL_GROUPS_CONTEXT_SLUG,
+      profileUrl: ''
+    })
   }
   return group?.contextWidgets.items || []
 }
 
 export default function GroupPresenter (group) {
-  if (!group) return null
+  if (!group || group?._presented) return group
+
   return {
     ...group,
     activeProjects: group.activeProjects || [],
@@ -22,7 +28,7 @@ export default function GroupPresenter (group) {
       }))
       : [],
     // TODO: URQL - convert
-    contextWidgets: group?.contextWidgets.items
+    contextWidgets: group?.contextWidgets?.items
       ? getContextWidgetsForGroup(group)
       : [],
     customViews: group?.customViews?.items || [],
@@ -48,7 +54,8 @@ export default function GroupPresenter (group) {
     upcomingEvents: group.upcomingEvents
       ? group.upcomingEvents.map(p => ({ ...p, primaryImage: p.attachments.length > 0 ? p.attachments[0].url : false }))
       : [],
-    widgets: group.widgets || []
+    widgets: group.widgets || [],
+    _presented: true
   }
 }
 

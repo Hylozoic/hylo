@@ -2,7 +2,7 @@ import React from 'react'
 import { Text, ScrollView, View, TouchableOpacity } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import GroupPresenter, { isContextGroup, PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
+import { isContextGroup, PUBLIC_GROUP_ID } from 'presenters/GroupPresenter'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import { openURL } from 'hooks/useOpenURL'
@@ -73,7 +73,9 @@ export default function GroupNavigation () {
           onPress: customView.type === 'externalLink'
             ? () => openURL(customView.externalLink)
             : () => navigate('Stream', { customViewId: customView?.id })
-        }))
+        })),
+        // TODO redesign: Temporary placement of All Views for testing
+        { label: t('All Views'), iconName: 'Grid3x3', onPress: () => navigate('All Views') }
       ]
 
   const shownNavItems = navItems.filter(navItem => !navItem?.hidden)

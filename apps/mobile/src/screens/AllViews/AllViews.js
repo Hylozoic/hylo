@@ -1,24 +1,21 @@
 import React, { useMemo } from 'react'
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useNavigation } from '@react-navigation/native'
-import { WidgetHelpers, NavigatorHelpers } from '@hylo/shared'
-import { Plus } from 'lucide-react-native'
+import { capitalize } from 'lodash/fp'
+import { widgetUrl as makeWidgetUrl } from 'util/navigation'
+import { openURL } from 'hooks/useOpenURL'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
-import ContextWidgetPresenter from '@hylo/shared/src/ContextWidgetPresenter'
+import ContextWidgetPresenter from '@hylo/presenters/ContextWidgetPresenter'
 import WidgetIconResolver from 'components/WidgetIconResolver'
-import { openURL } from 'hooks/useOpenURL'
-import { widgetUrl } from 'util/navigation'
 
-function WidgetCard({ widget, onPress }) {
+function WidgetCard ({ widget, onPress }) {
   const { t } = useTranslation()
+
   if (!widget) return null
-  const capitalizedType = widget?.humanReadableType.charAt(0).toUpperCase() + widget?.humanReadableType.slice(1)
-  const capitalizedView = widget.view ? widget.view.charAt(0).toUpperCase() + widget.view.slice(1) : ''
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       onPress={onPress}
       className='p-4 border border-foreground/20 rounded-md shadow-sm bg-background'
     >
@@ -26,12 +23,12 @@ function WidgetCard({ widget, onPress }) {
         <Text className='text-lg font-semibold text-foreground mb-2'>{widget.title}</Text>
         {widget.humanReadableType && (
           <Text className='text-sm text-foreground/70'>
-            {t('Type')}: {t(capitalizedType)}
+            {t('Type')}: {t(capitalize(widget?.humanReadableType))}
           </Text>
         )}
         {widget.view && (
           <Text className='text-sm text-foreground/70'>
-            {t('View')}: {t(capitalizedView)}
+            {t('View')}: {t(capitalize(widget?.view))}
           </Text>
         )}
         <View className='mt-2'>
@@ -42,14 +39,12 @@ function WidgetCard({ widget, onPress }) {
   )
 }
 
-export default function AllView() {
+export default function AllViews () {
   const { t } = useTranslation()
-  const navigation = useNavigation()
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdminister = hasResponsibility(RESP_ADMINISTRATION)
   const contextWidgets = currentGroup.contextWidgets
-  
   const visibleWidgets = useMemo(() => {
     return contextWidgets.filter(widget => {
       if (widget.visibility === 'admin' && !canAdminister) return false
@@ -59,7 +54,7 @@ export default function AllView() {
   }, [contextWidgets, canAdminister])
 
   const handleWidgetPress = (widget) => {
-    const widgetUrl = NavigatorHelpers.widgetUrl({ widget, groupSlug: currentGroup?.slug })
+    const widgetUrl = makeWidgetUrl({ widget, groupSlug: currentGroup?.slug })
 
     if (widgetUrl) {
       openURL(widgetUrl)
@@ -81,4 +76,4 @@ export default function AllView() {
       </View>
     </ScrollView>
   )
-} 
+}
