@@ -5,6 +5,8 @@ import { CalendarEvent, Mode } from './calendar-types'
 export default function CalendarProvider ({
   events,
   routeParams,
+  locationParams,
+  querystringParams,
   mode,
   setMode,
   date,
@@ -14,6 +16,12 @@ export default function CalendarProvider ({
 }: {
   events: CalendarEvent[]
   routeParams: {
+    [x: string]: string | string[];
+  }
+  locationParams: {
+    [x: string]: string | string[];
+  }
+  querystringParams: {
     [x: string]: string | string[];
   }
   mode: string
@@ -28,6 +36,8 @@ export default function CalendarProvider ({
       value={{
         events,
         routeParams,
+        locationParams,
+        querystringParams,
         mode,
         setMode,
         date,

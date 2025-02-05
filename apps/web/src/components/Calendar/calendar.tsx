@@ -9,15 +9,16 @@ import CalendarHeaderDate from './header/date/calendar-header-date'
 import CalendarHeaderActionsMode from './header/actions/calendar-header-actions-mode'
 import CalendarProvider from './calendar-provider'
 import { DateTime } from 'luxon'
-import useRouteParams from 'hooks/useRouteParams'
 
 export default function Calendar ({
   posts,
+  routeParams,
+  locationParams,
+  querystringParams,
   calendarIconIsToday = true
 }: CalendarProps) {
   const [mode, setMode] = useState('month')
   const [date, setDate] = useState(new Date())
-  const routeParams = useRouteParams()
 
   // map posts objects to calendar "event" objects
   // unique color per post type
@@ -41,6 +42,8 @@ export default function Calendar ({
     <CalendarProvider
       events={events}
       routeParams={routeParams}
+      locationParams={locationParams}
+      querystringParams={querystringParams}
       mode={mode}
       setMode={setMode}
       date={date}
