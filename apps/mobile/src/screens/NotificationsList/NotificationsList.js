@@ -12,8 +12,6 @@ import {
 import ModalHeader from 'navigation/headers/ModalHeader'
 import NotificationCard from 'components/NotificationCard'
 import CreateGroupNotice from 'components/CreateGroupNotice'
-import Loading from 'components/Loading'
-import cardStyles from 'components/NotificationCard/NotificationCard.styles'
 import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
 import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -38,7 +36,12 @@ export default function NotificationsList (props) {
   // TODO: markAllActivitiesRead needs to optimistically updated
   const [, markAllActivitiesRead] = useMutation(markAllActivitiesReadMutation)
   const [{ currentUser }] = useCurrentUser()
-  const [{ data, fetching }] = useQuery({ query: notificationsQuery, variables: { offset } })
+  const [{ data, fetching }, fetchNotifications] = useQuery({ query: notificationsQuery, variables: { offset } })
+
+  const refreshNotifications = async () => {
+    setOffset(0)
+    fetchNotifications({ requestPolicy: 'network-only' })
+  }
 
   const notifications = refineNotifications(data?.notifications?.items, navigation)
   const hasMore = notifications?.hasMore
@@ -88,16 +91,11 @@ export default function NotificationsList (props) {
 
   return (
     <View style={styles.notificationsList}>
-      {fetching && (
-        <View style={cardStyles.container}>
-          <View style={cardStyles.content}>
-            <Loading />
-          </View>
-        </View>
-      )}
       <FlatList
         data={notifications}
         keyExtractor={keyExtractor}
+        onRefresh={refreshNotifications}
+        refreshing={fetching}
         onEndReached={hasMore ? () => setOffset(notifications?.length) : null}
         renderItem={({ item }) =>
           <NotificationRow

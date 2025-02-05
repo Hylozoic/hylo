@@ -27,7 +27,7 @@ export default function ThreadCard ({ message, currentUser, participants, isLast
       <View style={[styles.messageContent, isLast && styles.lastCard]}>
         <Text style={styles.header}>{names}</Text>
         <Text style={styles.body} numberOfLines={2}>{messageCreatorPrepend}{latestMessagePreview}</Text>
-        <Text style={styles.date}>{TextHelpers.humanDate(message?.createdAt)}</Text>
+        <Text style={styles.date}>{TextHelpers.humanDate(message?.createdAt)}{unread}</Text>
       </View>
     </View>
   )

@@ -1,8 +1,9 @@
 import { subscriptionExchange } from 'urql'
 import EventSource from 'react-native-sse'
 import { URL } from 'react-native-url-polyfill'
-import { GRAPHQL_ENDPOINT_URL } from './makeUrqlClient'
+import { GRAPHQL_ENDPOINT_URL } from '@hylo/urql/makeUrqlClient'
 
+// TODO: URQL! -- Add reconnect/retry handling
 export default subscriptionExchange({
   forwardSubscription: (operation) => {
     const url = new URL(GRAPHQL_ENDPOINT_URL)
