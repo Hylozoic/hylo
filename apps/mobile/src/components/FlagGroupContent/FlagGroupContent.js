@@ -38,7 +38,7 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
     variables: { slug: groupSlug }
   })
   const group = useMemo(() => GroupPresenter(groupData?.group), [groupData])
-  const agreements = group?.agreements || []
+  const agreements = group?.agreements?.items || []
   const groupAgreementsUrl = group ? groupUrl(group.slug) + `/group/${group.slug}` : ''
   const [anonymous, setAnonymous] = useState(false)
   const [explanation, setExplanation] = useState('')
