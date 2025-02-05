@@ -1,3 +1,4 @@
+import { cn } from 'util/index'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Tooltip } from 'react-tooltip'
@@ -29,7 +30,8 @@ export default function SavedSearches (props) {
         <div className={classes.title}>
           <span>
             <h2>{t('Save this view')}</h2>
-            {t('Get updates about this map view')}</span>
+            {t('Get updates about this map view')}
+          </span>
           <Icon name='Ex' className={classes.close} onClick={toggle} />
         </div>
 
@@ -41,7 +43,7 @@ export default function SavedSearches (props) {
               placeholder={t('Name this view')}
               value={name}
             />
-            <span className={cx(classes.save, { [classes.disabled]: !canSave })} onClick={canSave ? () => saveSearch(name) : undefined}>{t('Save')}</span>
+            <span className={cn(classes.save, { [classes.disabled]: !canSave })} onClick={canSave ? () => saveSearch(name) : undefined}>{t('Save')}</span>
           </div>
           <div className={classes.filters}><Icon name='Info' className={classes.info} /><span className={classes.currentFilters}>{currentFilters(filters)}</span></div>
         </div>
@@ -68,7 +70,7 @@ const SavedSearch = ({ deleteSearch, viewSavedSearch, search }) => {
           <div className={classes.view} onClick={() => viewSavedSearch(search)}>{t('View')}</div>
         </div>
       </div>
-      <div className={cx(classes.row, classes.filters)} data-tooltip-content={formatParams(search)} data-tooltip-id='params'>
+      <div className={cn(classes.row, classes.filters)} data-tooltip-content={formatParams(search)} data-tooltip-id='params'>
         <Icon name='Info' className={classes.info} />
         <span className={classes.savedFilters}>
           <span>{formatParamPreview(search)}</span>

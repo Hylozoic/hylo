@@ -41,12 +41,16 @@ export default function PostCompletion ({ type, startTime, endTime, isFulfilled,
   const prompt = promptOptions[type]
   const choices = messages[type]
 
-  return <div className={classes.postCompletion}>
-    <div>{prompt}</div>
-    <DropdownButton label={label}
-      choices={choices}
-      onChoose={response => {
-        response === false ? unfulfillPost() : fulfillPost()
-      }} />
-  </div>
+  return (
+    <div className={classes.postCompletion}>
+      <div>{prompt}</div>
+      <DropdownButton
+        label={label}
+        choices={choices}
+        onChoose={response => {
+          response === false ? unfulfillPost() : fulfillPost()
+        }}
+      />
+    </div>
+  )
 }

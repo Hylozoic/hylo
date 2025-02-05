@@ -1,7 +1,6 @@
 import orm from 'store/models'
 import testData from './MemberProfile.normalized.test.json'
 import { getPresentedPerson } from './MemberProfile.store'
-import { mapStateToProps } from './MemberProfile.connector'
 
 describe('store & connector', () => {
   let session, state, selectorProps, props
@@ -39,26 +38,6 @@ describe('store & connector', () => {
       const expected = '46816'
       const actual = getPresentedPerson(state, selectorProps).id
       expect(actual).toBe(expected)
-    })
-  })
-
-  describe('mapStateToProps', () => {
-    it('sets an error when id missing from route params', () => {
-      props.match.params.personId = undefined
-      const actual = mapStateToProps(state, props)
-      expect(actual.error).toBeTruthy()
-    })
-
-    it('sets an error when id non-numeric', () => {
-      props.match.params.personId = 'flargle'
-      const actual = mapStateToProps(state, props)
-      expect(actual.error).toBeTruthy()
-    })
-
-    it('gets the correct person when id included in route params', () => {
-      const expected = testData.person.id
-      const actual = mapStateToProps(state, props).person.id
-      expect(actual).toEqual(expected)
     })
   })
 })

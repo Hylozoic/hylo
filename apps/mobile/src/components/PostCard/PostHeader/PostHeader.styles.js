@@ -1,4 +1,4 @@
-import { POST_TYPES } from 'store/models/Post'
+import { POST_TYPES } from '@hylo/presenters/PostPresenter'
 import {amaranth, rhino30, rhino50, caribbeanGreen, rhino40 } from 'style/colors'
 
 export const styles = {

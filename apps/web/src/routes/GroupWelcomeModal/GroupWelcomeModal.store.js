@@ -37,6 +37,11 @@ export const groupWelcomeQuery = `
           person {
             id
           }
+          settings {
+            joinQuestionsAnsweredAt
+            agreementsAcceptedAt
+            showJoinForm
+          }
         }
       }
     }

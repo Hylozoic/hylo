@@ -6,7 +6,7 @@ import { RESPONSES } from 'store/models/EventInvitation'
 
 export default function EventRSVP ({ myEventResponse, respondToEvent, position }) {
   const { t } = useTranslation()
-  var label
+  let label
 
   switch (myEventResponse) {
     case RESPONSES.YES:
@@ -28,10 +28,14 @@ export default function EventRSVP ({ myEventResponse, respondToEvent, position }
     { label: t('Not Going'), value: RESPONSES.NO }
   ]
 
-  return <div className={classes.eventRSVP}>
-    <DropdownButton label={label}
-      choices={choices}
-      onChoose={response => respondToEvent(response)}
-      position={position} />
-  </div>
+  return (
+    <div className={classes.eventRSVP}>
+      <DropdownButton
+        label={label}
+        choices={choices}
+        onChoose={response => respondToEvent(response)}
+        position={position}
+      />
+    </div>
+  )
 }

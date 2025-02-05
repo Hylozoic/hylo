@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react'
-import { useSelector } from 'react-redux'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { modalScreenName } from 'hooks/useIsModalScreen'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import HyloWebView from 'components/HyloWebView'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import GroupWelcomeCheck from 'components/GroupWelcomeCheck'
@@ -11,7 +10,7 @@ import GroupWelcomeCheck from 'components/GroupWelcomeCheck'
 export default function ChatRoom () {
   const navigation = useNavigation()
   const route = useRoute()
-  const currentGroup = useSelector(getCurrentGroup)
+  const [{ currentGroup }] = useCurrentGroup()
   const { topicName } = useRouteParams()
   const path = `/groups/${currentGroup.slug}/topics/${topicName}`
   const handledWebRoutes = [
@@ -41,12 +40,12 @@ export default function ChatRoom () {
   })
 
   useEffect(() => {
-    navigation.setOptions({ headerTitle: currentGroup?.name })
+    navigation.setOptions({ title: currentGroup?.name })
   }, [currentGroup?.name])
 
   return (
     <KeyboardFriendlyView style={{ flex: 1 }}>
-      <GroupWelcomeCheck groupId={currentGroup?.id} />
+      <GroupWelcomeCheck />
       <HyloWebView
         handledWebRoutes={handledWebRoutes}
         nativeRouteHandler={nativeRouteHandler}

@@ -1,11 +1,10 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { get, intersection, debounce } from 'lodash/fp'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
 import { useLocation } from 'react-router-dom'
-import FullPageModal from 'routes/FullPageModal'
 import TextInput from 'components/TextInput'
 import ScrollListener from 'components/ScrollListener'
 import PostCard from 'components/PostCard'
@@ -14,6 +13,7 @@ import RoundImage from 'components/RoundImage'
 import Highlight from 'components/Highlight'
 import Loading from 'components/Loading'
 import Pill from 'components/Pill'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import {
   fetchSearchResults,
   getSearchTerm,
@@ -32,9 +32,10 @@ import classes from './Search.module.scss'
 
 const SEARCH_RESULTS_ID = 'search-results'
 
-export default function Search(props) {
+export default function Search (props) {
   const dispatch = useDispatch()
   const location = useLocation()
+  const { t } = useTranslation()
   const searchFromQueryString = getQuerystringParam('t', location) || ''
   const searchForInput = useSelector(state => getSearchTerm(state, props))
   const filter = useSelector(state => getSearchFilter(state, props))
@@ -73,37 +74,44 @@ export default function Search(props) {
     fetchSearchResultsAction()
   }, [searchForInput, filter])
 
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Search'),
+      icon: 'Search',
+      search: false
+    })
+  }, [])
+
   return (
-    <FullPageModal leftSideBarHidden>
-      <div className={classes.search}>
-        <SearchBar
-          searchForInput={searchForInput}
-          searchFromQueryString={searchFromQueryString}
-          setSearchTerm={setSearchTermAction}
-          updateQueryParam={updateQueryParam}
-          setSearchFilter={setSearchFilterAction}
-          filter={filter}
-        />
-        <div
-          className={classes.searchResults}
-          id={SEARCH_RESULTS_ID}
-        >
-          {searchResults.map(sr =>
-            <SearchResult
-              key={sr.id}
-              searchResult={sr}
-              term={searchForInput}
-              showPerson={showPerson}
-            />)}
-          {pending && <Loading type='bottom' />}
-          <ScrollListener onBottom={() => fetchMoreSearchResults()} elementId={SEARCH_RESULTS_ID} />
-        </div>
+    <div className={classes.search}>
+      <SearchBar
+        searchForInput={searchForInput}
+        searchFromQueryString={searchFromQueryString}
+        setSearchTerm={setSearchTermAction}
+        updateQueryParam={updateQueryParam}
+        setSearchFilter={setSearchFilterAction}
+        filter={filter}
+      />
+      <div
+        className={classes.searchResults}
+        id={SEARCH_RESULTS_ID}
+      >
+        {searchResults.map(sr =>
+          <SearchResult
+            key={sr.id}
+            searchResult={sr}
+            term={searchForInput}
+            showPerson={showPerson}
+          />)}
+        {pending && <Loading type='bottom' />}
+        <ScrollListener onBottom={() => fetchMoreSearchResults()} elementId={SEARCH_RESULTS_ID} />
       </div>
-    </FullPageModal>
+    </div>
   )
 }
 
-export function SearchBar ({
+function SearchBar ({
   searchForInput,
   searchFromQueryString,
   setSearchTerm,
@@ -131,7 +139,7 @@ export function SearchBar ({
   )
 }
 
-export function TabBar ({ filter, setSearchFilter }) {
+function TabBar ({ filter, setSearchFilter }) {
   const { t } = useTranslation()
   const tabs = [
     { id: 'all', label: t('All') },
@@ -142,11 +150,10 @@ export function TabBar ({ filter, setSearchFilter }) {
 
   return (
     <div className={classes.tabs}>
-      <h1>{t('Search')}</h1>
       {tabs.map(({ id, label }) => (
         <span
           key={id}
-          className={cx(classes.tab, { [classes.tabActive]: id === filter })}
+          className={cn(classes.tab, { [classes.tabActive]: id === filter })}
           onClick={() => setSearchFilter(id)}
         >
           {label}
@@ -156,7 +163,7 @@ export function TabBar ({ filter, setSearchFilter }) {
   )
 }
 
-export function SearchResult ({
+function SearchResult ({
   searchResult,
   term = '',
   showPerson
@@ -210,7 +217,7 @@ export function SearchResult ({
   )
 }
 
-export function PersonCard ({ person, showPerson, highlightProps }) {
+function PersonCard ({ person, showPerson, highlightProps }) {
   if (!person) return null
 
   const matchingSkill = get('0', intersection(

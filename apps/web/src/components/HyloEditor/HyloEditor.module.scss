@@ -1,7 +1,7 @@
 :global {
   .ProseMirror {
     // Matching Post Details color
-    color: rgba(44, 64, 89, 0.7);
+    color: var(--text-foreground);
   }
 
   .ProseMirror:focus {
@@ -11,7 +11,7 @@
   /* Placeholder (at the top) */
   .ProseMirror p.is-editor-empty:first-child::before {
     // Matches placeholder text in `PostEditor`
-    color: $color-rhino-30;
+    color: hsl(var(--foreground) / .5);
     content: attr(data-placeholder);
     float: left;
     height: 0;
@@ -19,11 +19,19 @@
   }
 
   .ProseMirror p:last-child {
-    margin-bottom: 0px;
+    margin: 0px;
   }
 
   .ProseMirror a {
     cursor: pointer;
+  }
+
+  .ProseMirror ul {
+    list-style-type: disc;
+  }
+
+  .ProseMirror ol {
+    list-style-type: decimal;
   }
 }
 
@@ -44,37 +52,12 @@
 
 .topMenuBar,
 .bottomMenuBar {
+  position: relative;
   max-width: 580px;
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
   line-height: 1em;
-  background-color: rgba(255, 255, 255, 1);
-
-  button {
-    background-color: none;
-    margin: 0;
-    background: none;
-    border: 0;
-    color: $color-rhino-60;
-    font-size: 14px;
-    border-radius: 3px;
-    transition: all .25s ease;
-    padding-top: 3px;
-
-    &.is-active {
-      background-color: $color-rhino-80;
-      color: whitesmoke;
-
-      &:hover {
-        background-color: $color-rhino;
-      }
-    }
-    &:hover {
-      background-color: rgba(107, 121, 139, .1);
-      cursor: pointer;
-    }
-  }
 
   .divider {
     display: inline-block;
@@ -110,6 +93,8 @@
       color: $color-rhino-50;
       padding: 0.2rem;
       position: relative;
+      max-height: 180px;
+      overflow-y: auto;
     }
 
     .suggestion-list-item {
@@ -119,7 +104,6 @@
       border-radius: 0.4rem;
       align-items: center;
       justify-content: flex-start;
-      overflow: hidden;
       flex-wrap: nowrap;
       margin: 0;
       padding: 0.2rem 0.4rem;

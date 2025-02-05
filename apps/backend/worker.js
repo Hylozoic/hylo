@@ -1,4 +1,4 @@
-require("@babel/register") // this must be first
+require('@babel/register') // this must be first
 const skiff = require('./lib/skiff') // this must be second
 require('./config/kue') // this must be third
 
@@ -25,18 +25,18 @@ const jobDefinitions = {
     // immediately, e.g. if the method is not a function, the catch below will
     // handle it
     return Promise.resolve()
-    .then(() => fn(omit(data, 'className', 'methodName')))
+      .then(() => fn(omit(data, 'className', 'methodName')))
   }
 }
 
-let queue = kue.createQueue()
+const queue = kue.createQueue()
 queue.on('error', handleRedisError)
 
 function setupQueue (name, handler) {
   queue.process(name, 10, async (job, ctx, done) => {
     // put common behavior for all jobs here
 
-    var label = `Job ${job.id}: `
+    const label = `Job ${job.id}: `
     sails.log.debug(label + name)
 
     try {
@@ -72,7 +72,7 @@ function handleRedisError (err) {
 setTimeout(() => {
   skiff.lift({
     start: () => {
-      for (let name in jobDefinitions) {
+      for (const name in jobDefinitions) {
         setupQueue(name, jobDefinitions[name])
       }
     },

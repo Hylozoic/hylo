@@ -41,14 +41,14 @@ export function runForceGraph (
 
   const wrap = (text, width) => {
     text.each(function () {
-      let text = d3.select(this)
-      let words = text.text().split(/\s+/).reverse()
+      const text = d3.select(this)
+      const words = text.text().split(/\s+/).reverse()
       let word
       let line = []
       let lineNumber = 0
-      let lineHeight = 1.1 // ems
-      let y = text.attr('y')
-      let dy = parseFloat(text.attr('dy')) || 0
+      const lineHeight = 1.1 // ems
+      const y = text.attr('y')
+      const dy = parseFloat(text.attr('dy')) || 0
       let tspan = text.text(null).append('tspan').attr('x', 0).attr('y', y).attr('dy', dy + 'em')
       // eslint-disable-next-line no-cond-assign
       while (word = words.pop()) {
@@ -73,7 +73,7 @@ export function runForceGraph (
     .force('x', d3.forceX(width / 4).strength(0.4))
     .force('y', d3.forceY(height / 4).strength(0.6))
 
-  let svg = d3
+  const svg = d3
     .select(container)
     .append('svg')
     .attr('viewBox', [-width / 2, -height / 2, width, height])
@@ -82,7 +82,7 @@ export function runForceGraph (
       // svg.attr('transform', event.transform)
     }))
 
-  let defs = svg.append('defs')
+  const defs = svg.append('defs')
 
   defs.append('marker')
     .attr('id', 'arrowhead')

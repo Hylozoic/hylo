@@ -1,19 +1,18 @@
 import React, { useEffect } from 'react'
-import { useSelector } from 'react-redux'
 import { createStackNavigator } from '@react-navigation/stack'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import Login from 'screens/Login'
 import ForgotPassword from 'screens/ForgotPassword'
 import SignupNavigator from 'navigation/SignupNavigator'
-import { getAuthenticated } from 'store/selectors/getAuthState'
 import { useNavigation } from '@react-navigation/native'
 import { white } from 'style/colors'
 
 const NonAuthRoot = createStackNavigator()
 export default function NonAuthRootNavigator () {
   const navigation = useNavigation()
-  const isAuthenticated = useSelector(getAuthenticated)
+  const { isAuthenticated, fetching } = useAuth()
 
   // If user authenticated we know they are not authorized also
   // as authorization is handled by `RootNavigator`.
@@ -21,7 +20,7 @@ export default function NonAuthRootNavigator () {
   // to `Signup` where additional redirection happens according
   // to their "authState".
   useEffect(() => {
-    if (isAuthenticated) navigation.navigate('Signup')
+    if (!fetching && isAuthenticated) navigation.navigate('Signup')
   }, [isAuthenticated])
 
   useOpenInitialURL()

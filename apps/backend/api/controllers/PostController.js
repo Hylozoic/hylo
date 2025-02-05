@@ -1,4 +1,5 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLError } from 'graphql'
+import RedisPubSub from '../services/RedisPubSub'
 import { includes } from 'lodash'
 import createPost from '../models/post/createPost'
 import { joinRoom, leaveRoom } from '../services/Websockets'
@@ -15,7 +16,7 @@ const PostController = {
 
     const type = req.param('type')
     if (!includes(Object.keys(namePrefixes), type)) {
-      return res.serverError(new GraphQLYogaError(`invalid type: ${type}`))
+      return res.serverError(new GraphQLError(`invalid type: ${type}`))
     }
 
     const attributes = {
@@ -27,33 +28,33 @@ const PostController = {
     }
 
     let group
-    return Post.where({name: attributes.name, user_id: userId}).fetch()
-    .then(post => {
-      if (post && (new Date() - post.get('created_at') < 5 * 60000)) {
-        res.redirect(Frontend.Route.post(post))
-        return true
-      }
-    })
-    .then(stop => stop || Group.find(groupId)
-      .then(g => {
-        group = g
-        if (!g.get('active')) {
-          const message = 'Your post was not created. That group no longer exists.'
-          res.redirect(Frontend.Route.root() + `?notification=${encodeURIComponent(message)}&error=1`)
+    return Post.where({ name: attributes.name, user_id: userId }).fetch()
+      .then(post => {
+        if (post && (new Date() - post.get('created_at') < 5 * 60000)) {
+          res.redirect(Frontend.Route.post(post))
           return true
         }
-      }))
-    .then(stop => stop || createPost(userId, attributes)
-      .then(post => {
-        Analytics.track({
-          userId,
-          event: 'Add Post by Email Form',
-          properties: {group: group.get('name')}
-        })
-        return post
       })
-      .then(post => res.redirect(Frontend.Route.post(post, group))))
-    .catch(res.serverError)
+      .then(stop => stop || Group.find(groupId)
+        .then(g => {
+          group = g
+          if (!g.get('active')) {
+            const message = 'Your post was not created. That group no longer exists.'
+            res.redirect(Frontend.Route.root() + `?notification=${encodeURIComponent(message)}&error=1`)
+            return true
+          }
+        }))
+      .then(stop => stop || createPost(userId, attributes)
+        .then(post => {
+          Analytics.track({
+            userId,
+            event: 'Add Post by Email Form',
+            properties: {group: group.get('name')}
+          })
+          return post
+        })
+        .then(post => res.redirect(Frontend.Route.post(post, group))))
+      .catch(res.serverError)
   },
 
   updateLastRead: async function (req, res) {
@@ -77,9 +78,12 @@ const PostController = {
     const { post } = res.locals
     const { body: { isTyping }, socket } = req
 
+    // NOTE: Assumes MessageThread
+    RedisPubSub.publish(`peopleTyping:messageThreadId:${post.id}`, { user: { id: req.session.userId } })
+
     return User.find(req.session.userId)
-    .then(user => post.pushTypingToSockets(user.id, user.get('name'), isTyping, socket))
-    .then(() => res.ok({}))
+      .then(user => post.pushTypingToSockets(user.id, user.get('name'), isTyping, socket))
+      .then(() => res.ok({}))
   },
 
   subscribeToUpdates: function (req, res) {

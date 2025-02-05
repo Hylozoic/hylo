@@ -17,17 +17,16 @@ export default class MemberPosts extends React.Component {
   render () {
     if (this.props.loading) return <Loading />
 
-    const { posts, routeParams } = this.props
+    const { posts } = this.props
 
-    return <div>
-      {posts && posts.map(post =>
-        <div className={classes.activityItem} key={post.id}>
-          <PostCard
-            routeParams={routeParams}
-            post={post}
-            expanded={this.itemSelected(post.id)} />
-        </div>
-      )}
-    </div>
+    return (
+      <div>
+        {posts && posts.map(post =>
+          <div className={classes.activityItem} key={post.id}>
+            <PostCard post={post} expanded={this.itemSelected(post.id)} />
+          </div>
+        )}
+      </div>
+    )
   }
 }

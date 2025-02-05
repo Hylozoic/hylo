@@ -1,23 +1,23 @@
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import { includes } from 'lodash'
 import { get, pick, some } from 'lodash/fp'
 
 export const defaultTimezone = 'America/Los_Angeles'
 
 export const defaultTimeRange = type => {
-  const today = moment.tz(defaultTimezone).startOf('day').add(12, 'hours')
+  const today = DateTime.now().setZone(defaultTimezone).startOf('day').plus({ hours: 19 })
   switch (type) {
     case 'daily':
-      return [today.clone().subtract(1, 'day'), today]
+      return [today.minus({ day: 1 }), today]
     case 'weekly':
-      return [today.clone().subtract(7, 'day'), today]
+      return [today.minus({ day: 7 }), today]
   }
 }
 
 export const isValidPostType = q =>
   q.where(function () {
     this.whereNotIn('posts.type', ['welcome'])
-    .orWhere('posts.type', null)
+      .orWhere('posts.type', null)
   })
 
 export const relatedUserColumns = (relationName = 'user') => ({
@@ -66,9 +66,10 @@ export async function getRecipients (groupId, type) {
 
   const group = await Group.find(groupId)
   const recipients = await group.members().query(q => {
-    q.whereRaw(`users.settings->>'digest_frequency' = '${type}'`)
-    q.whereRaw(`(group_memberships.settings->>'sendEmail')::boolean = true`)
+    q.whereRaw(`group_memberships.settings->>'digestFrequency' = '${type}'`)
+    q.whereRaw('(group_memberships.settings->>\'sendEmail\')::boolean = true')
   }).fetch().then(get('models'))
 
-  return recipients
+  // If email notifications are disabled, only send to testers
+  return recipients.filter(recipient => process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || recipient.isTester())
 }

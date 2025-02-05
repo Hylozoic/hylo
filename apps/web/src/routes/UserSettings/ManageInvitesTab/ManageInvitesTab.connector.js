@@ -1,6 +1,6 @@
 import { push } from 'redux-first-history'
 import { connect } from 'react-redux'
-import useInvitation from 'store/actions/useInvitation'
+import acceptInvitation from 'store/actions/acceptInvitation'
 import { FETCH_MY_REQUESTS_AND_INVITES } from 'store/constants'
 import { groupUrl } from 'util/navigation'
 import {
@@ -30,7 +30,7 @@ export function mapStateToProps (state, props) {
 
 export function mapDispatchToProps (dispatch) {
   return {
-    acceptInvite: (invitationToken, groupSlug) => dispatch(useInvitation({ invitationToken })).then(() => dispatch(push(groupUrl(groupSlug)))),
+    acceptInvite: (invitationToken, groupSlug) => dispatch(acceptInvitation({ invitationToken })).then(() => dispatch(push(groupUrl(groupSlug)))),
     cancelJoinRequest: (params) => dispatch(cancelJoinRequest(params)),
     declineInvite: (inviteId) => dispatch(declineInvite(inviteId)),
     fetchMyInvitesAndRequests: () => dispatch(fetchMyInvitesAndRequests())

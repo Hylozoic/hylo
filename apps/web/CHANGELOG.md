@@ -6,6 +6,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [5.11.4] - 2024-01-14
+
+### Fixed
+
+- Bug causing blank posts. It would happen which clicking on a notification about a comment on a post, then closing the post. This wouldn't clear out the /comments part of the URL. So then clicking on the next post would create a weird URL with /comments stuck in the middle
+
+## [5.11.3] - 2024-01-12
+
+### Fixed
+- Clicking on a mention or topic in a post
+- Tooltips on proposal votes
+- Remove random 0 at the bottom of proposal options
+- Flagging of public posts
+
+## [5.11.2] - 2024-01-06
+
+### Fixed
+- Commenting on a comment in the mobile app
+
+## [5.11.1] - 2024-01-03
+
+### Fixed
+- Viewing public group explorer when not logged in
+
+## [5.11.0] - 2024-12-17
+
+### Changed
+- Improved peformance and reliability of Chat Rooms. It more accurately tracks the last post you read, and scrolls to it when you come back. New posts appear more quickly. There should be less bugs.
+- Improve our @mentions significantly: Works with spaces in names! Loads more people as you scroll down! Slightly improves search results coming from the backend.
+- Improved blurring of flagged posts in various views, and include images in the blurring
+- Use satellite with streets map view for group boundary map
+- Avoid rendering proposal options in the map drawer
+- Now developing and deploying from a new hylo monorepo!
+
+### Fixed
+- Fix bug where people are asked to answer join questions even after having answered them when requesting to join
+- Fix bug where reactions view on user profile was not working
+- Moderation action notifications are working now
+- Fix incorrect child post indicator in public events stream
+- Fix adding default topics to a group
+
 ## [5.10.0] - 2024-10-02
 
 ### Added

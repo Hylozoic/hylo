@@ -1,126 +1,142 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import {
-  View,
-  ScrollView,
-  Text,
-  TouchableOpacity
-} from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigation, useRoute } from '@react-navigation/native'
-import { get, isArray, isEmpty } from 'lodash/fp'
-import getPeople from 'store/selectors/getPeople'
-import scopedFetchPeopleAutocomplete from 'store/actions/scopedFetchPeopleAutocomplete'
-import { getRecentContacts } from 'store/selectors/getContactList'
-import scopedGetPeopleAutocomplete from 'store/selectors/scopedGetPeopleAutocomplete'
-import {
-  createMessage as createMessageAction,
-  findOrCreateThread as findOrCreateThreadAction
-} from './NewMessage.store.js'
-import fetchRecentContactsAction from 'store/actions/fetchRecentContacts'
+import React, { useEffect, useRef, useState } from 'react'
+import { View, ScrollView, Text, TouchableOpacity } from 'react-native'
+import { gql, useClient, useMutation, useQuery } from 'urql'
+import { useNavigation } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
+import { isArray, isEmpty } from 'lodash/fp'
+import useRouteParams from 'hooks/useRouteParams'
+import peopleAutocompleteQuery from '@hylo/graphql/queries/peopleAutocompleteQuery'
+import findOrCreateThreadMutation from '@hylo/graphql/mutations/findOrCreateThreadMutation'
+import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
+import ItemSelectorModal from 'components/ItemSelectorModal'
 import Button from 'components/Button'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import PersonPickerItemRow from 'screens/ItemChooser/PersonPickerItemRow'
 import styles from './NewMessage.styles'
-import useGraphqlAction from 'hooks/useGraphqlAction'
-import gql from 'graphql-tag'
-import { useTranslation } from 'react-i18next'
 
-export default function NewMessage (props) {
-  const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const route = useRoute()
-  const navigation = useNavigation()
-  const graphqlAction = useGraphqlAction()
-  const [participants, setParticipants] = useState([])
-  const [loading, setLoading] = useState(true)
-  const prompt = route?.params?.prompt
-  const recentContacts = useSelector(getRecentContacts)
-  const initialParticipantIds = !isArray(route?.params?.participants)
-    ? route?.params?.participants?.split(',')
-    : route?.params?.participants || []
-  const initialParticipantsFromStore = useSelector(
-    state => getPeople(state, { personIds: initialParticipantIds })
-  ) || []
-
-  const fetchInitialParticipants = () => {
-    setLoading(true)
-
-    if (initialParticipantIds) {
-      async function asyncFunc () {
-        const participantsToFetch = initialParticipantIds?.filter(initialParticipantId =>
-          !initialParticipantsFromStore.map(p => p.id).includes(initialParticipantId)
-        )
-        const fetchedParticipants = await Promise.all(
-          participantsToFetch.map(
-            async initialParticipantId => {
-              const person = await graphqlAction(gql`
-                query Participant ($id: ID) {
-                  person (id: $id) {
-                    id
-                    name
-                    avatarUrl
-                  }
-                }
-              `, { id: initialParticipantId })
-
-              return person
+export const recentContactsQuery = gql`
+  query RecentContactsQuery ($first: Int = 20) {
+    connections (first: $first) {
+      items {
+        id
+        person {
+          id
+          name
+          avatarUrl
+          memberships (first: 1) {
+            id
+            group {
+              id
+              name
             }
-          )
-        )
-
-        setParticipants(
-          [
-            ...initialParticipantsFromStore,
-            ...fetchedParticipants
-          ].filter(p => !isEmpty(p))
-        )
+          }
+        }
+        type
+        updatedAt
       }
-
-      asyncFunc()
-    }
-
-    dispatch(fetchRecentContactsAction())
-    setLoading(false)
-  }
-
-  useEffect(fetchInitialParticipants, [])
-
-  const createMessage = async text => {
-    const response = await dispatch(findOrCreateThreadAction(participants.map(p => p.id)))
-    const messageThreadId = get('payload.data.findOrCreateThread.id', response)
-    const { error } = await dispatch(createMessageAction(messageThreadId, text, true))
-
-    if (!error) {
-      navigation.replace('Thread', { id: messageThreadId })
     }
   }
+`
 
-  const handleAddParticipant = participant => {
-    setParticipants([...participants, participant])
-  }
-
-  const handleRemoveParticipant = participant => {
-    setParticipants(participants.filter(p => p.id !== participant.id))
-  }
-
-  const openParticipantChooser = useCallback(() => {
-    const screenTitle = t('Add Participant')
-    const chooserProps = {
-      screenTitle,
-      fetchSearchSuggestions: scopedFetchPeopleAutocomplete,
-      getSearchSuggestions: scopedGetPeopleAutocomplete(screenTitle),
-      initialItems: participants,
-      pickItem: handleAddParticipant,
-      ItemRowComponent: PersonPickerItemRow,
-      defaultSuggestedItemsLabel: t('Recent Contacts'),
-      defaultSuggestedItems: recentContacts
+export const participantQuery = gql`
+  query ParticipantQuery ($id: ID!) {
+    person (id: $id) {
+      id
+      name
+      avatarUrl
     }
-    navigation.navigate('ItemChooser', chooserProps)
-  }, [recentContacts, participants])
+  }
+`
+
+const useParticipantsQuery = (participantIds = []) => {
+  const client = useClient()
+  const [fetching, setFetching] = useState(true)
+  const [error, setError] = useState()
+  const [participants, setParticipants] = useState()
+
+  useEffect(() => {
+    if (!participantIds) return
+
+    const fetchData = async () => {
+      try {
+        const fetchedParticipants = await Promise.all(
+          participantIds.map(async id => {
+            const result = await client.query(participantQuery, { id }).toPromise()
+            return result.data?.person || null
+          })
+        )
+        setParticipants(fetchedParticipants.filter(Boolean))
+      } catch (e) {
+        setError(e)
+      } finally {
+        setFetching(false)
+      }
+    }
+
+    setFetching(true)
+    fetchData()
+  }, [participantIds?.join(',')])
+
+  return [{ participants, fetching, error }]
+}
+
+export default function NewMessage () {
+  const navigation = useNavigation()
+  const { t } = useTranslation()
+  const { prompt, participants: routeParticipants } = useRouteParams()
+  const initialParticipantIds = !isArray(routeParticipants)
+    ? routeParticipants?.split(',')
+    : routeParticipants || []
+
+  const participantsSelectorRef = useRef(null)
+  const [participants, setParticipants] = useState([])
+  const [loading, setLoading] = useState()
+
+  const [, findOrCreateThread] = useMutation(findOrCreateThreadMutation)
+  const [, createMessage] = useMutation(createMessageMutation)
+  const [{ participants: initialParticipants, fetching: participantsFetching }] = useParticipantsQuery(initialParticipantIds)
+  const [{ data: recentContactsData, fetching: recentContactsFetching }] = useQuery({
+    query: recentContactsQuery,
+    pause: initialParticipantIds
+  })
+  const recentContacts = recentContactsData?.connections?.items &&
+    recentContactsData?.connections?.items.map(item => item.person)
+
+  useEffect(() => {
+    if (initialParticipants) {
+      setParticipants(initialParticipants)
+    }
+  }, [initialParticipants])
+
+  useEffect(() => {
+    setLoading(participantsFetching || recentContactsFetching)
+  }, [participantsFetching, recentContactsFetching])
+
+  const handleCreateMessage = async text => {
+    const { data: messageThreadData, error: messageThreadError } = await findOrCreateThread({ participantIds: participants.map(p => p.id) })
+
+    if (messageThreadError) {
+      console.error('Error creating thread:', messageThreadError)
+      return
+    }
+
+    const messageThreadId = messageThreadData?.findOrCreateThread?.id
+
+    const { error: createMessageError } = await createMessage({ messageThreadId, text })
+
+    if (createMessageError) {
+      console.error('Error creating message:', createMessageError)
+      return
+    }
+
+    navigation.replace('Thread', { id: messageThreadId })
+  }
+
+  const handleAddParticipant = participant => setParticipants([...participants, participant])
+  const handleRemoveParticipant = participant => setParticipants(participants.filter(p => p.id !== participant.id))
 
   if (loading) return <Loading />
 
@@ -129,7 +145,23 @@ export default function NewMessage (props) {
   return (
     <KeyboardFriendlyView style={styles.container}>
       <ScrollView>
-        <TouchableOpacity onPress={openParticipantChooser} style={styles.participants}>
+        <ItemSelectorModal
+          ref={participantsSelectorRef}
+          title={t('Add Participant')}
+          searchPlaceholder={t('Search by name')}
+          defaultItems={recentContacts}
+          chosenItems={participants}
+          onItemPress={handleAddParticipant}
+          itemsUseQueryArgs={({ searchTerm }) => {
+            // Don't query if no searchTerm so defaultItems will show
+            return !isEmpty(searchTerm) && {
+              query: peopleAutocompleteQuery,
+              variables: { autocomplete: searchTerm }
+            }
+          }}
+          itemsUseQuerySelector={data => data?.people?.items}
+        />
+        <TouchableOpacity onPress={() => participantsSelectorRef.current.show()} style={styles.participants}>
           {participants.map((participant, index) =>
             <Participant
               participant={participant}
@@ -141,7 +173,7 @@ export default function NewMessage (props) {
           <Button
             text={t('Add Participant')}
             style={styles.addParticipantButton}
-            onPress={() => openParticipantChooser()}
+            onPress={() => participantsSelectorRef.current.show()}
           />
         </View>
       </ScrollView>
@@ -149,7 +181,7 @@ export default function NewMessage (props) {
         style={styles.messageInput}
         value={prompt}
         multiline
-        onSubmit={createMessage}
+        onSubmit={handleCreateMessage}
         placeholder={t('Type your message here')}
         emptyParticipants={emptyParticipantsList}
       />

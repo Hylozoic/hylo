@@ -3,10 +3,15 @@
   "private": true,
   "description": "Code shared across Hylo applications for consistency of results",
   "type": "module",
-  "main": "index.js",
   "scripts": {
-    "start:native": "concurrently 'yarn start' 'wml start'",
-    "test": "jest"
+    "test": "jest",
+    "build": "tsc && find dist/cjs -name '*.js' -exec sh -c 'mv \"$1\" \"${1%.js}.cjs\"' _ {} \\;"
+  },
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "require": "./dist/cjs/index.cjs"
+    }
   },
   "standard": {
     "parser": "@babel/eslint-parser",
@@ -26,14 +31,17 @@
       "test"
     ]
   },
+  "files": [
+    "dist/",
+    "src/"
+  ],
   "dependencies": {
     "coordinate-parser": "^1.0.7",
     "html-to-text": "^8.1.0",
     "lodash": "~4.17.21",
+    "luxon": "^3.5.0",
     "marked": "^4.2.1",
-    "moment-timezone": "^0.5.46",
     "pretty-date": "^0.2.0",
-    "querystring": "^0.2.1",
     "trunc-html": "^1.1.2",
     "trunc-text": "^1.0.2",
     "validator": "^13.7.0"
@@ -42,11 +50,11 @@
     "@babel/core": "^7.17.0",
     "@babel/eslint-parser": "^7.17.0",
     "@babel/preset-env": "^7.16.11",
+    "@types/luxon": "^3",
     "babel-jest": "^27.5.0",
     "concurrently": "^7.0.0",
     "eslint": "^8.8.0",
     "jest": "^27.5.0",
-    "standard": "^16.0.4",
-    "wml": "^0.0.83"
+    "typescript": "5.0.4"
   }
 }

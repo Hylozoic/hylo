@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import cx from 'classnames'
 import { formatError } from 'routes/NonAuthLayoutRouter/util'
 import TextInput from 'components/TextInput'
 import Button from 'components/Button'
@@ -21,12 +20,12 @@ export default function Login (props) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
 
-  if (props.authenticated) {
-    useEffect(() => {
-      // If already authenticated then do the oAuth login with current session user
+  useEffect(() => {
+    // If already authenticated then do the oAuth login with current session user
+    if (props.authenticated) {
       submit()
-    }, [])
-  }
+    }
+  }, [])
 
   const submit = async () => {
     try {
@@ -57,7 +56,8 @@ export default function Login (props) {
   }
 
   const { authenticated, className } = props
-  return authenticated ? <div>{t('Already logged in, redirecting...')}</div>
+  return authenticated
+    ? <div>{t('Already logged in, redirecting...')}</div>
     : (
       <div className={className}>
         <div className={classes.formWrapper}>
@@ -100,5 +100,5 @@ export default function Login (props) {
           <GoogleButton onClick={() => this.loginAndRedirect('google')} />
         </div> */}
       </div>
-    )
+      )
 }

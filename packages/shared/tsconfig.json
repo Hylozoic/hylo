@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "allowJs": true, // Enable TypeScript to process .js files
+    "checkJs": false, // Disable type checking for .js files (set true if you want it)
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "dist/cjs",
+    "declaration": false, // No .d.ts files for pure JavaScript
+    "strict": true, // Enforce strict checks if needed
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,39 +1,49 @@
 import React from 'react'
-import { render, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { render, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import ScrollListener from './ScrollListener'
 
 describe('ScrollListener', () => {
   it('calls onLeaveTop when scrolling down', () => {
     const onLeaveTop = jest.fn()
-    const element = { scrollTop: 0 }
 
     const { getByTestId } = render(
-      <div data-testid="scroll-container">
-        <ScrollListener element={element} onLeaveTop={onLeaveTop} />
+      <div id='scroll-container' data-testid='scroll-container'>
+        <ScrollListener elementId='scroll-container' onLeaveTop={onLeaveTop} />
       </div>
     )
 
     const container = getByTestId('scroll-container')
-    element.scrollTop = 1
+    container.scrollTop = 1
     fireEvent.scroll(container)
 
     expect(onLeaveTop).toHaveBeenCalled()
   })
 
-  it('calls onTop when scrolling to the top', () => {
+  it('calls onTop when scrolling to the top', async () => {
     const onTop = jest.fn()
-    const element = { scrollTop: 1 }
+    const onLeaveTop = jest.fn()
 
     const { getByTestId } = render(
-      <div data-testid="scroll-container">
-        <ScrollListener element={element} onTop={onTop} />
+      <div id='scroll-container' data-testid='scroll-container'>
+        Hello mellow
+        jello wello
+        hjkhjkdshf
+        <ScrollListener elementId='scroll-container' onTop={onTop} onLeaveTop={onLeaveTop} />
       </div>
     )
 
     const container = getByTestId('scroll-container')
-    element.scrollTop = 0
+    container.scrollTop = 100
     fireEvent.scroll(container)
+    await waitFor(() => {
+      expect(onLeaveTop).toHaveBeenCalled()
+    })
+    container.scrollTop = 0
 
+    // Wait 100ms before firing second scroll event
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    fireEvent.scroll(container)
     expect(onTop).toHaveBeenCalled()
   })
 

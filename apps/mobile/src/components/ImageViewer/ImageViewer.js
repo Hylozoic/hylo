@@ -4,10 +4,10 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   TouchableHighlight
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import Avatar from 'components/Avatar'
 import ImageView from 'react-native-image-viewing'
 import { rhino30, white } from 'style/colors'
@@ -79,7 +79,7 @@ export default function ImageViewer ({
 }) {
   return (
     <ImageView
-      images={images}
+      images={images.map(image => ({ uri: image?.uri || image?.url }))}
       HeaderComponent={
           ({ imageIndex }) => {
             return (

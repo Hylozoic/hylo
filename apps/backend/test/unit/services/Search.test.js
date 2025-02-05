@@ -1,4 +1,4 @@
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import { expectEqualQuery } from '../../setup/helpers'
 import setup from '../../setup'
 
@@ -6,11 +6,10 @@ describe('Search', function () {
   describe('.forPosts', function () {
     // TODO: fix this by reorganizing the search and filter code for posts to join groups_posts in the right place
     it.skip('produces the expected SQL for a complex query', function () {
-      var startTime = moment('2015-03-24 19:54:12-04:00')
-      var endTime = moment('2015-03-31 19:54:12-04:00')
-      var tz = moment.tz.guess()
-      var startTimeAsString = startTime.tz(tz).format('YYYY-MM-DD HH:mm:ss.SSS')
-      var endTimeAsString = endTime.tz(tz).format('YYYY-MM-DD HH:mm:ss.SSS')
+      var start = DateTime.fromISO('2015-03-24 19:54:12-04:00')
+      var end = DateTime.fromISO('2015-03-31 19:54:12-04:00')
+      var startAsString = start.toFormat('yyyy-MM-dd HH:mm:ss.SSS')
+      var endAsString = end.toFormat('yyyy-MM-dd HH:mm:ss.SSS')
 
       const search = Search.forPosts({
         limit: 5,
@@ -33,8 +32,8 @@ describe('Search', function () {
         and "posts"."user_id" in (42, 41)
         and "follows"."user_id" = 37
         and (posts.user_id != 37 or posts.user_id is null)
-        and ((posts.created_at between '${startTimeAsString}' and '${endTimeAsString}')
-          or (posts.updated_at between '${startTimeAsString}' and '${endTimeAsString}'))
+        and ((posts.created_at between '${startAsString}' and '${endAsString}')
+          or (posts.updated_at between '${startAsString}' and '${endAsString}'))
         and "posts"."type" = 'request'
         and (((to_tsvector('english', posts.name) @@ to_tsquery('milk:* & toast:*'))
         or (to_tsvector('english', posts.description) @@ to_tsquery('milk:* & toast:*'))))

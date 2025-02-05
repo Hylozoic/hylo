@@ -1,21 +1,21 @@
 import { createBrowserHistory } from 'history'
 import React from 'react'
-import { MemoryRouter } from 'react-router'
+import { BrowserRouter, MemoryRouter, Routes, Route } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { createStore } from 'redux'
-import { createReduxHistoryContext } from "redux-first-history"
+import { createReduxHistoryContext } from 'redux-first-history'
 import { render } from '@testing-library/react'
-import { history, getEmptyState } from 'store'
+import { getEmptyState } from 'store'
 import createRootReducer from 'store/reducers'
 import createMiddleware from 'store/middleware'
 import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
+import { TooltipProvider } from 'components/ui/tooltip'
 
 // Note: This is ran by default via `customRender` below, but it's necessary to manually
 // generate the store when pre-populating the ReduxORM in a test. Search across tests to
 // for examples. Merges `provideState` over default app empty state
 export function generateStore (providedState) {
   const {
-    createReduxHistory,
     routerMiddleware,
     routerReducer
   } = createReduxHistoryContext({ history: createBrowserHistory() })
@@ -32,13 +32,27 @@ export function generateStore (providedState) {
 //
 //   `render(<ComponentUnderTest />, { wrapper: AllTheProviders(myOwnReduxState) }) />)`
 //
-export const AllTheProviders = providedState => ({ children }) => {
+export const AllTheProviders = (providedState, initialEntries = []) => ({ children }) => {
   return (
     <LayoutFlagsProvider>
       <Provider store={generateStore(providedState)}>
-        <MemoryRouter>
-          {children}
-        </MemoryRouter>
+        <TooltipProvider>
+          {initialEntries.length > 0
+            ? (
+              <MemoryRouter initialEntries={initialEntries}>
+                <Routes>
+                  <Route path='*' element={children} />
+                </Routes>
+              </MemoryRouter>
+              )
+            : (
+              <BrowserRouter>
+                <Routes>
+                  <Route path='*' element={children} />
+                </Routes>
+              </BrowserRouter>
+              )}
+        </TooltipProvider>
       </Provider>
     </LayoutFlagsProvider>
   )
@@ -52,12 +66,13 @@ export function createRootContainer () {
 }
 
 // If an initialized but empty store is adequate then no providerFunc needs to be supplied
-const customRender = (ui, options, providersFunc) =>
-  render(ui, {
+const customRender = (ui, options = {}, providersFunc) => {
+  return render(ui, {
     wrapper: providersFunc || AllTheProviders(),
     container: createRootContainer(),
     ...options
   })
+}
 
 // re-export everything
 

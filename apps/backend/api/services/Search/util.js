@@ -1,6 +1,6 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
-import { curry, includes, isEmpty, values } from 'lodash'
-import moment from 'moment-timezone'
+import { GraphQLError } from 'graphql'
+import { chain, curry, includes, isEmpty, values } from 'lodash'
+import { DateTime } from 'luxon'
 import addTermToQueryBuilder from './addTermToQueryBuilder'
 
 export const filterAndSortPosts = curry((opts, q) => {
@@ -37,7 +37,7 @@ export const filterAndSortPosts = curry((opts, q) => {
 
   const sort = sortColumns[sortBy] || values(sortColumns).find(v => v === 'posts.' + sortBy || v === sortBy)
   if (!sort) {
-    throw new GraphQLYogaError(`Cannot sort by "${sortBy}"`)
+    throw new GraphQLError(`Cannot sort by "${sortBy}"`)
   }
 
   if (cursor) {
@@ -51,19 +51,19 @@ export const filterAndSortPosts = curry((opts, q) => {
   const { CHAT, DISCUSSION, REQUEST, OFFER, PROJECT, EVENT, RESOURCE, PROPOSAL } = Post.Type
 
   if (isAnnouncement) {
-    q.where('announcement', true).andWhere('posts.created_at', '>=', moment().subtract(1, 'month').toDate())
+    q.where('announcement', true).andWhere('posts.created_at', '>=', DateTime.now().minus({months: 1}).toISODate())
   }
 
   if (isFulfilled === true) {
     q.where(q2 => {
       q2.whereNotNull('posts.fulfilled_at')
-      .orWhere('posts.end_time', '<', moment().toDate())
+      .orWhere('posts.end_time', '<', DateTime.now().toISODate())
     })
   } else if (isFulfilled === false) {
     q.whereNull('posts.fulfilled_at')
     .andWhere(q2 => {
       q2.whereNull('posts.end_time')
-      .orWhere('posts.end_time', '>=', moment().toDate())
+      .orWhere('posts.end_time', '>=', DateTime.now().toISODate())
     })
   }
 
@@ -71,7 +71,7 @@ export const filterAndSortPosts = curry((opts, q) => {
     q.whereNull('posts.fulfilled_at')
     .andWhere(q2 => {
       q2.whereNull('posts.end_time')
-      .orWhere('posts.end_time', '>=', moment().toDate())
+      .orWhere('posts.end_time', '>=', DateTime.now().toISODate())
     })
   }
 
@@ -109,7 +109,7 @@ export const filterAndSortPosts = curry((opts, q) => {
     q.whereIn('posts.type', [DISCUSSION, REQUEST, OFFER, PROJECT, PROPOSAL, EVENT, RESOURCE])
   } else {
     if (!includes(values(Post.Type), type)) {
-      throw new GraphQLYogaError(`unknown post type: "${type}"`)
+      throw new GraphQLError(`unknown post type: "${type}"`)
     }
     q.where({'posts.type': type})
   }
@@ -152,9 +152,18 @@ export const filterAndSortPosts = curry((opts, q) => {
 
 export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, commonRoleId, order, search, sortBy }, q) => {
   if (autocomplete) {
-    addTermToQueryBuilder(autocomplete, q, {
-      columns: ['users.name']
-    })
+    const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
+      .map(word => word.replace(/[,;|:&()!\\]+/, ''))
+      .reject(isEmpty)
+      .map(word => word + ':*') // add prefix matching
+      .reduce((result, word) => {
+        // build the tsquery string using logical AND operands
+        result += ' & ' + word
+        return result
+      }).value()
+
+    q.whereRaw('to_tsvector(\'simple\', users.name) @@ to_tsquery(\'simple\', ?)', [query])
+    q.orderByRaw('ts_rank_cd(to_tsvector(\'simple\', users.name), to_tsquery(\'simple\', ?)) DESC', [query])
   }
 
   if (groupRoleId) {
@@ -177,11 +186,11 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
   }
 
   if (sortBy && !['name', 'location', 'join', 'last_active_at'].includes(sortBy)) {
-    throw new GraphQLYogaError(`Cannot sort by "${sortBy}"`)
+    throw new GraphQLError(`Cannot sort by "${sortBy}"`)
   }
 
   if (order && !['asc', 'desc'].includes(order.toLowerCase())) {
-    throw new GraphQLYogaError(`Cannot use sort order "${order}"`)
+    throw new GraphQLError(`Cannot use sort order "${order}"`)
   }
 
   if (sortBy === 'join') {

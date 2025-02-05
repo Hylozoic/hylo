@@ -1,13 +1,12 @@
 import React from 'react'
 import { useDispatch } from 'react-redux'
 import { Text, View } from 'react-native'
-import { loginWithApple, loginWithGoogle } from './actions'
-import checkLogin from 'store/actions/checkLogin'
+import { useTranslation } from 'react-i18next'
 import { isIOS } from 'util/platform'
+import { loginWithApple, loginWithGoogle } from './actions'
 import AppleLoginButton from './AppleLoginButton'
 import GoogleLoginButton from './GoogleLoginButton'
 import { rhino60 } from 'style/colors'
-import { useTranslation } from 'react-i18next'
 
 export default function SocialAuth ({ onStart, onComplete, forSignup }) {
   const { t } = useTranslation()
@@ -23,15 +22,13 @@ export default function SocialAuth ({ onStart, onComplete, forSignup }) {
         const errorMessage = response?.payload?.response?.body
 
         if (errorMessage) {
-          onComplete(errorMessage)
+          throw new Error(errorMessage)
         }
       } else {
-        await dispatch(checkLogin())
+        await onComplete()
       }
     } catch (e) {
-      onComplete(e.message)
-    } finally {
-      onComplete()
+      await onComplete(e.message)
     }
   }
 

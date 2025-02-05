@@ -15,10 +15,16 @@ const props = {
         { topic: { name: 'LOLS', id: '4wooooop' } }
       ]
     },
+    members: {
+      toModelArray: () => [
+        { avatarUrl: 'https://example.com/avatar1.png' },
+        { avatarUrl: 'https://example.com/avatar2.png' }
+      ]
+    },
     description: 'the description '.repeat(5)
   },
   expanded: false,
-  memberships: [12, 24, 25, 346]
+  memberships: [1, 12, 24, 25, 346]
 }
 
 const renderGroupCard = (customProps = {}) => {
@@ -47,13 +53,13 @@ describe('GroupCard', () => {
 
   it('renders with constrained prop', () => {
     renderGroupCard({ constrained: true })
-    const card = screen.getByRole('link')
+    const card = screen.getByTestId('group-card')
     expect(card).toHaveClass('constrained')
   })
 
   it('renders with expanded prop', () => {
     renderGroupCard({ expanded: true })
-    const card = screen.getByRole('link')
+    const card = screen.getByTestId('group-card')
     expect(card).toHaveClass('expanded')
   })
 })

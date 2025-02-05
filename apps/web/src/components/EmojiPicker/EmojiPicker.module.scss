@@ -1,8 +1,3 @@
-.emoji-picker-container {
-  width: 50px;
-  display: flex;
-  align-items: center;
-}
 
 .emoji-picker-toggle {
   cursor: pointer;
@@ -19,16 +14,6 @@
 .smiley {
   width: 20px;
   height: 20px;
-}
-
-.emoji-options {
-  position: fixed;
-  display: block;
-  z-index: 100000;
-  background: white;
-  border-radius: 5px;
-  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.15);
-  transition: all .25s ease;
 }
 
 .picker-icon {

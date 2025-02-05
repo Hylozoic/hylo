@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React from 'react'
 import classes from './Loading.module.scss'
 
@@ -23,7 +23,7 @@ export default function Loading ({ type, className, size }) {
   }
 
   return (
-    <div className={cx(loadingClass, className)}>
+    <div className={cn(loadingClass, className)} data-testid='loading-container'>
       <SvgLoader size={finalSize} />
     </div>
   )
@@ -31,8 +31,8 @@ export default function Loading ({ type, className, size }) {
 
 function SvgLoader ({ size = 40 }) {
   return (
-    <div className={classes.loadingIndicator}>
-      <svg version='1.1' x='0px' y='0px' width={`${size}px`} height={`${size}px`} viewBox='0 0 50 50'>
+    <div className={classes.loadingIndicator} data-testid='loading-indicator'>
+      <svg version='1.1' x='0px' y='0px' width={`${size}px`} height={`${size}px`} viewBox='0 0 50 50' role='img' aria-label='loading'>
         <path
           fill='#000'
           d='M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z'

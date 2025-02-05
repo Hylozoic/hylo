@@ -1,21 +1,18 @@
 import React, { useLayoutEffect } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs'
 import { isIOS } from 'util/platform'
-import fetchGroupSettings from 'store/actions/fetchGroupSettings'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import GroupSettingsWebView from 'screens/GroupSettingsWebView'
 import Avatar from 'components/Avatar'
 import { alabaster, rhino, rhino40, rhino60, white } from 'style/colors'
 
 const GroupSettings = createMaterialTopTabNavigator()
 export default function GroupSettingsTabsNavigator () {
-  const dispatch = useDispatch()
   const navigation = useNavigation()
   const route = useRoute()
-  const selectedGroup = useSelector(getCurrentGroup)
+  const [{ currentGroup: selectedGroup }, refetchCurrentGroup] = useCurrentGroup()
   const groupName = selectedGroup?.name
   const navigatorProps = {
     screenOptions: {
@@ -41,7 +38,7 @@ export default function GroupSettingsTabsNavigator () {
       headerTitleStyle: { color: white },
       // Reload group on exit
       headerLeftOnPress: () => {
-        dispatch(fetchGroupSettings(selectedGroup.id))
+        refetchCurrentGroup()
         navigation.goBack()
       },
       headerTitle: props => {

@@ -1,11 +1,13 @@
+import { cn } from 'util/index'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import { groupUrl, groupDetailUrl } from 'util/navigation'
 import ClickCatcher from 'components/ClickCatcher'
+import useRouteParams from 'hooks/useRouteParams'
 import GroupHeader from './GroupHeader'
 import HyloHTML from 'components/HyloHTML'
-import cx from 'classnames'
+
 import classes from './GroupCard.module.scss'
 
 /*
@@ -22,7 +24,6 @@ import classes from './GroupCard.module.scss'
 export default function GroupCard ({
   memberships,
   group = {},
-  routeParams = {},
   highlightProps = {},
   className,
   expanded = false,
@@ -32,6 +33,8 @@ export default function GroupCard ({
   // XXX: turning this off for now because topics are random and can be weird. Turn back on when groups have their own #tags
   // const topics = group.groupTopics && group.groupTopics.toModelArray()
 
+  const routeParams = useRouteParams()
+
   const linkTo = memberships.includes(group.id)
     ? groupUrl(group.slug)
     : groupDetailUrl(group.slug, routeParams)
@@ -40,7 +43,9 @@ export default function GroupCard ({
     <Link to={linkTo} className={classes.groupLink}>
       <div
         onClick={onClick}
-        className={cx(classes.card, { [classes.expanded]: expanded, [classes.constrained]: constrained }, className)}>
+        data-testid='group-card'
+        className={cn(classes.card, { [classes.expanded]: expanded, [classes.constrained]: constrained }, className)}
+      >
         <GroupHeader
           {...group}
           group={group}

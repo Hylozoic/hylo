@@ -1,3 +1,14 @@
+####### https://github.com/stripe/stripe-react-native/issues/1280#issuecomment-1828346834
+# Read min iOS version from Xcode project and set as min iOS version for Podfile
+require 'xcodeproj'
+
+project_path = './HyloReactNative.xcodeproj'
+project = Xcodeproj::Project.open(project_path)
+min_ios_version_supported = project.build_configurations.first.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+######
+
+ENV['RCT_NEW_ARCH_ENABLED'] = "1"
+
 # Resolve react_native_pods.rb with node to allow for hoisting
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
@@ -36,6 +47,12 @@ target 'HyloReactNative' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    # https://github.com/react-native-google-signin/google-signin/pull/1140
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = min_ios_version_supported
+      end
+    end
   end
 end
 

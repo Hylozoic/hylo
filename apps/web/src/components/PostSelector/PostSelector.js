@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { DndContext, DragOverlay } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -21,6 +21,7 @@ import classes from './PostSelector.module.scss'
 const PAGE_SIZE = 10
 
 export default function PostSelector ({ collection, draggable, group, onRemovePost, onReorderPost, onSelectPost, posts }) {
+  console.log(collection, 'ayyayyayay')
   const dispatch = useDispatch()
   const [autocomplete, setAutocomplete] = useState('')
   const [suggestions, setSuggestions] = useState([])
@@ -181,8 +182,7 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
                     />
                   ))}
                 </ul>
-              </div>
-            }
+              </div>}
           </div>
         </div>
       </SortableContext>
@@ -240,10 +240,10 @@ const SelectedPost = forwardRef(({ children, ...props }, ref) => {
 
   return (
     <div className={classes.selectedPost} ref={ref} style={style} {...attributes} {...listeners}>
-      <RoundImage url={post.creator.avatarUrl} className={classes.selectedPostAvatar} small />
+      <RoundImage url={post?.creator?.avatarUrl} className={classes.selectedPostAvatar} small />
       <span className={classes.postTitle}>{post.title}</span>
-      <Icon name='Trash' onClick={handleDelete(post, index)} className={cx(classes.removePost, classes.selectedPostIcon)} dataTip={t('Remove Post')} />
-      {draggable && <Icon name='Draggable' className={cx(classes.selectedPostIcon, classes.dragHandle)} />}
+      <Icon name='Trash' onClick={handleDelete(post, index)} className={cn(classes.removePost, classes.selectedPostIcon)} dataTip={t('Remove Post')} />
+      {draggable && <Icon name='Draggable' className={cn(classes.selectedPostIcon, classes.dragHandle)} />}
     </div>
   )
 })
@@ -253,7 +253,7 @@ function Suggestion ({ item, onSelect, observeRef }) {
   return (
     <li key={id || 'blank'} className={classes.suggestion} ref={observeRef}>
       <a onClick={event => onSelect(item, event)} className={classes.suggestionLink}>
-        <RoundImage url={creator.avatarUrl} className={classes.suggestionAvatar} small />
+        <RoundImage url={creator?.avatarUrl} className={classes.suggestionAvatar} small />
         <div className={classes.suggestionName}>{title}</div>
       </a>
     </li>

@@ -1,27 +1,26 @@
 import { useNavigation } from '@react-navigation/native'
-import { useSelector } from 'react-redux'
-import confirmNavigate from 'util/confirmNavigate'
-import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'store/models/Group'
-import { modalScreenName } from 'hooks/useIsModalScreen'
-import getMemberships from 'store/selectors/getMemberships'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import { useTranslation } from 'react-i18next'
+import confirmNavigate from 'util/confirmNavigate'
+import { modalScreenName } from 'hooks/useIsModalScreen'
+import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { useCurrentGroupSlug } from '@hylo/hooks/useCurrentGroup'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 export default function useChangeToGroup () {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const myMemberships = useSelector(getMemberships)
-  const currentGroup = useSelector(getCurrentGroup)
+  const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroupSlug }] = useCurrentGroupSlug()
+  const myMemberships = currentUser?.memberships
 
   return (groupSlug, confirm = true) => {
     if (!myMemberships) {
       throw new Error('Must provide current user memberships as 2nd parameter')
     }
 
-    if (groupSlug === currentGroup?.slug) return
+    if (groupSlug === currentGroupSlug) return
 
-    const canViewGroup = myMemberships.find(m => m.group.slug === groupSlug) ||
-      [PUBLIC_GROUP_ID, ALL_GROUP_ID].includes(groupSlug)
+    const canViewGroup = myMemberships.find(m => m.group.slug === groupSlug) || isContextGroupSlug(groupSlug)
 
     if (canViewGroup) {
       const goToGroup = () => {

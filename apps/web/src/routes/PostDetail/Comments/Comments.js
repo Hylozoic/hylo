@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import React, { useEffect, useCallback } from 'react'
 import { array, bool, func, object, number, string } from 'prop-types'
 import { Link } from 'react-router-dom'
@@ -8,7 +7,7 @@ import ShowMore from './ShowMore'
 import Comment from './Comment'
 import CommentForm from './CommentForm'
 import PeopleTyping from 'components/PeopleTyping'
-import { inIframe } from 'util/index'
+import { cn, inIframe } from 'util/index'
 
 import classes from './Comments.module.scss'
 
@@ -72,24 +71,24 @@ const Comments = ({
       ))}
       {currentUser
         ? (
-          <div className={cx(classes.formWrapper)} style={style}>
+          <div className={cn(classes.formWrapper)} style={style}>
             <CommentForm
               currentUser={currentUser}
               createComment={createComment}
               postId={post.id}
             />
-            <PeopleTyping className={cx(classes.peopleTyping)} />
+            <PeopleTyping className={cn(classes.peopleTyping)} />
           </div>
-        ) : (
+          )
+        : (
           <Link
             to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname)}`}
             target={inIframe() ? '_blank' : ''}
-            className={cx(classes.signupButton)}
+            className={cn(classes.signupButton)}
           >
             Join Hylo to respond
           </Link>
-        )
-      }
+          )}
     </div>
   )
 }
@@ -103,7 +102,6 @@ Comments.propTypes = {
   currentUser: object,
   post: object,
   slug: string,
-  width: number,
   total: number,
   hasMore: bool
 }

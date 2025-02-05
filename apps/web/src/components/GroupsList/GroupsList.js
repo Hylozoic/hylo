@@ -25,7 +25,7 @@ export function GroupCell ({ group, children }) {
   return (
     <>
       <Link to={groupUrl(group.slug)} className={classes.groupCell}>
-        <div className={classes.groupCellAvatar} style={imageStyle} />
+        <div className={classes.groupCellAvatar} style={imageStyle} data-testid='group-avatar' />
         <span className={classes.groupCellName}>{name}</span>
       </Link>
       {children}

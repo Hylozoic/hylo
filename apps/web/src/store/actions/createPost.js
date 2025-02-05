@@ -1,4 +1,4 @@
-import { get } from 'lodash/fp'
+import { get, uniqueId } from 'lodash/fp'
 import { TextHelpers, AnalyticsEvents } from '@hylo/shared'
 import createPostMutation from '@graphql/mutations/createPostMutation'
 import { CREATE_POST } from 'store/constants'
@@ -17,6 +17,7 @@ export default function createPost (postParams) {
     imageUrls,
     linkPreview,
     linkPreviewFeatured,
+    localId,
     location,
     locationId,
     memberIds = [],
@@ -56,6 +57,7 @@ export default function createPost (postParams) {
         isStrictProposal,
         linkPreviewId,
         linkPreviewFeatured,
+        localId: localId || uniqueId('post_'), // to match the optimistically created post and replace it with the real one
         location,
         locationId,
         memberIds,
@@ -83,7 +85,9 @@ export default function createPost (postParams) {
         isPublic,
         topics: topicNames,
         type
-      }
+      },
+      type,
+      groupIds
     }
   }
 }

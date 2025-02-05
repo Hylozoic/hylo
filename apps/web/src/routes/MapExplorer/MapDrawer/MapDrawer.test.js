@@ -25,7 +25,7 @@ describe('MapDrawer', () => {
   })
 
   it('renders correctly with minimum props', () => {
-    render(<MapDrawer {...defaultMinProps} />, { wrapper: AllTheProviders })
+    render(<MapDrawer {...defaultMinProps} />)
     expect(screen.getByPlaceholderText('Filter by topics and keywords')).toBeInTheDocument()
     expect(screen.getByText('Posts')).toBeInTheDocument()
     expect(screen.getByText('Groups')).toBeInTheDocument()
@@ -41,11 +41,11 @@ describe('MapDrawer', () => {
         { id: 2, name: 'hello' }
       ],
       posts: [
-        { id: 1, title: 'Post', type: 'request' }
+        { id: 1, title: 'Post', type: 'request', groups: [{ id: 1, name: 'group one', slug: 'slug2' }] }
       ],
       filters: { sortBy: 'created', search: 'hello', topics: [{ id: 1, name: 'food' }] }
     }
-    render(<MapDrawer {...props} />, { wrapper: AllTheProviders })
+    render(<MapDrawer {...props} />)
     expect(screen.getByText('Post')).toBeInTheDocument()
     expect(screen.getByText('group one')).toBeInTheDocument()
     expect(screen.getByText('#food')).toBeInTheDocument()
@@ -53,12 +53,12 @@ describe('MapDrawer', () => {
 
   it('updates filters when searching', () => {
     const onUpdateFilters = jest.fn()
-    render(<MapDrawer {...defaultMinProps} onUpdateFilters={onUpdateFilters} topics={[{ id: 3, name: 'DOAs' }]} />, { wrapper: AllTheProviders })
+    render(<MapDrawer {...defaultMinProps} onUpdateFilters={onUpdateFilters} topics={[{ id: 3, name: 'DOAs' }]} />)
 
     const searchBox = screen.getByPlaceholderText('Filter by topics and keywords')
     fireEvent.focus(searchBox)
     fireEvent.change(searchBox, { target: { value: 'search' } })
-    fireEvent.keyUp(searchBox, { key: 'Enter', code: 'Enter', charCode: 13 })
+    fireEvent.keyUp(searchBox, { key: 'Enter', code: 'Enter', keyCode: 13 })
 
     expect(onUpdateFilters).toHaveBeenCalledWith({ search: 'search' })
   })
@@ -66,9 +66,9 @@ describe('MapDrawer', () => {
 
 describe('TabBar', () => {
   it('renders tabs and handles tab selection', () => {
-    const tabs = { 'Posts': 1, 'Groups': 2 }
+    const tabs = { Posts: 1, Groups: 2 }
     const selectTab = jest.fn()
-    render(<TabBar currentTab='Posts' selectTab={selectTab} tabs={tabs} />, { wrapper: AllTheProviders })
+    render(<TabBar currentTab='Posts' selectTab={selectTab} tabs={tabs} />)
 
     expect(screen.getByText('Posts')).toHaveClass('tabActive')
     expect(screen.getByText('Groups')).not.toHaveClass('tabActive')

@@ -1,43 +1,30 @@
 import React from 'react'
-import { graphql } from 'msw'
+import { useParams, useLocation, Routes, Route } from 'react-router-dom'
+import { graphql, HttpResponse } from 'msw'
 import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { AllTheProviders, render, screen, waitForElementToBeRemoved } from 'util/testing/reactTestingLibraryExtended'
 import AuthLayoutRouter from './AuthLayoutRouter'
 
-const { ResizeObserver } = window
-
-jest.mock('mixpanel-browser', () => ({
-  track: jest.fn(),
-  identify: jest.fn(),
-  get_group: jest.fn().mockImplementation(() => ({
-    set: jest.fn()
-  })),
-  set_group: jest.fn(),
-  people: {
-    set: jest.fn()
-  }
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useParams: jest.fn().mockReturnValue({ context: 'groups', groupSlug: 'test-group' }),
+  useLocation: jest.fn().mockReturnValue({ pathname: '/groups/test-group', search: '' })
 }))
 
-beforeEach(() => {
-  delete window.ResizeObserver
-  window.ResizeObserver = jest.fn().mockImplementation(() => ({
-    observe: jest.fn(),
-    unobserve: jest.fn(),
-    disconnect: jest.fn()
-  }))
-})
+const useParamsMocked = jest.mocked(useParams)
+const useLocationMocked = jest.mocked(useLocation)
 
 afterEach(() => {
-  window.ResizeObserver = ResizeObserver
   jest.restoreAllMocks()
 })
 
-function testWrapper (providedState) {
+const testWrapper = (providedState, initialEntries = []) => ({ children }) => {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   const reduxState = { orm: ormSession.state, ...providedState }
 
-  return AllTheProviders(reduxState)
+  const AllTheProvidersComponent = AllTheProviders(reduxState, initialEntries)
+  return <AllTheProvidersComponent>{children}</AllTheProvidersComponent>
 }
 
 it('shows group if the group exists', async () => {
@@ -61,90 +48,76 @@ it('shows group if the group exists', async () => {
     ]
   }
 
-  mockGraphqlServer.resetHandlers(
-    graphql.query('MeQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
-          me: me
-        })
-      )
+  mockGraphqlServer.use(
+    graphql.query('MeQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
+          me
+        }
+      })
     }),
-    graphql.query('FetchForGroup', (req, res, ctx) => {
-      return res(
-        ctx.data({
+    graphql.query('FetchForGroup', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
           group
-        })
-      )
+        }
+      })
     }),
-    graphql.query('GroupDetailsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
+    graphql.query('GroupDetailsQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
           group
-        })
-      )
+        }
+      })
     }),
-    graphql.query('GroupWelcomeQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
-          group: null
-        })
-      )
+    graphql.query('GroupWelcomeQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: { group: null }
+      })
     }),
-    graphql.query('PostsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
-          group: null
-        })
-      )
+    graphql.query('PostsQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: { group: null }
+      })
     }),
-    graphql.query('GroupPostsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
-          group: null
-        })
-      )
+    graphql.query('GroupPostsQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: { group: null }
+      })
     }),
     // defaults
-    graphql.query('MessageThreadsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
-          me: null
-        })
-      )
+    graphql.query('MessageThreadsQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: { me: null }
+      })
     }),
-    graphql.query('MyPendingJoinRequestsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
-          joinRequests: null
-        })
-      )
+    graphql.query('MyPendingJoinRequestsQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: { joinRequests: null }
+      })
     }),
-    graphql.query('NotificationsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
-          notifications: null
-        })
-      )
+    graphql.query('NotificationsQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: { notifications: null }
+      })
     }),
-    graphql.query('FetchCommonRoles', (req, res, ctx) => {
-      return res(
-        ctx.data({
-          commonRoles: null
-        })
-      )
+    graphql.query('FetchCommonRoles', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: { commonRoles: [] }
+      })
     }),
-    graphql.query('FetchPlatformAgreements', (req, res, ctx) => {
-      return res(
-        ctx.data({
+    graphql.query('FetchPlatformAgreements', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
           platformAgreements: null
-        })
-      )
+        }
+      })
     })
   )
 
   render(
-    <AuthLayoutRouter location={{ pathname: '/groups/test-group', search: '' }} />,
-    { wrapper: testWrapper() }
+    <AuthLayoutRouter />,
+    { wrapper: testWrapper({}, ['/groups/test-group']) }
   )
 
   await waitForElementToBeRemoved(screen.queryByTestId('loading-screen'))
@@ -165,86 +138,87 @@ it('shows NotFound if the group does not exist', async () => {
     memberships: [{ id: '3', person: { id: '3' }, commonRoles: { items: [] } }]
   }
 
-  mockGraphqlServer.resetHandlers(
-    graphql.query('MeQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
-          me: me
-        })
-      )
+  mockGraphqlServer.use(
+    graphql.query('MeQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
+          me
+        }
+      })
     }),
-    graphql.query('FetchForGroup', (req, res, ctx) => {
-      return res(
-        ctx.data({
+    graphql.query('FetchForGroup', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
           group: null
-        })
-      )
+        }
+      })
     }),
-    graphql.query('GroupDetailsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
+    graphql.query('GroupDetailsQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
           group: null
-        })
-      )
+        }
+      })
     }),
-    graphql.query('PostsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
+    graphql.query('PostsQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
           group: null
-        })
-      )
+        }
+      })
     }),
-    graphql.query('GroupPostsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
+    graphql.query('GroupPostsQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
           group: null
-        })
-      )
+        }
+      })
     }),
     // defaults
-    graphql.query('MessageThreadsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
+    graphql.query('MessageThreadsQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
           me: null
-        })
-      )
+        }
+      })
     }),
-    graphql.query('MyPendingJoinRequestsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
+    graphql.query('MyPendingJoinRequestsQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
           joinRequests: null
-        })
-      )
+        }
+      })
     }),
-    graphql.query('NotificationsQuery', (req, res, ctx) => {
-      return res(
-        ctx.data({
+    graphql.query('NotificationsQuery', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
           notifications: null
-        })
-      )
+        }
+      })
     }),
-    graphql.query('FetchCommonRoles', (req, res, ctx) => {
-      return res(
-        ctx.data({
-          commonRoles: null
-        })
-      )
+    graphql.query('FetchCommonRoles', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: { commonRoles: [] }
+      })
     }),
-    graphql.query('FetchPlatformAgreements', (req, res, ctx) => {
-      return res(
-        ctx.data({
+    graphql.query('FetchPlatformAgreements', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
           platformAgreements: null
-        })
-      )
+        }
+      })
     })
   )
 
+  useParamsMocked.mockReturnValue({ context: 'groups', groupSlug: 'no-group' })
+  useLocationMocked.mockReturnValue({ pathname: '/groups/no-group', search: '' })
+
   render(
-    <AuthLayoutRouter location={{ pathname: '/groups/no-group', search: '' }} />,
-    { wrapper: testWrapper() }
+    <AuthLayoutRouter />,
+    { wrapper: testWrapper({}, ['/groups/no-group']) }
   )
 
   await waitForElementToBeRemoved(screen.queryByTestId('loading-screen'))
 
-  expect(screen.getByText('404 Not Found')).toBeInTheDocument()
+  expect(screen.getByText(`Oops, there's nothing to see here.`)).toBeInTheDocument()
 })

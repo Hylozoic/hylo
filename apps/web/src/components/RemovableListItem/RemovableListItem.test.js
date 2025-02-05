@@ -11,12 +11,12 @@ describe('RemovableListItem', () => {
 
   it('renders correctly with URL', () => {
     render(
-      <RemovableListItem item={defaultItem} url="/happy/place" removeItem={() => {}} />
+      <RemovableListItem item={defaultItem} url='/happy/place' removeItem={() => {}} />
     )
 
     expect(screen.getByText('Zeus')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Zeus' })).toHaveAttribute('href', '/happy/place')
-    expect(screen.getByRole('img')).toHaveAttribute('src', 'zeus.png')
+    expect(screen.getByRole('img').getAttribute('style')).toContain(`background-image: url(zeus.png)`)
     expect(screen.getByText('Remove')).toBeInTheDocument()
   })
 
@@ -25,12 +25,12 @@ describe('RemovableListItem', () => {
 
     expect(screen.getByText('Zeus')).toBeInTheDocument()
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
-    expect(screen.getByRole('img')).toHaveAttribute('src', 'zeus.png')
+    expect(screen.getByRole('img').getAttribute('style')).toContain(`background-image: url(zeus.png)`)
   })
 
   it('doesnt render a remove link when removeItem is not provided', () => {
     render(
-      <RemovableListItem item={defaultItem} url="/happy/place" />
+      <RemovableListItem item={defaultItem} url='/happy/place' />
     )
 
     expect(screen.getByText('Zeus')).toBeInTheDocument()
@@ -47,7 +47,7 @@ describe('RemovableListItem', () => {
       render(
         <RemovableListItem
           item={defaultItem}
-          url="/happy/place"
+          url='/happy/place'
           removeItem={removeItem}
           confirmMessage={confirmMessage}
         />
@@ -67,8 +67,8 @@ describe('RemovableListItem', () => {
       render(
         <RemovableListItem
           item={defaultItem}
-          skipConfirm={true}
-          url="/happy/place"
+          skipConfirm
+          url='/happy/place'
           removeItem={removeItem}
         />
       )

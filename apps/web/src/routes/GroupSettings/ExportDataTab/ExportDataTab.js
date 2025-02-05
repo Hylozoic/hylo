@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Loading from 'components/Loading'
 import Button from 'components/Button'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetch from 'isomorphic-fetch'
 import { getHost } from 'store/middleware/apiMiddleware'
 import classes from './ExportDataTab.module.scss'
@@ -23,6 +24,15 @@ export default function ExportDataTab (props) {
     triggerMemberExport(group.id, success, failure)
   }
 
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: `${t('Group Settings')} > ${t('Export Data')}`,
+      icon: 'Settings',
+      info: ''
+    })
+  }, [])
+
   if (!group) return <Loading />
 
   return (
@@ -31,13 +41,14 @@ export default function ExportDataTab (props) {
       <p className={classes.help}>{t('This function exports all member data for this group as a CSV file for import into other software.')}</p>
       {status && <p>{status}</p>}
       <Button disabled={clicked} label={t('Export Members')} color='green' onClick={handleClick} />
-    </div>)
+    </div>
+  )
 }
 
 function triggerMemberExport (groupId, success, failure) {
   fetch(`${getHost()}/noo/export/group?groupId=${groupId}&datasets[]=members`)
     .then((res) => {
-      let { status } = res
+      const { status } = res
       status === 200 ? success() : failure()
     })
 }

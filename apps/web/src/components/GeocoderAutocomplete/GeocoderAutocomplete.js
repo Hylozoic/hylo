@@ -12,10 +12,11 @@ const GeocoderAutocomplete = ({
   accessToken,
   endpoint = 'https://api.tiles.mapbox.com',
   defaultInputValue = '',
-  inputClass = '',
+  className = '',
   resultClass = '',
   resultsClass = '',
   resultFocusClass = 'strong',
+  id,
   inputPosition = 'top',
   inputPlaceholder = 'Search',
   showLoader = false,
@@ -221,8 +222,9 @@ const GeocoderAutocomplete = ({
 
   const input = (
     <input
+      id={id}
       ref={inputRef}
-      className={inputClass}
+      className={className}
       onKeyDown={onKeyDown}
       placeholder={inputPlaceholder}
       onBlur={handleBlur}
@@ -282,7 +284,7 @@ GeocoderAutocomplete.propTypes = {
   endpoint: PropTypes.string,
   defaultInputValue: PropTypes.string,
   source: PropTypes.string,
-  inputClass: PropTypes.string,
+  className: PropTypes.string,
   resultClass: PropTypes.string,
   resultsClass: PropTypes.string,
   inputPosition: PropTypes.string,

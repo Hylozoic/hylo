@@ -1,130 +1,109 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { isEmpty, trim } from 'lodash'
-import React, { PureComponent } from 'react'
-import { withTranslation } from 'react-i18next'
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useDispatch } from 'react-redux'
 import TextareaAutosize from 'react-textarea-autosize'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
 import Select from 'components/Select'
+import { submitFlagContent } from './FlagContent.store'
 
 import classes from './FlagContent.module.scss'
 
-class FlagContent extends PureComponent {
-  state = {
-    promptVisible: false,
-    highlightRequired: false,
-    reasonRequired: false,
-    explanation: ''
-  }
+function FlagContent ({ linkData, onClose, type = 'content' }) {
+  const { t } = useTranslation()
+  const [highlightRequired, setHighlightRequired] = useState(false)
+  const [reasonRequired, setReasonRequired] = useState(false)
+  const [explanation, setExplanation] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [subtitle, setSubtitle] = useState(t('What was wrong?'))
+  const dispatch = useDispatch()
 
-  static defaultProps = {
-    promptVisible: false,
-    highlightRequired: false,
-    reasonRequired: false,
-    explanation: ''
-  }
-
-  closeModal = () => {
-    this.setState({ promptVisible: false, highlightRequired: false })
-    if (this.props.onClose) {
-      this.props.onClose()
+  const closeModal = () => {
+    setHighlightRequired(false)
+    if (onClose) {
+      onClose()
     }
   }
 
-  isExplanationOptional = (selectedCategory) =>
-    (selectedCategory || this.state.selectedCategory) !== 'other'
+  const isExplanationOptional = (selectedCategory) =>
+    (selectedCategory || selectedCategory) !== 'other'
 
-  submit = () => {
-    const { submitFlagContent, linkData } = this.props
-    const { selectedCategory, explanation } = this.state
-
+  const submit = () => {
     if (isEmpty(selectedCategory)) {
-      this.setState({ reasonRequired: true })
+      setReasonRequired(true)
       return
     }
 
-    if (!this.isExplanationOptional() && isEmpty(trim(explanation))) {
-      this.setState(
-        { highlightRequired: true },
-        () => this.updateSelected(selectedCategory)
-      )
+    if (!isExplanationOptional() && isEmpty(trim(explanation))) {
+      setHighlightRequired(true)
+      updateSelected(selectedCategory)
     } else {
-      submitFlagContent(selectedCategory, trim(explanation), linkData)
-      this.closeModal()
+      dispatch(submitFlagContent(selectedCategory, trim(explanation), linkData))
+      closeModal()
       return true
     }
 
     return false
   }
 
-  cancel = () => {
-    this.setState({
-      highlightRequired: false
-    })
-    this.closeModal()
-  }
+  const updateSelected = (selectedCategory) => {
+    setSelectedCategory(selectedCategory)
 
-  updateSelected = (selectedCategory) => {
-    this.setState({ selectedCategory })
-    const { type = 'content' } = this.props
-    const { highlightRequired } = this.state
-
-    const required = !this.isExplanationOptional(selectedCategory) && highlightRequired
-      ? ` ${this.props.t('(explanation required)')}`
+    const required = !isExplanationOptional(selectedCategory) && highlightRequired
+      ? ` ${t('(explanation required)')}`
       : ''
-    const subtitle = this.props.t(`Why was this {{type}} '{{selectedCategory}}'{{required}}?`, { type,
+    const newSubtitle = t('Why was this {{type}} \'{{selectedCategory}}\'{{required}}?', {
+      type,
       selectedCategory,
-      required })
-    this.setState({ subtitle })
+      required
+    })
+    setSubtitle(newSubtitle)
   }
 
-  render () {
-    const { t } = this.props
-    const options = [
-      { label: t('Inappropriate Content'), id: 'inappropriate' },
-      { label: t('Spam'), id: 'spam' },
-      { label: t('Offensive'), id: 'offensive' },
-      { label: t('Abusive'), id: 'abusive' },
-      { label: t('Illegal'), id: 'illegal' },
-      { label: t('Other'), id: 'other' }
-    ]
+  const options = [
+    { label: t('Inappropriate Content'), id: 'inappropriate' },
+    { label: t('Spam'), id: 'spam' },
+    { label: t('Offensive'), id: 'offensive' },
+    { label: t('Abusive'), id: 'abusive' },
+    { label: t('Illegal'), id: 'illegal' },
+    { label: t('Other'), id: 'other' }
+  ]
 
-    const {
-      subtitle = t('What was wrong?'),
-      reasonRequired,
-      selectedCategory = '', explanation } = this.state
+  return (
+    <div className={classes.popup}>
+      <div className={classes.popupInner}>
+        <h1>{t('Explanation for Flagging')}</h1>
+        <span onClick={closeModal} className={classes.closeBtn} role='button' aria-label='Ex'>
+          <Icon name='Ex' className={classes.icon} />
+        </span>
 
-    return (
-      <div className={classes.popup}>
-        <div className={classes.popupInner}>
-          <h1>{t('Explanation for Flagging')}</h1>
-          <span onClick={this.closeModal} className={classes.closeBtn}>
-            <Icon name='Ex' className={classes.icon} />
-          </span>
-
-          <div className={classes.content}>
-            <div className={classes.reason}>
-              <Select
-                onChange={this.updateSelected}
-                fullWidth
-                className={cx({
-                  [classes.reasonRequired]: reasonRequired
-                })}
-                selected={selectedCategory}
-                placeholder={t('Select a reason')}
-                options={options} />
-            </div>
-            <TextareaAutosize
-              className={classes.explanationTextbox}
-              minRows={6}
-              value={explanation}
-              onChange={(e) => { this.setState({ explanation: e.target.value }) }}
-              placeholder={subtitle} />
-            <Button className={classes.submitBtn} onClick={this.submit} disabled={isEmpty(selectedCategory)}>{t('Submit')}</Button>
+        <div className={classes.content}>
+          <div className={classes.reason}>
+            <Select
+              onChange={updateSelected}
+              fullWidth
+              className={cn({
+                [classes.reasonRequired]: reasonRequired
+              })}
+              selected={selectedCategory}
+              placeholder={t('Select a reason')}
+              options={options}
+            />
           </div>
+          <TextareaAutosize
+            className={classes.explanationTextbox}
+            minRows={6}
+            value={explanation}
+            onChange={(e) => { setExplanation(e.target.value) }}
+            placeholder={subtitle}
+          />
+          <Button className={classes.submitBtn} onClick={submit} disabled={isEmpty(selectedCategory)}>{t('Submit')}</Button>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
 }
-export default withTranslation()(FlagContent)
+
+export default FlagContent

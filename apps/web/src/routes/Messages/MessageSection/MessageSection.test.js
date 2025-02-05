@@ -1,6 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import MessageSection from './MessageSection'
 
 const person1 = { id: '1', name: 'City Bob', avatarUrl: '' }
@@ -63,17 +62,27 @@ beforeEach(() => {
 it('fetches more messages when scrolled to top', async () => {
   const fetchMessages = jest.fn()
   render(
-    <AllTheProviders>
-      <MessageSection
-        messages={messages}
-        socket={socket}
-        fetchMessages={fetchMessages}
-        hasMore
-      />
-    </AllTheProviders>
+    <MessageSection
+      messages={messages}
+      socket={socket}
+      fetchMessages={fetchMessages}
+      hasMore
+    />
   )
 
-  const messageSection = screen.getByRole('region')
+  const messageSection = screen.getByTestId('message-section')
+   // Mock properties using a loop
+   const properties = {
+    scrollHeight: 1200,
+    offsetHeight: 100,
+    scrollTop: 0,
+  }
+  Object.entries(properties).forEach(([key, value]) => {
+    Object.defineProperty(messageSection, key, {
+      value,
+      writable: true,
+    })
+  })
   fireEvent.scroll(messageSection, { target: { scrollTop: 0, scrollHeight: 1200, offsetHeight: 100 } })
 
   await waitFor(() => {
@@ -83,19 +92,15 @@ it('fetches more messages when scrolled to top', async () => {
 
 it('shows Loading component when pending is true', () => {
   render(
-    <AllTheProviders>
-      <MessageSection messages={[]} fetchMessages={() => {}} pending />
-    </AllTheProviders>
+    <MessageSection messages={[]} fetchMessages={() => {}} pending />
   )
 
-  expect(screen.getByRole('progressbar')).toBeInTheDocument()
+  expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
 })
 
 it('displays messages when not pending', () => {
   render(
-    <AllTheProviders>
-      <MessageSection messages={messages} fetchMessages={() => {}} />
-    </AllTheProviders>
+    <MessageSection messages={messages} fetchMessages={() => {}} />
   )
 
   expect(screen.getByText('hi!')).toBeInTheDocument()
@@ -104,15 +109,11 @@ it('displays messages when not pending', () => {
 
 it('scrolls to bottom when new messages are added', async () => {
   const { rerender } = render(
-    <AllTheProviders>
-      <MessageSection messages={messages.slice(0, 3)} fetchMessages={() => {}} />
-    </AllTheProviders>
+    <MessageSection messages={messages.slice(0, 3)} fetchMessages={() => {}} />
   )
 
   rerender(
-    <AllTheProviders>
-      <MessageSection messages={messages} fetchMessages={() => {}} />
-    </AllTheProviders>
+    <MessageSection messages={messages} fetchMessages={() => {}} />
   )
 
   await waitFor(() => {

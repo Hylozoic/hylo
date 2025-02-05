@@ -1,5 +1,5 @@
 /* eslint-disable react/no-unstable-nested-components */
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import {
   Alert,
   KeyboardAvoidingView,
@@ -10,43 +10,50 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
-import RNPickerSelect from 'react-native-picker-select'
-import { useIsFocused } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import { get, uniq, uniqBy, isEmpty } from 'lodash/fp'
-import moment from 'moment-timezone'
+import { useDispatch } from 'react-redux'
+import { useQuery, useMutation } from 'urql'
+import { get, uniqBy, isEmpty } from 'lodash/fp'
+import { useNavigation } from '@react-navigation/native'
 import { Validators, TextHelpers } from '@hylo/shared'
 import { isIOS } from 'util/platform'
-import { showToast, hideToast } from 'util/toast'
-import { MAX_TITLE_LENGTH } from './PostEditor.store'
-import LocationPicker from 'screens/LocationPicker/LocationPicker'
-// TODO: Convert all 3 of the below to LocationPicker style calls
-// ProjectMembers Chooser
-import scopedFetchPeopleAutocomplete from 'store/actions/scopedFetchPeopleAutocomplete'
-import scopedGetPeopleAutocomplete from 'store/selectors/scopedGetPeopleAutocomplete'
-// Topics Picker
-import fetchTopicsForGroupId from 'store/actions/fetchTopicsForGroupId'
-import getTopicsForAutocompleteWithNew from 'store/selectors/getTopicsForAutocompleteWithNew'
-import TopicRow from 'screens/TopicList/TopicRow'
-// Group Chooser
-import GroupChooserItemRow from 'screens/ItemChooser/GroupChooserItemRow'
-import GroupsList from 'components/GroupsList'
+import useRouteParams from 'hooks/useRouteParams'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
+import useFindOrCreateLocationObject from 'components/LocationSelectorModal/useFindOrCreateLocationObject'
+import createPostMutation from '@hylo/graphql/mutations/createPostMutation'
+import createProjectMutation from '@hylo/graphql/mutations/createProjectMutation'
+import updatePostMutation from '@hylo/graphql/mutations/updatePostMutation'
+import uploadAction from 'store/actions/upload'
+import postQuery from '@hylo/graphql/queries/postQuery'
+import PostPresenter from '@hylo/presenters/PostPresenter'
 // Components
-import DatePicker from 'react-native-date-picker'
+import DatePickerWithLabel from './DatePickerWithLabel'
+import TypeSelector from './TypeSelector'
+import ItemSelectorModal from 'components/ItemSelectorModal'
+import LocationSelectorModal from 'components/LocationSelectorModal'
+import TopicRow from 'screens/TopicList/TopicRow'
+// ProjectMembers Chooser
+import peopleAutocompleteQuery from '@hylo/graphql/queries/peopleAutocompleteQuery'
+// Topics Picker
+import topicsForGroupIdQuery from '@hylo/graphql/queries/topicsForGroupIdQuery'
+import GroupsList from 'components/GroupsList'
 import Button from 'components/Button'
 import FileSelector, { showFilePicker as fileSelectorShowFilePicker } from './FileSelector'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
 import ImagePicker from 'components/ImagePicker'
 import ImageSelector from './ImageSelector'
-import ItemChooserItemRow from 'screens/ItemChooser/ItemChooserItemRow'
 import Loading from 'components/Loading'
 import ProjectMembersSummary from 'components/ProjectMembersSummary'
 import Topics from 'components/Topics'
-import styles, { typeSelectorStyles } from './PostEditor.styles'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
-import { caribbeanGreen, rhino30, rhino80, white } from 'style/colors'
+import { caribbeanGreen, rhino30, rhino80 } from 'style/colors'
+import styles from './PostEditor.styles'
+
+export const MAX_TITLE_LENGTH = 50
 
 const titlePlaceholders = {
   discussion: 'Create a post',
@@ -58,457 +65,301 @@ const titlePlaceholders = {
   event: 'What is your event called?'
 }
 
-export default function (props) {
-  const isFocused = useIsFocused()
+export default function PostEditor (props) {
   const { t } = useTranslation()
-  return <PostEditor {...props} isFocused={isFocused} t={t} />
-}
+  const dispatch = useDispatch()
+  const navigation = useNavigation()
+  const scrollViewRef = useRef(null)
+  const detailsEditorRef = useRef(null)
+  const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroup }] = useCurrentGroup()
+  const hasResponsibility = useHasResponsibility({ forCurrentUser: true })
 
-export class PostEditor extends React.Component {
-  constructor (props) {
-    super(props)
-    const { post } = props
-    this.scrollViewRef = React.createRef()
-    this.detailsEditorRef = React.createRef()
-    this.state = {
-      isNewPost: !post?.id,
-      title: post?.title || '',
-      type: post?.type || 'discussion',
-      groups: post?.groups || [],
-      images: post?.imageUrls
-        ? post
-          .imageUrls
-          .map(imageUrl => ({ remote: imageUrl, local: imageUrl }))
-        : [],
-      files: post?.fileUrls
-        ? post
-          .fileUrls
-          .map(fileUrl => ({ remote: fileUrl, local: fileUrl }))
-        : [],
-      topics: post?.topics || [],
-      members: post?.members || [],
-      topicsPicked: false,
-      announcementEnabled: false,
-      detailsFocused: false,
-      details: post?.details,
-      titleLengthError: false,
-      startTime: post?.startTime
-        ? new Date(post.startTime)
-        : null,
-      endTime: post?.endTime
-        ? new Date(post.endTime)
-        : null,
-      location: post?.location,
-      locationObject: post?.locationObject,
-      donationsLink: post?.donationsLink,
-      projectManagementLink: post?.projectManagementLink,
-      isPublic: false,
-      startTimeExpanded: false,
-      endTimeExpanded: false,
-      isValid: post?.id,
-      isSaving: false
-    }
+  const {
+    id: selectedPostId,
+    lat: mapCoordinateLat,
+    lng: mapCoordinateLng,
+    topicName: selectedTopicName,
+    type: providedType
+  } = useRouteParams()
+  const [editingPost] = useState(selectedPostId)
+  const [{
+    data: selectedPostData,
+    fetching: selectedPostLoading
+  }] = useQuery({ query: postQuery, variables: { id: selectedPostId }, pause: !editingPost })
+  const [post, setPost] = useState({
+    type: providedType || 'discussion',
+    title: null,
+    details: null,
+    topics: selectedTopicName ? [{ name: selectedTopicName }] : [],
+    members: { items: [] },
+    startTime: null,
+    endTime: null,
+    groups: currentGroup ? [currentGroup] : [],
+    location: null,
+    locationObject: null,
+    donationsLink: null,
+    projectManagementLink: null,
+    isPublic: false,
+    announcement: false,
+    attachments: [],
+    images: [],
+    files: [],
+    postMemberships: []
+  })
+  const canAdminister = hasResponsibility(RESP_ADMINISTRATION, {
+    groupIds: post?.groups && post.groups.map(group => group.id)
+  })
+
+  const updatePost = useCallback(postUpdates => setPost(prevPost => {
+    prevPost.announcement = !canAdminister && prevPost.announcement
+    const newPost = PostPresenter(({ ...prevPost, ...postUpdates }))
+    return newPost
+  }), [setPost, canAdminister])
+
+  // Actions
+  const [, createNewPost] = useMutation(createPostMutation)
+  const [, createNewProject] = useMutation(createProjectMutation)
+  const [, updateSelectedPost] = useMutation(updatePostMutation)
+  const [, findOrCreateLocation] = useFindOrCreateLocationObject()
+  const upload = useCallback(params => dispatch(uploadAction(params)), [dispatch])
+  const canHaveTimeframe = useMemo(() => post.type !== 'discussion', [post])
+
+  // UI State
+  const isValid = useMemo(() => {
+    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink } = post
+    const attachmentsLoading = post.attachments.some(attachment => !attachment?.url)
+    return title && title.length >= 1 &&
+      !attachmentsLoading &&
+      !isEmpty(groups) &&
+      (type !== 'event' || (startTime && endTime)) &&
+      (!donationsLink || TextHelpers.sanitizeURL(donationsLink)) &&
+      (!projectManagementLink || TextHelpers.sanitizeURL(projectManagementLink))
+  }, [post])
+  const titleLengthWarning = useMemo(() => post?.title && post.title.length >= MAX_TITLE_LENGTH, [post])
+  const groupOptions = useMemo(() => currentUser?.memberships.map(m => m.group) || [], [currentUser])
+  const mapCoordinate = useMemo(() => {
+    return mapCoordinateLat && mapCoordinateLng ? { lat: mapCoordinateLat, lng: mapCoordinateLng } : null
+  }, [mapCoordinateLat, mapCoordinateLng])
+  const [isSaving, setIsSaving] = useState(false)
+  const [topicsPicked, setTopicsPicked] = useState(false)
+  const [filePickerPending, setFilePickerPending] = useState(false)
+
+  const handleShowFilePicker = async () => {
+    setFilePickerPending(true)
+    await fileSelectorShowFilePicker({
+      upload,
+      type: 'post',
+      id: post?.id,
+      onAdd: attachment => handleAddAttachment('file', attachment),
+      onError: (errorMessage, attachment) => {
+        setFilePickerPending(true)
+        handleAttachmentUploadError('file', errorMessage, attachment)
+      },
+      onComplete: () => setFilePickerPending(false),
+      onCancel: () => setFilePickerPending(false)
+    })
   }
 
-  componentDidMount () {
-    const { isNewPost } = this.state
-    const { fetchPost, pollingFindOrCreateLocation, mapCoordinate, t } = this.props
-    if (!isNewPost) {
-      fetchPost()
-    } else {
-      if (mapCoordinate) {
-        const locationObject = {
-          fullText: `${mapCoordinate.lat},${mapCoordinate.lng}`,
-          center: {
-            lat: parseFloat(mapCoordinate.lat),
-            lng: parseFloat(mapCoordinate.lng)
-          }
+  useEffect(() => {
+    if (selectedPostData?.post) {
+      setPost(PostPresenter(selectedPostData.post))
+    }
+  }, [selectedPostData?.post])
+
+  useEffect(() => {
+    if (!editingPost && mapCoordinate) {
+      findOrCreateLocation({
+        fullText: `${mapCoordinate.lat},${mapCoordinate.lng}`,
+        center: {
+          lat: parseFloat(mapCoordinate.lat),
+          lng: parseFloat(mapCoordinate.lng),
         }
-        pollingFindOrCreateLocation(locationObject, this.handlePickLocation)
-      }
+      }).then(({ locationObject }) => {
+        handleUpdateLocation(locationObject)
+      })
     }
 
-    this.removeBeforeRemove = this.props.navigation.addListener('beforeRemove', (e) => {
+    const removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
       e.preventDefault()
       confirmDiscardChanges({
-        onDiscard: () => this.props.navigation.dispatch(e.data.action),
+        onDiscard: () => navigation.dispatch(e.data.action),
         title: t('Are you sure?'),
         confirmationMessage: t('If you made changes they will be lost'),
         t
       })
     })
 
-    this.renderReactNavigationHeader()
-  }
+    return () => {
+      removeBeforeRemove()
+    }
+  }, [editingPost, mapCoordinate, findOrCreateLocation, navigation, t])
 
-  shouldComponentUpdate (nextProps, nextState) {
-    return nextProps.isFocused
-  }
-
-  componentWillUnmount () {
-    this.removeBeforeRemove()
-  }
-
-  save = async () => {
-    if (!this.detailsEditorRef?.current) {
-      this.setIsSaving(false)
+  const handleSave = useCallback(async () => {
+    if (!detailsEditorRef?.current) {
       return
     }
-    const {
-      createPost, createProject, updatePost,
-      navigation, post
-    } = this.props
-    const {
-      files, images, title,
-      topics, type, announcementEnabled, members,
-      groups, startTime, endTime, location, isPublic,
-      locationObject, donationsLink, projectManagementLink
-    } = this.state
-    const postData = {
-      id: post.id,
-      type,
-      details: this.detailsEditorRef.current.getHTML(),
-      groups,
-      memberIds: members.map(m => m.id),
-      fileUrls: uniq(files.filter(file => file.remote).map(file => file.remote)),
-      imageUrls: uniq(images.filter(image => image.remote).map(image => image.remote)),
-      isPublic,
-      title,
-      sendAnnouncement: announcementEnabled,
-      topicNames: topics.map(t => t.name),
-      startTime: startTime && startTime.getTime(),
-      endTime: endTime && endTime.getTime(),
-      location,
-      projectManagementLink: TextHelpers.sanitizeURL(projectManagementLink),
-      donationsLink: TextHelpers.sanitizeURL(donationsLink),
-      locationId: (locationObject && locationObject?.id) ? locationObject.id : null
-    }
 
-    try {
-      const saveAction = postData.id
-        ? updatePost
-        : postData.type === 'project'
-          ? createProject
-          : createPost
-      const { payload, meta, error } = await saveAction(postData)
+    const doSave = async () => {
+      setIsSaving(true)
 
-      if (error) {
-        // TODO: handle API errors more appropriately
-        throw new Error('Error submitting post')
+      const postData = {
+        id: post.id,
+        type: post.type,
+        details: detailsEditorRef.current.getHTML(),
+        groups: post.groups,
+        groupIds: post.groups.map(c => c.id),
+        memberIds: post.members.items.map(m => m.id),
+        fileUrls: post.filesUrls,
+        imageUrls: post.imageUrls,
+        isPublic: post.isPublic,
+        title: post.title,
+        sendAnnouncement: post.announcement,
+        topicNames: post.topics.map(t => t.name),
+        startTime: !canHaveTimeframe ? null : post.startTime && post.startTime.getTime().valueOf(),
+        endTime: !canHaveTimeframe ? null : post.endTime && post.endTime.getTime().valueOf(),
+        location: post.location,
+        projectManagementLink: TextHelpers.sanitizeURL(post.projectManagementLink),
+        donationsLink: TextHelpers.sanitizeURL(post.donationsLink),
+        locationId: post?.locationObject?.id || null,
+        linkPreviewId: post?.linkPreview && post?.linkPreview.id,
+        linkPreviewFeatured: post?.linkPreviewFeatured
       }
 
-      const id = meta.extractModel?.getRoot(payload?.data)?.id
+      try {
+        const saveAction = postData.id ? updateSelectedPost : postData.type === 'project' ? createNewProject : createNewPost
+        const { error, data } = await saveAction(postData)
 
-      navigation.navigate('Post Details', { id })
-    } catch (e) {
-      console.log('!!!! error saving post', e)
-      this.setIsSaving(false)
+        if (error) {
+          console.error(error)
+          throw new Error('Error submitting post')
+        }
+
+        const id = data[Object.keys(data)[0]].id
+
+        navigation.navigate('Post Details', { id })
+      } catch (e) {
+        console.log('!!!! error saving post', e)
+        setIsSaving(false)
+      }
     }
-  }
 
-  handleSave = () => {
-    const { announcementEnabled } = this.state
-    const { t } = this.props
-
-    this.setIsSaving(true)
-
-    if (announcementEnabled) {
+    if (post.announcement) {
       Alert.alert(
         t('makeAnAnnouncement'),
         t('announcementExplainer'),
         [
-          {
-            text: t('Send It'),
-            onPress: this.save
-          },
-          {
-            text: t('Go Back'),
-            style: 'cancel',
-            onPress: () => this.setIsSaving(false)
-          }
-        ])
+          { text: t('Send It'), onPress: () => doSave() },
+          { text: t('Go Back'), style: 'cancel', onPress: () => {} }
+        ]
+      )
     } else {
-      this.save()
+      doSave()
     }
-  }
+  }, [post, detailsEditorRef])
 
-  handleCancel = () => {
-    // Note: Delegated to dismiss event listener
-    this.props.navigation.goBack()
-  }
-
-  setIsSaving = isSaving => {
-    this.setState({ isSaving }, this.setIsValid)
-  }
-
-  setIsValid = (updatedState = {}) => {
-    const {
-      type, title, groups, startTime, endTime, images, files,
-      donationsLink, projectManagementLink
-    } = Object.assign(
-      {},
-      this.state,
-      updatedState
-    )
-    const imagesLoading = images.find(image => !image?.remote)
-    const filesLoading = files.find(file => !file?.remote)
-
-    if (
-      imagesLoading ||
-      filesLoading ||
-      (!title || title.length < 1) ||
-      isEmpty(groups) ||
-      (type === 'event' && (!startTime || !endTime)) ||
-      (donationsLink && !TextHelpers.sanitizeURL(donationsLink)) ||
-      (projectManagementLink && !TextHelpers.sanitizeURL(projectManagementLink))
-
-    ) {
-      this.setState({ isValid: false }, this.renderReactNavigationHeader)
-    } else {
-      this.setState({ isValid: true }, this.renderReactNavigationHeader)
-    }
-  }
-
-  handleUpdateType = type => {
-    this.setState({ type }, this.setIsValid)
-  }
-
-  handleUpdateTitle = title => {
-    switch (title.length >= MAX_TITLE_LENGTH) {
-      case true:
-        this.setState({ titleLengthError: true }, this.setIsValid)
-        break
-      case false:
-        this.setState({ title, titleLengthError: false }, this.setIsValid)
-        break
-    }
-  }
-
-  handleUpdateDetails = details => {
-    this.setState({ details }, this.setIsValid)
-  }
-
-  // Assumptions:
-  // - maximum of three topics per post are allowed
-  // - topics must be unique
-  // - priority is given to topics already on the post (preserve order)
-  handleAddTopic = (providedTopic, picked) => {
-    const topic = { ...providedTopic, name: this.ignoreHash(providedTopic.name) }
-
-    if (Validators.validateTopicName(topic.name) === null) {
-      this.setState({
-        topics: uniqBy(t => t.name, [...this.state.topics, topic]).slice(0, 3),
-        topicsPicked: picked !== undefined ? picked : this.state.topicsPicked
-      })
-    }
-  }
-
-  handleRemoveTopic = topic => {
-    this.setState({
-      topics: this.state.topics.filter(t => t.id !== topic.id),
-      topicsPicked: true
-    })
-  }
-
-  handlePickLocation = locationObject => {
-    this.setState(() => ({
-      location: locationObject.fullText,
-      locationObject: (locationObject && locationObject?.id !== 'NEW') ? locationObject : null
-    }))
-  }
-
-  handleUpdateProjectMembers = members => this.setState(state => ({ members }))
-
-  handleAddGroup = group => {
-    const groups = uniqBy(c => c.id, [...this.state.groups, group])
-
-    this.setState({ groups }, this.setIsValid)
-  }
-
-  handleRemoveGroup = groupSlug => {
-    this.setState(state => ({
-      groups: state.groups.filter(group => group.slug !== groupSlug)
-    }))
-  }
-
-  handleAddAttachmentForKey = key => ({ local, remote }) => {
-    let attachmentsForKey = this.state[key] || []
-    const existingIndex = attachmentsForKey.findIndex(attachment => attachment.local === local)
-
-    if (existingIndex >= 0) {
-      attachmentsForKey[existingIndex].remote = remote
-    } else {
-      attachmentsForKey = [...attachmentsForKey, { local, remote }]
-    }
-
-    // NOTE: `uniqBy` de-duping of local file uploads here won't do
-    // anything at least in iOS, as each file selection is copied into
-    // a unique `tmp` location on the device each time it's selected.
-    this.setState({ [key]: uniqBy('local', attachmentsForKey) }, this.setIsValid)
-  }
-
-  handleRemoveAttachmentForKey = key => ({ local }) => {
-    this.setState({ [key]: this.state[key].filter(attachment => attachment.local !== local) }, this.setIsValid)
-  }
-
-  handleAttachmentUploadErrorForKey = key => (errorMessage, attachment) => {
-    this.handleRemoveAttachmentForKey(key)(attachment)
-    Alert.alert(errorMessage)
-  }
-
-  handleTogglePublicPost = () => {
-    this.setState({ isPublic: !this.state.isPublic })
-  }
-
-  handleShowProjectMembersEditor = () => {
-    const { navigation, t } = this.props
-    const { members } = this.state
-    const screenTitle = t('Project Members')
-    navigation.navigate('ItemChooser', {
-      screenTitle,
-      searchPlaceholder: t('Type in the names of people to add to project'),
-      ItemRowComponent: ItemChooserItemRow,
-      initialItems: members,
-      updateItems: this.handleUpdateProjectMembers,
-      fetchSearchSuggestions: scopedFetchPeopleAutocomplete,
-      getSearchSuggestions: scopedGetPeopleAutocomplete(screenTitle)
-    })
-  }
-
-  handleShowTopicsPicker = () => {
-    const { navigation, t } = this.props
-    const screenTitle = t('Pick a Topic')
-    navigation.navigate('ItemChooser', {
-      screenTitle,
-      searchPlaceholder: t('Search for a topic by name'),
-      ItemRowComponent: TopicRow,
-      pickItem: topic => { this.handleAddTopic(topic, true) },
-      // FIX: Will only find topics for first group
-      fetchSearchSuggestions: fetchTopicsForGroupId(get('[0].id', this.state.groups)),
-      getSearchSuggestions: getTopicsForAutocompleteWithNew
-    })
-  }
-
-  handleShowGroupsEditor = () => {
-    const { navigation, groupOptions, t } = this.props
-    const screenTitle = t('Post in Groups')
-    navigation.navigate('ItemChooser', {
-      screenTitle,
-      searchPlaceholder: t('Search for group by name'),
-      defaultSuggestedItemsLabel: t('Your Groups'),
-      defaultSuggestedItems: groupOptions,
-      ItemRowComponent: GroupChooserItemRow,
-      pickItem: this.handleAddGroup,
-      fetchSearchSuggestions: () => ({ type: 'none' }),
-      getSearchSuggestions: (_, { autocomplete: searchTerm }) =>
-        groupOptions.filter(c => c.name.toLowerCase().match(searchTerm?.toLowerCase()))
-    })
-  }
-
-  handleShowLocationPicker = () => {
-    LocationPicker({
-      navigation: this.props.navigation,
-      initialSearchTerm: this.state?.location,
-      onPick: this.handlePickLocation,
-      t: this.props.t
-    })
-  }
-
-  handleDonationsLink = donationsLink => {
-    this.setState({ donationsLink }, this.setIsValid)
-  }
-
-  handleProjectManagementLink = projectManagementLink => {
-    this.setState({ projectManagementLink }, this.setIsValid)
-  }
-
-  handleShowFilePicker = async () => {
-    this.setState({ filePickerPending: true })
-    await fileSelectorShowFilePicker({
-      upload: this.props.upload,
-      type: 'post',
-      id: this.props?.post?.id,
-      onAdd: this.handleAddAttachmentForKey('files'),
-      onError: () => {
-        this.setState({ filePickerPending: false }, this.setIsValid)
-        this.handleAttachmentUploadErrorForKey('files')
-      },
-      onComplete: () => this.setState({ filePickerPending: false }, this.setIsValid),
-      onCancel: () => this.setState({ filePickerPending: false }, this.setIsValid)
-    })
-  }
-
-  handleToggleAnnouncement = () => {
-    this.toast && hideToast(this.toast)
-    this.toast = showToast(
-      `announcement ${!this.state.announcementEnabled ? 'on' : 'off'}`,
-      { isError: this.state.announcementEnabled }
-    )
-    this.setState({ announcementEnabled: !this.state.announcementEnabled })
-  }
-
-  ignoreHash = name => name[0] === '#' ? name.slice(1) : name
-
-  renderReactNavigationHeader = () => {
-    const { navigation } = this.props
-
-    navigation.setOptions({
-      headerShown: true,
-      header: this.renderHeader
-    })
-  }
-
-  renderHeader = () => {
-    const { t } = this.props
-    const { isValid, isSaving, isNewPost, type } = this.state
+  const header = useMemo(() => {
     const headerRightButtonLabel = isSaving
       ? t('Saving-ellipsis')
-      : isNewPost
-        ? t('Post')
-        : t('Save')
+      : editingPost
+        ? t('Save')
+        : t('Post')
 
-    return (
+    return () => (
       <View style={styles.headerContainer}>
         <View style={styles.header}>
           <HeaderLeftCloseIcon
             style={styles.headerCloseIcon}
             color={rhino30}
-            onPress={this.handleCancel}
+            onPress={() => navigation.goBack()}
           />
           <TypeSelector
-            disabled={isSaving || type === 'proposal'}
-            onValueChange={this.handleUpdateType}
+            disabled={isSaving || post.type === 'proposal'}
+            onValueChange={type => updatePost({ type })}
             placeholder={{}}
-            value={type}
+            value={post?.type || 'discussion'}
           />
           <Button
             style={styles.headerSaveButton}
             disabled={isSaving || !isValid}
-            onPress={this.handleSave}
+            onPress={handleSave}
             text={headerRightButtonLabel}
           />
         </View>
       </View>
     )
+  }, [isValid, isSaving, handleSave, post?.type])
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: true, header })
+  }, [header])
+
+  const handleTogglePublicPost = () => {
+    updatePost({ isPublic: !post.isPublic })
   }
 
-  renderForm = () => {
-    const { post, postLoading, t } = this.props
-    const {
-      isSaving, topics, title, type, filePickerPending, announcementEnabled,
-      titleLengthError, members, groups, startTime, endTime, location, donationsLink,
-      locationObject, projectManagementLink, isPublic, topicsPicked, files, images
-    } = this.state
-    const canHaveTimeframe = type !== 'discussion'
+  const handleToggleAnnouncement = () => {
+    updatePost({ announcement: !post.announcement })
+  }
 
-    t('Create a post')
-    t('What are you looking for help with?')
-    t('What help can you offer?')
-    t('What resource is available?')
-    t('What would you like to call your project?')
-    t('What is your proposal?')
-    t('What is your event called?')
+  const handleAddGroup = group => {
+    updatePost({
+      groups: uniqBy(c => c.id, [...post.groups, group])
+    })
+  }
 
+  const handleRemoveGroup = groupSlug => {
+    updatePost({
+      groups: post.groups.filter(group => group.slug !== groupSlug)
+    })
+  }
+
+  const handleUpdateLocation = locationObject => {
+    updatePost({
+      location: locationObject.fullText,
+      locationObject: locationObject?.id !== 'NEW' ? locationObject : null
+    })
+  }
+
+  const handleAddTopic = (providedTopic, picked) => {
+    const ignoreHash = name => name[0] === '#' ? name.slice(1) : name
+    const topic = { ...providedTopic, name: ignoreHash(providedTopic.name) }
+
+    if (Validators.validateTopicName(topic.name) === null) {
+      if (picked !== undefined) setTopicsPicked(picked)
+      console.log(uniqBy((t) => t.name, [...post.topics, topic]).slice(0, 3))
+      updatePost({ topics: uniqBy((t) => t.name, [...post.topics, topic]).slice(0, 3) })
+    }
+  }
+
+  const handleRemoveTopic = topic => {
+    updatePost({ topics: post.topics.filter(t => t.id !== topic.id) })
+    setTopicsPicked(true)
+  }
+
+  const handleAddAttachment = (type, attachment) => {
+    updatePost({ attachments: [...post.attachments, { type, url: attachment.remote, ...attachment }] })
+  }
+
+  const handleRemoveAttachment = (type, attachmentToRemove) => {
+    updatePost({
+      attachments: post.attachments.filter(attachment =>
+        !(attachment.local === attachmentToRemove.local && attachment.type === type)
+      )
+    })
+  }
+
+  const handleAttachmentUploadError = (type, errorMessage, attachment) => {
+    handleRemoveAttachment(type, attachment)
+    Alert.alert(errorMessage)
+  }
+
+  const groupSelectorModalRef = useRef(null)
+  const topicSelectorModalRef = useRef(null)
+  const locationSelectorModalRef = useRef(null)
+  const projectMembersSelectorModalRef = useRef(null)
+
+  const renderForm = () => {
     return (
       <View style={styles.formContainer}>
 
@@ -519,18 +370,18 @@ export class PostEditor extends React.Component {
             <TextInput
               style={[styles.titleInput]}
               editable={!isSaving}
-              onChangeText={this.handleUpdateTitle}
-              placeholder={t(titlePlaceholders[type])}
+              onChangeText={title => updatePost({ title })}
+              placeholder={t(titlePlaceholders[post.type])}
               placeholderTextColor={rhino30}
               underlineColorAndroid='transparent'
               autoCorrect={false}
-              value={title}
+              value={post.title}
               multiline
               numberOfLines={2}
               blurOnSubmit
               maxLength={MAX_TITLE_LENGTH}
             />
-            {titleLengthError && (
+            {titleLengthWarning && (
               <Text style={styles.titleInputError}>😬 {MAX_TITLE_LENGTH} {t('characters max')}</Text>
             )}
           </View>
@@ -540,48 +391,93 @@ export class PostEditor extends React.Component {
               placeholder={t('Add a description')}
               contentHTML={post?.details}
               // groupIds={groupOptions && groupOptions.map(g => g.id)}
-              onChange={this.handleUpdateDetails}
-              onAddTopic={!topicsPicked && this.handleAddTopic}
-              readOnly={postLoading || isSaving}
-              ref={this.detailsEditorRef}
+              onChange={details => updatePost({ details })}
+              onAddTopic={!topicsPicked && handleAddTopic}
+              readOnly={selectedPostLoading || isSaving}
+              ref={detailsEditorRef}
               widthOffset={0}
               customEditorCSS={`
-                min-height: 90px;
+                min-height: 90px
               `}
             />
           </View>
 
           <TouchableOpacity
             style={[styles.pressSelectionSection, styles.topics]}
-            onPress={this.handleShowTopicsPicker}
+            onPress={() => topicSelectorModalRef.current.show()}
           >
             <View style={styles.pressSelection}>
               <Text style={styles.pressSelectionLeftText}>{t('Topics')}</Text>
               <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
             </View>
+            <ItemSelectorModal
+              ref={topicSelectorModalRef}
+              title={t('Pick a Topic')}
+              searchPlaceholder={t('Search for a topic by name')}
+              onItemPress={topic => handleAddTopic(topic, true)}
+              itemsUseQueryArgs={({ searchTerm }) => ({
+                query: topicsForGroupIdQuery,
+                variables: {
+                  searchTerm,
+                  // Note: Only finds topics for first group
+                  groupId: get('[0].id', post.groups)
+                }
+              })}
+              itemsUseQuerySelector={data => 
+                data?.group?.groupTopics?.items &&
+                data?.group?.groupTopics?.items.map(item => item.topic)}
+              itemsTransform={(items, searchTerm) => {
+                if (!items.find(item => item.name.match(searchTerm))) {
+                  items.unshift({ id: searchTerm, name: searchTerm })
+                }
+                return items
+              }}
+              renderItem={TopicRow}
+            />
             <Topics
               style={styles.pressSelectionValue}
               pillStyle={styles.topicPillStyle}
               textStyle={styles.topicTextStyle}
-              onPress={this.handleShowTopicsPicker}
-              onPressRemove={this.handleRemoveTopic}
-              topics={topics}
+              onPress={() => topicSelectorModalRef.current.show()}
+              onPressRemove={handleRemoveTopic}
+              topics={post.topics}
             />
           </TouchableOpacity>
 
-          {type === 'proposal' && (
+          {post.type === 'proposal' && (
             <View style={styles.pressSelection}>
               <Text style={styles.pressSelectionLeftText}>{t('Proposal details can be edited in the web-app')}</Text>
             </View>
           )}
 
-          {type === 'project' && (
-            <TouchableOpacity style={styles.pressSelectionSection} onPress={this.handleShowProjectMembersEditor}>
+          {post.type === 'project' && (
+            <TouchableOpacity style={styles.pressSelectionSection} onPress={() => projectMembersSelectorModalRef?.current.show()}>
               <View style={styles.pressSelection}>
                 <Text style={styles.pressSelectionLeftText}>{t('Project Members')}</Text>
                 <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
               </View>
-              {members.length > 0 && <ProjectMembersSummary style={styles.pressSelectionValue} members={members} />}
+              <ItemSelectorModal
+                ref={projectMembersSelectorModalRef}
+                itemsUseQueryArgs={({ searchTerm }) => ({
+                  query: peopleAutocompleteQuery,
+                  variables: { autocomplete: searchTerm }
+                })}
+                itemsUseQuerySelector={data => data?.people?.items}
+                title={t('Project Members')}
+                searchPlaceholder={t('Type in the names of people to add to project')}
+                chooser
+                chosenItems={post?.members?.items || []}
+                onClose={chosenItems => {
+                  chosenItems && updatePost({ members: { items: chosenItems } })
+                }}
+              />
+              {post.members.items.length > 0 && (
+                <ProjectMembersSummary
+                  style={styles.pressSelectionValue}
+                  members={post.members.items}
+                  onPress={() => projectMembersSelectorModalRef?.current.show()}
+                />
+              )}
             </TouchableOpacity>
           )}
 
@@ -590,48 +486,49 @@ export class PostEditor extends React.Component {
               <DatePickerWithLabel
                 style={styles.pressSelectionSection}
                 label={t('Start Time')}
-                date={startTime}
+                date={post.startTime}
                 minimumDate={new Date()}
-                onSelect={startTime => this.setState({ startTime }, this.setIsValid)}
+                onSelect={startTime => updatePost({ startTime })}
               />
               <DatePickerWithLabel
                 style={styles.pressSelectionSection}
                 label={t('End Time')}
-                disabled={!startTime}
-                date={endTime}
-                minimumDate={startTime || new Date()}
-                onSelect={endTime => this.setState({ endTime }, this.setIsValid)}
+                disabled={!post.startTime}
+                date={post.endTime}
+                minimumDate={post.startTime || new Date()}
+                onSelect={endTime => updatePost({ endTime })}
               />
             </>
           )}
 
           <TouchableOpacity
-            style={[styles.pressSelectionSection, styles.topics]}
-            onPress={this.handleShowLocationPicker}
-          >
-            <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeftText}>{t('Location')}</Text>
-              <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View>
-            </View>
-            {(location || locationObject) && (
-              <Text style={styles.pressSelectionValue}>{location || locationObject.fullText}</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
             style={styles.pressSelectionSection}
-            onPress={this.handleShowGroupsEditor}
+            onPress={() => groupSelectorModalRef.current.show()}
           >
             <View style={styles.pressSelection}>
               <Text style={styles.pressSelectionLeftText}>{t('Post In')}</Text>
               <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
             </View>
+            <ItemSelectorModal
+              ref={groupSelectorModalRef}
+              title={t('Post in Groups')}
+              items={groupOptions}
+              itemsTransform={(items, searchTerm) => (
+                items.filter(item => searchTerm
+                  ? item.name.toLowerCase().match(searchTerm?.toLowerCase())
+                  : item
+                )
+              )}
+              chosenItems={post.groups}
+              onItemPress={handleAddGroup}
+              searchPlaceholder={t('Search for group by name')}
+            />
             <GroupsList
               style={[styles.pressSelectionValue]}
-              groups={groups}
+              groups={post.groups}
               columns={1}
-              onPress={this.handleShowGroupsEditor}
-              onRemove={this.handleRemoveGroup}
+              onPress={() => groupSelectorModalRef.current.show()}
+              onRemove={handleRemoveGroup}
               RemoveIcon={() => (
                 <Icon name='Ex' style={styles.groupRemoveIcon} />
               )}
@@ -640,50 +537,55 @@ export class PostEditor extends React.Component {
 
           <TouchableOpacity
             style={[styles.pressSelectionSection, styles.topics]}
-            onPress={this.handleShowLocationPicker}
+            onPress={() => locationSelectorModalRef.current.show()}
           >
+            <LocationSelectorModal
+              ref={locationSelectorModalRef}
+              onItemPress={handleUpdateLocation}
+              initialSearchTerm={post?.location || post?.locationObject?.fullText}
+            />
             <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeft}>{t('Location')}</Text>
+              <Text style={styles.pressSelectionLeftText}>{t('Location')}</Text>
               <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View>
             </View>
-            {(location || locationObject) && (
-              <Text style={styles.pressSelectionValue}>{location || locationObject.fullText}</Text>
+            {(post.location || post.locationObject) && (
+              <Text style={styles.pressSelectionValue}>{post.location || post.locationObject.fullText}</Text>
             )}
           </TouchableOpacity>
 
-          {type === 'project' && (
-            <View style={[styles.pressSelectionSection, styles.topics]}>
-              <View style={styles.pressSelection}>
-                <Text style={styles.pressSelectionLeft}>{t('Donation Link')}</Text>
-                {/* <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View> */}
+          {post.type === 'project' && (
+            <>
+              <View style={[styles.pressSelectionSection, styles.topics]}>
+                <View style={styles.pressSelection}>
+                  <Text style={styles.pressSelectionLeft}>{t('Donation Link')}</Text>
+                  {/* <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View> */}
+                </View>
+                <TextInput
+                  style={styles.pressSelectionValue}
+                  onChangeText={donationsLink => updatePost(({ donationsLink }))}
+                  returnKeyType='next'
+                  autoCapitalize='none'
+                  value={post.donationsLink}
+                  autoCorrect={false}
+                  underlineColorAndroid='transparent'
+                />
               </View>
-              <TextInput
-                style={styles.pressSelectionValue}
-                onChangeText={this.handleDonationsLink}
-                returnKeyType='next'
-                autoCapitalize='none'
-                value={donationsLink}
-                autoCorrect={false}
-                underlineColorAndroid='transparent'
-              />
-            </View>
-          )}
 
-          {type === 'project' && (
-            <View style={[styles.pressSelectionSection, styles.topics]}>
-              <View style={styles.pressSelection}>
-                <Text style={styles.pressSelectionLeft}>{t('Project Management')}</Text>
+              <View style={[styles.pressSelectionSection, styles.topics]}>
+                <View style={styles.pressSelection}>
+                  <Text style={styles.pressSelectionLeft}>{t('Project Management')}</Text>
+                </View>
+                <TextInput
+                  style={styles.pressSelectionValue}
+                  onChangeText={projectManagementLink => updatePost(({ projectManagementLink }))}
+                  returnKeyType='next'
+                  autoCapitalize='none'
+                  value={post.projectManagementLink}
+                  autoCorrect={false}
+                  underlineColorAndroid='transparent'
+                />
               </View>
-              <TextInput
-                style={styles.pressSelectionValue}
-                onChangeText={this.handleProjectManagementLink}
-                returnKeyType='next'
-                autoCapitalize='none'
-                value={projectManagementLink}
-                autoCorrect={false}
-                underlineColorAndroid='transparent'
-              />
-            </View>
+            </>
           )}
         </View>
 
@@ -691,59 +593,55 @@ export class PostEditor extends React.Component {
 
         <View style={styles.formBottom}>
           <TouchableOpacity
-            style={[styles.pressSelectionSection, isPublic && styles.pressSelectionSectionPublicSelected]}
-            onPress={this.handleTogglePublicPost}
+            style={[styles.pressSelectionSection, post.isPublic && styles.pressSelectionSectionPublicSelected]}
+            onPress={handleTogglePublicPost}
           >
             <View style={styles.pressSelection}>
               <View style={styles.pressSelectionLeft}>
                 <Icon
                   name='Public'
-                  style={[{ fontSize: 16, marginRight: 10 }, isPublic && styles.pressSelectionSectionPublicSelected]}
+                  style={[{ fontSize: 16, marginRight: 10 }, post.isPublic && styles.pressSelectionSectionPublicSelected]}
                   color={rhino80}
                 />
-                <Text style={[styles.pressSelectionLeftText, isPublic && styles.pressSelectionSectionPublicSelected]}>{t('Make Public')}</Text>
+                <Text style={[styles.pressSelectionLeftText, post.isPublic && styles.pressSelectionSectionPublicSelected]}>{t('Make Public')}</Text>
               </View>
               <View style={styles.pressSelectionRightNoBorder}>
                 <Switch
                   trackColor={{ true: caribbeanGreen, false: rhino80 }}
-                  onValueChange={this.handleTogglePublicPost}
+                  onValueChange={handleTogglePublicPost}
                   style={styles.pressSelectionSwitch}
-                  value={isPublic}
+                  value={post.isPublic}
                 />
               </View>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.pressSelectionSection, announcementEnabled && styles.pressSelectionSectionPublicSelected]}
-            onPress={this.handleToggleAnnouncement}
-          >
-            <View style={styles.pressSelection}>
-              <View style={styles.pressSelectionLeft}>
-                <Icon
-                  name='Announcement'
-                  style={[{ fontSize: 16, marginRight: 10 }, announcementEnabled && styles.pressSelectionSectionPublicSelected]}
-                  color={rhino80}
-                />
-                <Text style={[styles.pressSelectionLeftText, announcementEnabled && styles.pressSelectionSectionPublicSelected]}>{t('Announcement?')}</Text>
+
+          {canAdminister && (
+            <TouchableOpacity
+              style={[styles.pressSelectionSection, post?.announcement && styles.pressSelectionSectionPublicSelected]}
+              onPress={handleToggleAnnouncement}
+            >
+              <View style={styles.pressSelection}>
+                <View style={styles.pressSelectionLeft}>
+                  <Icon
+                    name='Announcement'
+                    style={[{ fontSize: 16, marginRight: 10 }, post?.announcement && styles.pressSelectionSectionPublicSelected]}
+                    color={rhino80}
+                  />
+                  <Text style={[styles.pressSelectionLeftText, post?.announcement && styles.pressSelectionSectionPublicSelected]}>{t('Announcement?')}</Text>
+                </View>
+                <View style={styles.pressSelectionRightNoBorder}>
+                  <Switch
+                    trackColor={{ true: caribbeanGreen, false: rhino80 }}
+                    onValueChange={handleToggleAnnouncement}
+                    style={styles.pressSelectionSwitch}
+                    value={post?.announcement}
+                  />
+                </View>
               </View>
-              <View style={styles.pressSelectionRightNoBorder}>
-                <Switch
-                  trackColor={{ true: caribbeanGreen, false: rhino80 }}
-                  onValueChange={this.handleToggleAnnouncement}
-                  style={styles.pressSelectionSwitch}
-                  value={announcementEnabled}
-                />
-              </View>
-            </View>
-            {!isEmpty(files) && (
-              <View>
-                <FileSelector
-                  onRemove={this.handleRemoveAttachmentForKey('files')}
-                  files={files}
-                />
-              </View>
-            )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={styles.pressSelectionSection}
           >
@@ -761,8 +659,8 @@ export class PostEditor extends React.Component {
                   type='post'
                   id={post?.id}
                   selectionLimit={10}
-                  onChoice={this.handleAddAttachmentForKey('images')}
-                  onError={this.handleAttachmentUploadErrorForKey('images')}
+                  onChoice={attachment => handleAddAttachment('image', attachment)}
+                  onError={(errorMessage, attachment) => handleAttachmentUploadError('image', errorMessage, attachment)}
                   renderPicker={loading => {
                     if (!loading) {
                       return (
@@ -780,20 +678,17 @@ export class PostEditor extends React.Component {
                 />
               </View>
             </View>
-            {!isEmpty(images) && (
-              <ImageSelector
-                onAdd={this.handleAddAttachmentForKey('images')}
-                onRemove={this.handleRemoveAttachmentForKey('images')}
-                images={images}
-                style={[styles.imageSelector]}
-                type='post'
-              />
-            )}
+            <ImageSelector
+              images={post.images}
+              onRemove={attachment => handleRemoveAttachment('image', attachment)}
+              style={[styles.imageSelector]}
+              type='post'
+            />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.pressSelectionSection}
-            onPress={this.handleShowFilePicker}
+            onPress={handleShowFilePicker}
           >
             <View style={styles.pressSelection}>
               <View style={styles.pressSelectionLeft}>
@@ -805,7 +700,7 @@ export class PostEditor extends React.Component {
                 <Text style={styles.pressSelectionLeftText}>{t('Files')}</Text>
               </View>
               <View style={styles.pressSelectionRight}>
-                <TouchableOpacity onPress={this.handleShowFilePicker}>
+                <TouchableOpacity onPress={handleShowFilePicker}>
                   {filePickerPending && (
                     <Loading
                       size={30}
@@ -818,131 +713,31 @@ export class PostEditor extends React.Component {
                 </TouchableOpacity>
               </View>
             </View>
-            {!isEmpty(files) && (
-              <View>
-                <FileSelector
-                  onRemove={this.handleRemoveAttachmentForKey('files')}
-                  files={files}
-                />
-              </View>
-            )}
+            <FileSelector
+              onRemove={attachment => handleRemoveAttachment('file', attachment)}
+              files={post.files}
+            />
           </TouchableOpacity>
         </View>
       </View>
     )
   }
 
-  render () {
-    return (
-      <KeyboardAvoidingView
-        style={styles.formWrapper}
-        behavior={isIOS ? 'padding' : null}
-        keyboardVerticalOffset={isIOS ? 110 : 80}
+  return (
+    <KeyboardAvoidingView
+      style={styles.formWrapper}
+      behavior={isIOS ? 'padding' : null}
+      keyboardVerticalOffset={isIOS ? 110 : 80}
+    >
+      <ScrollView
+        ref={scrollViewRef}
+        keyboardShouldPersistTaps='never'
+        keyboardDismissMode={isIOS ? 'interactive' : 'on-drag'}
+        // Avoids a known issue on Android with overscroll and WebViews
+        overScrollMode='never'
       >
-        <ScrollView
-          ref={this.scrollViewRef}
-          keyboardShouldPersistTaps='never'
-          keyboardDismissMode={isIOS ? 'interactive' : 'on-drag'}
-          // Avoids a known issue on Android with overscroll and WebViews
-          overScrollMode='never'
-        >
-          {this.renderForm()}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    )
-  }
-}
-
-export function TypeSelector (props) {
-  const { t } = useTranslation()
-  // explicit invocation of dynamic labels
-  t('Discussion')
-  t('Request')
-  t('Offer')
-  t('Resource')
-  t('Project')
-  t('Event')
-  return (
-    <View style={styles.typeSelectorWrapper}>
-      <RNPickerSelect
-        {...props}
-        style={typeSelectorStyles(props.value)}
-        useNativeAndroidPickerStyle={false}
-        pickerProps={{ itemStyle: { backgroundColor: white, letterSpacing: 2, fontWeight: 'bold', fontSize: 20 } }}
-        items={
-          ['Discussion', 'Request', 'Offer', 'Resource', 'Project', 'Event'].map(type => ({
-            label: t(type).toUpperCase(),
-            value: type.toLowerCase(),
-            color: typeSelectorStyles(type.toLowerCase()).inputIOS.color
-          }))
-        }
-        Icon={() => (
-          <Icon name='ArrowDown' style={typeSelectorStyles(props.value).icon} />
-        )}
-      />
-    </View>
-  )
-}
-
-export function DatePickerWithLabel ({
-  date,
-  minimumDate,
-  label,
-  onSelect,
-  disabled,
-  style,
-  styleTemplate = {
-    disabled: styles.pressDisabled,
-    expandIconWrapper: styles.pressSelectionRight,
-    expandIcon: styles.pressSelectionRightIcon,
-    labelText: styles.pressSelectionLeftText,
-    labelWrapper: styles.pressSelection,
-    valueText: styles.pressSelectionValue
-  },
-  dateFormat = 'MM/DD/YYYY LT z'
-}) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const handleOnPress = () => {
-    !disabled && setOpen(true)
-  }
-  const handleOnConfirm = newDate => {
-    onSelect(newDate)
-    setOpen(false)
-  }
-  const handleOnCancel = () => {
-    onSelect(null)
-    setOpen(false)
-  }
-
-  return (
-    <>
-      <TouchableOpacity style={style} onPress={handleOnPress}>
-        <View style={styleTemplate.labelWrapper}>
-          <Text style={[styleTemplate.labelText, disabled && styleTemplate.disabled]}>
-            {label}
-          </Text>
-          <View style={[styleTemplate.expandIconWrapper, disabled && styleTemplate.disabled]}>
-            <Icon name='ArrowDown' style={[styleTemplate.expandIcon, disabled && styleTemplate.disabled]} />
-          </View>
-        </View>
-        {date && !open && (
-          <Text style={styleTemplate.valueText}>{moment.tz(date, moment.tz.guess()).format(dateFormat)}</Text>
-        )}
-      </TouchableOpacity>
-      <DatePicker
-        modal
-        open={open}
-        minimumDate={minimumDate}
-        minuteInterval={5}
-        date={date || new Date()}
-        mode='datetime'
-        title={label}
-        confirmText={t('Set')}
-        cancelText={t('Clear')}
-        onConfirm={handleOnConfirm}
-        onCancel={handleOnCancel}
-      />
-    </>
+        {selectedPostLoading ? <Loading /> : renderForm()}
+      </ScrollView>
+    </KeyboardAvoidingView>
   )
 }

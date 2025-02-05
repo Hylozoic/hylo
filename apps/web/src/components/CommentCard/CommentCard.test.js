@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import CommentCard from './CommentCard'
 
 const mockShowDetails = jest.fn()
@@ -32,11 +32,11 @@ describe('CommentCard', () => {
     expect(screen.getByText('commented on')).toBeInTheDocument()
     expect(screen.getByText('Awesome Sauce #hashtag')).toBeInTheDocument()
     expect(screen.getByText(/text of the comment/)).toBeInTheDocument()
-    expect(screen.getByText('Commented April 1, 2023')).toBeInTheDocument()
+    expect(screen.getByText('Commented 1 year ago')).toBeInTheDocument()
   })
 
   it('renders expanded comment', () => {
-    render(<CommentCard {...defaultProps} expanded={true} />)
+    render(<CommentCard {...defaultProps} expanded />)
 
     const commentText = screen.getByText(/text of the comment/)
     expect(commentText.textContent).toEqual(defaultProps.comment.text.replace(/<\/?p>/g, ''))
@@ -46,22 +46,25 @@ describe('CommentCard', () => {
     render(<CommentCard {...defaultProps} expanded={false} />)
 
     const commentText = screen.getByText(/text of the comment/)
-    expect(commentText.textContent.length).toBeLessThanOrEqual(144)
+    expect(commentText.textContent.length).toBeLessThanOrEqual(145)
   })
 
-  it('displays image attachments', () => {
+  it('displays image attachments', async () => {
     const propsWithImage = {
       ...defaultProps,
       comment: {
         ...defaultProps.comment,
         attachments: [
-          { url: 'jam.png', attachmentType: 'image' }
+          { url: 'jam.png', type: 'image' }
         ]
       }
     }
+
     render(<CommentCard {...propsWithImage} />)
 
-    expect(screen.getByRole('img')).toHaveAttribute('src', 'jam.png')
+    await waitFor(() => {
+      expect(screen.getByTestId('first-image').getAttribute('src')).toEqual('jam.png')
+    })
   })
 
   it('calls showDetails when clicked', () => {

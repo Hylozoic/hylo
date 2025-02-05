@@ -1,4 +1,4 @@
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import { merge, transform, sortBy } from 'lodash'
 
 // TODO: this is old and broken
@@ -36,8 +36,8 @@ module.exports = {
   },
 
   rawMetrics: function (req, res) {
-    const startTime = moment().subtract(3, 'months').toDate()
-    return rawMetricsQuery(startTime)
+    const start = DateTime.now().minus({months: 3}).toJSDate()
+    return rawMetricsQuery(start)
     .then(props => {
       let result = props.community.reduce((acc, c) => {
         acc[c.id] = merge(c, {events: []})

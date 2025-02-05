@@ -1,11 +1,9 @@
 import React from 'react'
 import { isEmpty } from 'lodash/fp'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import { useSelector } from 'react-redux'
 import WorkflowModalHeader from 'navigation/headers/WorkflowModalHeader'
 import CreateGroupTabBar from 'screens/CreateGroupFlow/CreateGroupTabBar'
-import { GROUP_ACCESSIBILITY } from 'store/models/Group'
-import getMemberships from 'store/selectors/getMemberships'
+import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 // Screens
 import CreateGroupName from 'screens/CreateGroupFlow/CreateGroupName'
 import CreateGroupUrl from 'screens/CreateGroupFlow/CreateGroupUrl'
@@ -14,11 +12,13 @@ import CreateGroupPurpose from 'screens/CreateGroupFlow/CreateGroupPurpose'
 import CreateGroupParentGroups from 'screens/CreateGroupFlow/CreateGroupParentGroups'
 import CreateGroupReview from 'screens/CreateGroupFlow/CreateGroupReview'
 import { white20onCaribbeanGreen } from 'style/colors'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 const CreateGroupTabs = createBottomTabNavigator()
 
 export default function CreateGroupTabsNavigator () {
-  const memberships = useSelector(getMemberships)
+  const [{ currentUser }] = useCurrentUser()
+  const memberships = currentUser?.memberships
   const parentGroupOptions = memberships
     .filter(m => m.hasModeratorRole || m.group.accessibility === GROUP_ACCESSIBILITY.Open)
   const hasParentGroupOptions = !isEmpty(parentGroupOptions)

@@ -47,8 +47,9 @@ function PasswordReset ({ className, sendPasswordReset }) {
         {success && <div className={classes.success}>{t('If your email address matched an account in our system, we sent you an email. Please check your inbox.')}</div>}
         {error && <div className={classes.error}>{t('There was a problem with your request. Please check your email and try again.')}</div>}
 
-        <label>{t('Your email address')}</label>
+        <label htmlFor='email'>{t('Your email address')}</label>
         <TextInput
+          id='email'
           autoFocus
           inputRef={emailRef}
           name='email'

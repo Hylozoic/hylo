@@ -1,26 +1,27 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 // ⚠️⚠️⚠️ Deprecated - see https://github.com/facebook/react-native/pull/31402 for native `InputAccessoryView` component (React Native 0.68+) ⚠️⚠️⚠️
 import { KeyboardAccessoryView } from '@flyerhq/react-native-keyboard-accessory-view'
+import { useMutation } from 'urql'
+import { useTranslation } from 'react-i18next'
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons'
 import { isEmpty } from 'lodash/fp'
+import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
+import mixpanel from 'services/mixpanel'
 import { isIOS } from 'util/platform'
-import { TextHelpers } from '@hylo/shared'
-import createComment from 'store/actions/createComment'
+import createCommentMutation from '@hylo/graphql/mutations/createCommentMutation'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import styles from './CommentEditor.styles'
-import { useDispatch } from 'react-redux'
 import Icon from 'components/Icon'
-import { firstName } from 'store/models/Person'
-import { useTranslation } from 'react-i18next'
+import { firstName } from '@hylo/presenters/PersonPresenter'
 
-export const KeyboardAccessoryCommentEditor = forwardRef(function KeyboardAccessoryCommentEditor ({
+export const KeyboardAccessoryCommentEditor = React.forwardRef(({
   renderScrollable,
   isModal,
   ...commentFormProps
-}, ref) {
+}, ref) => {
   const safeAreaInsets = useSafeAreaInsets()
 
   return (
@@ -48,14 +49,14 @@ export const KeyboardAccessoryCommentEditor = forwardRef(function KeyboardAccess
   )
 })
 
-export const CommentEditor = forwardRef(function CommentEditor ({
+export const CommentEditor = React.forwardRef(({
   post,
   replyingTo,
   scrollToReplyingTo,
   clearReplyingTo
-}, ref) {
+}, ref) => {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
+  const [, createComment] = useMutation(createCommentMutation)
   const [hasContent, setHasContent] = useState()
   const editorRef = useRef()
   const [submitting, setSubmitting] = useState()
@@ -80,11 +81,21 @@ export const CommentEditor = forwardRef(function CommentEditor ({
     if (!isEmpty(commentHTML)) {
       setSubmitting(true)
 
-      const { error } = await dispatch(createComment({
+      const parentCommentId = replyingTo?.parentComment?.id || replyingTo?.id || null
+      const postId = post.id
+      const { error } = await createComment({
         text: commentHTML,
-        parentCommentId: replyingTo?.parentComment || replyingTo?.id || null,
-        post
-      }))
+        parentCommentId,
+        postId
+      })
+
+      mixpanel.track(AnalyticsEvents.COMMENT_CREATED, {
+        commentLength: TextHelpers.textLengthHTML(commentHTML),
+        groupId: post.groups.map(g => g.id),
+        hasAttachments: false,
+        parentCommentId,
+        postId
+      })
 
       setSubmitting(false)
 
@@ -94,7 +105,7 @@ export const CommentEditor = forwardRef(function CommentEditor ({
         handleDone()
       }
     }
-  }, [handleDone, post, replyingTo?.id, replyingTo?.parentComment, dispatch])
+  }, [handleDone, post, replyingTo?.id, replyingTo?.parentComment])
 
   const setEditorRef = useCallback(newEditorRef => {
     setHasContent(!newEditorRef?.isEmpty)

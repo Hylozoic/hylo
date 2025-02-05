@@ -6,7 +6,6 @@ import SignupEmailValidation from 'screens/Signup/SignupEmailValidation'
 import SignupRegistration from 'screens/Signup/SignupRegistration'
 import SignupUploadAvatar from 'screens/Signup/SignupUploadAvatar'
 import SignupSetLocation from 'screens/Signup/SignupSetLocation'
-import ItemChooser from 'screens/ItemChooser'
 import { white, white20onCaribbeanGreen } from 'style/colors'
 
 const Signup = createStackNavigator()
@@ -50,9 +49,6 @@ export default function SignupNavigator () {
       <Signup.Screen
         name='SignupSetLocation' component={SignupSetLocation}
         options={{ title: 'STEP 3/3' }}
-      />
-      <Signup.Screen
-        name='ItemChooser' component={ItemChooser}
       />
     </Signup.Navigator>
   )

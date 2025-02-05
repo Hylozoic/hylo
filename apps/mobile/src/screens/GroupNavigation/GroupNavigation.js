@@ -1,15 +1,11 @@
 import React from 'react'
-import { useSelector } from 'react-redux'
 import { Text, ScrollView, View, TouchableOpacity } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import useHyloQuery from 'urql-shared/hooks/useHyloQuery'
-import { openURL } from 'hooks/useOpenURL'
+import { isContextGroupSlug, PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
-import fetchGroupDetailsAction from 'store/actions/fetchGroupDetails'
-import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
-import { isContextGroup, PUBLIC_GROUP_ID } from 'store/models/Group'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
+import { openURL } from 'hooks/useOpenURL'
 import Icon from 'components/Icon'
 import TopicsNavigation from 'components/TopicsNavigation'
 import styles from './GroupNavigation.styles'
@@ -18,30 +14,20 @@ import Loading from 'components/Loading'
 export default function GroupNavigation () {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const { myHome } = useRouteParams()
-  const currentGroup = useSelector(getCurrentGroup)
-  const childGroups = useSelector(getChildGroups)
-  const parentGroups = useSelector(getParentGroups)
-  const [{ fetching }] = useHyloQuery({
-    action: fetchGroupDetailsAction({
-      slug: currentGroup?.slug,
-      withExtensions: false,
-      withWidgets: false,
-      withTopics: false,
-      withJoinQuestions: true,
-      withPrerequisites: true
-    }),
-    pause: !currentGroup?.slug
-  })
+  const { myHome, groupSlug } = useRouteParams()
+  const [{ currentGroup, fetching }] = useCurrentGroup({ setToGroupSlug: groupSlug })
+
+  const childGroups = currentGroup?.childGroups?.items
+  const parentGroups = currentGroup?.parentGroups?.items
 
   useFocusEffect(() => {
     navigation.setOptions({ title: myHome ? t('My Home') : currentGroup?.name })
   })
 
-  if (fetching) return <Loading />
+  if (fetching && currentGroup) return <Loading />
 
   const { navigate } = navigation
-  const customViews = (currentGroup && currentGroup.customViews && currentGroup.customViews.toRefArray()) || []
+  const customViews = currentGroup?.customViews?.items || []
   const navItems = myHome
     ? [
         { label: t('Create'), iconName: 'Create', onPress: () => navigate('Edit Post', { id: null }) },
@@ -57,7 +43,7 @@ export default function GroupNavigation () {
           label: t('Explore'),
           iconName: 'Binoculars',
           onPress: () => navigate('Group Explore', { groupSlug: currentGroup?.slug }),
-          hidden: isContextGroup(currentGroup?.slug)
+          hidden: isContextGroupSlug(currentGroup?.slug)
         },
         { label: t('Projects'), iconName: 'Projects', onPress: () => navigate('Projects') },
         { label: t('Events'), iconName: 'Events', onPress: () => navigate('Events') },
@@ -65,18 +51,18 @@ export default function GroupNavigation () {
           label: t('Members'),
           iconName: 'Members',
           onPress: () => navigate('Members'),
-          hidden: isContextGroup(currentGroup?.slug)
+          hidden: isContextGroupSlug(currentGroup?.slug)
         },
         {
           label: t('Decisions'),
-          iconName: 'Proposal',
+          iconName: 'Commonwealth',
           onPress: () => navigate('Decisions'),
-          hidden: isContextGroup(currentGroup?.slug)
+          hidden: isContextGroupSlug(currentGroup?.slug)
         },
         {
           label: t('Groups'),
           iconName: 'Groups',
-          onPress: () => navigate('Group Relationships'),
+          onPress: () => navigate('Group Relationships', { group: currentGroup }),
           hidden: !(childGroups?.length > 0 || parentGroups?.length > 0)
         },
         { label: t('Map'), iconName: 'Globe', onPress: () => navigate('Map') },
@@ -87,7 +73,9 @@ export default function GroupNavigation () {
           onPress: customView.type === 'externalLink'
             ? () => openURL(customView.externalLink)
             : () => navigate('Stream', { customViewId: customView?.id })
-        }))
+        })),
+        // TODO redesign: Temporary placement of All Views for testing
+        { label: t('All Views'), iconName: 'Grid3x3', onPress: () => navigate('All Views') }
       ]
 
   const shownNavItems = navItems.filter(navItem => !navItem?.hidden)

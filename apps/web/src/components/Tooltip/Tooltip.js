@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React from 'react'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import classes from './Tooltip.module.scss'
@@ -10,7 +10,7 @@ const Tooltip = (props) => {
       id={id}
       content={content}
       delayShow={delay || 500}
-      className={cx(classes.tooltip, className)}
+      className={cn(classes.tooltip, className)}
       place={position}
     />
   )

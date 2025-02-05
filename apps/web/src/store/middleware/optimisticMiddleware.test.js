@@ -14,7 +14,7 @@ describe('optimisticMiddleware', () => {
   })
 
   it('continues the chain for a non optimistic action', () => {
-    let action = { type: 'FOO', payload: { id: 3 } }
+    const action = { type: 'FOO', payload: { id: 3 } }
     middleware(next)(action)
     expect(next).toHaveBeenCalled()
   })

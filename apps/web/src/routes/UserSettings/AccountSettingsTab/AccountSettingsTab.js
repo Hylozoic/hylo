@@ -2,12 +2,11 @@ import { trim, pick, keys, omit, find, isEmpty } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
-import cx from 'classnames'
 
 import Button from 'components/Button'
 import Loading from 'components/Loading'
 import SettingsControl from 'components/SettingsControl'
-import { validateEmail } from 'util/index'
+import { cn, validateEmail } from 'util/index'
 
 import classes from './AccountSettingsTab.module.scss'
 
@@ -138,9 +137,9 @@ class AccountSettingsTab extends Component {
         <div className={classes.title}>{t('Update Account')}</div>
         {formErrors.map((formErrorText, i) =>
           <div className={classes.error} key={i}>{formErrorText}</div>)}
-        <SettingsControl label={t('Email')} onChange={this.updateSetting('email')} value={email} />
-        <SettingsControl label={t('New Password')} onChange={this.updateSetting('password')} value={password} type='password' />
-        <SettingsControl label={t('New Password (Confirm)')} onChange={this.updateSetting('confirm')} value={confirm} type='password' />
+        <SettingsControl label={t('Email')} onChange={this.updateSetting('email')} value={email} id='email' />
+        <SettingsControl label={t('New Password')} onChange={this.updateSetting('password')} value={password} type='password' id='password' />
+        <SettingsControl label={t('New Password (Confirm)')} onChange={this.updateSetting('confirm')} value={confirm} type='password' id='confirm' />
         <div className={classes.help}>
           {t('Passwords must be at least 9 characters long, and should be a mix of lower and upper case letters, numbers and symbols.')}
         </div>
@@ -148,15 +147,17 @@ class AccountSettingsTab extends Component {
         <div className={classes.buttonRow}><Button onClick={() => this.setState({ showDeleteModal: true })} label={t('Delete Account')} color='purple' /></div>
 
         <div className={classes.saveChanges}>
-          <span className={cx({ [classes.settingChanged]: canSave })}>{canSave ? 'Changes not saved' : 'Current settings up to date'}</span>
+          <span className={cn({ [classes.settingChanged]: canSave })}>{canSave ? 'Changes not saved' : 'Current settings up to date'}</span>
           <Button label={t('Save Changes')} color={canSave ? 'green' : 'gray'} onClick={canSave ? this.save : null} className={classes.saveButton} />
         </div>
         {showDeactivateModal &&
-          <ModalDialog key='deactviate-user-dialog'
+          <ModalDialog
+            key='deactviate-user-dialog'
             closeModal={() => this.setState({ showDeactivateModal: false })}
             showModalTitle={false}
             submitButtonAction={() => this.deactivateMe()}
-            submitButtonText='Confirm' >
+            submitButtonText='Confirm'
+          >
             <h2>
               {t('Deactivate')}
             </h2>
@@ -174,14 +175,15 @@ class AccountSettingsTab extends Component {
                 <li>{t('Your comments and posts will REMAIN as they are')}</li>
               </ul>
             </div>
-          </ModalDialog>
-        }
+          </ModalDialog>}
         {showDeleteModal &&
-          <ModalDialog key='delete-user-dialog'
+          <ModalDialog
+            key='delete-user-dialog'
             closeModal={() => this.setState({ showDeleteModal: false })}
             showModalTitle={false}
             submitButtonAction={() => this.deleteMe()}
-            submitButtonText='Confirm' >
+            submitButtonText='Confirm'
+          >
             <h2 style={{ color: 'red' }}>
               {t('DELETE: CAUTION')}
             </h2>

@@ -1,4 +1,4 @@
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import presentTopic from 'store/presenters/presentTopic'
 import { TextHelpers } from '@hylo/shared'
 
@@ -44,7 +44,7 @@ export default function presentPost (post, groupId) {
     createdTimestampForGrid: createdAtHumanDate,
     createdTimestamp: `Posted ${createdAtHumanDate}`,
     editedTimestamp: post.editedAt ? `Edited ${editedAtHumanDate}` : null,
-    exactCreatedTimestamp: moment(post.createdAt).format('llll'),
-    exactEditedTimestamp: moment(post.editedAt).format('llll')
+    exactCreatedTimestamp: DateTime.fromISO(post.createdAt).toFormat('D t ZZZZ'),
+    exactEditedTimestamp: DateTime.fromISO(post.editedAt).toFormat('D t ZZZZ')
   }
 }

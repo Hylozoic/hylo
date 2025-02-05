@@ -8,8 +8,8 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({}),
   useLocation: () => ({
     pathname: '/map',
-    search: '',
-  }),
+    search: ''
+  })
 }))
 
 describe('MapExplorer', () => {
@@ -27,14 +27,12 @@ describe('MapExplorer', () => {
     routeParams: {},
     storeFetchPostsParam: jest.fn(),
     topics: [],
-    zoom: 0,
+    zoom: 0
   }
 
   it('renders the map container', () => {
     render(
-      <AllTheProviders>
-        <MapExplorer {...defaultProps} />
-      </AllTheProviders>
+      <MapExplorer {...defaultProps} />
     )
 
     expect(screen.getByTestId('map-container')).toBeInTheDocument()
@@ -42,19 +40,15 @@ describe('MapExplorer', () => {
 
   it('renders the location input', () => {
     render(
-      <AllTheProviders>
-        <MapExplorer {...defaultProps} />
-      </AllTheProviders>
+      <MapExplorer {...defaultProps} />
     )
 
-    expect(screen.getByPlaceholderText('Search for a location')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Search for a location...')).toBeInTheDocument()
   })
 
   it('renders the feature filters button', () => {
     render(
-      <AllTheProviders>
-        <MapExplorer {...defaultProps} />
-      </AllTheProviders>
+      <MapExplorer {...defaultProps} />
     )
 
     expect(screen.getByText(/Features:/)).toBeInTheDocument()
@@ -62,9 +56,7 @@ describe('MapExplorer', () => {
 
   it('renders the layers selector button', () => {
     render(
-      <AllTheProviders>
-        <MapExplorer {...defaultProps} />
-      </AllTheProviders>
+      <MapExplorer {...defaultProps} />
     )
 
     expect(screen.getByTestId('layers-selector-button')).toBeInTheDocument()
@@ -72,9 +64,7 @@ describe('MapExplorer', () => {
 
   it('renders the drawer toggle button', () => {
     render(
-      <AllTheProviders>
-        <MapExplorer {...defaultProps} />
-      </AllTheProviders>
+      <MapExplorer {...defaultProps} />
     )
 
     expect(screen.getByTestId('drawer-toggle-button')).toBeInTheDocument()
@@ -82,19 +72,22 @@ describe('MapExplorer', () => {
 
   it('renders the MapDrawer when hideDrawer is false', () => {
     render(
-      <AllTheProviders>
-        <MapExplorer {...defaultProps} hideDrawer={false} />
-      </AllTheProviders>
+      <MapExplorer {...defaultProps} hideDrawer={false} />
     )
 
     expect(screen.getByTestId('map-drawer')).toBeInTheDocument()
   })
 
   it('does not render the MapDrawer when hideDrawer is true', () => {
+    jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({
+      pathname: '/map',
+      search: '?hideDrawer=true',
+      state: {},
+      hash: '',
+      key: 'test-key'
+    })
     render(
-      <AllTheProviders>
-        <MapExplorer {...defaultProps} hideDrawer={true} />
-      </AllTheProviders>
+      <MapExplorer {...defaultProps} hideDrawer />
     )
 
     expect(screen.queryByTestId('map-drawer')).not.toBeInTheDocument()

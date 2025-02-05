@@ -57,7 +57,7 @@ describe('TopicFeedHeader', () => {
     })
 
     it('should say Unsubscribe when subscribed', () => {
-      render(<TopicFeedHeader {...defaultTestProps} toggleSubscribe={() => {}} isSubscribed={true} />)
+      render(<TopicFeedHeader {...defaultTestProps} toggleSubscribe={() => {}} isSubscribed />)
       expect(screen.getByRole('button', { name: 'Unsubscribe' })).toBeInTheDocument()
     })
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import getMe from 'store/selectors/getMe'
 import { register } from '../Signup.store'
 import logout from 'store/actions/logout'
@@ -13,9 +14,11 @@ import classes from '../Signup.module.scss'
 export default function FinishRegistration () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const currentUser = useSelector(getMe)
   const [error, setError] = useState()
-  const { email, name } = currentUser
+  const email = currentUser?.email
+  const name = currentUser?.name
   const [formValues, setFormValues] = useState({
     name: name || '',
     password: '',
@@ -27,7 +30,9 @@ export default function FinishRegistration () {
 
   const handleCancel = () => {
     if (window.confirm(t("We're almost done, are you sure you want to cancel?"))) {
-      dispatch(logout())
+      dispatch(logout()).then(() => {
+        navigate('/signup')
+      })
     }
   }
 
@@ -59,7 +64,7 @@ export default function FinishRegistration () {
       <Icon name='Ex' className={classes.closeIcon} onClick={handleCancel} />
       <div className={classes.formWrapper}>
         <h1 className={classes.title}>{t('One more step!')}</h1>
-        <p className={classes.blurb}>{t(`Hi {{email}} we just need to know your name and password and you're in.`, { email })}</p>
+        <p className={classes.blurb}>{t('Hi {{email}} we just need to know your name and password and you\'re in.', { email })}</p>
         {error && formatError(error, 'Signup', t)}
         <TextInput
           aria-label='name'

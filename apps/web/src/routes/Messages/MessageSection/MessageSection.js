@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { array, bool, func, object } from 'prop-types'
 import React from 'react'
 import { throttle, debounce } from 'lodash'
@@ -14,7 +14,7 @@ const MAX_MINS_TO_BATCH = 5
 
 const lastSeenAtTimes = {}
 
-export function createMessageList (messages, lastSeenAt) {
+function createMessageList (messages, lastSeenAt) {
   let currentHeader
   return messages.reduce((acc, m) => {
     let headerDate, messageDate, diff, greaterThanMax
@@ -60,7 +60,6 @@ export default class MessageSection extends React.Component {
     document && document.removeEventListener('visibilitychange', this.handleVisibilityChange)
   }
 
-  // eslint-disable-next-line camelcase
   UNSAFE_componentWillUpdate (nextProps) {
     const { currentUser, messages, pending } = nextProps
     if (pending) return
@@ -148,18 +147,22 @@ export default class MessageSection extends React.Component {
   render () {
     const { messages, pending, messageThread } = this.props
 
-    return <div className={cx(classes.messagesSection)}
-      ref={this.list}
-      onScroll={this.handleScroll}>
-      {pending && <Loading />}
-      {!pending &&
-        <div className={cx(classes.messagesSectionInner)}>
-          <ClickCatcher>
-            {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
-          </ClickCatcher>
-        </div>
-      }
-    </div>
+    return (
+      <div
+        className={cn(classes.messagesSection)}
+        ref={this.list}
+        onScroll={this.handleScroll}
+        data-testid='message-section'
+      >
+        {pending && <Loading />}
+        {!pending &&
+          <div className={cn(classes.messagesSectionInner)}>
+            <ClickCatcher>
+              {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
+            </ClickCatcher>
+          </div>}
+      </div>
+    )
   }
 }
 

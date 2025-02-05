@@ -8,23 +8,33 @@ import {
   ScrollView,
   TextInput
 } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
+import { gql, useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import validator from 'validator'
+import { AnalyticsEvents } from '@hylo/shared'
+import { useAuth } from '@hylo/contexts/AuthContext'
+import mixpanel from 'services/mixpanel'
 import { openURL } from 'hooks/useOpenURL'
 import { useNavigation, useRoute, useNavigationState } from '@react-navigation/native'
 import useRouteParams from 'hooks/useRouteParams'
 import FormattedError from 'components/FormattedError'
-import sendEmailVerification from 'store/actions/sendEmailVerification'
-import { getAuthState, AuthState } from 'store/selectors/getAuthState'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Button from 'components/Button'
-import providedStyles from './Signup.styles'
 import SocialAuth from 'components/SocialAuth'
+import providedStyles from './Signup.styles'
 
 const backgroundImage = require('assets/signin_background.png')
 const merkabaImage = require('assets/merkaba_white.png')
+
+export const sendEmailVerificationMutation = gql`
+  mutation SendEmailVerificationMutation ($email: String!) {
+    sendEmailVerification(email: $email) {
+      success
+      error
+    }
+  }
+`
 
 export default function Signup () {
   const { t } = useTranslation()
@@ -32,8 +42,8 @@ export default function Signup () {
   const navigation = useNavigation()
   const currentRouteName = useNavigationState(state => state?.routes[state.index]?.name)
   const safeAreaInsets = useSafeAreaInsets()
-  const dispatch = useDispatch()
-  const authState = useSelector(getAuthState)
+  const [, sendEmailVerification] = useMutation(sendEmailVerificationMutation)
+  const { isEmailValidated, isRegistered, isSignupInProgress } = useAuth()
   const { email: routeEmail, error: routeError, bannerError: routeBannerError } = useRouteParams()
   const [email, providedSetEmail] = useState(routeEmail)
   const [loading, setLoading] = useState(false)
@@ -45,16 +55,16 @@ export default function Signup () {
   const genericError = new Error(t('An account may already exist for this email address, Login or try resetting your password'))
 
   const signupRedirect = () => {
-    switch (authState) {
-      case AuthState.EmailValidation: {
+    switch (true) {
+      case isEmailValidated: {
         navigation.navigate('SignupEmailValidation', route.params)
         break
       }
-      case AuthState.Registration: {
+      case isRegistered: {
         navigation.navigate('SignupRegistration', route.params)
         break
       }
-      case AuthState.SignupInProgress: {
+      case isSignupInProgress: {
         if (!['SignupUploadAvatar', 'SignupSetLocation'].includes(currentRouteName)) {
           navigation.navigate('SignupUploadAvatar', route.params)
         }
@@ -65,7 +75,7 @@ export default function Signup () {
 
   useEffect(() => {
     if (!loading) signupRedirect()
-  }, [loading, authState])
+  }, [loading])
 
   const setEmail = validateEmail => {
     setBannerError()
@@ -87,9 +97,10 @@ export default function Signup () {
     try {
       setLoading(true)
 
-      const result = await dispatch(sendEmailVerification(email))
+      const { data } = await sendEmailVerification({ email })
 
-      if (result.payload.getData().success) {
+      if (data?.sendEmailVerification?.success) {
+        mixpanel.track(AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_SENT, { email })
         openURL(`/signup/verify-email?email=${encodeURIComponent(email)}`)
       } else {
         throw genericError

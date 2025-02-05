@@ -8,7 +8,7 @@ describe('KeyControlledItemList', () => {
     items: []
   }
 
-  function renderComponent(props = {}) {
+  function renderComponent (props = {}) {
     return render(
       <KeyControlledItemList {...{ ...defaultMinProps, ...props }} />
     )

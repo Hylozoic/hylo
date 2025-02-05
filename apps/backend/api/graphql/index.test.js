@@ -74,6 +74,8 @@ describe('graphql request handler', () => {
 
   describe('with a simple query', () => {
     it('responds as expected', async () => {
+      // TODO: .inject is no longer provided with Yoga 3.x forward ref. here for what to do instead:
+      // https://the-guild.dev/graphql/yoga-server/v3/migration/migration-from-yoga-v2#removed-inject-method
       const { response, executionResult } = await handler.inject({
         document: `{
           me {

@@ -23,8 +23,7 @@ export function participantAttributes (messageThread, currentUser, maxShown) {
 
 export function isUnread (messageThread) {
   const { lastReadAt, updatedAt } = messageThread
-
-  return lastReadAt === undefined || new Date(lastReadAt) < new Date(updatedAt)
+  return lastReadAt === undefined || new Date(parseInt(lastReadAt)) < new Date(updatedAt)
 }
 
 export function isUpdatedSince (messageThread, date) {

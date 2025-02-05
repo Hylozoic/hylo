@@ -1,8 +1,8 @@
-import { graphql } from 'msw'
+import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import redirectToApp from './redirectToApp'
 
-it('just calls next() if the url is not /', () => {
+it('just calls next() if the url is not /', async () => {
   const req = {
     url: '/foo',
     cookies: { [process.env.HYLO_COOKIE_NAME]: 'yeah' }
@@ -10,13 +10,13 @@ it('just calls next() if the url is not /', () => {
   const res = { redirect: jest.fn() }
   const next = jest.fn()
 
-  redirectToApp(req, res, next)
+  await redirectToApp(req, res, next)
 
   expect(next).toBeCalled()
   expect(res.redirect).not.toBeCalled()
 })
 
-it('just calls next() if there is no matching cookie', () => {
+it('just calls next() if there is no matching cookie', async () => {
   const req = {
     url: '/',
     cookies: {}
@@ -24,7 +24,7 @@ it('just calls next() if there is no matching cookie', () => {
   const res = { redirect: jest.fn() }
   const next = jest.fn()
 
-  redirectToApp(req, res, next)
+  await redirectToApp(req, res, next)
 
   expect(next).toBeCalled()
   expect(res.redirect).not.toBeCalled()
@@ -39,15 +39,15 @@ it('just calls next() if user is not logged in', async () => {
   const res = { redirect: jest.fn() }
   const next = jest.fn()
 
-  mockGraphqlServer.resetHandlers(
-    graphql.query('CheckLogin', (req, res, ctx) => {
-      return res(
-        ctx.data({
+  mockGraphqlServer.use(
+    graphql.query('CheckLogin', () => {
+      return HttpResponse.json({
+        data: {
           checkLogin: {
             me: null
           }
-        })
-      )
+        }
+      })
     })
   )
 
@@ -66,15 +66,15 @@ it('redirects to /app when user is logged in', async () => {
   const res = { redirect: jest.fn() }
   const next = jest.fn()
 
-  mockGraphqlServer.resetHandlers(
-    graphql.query('CheckLogin', (req, res, ctx) => {
-      return res(
-        ctx.data({
+  mockGraphqlServer.use(
+    graphql.query('CheckLogin', () => {
+      return HttpResponse.json({
+        data: {
           me: {
             id: '1'
           }
-        })
-      )
+        }
+      })
     })
   )
 

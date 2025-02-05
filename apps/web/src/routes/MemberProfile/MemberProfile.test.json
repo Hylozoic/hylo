@@ -14,7 +14,7 @@
       "comments": [
         {
           "id": "2",
-          "text": "<p>So much more to say.</p>",
+          "text": "So much more to say.",
           "creator": {
             "id": "46816"
           },
@@ -22,11 +22,12 @@
             "id": "30002",
             "title": "0123456789 0123456789 0123456789"
           },
-          "createdAt": "2021-05-12T15:00:00.000Z"
+          "createdAt": "2021-05-12T15:00:00.000Z",
+          "attachments": []
         },
         {
           "id": "1",
-          "text": "<p>Here's a comment!</p>",
+          "text": "Here's a comment!",
           "creator": {
             "id": "46816"
           },
@@ -34,7 +35,8 @@
             "id": "30002",
             "title": "0123456789 0123456789 0123456789"
           },
-          "createdAt": "2021-06-12T15:00:00.000Z"
+          "createdAt": "2021-06-12T15:00:00.000Z",
+          "attachments": []
         }
       ],
       "eventsAttending": {
@@ -191,7 +193,7 @@
           }
         ]
       },
-      "votes": [
+      "reactions": [
         {
           "id": "2",
           "post": {

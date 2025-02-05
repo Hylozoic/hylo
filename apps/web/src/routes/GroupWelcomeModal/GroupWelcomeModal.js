@@ -1,12 +1,10 @@
-import cx from 'classnames'
 import { isEmpty, trim } from 'lodash'
 import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { CSSTransition } from 'react-transition-group'
-import { useLocation } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
-import { bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
@@ -19,17 +17,19 @@ import Button from 'components/Button'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import RoundImage from 'components/RoundImage'
-import { SuggestedSkills } from 'routes/GroupDetail/GroupDetail'
+import SuggestedSkills from 'components/SuggestedSkills'
+import { bgImageStyle, cn } from 'util/index'
+
 import classes from './GroupWelcomeModal.module.scss'
 
 export default function GroupWelcomeModal (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
-  const location = useLocation()
-  const currentGroup = useSelector(state => getGroupForSlug(state, location))
+  const params = useParams()
+  const currentGroup = useSelector(state => getGroupForSlug(state, params.groupSlug))
   const group = presentGroup(currentGroup)
-  const currentMembership = useSelector(state => getMyGroupMembership(state, location))
+  const currentMembership = useSelector(state => getMyGroupMembership(state, params.groupSlug))
   const membershipAgreements = currentMembership?.agreements.toModelArray()
   const { agreementsAcceptedAt, joinQuestionsAnsweredAt } = currentMembership?.settings || {}
   const [page, setPage] = useState(1)
@@ -129,7 +129,7 @@ export default function GroupWelcomeModal (props) {
       nodeRef={welcomeModalRef}
     >
       <div className={classes.welcomeModalWrapper} key='welcome-modal' ref={welcomeModalRef}>
-        <div className={cx(classes.welcomeModal, classes[`viewingPage${page}`])}>
+        <div className={cn(classes.welcomeModal, classes[`viewingPage${page}`])}>
           <div style={bgImageStyle(group.bannerUrl || DEFAULT_BANNER)} className={classes.banner}>
             <div className={classes.bannerContent}>
               <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} size='50px' square />
@@ -138,14 +138,14 @@ export default function GroupWelcomeModal (props) {
             </div>
             <div className={classes.fade} />
           </div>
-          <div className={cx(classes.welcomeContent, classes.page1)}>
+          <div className={cn(classes.welcomeContent, classes.page1)}>
             {!isEmpty(group.purpose) &&
               <div>
                 <h2>{t('Our Purpose')}</h2>
                 <p>{group.purpose}</p>
               </div>}
             {group.agreements?.length > 0 && (
-              <div className={cx(classes.agreements, classes.welcomeSection)}>
+              <div className={cn(classes.agreements, classes.welcomeSection)}>
                 <h2>{t('Our Agreements')}</h2>
                 {currentMembership?.settings.agreementsAcceptedAt && agreementsChanged
                   ? <p className={classes.agreementsChanged}>{t('The agreements have changed since you last accepted them. Please review and accept them again.')}</p>
@@ -153,7 +153,7 @@ export default function GroupWelcomeModal (props) {
                 <ol>
                   {group.agreements.map((agreement, i) => {
                     return (
-                      <li className={cx(classes.agreement, { [classes.borderBottom]: group.agreements.length > 1 && i !== (group.agreements.length - 1) })} key={i}>
+                      <li className={cn(classes.agreement, { [classes.borderBottom]: group.agreements.length > 1 && i !== (group.agreements.length - 1) })} key={i}>
                         <h3>{agreement.title}</h3>
                         <div className={classes.agreementDescription}>
                           <ClickCatcher>
@@ -169,7 +169,7 @@ export default function GroupWelcomeModal (props) {
                           onChange={handleCheckAgreement}
                           checked={currentAgreements[i] || false}
                         />
-                        <label htmlFor={'agreement' + agreement.id} className={cx(classes.iAgree, { [classes.accepted]: currentAgreements[i] })}>
+                        <label htmlFor={'agreement' + agreement.id} className={cn(classes.iAgree, { [classes.accepted]: currentAgreements[i] })}>
                           {t('I agree to the above')}
                         </label>
                       </li>
@@ -184,14 +184,14 @@ export default function GroupWelcomeModal (props) {
                       onChange={handleCheckAllAgreements}
                       checked={checkedAllAgreements}
                     />
-                    <label htmlFor='checkAllAgreements' className={cx({ [classes.accepted]: checkedAllAgreements })}>
+                    <label htmlFor='checkAllAgreements' className={cn({ [classes.accepted]: checkedAllAgreements })}>
                       {t('I agree to all of the above')}
                     </label>
                   </div>}
               </div>
             )}
           </div>
-          <div className={cx(classes.welcomeContent, classes.page2)}>
+          <div className={cn(classes.welcomeContent, classes.page2)}>
             {!isEmpty(group.purpose) &&
               <div>
                 <h2>{t('Our Purpose')}</h2>

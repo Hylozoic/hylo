@@ -1,0 +1,59 @@
+import { get } from 'lodash/fp'
+import { USE_INVITATION } from 'store/constants'
+import { AnalyticsEvents } from '@hylo/shared'
+
+export default function acceptInvitation (inviteCodes = {}) {
+  const { invitationToken, accessCode } = inviteCodes
+
+  return {
+    type: USE_INVITATION,
+    graphql: {
+      query: `
+        mutation UseInvitation ($invitationToken: String, $accessCode: String) {
+          useInvitation (invitationToken: $invitationToken, accessCode: $accessCode) {
+            membership {
+              id
+              role
+              group {
+                id
+                accessibility
+                name
+                purpose
+                settings {
+                  agreementsLastUpdatedAt
+                  allowGroupInvites
+                  askJoinQuestions
+                  askGroupToGroupJoinQuestions
+                  publicMemberDirectory
+                  showSuggestedSkills
+                }
+                slug
+                visibility
+              }
+              person {
+                id
+              }
+              settings {
+                agreementsAcceptedAt
+                joinQuestionsAnsweredAt
+                showJoinForm
+              }
+            }
+            error
+          }
+        }
+      `,
+      variables: {
+        invitationToken,
+        accessCode
+      }
+    },
+    meta: {
+      extractModel: {
+        modelName: 'Membership',
+        getRoot: get('useInvitation.membership')
+      },
+      analytics: AnalyticsEvents.GROUP_INVITATION_ACCEPTED
+    }
+  }
+}

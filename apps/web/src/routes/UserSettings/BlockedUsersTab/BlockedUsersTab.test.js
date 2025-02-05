@@ -1,7 +1,6 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import BlockedUsersTab, { UnBlockUserControl } from './BlockedUsersTab'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('BlockedUsersTab', () => {
   it('renders a list of UnBlockUserControls', () => {
@@ -11,7 +10,7 @@ describe('BlockedUsersTab', () => {
       { id: 3, name: 'User 3' },
       { id: 4, name: 'User 4' }
     ]
-    render(<BlockedUsersTab blockedUsers={blockedUsers} />, { wrapper: AllTheProviders })
+    render(<BlockedUsersTab blockedUsers={blockedUsers} />)
 
     blockedUsers.forEach(user => {
       expect(screen.getByText(user.name)).toBeInTheDocument()
@@ -21,8 +20,8 @@ describe('BlockedUsersTab', () => {
   })
 
   it('shows loading state when loading', () => {
-    render(<BlockedUsersTab loading={true} />, { wrapper: AllTheProviders })
-    expect(screen.getByTestId('loading')).toBeInTheDocument()
+    render(<BlockedUsersTab loading />)
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
   })
 })
 
@@ -35,8 +34,7 @@ describe('UnBlockUserControl', () => {
     const unBlockUser = jest.fn()
 
     render(
-      <UnBlockUserControl blockedUser={blockedUser} unBlockUser={unBlockUser} />,
-      { wrapper: AllTheProviders }
+      <UnBlockUserControl blockedUser={blockedUser} unBlockUser={unBlockUser} />
     )
 
     expect(screen.getByText('Test User')).toBeInTheDocument()

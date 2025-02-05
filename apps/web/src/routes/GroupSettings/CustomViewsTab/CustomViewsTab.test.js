@@ -1,7 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import CustomViewsTab from './CustomViewsTab'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('CustomViewsTab', () => {
   const mockGroup = {
@@ -29,36 +28,30 @@ describe('CustomViewsTab', () => {
 
   it('renders correctly with initial state', () => {
     render(
-      <AllTheProviders>
-        <CustomViewsTab group={mockGroup} fetchCollectionPosts={mockFetchCollectionPosts} />
-      </AllTheProviders>
+      <CustomViewsTab group={mockGroup} fetchCollectionPosts={mockFetchCollectionPosts} />
     )
 
     expect(screen.getByText('Custom Views')).toBeInTheDocument()
     expect(screen.getByText('custommm baby')).toBeInTheDocument()
     expect(screen.getByText('Current settings up to date')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toHaveClass('gray')
   })
 
   it('enables save button when changes are made', () => {
     render(
-      <AllTheProviders>
-        <CustomViewsTab group={mockGroup} fetchCollectionPosts={mockFetchCollectionPosts} />
-      </AllTheProviders>
+      <CustomViewsTab group={mockGroup} fetchCollectionPosts={mockFetchCollectionPosts} />
     )
 
     const nameInput = screen.getByLabelText('Label')
     fireEvent.change(nameInput, { target: { value: 'New Custom View Name' } })
 
     expect(screen.getByText('Changes not saved')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toHaveClass('green')
   })
 
   it('adds a new custom view when clicking the add button', () => {
     render(
-      <AllTheProviders>
-        <CustomViewsTab group={mockGroup} fetchCollectionPosts={mockFetchCollectionPosts} />
-      </AllTheProviders>
+      <CustomViewsTab group={mockGroup} fetchCollectionPosts={mockFetchCollectionPosts} />
     )
 
     const addButton = screen.getByText('Create new custom view')
@@ -71,12 +64,10 @@ describe('CustomViewsTab', () => {
     window.confirm = jest.fn(() => true) // Mock the confirm dialog
 
     render(
-      <AllTheProviders>
-        <CustomViewsTab group={mockGroup} fetchCollectionPosts={mockFetchCollectionPosts} />
-      </AllTheProviders>
+      <CustomViewsTab group={mockGroup} fetchCollectionPosts={mockFetchCollectionPosts} />
     )
 
-    const deleteButton = screen.getByRole('button', { name: 'Trash' })
+    const deleteButton = screen.getByTestId('delete-custom-view')
     fireEvent.click(deleteButton)
 
     expect(screen.queryByText('custommm baby')).not.toBeInTheDocument()

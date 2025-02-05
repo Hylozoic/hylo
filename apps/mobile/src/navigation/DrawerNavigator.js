@@ -9,15 +9,14 @@ export default function DrawerNavigator () {
   const navigatorProps = {
     drawerType: 'slide',
     drawerStyle: {
-      width: Dimensions.get('window').width * 0.9
-    },
-    drawerContent: props => (
-      <DrawerMenu {...props} />
-    )
+      width: Dimensions.get('window').width * 0.92
+    }
   }
 
   return (
-    <Drawer.Navigator {...navigatorProps}>
+    <Drawer.Navigator screenOptions={navigatorProps} drawerContent={ props => (
+      <DrawerMenu {...props} />
+    )}>
       <Drawer.Screen name='Tabs' component={TabsNavigator} options={{ headerShown: false }} />
     </Drawer.Navigator>
   )

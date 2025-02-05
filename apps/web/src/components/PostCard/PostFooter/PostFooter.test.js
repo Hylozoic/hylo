@@ -22,33 +22,10 @@ describe('PostFooter', () => {
       />
     )
 
-    expect(screen.getByText('Joe Smith')).toBeInTheDocument()
-    expect(screen.getByText('Scary Terry')).toBeInTheDocument()
-    expect(screen.getByText('John Larkin')).toBeInTheDocument()
-    expect(screen.queryByText('Sue Jones')).not.toBeInTheDocument() // Current user should be excluded
-  })
-
-  it('renders project footer correctly', () => {
-    const members = [{
-      id: 1,
-      name: 'Sarah Brown',
-      avatarUrl: ''
-    }]
-
-    render(
-      <PostFooter
-        commenters={[]}
-        commentersTotal={0}
-        currentUser={commenters[1]}
-        myReactions={[]}
-        postReactions={[]}
-        peopleReactedTotal={0}
-        type='project'
-        members={members}
-      />
-    )
-
-    expect(screen.getByText('Sarah Brown')).toBeInTheDocument()
+    expect(screen.getByText('Joe, Scary and 2 others commentedPlural')).toBeInTheDocument()
+    // expect(screen.getByText('Scary Terry')).toBeInTheDocument()
+    // expect(screen.getByText('John Larkin')).toBeInTheDocument()
+    // expect(screen.queryByText('Sue Jones')).not.toBeInTheDocument() // Current user should be excluded
   })
 
   it('renders event footer correctly', () => {

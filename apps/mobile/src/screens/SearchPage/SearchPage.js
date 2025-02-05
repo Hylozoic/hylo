@@ -1,5 +1,9 @@
-import React from 'react'
-import { View, Text, TextInput, FlatList, TouchableOpacity } from 'react-native'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { View, Text, TextInput, FlatList, TouchableOpacity, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import { gql, useQuery } from 'urql'
+import { debounce } from 'lodash/fp'
+import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 import Loading from 'components/Loading'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
@@ -8,57 +12,180 @@ import PostHeader from 'components/PostCard/PostHeader'
 import { PostTitle } from 'components/PostCard/PostBody/PostBody'
 import UnwrappedCommentCard from 'components/Comment'
 import styles from './SearchPage.styles'
-import { useTranslation } from 'react-i18next'
+import { modalScreenName } from 'hooks/useIsModalScreen'
+import { useNavigation } from '@react-navigation/native'
 
-export default class SearchPage extends React.Component {
-  state = {
-    refreshing: false
-  }
-
-  componentDidMount () {
-    this.props.fetchSearchResults()
-  }
-
-  componentDidUpdate (prevProps) {
-    if (prevProps.searchTerm !== this.props.searchTerm ||
-      prevProps.filter !== this.props.filter) {
-      this.props.fetchSearchResults()
+const searchQuery = gql`
+  query SearchQuery ($search: String, $type: String, $offset: Int, $first: Int = 2) {
+    search(term: $search, first: $first, type: $type, offset: $offset) {
+      total
+      hasMore
+      items {
+        id
+        content {
+          contentTypeName: __typename
+          ... on Person {
+            id
+            name
+            location
+            avatarUrl
+            skills {
+              items {
+                id
+                name
+              }
+            }
+          }
+          ... on Post {
+            ...PostFieldsFragment
+          }
+          ... on Comment {
+            id
+            text
+            createdAt
+            creator {
+              id
+              name
+              avatarUrl
+            }
+            post {
+              id
+              title
+              type
+              creator {
+                id
+                name
+                avatarUrl
+              }
+            }
+            attachments {
+              id
+              url
+              type
+            }
+          }
+        }
+      }
     }
-    if (prevProps.pending && !this.props.pending) {
-      this.setState({
-        refreshing: false
-      })
+  }
+  ${postFieldsFragment}
+`
+
+const SEARCH_TABS = [
+  { id: 'all', label: 'All' },
+  { id: 'post', label: 'Discussions' },
+  { id: 'person', label: 'People' },
+  { id: 'comment', label: 'Comments' }
+]
+
+export const DEFAULT_SEARCH_TYPE = 'all'
+
+export default function SearchPage () {
+  const navigation = useNavigation()
+  const [searchString, providedSetSearchString] = useState(null)
+  const [offset, setOffset] = useState(0)
+
+  const [searchType, setSearchType] = useState(DEFAULT_SEARCH_TYPE)
+  const setSearchString = debounce(300, newSearchString => providedSetSearchString(newSearchString))
+
+  useEffect(() => {
+    setOffset(0)
+  }, [searchType])
+
+  const [{ data, fetching }] = useQuery({
+    query: searchQuery,
+    variables: {
+      search: searchString,
+      type: searchType,
+      offset,
+      first: searchType === 'person' ? 10 : 2
+    },
+    pause: !searchString
+  })
+
+  const { items: searchResults, hasMore } = useMemo(() => ({
+    items: data?.search?.items || [],
+    hasMore: data?.search?.hasMore || false
+  }), [data?.search])
+
+  const fetchMore = useCallback(() => {
+    if (hasMore && !fetching) {
+      setOffset(searchResults?.length)
     }
+  }, [hasMore, fetching])
+
+  const handleRefresh = async () => {
+    setOffset(0)
   }
 
-  fetchMore = () => {
-    const { pending } = this.props
-    if (pending) return null
-    this.props.fetchMoreSearchResults()
-  }
+  // TODO: Fix back links on Home Tab when navigating this way,
+  // currently causes a crash if trying to go back from Post Details or Member
+  const goToPost = useCallback(id => navigation.navigate(modalScreenName('Post Details'), { id }), [navigation])
+  const goToPerson = useCallback(id => navigation.navigate(modalScreenName('Member'), { id }), [navigation])
 
-  handleRefresh = () => {
-    const { refreshing } = this.state
-    if (refreshing) return null
-    this.setState({ refreshing: true })
-    this.props.fetchSearchResults()
-  }
+  const renderItem = useCallback(
+    ({ item }) => (
+      <SearchResult
+        searchResult={item}
+        goToPost={goToPost}
+        goToPerson={goToPerson}
+      />
+    ),
+    [goToPost, goToPerson]
+  )
 
-  render () {
-    const {
-      searchResults, searchTerm, setSearchTerm, pending, goToPost, goToPerson,
-      filter, setSearchFilter
-    } = this.props
-    const { refreshing } = this.state
+  const listFooterComponent = useMemo(
+    () => (offset > 0 && fetching) && (
+      <Loading style={styles.loading} />
+    ),
+    [fetching]
+  )
 
-    const listHeaderComponent = (
+  return (
+    <View style={styles.flatListContainer}>
+      <SearchHeader
+        searchType={searchType}
+        setSearchType={setSearchType}
+        searchString={searchString}
+        setSearchString={setSearchString}
+      />
+      {(offset === 0 && fetching) && (
+        <Loading style={styles.loading} />
+      )}
+      <FlatList
+        data={searchResults}
+        renderItem={renderItem}
+        onRefresh={handleRefresh}
+        refreshing={offset > 0 && fetching}
+        keyExtractor={(item) => item.id}
+        onEndReached={() => fetchMore()}
+        ListFooterComponent={listFooterComponent}
+      />
+    </View>
+  )
+}
+
+const SearchHeader = React.memo(
+  ({
+    searchType,
+    setSearchType,
+    searchString: providedSearchString,
+    setSearchString: providedSetSearchString
+  }) => {
+    const [searchString, setSearchString] = useState(providedSearchString)
+    const handleSearchString = useCallback(newSearchString => {
+      setSearchString(newSearchString)
+      providedSetSearchString(newSearchString)
+    })
+
+    return (
       <View>
         <View style={styles.searchBar}>
           <View style={styles.searchBox}>
             <Icon name='Search' style={styles.searchIcon} />
             <TextInput
-              value={searchTerm}
-              onChangeText={text => setSearchTerm(text)}
+              value={searchString}
+              onChangeText={handleSearchString}
               style={styles.textInput}
               autoCapitalize='none'
               autoCorrect={false}
@@ -66,107 +193,66 @@ export default class SearchPage extends React.Component {
             />
           </View>
         </View>
-        <TabBar filter={filter} setSearchFilter={setSearchFilter} />
+        <TabBar selectedId={searchType} onTabPressIn={setSearchType} />
       </View>
     )
+  }
+)
 
-    const listFooterComponent = pending
-      ? <Loading style={styles.loading} />
-      : null
+export const TabBar = React.memo(
+  ({ selectedId, onTabPressIn }) => {
+    const { t } = useTranslation()
+    // Explicit invocations of dynamic values
+    t('All')
+    t('Discussions')
+    t('People')
+    t('Comments')
 
     return (
-      <View style={styles.flatListContainer}>
-        <FlatList
-          data={searchResults}
-          renderItem={({ item }) =>
-            <SearchResult
-              searchResult={item}
-              goToPost={goToPost}
-              goToPerson={goToPerson}
-            />}
-          onRefresh={this.handleRefresh}
-          refreshing={refreshing}
-          keyExtractor={(item) => item.id}
-          onEndReached={() => this.fetchMore()}
-          ListHeaderComponent={listHeaderComponent}
-          ListFooterComponent={listFooterComponent}
-        />
+      <View style={styles.tabBar}>
+        {SEARCH_TABS.map(({ id, label }) => (
+          <Pressable
+            onPress={() => onTabPressIn(id)}
+            hitSlop={{ top: 10, bottom: 15, left: 15, right: 15 }}
+            key={id}
+          >
+            {({ pressed }) => (
+              <Text style={[styles.tab, (pressed || (id === selectedId)) && styles.active]}>{label}</Text>
+            )}
+          </Pressable>
+        ))}
       </View>
     )
   }
-}
+)
 
-const tabs = [
-  { id: 'all', label: 'All' },
-  { id: 'post', label: 'Discussions' },
-  { id: 'person', label: 'People' },
-  { id: 'comment', label: 'Comments' }
-]
+const SearchResult = React.memo(
+  ({ searchResult, goToPost, goToPerson }) => {
+    const { content } = searchResult
 
-export function TabBar ({ filter, setSearchFilter }) {
-  const { t } = useTranslation()
-  // Explicit invocations of dynamic values
-  t('All')
-  t('Discussions')
-  t('People')
-  t('Comments')
-
-  return (
-    <View style={styles.tabBar}>
-      {tabs.map(({ id, label }) => (
-        <Tab
-          filter={filter}
-          id={id}
-          key={id}
-          label={t(label)}
-          setSearchFilter={setSearchFilter}
-        />
-      ))}
-    </View>
-  )
-}
-
-export function Tab ({ id, label, filter, setSearchFilter }) {
-  return (
-    <TouchableOpacity
-      onPress={() => setSearchFilter(id)}
-      hitSlop={{ top: 10, bottom: 15, left: 15, right: 15 }}
-    >
-      <Text style={[styles.tab, (filter === id) && styles.active]}>{label}</Text>
-    </TouchableOpacity>
-  )
-}
-
-export function SearchResult ({ searchResult, goToPost, goToPerson }) {
-  const { type, content } = searchResult
-
-  const resultComponent = type => {
-    switch (type) {
-      case 'Person':
-        return <PersonCard person={content} goToPerson={goToPerson} />
-      case 'Post':
-        return <PostCard post={content} goToPost={goToPost} />
-      case 'Comment':
-        return <CommentCard comment={content} expanded={false} goToPost={goToPost} />
+    const resultComponent = (type) => {
+      switch (type) {
+        case 'Person':
+          return <PersonCard person={content} goToPerson={goToPerson} />
+        case 'Post':
+          return <PostCard post={content} goToPost={goToPost} />
+        case 'Comment':
+          return <CommentCard comment={content} goToPost={goToPost} />
+      }
     }
+
+    return resultComponent(content?.contentTypeName)
   }
-  return (
-    <View style={styles.searchResult}>
-      {resultComponent(type)}
-    </View>
-  )
-}
+)
 
 export function PersonCard ({ person, goToPerson }) {
   const { id, avatarUrl, name, location } = person
   return (
-    <TouchableOpacity onPress={() => goToPerson(id)}>
-      <View style={styles.personCard}>
-        <Avatar avatarUrl={avatarUrl} style={styles.avatar} />
-        <View style={styles.nameAndLocation}>
-          <Text style={styles.name}>{name}</Text>
-          {location?.length > 0 && <Text style={styles.location}>{location}</Text>}
-        </View>
+    <TouchableOpacity onPress={() => goToPerson(id)} style={styles.personResult}>
+      <Avatar avatarUrl={avatarUrl} style={styles.avatar} />
+      <View style={styles.nameAndLocation}>
+        <Text style={styles.name}>{name}</Text>
+        {location?.length > 0 && <Text style={styles.location}>{location}</Text>}
       </View>
     </TouchableOpacity>
   )
@@ -176,7 +262,7 @@ export function PostCard ({ post, goToPost }) {
   const goToThisPost = () => goToPost(post.id)
   const { creator, groups } = post
   return (
-    <TouchableOpacity onPress={goToThisPost} style={styles.postWrapper}>
+    <TouchableOpacity onPress={goToThisPost} style={styles.postResult}>
       <UnwrappedPostCard
         creator={creator}
         showDetails={goToThisPost}
@@ -198,7 +284,7 @@ export function CommentCard ({ comment, goToPost }) {
   const goToThisPost = () => goToPost(post.id)
 
   return (
-    <TouchableOpacity onPress={goToThisPost} style={styles.commentWrapper}>
+    <TouchableOpacity onPress={goToThisPost} style={styles.commentResult}>
       <View style={styles.commentPostHeader}>
         <PostHeader
           postId={post.id}

@@ -6,7 +6,9 @@ export default function ShowMore ({ commentsLength, total, hasMore, fetchComment
 
   const extra = total - commentsLength
 
-  return <div className={classes.showMore} onClick={fetchComments}>
-    View {extra} previous comment{extra > 1 ? 's' : ''}
-  </div>
+  return (
+    <div className={classes.showMore} onClick={fetchComments}>
+      View {extra} previous comment{extra > 1 ? 's' : ''}
+    </div>
+  )
 }

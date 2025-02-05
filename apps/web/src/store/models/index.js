@@ -8,7 +8,7 @@ import Comment from './Comment'
 import CommonRole from './CommonRole'
 import CustomView from './CustomView'
 import EventInvitation from './EventInvitation'
-import Group, { GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
+import Group, { ChatRoom, GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
 import GroupRelationshipInvite, { GroupToGroupJoinRequestQuestionAnswer } from './GroupRelationshipInvite'
 import GroupTopic from './GroupTopic'
 import Invitation from './Invitation'
@@ -21,7 +21,7 @@ import Message from './Message'
 import MessageThread from './MessageThread'
 import ModerationAction from './ModerationAction'
 import Notification from './Notification'
-import Person, { MembershipCommonRole, PersonSkillsToLearn } from './Person'
+import Person, { MembershipCommonRole, PersonSkillsToLearn, Reaction } from './Person'
 import PersonConnection from './PersonConnection'
 import PlatformAgreement from './PlatformAgreement'
 import Post, { PostFollower, PostCommenter, ProjectMember, ProposalOption } from './Post'
@@ -37,6 +37,7 @@ orm.register(
   Activity,
   Agreement,
   Attachment,
+  ChatRoom,
   Collection,
   CollectionPost,
   Comment,
@@ -77,6 +78,7 @@ orm.register(
   ProjectMember,
   ProposalOption,
   Question,
+  Reaction,
   // Responsibility,
   SearchResult,
   Skill,

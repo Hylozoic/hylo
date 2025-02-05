@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -24,7 +24,7 @@ const MultiSelect = ({ items, selected = [], hideAfter, handleSelect }) => {
           handleSelect && handleSelect(item.id)
         }}
         key={item.id}
-        className={cx(classes.item, { [classes.selected]: selected.includes(item.id) })}
+        className={cn(classes.item, { [classes.selected]: selected.includes(item.id) })}
       >
         <span>{item.text || item.title}</span>
         {handleSelect && (

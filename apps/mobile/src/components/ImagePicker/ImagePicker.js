@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import Icon from 'components/Icon'
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker'
 import PopupMenuButton from 'components/PopupMenuButton'
-import { useTranslation } from 'react-i18next'
 
 /*
   Example usage:

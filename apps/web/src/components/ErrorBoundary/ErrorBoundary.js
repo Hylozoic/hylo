@@ -21,13 +21,15 @@ class ErrorBoundary extends React.Component {
     const message = this.props.message || this.props.t('Oops! Something went wrong.  Try reloading the page.')
     if (this.state.hasError) {
       // You can render any custom fallback UI
-      return <div className={classes.container}>
-        <div className={classes.speechBubble}>
-          <div className={classes.arrow} />
-          <span>{message}</span>
+      return (
+        <div className={classes.container} data-testid='error-boundary-container'>
+          <div className={classes.speechBubble}>
+            <div className={classes.arrow} />
+            <span>{message}</span>
+          </div>
+          <div className={classes.axolotl} />
         </div>
-        <div className={classes.axolotl} />
-      </div>
+      )
     }
     return this.props.children
   }

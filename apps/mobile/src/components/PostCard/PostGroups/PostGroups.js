@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { isEmpty } from 'lodash/fp'
 import { Text, View, TouchableOpacity } from 'react-native'
-import { PUBLIC_GROUP } from 'store/models/Group'
+import { PUBLIC_GROUP } from '@hylo/presenters/GroupPresenter'
 import GroupsList from 'components/GroupsList'
 import Icon from 'components/Icon'
 import { caribbeanGreen, rhino40 } from 'style/colors'

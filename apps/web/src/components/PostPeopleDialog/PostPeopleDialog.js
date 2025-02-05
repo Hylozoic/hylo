@@ -1,13 +1,12 @@
 import React from 'react'
 import { withTranslation } from 'react-i18next'
 import { filter, get } from 'lodash/fp'
-import cx from 'classnames'
-import { bgImageStyle } from 'util/index'
 import ModalDialog from 'components/ModalDialog'
 import TextInput from 'components/TextInput'
 import Member from 'components/Member'
 import classes from './PostPeopleDialog.module.scss'
 import { humanResponse } from 'store/models/EventInvitation'
+import { bgImageStyle, cn } from 'util/index'
 
 class PostPeopleDialog extends React.PureComponent {
   constructor (props) {
@@ -46,7 +45,8 @@ class PostPeopleDialog extends React.PureComponent {
         modalTitle={`${title} (${this.props.members.length})`}
         showCancelButton={false}
         showSubmitButton={false}
-        style={{ width: '100%', maxWidth: '620px' }}>
+        style={{ width: '100%', maxWidth: '620px' }}
+      >
         <div className={classes.container}>
           {/*
             Note: Can make memberDetails optional by adding a `withDetails` flag
@@ -65,13 +65,14 @@ class PostPeopleDialog extends React.PureComponent {
               loading={loading}
               value={searchString}
               placeholder={this.props.t('Find a member')}
-            />}
+                                              />}
             <section>
               {members.map(member => <MemberRow
                 member={member}
                 selected={member.id === get('id', selectedMember)}
                 onClick={this.selectMember(member)}
-                key={member.id} />)}
+                key={member.id}
+                                     />)}
             </section>
           </div>
           {selectedMember && <MemberDetail member={selectedMember} currentGroup={currentGroup} />}
@@ -85,16 +86,14 @@ function MemberRow ({ member, selected, onClick }) {
   const { name, avatarUrl, response } = member
 
   return (
-    <div className={cx(classes.row, { [classes.selected]: selected })} onClick={onClick}>
+    <div className={cn(classes.row, { [classes.selected]: selected })} onClick={onClick}>
       <div className={classes.col}>
         <div className={classes.avatar} style={bgImageStyle(avatarUrl)} />
       </div>
       <div className={classes.col}>
         {name}
       </div>
-      {response && <div className={cx(classes.col, classes.response)}>
-        {humanResponse(response)}
-      </div>}
+      {response && <div className={cn(classes.col, classes.response)}>{humanResponse(response)}</div>}
     </div>
   )
 }

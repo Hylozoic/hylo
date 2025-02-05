@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { createStackNavigator } from '@react-navigation/stack'
-import { isEmpty } from 'lodash/fp'
-import useCurrentGroup from 'hooks/useCurrentGroup'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import useReturnToOnAuthPath from 'hooks/useReturnToOnAuthPath'
 import getReturnToOnAuthPath from 'store/selectors/getReturnToOnAuthPath'
@@ -15,6 +13,7 @@ import Stream from 'screens/Stream'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
 import GroupNavigation from 'screens/GroupNavigation'
 import Groups from 'screens/Groups'
+import AllViews from 'screens/AllViews'
 import MemberDetails from 'screens/MemberProfile/MemberDetails'
 import MemberProfile from 'screens/MemberProfile'
 import MembersComponent from 'screens/Members'
@@ -29,7 +28,6 @@ const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
   const initialURL = useSelector(state => state.initialURL)
   const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
-  const [, setCurrentGroup] = useCurrentGroup()
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -43,16 +41,6 @@ export default function HomeNavigator ({ navigation }) {
 
   const navigatorProps = {
     initialRouteName: 'Group Navigation',
-    screenListeners: {
-      state: (e) => {
-        const routes = e.data.state.routes
-        const groupSlugs = routes
-          .map(route => route.params?.groupSlug)
-          .filter(s => !isEmpty(s))
-
-        setCurrentGroup(!isEmpty(groupSlugs) && groupSlugs[groupSlugs.length - 1])
-      }
-    },
     screenOptions: {
       animationEnabled: !initialURL,
       transitionSpec: {
@@ -84,6 +72,7 @@ export default function HomeNavigator ({ navigation }) {
     <HomeTab.Navigator {...navigatorProps}>
       <HomeTab.Screen name='Group Navigation' component={GroupNavigation} />
       <HomeTab.Screen name='Stream' component={Stream} />
+      <HomeTab.Screen name='All Views' component={AllViews} />
       <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
       <HomeTab.Screen name='Projects' component={Stream} initialParams={{ streamType: 'project' }} />
       <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />

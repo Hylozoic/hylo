@@ -11,14 +11,14 @@ describe('Pill', () => {
   it('renders as editable with remove icon', () => {
     render(<Pill id={1} label='mountain climbing' editable />)
     expect(screen.getByText('mountain climbing')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: /ex/i })).toBeInTheDocument()
+    expect(screen.getByTestId('pill-remove-icon')).toBeInTheDocument()
   })
 
   it('calls onRemove when double-clicked', () => {
     const onRemove = jest.fn()
     render(<Pill id={1} label='mountain climbing' editable onRemove={onRemove} />)
 
-    const removeIcon = screen.getByRole('img', { name: /ex/i })
+    const removeIcon = screen.getByTestId('pill-remove-icon')
     fireEvent.click(removeIcon)
     fireEvent.click(removeIcon)
 

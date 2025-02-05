@@ -22,11 +22,11 @@ describe('PeopleListItem', () => {
     render(<PeopleListItem person={person} />)
 
     const avatar = screen.getByRole('img')
-    expect(avatar).toHaveAttribute('src', 'https://wombat.life')
+    expect(avatar.getAttribute('style')).toBe('background-image: url(https://wombat.life);')
   })
 
   it('applies active class when active prop is true', () => {
-    render(<PeopleListItem person={person} active={true} />)
+    render(<PeopleListItem person={person} active />)
 
     const listItem = screen.getByRole('listitem')
     expect(listItem).toHaveClass('active')

@@ -45,7 +45,7 @@ describe('ModalDialog', () => {
         <div>Yep, they're awesome alright.</div>
       </ModalDialog>
     )
-    expect(screen.getByText('Yep, they're awesome alright.')).toBeInTheDocument()
+    expect(screen.getByText('Yep, they\'re awesome alright.')).toBeInTheDocument()
     expect(screen.getByTestId('icon-Star')).toBeInTheDocument()
   })
 

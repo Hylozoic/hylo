@@ -1,4 +1,4 @@
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { useTranslation, withTranslation } from 'react-i18next'
@@ -118,7 +118,7 @@ function GroupInvite ({ acceptInvite, declineInvite, invite }) {
           </div>
         </div>
         <div className={classes.invitationResponse}>
-          <span className={classes.createdDate}>{t('Sent')} {moment(createdAt).format('MM-DD-YYYY')}</span>
+          <span className={classes.createdDate}>{t('Sent')} {DateTime.fromISO(createdAt).toFormat('MM-dd-yyyy')}</span>
           <span onClick={decline} className={classes.cancelButton}>{t('Decline')}</span>
           <span onClick={() => acceptInvite(token, group.slug)} className={classes.joinButton}>{t('Join')}</span>
         </div>
@@ -143,7 +143,7 @@ function JoinRequest ({ joinRequest, cancelJoinRequest }) {
         <GroupButton group={group} />
       </div>
       <div className={classes.requestDetail}>
-        <span className={`${classes.createdDate} ${classes.joinRequestDate}`}>{t('Requested')} {moment(createdAt).format('YYYY-MM-DD')}</span>
+        <span className={`${classes.createdDate} ${classes.joinRequestDate}`}>{t('Requested')} {DateTime.fromISO(createdAt).toFormat('yyyy-MM-dd')}</span>
         {joinRequest.status === JOIN_REQUEST_STATUS.Pending && (
           <span onClick={cancel} className={classes.cancelButton}>{t('Cancel')}</span>
         )}

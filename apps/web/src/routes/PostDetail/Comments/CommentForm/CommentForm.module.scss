@@ -22,12 +22,16 @@
 
 .send-message-button {
   padding: 0;
-  line-height: 26px;
+  line-height: 20px;
   width: 25px;
   height: 25px;
   text-align: center;
   vertical-align: middle;
   border-radius: 6px;
+
+  svg {
+    display: inline;
+  }
 }
 
 .prompt {

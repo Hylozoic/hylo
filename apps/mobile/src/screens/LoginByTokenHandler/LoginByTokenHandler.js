@@ -1,19 +1,18 @@
 import React, { useCallback, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import loginByToken from 'store/actions/loginByToken'
 import loginByJWT from 'store/actions/loginByJWT'
-import { getAuthorized } from 'store/selectors/getAuthState'
 import { openURL } from 'hooks/useOpenURL'
 import { StackActions, useFocusEffect, useRoute } from '@react-navigation/native'
 import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
-import checkLogin from 'store/actions/checkLogin'
 import { navigationRef } from 'navigation/linking/helpers'
 import LoadingScreen from 'screens/LoadingScreen'
 
 export default function LoginByTokenHandler () {
   const route = useRoute()
   const dispatch = useDispatch()
-  const isAuthorized = useSelector(getAuthorized)
+  const [{ isAuthorized, checkAuth }] = useAuth()
   const returnToURLFromLink = decodeURIComponent(route?.params?.n)
   const jwt = decodeURIComponent(route?.params?.token)
   const loginToken = decodeURIComponent(route?.params?.t || route?.params?.loginToken)
@@ -31,7 +30,7 @@ export default function LoginByTokenHandler () {
 
               if (response?.error) throw response.error
 
-              await dispatch(checkLogin())
+              await checkAuth()
             } else if (loginToken && userID) {
               await dispatch(loginByToken(userID, loginToken))
             }

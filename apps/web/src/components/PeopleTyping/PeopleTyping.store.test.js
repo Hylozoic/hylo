@@ -10,7 +10,7 @@ describe('reducer', () => {
     }
     const newState = reducer({}, action)
     expect(newState).toEqual({
-      '1': {
+      1: {
         name: 'Proteus',
         timestamp: expect.any(Number)
       }
@@ -25,11 +25,11 @@ describe('reducer', () => {
     }
 
     const state = {
-      '1': {
+      1: {
         name: 'Proteus',
         timestamp: Date.now()
       },
-      '5': {
+      5: {
         name: 'Lydia',
         timestamp: Date.now()
       }

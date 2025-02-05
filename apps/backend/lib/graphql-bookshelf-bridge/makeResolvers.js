@@ -44,14 +44,14 @@ export function createResolverForModel (spec, fetcher) {
     }, {}),
 
     transform(relations, (result, attr) => {
-      var graphqlName, bookshelfName, typename
-      var opts = {}
+      let graphqlName, bookshelfName, typename
+      let opts = {}
 
       if (typeof attr === 'string') {
         graphqlName = attr
         bookshelfName = attr
       } else {
-        [ bookshelfName, opts ] = toPairs(attr)[0]
+        [bookshelfName, opts] = toPairs(attr)[0]
 
         // relations can be aliased: in your model definition, you can write
         // e.g. `relations: [{users: {alias: 'members'}}]` to map `members` in
@@ -74,7 +74,7 @@ export function createResolverForModel (spec, fetcher) {
 
       const emitterName = `__${graphqlName}__total_emitter`
 
-      result[graphqlName] = async (instance, args) => {
+      result[graphqlName] = async (instance, args, context, info) => {
         const fetchOpts = Object.assign(
           {
             querySet: opts.querySet,

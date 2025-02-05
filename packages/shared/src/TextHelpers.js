@@ -2,7 +2,7 @@ import { convert as convertHtmlToText } from 'html-to-text'
 import { isURL } from 'validator'
 import { marked } from 'marked'
 import merge from 'lodash/fp/merge'
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import prettyDate from 'pretty-date'
 import truncHTML from 'trunc-html'
 import truncText from 'trunc-text'
@@ -154,30 +154,31 @@ export function humanDate (date, short) {
 }
 
 export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
-  const start = moment.tz(startTime, timezone || moment.tz.guess() || 'UTC')
-  const end = moment.tz(endTime, timezone || moment.tz.guess() || 'UTC')
+  const start = DateTime.fromISO(startTime, {zone: timezone || DateTime.now().zoneName || 'UTC'})
+  const end = DateTime.fromISO(endTime, {zone: timezone || DateTime.now().zoneName || 'UTC'})
+  const now = DateTime.now()
 
-  const now = moment()
-  const isThisYear = start.year() === now.year() && end.year() === now.year()
+  const isThisYear = start.get('year') === now.get('year') && end.get('year') === now.get('year')
 
   let to = ''
   let from = ''
 
+  // TODO post-redesign: This was previously trying to add YYYY if it wasn't this year but that was just adding YYYY to the string
   if (isThisYear) {
-    from = endTime ? start.format('ddd, MMM D [at] h:mmA') : start.format('ddd, MMM D [at] h:mmA z')
+    from = endTime ? start.toFormat("EEE, DD 'at' t") : start.toFormat("EEE, DD 'at' t ZZZZ")
   } else {
-    from = endTime ? start.format('ddd, MMM D, YYYY [at] h:mmA') : start.format('ddd, MMM D, YYYY [at] h:mmA z')
+    from = endTime ? start.toFormat("EEE, DD 'at' t") : start.toFormat("EEE, DD 'at' t ZZZZ")
   }
 
   if (endTime) {
-    if (end.year() !== start.year()) {
-      to = end.format('ddd, MMM D, YYYY [at] h:mmA z')
-    } else if (end.month() !== start.month() ||
-               end.day() !== start.day() ||
+    if (end.get('year') !== start.get('year')) {
+      to = end.toFormat("EEE, DD, yyyy 'at' t ZZZZ")
+    } else if (end.get('month') !== start.get('month') ||
+               end.get('day') !== start.get('day') ||
                end <= now) {
-      to = end.format('ddd, MMM D [at] h:mmA z')
+      to = end.toFormat("EEE, DD 'at' t ZZZZ")
     } else {
-      to = end.format('h:mmA z')
+      to = end.toFormat('t ZZZZ')
     }
     to = returnAsObj ? to : ' - ' + to
   }
@@ -186,5 +187,5 @@ export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
 }
 
 export function isDateInTheFuture (date) {
-  return moment(date).isAfter(moment())
+  return typeof(date) === 'string' ? DateTime.fromISO(date) : DateTime.fromJSDate(date) > DateTime.now()
 }

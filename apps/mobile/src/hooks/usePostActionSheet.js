@@ -1,6 +1,7 @@
 import { Alert } from 'react-native'
+import { gql, useMutation } from 'urql'
+import { useTranslation } from 'react-i18next'
 import Config from 'react-native-config'
-import { useDispatch, useSelector } from 'react-redux'
 import Share from 'react-native-share'
 import { useNavigation } from '@react-navigation/native'
 import { filter, isEmpty } from 'lodash/fp'
@@ -8,20 +9,37 @@ import Clipboard from '@react-native-clipboard/clipboard'
 import { AnalyticsEvents } from '@hylo/shared'
 import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import useMixpanelTrack from 'hooks/useMixpanelTrack'
-import getMe from 'store/selectors/getMe'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
-import {
-  removePost as removePostAction,
-  deletePost as deletePostAction,
-  pinPost as pinPostAction
-} from './usePostActionSheet.store'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import useHasResponsibility, { RESP_MANAGE_CONTENT } from '@hylo/hooks/useHasResponsibility'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import Icon from 'components/Icon'
-import { isContextGroup } from 'store/models/Group'
 import { postUrl as postUrlCreator } from 'util/navigation'
-import { useTranslation } from 'react-i18next'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { RESP_MANAGE_CONTENT } from 'store/constants'
+
+export const deletePostMutation = gql`
+  mutation DeletePostMutation ($id: ID) {
+    deletePost(id: $id) {
+      success
+    }
+  }
+`
+
+export const removePostMutation = gql`
+  mutation RemovePostMutation ($postId: ID, $slug: String) {
+    removePost(postId: $postId, slug: $slug) {
+      success
+    }
+  }
+`
+
+export const pinPostMutation = gql`
+  mutation PinPostMutation ($postId: ID, $groupId: ID) {
+    pinPost(postId: $postId, groupId: $groupId) {
+      success
+    }
+  }
+`
 
 export default function usePostActionSheet ({
   baseHostURL = Config.HYLO_WEB_BASE_URL,
@@ -34,15 +52,19 @@ export default function usePostActionSheet ({
 }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
+  const [, deletePost] = useMutation(deletePostMutation)
+  const [, removePost] = useMutation(removePostMutation)
+  const [, pinPost] = useMutation(pinPostMutation)
   const { showHyloActionSheet } = useHyloActionSheet()
   const mixpanelTrack = useMixpanelTrack()
-  const dispatch = useDispatch()
-  const currentGroup = useSelector(getCurrentGroup)
-  const currentUser = useSelector(getMe)
-  const canModerate = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: currentGroup?.id }))
+  const [{ currentGroup }] = useCurrentGroup()
+  const [{ currentUser }] = useCurrentUser()
+  const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
+  const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
+
   const createActionSheetActions = () => {
     const isCreator = currentUser && creator && currentUser.id === creator.id
-    const postUrl = isContextGroup(currentGroup?.slug)
+    const postUrl = isContextGroupSlug(currentGroup?.slug)
       ? postUrlCreator(postId, { context: currentGroup?.slug })
       : postUrlCreator(postId, { groupSlug: currentGroup?.slug })
     const editPost = isCreator
@@ -50,22 +72,22 @@ export default function usePostActionSheet ({
       : null
 
     const handleDeletePost = isCreator
-      ? () => dispatch(deletePostAction(postId))
+      ? () => deletePost({ id: postId })
       : null
 
     const handleDeletePostAndClose = () => {
       if (isCreator) {
-        dispatch(deletePostAction(postId))
+        deletePost({ id: postId })
         navigation.goBack()
       }
     }
 
-    const handleRemovePost = currentGroup && !isCreator && canModerate && !isContextGroup(currentGroup.slug)
-      ? () => dispatch(removePostAction(postId, currentGroup?.slug))
+    const handleRemovePost = currentGroup && !isCreator && canModerate && !isContextGroupSlug(currentGroup.slug)
+      ? () => removePost({ postId, slug: currentGroup?.slug })
       : null
 
-    const pinPost = currentGroup && canModerate && !isContextGroup(currentGroup).slug
-      ? () => dispatch(pinPostAction(postId, currentGroup.id))
+    const handlePinPost = currentGroup && canModerate && !isContextGroupSlug(currentGroup).slug
+      ? () => pinPost({ postId, groupId: currentGroup.id })
       : null
 
     const share = async () => {
@@ -137,7 +159,7 @@ export default function usePostActionSheet ({
         icon: <FontAwesome5Icon name='trash-alt' style={styles.actionSheetIcon} />,
         destructive: true
       }],
-      [pinned ? t('Unpin') : t('Pin'), pinPost, {
+      [pinned ? t('Unpin') : t('Pin'), handlePinPost, {
         icon: <Icon name='Pin' style={[styles.actionSheetIcon, { fontSize: 30 }]} />
       }],
       [t('Remove From Group'), removePostWithConfirm, {

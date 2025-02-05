@@ -1,7 +1,6 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
-
+import { GraphQLError } from 'graphql'
 import { values, isEmpty, trim } from 'lodash'
-import { Validators } from 'hylo-shared'
+import { Validators } from '@hylo/shared'
 import { notifyModeratorsPost, notifyModeratorsMember, notifyModeratorsComment } from './flaggedItem/notifyUtils'
 
 module.exports = bookshelf.Model.extend({
@@ -13,21 +12,21 @@ module.exports = bookshelf.Model.extend({
   },
 
   getObject: function () {
-    if (!this.get('object_id')) throw new GraphQLYogaError('No object_id defined for Flagged Item')
+    if (!this.get('object_id')) throw new GraphQLError('No object_id defined for Flagged Item')
     switch (this.get('object_type')) {
       case FlaggedItem.Type.POST:
-        return Post.find(this.get('object_id'), {withRelated: 'groups'})
+        return Post.find(this.get('object_id'), { withRelated: 'groups' })
       case FlaggedItem.Type.COMMENT:
-        return Comment.find(this.get('object_id'), {withRelated: 'post.groups'})
+        return Comment.find(this.get('object_id'), { withRelated: 'post.groups' })
       case FlaggedItem.Type.MEMBER:
         return User.find(this.get('object_id'))
       default:
-        throw new GraphQLYogaError('Unsupported type for Flagged Item', this.get('object_type'))
+        throw new GraphQLError('Unsupported type for Flagged Item', this.get('object_type'))
     }
   },
 
   async getMessageText (group) {
-    const isPublic = !group ? true : false
+    const isPublic = !group
     const link = await this.getContentLink(group, isPublic)
 
     return `${this.relations.user.get('name')} flagged a ${this.get('object_type')} in ${group ? group.get('name') : 'Public'} for being ${this.get('category')}\n` +
@@ -45,7 +44,7 @@ module.exports = bookshelf.Model.extend({
       case FlaggedItem.Type.MEMBER:
         return Frontend.Route.profile(this.get('object_id'), group)
       default:
-        throw new GraphQLYogaError('Unsupported type for Flagged Item', this.get('object_type'))
+        throw new GraphQLError('Unsupported type for Flagged Item', this.get('object_type'))
     }
   }
 
@@ -67,8 +66,8 @@ module.exports = bookshelf.Model.extend({
   },
 
   find (id, opts = {}) {
-    return FlaggedItem.where({id})
-    .fetch(opts)
+    return FlaggedItem.where({ id })
+      .fetch(opts)
   },
 
   create: function (attrs) {
@@ -77,7 +76,7 @@ module.exports = bookshelf.Model.extend({
     let { reason } = attrs
 
     if (!values(this.Category).find(c => category === c)) {
-      return Promise.reject(new GraphQLYogaError('Unknown category.'))
+      return Promise.reject(new GraphQLError('Unknown category.'))
     }
 
     // set reason to 'N/A' if not required (!other) and it's empty.
@@ -86,18 +85,18 @@ module.exports = bookshelf.Model.extend({
     }
 
     const invalidReason = Validators.validateFlaggedItem.reason(reason)
-    if (invalidReason) return Promise.reject(new GraphQLYogaError(invalidReason))
+    if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
 
     if (process.env.NODE_ENV !== 'development') {
       const invalidLink = Validators.validateFlaggedItem.link(link)
-      if (invalidLink) return Promise.reject(new GraphQLYogaError(invalidLink))
+      if (invalidLink) return Promise.reject(new GraphQLError(invalidLink))
     }
 
     return this.forge(attrs).save()
   },
 
   async notifyModerators ({ id }) {
-    const flaggedItem = await FlaggedItem.find(id, {withRelated: 'user'})
+    const flaggedItem = await FlaggedItem.find(id, { withRelated: 'user' })
     switch (flaggedItem.get('object_type')) {
       case FlaggedItem.Type.POST:
         return notifyModeratorsPost(flaggedItem)
@@ -106,7 +105,7 @@ module.exports = bookshelf.Model.extend({
       case FlaggedItem.Type.MEMBER:
         return notifyModeratorsMember(flaggedItem)
       default:
-        throw new GraphQLYogaError('Unsupported type for Flagged Item', flaggedItem.get('object_type'))
+        throw new GraphQLError('Unsupported type for Flagged Item', flaggedItem.get('object_type'))
     }
   }
 })

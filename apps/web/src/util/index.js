@@ -1,4 +1,10 @@
 import inflection from 'inflection'
+import { clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+export function cn (...inputs) {
+  return twMerge(clsx(inputs))
+}
 
 export function bgImageStyle (url) {
   if (!url) return {}
@@ -7,7 +13,7 @@ export function bgImageStyle (url) {
 }
 
 export const dispatchEvent = (el, etype) => {
-  var evObj = document.createEvent('Events')
+  const evObj = document.createEvent('Events')
   evObj.initEvent(etype, true, false)
   el.dispatchEvent(evObj)
 }
@@ -19,12 +25,14 @@ export function isPromise (value) {
 export const inflectedTotal = (word, count) => `${count.toLocaleString()} ${inflection.inflect(word, count)}`
 
 export function hexToRgb (hex) {
-  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result ? [
-    parseInt(result[1], 16),
-    parseInt(result[2], 16),
-    parseInt(result[3], 16)
-  ] : null
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result
+    ? [
+        parseInt(result[1], 16),
+        parseInt(result[2], 16),
+        parseInt(result[3], 16)
+      ]
+    : null
 }
 
 export function inIframe () {
@@ -36,4 +44,9 @@ export function inIframe () {
 export const validateEmail = email => {
   const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
   return re.test(email.toLowerCase())
+}
+
+export const cleanCustomView = customView => {
+  delete customView.collection
+  return customView
 }

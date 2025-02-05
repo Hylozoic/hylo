@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import RoundImage from 'components/RoundImage'
 import { TextHelpers } from '@hylo/shared'
 import Highlight from 'components/Highlight'
@@ -21,11 +21,12 @@ export default function CommentCard ({
   const postTitle = post.title ? TextHelpers.truncateText(post.title, 25) : TextHelpers.truncateHTML(post.details, 25)
 
   const commentText = expanded ? comment.text : TextHelpers.truncateHTML(comment.text, 144)
+
   const { t } = useTranslation()
 
   return (
-    <span onClick={() => showDetails(comment.post.id)} className={classes.link}>
-      <div className={cx(classes.commentCard, { [classes.expanded]: expanded })}>
+    <span onClick={() => showDetails(comment.post.id)} className={classes.link} data-testid='comment-card'>
+      <div className={cn(classes.commentCard, { [classes.expanded]: expanded })}>
         <div className={classes.commentHeader}>
           <RoundImage url={creator.avatarUrl} className={classes.profileImage} />
           <Highlight {...highlightProps}>

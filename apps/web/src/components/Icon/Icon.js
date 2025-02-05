@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import classes from './Icon.module.scss'
 
 function Icon ({
@@ -10,16 +10,18 @@ function Icon ({
   children,
   onClick,
   tooltipContent,
-  tooltipId
+  tooltipId,
+  dataTestId
 }) {
   const iconClassName = `icon-${name}`
 
   return (
     <span
-      className={cx(classes.icon, { [classes.green]: green, [classes.blue]: blue }, iconClassName, className)}
+      className={cn(classes.icon, { [classes.green]: green, [classes.blue]: blue }, iconClassName, className)}
       onClick={onClick}
       data-tooltip-content={tooltipContent}
       data-tooltip-id={tooltipId}
+      data-testid={dataTestId}
     >
       {children}
     </span>
@@ -42,7 +44,7 @@ export const IconWithRef = forwardRef(({
 
   return (
     <span
-      className={cx(classes.icon, { [classes.green]: green, [classes.blue]: blue }, iconClassName, className)}
+      className={cn('text-foreground fill-foreground text-base', { [classes.green]: green, [classes.blue]: blue }, iconClassName, className)}
       onClick={onClick}
       data-tooltip-content={tooltipContent}
       data-tooltip-id={tooltipId}

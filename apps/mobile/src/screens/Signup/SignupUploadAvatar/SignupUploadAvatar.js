@@ -1,23 +1,23 @@
 import React, { useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import { ScrollView, View, Text, ImageBackground, ActivityIndicator } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
+import { useMutation } from 'urql'
 import { AnalyticsEvents } from '@hylo/shared'
-import getMe from 'store/selectors/getMe'
-import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
-import updateUserSettings from 'store/actions/updateUserSettings'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import mixpanel from 'services/mixpanel'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import ImagePicker from 'components/ImagePicker'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import styles from './SignupUploadAvatar.styles'
-import { useTranslation } from 'react-i18next'
 
 export default function SignupUploadAvatar ({ navigation }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const currentUser = useSelector(getMe)
+  const [{ currentUser, fetching }] = useCurrentUser()
+  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl)
   const [avatarImageSource, setAvatarImageSource] = useState({ uri: avatarUrl })
   const [imagePickerPending, setImagePickerPending] = useState(false)
@@ -27,8 +27,8 @@ export default function SignupUploadAvatar ({ navigation }) {
       headerLeftOnPress: () => {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
-        dispatch(updateUserSettings({ settings: { signupInProgress: false } }))
-        dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
+        updateUserSettings({ changes: { signupInProgress: false } })
+        mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
       }
     })
   })
@@ -39,10 +39,12 @@ export default function SignupUploadAvatar ({ navigation }) {
   }
 
   const saveAndNext = async () => {
-    const response = await dispatch(updateUserSettings({ avatarUrl }))
-    const responseError = response.payload.getData()?.error
+    const { error } = await updateUserSettings({ changes: { avatarUrl } })
+    if (!error) navigation.navigate('SignupSetLocation')
+  }
 
-    if (!responseError) navigation.navigate('SignupSetLocation')
+  if (fetching) {
+    return <Loading />
   }
 
   return (

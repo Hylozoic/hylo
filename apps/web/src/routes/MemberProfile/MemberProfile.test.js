@@ -1,7 +1,7 @@
 import React from 'react'
-import { graphql } from 'msw'
+import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
-import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import denormalized from './MemberProfile.test.json'
 import MemberProfile from './MemberProfile.js'
 import orm from 'store/models'
@@ -9,60 +9,48 @@ import orm from 'store/models'
 function testWrapper (providedState) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create(denormalized.data.person)
+  ormSession.Person.create(denormalized.data.person)
+  ormSession.Reaction.create(denormalized.data.person.reactions)
   const reduxState = { orm: ormSession.state, ...providedState }
   return AllTheProviders(reduxState)
 }
 
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useParams: jest.fn().mockReturnValue({ personId: '46816' }),
+  useLocation: jest.fn().mockReturnValue({ pathname: '/members/46816', search: '' })
+}))
+
 describe('MemberProfile', () => {
-  const defaultTestProps = {
-    routeParams: { personId: '1' },
-    person: denormalized.data.person,
-    fetchPerson: jest.fn(),
-    roles: []
-  }
-
-  it('renders the member name', () => {
-    render(<MemberProfile {...defaultTestProps} />, { wrapper: testWrapper() })
-    expect(screen.getByRole('heading', { name: denormalized.data.person.name })).toBeInTheDocument()
-  })
-
-  it('displays an error if can\'t find person', () => {
-    const props = {
-      ...defaultTestProps,
-    }
-    render(<MemberProfile {...props} />, { wrapper: testWrapper() })
-    expect(screen.getByText('That doesn\'t seem to be a valid person ID.')).toBeInTheDocument()
-  })
-
-  it('displays bio on the Overview tab', async () => {
-    mockGraphqlServer.resetHandlers(
-      graphql.query('MemberSkills', (req, res, ctx) => {
-        return res(
-          ctx.data({
+  beforeEach(() => {
+    mockGraphqlServer.use(
+      graphql.query('MemberSkills', () => {
+        return HttpResponse.json({
+          data: {
             person: {
               id: '1',
               skills: {
                 items: []
               }
             }
-          })
-        )
+          }
+        })
       }),
-      graphql.query('MemberSkillsToLearn', (req, res, ctx) => {
-        return res(
-          ctx.data({
+      graphql.query('MemberSkillsToLearn', () => {
+        return HttpResponse.json({
+          data: {
             person: {
               id: '1',
               skills: {
                 items: [{ id: 1, name: 'skill' }]
               }
             }
-          })
-        )
+          }
+        })
       }),
-      graphql.query('RecentActivity', (req, res, ctx) => {
-        return res(
-          ctx.data({
+      graphql.query('RecentActivity', () => {
+        return HttpResponse.json({
+          data: {
             person: {
               id: '1',
               comments: {
@@ -77,73 +65,109 @@ describe('MemberProfile', () => {
                 posts: []
               }
             }
-          })
-        )
+          }
+        })
+      }),
+      graphql.query('PersonDetails', () => {
+        return HttpResponse.json({
+          data: {
+            person: denormalized.data.person
+          }
+        })
+      }),
+      graphql.query('MemberReactions', () => {
+        return HttpResponse.json({
+          data: {
+            person: {
+              id: '1',
+              reactions: {
+                items: []
+              }
+            }
+          }
+        })
+      }),
+      graphql.query('MemberPosts', () => {
+        return HttpResponse.json({
+          data: {
+            person: {
+              id: '1',
+              posts: {
+                items: []
+              }
+            }
+          }
+        })
+      }),
+      graphql.query('MemberComments', () => {
+        return HttpResponse.json({
+          data: {
+            person: {
+              id: '1',
+              comments: {
+                items: []
+              }
+            }
+          }
+        })
       })
     )
-
-    const props = {
-      ...defaultTestProps,
-      currentTab: 'Overview',
-      person: {
-        ...defaultTestProps.person,
-        bio: 'WOMBATS'
-      }
-    }
-
-    render(
-      <MemberProfile {...props} />,
-      { wrapper: testWrapper() }
-    )
-
-    expect(screen.getByText('WOMBATS')).toBeInTheDocument()
   })
 
-  it('does not display bio on other tabs', () => {
-    const props = {
-      ...defaultTestProps,
-      currentTab: 'Reactions',
-      bio: 'WOMBATS',
-      votes: []
-    }
-    render(<MemberProfile {...props} />, { wrapper: testWrapper() })
-    expect(screen.queryByText('WOMBATS')).not.toBeInTheDocument()
+  it('renders the member name', async () => {
+    render(<MemberProfile />, { wrapper: testWrapper() })
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: denormalized.data.person.name })).toBeInTheDocument()
+      expect(screen.getByText(denormalized.data.person.bio)).toBeInTheDocument()
+    })
   })
 
-  it('renders RecentActivity on Overview', () => {
+  it('renders RecentActivity on Overview', async () => {
     const props = {
-      ...defaultTestProps,
       currentTab: 'Overview'
     }
     render(<MemberProfile {...props} />, { wrapper: testWrapper() })
-    expect(screen.getByText(`${denormalized.data.person.name}s recent activity`)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(`Rich Churcher\'s recent activity`)).toBeInTheDocument()
+    })
   })
 
-  it('renders MemberPosts on Posts', () => {
+  it('renders MemberPosts on Posts', async () => {
     const props = {
-      ...defaultTestProps,
       currentTab: 'Posts'
     }
     render(<MemberProfile {...props} />, { wrapper: testWrapper() })
-    expect(screen.getByText(`${denormalized.data.person.name}s posts`)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(`Rich Churcher\'s posts`)).toBeInTheDocument()
+    })
   })
 
-  it('renders MemberComments on Comments', () => {
+  it('renders MemberComments on Comments', async () => {
     const props = {
-      ...defaultTestProps,
       currentTab: 'Comments'
     }
     render(<MemberProfile {...props} />, { wrapper: testWrapper() })
-    expect(screen.getByText(`${denormalized.data.person.name}s comments`)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(`Rich Churcher\'s comments`)).toBeInTheDocument()
+    })
   })
 
-  it('renders MemberVotes on reactions', () => {
+  it('renders MemberReactions on reactions', async () => {
     const props = {
-      ...defaultTestProps,
       currentTab: 'Reactions',
       roles: [{ id: 1, common: true, responsibilities: { items: [{ id: 1, title: 'Manage Content' }] } }]
     }
     render(<MemberProfile {...props} />, { wrapper: testWrapper() })
-    expect(screen.getByText(`${denormalized.data.person.name}s reactions`)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Rich Churcher\'s reactions')).toBeInTheDocument()
+    })
+  })
+
+  it('displays an error if can\'t find person', async () => {
+    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ personId: '112' })
+    render(<MemberProfile />, { wrapper: testWrapper() })
+    await waitFor(() => {
+      expect(screen.getByText('Oops, there\'s nothing to see here.')).toBeInTheDocument()
+    })
   })
 })

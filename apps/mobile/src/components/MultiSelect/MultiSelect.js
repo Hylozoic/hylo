@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import CheckBox from '@react-native-community/checkbox'
 import PropTypes from 'prop-types'
 
+// TODO: We should consider using ItemSelectorModal where we use this,
+// or extract its inner content as a component for non-modal cases
 const MultiSelect = ({ items, selected = [], hideAfter, handleSelect }) => {
   const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)

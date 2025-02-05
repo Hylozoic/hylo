@@ -1,10 +1,11 @@
 import React, { useRef, useImperativeHandle, useEffect, useState } from 'react'
+import { cn } from 'util/index'
 import { useTranslation } from 'react-i18next'
 import { useEditor, EditorContent, Extension, BubbleMenu } from '@tiptap/react'
 import Highlight from '@tiptap/extension-highlight'
 import Placeholder from '@tiptap/extension-placeholder'
 import StarterKit from '@tiptap/starter-kit'
-import { VscPreview } from 'react-icons/vsc'
+import { ScanEye } from 'lucide-react'
 import Link from '@tiptap/extension-link'
 import PeopleMentions from './extensions/PeopleMentions'
 import TopicMentions from './extensions/TopicMentions'
@@ -22,7 +23,7 @@ const HyloEditor = React.forwardRef(({
   onAddLink,
   onAddMention,
   onAddTopic,
-  onBeforeCreate = () => {},
+  onCreate = () => {},
   onUpdate,
   onEnter,
   onEscape,
@@ -34,100 +35,125 @@ const HyloEditor = React.forwardRef(({
   const { t } = useTranslation()
   const editorRef = useRef(null)
   const [selectedLink, setSelectedLink] = useState()
+
+  const extensions = [
+    // Key events respond are last extension first, these will be last
+    Extension.create({
+      name: 'KeyboardShortcuts',
+      // Keep around for debugging for now:
+      // onTransaction: ({ editor, transaction }) => {
+      //   console.log('!!!!! looking how to get all link marks', transaction)
+      //   transactions.doc.node.forEach(child => {
+      //     const [fontSizeMark] = child.marks.filter((m: Mark) => m.type === markType)
+      //    })
+      // },
+      addKeyboardShortcuts () {
+        return {
+          Enter: ({ editor }) => {
+            if (!onEnter) return false
+            return onEnter(editor.getHTML())
+          },
+          Escape: () => {
+            if (!onEscape) return false
+            return onEscape()
+          }
+        }
+      }
+    }),
+
+    StarterKit.configure({
+      heading: {
+        levels: [1, 2, 3]
+      }
+    }),
+
+    Placeholder.configure({ placeholder }),
+
+    Link.extend({
+      inclusive: false, // Link doesnt extend as you keep typing text
+      // This expands concatenated links back to full href for editing
+      parseHTML () {
+        return [
+          {
+            tag: 'a',
+            // Special handling for links who's innerHTML has been concatenated by the backend
+            contentElement: element => {
+              if (element.innerHTML.match(/…$/)) {
+                const href = element.getAttribute('href')
+
+                try {
+                  const url = new URL(href)
+
+                  element.innerHTML = `${url.hostname}${url.pathname !== '/' ? url.pathname : ''}`
+                  return element
+                } catch (e) {
+                  element.innerHTML = href
+                  return element
+                }
+              }
+
+              return element
+            }
+          }
+        ]
+      },
+      addOptions () {
+        return {
+          ...this.parent?.(),
+          openOnClick: false,
+          autolink: true,
+          HTMLAttributes: {
+            target: null
+          },
+          validate: href => {
+            onAddLink && onAddLink(href)
+            return true
+          }
+        }
+      }
+    }),
+
+    PeopleMentions({ onSelection: onAddMention, maxSuggestions, groupIds, suggestionsThemeName }),
+
+    TopicMentions({ onSelection: onAddTopic, maxSuggestions, groupIds, suggestionsThemeName }),
+
+    Highlight
+  ]
+
   const editor = useEditor({
     content: contentHTML,
-
-    extensions: [
-      // Key events respond are last extension first, these will be last
-      Extension.create({
-        name: 'KeyboardShortcuts',
-        // Keep around for debugging for now:
-        // onTransaction: ({ editor, transaction }) => {
-        //   console.log('!!!!! looking how to get all link marks', transaction)
-        //   transactions.doc.node.forEach(child => {
-        //     const [fontSizeMark] = child.marks.filter((m: Mark) => m.type === markType)
-        //    })
-        // },
-        addKeyboardShortcuts () {
-          return {
-            Enter: ({ editor }) => {
-              if (!onEnter) return false
-              return onEnter(editor.getHTML())
-            },
-            Escape: () => {
-              if (!onEscape) return false
-              return onEscape()
-            }
-          }
-        }
-      }),
-
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3]
-        }
-      }),
-
-      Placeholder.configure({ placeholder }),
-
-      Link.extend({
-        // This expands concatenated links back to full href for editing
-        parseHTML () {
-          return [
-            {
-              tag: 'a',
-              // Special handling for links who's innerHTML has been concatenated by the backend
-              contentElement: element => {
-                if (element.innerHTML.match(/…$/)) {
-                  const href = element.getAttribute('href')
-
-                  try {
-                    const url = new URL(href)
-
-                    element.innerHTML = `${url.hostname}${url.pathname !== '/' ? url.pathname : ''}`
-                    return element
-                  } catch (e) {
-                    element.innerHTML = href
-                    return element
-                  }
-                }
-
-                return element
-              }
-            }
-          ]
-        },
-        addOptions () {
-          return {
-            ...this.parent?.(),
-            openOnClick: false,
-            autolink: true,
-            HTMLAttributes: {
-              target: null
-            },
-            validate: href => {
-              onAddLink && onAddLink(href)
-              return true
-            }
-          }
-        }
-      }),
-
-      PeopleMentions({ onSelection: onAddMention, maxSuggestions, groupIds, suggestionsThemeName }),
-
-      TopicMentions({ onSelection: onAddTopic, maxSuggestions, groupIds, suggestionsThemeName }),
-
-      Highlight
-    ],
-
-    onBeforeCreate,
-
+    extensions,
+    onCreate,
     onUpdate: ({ editor }) => {
       if (!onUpdate) return
-
       onUpdate(editor.getHTML())
     }
-  }, [placeholder, contentHTML]) // TODO: changing the placeholder resets the content of the editor which is probably not what we want
+  })
+
+  // Dynamic setting of initial editor content
+  useEffect(() => {
+    if (editor.isInitialized) {
+      editor.commands.setContent(contentHTML)
+    }
+  }, [editor?.isInitialized, contentHTML])
+
+  // Dynamic placeholder text
+  useEffect(() => {
+    if (editor !== null && placeholder !== '') {
+      editor.extensionManager.extensions.filter(
+        extension => extension.name === 'placeholder'
+      )[0].options.placeholder = placeholder
+      editor.view.dispatch(editor.state.tr)
+    }
+  }, [editor, placeholder])
+
+  useEffect(() => {
+    if (!editor) return
+
+    if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
+
+    editor.setEditable(!readOnly)
+  }, [groupIds, readOnly])
 
   useImperativeHandle(ref, () => ({
     blur: () => {
@@ -156,14 +182,6 @@ const HyloEditor = React.forwardRef(({
     }
   }))
 
-  useEffect(() => {
-    if (!editor) return
-
-    if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
-
-    editor.setEditable(!readOnly)
-  }, [groupIds, readOnly])
-
   const shouldShowBubbleMenu = ({ editor }) => {
     if (onAddLink && editor.isActive('link')) {
       setSelectedLink(editor.getAttributes('link'))
@@ -177,11 +195,11 @@ const HyloEditor = React.forwardRef(({
   editorRef.current = editor
 
   return (
-    <div className={containerClassName} style={{ flex: 1 }}>
+    <div className={cn('flex-1', containerClassName)}>
       {showMenu && (
         <HyloEditorMenuBar editor={editor} />
       )}
-      <EditorContent className={className} editor={editor} />
+      <EditorContent className={cn('text-foreground py-3 px-3')} editor={editor} />
       {editor && (
         <BubbleMenu
           editor={editor}
@@ -200,7 +218,7 @@ const HyloEditor = React.forwardRef(({
             }}
             className={classes.addLinkPreviewButton}
           >
-            <VscPreview /> {t('Add Preview')}
+            <ScanEye size={14} /> {t('Add Preview')}
           </span>
         </BubbleMenu>
       )}

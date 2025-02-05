@@ -3,15 +3,12 @@ import socketIOClient from 'socket.io-client'
 import sailsIOClient from 'sails.io.js'
 
 const environment = import.meta.env.PROD || 'development'
-const socketHost = import.meta.env.SOCKET_HOST
+const socketHost = import.meta.env.VITE_SOCKET_HOST
 const isClient = typeof window !== 'undefined' && !window.isMock
 
 let socket // client-side singleton
 
 if (isClient) {
-  // const socketIOClient = require('socket.io-client')
-  // const sailsIOClient = require('sails.io.js')
-  // const io = sailsIOClient(socketIOClient)
   const io = sailsIOClient(socketIOClient)
 
   // Configure the connection URL
@@ -19,7 +16,10 @@ if (isClient) {
 
   // Optional: configure additional options
   io.sails.autoConnect = true
-  io.sails.useCORSRouteToGetCookie = false
+
+  // XXX: this is needed with our current setup on production, to get the session cookie from the server, using the API host, and enable logging in at all.
+  // Otherwise, the session cookie is does not come through when calling https://www.hylo.com/noo/graphql,and the login fails
+  io.sails.useCORSRouteToGetCookie = true
 
   io.sails.environment = environment
   io.sails.reconnection = true

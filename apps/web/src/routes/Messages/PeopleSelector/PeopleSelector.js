@@ -1,3 +1,4 @@
+import { cn } from 'util/index'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
@@ -100,52 +101,52 @@ export default function PeopleSelector (props) {
         return setPeopleSearch(null)
     }
   }
-  return <div className={cx(classes.threadHeader)} tabIndex='0'>
-    <div className={classes.autocompleteControl}>
-      <span className={classes.to}>{t('With:')}</span>
-      {selectedPeople && selectedPeople.map(person =>
-        <MatchingPeopleListItem
-          avatarUrl={person.avatarUrl}
-          name={person.name}
-          onClick={() => removePerson(person)}
-          key={person.id} />
-      )}
-      <div className={classes.selectPeople}>
-        <input
-          className={classes.autocomplete}
-          autoFocus
-          ref={autocompleteInput}
-          type='text'
-          spellCheck={false}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          placeholder={`+ ${t('Add someone')}`}
-          onFocus={props.onFocus}
-          value={currentText}
-        />
-
-        {peopleSelectorOpen
-          ? <PeopleList
-            people={finalPeopleList}
-            currentMatch={currentMatch}
-            onClick={selectPerson}
-            onMouseOver={setCurrentMatch}
+  return (
+    <div className={cn(classes.threadHeader)} tabIndex='0'>
+      <div className={classes.autocompleteControl}>
+        <span className={classes.to}>{t('With:')}</span>
+        {selectedPeople && selectedPeople.map(person =>
+          <MatchingPeopleListItem
+            avatarUrl={person.avatarUrl}
+            name={person.name}
+            onClick={() => removePerson(person)}
+            key={person.id}
           />
-          : ''
-        }
+        )}
+        <div className={classes.selectPeople}>
+          <input
+            className={classes.autocomplete}
+            autoFocus
+            ref={autocompleteInput}
+            type='text'
+            spellCheck={false}
+            onChange={onChange}
+            onKeyDown={onKeyDown}
+            placeholder={`+ ${t('Add someone')}`}
+            onFocus={props.onFocus}
+            value={currentText}
+          />
+
+          {peopleSelectorOpen
+            ? <PeopleList
+                people={finalPeopleList}
+                currentMatch={currentMatch}
+                onClick={selectPerson}
+                onMouseOver={setCurrentMatch}
+              />
+            : ''}
+        </div>
       </div>
     </div>
-  </div>
+  )
 }
 
 PeopleSelector.propTypes = {
   people: PropTypes.array,
-  currentUser: PropTypes.object,
   fetchPeople: PropTypes.func,
   fetchDefaultList: PropTypes.func,
   setPeopleSearch: PropTypes.func,
   selectedPeople: PropTypes.array,
-  recentPeople: PropTypes.array,
   selectPerson: PropTypes.func.isRequired,
   removePerson: PropTypes.func
 }

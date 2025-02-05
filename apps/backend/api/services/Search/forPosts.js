@@ -3,12 +3,11 @@ import { countTotal } from '../../../lib/util/knex'
 import { filterAndSortPosts } from './util'
 
 export default function forPosts (opts) {
-
   return Post.query(qb => {
     qb.distinct()
     qb.limit(opts.limit || 20)
     qb.offset(opts.offset)
-    qb.where({'posts.active': true})
+    qb.where({ 'posts.active': true })
 
     // Only find posts by active users
     qb.join('users', 'posts.user_id', '=', 'users.id')
@@ -45,7 +44,7 @@ export default function forPosts (opts) {
       qb.leftJoin('follows', 'posts.id', 'follows.post_id')
       qb.where(function () {
         this.where('posts.user_id', opts.currentUserId)
-        .orWhere('follows.user_id', opts.currentUserId)
+          .orWhere('follows.user_id', opts.currentUserId)
       })
     }
 
@@ -71,7 +70,7 @@ export default function forPosts (opts) {
       // All reactions by specificed users that are on comments
 
       qb.join('comments', 'comments.post_id', '=', 'posts.id')
-      qb.joinRaw(`join reactions on reactions.entity_id = posts.id AND reactions.entity_type = 'post'`)
+      qb.joinRaw('join reactions on reactions.entity_id = posts.id AND reactions.entity_type = \'post\'')
       qb.whereIn('comments.user_id', opts.interactedWithBy)
       qb.orWhereIn('reactions.user_id', opts.interactedWithBy)
       qb.orWhereIn('comments.id', subquery)
@@ -79,8 +78,8 @@ export default function forPosts (opts) {
 
     if (opts.mentionsOf) {
       qb.join('activities', 'activities.post_id', '=', 'posts.id')
-      qb.whereRaw(`activities.meta->>'reasons' like '%mention%'`)
-      qb.whereIn(`activities.reader_id`, opts.mentionsOf)
+      qb.whereRaw('activities.meta->>\'reasons\' like \'%mention%\'')
+      qb.whereIn('activities.reader_id', opts.mentionsOf)
     }
 
     filterAndSortPosts(Object.assign({}, opts, {

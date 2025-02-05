@@ -7,15 +7,15 @@ describe('Button', () => {
     const onClick = jest.fn()
     render(
       <Button
-        label="Log in"
-        color="blue"
+        label='Log in'
+        color='blue'
         hover
         active
         narrow
         small
         onClick={onClick}
         disabled={false}
-        className="login"
+        className='login'
       />
     )
 
@@ -38,7 +38,7 @@ describe('Button', () => {
     const onClick = jest.fn()
     render(
       <Button
-        label="Disabled Button"
+        label='Disabled Button'
         disabled
         onClick={onClick}
       />

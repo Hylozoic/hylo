@@ -1,6 +1,6 @@
 .container {
   position: relative;
-  height: calc(100vh - 56px);
+  height: 100%;
   overflow: hidden;
   display: flex;
 
@@ -93,7 +93,7 @@
   }
 
   &.drawerOpen {
-    right: calc(40% + 20px);
+    right: 520px
   }
 
   &:hover {
@@ -257,7 +257,7 @@ button.toggleFeatureFiltersButton {
   z-index: 1000;
 
   &.drawerOpen {
-    right: calc(40% + 70px);
+    right: 520px;
   }
 
   &.open {

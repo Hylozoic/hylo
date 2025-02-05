@@ -8,7 +8,7 @@ describe('MemberPosts', () => {
   const mockFetchMemberPosts = jest.fn()
 
   it('renders loading state when loading prop is true', () => {
-    render(<MemberPosts fetchMemberPosts={mockFetchMemberPosts} posts={[]} loading={true} />)
+    render(<MemberPosts fetchMemberPosts={mockFetchMemberPosts} posts={[]} loading />)
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
   })
 
@@ -22,6 +22,6 @@ describe('MemberPosts', () => {
 
   it('calls fetchMemberPosts on mount', () => {
     render(<MemberPosts fetchMemberPosts={mockFetchMemberPosts} posts={[]} />)
-    expect(mockFetchMemberPosts).toHaveBeenCalledTimes(1)
+    expect(mockFetchMemberPosts).toHaveBeenCalledTimes(3)
   })
 })

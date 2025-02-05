@@ -1,14 +1,18 @@
 import request from 'request'
-import { parse } from 'url'
-const { API_HOST } = process.env
+import { URL } from 'url'
+import dotenv from 'dotenv'
 
-const apiHostname = parse(API_HOST).hostname
+dotenv.config()
+
+const { VITE_API_HOST } = process.env
+
+const apiHostname = new URL(VITE_API_HOST).hostname
 
 export default function apiProxy (req, res, next) {
   if (!req.originalUrl.startsWith('/noo') &&
     !req.originalUrl.startsWith('/admin/kue')) return next()
 
-  let url = API_HOST + req.originalUrl
+  const url = VITE_API_HOST + req.originalUrl
 
   request.delete = request.delete || request.del
   const method = request[req.method.toLowerCase()]

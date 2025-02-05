@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import { filter, isEmpty } from 'lodash/fp'
@@ -13,15 +13,12 @@ export default function CardImageAttachments ({
 }) {
   const imageAttachments = filter({ type: 'image' }, attachments)
 
-  if (isEmpty(imageAttachments)) return null
-
-  const firstImageUrl = imageAttachments[0].url
-  const otherImageUrls = imageAttachments.slice(1).map(ia => ia.url)
-
-  if (!firstImageUrl) return null
+  const firstImageUrl = imageAttachments?.[0]?.url
+  const otherImageUrls = imageAttachments?.slice(1).map(ia => ia.url)
 
   const [initialSlide, setInitialSlide] = useState(0)
   const [modalVisible, setModalVisible] = useState(false)
+
   const toggleModal = (e) => {
     if (className === 'post-card') return
     setInitialSlide(e?.target.dataset.index || 0)
@@ -36,14 +33,18 @@ export default function CardImageAttachments ({
     style: { width: '100%', maxWidth: '1024px' }
   }
 
+  if (isEmpty(imageAttachments)) return null
+  if (!firstImageUrl) return null
+
   return (
     <>
-      <div className={cx(className, classes.image)}>
+      <div className={cn(className, classes.image, { [classes.flagged]: isFlagged })}>
         <img
           src={firstImageUrl}
           alt='Attached image 1'
           data-index={0}
           onClick={toggleModal}
+          data-testid='first-image'
         />
         <div className={classes.others}>
           <div className={classes.othersInner}>
@@ -60,9 +61,11 @@ export default function CardImageAttachments ({
           </div>
         </div>
       </div>
-      {modalVisible && <ModalDialog {...modalSettings}>
-        <ImageCarousel attachments={imageAttachments} initialSlide={initialSlide} />
-      </ModalDialog>}
+      {modalVisible && (
+        <ModalDialog {...modalSettings}>
+          <ImageCarousel attachments={imageAttachments} initialSlide={initialSlide} />
+        </ModalDialog>
+      )}
     </>
   )
 }

@@ -62,7 +62,7 @@ export const validateFlaggedItem = {
 export const validateTopicName = name => {
   if (typeof name !== 'string') return 'Topic name must be a string.'
   const validators = [
-    hasDisallowedCharacters('#/'),
+    hasDisallowedCharacters('#/@'),
     isRelativePath,
     hasWhitespace,
     lengthGreaterThan(40),

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import useRouterParams from 'hooks/useRouterParams'
+import useRouteParams from 'hooks/useRouteParams'
 import fetchGroupDetails from 'store/actions/fetchGroupDetails'
 import presentGroup from 'store/presenters/presentGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -14,8 +14,8 @@ const selectAndPresentGroup = createSelector(
 )
 
 export default function useEnsureCurrentGroup () {
-  const routerParams = useRouterParams()
-  const groupSlug = routerParams.detailGroupSlug || routerParams.groupSlug
+  const routeParams = useRouteParams()
+  const groupSlug = routeParams.detailGroupSlug || routeParams.groupSlug
 
   const group = useSelector(state => selectAndPresentGroup(state, groupSlug))
   const pending = useSelector(state => isPendingFor(FETCH_GROUP_DETAILS, state))

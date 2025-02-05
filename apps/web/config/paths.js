@@ -27,7 +27,7 @@ const nodePaths = (process.env.NODE_PATH || '')
   .split(process.platform === 'win32' ? '' : ':')
   .filter(Boolean)
   .filter(folder => !path.isAbsolute(folder))
-  .map(resolveApp);
+  .map(resolveApp)
 
 const envPublicUrl = process.env.PUBLIC_URL
 

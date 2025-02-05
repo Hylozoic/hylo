@@ -1,90 +1,83 @@
 import PropTypes from 'prop-types'
-import React, { Component } from 'react'
+import React, { useState, forwardRef, useImperativeHandle } from 'react'
 import { differenceBy } from 'lodash'
 import TagInput from 'components/TagInput'
 import styles from './GroupsSelector.module.scss'
-import { withTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 
-class GroupsSelector extends Component {
-  static propTypes = {
-    placeholder: PropTypes.string,
-    selected: PropTypes.array,
-    options: PropTypes.array.isRequired,
-    onChange: PropTypes.func
-  }
+const GroupsSelector = forwardRef(({
+  placeholder: placeholderProp,
+  selected = [],
+  options = [],
+  onChange,
+  readOnly,
+  groupSettings
+}, ref) => {
+  const { t } = useTranslation()
+  const defaultState = { suggestions: [] }
+  const [state, setState] = useState(defaultState)
 
-  static defaultProps = {
-    selected: [],
-    options: []
-  }
+  useImperativeHandle(ref, () => ({
+    reset: () => {
+      setState(defaultState)
+    }
+  }))
 
-  static defaultState = {
-    suggestions: []
-  }
-
-  constructor (props) {
-    super(props)
-    this.state = GroupsSelector.defaultState
-  }
-
-  reset = () => {
-    this.setState(GroupsSelector.defaultState)
-  }
-
-  findSuggestions = (searchText) => {
-    const { options, selected } = this.props
+  const findSuggestions = (searchText) => {
     let newSuggestions
     if (searchText && searchText.trim().length > 0) {
       newSuggestions = differenceBy(options, selected, 'id')
         .filter(o => o.name.match(new RegExp(searchText, 'i')))
-      this.setState({ suggestions: newSuggestions })
+      setState({ suggestions: newSuggestions })
     } else {
       newSuggestions = differenceBy(options, selected, 'id')
-      this.setState({ suggestions: newSuggestions })
+      setState({ suggestions: newSuggestions })
     }
   }
 
-  clearSuggestions = () =>
-    this.setState({ suggestions: GroupsSelector.defaultState.suggestions })
+  const clearSuggestions = () =>
+    setState({ suggestions: defaultState.suggestions })
 
-  handleInputChange = (input) => {
+  const handleInputChange = (input) => {
     if (input === null) {
-      this.clearSuggestions()
+      clearSuggestions()
     } else {
-      this.findSuggestions(input)
+      findSuggestions(input)
     }
   }
 
-  handleAddition = (groupOrGroups) => {
-    const { onChange, selected } = this.props
-    this.clearSuggestions()
+  const handleAddition = (groupOrGroups) => {
+    clearSuggestions()
     onChange(selected.concat(groupOrGroups))
   }
 
-  handleDelete = (group) => {
-    const { onChange, selected } = this.props
+  const handleDelete = (group) => {
     onChange(selected.filter(c => c.id !== group.id))
   }
 
-  render () {
-    const { selected, placeholder = this.props.t('Type group name...'), readOnly } = this.props
-    const { suggestions } = this.state
+  const placeholder = placeholderProp || t('Type group name...')
 
-    return (
-      <TagInput
-        groupSettings={this.props.groupSettings}
-        placeholder={placeholder}
-        tags={selected}
-        suggestions={suggestions}
-        handleInputChange={this.handleInputChange}
-        handleAddition={this.handleAddition}
-        handleDelete={this.handleDelete}
-        readOnly={readOnly}
-        tagType='groups'
-        theme={styles}
-      />
-    )
-  }
+  return (
+    <TagInput
+      groupSettings={groupSettings}
+      placeholder={placeholder}
+      tags={selected}
+      suggestions={state.suggestions}
+      handleInputChange={handleInputChange}
+      handleAddition={handleAddition}
+      handleDelete={handleDelete}
+      readOnly={readOnly}
+      tagType='groups'
+      theme={styles}
+    />
+  )
+})
+
+GroupsSelector.propTypes = {
+  placeholder: PropTypes.string,
+  selected: PropTypes.array,
+  options: PropTypes.array.isRequired,
+  onChange: PropTypes.func
 }
 
-export default withTranslation('translation', { withRef: true })(GroupsSelector)
+export default GroupsSelector

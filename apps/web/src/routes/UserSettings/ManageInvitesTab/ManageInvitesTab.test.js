@@ -1,7 +1,7 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { JOIN_REQUEST_STATUS } from 'store/models/JoinRequest'
 import ManageInvitesTab from './ManageInvitesTab'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('ManageInvitesTab', () => {
   it('renders a list of pending join requests', () => {
@@ -19,7 +19,7 @@ describe('ManageInvitesTab', () => {
       fetchMyInvitesAndRequests: jest.fn(() => Promise.resolve({ me: {} }))
     }
 
-    render(<ManageInvitesTab {...props} />, { wrapper: AllTheProviders })
+    render(<ManageInvitesTab {...props} />)
 
     expect(screen.getByText('Group Invitations & Join Requests')).toBeInTheDocument()
     expect(screen.getByText('Invitations to Join New Groups')).toBeInTheDocument()
@@ -39,7 +39,7 @@ describe('ManageInvitesTab', () => {
       fetchMyInvitesAndRequests: jest.fn()
     }
 
-    render(<ManageInvitesTab {...props} />, { wrapper: AllTheProviders })
+    render(<ManageInvitesTab {...props} />)
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
   })
@@ -47,18 +47,18 @@ describe('ManageInvitesTab', () => {
   it('renders declined invitations and requests', () => {
     const props = {
       canceledJoinRequests: [
-        { id: '1', group: { id: 1, name: 'canceled1', avatarUrl: null }, status: 'Canceled' }
+        { id: '1', group: { id: 1, name: 'canceled1', avatarUrl: null }, status: JOIN_REQUEST_STATUS.Canceled }
       ],
       pendingGroupInvites: [],
       pendingJoinRequests: [],
       rejectedJoinRequests: [
-        { id: '2', group: { id: 2, name: 'rejected1', avatarUrl: null }, status: 'Rejected' }
+        { id: '2', group: { id: 2, name: 'rejected1', avatarUrl: null }, status: JOIN_REQUEST_STATUS.Rejected }
       ],
       cancelJoinRequest: jest.fn(),
       fetchMyInvitesAndRequests: jest.fn(() => Promise.resolve({ me: {} }))
     }
 
-    render(<ManageInvitesTab {...props} />, { wrapper: AllTheProviders })
+    render(<ManageInvitesTab {...props} />)
 
     expect(screen.getByText('Declined Invitations & Requests')).toBeInTheDocument()
     expect(screen.getByText('canceled1')).toBeInTheDocument()

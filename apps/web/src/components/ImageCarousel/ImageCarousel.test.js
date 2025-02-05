@@ -8,7 +8,8 @@ describe('ImageCarousel', () => {
       { url: 'bonkerz', type: 'file' },
       { url: 'bonkers', type: 'file' },
       { url: 'bonkerzztop', type: 'file' }
-    ]} />)
+    ]}
+           />)
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
@@ -17,7 +18,8 @@ describe('ImageCarousel', () => {
     render(<ImageCarousel attachments={[
       { url: 'foo', type: 'image' },
       { url: 'bonkerz', type: 'file' }
-    ]} />)
+    ]}
+           />)
 
     const image = screen.getByRole('img')
     expect(image).toBeInTheDocument()
@@ -25,18 +27,17 @@ describe('ImageCarousel', () => {
     expect(image).toHaveAttribute('alt', 'Attached image 1')
   })
 
-  it('renders multiple images', () => {
+  it('renders multiple images, but only shows first one', () => {
     render(<ImageCarousel attachments={[
       { url: 'bar', type: 'image' },
       { url: 'baz', type: 'image' },
       { url: 'bonk', type: 'image' },
       { url: 'bonkerz', type: 'file' }
-    ]} />)
+    ]}
+           />)
 
     const images = screen.getAllByRole('img')
-    expect(images).toHaveLength(3)
+    expect(images).toHaveLength(1)
     expect(images[0]).toHaveAttribute('src', 'bar')
-    expect(images[1]).toHaveAttribute('src', 'baz')
-    expect(images[2]).toHaveAttribute('src', 'bonk')
   })
 })

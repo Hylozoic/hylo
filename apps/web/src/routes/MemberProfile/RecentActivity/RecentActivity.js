@@ -18,22 +18,18 @@ export default class RecentActivity extends React.Component {
   render () {
     if (this.props.loading) return <Loading />
 
-    const { activityItems, routeParams } = this.props
+    const { activityItems } = this.props
 
-    return <div>
-      {activityItems && activityItems.map((item, i) =>
-        <div className={classes.activityItem} key={i}>
-          {item.hasOwnProperty('title')
-            ? <PostCard
-              post={item}
-              routeParams={routeParams}
-              expanded={this.itemSelected(item.id)} />
-            : <CommentCard
-              comment={item}
-              routeParams={routeParams}
-              expanded={this.itemSelected(item.post.id)} />}
-        </div>
-      )}
-    </div>
+    return (
+      <div>
+        {activityItems && activityItems.map((item, i) => (
+          <div className={classes.activityItem} key={i} data-testid='activity-item'>
+            {Object.prototype.hasOwnProperty.call(item, 'title')
+              ? <PostCard post={item} expanded={this.itemSelected(item.id)} />
+              : <CommentCard comment={item} expanded={this.itemSelected(item.post.id)} />}
+          </div>
+        ))}
+      </div>
+    )
   }
 }

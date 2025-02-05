@@ -1,5 +1,5 @@
 import decode from 'ent/decode'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import { en } from '../../lib/i18n/en'
 import { es } from '../../lib/i18n/es'
 const locales = { en, es }

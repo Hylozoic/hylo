@@ -33,8 +33,8 @@ export const TopicMentions = ({ groupIds, maxSuggestions, onSelection, suggestio
       HTMLAttributes: {
         class: 'topic'
       },
-      renderLabel: ({ node }) => {
-        return node.attrs.label
+      renderHTML: ({ options, node }) => {
+        return ['span', { class: 'topic', 'data-id': node.attrs.id }, node.attrs.label ?? node.attrs.id]
       },
       suggestion: {
         char: '#',
@@ -47,12 +47,10 @@ export const TopicMentions = ({ groupIds, maxSuggestions, onSelection, suggestio
 
           const findTopicsGraphql = findTopics({
             autocomplete: query,
-            groupIds: editor.extensionStorage.topic.groupIds,
+            groupIds: editor.extensionStorage.topic.groupIds, // TODO BUG: this doesn't seem to be a valid param
             maxItems: maxSuggestions
           }).graphql
           const matchedTopics = await queryHyloAPI(findTopicsGraphql)
-
-          editor.extensionStorage.topic.loading = false
 
           const results = matchedTopics?.data.groupTopics.items
             .map(t => ({
@@ -68,7 +66,7 @@ export const TopicMentions = ({ groupIds, maxSuggestions, onSelection, suggestio
           editor.extensionStorage.topic.loading = false
 
           // Re. `uniqBy`: It would be better if the backend didn't send duplicate entries
-          return uniqBy('label', results)
+          return { items: uniqBy('label', results), query }
         })
       }
     })

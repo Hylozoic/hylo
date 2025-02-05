@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import CookieConsent from 'react-cookie-consent'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import classes from './HyloCookieConsent.module.scss'
 
 export default function HyloCookieConsent () {
@@ -26,8 +26,8 @@ export default function HyloCookieConsent () {
       expires={150}
       onAccept={() => { console.log('here is where we would call a function to store the users cookie preferences') }}
     >
-      {t('Hylo uses cookies to enhance the user experience.')} <button className={cx(classes.viewDetails)} onClick={toggleShowCookieInfo}>{t('View details')}</button>
-      <div className={cx(classes.cookieInformation, { [classes.showCookieInfo]: showCookieInfo })}>
+      {t('Hylo uses cookies to enhance the user experience.')} <button className={cn(classes.viewDetails)} onClick={toggleShowCookieInfo}>{t('View details')}</button>
+      <div className={cn(classes.cookieInformation, { [classes.showCookieInfo]: showCookieInfo })}>
         <div className={classes.content}>
           <div className={classes.pad}>
             <h3>{t('How do we use cookies?')}</h3>

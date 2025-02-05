@@ -1,93 +1,89 @@
-import React, { Component } from 'react'
+import React, { useCallback, useState } from 'react'
 import { FlatList, TouchableOpacity, View, Text } from 'react-native'
-import { useIsFocused } from '@react-navigation/native'
-import { isEmpty } from 'lodash/fp'
-import { getSocket } from 'util/websockets'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
+import { useMutation, useQuery } from 'urql'
+import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import messageThreadsQuery from '@hylo/graphql/queries/messageThreadsQuery'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import ThreadCard from 'components/ThreadCard'
 import styles from './ThreadList.styles'
-import Loading from 'components/Loading'
-import { useTranslation } from 'react-i18next'
 
-export default function (props) {
-  const isFocused = useIsFocused()
+export default function ThreadList () {
   const { t } = useTranslation()
-  return <ThreadList {...props} isFocused={isFocused} t={t} />
-}
+  const navigation = useNavigation()
+  const [{ currentUser }] = useCurrentUser()
+  const [offset, setOffset] = useState(0)
+  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
+  const updateLastViewed = () => updateUserSettings({ changes: { settings: { lastViewedMessagesAt: new Date() } } })
 
-export class ThreadList extends Component {
-  componentDidMount () {
-    this.props.updateLastViewed()
-    this.fetchOrShowCached()
-    getSocket().then(socket => socket.on('reconnect', this.props.refreshThreads))
+  const [{ data, fetching }, fetchThreads] = useQuery({
+    query: messageThreadsQuery,
+    variables: { first: 10, offset },
+    requestPolicy: 'cache-and-network',
+    pause: true
+  })
+  const threads = data?.me?.messageThreads?.items
+  const hasMore = data?.me?.messageThreads?.hasMore
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchThreads()
+      updateLastViewed()
+    }, [])
+  )
+
+  const fetchMoreThreads = () => {
+    if (hasMore) setOffset(threads.length)
   }
 
-  shouldComponentUpdate (nextProps) {
-    return nextProps.isFocused
+  const refreshThreads = () => {
+    setOffset(0)
+    fetchThreads({ requestPolicy: 'network-only' })
   }
 
-  fetchOrShowCached () {
-    const { hasMore, threads, fetchThreads } = this.props
-    if (isEmpty(threads) && hasMore !== false) return fetchThreads()
-  }
+  const showThread = threadOrId => navigation.navigate('Thread', {
+    id: threadOrId?.id || threadOrId
+  })
 
-  render () {
-    const {
-      threads,
-      pending,
-      currentUser,
-      fetchMoreThreads,
-      showThread,
-      refreshThreads,
-      pendingRefresh,
-      t
-      // isConnected
-    } = this.props
+  const getLatestMessage = useCallback(messageThread => {
+    return messageThread.messages.items[0]
+  }, [])
 
-    return (
-      <View style={styles.threadList}>
-        {pending && (
-          <Loading />
-        )}
-        {!pending && threads.length === 0 && (
-          <Text style={styles.center}>{t('No active conversations')}</Text>
-        )}
-        <FlatList
-          data={threads}
-          keyExtractor={item => item.id.toString()}
-          onEndReached={fetchMoreThreads}
-          onRefresh={refreshThreads}
-          refreshing={pendingRefresh}
-          renderItem={({ item, index }) => (
-            <MessageRow
-              participants={item.participants}
-              message={item.latestMessage}
-              unread={item.unread}
-              currentUser={currentUser}
-              isLast={index === threads.length - 1}
-              showThread={showThread}
-            />
-          )}
-        />
-        {/* {!isConnected && (
-          <NotificationOverlay
-            position='bottom'
-            type='error'
-            permanent
-            message='RECONNECTING...'
-            onPress={this.scrollToBottom}
+  return (
+    <View style={styles.threadList}>
+      {!fetching && threads && !threads.length === 0 && (
+        <Text style={styles.center}>{t('No active conversations')}</Text>
+      )}
+      <FlatList
+        data={threads}
+        keyExtractor={item => item.id.toString()}
+        onEndReached={fetchMoreThreads}
+        onRefresh={refreshThreads}
+        refreshing={fetching}
+        renderItem={({ item, index }) => (
+          <MessageRow
+            participants={item.participants}
+            message={getLatestMessage(item)}
+            threadId={item.id}
+            unread={!!item.unreadCount}
+            currentUser={currentUser}
+            isLast={index === threads.length - 1}
+            showThread={showThread}
           />
-        )} */}
-      </View>
-    )
-  }
+        )}
+      />
+    </View>
+  )
 }
 
-export function MessageRow ({ message, participants, currentUser, showThread, isLast, unread }) {
+export function MessageRow ({ message, threadId, participants, currentUser, showThread, isLast, unread }) {
   return (
     <View>
-      <TouchableOpacity onPress={() => showThread(message.messageThread)}>
+      <TouchableOpacity onPress={() => showThread(threadId)}>
         <ThreadCard
           unread={unread}
+          threadId={threadId}
           message={message}
           participants={participants}
           currentUser={currentUser}

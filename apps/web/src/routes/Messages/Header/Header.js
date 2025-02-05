@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { isEmpty, filter, get, map } from 'lodash/fp'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import Icon from 'components/Icon'
 import { personUrl } from 'util/navigation'
 import { others } from 'store/models/MessageThread'
@@ -61,7 +61,7 @@ export default class Header extends React.Component {
     const showArrow = !!andOthers
 
     return (
-      <div className={cx(classes.header)} id='thread-header'>
+      <div className={cn(classes.header)} id='thread-header'>
         <Link to='/messages' className={classes.closeThread}>
           <Icon name='ArrowForward' />
         </Link>
@@ -110,7 +110,6 @@ export function generateDisplayNames (maxShown, participants, currentUser) {
     return result
   }, [])
   const formattedDisplayNames = isEmpty(formattedOthers) ? { displayNames: formattedCurrentUser } : formatNames(formattedOthers, maxShown)
-
   return formattedDisplayNames
 }
 
@@ -120,9 +119,8 @@ export function formatNames (otherParticipants, maxShown) {
   const truncatedNames = (maxShown && maxShown < length)
     ? otherParticipants.slice(0, maxShown).concat([others(length - maxShown)])
     : otherParticipants
-  if (maxShown && maxShown !== length) andOthers = truncatedNames.pop()
+  if (maxShown && maxShown < length) andOthers = truncatedNames.pop()
   const formattedTruncatedNames = truncatedNames.map((name, index) => index === truncatedNames.length - 1 ? name : [name, ', '])
-
   if (andOthers) {
     return { displayNames: formattedTruncatedNames, andOthers: ` ${andOthers}` }
   } else {

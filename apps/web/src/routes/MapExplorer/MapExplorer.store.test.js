@@ -265,7 +265,7 @@ describe('reducer', () => {
         sortBy: 'name',
         topics: []
       },
-      searches: [ { id: '1' }, { id: '2' } ]
+      searches: [{ id: '1' }, { id: '2' }]
     }
   })
 

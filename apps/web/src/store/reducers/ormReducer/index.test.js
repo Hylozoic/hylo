@@ -71,19 +71,19 @@ it('responds to an action with meta.extractModel', () => {
   expect(newState).toMatchObject({
     Group: {
       items: ['1'],
-      itemsById: { '1': { id: '1', name: 'Neighborhood' } }
+      itemsById: { 1: { id: '1', name: 'Neighborhood' } }
     },
     Person: {
       items: ['2'],
-      itemsById: { '2': { id: '2', name: 'Greg' } }
+      itemsById: { 2: { id: '2', name: 'Greg' } }
     },
     Post: {
       items: ['1'],
-      itemsById: { '1': { id: '1', title: 'Cat on the loose', creator: '2' } }
+      itemsById: { 1: { id: '1', title: 'Cat on the loose', creator: '2' } }
     },
     PostGroups: {
       items: [0],
-      itemsById: { '0': { fromPostId: '1', toGroupId: '1', id: 0 } }
+      itemsById: { 0: { fromPostId: '1', toGroupId: '1', id: 0 } }
     }
   })
 })
@@ -283,7 +283,7 @@ describe('on PIN_POST_PENDING', () => {
   const postId = 123
   const postMembership = session.PostMembership.create({
     pinned: false,
-    group: group
+    group
   })
 
   session.Post.create({
@@ -412,7 +412,6 @@ describe('on UPDATE_USER_SETTINGS_PENDING', () => {
     location: 'original location',
     tagline: 'old tagline',
     settings: {
-      digestFrequency: 'weekly',
       dmNotifications: 'both'
     }
   })
@@ -423,9 +422,7 @@ describe('on UPDATE_USER_SETTINGS_PENDING', () => {
       changes: {
         tagline: 'new tagline',
         settings: {
-          digestFrequency: 'daily',
-          commentNotifications: 'email',
-          postNotifications: 'important'
+          commentNotifications: 'email'
         }
       }
     }

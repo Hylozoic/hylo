@@ -4,10 +4,13 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Route, Routes } from 'react-router-dom'
 import config, { isProduction, isTest } from 'config/index'
 import Loading from 'components/Loading'
+import NavigateWithParams from 'components/NavigateWithParams'
 import AuthLayoutRouter from 'routes/AuthLayoutRouter'
 import NonAuthLayoutRouter from 'routes/NonAuthLayoutRouter'
 import OAuthLogin from 'routes/OAuth/Login'
 import PublicLayoutRouter from 'routes/PublicLayoutRouter'
+import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
+import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getAuthState'
 
@@ -55,29 +58,33 @@ export default function RootRouter () {
     return (
       <Routes>
         <Route
-          path='/:context(groups)/:groupSlug/join/:accessCode'
-          element={<NonAuthLayoutRouter />}
+          path='/public/*'
+          element={<PublicLayoutRouter />}
         />
+
+        <Route path='/post/:postId/*' element={<PublicPostDetail />} />
+
+        {/* Redirect all other post routes to /post/:postId */}
+        <Route path='/all/topics/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/all/members/:personId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/all/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/all/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/public/topics/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/public/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/public/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/my/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/groups/:groupSlug/custom/:customViewId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/groups/:groupSlug/members/:personId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/groups/:groupSlug/topics/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/groups/:groupSlug/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/groups/:groupSlug/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/members/:personId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+
         <Route
-          path='/:context(public)'
-          element={<PublicLayoutRouter />}
+          path='/groups/:groupSlug/*'
+          element={<PublicGroupDetail />}
         />
-        <Route
-          path='/:context(public)/:view(map|groups)'
-          element={<PublicLayoutRouter />}
-        />
-        {/* TODO route: how to do this? know each route that is possible? <Route
-          path={`(.*)/${POST_DETAIL_MATCH}`}
-          element={<PublicLayoutRouter />}
-        /> */}
-        <Route
-          path='/:context(groups)'
-          element={<PublicLayoutRouter />}
-        />
-        <Route
-          path='/:context(groups)/:groupSlug'
-          element={<PublicLayoutRouter />}
-        />
+
         <Route path='*' element={<NonAuthLayoutRouter />} />
       </Routes>
     )

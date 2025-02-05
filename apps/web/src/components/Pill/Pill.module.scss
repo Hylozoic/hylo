@@ -1,5 +1,4 @@
 .pill {
-  composes: label from 'components/SkillLabel/component.module.scss';
   position: relative;
 
   // Prevent highlighting of text on click/doubleclick

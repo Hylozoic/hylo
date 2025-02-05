@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import isMobile from 'ismobilejs'
 import { uniqueId } from 'lodash'
 import React, { forwardRef, useState } from 'react'
@@ -28,7 +28,7 @@ const Pill = forwardRef(({
   }
   const providedOnClick = onClick ? (e) => { e.stopPropagation(); e.preventDefault(); onClick(id, label) } : null
   const mouseOut = () => setRemoving(false)
-  const pillStyles = cx(
+  const pillStyles = cn(
     classes.pill,
     {
       [classes.clickable]: !!onClick,
@@ -42,7 +42,7 @@ const Pill = forwardRef(({
 
   return (
     <div
-      className={cx(pillStyles, className)}
+      className={'text-foreground text-baseline bg-black/10 rounded-lg inline-block m-1 py-2 px-3 opacity-80 hover:opacity-100 scale-100 hover:scale-105 transition-all hover:cursor-pointer hover:bg-black/20'}
       onMouseLeave={mouseOut}
       ref={ref}
     >
@@ -61,6 +61,7 @@ const Pill = forwardRef(({
           tooltipId={tooltipId}
           name='Ex'
           onClick={deletePill}
+          dataTestId='pill-remove-icon'
         />}
       {!isMobile.any && (
         <Tooltip

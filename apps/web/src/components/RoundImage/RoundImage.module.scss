@@ -2,7 +2,6 @@
 .img-thumbnail {
   padding: 0.25rem;
   background-color: #FFFFFF;
-  border: 1px solid #ddd;
   border-radius: 0.25rem;
   -webkit-transition: all 0.2s ease-in-out;
   transition: all 0.2s ease-in-out;
@@ -13,7 +12,6 @@
 .image {
   composes: img-thumbnail;
   @include image($space-11x);
-  border: solid 3px $color-white;
   vertical-align: top;
   display: inline-block;
   border-radius: 50%;
@@ -46,14 +44,14 @@
 }
 
 .medium {
-  width: $space-9x;
-  height: $space-9x;
+  width: 30px;
+  height: 30px;
 }
 
 .small {
-  width: $space-7x;
-  height: $space-7x;
-  min-width: $space-7x;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
 }
 
 .tiny {
@@ -63,5 +61,5 @@
 }
 
 .square {
-  border-radius: 8px;
+  border-radius: 10px;
 }

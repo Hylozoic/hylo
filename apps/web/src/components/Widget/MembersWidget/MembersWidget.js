@@ -39,21 +39,23 @@ export default ({ items, group }) => {
   return (
     <div className={classes.activeUsers}>
       <Slider {...settings} onSwipe={handleSwiped}>
-        {items.map(m => <div key={m.id} className={classes.activeUser}>
-          <div className={classes.userName}>{m.name.split(' ')[0]}</div>
-          <div className={classes.userControls}>
-            <div className={classes.buttons}>
-              <Link to={messagePersonUrl(m)} onClickCapture={handleOnItemClick}>
-                <Icon name='Messages' className={classes.userMessageIcon} />
-              </Link>
-              <Link to={personUrl(m.id, group.slug)} onClickCapture={handleOnItemClick}>
-                <Icon name='Person' className={classes.userProfileIcon} />
-              </Link>
+        {items.map(m => (
+          <div key={m.id} className={classes.activeUser}>
+            <div className={classes.userName}>{m.name.split(' ')[0]}</div>
+            <div className={classes.userControls}>
+              <div className={classes.buttons}>
+                <Link to={messagePersonUrl(m)} onClickCapture={handleOnItemClick}>
+                  <Icon name='Messages' className={classes.userMessageIcon} />
+                </Link>
+                <Link to={personUrl(m.id, group.slug)} onClickCapture={handleOnItemClick}>
+                  <Icon name='Person' className={classes.userProfileIcon} />
+                </Link>
+              </div>
             </div>
+            <div className={classes.userBackground} />
+            <div className={classes.userImage} style={{ backgroundImage: `url(${m.avatarUrl})` }} />
           </div>
-          <div className={classes.userBackground} />
-          <div className={classes.userImage} style={{ backgroundImage: `url(${m.avatarUrl})` }} />
-        </div>)}
+        ))}
         <div className={classes.membersLink}>
           <div>
             <Link to={groupUrl(group.slug, 'members')}>{t('All')}</Link>

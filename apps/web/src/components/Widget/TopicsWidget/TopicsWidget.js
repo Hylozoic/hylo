@@ -7,19 +7,21 @@ export default function TopicsWidget ({ group = {} }) {
 
   return (
     group.topics
-      ? <div className={classes.groupTopics}>
-        <div className={classes.groupSubtitle}>{t('Topics')}</div>
-        {group.topics.slice(0, 10).map(topic => {
-          return (
-            <span
-              key={'topic_' + topic.id}
-              className={classes.topicButton}
-            >
-              <span className={classes.topicCount}>{topic.postsTotal}</span> #{topic.name}
-            </span>
-          )
-        })}
-      </div>
+      ? (
+        <div className={classes.groupTopics}>
+          <div className={classes.groupSubtitle}>{t('Topics')}</div>
+          {group.topics.slice(0, 10).map(topic => {
+            return (
+              <span
+                key={'topic_' + topic.id}
+                className={classes.topicButton}
+              >
+                <span className={classes.topicCount}>{topic.postsTotal}</span> #{topic.name}
+              </span>
+            )
+          })}
+        </div>
+        )
       : null
   )
 }

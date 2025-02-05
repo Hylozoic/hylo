@@ -20,7 +20,7 @@ describe('MemberComments', () => {
 
   it('displays loading state when loading prop is true', () => {
     render(
-      <MemberComments fetchMemberComments={jest.fn()} comments={[]} loading={true} />
+      <MemberComments fetchMemberComments={jest.fn()} comments={[]} loading />
     )
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()

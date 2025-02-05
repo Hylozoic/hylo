@@ -2,7 +2,7 @@ import groupTopicsQueryFragment from '@graphql/fragments/groupTopicsQueryFragmen
 
 // TODO: dont load all this unless looking at the explore page
 
-export default () => {
+export default function groupQueryFragment () {
   return `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     id
     aboutVideoUri
@@ -40,6 +40,7 @@ export default () => {
     }
     description
     geoShape
+    invitePath
     location
     memberCount
     stewardDescriptor
@@ -170,6 +171,7 @@ export default () => {
       items {
         id
         name
+        active
         emoji
         groupId
         responsibilities {
@@ -293,6 +295,67 @@ export default () => {
             avatarUrl
             name
           }
+        }
+      }
+    }
+    contextWidgets {
+      items {
+        id
+        autoAdded
+        title
+        type
+        order
+        visibility
+        view
+        icon
+        highlightNumber
+        secondaryNumber
+        parentId
+        viewGroup {
+          id
+          avatarUrl
+          bannerUrl
+          name
+          memberCount
+          visibility
+          accessibility
+          slug
+        }
+        viewPost {
+          id
+          announcement
+          title
+          details
+          type
+          createdAt
+          startTime
+          endTime
+          isPublic
+        }
+        customView {
+          id
+          groupId
+          collectionId
+          externalLink
+          isActive
+          icon
+          name
+          order
+          postTypes
+          topics {
+            id
+            name
+          }
+          type
+        }
+        viewUser {
+          id
+          name
+          avatarUrl
+        }
+        viewChat {
+          id
+          name
         }
       }
     }

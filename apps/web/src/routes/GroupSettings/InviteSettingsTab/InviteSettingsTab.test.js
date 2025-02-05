@@ -23,7 +23,7 @@ describe('InviteSettingsTab', () => {
     expect(screen.getByText('Send Invites via email')).toBeInTheDocument()
 
     // Check for group name
-    expect(screen.getByText(/Hylo/, { exact: false })).toBeInTheDocument()
+    expect(screen.getAllByText(/Hylo/, { exact: false })).toHaveLength(2)
 
     // Check for invite link
     expect(screen.getByText('http://www.hylo.com/c/hylo/join/lalala')).toBeInTheDocument()

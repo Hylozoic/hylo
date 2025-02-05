@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useMemo, useCallback } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
+import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
 import { LocationHelpers } from '@hylo/shared'
-import { useCurrentUser } from 'hooks/useCurrentUser'
-import { recordClickthrough } from 'store/actions/moderationActions'
+import recordClickthroughMutation from '@hylo/graphql/mutations/recordClickthroughMutation'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import PostPresenter from '@hylo/presenters/PostPresenter'
 import PostHeader from './PostHeader'
 import PostBody from './PostBody'
 import PostGroups from './PostGroups'
@@ -14,7 +15,7 @@ import Files from 'components/Files'
 import Icon from 'components/Icon'
 import Topics from 'components/Topics'
 import styles from 'components/PostCard/PostCard.styles'
-
+import { useNavigation } from '@react-navigation/native'
 
 export default function PostCard ({
   goToGroup,
@@ -22,19 +23,21 @@ export default function PostCard ({
   groupId,
   hideMenu,
   onPress,
-  post = {},
+  post: providedPost = {},
   respondToEvent,
   showGroups = true,
-  showMember,
   childPost,
   showTopic: goToTopic
 }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const images = post.imageUrls && post.imageUrls.map(uri => ({ uri }))
-  const locationText = LocationHelpers.generalLocationString(post.locationObject, post.location)
-  const currentUser = useCurrentUser()
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(groupId)
+  const navigation = useNavigation()
+  const [, recordClickthrough] = useMutation(recordClickthroughMutation)
+  const post = useMemo(() => PostPresenter(providedPost, groupId), [providedPost])
+  const images = useMemo(() => post.imageUrls && post.imageUrls.map(uri => ({ uri })), [post])
+  const locationText = useMemo(() => LocationHelpers.generalLocationString(post.locationObject, post.location), [post])
+  const isFlagged = useMemo(() => post.flaggedGroups && post.flaggedGroups.includes(groupId), [post])
+  const [{ currentUser }] = useCurrentUser()
+  const handleShowMember = id => navigation.navigate('Member', { id })
 
   return (
     <>
@@ -43,7 +46,8 @@ export default function PostCard ({
           <View style={styles.childPostInner}>
             <Icon name='Subgroup' style={styles.childPostIcon} /><Text style={styles.childPostText}>{' '}{t('post from child group')}</Text>
           </View>
-        </View>)}
+        </View>
+      )}
       <View style={styles.container}>
         <PostHeader
           announcement={post.announcement}
@@ -54,7 +58,7 @@ export default function PostCard ({
           isFlagged={isFlagged}
           pinned={post.pinned}
           postId={post.id}
-          showMember={showMember}
+          showMember={handleShowMember}
           title={post.title}
           type={post.type}
         />
@@ -63,7 +67,7 @@ export default function PostCard ({
             <Text style={styles.clickthroughText}>{t('clickthroughExplainer')}</Text>
             <TouchableOpacity
               style={styles.clickthroughButton}
-              onPress={() => dispatch(recordClickthrough({ postId: post.id }))}
+              onPress={() => recordClickthrough({ postId: post.id })}
             >
               <Text style={styles.clickthroughButtonText}>{t('View post')}</Text>
             </TouchableOpacity>
@@ -103,7 +107,7 @@ export default function PostCard ({
           details={post.details}
           post={post}
           currentUser={currentUser}
-          endTime={post.endTime}
+          endTime={post.endTimeRaw}
           hideDetails={hideDetails}
           isFlagged={isFlagged && !post.clickthrough}
           linkPreview={post.linkPreview}
@@ -111,7 +115,7 @@ export default function PostCard ({
           myEventResponse={post.myEventResponse}
           respondToEvent={respondToEvent}
           shouldTruncate
-          startTime={post.startTime}
+          startTime={post.startTimeRaw}
           title={post.title}
           type={post.type}
         />

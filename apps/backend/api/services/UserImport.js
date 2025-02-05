@@ -81,9 +81,7 @@ export function createUser (attrs, options) {
     // TODO handle skills as tags
     return User.create(_.merge(attrs, {
       group: group,
-      settings: {
-        digest_frequency: 'weekly'
-      },
+      settings: {},
       created_at: new Date(),
       updated_at: new Date()
     }))
@@ -205,19 +203,4 @@ export const run = (options) => {
     promises.push(op(row, options))
   })
   .then(() => Promise.all(promises))
-}
-
-if (require.main === module) {
-  var skiff = require('../../lib/skiff')
-  skiff.lift({
-    log: {level: 'warn'},
-    start: () =>
-      Group.find('impact-hub-baltimore')
-      .then(group => runImport({
-        json: true,
-        filename: './nexudus.json',
-        group
-      }))
-      .then(skiff.lower)
-  })
 }

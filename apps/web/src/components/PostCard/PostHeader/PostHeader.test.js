@@ -3,7 +3,7 @@ import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import PostHeader, { TopicsLine } from './PostHeader'
 import { RESP_ADMINISTRATION } from 'store/constants'
 
-jest.mock('moment-timezone', () => ({
+jest.mock('luxon', () => ({
   __esModule: true,
   default: () => ({
     fromNow: () => 'a few seconds ago',
@@ -11,68 +11,63 @@ jest.mock('moment-timezone', () => ({
   })
 }))
 
-const mockCreator = {
-  name: 'JJ',
-  avatarUrl: 'foo.png',
-  id: 123,
-  moderatedGroupMemberships: []
-}
-
-const mockGroups = [
-  { name: 'FooC', slug: 'fooc' },
-  { name: 'BarC', slug: 'barc' }
-]
-
-const mockContext = {
-  label: 'some context',
-  url: '/foo/bar'
+const defaultProps = {
+  id: 1,
+  createdTimestamp: 'a few seconds ago',
+  exactCreatedTimestamp: '2024-07-23 16:30',
+  group: { id: 1, name: 'FooC', slug: 'fooc' },
+  creator: {
+    name: 'JJ',
+    avatarUrl: 'foo.png',
+    id: 123,
+    moderatedGroupMemberships: []
+  },
+  type: 'discussion',
+  roles: [{
+    id: 1,
+    name: 'Coordinator',
+    common: true,
+    emoji: '👑',
+    responsibilities: [{ id: 1, name: 'Administration' }]
+  }]
 }
 
 describe('PostHeader', () => {
   it('renders basic post header', () => {
     render(
       <PostHeader
-        groups={mockGroups}
-        creator={mockCreator}
-        roles={[{ id: 1, title: 'Coordinator', common: true, responsibilities: [RESP_ADMINISTRATION] }]}
+        {...defaultProps}
       />
     )
 
     expect(screen.getByText('JJ')).toBeInTheDocument()
     expect(screen.getByText('a few seconds ago')).toBeInTheDocument()
-    expect(screen.getByText('Coordinator')).toBeInTheDocument()
+    expect(screen.getByText('👑')).toBeInTheDocument()
   })
 
-  it('renders post header with context and type', () => {
+  it('renders post header with type', () => {
     render(
       <PostHeader
-        groups={mockGroups}
-        creator={mockCreator}
-        context={mockContext}
-        type="request"
-        roles={[]}
+        {...defaultProps}
+        type='request'
       />
     )
 
     expect(screen.getByText('JJ')).toBeInTheDocument()
-    expect(screen.getByText('Request')).toBeInTheDocument()
+    expect(screen.getByTestId('post-type-Request')).toBeInTheDocument()
   })
 
   it('renders post header with action buttons', () => {
     render(
       <PostHeader
-        groups={mockGroups}
-        creator={mockCreator}
-        context={mockContext}
-        type="request"
+        {...defaultProps}
         deletePost={() => {}}
         editPost={() => {}}
         duplicatePost={() => {}}
-        roles={[]}
       />
     )
 
-    expect(screen.getByLabelText('More')).toBeInTheDocument()
+    expect(screen.getByTestId('post-header-more-icon')).toBeInTheDocument()
   })
 })
 
@@ -80,14 +75,12 @@ describe('PostHeader with announcement', () => {
   it('renders announcement icon', () => {
     render(
       <PostHeader
-        groups={mockGroups}
-        creator={mockCreator}
+        {...defaultProps}
         announcement
-        roles={[]}
       />
     )
 
-    expect(screen.getByLabelText('Announcement')).toBeInTheDocument()
+    expect(screen.getByTestId('post-header-announcement-icon')).toBeInTheDocument()
   })
 })
 
@@ -95,13 +88,10 @@ describe('PostHeader with date range', () => {
   it('renders human readable dates', () => {
     render(
       <PostHeader
+        {...defaultProps}
         type='request'
-        groups={mockGroups}
-        creator={mockCreator}
-        context={mockContext}
-        startTime='2024-11-29'
-        endTime='2029-11-29'
-        roles={[]}
+        startTime={new Date('2028-11-29')}
+        endTime={new Date('2034-11-29')}
       />
     )
 

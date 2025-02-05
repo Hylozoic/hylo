@@ -2,7 +2,7 @@ import { filter, forEach, map, uniq, isNull } from 'lodash/fp'
 import insane from 'insane'
 import Autolinker from 'autolinker'
 import { JSDOM } from 'jsdom'
-import { PathHelpers, TextHelpers, HYLO_URL_REGEX } from 'hylo-shared'
+import { PathHelpers, TextHelpers, HYLO_URL_REGEX } from '@hylo/shared'
 
 export const MAX_LINK_LENGTH = 48
 

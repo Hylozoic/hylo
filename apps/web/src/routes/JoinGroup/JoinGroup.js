@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useLocation, useNavigate, Navigate, useParams } from 'react-router-dom'
 import { every, isEmpty } from 'lodash/fp'
 import { baseUrl, groupUrl } from 'util/navigation'
 import setReturnToPath from 'store/actions/setReturnToPath'
+import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import getRouteParam from 'store/selectors/getRouteParam'
 import { getSignupComplete } from 'store/selectors/getAuthState'
-import useInvitation from 'store/actions/useInvitation'
+import acceptInvitation from 'store/actions/acceptInvitation'
 import checkInvitation from 'store/actions/checkInvitation'
 import Loading from 'components/Loading'
 
@@ -20,28 +20,30 @@ export default function JoinGroup (props) {
   const signupComplete = useSelector(getSignupComplete)
   const [redirectTo, setRedirectTo] = useState()
   const { t } = useTranslation()
+  const routeParams = useParams()
+  const location = useLocation()
 
   // This is used in iFrames where we want people to join a group and go directly to a specific page (for OpenTEAM coffee shop for example)
-  const redirectToView = getQuerystringParam('redirectToView', props)
+  const redirectToView = getQuerystringParam('redirectToView', location)
 
   useEffect(() => {
     (async function () {
       try {
         const invitationTokenAndCode = {
-          invitationToken: getQuerystringParam('token', props),
-          accessCode: getRouteParam('accessCode', props)
+          invitationToken: getQuerystringParam('token', location),
+          accessCode: routeParams.accessCode
         }
         if (every(isEmpty, invitationTokenAndCode)) {
           throw new Error(t('Please provide either a `token` query string parameter or `accessCode` route param'))
         }
 
         if (signupComplete) {
-          const result = await dispatch(useInvitation(invitationTokenAndCode))
+          const result = await dispatch(acceptInvitation(invitationTokenAndCode))
           const newMembership = result?.payload?.getData()?.membership
           const groupSlug = newMembership?.group?.slug
 
           if (groupSlug) {
-            setRedirectTo(groupUrl(groupSlug, redirectToView || 'explore'))
+            setRedirectTo(groupUrl(groupSlug, redirectToView || `chat/${DEFAULT_CHAT_TOPIC}`))
           } else {
             throw new Error(t('Join group was unsuccessful'))
           }
@@ -50,7 +52,7 @@ export default function JoinGroup (props) {
           const isValidInvite = result?.payload?.getData()?.valid
 
           if (isValidInvite) {
-            dispatch(setReturnToPath(props.location.pathname + props.location.search))
+            dispatch(setReturnToPath(location.pathname + location.search))
             setRedirectTo(SIGNUP_PATH)
           } else {
             setRedirectTo(`${SIGNUP_PATH}?error=invite-expired`)
@@ -65,5 +67,5 @@ export default function JoinGroup (props) {
 
   if (redirectTo) return <Navigate to={redirectTo} replace />
 
-  return <Loading />
+  return <><Loading /></>
 }

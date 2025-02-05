@@ -1,66 +1,72 @@
+import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import PropTypes from 'prop-types'
-import React, { Component } from 'react'
+import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import isWebView from 'util/webView'
-import { personUrl } from 'util/navigation'
+import { groupUrl, personUrl } from 'util/navigation'
 import Avatar from 'components/Avatar'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
-import styles from './MembershipRequestsTab.module.scss' // eslint-disable-line no-unused-vars
+import { useViewHeader } from 'contexts/ViewHeaderContext'
+import {
+  acceptJoinRequest,
+  declineJoinRequest,
+  fetchJoinRequests
+} from './MembershipRequestsTab.store'
 import { jollyAxolotl } from 'util/assets'
 
-const { array, func, object } = PropTypes
+import classes from './MembershipRequestsTab.module.scss'
 
-export default class MembershipRequestsTab extends Component {
-  static propTypes = {
-    joinRequests: array,
-    group: object,
-    currentUser: object,
-    acceptJoinRequest: func,
-    declineJoinRequest: func,
-    viewMembers: func
+export default function MembershipRequestsTab ({
+  group
+}) {
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+
+  useEffect(() => {
+    dispatch(fetchJoinRequests(group.id))
+  }, [group.id])
+
+  const joinRequests = useSelector(state => get('MembershipRequests', state))
+
+  const submitAccept = (joinRequestId) => {
+    dispatch(acceptJoinRequest(joinRequestId))
   }
 
-  state = {
-    modalVisible: false
+  const submitDecline = (joinRequestId) => {
+    dispatch(declineJoinRequest(joinRequestId))
   }
 
-  componentDidMount () {
-    const { groupId } = this.props
-    this.props.fetchJoinRequests(groupId)
+  const handleViewMembers = () => {
+    dispatch(navigate(groupUrl(group.slug, 'members')))
   }
 
-  submitAccept = (joinRequestId) => {
-    this.props.acceptJoinRequest(joinRequestId)
-  }
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: `${t('Group Settings')} > ${t('Join Requests')}`,
+      icon: 'Settings',
+      info: ''
+    })
+  }, [])
 
-  submitDecline = (joinRequestId) => {
-    this.props.declineJoinRequest(joinRequestId)
-  }
+  if (!joinRequests) return <Loading />
 
-  viewMembers = () => {
-    const { group } = this.props
-    this.props.viewMembers(group.slug)
-  }
-
-  render () {
-    const { group, joinRequests } = this.props
-
-    if (!joinRequests) return <Loading />
-
-    return joinRequests.length
-      ? <NewRequests
-        accept={this.submitAccept}
-        decline={this.submitDecline}
+  return joinRequests.length
+    ? <NewRequests
+        accept={submitAccept}
+        decline={submitDecline}
         group={group}
-        joinRequests={joinRequests} />
-      : <NoRequests group={group} viewMembers={this.viewMembers} />
-  }
+        joinRequests={joinRequests}
+      />
+    : <NoRequests group={group} handleViewMembers={handleViewMembers} />
 }
 
-export function NoRequests ({ group, viewMembers }) {
+export function NoRequests ({ group, handleViewMembers }) {
   const { t } = useTranslation()
   return (
     <>
@@ -74,7 +80,7 @@ export function NoRequests ({ group, viewMembers }) {
         {!isWebView() && (
           <Button
             label={t('View Current Members')}
-            onClick={viewMembers}
+            onClick={handleViewMembers}
             className={classes.viewMembers}
           />
         )}
@@ -83,10 +89,10 @@ export function NoRequests ({ group, viewMembers }) {
   )
 }
 
-export function NewRequests ({ accept, decline, group, joinRequests }) {
+function NewRequests ({ accept, decline, group, joinRequests }) {
   const { t } = useTranslation()
   return (
-    <React.Fragment>
+    <>
       <div>
         <div className={classes.header}>
           <h2>{t('People want to join your group!')}</h2>
@@ -94,19 +100,22 @@ export function NewRequests ({ accept, decline, group, joinRequests }) {
           <span className={classes.responseTime}>Your average response time: 1 day</span> */}
         </div>
         <div className={classes.requestList}>
-          {joinRequests.map(r => <JoinRequest
-            key={r.id}
-            accept={accept}
-            decline={decline}
-            group={group}
-            request={r} />)}
+          {joinRequests.map(r => (
+            <JoinRequest
+              key={r.id}
+              accept={accept}
+              decline={decline}
+              group={group}
+              request={r}
+            />
+          ))}
         </div>
       </div>
-    </React.Fragment>
+    </>
   )
 }
 
-export function JoinRequest ({ accept, decline, group, request }) {
+function JoinRequest ({ accept, decline, group, request }) {
   const { questionAnswers, user } = request
   const { t } = useTranslation()
 
@@ -135,7 +144,7 @@ export function JoinRequest ({ accept, decline, group, request }) {
         </div>
       )}
       <div className={classes.actionButtons}>
-        <div className={cx(classes.accept, classes.iconGreen)} onClick={() => accept(request.id)}><Icon name='Checkmark' />{t('Welcome')}</div>
+        <div className={cn(classes.accept)} onClick={() => accept(request.id)}><Icon name='Checkmark' className={classes.iconGreen} />{t('Welcome')}</div>
         <div onClick={() => decline(request.id)}><Icon name='Ex' className={classes.iconRed} />{t('Decline')}</div>
       </div>
     </div>

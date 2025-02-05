@@ -53,8 +53,8 @@ describe('Member Component', () => {
 
   it('renders roles as badges', () => {
     const roles = [
-      { id: 1, name: 'Role 1', emoji: '🏆', responsibilities: [] },
-      { id: 2, name: 'Role 2', emoji: '🎉', responsibilities: [] }
+      { id: '1', name: 'Role 1', emoji: '🏆', responsibilities: [] },
+      { id: '2', name: 'Role 2', emoji: '🎉', responsibilities: [] }
     ]
     render(<Member {...minProps} roles={roles} />)
 

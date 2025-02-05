@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { checkForStorageAccess, formatError } from '../util'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import checkLogin from 'store/actions/checkLogin'

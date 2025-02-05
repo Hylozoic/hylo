@@ -1,28 +1,30 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   Text, View, TextInput, ScrollView, TouchableOpacity
 } from 'react-native'
+import { useMutation } from 'urql'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
+import { AnalyticsEvents } from '@hylo/shared'
+import mixpanel from 'services/mixpanel'
+import { formatDomainWithUrl } from './util'
+import { createGroupMutation, clearCreateGroupStore, getGroupData } from './CreateGroupFlow.store'
+import { accessibilityDescription, visibilityDescription } from '@hylo/presenters/GroupPresenter'
 import { openURL } from 'hooks/useOpenURL'
 import ErrorBubble from 'components/ErrorBubble'
-import { accessibilityDescription, visibilityDescription } from 'store/models/Group'
 import Avatar from 'components/Avatar'
-import { formatDomainWithUrl } from './util'
-import {
-  createGroup, clearCreateGroupStore, getGroupData,
-  getNewGroupParentGroups
-} from './CreateGroupFlow.store'
-import { white } from 'style/colors'
 import styles from './CreateGroupFlow.styles'
+import { white } from 'style/colors'
 
 export default function CreateGroupReview () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const dispatch = useDispatch()
+  const [, createGroup] = useMutation(createGroupMutation)
   const groupData = useSelector(getGroupData)
-  const parentGroups = useSelector(getNewGroupParentGroups)
+  // TODO: URQL! - query for parent groups, remove related method in store
+  // const parentGroups = useSelector(getNewGroupParentGroups)
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -32,20 +34,21 @@ export default function CreateGroupReview () {
     })
   }, [navigation, groupData])
 
-  const submit = async () => {
+  const submit = useCallback(async () => {
     try {
-      const graphqlResponse = await dispatch(createGroup(groupData))
-      const newGroup = graphqlResponse.payload?.getData()
+      const { data, error } = await createGroup({ data: groupData })
+      const newGroup = data?.createGroup
       if (newGroup) {
+        mixpanel.track(AnalyticsEvents.GROUP_CREATED)
         dispatch(clearCreateGroupStore())
         openURL(`/groups/${newGroup.slug}`)
       } else {
-        setError('Group may have been created, but there was an error. Please contact Hylo support.')
+        setError('Group may have been created, but there was an error. Please contact Hylo support.', error)
       }
     } catch (e) {
       setError(e.message)
     }
-  }
+  }, [groupData])
 
   return (
     <View style={styles.container}>
@@ -130,7 +133,7 @@ export default function CreateGroupReview () {
           />
         </View>
 
-        {parentGroups.length > 0 && (
+        {/* {parentGroups.length > 0 && (
           <View style={styles.textInputContainer}>
             <View style={stepStyles.itemHeader}>
               <Text style={stepStyles.textInputLabel}>{t('Is this group a member of other groups?')}</Text>
@@ -140,7 +143,7 @@ export default function CreateGroupReview () {
               {parentGroups.map(parentGroup => <GroupRow group={parentGroup} key={parentGroup.id} />)}
             </View>
           </View>
-        )}
+        )} */}
 
         {error && <View style={styles.errorBubble}><ErrorBubble text={error} /></View>}
       </ScrollView>

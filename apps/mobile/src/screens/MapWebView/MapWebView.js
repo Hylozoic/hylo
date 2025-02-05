@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { useSelector } from 'react-redux'
-import { useOpenURL } from 'hooks/useOpenURL'
-import { modalScreenName } from 'hooks/useIsModalScreen'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
-import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'store/models/Group'
-import HyloWebView from 'components/HyloWebView'
 import { useTranslation } from 'react-i18next'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useOpenURL from 'hooks/useOpenURL'
+import { modalScreenName } from 'hooks/useIsModalScreen'
+import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
+import HyloWebView from 'components/HyloWebView'
 
 // Matches actual group paths (e.g. not /all or /public)
 export const MATCHER_GROUP_SLUG = '[a-zA-Z0-9-]+$'
@@ -17,7 +16,7 @@ export const MATCHER_GROUP_ALL_AND_PUBLIC_ROOT_PATH = `/(${ALL_GROUP_ID}|${PUBLI
 export default function MapWebView ({ navigation }) {
   const { t } = useTranslation()
   const webViewRef = useRef(null)
-  const group = useSelector(getCurrentGroup)
+  const [{ currentGroup: group }] = useCurrentGroup()
   const openURL = useOpenURL()
   const [path, setPath] = useState()
   const [canGoBack, setCanGoBack] = useState(false)

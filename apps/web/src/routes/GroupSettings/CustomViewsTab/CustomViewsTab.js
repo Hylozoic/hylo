@@ -2,7 +2,7 @@ import { omit } from 'lodash/fp'
 import React, { Component, useState } from 'react'
 import { useTranslation, withTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
@@ -17,8 +17,8 @@ import { COLLECTION_SORT_OPTIONS, STREAM_SORT_OPTIONS } from 'util/constants'
 import { sanitizeURL } from 'util/url'
 import SettingsSection from '../SettingsSection'
 
-import general from '../GroupSettings.module.scss' // eslint-disable-line no-unused-vars
-import styles from './CustomViewsTab.module.scss' // eslint-disable-line no-unused-vars
+import general from '../GroupSettings.module.scss'
+import styles from './CustomViewsTab.module.scss'
 
 const emptyCustomView = {
   activePostsOnly: false,
@@ -123,7 +123,7 @@ class CustomViewsTab extends Component {
 
   addCustomView = () => {
     this.setState({
-      customViews: [ ...this.state.customViews ].concat({ ...emptyCustomView })
+      customViews: [...this.state.customViews].concat({ ...emptyCustomView })
     })
   }
 
@@ -142,7 +142,7 @@ class CustomViewsTab extends Component {
 
   updateCustomView = (i) => (key) => (v) => {
     let value = typeof (v.target) !== 'undefined' ? v.target.value : v
-    let cv = { ...this.state.customViews[i] }
+    const cv = { ...this.state.customViews[i] }
 
     if (key === 'topics') {
       value = value.map(t => ({ name: t.name, id: parseInt(t.id) }))
@@ -160,12 +160,12 @@ class CustomViewsTab extends Component {
       }
       // Streams can't use manual sort order, so revert to created
       if (value === 'stream' && cv.defaultSort === 'order') {
-        cv['defaultSort'] = 'created'
+        cv.defaultSort = 'created'
       }
     }
 
     cv[key] = value
-    let customViews = [ ...this.state.customViews ]
+    const customViews = [...this.state.customViews]
     customViews[i] = cv
     this.setState({ changed: true, customViews }, () => {
       this.validate()
@@ -188,7 +188,7 @@ class CustomViewsTab extends Component {
     const { changed, customViews, error } = this.state
 
     return (
-      <div className={classes.general.groupSettings}>
+      <div className={general.groupSettings}>
         <SettingsSection>
           <h3>{t('Custom Views')}</h3>
           <div className={styles.helpText}>{t('Add custom links or filtered post views to your group\'s navigation')}</div>
@@ -213,16 +213,16 @@ class CustomViewsTab extends Component {
 
         <br />
 
-        <div className={classes.general.saveChanges}>
+        <div className={general.saveChanges}>
           <span className={this.saveButtonContent().style}>{this.saveButtonContent().text}</span>
-          <Button label={t('Save Changes')} color={this.saveButtonContent().color} onClick={changed && !error ? this.save : null} className={cx('saveButton', general.saveButton)} />
+          <Button label={t('Save Changes')} color={this.saveButtonContent().color} onClick={changed && !error ? this.save : null} className={cn('saveButton', general.saveButton)} />
         </div>
       </div>
     )
   }
 }
 
-function CustomViewRow ({
+export function CustomViewRow ({
   activePostsOnly,
   addPostToCollection,
   collection,
@@ -233,6 +233,7 @@ function CustomViewRow ({
   group,
   icon,
   index,
+  menuCreate = false,
   name,
   onChange,
   onDelete,
@@ -258,7 +259,7 @@ function CustomViewRow ({
   }
 
   const togglePostType = (type, checked) => {
-    let newPostTypes = [ ...postTypes ]
+    let newPostTypes = [...postTypes]
     if (checked) {
       newPostTypes = newPostTypes.concat(type)
     } else {
@@ -272,11 +273,11 @@ function CustomViewRow ({
   }
 
   const reorderPost = (p, i) => {
-    reorderPostInCollection(collectionId, p.id, i)
+    reorderPostInCollection(collectionId, p.id, i, p)
   }
 
   const selectPost = (p) => {
-    addPostToCollection(collectionId, p.id)
+    addPostToCollection(collectionId, p.id, p)
   }
 
   // needed because of external links which have empty default_view_mode or old 'externalLink' value
@@ -287,57 +288,62 @@ function CustomViewRow ({
   const viewCount = parseInt(index) + 1
   return (
     <div className={styles.customViewContainer}>
-      <h4>
-        <div><strong>{t('Custom View')}{' '}#{viewCount}</strong>{' '}{name}</div>
-        <Icon name='Trash' onClick={onDelete} />
-      </h4>
+      {!menuCreate &&
+        <h4>
+          <div><strong>{t('Custom View')}{' '}#{viewCount}</strong>{' '}{name}</div>
+          <Icon name='Trash' onClick={onDelete} dataTestId='delete-custom-view' />
+        </h4>}
       <div className={styles.customViewRow}>
         <SettingsControl label={t('Icon')} controlClass={styles.iconButton} onChange={onChange('icon')} value={icon} type='icon-selector' selectedIconClass={styles.selectedIcon} />
-        <SettingsControl label={t('Label')} controlClass={styles.settingsControl} onChange={onChange('name')} value={name} />
-        <SettingsControl label={t('Type')} controlClass={styles.settingsControl} renderControl={(props) => {
-          return (
-            <Dropdown
-              className={styles.dropdown}
-              toggleChildren={
-                <span className={styles.dropdownLabel}>
-                  {VIEW_TYPES[type || 'externalLink']}
-                  <Icon name='ArrowDown' />
-                </span>
+        <SettingsControl label={t('Label')} controlClass={styles.settingsControl} onChange={onChange('name')} value={name} id='custom-view-name' />
+        <SettingsControl
+          label={t('Type')} controlClass={styles.settingsControl} renderControl={(props) => {
+            return (
+              <Dropdown
+                className={styles.dropdown}
+                toggleChildren={
+                  <span className={styles.dropdownLabel}>
+                    {VIEW_TYPES[type || 'externalLink']}
+                    <Icon name='ArrowDown' />
+                  </span>
               }
-              items={Object.keys(VIEW_TYPES).map(value => ({
-                label: t(VIEW_TYPES[value]),
-                onClick: () => onChange('type')(value)
-              }))}
-            />
-          )
-        }}
+                items={Object.keys(VIEW_TYPES).map(value => ({
+                  label: t(VIEW_TYPES[value]),
+                  onClick: () => onChange('type')(value)
+                }))}
+              />
+            )
+          }}
         />
       </div>
-      {type === 'externalLink' ? (
-        <div>
-          <SettingsControl label={t('External link')} onChange={onChange('externalLink')} value={externalLink || ''} placeholder={t('Will open this URL in a new tab')} />
-          {externalLink && !sanitizeURL(externalLink) && <div className={styles.warning}>{t('Must be a valid URL!')}</div>}
-        </div>)
+      {type === 'externalLink'
+        ? (
+          <div>
+            <SettingsControl label={t('External link')} onChange={onChange('externalLink')} value={externalLink || ''} placeholder={t('Will open this URL in a new tab')} />
+            {externalLink && !sanitizeURL(externalLink) && <div className={styles.warning}>{t('Must be a valid URL!')}</div>}
+          </div>)
         : (
           <div className={styles.customPostsView}>
             <div className={styles.customViewRow}>
-              <SettingsControl label={t('Default Style')} controlClass={styles.settingsControl} renderControl={(props) => {
-                return (
-                  <Dropdown
-                    className={styles.dropdown}
-                    toggleChildren={
-                      <span className={styles.dropdownLabel}>
-                        {VIEW_MODES[defaultViewModeVal || 'cards']}
-                        <Icon name='ArrowDown' />
-                      </span>
+              <SettingsControl
+                label={t('Default Style')} controlClass={styles.settingsControl} renderControl={(props) => {
+                  return (
+                    <Dropdown
+                      className={styles.dropdown}
+                      toggleChildren={
+                        <span className={styles.dropdownLabel}>
+                          {VIEW_MODES[defaultViewModeVal || 'cards']}
+                          <Icon name='ArrowDown' />
+                        </span>
                     }
-                    items={Object.keys(VIEW_MODES).map(value => ({
-                      label: VIEW_MODES[value],
-                      onClick: () => onChange('defaultViewMode')(value)
-                    }))}
-                  />
-                )
-              }} />
+                      items={Object.keys(VIEW_MODES).map(value => ({
+                        label: VIEW_MODES[value],
+                        onClick: () => onChange('defaultViewMode')(value)
+                      }))}
+                    />
+                  )
+                }}
+              />
               <SettingsControl
                 label={t('Default Sort')}
                 controlClass={styles.settingsControl}
@@ -360,71 +366,72 @@ function CustomViewRow ({
                 }}
               />
             </div>
-            {type === 'stream' ? (
-              <>
-                <div className={cx(styles.postTypes, styles.customViewRow)}>
-                  <label className={styles.label}>{t('What post types to display?')}</label>
-                  <div className={styles.postTypesChosen}>
-                    <span onClick={() => setPostTypesModalOpen(!postTypesModalOpen)}>
-                      {postTypes.length === 0 ? t('None') : postTypes.map((p, i) => <PostLabel key={p} type={p} className={styles.postType} />)}
-                    </span>
-                    <div className={cx(styles.postTypesSelector, { [styles.open]: postTypesModalOpen })}>
-                      <Icon name='Ex' className={styles.closeButton} onClick={() => setPostTypesModalOpen(!postTypesModalOpen)} />
-                      {Object.keys(POST_TYPES).map(postType => {
-                        if (postType === 'chat') {
-                          return null
-                        }
-                        const color = POST_TYPES[postType].primaryColor
-                        return (
-                          <div
-                            key={postType}
-                            className={styles.postTypeSwitch}
-                          >
-                            <SwitchStyled
-                              backgroundColor={`rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3] / 255})`}
-                              name={postType}
-                              checked={postTypes.includes(postType)}
-                              onChange={(checked, name) => togglePostType(postType, !checked)}
-                            />
-                            <span>{t(postType)}s</span>
-                          </div>
-                        )
-                      })}
+            {type === 'stream'
+              ? (
+                <>
+                  <div className={cn(styles.postTypes, styles.customViewRow)}>
+                    <label className={styles.label}>{t('What post types to display?')}</label>
+                    <div className={styles.postTypesChosen}>
+                      <span onClick={() => setPostTypesModalOpen(!postTypesModalOpen)}>
+                        {postTypes.length === 0 ? t('None') : postTypes.map((p, i) => <PostLabel key={p} type={p} className={styles.postType} />)}
+                      </span>
+                      <div className={cn(styles.postTypesSelector, { [styles.open]: postTypesModalOpen })}>
+                        <Icon name='Ex' className={styles.closeButton} onClick={() => setPostTypesModalOpen(!postTypesModalOpen)} />
+                        {Object.keys(POST_TYPES).map(postType => {
+                          if (postType === 'chat') {
+                            return null
+                          }
+                          const color = POST_TYPES[postType].primaryColor
+                          return (
+                            <div
+                              key={postType}
+                              className={styles.postTypeSwitch}
+                            >
+                              <SwitchStyled
+                                backgroundColor={`rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3] / 255})`}
+                                name={postType}
+                                checked={postTypes.includes(postType)}
+                                onChange={(checked, name) => togglePostType(postType, !checked)}
+                              />
+                              <span>{t(postType)}s</span>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className={styles.customViewRow}>
-                  <label className={styles.label}>{t('Include only active posts?')}</label>
-                  <SwitchStyled
-                    checked={activePostsOnly}
-                    onChange={() => onChange('activePostsOnly')(!activePostsOnly)}
-                    backgroundColor={activePostsOnly ? '#0DC39F' : '#8B96A4'}
-                  />
-                </div>
-                <div className={styles.customViewLastRow}>
-                  <label className={styles.label}>{t('Include only posts that match any of these topics:')}</label>
-                  <TopicSelector currentGroup={group} selectedTopics={topics} onChange={onChange('topics')} />
-                </div>
-              </>) : (
-              <>
-                <div className={styles.postTypes}>
-                  <label className={styles.label}>{t('Included Posts')}<span>{collection?.posts?.length || 0}</span> </label>
-                  <PostSelector
-                    collection={collection}
-                    group={group}
-                    draggable={defaultSort === 'order'}
-                    onRemovePost={removePost}
-                    onReorderPost={reorderPost}
-                    onSelectPost={selectPost}
-                    posts={collection?.posts}
-                  />
-                </div>
-              </>
-            )}
+                  <div className={styles.customViewRow}>
+                    <label className={styles.label}>{t('Include only active posts?')}</label>
+                    <SwitchStyled
+                      checked={activePostsOnly}
+                      onChange={() => onChange('activePostsOnly')(!activePostsOnly)}
+                      backgroundColor={activePostsOnly ? '#0DC39F' : '#8B96A4'}
+                    />
+                  </div>
+                  <div className={styles.customViewLastRow}>
+                    <label className={styles.label}>{t('Include only posts that match any of these topics:')}</label>
+                    <TopicSelector currentGroup={group} selectedTopics={topics} onChange={onChange('topics')} />
+                  </div>
+                </>)
+              : (
+                <>
+                  <div className={styles.postTypes}>
+                    <label className={styles.label}>{t('Included Posts')}<span>{collection?.posts?.length || 0}</span> </label>
+                    <PostSelector
+                      collection={collection}
+                      group={group}
+                      draggable={defaultSort === 'order'}
+                      onRemovePost={removePost}
+                      onReorderPost={reorderPost}
+                      onSelectPost={selectPost}
+                      posts={collection?.posts}
+                    />
+                  </div>
+                </>
+                )}
           </div>
-        )
-      }
+          )}
     </div>
   )
 }

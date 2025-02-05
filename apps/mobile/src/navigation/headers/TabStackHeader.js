@@ -1,14 +1,13 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
-import { useSelector } from 'react-redux'
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native'
 import { Header, HeaderBackButton, getHeaderTitle } from '@react-navigation/elements'
 import FastImage from 'react-native-fast-image'
 import { get } from 'lodash/fp'
 import { isIOS } from 'util/platform'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
-import getMe from 'store/selectors/getMe'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import BadgedIcon from 'components/BadgedIcon'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 import Icon from 'components/Icon'
@@ -93,7 +92,7 @@ export default function TabStackHeader ({
 }
 
 export function NotificationsIcon ({ showNotifications }) {
-  const currentUser = useSelector(getMe)
+  const [{ currentUser }] = useCurrentUser()
   const showBadge = !!get('newNotificationCount', currentUser)
 
   return (
@@ -107,7 +106,7 @@ export function NotificationsIcon ({ showNotifications }) {
 }
 
 export function MenuButton ({ canGoBack, onPress }) {
-  const currentGroup = useSelector(getCurrentGroup)
+  const [{ currentGroup }] = useCurrentGroup()
   const avatarUrl = currentGroup?.headerAvatarUrl ||
     currentGroup?.avatarUrl
 
@@ -119,7 +118,7 @@ export function MenuButton ({ canGoBack, onPress }) {
         <View style={styles.container}>
           {!canGoBack
             ? <Icon name='Hamburger' style={styles.menuIcon} />
-            : <Icon name='ArrowForward' style={styles.backIcon} />}
+            : <Icon name='ArrowBack' style={styles.backIcon} />}
           <FastImage source={{ uri: avatarUrl }} style={styles.avatar} />
         </View>
       )}

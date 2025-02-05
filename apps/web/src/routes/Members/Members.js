@@ -104,7 +104,8 @@ function Members (props) {
             placeholder={t('Search by name or skills & interests')}
             className={classes.search}
             defaultValue={search}
-            onChange={e => debouncedSearch(e.target.value)} />
+            onChange={e => debouncedSearch(e.target.value)}
+          />
           <Dropdown
             className={classes.sortDropdown}
             toggleChildren={<SortLabel text={sortKeys[sortBy]} />}
@@ -112,7 +113,8 @@ function Members (props) {
             items={Object.keys(sortKeys).map(k => ({
               label: t(sortKeys[k]),
               onClick: () => changeSort(k)
-            }))} />
+            }))}
+          />
         </div>
         <div className={classes.members}>
           {twoByTwo(members).map(pair => (

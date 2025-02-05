@@ -1,4 +1,4 @@
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
@@ -27,7 +27,7 @@ class ProjectsWidget extends Component {
             <div className={classes.project}>
               <div className={classes.meta}>
                 <div className={classes.title}>{p.title}</div>
-                <div className={classes.lastActivity}>{moment(p.updatedAt).fromNow()}</div>
+                <div className={classes.lastActivity}>{DateTime.fromJSDate(p.updatedAt).toRelative()}</div>
               </div>
               <div className={classes.createdBy}>
                 <RoundImage url={p.creator.avatarUrl} />
@@ -35,21 +35,23 @@ class ProjectsWidget extends Component {
             </div>
           </Link>
         ))}
-        {items.length < 3 && isMember ? (
-          <Link to={createPostUrl(routeParams, { newPostType: 'project' })} className={classes.newProject}>
-            <div className={classes.project}>
-              <div className={classes.meta}>
-                <div>
-                  <div className={classes.title}>{t('What are you doing together?')}</div>
-                  <div className={classes.lastActivity}>{t('Projects help you and your group accomplish shared goals.')}</div>
+        {items.length < 3 && isMember
+          ? (
+            <Link to={createPostUrl(routeParams, { newPostType: 'project' })} className={classes.newProject}>
+              <div className={classes.project}>
+                <div className={classes.meta}>
+                  <div>
+                    <div className={classes.title}>{t('What are you doing together?')}</div>
+                    <div className={classes.lastActivity}>{t('Projects help you and your group accomplish shared goals.')}</div>
+                  </div>
+                  <div className={classes.createProjectCta}>{t('+ New project')}</div>
                 </div>
-                <div className={classes.createProjectCta}>{t('+ New project')}</div>
               </div>
-            </div>
-          </Link>
-        ) : (
-          ''
-        )}
+            </Link>
+            )
+          : (
+              ''
+            )}
       </div>
     )
   }

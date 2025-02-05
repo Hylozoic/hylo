@@ -141,8 +141,7 @@ class Pillbox extends Component {
                 }}
                 onChange={this.select}
                 ref={this.list}
-              />
-            }
+              />}
           </div>
         )}
       </div>

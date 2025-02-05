@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import PropTypes from 'prop-types'
 import React, { useState, useRef, forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -55,7 +55,7 @@ const MessageForm = forwardRef((props, ref) => {
   if (pending) return <Loading />
   return (
     <form
-      className={cx(styles.messageForm, className, { [styles.hasFocus]: hasFocus })}
+      className={cn(styles.messageForm, className, { [styles.hasFocus]: hasFocus })}
       onSubmit={handleSubmit}
     >
       <RoundImage url={get('avatarUrl', currentUser)} className={styles.userImage} medium />
@@ -72,7 +72,7 @@ const MessageForm = forwardRef((props, ref) => {
         onBlur={() => setHasFocus(false)}
         placeholder={placeholder}
       />
-      <button className={styles.sendButton}>
+      <button className={styles.sendButton} data-testid='send-button'>
         <Icon name='Reply' className={styles.replyIcon} />
       </button>
     </form>

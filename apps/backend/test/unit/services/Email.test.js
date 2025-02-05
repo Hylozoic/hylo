@@ -3,8 +3,8 @@ require(require('root-path')('test/setup'))
 describe('Email', function () {
   describe('reply address', () => {
     // this expects dev environment variables:
-    // MAILGUN_EMAIL_SALT=FFFFAAAA123456789
-    // MAILGUN_DOMAIN=mg.hylo.com
+    // INBOUND_EMAIL_SALT=FFFFAAAA123456789
+    // INBOUND_EMAIL_DOMAIN=inbound-staging.hylo.com
     // PLAY_APP_SECRET=quxgrault12345678
     const postId = '7823'
     const userId = '5942'

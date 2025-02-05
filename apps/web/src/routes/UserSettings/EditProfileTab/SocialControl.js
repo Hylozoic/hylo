@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import Icon from 'components/Icon'
 import classes from './SocialControl.module.scss'
 
@@ -76,7 +76,8 @@ class SocialControl extends Component {
     const linkButton = (
       <span
         className={classes.linkButton}
-        onClick={linked ? () => this.handleUnlinkClick() : () => this.handleLinkClick()}>
+        onClick={linked ? () => this.handleUnlinkClick() : () => this.handleLinkClick()}
+      >
         {linked ? t('Unlink') : t('Link')}
 
       </span>
@@ -84,7 +85,7 @@ class SocialControl extends Component {
 
     return (
       <div className={classes.control}>
-        <div className={cx(classes.socialControlLabel)}>
+        <div className={cn(classes.socialControlLabel)}>
           {linked ? <Icon name='Complete' className={classes.linkedIcon} /> : ''}
           {label}
           {linkButton}

@@ -7,7 +7,7 @@ import { agreementsURL, RESP_MANAGE_CONTENT } from 'store/constants'
 import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
 import getMe from 'store/selectors/getMe'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import useRouterParams from 'hooks/useRouterParams'
+import useRouteParams from 'hooks/useRouteParams'
 import Avatar from 'components/Avatar/Avatar'
 import MultiSelect from 'components/MultiSelect/MultiSelect'
 import { groupUrl } from 'util/navigation'
@@ -25,7 +25,7 @@ const ModerationListItem = ({
 }) => {
   const { t } = useTranslation()
   const currentUser = useSelector(getMe)
-  const routeParams = useRouterParams()
+  const routeParams = useRouteParams()
   const location = useLocation()
   const querystringParams = new URLSearchParams(location.search)
   const canModerate = useSelector((state) => hasResponsibilityForGroup(state, { groupId: group.id, responsibility: [RESP_MANAGE_CONTENT] }))

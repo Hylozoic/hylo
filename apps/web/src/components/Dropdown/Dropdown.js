@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types'
 import React, { useState, useEffect, useRef } from 'react'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { isEmpty } from 'lodash'
 import { position } from 'util/scrolling'
 import Icon from 'components/Icon'
@@ -37,7 +37,7 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
 
     let menuItems = children || items.map(item =>
       <li
-        className={cx(classes.linkItem, { [classes.redItem]: item.red })}
+        className={cn(classes.linkItem, { [classes.redItem]: item.red })}
         onClick={item.onClick}
         key={item.key || item.label}
       >
@@ -46,8 +46,12 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
       </li>)
 
     if (triangle) {
-      const triangleLi = <li className={classes.triangle} key='triangle'
-        style={{ left: findTriangleLeftPos(parentRef.current) }} />
+      const triangleLi = (
+        <li
+          className={classes.triangle} key='triangle'
+          style={{ left: findTriangleLeftPos(parentRef.current) }}
+        />
+      )
       menuItems = [triangleLi].concat(menuItems)
     }
 
@@ -55,14 +59,14 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
   }
 
   return (
-    <div className={cx(className, classes.dropdown, { [classes.hasTriangle]: triangle })} ref={parentRef}>
-      <span className={cx(classes.dropdownToggle, { [classes.toggled]: active })} onClick={toggle}>
+    <div className={cn(className, classes.dropdown, { [classes.hasTriangle]: triangle })} ref={parentRef}>
+      <span className={cn(classes.dropdownToggle, { [classes.toggled]: active })} onClick={toggle} data-testid='dropdown-toggle'>
         {toggleChildren}
       </span>
-      <span className={cx(classes.closeDropdown, { [classes.toggled]: active })} onClick={toggle}><Icon name='Ex' /></span>
-      <div className={cx(classes.wrapper, { [classes.alignRight]: alignRight, [classes.menuAbove]: menuAbove })}>
+      <span className={cn(classes.closeDropdown, { [classes.toggled]: active })} onClick={toggle}><Icon name='Ex' /></span>
+      <div className={cn(classes.wrapper, { [classes.alignRight]: alignRight, [classes.menuAbove]: menuAbove })}>
         <ul
-          className={cx(classes.dropdownMenu, { [classes.active]: active, [classes.alignRight]: alignRight, [classes.noOverflow]: noOverflow })}
+          className={cn(classes.dropdownMenu, { [classes.active]: active, [classes.alignRight]: alignRight, [classes.noOverflow]: noOverflow })}
           onClick={toggle}
         >
           {renderMenuItems()}
@@ -73,7 +77,6 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
 }
 
 Dropdown.propTypes = {
-  children: PropTypes.array,
   className: PropTypes.string,
   triangle: PropTypes.bool,
   items: PropTypes.array,

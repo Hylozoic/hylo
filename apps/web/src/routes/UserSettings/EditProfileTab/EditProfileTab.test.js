@@ -1,55 +1,89 @@
 /* eslint no-unused-expressions: 'off' */
 import React from 'react'
+import { graphql, HttpResponse } from 'msw'
+import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import EditProfileTab from './EditProfileTab'
 import SocialControl from './SocialControl'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
-const mockUpdateSettingDirectly = jest.fn()
+const mockUpdateSettingDirectly = jest.fn(() => jest.fn())
 const mockHandleUnlinkAccount = jest.fn()
 const mockOnLink = jest.fn()
 const mockFetchLocation = jest.fn()
+const mockSetConfirm = jest.fn()
 
 describe('EditProfileTab', () => {
-  it('renders correctly', () => {
+  beforeEach(() => {
+    mockGraphqlServer.use(
+      graphql.query('MemberSkills', ({ query, variables }) => {
+        return HttpResponse.json({
+          data: {
+            person: {
+              id: 1,
+              skills: { items: [] }
+            }
+          }
+        })
+      }),
+      graphql.query('MemberSkillsToLearn', ({ query, variables }) => {
+        return HttpResponse.json({
+          data: {
+            person: {
+              id: 1,
+              skillsToLearn: { items: [] }
+            }
+          }
+        })
+      })
+    )
+  })
+
+  it('renders correctly', async () => {
     render(
       <EditProfileTab
         currentUser={{ name: 'Yay', locationObject: { id: 1 } }}
-      />,
-      { wrapper: AllTheProviders }
+      />
     )
 
-    expect(screen.getByLabelText('Your Name')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /upload/i })).toHaveLength(2)
-    expect(screen.getByLabelText('Tagline')).toBeInTheDocument()
-    expect(screen.getByLabelText('About Me')).toBeInTheDocument()
-    expect(screen.getByLabelText('Location')).toBeInTheDocument()
-    expect(screen.getByLabelText('Website')).toBeInTheDocument()
-    expect(screen.getByText('My Skills & Interests')).toBeInTheDocument()
-    expect(screen.getByText("What I'm learning")).toBeInTheDocument()
-    expect(screen.getByLabelText('Contact Email')).toBeInTheDocument()
-    expect(screen.getByLabelText('Contact Phone')).toBeInTheDocument()
-    expect(screen.getByText('Social Accounts')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByLabelText('Your Name')).toBeInTheDocument()
+      expect(screen.getAllByRole('button')).toHaveLength(1)
+      expect(screen.getByLabelText('Tagline')).toBeInTheDocument()
+      expect(screen.getByLabelText('About Me')).toBeInTheDocument()
+      expect(screen.getByLabelText('Location')).toBeInTheDocument()
+      expect(screen.getByLabelText('Website')).toBeInTheDocument()
+      expect(screen.getByText('My Skills & Interests')).toBeInTheDocument()
+      expect(screen.getByText("What I'm learning")).toBeInTheDocument()
+      expect(screen.getByLabelText('Contact Email')).toBeInTheDocument()
+      expect(screen.getByLabelText('Contact Phone')).toBeInTheDocument()
+      expect(screen.getByText('Social Accounts')).toBeInTheDocument()
+    })
   })
 
-  it('renders correctly without location object', () => {
-    render(<EditProfileTab currentUser={{}} />, { wrapper: AllTheProviders })
-    expect(screen.getByLabelText('Location')).toBeInTheDocument()
+  it('renders correctly without location object', async () => {
+    render(<EditProfileTab currentUser={{}} />)
+    await waitFor(() => {
+      expect(screen.getByLabelText('Location')).toBeInTheDocument()
+    })
   })
 
   it('enables save button when changes are made', async () => {
     render(
       <EditProfileTab
         currentUser={{ name: 'Yay', locationObject: { id: 1 } }}
-      />,
-      { wrapper: AllTheProviders }
+        setConfirm={mockSetConfirm}
+      />
     )
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Your Name')).toBeInTheDocument()
+    })
 
     const nameInput = screen.getByLabelText('Your Name')
     fireEvent.change(nameInput, { target: { value: 'New Name' } })
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Save Changes' })).toHaveStyle({ backgroundColor: 'green' })
+      expect(screen.getByRole('button', { name: 'Save Changes' })).toHaveClass('green')
     })
   })
 })
@@ -74,7 +108,7 @@ describe('SocialControl', () => {
   })
 
   it('calls handleUnlinkClick when unlink is clicked', () => {
-    const { getByText } = render(<SocialControl label='A Social Control' value='someurl.com' />)
+    const { getByText } = render(<SocialControl label='A Social Control' value='someurl.com' handleUnlinkAccount={mockHandleUnlinkAccount} updateSettingDirectly={mockUpdateSettingDirectly} />)
     fireEvent.click(getByText('Unlink'))
     // Add an assertion here to check if handleUnlinkClick was called
   })
@@ -110,7 +144,7 @@ describe('SocialControl', () => {
         />
       )
       fireEvent.click(screen.getByText('Link'))
-      expect(window.prompt).toHaveBeenCalledWith('Please enter the full url for your {{network}} page.')
+      expect(window.prompt).toHaveBeenCalledWith('Please enter the full url for your LinkedIn page.')
       expect(mockUpdateSettingDirectly).toHaveBeenCalled()
     })
 
@@ -125,7 +159,7 @@ describe('SocialControl', () => {
         />
       )
       fireEvent.click(screen.getByText('Link'))
-      expect(window.prompt).toHaveBeenCalledWith('Please enter the full url for your {{network}} page.')
+      expect(window.prompt).toHaveBeenCalledWith('Please enter the full url for your Facebook page.')
       expect(mockUpdateSettingDirectly).toHaveBeenCalled()
     })
   })

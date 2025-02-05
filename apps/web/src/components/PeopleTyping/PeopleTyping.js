@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import PropTypes from 'prop-types'
 import React from 'react'
 import { withTranslation } from 'react-i18next'
@@ -30,13 +30,13 @@ class PeopleTyping extends React.Component {
   render () {
     const { className, peopleTyping } = this.props
     const names = values(peopleTyping).map(v => v.name)
-    return <div className={cx(classes.typing, className)}>
-      {names.length === 1 && <div>
-        {names[0]} {this.props.t('is typing...')}
-      </div>}
-      {names.length > 1 && <div>{this.props.t('Multiple people are typing...')}</div>}
-      &nbsp;
-    </div>
+    return (
+      <div className={cn(classes.typing, className)} data-testid='people-typing'>
+        {names.length === 1 && <div>{names[0]} {this.props.t('is typing...')}</div>}
+        {names.length > 1 && <div>{this.props.t('Multiple people are typing...')}</div>}
+        &nbsp;
+      </div>
+    )
   }
 }
 PeopleTyping.propTypes = {

@@ -20,10 +20,9 @@
 }
 
 .smallMargin {
-}
-
-.smallMargin .eventTop {
-  display: none;
+  .eventTop {
+    display: none;
+  }
 }
 
 .constrained.smallMargin {
@@ -240,10 +239,6 @@
     margin: -30px 0 10px 0;
 }
 
-.eventDetails {
-
-}
-
 .constrained.eventDetails {
   display: none;
 }
@@ -279,14 +274,15 @@
   font-size: 14px;
   text-align: center;
   align-items: center;
-  top: 44px;
+  top: 30%;
   left: 0;
   right: 0;
   margin-left: auto;
   margin-right: auto;
-  width: 300px;
-  z-index: 15;
+  max-width: 300px;
+  z-index: 20;
 }
+
 .clickthroughButton{
   margin-top: 6px;
   width: 120px;

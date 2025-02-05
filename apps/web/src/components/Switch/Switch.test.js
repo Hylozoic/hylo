@@ -6,7 +6,7 @@ describe('Switch', () => {
   it('renders correctly and responds to clicks', () => {
     const mockOnClick = jest.fn()
     const { container } = render(
-      <Switch value={true} onClick={mockOnClick} className="custom-class" />
+      <Switch value onClick={mockOnClick} className='custom-class' />
     )
 
     // Check if the switch is rendered with the correct classes

@@ -1,34 +1,40 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import Search, { PersonCard } from './Search'
+import { getSearchResults } from './Search.store'
+
+const mockSearchResults = [
+  {
+    id: '1',
+    type: 'Person',
+    content: {
+      id: 1,
+      name: 'Test Person',
+      avatarUrl: 'test.png',
+      location: 'Test Location',
+      skills: [{ name: 'crawling' }, { name: 'walking' }]
+    }
+  }
+]
+
+// mock getSearchResults
+jest.mock('./Search.store', () => ({
+  getSearchTerm: jest.fn(() => 'cat'),
+  getSearchResults: jest.fn(() => mockSearchResults),
+  fetchSearchResults: jest.fn(),
+  FETCH_SEARCH: 'FETCH_SEARCH',
+  setSearchTerm: jest.fn(),
+  setSearchFilter: jest.fn(),
+  getSearchFilter: jest.fn(() => 'person'),
+  getHasMoreSearchResults: jest.fn(() => false)
+}))
 
 describe('Search', () => {
   it('renders search input and tabs', () => {
     const props = {
-      searchForInput: 'cat',
-      fetchMoreSearchResults: jest.fn(),
-      setSearchTerm: jest.fn(),
-      updateQueryParam: jest.fn(),
-      setSearchFilter: jest.fn(),
-      showPerson: jest.fn(),
-      filter: 'person',
-      pending: true,
-      searchResults: [
-        {
-          id: '1',
-          type: 'Person',
-          content: {
-            id: 1,
-            name: 'Test Person',
-            avatarUrl: 'test.png',
-            location: 'Test Location'
-          }
-        }
-      ]
     }
 
-    render(<Search {...props} />, { wrapper: AllTheProviders })
+    render(<Search {...props} />)
 
     expect(screen.getByPlaceholderText('Search by keyword for people, posts and groups')).toBeInTheDocument()
     expect(screen.getByText('All')).toBeInTheDocument()

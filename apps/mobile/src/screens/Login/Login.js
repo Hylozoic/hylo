@@ -1,13 +1,12 @@
 import React, { useCallback, useRef, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import useRouteParams from 'hooks/useRouteParams'
-import loginAction from 'store/actions/login'
 import validator from 'validator'
 import errorMessages from 'util/errorMessages'
 import SocialAuth from 'components/SocialAuth'
@@ -18,10 +17,8 @@ export default function Login () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const passwordInputRef = useRef()
-  const dispatch = useDispatch()
-  const defaultLoginEmail = useSelector(state => state.session?.defaultLoginEmail)
-
-  const [email, providedSetEmail] = useState(defaultLoginEmail)
+  const { login, checkAuth } = useAuth()
+  const [email, providedSetEmail] = useState()
   const [password, providedSetPassword] = useState()
   const [securePassword, setSecurePassword] = useState(true)
   const [emailIsValid, setEmailIsValid] = useState()
@@ -34,8 +31,12 @@ export default function Login () {
     setFormError(errorMessages(errorMessage))
   }
 
-  const setLoadingMessage = loadingStatus => {
-    if (loadingStatus) setBannerMessage(t('LOGGING IN'))
+  const setLoggingIn = status => {
+    if (status) {
+      setBannerMessage(t('LOGGING IN'))
+    } else {
+      setBannerMessage()
+    }
   }
 
   const clearErrors = useCallback(() => {
@@ -63,30 +64,24 @@ export default function Login () {
     providedSetPassword(passwordValue)
   }
 
-  const handleSocialAuthStart = () => {
-    setLoadingMessage(true)
-  }
-
-  const handleSocialAuthComplete = error => {
-    if (error) setBannerError(error)
-    setLoadingMessage(false)
-  }
-
-  const login = async () => {
+  const handleLogin = async () => {
     try {
-      setLoadingMessage(true)
-      const response = await dispatch(loginAction(email, password))
-      const responseError = response.payload?.getData().error
-
-      if (responseError) {
-        setError(responseError)
-      }
-
-      setLoadingMessage(false)
+      setLoggingIn(true)
+      await login({ email, password })
     } catch (err) {
-      setLoadingMessage(false)
-      setError(err.message)
+      setLoggingIn(false)
+      setError(err)
     }
+  }
+
+  const handleSocialAuthStart = () => {
+    setLoggingIn(true)
+  }
+
+  const handleSocialAuthComplete = async error => {
+    if (error) setBannerError(error)
+    await checkAuth()
+    setLoggingIn(false)
   }
 
   const togglePassword = () => {
@@ -156,7 +151,7 @@ export default function Login () {
                 onChangeText={setPassword}
                 returnKeyType='go'
                 selectTextOnFocus
-                onSubmitEditing={() => login()}
+                onSubmitEditing={() => handleLogin()}
                 underlineColorAndroid='transparent'
               />
             </View>
@@ -170,7 +165,7 @@ export default function Login () {
           </View>
         </View>
         <View style={styles.paddedRow}>
-          <TouchableOpacity onPress={login} disabled={!emailIsValid} style={styles.loginButton}>
+          <TouchableOpacity onPress={handleLogin} disabled={!emailIsValid} style={styles.loginButton}>
             <Text style={styles.loginText}>{t('Log In')}</Text>
           </TouchableOpacity>
         </View>

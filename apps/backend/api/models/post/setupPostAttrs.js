@@ -1,8 +1,13 @@
 import { merge, pick } from 'lodash'
 import { getOr } from 'lodash/fp'
 
-export default function setupPostAttrs (userId, params, create = false) {
-  console.log('entering setupPostAttrs')
+export default async function setupPostAttrs (userId, params, create = false) {
+  if (params.isPublic) {
+    // Don't allow creating a public post unless at least one of the post's groups has allow_in_public set to true
+    const groups = await Group.query(q => q.whereIn('id', params.group_ids)).fetchAll()
+    const allowedToMakePublic = groups.find(g => g.get('allow_in_public'))
+    if (!allowedToMakePublic) params.isPublic = false
+  }
   const attrs = merge({
     accept_contributions: params.acceptContributions,
     anonymous_voting: params.isAnonymousVote,
@@ -34,6 +39,5 @@ export default function setupPostAttrs (userId, params, create = false) {
   const proposalAttrs = {
     proposal_status: params.startTime ? proposalStatus : Post.Proposal_Status.CASUAL
   }
-  console.log('exiting setupPostAttrs')
   return Promise.resolve({ ...attrs, ...proposalAttrs })
 }

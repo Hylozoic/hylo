@@ -2,7 +2,7 @@
 /* globals RedisClient */
 import { parse } from 'url'
 import { compact, some, sum, uniq } from 'lodash/fp'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import { mapLocaleToSendWithUS } from '../../../lib/util'
 
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
@@ -34,7 +34,7 @@ export async function notifyAboutMessage ({ commentId }) {
 }
 
 export const sendDigests = async () => {
-  const redisClient = await RedisClient.create()
+  const redisClient = RedisClient.create()
   const now = new Date()
   const fallbackTime = () => new Date(now - 10 * 60000)
 

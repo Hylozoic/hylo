@@ -24,7 +24,7 @@ describe('GroupButton', () => {
 
     // Check if the avatar image is rendered with the correct src
     const avatarImage = screen.getByRole('img')
-    expect(avatarImage).toHaveAttribute('src', props.group.avatarUrl)
+    expect(avatarImage.getAttribute('style')).toContain(props.group.avatarUrl)
 
     // Check if the link has the correct href
     const link = screen.getByRole('link')

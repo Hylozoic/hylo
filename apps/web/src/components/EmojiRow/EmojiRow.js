@@ -1,4 +1,5 @@
 import React from 'react'
+import { cn } from 'util/index'
 import EmojiPicker from 'components/EmojiPicker'
 import EmojiPill from 'components/EmojiPill'
 import useReactionActions from 'hooks/useReactionActions'
@@ -11,7 +12,9 @@ export default function EmojiRow (props) {
     comment,
     currentUser,
     onClick,
-    post
+    post,
+    onAddReaction = () => {},
+    onRemoveReaction = () => {}
   } = props
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
 
@@ -19,8 +22,14 @@ export default function EmojiRow (props) {
   const myReactions = (comment ? comment.myReactions : post.myReactions) || []
   const entityReactions = (comment ? comment.commentReactions : post.postReactions) || []
   const groupIds = post.groups.map(g => g.id)
-  const handleReaction = (emojiFull) => reactOnEntity({ commentId: comment?.id, emojiFull, entityType, groupIds, postId: post.id })
-  const handleRemoveReaction = (emojiFull) => removeReactOnEntity({ commentId: comment?.id, emojiFull, entityType, postId: post.id })
+  const handleReaction = (emojiFull) => {
+    onAddReaction(post, emojiFull)
+    reactOnEntity({ commentId: comment?.id, emojiFull, entityType, groupIds, postId: post.id })
+  }
+  const handleRemoveReaction = (emojiFull) => {
+    onRemoveReaction(post, emojiFull)
+    removeReactOnEntity({ commentId: comment?.id, emojiFull, entityType, postId: post.id })
+  }
   const myEmojis = myReactions.map((reaction) => reaction.emojiFull)
   const usersReactions = entityReactions.reduce((accum, entityReaction) => {
     if (accum[entityReaction.emojiFull]) {
@@ -35,9 +44,9 @@ export default function EmojiRow (props) {
     return accum
   }, {})
   return (
-    <div className={className} onClick={onClick}>
+    <div className={cn('bg-black/20 p-2 rounded-lg mr-2 hover:bg-black/30 transition-all', className)} onClick={onClick}>
       {entityReactions && (
-        <div className={classes.footerReactions}>
+        <div className='transition-all duration-250 ease-in-out flex relative items-center flex-wrap'>
           {Object.values(usersReactions).map(reaction => (
             <EmojiPill
               onClick={currentUser ? reaction.loggedInUser ? handleRemoveReaction : handleReaction : null}

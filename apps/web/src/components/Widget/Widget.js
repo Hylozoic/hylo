@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
@@ -145,8 +145,6 @@ export default function Widget (props) {
   const currentUser = useSelector(getMe)
   const handleUpdateWidget = (id, changes) => dispatch(updateWidget(id, changes))
 
-  if (!WIDGETS[name]) return null
-
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isEditingSettings, setIsEditingSettings] = useState(false)
   const [newSettings, updateSettings] = useState({
@@ -157,32 +155,39 @@ export default function Widget (props) {
   // Changing this to a hook so that we can use other hooks to manage the diverse data requirements of all of the new widgets
   const widgetItems = useGetWidgetItems({ childGroups, currentUser, name, group, posts })
 
+  if (!WIDGETS[name]) return null
+
   return (
-    <div className={cx(classes.widget, { [classes.editingSettings]: isEditingSettings })}>
+    <div className={cn('Widget', classes.widget, { [classes.editingSettings]: isEditingSettings })}>
       {/* TODO: ADMIN RESP? Add something for RESP here */}
       {canEdit || (isVisible && widgetItems)
         ? (
           <div className={classes.header}>
             <h3>{(canEdit && WIDGETS[name].adminTitle) || WIDGETS[name].title}</h3>
-            {canEdit && <div className={classes.more}>
-              <Icon name='More' className={cx(classes.moreIcon, { [classes.selected]: isMenuOpen })} onClick={() => { setIsMenuOpen(!isMenuOpen); setIsEditingSettings(false) }} />
-              <div className={cx(classes.editMenu, { [classes.visible]: isMenuOpen })}>
-                {!isEditingSettings && <div className={classes.editSection}>
-                  <span className={classes.triangle}>&nbsp;</span>
-                  {name === 'text_block' && <div className={classes.editSettings}><span onClick={() => setIsEditingSettings(!isEditingSettings)}><Icon name='Edit' /> {t('Edit welcome message')}</span></div>}
-                  <div className={classes.visibilitySettings}>
-                    <VisibilityToggle
-                      id={id}
-                      checked={isVisible}
-                      onChange={() => handleUpdateWidget(id, { isVisible: !isVisible })}
-                      className={classes.widgetVisibility}
-                      backgroundColor={isVisible ? 'gray' : 'black'} /> <span className={classes.visibilityLabel}>{t('Visibility')}:</span> {isVisible ? t('Visible') : t('Hidden')}
-                  </div>
-                </div>}
+            {canEdit && (
+              <div className={classes.more}>
+                <Icon name='More' className={cn(classes.moreIcon, { [classes.selected]: isMenuOpen })} onClick={() => { setIsMenuOpen(!isMenuOpen); setIsEditingSettings(false) }} />
+                <div className={cn(classes.editMenu, { [classes.visible]: isMenuOpen })}>
+                  {!isEditingSettings && (
+                    <div className={classes.editSection}>
+                      <span className={classes.triangle}>&nbsp;</span>
+                      {name === 'text_block' && <div className={classes.editSettings}><span onClick={() => setIsEditingSettings(!isEditingSettings)}><Icon name='Edit' /> {t('Edit welcome message')}</span></div>}
+                      <div className={classes.visibilitySettings}>
+                        <VisibilityToggle
+                          id={id}
+                          checked={isVisible}
+                          onChange={() => handleUpdateWidget(id, { isVisible: !isVisible })}
+                          className={classes.widgetVisibility}
+                          backgroundColor={isVisible ? 'gray' : 'black'}
+                        /> <span className={classes.visibilityLabel}>{t('Visibility')}:</span> {isVisible ? t('Visible') : t('Hidden')}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>}
+            )}
           </div>
-        )
+          )
         : ''}
       {canEdit && isEditingSettings &&
         <EditForm
@@ -193,10 +198,10 @@ export default function Widget (props) {
           updateSettings={updateSettings}
           save={handleUpdateWidget}
         />}
-      <div className={cx(classes.content, { [classes.hidden]: !isVisible })}>
-        {isVisible ? (widgetItems ? React.createElement(WIDGETS[name].component, { items: widgetItems, group, routeParams, settings, isMember: !!isMember }) : null)
-          : canEdit ? <HiddenWidget name={name} /> : null
-        }
+      <div className={cn(classes.content, { [classes.hidden]: !isVisible })}>
+        {isVisible
+          ? (widgetItems ? React.createElement(WIDGETS[name].component, { items: widgetItems, group, routeParams, settings, isMember: !!isMember }) : null)
+          : canEdit ? <HiddenWidget name={name} /> : null}
       </div>
     </div>
   )

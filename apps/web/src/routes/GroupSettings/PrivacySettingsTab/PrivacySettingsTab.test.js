@@ -16,7 +16,7 @@ describe('PrivacySettingsTab', () => {
       visibility: 1
     }
 
-    render(<PrivacySettingsTab group={group} />)
+    render(<PrivacySettingsTab group={group} parentGroups={[]} />)
 
     // Check for key elements
     expect(screen.getByText('Visibility')).toBeInTheDocument()
@@ -26,8 +26,8 @@ describe('PrivacySettingsTab', () => {
     expect(screen.getByText('Group Access Questions')).toBeInTheDocument()
 
     // Check for group name in the rendered content
-    expect(screen.getByText(`Who is able to see ${group.name}?`)).toBeInTheDocument()
-    expect(screen.getByText(`How can people become members of ${group.name}`)).toBeInTheDocument()
+    expect(screen.getByText(/Who is able to see/)).toBeInTheDocument()
+    expect(screen.getByText(/How can people become members of/)).toBeInTheDocument()
 
     // Check for the save button
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument()

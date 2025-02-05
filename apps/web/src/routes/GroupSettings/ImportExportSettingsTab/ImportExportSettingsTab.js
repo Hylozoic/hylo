@@ -1,19 +1,31 @@
 import PropTypes from 'prop-types'
-import React, { Component } from 'react'
-import { withTranslation } from 'react-i18next'
+import React, { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
+
 import classes from './ImportExportSettingsTab.module.scss'
 
-class ImportExportSettingsTab extends Component {
-  importStart = () => {
-    window.alert(this.props.t('Import started!'))
+function ImportExportSettingsTab ({ group }) {
+  const { t } = useTranslation()
+
+  const importStart = () => {
+    window.alert(t('Import started!'))
   }
 
-  render () {
-    const { group, t } = this.props
-    const { name } = group
+  const { name } = group
 
-    return <div>
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: 'Group Settings > Import Posts by CSV',
+      icon: 'Settings',
+      info: ''
+    })
+  }, [])
+
+  return (
+    <div>
       <div className={classes.header}>
         <div className={classes.title}>{t('Import Posts by CSV')}</div>
       </div>
@@ -38,18 +50,17 @@ class ImportExportSettingsTab extends Component {
           type='importPosts'
           id={group.id}
           attachmentType='csv'
-          onSuccess={this.importStart}
+          onSuccess={importStart}
         >
           <div className={classes.uploadButton}>{t('Upload CSV')}</div>
         </UploadAttachmentButton>
       </div>
     </div>
-  }
+  )
 }
 
 ImportExportSettingsTab.propTypes = {
-  group: PropTypes.object,
-  deleteGroup: PropTypes.func
+  group: PropTypes.object
 }
 
-export default withTranslation()(ImportExportSettingsTab)
+export default ImportExportSettingsTab

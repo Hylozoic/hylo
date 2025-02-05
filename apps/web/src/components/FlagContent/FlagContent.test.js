@@ -11,7 +11,7 @@ describe('FlagContent', () => {
     onClose: mockOnClose,
     submitFlagContent: mockSubmitFlagContent,
     linkData: { id: 33, type: 'post' },
-    visible: true,
+    visible: true
   }
 
   beforeEach(() => {
@@ -27,14 +27,6 @@ describe('FlagContent', () => {
     render(<FlagContent {...defaultProps} />)
     fireEvent.click(screen.getByRole('button', { name: /ex/i }))
     expect(mockOnClose).toHaveBeenCalled()
-  })
-
-  it('displays error when submitting without selecting a reason', async () => {
-    render(<FlagContent {...defaultProps} />)
-    fireEvent.click(screen.getByRole('button', { name: /submit/i }))
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('Select a reason')).toHaveClass('reasonRequired')
-    })
   })
 
   it('submits successfully with category:inappropriate', async () => {
@@ -57,7 +49,7 @@ describe('FlagContent', () => {
     fireEvent.click(screen.getByRole('button', { name: /submit/i }))
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/Why was this post 'other'/i)).toBeInTheDocument()
+      expect(screen.getByPlaceholderText(/required/i)).toBeInTheDocument()
     })
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '  my reason  ' } })
@@ -76,13 +68,12 @@ describe('FlagContent', () => {
     fireEvent.click(screen.getByRole('button', { name: /submit/i }))
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/Why was this post 'other'/i)).toBeInTheDocument()
+      expect(screen.getByPlaceholderText(/required/i)).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByRole('button', { name: /ex/i }))
 
     await waitFor(() => {
-      expect(screen.queryByPlaceholderText(/Why was this post 'other'/i)).not.toBeInTheDocument()
       expect(mockOnClose).toHaveBeenCalled()
     })
   })

@@ -1,22 +1,21 @@
 import React, { useLayoutEffect } from 'react'
 import { StyleSheet } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs'
 import { isIOS } from 'util/platform'
 import ModalHeader from 'navigation/headers/ModalHeader'
-import { alabaster, capeCod, rhino, rhino30, rhino40 } from 'style/colors'
-import logout from 'store/actions/logout'
+import useLogout from 'hooks/useLogout'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
 import UserSettingsWebView from 'screens/UserSettingsWebView'
-import BlockedUsers from 'screens/BlockedUsers'
 import LocaleSelector from 'components/LocaleSelector/LocaleSelector'
-import { useTranslation } from 'react-i18next'
+import { alabaster, capeCod, rhino, rhino30, rhino40 } from 'style/colors'
 
 const UserSettings = createMaterialTopTabNavigator()
 export default function UserSettingsTabsNavigator ({ navigation, route }) {
   const initialURL = useSelector(state => state.initialURL)
   const { t } = useTranslation()
-  const dispatch = useDispatch()
+  const logout = useLogout()
   const navigatorProps = {
     screenOptions: {
       animationEnabled: !initialURL,
@@ -64,7 +63,7 @@ export default function UserSettingsTabsNavigator ({ navigation, route }) {
             confirmationMessage: 'Are you sure you want to logout?',
             continueButtonText: 'Cancel',
             disgardButtonText: 'Yes',
-            onDiscard: async () => dispatch(logout()),
+            onDiscard: async () => logout(),
             t
           })}
           headerRightButtonStyle={{ color: alabaster }}
@@ -72,6 +71,13 @@ export default function UserSettingsTabsNavigator ({ navigation, route }) {
       )
     })
   }, [navigation, route])
+
+
+  // Note: "ERROR  Warning: A props object containing a "key" prop is being spread into JSX"
+  // will appear in logs from this area. This is a known issue in React Navigation material-top-tabs
+  // and RN 0.76. It is only a deprecation warning, and can be patched as per
+  // https://github.com/react-navigation/react-navigation/issues/11989
+  // otherwise it will likely be resolved when we move up to React Navigation 7
 
   return (
     <UserSettings.Navigator {...navigatorProps}>
@@ -116,10 +122,6 @@ export default function UserSettingsTabsNavigator ({ navigation, route }) {
         initialParams={{
           path: '/settings/saved-searches'
         }}
-      />
-      <UserSettings.Screen
-        name='Blocked Users'
-        component={BlockedUsers}
       />
       <UserSettings.Screen
         name='Terms & Privacy'

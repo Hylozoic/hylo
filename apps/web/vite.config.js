@@ -16,8 +16,12 @@ dotenv.config({ path: '.env' })
 const proxyTarget = process.env.VITE_API_HOST || 'http://localhost:3001'
 
 export default defineConfig({
+  base: '/',
   define: {
     'process.env.PUBLIC_URL': JSON.stringify('')
+  },
+  build: {
+    minify: true
   },
   plugins: [
     patchCssModules(),
@@ -79,7 +83,7 @@ export default defineConfig({
       '/noo': {
         target: proxyTarget,
         changeOrigin: true,
-        secure: false,
+        secure: process.env.VITE_HTTPS === 'true',
         ws: true,
         configure: (proxy, options) => {
           proxy.on('proxyReq', (proxyReq, req, res) => {
@@ -107,6 +111,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@': path.resolve(__dirname, 'src'),
       client: path.resolve(__dirname, 'src/client'),
       components: path.resolve(__dirname, 'src/components'),
       config: path.resolve(__dirname, 'src/config'),
@@ -118,7 +123,12 @@ export default defineConfig({
       routes: path.resolve(__dirname, 'src/routes'),
       store: path.resolve(__dirname, 'src/store'),
       util: path.resolve(__dirname, 'src/util'),
-      '@hylo/shared': path.resolve(__dirname, '../../packages/shared')
+      '@hylo/contexts': path.resolve(__dirname, '../../packages/contexts'),
+      '@hylo/graphql': path.resolve(__dirname, '../../packages/graphql'),
+      '@hylo/hooks': path.resolve(__dirname, '../../packages/hooks'),
+      '@hylo/presenters': path.resolve(__dirname, '../../packages/presenters'),
+      '@hylo/shared': path.resolve(__dirname, '../../packages/shared'),
+      '@hylo/urql': path.resolve(__dirname, '../../packages/urql')
     }
   },
   css: {
@@ -128,7 +138,11 @@ export default defineConfig({
     },
     preprocessorOptions: {
       scss: {
-        additionalData: '@import "./src/css/global/sass_resources.scss";'
+        additionalData: '@use "./src/css/global/sass_resources.scss" as *;',
+        quietDeps: true,
+        logger: {
+          warn: () => {}
+        }
       }
     }
   }

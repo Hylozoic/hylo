@@ -6,7 +6,7 @@ class SearchResult extends Model {
   }
 
   getContent (session) {
-    const [ type, id ] = this.content.split('-')
+    const [type, id] = this.content.split('-')
     return session[type].withId(id)
   }
 }

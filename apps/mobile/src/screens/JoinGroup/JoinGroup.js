@@ -1,40 +1,39 @@
 import React, { useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { every, isEmpty } from 'lodash/fp'
-import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
-import useRouteParams from 'hooks/useRouteParams'
-import { getAuthorized } from 'store/selectors/getAuthState'
+import { useMutation, useQuery } from 'urql'
+import { useDispatch } from 'react-redux'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import { openURL } from 'hooks/useOpenURL'
-import useInvitation from 'store/actions/useInvitation'
-import checkInvitation from 'store/actions/checkInvitation'
+import useRouteParams from 'hooks/useRouteParams'
+import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
+import checkInvitationQuery from '@hylo/graphql/queries/checkInvitationQuery'
+import acceptInvitationMutation from '@hylo/graphql/mutations/acceptInvitationMutation'
 import LoadingScreen from 'screens/LoadingScreen'
-
-export const SIGNUP_PATH = '/signup'
-export const EXPIRED_INVITE_PATH = '/invite-expired'
 
 export default function JoinGroup (props) {
   const navigation = useNavigation()
-  const route = useRoute()
   const dispatch = useDispatch()
-  const isAuthorized = useSelector(getAuthorized)
-  const { token: invitationToken, accessCode } = useRouteParams()
+  const { token: invitationToken, accessCode, originalLinkingPath } = useRouteParams()
+  const invitationTokenAndCode = { invitationToken, accessCode }
+
+  const [, checkInvitation] = useQuery({ query: checkInvitationQuery, variables: invitationTokenAndCode, pause: true })
+  const [, acceptInvitation] = useMutation(acceptInvitationMutation)
+  const { isAuthorized } = useAuth()
 
   // Might be more clear to simply use `useEffect`
   useFocusEffect(
     useCallback(() => {
       (async function () {
         try {
-          const invitationTokenAndCode = { invitationToken, accessCode }
-
           if (every(isEmpty, invitationTokenAndCode)) {
             throw new Error('Please provide either a `token` query string parameter or `accessCode` route param')
           }
 
           if (isAuthorized) {
             // eslint-disable-next-line react-hooks/rules-of-hooks
-            const result = await dispatch(useInvitation(invitationTokenAndCode))
-            const newMembership = result?.payload?.getData()?.membership
+            const { data } = await acceptInvitation(invitationTokenAndCode)
+            const newMembership = data?.acceptInvitation?.membership
             const groupSlug = newMembership?.group?.slug
 
             if (groupSlug) {
@@ -43,11 +42,11 @@ export default function JoinGroup (props) {
               throw new Error('Join group was unsuccessful')
             }
           } else {
-            const result = await dispatch(checkInvitation(invitationTokenAndCode))
+            const result = await checkInvitation()
             const isValidInvite = result?.payload?.getData()?.valid
 
             if (isValidInvite) {
-              dispatch(setReturnToOnAuthPath(route.params?.originalLinkingPath))
+              dispatch(setReturnToOnAuthPath(originalLinkingPath))
               openURL('/signup?message=Signup or login to join this group.', true)
             } else {
               openURL('/signup?error=invite-expired', true)

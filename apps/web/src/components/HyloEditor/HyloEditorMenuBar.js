@@ -1,13 +1,16 @@
-import React from 'react'
-import cx from 'classnames'
+import React, { useState } from 'react'
 import {
-  RiBold, RiItalic, RiCodeBoxLine, RiStrikethrough,
+  Bold, Italic, SquareCode, Strikethrough,
   // RiH1, RiH2, RiH3,
-  RiListUnordered, RiListOrdered,
-  RiIndentIncrease, RiCodeView,
-  RiArrowGoBackLine, RiArrowGoForwardLine, RiFormatClear
-} from 'react-icons/ri'
-// import { VscPreview } from 'react-icons/vsc'
+  List, ListOrdered, Link, Unlink,
+  IndentIncrease, Code,
+  Undo2, Redo2, RemoveFormatting
+} from 'lucide-react'
+import { Button } from 'components/ui/button'
+import { Tooltip, TooltipTrigger, TooltipContent } from 'components/ui/tooltip'
+import { cn } from 'util/index'
+import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover'
+
 import classes from './HyloEditor.module.scss'
 
 // export function addIframe (editor) {
@@ -21,145 +24,177 @@ import classes from './HyloEditor.module.scss'
 export default function HyloEditorMenuBar ({ editor }) {
   if (!editor) return null
 
+  const [modal, setModal] = useState(false)
+
   return (
-    <div className={classes.topMenuBar}>
-      <button
+    <div className='flex items-center w-full opacity-70 hover:opacity-100 transition-all'>
+      <HyloEditorMenuBarButton
+        Icon={Bold}
+        setModal={setModal}
         onClick={() => editor.chain().focus().toggleBold().run()}
-        className={cx({ [classes.isActive]: editor.isActive('bold') })}
-      >
-        <RiBold />
-      </button>
-      <button
+        active={editor.isActive('bold')}
+      />
+      <HyloEditorMenuBarButton
+        Icon={Italic}
+        setModal={setModal}
         onClick={() => editor.chain().focus().toggleItalic().run()}
-        className={cx({ [classes.isActive]: editor.isActive('italic') })}
-      >
-        <RiItalic />
-      </button>
-      <button
+        active={editor.isActive('italic')}
+      />
+
+      <HyloEditorMenuBarButton
+        Icon={Strikethrough}
+        setModal={setModal}
         onClick={() => editor.chain().focus().toggleStrike().run()}
-        className={cx({ [classes.isActive]: editor.isActive('strike') })}
-      >
-        <RiStrikethrough />
-      </button>
+        active={editor.isActive('strike')}
+      />
 
-      <button
+      <HyloEditorMenuBarButton
+        Icon={Code}
+        setModal={setModal}
         onClick={() => editor.chain().focus().toggleCode().run()}
-        className={cx({ [classes.isActive]: editor.isActive('code') })}
-      >
-        <RiCodeView />
-      </button>
+        active={editor.isActive('code')}
+      />
 
-      <div className={classes.divider} />
+      <div className='relative inline-block'>
+        {editor.isActive('link') ? (
+          <button
+            className="'text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer',"
+            title="Remove link"
+            onClick={() => editor.chain().focus().unsetLink().run()}
+          >
+            <Unlink size={14} />
+          </button>
+        ) : (
+          <button
+            tabIndex='-1'
+            title="add a link"
+            onClick={() => setModal(!modal)}
+            className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer'
+          >
+            <Link size={14} />
+          </button>
+        )}
+        {modal && (
+          <AddLinkBox editor={editor} setModal={setModal} />
+        )}
+      </div>
 
-      <button
+      <div className={cn('bg-foreground bg-opacity-30 w-px')} />
+
+      <HyloEditorMenuBarButton
+        Icon={List}
+        setModal={setModal}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
-        className={cx({ [classes.isActive]: editor.isActive('bulletList') })}
-      >
-        <RiListUnordered />
-      </button>
-      <button
+        active={editor.isActive('bulletList')}
+      />
+
+      <HyloEditorMenuBarButton
+        Icon={ListOrdered}
+        setModal={setModal}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        className={cx({ [classes.isActive]: editor.isActive('orderedList') })}
-      >
-        <RiListOrdered />
-      </button>
+        active={editor.isActive('orderedList')}
+      />
 
-      {/* <div className={classes.divider} /> */}
+      <div className={cn('bg-foreground bg-opacity-30 w-px')} />
 
-      {/* <button
-        onClick={() => editor.chain().focus().setParagraph().run()}
-        // className={cx({ isActive: editor.isActive('paragraph') })}
-      >
-        <VscPreview />
-      </button> */}
-
-      {/* <button
-        onClick={() => editor.chain().focus().setParagraph().run()}
-        className={cx({ isActive: editor.isActive('paragraph') })}
-      >
-        <RiParagraph />
-      </button> */}
-      {/* <button
-        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        className={cx({ isActive: editor.isActive('heading', { level: 1 }) })}
-      >
-        <RiH1 />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        className={cx({ isActive: editor.isActive('heading', { level: 2 }) })}
-      >
-        <RiH2 />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        className={cx({ isActive: editor.isActive('heading', { level: 3 }) })}
-      >
-        <RiH3 />
-      </button> */}
-      {/* <button
-        onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
-        className={cx({ isActive: editor.isActive('heading', { level: 4 }) })}
-      >
-        <RiH4 />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleHeading({ level: 5 }).run()}
-        className={cx({ isActive: editor.isActive('heading', { level: 5 }) })}
-      >
-        <RiH5 />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleHeading({ level: 6 }).run()}
-        className={cx({ isActive: editor.isActive('heading', { level: 6 }) })}
-      >
-        <RiH6 />
-      </button> */}
-
-      <div className={classes.divider} />
-
-      <button
+      <HyloEditorMenuBarButton
+        Icon={IndentIncrease}
+        setModal={setModal}
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        className={cx({ [classes.isActive]: editor.isActive('blockquote') })}
-      >
-        <RiIndentIncrease />
-      </button>
+        active={editor.isActive('blockquote')}
+      />
 
-      <button
+      <HyloEditorMenuBarButton
+        Icon={SquareCode}
+        setModal={setModal}
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-        className={cx({ [classes.isActive]: editor.isActive('codeBlock') })}
-      >
-        <RiCodeBoxLine />
-      </button>
-      {/* <button onClick={() => editor.chain().focus().setHorizontalRule().run()}>
-        <RiSeparator />
-      </button> */}
-      {/* <button onClick={() => editor.chain().focus().setHardBreak().run()}>
-        <RiTextWrap />
-      </button> */}
+        active={editor.isActive('codeBlock')}
+      />
 
-      {/* <button
-        onClick={() => addIframe(editor)}
-      >
-        <RiFilmLine />
-      </button> */}
+      <div className={cn('bg-foreground bg-opacity-30 w-px')} />
 
-      <div className={classes.divider} />
+      <HyloEditorMenuBarButton
+        Icon={Undo2}
+        setModal={setModal}
+        onClick={() => editor.chain().focus().undo().run()}
+      />
 
-      <button onClick={() => editor.chain().focus().undo().run()}>
-        <RiArrowGoBackLine />
-      </button>
+      <HyloEditorMenuBarButton
+        Icon={Redo2}
+        setModal={setModal}
+        onClick={() => editor.chain().focus().redo().run()}
+      />
 
-      <button onClick={() => editor.chain().focus().redo().run()}>
-        <RiArrowGoForwardLine />
-      </button>
-
-      <button onClick={() => {
-        editor.chain().focus().clearNodes().run()
-        editor.chain().focus().unsetAllMarks().run()
-      }}>
-        <RiFormatClear />
-      </button>
+      <HyloEditorMenuBarButton
+        Icon={RemoveFormatting}
+        setModal={setModal}
+        onClick={() => {
+          editor.chain().focus().clearNodes().run()
+          editor.chain().focus().unsetAllMarks().unsetBold().unsetItalic().unsetStrike().unsetCode().unsetBulletList().unsetOrderedList().unsetBlockquote().unsetCodeBlock().run()
+        }}
+      />
     </div>
   )
 }
+
+function HyloEditorMenuBarButton ({ active, Icon, onClick, setModal }) {
+  return (
+    <button
+      tabIndex='-1'
+      onClick={() => { setModal(false); onClick() }}
+      className={cn(
+        'text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer',
+        { 'bg-foreground/10': active }
+      )}
+    >
+      <Icon className='text-foreground w-4 h-4' />
+    </button>
+  )
+}
+
+export const AddLinkBox = ({ editor, setModal }) => {
+  const [input, setInput] = useState("");
+
+  const [linkInput, setLinkInput] = useState("");
+  const [container, setContainer] = useState(null)
+
+  const handleLinkChange = (e) => {
+    setLinkInput(e.target.value);
+  };
+
+  const setLink = (input) => {
+    editor
+      .chain()
+      .focus()
+      .extendMarkRange("link")
+      .setLink({ href: input })
+      .run()
+  }
+
+  const handleSubmit = (e, link) => {
+    e.preventDefault()
+    setLink(linkInput)
+    setModal(false)
+    setLinkInput("")
+  }
+
+  return (
+    <div className="absolute z-50 bg-popover rounded-md p-4 shadow-md">
+      <div className="modal">
+        <button onClick={() => setModal(false)} className="absolute top-1 right-1">
+          x
+        </button>
+        <form
+          onSubmit={(e) => handleSubmit(e)}
+          className="flex flex-col gap-1 items-center"
+        >
+          <label className="text-popover-foreground">Add link</label>
+          <input className="bg-input" autoFocus onChange={(e) => handleChange(e)} />
+          <Button onClick={() => handleSubmit}>
+            Add
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+};

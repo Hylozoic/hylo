@@ -1,7 +1,7 @@
 import orm from 'store/models'
 
 describe('hasFeature', () => {
-  var oldTesterIds, currentUser
+  let oldTesterIds, currentUser
   const testerId = '123'
   const nonTesterId = '456'
 

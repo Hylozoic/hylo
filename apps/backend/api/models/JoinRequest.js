@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLError } from 'graphql'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'join_requests',
@@ -36,7 +36,7 @@ module.exports = bookshelf.Model.extend({
       })
       return this
     }
-    throw new GraphQLYogaError("Invalid join request")
+    throw new GraphQLError('Invalid join request')
   }
 }, {
 
@@ -52,12 +52,12 @@ module.exports = bookshelf.Model.extend({
       group_id: opts.groupId,
       user_id: opts.userId,
       created_at: new Date(),
-      status: this.STATUS.Pending,
+      status: this.STATUS.Pending
     }).save()
-    .then(async request => {
-      JoinRequest.afterCreate(request)
-      return request
-    })
+      .then(async request => {
+        JoinRequest.afterCreate(request)
+        return request
+      })
   },
 
   afterCreate: async function (request) {
@@ -78,6 +78,6 @@ module.exports = bookshelf.Model.extend({
 
   find: async function (id) {
     if (!id) return Promise.resolve(null)
-    return JoinRequest.where({id}).fetch()
+    return JoinRequest.where({ id }).fetch()
   }
 })

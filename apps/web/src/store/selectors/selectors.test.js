@@ -49,30 +49,14 @@ describe('getGroupTopicForCurrentRoute', () => {
       postsTotal: '10',
       followersTotal: '20'
     })
-    const props = {
-      match: {
-        params: {
-          groupSlug: 'goteam',
-          topicName: 'petitions'
-        }
-      }
-    }
-    const result = getGroupTopicForCurrentRoute({ orm: session.state }, props)
+    const result = getGroupTopicForCurrentRoute({ orm: session.state }, 'goteam', 'petitions')
     expect(result.postsTotal).toEqual('10')
     expect(result.id).toEqual('3')
   })
 
   it('should return null if no match', () => {
     const session = orm.session(orm.getEmptyState())
-    const props = {
-      match: {
-        params: {
-          groupSlug: 'goteam',
-          topicName: 'petitions'
-        }
-      }
-    }
-    const result = getGroupTopicForCurrentRoute({ orm: session.state }, props)
+    const result = getGroupTopicForCurrentRoute({ orm: session.state }, 'goteam', 'petitions')
     expect(result).toBeNull()
   })
 })
@@ -84,28 +68,14 @@ describe('getTopicForCurrentRoute', () => {
       id: '2',
       name: 'petitions'
     })
-    const props = {
-      match: {
-        params: {
-          topicName: 'petitions'
-        }
-      }
-    }
-    const result = getTopicForCurrentRoute({ orm: session.state }, props)
+    const result = getTopicForCurrentRoute({ orm: session.state }, 'petitions')
     expect(result.name).toEqual('petitions')
     expect(result.id).toEqual('2')
   })
 
   it('should return null if no match', () => {
     const session = orm.session(orm.getEmptyState())
-    const props = {
-      match: {
-        params: {
-          topicName: 'petitions'
-        }
-      }
-    }
-    const result = getTopicForCurrentRoute({ orm: session.state }, props)
+    const result = getTopicForCurrentRoute({ orm: session.state }, 'petitions')
     expect(result).toBeNull()
   })
 })

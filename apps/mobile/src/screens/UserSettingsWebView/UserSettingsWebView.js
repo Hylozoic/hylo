@@ -1,14 +1,15 @@
 import React, { useRef } from 'react'
-import { useDispatch } from 'react-redux'
 import { WebViewMessageTypes } from '@hylo/shared'
 import useRouteParams from 'hooks/useRouteParams'
-import logout from 'store/actions/logout'
-import { LEAVE_GROUP } from 'store/constants'
 import HyloWebView from 'components/HyloWebView'
+import useLogout from 'hooks/useLogout'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 export default function UserSettingsWebView ({ path: pathProp, route }) {
-  const dispatch = useDispatch()
+  // TODO: URQL! - Untested, intention is to refresh cache
+  const [, queryCurrentUser] = useCurrentUser({ requestPolicy: 'network-only', pause: true })
   const webViewRef = useRef(null)
+  const logout = useLogout()
   const { path: routePath } = useRouteParams()
   const path = pathProp || routePath
   const source = route?.params.uri && { uri: route?.params.uri }
@@ -19,7 +20,9 @@ export default function UserSettingsWebView ({ path: pathProp, route }) {
   const messageHandler = ({ type, data }) => {
     switch (type) {
       case WebViewMessageTypes.LEFT_GROUP: {
-        return data.groupId && dispatch({ type: LEAVE_GROUP, meta: { id: data.groupId } })
+        if (data.groupId) {
+          queryCurrentUser()
+        }
       }
 
       // TODO: See https://github.com/Hylozoic/hylo-evo/tree/user-settings-webview-improvements
@@ -32,7 +35,7 @@ export default function UserSettingsWebView ({ path: pathProp, route }) {
   }
 
   const nativeRouteHandler = () => ({
-    '/login': () => dispatch(logout())
+    '/login': () => logout()
   })
 
   return (

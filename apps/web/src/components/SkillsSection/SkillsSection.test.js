@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import SkillsSection from './SkillsSection'
 
 describe('SkillsSection', () => {
@@ -15,10 +15,14 @@ describe('SkillsSection', () => {
     expect(screen.getByText('unclickable')).toBeInTheDocument()
   })
 
-  it('shows editable fields when isMe = true', () => {
-    render(<SkillsSection skills={mockSkills} fetchMemberSkills={jest.fn()} isMe={true} />)
+  it('shows editable fields when isMe = true', async () => {
+    render(<SkillsSection skills={mockSkills} fetchMemberSkills={jest.fn()} isMe />)
 
     expect(screen.getByText('Add a Skill or Interest')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('What skills and interests do you have?')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Add a Skill or Interest'))
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('What skills and interests do you have?')).toBeInTheDocument()
+    })
   })
 })

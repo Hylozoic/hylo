@@ -1,5 +1,7 @@
 export const MAX_POST_TOPICS = 3
 
+export const INITIAL_SUBCOMMENTS_DISPLAYED = 4
+
 export const STREAM_SORT_OPTIONS = [ // LOOK UP
   { id: 'updated', label: 'Latest activity' },
   { id: 'created', label: 'Post Date' },

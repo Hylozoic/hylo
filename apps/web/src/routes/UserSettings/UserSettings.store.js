@@ -183,19 +183,22 @@ export function updateMembershipSettings (groupId, settings, acceptAgreements = 
   }
 }
 
-export function updateAllMemberships (groupIds, settings) {
-  const subqueries = groupIds.map(groupId => `
-    alias${groupId}: updateMembership(groupId: ${groupId}, data: {settings: ${JSON.stringify(settings).replace(/"/g, '')}}) {
-      id
+export function updateAllMemberships (settings) {
+  const query = `mutation UpdateAllMemberships ($data: MembershipInput) {
+    updateAllMemberships(data: $data) {
+      success
+      error
     }
-  `).join()
-  const query = `mutation {
-    ${subqueries}
   }`
   return {
     type: UPDATE_ALL_MEMBERSHIP_SETTINGS,
     graphql: {
-      query
+      query,
+      variables: {
+        data: {
+          settings
+        }
+      }
     },
     meta: {
       settings,

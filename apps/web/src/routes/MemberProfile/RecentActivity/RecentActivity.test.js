@@ -7,6 +7,8 @@ describe('RecentActivity', () => {
   const { person } = denormalized.data
 
   it('renders activity items correctly', () => {
+    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ context: 'groups', groupSlug: 'foom' })
+
     render(
       <RecentActivity
         fetchRecentActivity={jest.fn()}
@@ -15,11 +17,10 @@ describe('RecentActivity', () => {
       />
     )
 
-    // Check if at least one activity item is rendered
-    expect(screen.getByTestId('activity-item')).toBeInTheDocument()
+    expect(screen.queryAllByTestId('activity-item')).toHaveLength(4)
 
     // Check if both PostCard and CommentCard components are rendered
-    expect(screen.getByTestId('post-card')).toBeInTheDocument()
-    expect(screen.getByTestId('comment-card')).toBeInTheDocument()
+    expect(screen.queryAllByTestId('post-card')).toHaveLength(2)
+    expect(screen.queryAllByTestId('comment-card')).toHaveLength(2)
   })
 })

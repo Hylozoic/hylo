@@ -60,6 +60,48 @@ export default function makeModels (userId, isAdmin, apiClient) {
       fetchMany: () => CommonRole.fetchAll()
     },
 
+    ContextWidget: {
+      model: ContextWidget,
+      attributes: [
+        'id',
+        'auto_added',
+        'title',
+        'type',
+        'order',
+        'visibility',
+        'view',
+        'icon',
+        'created_at',
+        'parent_id',
+        'updated_at',
+        'highlightNumber',
+        'secondaryNumber'
+      ],
+      relations: [
+        'customView',
+        'ownerGroup',
+        'parentWidget',
+        { children: { alias: 'childWidgets', querySet: true } },
+        'viewGroup',
+        'viewPost',
+        'viewUser',
+        'viewChat'
+      ],
+      getters: {
+        // XXX: has to be a getter not a relation because belongsTo doesn't support multiple keys
+        groupTopic: cw => cw.groupTopic().fetch()
+      },
+      fetchMany: ({ groupId, includeUnordered }) => {
+        return ContextWidget.collection().query(q => {
+          q.where({ group_id: groupId })
+          if (!includeUnordered) {
+            q.whereNotNull('order')
+          }
+          q.orderBy('order', 'asc')
+        })
+      }
+    },
+
     Me: {
       model: User,
       attributes: [
@@ -339,7 +381,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'locationObject',
         { members: { querySet: true } },
         { eventInvitations: { querySet: true } },
-        { moderationActions: { querySet: true} },
+        { moderationActions: { querySet: true } },
         { proposalOptions: { querySet: true } },
         { proposalVotes: { querySet: true } },
         'linkPreview',
@@ -426,6 +468,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'banner_url',
         'created_at',
         'description',
+        'homeWidget',
         'location',
         'geo_shape',
         'memberCount',
@@ -439,7 +482,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         { activeMembers: { querySet: true } },
         { agreements: { querySet: true } },
+        { chatRooms: { querySet: true } },
         { childGroups: { querySet: true } },
+        { contextWidgets: { querySet: true } },
         { customViews: { querySet: true } },
         { groupRelationshipInvitesFrom: { querySet: true } },
         { groupRelationshipInvitesTo: { querySet: true } },
@@ -448,11 +493,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
           groupTags: {
             querySet: true,
             alias: 'groupTopics',
-            filter: (relation, { autocomplete, subscribed }) =>
+            filter: (relation, { autocomplete, subscribed, groupId }) =>
               relation.query(groupTopicFilter(userId, {
                 autocomplete,
                 subscribed,
-                groupId: relation.relatedData.parentId
+                groupId: relation.relatedData.parentId || groupId
               }))
           }
         },
@@ -577,6 +622,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       getters: {
         // commonRoles: async g => g.commonRoles(),
+        homeWidget: g => g.homeWidget(),
         invitePath: g =>
           GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
             .then(canInvite => canInvite ? Frontend.Route.invitePath(g) : null),
@@ -606,7 +652,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           const precision = g.getSetting('location_display_precision') || LOCATION_DISPLAY_PRECISION.Precise
           if (precision === LOCATION_DISPLAY_PRECISION.Precise ||
                 (userId && await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION))) {
-                  // TODO: add RESP for this
+            // TODO: add RESP for this
             return g.locationObject().fetch()
           } else if (precision === LOCATION_DISPLAY_PRECISION.Near) {
             // For near only include region, city, country columns, and move the exact location around every load
@@ -929,6 +975,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
 
     Reaction: {
       model: Reaction,
+      attributes: [
+        'user_id'
+      ],
       getters: {
         createdAt: r => r.get('date_reacted'),
         emojiBase: r => r.get('emoji_base'),
@@ -1012,9 +1061,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         groupTags: {
           alias: 'groupTopics',
           querySet: true,
-          filter: (relation, { autocomplete, subscribed, isDefault, visibility }) =>
+          filter: (relation, { autocomplete, subscribed, isDefault, visibility, groupId }) =>
             relation.query(groupTopicFilter(userId, {
               autocomplete,
+              groupId,
               isDefault,
               subscribed,
               visibility

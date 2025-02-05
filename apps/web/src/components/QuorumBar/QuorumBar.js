@@ -1,10 +1,9 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Tooltip } from 'react-tooltip'
 import { PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
 import Icon from 'components/Icon/Icon'
-
 
 import classes from './QuorumBar.module.scss'
 
@@ -26,7 +25,7 @@ const QuorumBar = ({ totalVoters, quorum, actualVoters, proposalStatus }) => {
           {quorum > 10 && <div className={classes.quorumText}>{quorumStatus}{' '}{quorumReached && quorum > 20 && t('voterCount', { count: actualVoters })}</div>}
         </div>
         <div className={classes.quorumBar} style={{ width: `${quorum}%` }}>
-          {!quorumReached && <div className={cx(classes.quorumNumber, { [classes.quorumReached]: quorumReached, [classes.bigQuorum]: quorum > 70 })}>{quorum}% ({actualVoters || 0}/{votersForQuorum})</div>}
+          {!quorumReached && <div className={cn(classes.quorumNumber, { [classes.quorumReached]: quorumReached, [classes.bigQuorum]: quorum > 70 })}>{quorum}% ({actualVoters || 0}/{votersForQuorum})</div>}
         </div>
         <div className={classes.totalVotersBar} />
       </div>

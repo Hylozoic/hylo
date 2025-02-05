@@ -17,7 +17,7 @@ describe('Affiliation', () => {
       }
     }
 
-    render(<Affiliation {...props} /> , { wrapper: AllTheProviders() })
+    render(<Affiliation {...props} />, { wrapper: AllTheProviders() })
 
     // Check if the role is rendered
     expect(screen.getByText('Cheesemonger')).toBeInTheDocument()

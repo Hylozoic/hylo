@@ -14,10 +14,11 @@
 
   img {
     border: 0px;
-    height: 40px;
+    height: 24px;
     position: relative;
-    top: -8px;
-    left: -8px;
+    top: 0px;
+    left: 0px;
+    border-radius: 24px;
   }
   &:hover,
   &:focus {

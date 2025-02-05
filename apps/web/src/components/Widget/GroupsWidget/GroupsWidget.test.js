@@ -7,7 +7,7 @@ const defaultMinProps = {
   items: []
 }
 
-function renderComponent(props = {}) {
+function renderComponent (props = {}) {
   return render(
     <GroupsWidget {...{ ...defaultMinProps, ...props }} />
   )
@@ -31,7 +31,7 @@ describe('GroupsWidget', () => {
     expect(screen.getByText('group one')).toBeInTheDocument()
     expect(screen.getByText('group 2')).toBeInTheDocument()
     expect(screen.getByText('1 member')).toBeInTheDocument()
-    expect(screen.getByText('10 members')).toBeInTheDocument()
+    expect(screen.getByText(/10 member/)).toBeInTheDocument()
     expect(screen.getByText('yo')).toBeInTheDocument()
     expect(screen.getByText('oy')).toBeInTheDocument()
     expect(screen.getAllByText('View').length).toBe(4) // Two "View" texts per group

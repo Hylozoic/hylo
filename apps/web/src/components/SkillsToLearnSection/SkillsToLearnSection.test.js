@@ -7,18 +7,9 @@ describe('SkillsToLearnSection', () => {
   const mockFetchMemberSkills = jest.fn()
 
   it('shows basic pills', () => {
-    render(<SkillsToLearnSection skills={mockSkills} fetchMemberSkills={mockFetchMemberSkills} />)
+    render(<SkillsToLearnSection skills={mockSkills} fetchMemberSkills={mockFetchMemberSkills} editable isMe/>)
 
     expect(screen.getByText('Add a skill you want to learn')).toBeInTheDocument()
-    expect(screen.getByText('test')).toBeInTheDocument()
-    expect(screen.getByText('unclickable')).toBeInTheDocument()
-  })
-
-  it('shows editable fields when isMe = true', () => {
-    render(<SkillsToLearnSection skills={mockSkills} fetchMemberSkills={mockFetchMemberSkills} isMe={true} />)
-
-    expect(screen.getByText('Add a skill you want to learn')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('What skills do you want to learn?')).toBeInTheDocument()
     expect(screen.getByText('test')).toBeInTheDocument()
     expect(screen.getByText('unclickable')).toBeInTheDocument()
   })

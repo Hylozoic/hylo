@@ -11,7 +11,7 @@ describe('RoundImageRow', () => {
     expect(images).toHaveLength(4)
 
     imageUrls.forEach((url, index) => {
-      expect(images[index]).toHaveAttribute('src', url)
+      expect(images[index].getAttribute('style')).toContain(`background-image: url(${url})`)
     })
   })
 

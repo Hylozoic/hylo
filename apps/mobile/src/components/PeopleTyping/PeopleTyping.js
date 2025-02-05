@@ -1,47 +1,36 @@
-import React from 'react'
-import { Text, View } from 'react-native'
-import { each, values } from 'lodash'
-import { func, shape, string } from 'prop-types'
+import React, { forwardRef, useImperativeHandle } from 'react'
+import { Text, View, StyleSheet } from 'react-native'
+import { usePeopleTyping } from '@hylo/hooks/usePeopleTyping'
+import { rhino30 } from 'style/colors'
 
-import styles from './PeopleTyping.styles'
-import { withTranslation } from 'react-i18next'
+const PeopleTyping = forwardRef(({ messageThreadId, postId, commentId }, ref) => {
+  const { sendTyping, typingMessage } = usePeopleTyping({ messageThreadId, postId, commentId })
 
-// the amount to delay before deciding that someone is no longer typing
-const MAX_TYPING_PAUSE = 5000
+  // Expose sendTyping via ref for parent component
+  useImperativeHandle(ref, () => ({
+    sendTyping
+  }))
 
-class PeopleTyping extends React.PureComponent {
-  static propTypes = {
-    clearUserTyping: func.isRequired,
-    peopleTyping: shape({})
+  if (!typingMessage) return null
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.message}>{typingMessage}</Text>
+    </View>
+  )
+})
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    marginHorizontal: 10,
+    marginVertical: 5
+  },
+  message: {
+    color: rhino30,
+    fontFamily: 'Circular-Book',
+    fontSize: 11
   }
+})
 
-  componentDidMount () {
-    this.interval = setInterval(this.resetTyping.bind(this), 500)
-  }
-
-  resetTyping () {
-    const { peopleTyping, clearUserTyping } = this.props
-    each(peopleTyping, ({ timestamp }, id) =>
-      Date.now() - timestamp > MAX_TYPING_PAUSE && clearUserTyping(id))
-  }
-
-  componentWillUnmount () {
-    if (this.interval) clearInterval(this.interval)
-  }
-
-  render () {
-    const { t } = this.props
-    const names = values(this.props.peopleTyping).map(v => v.name)
-    let message = ''
-    if (names.length === 1) message = `${names[0]} ${t('is typing')}...`
-    if (names.length > 1) message = t('Multiple people are typing')
-
-    return (
-      <View style={styles.container}>
-        <Text style={styles.message}>{message}</Text>
-      </View>
-    )
-  }
-}
-
-export default withTranslation()(PeopleTyping)
+export default PeopleTyping

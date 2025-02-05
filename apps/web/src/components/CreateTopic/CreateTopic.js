@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
+import { Navigate } from 'react-router-dom'
 import { any, arrayOf, func, object, string, bool } from 'prop-types'
 import { debounce, has, get, isEmpty, trim } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
@@ -8,7 +9,6 @@ import Button from 'components/Button'
 import Icon from 'components/Icon'
 import ModalDialog from 'components/ModalDialog'
 import TextInput from 'components/TextInput'
-import cx from 'classnames'
 
 import classes from './CreateTopic.module.scss'
 
@@ -41,24 +41,32 @@ class CreateTopic extends Component {
 
   // No text for use with TopicNavigation, text on AllTopics.
   buttonChooser = () => this.props.buttonText
-    ? <Button
-      color='green-white-green-border'
-      key='create-button'
-      narrow
-      onClick={this.toggleTopicModal}
-      className={classes.createTopic}>
-      <Icon name='Plus' green className={classes.plus} data-testid='icon-Plus' />{this.props.buttonText}</Button>
-    : <Icon
-      key='create-button'
-      name='Plus'
-      onClick={this.toggleTopicModal}
-      className={classes.createButton} />
+    ? (
+      <Button
+        color='green-white-green-border'
+        key='create-button'
+        narrow
+        onClick={this.toggleTopicModal}
+        className={classes.createTopic}
+      >
+        <Icon name='Plus' green className={classes.plus} />{this.props.buttonText}
+      </Button>
+      )
+    : (
+      <Icon
+        key='create-button'
+        name='Plus'
+        dataTestId='icon-Plus'
+        onClick={this.toggleTopicModal}
+        className={classes.createButton}
+      />
+      )
 
   componentDidUpdate (prevProps) {
     const { groupSlug } = this.props
     const name = this.safeTopicName()
     // This syntax handles topic names with dots in 'em
-    const topicPath = [ 'groupTopicExists', encodeURI(name), groupSlug ]
+    const topicPath = ['groupTopicExists', encodeURI(name), groupSlug]
     if (!has(topicPath, prevProps) && has(topicPath, this.props)) {
       return get(topicPath, this.props)
         ? this.subscribeAndRedirect(name)
@@ -91,7 +99,8 @@ class CreateTopic extends Component {
       groupTopicExists,
       topics,
       fetchGroupTopic,
-      subscribeAfterCreate } = this.props
+      subscribeAfterCreate
+    } = this.props
 
     const name = this.safeTopicName()
     if (isEmpty(name)) {
@@ -165,36 +174,48 @@ class CreateTopic extends Component {
       if (url !== window.location.pathname) return <Navigate to={url} replace />
     }
 
-    return <React.Fragment>
-      {this.buttonChooser()}
-      {modalVisible && <ModalDialog key='create-dialog'
-        backgroundImage='axolotl-corner.png'
-        closeModal={this.toggleTopicModal}
-        closeOnSubmit={false}
-        modalTitle={modalTitle}
-        notificationIconName='Star'
-        showCancelButton={showCancelButton}
-        showSubmitButton={showSubmitButton}
-        submitButtonAction={this.submitButtonAction}
-        submitButtonIsDisabled={this.submitButtonIsDisabled}
-        submitButtonText={submitButtonText}
-        useNotificationFormat={useNotificationFormat}>
-        {useNotificationFormat
-          ? (subscribeAfterCreate ? <div className={classes.dialogContent}>{t('you\'re subscribed to #{{topicName}}', { topicName: this.ignoreHash(topicName) })}</div> : <div className={classes.dialogContent}>{t('Created topic #{{topicName}}', { topicName: this.ignoreHash(topicName) })}</div>)
-          : <div>
-            <TextInput
-              aria-label='topic-name'
-              autoFocus
-              label='topic-name'
-              name='topic-name'
-              onChange={this.updateTopicName}
-              loading={loading}
-              placeholder={t('Enter a topic name:')}
-              value={this.state.topicName} />
-            {nameError && <div className={classes.topicError}>{nameError}</div>}
-          </div>}
-      </ModalDialog>}
-    </React.Fragment>
+    return (
+      <>
+        {this.buttonChooser()}
+        {modalVisible && (
+          <ModalDialog
+            key='create-dialog'
+            backgroundImage='axolotl-corner.png'
+            closeModal={this.toggleTopicModal}
+            closeOnSubmit={false}
+            modalTitle={modalTitle}
+            notificationIconName='Star'
+            showCancelButton={showCancelButton}
+            showSubmitButton={showSubmitButton}
+            submitButtonAction={this.submitButtonAction}
+            submitButtonIsDisabled={this.submitButtonIsDisabled}
+            submitButtonText={submitButtonText}
+            useNotificationFormat={useNotificationFormat}
+          >
+            {useNotificationFormat
+              ? (subscribeAfterCreate
+                  ? <div className={classes.dialogContent}>{t('you\'re subscribed to #{{topicName}}', { topicName: this.ignoreHash(topicName) })}</div>
+                  : <div className={classes.dialogContent}>{t('Created topic #{{topicName}}', { topicName: this.ignoreHash(topicName) })}</div>
+                )
+              : (
+                <div>
+                  <TextInput
+                    aria-label='topic-name'
+                    autoFocus
+                    label='topic-name'
+                    name='topic-name'
+                    onChange={this.updateTopicName}
+                    loading={loading}
+                    placeholder={t('Enter a topic name:')}
+                    value={this.state.topicName}
+                  />
+                  {nameError && <div className={classes.topicError}>{nameError}</div>}
+                </div>
+                )}
+          </ModalDialog>
+        )}
+      </>
+    )
   }
 }
 export default withTranslation()(CreateTopic)

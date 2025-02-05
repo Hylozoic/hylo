@@ -1,3 +1,5 @@
+@use "sass:color";
+
 .form {
   background-color: white;
   box-shadow: 0px 5px 15px 0px $color-black-10;
@@ -113,11 +115,37 @@
 
 .error {
   color: $color-amaranth;
-  background-color: transparentize($color-amaranth, 0.9);
+  background-color: color.adjust($color-amaranth, $alpha: -0.9);
   border: 1px solid $color-amaranth;
   border-radius: 4px;
   padding: 9px 16px;
   margin-bottom: 20px;
+}
+
+.codeContainer {
+  display: flex;
+  justify-content: center;
+  width: auto;
+}
+
+.codeCharacter {
+  width: 30px;
+  height: 40px;
+  border-radius: 6px;
+  line-height: 36px;
+  font-size: 34px;
+}
+
+.codeCharacterInactive {
+  background-color: lightgray;
+}
+
+.codeCharacterSelected {
+  background-color: white;
+}
+
+.codeCharacterFilled {
+  background-color: white;
 }
 
 .below-container {

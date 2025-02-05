@@ -1,8 +1,8 @@
 import React from 'react'
 import { View } from 'react-native'
+import useReactOnEntity from '@hylo/hooks/useReactOnEntity'
 import EmojiPicker from 'components/EmojiPicker'
 import EmojiPill from 'components/EmojiPill'
-import useReactionActions from 'hooks/useReactionActions'
 
 export default function EmojiRow (props) {
   const {
@@ -11,16 +11,17 @@ export default function EmojiRow (props) {
     post,
     includePicker = true
   } = props
-  const { reactOnEntity, removeReactOnFromEntity } = useReactionActions()
+  const { reactOnEntity, deleteReactionFromEntity } = useReactOnEntity()
 
-  if (!post) return null
+  if (!post && !comment) return null
 
   const entityType = comment ? 'comment' : 'post'
+  const entityId = comment ? comment?.id : post?.id
+  // const groupIds = post.groups.map(g => g.id)
+  const handleReaction = (emojiFull) => reactOnEntity(entityType, entityId, emojiFull)
+  const handleRemoveReaction = (emojiFull) => deleteReactionFromEntity(entityType, entityId, emojiFull)
   const myReactions = (comment ? comment.myReactions : post.myReactions) || []
   const entityReactions = (comment ? comment.commentReactions : post.postReactions) || []
-  const groupIds = post.groups.map(g => g.id)
-  const handleReaction = (emojiFull) => reactOnEntity({ commentId: comment?.id, emojiFull, entityType, groupIds, postId: post.id })
-  const handleRemoveReaction = (emojiFull) => removeReactOnFromEntity({ commentId: comment?.id, emojiFull, entityType, postId: post.id })
   const myEmojis = myReactions.map((reaction) => reaction.emojiFull)
   const usersReactions = entityReactions.reduce((accum, entityReaction) => {
     if (accum[entityReaction.emojiFull]) {

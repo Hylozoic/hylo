@@ -1,13 +1,11 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import WelcomeExplore from './WelcomeExplore'
 
 describe('WelcomeExplore', () => {
   it('renders correctly with user name', () => {
     render(
-      <WelcomeExplore currentUser={{ name: 'Tibet Sprout' }} />,
-      { wrapper: AllTheProviders }
+      <WelcomeExplore currentUser={{ name: 'Tibet Sprout' }} />
     )
 
     expect(screen.getByText('Welcome to Hylo!')).toBeInTheDocument()
@@ -16,8 +14,7 @@ describe('WelcomeExplore', () => {
 
   it('renders all navigation links', () => {
     render(
-      <WelcomeExplore currentUser={{ name: 'Tibet Sprout' }} />,
-      { wrapper: AllTheProviders }
+      <WelcomeExplore currentUser={{ name: 'Tibet Sprout' }} />
     )
 
     expect(screen.getByRole('link', { name: /View the public map/i })).toHaveAttribute('href', '/public/map?hideDrawer=true')
@@ -29,8 +26,7 @@ describe('WelcomeExplore', () => {
   it('displays user avatar when provided', () => {
     const avatarUrl = 'https://example.com/avatar.jpg'
     render(
-      <WelcomeExplore currentUser={{ name: 'Tibet Sprout', avatarUrl }} />,
-      { wrapper: AllTheProviders }
+      <WelcomeExplore currentUser={{ name: 'Tibet Sprout', avatarUrl }} />
     )
 
     const profileImage = screen.getByText('Complete your profile').closest('div').previousSibling

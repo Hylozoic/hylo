@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { isEmpty } from 'lodash'
 import React, { useEffect, useRef, useState } from 'react'
 import { string } from 'prop-types'
@@ -27,7 +27,7 @@ function AboutSection ({ description, purpose }) {
 
   return (
     <div className={classes.aboutSection}>
-      <div className={cx(classes.aboutContent, { [classes.expanded]: expanded })} ref={containerRef}>
+      <div className={cn(classes.aboutContent, { [classes.expanded]: expanded })} ref={containerRef}>
         {showExpandButton && !expanded && <div className={classes.gradient} />}
         {!isEmpty(purpose) &&
           <ClickCatcher>

@@ -1,11 +1,9 @@
 import React, { Component, createRef } from 'react'
 import { withTranslation } from 'react-i18next'
 import { bool, func, node, string } from 'prop-types'
-import cx from 'classnames'
-
-import { bgImageStyle } from 'util/index'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
+import { bgImageStyle, cn } from 'util/index'
 
 import classes from './ModalDialog.module.scss'
 
@@ -122,28 +120,30 @@ class ModalDialog extends Component {
 
     const backgroundStyle = backgroundImage && useNotificationFormat
       ? {
-        ...bgImageStyle(`/assets/${backgroundImage}`),
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'bottom left',
-        backgroundSize: '180px'
-      }
+          ...bgImageStyle(`/assets/${backgroundImage}`),
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'bottom left',
+          backgroundSize: '180px'
+        }
       : {}
     const innerStyle = { ...backgroundStyle, ...style }
     const showControls = showCancelButton || showSubmitButton
 
     return (
       <div className={classes.popup} tabIndex='-1'>
-        <div className={classes.popupInner} style={innerStyle} ref={this.modalRef}>
+        <div className={classes.popupInner} style={innerStyle} ref={this.modalRef} data-testid='popup-inner'>
           <span onClick={this.cancel} className={classes.closeBtn}>
             <Icon name='Ex' className={classes.icon} />
           </span>
 
           <div className={classes.titleBlock}>
             {useNotificationFormat &&
-              <Icon green name={notificationIconName} className={classes.notificationIcon} />}
-            {showModalTitle && <h1 className={cx({ [classes.notificationTitle]: useNotificationFormat })}>
-              {modalTitle}
-            </h1>}
+              <Icon green name={notificationIconName} className={classes.notificationIcon} dataTestId={'icon-' + notificationIconName} />}
+            {showModalTitle && (
+              <h1 className={cn({ [classes.notificationTitle]: useNotificationFormat })}>
+                {modalTitle}
+              </h1>
+            )}
           </div>
 
           <div className={classes.content}>

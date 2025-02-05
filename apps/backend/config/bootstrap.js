@@ -13,7 +13,7 @@ import util from 'util'
 import models from '../api/models'
 import queryMonitor from '../lib/util/queryMonitor'
 import { red } from 'chalk'
-require('dotenv').load()
+require('dotenv').config()
 
 // very handy, these
 global.format = util.format
@@ -25,7 +25,7 @@ module.exports.bootstrap = function (done) {
 
   if (process.env.DEBUG_MEMORY) {
     sails.log.info(red('memwatch: starting'))
-    var memwatch = require('@airbnb/node-memwatch')
+    const memwatch = require('@airbnb/node-memwatch')
 
     memwatch.on('leak', info => sails.log.info(red('memwatch: memory leak!'), info))
 

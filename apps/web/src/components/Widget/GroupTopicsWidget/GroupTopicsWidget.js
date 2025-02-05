@@ -18,16 +18,18 @@ export default class GroupTopicsWidget extends Component {
 
     return (
       <div className={classes.groupTopics}>
-        {items && items.map(t => <Link key={t.id} to={topicUrl(t.name, { groupSlug: group.slug, context: 'groups' })}>
-          <div className={classes.topicWrapper}>
+        {items && items.map(t => (
+          <Link key={t.id} to={topicUrl(t.name, { groupSlug: group.slug, context: 'groups' })}>
             <div className={classes.topicWrapper}>
-              <div className={classes.topic}>
-                <span className={classes.numPosts}>{t.postsTotal}</span>
-                <span className={classes.topicName}>{t.name}</span>
+              <div className={classes.topicWrapper}>
+                <div className={classes.topic}>
+                  <span className={classes.numPosts}>{t.postsTotal}</span>
+                  <span className={classes.topicName}>{t.name}</span>
+                </div>
               </div>
             </div>
-          </div>
-        </Link>)}
+          </Link>
+        ))}
       </div>
     )
   }

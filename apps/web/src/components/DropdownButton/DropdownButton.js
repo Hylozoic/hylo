@@ -1,6 +1,6 @@
+import { cn } from 'util/index'
 import React, { Component } from 'react'
 import classes from './DropdownButton.module.scss'
-import cx from 'classnames'
 
 export default class DropdownButton extends Component {
   state = {
@@ -26,23 +26,27 @@ export default class DropdownButton extends Component {
     const { label, className, choices, position } = this.props
     const { expanded } = this.state
 
-    return <div>
-      <div
-        role='button'
-        className={cx(
-          classes.dropdownButton,
-          classes.green,
-          classes.narrow,
-          classes.small,
-          className
-        )}
-        onClick={this.toggleExpanded}>
-        {label}&nbsp;&nbsp;|&nbsp;&nbsp;▾
+    return (
+      <div>
+        <div
+          role='button'
+          className={cn(
+            classes.dropdownButton,
+            classes.green,
+            classes.narrow,
+            classes.small,
+            className
+          )}
+          onClick={this.toggleExpanded}
+          data-position={position}
+        >
+          {label}&nbsp;&nbsp;|&nbsp;&nbsp;▾
+        </div>
+        <div className={cn(classes.dropdown, { [classes.expanded]: expanded, [classes.top]: position === 'top' })} data-testid='dropdown-button-choices'>
+          {choices.map(({ label, value }) =>
+            <span className={classes.choice} key={value} onClick={(e) => { e.preventDefault(); e.stopPropagation(); this.onChoose(value, label) }}>{label}</span>)}
+        </div>
       </div>
-      <div className={cx(classes.dropdown, { [classes.expanded]: expanded, [classes.top]: position === 'top' })}>
-        {choices.map(({ label, value }) =>
-          <span className={classes.choice} key={value} onClick={(e) => { e.preventDefault(); e.stopPropagation(); this.onChoose(value, label) }}>{label}</span>)}
-      </div>
-    </div>
+    )
   }
 }

@@ -1,7 +1,7 @@
 import React from 'react'
 import userEvent from '@testing-library/user-event'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
-import { graphql } from 'msw'
+import { graphql, HttpResponse } from 'msw'
 import orm from 'store/models'
 import extractModelsForTest from 'util/testing/extractModelsForTest'
 import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
@@ -54,12 +54,18 @@ it('does not submit if name is not present, even if password is valid', async ()
   const user = userEvent.setup()
   const registerCalled = jest.fn()
 
-  mockGraphqlServer.resetHandlers(
-    graphql.mutation('Register', (req, res, ctx) => {
+  mockGraphqlServer.use(
+    graphql.mutation('Register', ({ query, variables }) => {
       registerCalled(req.variables)
 
       // this return is required, results are ignored
-      return {}
+      return HttpResponse.json({
+        data: {
+          register: {
+            id: '1'
+          }
+        }
+      })
     })
   )
 
@@ -79,12 +85,18 @@ it('registers user if a name and valid password provided', async () => {
   const user = userEvent.setup()
   const registerCalled = jest.fn()
 
-  mockGraphqlServer.resetHandlers(
-    graphql.mutation('Register', (req, res, ctx) => {
-      registerCalled(req.variables)
+  mockGraphqlServer.use(
+    graphql.mutation('Register', ({ query, variables }) => {
+      registerCalled(variables)
 
       // this return is required, results are ignored
-      return {}
+      return HttpResponse.json({
+        data: {
+          register: {
+            id: '1'
+          }
+        }
+      })
     })
   )
 

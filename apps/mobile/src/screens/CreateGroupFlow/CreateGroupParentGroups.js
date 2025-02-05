@@ -3,21 +3,20 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useFocusEffect } from '@react-navigation/native'
 import { Text, TouchableOpacity, FlatList } from 'react-native'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import getMemberships from 'store/selectors/getMemberships'
-// NOTE: Make a local copy of this if modification is needed
-import ItemChooserItemRow from 'screens/ItemChooser/ItemChooserItemRow'
 import { white } from 'style/colors'
-import { GROUP_ACCESSIBILITY } from 'store/models/Group'
+import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 import { getGroupData, updateGroupData } from './CreateGroupFlow.store'
 import styles from './CreateGroupFlow.styles'
 import { useTranslation } from 'react-i18next'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 export default function CreateGroupParentGroups ({ navigation }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
+  const [{ currentUser }] = useCurrentUser()
   const groupData = useSelector(getGroupData)
   const [parentIds, setParentGroupIds] = useState(groupData.parentIds)
-  const memberships = useSelector(getMemberships)
+  const memberships = currentUser?.memberships
   const parentGroupOptions = memberships
     .filter(m => m.hasModeratorRole || m.group.accessibility === GROUP_ACCESSIBILITY.Open)
     .map((m) => m.group)
@@ -41,13 +40,14 @@ export default function CreateGroupParentGroups ({ navigation }) {
     <KeyboardFriendlyView style={styles.container}>
       <Text style={styles.heading}>{t('Is this group a member of other groups?')}</Text>
       <Text style={stepStyles.subHeading}>{t('Please select below:')}</Text>
-      <FlatList
+      {/* TODO: ItemSelectorModal  */}
+      {/* <FlatList
         style={stepStyles.parentGroupListContainer}
         data={parentGroupOptions}
         renderItem={({ item }) => (
           <ItemChooserItemRow item={item} chosen={isChosen(item)} toggleChosen={toggleChosen} />
         )}
-      />
+      /> */}
       <TouchableOpacity onPress={clear}>
         <Text style={stepStyles.clearButton}>{t('Clear')}</Text>
       </TouchableOpacity>

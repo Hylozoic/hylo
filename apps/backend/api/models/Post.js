@@ -5,7 +5,7 @@ import { init, getEmojiDataFromNative } from 'emoji-mart'
 import { difference, filter, isNull, omitBy, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import fetch from 'node-fetch'
 import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
@@ -295,6 +295,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   async checkClickthrough (userId) {
+    if (!userId) return null
+
     const pu = await this.postUsers()
       .query(q => q.where('user_id', userId)).fetchOne()
     return (pu && pu.get('clickthrough')) || null
@@ -757,11 +759,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
     num_comments: 0,
     num_people_reacts: 0
   }),
-
+  
   create: function (attrs, opts) {
-    console.log('entering Post.create')
     return Post.forge(_.merge(Post.newPostAttrs(), attrs))
-    .save(null, _.pick(opts, 'transacting'))
+      .save(null, _.pick(opts, 'transacting'))
   },
 
   async updateFromNewComment ({ postId, commentId }) {
@@ -841,21 +842,21 @@ module.exports = bookshelf.Model.extend(Object.assign({
   updateProposalStatuses: async () => {
     return bookshelf.knex.raw(
       `UPDATE posts
-      SET proposal_status = 
-          CASE 
-              WHEN proposal_status NOT IN ('casual', 'completed') 
-                   AND type = 'proposal' 
-                   AND CURRENT_TIMESTAMP BETWEEN start_time AND end_time 
+      SET proposal_status =
+          CASE
+              WHEN proposal_status NOT IN ('casual', 'completed')
+                   AND type = 'proposal'
+                   AND CURRENT_TIMESTAMP BETWEEN start_time AND end_time
                    THEN 'voting'
-              WHEN proposal_status NOT IN ('casual', 'completed') 
-                   AND type = 'proposal' 
-                   AND CURRENT_TIMESTAMP > end_time 
+              WHEN proposal_status NOT IN ('casual', 'completed')
+                   AND type = 'proposal'
+                   AND CURRENT_TIMESTAMP > end_time
                    THEN 'completed'
               ELSE proposal_status
           END
-      WHERE type = 'proposal' 
-        AND proposal_status NOT IN ('casual', 'completed') 
-        AND start_time IS NOT NULL 
+      WHERE type = 'proposal'
+        AND proposal_status NOT IN ('casual', 'completed')
+        AND start_time IS NOT NULL
         AND end_time IS NOT NULL;`
     )
   },

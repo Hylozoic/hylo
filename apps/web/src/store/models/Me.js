@@ -85,6 +85,6 @@ Me.fields = {
     to: 'Skill',
     relatedName: 'personLearning',
     through: 'MySkillsToLearn',
-    throughFields: [ 'me', 'skillToLearn' ]
+    throughFields: ['me', 'skillToLearn']
   })
 }

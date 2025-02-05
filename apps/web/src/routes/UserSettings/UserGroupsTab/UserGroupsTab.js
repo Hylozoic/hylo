@@ -15,7 +15,7 @@ import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import Membership from 'components/Membership'
 import classes from './UserGroupsTab.module.scss'
-import cx from 'classnames'
+import { cn } from 'util/index'
 
 const { array, func, object, string } = PropTypes
 
@@ -71,14 +71,16 @@ class UserGroupsTab extends Component {
           />
         )}
 
-        { action === CREATE_AFFILIATION && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={this.resetMessage} />}
+        {action === CREATE_AFFILIATION && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={this.resetMessage} />}
 
-        {showAddAffiliations ? <AddAffiliation close={this.toggleAddAffiliations} save={this.saveAffiliation} /> : (
-          <div className={classes.addAffiliation} onClick={this.toggleAddAffiliations}>
-            <div className={classes.plus}>+</div>
-            <div>{t('Add new affiliation')}</div>
-          </div>
-        )}
+        {showAddAffiliations
+          ? <AddAffiliation close={this.toggleAddAffiliations} save={this.saveAffiliation} />
+          : (
+            <div className={classes.addAffiliation} onClick={this.toggleAddAffiliations}>
+              <div className={classes.plus}>+</div>
+              <div>{t('Add new affiliation')}</div>
+            </div>
+            )}
       </div>
     )
   }
@@ -192,7 +194,8 @@ export function AddAffiliation ({ close, save }) {
             onClick: () => setPreposition(p)
           }))}
           alignLeft
-          className={classes.dropdown} />
+          className={classes.dropdown}
+        />
 
         <div>
           <input
@@ -213,7 +216,7 @@ export function AddAffiliation ({ close, save }) {
           />
         </div>
 
-        <div className={cx(classes.save, { [classes.disabled]: !canSave })}>
+        <div className={cn(classes.save, { [classes.disabled]: !canSave })}>
           <span onClick={canSave ? () => save({ role, preposition, orgName, url }) : undefined}>{t('Add Affiliation')}</span>
         </div>
 
@@ -224,7 +227,7 @@ export function AddAffiliation ({ close, save }) {
 
 export function Message ({ errorMessage, successMessage, reset }) {
   return (
-    <div className={cx(classes.message, { [classes.error]: errorMessage, [classes.success]: !errorMessage })} onClick={reset}>{errorMessage || successMessage }</div>
+    <div className={cn(classes.message, { [classes.error]: errorMessage, [classes.success]: !errorMessage })} onClick={reset}>{errorMessage || successMessage}</div>
   )
 }
 export default withTranslation()(UserGroupsTab)

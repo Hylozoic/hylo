@@ -1,68 +1,94 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, AllTheProviders, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import mockGraphqlServer from 'util/testing/mockGraphqlServer'
+import { graphql, HttpResponse } from 'msw'
+import orm from 'store/models'
+import { CENTER_COLUMN_ID } from 'util/scrolling'
 import Members, { twoByTwo } from './Members'
-import { Provider } from 'react-redux'
-import configureStore from 'redux-mock-store'
-
-const mockStore = configureStore([])
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useParams: () => ({ groupSlug: 'test-group' }),
+  useParams: () => ({ groupSlug: 'goteam' }),
   useLocation: () => ({ search: '' })
 }))
 
-describe('Members component', () => {
-  it('renders members and total count', () => {
-    const store = mockStore({
-      pending: {},
-      groups: {
-        'test-group': { id: 1, name: 'Test Group', memberCount: 3 }
-      },
-      members: {
-        'test-group': [
-          { id: '1', name: 'You' },
-          { id: '2', name: 'Me' },
-          { id: '3', name: 'Everyone' }
-        ]
-      }
-    })
-
-    render(
-      <Provider store={store}>
-        <Members />
-      </Provider>
-    )
-
-    expect(screen.getByText('Members')).toBeInTheDocument()
-    expect(screen.getByText('3 Total Members')).toBeInTheDocument()
-    expect(screen.getAllByTestId('member-card')).toHaveLength(3)
-    expect(screen.getByText('You')).toBeInTheDocument()
-    expect(screen.getByText('Me')).toBeInTheDocument()
-    expect(screen.getByText('Everyone')).toBeInTheDocument()
+function testProviders () {
+  const ormSession = orm.mutableSession(orm.getEmptyState())
+  ormSession.Me.create({
+    id: '1',
+    name: 'You',
+    memberships: [ormSession.Membership.create({
+      id: '1',
+      group: '1'
+    })],
+    membershipCommonRoles: [{ commonRoleId: '1', groupId: '1', userId: '1', id: '1' }]
+  })
+  ormSession.CommonRole.create({ id: '1', name: 'Coordinator', responsibilities: [{ id: '1', title: 'Administration' }, { id: '2', title: 'Add Members' }] })
+  ormSession.Group.create({
+    id: '1',
+    slug: 'goteam',
+    name: 'Go Team',
+    memberCount: 3,
+    members: [
+      { id: '1', name: 'You', membershipCommonRoles: [{ id: '1', commonRoleId: '1', groupId: '1' }] },
+      { id: '2', name: 'Me', membershipCommonRoles: [{ id: '2', commonRoleId: '1', groupId: '1' }] },
+      { id: '3', name: 'Everyone', membershipCommonRoles: [{ id: '3', commonRoleId: '1', groupId: '1' }] }
+    ],
+    membershipCommonRoles: [
+      { commonRoleId: '1', groupId: '1', userId: '1', id: '1' },
+      { commonRoleId: '1', groupId: '1', userId: '2', id: '2' },
+      { commonRoleId: '1', groupId: '1', userId: '3', id: '3' }
+    ]
   })
 
-  it('renders invite button when user has permission', () => {
-    const store = mockStore({
-      pending: {},
-      groups: {
-        'test-group': { id: 1, name: 'Test Group', memberCount: 1 }
-      },
-      members: {
-        'test-group': [{ id: '1', name: 'You' }]
-      },
-      responsibilities: {
-        1: [{ title: 'Add Members' }]
-      }
-    })
+  const reduxState = { orm: ormSession.state, pending: {} }
 
-    render(
-      <Provider store={store}>
-        <Members />
-      </Provider>
+  return AllTheProviders(reduxState)
+}
+
+describe('Members component', () => {
+  beforeAll(() => {
+    const centerColumn = document.createElement('div')
+    centerColumn.id = CENTER_COLUMN_ID
+    document.body.appendChild(centerColumn)
+  })
+
+  beforeEach(() => {
+    mockGraphqlServer.use(
+      graphql.query('FetchGroupMembers', ({ query, variables }) => {
+        return HttpResponse.json({
+          data: {
+            group: {
+              id: '1',
+              name: 'Go Team',
+              memberCount: 3,
+              members: { items: [{ id: '1', name: 'You' }, { id: '2', name: 'Me' }, { id: '3', name: 'Everyone' }] }
+            }
+          }
+        })
+      })
     )
+  })
 
-    expect(screen.getByText('Invite People')).toBeInTheDocument()
+  it('renders members and total count', async () => {
+    render(<Members />, { wrapper: testProviders() })
+
+    await waitFor(() => {
+      expect(screen.getByText('Members')).toBeInTheDocument()
+      expect(screen.getByText('3 Total Members')).toBeInTheDocument()
+      expect(screen.getAllByTestId('member-card')).toHaveLength(3)
+      expect(screen.getByText('You')).toBeInTheDocument()
+      expect(screen.getByText('Me')).toBeInTheDocument()
+      expect(screen.getByText('Everyone')).toBeInTheDocument()
+    })
+  })
+
+  it('renders invite button when user has permission', async () => {
+    render(<Members />, { wrapper: testProviders() })
+
+    await waitFor(() => {
+      expect(screen.getByText('Invite People')).toBeInTheDocument()
+    })
   })
 })
 

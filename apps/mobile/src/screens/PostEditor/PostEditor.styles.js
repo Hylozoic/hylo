@@ -1,5 +1,5 @@
 import { isIOS } from 'util/platform'
-import { POST_TYPES } from 'store/models/Post'
+import { POST_TYPES } from '@hylo/presenters/PostPresenter'
 import {
   caribbeanGreen,
   rhino30,

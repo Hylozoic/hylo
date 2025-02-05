@@ -1,4 +1,4 @@
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import { groupUrl } from 'util/navigation'
 
 const parsegroup = group => `Group: ${group.name}`
@@ -26,7 +26,7 @@ export function currentFilters (filters) {
 export function formatParams (search) {
   const { group, context, createdAt, postTypes, searchText, topics } = search
   return [
-    `Created on ${moment(createdAt).format('MMMM Do YYYY')}`,
+    `Created on ${DateTime.fromISO(createdAt).toFormat('MMMM d yyyy')}`, // this was 'do' as in ordinal, but not supported in luxon
     ['all', 'public'].includes(context) ? `Context: ${context}` : '',
     group ? parsegroup(group) : '',
     searchText ? parseSearch(searchText) : '',
@@ -39,8 +39,8 @@ export function formatParamPreview (search) {
   const { context, group, postTypes } = search
   const contextDetails = {
     groups: group ? parsegroup(group) : '',
-    public: `Public Groups`,
-    all: `All Groups`
+    public: 'Public Groups',
+    all: 'All Groups'
   }
   return `${contextDetails[context]} • ${parsePostTypes(postTypes)}`
 }
@@ -52,7 +52,7 @@ export function generateViewParams (search) {
   let mapPath, groupSlug
   switch (context) {
     case 'all': {
-      mapPath = `/all/map`
+      mapPath = '/all/map'
       break
     }
     case 'groups': {
@@ -61,7 +61,7 @@ export function generateViewParams (search) {
       break
     }
     default: {
-      mapPath = `/public/map`
+      mapPath = '/public/map'
     }
   }
 

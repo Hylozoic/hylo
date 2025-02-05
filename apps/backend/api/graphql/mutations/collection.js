@@ -1,5 +1,5 @@
 import { isEmpty, mapKeys, pick, snakeCase } from 'lodash'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLError } from 'graphql'
 
 export async function addPostToCollection (userId, collectionId, postId) {
   await Collection.findValidCollectionForUser(userId, collectionId)
@@ -8,7 +8,7 @@ export async function addPostToCollection (userId, collectionId, postId) {
   const post = await Post.find(postId)
 
   if (!post) {
-    throw new GraphQLYogaError('Not a valid post')
+    throw new GraphQLError('Not a valid post')
   }
 
   const order = await CollectionsPost.query(q => {
@@ -35,7 +35,7 @@ export async function removePostFromCollection (userId, collectionId, postId) {
   const linkedPost = await CollectionsPost.query(q => q.where({ collection_id: collectionId, post_id: postId })).fetch()
 
   if (!linkedPost) {
-    throw new GraphQLYogaError('Not a valid post')
+    throw new GraphQLError('Not a valid post')
   }
 
   await linkedPost.destroy()
@@ -48,7 +48,7 @@ export async function reorderPostInCollection (userId, collectionId, postId, new
   const linkedPost = await CollectionsPost.query(q => q.where({ collection_id: collectionId, post_id: postId })).fetch()
 
   if (!linkedPost) {
-    throw new GraphQLYogaError('Not a valid post')
+    throw new GraphQLError('Not a valid post')
   }
 
   const oldOrder = linkedPost.get('order')

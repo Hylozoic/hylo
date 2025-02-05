@@ -1,3 +1,4 @@
+import { cn } from 'util/index'
 import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
@@ -92,13 +93,13 @@ export function OpportunityToCollaborate ({ group, opportunity }) {
       <Icon className={classes.collabIcon} blue name={determineIcon(opportunity)} />
       <div className={classes.collabTextContainer}>
         <div className={classes.collabTitle}>{collabTitle[opportunity]}</div>
-        <div className={classes.collabText}>{collabText(group)[opportunity]}</div>
+        <div className={classes.collabText}>{collabText(t, group)[opportunity]}</div>
       </div>
       {currentUser && (
         <Icon
           name='Messages'
           blue
-          className={cx(classes.collabIcon, classes.cursorPointer)}
+          className={cn(classes.collabIcon, classes.cursorPointer)}
           onClick={goToGroupStewardsMessage}
         />
       )}
@@ -106,34 +107,33 @@ export function OpportunityToCollaborate ({ group, opportunity }) {
   )
 }
 
-const collabText = (group) => {
-  const { t } = useTranslation()
+const collabText = (t, group) => {
   return {
-    research: t(`{{group.name}} is available to participate in research`, { group }),
-    events: t(`{{group.name}} is open to co-hosting events`, { group }),
-    volunteering: t(`{{group.name}} has some volunteering opportunities`, { group }),
-    mentorship: t(`Contact {{group.name}} to learn about their practices`, { group }),
-    cooperative: t(`{{group.name}} is interested in forming a cooperative`, { group }),
-    buy: t(`Buy from {{group.name}}`, { group }),
-    markets: t(`{{group.name}} is seeking new markets`, { group }),
-    ecosystem_service_markets: t(`{{group.name}} is seeking ecosystem services`, { group }),
-    loans: t(`{{group.name}} is interested in low-cost loans`, { group }),
-    support: t(`{{group.name}} is seeking farm support`, { group }),
-    equipment_sharing: t(`{{group.name}} is interested in equipment sharing`, { group }),
-    increase_sales: t(`{{group.name}} is interested in increasing their sales`, { group }),
-    communication: t(`{{group.name}} seeks better communication / marketing to their buyers`, { group }),
-    new_products_methods: t(`{{group.name}} wants to learn about new methods or practices`, { group }),
-    carbon: t(`{{group.name}} is interested in carbon markets`, { group }),
-    environmental_impact: t(`{{group.name}} is curious about better understanding their farm through data (soil, environmental impacts, etc.)`, { group }),
-    benchmarking: t(`{{group.name}} wants to comparing my farm to others`, { group }),
-    insetting: t(`{{group.name}} wants to easily provide data to supply chain partners`, { group }),
-    reduce_risk: t(`{{group.name}} wants to reduce hazard risk (fire, flood, drought, etc.)`, { group }),
-    farm_valuation: t(`{{group.name}} wants to increase their farm valuation`, { group }),
-    certifications: t(`{{group.name}} is curious about further certification (organic, ISO, regenerative, etc.)`, { group }),
-    food_nutrition: t(`{{group.name}} is curious about understanding the nutrient density of their product`, { group }),
-    biodiversity: t(`{{group.name}} wants help focusing on biodiversity (protecting species, improving ecology, markets)`, { group }),
-    product_quality: t(`{{group.name}} wants to improve product quality`, { group }),
-    animal_welfare: t(`{{group.name}} wants to ensure animal welfare`, { group })
+    research: t('{{group.name}} is available to participate in research', { group }),
+    events: t('{{group.name}} is open to co-hosting events', { group }),
+    volunteering: t('{{group.name}} has some volunteering opportunities', { group }),
+    mentorship: t('Contact {{group.name}} to learn about their practices', { group }),
+    cooperative: t('{{group.name}} is interested in forming a cooperative', { group }),
+    buy: t('Buy from {{group.name}}', { group }),
+    markets: t('{{group.name}} is seeking new markets', { group }),
+    ecosystem_service_markets: t('{{group.name}} is seeking ecosystem services', { group }),
+    loans: t('{{group.name}} is interested in low-cost loans', { group }),
+    support: t('{{group.name}} is seeking farm support', { group }),
+    equipment_sharing: t('{{group.name}} is interested in equipment sharing', { group }),
+    increase_sales: t('{{group.name}} is interested in increasing their sales', { group }),
+    communication: t('{{group.name}} seeks better communication / marketing to their buyers', { group }),
+    new_products_methods: t('{{group.name}} wants to learn about new methods or practices', { group }),
+    carbon: t('{{group.name}} is interested in carbon markets', { group }),
+    environmental_impact: t('{{group.name}} is curious about better understanding their farm through data (soil, environmental impacts, etc.)', { group }),
+    benchmarking: t('{{group.name}} wants to comparing my farm to others', { group }),
+    insetting: t('{{group.name}} wants to easily provide data to supply chain partners', { group }),
+    reduce_risk: t('{{group.name}} wants to reduce hazard risk (fire, flood, drought, etc.)', { group }),
+    farm_valuation: t('{{group.name}} wants to increase their farm valuation', { group }),
+    certifications: t('{{group.name}} is curious about further certification (organic, ISO, regenerative, etc.)', { group }),
+    food_nutrition: t('{{group.name}} is curious about understanding the nutrient density of their product', { group }),
+    biodiversity: t('{{group.name}} wants help focusing on biodiversity (protecting species, improving ecology, markets)', { group }),
+    product_quality: t('{{group.name}} wants to improve product quality', { group }),
+    animal_welfare: t('{{group.name}} wants to ensure animal welfare', { group })
   }
 }
 

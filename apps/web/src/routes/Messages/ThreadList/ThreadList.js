@@ -1,160 +1,108 @@
-import React, { Component } from 'react'
-import { withTranslation } from 'react-i18next'
-import PropTypes from 'prop-types'
-import cx from 'classnames'
-import { get, isEmpty, orderBy } from 'lodash/fp'
-import { Link } from 'react-router-dom'
-import { TextHelpers } from '@hylo/shared'
-import Badge from 'components/Badge'
+import { isEmpty, orderBy } from 'lodash/fp'
+import React, { useCallback, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector } from 'react-redux'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import Icon from 'components/Icon'
-import RoundImage from 'components/RoundImage'
 import TextInput from 'components/TextInput'
 import ScrollListener from 'components/ScrollListener'
 import { toRefArray, itemsToArray } from 'util/reduxOrmMigration'
-import { participantAttributes } from 'store/models/MessageThread'
+import fetchThreads from 'store/actions/fetchThreads'
+import getMe from 'store/selectors/getMe'
+import isPendingFor from 'store/selectors/isPendingFor'
+import {
+  setThreadSearch,
+  getThreadSearch,
+  getThreads,
+  getThreadsHasMore
+} from '../Messages.store'
+
 import Loading from 'components/Loading'
+import ThreadListItem from './ThreadListItem'
+import { cn } from 'util/index'
+
 import classes from './ThreadList.module.scss'
 
-class ThreadList extends Component {
-  static defaultProps = {
-    threads: []
-  }
+function ThreadList () {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const currentUser = useSelector(getMe)
+  const routeParams = useParams()
+  const navigate = useNavigate()
+  const { messageThreadId } = routeParams
 
-  onSearchChange = event => this.props.setThreadSearch(event.target.value)
+  const threads = useSelector(state => getThreads(state))
+  const threadsPending = useSelector(state => isPendingFor(fetchThreads, state))
+  const hasMoreThreads = useSelector(state => getThreadsHasMore(state))
+  const threadSearch = useSelector(state => getThreadSearch(state))
 
-  render () {
-    const {
-      currentUser,
-      threadsPending,
-      threads,
-      threadSearch,
-      onScrollBottom,
-      messageThreadId,
-      className,
-      t
-    } = this.props
+  const fetchMoreThreadsAction = useCallback(() => hasMoreThreads && dispatch(fetchThreads(20, threads.length)), [hasMoreThreads])
+  const setThreadSearchAction = useCallback((search) => dispatch(setThreadSearch(search)), [])
 
-    return (
-      <div className={cx(classes.threadList, className)}>
-        <div className={classes.header}>
-          <div className={classes.search}>
-            <div className={classes.searchIcon}>
-              <Icon name='Search' />
-            </div>
-            <TextInput
-              placeholder={t('Search for people...')}
-              value={threadSearch}
-              onChange={this.onSearchChange}
-              onFocus={this.props.onFocus}
-              noClearButton
-            />
+  const onSearchChange = event => setThreadSearchAction(event.target.value)
+
+  useEffect(() => {
+    dispatch(fetchThreads(20, 0)).then(() => {
+      if (!messageThreadId) {
+        const firstThread = threads[0]
+        if (firstThread) {
+          navigate(`/messages/${firstThread.id}`, { replace: true })
+        }
+      }
+    })
+  }, [])
+
+  return (
+    <div className={cn(classes.threadList)}>
+      <div className={classes.header}>
+        <div className={classes.search}>
+          <div className={classes.searchIcon}>
+            <Icon name='Search' />
           </div>
-          <Link className={classes.newMessage} to='/messages/new'>
-            <span>{t('New')}</span>
-            <Icon name='Messages' className={classes.messagesIcon} />
-          </Link>
+          <TextInput
+            placeholder={t('Search messages...')}
+            value={threadSearch}
+            onChange={onSearchChange}
+            noClearButton
+          />
         </div>
-        <ul className={classes.list} id='thread-list-list'>
-          {!isEmpty(threads) && threads.map(t => {
-            const messages = itemsToArray(toRefArray(t.messages))
-            const isUnread = t.unreadCount > 0
-            const latestMessage = orderBy(m => Date.parse(m.createdAt), 'desc', messages)[0]
-
-            return (
-              <ThreadListItem
-                id={t.id}
-                active={t.id === messageThreadId}
-                thread={t}
-                latestMessage={latestMessage}
-                currentUser={currentUser}
-                unreadCount={t.unreadCount}
-                key={`thread-li-${t.id}`}
-                isUnread={isUnread}
-              />
-            )
-          })}
-          {threadsPending &&
-            <Loading type='bottom' />}
-          {!threadsPending && isEmpty(threads) && !threadSearch &&
-            <div className={classes.noConversations}>{t('You have no active messages')}</div>}
-          {!threadsPending && isEmpty(threads) && threadSearch &&
-            <div className={classes.noConversations}>{t('No messages found')}</div>}
-        </ul>
-        <ScrollListener
-          elementId='thread-list-list'
-          onBottom={onScrollBottom}
-        />
+        <Link className={classes.newMessage} to='/messages/new'>
+          <span>{t('New')}</span>
+          <Icon name='Messages' className={classes.messagesIcon} />
+        </Link>
       </div>
-    )
-  }
-}
+      <ul className={classes.list} id='thread-list-list' role='list'>
+        {!isEmpty(threads) && threads.map(t => {
+          const messages = itemsToArray(toRefArray(t.messages))
+          const isUnread = t.unreadCount > 0
+          const latestMessage = orderBy(m => Date.parse(m.createdAt), 'desc', messages)[0]
 
-ThreadList.propTypes = {
-  className: PropTypes.string,
-  currentUser: PropTypes.object,
-  onScrollBottom: PropTypes.func,
-  setThreadSearch: PropTypes.func,
-  threadSearch: PropTypes.string,
-  threads: PropTypes.array,
-  threadsPending: PropTypes.bool
-}
-
-export const MAX_THREAD_PREVIEW_LENGTH = 70
-
-export function ThreadListItem ({
-  currentUser, active, id, thread, latestMessage, unreadCount, isUnread
-}) {
-  const latestMessagePreview = TextHelpers.presentHTMLToText(latestMessage?.text, { truncate: MAX_THREAD_PREVIEW_LENGTH })
-  const { names, avatarUrls } = participantAttributes(thread, currentUser, 2)
-
-  return (
-    <li className={cx(classes.listItem, { [classes.unreadListItem]: isUnread, [classes.active]: active })}>
-      <Link to={`/messages/${id}`}>
-        {active && <div className={classes.activeThread} />}
-        <ThreadAvatars avatarUrls={avatarUrls} />
-        <div className={classes.liCenterContent}>
-          <ThreadNames names={names} />
-          <div className={classes.threadMessageText}>{latestMessagePreview}</div>
-        </div>
-        <div className={classes.liRightContent}>
-          <div className={classes.messageTime}>{TextHelpers.humanDate(get('createdAt', latestMessage))}</div>
-          {unreadCount > 0 && <Badge number={unreadCount} expanded />}
-        </div>
-      </Link>
-    </li>
-  )
-}
-
-ThreadListItem.propTypes = {
-  active: PropTypes.bool,
-  currentUser: PropTypes.object,
-  id: PropTypes.any,
-  latestMessage: PropTypes.shape({
-    text: PropTypes.string.isRequired
-  }),
-  thread: PropTypes.object,
-  unreadCount: PropTypes.number
-}
-
-function ThreadAvatars ({ avatarUrls }) {
-  const count = avatarUrls.length
-  const style = `avatar${count < 4 ? count : 'More'}`
-  const plusStyle = cx(`avatar${count < 4 ? count : 'More'}`, { [classes.plusCount]: count > 4 })
-  return (
-    <div className={classes.threadAvatars}>
-      {(count === 1 || count === 2) && <RoundImage url={avatarUrls[0]} />}
-      {count === 2 && <RoundImage url={avatarUrls[1]} medium className={classes[style]} />}
-      {count > 2 && <RoundImage url={avatarUrls[0]} medium className={classes[style]} />}
-      {count > 2 && <RoundImage url={avatarUrls[1]} medium className={classes[style]} />}
-      {count > 2 && <RoundImage url={avatarUrls[2]} medium className={classes[style]} />}
-      {count === 4 && <RoundImage url={avatarUrls[3]} medium className={classes[style]} />}
-      {count > 4 && <div className={plusStyle}>+{count - 4}</div>}
+          return (
+            <ThreadListItem
+              id={t.id}
+              active={t.id === messageThreadId}
+              thread={t}
+              latestMessage={latestMessage}
+              currentUser={currentUser}
+              unreadCount={t.unreadCount}
+              key={`thread-li-${t.id}`}
+              isUnread={isUnread}
+            />
+          )
+        })}
+        {threadsPending &&
+          <Loading type='bottom' />}
+        {!threadsPending && isEmpty(threads) && !threadSearch &&
+          <div className={classes.noConversations}>{t('You have no active messages')}</div>}
+        {!threadsPending && isEmpty(threads) && threadSearch &&
+          <div className={classes.noConversations}>{t('No messages found')}</div>}
+      </ul>
+      <ScrollListener
+        elementId='thread-list-list'
+        onBottom={fetchMoreThreadsAction}
+      />
     </div>
   )
 }
 
-function ThreadNames ({ names }) {
-  return <div className={classes.threadNames}>{names}</div>
-}
-
-export default withTranslation()(ThreadList)
+export default ThreadList

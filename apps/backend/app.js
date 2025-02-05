@@ -18,12 +18,8 @@
  * `node app.js --silent --port=80 --prod`
  */
 
-require('dotenv').load()
+require('dotenv').config()
 require("@babel/register")
-
-if (process.env.NEW_RELIC_LICENSE_KEY) {
-  require('newrelic')
-}
 
 if (process.env.ROLLBAR_SERVER_TOKEN && process.env.NODE_ENV !== 'test') {
   const rollbar = require('rollbar')

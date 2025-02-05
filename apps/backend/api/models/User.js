@@ -5,12 +5,12 @@ import { has, isEmpty, merge, omit, pick, intersectionBy } from 'lodash'
 import fetch from 'node-fetch'
 import { v4 as uuidv4 } from 'uuid'
 import validator from 'validator'
-import { Validators } from 'hylo-shared'
+import { GraphQLError } from 'graphql'
+import { Validators } from '@hylo/shared'
 import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import MemberCommonRole from './MemberCommonRole'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -42,7 +42,7 @@ module.exports = bookshelf.Model.extend(merge({
     * @param rejected {Array[String]} - claim names that were rejected by the end-user, you might
     *   want to skip loading some claims from external resources or through db projection
     */
-  async claims(use, scope, claims, rejected) { // eslint-disable-line no-unused-vars
+  async claims (use, scope, claims, rejected) { // eslint-disable-line no-unused-vars
     // TODO: allow people to ask for specific claims https://github.com/panva/node-oidc-provider/blob/main/docs/README.md#featuresclaimsparameter
     // TODO: need to handle the use parameter?
     // TODO: track specific claims that are rejected by the user, but allow others
@@ -53,7 +53,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     if (scope.includes('address')) {
       const loc = await this.locationObject().fetch()
-      returnData['address'] = {
+      returnData.address = {
         country: loc.get('country'),
         formatted: this.get('location'),
         locality: loc.get('city'),
@@ -136,7 +136,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   followedPosts () {
-    return this.belongsToMany(Post).through(PostUser).query(q => q.where({'posts_users.following': true, 'posts_users.active': true}))
+    return this.belongsToMany(Post).through(PostUser).query(q => q.where({ 'posts_users.following': true, 'posts_users.active': true }))
   },
 
   followedTags: function () {
@@ -167,7 +167,11 @@ module.exports = bookshelf.Model.extend(merge({
 
   inAppNotifications: function () {
     return this.hasMany(Notification)
-      .query({where: {'notifications.medium': Notification.MEDIUM.InApp}})
+      .query({ where: { 'notifications.medium': Notification.MEDIUM.InApp } })
+  },
+
+  isTester: function () {
+    return User.isTester(this.id)
   },
 
   joinRequests: function () {
@@ -363,6 +367,8 @@ module.exports = bookshelf.Model.extend(merge({
         settings: {
           // XXX: A user choosing to join a group has aleady seen/filled out the join questions (enforced on the front-end)
           joinQuestionsAnsweredAt: fromInvitation ? null : new Date(),
+          postNotifications: 'all',
+          digestFrequency: 'daily',
           sendEmail: true,
           sendPushNotifications: true,
           showJoinForm: true
@@ -437,7 +443,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   checkToken: function (token) {
-    var compare = Promise.promisify(bcrypt.compare, bcrypt)
+    const compare = Promise.promisify(bcrypt.compare, bcrypt)
     return compare(this.generateTokenContents(), token)
   },
 
@@ -472,7 +478,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   setPassword: function (password, sessionId, { transacting } = {}) {
-    return LinkedAccount.where({user_id: this.id, provider_key: 'password'})
+    return LinkedAccount.where({ user_id: this.id, provider_key: 'password' })
       .fetch({ transacting }).then(account => account
         ? account.updatePassword(password, sessionId, { transacting })
         : LinkedAccount.create(this.id, { type: 'password', password, transacting }))
@@ -565,7 +571,7 @@ module.exports = bookshelf.Model.extend(merge({
       twitter: 'twitter_name'
     }[provider]
 
-  if (!fieldName) throw new Error(`${provider} not a supported provider`)
+    if (!fieldName) throw new Error(`${provider} not a supported provider`)
 
     return Promise.join(
       LinkedAccount.query().where({ user_id: this.id, provider_key: provider }).del(),
@@ -603,11 +609,11 @@ module.exports = bookshelf.Model.extend(merge({
     return this.save({
       stripe_account_id: newAccount.id
     })
-    .then(() => {
-      if (existingAccount) {
-        return existingAccount.destroy()
-      }
-    })
+      .then(() => {
+        if (existingAccount) {
+          return existingAccount.destroy()
+        }
+      })
   },
 
   hasStripeAccount () {
@@ -620,31 +626,31 @@ module.exports = bookshelf.Model.extend(merge({
   authenticate: Promise.method(function (email, password) {
     const compare = Promise.promisify(bcrypt.compare, bcrypt)
 
-    if (!email) throw new GraphQLYogaError('no email provided')
-    if (!password) throw new GraphQLYogaError('no password provided')
+    if (!email) throw new GraphQLError('no email provided')
+    if (!password) throw new GraphQLError('no password provided')
 
     return User.query('whereRaw', 'lower(email) = lower(?)', email)
       .fetch({ withRelated: ['linkedAccounts'] })
       .then(function (user) {
-        if (!user) throw new GraphQLYogaError('email not found')
+        if (!user) throw new GraphQLError('email not found')
 
         const account = user.relations.linkedAccounts.find(a => a.get('provider_key') === 'password')
 
         if (!account) {
           const keys = user.relations.linkedAccounts.pluck('provider_key')
-          throw new GraphQLYogaError(`password account not found. available: [${keys.join(',')}]`)
+          throw new GraphQLError(`password account not found. available: [${keys.join(',')}]`)
         }
 
         return compare(password, account.get('provider_user_id')).then(function (match) {
-          if (!match) throw new GraphQLYogaError('password does not match')
+          if (!match) throw new GraphQLError('password does not match')
 
           return user
         })
       })
   }),
 
-  clearSessionsFor: async function({ userId, sessionId }) {
-    const redisClient = await RedisClient.create()
+  clearSessionsFor: async function ({ userId, sessionId }) {
+    const redisClient = RedisClient.create()
     for await (const key of redisClient.scanIterator({ MATCH: `sess:${userId}:*` })) {
       if (key !== 'sess:' + sessionId) {
         await redisClient.del(key)
@@ -678,15 +684,15 @@ module.exports = bookshelf.Model.extend(merge({
 
     return bookshelf.transaction(transacting =>
       validateUserAttributes(attributes, { transacting })
-      .then(() => new User(attributes).save({}, {transacting}))
-      .then(async (user) => {
-        await Promise.join(
-          account && LinkedAccount.create(user.id, account, {transacting}),
-          group && group.addMembers([user.id], { role: role || GroupMembership.Role.DEFAULT }, {transacting}),
-          group && user.markInvitationsUsed(group.id, transacting)
-        )
-        return user
-      })
+        .then(() => new User(attributes).save({}, { transacting }))
+        .then(async (user) => {
+          await Promise.join(
+            account && LinkedAccount.create(user.id, account, { transacting }),
+            group && group.addMembers([user.id], { role: role || GroupMembership.Role.DEFAULT }, { transacting }),
+            group && user.markInvitationsUsed(group.id, transacting)
+          )
+          return user
+        })
     )
   },
 
@@ -699,7 +705,7 @@ module.exports = bookshelf.Model.extend(merge({
       q = User.query(q => {
         q.where(function () {
           this.whereRaw('lower(email) = lower(?)', idEmailOrName)
-          .orWhere({ name: idEmailOrName })
+            .orWhere({ name: idEmailOrName })
         })
       })
     } else {
@@ -728,39 +734,43 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   isEmailUnique: function (email, excludeEmail, { transacting } = {}) {
-    var query = bookshelf.knex('users')
-    .whereRaw('lower(email) = lower(?)', email).count('*')
-    .transacting(transacting)
+    let query = bookshelf.knex('users')
+      .whereRaw('lower(email) = lower(?)', email).count('*')
+      .transacting(transacting)
     if (excludeEmail) query = query.andWhere('email', '!=', excludeEmail)
     return query.then(rows => Number(rows[0].count) === 0)
   },
 
   incNewNotificationCount: function (id) {
-    return User.query().where({id}).increment('new_notification_count', 1)
+    return User.query().where({ id }).increment('new_notification_count', 1)
+  },
+
+  isTester: function (id) {
+    const testerIds = process.env.HYLO_TESTER_IDS ? process.env.HYLO_TESTER_IDS.split(',') : []
+    return testerIds.includes(id)
   },
 
   resetNewNotificationCount: function (id) {
-    return User.query().where({id}).update({new_notification_count: 0})
+    return User.query().where({ id }).update({ new_notification_count: 0 })
   },
 
   gravatar: function (email) {
     if (!email) email = ''
-    var emailHash = crypto.createHash('md5').update(email).digest('hex')
+    const emailHash = crypto.createHash('md5').update(email).digest('hex')
     return `https://www.gravatar.com/avatar/${emailHash}?d=mm&s=140`
   },
 
   encryptEmail: function (email) {
-    var plaintext = process.env.MAILGUN_EMAIL_SALT + email
-    return `u=${PlayCrypto.encrypt(plaintext)}@${process.env.MAILGUN_DOMAIN}`
+    const plaintext = process.env.INBOUND_EMAIL_SALT + email
+    return `u=${PlayCrypto.encrypt(plaintext)}@${process.env.INBOUND_EMAIL_DOMAIN}`
   },
 
   decryptEmail: function (email) {
-    var pattern = new RegExp(`u=(\\w+)@${process.env.MAILGUN_DOMAIN}`)
-    var match = email.match(pattern)
-    var hash = match[1]
-    var decrypted = PlayCrypto.decrypt(hash)
-    var unsalted = decrypted.replace(new RegExp('^' + process.env.MAILGUN_EMAIL_SALT), '')
-
+    const pattern = new RegExp(`u=(\\w+)@${process.env.INBOUND_EMAIL_DOMAIN}`)
+    const match = email.match(pattern)
+    const hash = match[1]
+    const decrypted = PlayCrypto.decrypt(hash)
+    const unsalted = decrypted.replace(new RegExp('^' + process.env.INBOUND_EMAIL_SALT), '')
     return unsalted
   },
 
@@ -776,38 +786,39 @@ module.exports = bookshelf.Model.extend(merge({
         tagId: id,
         transacting: trx
       })
-      .catch(err => {
-        if (!err.message.match(/duplicate key value/)) throw err
-      }))
+        .catch(err => {
+          if (!err.message.match(/duplicate key value/)) throw err
+        })
+    )
   },
 
   followDefaultTags: function (userId, groupId, trx) {
     return GroupTag.defaults(groupId, trx)
-    .then(defaultTags => defaultTags.models.map(t => t.get('tag_id')))
-    .then(ids => User.followTags(userId, groupId, ids, trx))
+      .then(defaultTags => defaultTags.models.map(t => t.get('tag_id')))
+      .then(ids => User.followTags(userId, groupId, ids, trx))
   },
 
   resetTooltips: function (userId) {
     return User.find(userId)
-    .then(user => user.removeSetting('viewedTooltips', true))
+      .then(user => user.removeSetting('viewedTooltips', true))
   },
 
   unseenThreadCount: async function (userId) {
     const lastViewed = await User.where('id', userId).query()
-    .select(bookshelf.knex.raw("settings->'last_viewed_messages_at' as time"))
-    .then(rows => new Date(rows[0].time))
+      .select(bookshelf.knex.raw("settings->'last_viewed_messages_at' as time"))
+      .then(rows => new Date(rows[0].time))
 
     return PostUser.whereUnread(userId, { afterTime: lastViewed })
-    .query(q => {
-      q.where('posts.type', Post.Type.THREAD)
-      q.where('num_comments', '>', 0)
-    })
-    .count().then(c => Number(c))
+      .query(q => {
+        q.where('posts.type', Post.Type.THREAD)
+        q.where('num_comments', '>', 0)
+      })
+      .count().then(c => Number(c))
   },
 
   // Background jobs
 
-  async afterLeaveGroup({ removedByModerator, groupId, userId }) {
+  async afterLeaveGroup ({ removedByModerator, groupId, userId }) {
     const zapierTriggers = await ZapierTrigger.forTypeAndGroups('member_leaves', groupId).fetchAll()
     if (zapierTriggers && zapierTriggers.length > 0) {
       const user = await User.find(userId)
@@ -853,12 +864,12 @@ module.exports = bookshelf.Model.extend(merge({
 function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
   if (has(attrs, 'password')) {
     const invalidReason = Validators.validateUser.password(attrs.password)
-    if (invalidReason) return Promise.reject(new GraphQLYogaError(invalidReason))
+    if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
   }
 
   if (has(attrs, 'name')) {
     const invalidReason = Validators.validateUser.name(attrs.name)
-    if (invalidReason) return Promise.reject(new GraphQLYogaError(invalidReason))
+    if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
   }
 
   // for an existing user, the email field can be omitted.
@@ -866,11 +877,11 @@ function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
   const oldEmail = existingUser ? existingUser.get('email') : null
 
   if (!validator.isEmail(attrs.email)) {
-    return Promise.reject(new GraphQLYogaError('invalid-email'))
+    return Promise.reject(new GraphQLError('invalid-email'))
   }
 
-  return User.isEmailUnique(attrs.email, oldEmail, {transacting})
-  .then(unique => unique || Promise.reject(new GraphQLYogaError('duplicate-email')))
+  return User.isEmailUnique(attrs.email, oldEmail, { transacting })
+    .then(unique => unique || Promise.reject(new GraphQLError('duplicate-email')))
 }
 
 export function addProtocol (url) {

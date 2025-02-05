@@ -1,24 +1,19 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import AccountSettingsTab from './AccountSettingsTab'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('AccountSettingsTab', () => {
   it('renders correctly', () => {
     const mockUpdateUserSettings = jest.fn()
     const mockCurrentUser = { email: 'test@example.com' }
+    const mockSetConfirm = jest.fn()
 
     render(
       <AccountSettingsTab
         currentUser={mockCurrentUser}
         updateUserSettings={mockUpdateUserSettings}
-      />,
-      {
-        wrapper: AllTheProviders,
-        reduxState: {
-          // Add any necessary initial Redux state here
-        }
-      }
+        setConfirm={mockSetConfirm}
+      />
     )
 
     // Check for the presence of key elements
@@ -32,20 +27,23 @@ describe('AccountSettingsTab', () => {
   })
 
   // Add more tests as needed, for example:
-  it('displays error message for invalid email', () => {
+  it('displays error message for invalid email', async () => {
     render(
       <AccountSettingsTab
         currentUser={{ email: 'invalid-email' }}
         updateUserSettings={jest.fn()}
-      />,
-      { wrapper: AllTheProviders }
+        setConfirm={jest.fn()}
+      />
     )
 
     const emailInput = screen.getByLabelText('Email')
+    fireEvent.change(emailInput, { target: { value: 'invalid-email1' } })
     emailInput.focus()
     emailInput.blur()
 
-    expect(screen.getByText('Email address is not in a valid format')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Email address is not in a valid format')).toBeInTheDocument()
+    })
   })
 
   // Test for password mismatch
@@ -54,15 +52,15 @@ describe('AccountSettingsTab', () => {
       <AccountSettingsTab
         currentUser={{ email: 'test@example.com' }}
         updateUserSettings={jest.fn()}
-      />,
-      { wrapper: AllTheProviders }
+        setConfirm={jest.fn()}
+      />
     )
 
     const newPasswordInput = screen.getByLabelText('New Password')
     const confirmPasswordInput = screen.getByLabelText('New Password (Confirm)')
 
-    newPasswordInput.value = 'password123'
-    confirmPasswordInput.value = 'password456'
+    fireEvent.change(newPasswordInput, { target: { value: 'Password123' } })
+    fireEvent.change(confirmPasswordInput, { target: { value: 'Password456' } })
 
     newPasswordInput.focus()
     newPasswordInput.blur()

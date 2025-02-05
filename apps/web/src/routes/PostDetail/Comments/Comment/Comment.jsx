@@ -1,10 +1,9 @@
-import cx from 'classnames'
-import moment from 'moment-timezone'
-import PropTypes from 'prop-types'
-import React, { Component } from 'react'
-import { Link } from 'react-router-dom'
-import { filter, isFunction } from 'lodash/fp'
-import { withTranslation } from 'react-i18next'
+import { cn } from 'util/index'
+import { DateTime } from 'luxon'
+import React, { useCallback } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { filter, isFunction, isEmpty } from 'lodash/fp'
+import { useTranslation } from 'react-i18next'
 import { TextHelpers } from '@hylo/shared'
 import { personUrl } from 'util/navigation'
 import scrollIntoView from 'scroll-into-view-if-needed'
@@ -20,263 +19,265 @@ import Icon from 'components/Icon'
 import ShowMore from '../ShowMore'
 import Tooltip from 'components/Tooltip'
 import styles from './Comment.module.scss'
+import { useDispatch, useSelector } from 'react-redux'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import createComment from 'store/actions/createComment'
+import updateComment from 'store/actions/updateComment'
+import deleteComment from 'store/actions/deleteComment'
+import fetchChildComments from 'store/actions/fetchChildComments'
+import { getHasMoreChildComments, getTotalChildComments } from 'store/selectors/getChildComments'
+import getMe from 'store/selectors/getMe'
+import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
+import { RESP_MANAGE_CONTENT } from 'store/constants'
+import { INITIAL_SUBCOMMENTS_DISPLAYED } from 'util/constants'
 
-const { object, func } = PropTypes
+function Comment ({
+  comment,
+  onReplyComment,
+  selectedCommentId,
+  slug,
+  post
+}) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const routeParams = useParams()
+  const commentRef = React.useRef()
+  const editor = React.useRef()
+  const [edited, setEdited] = React.useState(false)
+  const [editing, setEditing] = React.useState(false)
+  const [showActions, setShowActions] = React.useState(false)
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = React.useState(false)
 
-export const INITIAL_SUBCOMMENTS_DISPLAYED = 4
+  const currentUser = useSelector(state => getMe(state))
+  const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const responsibilities = useSelector(state =>
+    getResponsibilitiesForGroup(state, { person: currentUser, groupId: group?.id })
+  ).map(r => r.title)
+  const canModerate = currentUser && responsibilities && responsibilities.includes(RESP_MANAGE_CONTENT)
 
-export class Comment extends Component {
-  static propTypes = {
-    comment: object.isRequired,
-    onReplyComment: func.isRequired,
-    updateComment: func,
-    deleteComment: func,
-    removeComment: func
-  }
-
-  commentRef = React.createRef()
-
-  editor = React.createRef()
-
-  state = {
-    edited: false,
-    editing: false,
-    editedText: null,
-    scrolledToComment: false
-  }
-
-  componentDidMount () {
-    // If this is the selected comment (e.g. from a notification) scroll to it
-    if (this.props.selectedCommentId === this.props.comment.id) {
-      setTimeout(this.handleScrollToComment.bind(this), 500)
+  React.useEffect(() => {
+    if (selectedCommentId === comment.id) {
+      setTimeout(handleScrollToComment, 500)
     }
-  }
+  }, [selectedCommentId, comment.id])
 
-  handleEditComment = () => {
-    this.setState({ editing: false, edited: true })
-  }
+  const deleteCommentWithConfirm = useCallback((commentId, text) => {
+    return window.confirm(text) && dispatch(deleteComment(commentId))
+  }, [])
 
-  handleEditCancel = () => {
-    this.setState({ editedText: null, editing: false })
-    this.editor.current.setContent(this.props.comment.text)
+  const handleEditComment = useCallback(() => {
+    setEditing(true)
+  }, [])
 
+  const handleEditCancel = useCallback(() => {
+    setEditing(false)
+    editor.current.setContent(comment.text)
     return true
-  }
+  }, [])
 
-  handleEditSave = contentHTML => {
-    const { comment } = this.props
-
-    if (this.editor?.current && this.editor.current.isEmpty()) {
-      // Do nothing and stop propagation
+  const handleEditSave = contentHTML => {
+    if (editor?.current && editor.current.isEmpty()) {
       return true
     }
-
-    this.props.updateComment(comment.id, contentHTML)
-    this.setState({ editing: false })
-
-    // Tell Editor this keyboard event was handled and to end propagation.
+    dispatch(updateComment(comment.id, contentHTML))
+    setEditing(false)
+    setEdited(true)
     return true
   }
 
-  handleScrollToComment () {
-    if (this.commentRef.current) {
-      const { bottom, top } = this.commentRef.current.getBoundingClientRect()
+  const handleScrollToComment = useCallback(() => {
+    if (commentRef.current) {
+      const { bottom, top } = commentRef.current.getBoundingClientRect()
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight
 
-      if (bottom < 0 || bottom > viewportHeight || top < 0) { // element is not inside the current viewport
-        scrollIntoView(this.commentRef.current, { block: 'center' })
-      }
-
-      if (bottom > 0 && bottom <= viewportHeight && top >= 0) { // element is contained in the viewport
-        this.setState({ scrolledToComment: true })
+      if (bottom < 0 || bottom > viewportHeight || top < 0) {
+        scrollIntoView(commentRef.current, { block: 'center' })
       }
     }
-  }
+  }, [])
 
-  render () {
-    const { canModerate, comment, currentUser, deleteComment, onReplyComment, removeComment, slug, selectedCommentId, post, t } = this.props
-    const { id, creator, createdAt, editedAt, text, attachments } = comment
-    const { editing, edited } = this.state
-    const timestamp = t('commented') + ' ' + TextHelpers.humanDate(createdAt)
-    const editedTimestamp = (editedAt || edited) ? t('edited') + ' ' + TextHelpers.humanDate(editedAt) : false
-    const isCreator = currentUser && (comment.creator.id === currentUser.id)
-    const profileUrl = personUrl(creator.id, slug)
-    const dropdownItems = filter(item => isFunction(item.onClick), [
-      {},
-      { icon: 'Edit', label: 'Edit', onClick: isCreator && this.handleEditComment },
-      { icon: 'Trash', label: 'Delete', onClick: isCreator ? () => deleteComment(comment.id, t('Are you sure you want to delete this comment')) : null },
-      { icon: 'Trash', label: 'Remove', onClick: !isCreator && canModerate ? () => removeComment(comment.id, t('Are you sure you want to remove this comment?')) : null }
-    ])
+  const handleEmojiPickerOpen = useCallback((isOpen) => {
+    setIsEmojiPickerOpen(isOpen)
+    setShowActions(isOpen)
+  }, [])
 
-    return (
-      <div ref={this.commentRef} className={cx(styles.commentContainer, { [styles.selectedComment]: selectedCommentId === comment.id })}>
-        <div className={styles.header}>
-          <Avatar avatarUrl={creator.avatarUrl} url={profileUrl} className={styles.avatar} />
-          <Link to={profileUrl} className={styles.userName}>{creator.name}</Link>
-          <span className={styles.timestamp} data-for={`dateTip-${comment.id}`} data-tip={moment(createdAt).format('llll')}>
-            {timestamp}
-          </span>
-          {(editedTimestamp) && <span className={styles.timestamp} data-for={`dateTip-${comment.id}`} data-tip={moment(editedAt).format('llll')}>
+  const { id, creator, createdAt, editedAt, text, attachments } = comment
+  const timestamp = t('commented') + ' ' + TextHelpers.humanDate(createdAt)
+  const editedTimestamp = (editedAt || edited) ? t('edited') + ' ' + TextHelpers.humanDate(editedAt) : false
+  const isCreator = currentUser && (comment.creator.id === currentUser.id)
+  const profileUrl = personUrl(creator.id, slug)
+  const dropdownItems = filter(item => isFunction(item.onClick), [
+    {},
+    { icon: 'Edit', label: 'Edit', onClick: isCreator && handleEditComment },
+    { icon: 'Trash', label: 'Delete', onClick: isCreator ? () => deleteCommentWithConfirm(comment.id, t('Are you sure you want to delete this comment')) : null },
+    { icon: 'Trash', label: 'Remove', onClick: !isCreator && canModerate ? () => deleteCommentWithConfirm(comment.id, t('Are you sure you want to remove this comment?')) : null }
+  ])
+
+  return (
+    <div
+      ref={commentRef}
+      className={cn(styles.commentContainer, { [styles.selectedComment]: selectedCommentId === comment.id })}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => { if (!isEmojiPickerOpen) { setShowActions(false) } }}
+    >
+      <div className={styles.header}>
+        <Avatar avatarUrl={creator.avatarUrl} url={profileUrl} className={styles.avatar} />
+        <Link to={profileUrl} className={styles.userName}>{creator.name}</Link>
+        <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(createdAt).toFormat('D t ZZZZ')}>
+          {timestamp}
+        </span>
+        {(editedTimestamp) && (
+          <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(editedAt).toFormat('D t ZZZZ')}>
             ({editedTimestamp})
-          </span>}
-          <div className={styles.upperRight}>
-            {editing && (
-              <Icon name='Ex' className={styles.cancelIcon} onClick={this.handleEditCancel} />
-            )}
-            {currentUser && (
-              <div className={styles.commentActions}>
-                <div className={cx(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
-                  <Icon name='Replies' />
-                </div>
-                {dropdownItems.map(item => (
-                  <div key={item.icon} className={styles.commentAction} onClick={item.onClick}>
-                    <Icon name={item.icon} />
-                  </div>
-                ))}
-                <EmojiRow
-                  className={cx(styles.emojis, styles.hiddenReactions)}
-                  comment={comment}
-                  currentUser={currentUser}
-                  post={post}
-                />
+          </span>
+        )}
+        <div className={styles.upperRight}>
+          {editing && (
+            <Icon name='Ex' className={styles.cancelIcon} onClick={handleEditCancel} />
+          )}
+          {currentUser && (
+            <div className={cn(styles.commentActions, { [styles.showActions]: showActions })}>
+              <div className={cn(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
+                <Icon name='Replies' />
               </div>
-            )}
-          </div>
-        </div>
-        {attachments &&
-          <div>
-            <CardImageAttachments attachments={attachments} linked className={styles.images} />
-            <CardFileAttachments attachments={attachments} className={styles.files} />
-          </div>}
-        {editing && (
-          <HyloEditor
-            className={styles.editing}
-            contentHTML={text}
-            onEscape={this.handleEditCancel}
-            onEnter={this.handleEditSave}
-            ref={this.editor}
-          />
-        )}
-        {!editing && (
-          <>
-            <ClickCatcher groupSlug={slug}>
-              <HyloHTML className={styles.text} html={text} />
-            </ClickCatcher>
-            <EmojiRow
-              className={cx(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}
-              comment={comment}
-              currentUser={currentUser}
-              post={post}
-            />
-          </>
-        )}
-      </div>
-    )
-  }
-}
-
-export class CommentWithReplies extends Component {
-  static propTypes = {
-    comment: object.isRequired,
-    createComment: func.isRequired, // bound by Comments.connector & Comment.connector
-    updateComment: func,
-    deleteComment: func,
-    removeComment: func,
-    onReplyThread: func
-  }
-
-  static defaultProps = {
-    attachments: []
-  }
-
-  state = {
-    replying: false,
-    triggerReplyAction: false,
-    prefillEditor: null,
-    showLatestOnly: true, // only show a few comments initially, rather than a whole page
-    newCommentsAdded: 0 // tracks number of comments added without a requery, to adjust ShowMore pagination totals
-  }
-
-  editor = React.createRef()
-  replyBox = React.createRef()
-
-  onReplyComment = (e, toMember) => {
-    // On any interaction, relevant comment box shows & only leaves
-    // naturally once the component is cleared from view.
-    this.setState({
-      replying: true,
-      triggerReplyAction: true,
-      prefillEditor: toMember
-        ? `<p>${TextHelpers.mentionHTML(toMember)}&nbsp;</p>`
-        : ''
-    })
-  }
-
-  componentDidUpdate (prevProps, prevState) {
-    if (this.props.onReplyThread && !prevState.triggerReplyAction && this.state.triggerReplyAction && this.replyBox.current) {
-      this.props.onReplyThread(this.replyBox.current)
-      this.setState({ triggerReplyAction: false })
-    }
-  }
-
-  render () {
-    const { comment, createComment, fetchChildComments, childCommentsTotal, hasMoreChildComments, t } = this.props
-    let { childComments } = comment
-    const { replying, showLatestOnly, newCommentsAdded } = this.state
-
-    if (showLatestOnly) {
-      childComments = childComments.slice(-1 * (INITIAL_SUBCOMMENTS_DISPLAYED + newCommentsAdded))
-    }
-
-    return (
-      <div className={styles.comment}>
-        <Comment {...this.props} onReplyComment={this.onReplyComment} />
-        {childComments && (
-          <div className={styles.subreply}>
-            <div className={styles.moreWrap}>
-              <ShowMore
-                commentsLength={childComments.length}
-                total={childCommentsTotal + newCommentsAdded}
-                hasMore={hasMoreChildComments}
-                fetchComments={() => {
-                  this.setState({ showLatestOnly: false })
-                  fetchChildComments()
-                }}
+              {dropdownItems.map(item => (
+                <div key={item.icon} className={styles.commentAction} onClick={item.onClick}>
+                  <Icon name={item.icon} dataTestId={item.label} />
+                </div>
+              ))}
+              <EmojiRow
+                className={cn(styles.emojis, styles.hiddenReactions)}
+                comment={comment}
+                currentUser={currentUser}
+                post={post}
+                onOpenChange={handleEmojiPickerOpen}
               />
             </div>
-            {childComments.map(c => (
-              <Comment
-                key={c.id}
-                {...this.props}
-                comment={c}
-                // sets child comments to toggle reply box one level deep, rather than allowing recursion
-                onReplyComment={(e) => this.onReplyComment(e, c.creator)}
-              />
-            ))}
-          </div>
-        )}
-        {replying && (
-          <div className={styles.replybox} ref={this.replyBox}>
-            <CommentForm
-              createComment={c => {
-                createComment(c)
-                  .then(() => this.setState({ newCommentsAdded: this.state.newCommentsAdded + 1 }))
-              }}
-              placeholder={`${t('Reply to')} ${comment.creator.name}`}
-              editorContent={this.state.prefillEditor}
-              focusOnRender
-            />
-          </div>
-        )}
-        <Tooltip id={`reply-tip-${comment.id}`} />
-        <Tooltip
-          delay={550}
-          id={`dateTip-${comment.id}`}
-          position='left'
-        />
+          )}
+        </div>
       </div>
-    )
-  }
+      {attachments &&
+        <div>
+          <CardImageAttachments attachments={attachments} linked className={styles.images} />
+          <CardFileAttachments attachments={attachments} className={styles.files} />
+        </div>}
+      {editing && (
+        <HyloEditor
+          className={styles.editing}
+          contentHTML={text}
+          onEscape={handleEditCancel}
+          onEnter={handleEditSave}
+          ref={editor}
+        />
+      )}
+      {!editing && (
+        <>
+          <ClickCatcher groupSlug={slug}>
+            <HyloHTML className={styles.text} html={text} />
+          </ClickCatcher>
+          <EmojiRow
+            className={cn(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}
+            comment={comment}
+            currentUser={currentUser}
+            post={post}
+          />
+        </>
+      )}
+    </div>
+  )
 }
 
-export default withTranslation()(CommentWithReplies)
+export default function CommentWithReplies (props) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const { comment, post, onReplyThread } = props
+  const childCommentsTotal = useSelector(state => getTotalChildComments(state, { id: comment.id }))
+  const hasMoreChildComments = useSelector(state => getHasMoreChildComments(state, { id: comment.id }))
+
+  const [replying, setReplying] = React.useState(false)
+  const [triggerReplyAction, setTriggerReplyAction] = React.useState(false)
+  const [prefillEditor, setPrefillEditor] = React.useState(null)
+  const [showLatestOnly, setShowLatestOnly] = React.useState(true)
+  const [newCommentsAdded, setNewCommentsAdded] = React.useState(0)
+
+  const replyBox = React.useRef()
+
+  const onReplyComment = (e, toMember) => {
+    setReplying(true)
+    setTriggerReplyAction(true)
+    setPrefillEditor(toMember
+      ? `<p>${TextHelpers.mentionHTML(toMember)}&nbsp;</p>`
+      : '')
+  }
+
+  React.useEffect(() => {
+    if (onReplyThread && triggerReplyAction && replyBox.current) {
+      onReplyThread(replyBox.current)
+      setTriggerReplyAction(false)
+    }
+  }, [triggerReplyAction])
+
+  const cursor = !isEmpty(comment.childComments) && comment.childComments[0].id
+  const fetchChildCommentsHandler = useCallback(() => {
+    setShowLatestOnly(false)
+    dispatch(fetchChildComments(comment.id, { cursor }))
+  }, [comment.id, cursor, dispatch])
+
+  const createCommentHandler = React.useCallback((commentParams) => {
+    return dispatch(createComment({
+      post,
+      parentCommentId: comment.id,
+      ...commentParams
+    })).then(() => {
+      setNewCommentsAdded(prev => prev + 1)
+    })
+  }, [comment.id, post, dispatch])
+
+  let childComments = comment.childComments
+
+  if (showLatestOnly) {
+    childComments = childComments.slice(-1 * (INITIAL_SUBCOMMENTS_DISPLAYED + newCommentsAdded))
+  }
+
+  return (
+    <div className={styles.comment}>
+      <Comment {...props} onReplyComment={onReplyComment} />
+      {childComments && (
+        <div className={styles.subreply}>
+          <div className={styles.moreWrap}>
+            <ShowMore
+              commentsLength={childComments.length}
+              total={childCommentsTotal + newCommentsAdded}
+              hasMore={hasMoreChildComments}
+              fetchComments={fetchChildCommentsHandler}
+            />
+          </div>
+          {childComments.map(c => (
+            <Comment
+              key={c.id}
+              {...props}
+              comment={c}
+              onReplyComment={(e) => onReplyComment(e, c.creator)}
+            />
+          ))}
+        </div>
+      )}
+      {replying && (
+        <div className={styles.replybox} ref={replyBox}>
+          <CommentForm
+            createComment={createCommentHandler}
+            placeholder={`${t('Reply to')} ${comment.creator.name}`}
+            editorContent={prefillEditor}
+            focusOnRender
+          />
+        </div>
+      )}
+      <Tooltip id={`reply-tip-${comment.id}`} />
+      <Tooltip
+        delay={550}
+        id={`dateTip-${comment.id}`}
+        position='left'
+      />
+    </div>
+  )
+}

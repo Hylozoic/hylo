@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { isEmpty, omit } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
@@ -97,7 +97,7 @@ const KeyControlledList = forwardRef(({
   const childrenWithRefs = React.Children.map(children,
     (element, i) => {
       const active = selectedIndex === i
-      const className = cx(
+      const className = cn(
         theme.item,
         { [theme.itemActive]: active }
       )
@@ -109,9 +109,9 @@ const KeyControlledList = forwardRef(({
     })
 
   return (
-    <div className={classes.keyListContainer} ref={ref}>
+    <div className='bg-primary w-full' ref={ref}>
       {tagType && tagType === 'groups' && <div className={classes.keyListLabel}>{t('Groups')}</div>}
-      <ul {...omit(propsToOmit, props)} className={cx(theme.items, classes.keyList)}>
+      <ul {...omit(propsToOmit, props)} className={cn('bg-primary w-full max-h-[200px] overflow-scroll')}>
         {childrenWithRefs}
       </ul>
     </div>

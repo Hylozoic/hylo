@@ -30,7 +30,7 @@ export default function ImageAttachments ({
           <FastImage
             style={firstImageStyle}
             imageStyle={[styles.backgroundImage]}
-            source={images[0]}
+            source={{ uri: images[0]?.uri || images[0]?.url }}
           >
             <View style={styles.container}>
               <View>{children}</View>
@@ -39,11 +39,11 @@ export default function ImageAttachments ({
                   <TouchableHighlight
                     {...pressableHandlersAtIndex(index + 1)}
                     // {...makePressHandlers(showImageAtIndex(index + 1))}
-                    key={image.uri}
+                    key={image.url}
                     style={styles.thumbnailWrapper}
                   >
                     <FastImage
-                      source={image}
+                      source={{ uri: image?.uri || image?.url }}
                       style={styles.thumbnail}
                     />
                   </TouchableHighlight>

@@ -42,6 +42,8 @@ export function baseUrl ({
 
   if (safeMemberId) {
     return personUrl(safeMemberId, groupSlug)
+  } else if (view === 'chat' && topicName) {
+    return chatUrl(topicName, { context, groupSlug })
   } else if (topicName) {
     return topicUrl(topicName, { context, groupSlug })
   } else if (view) {
@@ -96,6 +98,10 @@ export function groupDetailUrl (slug, opts = {}, querystringParams = {}) {
   return addQuerystringToPath(result, querystringParams)
 }
 
+export function groupInviteUrl (group) {
+  return group.invitePath ? origin() + group.invitePath : ''
+}
+
 // Post URLS
 export function postUrl (id, opts = {}, querystringParams = {}) {
   const action = get('action', opts)
@@ -146,8 +152,8 @@ export function messagePersonUrl (person) {
 }
 
 // Person URLs
-export function currentUserSettingsUrl (view = '') {
-  return '/settings' + (view ? '/' + view : '')
+export function currentUserSettingsUrl (view = 'edit-profile') {
+  return '/my' + (view ? '/' + view : '')
 }
 
 export function personUrl (id, groupSlug) {
@@ -166,6 +172,39 @@ export function topicUrl (topicName, opts) {
   return `${topicsUrl(opts)}/${topicName}`
 }
 
+export function chatUrl (chatName, { context, groupSlug }) {
+  return `${baseUrl({ context, groupSlug })}/chat/${chatName}`
+}
+
+export function customViewUrl (customViewId, rootPath, opts) {
+  return `${rootPath}/custom/${customViewId}`
+}
+
+export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
+  if (!widget) return null
+  // TODO redesign: isContextGroupSlug function or similar could replace this. Needs to be added to shared
+  const groupSlug = ['my', 'all', 'public'].includes(providedSlug) ? null : providedSlug
+  let url = ''
+  if (widget.url) return widget.url
+  if (widget.view === 'about') {
+    url = groupDetailUrl(groupSlug, { rootPath, groupSlug, context })
+  } else if (widget.view) {
+    url = viewUrl(widget.view, { groupSlug, context: widget.context || context })
+  } else if (widget.viewGroup) {
+    url = groupUrl(widget.viewGroup.slug)
+  } else if (widget.viewUser) {
+    url = personUrl(widget.viewUser.id, groupSlug)
+  } else if (widget.viewPost) {
+    url = postUrl(widget.viewPost.id, { groupSlug, context })
+  } else if (widget.viewChat) {
+    url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
+  } else if (widget.customView) {
+    url = customViewUrl(widget.customView.id, rootPath, { groupSlug })
+  }
+
+  return url
+}
+
 // URL utility functions
 
 export function setQuerystringParam (key, value, location) {
@@ -181,7 +220,7 @@ export function addQuerystringToPath (path, querystringParams) {
 }
 
 export function removePostFromUrl (url) {
-  const matchForReplaceRegex = `/post/${POST_ID_MATCH}`
+  const matchForReplaceRegex = `/post/${POST_ID_MATCH}(/.*)?`
   return url.replace(new RegExp(matchForReplaceRegex), '')
 }
 

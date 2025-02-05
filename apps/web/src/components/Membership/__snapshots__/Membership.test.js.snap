@@ -3,10 +3,10 @@
 exports[`Membership matches last snapshot 1`] = `
 <DocumentFragment>
   <div
-    class=""
+    class="membership odd"
   >
     <div
-      class=""
+      class="greenWhite button group"
       role="button"
       style="border-radius: 25px;"
       tabindex="0"
@@ -15,13 +15,15 @@ exports[`Membership matches last snapshot 1`] = `
         href="/groups/bb"
       >
         <div
-          class=""
+          class="image small"
           role="img"
           style="background-image: url(https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png);"
         />
         Backyard Birders
       </a>
-      <div />
+      <div
+        class="roles"
+      />
     </div>
   </div>
 </DocumentFragment>

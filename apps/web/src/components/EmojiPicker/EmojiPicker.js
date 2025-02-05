@@ -1,75 +1,75 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
+import { SmilePlus } from 'lucide-react'
 import Picker from '@emoji-mart/react'
 import React, { useState, useEffect } from 'react'
 import Icon from 'components/Icon'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from 'components/ui/popover'
 
 import classes from './EmojiPicker.module.scss'
 
-const PICKER_DEFAULT_WIDTH = 373
-const PICKER_DEFAULT_HEIGHT = 435
-const DEFAULT_TOPNAV_HEIGHT = 56
-const emojiPickerMaxY = PICKER_DEFAULT_HEIGHT + DEFAULT_TOPNAV_HEIGHT
-
 export default function EmojiPicker (props) {
-  const { handleRemoveReaction, myEmojis, handleReaction, forReactions = true, emoji } = props
+  const { handleRemoveReaction, myEmojis, handleReaction, forReactions = true, emoji, onOpenChange } = props
   const [modalOpen, setModalOpen] = useState(false)
-  const [modalY, setModalY] = useState()
-  const [modalX, setModalX] = useState()
 
-  const handleClick = (data) => {
+  const handleOpenChange = (isOpen) => {
+    setModalOpen(isOpen)
+    if (onOpenChange) {
+      onOpenChange(modalOpen)
+    }
+  }
+
+  const handleSelection = (data) => {
     const selectedEmoji = data.native
-    if (myEmojis.includes(selectedEmoji)) {
+    if (myEmojis && myEmojis.includes(selectedEmoji)) {
       handleRemoveReaction(selectedEmoji)
     } else {
       handleReaction(selectedEmoji)
     }
     setModalOpen(!modalOpen)
+
     return true
   }
 
-  const handleSelection = (data) => {
-    const selectedEmoji = data.native
-    handleReaction(selectedEmoji)
-    setModalOpen(!modalOpen)
-  }
-
   const toggleModalOpen = (evt) => {
-    let yAdjustment = 0
-    let xAdjustment = 0
-    if (modalOpen) {
-      setModalOpen(!modalOpen)
-    } else {
-      // push the modal up, but not so high that it comes off the top of the screen
-      yAdjustment = (emojiPickerMaxY > evt.clientY) ? DEFAULT_TOPNAV_HEIGHT : evt.clientY - PICKER_DEFAULT_HEIGHT
-      // Have the modal replicate the x position, unless it is too close to the right side of the screen
-      xAdjustment = (window.innerWidth - PICKER_DEFAULT_WIDTH < evt.clientX) ? window.innerWidth - PICKER_DEFAULT_WIDTH : evt.clientX + 10
-      setModalY(yAdjustment)
-      setModalX(xAdjustment)
-      setModalOpen(!modalOpen)
-    }
+    setModalOpen(!modalOpen)
+    evt.preventDefault()
+    evt.stopPropagation()
+    return false
   }
 
   return forReactions
     ? (
-      <div className={cx(classes.emojiPickerContainer, props.className)}>
-        <div className={classes.emojiPickerToggle} onClick={toggleModalOpen}>
-          <Icon name='Smiley' className={classes.pickerIcon} />
-        </div>
-        {modalOpen &&
-          <div style={{ top: modalY, left: modalX }} className={cx(classes.emojiOptions)}>
-            <EmojiPickerContent {...props} onClickOutside={toggleModalOpen} onEmojiSelect={handleClick} />
-          </div>}
+      <div className={cn(classes.emojiPickerContainer, props.className)}>
+        <Popover onOpenChange={handleOpenChange} open={modalOpen}>
+          <PopoverTrigger asChild>
+            <div className={classes.emojiPickerToggle} onClick={toggleModalOpen}>
+              <SmilePlus className='h-[20px]'/>
+            </div>
+          </PopoverTrigger>
+          <PopoverContent className='w-auto p-0' hideWhenDetached sideOffset={0}>
+            <div>
+              <EmojiPickerContent {...props} onClickOutside={toggleModalOpen} onEmojiSelect={handleSelection} />
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
-    )
+      )
     : (
-      <div onClick={toggleModalOpen} className={cx(classes.emojiPickerContainer, props.className)}>
-        {emoji || '?'}
-        {modalOpen &&
-          <div style={{ top: modalY, left: modalX }} className={cx(classes.emojiOptions)}>
+      <div onClick={toggleModalOpen} className={cn(classes.emojiPickerContainer, props.className)}>
+        <Popover onOpenChange={handleOpenChange} open={modalOpen}>
+          <PopoverTrigger asChild>
+            <span>{emoji || '?'}</span>
+          </PopoverTrigger>
+          <PopoverContent className='w-auto p-0' hideWhenDetached sideOffset={0}>
             <EmojiPickerContent {...props} onClickOutside={toggleModalOpen} onEmojiSelect={handleSelection} />
-          </div>}
+          </PopoverContent>
+        </Popover>
       </div>
-    )
+      )
 }
 
 function EmojiPickerContent (props) {
@@ -84,6 +84,6 @@ function EmojiPickerContent (props) {
     getData()
   }, [])
   return (
-    <Picker {...props} theme={'light'} data={data} />
+    <Picker {...props} theme='light' data={data} />
   )
 }

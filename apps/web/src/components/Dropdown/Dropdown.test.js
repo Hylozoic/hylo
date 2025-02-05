@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent } from '@testing-library/react'
 import Dropdown from './Dropdown'
 
 const sampleItems = [

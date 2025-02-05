@@ -10,14 +10,14 @@ beforeAll(() => {
 
 describe('getPost with non-existant post', () => {
   it('returns null', () => {
-    expect(getPost(1)).toEqual(null)
+    expect(getPost({ orm: session.state }, "1")).toEqual(null)
   })
 })
 
 describe('getPost for existing post', () => {
   it('returns post for editing (and ignores duplication param)', () => {
     Model.withId = jest.fn(id => id)
-    expect(getPost(2)).toBe('2')
+    expect(getPost({ orm: session.state }, "2")).toBe('2')
     expect(Model.withId.mock.results[0].value).toBe('2')
   })
 })

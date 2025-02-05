@@ -1,12 +1,12 @@
 const merge = require('lodash/merge')
-require('dotenv').load()
+require('dotenv').config()
 
 if (!process.env.DATABASE_URL) {
   throw new Error('process.env.DATABASE_URL must be set')
 }
 
 const url = require('url').parse(process.env.DATABASE_URL)
-var user, password
+let user, password
 if (url.auth) {
   const i = url.auth.indexOf(':')
   user = url.auth.slice(0, i)
@@ -27,7 +27,8 @@ const defaults = {
     min: 5, // default 2
     max: 30, // default 10
     // https://github.com/knex/knex/issues/2820#issuecomment-481710112
-    propagateCreateError: false // default true (false NOT recommended)
+    propagateCreateError: false, // default true (false NOT recommended),
+    idleTimeoutMillis: 60000
   },
   migrations: {
     tableName: 'knex_migrations'
@@ -41,7 +42,7 @@ module.exports = {
   farmdev: Object.assign({}, defaults, { seeds: { directory: './seeds/farm-dev' } }),
   farmdemo: Object.assign({}, defaults, { seeds: { directory: './seeds/farm-demo' } }),
   staging: defaults,
-  production: merge({connection: {ssl: { rejectUnauthorized: false }}}, defaults),
+  production: merge({ connection: { ssl: { rejectUnauthorized: false } } }, defaults),
   docker: Object.assign({},
     defaults,
     {

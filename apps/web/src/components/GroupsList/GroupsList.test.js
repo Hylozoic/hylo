@@ -1,5 +1,6 @@
 import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { DEFAULT_AVATAR } from 'store/models/Group'
 import GroupsList, { GroupRow, GroupCell } from './GroupsList'
 
 describe('GroupsList', () => {
@@ -8,8 +9,8 @@ describe('GroupsList', () => {
       groups: [
         { id: 1, name: 'One', slug: 'one' },
         { id: 2, name: 'Two', slug: 'two' },
-        { id: 3, name: 'Three', slug: 'three' },
-      ],
+        { id: 3, name: 'Three', slug: 'three' }
+      ]
     }
 
     render(<GroupsList {...props} />)
@@ -22,8 +23,8 @@ describe('GroupsList', () => {
       groups: [
         { id: 1, name: 'One', slug: 'one' },
         { id: 2, name: 'Two', slug: 'two' },
-        { id: 3, name: 'Three', slug: 'three' },
-      ],
+        { id: 3, name: 'Three', slug: 'three' }
+      ]
     }
 
     const { container } = render(<GroupsList {...props} />)
@@ -37,8 +38,8 @@ describe('GroupRow', () => {
     const props = {
       groups: [
         { id: 1, name: 'One', slug: 'one' },
-        { id: 2, name: 'Two', slug: 'two' },
-      ],
+        { id: 2, name: 'Two', slug: 'two' }
+      ]
     }
 
     render(<GroupRow {...props} />)
@@ -54,8 +55,8 @@ describe('GroupCell', () => {
         id: 1,
         name: 'Test Group',
         slug: 'test-group',
-        avatarUrl: 'test.png',
-      },
+        avatarUrl: 'test.png'
+      }
     }
 
     render(
@@ -72,8 +73,8 @@ describe('GroupCell', () => {
       group: {
         id: 1,
         name: 'Test Group',
-        slug: 'test-group',
-      },
+        slug: 'test-group'
+      }
     }
 
     render(

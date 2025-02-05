@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import RoundImage from 'components/RoundImage'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import classes from './RoundImageRow.module.scss'
 
 const { array, string, bool } = PropTypes
@@ -19,8 +19,8 @@ export default function RoundImageRow ({
   vertical,
   ...rest
 }) {
-  var capped
-  var extra
+  let capped
+  let extra
   if (cap && cap < imageUrls.length) {
     capped = true
     extra = imageUrls.length - cap
@@ -44,15 +44,20 @@ export default function RoundImageRow ({
       overlaps={!vertical}
       overlapsVertical={vertical}
       className={classes.image}
-      style={zIndexStyle(i)} />)
+      style={zIndexStyle(i)}
+    />)
 
-  const plus = <div className={cx(classes[!inline ? 'plus' : 'plusInline'], classes[blue ? 'blue' : 'green'])} key='plus' style={zIndexStyle(imageUrls.length)} >
-    +{extra}
-  </div>
+  const plus = (
+    <div className={cn(classes[!inline ? 'plus' : 'plusInline'], classes[blue ? 'blue' : 'green'])} key='plus' style={zIndexStyle(imageUrls.length)}>
+      +{extra}
+    </div>
+  )
 
-  return <div className={className} {...rest} >
-    {capped ? images.concat([plus]) : images}
-  </div>
+  return (
+    <div className={className} {...rest}>
+      {capped ? images.concat([plus]) : images}
+    </div>
+  )
 }
 RoundImageRow.propTypes = {
   imageUrls: array,

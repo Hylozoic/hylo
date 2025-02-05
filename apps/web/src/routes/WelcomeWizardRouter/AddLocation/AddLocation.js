@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { AnalyticsEvents } from '@hylo/shared'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
@@ -59,7 +59,7 @@ class AddLocation extends Component {
 
   render () {
     const { t } = this.props
-    const inputClass = cx({
+    const inputClass = cn({
       [styles.input]: true,
       [styles.padding]: true,
       [styles.largeInputText]: true,
@@ -74,7 +74,7 @@ class AddLocation extends Component {
           <div className={styles.center}>
             <Icon name='Globe' className={styles.globeIcon} />
           </div>
-          <div className={cx(styles.center, styles.locationInput)}>
+          <div className={cn(styles.center, styles.locationInput)}>
             <Icon name='Location' className={styles.locationIcon} />
             <LocationInput
               saveLocationToDB

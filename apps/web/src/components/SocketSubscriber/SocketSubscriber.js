@@ -21,7 +21,6 @@ export default class SocketSubscriber extends React.Component {
     this.setup()
   }
 
-  // eslint-disable-next-line camelcase
   UNSAFE_componentWillReceiveProps (nextProps) {
     if (this.props.id !== nextProps.id) this.teardown()
   }

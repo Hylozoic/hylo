@@ -1,9 +1,7 @@
+@use "sass:color";
+
 .button {
-  height: 39px;
-  line-height: 39px;
   min-width: max-content;
-  padding: 0px 40px;
-  display: inline-block;
   cursor: pointer;
   user-select: none;
 
@@ -31,20 +29,19 @@
 }
 
 .green {
-  border: 1px solid $color-caribbean-green;
-  background-color: $color-caribbean-green;
   color: $color-white;
+  background-color: $color-caribbean-green;
   @media (hover: hover) and (pointer: fine) {
     &:hover, &.hover {
-      background-color: lighten($color-caribbean-green, 2%);
+      background-color: color.adjust($color-caribbean-green, $lightness: 2%);
     }
   }
   &:active, &.active {
-    background-color: darken($color-caribbean-green, 2%);
+    background-color: color.adjust($color-caribbean-green, $lightness: -2%);
   }
   &.disabled {
-    border-color: lighten(desaturate($color-caribbean-green, 40%), 35%);
-    background-color: lighten(desaturate($color-caribbean-green, 40%), 35%);
+    border-color: color.adjust($color-caribbean-green, $saturation: -40%, $lightness: 35%);
+    background-color: color.adjust($color-caribbean-green, $saturation: -40%, $lightness: 35%);
   }
 }
 
@@ -53,11 +50,11 @@
   color: $color-white;
   @media (hover: hover) and (pointer: fine) {
     &:hover, &.hover {
-      background-color: lighten($color-medium-purple, 3%);
+      background-color: color.adjust($color-medium-purple, $lightness: 3%);
     }
   }
   &:active, &.active {
-    background-color: darken($color-medium-purple, 3%);
+    background-color: color.adjust($color-medium-purple, $lightness: -3%);
   }
 }
 
@@ -93,15 +90,15 @@
   color: $color-white;
   @media (hover: hover) and (pointer: fine) {
     &:hover, &.hover {
-      background-color: lighten($color-regent, 2%);
+      background-color: color.adjust($color-regent, $lightness: 2%);
     }
   }
   &:active, &.active {
-    background-color: darken($color-regent, 2%);
+    background-color: color.adjust($color-regent, $lightness: -2%);
   }
   &.disabled {
-    border-color: lighten(desaturate($color-regent, 40%), 35%);
-    background-color: lighten(desaturate($color-regent, 40%), 35%);
+    border-color: color.adjust($color-regent, $saturation: -40%, $lightness: 35%);
+    background-color: color.adjust($color-regent, $saturation: -40%, $lightness: 35%);
   }
 }
 
@@ -111,15 +108,15 @@
   color: $color-regent;
   @media (hover: hover) and (pointer: fine) {
     &:hover, &.hover {
-      background-color: lighten($color-white, 2%);
+      background-color: color.adjust($color-white, $lightness: 2%);
     }
   }
   &:active, &.active {
-    background-color: darken($color-white, 2%);
+    background-color: color.adjust($color-white, $lightness: -2%);
   }
   &.disabled {
-    border-color: lighten(desaturate($color-white, 40%), 35%);
-    background-color: lighten(desaturate($color-white, 40%), 35%);
+    border-color: color.adjust($color-white, $saturation: -40%, $lightness: 35%);
+    background-color: color.adjust($color-white, $saturation: -40%, $lightness: 35%);
   }
 }
 

@@ -1,4 +1,4 @@
-import { INITIAL_SUBCOMMENTS_DISPLAYED } from 'routes/PostDetail/Comments/Comment/Comment'
+import { INITIAL_SUBCOMMENTS_DISPLAYED } from 'util/constants'
 
 // :TODO: clean this up and use proper query fragments?
 const CommentFieldsFragment = `
@@ -58,7 +58,7 @@ const CommentFieldsFragment = `
   editedAt
 `
 
-const postFieldsFragment = withComments => `
+const postFieldsFragment = (withComments) => `
   id
   announcement
   title
@@ -114,7 +114,8 @@ const postFieldsFragment = withComments => `
   }
   commentersTotal
   commentsTotal
-  ${withComments ? `comments(first: 10, order: "desc") {
+  ${withComments
+? `comments(first: 10, order: "desc") {
     items {
       ${CommentFieldsFragment}
       childComments(first: ${INITIAL_SUBCOMMENTS_DISPLAYED}, order: "desc") {
@@ -130,7 +131,8 @@ const postFieldsFragment = withComments => `
     }
     total
     hasMore
-  }` : ''}
+  }`
+: ''}
   linkPreview {
     description
     id

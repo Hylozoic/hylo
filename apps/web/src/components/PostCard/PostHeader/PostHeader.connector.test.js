@@ -102,7 +102,8 @@ describe('mergeProps', () => {
       const session = orm.session(orm.getEmptyState())
       const group = session.Group.create({ id: 33, slug: 'mygroup' })
       session.CommonRole.create({ id: 2, name: 'Moderator', responsibilities: [{ id: 2, title: 'Manage Content' }] })
-      session.Me.create({ id: 20,
+      session.Me.create({
+        id: 20,
         memberships: [session.Membership.create({
           id: '345',
           group: group.id

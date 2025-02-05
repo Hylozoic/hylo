@@ -1,14 +1,13 @@
 import React from 'react'
 import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import GroupSettingsTab from './GroupSettingsTab'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('GroupSettingsTab', () => {
   const group = {
-    id: 1,
+    id: '1',
     name: 'Foomunity',
     slug: 'foo',
-    locationObject: 'Fuji',
+    locationObject: { id: '1', name: 'Fuji' },
     description: 'Great group',
     avatarUrl: 'avatar.png',
     bannerUrl: 'banner.png',
@@ -27,8 +26,7 @@ describe('GroupSettingsTab', () => {
 
   const renderComponent = (props = {}) => {
     return render(
-      <GroupSettingsTab group={group} {...props} />,
-      { wrapper: AllTheProviders }
+      <GroupSettingsTab group={group} {...props} />
     )
   }
 

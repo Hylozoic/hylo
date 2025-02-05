@@ -4,7 +4,7 @@ import ImportExportSettingsTab from './ImportExportSettingsTab'
 
 describe('ImportExportSettingsTab', () => {
   const group = {
-    id: 1,
+    id: '1',
     name: 'Hylo'
   }
 

@@ -5,8 +5,31 @@ import asyncDebounce from 'util/asyncDebounce'
 import suggestions from './suggestions'
 import findMentions from 'store/actions/findMentions'
 
-export const PeopleMentions = ({ groupIds, maxSuggestions, onSelection, suggestionsThemeName }) =>
-  // Mentions (https://github.com/ueberdosis/tiptap/issues/2219#issuecomment-984662243)
+const MAX_SUGGESTIONS = 7
+
+const loadPeople = async (offset = 0, query, editor) => {
+  const findMentionsGraphql = findMentions({
+    autocomplete: query,
+    groupIds: editor.extensionStorage.mention.groupIds,
+    maxItems: MAX_SUGGESTIONS,
+    offset
+  }).graphql
+
+  const result = query.length > 0 ? await queryHyloAPI(findMentionsGraphql) : null
+
+  return {
+    items: result?.data?.people?.items?.map(person => ({
+      id: person.id,
+      label: person.name,
+      avatarUrl: person.avatarUrl,
+      suggestionLabel: person.name
+    })) || [],
+    hasMore: result?.data?.people?.hasMore || false,
+    query
+  }
+}
+
+export const PeopleMentions = ({ groupIds, onSelection, suggestionsThemeName }) =>
   Mention
     .extend({
       name: 'mention',
@@ -35,33 +58,22 @@ export const PeopleMentions = ({ groupIds, maxSuggestions, onSelection, suggesti
       HTMLAttributes: {
         class: 'mention'
       },
-      renderLabel: ({ node }) => {
-        return node.attrs.label
+      renderHTML: ({ options, node }) => {
+        return ['span', { class: 'mention', 'data-id': node.attrs.id }, node.attrs.label ?? node.attrs.id]
       },
       suggestion: {
         char: '@',
-        allowSpaces: false,
+        allowSpaces: true,
         pluginKey: new PluginKey('mentionSuggestion'),
-        render: () => suggestions.render(suggestionsThemeName),
+        render: () => suggestions.render(
+          suggestionsThemeName,
+          loadPeople
+        ),
         items: asyncDebounce(200, async ({ query, editor }) => {
           editor.extensionStorage.topic.loading = true
-
-          const findMentionsGraphql = findMentions({
-            autocomplete: query,
-            groupIds: editor.extensionStorage.mention.groupIds,
-            maxItems: maxSuggestions
-          }).graphql
-          const matchedPeople = await queryHyloAPI(findMentionsGraphql)
-
+          const results = await loadPeople(0, query, editor)
           editor.extensionStorage.topic.loading = false
-
-          return matchedPeople?.data.people.items
-            .map(person => ({
-              id: person.id,
-              label: person.name,
-              avatarUrl: person.avatarUrl,
-              suggestionLabel: person.name
-            }))
+          return results
         })
       }
     })

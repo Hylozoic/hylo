@@ -1,6 +1,6 @@
 {
-  "name": "hylo-evo",
-  "stack": "heroku-20",
+  "name": "hylo-web",
+  "stack": "heroku-24",
   "scripts": {
   },
   "env": {
@@ -42,7 +42,7 @@
   ],
   "buildpacks": [
     {
-      "url": "https://github.com/Hylozoic/heroku-buildpack-nodejs.git#run-webpack-build-v182"
+      "url": "https://github.com/heroku/heroku-buildpack-nodejs#latest"
     }
   ]
 }

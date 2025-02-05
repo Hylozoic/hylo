@@ -17,7 +17,7 @@ export function fetchGroups ({ farmQuery, groupType, nearCoord, offset, order, p
         farmQuery,
         groupType,
         nearCoord,
-        offset: offset,
+        offset,
         order,
         search,
         sortBy
@@ -34,7 +34,7 @@ export function fetchGroups ({ farmQuery, groupType, nearCoord, offset, order, p
 }
 
 const groupQuery = `
-query (
+query FetchGroups (
   $boundingBox: [PointInput],
   $first: Int,
   $farmQuery: JSON,
@@ -79,6 +79,7 @@ query (
       id
       avatarUrl
       bannerUrl
+      invitePath
       name
       purpose
       type

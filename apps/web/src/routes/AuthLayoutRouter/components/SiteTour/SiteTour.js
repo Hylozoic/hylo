@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Joyride from 'react-joyride'
@@ -58,7 +58,7 @@ export default function SiteTour ({ currentSiteWidth }) {
 
   return (
     <>
-      <div className={cx(classes.tourWrapper, { [classes.tourClosed]: closeTheTour })}>
+      <div className={cn(classes.tourWrapper, { [classes.tourClosed]: closeTheTour })}>
         <div className={classes.tourPrompt}>
           <div className={classes.tourGuide}><img src='/axolotl-tourguide.png' /></div>
           <div className={classes.tourExplanation}>

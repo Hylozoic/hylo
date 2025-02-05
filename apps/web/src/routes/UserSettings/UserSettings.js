@@ -1,16 +1,16 @@
-import { isEmpty, every, includes, get } from 'lodash/fp'
+import { isEmpty, get } from 'lodash/fp'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation } from 'react-router-dom'
-import { createSelector } from 'reselect'
 
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import EditProfileTab from './EditProfileTab/EditProfileTab'
 import UserGroupsTab from './UserGroupsTab/'
-import BlockedUsersTab from './BlockedUsersTab/BlockedUsersTab'
+import BlockedUsersTab from './BlockedUsersTab'
 import ManageInvitesTab from './ManageInvitesTab/'
-import NotificationSettingsTab from './NotificationSettingsTab/NotificationSettingsTab'
+import LocaleTab from './LocaleTab'
+import NotificationSettingsTab from './NotificationSettingsTab'
 import AccountSettingsTab from './AccountSettingsTab/AccountSettingsTab'
 import PaymentSettingsTab from './PaymentSettingsTab/PaymentSettingsTab'
 import SavedSearchesTab from './SavedSearchesTab/SavedSearchesTab'
@@ -27,28 +27,10 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import {
   updateUserSettings,
   unlinkAccount,
-  updateMembershipSettings,
-  updateAllMemberships,
   registerStripeAccount
 } from './UserSettings.store'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import { setConfirmBeforeClose } from '../FullPageModal/FullPageModal.store'
-
-const getAllGroupsSettings = createSelector(
-  getMyMemberships,
-  memberships => ({
-    sendEmail: every(m => m.settings && m.settings.sendEmail, memberships),
-    sendPushNotifications: every(m => m.settings && m.settings.sendPushNotifications, memberships)
-  })
-)
-
-const getMessageSettings = createSelector(
-  getMe,
-  me => me && ({
-    sendEmail: includes(me.settings && me.settings.dmNotifications, ['email', 'both']),
-    sendPushNotifications: includes(me.settings && me.settings.dmNotifications, ['push', 'both'])
-  })
-)
 
 const UserSettings = () => {
   const { t } = useTranslation()
@@ -57,9 +39,7 @@ const UserSettings = () => {
 
   const currentUser = useSelector(getMe)
   const blockedUsers = useSelector(getBlockedUsers)
-  const allGroupsSettings = useSelector(getAllGroupsSettings)
   const memberships = useSelector(state => getMyMemberships(state).sort((a, b) => a.group.name.localeCompare(b.group.name)))
-  const messageSettings = useSelector(getMessageSettings)
   const confirm = useSelector(state => get('FullPageModal.confirm', state))
   const fetchPending = useSelector(state => state.pending[FETCH_FOR_CURRENT_USER])
   const queryParams = {
@@ -74,7 +54,7 @@ const UserSettings = () => {
   const content = [
     {
       name: t('Edit Profile'),
-      path: '',
+      path: 'edit-profile',
       component: (
         <EditProfileTab
           currentUser={currentUser}
@@ -98,17 +78,17 @@ const UserSettings = () => {
       component: <ManageInvitesTab currentUser={currentUser} />
     },
     {
+      name: t('Locale'),
+      path: 'locale',
+      component: <LocaleTab currentUser={currentUser} />
+    },
+    {
       name: t('Notifications'),
       path: 'notifications',
       component: (
         <NotificationSettingsTab
           currentUser={currentUser}
-          updateUserSettings={(...args) => dispatch(updateUserSettings(...args))}
           memberships={memberships}
-          updateMembershipSettings={(...args) => dispatch(updateMembershipSettings(...args))}
-          updateAllMemberships={(...args) => dispatch(updateAllMemberships(...args))}
-          messageSettings={messageSettings}
-          allGroupsSettings={allGroupsSettings}
         />
       )
     },
@@ -133,7 +113,7 @@ const UserSettings = () => {
     }
   ]
 
-  if (currentUser && !isEmpty(currentUser.blockedUsers.toRefArray())) {
+  if (currentUser && !isEmpty(blockedUsers)) {
     content.push({
       name: t('Blocked Users'),
       path: 'blocked-users',

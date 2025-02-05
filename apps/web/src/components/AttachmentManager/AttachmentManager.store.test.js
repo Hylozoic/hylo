@@ -25,7 +25,7 @@ describe('AttachmentManager store', () => {
         }
       }
       it('sets attachments', () => {
-        let finalState = reducer(defaultState, action)
+        const finalState = reducer(defaultState, action)
         expect(finalState).toMatchSnapshot()
       })
     })

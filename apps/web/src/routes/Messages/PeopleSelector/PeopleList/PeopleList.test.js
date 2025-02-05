@@ -1,6 +1,5 @@
 import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import PeopleList from './PeopleList'
 
 describe('PeopleList', () => {
@@ -27,8 +26,7 @@ describe('PeopleList', () => {
 
   it('renders a list of people', () => {
     render(
-      <PeopleList people={people} onMouseOver={() => {}} />,
-      { wrapper: AllTheProviders }
+      <PeopleList people={people} onMouseOver={() => {}} />
     )
 
     expect(screen.getByText('Wombat')).toBeInTheDocument()
@@ -38,8 +36,7 @@ describe('PeopleList', () => {
 
   it('renders nothing when people array is empty', () => {
     render(
-      <PeopleList people={[]} onMouseOver={() => {}} />,
-      { wrapper: AllTheProviders }
+      <PeopleList people={[]} onMouseOver={() => {}} />
     )
 
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
@@ -48,8 +45,7 @@ describe('PeopleList', () => {
   it('calls onMouseOver when hovering over a person', () => {
     const onMouseOver = jest.fn()
     render(
-      <PeopleList people={people} onMouseOver={onMouseOver} />,
-      { wrapper: AllTheProviders }
+      <PeopleList people={people} onMouseOver={onMouseOver} />
     )
 
     screen.getByText('Wombat').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
@@ -63,8 +59,7 @@ describe('PeopleList', () => {
         onMouseOver={() => {}}
         currentMatch={people[1]}
         onClick={() => {}}
-      />,
-      { wrapper: AllTheProviders }
+      />
     )
 
     const activeItem = screen.getByText('Aardvark').closest('li')

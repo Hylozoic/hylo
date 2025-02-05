@@ -70,7 +70,6 @@ const personalizeData = async (user, type, data, opts = {}) => {
   }).toString()
 
   getPosts(filteredData).forEach(post => {
-    console.log('post', post, 'aaadsds')
     post.url = post.url + clickthroughParams
     post.reply_url = Email.postReplyAddress(post.id, user.id)
     if (post.details) {

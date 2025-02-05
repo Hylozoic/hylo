@@ -1,22 +1,14 @@
-import cx from 'classnames'
 import { filter, isFunction } from 'lodash'
-import Moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import React, { useState, useEffect, useRef } from 'react'
-import { useTranslation, withTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
-import { Tooltip } from 'react-tooltip'
 import { Helmet } from 'react-helmet'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useSelector, useDispatch } from 'react-redux'
+import { Tooltip } from 'react-tooltip'
+import { useParams, useNavigate, Routes, Route } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
-import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
-import { bgImageStyle } from 'util/index'
-import {
-  currentUserSettingsUrl,
-  messagePersonUrl,
-  messagesUrl,
-  gotoExternalUrl,
-  postUrl
-} from 'util/navigation'
+
 import Affiliation from 'components/Affiliation'
 import Button from 'components/Button'
 import BadgeEmoji from 'components/BadgeEmoji'
@@ -32,14 +24,14 @@ import RecentActivity from './RecentActivity'
 import MemberPosts from './MemberPosts'
 import MemberComments from './MemberComments'
 import Membership from 'components/Membership'
-import MemberVotes from './MemberVotes' // TODO REACTIONS: switch this to reactions
+import MemberReactions from './MemberReactions'
+import PostDialog from 'components/PostDialog'
 import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 
-import styles from './MemberProfile.module.scss'
-
-import { useSelector, useDispatch } from 'react-redux'
 import blockUser from 'store/actions/blockUser'
+import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
@@ -50,9 +42,19 @@ import {
   FETCH_RECENT_ACTIVITY,
   FETCH_MEMBER_POSTS,
   FETCH_MEMBER_COMMENTS,
-  FETCH_MEMBER_VOTES, // TODO REACTIONS: switch this to reactions
+  FETCH_MEMBER_REACTIONS,
   getPresentedPerson
 } from './MemberProfile.store'
+import { bgImageStyle, cn } from 'util/index'
+import {
+  currentUserSettingsUrl,
+  messagePersonUrl,
+  messagesUrl,
+  gotoExternalUrl,
+  postUrl
+} from 'util/navigation'
+
+import styles from './MemberProfile.module.scss'
 
 const GROUPS_DIV_HEIGHT = 200
 
@@ -60,10 +62,12 @@ const MESSAGES = {
   invalid: "That doesn't seem to be a valid person ID."
 }
 
-const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleColumn, t }) => {
+const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleColumn }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routeParams = useParams()
+  const { t } = useTranslation()
+  const [container, setContainer] = useState(null)
 
   const personId = routeParams.personId
   const error = !Number.isSafeInteger(Number(personId)) ? MESSAGES.invalid : null
@@ -72,7 +76,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     FETCH_RECENT_ACTIVITY,
     FETCH_MEMBER_POSTS,
     FETCH_MEMBER_COMMENTS,
-    FETCH_MEMBER_VOTES
+    FETCH_MEMBER_REACTIONS
   ], state))
   const personLoading = useSelector(state => isPendingFor(fetchPerson, state))
   const groupSlug = routeParams.groupSlug
@@ -92,6 +96,16 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const [showExpandGroupsButton, setShowExpandGroupsButton] = useState(false)
   const groupsRef = useRef(null)
 
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Member Profile') + ': ' + (person ? person.name : t('Loading...')),
+      icon: 'Person',
+      info: '',
+      search: true
+    })
+  }, [person])
+
   useEffect(() => {
     if (personId) fetchPersonAction(personId)
     checkGroupsHeight()
@@ -110,7 +124,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const selectTab = tab => setCurrentTabState(tab)
 
   const handleBlockUser = personId => {
-    if (window.confirm(blockConfirmMessage)) {
+    if (window.confirm(t('blockConfirmMessage'))) {
       blockUserAction(personId).then(goToPreviousLocation)
     }
   }
@@ -131,10 +145,10 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const isCurrentUser = currentUser && currentUser.id === personId
   const isAxolotl = AXOLOTL_ID === personId
   const contentDropDownItems = [
-    { id: 'Overview', label: t('Overview'), title: t('{{name}}s recent activity', { name: person.name }), component: RecentActivity },
-    { id: 'Posts', label: t('Posts'), title: t('{{name}}s posts', { name: person.name }), component: MemberPosts },
-    { id: 'Comments', label: t('Comments'), title: t('{{name}}s comments', { name: person.name }), component: MemberComments },
-    { id: 'Reactions', label: t('Reactions'), title: t('{{name}}s reactions', { name: person.name }), component: MemberVotes } // TODO REACTIONS: switch this to reactions
+    { id: 'Overview', label: t('Overview'), title: t('{{name}}\'s recent activity', { name: person.name }), component: RecentActivity },
+    { id: 'Posts', label: t('Posts'), title: t('{{name}}\'s posts', { name: person.name }), component: MemberPosts },
+    { id: 'Comments', label: t('Comments'), title: t('{{name}}\'s comments', { name: person.name }), component: MemberComments },
+    { id: 'Reactions', label: t('Reactions'), title: t('{{name}}\'s reactions', { name: person.name }), component: MemberReactions }
   ].map(contentDropDownitem => ({
     ...contentDropDownitem, onClick: () => selectTab(contentDropDownitem.label)
   }))
@@ -157,92 +171,103 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   } = contentDropDownItems.find(contentItem => contentItem.id === currentTabState)
 
   return (
-    <div className={cx(styles.memberProfile, { [styles.isSingleColumn]: isSingleColumn })}>
-      <Helmet>
-        <title>{person.name} | Hylo</title>
-        <meta name='description' content={`${person.name}: ${t('Member Profile')}`} />
-      </Helmet>
-      <div className={styles.header}>
-        {isCurrentUser &&
-          <Button className={styles.editProfileButton} onClick={() => push(currentUserSettingsUrl())}>
-            <Icon name='Edit' /> {t('Edit Profile')}
-          </Button>}
-        <div className={styles.headerBanner} style={bgImageStyle(person.bannerUrl)}>
-          <RoundImage className={styles.headerMemberAvatar} url={person.avatarUrl} xlarge />
-          <h1 className={styles.headerMemberName}>{person.name}</h1>
-          <div className={styles.badgeRow}>
-            {roles.map(role => (
-              <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={person.id} />
-            ))}
+    <div className='h-full overflow-auto flex flex-col items-center' ref={setContainer}>
+      <div className={cn('w-full', styles.memberProfile, { [styles.isSingleColumn]: isSingleColumn })}>
+        <Helmet>
+          <title>{person.name} | Hylo</title>
+          <meta name='description' content={`${person.name}: ${t('Member Profile')}`} />
+        </Helmet>
+        <div className='flex flex-col items-center w-full'>
+          {isCurrentUser &&
+            <Button className={styles.editProfileButton} onClick={() => push(currentUserSettingsUrl())}>
+              <Icon name='Edit' /> {t('Edit Profile')}
+            </Button>}
+          <div className={'w-full h-[40vh] flex flex-col items-center items-end justify-end pb-10 bg-cover'} style={bgImageStyle(person.bannerUrl)}>
+            <RoundImage className={styles.headerMemberAvatar} url={person.avatarUrl} xlarge />
+            <h1 className={styles.headerMemberName}>{person.name}</h1>
+            <div className={styles.badgeRow}>
+              {roles.map(role => (
+                <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={person.id} />
+              ))}
+            </div>
+            {person.location && (
+              <div className={styles.headerMemberLocation}>
+                <Icon name='Location' className={styles.headerMemberLocationIcon} />
+                {locationWithoutUsa}
+              </div>
+            )}
           </div>
-          {person.location && <div className={styles.headerMemberLocation}>
-            <Icon name='Location' className={styles.headerMemberLocationIcon} />
-            {locationWithoutUsa}
+          <div className={styles.actionIcons}>
+            <ActionButtons items={actionButtonsItems} />
+            <ActionDropdown items={actionDropdownItems} />
+          </div>
+          {(person.tagline || person.bio) && <div className='flex items-center flex-col'>
+            {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}
+            {person.bio && (
+              <div className={cn('text-foreground text-center max-w-[720px]')}>
+                <ClickCatcher>
+                  <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
+                </ClickCatcher>
+              </div>
+            )}
           </div>}
+          <div className='flex flex-col max-w-[720px]'>
+            <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>
+              {t('Skills & Interests')}
+            </div>
+            <SkillsSection personId={personId} editable={false} t={t} />
+            <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>
+              {t('What I\'m Learning')}
+            </div>
+            <SkillsToLearnSection personId={personId} editable={false} t={t} />
+            {memberships && memberships.length > 0 && <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>{t('Hylo Groups')}</div>}
+            <div
+              ref={groupsRef}
+              className='flex flex-row flex-wrap items-center w-full overflow-hidden relative space-y-2'
+              style={{
+                maxHeight: showAllGroups ? 'none' : `${GROUPS_DIV_HEIGHT}px`
+              }}
+            >
+              {memberships && memberships.length > 0 && memberships.map((m, index) => <Membership key={m.id} index={index} membership={m} />)}
+            </div>
+            {showExpandGroupsButton && (
+              <button onClick={toggleShowAllGroups} className={'text-sm font-bold mt-4 mb-2 text-center w-full block'}>
+                {showAllGroups ? 'Show Less' : 'Show More'}
+              </button>
+            )}
+
+            {affiliations && affiliations.length > 0 && <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center w-full block'>{t('Other Affiliations')}</div>}
+            {affiliations && affiliations.length > 0 && affiliations.map((a, index) => <Affiliation key={a.id} index={index} affiliation={a} />)}
+
+            {events && events.length > 0 && <div className={styles.profileSubhead}>{t('Upcoming Events')}</div>}
+            {events && events.length > 0 && events.map((e, index) => <Event key={index} memberCap={3} event={e} routeParams={routeParams} showDetails={showDetails} />)}
+
+            {projects && projects.length > 0 && <div className={styles.profileSubhead}>{t('Projects')}</div>}
+            {projects && projects.length > 0 && projects.map((p, index) => <Project key={index} memberCap={3} project={p} routeParams={routeParams} showDetails={showDetails} />)}
+          </div>
         </div>
-        <div className={styles.actionIcons}>
-          <ActionButtons items={actionButtonsItems} />
-          <ActionDropdown items={actionDropdownItems} />
-        </div>
-        {person.tagline && <div className={styles.tagline}>{person.tagline}</div>}
-        {person.bio && <div className={styles.bio}>
-          <ClickCatcher>
-            <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
-          </ClickCatcher>
-        </div>}
-        <div className={styles.memberDetails}>
-          <div className={styles.profileSubhead}>
-            {t('Skills & Interests')}
+        <div className='flex flex-col align-items-center max-w-[720px]'>
+          <div className={styles.contentControls}>
+            <h2 className={styles.contentHeader}>{currentContentTitle}</h2>
+            <Dropdown
+              className={styles.contentDropdown}
+              items={contentDropDownItems}
+              toggleChildren={
+                <span>{currentTabState} <Icon className={styles.contentDropdownIcon} name='ArrowDown' /></span>
+  }
+            />
           </div>
-          <SkillsSection personId={personId} editable={false} />
-          <div className={styles.profileSubhead}>
-            {t('What I\'m Learning')}
-          </div>
-          <SkillsToLearnSection personId={personId} editable={false} />
-
-          {memberships && memberships.length > 0 && <div className={styles.profileSubhead}>{t('Hylo Groups')}</div>}
-          <div
-            ref={groupsRef}
-            className={styles.groups}
-            style={{
-              maxHeight: showAllGroups ? 'none' : `${GROUPS_DIV_HEIGHT}px`
-            }}
-          >
-            {memberships && memberships.length > 0 && memberships.map((m, index) => <Membership key={m.id} index={index} membership={m} />)}
-          </div>
-          {showExpandGroupsButton && (
-            <button onClick={toggleShowAllGroups} className={styles.showMoreButton}>
-              {showAllGroups ? 'Show Less' : 'Show More'}
-            </button>
-          )}
-
-          {affiliations && affiliations.length > 0 && <div className={styles.profileSubhead}>{t('Other Affiliations')}</div>}
-          {affiliations && affiliations.length > 0 && affiliations.map((a, index) => <Affiliation key={a.id} index={index} affiliation={a} />)}
-
-          {events && events.length > 0 && <div className={styles.profileSubhead}>{t('Upcoming Events')}</div>}
-          {events && events.length > 0 && events.map((e, index) => <Event key={index} memberCap={3} event={e} routeParams={routeParams} showDetails={showDetails} />)}
-
-          {projects && projects.length > 0 && <div className={styles.profileSubhead}>{t('Projects')}</div>}
-          {projects && projects.length > 0 && projects.map((p, index) => <Project key={index} memberCap={3} project={p} routeParams={routeParams} showDetails={showDetails} />)}
+          <CurrentContentComponent routeParams={routeParams} loading={contentLoading} />
         </div>
       </div>
-      <div className={styles.content}>
-        <div className={styles.contentControls}>
-          <h2 className={styles.contentHeader}>{currentContentTitle}</h2>
-          <Dropdown
-            className={styles.contentDropdown}
-            items={contentDropDownItems}
-            toggleChildren={
-              <span>{currentTabState} <Icon className={styles.contentDropdownIcon} name='ArrowDown' /></span>}
-          />
-        </div>
-        <CurrentContentComponent routeParams={routeParams} loading={contentLoading} />
-      </div>
+      <Routes>
+        <Route path='post/:postId' element={<PostDialog container={container} />} />
+      </Routes>
     </div>
   )
 }
 
-export function ActionTooltip ({ content, hideCopyTip, onClick }) {
+function ActionTooltip ({ content, hideCopyTip, onClick }) {
   const [copied, setCopied] = useState(false)
   const { t } = useTranslation()
 
@@ -251,17 +276,19 @@ export function ActionTooltip ({ content, hideCopyTip, onClick }) {
       <span className={styles.actionIconTooltipContent} onClick={onClick}>
         {content}
       </span>
-      {!hideCopyTip && <CopyToClipboard text={content} onCopy={() => setCopied(true)}>
-        <Button className={cx(styles.actionIconTooltipButton, { [styles.copied]: copied })}>
-          <Icon name='Copy' />
-          {copied ? t('Copied!') : t('Copy')}
-        </Button>
-      </CopyToClipboard>}
+      {!hideCopyTip && (
+        <CopyToClipboard text={content} onCopy={() => setCopied(true)}>
+          <Button className={cn(styles.actionIconTooltipButton, { [styles.copied]: copied })}>
+            <Icon name='Copy' />
+            {copied ? t('Copied!') : t('Copy')}
+          </Button>
+        </CopyToClipboard>
+      )}
     </div>
   )
 }
 
-export function ActionButtons ({ items }) {
+function ActionButtons ({ items }) {
   return items.map((actionIconItem, index) => {
     const { iconName, value, onClick, hideCopyTip } = actionIconItem
 
@@ -277,10 +304,11 @@ export function ActionButtons ({ items }) {
       <React.Fragment key={index}>
         <Icon
           key={index}
-          className={styles.actionIconButton}
+          className='text-foreground bg-background w-[50px] h-[50px] flex items-center justify-center rounded-full cursor-pointer mx-2'
           name={iconName}
           onClick={onClick}
-          {...tooltipProps} />
+          {...tooltipProps}
+        />
         <Tooltip
           id={tooltipId}
           place='bottom'
@@ -290,22 +318,6 @@ export function ActionButtons ({ items }) {
           delayHide={500}
           delayShow={500}
           className={styles.tooltip}
-          afterShow={e => {
-            const hoverClassName = styles.actionIconButtonHover
-            const elements = document.getElementsByClassName(hoverClassName)
-            while (elements.length > 0) {
-              elements[0].classList.remove(hoverClassName)
-            }
-            e.target.classList.add(hoverClassName)
-          }}
-          afterHide={e => {
-            const hoverClassName = styles.actionIconButtonHover
-            const elements = document.getElementsByClassName(hoverClassName)
-            while (elements.length > 0) {
-              elements[0].classList.remove(hoverClassName)
-            }
-            e.target.classList.remove(hoverClassName)
-          }}
           content={() =>
             <ActionTooltip content={value} onClick={onClick} key={index} hideCopyTip={hideCopyTip} />}
         />
@@ -314,7 +326,7 @@ export function ActionButtons ({ items }) {
   })
 }
 
-export function ActionDropdown ({ items }) {
+function ActionDropdown ({ items }) {
   const activeItems = filter(items, item =>
     isFunction(item.onClick) && !item.hide)
 
@@ -323,42 +335,42 @@ export function ActionDropdown ({ items }) {
       alignRight
       items={activeItems}
       toggleChildren={
-        <Icon className={cx(styles.actionIconButton, styles.actionMenu)} name='More' />
+        <Icon className={cn(styles.actionIconButton, styles.actionMenu)} name='More' />
       }
     />
 }
 
-export function Project ({ memberCap, project, routeParams, showDetails }) {
+function Project ({ memberCap, project, routeParams, showDetails }) {
   const { title, id, createdAt, creator, members } = project
   return (
     <div className={styles.project} onClick={() => showDetails(id, { ...routeParams })}>
       <div>
         <div className={styles.title}>{title} </div>
-        <div className={styles.meta}>{creator.name} - {Moment(createdAt).fromNow()} </div>
+        <div className={styles.meta}>{creator.name} - {DateTime.fromJSDate(createdAt).toRelative()} </div>
       </div>
-      <RoundImageRow className={cx(styles.members, { [styles.membersPlus]: members.items.length > memberCap })} inline imageUrls={members.items.map(m => m.avatarUrl)} cap={memberCap} />
+      <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: members.items.length > memberCap })} inline imageUrls={members.items.map(m => m.avatarUrl)} cap={memberCap} />
     </div>
   )
 }
 
-export function Event ({ memberCap, event, routeParams, showDetails }) {
+function Event ({ memberCap, event, routeParams, showDetails }) {
   const { id, location, eventInvitations, startTime, title } = event
   return (
     <div className={styles.event} onClick={() => showDetails(id, { ...routeParams })}>
       <div className={styles.date}>
-        <div className={styles.month}>{Moment(startTime).format('MMM')}</div>
-        <div className={styles.day}>{Moment(startTime).format('DD')}</div>
+        <div className={styles.month}>{DateTime.fromJSDate(startTime).toFormat('MMM')}</div>
+        <div className={styles.day}>{DateTime.fromJSDate(startTime).toFormat('dd')}</div>
       </div>
       <div className={styles.details}>
         <div className={styles.title}>{title}</div>
         <div className={styles.meta}><Icon name='Location' />{location}</div>
       </div>
-      <RoundImageRow className={cx(styles.members, { [styles.membersPlus]: eventInvitations.items.length > memberCap })} inline imageUrls={eventInvitations.items.map(e => e.person.avatarUrl)} cap={memberCap} />
+      <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: eventInvitations.items.length > memberCap })} inline imageUrls={eventInvitations.items.map(e => e.person.avatarUrl)} cap={memberCap} />
     </div>
   )
 }
 
-export function Error ({ children }) {
+function Error ({ children }) {
   return (
     <div className={styles.memberProfile}>
       <span className={styles.error}>{children}</span>
@@ -366,12 +378,12 @@ export function Error ({ children }) {
   )
 }
 
-export function handleContactPhone (contactPhone) {
+function handleContactPhone (contactPhone) {
   return window.location.assign(`tel:${contactPhone}`)
 }
 
-export function handleContactEmail (contactEmail) {
+function handleContactEmail (contactEmail) {
   return window.location.assign(`mailto:${contactEmail}`)
 }
 
-export default withTranslation()(MemberProfile)
+export default MemberProfile

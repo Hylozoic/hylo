@@ -1,15 +1,14 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, AllTheProviders, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import UserGroupsTab from './UserGroupsTab'
-import { AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 
 describe('UserGroupsTab', () => {
-  it('renders a list of Memberships and Affiliations', () => {
+  it('renders a list of Memberships and Affiliations', async () => {
     const props = {
       memberships: [
-        { id: '1', group: { name: 'Group 1' } },
-        { id: '2', group: { name: 'Group 2' } },
-        { id: '3', group: { name: 'Group 3' } }
+        { id: '1', group: { id: '1', name: 'Group 1' }, person: { id: '1', name: 'Person 1' } },
+        { id: '2', group: { id: '2', name: 'Group 2' }, person: { id: '2', name: 'Person 2' } },
+        { id: '3', group: { id: '3', name: 'Group 3' }, person: { id: '3', name: 'Person 3' } }
       ],
       affiliations: {
         items: [
@@ -35,23 +34,25 @@ describe('UserGroupsTab', () => {
       fetchForCurrentUser: jest.fn(() => Promise.resolve({ id: 'validUser' }))
     }
 
-    render(<UserGroupsTab {...props} />, { wrapper: AllTheProviders })
+    render(<UserGroupsTab {...props} />)
 
     // Check for Memberships
-    expect(screen.getByText('Group 1')).toBeInTheDocument()
-    expect(screen.getByText('Group 2')).toBeInTheDocument()
-    expect(screen.getByText('Group 3')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Group 1')).toBeInTheDocument()
+      expect(screen.getByText('Group 2')).toBeInTheDocument()
+      expect(screen.getByText('Group 3')).toBeInTheDocument()
 
-    // Check for Affiliations
-    expect(screen.getByText('Cheesemonger at La Fromagerie')).toBeInTheDocument()
-    expect(screen.getByText('Organizer of Rights of Nature Santa Cruz')).toBeInTheDocument()
+      // Check for Affiliations
+      expect(screen.getByText('Cheesemonger')).toBeInTheDocument()
+      expect(screen.getByText('Rights of Nature Santa Cruz')).toBeInTheDocument()
 
-    // Check for section headers
-    expect(screen.getByText('Hylo Groups')).toBeInTheDocument()
-    expect(screen.getByText('Other Affiliations')).toBeInTheDocument()
+      // Check for section headers
+      expect(screen.getByText('Hylo Groups')).toBeInTheDocument()
+      expect(screen.getByText('Other Affiliations')).toBeInTheDocument()
+    })
   })
 
-  it('displays loading state when data is not available', () => {
+  it('displays loading state when data is not available', async () => {
     const props = {
       memberships: null,
       affiliations: null,
@@ -59,12 +60,14 @@ describe('UserGroupsTab', () => {
       fetchForCurrentUser: jest.fn(() => Promise.resolve({ id: 'validUser' }))
     }
 
-    render(<UserGroupsTab {...props} />, { wrapper: AllTheProviders })
+    render(<UserGroupsTab {...props} />)
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
+    })
   })
 
-  it('allows adding a new affiliation', () => {
+  it('allows adding a new affiliation', async () => {
     const props = {
       memberships: [],
       affiliations: { items: [] },
@@ -72,15 +75,19 @@ describe('UserGroupsTab', () => {
       fetchForCurrentUser: jest.fn(() => Promise.resolve({ id: 'validUser' }))
     }
 
-    render(<UserGroupsTab {...props} />, { wrapper: AllTheProviders })
+    render(<UserGroupsTab {...props} />)
 
-    const addButton = screen.getByText('Add new affiliation')
-    expect(addButton).toBeInTheDocument()
+    await waitFor(() => {
+      const addButton = screen.getByText('Add new affiliation')
+      expect(addButton).toBeInTheDocument()
+      addButton.click()
+    })
 
-    addButton.click()
-
-    expect(screen.getByPlaceholderText('Name of role')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Name of organization')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('URL of organization')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Name of role')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Name of organization')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('URL of organization')).toBeInTheDocument()
+    })
   })
 })
+

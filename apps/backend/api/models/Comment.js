@@ -1,6 +1,6 @@
 import data from '@emoji-mart/data'
 import { init, getEmojiDataFromNative } from 'emoji-mart'
-import { TextHelpers } from 'hylo-shared'
+import { TextHelpers } from '@hylo/shared'
 import { notifyAboutMessage, sendDigests } from './comment/notifications'
 import EnsureLoad from './mixins/EnsureLoad'
 import * as RichText from '../services/RichText'
@@ -171,7 +171,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const name = user.get('name').toLowerCase()
     const lines = text.split('\n')
 
-    var cutoff
+    let cutoff
     lines.forEach((line, index) => {
       if (cutoff) return
       line = line.trim()
@@ -184,13 +184,24 @@ module.exports = bookshelf.Model.extend(Object.assign({
           cutoff = index - 1
         }
       } else if (line.match(/^-{8}/)) {
+        // TODO: not sure what our divider is/was
         // line contains our divider, possibly followed by the text, "Only text
         // above the dashed line will be included."
         cutoff = index
+      } else if (line.match(/^[-—\s]+$/)) {
+        // line contains only emdashes or dashes or spaces
+        cutoff = index
       } else if (line.match(/(-{4,}.*dashed.line.*$)/)) {
+        // TODO: I dont understand what this is doing, it seems wrong
         // line contains the divider at the end
         cutoff = index + 1
         lines[index] = line.replace(/(-{4,}.*dashed.line.*$)/, '')
+      } else if (line.match(/on.*at.*@.*wrote:/i)) {
+        // line contains header indicating previous email content
+        cutoff = index
+      } else if (line.match(/via Hylo/)) {
+        // line contains the header from the previous email
+        cutoff = index
       }
     })
 
