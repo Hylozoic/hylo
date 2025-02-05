@@ -4,7 +4,7 @@
 // const models = require('../api/models')
 
 exports.up = function(knex) {
-  console.log("New context menu migration is a noop for now")
+  console.log("These model-based migrations failed outside of local development and have been abandoned")
   return Promise.resolve()
   // models.init()
 
