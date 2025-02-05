@@ -10,6 +10,7 @@ import { version as hyloAppVersion } from '../../package.json'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
+import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
 import messageThreadFieldsFragment from '@hylo/graphql/fragments/messageThreadFieldsFragment'
 import notificationFieldsFragment from '@hylo/graphql/fragments/notificationFieldsFragment'
 import registerDeviceMutation from '@hylo/graphql/mutations/registerDeviceMutation'
@@ -72,6 +73,7 @@ export default function AuthRootNavigator () {
   const [, registerDevice] = useMutation(registerDeviceMutation)
 
   useSubscription({ query: updatesSubscription })
+  useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
 
