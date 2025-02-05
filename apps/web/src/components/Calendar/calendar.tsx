@@ -22,19 +22,13 @@ export default function Calendar ({
 
   // map posts objects to calendar "event" objects
   // unique color per post type
-  const color = {
-    event: 'emerald',
-    project: 'indigo',
-    request: 'blue',
-    offer: 'orange'
-  }
   const events = posts.map((post) => {
     return {
       id: post.id,
       start: DateTime.fromISO(post.startTime).toJSDate(),
       end: DateTime.fromISO(post.endTime).toJSDate(),
       title: post.title,
-      color: color[post.type] || 'amber'
+      type: post.type
     }
   })
 

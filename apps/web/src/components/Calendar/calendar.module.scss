@@ -1,0 +1,38 @@
+.discussion {
+  background-color: $color-discussions-20;
+  border-color: $color-discussions-50;
+}
+
+.event {
+  background-color: $color-events-20;
+  border-color: $color-events-50;
+}
+
+.offer {
+  background-color: $color-offers-20;
+  border-color: $color-offers-50;
+}
+
+.resource {
+  background-color: $color-resources-20;
+  border-color: $color-resources-50;
+}
+
+.project {
+  background-color: $color-projects-20;
+  border-color: $color-projects-50;
+}
+
+.request {
+  background-color: $color-requests-20;
+  border-color: $color-requests-50;
+}
+
+.proposal {
+  background-color: $color-proposals-20;
+  border-color: $color-proposals-50;
+}
+
+.calendar-mode-selected {
+  background-color: hsl(var(--selected));
+}

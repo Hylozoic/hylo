@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils'
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
 import Tooltip from 'components/Tooltip'
 
+import classes from './calendar.module.scss'
+
 interface EventPosition {
   left: string
   width: string
@@ -96,7 +98,8 @@ export default function CalendarEvent ({
       <AnimatePresence mode='wait'>
         <motion.div
           className={cn(
-            `px-1 py-1 rounded-md truncate cursor-pointer transition-all duration-300 bg-${event.color}-500/10 hover:bg-${event.color}-500/20 border border-${event.color}-500`,
+            classes[event.type],
+            `px-1 py-1 rounded-md truncate cursor-pointer transition-all duration-300 border border-${event.color}-500`,
             !month && 'absolute',
             className
           )}

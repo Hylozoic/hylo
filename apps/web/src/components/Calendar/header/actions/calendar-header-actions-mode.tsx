@@ -7,6 +7,7 @@ import { useCalendarContext } from '../../calendar-context'
 import { calendarModeIconMap } from '../../calendar-mode-icon-map'
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import classes from '../../calendar.module.scss'
 
 export default function CalendarHeaderActionsMode () {
   const { mode, setMode } = useCalendarContext()
@@ -28,7 +29,10 @@ export default function CalendarHeaderActionsMode () {
             <motion.div
               key={modeValue}
               layout
-              className='flex-1 flex divide-x'
+              className={cn(
+                isSelected && classes.calendarModeSelected,
+                'flex-1 flex divide-x'
+              )}
               animate={{ flex: isSelected ? 1.6 : 1 }}
               transition={{
                 flex: {

@@ -252,14 +252,14 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
         weekdays: cn('flex', props.showWeekNumber && 'justify-end'),
         weekday: 'text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]',
         week: 'flex w-full mt-2',
-        day: 'h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 rounded-1',
+        day: 'h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-selected/50 [&:has([aria-selected])]:bg-selected first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 rounded-1',
         day_button: cn(buttonVariants({ variant: 'ghost' }), 'h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md'),
         range_end: 'day-range-end',
         selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-l-md rounded-r-md',
-        today: 'bg-accent text-accent-foreground',
-        outside: 'day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
+        today: 'bg-selected text-accent-foreground',
+        outside: 'day-outside text-muted-foreground opacity-50 aria-selected:bg-selected/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
         disabled: 'text-muted-foreground opacity-50',
-        range_middle: 'aria-selected:bg-accent aria-selected:text-accent-foreground',
+        range_middle: 'aria-selected:bg-selected aria-selected:text-accent-foreground',
         hidden: 'invisible',
         ...classNames
       }} components={{
@@ -274,7 +274,7 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
                   props.onMonthChange?.(newDate)
                 }}
               >
-                <SelectTrigger className='w-fit gap-1 border-none p-0 focus:bg-accent focus:text-accent-foreground'>
+                <SelectTrigger className='w-fit gap-1 border-none p-0 focus:bg-selected focus:text-accent-foreground'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -291,7 +291,7 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
                   props.onMonthChange?.(newDate)
                 }}
               >
-                <SelectTrigger className='w-fit gap-1 border-none p-0 focus:bg-accent focus:text-accent-foreground'>
+                <SelectTrigger className='w-fit gap-1 border-none p-0 focus:bg-selected focus:text-accent-foreground'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -333,7 +333,7 @@ const TimePeriodSelect = React.forwardRef(({ period, setPeriod, date, onDateChan
   return (
     <div className='flex h-10 items-center'>
       <Select defaultValue={period} onValueChange={(value) => handleValueChange(value)}>
-        <SelectTrigger ref={ref} className='w-[65px] focus:bg-accent focus:text-accent-foreground' onKeyDown={handleKeyDown}>
+        <SelectTrigger ref={ref} className='w-[65px] focus:bg-selected focus:text-accent-foreground' onKeyDown={handleKeyDown}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -410,7 +410,7 @@ const TimePickerInput = React.forwardRef(({ className, type = 'tel', value, id, 
   }
   return (
     <Input
-      ref={ref} id={id || picker} name={name || picker} className={cn('w-[48px] text-center font-mono text-base tabular-nums caret-transparent focus:bg-accent focus:text-accent-foreground [&::-webkit-inner-spin-button]:appearance-none', className)} value={value || calculatedValue} onChange={(e) => {
+      ref={ref} id={id || picker} name={name || picker} className={cn('w-[48px] text-center font-mono text-base tabular-nums caret-transparent focus:bg-selected focus:text-accent-foreground [&::-webkit-inner-spin-button]:appearance-none', className)} value={value || calculatedValue} onChange={(e) => {
         e.preventDefault()
         onChange?.(e)
       }} type={type} inputMode='decimal' onKeyDown={(e) => {

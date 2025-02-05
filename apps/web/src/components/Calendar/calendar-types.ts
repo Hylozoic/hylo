@@ -4,9 +4,9 @@ export type Mode = (typeof calendarModes)[number]
 export type CalendarEvent = {
   id: string
   title: string
-  color: string
   start: Date
   end: Date
+  type: string
 }
 
 export type HyloPost = {
