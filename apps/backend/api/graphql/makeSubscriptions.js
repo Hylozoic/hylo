@@ -17,14 +17,6 @@ const withDontSendToCreator = ({ context, getter } = {}) => {
         ? getter(payload)
         : get(`${inferredKey}.user.id`, payload)
 
-      console.log(
-        'Filtering event:',
-        'Payload:', payload,
-        'Skipping (except in dev):', creatorId === currentUserId,
-        'Creator ID:', creatorId,
-        'Current User ID:', currentUserId
-      )
-
       // NOTE: For ease of testing the subscriptions-debug header can be sent with any value to enable
       // subscriptions publishing to the creator.
       if (creatorId !== currentUserId || context.request.headers.get('subscriptions-debug')) {
@@ -66,8 +58,8 @@ export default function makeSubscriptions () {
 
     updates: {
       subscribe: (parent, args, context) => pipe(
-        context.pubSub.subscribe(`updates:${context.currentUserId}`)
-        // withDontSendToCreator({ context })
+        context.pubSub.subscribe(`updates:${context.currentUserId}`),
+        withDontSendToCreator({ context })
       ),
       resolve: (payload) => {
         if (payload?.message) {

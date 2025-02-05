@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
-import { useDispatch } from 'react-redux'
-import { gql, useMutation, useQuery, useSubscription } from 'urql'
+import { gql, useMutation, useQuery } from 'urql'
 import { debounce } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import messageThreadMessagesQuery from '@hylo/graphql/queries/messageThreadMessagesQuery'
@@ -23,20 +22,18 @@ const BOTTOM_THRESHOLD = 10
 const MESSAGE_PAGE_SIZE = 20
 const BATCH_LIMIT_MS = 2 * 60 * 1000 // 2 minutes in milliseconds
 
-export const UPDATE_THREAD_READ_TIME = 'Thread/UPDATE_THREAD_READ_TIME'
-
-export function updateThreadReadTimeAction(id) {
-  return {
-    type: UPDATE_THREAD_READ_TIME,
-    payload: { api: { path: `/noo/post/${id}/update-last-read`, method: 'POST' } },
-    meta: { id }
+const markThreadReadMutation = gql`
+  mutation MarkThreadReadMutation ($messageThreadId: ID) {
+    markThreadRead(messageThreadId: $messageThreadId) {
+      id
+      unreadCount
+    }
   }
-}
+`
 
 export default function Thread() {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const dispatch = useDispatch()
   const messageListRef = useRef()
   const peopleTypingRef = useRef()
   const [{ currentUser }] = useCurrentUser()
@@ -48,27 +45,23 @@ export default function Thread() {
     query: messageThreadMessagesQuery,
     variables: { id: threadId, first: MESSAGE_PAGE_SIZE, cursor }
   })
-
   const messages = data?.messageThread?.messages?.items || []
-  const hasMore = data?.messageThread?.messages?.hasMore
+  const [, providedMarkAsRead] = useMutation(markThreadReadMutation)
+  const markAsRead = debounce(1000, () => { providedMarkAsRead({ messageThreadId: threadId }) })
 
   // Not currently used, but once we have subscription applied we can turn it back on
   const [newMessages, setNewMessages] = useState()
   const [yOffset, setYOffset] = useState(0)
-  const atBottom = useMemo(() => yOffset < BOTTOM_THRESHOLD, [yOffset])  
-  const markAsRead = debounce(1000, () => {
-    dispatch(updateThreadReadTimeAction(threadId))
-  })
+  const atBottom = useMemo(() => yOffset < BOTTOM_THRESHOLD, [yOffset])
 
   const isWithinBatchLimit = (timestamp1, timestamp2) => {
     return Math.abs(new Date(timestamp1) - new Date(timestamp2)) <= BATCH_LIMIT_MS
   }
 
-  const refineMessages = (messages) =>
-    messages.map((msg, i, arr) => {
+  const refineMessages = messages => {
+    return messages.map((msg, i, arr) => {
       const prev = arr[i + 1]
       const next = arr[i - 1]
-
       const suppressCreator = prev && msg.creator.id === prev.creator.id
       const suppressDate =
         next &&
@@ -81,9 +74,10 @@ export default function Thread() {
         suppressDate
       }
     })
+  }
 
   const fetchMore = () => {
-    if (messages && hasMore) {
+    if (!fetching && messages && messages?.length) {
       setCursor(messages[messages.length - 1].id)
     }
   }
@@ -138,6 +132,7 @@ export default function Thread() {
         data={refineMessages(messages)}
         inverted
         keyExtractor={(item) => item.id}
+        refreshing={fetching}
         onEndReached={fetchMore}
         onEndReachedThreshold={0.3}
         onScroll={handleScroll}

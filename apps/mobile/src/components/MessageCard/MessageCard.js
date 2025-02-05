@@ -15,49 +15,60 @@ export default function MessageCard ({ message }) {
 
   return (
     <View style={[styles.container, suppressCreator && styles.padLeftNoAvatar]}>
-      {!suppressCreator && (
-        <Avatar avatarUrl={creator.avatarUrl} />
-      )}
-      <View style={[styles.body, suppressCreator && styles.padTopNoCreator]}>
+      <View style={styles.header}>
         {!suppressCreator && (
-          <Text style={styles.name}>{creator.name}</Text>
+          <View style={styles.person}>
+            <Avatar style={styles.avatar} avatarUrl={creator.avatarUrl} />
+            <Text style={styles.name}>{creator.name}</Text>
+          </View>
         )}
-        <HyloHTML html={messageHTML} />
         {!suppressDate && (
-          <Text style={styles.date}>{createdAt}</Text>
+          <Text style={styles.date}>{TextHelpers.humanDate(createdAt)}</Text>
         )}
+      </View>
+      <View style={[styles.message]}>
+        <HyloHTML html={messageHTML} />
       </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  body: {
-    flexDirection: 'column',
-    flex: 0.9,
-    paddingLeft: 10
-  },
   container: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     paddingVertical: 5,
     paddingHorizontal: 10,
     backgroundColor: alabaster // flag-messages-background-color
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end'
+  },
+  person: {
+    flexDirection: 'row',
+    flex: 1
+  },
+  avatar: {
+    marginRight: 8
+  },
   date: {
     fontSize: 12,
     color: rhino30,
-    fontFamily: 'Circular-Book',
-    marginTop: -8
+    fontFamily: 'Circular-Book'
   },
   name: {
     color: capeCod,
     fontFamily: 'Circular-Bold'
   },
-  padTopNoCreator: {
-    paddingTop: 0,
-    marginTop: 0
-  },
   padLeftNoAvatar: {
-    paddingLeft: 44
-  }
+    // paddingLeft: 44
+  },
+  message: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'nowrap',
+    flex: 0.9,
+    paddingLeft: 44,
+    // marginTop: -10
+  },
 })
