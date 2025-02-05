@@ -1,7 +1,9 @@
 import React, { useRef, useState } from 'react'
+import { useSelector } from 'react-redux'
 import { Route, Routes, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CSSTransition } from 'react-transition-group'
+import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import CreateModalChooser from './CreateModalChooser'
 import CreateGroup from 'components/CreateGroup'
 import Icon from 'components/Icon'
@@ -14,6 +16,8 @@ const CreateModal = (props) => {
   const [isDirty, setIsDirty] = useState()
   const { t } = useTranslation()
   const modalRef = useRef(null)
+  const previousLocation = useSelector(getPreviousLocation) || { pathname: '/' }
+  const [returnToLocation] = useState(previousLocation)
 
   const querystringParams = new URLSearchParams(location.search)
   const mapLocation = (querystringParams.has('lat') && querystringParams.has('lng'))
@@ -21,7 +25,7 @@ const CreateModal = (props) => {
     : null
 
   const closeModal = () => {
-    navigate(location.pathname.replace(/\/create.*/, ''))
+    navigate(returnToLocation)
   }
 
   const confirmClose = () => {
