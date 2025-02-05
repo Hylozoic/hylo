@@ -29,10 +29,7 @@ export default function CalendarHeaderActionsMode () {
             <motion.div
               key={modeValue}
               layout
-              className={cn(
-                isSelected && classes.calendarModeSelected,
-                'flex-1 flex divide-x'
-              )}
+              className='flex-1 flex divide-x'
               animate={{ flex: isSelected ? 1.6 : 1 }}
               transition={{
                 flex: {
