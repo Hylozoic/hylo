@@ -13,20 +13,21 @@ export default gql`
     $messageThreadId: String,
     $text: String
     $createdAt: Date
-    $firstMessages: Int = 1
+    # $firstMessages: Int = 1
   ) {
     createMessage(data: {
       messageThreadId: $messageThreadId,
       text: $text
       createdAt: $createdAt
     }) {
-      id
       createdAt
+      id
       text
-      messageThread {
-        ...MessageThreadFieldsFragment
+      creator {
+        id
+        name
+        avatarUrl
       }
     }
   }
-  ${messageThreadFieldsFragment}
 `

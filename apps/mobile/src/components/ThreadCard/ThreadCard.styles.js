@@ -1,15 +1,15 @@
 import { StyleSheet } from 'react-native'
-import { rhino30, limedSpruce, nevada, rhino60, rhino05, rhino, alabaster } from 'style/colors'
+import { rhino30, limedSpruce, nevada, rhino60, rhino05, rhino, alabaster, rhino20, rhino10 } from 'style/colors'
 
 export default {
   threadCard: {
     flex: 1,
     flexDirection: 'row',
     paddingTop: 8,
-    backgroundColor: alabaster // flag-messages-background-color
+    backgroundColor: rhino10 // flag-messages-background-color
   },
   highlight: {
-    backgroundColor: rhino05
+    backgroundColor: alabaster
   },
   firstCard: {
     marginTop: 0
@@ -55,7 +55,7 @@ export default {
     justifyContent: 'center'
   },
   countText: {
-    color: alabaster, // flag-messages-background-color
+    color: rhino10, // flag-messages-background-color
     textAlign: 'center',
     fontFamily: 'Circular-Bold',
     overflow: 'hidden',
