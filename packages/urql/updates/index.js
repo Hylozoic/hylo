@@ -6,14 +6,13 @@ import makeAppendToPaginatedSetResolver from './makeAppendToPaginatedSetResolver
 export default {
   Mutation: {
     addProposalVote: (result, args, cache, info) => {
-      // TODO: URQL - This will result in Me being fully re-queried with every new skilled added, which may be fine...
-      // but probably can apply makeAppendToPaginatedSetResolver here as it is a QuerySet
+      // Note: Any Post invalidation will result in the full Group/Stream query being re-fetched.
       cache.invalidate({ __typename: 'Post', id: args.postId })
     },
 
     addSkill: (result, args, cache, info) => {
-      // TODO: URQL - This will result in Me being fully re-queried with every new skilled added, which may be fine...
-      // but probably can apply makeAppendToPaginatedSetResolver here as it is a QuerySet
+      // TODO: URQL - This will result in Me being fully re-queried with every new skilled added
+      // probably can apply makeAppendToPaginatedSetResolver here as it is a QuerySet
       cache.invalidate('Query', 'me')
     },
 
@@ -83,6 +82,18 @@ export default {
       }
     },
 
+    markAllActivitiesRead: (result, args, cache, info) => {
+      if (result?.markAllActivitiesRead?.success) {
+        // Take note of how to invalidate all results of a root Query (without having to know the args)
+        const notificationsFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'notifications')
+        notificationsFields.forEach(field => cache.invalidate('Query', field.fieldKey))
+        cache.updateQuery({ query: meQuery }, ({ me }) => {
+          if (!me) return null
+          return { me: { ...me, newNotificationCount: 0 } }
+        })
+      }
+    },
+
     recordClickthrough: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         const postId = args?.postId
@@ -103,9 +114,6 @@ export default {
     pinPost: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         // Note: Any Post invalidation will result in the full Group/Stream query being re-fetched.
-        // That is probably entirely ok, but there are several ways to do better. One way we could
-        // potentially solve this is by creating a singular post resolver so URQL knows how to manage
-        // this better. Still researching here and around...
         cache.invalidate(cache.keyOfEntity({ __typename: 'Post', id: args.postId }), 'postMemberships')
       }
     },
@@ -161,6 +169,10 @@ export default {
         }
 
         case 'Notification': {
+          makeAppendToPaginatedSetResolver({
+            parentType: 'Query',
+            fieldName: 'notifications'
+          })(result, args, cache, info)
           cache.updateQuery({ query: meQuery }, ({ me }) => {
             if (!me) return null
             return { me: { ...me, newNotificationCount: me.newNotificationCount + 1 } }
