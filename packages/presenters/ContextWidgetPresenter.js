@@ -1,6 +1,7 @@
 // TODO: Get "t" from current i18n instance so it doesn't need to be passed
 // import i18n from 'react-i18next'
 
+// TODO: URQL! Remove this before release
 // t / translate is currently set to a dummy function if not sent
 const tDummy = t => {
   // console.error('!!! ContextWidgetPresenter REQUIRES t to be passed in the second arg options, using dummy function instead')
