@@ -7,9 +7,9 @@ import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import { Text, View, ImageBackground, ScrollView, TouchableOpacity, TextInput } from 'react-native'
 import CheckBox from 'react-native-bouncy-checkbox'
-import useCurrentGroup from 'hooks/useCurrentGroup'
-import useCurrentUser from 'hooks/useCurrentUser'
-import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'urql-shared/presenters/GroupPresenter'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { DEFAULT_AVATAR, DEFAULT_BANNER } from '@hylo/presenters/GroupPresenter'
 import {
   GROUP_WELCOME_AGREEMENTS,
   GROUP_WELCOME_JOIN_QUESTIONS,
@@ -74,7 +74,7 @@ export default function GroupWelcomeLanding ({ route }) {
     (!agreementsAcceptedAt || agreementsAcceptedAt < currentGroup.settings.agreementsLastUpdatedAt)
 
   // Join Questions logic
-  const [questionAnswers, setQuestionAnswers] = useState(joinQuestions.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
+  const [questionAnswers, setQuestionAnswers] = useState(joinQuestions.items.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
   const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!currentGroup?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export default function GroupWelcomeLanding ({ route }) {
 
   useEffect(() => {
     if (numAgreements > 0) {
-      setAcceptedAgreements(currentGroup.agreements.map(a => a.accepted))
+      setAcceptedAgreements(currentGroup.agreements.items.map(a => a.accepted))
     }
   }, [currentGroup?.id])
 
@@ -273,7 +273,7 @@ function JoinQuestionsBodyContent ({ questionAnswers, setQuestionAnswers, setAll
 function SuggestedSkills ({ addSkill, currentUser, group, removeSkill }) {
   const { t } = useTranslation()
   const [selectedSkills, setSelectedSkills] = useState(currentUser.skills ? currentUser?.skills?.items.map(s => s.id) : [])
-  const [pills] = useState(group.suggestedSkills.map(skill => ({
+  const [pills] = useState(group.suggestedSkills.items.map(skill => ({
     ...skill,
     label: skill.name
   })))
@@ -284,7 +284,7 @@ function SuggestedSkills ({ addSkill, currentUser, group, removeSkill }) {
       removeSkill({ id: skillId })
       setSelectedSkills(selectedSkills.filter(s => s !== skillId))
     } else {
-      addSkill({ name: group.suggestedSkills.find(s => s.id === skillId).name })
+      addSkill({ name: group.suggestedSkills.items.find(s => s.id === skillId).name })
       setSelectedSkills(selectedSkills.concat(skillId))
     }
   }

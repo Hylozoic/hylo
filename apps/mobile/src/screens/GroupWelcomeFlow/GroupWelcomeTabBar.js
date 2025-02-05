@@ -10,9 +10,9 @@ import {
   caribbeanGreen, rhino30, white, white20onCaribbeanGreen, white40onCaribbeanGreen
 } from 'style/colors'
 import { useKeyboard } from '@react-native-community/hooks'
-import { ALL_GROUP } from 'urql-shared/presenters/GroupPresenter'
+import { ALL_GROUP } from '@hylo/presenters/GroupPresenter'
 import { useTranslation } from 'react-i18next'
-import useCurrentUser from 'hooks/useCurrentUser'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agreements, handleAccept, allQuestionsAnswered }) {
   const { t } = useTranslation()
@@ -22,7 +22,7 @@ export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agre
   const currentStepIndex = useSelector(getCurrentStepIndex)
   const disableContinue = !!workflowOptions?.disableContinue
   const [completeButtonDisabled, setCompleteButtonDisabled] = useState(false)
-  // TODO: URQL - untested
+  // TODO: URQL! - untested
   const [{ currentUser }] = useCurrentUser()
   const currentMemberships = currentUser?.memberships
   const currentMembership = currentMemberships && currentMemberships.find(m => m.group.id === group.id)

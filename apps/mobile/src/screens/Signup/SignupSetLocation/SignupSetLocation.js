@@ -1,14 +1,13 @@
 import React, { useRef, useState } from 'react'
 import { ScrollView, View, Text } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
-import { useDispatch } from 'react-redux'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { AnalyticsEvents } from '@hylo/shared'
-import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
-import useCurrentUser from 'hooks/useCurrentUser'
-import useAuthStatus from 'hooks/useAuthStatus'
-import updateUserSettingsMutation from 'graphql/mutations/updateUserSettingsMutation'
+import mixpanel from 'services/mixpanel'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { useAuth } from '@hylo/contexts/AuthContext'
+import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import LocationSelectorModal from 'components/LocationSelectorModal'
 import Button from 'components/Button'
@@ -17,13 +16,12 @@ import styles from './SignupSetLocation.styles'
 
 export default function SignupSetLocation ({ navigation }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
   const locationSelectorModalRef = useRef()
   const [{ currentUser }] = useCurrentUser()
   const [location, setLocation] = useState(currentUser?.location)
   const [locationId, setLocationId] = useState(currentUser?.locationId)
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
-  const [, checkAuth] = useAuthStatus({ pause: true })
+  const { checkAuth } = useAuth()
   const controlRef = useRef()
 
   useFocusEffect(() => {
@@ -32,7 +30,7 @@ export default function SignupSetLocation ({ navigation }) {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
         updateUserSettings({ changes: { settings: { signupInProgress: false } } })
-        dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
+        mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
       }
     })
   })
@@ -46,8 +44,8 @@ export default function SignupSetLocation ({ navigation }) {
         settings: { signupInProgress: false }
       }
     })
-    await dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
-    // Confirm whether this is necessary
+    mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
+    // This may not be necessary
     await checkAuth()
   }
 

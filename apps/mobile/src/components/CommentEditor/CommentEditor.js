@@ -8,13 +8,14 @@ import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons'
 import { isEmpty } from 'lodash/fp'
+import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
+import mixpanel from 'services/mixpanel'
 import { isIOS } from 'util/platform'
-import { TextHelpers } from '@hylo/shared'
-import createCommentMutation from 'graphql/mutations/createCommentMutation'
+import createCommentMutation from '@hylo/graphql/mutations/createCommentMutation'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import styles from './CommentEditor.styles'
 import Icon from 'components/Icon'
-import { firstName } from 'urql-shared/presenters/PersonPresenter'
+import { firstName } from '@hylo/presenters/PersonPresenter'
 
 export const KeyboardAccessoryCommentEditor = React.forwardRef(({
   renderScrollable,
@@ -80,19 +81,20 @@ export const CommentEditor = React.forwardRef(({
     if (!isEmpty(commentHTML)) {
       setSubmitting(true)
 
-      // TODO: URQL - analytics
-      // analytics: {
-      //   eventName: AnalyticsEvents.COMMENT_CREATED,
-      //   commentLength: TextHelpers.textLengthHTML(text),
-      //   groupId: post.groups.map(g => g.id),
-      //   hasAttachments: attachments && attachments.length > 0,
-      //   parentCommentId,
-      //   postId
-      // }
+      const parentCommentId = replyingTo?.parentComment?.id || replyingTo?.id || null
+      const postId = post.id
       const { error } = await createComment({
         text: commentHTML,
-        parentCommentId: replyingTo?.parentComment?.id || replyingTo?.id || null,
-        postId: post.id
+        parentCommentId,
+        postId
+      })
+
+      mixpanel.track(AnalyticsEvents.COMMENT_CREATED, {
+        commentLength: TextHelpers.textLengthHTML(commentHTML),
+        groupId: post.groups.map(g => g.id),
+        hasAttachments: false,
+        parentCommentId,
+        postId
       })
 
       setSubmitting(false)

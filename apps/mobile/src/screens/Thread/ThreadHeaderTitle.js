@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Text, TouchableOpacity, View, StyleSheet } from 'react-native'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import { firstName } from 'urql-shared/presenters/PersonPresenter'
+import { firstName } from '@hylo/presenters/PersonPresenter'
 import Avatar from 'components/Avatar'
 import PeopleListModal from 'components/PeopleListModal'
 import { rhino10 } from 'style/colors'

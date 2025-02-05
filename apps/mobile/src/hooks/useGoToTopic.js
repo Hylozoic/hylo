@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native'
-import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
-import { useCurrentGroupSlug } from 'hooks/useCurrentGroup'
+import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { useCurrentGroupSlug } from '@hylo/hooks/useCurrentGroup'
 import useIsModalScreen from './useIsModalScreen'
 
 export default function useGoToTopic () {
@@ -12,7 +12,7 @@ export default function useGoToTopic () {
     if (isModalScreen) {
       return null
     } else {
-      if (isContextGroup(currentGroupSlug)) {
+      if (isContextGroupSlug(currentGroupSlug)) {
         return navigation.navigate('Stream', { topicName })
       } else {
         return navigation.navigate('Chat', { topicName })

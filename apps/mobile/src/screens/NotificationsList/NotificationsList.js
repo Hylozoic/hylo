@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useMutation, useQuery } from 'urql'
 import { FlatList, TouchableOpacity, View, Text, StyleSheet } from 'react-native'
-import { useIsFocused, useNavigation } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash'
 import {
@@ -12,15 +12,14 @@ import {
 import ModalHeader from 'navigation/headers/ModalHeader'
 import NotificationCard from 'components/NotificationCard'
 import CreateGroupNotice from 'components/CreateGroupNotice'
-import Loading from 'components/Loading'
-import cardStyles from 'components/NotificationCard/NotificationCard.styles'
-import notificationsQuery from 'graphql/queries/notificationsQuery'
-import resetNotificationsCountMutation from 'graphql/mutations/resetNotificationsCountMutation'
-import useCurrentUser from 'hooks/useCurrentUser'
+import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
+import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { alabaster } from 'style/colors'
 
 const styles = StyleSheet.create({
   notificationsList: {
-    backgroundColor: 'white',
+    backgroundColor: alabaster,
     position: 'relative'
   },
   center: {
@@ -30,46 +29,44 @@ const styles = StyleSheet.create({
 
 export default function NotificationsList (props) {
   const navigation = useNavigation()
-  const isFocused = useIsFocused()
   const { t } = useTranslation()
   const [offset, setOffset] = useState(0)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   const [, markActivityRead] = useMutation(markActivityReadMutation)
-  // TODO: markAllActivitiesRead needs to optimistically updated
   const [, markAllActivitiesRead] = useMutation(markAllActivitiesReadMutation)
   const [{ currentUser }] = useCurrentUser()
-  const [{ data, fetching }] = useQuery({ query: notificationsQuery, variables: { offset } })
+  const [{ data, fetching, stale }, fetchNotifications] = useQuery({
+    query: notificationsQuery,
+    variables: { offset }
+  })
+
+  const refreshNotifications = async () => {
+    setOffset(0)
+    fetchNotifications({ requestPolicy: 'network-only' })
+  }
 
   const notifications = refineNotifications(data?.notifications?.items, navigation)
-  const hasMore = notifications?.hasMore
+  const hasMore = data?.notifications?.hasMore
   const memberships = currentUser?.memberships
   const currentUserHasMemberships = !isEmpty(memberships)
-  const setHeader = () => {
-    navigation.setOptions({
-      title: t('Notifications'),
-      header: props => (
-        <ModalHeader
-          {...props}
-          headerRightButtonLabel={t('Mark as read')}
-          headerRightButtonOnPress={() => markAllActivitiesRead()}
-        />
-      )
-    })
-  }
 
   const goToCreateGroup = () => navigation.navigate('Create Group')
 
-  useEffect(() => {
-    setHeader()
-    resetNotificationsCount()
-  }, [])
-
-  useEffect(() => {
-    if (isFocused) {
-      setHeader()
+  useFocusEffect(
+    useCallback(() => {
+      navigation.setOptions({
+        title: t('Notifications'),
+        header: props => (
+          <ModalHeader
+            {...props}
+            headerRightButtonLabel={t('Mark as read')}
+            headerRightButtonOnPress={() => markAllActivitiesRead()}
+          />
+        )
+      })
       resetNotificationsCount()
-    }
-  }, [isFocused])
+    }, [])
+  )
 
   const keyExtractor = item => item.id
 
@@ -88,22 +85,15 @@ export default function NotificationsList (props) {
 
   return (
     <View style={styles.notificationsList}>
-      {fetching && (
-        <View style={cardStyles.container}>
-          <View style={cardStyles.content}>
-            <Loading />
-          </View>
-        </View>
-      )}
       <FlatList
         data={notifications}
         keyExtractor={keyExtractor}
+        onRefresh={refreshNotifications}
+        refreshing={fetching || stale}
         onEndReached={hasMore ? () => setOffset(notifications?.length) : null}
-        renderItem={({ item }) =>
-          <NotificationRow
-            markActivityRead={markActivityRead}
-            notification={item}
-          />}
+        renderItem={({ item }) => (
+          <NotificationRow markActivityRead={markActivityRead} notification={item} />
+        )}
       />
     </View>
   )

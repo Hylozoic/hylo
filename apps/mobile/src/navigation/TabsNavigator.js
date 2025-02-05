@@ -3,12 +3,10 @@ import { StyleSheet, Text } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import Intercom from '@intercom/intercom-react-native'
 import { isIOS } from 'util/platform'
-import useCurrentUser from 'hooks/useCurrentUser'
-// Helper Components
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import Icon from 'components/Icon'
 import Avatar from 'components/Avatar'
 import { black10OnCaribbeanGreen, gainsboro, gunsmoke, rhino05, rhino10, rhino60, white } from 'style/colors'
-// Screens
 import HomeNavigator from 'navigation/HomeNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
 import MessagesNavigator from 'navigation/MessagesNavigator'
@@ -16,6 +14,11 @@ import UserSettingsTabsNavigator from './UserSettingsTabsNavigator'
 
 const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
+  const [{ currentUser }] = useCurrentUser()
+  const messagesBadgeCount = currentUser?.unseenThreadCount > 0
+    ? currentUser?.unseenThreadCount
+    : null
+
   const navigatorProps = {
     screenOptions: ({ route }) => ({
       // TODO: Required for Android, not iOS
@@ -46,7 +49,6 @@ export default function TabsNavigator () {
       headerShown: false
     })
   }
-  const [{ currentUser }] = useCurrentUser()
 
   const handleSupportTabPress = () => {
     Intercom.present()
@@ -56,7 +58,7 @@ export default function TabsNavigator () {
     <Tabs.Navigator {...navigatorProps}>
       <Tabs.Screen name='Home Tab' component={HomeNavigator} />
       <Tabs.Screen name='Search Tab' component={SearchNavigator} />
-      <Tabs.Screen name='Messages Tab' component={MessagesNavigator} options={{ tabBarBadge: 999 }} />
+      <Tabs.Screen name='Messages Tab' component={MessagesNavigator} options={{ tabBarBadge: messagesBadgeCount }} />
       <Tabs.Screen
         name='Support Tab'
         component={HomeNavigator} // it will never navigate to this but we need to pass a valid component here anyway

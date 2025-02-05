@@ -3,6 +3,11 @@
   padding-left: 55px;
   position: relative;
 
+  &.hovered {
+    background: #d5d5d5;
+    cursor: pointer;
+  }
+
   .action-bar {
     display: none;
     position: absolute;
@@ -64,6 +69,10 @@
         }
       }
     }
+  }
+
+  &.hovered .action-bar {
+    display: flex;
   }
 
   // The selectors should maintain the same properties:

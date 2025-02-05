@@ -13,7 +13,7 @@ See: `navigation/linking/getStateFromPath.js` here, and https://reactnavigation.
 
 All routes are always available, but routes that begin with `AUTH_ROOT_SCREEN_NAME`
 will be set as the `returnToPath` and not navigated to until after
-the user is authorized (see `getAuthState`).
+the user is authorized (see `AuthProvider`).
 
 NOTE: The linking route paths below are equivalent to `exact` route paths in
 React Router (web)
@@ -59,6 +59,7 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/topics/:topicName':          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat`,
   '/:context(groups)/:groupSlug/members/:id':                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member`,
   '/:context(groups)/:groupSlug/members':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Members`,
+  '/:context(groups)/:groupSlug/all-views':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/All Views`,
   '/:context(groups)/:groupSlug':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/custom/:customViewId':       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/explore':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explore`,

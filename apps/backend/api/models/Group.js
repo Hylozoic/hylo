@@ -512,6 +512,12 @@ module.exports = bookshelf.Model.extend(merge({
     // Get home tag id for the home chat
     const homeTag = await Tag.where({ name: 'home' }).fetch({ transacting: trx })
 
+    // XXX: make sure there is a home tag for every group
+    const homeGroupTag = await GroupTag.where({ group_id: this.id, tag_id: homeTag.id }).fetch({ transacting: trx })
+    if (!homeGroupTag) {
+      await GroupTag.create({ group_id: this.id, tag_id: homeTag.id, user_id: this.get('created_by_id'), is_default: true }, { transacting: trx })
+    }
+
     // Create home chat widget as child of default view
     await ContextWidget.forge({
       group_id: this.id,
@@ -538,6 +544,7 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-ask-and-offer', view: 'ask-and-offer' },
       { title: 'widget-stream', view: 'stream' },
       { title: 'widget-events', type: 'events', view: 'events' },
+      { title: 'widget-resources', type: 'resources', view: 'resources' },
       { title: 'widget-projects', type: 'projects', view: 'projects' },
       { title: 'widget-groups', type: 'groups', view: 'groups' },
       { title: 'widget-decisions', type: 'decisions', view: 'decisions' },
@@ -558,43 +565,42 @@ module.exports = bookshelf.Model.extend(merge({
     ))
   },
 
-  // This is idempotent
   async transitionToNewMenu (existingTrx) {
     const doWork = async (trx) => {
       // Get all widgets for this group
       const widgets = await ContextWidget.where({ group_id: this.id }).fetchAll({ transacting: trx })
-      const chatsWidget = widgets.find(w => w.get('view') === 'chats')
+      // const chatsWidget = widgets.find(w => w.get('view') === 'chats')
       const autoAddWidget = widgets.find(w => w.get('type') === 'auto-view')
-      const chatsWidgetId = chatsWidget?.get('id')
+      // const chatsWidgetId = chatsWidget?.get('id')
       const autoAddWidgetId = autoAddWidget?.get('id')
 
-      if (!chatsWidget?.get('auto_added')) {
-        // TODO CONTEXT: port this section to the new chat model
-        const chatPostResults = await bookshelf.knex.raw(`
-          SELECT DISTINCT t.id as tag_id, t.name, gt.visibility
-          FROM posts p
-          JOIN groups_posts gp ON gp.post_id = p.id
-          JOIN posts_tags pt ON pt.post_id = p.id
-          JOIN tags t ON t.id = pt.tag_id
-          JOIN groups_tags gt ON gt.tag_id = t.id AND gt.group_id = gp.group_id
-          WHERE gp.group_id = ? AND p.type = 'chat'
-        `, [this.id], { transacting: trx })
+      // if (!chatsWidget?.get('auto_added')) {
+      //   // TODO CONTEXT: port this section to the new chat model
+      //   const chatPostResults = await bookshelf.knex.raw(`
+      //     SELECT DISTINCT t.id as tag_id, t.name, gt.visibility
+      //     FROM posts p
+      //     JOIN groups_posts gp ON gp.post_id = p.id
+      //     JOIN posts_tags pt ON pt.post_id = p.id
+      //     JOIN tags t ON t.id = pt.tag_id
+      //     JOIN groups_tags gt ON gt.tag_id = t.id AND gt.group_id = gp.group_id
+      //     WHERE gp.group_id = ? AND p.type = 'chat'
+      //   `, [this.id], { transacting: trx })
 
-        const groupChats = chatPostResults.rows.filter(tag => tag.name !== 'general')
+      //   const groupChats = chatPostResults.rows.filter(tag => tag.name !== 'general' || tag.name !== 'home')
 
-        if (groupChats.length > 0) {
-          await Promise.all(groupChats.map(chat =>
-            ContextWidget.create({
-              group_id: this.id,
-              title: chat.name,
-              type: 'chat',
-              parent_id: chat.visibility === 2 ? chatsWidgetId : null,
-              view_chat_id: chat.tag_id,
-              addToEnd: (chat.visibility === 2)
-            }, { transacting: trx })
-          ))
-        }
-      }
+      //   if (groupChats.length > 0) {
+      //     await Promise.all(groupChats.map(chat =>
+      //       ContextWidget.create({
+      //         group_id: this.id,
+      //         title: chat.name,
+      //         type: 'chat',
+      //         parent_id: chat.visibility === 2 ? chatsWidgetId : null,
+      //         view_chat_id: chat.tag_id,
+      //         addToEnd: (chat.visibility === 2)
+      //       }, { transacting: trx })
+      //     ))
+      //   }
+      // }
 
       const askOfferWidget = widgets.find(w => w.get('view') === 'ask-and-offer')
       if (askOfferWidget && !askOfferWidget.get('auto_added')) {
@@ -708,28 +714,28 @@ module.exports = bookshelf.Model.extend(merge({
         }
       }
 
-      const customViews = await bookshelf.knex('custom_views')
-        .where({ group_id: this.id })
-        .whereNotExists(function() {
-          this.select('*')
-            .from('context_widgets')
-            .whereRaw('context_widgets.custom_view_id = custom_views.id')
-            .andWhere('auto_added', true)
-        })
-        if (customViews.length > 0) {
-          const customViewsWidget = widgets.find(w => w.get('type') === 'custom-views')
-          if (customViewsWidget) {
-            await Promise.all(customViews.map(view =>
-              ContextWidget.create({
-                group_id: this.id,
-                custom_view_id: view.id,
-                parent_id: customViewsWidget.get('id'),
-                auto_added: true,
-                addToEnd: true
-              }, { transacting: trx })
-            ))
-          }
-        }
+    //   const customViews = await bookshelf.knex('custom_views')
+    //     .where({ group_id: this.id })
+    //     .whereNotExists(function() {
+    //       this.select('*')
+    //         .from('context_widgets')
+    //         .whereRaw('context_widgets.custom_view_id = custom_views.id')
+    //         .andWhere('auto_added', true)
+    //     })
+    //     if (customViews.length > 0) {
+    //       const customViewsWidget = widgets.find(w => w.get('type') === 'custom-views')
+    //       if (customViewsWidget) {
+    //         await Promise.all(customViews.map(view =>
+    //           ContextWidget.create({
+    //             group_id: this.id,
+    //             custom_view_id: view.id,
+    //             parent_id: customViewsWidget.get('id'),
+    //             auto_added: true,
+    //             addToEnd: true
+    //           }, { transacting: trx })
+    //         ))
+    //       }
+    //     }
     }
 
     if (existingTrx) {
@@ -1018,9 +1024,9 @@ module.exports = bookshelf.Model.extend(merge({
       await group.createStarterPosts(trx)
 
       // await group.createInitialWidgets(trx)
-      await group.setupContextWidgets(trx)
 
-      await group.createDefaultTopics(group.id, userId, trx)
+      // await group.createDefaultTopics(group.id, userId, trx) // TODO: not sure if this should be here or in setupContextWidgets
+      await group.setupContextWidgets(trx)
 
       await group.addMembers([userId], { role: GroupMembership.Role.MODERATOR }, { transacting: trx })
 

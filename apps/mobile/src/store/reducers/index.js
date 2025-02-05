@@ -1,6 +1,5 @@
 import { combineReducers } from 'redux'
 import pending from './pending'
-import session from './sessionReducer'
 import initialURL from './initialURL'
 import mixpanel from './mixpanel'
 import returnToOnAuthPath from './returnToOnAuthPathReducer'
@@ -20,7 +19,6 @@ export const createCombinedReducers = () => combineReducers({
   // Global store
   pending,
   initialURL,
-  session,
   mixpanel,
   returnToOnAuthPath,
   // Local store (Component)

@@ -6,8 +6,8 @@ import FastImage from 'react-native-fast-image'
 import { get } from 'lodash/fp'
 import { isIOS } from 'util/platform'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import useCurrentUser from 'hooks/useCurrentUser'
-import useCurrentGroup from 'hooks/useCurrentGroup'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import BadgedIcon from 'components/BadgedIcon'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 import Icon from 'components/Icon'
@@ -118,7 +118,7 @@ export function MenuButton ({ canGoBack, onPress }) {
         <View style={styles.container}>
           {!canGoBack
             ? <Icon name='Hamburger' style={styles.menuIcon} />
-            : <Icon name='ArrowForward' style={styles.backIcon} />}
+            : <Icon name='ArrowBack' style={styles.backIcon} />}
           <FastImage source={{ uri: avatarUrl }} style={styles.avatar} />
         </View>
       )}

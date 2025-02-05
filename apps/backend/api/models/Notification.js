@@ -3,6 +3,7 @@ import { get, includes } from 'lodash/fp'
 import decode from 'ent/decode'
 import { TextHelpers } from '@hylo/shared'
 import { refineOne } from './util/relations'
+import rollbar from '../../lib/rollbar'
 import { broadcast, userRoom } from '../services/Websockets'
 import RedisPubSub from '../services/RedisPubSub'
 import { getSlug } from '../services/Frontend'
@@ -80,15 +81,19 @@ module.exports = bookshelf.Model.extend({
       this.destroy()
       return
     }
+    const userId = this.reader().id
     switch (this.get('medium')) {
       case MEDIUM.Push:
-        await this.sendPush()
+        if (process.env.PUSH_NOTIFICATIONS_ENABLED || User.isTester(userId)) {
+          await this.sendPush()
+        }
         break
       case MEDIUM.Email:
-        await this.sendEmail()
+        if (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || User.isTester(userId)) {
+          await this.sendEmail()
+        }
         break
       case MEDIUM.InApp: {
-        const userId = this.reader().id
         await User.incNewNotificationCount(userId)
         await this.updateUserSocketRoom(userId)
         break

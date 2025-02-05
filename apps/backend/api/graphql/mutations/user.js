@@ -106,7 +106,6 @@ export const login = (fetchOne) => async (_, { email, password }, context) => {
 }
 
 export const logout = async (root, args, context) => {
-  console.log('!!! req.session in logout', context.req.session)
   await context.req.session.destroy()
 
   return { success: true }

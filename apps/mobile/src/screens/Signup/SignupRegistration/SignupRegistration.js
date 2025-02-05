@@ -3,8 +3,9 @@ import { ScrollView, View, Text } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { gql, useMutation } from 'urql'
 import { pickBy, identity } from 'lodash/fp'
-import { Validators } from '@hylo/shared'
-import useLogout from 'urql-shared/hooks/useLogout'
+import { AnalyticsEvents, Validators } from '@hylo/shared'
+import mixpanel from 'services/mixpanel'
+import useLogout from 'hooks/useLogout'
 import useForm from 'hooks/useForm'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
 import SettingControl from 'components/SettingControl'
@@ -14,10 +15,6 @@ import Loading from 'components/Loading'
 import styles from './SignupRegistration.styles'
 import { useTranslation } from 'react-i18next'
 
-// TODO: URQL - Analytics
-// analytics: {
-//   eventName: AnalyticsEvents.SIGNUP_REGISTERED
-// }
 export const registerMutation = gql`
   mutation RegisterMutation ($name: String!, $password: String!) {
     register(name: $name, password: $password) {
@@ -60,6 +57,8 @@ export default function SignupRegistration ({ navigation, route }) {
 
       if (responseError) {
         setError(responseError)
+      } else {
+        mixpanel.track(AnalyticsEvents.SIGNUP_REGISTERED)
       }
     } catch (e) {
       setError(e.message)
@@ -83,7 +82,7 @@ export default function SignupRegistration ({ navigation, route }) {
       headerLeftOnPress: () => {
         confirmDiscardChanges({
           title: '',
-          confirmationMessage: t("Were almost done, are you sure you want to cancel signing-up?"),
+          confirmationMessage: t('Were almost done, are you sure you want to cancel signing-up?'),
           disgardButtonText: t('Yes'),
           continueButtonText: t('No'),
           onDiscard: () => {

@@ -9,10 +9,10 @@ import Clipboard from '@react-native-clipboard/clipboard'
 import { AnalyticsEvents } from '@hylo/shared'
 import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import useMixpanelTrack from 'hooks/useMixpanelTrack'
-import useCurrentUser from 'hooks/useCurrentUser'
-import useCurrentGroup from 'hooks/useCurrentGroup'
-import { isContextGroup } from 'urql-shared/presenters/GroupPresenter'
-import useHasResponsibility, { RESP_MANAGE_CONTENT } from 'hooks/useHasResponsibility'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import useHasResponsibility, { RESP_MANAGE_CONTENT } from '@hylo/hooks/useHasResponsibility'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import Icon from 'components/Icon'
 import { postUrl as postUrlCreator } from 'util/navigation'
@@ -64,7 +64,7 @@ export default function usePostActionSheet ({
 
   const createActionSheetActions = () => {
     const isCreator = currentUser && creator && currentUser.id === creator.id
-    const postUrl = isContextGroup(currentGroup?.slug)
+    const postUrl = isContextGroupSlug(currentGroup?.slug)
       ? postUrlCreator(postId, { context: currentGroup?.slug })
       : postUrlCreator(postId, { groupSlug: currentGroup?.slug })
     const editPost = isCreator
@@ -82,11 +82,11 @@ export default function usePostActionSheet ({
       }
     }
 
-    const handleRemovePost = currentGroup && !isCreator && canModerate && !isContextGroup(currentGroup.slug)
+    const handleRemovePost = currentGroup && !isCreator && canModerate && !isContextGroupSlug(currentGroup.slug)
       ? () => removePost({ postId, slug: currentGroup?.slug })
       : null
 
-    const handlePinPost = currentGroup && canModerate && !isContextGroup(currentGroup).slug
+    const handlePinPost = currentGroup && canModerate && !isContextGroupSlug(currentGroup).slug
       ? () => pinPost({ postId, groupId: currentGroup.id })
       : null
 

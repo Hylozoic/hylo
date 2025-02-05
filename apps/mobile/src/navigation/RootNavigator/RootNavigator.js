@@ -9,7 +9,7 @@ import customLinking, {
   AUTH_ROOT_SCREEN_NAME,
   NON_AUTH_ROOT_SCREEN_NAME
 } from 'navigation/linking'
-import useAuthStatus from 'hooks/useAuthStatus'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import { openURL } from 'hooks/useOpenURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import JoinGroup from 'screens/JoinGroup'
@@ -23,7 +23,7 @@ const Root = createStackNavigator()
 export default function RootNavigator () {
   // Here and `JoinGroup` should be the only place we check for a session from the API.
   // Routes will not be available until this check is complete.
-  const [{ isAuthorized, fetching }] = useAuthStatus()
+  const { isAuthorized, fetching } = useAuth()
 
   // Handle Push Notifications opened
   useEffect(() => {

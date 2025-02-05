@@ -1,6 +1,6 @@
 import { PAGINATION_TOTAL_COLUMN_NAME } from './applyPagination'
 
-export default function presentQuerySet (models, options) {
+export default function presentQuerySet (models, options, querySetId) {
   // for backwards compatibility
   const limit = options.first || options.limit
   const offset = options.offset || 0
@@ -18,8 +18,9 @@ export default function presentQuerySet (models, options) {
   }
 
   return {
+    id: querySetId || null,
     total,
-    items: models,
-    hasMore: offset + limit < total
+    hasMore: offset + limit < total,
+    items: models
   }
 }

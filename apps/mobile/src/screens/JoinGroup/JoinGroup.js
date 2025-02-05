@@ -3,12 +3,12 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { every, isEmpty } from 'lodash/fp'
 import { useMutation, useQuery } from 'urql'
 import { useDispatch } from 'react-redux'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import { openURL } from 'hooks/useOpenURL'
-import useAuthStatus from 'hooks/useAuthStatus'
 import useRouteParams from 'hooks/useRouteParams'
 import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
-import checkInvitationQuery from 'graphql/queries/checkInvitationQuery'
-import acceptInvitationMutation from 'graphql/mutations/acceptInvitationMutation'
+import checkInvitationQuery from '@hylo/graphql/queries/checkInvitationQuery'
+import acceptInvitationMutation from '@hylo/graphql/mutations/acceptInvitationMutation'
 import LoadingScreen from 'screens/LoadingScreen'
 
 export default function JoinGroup (props) {
@@ -19,7 +19,7 @@ export default function JoinGroup (props) {
 
   const [, checkInvitation] = useQuery({ query: checkInvitationQuery, variables: invitationTokenAndCode, pause: true })
   const [, acceptInvitation] = useMutation(acceptInvitationMutation)
-  const [{ isAuthorized }] = useAuthStatus()
+  const { isAuthorized } = useAuth()
 
   // Might be more clear to simply use `useEffect`
   useFocusEffect(

@@ -2,11 +2,11 @@ import React, { useRef } from 'react'
 import { WebViewMessageTypes } from '@hylo/shared'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
-import useLogout from 'urql-shared/hooks/useLogout'
-import useCurrentUser from 'hooks/useCurrentUser'
+import useLogout from 'hooks/useLogout'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 export default function UserSettingsWebView ({ path: pathProp, route }) {
-  // TODO: URQL - Untested, intention is to refresh cache
+  // TODO: URQL! - Untested, intention is to refresh cache
   const [, queryCurrentUser] = useCurrentUser({ requestPolicy: 'network-only', pause: true })
   const webViewRef = useRef(null)
   const logout = useLogout()

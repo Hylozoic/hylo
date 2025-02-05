@@ -306,7 +306,7 @@ type Query {
   ): TopicQuerySet
 }
 
-union Update = Notification | Message | MessageThread
+union Update = Message | MessageThread | Notification
 
 type Subscription {
   # Pushes new comments on the comments key for the given postId or parentCommentId
@@ -2456,6 +2456,8 @@ type Mutation {
   markActivityRead(id: ID): Activity
   # Mark all notifications as read
   markAllActivitiesRead: GenericResult
+  # Marks a MessageThread as read
+  markThreadRead(messageThreadId: ID): MessageThread,
   # Send a message to all the stewards of a Group
   messageGroupStewards(groupId: ID): ID
   # Pin a post within a Group. Only a group moderator can call this.

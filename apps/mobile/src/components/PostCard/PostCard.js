@@ -1,11 +1,11 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useCallback } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { LocationHelpers } from '@hylo/shared'
-import recordClickthroughMutation from 'graphql/mutations/recordClickthroughMutation'
-import useCurrentUser from 'hooks/useCurrentUser'
-import PostPresenter from 'urql-shared/presenters/PostPresenter'
+import recordClickthroughMutation from '@hylo/graphql/mutations/recordClickthroughMutation'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import PostPresenter from '@hylo/presenters/PostPresenter'
 import PostHeader from './PostHeader'
 import PostBody from './PostBody'
 import PostGroups from './PostGroups'
@@ -15,6 +15,7 @@ import Files from 'components/Files'
 import Icon from 'components/Icon'
 import Topics from 'components/Topics'
 import styles from 'components/PostCard/PostCard.styles'
+import { useNavigation } from '@react-navigation/native'
 
 export default function PostCard ({
   goToGroup,
@@ -25,17 +26,18 @@ export default function PostCard ({
   post: providedPost = {},
   respondToEvent,
   showGroups = true,
-  showMember,
   childPost,
   showTopic: goToTopic
 }) {
   const { t } = useTranslation()
+  const navigation = useNavigation()
   const [, recordClickthrough] = useMutation(recordClickthroughMutation)
   const post = useMemo(() => PostPresenter(providedPost, groupId), [providedPost])
   const images = useMemo(() => post.imageUrls && post.imageUrls.map(uri => ({ uri })), [post])
   const locationText = useMemo(() => LocationHelpers.generalLocationString(post.locationObject, post.location), [post])
   const isFlagged = useMemo(() => post.flaggedGroups && post.flaggedGroups.includes(groupId), [post])
   const [{ currentUser }] = useCurrentUser()
+  const handleShowMember = id => navigation.navigate('Member', { id })
 
   return (
     <>
@@ -56,7 +58,7 @@ export default function PostCard ({
           isFlagged={isFlagged}
           pinned={post.pinned}
           postId={post.id}
-          showMember={showMember}
+          showMember={handleShowMember}
           title={post.title}
           type={post.type}
         />

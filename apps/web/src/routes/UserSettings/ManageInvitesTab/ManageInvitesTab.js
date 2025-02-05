@@ -143,7 +143,7 @@ function JoinRequest ({ joinRequest, cancelJoinRequest }) {
         <GroupButton group={group} />
       </div>
       <div className={classes.requestDetail}>
-        <span className={`${classes.createdDate} ${classes.joinRequestDate}`}>{t('Requested')} {DateTime.fromJSDate(createdAt).toFormat('yyyy-MM-dd')}</span>
+        <span className={`${classes.createdDate} ${classes.joinRequestDate}`}>{t('Requested')} {DateTime.fromISO(createdAt).toFormat('yyyy-MM-dd')}</span>
         {joinRequest.status === JOIN_REQUEST_STATUS.Pending && (
           <span onClick={cancel} className={classes.cancelButton}>{t('Cancel')}</span>
         )}
