@@ -20,7 +20,7 @@ import { PAGINATION_ARGS } from '../resolvers/makePaginationResolver'
 */
 
 export default function makeAppendToPaginatedSetResolver ({
-  parentType,
+  parentType = 'Query',
   parentId: providedParentId,
   parentIdGetter,
   fieldName,
@@ -33,10 +33,12 @@ export default function makeAppendToPaginatedSetResolver ({
       : result?.[info.fieldName]
     if (!newItem) return
 
-    const parentId = providedParentId || parentIdGetter(args)
-    if (!parentId) return
+    const parentId = providedParentId || (parentIdGetter ? parentIdGetter(args) : null)
 
-    const parentKey = cache.keyOfEntity({ __typename: parentType, id: parentId })
+    // Allows null parentId, useful only for Query
+    const parentKey = parentId
+      ? cache.keyOfEntity({ __typename: parentType, id: parentId })
+      : parentType
 
     // Get all cached paginated sets for this field (e.g. messages, comments, or childComments)
     const paginatedFields = cache.inspectFields(parentKey).filter(fi => fi.fieldName === fieldName)

@@ -72,10 +72,10 @@ export default function AuthRootNavigator () {
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   const [, registerDevice] = useMutation(registerDeviceMutation)
 
+  useSubscription({ query: updatesSubscription })
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
-  useSubscription({ query: updatesSubscription })
 
   useEffect(() => {
     resetNotificationsCount()

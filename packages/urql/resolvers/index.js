@@ -3,7 +3,8 @@ import makePaginationResolver from './makePaginationResolver'
 export default {
   Query: {
     posts: makePaginationResolver(),
-    search: makePaginationResolver()
+    search: makePaginationResolver(),
+    notifications: makePaginationResolver()
   },
   Comment: {
     childComments: makePaginationResolver()
