@@ -49,8 +49,8 @@ const ViewHeader = () => {
             <Icon name='Search' className='left-2 absolute opacity-50' />
             <input
               type='text'
-            placeholder='Search'
-            className='bg-black/20 rounded-lg text-foreground placeholder-foreground/40 w-[90px] py-1 pl-7 focus:w-[200px] transition-all outline-none focus:outline-focus focus:outline-2'
+              placeholder='Search'
+              className='bg-black/20 rounded-lg text-foreground placeholder-foreground/40 w-[90px] py-1 pl-7 focus:w-[200px] transition-all outline-none focus:outline-focus focus:outline-2'
               onKeyDown={onEnter((e) => navigate(`/search?t=${e.target.value}`))}
             />
           </div>

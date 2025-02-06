@@ -155,10 +155,49 @@ const Messages = () => {
 
   const focusForm = () => formRef.current && formRef.current.focus()
 
+  const header = forNewThread
+    ? (
+      <div>
+        <div className={classes.newThreadHeader}>
+          <Link to='/messages' className={classes.backButton}>
+            <Icon name='ArrowForward' className={classes.closeMessagesIcon} />
+          </Link>
+          <div className={classes.messagesTitle}>
+            <Icon name='Messages' />
+            <h3>{t('New Message')}</h3>
+          </div>
+        </div>
+        <PeopleSelector
+          currentUser={currentUser}
+          fetchPeople={fetchPeopleAction}
+          fetchDefaultList={fetchRecentContactsAction}
+          focusMessage={focusForm}
+          setPeopleSearch={setContactsSearchAction}
+          people={contacts}
+          onFocus={() => setPeopleSelectorOpen(true)}
+          selectedPeople={participants}
+          selectPerson={addParticipant}
+          removePerson={removeParticipant}
+          peopleSelectorOpen={peopleSelectorOpen}
+        />
+      </div>
+      )
+    : (
+      <Header
+        messageThread={messageThread}
+        currentUser={currentUser}
+        pending={messagesPending}
+      />
+      )
+
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({ title: forNewThread ? t('New Message') : t('Messages'), icon: 'Messages', search: false })
-  }, [forNewThread])
+    setHeaderDetails({
+      title: header,
+      icon: 'Messages',
+      search: false
+    })
+  }, [forNewThread, messageThreadId, peopleSelectorOpen, participants, contacts, messagesPending])
 
   return (
     <div className={cn({ [classes.messagesOpen]: messageThreadId })}>
@@ -172,37 +211,6 @@ const Messages = () => {
             <>
               {messageThreadId && (
                 <div className={classes.thread}>
-                  {forNewThread &&
-                    <div>
-                      <div className={classes.newThreadHeader}>
-                        <Link to='/messages' className={classes.backButton}>
-                          <Icon name='ArrowForward' className={classes.closeMessagesIcon} />
-                        </Link>
-                        <div className={classes.messagesTitle}>
-                          <Icon name='Messages' />
-                          <h3>{t('New Message')}</h3>
-                        </div>
-                      </div>
-                      <PeopleSelector
-                        currentUser={currentUser}
-                        fetchPeople={fetchPeopleAction}
-                        fetchDefaultList={fetchRecentContactsAction}
-                        focusMessage={focusForm}
-                        setPeopleSearch={setContactsSearchAction}
-                        people={contacts}
-                        onFocus={() => setPeopleSelectorOpen(true)}
-                        selectedPeople={participants}
-                        selectPerson={addParticipant}
-                        removePerson={removeParticipant}
-                        peopleSelectorOpen={peopleSelectorOpen}
-                      />
-                    </div>}
-                  {!forNewThread && messageThreadId &&
-                    <Header
-                      messageThread={messageThread}
-                      currentUser={currentUser}
-                      pending={messagesPending}
-                    />}
                   {!forNewThread &&
                     <MessageSection
                       socket={socket}
