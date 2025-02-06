@@ -1,10 +1,13 @@
 import React, { useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { postUrl } from 'util/navigation'
 import { useCalendarContext } from 'components/Calendar/calendar-context'
 import { format } from 'date-fns'
+import { cn } from '@/lib/utils'
 import { CalendarEvent as CalendarEventType } from 'components/Calendar/calendar-types'
 import Tooltip from 'components/Tooltip'
+
+import classes from '../../calendar.module.scss'
 
 export default function CalendarBodyDayEvent ({
   event
@@ -22,12 +25,15 @@ export default function CalendarBodyDayEvent ({
 
   return (
     <div
-      className='flex items-center gap-2 px-2 cursor-pointer'
+      className={cn(
+        classes[event.type],
+        'flex items-center gap-2 px-2 cursor-pointer rounded-md border-2'
+      )}
       onClick={showDetails}
       data-tooltip-id={`title-tip-${event.id}`} data-tooltip-html={toolTipTitle}
     >
       <div className='flex items-center gap-2'>
-        <div className={`size-2 rounded-full bg-${event.color}-500`} />
+        <div className='size-2 rounded-full' />
         <p className='text-muted-foreground text-sm font-medium'>
           {event.title}
         </p>
