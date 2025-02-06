@@ -304,7 +304,13 @@ export default function Stream (props) {
         <Route path='post/:postId' element={<PostDialog container={container} />} />
       </Routes>
 
-      <div id='stream-inner-container' className='flex flex-col flex-1 w-full max-w-[750px] mx-auto overflow-auto p-4'>
+      <div
+        id='stream-inner-container'
+        className={cn(
+          !calendarView && 'max-w-[750px]',
+          'flex flex-col flex-1 w-full mx-auto overflow-auto p-4'
+        )}
+      >
         {hasPostPrompt && (
           <PostPrompt
             avatarUrl={currentUser.avatarUrl}
