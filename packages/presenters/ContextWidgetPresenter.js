@@ -8,8 +8,8 @@ const tDummy = t => {
   return t
 }
 
-export default function ContextWidgetPresenter (widget, { t = tDummy }) {
-  if (!widget || widget?._presented) return widget
+export default function ContextWidgetPresenter (widget, { t }) {
+  if (!widget || widget?._presented || !t) return widget
 
   // Resolve type once and pass it explicitly
   const type = widgetTypeResolver({ widget })
@@ -24,6 +24,7 @@ export default function ContextWidgetPresenter (widget, { t = tDummy }) {
     isDroppable: isDroppableResolver(widget),
     isValidHomeWidget: isValidHomeWidget(widget),
     title: titleResolver({ widget, t }),
+    isHiddenInContextMenu: doNotDisplayWidget(widget),
     type,
     // Protects us from double presenting a widget
     _presented: true
@@ -131,6 +132,12 @@ function widgetTypeResolver ({ widget }) {
     (widget?.customView && 'customView') ||
     'container'
   )
+}
+
+const doNotDisplayWidget = (widget) => {
+  return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
+  !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
+  !widget.viewChat && !widget.customView)
 }
 
 /* == ContextWidget collection methods, Static Views, and utility functions == */

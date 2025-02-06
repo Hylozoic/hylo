@@ -57,14 +57,14 @@ export default function usePostActionSheet ({
   const [, pinPost] = useMutation(pinPostMutation)
   const { showHyloActionSheet } = useHyloActionSheet()
   const mixpanelTrack = useMixpanelTrack()
-  const [{ currentGroup }] = useCurrentGroup()
+  const [{ currentGroup, isContextGroupSlug }] = useCurrentGroup()
   const [{ currentUser }] = useCurrentUser()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
 
   const createActionSheetActions = () => {
     const isCreator = currentUser && creator && currentUser.id === creator.id
-    const postUrl = isContextGroupSlug(currentGroup?.slug)
+    const postUrl = isContextGroupSlug
       ? postUrlCreator(postId, { context: currentGroup?.slug })
       : postUrlCreator(postId, { groupSlug: currentGroup?.slug })
     const editPost = isCreator
@@ -82,11 +82,11 @@ export default function usePostActionSheet ({
       }
     }
 
-    const handleRemovePost = currentGroup && !isCreator && canModerate && !isContextGroupSlug(currentGroup.slug)
+    const handleRemovePost = currentGroup && !isCreator && canModerate && !isContextGroupSlug
       ? () => removePost({ postId, slug: currentGroup?.slug })
       : null
 
-    const handlePinPost = currentGroup && canModerate && !isContextGroupSlug(currentGroup).slug
+    const handlePinPost = currentGroup && canModerate && !isContextGroupSlug
       ? () => pinPost({ postId, groupId: currentGroup.id })
       : null
 

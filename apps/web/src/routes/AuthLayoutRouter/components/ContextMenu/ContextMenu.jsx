@@ -108,7 +108,7 @@ export default function ContextMenu (props) {
 
   const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
 
-  const isEditting = getQuerystringParam('cme', location) === 'yes' && canAdminister
+  const isEditing = getQuerystringParam('cme', location) === 'yes' && canAdminister
 
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const streamFetchPostsParam = useSelector(state => get('Stream.fetchPostsParam', state))
@@ -302,7 +302,7 @@ export default function ContextMenu (props) {
             <div className='w-full'>
               <ContextWidgetList
                 isDragging={isDragging}
-                isEditting={isEditting}
+                isEditing={isEditing}
                 contextWidgets={orderedWidgets}
                 groupSlug={routeParams.groupSlug}
                 rootPath={rootPath}
@@ -313,7 +313,7 @@ export default function ContextMenu (props) {
             </div>
             <DragOverlay wrapperElement='ul'>
               {activeWidget && !activeWidget.parentId && (
-                <ContextMenuItem widget={activeWidget} isOverlay group={group} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} />
+                <ContextMenuItem widget={activeWidget} isOverlay group={group} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing} isDragging={isDragging} />
               )}
               {activeWidget && activeWidget.parentId && (
                 <ListItemRenderer isOverlay item={activeWidget} group={group} rootPath={rootPath} groupSlug={routeParams.groupSlug} canDnd={false} />
@@ -328,7 +328,7 @@ export default function ContextMenu (props) {
                 rootPath={rootPath}
                 canAdminister={canAdminister}
                 allView
-                isEditting={isEditting}
+                isEditing={isEditing}
                 group={group}
               />
             </div>)}
@@ -339,7 +339,7 @@ export default function ContextMenu (props) {
   )
 }
 
-function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditting, isDragging, activeWidget, group }) {
+function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditing, isDragging, activeWidget, group }) {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -349,16 +349,16 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
 
   return (
     <ul className='m-2 p-0 mb-6'>
-      {isEditting &&
+      {isEditing &&
         <div>
           <DropZone removalDropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
             Drag here to remove from menu
           </DropZone>
         </div>}
       {contextWidgets.map(widget => (
-        <li className='mb-2 items-start' key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditting={isEditting} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} /></li>
+        <li className='mb-2 items-start' key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} /></li>
       ))}
-      {isEditting && (
+      {isEditing && (
         <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
           <Icon name='Plus' />Add new view
         </button>
@@ -367,7 +367,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
   )
 }
 
-function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditting = false, allView = false, isDragging = false, isOverlay = false, activeWidget, group, handlePositionedAdd }) {
+function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditing = false, allView = false, isDragging = false, isOverlay = false, activeWidget, group, handlePositionedAdd }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
@@ -390,7 +390,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
   const title = widget.title
   const url = widgetUrl({ widget, rootPath, groupSlug })
-  const canDnd = !allView && isEditting && widget.type !== 'home'
+  const canDnd = !allView && isEditing && widget.type !== 'home'
   const showEdit = allView && canAdminister
   const hideDropZone = isOverlay || allView || !canDnd
   const isInvalidChild = !isValidChildWidget({ childWidget: activeWidget, parentWidget: widget })
@@ -405,11 +405,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   }
 
   // Check if the widget should be rendered
-  if (!['members', 'setup'].includes(widget.type) && !isEditting && !widget.view && widget.childWidgets.length === 0 &&
-      !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
-      !widget.viewChat && !widget.customView) {
-    return null
-  }
+  if (widget.isHiddenInContextMenu && !isEditing) return null
 
   // Check admin visibility
   if (widget.visibility === 'admin' && !canAdminister) {
@@ -466,13 +462,13 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                 </span>}
               {widget.type !== 'members' &&
                 <div className={cn('flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground', {
-                  'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditting && widget.type !== 'home'
+                  'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditing && widget.type !== 'home'
                 })}>
                   <SpecialTopElementRenderer widget={widget} group={group} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
                     {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
-                    {widget.id && isEditting && !['home', 'setup'].includes(widget.type) &&
+                    {widget.id && isEditing && !['home', 'setup'].includes(widget.type) &&
                       <li>
                         <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
                           &nbsp;
@@ -497,9 +493,9 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
       </div>
       {showEdit && (
         <div className='mb-[30px]'>
-          <MenuLink to={addQuerystringToPath(url, { cme: isEditting ? 'no' : 'yes' })} className='flex items-center text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+          <MenuLink to={addQuerystringToPath(url, { cme: isEditing ? 'no' : 'yes' })} className='flex items-center text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             <Pencil className='h-[16px]' />
-            <span className='text-base'>{isEditting ? t('Done Editing') : t('Edit Menu')}</span>
+            <span className='text-base'>{isEditing ? t('Done Editing') : t('Edit Menu')}</span>
           </MenuLink>
         </div>
       )}
