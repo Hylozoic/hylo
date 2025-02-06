@@ -27,7 +27,6 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import { getSignupInProgress } from 'store/selectors/getAuthState'
-import { toggleDrawer, toggleNavMenu } from './AuthLayoutRouter.store'
 import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
 import {
   POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl,
@@ -197,7 +196,6 @@ export default function AuthLayoutRouter (props) {
     name: currentUser.name,
     userId: currentUser.id
   }
-  const handleCloseNav = () => isNavOpen && dispatch(toggleNavMenu())
   const showMenuBadge = some(m => m.newPostCount > 0, memberships)
   const isSingleColumn = (currentGroupSlug && !currentGroupMembership) ||
     matchPath({ path: '/members/:personId' }, location.pathname)
@@ -283,6 +281,8 @@ export default function AuthLayoutRouter (props) {
         <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
         <Route path='groups/:groupSlug/chat/:topicName/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/chat/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
+        <Route path='groups/:groupSlug/chat/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
         <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
         <Route path='groups/:groupSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
@@ -318,9 +318,7 @@ export default function AuthLayoutRouter (props) {
           <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full', { 'flex absolute sm:relative': isNavOpen })}>
             {!withoutNav && (
               <>
-                {/* Depends on `pathMatchParams` */}
                 <GlobalNav
-                  // onClick={handleCloseNav}
                   group={currentGroup}
                   currentUser={currentUser}
                   routeParams={pathMatchParams}

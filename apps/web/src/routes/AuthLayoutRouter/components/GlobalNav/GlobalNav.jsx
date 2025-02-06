@@ -5,50 +5,31 @@ import React, { Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector } from 'react-redux'
-import { Link, useLocation } from 'react-router-dom'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger
 } from 'components/ui/popover'
-import Badge from 'components/Badge'
 import BadgedIcon from 'components/BadgedIcon'
-import Icon from 'components/Icon'
+import CreateMenu from 'components/CreateMenu'
 import GlobalNavItem from './GlobalNavItem'
-import { toggleDrawer, toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getMyGroups from 'store/selectors/getMyGroups'
-import { hyloLogo, publicLogo } from 'util/assets'
 import { isMobileDevice, downloadApp } from 'util/mobile'
 
 import styles from './GlobalNav.module.scss'
 
-const MessagesDropdown = React.lazy(() => import('./MessagesDropdown'))
 const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown'))
 
 export default function GlobalNav (props) {
   const { currentUser, onClick } = props
   const { show: showIntercom } = useIntercom()
   const groups = useSelector(getMyGroups)
-  const location = useLocation()
   const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
   const { t } = useTranslation()
 
   return (
     <div className={cn('flex flex-col bg-theme-background h-full z-50 items-center pb-0 pt-2')} onClick={onClick}>
       <div className={cn('overflow-y-auto pt-2 flex flex-col items-center pl-5 pr-3 relative bg-theme-background overflow-x-hidden', styles.globalNavContainer)}>
-        {/* <div className={styles.drawerToggle} id='toggleDrawer'>
-          <button className={styles.drawerToggleButton} onClick={handleToggleDrawer}><Icon name='Hamburger' className={styles.menuIcon} /></button>
-          {showMenuBadge && <Badge number='1' className={styles.logoBadge} border />}
-        </div> */}
-        {/* <Link
-          to={baseUrl(pick(['context', 'groupSlug'], routeParams))}
-          onClick={handleToggleNavMenu}
-          className={cn(styles.currentContext, { [styles.groupMenuOpen]: isNavOpen })}
-          id='currentContext'
-        >
-          <Logo {...{ group, isPublic }} />
-          <Title group={group} isPublic={isPublic} isMyHome={isMyHome} />
-        </Link> */}
         <GlobalNavItem img={get('avatarUrl', currentUser)} tooltip={t('Your Profile')} url='/my/posts' className={cn('opacity-1')} />
 
         <Suspense fallback={<GlobalNavItem className={cn('opacity-1')}><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
@@ -80,9 +61,16 @@ export default function GlobalNav (props) {
         <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-100'>&nbsp;</div>
       </div>
 
-      <GlobalNavItem url={`${location.pathname}/create`} className={cn('opacity-1')}>
-        +
-      </GlobalNavItem>
+      <Popover>
+        <PopoverTrigger>
+          <div className='bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md scale-90 hover:scale-125 hover:drop-shadow-lg hover:my-1 text-3xl mb-4'>
+            <span className='inline-block text-themeForeground p-1 w-10 line-height-1'>+</span>
+          </div>
+        </PopoverTrigger>
+        <PopoverContent side='right' align='center'>
+          <CreateMenu />
+        </PopoverContent>
+      </Popover>
 
       <Popover>
         <PopoverTrigger>

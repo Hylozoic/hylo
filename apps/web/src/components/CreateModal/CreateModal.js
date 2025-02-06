@@ -1,7 +1,9 @@
 import React, { useRef, useState } from 'react'
+import { useSelector } from 'react-redux'
 import { Route, Routes, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CSSTransition } from 'react-transition-group'
+import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import CreateModalChooser from './CreateModalChooser'
 import CreateGroup from 'components/CreateGroup'
 import Icon from 'components/Icon'
@@ -11,6 +13,8 @@ import classes from './CreateModal.module.scss'
 const CreateModal = (props) => {
   const location = useLocation()
   const navigate = useNavigate()
+  const previousLocation = useSelector(getPreviousLocation) || { pathname: '/' }
+  const [returnToLocation] = useState(previousLocation)
   const [isDirty, setIsDirty] = useState()
   const { t } = useTranslation()
   const modalRef = useRef(null)
@@ -21,7 +25,10 @@ const CreateModal = (props) => {
     : null
 
   const closeModal = () => {
-    navigate(location.pathname.replace(/\/create.*/, ''))
+    // `closePath` is currently only passed in the case of arriving here
+    // from the `WelcomeModal` when we want to go back on close or cancel.
+    const closePathFromParam = querystringParams.get('closePath')
+    navigate(closePathFromParam || returnToLocation)
   }
 
   const confirmClose = () => {
