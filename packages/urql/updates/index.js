@@ -23,13 +23,10 @@ export default {
     },
 
     createComment: (result, args, cache, info) => {
-      const parentId = args?.data?.parentCommentId || args?.data?.postId
-      const parentType = args?.data?.parentCommentId ? 'Comment' : 'Post'
-      const fieldName = args?.data?.parentCommentId ? 'childComments' : 'comments'
       makeAppendToPaginatedSetResolver({
-        parentType,
-        parentId,
-        fieldName
+        parentType: args?.data?.parentCommentId ? 'Comment' : 'Post',
+        parentId: args?.data?.parentCommentId || args?.data?.postId,
+        fieldName: args?.data?.parentCommentId ? 'childComments' : 'comments'
       })(result, args, cache, info)
     },
 
@@ -161,6 +158,10 @@ export default {
         }
 
         case 'MessageThread': {
+          makeAppendToPaginatedSetResolver({
+            parentType: 'Me',
+            fieldName: 'messageThreads'
+          })(result, args, cache, info)
           cache.updateQuery({ query: meQuery }, ({ me }) => {
             if (!me) return null
             return { me: { ...me, unseenThreadCount: me.unseenThreadCount + 1 } }
