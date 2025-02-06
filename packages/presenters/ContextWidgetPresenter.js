@@ -13,7 +13,7 @@ export default function ContextWidgetPresenter (widget, { t = tDummy }) {
 
   // Resolve type once and pass it explicitly
   const type = widgetTypeResolver({ widget })
-  const avatarData = avatarDataResolver()
+  const avatarData = avatarDataResolver(widget)
 
   return {
     ...widget,
@@ -246,47 +246,47 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
 export const COMMON_VIEWS = {
   'ask-and-offer': {
     name: 'Ask & Offer',
-    iconName: 'Request',
+    icon: 'Request',
     defaultViewMode: 'bigGrid',
     postTypes: ['request', 'offer'],
     defaultSortBy: 'created'
   },
   decisions: {
     name: 'Decisions',
-    iconName: 'Proposal',
+    icon: 'Proposal',
     defaultViewMode: 'cards',
     postTypes: ['proposal'],
     defaultSortBy: 'created'
   },
   discussions: {
     name: 'Discussions',
-    iconName: 'Message',
+    icon: 'Message',
     defaultViewMode: 'list',
     postTypes: ['discussion'],
     defaultSortBy: 'updated'
   },
   events: {
     name: 'Events',
-    iconName: 'Calendar',
+    icon: 'Calendar',
     defaultViewMode: 'cards',
     postTypes: ['event'],
     defaultSortBy: 'start_time'
   },
   groups: {
     name: 'Groups',
-    iconName: 'Groups'
+    icon: 'Groups'
   },
   map: {
     name: 'Map',
-    iconName: 'Globe'
+    icon: 'Globe'
   },
   members: {
     name: 'Members',
-    iconName: 'People'
+    icon: 'People'
   },
   projects: {
     name: 'Projects',
-    iconName: 'Stack',
+    icon: 'Stack',
     defaultViewMode: 'bigGrid',
     postTypes: ['project'],
     defaultSortBy: 'created'
@@ -300,7 +300,7 @@ export const COMMON_VIEWS = {
   },
   stream: {
     name: 'Stream',
-    iconName: 'Stream',
+    icon: 'Stream',
     defaultViewMode: 'cards',
     defaultSortBy: 'created'
   }
