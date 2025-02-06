@@ -107,6 +107,7 @@ export default function Stream (props) {
   }, [customView, systemView])
 
   const postTypes = getPostTypes()
+  const postType = postTypes[0]
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
@@ -299,12 +300,12 @@ export default function Stream (props) {
             newPost={newPost}
             querystringParams={querystringParams}
             routeParams={routeParams}
-            type={postTypes}
+            type={postType}
           />
         )}
         <ViewControls
           routeParams={routeParams} view={view} customPostTypes={customView?.type === 'stream' ? customView?.postTypes : null} customViewType={customView?.type}
-          postTypeFilter={postTypes} sortBy={sortBy} viewMode={viewMode} searchValue={search}
+          postTypeFilter={postType} sortBy={sortBy} viewMode={viewMode} searchValue={search}
           changeTab={changeTab} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
           decisionView={decisionView} changeDecisionView={changeDecisionView} changeTimeframe={changeTimeframe} timeframe={timeframe}
