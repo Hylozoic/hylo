@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
-import ContextMenu from 'navigation/menus/ContextMenu'
+import ContextMenu from 'components/ContextMenu'
 
 export default function GroupNavigation () {
   const { t } = useTranslation()
