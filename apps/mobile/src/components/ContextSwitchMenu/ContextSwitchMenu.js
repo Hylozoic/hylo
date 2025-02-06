@@ -189,8 +189,9 @@ import {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: rhino
+    backgroundColor: '#222',
+    overflow: 'hidden',
+    paddingVertical: 10
   },
   // Groups rows
   sectionHeader: {
