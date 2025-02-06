@@ -247,6 +247,7 @@ export const COMMON_VIEWS = {
   'ask-and-offer': {
     name: 'Ask & Offer',
     icon: 'Request',
+    iconName: 'Request',
     defaultViewMode: 'bigGrid',
     postTypes: ['request', 'offer'],
     defaultSortBy: 'created'
@@ -254,6 +255,7 @@ export const COMMON_VIEWS = {
   decisions: {
     name: 'Decisions',
     icon: 'Proposal',
+    iconName: 'Proposal',
     defaultViewMode: 'cards',
     postTypes: ['proposal'],
     defaultSortBy: 'created'
@@ -261,6 +263,7 @@ export const COMMON_VIEWS = {
   discussions: {
     name: 'Discussions',
     icon: 'Message',
+    iconName: 'Message',
     defaultViewMode: 'list',
     postTypes: ['discussion'],
     defaultSortBy: 'updated'
@@ -268,25 +271,30 @@ export const COMMON_VIEWS = {
   events: {
     name: 'Events',
     icon: 'Calendar',
+    iconName: 'Calendar',
     defaultViewMode: 'cards',
     postTypes: ['event'],
     defaultSortBy: 'start_time'
   },
   groups: {
     name: 'Groups',
-    icon: 'Groups'
+    icon: 'Groups',
+    iconName: 'Groups'
   },
   map: {
     name: 'Map',
-    icon: 'Globe'
+    icon: 'Globe',
+    iconName: 'Globe'
   },
   members: {
     name: 'Members',
-    icon: 'People'
+    icon: 'People',
+    iconName: 'People',
   },
   projects: {
     name: 'Projects',
     icon: 'Stack',
+    iconName: 'Stack',
     defaultViewMode: 'bigGrid',
     postTypes: ['project'],
     defaultSortBy: 'created'
@@ -294,6 +302,7 @@ export const COMMON_VIEWS = {
   resources: {
     name: 'Resources',
     icon: 'Document',
+    iconName: 'Document',
     defaultViewMode: 'grid',
     postTypes: ['resource'],
     defaultSortBy: 'created'
@@ -301,6 +310,7 @@ export const COMMON_VIEWS = {
   stream: {
     name: 'Stream',
     icon: 'Stream',
+    iconName: 'Stream',
     defaultViewMode: 'cards',
     defaultSortBy: 'created'
   }
