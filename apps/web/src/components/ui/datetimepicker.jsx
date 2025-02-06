@@ -194,7 +194,7 @@ function display12HourValue (hours) {
 function genMonths (locale) {
   return Array.from({ length: 12 }, (_, i) => ({
     value: i,
-    label: DateTime.fromObject({ year: 2021, month: i }).toFormat('MMMM', { locale })
+    label: DateTime.fromObject({ year: 2021, month: i + 1 }).toFormat('MMMM', { locale })
   }))
 }
 function genYears (yearRange = 50) {
