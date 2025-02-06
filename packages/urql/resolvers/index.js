@@ -10,6 +10,7 @@ export default {
     childComments: makePaginationResolver()
   },
   Group: {
+    posts: makePaginationResolver(),
     viewPosts: makePaginationResolver()
   },
   Me: {

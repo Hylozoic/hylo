@@ -26,18 +26,17 @@ module.exports = bookshelf.Model.extend({
   },
 
   async getMessageText (group) {
-    const isPublic = !group
-    const link = await this.getContentLink(group, isPublic)
+    const link = await this.getContentLink(group)
 
     return `${this.relations.user.get('name')} flagged a ${this.get('object_type')} in ${group ? group.get('name') : 'Public'} for being ${this.get('category')}\n` +
       `Message: ${this.get('reason')}\n` +
       `${link}\n\n`
   },
 
-  async getContentLink (group, isPublic) {
+  async getContentLink (group) {
     switch (this.get('object_type')) {
       case FlaggedItem.Type.POST:
-        return Frontend.Route.post(this.get('object_id'), group, isPublic)
+        return Frontend.Route.post(this.get('object_id'), group)
       case FlaggedItem.Type.COMMENT:
         const comment = await this.getObject()
         return Frontend.Route.comment({ comment, groupSlug: group ? group.get('slug') : null })
