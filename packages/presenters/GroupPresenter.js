@@ -6,6 +6,7 @@ export default function GroupPresenter (group) {
 
   return {
     ...group,
+    isContextGroup: isContextGroupSlug(group?.slug),
     // Note: Currently this flattens to the QuerySet attribute of ".items"
     // Until more is clear we are not flattening items so that non-presented results (most)
     // from queries work largely the same as presented results (e.g. group?.posts?.items, etc)

@@ -11,7 +11,6 @@ import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import useMixpanelTrack from 'hooks/useMixpanelTrack'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 import useHasResponsibility, { RESP_MANAGE_CONTENT } from '@hylo/hooks/useHasResponsibility'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import Icon from 'components/Icon'
@@ -57,14 +56,14 @@ export default function usePostActionSheet ({
   const [, pinPost] = useMutation(pinPostMutation)
   const { showHyloActionSheet } = useHyloActionSheet()
   const mixpanelTrack = useMixpanelTrack()
-  const [{ currentGroup, isContextGroupSlug }] = useCurrentGroup()
+  const [{ currentGroup }] = useCurrentGroup()
   const [{ currentUser }] = useCurrentUser()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
 
   const createActionSheetActions = () => {
     const isCreator = currentUser && creator && currentUser.id === creator.id
-    const postUrl = isContextGroupSlug
+    const postUrl = currentGroup?.isContextGroup
       ? postUrlCreator(postId, { context: currentGroup?.slug })
       : postUrlCreator(postId, { groupSlug: currentGroup?.slug })
     const editPost = isCreator
@@ -82,11 +81,11 @@ export default function usePostActionSheet ({
       }
     }
 
-    const handleRemovePost = currentGroup && !isCreator && canModerate && !isContextGroupSlug
+    const handleRemovePost = currentGroup && !isCreator && canModerate && !currentGroup.isContextGroup
       ? () => removePost({ postId, slug: currentGroup?.slug })
       : null
 
-    const handlePinPost = currentGroup && canModerate && !isContextGroupSlug
+    const handlePinPost = currentGroup && canModerate && !currentGroup.isContextGroup
       ? () => pinPost({ postId, groupId: currentGroup.id })
       : null
 

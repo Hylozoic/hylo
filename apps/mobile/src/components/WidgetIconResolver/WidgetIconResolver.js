@@ -7,7 +7,7 @@ import ContextWidgetPresenter from '@hylo/presenters/ContextWidgetPresenter'
 export function WidgetIconResolver ({ widget: providedWidget, style, className }) {
   if (!providedWidget) return null
 
-  const widget = ContextWidgetPresenter(providedWidget, { t: t => t})
+  const widget = ContextWidgetPresenter(providedWidget, { t: t => t })
 
   if (widget?.avatarUrl) {
     return <Avatar avatarUrl={widget.avatarUrl} name={widget?.displayName} style={style} className={className} />

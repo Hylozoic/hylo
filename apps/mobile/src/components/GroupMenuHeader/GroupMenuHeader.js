@@ -17,7 +17,7 @@ export default function GroupMenuHeader ({ group }) {
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
 
   useEffect(() => {
-    /* 
+    /*
       TODO redesign: Web has a bunch of code that checks the color of the group background
       image to select a good constrasting color for the text.
 
@@ -34,18 +34,18 @@ export default function GroupMenuHeader ({ group }) {
           height: 146,
           width: '100%',
           position: 'absolute',
-          opacity: 0.8,
+          opacity: 0.8
         }}
       />
-      
+
       {canAdmin && (
         <View className='absolute top-2 right-2'>
-          <TouchableOpacity 
+          <TouchableOpacity
             // TODO redesign: make this actually navigate correctly
             onPress={() => navigation.navigate('Group Settings')}
-          > 
-          <View className='w-6 h-6 drop-shadow-md'>
-            <Settings color='white' size={24}/>
+          >
+            <View className='w-6 h-6 drop-shadow-md'>
+            <Settings color='white' size={24} />
           </View>
           </TouchableOpacity>
         </View>
@@ -61,20 +61,21 @@ export default function GroupMenuHeader ({ group }) {
             borderRadius: 4
           }}
         />
-        
+
         <View className={[
           'flex flex-col flex-1',
           `text-${textColor} drop-shadow-md`
-        ]}>
+        ]}
+        >
           <Text className='text-xl font-bold m-0 text-white'>
             {group.name}
           </Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             onPress={() => navigation.navigate('Members', { groupSlug: group.slug })}
             className='flex-row items-center'
           >
-            <View className='w-4 h-4 mr-1 align-bottom' >
+            <View className='w-4 h-4 mr-1 align-bottom'>
               <Users color='white' size={16} />
             </View>
             <Text className='text-xs align-middle text-white underline'>
@@ -83,12 +84,12 @@ export default function GroupMenuHeader ({ group }) {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => navigation.navigate('About', { groupSlug: group.slug })}
           hitSlop={6}
         >
           <View className='cursor-pointer'>
-            <ChevronRight color='white' size={24} strokeWidth={3}/>
+            <ChevronRight color='white' size={24} strokeWidth={3} />
           </View>
         </TouchableOpacity>
       </View>

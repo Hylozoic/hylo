@@ -66,18 +66,17 @@ export default function ContextMenu() {
 function ContextMenuItem({ widget, groupSlug, rootPath }) {
   const { t } = useTranslation()
   const { listItems, loading } = useGetContextWidgetChildren({ widget, groupSlug })
-  const navigation = useNavigation()
   const logout = useLogout()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
-  const [{ currentGroup, isContextGroupSlug }] = useCurrentGroup()
+  const [{ currentGroup }] = useCurrentGroup()
   
   const title = widget.title
   const url = makeWidgetUrl({ widget, rootPath, groupSlug })
 
   const handleWidgetPress = widget => {
-    const context = isContextGroupSlug ? currentGroup?.slug : 'groups'
-    const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: isContextGroupSlug ? null : currentGroup?.slug })
+    const context = currentGroup?.isContextGroup ? currentGroup?.slug : 'groups'
+    const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.isContextGroup ? null : currentGroup?.slug })
 
     openURL(linkingPath)
   }
