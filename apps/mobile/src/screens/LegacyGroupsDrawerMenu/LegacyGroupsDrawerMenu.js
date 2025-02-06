@@ -10,7 +10,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 import { PUBLIC_GROUP, ALL_GROUP, MY_CONTEXT_GROUP } from '@hylo/presenters/GroupPresenter'
-import styles from './DrawerMenu.styles'
+import styles from './LegacyGroupsDrawerMenu.styles'
 import Button from 'components/Button'
 import { bannerlinearGradientColors } from 'style/colors'
 // import groupExplorerUrl from 'assets/group-explorer.png'
@@ -18,7 +18,7 @@ import earthUrl from 'assets/earth.png'
 import myHomeUrl from 'assets/my-home.png'
 import Loading from 'components/Loading'
 
-export default function DrawerMenu () {
+export default function LegacyGroupsDrawerMenu () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const [{ currentUser, fetching: currentUserFetching }] = useCurrentUser()
