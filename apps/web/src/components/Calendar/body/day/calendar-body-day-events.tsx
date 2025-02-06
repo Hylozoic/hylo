@@ -1,12 +1,12 @@
 import React from 'react'
 import { useCalendarContext } from '../../calendar-context'
-import { isSameDay } from 'date-fns'
+import { sameDay } from '../../calendar-util'
 import CalendarBodyDayEvent from './calendar-body-day-event'
 
 export default function CalendarBodyDayEvents () {
   const { events, date } =
     useCalendarContext()
-  const dayEvents = events.filter((event) => isSameDay(event.start, date))
+  const dayEvents = events.filter((event) => sameDay(event.start, date))
 
   return (
     dayEvents.length > 0

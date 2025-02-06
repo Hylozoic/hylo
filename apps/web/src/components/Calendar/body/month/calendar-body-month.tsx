@@ -1,49 +1,36 @@
 import React from 'react'
 import { useCalendarContext } from '../../calendar-context'
-import {
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
-  isSameMonth,
-  isSameDay,
-  format,
-  isWithinInterval
-} from 'date-fns'
+import { DateTime, Interval } from 'luxon'
 import { cn } from '@/lib/utils'
 import CalendarEvent from '../../calendar-event'
 import { AnimatePresence, motion } from 'framer-motion'
+import { eachIntervalDay, sameDay, sameMonth } from '../../calendar-util'
 
 export default function CalendarBodyMonth () {
   const { date, events, setDate, setMode } = useCalendarContext()
+  const luxonDate = DateTime.fromJSDate(date)
 
   // Get the first day of the month
-  const monthStart = startOfMonth(date)
+  const monthStart = luxonDate.startOf('month')
   // Get the last day of the month
-  const monthEnd = endOfMonth(date)
+  const monthEnd = luxonDate.endOf('month')
 
   // Get the first Monday of the first week (may be in previous month)
-  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+  const calendarStart = monthStart.startOf('week', { useLocaleWeeks: true })
   // Get the last Sunday of the last week (may be in next month)
-  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
+  const calendarEnd = monthEnd.endOf('week', { useLocaleWeeks: true })
 
   // Get all days between start and end
-  const calendarDays = eachDayOfInterval({
-    start: calendarStart,
-    end: calendarEnd
-  })
 
+  const interval = Interval.fromDateTimes(calendarStart, calendarEnd)
+  const calendarDays = eachIntervalDay(interval)
   const today = new Date()
 
   // Filter events to only show those within the current month view
   const visibleEvents = events.filter(
     (event) =>
-      isWithinInterval(event.start, {
-        start: calendarStart,
-        end: calendarEnd
-      }) ||
-      isWithinInterval(event.end, { start: calendarStart, end: calendarEnd })
+      interval.contains(DateTime.fromJSDate(event.start)) ||
+      interval.contains(DateTime.fromJSDate(event.end))
   )
 
   return (
@@ -61,7 +48,7 @@ export default function CalendarBodyMonth () {
 
       <AnimatePresence mode='wait' initial={false}>
         <motion.div
-          key={monthStart.toISOString()}
+          key={monthStart.toISO()}
           className='grid md:grid-cols-7 flex-grow overflow-y-auto relative'
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -73,10 +60,10 @@ export default function CalendarBodyMonth () {
         >
           {calendarDays.map((day) => {
             const dayEvents = visibleEvents.filter((event) =>
-              isSameDay(event.start, day)
+              sameDay(event.start, day)
             )
-            const isToday = isSameDay(day, today)
-            const isCurrentMonth = isSameMonth(day, date)
+            const isToday = sameDay(day, today)
+            const isCurrentMonth = sameMonth(day, date)
 
             return (
               <div
@@ -99,7 +86,7 @@ export default function CalendarBodyMonth () {
                     !isToday && !isCurrentMonth && 'text-gray-600/50'
                   )}
                 >
-                  {format(day, 'd')}
+                  {DateTime.fromJSDate(day).toFormat('d')}
                 </div>
                 <AnimatePresence mode='wait'>
                   <div className='flex flex-col gap-1 mt-1'>

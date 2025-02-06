@@ -1,5 +1,5 @@
 import React from 'react'
-import { format } from 'date-fns'
+import { DateTime } from 'luxon'
 import { cn } from '@/lib/utils'
 
 export const hours = Array.from({ length: 24 }, (_, i) => i)
@@ -22,7 +22,7 @@ export default function CalendarBodyMarginDayMargin ({
           <div key={hour} className='relative h-32 first:mt-0'>
             {hour !== 0 && (
               <span className='absolute text-xs text-muted-foreground -top-2.5 left-2'>
-                {format(new Date().setHours(hour, 0, 0, 0), 'h a')}
+                {DateTime.fromObject({ hour, minute: 0, second: 0 }).toFormat('h a')}
               </span>
             )}
           </div>

@@ -36384,7 +36384,6 @@ __metadata:
     cookie-parser: "npm:^1.4.6"
     css-modules-require-hook: "npm:4.2.1"
     d3: "npm:^6.6.0"
-    date-fns: "npm:^4.1.0"
     deep-diff: "npm:^0.3.7"
     detect-port: "npm:1.0.1"
     dotenv: "npm:6.0.0"

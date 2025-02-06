@@ -2,7 +2,7 @@ import React, { useCallback } from 'react'
 import { useNavigate } from 'react-router'
 import { postUrl } from 'util/navigation'
 import { useCalendarContext } from 'components/Calendar/calendar-context'
-import { format } from 'date-fns'
+import { DateTime } from 'luxon'
 import { cn } from '@/lib/utils'
 import { CalendarEvent as CalendarEventType } from 'components/Calendar/calendar-types'
 import Tooltip from 'components/Tooltip'
@@ -21,7 +21,7 @@ export default function CalendarBodyDayEvent ({
     navigate(postUrl(event.id, routeParams, { ...locationParams, ...querystringParams }))
   }, [event.id, routeParams, locationParams, querystringParams])
   // TODO format for multi-day events
-  const toolTipTitle = `${event.title}<br />${format(event.start, 'h:mm a')} - ${format(event.end, 'h:mm a')}`
+  const toolTipTitle = `${event.title}<br />${DateTime.fromJSDate(event.start).toFormat('h:mm a')} - ${DateTime.fromJSDate(event.end).toFormat('h:mm a')}`
 
   return (
     <div

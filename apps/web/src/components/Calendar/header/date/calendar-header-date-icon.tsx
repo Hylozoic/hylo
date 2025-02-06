@@ -1,5 +1,5 @@
 import React from 'react'
-import { format } from 'date-fns'
+import { DateTime } from 'luxon'
 import { useCalendarContext } from '../../calendar-context'
 export default function CalendarHeaderDateIcon () {
   const { calendarIconIsToday, date: calendarDate } = useCalendarContext()
@@ -7,10 +7,10 @@ export default function CalendarHeaderDateIcon () {
   return (
     <div className='flex size-14 flex-col items-start overflow-hidden rounded-lg border'>
       <p className='flex h-6 m-0 w-full items-center justify-center bg-primary text-center text-xs font-semibold text-background uppercase'>
-        {format(date, 'MMM')}
+        {DateTime.fromJSDate(date).toFormat('MMM')}
       </p>
       <p className='flex m-0 w-full items-center justify-center text-lg font-bold'>
-        {format(date, 'dd')}
+        {DateTime.fromJSDate(date).toFormat('dd')}
       </p>
     </div>
   )

@@ -1,13 +1,13 @@
 import React from 'react'
 import { useCalendarContext } from '../../calendar-context'
-import { startOfWeek, addDays } from 'date-fns'
+import { DateTime } from 'luxon'
 import CalendarBodyMarginDayMargin from '../day/calendar-body-margin-day-margin'
 import CalendarBodyDayContent from '../day/calendar-body-day-content'
 export default function CalendarBodyWeek () {
   const { date } = useCalendarContext()
 
-  const weekStart = startOfWeek(date, { weekStartsOn: 1 })
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  const weekStart = DateTime.fromJSDate(date).startOf('week', { useLocaleWeeks: true })
+  const weekDays = Array.from({ length: 7 }, (_, i) => weekStart.plus({ day: i }))
 
   return (
     <div className='flex divide-x flex-grow overflow-hidden'>
@@ -17,11 +17,11 @@ export default function CalendarBodyWeek () {
             <CalendarBodyMarginDayMargin className='hidden md:block' />
             {weekDays.map((day) => (
               <div
-                key={day.toISOString()}
+                key={day.toISO()}
                 className='flex flex-1 divide-x md:divide-x-0'
               >
                 <CalendarBodyMarginDayMargin className='block md:hidden' />
-                <CalendarBodyDayContent date={day} />
+                <CalendarBodyDayContent date={day.toJSDate()} />
               </div>
             ))}
           </div>

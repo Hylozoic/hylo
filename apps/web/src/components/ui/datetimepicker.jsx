@@ -2,8 +2,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { add, format } from 'date-fns'
-import { enUS } from 'date-fns/locale'
+import { DateTime } from 'luxon'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import * as React from 'react'
 import { useImperativeHandle, useRef } from 'react'
@@ -195,7 +194,7 @@ function display12HourValue (hours) {
 function genMonths (locale) {
   return Array.from({ length: 12 }, (_, i) => ({
     value: i,
-    label: format(new Date(2021, i), 'MMMM', { locale })
+    label: DateTime.fromObject({ year: 2021, month: i }).toFormat('MMMM', { locale })
   }))
 }
 function genYears (yearRange = 50) {
@@ -208,7 +207,7 @@ function genYears (yearRange = 50) {
 // ---------- utils end ----------
 function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 50, ...props }) {
   const MONTHS = React.useMemo(() => {
-    let locale = enUS
+    let locale = DateTime.now().locale
     const { options, localize, formatLong } = props.locale || {}
     if (options && localize && formatLong) {
       locale = {
@@ -466,7 +465,7 @@ const TimePicker = React.forwardRef(({ date, onChange, hourCycle = 24, granulari
   )
 })
 TimePicker.displayName = 'TimePicker'
-const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
+const DateTimePicker = React.forwardRef(({ locale = DateTime.now().locale, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
   const [month, setMonth] = React.useState(value ?? defaultPopupValue)
   const buttonRef = useRef(null)
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
@@ -487,7 +486,7 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
     }
     const diff = newDay.getTime() - defaultPopupValue.getTime()
     const diffInDays = diff / (1000 * 60 * 60 * 24)
-    const newDateFull = add(defaultPopupValue, { days: Math.ceil(diffInDays) })
+    const newDateFull = DateTime.fromJSDate(defaultPopupValue).plus({ days: Math.ceil(diffInDays) }).toJSDate()
     newDateFull.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
     onMonthChange?.(newDay)
     setMonth(newDateFull)
@@ -514,11 +513,11 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
     hour12: displayFormat?.hour12 ??
       `P hh:mm${!granularity || granularity === 'second' ? ':ss' : ''} aaa`
   }
-  let loc = enUS
+  let loc = { code: DateTime.now().locale }
   const { options, localize, formatLong } = locale
   if (options && localize && formatLong) {
     loc = {
-      ...enUS,
+      ...loc,
       options,
       localize,
       formatLong
@@ -530,8 +529,8 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
         <Button variant='outline' className={cn('w-full justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />
           {displayDate
-            ? (format(displayDate, hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12, {
-                locale: loc
+            ? (DateTime.fromJSDate(displayDate).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12, {
+                locale: loc.code
               }))
             : (<span>{placeholder}</span>)}
         </Button>

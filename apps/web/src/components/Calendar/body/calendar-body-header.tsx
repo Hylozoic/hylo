@@ -1,5 +1,6 @@
 import React from 'react'
-import { format, isSameDay } from 'date-fns'
+import { DateTime } from 'luxon'
+import { sameDay } from '../calendar-util'
 import { cn } from '../../../lib/utils'
 
 export default function CalendarBodyHeader ({
@@ -9,7 +10,7 @@ export default function CalendarBodyHeader ({
   date: Date
   onlyDay?: boolean
 }) {
-  const isToday = isSameDay(date, new Date())
+  const isToday = sameDay(date, new Date())
 
   return (
     <div
@@ -24,7 +25,7 @@ export default function CalendarBodyHeader ({
           isToday ? 'text-white font-bold bg-black' : 'text-muted-foreground'
         )}
       >
-        {format(date, 'EEE')}
+        {DateTime.fromJSDate(date).toFormat('EEE')}
       </span>
       {!onlyDay && (
         <span
@@ -33,7 +34,7 @@ export default function CalendarBodyHeader ({
             isToday ? 'text-white font-bold bg-black' : 'text-foreground'
           )}
         >
-          {format(date, 'dd')}
+          {DateTime.fromJSDate(date).toFormat('dd')}
         </span>
       )}
     </div>

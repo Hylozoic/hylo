@@ -124,7 +124,6 @@
     "cookie-parser": "^1.4.6",
     "css-modules-require-hook": "4.2.1",
     "d3": "^6.6.0",
-    "date-fns": "^4.1.0",
     "deep-diff": "^0.3.7",
     "detect-port": "1.0.1",
     "dotenv": "6.0.0",

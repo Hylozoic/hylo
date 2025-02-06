@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router'
 import { CalendarEvent as CalendarEventType } from 'components/Calendar/calendar-types'
 import { postUrl } from 'util/navigation'
 import { useCalendarContext } from 'components/Calendar/calendar-context'
-import { format, isSameDay, isSameMonth } from 'date-fns'
+import { DateTime } from 'luxon'
 import { cn } from '@/lib/utils'
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
 import Tooltip from 'components/Tooltip'
+import { sameDay, sameMonth } from './calendar-util'
 
 import classes from './calendar.module.scss'
 
@@ -26,7 +27,7 @@ function getOverlappingEvents (
     return (
       currentEvent.start < event.end &&
       currentEvent.end > event.start &&
-      isSameDay(currentEvent.start, event.start)
+      sameDay(currentEvent.start, event.start)
     )
   })
 }
@@ -49,7 +50,7 @@ function calculateEventPosition (
   let endHour = event.end.getHours()
   let endMinutes = event.end.getMinutes()
 
-  if (!isSameDay(event.start, event.end)) {
+  if (!sameDay(event.start, event.end)) {
     endHour = 23
     endMinutes = 59
   }
@@ -79,7 +80,7 @@ export default function CalendarEvent ({
     useCalendarContext()
   const style = month ? {} : calculateEventPosition(event, events)
   // TODO format for multi-day events
-  const toolTipTitle = `${event.title}<br />${format(event.start, 'h:mm a')} - ${format(event.end, 'h:mm a')}`
+  const toolTipTitle = `${event.title}<br />${DateTime.fromJSDate(event.start).toFormat('h:mm a')} - ${DateTime.fromJSDate(event.end).toFormat('h:mm a')}`
 
   // our custon event click handler
   const navigate = useNavigate()
@@ -88,7 +89,7 @@ export default function CalendarEvent ({
   }, [event.id, routeParams, locationParams, querystringParams])
 
   // Generate a unique key that includes the current month to prevent animation conflicts
-  const isEventInCurrentMonth = isSameMonth(event.start, date)
+  const isEventInCurrentMonth = sameMonth(event.start, date)
   const animationKey = `${event.id}-${
     isEventInCurrentMonth ? 'current' : 'adjacent'
   }`

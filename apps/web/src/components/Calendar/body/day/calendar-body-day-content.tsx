@@ -1,6 +1,6 @@
 import React from 'react'
 import { useCalendarContext } from '../../calendar-context'
-import { isSameDay } from 'date-fns'
+import { sameDay } from '../../calendar-util'
 import { hours } from './calendar-body-margin-day-margin'
 import CalendarBodyHeader from '../calendar-body-header'
 import CalendarEvent from '../../calendar-event'
@@ -8,7 +8,7 @@ import CalendarEvent from '../../calendar-event'
 export default function CalendarBodyDayContent ({ date }: { date: Date }) {
   const { events } = useCalendarContext()
 
-  const dayEvents = events.filter((event) => isSameDay(event.start, date))
+  const dayEvents = events.filter((event) => sameDay(event.start, date))
 
   return (
     <div className='flex flex-col flex-grow'>
