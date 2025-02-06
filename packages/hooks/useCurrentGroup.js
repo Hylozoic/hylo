@@ -61,7 +61,7 @@ export function useCurrentGroupSlug (setToGroupSlug, useQueryArgs = {}) {
     return null
   }, [setToGroupSlug, currentGroupSlug, lastViewedGroup])
 
-  return [{ currentGroupSlug: groupSlug, fetching, error }]
+  return [{ currentGroupSlug: groupSlug, setCurrentGroupSlug, fetching, error }]
 }
 
 export default function useCurrentGroup ({

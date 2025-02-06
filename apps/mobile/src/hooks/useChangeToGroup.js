@@ -10,7 +10,7 @@ export default function useChangeToGroup () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
-  const [{ currentGroupSlug }] = useCurrentGroupSlug()
+  const [{ currentGroupSlug, setCurrentGroupSlug }] = useCurrentGroupSlug()
   const myMemberships = currentUser?.memberships
 
   return (groupSlug, confirm = true) => {
@@ -24,8 +24,8 @@ export default function useChangeToGroup () {
 
     if (canViewGroup) {
       const goToGroup = () => {
-        navigation.navigate('Group Navigation', { groupSlug })
-        navigation.navigate('Stream', { initial: false })
+        setCurrentGroupSlug(groupSlug)
+        // navigation.openDrawer()
       }
 
       confirm

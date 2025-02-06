@@ -1,9 +1,8 @@
 import React from 'react'
 import { Dimensions } from 'react-native'
 import { createDrawerNavigator } from '@react-navigation/drawer'
+import DrawerMenu from 'screens/DrawerMenu'
 import TabsNavigator from 'navigation/TabsNavigator'
-import LegacyGroupsDrawerMenu from 'screens/LegacyGroupsDrawerMenu'
-import ContextMenu from 'components/ContextMenu'
 
 const Drawer = createDrawerNavigator()
 export default function DrawerNavigator () {
@@ -15,15 +14,7 @@ export default function DrawerNavigator () {
   }
 
   return (
-    <Drawer.Navigator
-      screenOptions={navigatorProps}
-      drawerContent={props => (
-        <>
-          <ContextMenu />
-          <LegacyGroupsDrawerMenu {...props} />
-        </>
-      )}
-    >
+    <Drawer.Navigator screenOptions={navigatorProps} drawerContent={DrawerMenu}>
       <Drawer.Screen name='Tabs' component={TabsNavigator} options={{ headerShown: false }} />
     </Drawer.Navigator>
   )

@@ -19,7 +19,7 @@ export default function GroupMenuHeader ({ group }) {
   useEffect(() => {
     /*
       TODO redesign: Web has a bunch of code that checks the color of the group background
-      image to select a good constrasting color for the text.
+      image to select a good contrasting color for the text.
 
       Its very dependent on the DOM, so need to consider a different option for mobile
     */

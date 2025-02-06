@@ -102,7 +102,6 @@ export const routingConfig = {
 // These screens will always be present and be first for the key'd navigator
 export const initialRouteNamesConfig = {
   [AUTH_ROOT_SCREEN_NAME]: 'Drawer',
-  'Home Tab': 'Group Navigation',
   'Messages Tab': 'Messages'
 }
 
