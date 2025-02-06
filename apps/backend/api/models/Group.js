@@ -146,6 +146,10 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
+  hasChatFor (topic) {
+    return this.chatRooms().where('view_chat_id', topic.id).fetch()
+  },
+
   homeWidget () {
     return ContextWidget.query(q => {
       q.with('home_widget', qb => {
