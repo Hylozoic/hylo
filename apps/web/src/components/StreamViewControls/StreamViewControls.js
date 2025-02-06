@@ -133,7 +133,7 @@ const StreamViewControls = ({
           id='childgroup-toggle-tt'
           position='bottom'
         />
-        <div className='bg-primary rounded px-1 flex gap-2 items-center relative inset-x-1'>
+        <div className='bg-primary rounded px-1 flex gap-2 items-center'>
           <div
             className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'cards' })}
             onClick={() => changeView('cards')}
