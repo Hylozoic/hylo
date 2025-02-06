@@ -1,3 +1,4 @@
+import { gql } from 'urql'
 import { get } from 'lodash/fp'
 import meQuery from '@hylo/graphql/queries/meQuery'
 import meCheckAuthQuery from '@hylo/graphql/queries/meCheckAuthQuery'
@@ -154,6 +155,11 @@ export default {
             parentId: update?.messageThread?.id,
             fieldName: 'messages'
           })(result, args, cache, info)
+          cache.invalidate({ __typename: 'MessageThread', id: update?.messageThread?.id })
+          cache.updateQuery({ query: meQuery }, ({ me }) => {
+            if (!me) return null
+            return { me: { ...me, unseenThreadCount: me.unseenThreadCount + 1 } }
+          })
           return
         }
 
