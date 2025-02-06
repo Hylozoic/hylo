@@ -19,17 +19,20 @@ export default function ThreadListItem ({
   const { names, avatarUrls } = participantAttributes(thread, currentUser, 2)
 
   return (
-    <li className={cn(classes.listItem, { [classes.unreadListItem]: isUnread, [classes.active]: active })}>
-      <Link to={`/messages/${id}`}>
-        {active && <div className={classes.activeThread} />}
-        <ThreadAvatars avatarUrls={avatarUrls} />
-        <div className={classes.liCenterContent}>
-          <ThreadNames names={names} />
-          <div className={classes.threadMessageText}>{latestMessagePreview}</div>
+    <li>
+      <Link to={`/messages/${id}`} className={cn('flex flex-row bg-transparent rounded-lg m-2 p-2 hover:scale-105 transition-all', { [classes.unreadListItem]: isUnread, 'bg-selected': active })}>
+        <div>
+          <ThreadAvatars avatarUrls={avatarUrls} />
         </div>
-        <div className={classes.liRightContent}>
-          <div className={classes.messageTime}>{TextHelpers.humanDate(get('createdAt', latestMessage))}</div>
-          {unreadCount > 0 && <Badge number={unreadCount} expanded />}
+        <div>
+          <div className='flex items-center justify-between'>
+            <div className='truncate'><ThreadNames names={names} /></div>
+            <div className='text-xs text-foreground opacity-60'>{TextHelpers.humanDate(get('createdAt', latestMessage))}</div>
+          </div>
+          <div className='flex items-center'>
+            <div className='text-sm text-foreground opacity-60'>{latestMessagePreview}</div>
+            <div>{unreadCount > 0 && <Badge number={unreadCount} expanded />}</div>
+          </div>
         </div>
       </Link>
     </li>
@@ -65,5 +68,5 @@ function ThreadAvatars ({ avatarUrls }) {
 }
 
 function ThreadNames ({ names }) {
-  return <div className={classes.threadNames}>{names}</div>
+  return <div className='text-foreground font-bold'>{names}</div>
 }

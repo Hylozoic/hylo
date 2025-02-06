@@ -174,7 +174,8 @@ a.new-message {
   top: 0;
   left: 0;
   height: 100%;
-  border-left: $active-thread-border-width solid $color-caribbean-green;
+  border-left: 3px solid $color-caribbean-green;
+  border-radius: 5px;
 }
 
 .thread-avatars {
