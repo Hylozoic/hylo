@@ -509,9 +509,9 @@ const DateTimePicker = React.forwardRef(({ locale = DateTime.now().locale, defau
   }), [displayDate])
   const initHourFormat = {
     hour24: displayFormat?.hour24 ??
-      `P HH:mm${!granularity || granularity === 'second' ? ':ss' : ''}`,
+      `D HH:mm${!granularity || granularity === 'second' ? ':ss' : ''}`,
     hour12: displayFormat?.hour12 ??
-      `P hh:mm${!granularity || granularity === 'second' ? ':ss' : ''} aaa`
+      `D hh:mm${!granularity || granularity === 'second' ? ':ss' : ''} a`
   }
   let loc = { code: DateTime.now().locale }
   const { options, localize, formatLong } = locale
