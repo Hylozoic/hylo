@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
-import LegacyGroupsDrawerMenu from 'screens/LegacyGroupsDrawerMenu'
 import ContextMenu from 'components/ContextMenu'
+import ContextSwitchMenu from 'components/ContextSwitchMenu/ContextSwitchMenu'
 
 export default function DrawerMenu (props) {
   const { t } = useTranslation()
@@ -15,7 +15,7 @@ export default function DrawerMenu (props) {
 
   return (
     <View style={styles.container}>
-      <LegacyGroupsDrawerMenu {...props} style={styles.legacyMenu} />
+      <ContextSwitchMenu {...props} style={styles.contextSwitchMenu} />
       <ContextMenu style={styles.contextMenu} />
     </View>
   )
@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     flex: 1
   },
-  legacyMenu: {
+  contextSwitchMenu: {
     flex: 1
   },
   contextMenu: {
