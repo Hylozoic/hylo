@@ -357,22 +357,6 @@ export function removePostFromCollection (collectionId, postId) {
   }
 }
 
-export function transitionGroupToNewMenu (groupId) {
-  return {
-    type: TRANSITION_GROUP_TO_NEW_MENU,
-    graphql: {
-      query: `mutation ($groupId: ID) {
-        transitionGroupToNewMenu(groupId: $groupId) {
-          success
-        }
-      }`,
-      variables: {
-        groupId
-      }
-    }
-  }
-}
-
 export function reorderPostInCollection (collectionId, postId, newOrderIndex) {
   return {
     type: REORDER_POST_IN_COLLECTION,

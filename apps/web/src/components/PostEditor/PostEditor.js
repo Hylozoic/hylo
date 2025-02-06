@@ -10,23 +10,18 @@ import { createSelector } from 'reselect'
 import AttachmentManager from 'components/AttachmentManager'
 import Icon from 'components/Icon'
 import LocationInput from 'components/LocationInput'
-import RoundImage from 'components/RoundImage'
 import HyloEditor from 'components/HyloEditor'
 import Button from 'components/Button'
 import Loading from 'components/Loading'
 import Switch from 'components/Switch'
 import ToField from 'components/ToField'
-import TopicSelector from 'components/TopicSelector'
 import MemberSelector from 'components/MemberSelector'
 import LinkPreview from './LinkPreview'
 import { DateTimePicker } from 'components/ui/datetimepicker'
-import UploadAttachmentButton from 'components/UploadAttachmentButton'
-import SendAnnouncementModal from 'components/SendAnnouncementModal'
 import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
 import Dropdown from 'components/Dropdown/Dropdown'
-import Tooltip from 'components/Tooltip'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import fetchMyMemberships from 'store/actions/fetchMyMemberships'
 import {
@@ -74,7 +69,7 @@ import {
 } from './PostEditor.store'
 import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
-import { postUrl, setQuerystringParam } from 'util/navigation'
+import { setQuerystringParam } from 'util/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
 
@@ -120,7 +115,7 @@ function PostEditor ({
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
   const editingPostId = routeParams.postId
-  const fromPostId = getQuerystringParam('fromPostId', location)
+  const fromPostId = getQuerystringParam('fromPostId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
   const topicName = routeParams.topicName
@@ -145,8 +140,6 @@ function PostEditor ({
   const fromPost = useMemo(() => presentPost(_fromPost), [_fromPost])
   const [titleFocused, setTitleFocused] = useState(false)
   const [toFieldFocused, setToFieldFocused] = useState(false)
-  const [descriptionFocused, setDescriptionFocused] = useState(false)
-
 
   let isEditing = false
   if (editing) {
@@ -193,8 +186,8 @@ function PostEditor ({
   const [showPostTypeMenu, setShowPostTypeMenu] = useState(false)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
-  const [allowAddTopic, setAllowAddTopic] = useState(true)
-  const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type))
+  const [allowAddTopic] = useState(true)
+  const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
   const toOptions = useMemo(() => {
     return groupOptions.map((g) => [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
@@ -357,12 +350,6 @@ function PostEditor ({
     if (linkPreview && !force) return
     pollingFetchLinkPreview(dispatch, url)
   })
-
-  const handleTopicSelectorOnChange = useCallback(topics => {
-    setCurrentPost({ ...currentPost, topics })
-    setAllowAddTopic(false)
-    setIsDirty(true)
-  }, [currentPost])
 
   const handleAddTopic = useCallback((topic) => {
     const { topics } = currentPost
@@ -620,7 +607,7 @@ function PostEditor ({
         </div>
       </div>
       <div
-        className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, {'border-2 border-focus': toFieldFocused })}
+        className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, { 'border-2 border-focus': toFieldFocused })}
         onClick={handleToFieldContainerClick}
       >
         <div className='text-xs text-foreground/50 px-2'>{t('To')}</div>
@@ -636,7 +623,7 @@ function PostEditor ({
           />
         </div>
       </div>
-      <div className={cn('PostEditorTitle transition-all border-2 border-transparent', styles.section,  {'border-2 border-focus' :  titleFocused})}>
+      <div className={cn('PostEditorTitle transition-all border-2 border-transparent', styles.section, { 'border-2 border-focus': titleFocused })}>
         <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
         <input
           type='text'

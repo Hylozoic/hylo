@@ -1,6 +1,6 @@
 {
   "name": "mobile",
-  "version": "5.9.1",
+  "version": "6.0.0-0",
   "private": true,
   "scripts": {
     "android": "adb reverse tcp:3001 tcp:3001 && adb reverse tcp:3000 tcp:3000 && react-native run-android",
@@ -10,7 +10,8 @@
     "coverage:diff": "node ../jest-diff-coverage && open coverage/lcov-report/index.html",
     "ios": "react-native run-ios",
     "lint": "standard",
-    "postversion": "react-native-version --never-amend; git add .",
+    "bump-version": "node scripts/version.js",
+    "postversion": "react-native-version --never-amend",
     "start": "rm -f node_modules/react-native-config/ios/ReactNativeConfig/GeneratedDotEnv.m node_modules/react-native-config/android/build/generated/source/buildConfig/debug/com/lugg/RNCConfig/BuildConfig.java node_modules/react-native-config/android/build/generated/source/buildConfig/release/com/lugg/RNCConfig/BuildConfig.java && react-native start",
     "test": "node scripts/test.js",
     "clean": "react-native-clean-project",

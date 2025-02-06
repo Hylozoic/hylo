@@ -2558,8 +2558,6 @@ type Mutation {
   subscribe(groupId: ID, topicId: ID, isSubscribing: Boolean): GenericResult
   # Swap votes on a proposal
   swapProposalVote(postId: ID, addOptionId: ID, removeOptionId: ID): GenericResult
-  # FOR DEV PURPOSES ONLY
-  transitionGroupToNewMenu(groupId: ID): GenericResult
   # Unlink profile from previously linked social platform. Provider can be 'facebook', 'twitter', or 'linkedin'
   unlinkAccount(provider: String): GenericResult
   # Unblock a user

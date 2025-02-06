@@ -110,11 +110,11 @@ export default function Stream (props) {
 
   const postTypeFilter = determinePostTypeFilter()
 
-  const getTypes = useCallback(({ customView, view }) => {
+  const getTypes = useCallback(({ customView }) => {
     if (customView?.type === 'stream') return customView?.postTypes
     if (systemView) return systemView?.postTypes
     return null
-  }, [view])
+  }, [systemView])
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
