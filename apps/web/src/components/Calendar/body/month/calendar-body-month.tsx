@@ -9,6 +9,7 @@ import { eachIntervalDay, sameDay, sameMonth } from '../../calendar-util'
 export default function CalendarBodyMonth () {
   const { date, events, setDate, setMode } = useCalendarContext()
   const luxonDate = DateTime.fromJSDate(date)
+  const maxEventsPerDay = 3
 
   // Get the first day of the month
   const monthStart = luxonDate.startOf('month')
@@ -90,7 +91,7 @@ export default function CalendarBodyMonth () {
                 </div>
                 <AnimatePresence mode='wait'>
                   <div className='flex flex-col gap-1 mt-1'>
-                    {dayEvents.slice(0, 3).map((event) => (
+                    {dayEvents.slice(0, maxEventsPerDay).map((event) => (
                       <CalendarEvent
                         key={event.id}
                         event={event}
@@ -98,7 +99,7 @@ export default function CalendarBodyMonth () {
                         month
                       />
                     ))}
-                    {dayEvents.length > 3 && (
+                    {dayEvents.length > maxEventsPerDay && (
                       <motion.div
                         key={`more-${day.toISOString()}`}
                         initial={{ opacity: 0 }}
@@ -114,7 +115,7 @@ export default function CalendarBodyMonth () {
                           setMode('day')
                         }}
                       >
-                        +{dayEvents.length - 3} more
+                        +{dayEvents.length - maxEventsPerDay} more...
                       </motion.div>
                     )}
                   </div>
