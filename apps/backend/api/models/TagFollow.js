@@ -19,11 +19,16 @@ module.exports = bookshelf.Model.extend({
 
 }, {
   create (attrs, { transacting } = {}) {
+    // Default to all notifications turned on if not specified
+    const settings = attrs.settings || { }
+    if (!settings.notifications) {
+      settings.notifications = 'all'
+    }
+    attrs.settings = settings
     return this.forge(Object.assign({ created_at: new Date() }, attrs))
       .save({}, { transacting })
   },
 
-  // subscribe is used by hylo-evo
   subscribe: function (tagId, userId, groupId, isSubscribing) {
     return TagFollow.where({ group_id: groupId, tag_id: tagId, user_id: userId })
       .fetch()
