@@ -177,6 +177,18 @@ export function updateGroupTopicFollow (userId, { id, data }) {
     .then(() => ({ success: true }))
 }
 
+export async function updateTopicFollow (userId, { id, data }) {
+  const whitelist = mapKeys(pick(data, ['newPostCount', 'lastReadPostId']), (v, k) => snakeCase(k))
+  if (['all', 'none', 'important'].includes(data.settings?.notifications)) {
+    const tagFollow = await TagFollow.query().where({ id }).first()
+    const newSettings = tagFollow.settings || '{}'
+    newSettings.notifications = data.settings.notifications
+    whitelist.settings = JSON.stringify(newSettings)
+  }
+  if (isEmpty(whitelist)) return Promise.resolve(null)
+  return TagFollow.query().where({ id }).update(whitelist).then(() => ({ success: true }))
+}
+
 export function markActivityRead (userId, activityid) {
   return Activity.find(activityid)
     .then(a => {

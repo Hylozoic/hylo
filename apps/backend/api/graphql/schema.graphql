@@ -287,6 +287,9 @@ type Query {
   # Find a Topic by ID or by name (text)
   topic(id: ID, name: String): Topic
 
+  # Find one of your TopicFollows by group ID and topic name. Used to store settings related to a chat room.
+  topicFollow(groupId: ID, topicName: String): TopicFollow
+
   # Query for Topics
   topics(
     # Return only topics whose name starts with the autocomplete string
@@ -583,6 +586,8 @@ type ContextWidget {
   ownerGroup: Group
   # Parent widget if this is a child widget
   parentWidget: ContextWidget
+  # For chat rooms, the topic follow contains the notifications settings for the room for the current user
+  topicFollow: TopicFollow
   # Chat this widget is pointing at
   viewChat: Topic
   # Group this widget is pointing at
@@ -1504,6 +1509,14 @@ type Me {
     # Number of skills to load
     first: Int
   ): SkillQuerySet
+
+  # The topics/chat rooms I subscribe to
+  topicFollows(
+    # Start loading topics after this ID
+    cursor: ID,
+    # Load this number of topics
+    first: Int
+  ): TopicFollowQuerySet
 }
 
 # A user's group membership
@@ -1532,6 +1545,7 @@ type Membership {
   # 0: default, 1: moderator. TODO: deprecated, remove once mobile app has been updated to use new roles
   role: Int
   settings: MembershipSettings
+  topicFollows: TopicFollowQuerySet
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -2224,6 +2238,35 @@ type TopicQuerySet {
   items: [Topic]
 }
 
+type TopicFollow {
+  id: ID
+  createdAt: Date
+  # The group that the topic is in
+  group: Group
+  # The last post id that the user has read in this group
+  lastReadPostId: ID
+  # The number of new posts since the last post the user has read in this group
+  newPostCount: Int
+  # The settings for the topic follow
+  settings: TopicFollowSettings
+  # The topic that is being followed
+  topic: Topic
+  updatedAt: Date
+  # The user that is following the topic
+  user: Person
+}
+
+type TopicFollowQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [TopicFollow]
+}
+
+type TopicFollowSettings {
+  # The notifications for the topic follow: 'none', 'important', or 'all'
+  notifications: String
+}
+
 # Current user's personal settings
 type UserSettings {
   # Has this person seen the tour that displays the first time someone logs in
@@ -2601,8 +2644,8 @@ type Mutation {
   ): GroupRole
   # Update settings related a Topic in a Group. Only a group steward can call this.
   updateGroupTopic(id: ID, data: GroupTopicInput): GenericResult
-  # Update settings related to a Person following a Topic in a Group
-  updateGroupTopicFollow(id: ID, data: GroupTopicFollowInput): GenericResult
+  # Update settings related to a Person following a Topic in a Group. DEPRECATED, use updateTopicFollow instead
+  updateGroupTopicFollow(id: ID, data: TopicFollowInput): GenericResult
   # Update your settings or profile information
   updateMe(changes: MeInput): Me
   # Update settings related to your relationship to a particular group by Group ID or slug
@@ -2615,6 +2658,8 @@ type Mutation {
   updateProposalOutcome(postId: ID, proposalOutcome: String): GenericResult
   # NOT USED RIGHT NOW
   updateStripeAccount(accountId: String): GenericResult
+  # Update settings related to a Person following a Topic in a Group
+  updateTopicFollow(id: ID, data: TopicFollowInput): GenericResult
   # Update settings for a GroupWidget
   updateWidget(id: ID, changes: GroupWidgetInput): GroupWidget
   # Accept an invitation to a Group
@@ -2973,11 +3018,19 @@ input GroupTopicInput {
 }
 
 # Data related to a Person following a Topic in a Group
-input GroupTopicFollowInput {
+input TopicFollowInput {
   # The most recent post that the user has read in this GroupTopic
   lastReadPostId: ID
   # Set the count of new posts with this Topic in the Group since the Person last looked a the Topic stream
   newPostCount: Int
+  # Settings for this TopicFollow
+  settings: TopicFollowSettingsInput
+}
+
+# Settings for a TopicFollow
+input TopicFollowSettingsInput {
+  # How this person wants to receive notifications for post in this group: none, important, or all
+  notifications: String
 }
 
 # Group settings

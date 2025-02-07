@@ -96,5 +96,18 @@ module.exports = bookshelf.Model.extend({
       .then(tagFollows => {
         return tagFollows.models.map(tf => tf.relations.user)
       })
+  },
+
+  findFor: async function (userId, group, topicName) {
+    const groupId = isNaN(Number(group)) ? await Group.find(group) : group
+    const topic = await Tag.find({ name: topicName })
+    if (!topic || !groupId) {
+      return null
+    }
+    return TagFollow.query(q => {
+      q.where('user_id', userId)
+      q.where('group_id', groupId)
+      q.where('tag_id', topic.id)
+    }).fetch()
   }
 })

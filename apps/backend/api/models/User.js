@@ -666,11 +666,9 @@ module.exports = bookshelf.Model.extend(merge({
       created_at: new Date(),
       updated_at: new Date(),
       settings: {
-        digest_frequency: 'daily',
         signup_in_progress: true,
         dm_notifications: 'both',
-        comment_notifications: 'both',
-        post_notifications: 'all'
+        comment_notifications: 'both'
       },
       active: true
     }, omit(attributes, 'account', 'group', 'role'))

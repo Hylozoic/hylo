@@ -92,6 +92,14 @@ module.exports = bookshelf.Model.extend({
     })
   },
 
+  topicFollow (userId) {
+    return TagFollow.where({
+      group_id: this.get('group_id'),
+      tag_id: this.get('view_chat_id'),
+      user_id: userId
+    })
+  },
+
   viewChat () {
     return this.belongsTo(Tag, 'view_chat_id')
   },

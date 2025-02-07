@@ -116,6 +116,7 @@ import {
   updateGroupRole,
   updateGroupTopic,
   updateGroupTopicFollow,
+  updateTopicFollow,
   updateMe,
   updateMembership,
   updatePost,
@@ -278,6 +279,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     skills: (root, args) => fetchMany('Skill', args),
     // you can specify id or name, but not both
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
+    topicFollow: (root, { groupId, topicName }, context) => TagFollow.findFor(context.currentUserId, groupId, topicName),
     topics: (root, args) => fetchMany('Topic', args)
   }
 }
@@ -509,6 +511,8 @@ export function makeMutations ({ fetchOne }) {
     updateGroupTopic: (root, { id, data }, context) => updateGroupTopic(id, data),
 
     updateGroupTopicFollow: (root, args, context) => updateGroupTopicFollow(context.currentUserId, args),
+
+    updateTopicFollow: (root, args, context) => updateTopicFollow(context.currentUserId, args),
 
     updateMe: (root, { changes }, context) => updateMe(context.req.sessionId, context.currentUserId, changes),
 
