@@ -70,7 +70,7 @@ export default function CalendarBodyMonth () {
               <div
                 key={day.toISOString()}
                 className={cn(
-                  'relative flex flex-col border-b border-r p-2 aspect-square cursor-pointer',
+                  'relative flex flex-col border-b border-r px-1 py-0 aspect-square cursor-pointer',
                   !isCurrentMonth && 'bg-muted hidden md:flex'
                 )}
                 onClick={(e) => {

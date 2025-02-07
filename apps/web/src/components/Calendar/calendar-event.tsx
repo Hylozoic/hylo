@@ -100,7 +100,7 @@ export default function CalendarEvent ({
         <motion.div
           className={cn(
             classes[event.type],
-            'px-1 py-1 rounded-md truncate cursor-pointer transition-all duration-300 border',
+            'px-0 py-0 rounded-md truncate cursor-pointer transition-all duration-300 border',
             !month && 'absolute',
             className
           )}
