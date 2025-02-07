@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
-import { useNavigation } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { gql, useMutation, useQuery } from 'urql'
 import { debounce } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
@@ -101,25 +101,24 @@ export default function Thread() {
     })
   }
 
-  const setHeader = () => {
-    navigation.setOptions({
-      headerTitleStyle: { color: rhino10 },
-      headerTitle: () => (
-        <ThreadHeaderTitle thread={data?.messageThread} currentUserId={currentUser?.id} />
-      )
-    })
-  }
+  useFocusEffect(
+    useCallback(() => {
+      navigation.setOptions({
+        headerTitleStyle: { color: rhino10 },
+        headerTitle: () => (
+          <ThreadHeaderTitle thread={data?.messageThread} currentUserId={currentUser?.id} />
+        )
+      })
+      markAsRead()
+    }, [])
+  )
 
-  useEffect(() => {
-    setHeader()
-    markAsRead()
-  }, [data?.messageThread, currentUser?.id])
-
-  useEffect(() => {
-    if (messages.length && atBottom) {
-      setNewMessages(1)
-    }
-  }, [messages, atBottom])
+  // New message indicator disabled for now, needs more thought
+  // useEffect(() => {
+  //   if (messages.length && atBottom) {
+  //     setNewMessages(1)
+  //   }
+  // }, [messages, atBottom])
 
   return (
     <KeyboardFriendlyView style={styles.container}>

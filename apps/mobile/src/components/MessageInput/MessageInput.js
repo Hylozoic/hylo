@@ -36,10 +36,10 @@ const MessageInput = ({ onSubmit, emptyParticipants, placeholder, sendIsTyping, 
     setInputHeight(nativeEvent.contentSize.height)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const canSend = submittable || message.length > 0
     if (canSend && !emptyParticipants) {
-      onSubmit(message)
+      await onSubmit(message)
       clear()
     } else if (emptyParticipants) {
       Alert.alert(

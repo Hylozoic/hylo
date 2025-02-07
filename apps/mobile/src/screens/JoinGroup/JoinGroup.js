@@ -31,7 +31,6 @@ export default function JoinGroup (props) {
           }
 
           if (isAuthorized) {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
             const { data } = await acceptInvitation(invitationTokenAndCode)
             const newMembership = data?.acceptInvitation?.membership
             const groupSlug = newMembership?.group?.slug

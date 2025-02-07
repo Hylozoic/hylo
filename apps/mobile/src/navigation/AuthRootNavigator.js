@@ -50,6 +50,7 @@ const updatesSubscription = gql`
         }
         messageThread {
           id
+          unreadCount
         }
       }
       
