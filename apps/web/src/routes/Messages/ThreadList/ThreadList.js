@@ -53,7 +53,7 @@ function ThreadList () {
   }, [])
 
   return (
-    <div className={cn(classes.threadList)}>
+    <div className='bg-background h-full flex flex-col flex-wrap overflow-visible w-[320px]'>
       <div className={classes.header}>
         <div className={classes.search}>
           <div className={classes.searchIcon}>

@@ -69,13 +69,6 @@ module.exports = bookshelf.Model.extend({
     return this.reader().get('settings')?.locale || this.actor().getLocale()
   },
 
-  postUrlHelper: function ({ post, group, isPublic = false, topic, reader }) {
-    if (post.get('type') === Post.Type.CHAT) {
-      return Frontend.Route.chatPostForMobile(post, group, topic)
-    }
-    return Frontend.Route.post(post, group, isPublic, topic)
-  },
-
   send: async function () {
     if (await this.shouldBeBlocked()) {
       this.destroy()
@@ -180,7 +173,7 @@ module.exports = bookshelf.Model.extend({
     // TODO: include all groups in the notification?
     return Group.find(groupIds[0])
       .then(group => {
-        const path = new URL(this.postUrlHelper({ post, isPublic: false, topic: firstTag, group })).pathname
+        const path = new URL(Frontend.Route.post(post, group)).pathname
         const alertText = PushNotification.textForPost(post, group, firstTag, version, locale)
         return this.reader().sendPushNotification(alertText, path)
       })
@@ -389,7 +382,7 @@ module.exports = bookshelf.Model.extend({
             post_title: decode(post.title() || ''),
             post_type: post.get('type'),
             post_url: Frontend.Route.tokenLogin(reader, token,
-              Frontend.Route.post(post, group) + '?ctt=announcement_email&cti=' + reader.id),
+              Frontend.Route.post(post, group, 'ctt=announcement_email&cti=' + reader.id)),
             unfollow_url: Frontend.Route.tokenLogin(reader, token,
               Frontend.Route.unfollow(post, group) + '?ctt=announcement_email&cti=' + reader.id),
             tracking_pixel_url: Analytics.pixelUrl('Announcement', { userId: reader.id }),
@@ -434,7 +427,7 @@ module.exports = bookshelf.Model.extend({
         post_title: decode(post.title() || ''),
         post_topic: firstTag,
         post_type: post.get('type'),
-        post_url: Frontend.Route.tokenLogin(reader, token, this.postUrlHelper({ post, isPublic: false, topic: firstTag, group }) + '?ctt=post_email&cti=' + reader.id),
+        post_url: Frontend.Route.tokenLogin(reader, token, Frontend.Route.post(post, group, 'ctt=post_email&cti=' + reader.id)),
         unfollow_url: Frontend.Route.tokenLogin(reader, token,
           Frontend.Route.unfollow(post, group) + '?ctt=post_email&cti=' + reader.id),
         tracking_pixel_url: Analytics.pixelUrl('Post', { userId: reader.id }),
@@ -477,7 +470,7 @@ module.exports = bookshelf.Model.extend({
             post_title: decode(post.summary()),
             post_topic: firstTag,
             post_type: post.get('type'),
-            post_url: Frontend.Route.tokenLogin(reader, token, this.postUrlHelper({ post, isPublic: false, topic: firstTag, group }) + '?ctt=post_mention_email&cti=' + reader.id ),
+            post_url: Frontend.Route.tokenLogin(reader, token, Frontend.Route.post(post, group) + '?ctt=post_mention_email&cti=' + reader.id ),
             unfollow_url: Frontend.Route.tokenLogin(reader, token,
               Frontend.Route.unfollow(post, group) + '?ctt=post_mention_email&cti=' + reader.id),
             tracking_pixel_url: Analytics.pixelUrl('Mention in Post', {userId: reader.id})
@@ -727,7 +720,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         project_title: project.summary(),
         project_url: Frontend.Route.tokenLogin(reader, token,
-          Frontend.Route.post(project) + '?ctt=post_mention_email&cti=' + reader.id),
+          Frontend.Route.post(project, null, 'ctt=post_mention_email&cti=' + reader.id)),
         contribution_amount: projectContribution.get('amount') / 100,
         contributor_name: actor.get('name'),
         contributor_avatar_url: actor.get('avatar_url'),
@@ -753,7 +746,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         project_title: project.summary(),
         project_url: Frontend.Route.tokenLogin(reader, token,
-          Frontend.Route.post(project) + '?ctt=post_mention_email&cti=' + reader.id),
+          Frontend.Route.post(project, null, '?ctt=post_mention_email&cti=' + reader.id)),
         contribution_amount: projectContribution.get('amount') / 100,
         contributor_name: actor.get('name'),
         contributor_avatar_url: actor.get('avatar_url'),
@@ -795,7 +788,7 @@ module.exports = bookshelf.Model.extend({
             post_type: 'event',
             post_date: TextHelpers.formatDatePair(post.get('start_time'), post.get('end_time'), false, post.get('timezone')),
             post_url: Frontend.Route.tokenLogin(reader, token,
-              Frontend.Route.post(post) + '?ctt=post_mention_email&cti=' + reader.id),
+              Frontend.Route.post(post, group, '?ctt=post_mention_email&cti=' + reader.id)),
             unfollow_url: Frontend.Route.tokenLogin(reader, token,
               Frontend.Route.unfollow(post, group) + '?ctt=post_mention_email&cti=' + reader.id),
             tracking_pixel_url: Analytics.pixelUrl('Mention in Post', { userId: reader.id })

@@ -68,7 +68,7 @@ export const register = (fetchOne) => async (_, { name, password }, context) => 
     await bookshelf.transaction(async transacting => {
       await user.save({ name, active: true }, { transacting })
       await UserSession.login(context.req, user, 'password', { transacting }) // XXX: this does another save of the user, ideally we just do one of those
-      await LinkedAccount.create(context.req.id, { type: 'password', password }, { transacting })
+      await LinkedAccount.create(context.currentUserId, { type: 'password', password }, { transacting })
       await Analytics.trackSignup(user.id, context.req)
     })
 

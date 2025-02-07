@@ -150,6 +150,7 @@ export function humanDate (date, short) {
     .replace(/ hours?/, 'h')
     .replace(/ days?/, 'd')
     .replace(/ weeks?/, 'w')
+    .replace(/ years?/, 'y')
     .replace(/ month(s?)/, ' mo$1')
 }
 

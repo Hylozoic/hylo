@@ -4,11 +4,11 @@ import { filter, get, map, find, isEmpty } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import { useTranslation } from 'react-i18next'
-import { rhino30, limedSpruce, nevada, rhino60, rhino, alabaster, rhino10 } from 'style/colors'
+import { rhino30, limedSpruce, nevada, rhino60, rhino, alabaster, rhino10, persimmon } from 'style/colors'
 
 const MAX_THREAD_PREVIEW_LENGTH = 54
 
-export default function ThreadCard ({ message, currentUser, participants, isLast, unread }) {
+export default function ThreadCard ({ message, currentUser, participants, isLast, unreadCount }) {
   if (!message) return null
 
   const latestMessagePreview = TextHelpers.presentHTMLToText(message?.text, {
@@ -22,13 +22,18 @@ export default function ThreadCard ({ message, currentUser, participants, isLast
     : map('avatarUrl', otherParticipants)
 
   return (
-    <View style={[styles.threadCard, unread && styles.highlight]}>
+    <View style={[styles.threadCard, !!unreadCount && styles.highlight]}>
       <ThreadAvatars avatarUrls={avatarUrls} />
       <View style={[styles.messageContent, isLast && styles.lastCard]}>
         <Text style={styles.header}>{names}</Text>
         <Text style={styles.body} numberOfLines={2}>{messageCreatorPrepend}{latestMessagePreview}</Text>
-        <Text style={styles.date}>{TextHelpers.humanDate(message?.createdAt)}{unread}</Text>
+        <Text style={styles.date}>{TextHelpers.humanDate(message?.createdAt)}</Text>
       </View>
+      {!!unreadCount && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{unreadCount}</Text>
+        </View>
+      )}
     </View>
   )
 }
@@ -119,6 +124,20 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: rhino30
+  },
+  badge: {
+    backgroundColor: persimmon,
+    marginTop: 10,
+    marginRight: 10,
+    height: 20,
+    width: 20,
+    borderRadius: 100,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 12
   },
   count: {
     backgroundColor: rhino,

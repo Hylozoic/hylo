@@ -3,7 +3,7 @@ import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-nativ
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import useRouteParams from 'hooks/useRouteParams'
@@ -14,6 +14,7 @@ import styles from './Login.styles'
 import LocaleSelector from 'components/LocaleSelector/LocaleSelector'
 
 export default function Login () {
+  const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const navigation = useNavigation()
   const passwordInputRef = useRef()
@@ -93,7 +94,7 @@ export default function Login () {
   const goToResetPassword = () => navigation.navigate('ForgotPassword')
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['bottom', 'left', 'right']}>
+    <View style={{ flex: 1, paddingBottom: insets.bottom, paddingRight: insets.right, paddingLeft: insets.left }}>
       <ScrollView contentContainerStyle={styles.login} style={styles.container}>
         <View style={styles.localeContainer}>
           <View style={styles.localeContents}>
@@ -172,7 +173,7 @@ export default function Login () {
         <SocialAuth onStart={handleSocialAuthStart} onComplete={handleSocialAuthComplete} />
         <SignupLink goToSignup={goToSignup} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 

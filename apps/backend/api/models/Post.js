@@ -759,7 +759,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     num_comments: 0,
     num_people_reacts: 0
   }),
-  
+
   create: function (attrs, opts) {
     return Post.forge(_.merge(Post.newPostAttrs(), attrs))
       .save(null, _.pick(opts, 'transacting'))
@@ -865,8 +865,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
   zapierTriggers: async ({ postId }) => {
     const post = await Post.find(postId, { withRelated: ['groups', 'tags', 'user'] })
     if (!post) return
-    const tags = post.relations.tags
-    const firstTag = tags && tags.first()?.get('name')
 
     const groupIds = post.relations.groups.map(g => g.id)
     const zapierTriggers = await ZapierTrigger.forTypeAndGroups('new_post', groupIds).fetchAll()
@@ -877,9 +875,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           continue
         }
 
-        const entityUrl = (post.get('type') === Post.Type.CHAT && post.relations.groups.length > 0 && firstTag)
-          ? Frontend.Route.chatPostForMobile(post, post.relations.groups[0], firstTag)
-          : Frontend.Route.post(post, post.relations.groups[0])
+        const entityUrl = Frontend.Route.post(post, post.relations.groups[0])
 
         const creator = post.relations.user
         const response = await fetch(trigger.get('target_url'), {
