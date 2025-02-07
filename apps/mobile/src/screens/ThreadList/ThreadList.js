@@ -20,8 +20,7 @@ export default function ThreadList () {
   const [{ data, fetching }, fetchThreads] = useQuery({
     query: messageThreadsQuery,
     variables: { first: 10, offset },
-    requestPolicy: 'cache-and-network',
-    pause: true
+    requestPolicy: 'cache-and-network'
   })
   const threads = data?.me?.messageThreads?.items
   const hasMore = data?.me?.messageThreads?.hasMore
@@ -66,7 +65,7 @@ export default function ThreadList () {
             participants={item.participants}
             message={getLatestMessage(item)}
             threadId={item.id}
-            unread={!!item.unreadCount}
+            unreadCount={item.unreadCount}
             currentUser={currentUser}
             isLast={index === threads.length - 1}
             showThread={showThread}
@@ -77,12 +76,12 @@ export default function ThreadList () {
   )
 }
 
-export function MessageRow ({ message, threadId, participants, currentUser, showThread, isLast, unread }) {
+export function MessageRow ({ message, threadId, participants, currentUser, showThread, isLast, unreadCount }) {
   return (
     <View>
       <TouchableOpacity onPress={() => showThread(threadId)}>
         <ThreadCard
-          unread={unread}
+          unreadCount={unreadCount}
           threadId={threadId}
           message={message}
           participants={participants}

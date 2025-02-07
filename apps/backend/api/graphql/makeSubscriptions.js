@@ -72,7 +72,9 @@ export default function makeSubscriptions () {
           messageThread.makeModelsType = 'MessageThread'
           return messageThread
         }
-        if (payload?.notification) return new Notification(payload.notification)
+        if (payload?.notification) {
+          return new Notification(payload.notification)
+        }
       }
     }
   }
