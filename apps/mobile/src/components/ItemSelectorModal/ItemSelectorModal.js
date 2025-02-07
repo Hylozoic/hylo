@@ -8,7 +8,7 @@ import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
 import RoundCheckbox from 'components/RoundCheckBox'
 import SearchBar from 'components/SearchBar'
-import { havelockBlue, rhino80, rhino50, caribbeanGreen, alabaster, rhino60 } from 'style/colors'
+import { havelockBlue, rhino80, rhino50, caribbeanGreen, alabaster, rhino } from 'style/colors'
 
 const ItemSelectorModalHeader = ({
   onClose,
@@ -254,7 +254,7 @@ export const ItemSelectorModal = React.forwardRef(({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: rhino60,
+    backgroundColor: rhino,
     margin: 30,
     borderRadius: 20,
     padding: 10
