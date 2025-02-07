@@ -1,7 +1,7 @@
 import React from 'react'
 import { Dimensions } from 'react-native'
 import { createDrawerNavigator } from '@react-navigation/drawer'
-import DrawerMenu from 'screens/DrawerMenu'
+import DrawerMenu from 'components/DrawerMenu'
 import TabsNavigator from 'navigation/TabsNavigator'
 
 const Drawer = createDrawerNavigator()

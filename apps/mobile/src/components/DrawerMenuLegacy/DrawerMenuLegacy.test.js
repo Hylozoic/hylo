@@ -2,7 +2,7 @@ import 'react-native'
 import React from 'react'
 import ReactShallowRenderer from 'react-test-renderer/shallow'
 import TestRenderer from 'react-test-renderer'
-import DrawerMenu, { SectionHeader, NetworkRow, GroupRow, TextButton } from './DrawerMenu'
+import DrawerMenuLegacy, { SectionHeader, NetworkRow, GroupRow, TextButton } from './DrawerMenu'
 import { ALL_GROUP } from 'store/models/Group'
 import { TestRoot } from 'util/testing'
 
@@ -11,7 +11,7 @@ import { TestRoot } from 'util/testing'
 //   BackHandler: { addEventListener: jest.fn(), mockOnBackPress: jest.fn() }
 // }))
 
-describe('DrawerMenu', () => {
+describe('DrawerMenuLegacy', () => {
   const minProps = {
     name: 'Roy Rogers',
     avatarUrl: 'http://anyurl',
@@ -41,7 +41,7 @@ describe('DrawerMenu', () => {
     // const { toJSON } = TestRenderer.create(
     renderer.render(
       <TestRoot>
-        <DrawerMenu {...minProps} {...props} />
+        <DrawerMenuLegacy {...minProps} {...props} />
       </TestRoot>
     )
 

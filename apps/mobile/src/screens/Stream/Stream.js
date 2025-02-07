@@ -163,7 +163,7 @@ export default function Stream () {
   }, [fetchPostParam, refetchPosts])
 
   const fetchMorePosts = useCallback(() => {
-    if (posts && !fetching) {
+    if (hasMore && !fetching) {
       setOffset(curOffset => curOffset + posts?.length)
     }
   }, [hasMore, fetching, postIds])

@@ -2,6 +2,7 @@ import React from 'react'
 import { View, StyleSheet } from 'react-native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import ContextMenu from 'components/ContextMenu'
 import ContextSwitchMenu from 'components/ContextSwitchMenu/ContextSwitchMenu'
 
@@ -10,10 +11,10 @@ export default function DrawerMenu (props) {
   useCurrentGroup({ setToGroupSlug: groupSlug })
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ContextSwitchMenu {...props} />
       <ContextMenu />
-    </View>
+    </SafeAreaView>
   )
 }
 
