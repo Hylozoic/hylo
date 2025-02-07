@@ -5,10 +5,10 @@ import { useQuery } from 'urql'
 import { isEmpty, isFunction, debounce } from 'lodash/fp'
 import getFirstRootField from '@hylo/urql/getFirstRootFieldFromData'
 import Avatar from 'components/Avatar'
+import Icon from 'components/Icon'
 import RoundCheckbox from 'components/RoundCheckBox'
 import SearchBar from 'components/SearchBar'
-import { havelockBlue, rhino80, rhino50, caribbeanGreen, rhino10, capeCod10, alabaster, rhino } from 'style/colors'
-import Icon from 'components/Icon'
+import { havelockBlue, rhino80, rhino50, caribbeanGreen, alabaster, rhino60 } from 'style/colors'
 
 const ItemSelectorModalHeader = ({
   onClose,
@@ -254,7 +254,7 @@ export const ItemSelectorModal = React.forwardRef(({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: rhino,
+    backgroundColor: rhino60,
     margin: 30,
     borderRadius: 20,
     padding: 10

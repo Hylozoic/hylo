@@ -2,7 +2,7 @@ import React from 'react'
 import { Text, TouchableOpacity } from 'react-native'
 import Icon from 'components/Icon'
 import useFindOrCreateLocationObject from 'components/LocationSelectorModal/useFindOrCreateLocationObject'
-import { rhino80, rhino20, caribbeanGreen, alabaster, rhino60 } from 'style/colors'
+import { rhino80, rhino20, caribbeanGreen, alabaster } from 'style/colors'
 
 export default function LocationSelectorModalItemRow ({ item, onPress }) {
   const [, findOrCreateLocationObject] = useFindOrCreateLocationObject()
