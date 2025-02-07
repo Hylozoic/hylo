@@ -1,3 +1,4 @@
+import { StyleSheet } from 'react-native'
 import { isIOS } from 'util/platform'
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
 import {
@@ -53,7 +54,7 @@ export const typeSelectorStyles = postType => ({
   }
 })
 
-export default {
+export const styles = StyleSheet.create({
   headerContainer: {
     height: 60,
     borderBottomWidth: 1,
@@ -262,4 +263,6 @@ export default {
   buttonBarAnnouncementIcon: {
     fontSize: 46
   }
-}
+})
+
+export default styles

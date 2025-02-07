@@ -168,7 +168,7 @@ export default function MemberList ({
         <SearchBar
           placeholder={t('Search Members')}
           onChangeText={handleSearch}
-          style={styles.searchWrapper}
+          style={{ container: styles.searchWrapper }}
         />
         {!hideSortOptions && (
           <PopupMenuButton actions={actions} style={styles.sortBy}>
