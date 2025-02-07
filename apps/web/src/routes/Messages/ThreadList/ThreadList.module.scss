@@ -129,6 +129,7 @@ a.new-message {
   margin: 0;
   padding: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   width: 100%;
 }
 
@@ -184,10 +185,25 @@ a.new-message {
   text-align: center;
 }
 
-.avatar-2 {
+.avatar-2:nth-child(1) {
   position: absolute;
-  top: $space-7x;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 0;
+}
+
+.avatar-2:nth-child(2) {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   right: 0;
+}
+
+.avatar-3:nth-child(1) {
+  position: absolute;
+  top:0 ;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .avatar-3:nth-child(2) {
@@ -213,11 +229,11 @@ a.new-message {
   right: 0;
 }
 .avatar-more:nth-child(3) {
-  top: $space-9x;
+  bottom: 0;
   left: 0;
 }
 .avatar-more:nth-child(4) {
-  top: $space-9x;
+  bottom: 0;
   right: 0;
 }
 .plus-count {
