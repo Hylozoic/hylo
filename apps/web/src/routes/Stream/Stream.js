@@ -100,6 +100,8 @@ export default function Stream (props) {
     sortBy = 'start_time'
   }
   const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
+  const calendarView = viewMode === 'calendar'
+  const decisionView = getQuerystringParam('d', location) || 'decisions'
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
 
@@ -134,13 +136,13 @@ export default function Stream (props) {
       topics,
       types: getTypes({ customView, view })
     }
-    if (view === 'events') {
+    if (view === 'events' && !calendarView) {
       params.afterTime = timeframe === 'future' ? new Date().toISOString() : undefined
       params.beforeTime = timeframe === 'past' ? new Date().toISOString() : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'
     }
     return params
-  }, [childPostInclusion, context, customView, groupSlug, postTypeFilter, timeframe, topic?.id, topicName, sortBy, search, view])
+  }, [childPostInclusion, context, customView, groupSlug, postTypeFilter, timeframe, topic?.id, topicName, sortBy, search, view, calendarView])
 
   let name = customView?.name || systemView?.name || ''
   let icon = customView?.icon || systemView?.iconName
@@ -179,8 +181,6 @@ export default function Stream (props) {
   const pending = useSelector(state => state.pending[FETCH_POSTS])
   const pendingModerationActions = useSelector(state => state.pending[FETCH_MODERATION_ACTIONS])
 
-  const calendarView = viewMode === 'calendar'
-  const decisionView = getQuerystringParam('d', location) || 'decisions'
   const fetchModerationActionParam = {
     slug: groupSlug,
     groupId,
