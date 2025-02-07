@@ -19,18 +19,18 @@ export default function Message ({ message, isHeader }) {
     : TextHelpers.markdown(message.text)
 
   return (
-    <div className={cn(classes.message, { [classes.messageHeader]: isHeader })} data-message-id={message.id}>
+    <div className={cn('text-foreground w-full flex items-center', { [classes.messageHeader]: isHeader })} data-message-id={message.id}>
       <div className={classes.avatar}>
         {isHeader && <Avatar url={personUrl(person.id)} avatarUrl={person.avatarUrl} />}
       </div>
       <div className={classes.content}>
         {isHeader && (
           <div>
-            <span className={classes.name}>{person.name}</span>
+            <span className='text-foreground font-bold'>{person.name}</span>
             <span className={classes.date}>{pending ? 'sending...' : TextHelpers.humanDate(message.createdAt)}</span>
           </div>
         )}
-        <div className={classes.text}>
+        <div className='text-foreground'>
           <ClickCatcher>
             <HyloHTML element='span' html={text} />
           </ClickCatcher>
