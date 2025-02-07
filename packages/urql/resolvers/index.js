@@ -6,6 +6,9 @@ export default {
     search: makePaginationResolver(),
     notifications: makePaginationResolver()
   },
+  Post: {
+    comments: makePaginationResolver()
+  },
   Comment: {
     childComments: makePaginationResolver()
   },

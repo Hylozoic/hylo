@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { View, Text, TextInput, FlatList, TouchableOpacity, Pressable } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, Pressable } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import { gql, useQuery } from 'urql'
 import { debounce } from 'lodash/fp'
@@ -152,8 +153,9 @@ export default function SearchPage () {
       {(offset === 0 && fetching) && (
         <Loading style={styles.loading} />
       )}
-      <FlatList
+      <FlashList
         data={searchResults}
+        estimatedItemSize={100}
         renderItem={renderItem}
         onRefresh={handleRefresh}
         refreshing={offset > 0 && fetching}
