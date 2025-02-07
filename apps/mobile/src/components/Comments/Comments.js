@@ -26,8 +26,6 @@ export const Comments = React.forwardRef(({
   const comments = commentsQuerySet?.items || []
   const [highlightedComment, setHighlightedComment] = useState()
 
-  console.log('!!! highlightedComment', highlightedComment)
-
   const scrollToComment = useCallback((comment, viewPosition = 0.2) => {
     const parentCommentId = comment?.parentComment?.id || comment.id
     const parentCommentIndex = comments.findIndex(comment => parentCommentId === comment.id)
