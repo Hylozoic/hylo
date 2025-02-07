@@ -118,12 +118,12 @@ module.exports = bookshelf.Model.extend(merge({
 
   groupRelationshipInvitesFrom () {
     return this.hasMany(GroupRelationshipInvite, 'from_group_id')
-      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending }})
+      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending  }})
   },
 
   groupRelationshipInvitesTo () {
     return this.hasMany(GroupRelationshipInvite, 'to_group_id')
-      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending }})
+      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending } })
   },
 
   groupRoles () {
@@ -160,11 +160,11 @@ module.exports = bookshelf.Model.extend(merge({
           })
           .select('id')
       })
-      .from('context_widgets')
-      .whereRaw('parent_id = (select id from home_widget)')
-      .andWhere('group_id', this.id)
-      .orderBy('order', 'asc')
-      .limit(1)
+        .from('context_widgets')
+        .whereRaw('parent_id = (select id from home_widget)')
+        .andWhere('group_id', this.id)
+        .orderBy('order', 'asc')
+        .limit(1)
     }).fetch()
   },
 
@@ -793,6 +793,29 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
+  // Background task to do additional work/tasks after a new member finished joining a group (after they've accepted agreements and answered join questions)
+  async afterFinishedJoining ({ userId, groupId }) {
+    const group = await Group.find(groupId)
+    const user = await User.find(userId)
+    const joinQuestionAnswers = await user.groupJoinQuestionAnswers()
+      .where({ group_id: parseInt(groupId) })
+      .orderBy('created_at', 'DESC')
+      .fetch({ withRelated: ['question'] })
+
+    const answers = joinQuestionAnswers.map(qa => ({ text: qa.relations.question.get('text'), answer: qa.get('answer') }))
+
+    Queue.classMethod('Email', 'sendMemberJoinedGroupNotification', {
+      email: user.get('email'),
+      data: {
+        group_name: group.get('name'),
+        group_url: Frontend.Route.group(group),
+        member_name: user.get('name'),
+        member_url: Frontend.Route.profile(user, group),
+        join_question_answers: answers
+      }
+    })
+  },
+
   async create (userId, data) {
     if (!data.slug) {
       throw new GraphQLError('Missing required field: slug')
@@ -1044,7 +1067,7 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
-  messageStewards: async function(fromUserId, groupId) {
+  messageStewards: async function (fromUserId, groupId) {
     // Make sure they can only message a group they can see
     const group = await groupFilter(fromUserId)(Group.where({ id: groupId })).fetch()
     // TODO: ADD RESP TO THIS ONE
@@ -1063,7 +1086,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   notifyAboutCreate: function (opts) {
-    return Group.find(opts.groupId, {withRelated: ['creator']})
+    return Group.find(opts.groupId, { withRelated: ['creator'] })
       .then(g => {
         const creator = g.relations.creator
         const recipient = process.env.NEW_GROUP_EMAIL
