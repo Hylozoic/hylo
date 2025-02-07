@@ -25,7 +25,6 @@ export default function useChangeToGroup () {
     if (canViewGroup) {
       const goToGroup = () => {
         setCurrentGroupSlug(groupSlug)
-        // navigation.openDrawer()
       }
 
       confirm
