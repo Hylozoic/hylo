@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { FlatList, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { gql, useMutation, useQuery } from 'urql'
@@ -123,9 +124,10 @@ export default function Thread() {
   return (
     <KeyboardFriendlyView style={styles.container}>
       {fetching && <Loading />}
-      <FlatList
+      <FlashList
         style={styles.messageList}
         data={refineMessages(messages)}
+        estimatedItemSize={60}
         inverted
         keyExtractor={(item) => item.id}
         refreshing={fetching}

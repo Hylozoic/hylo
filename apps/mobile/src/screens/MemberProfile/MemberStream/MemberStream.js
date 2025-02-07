@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { Text, View, TouchableOpacity, FlatList } from 'react-native'
+import { Text, View, TouchableOpacity } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, gql } from 'urql'
 import { useNavigation } from '@react-navigation/native'
@@ -147,9 +148,10 @@ export default function MemberStream ({ id, header }) {
 
   return (
     <View style={styles.superContainer}>
-      <FlatList
+      <FlashList
         contentContainerStyle={styles.container}
         data={items}
+        estimatedItemSize={100}
         keyExtractor={item => item.id}
         ListFooterComponent={<FooterComponent pending={fetching} />}
         ListHeaderComponent={<HeaderComponent header={header} setChoice={setChoice} choice={choice} />}

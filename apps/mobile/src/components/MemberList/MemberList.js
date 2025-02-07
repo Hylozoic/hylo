@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { View, FlatList, Text, TouchableOpacity } from 'react-native'
+import { View, Text, TouchableOpacity } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { useScrollToTop } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { gql, useQuery } from 'urql'
@@ -87,7 +88,7 @@ const groupMembersQuery = gql`
     }
   }
 `
-
+// TODO: Look into use of MasonryFlashList as an simplification and optimization of this component
 export default function MemberList ({
   members: providedMembers = [],
   children = '',
@@ -181,9 +182,10 @@ export default function MemberList ({
   )
 
   return (
-    <FlatList
+    <FlashList
       ref={scrollRef}
       data={membersForFlatList}
+      estimatedItemSize={192}
       numColumns='2'
       renderItem={({ item }) => {
         if (item.name) {

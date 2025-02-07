@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react'
 import { useNavigation, useIsFocused, useRoute } from '@react-navigation/native'
-import { FlatList, View, TouchableOpacity } from 'react-native'
+import { View, TouchableOpacity } from 'react-native'
+import { FlashList } from "@shopify/flash-list"
 import { gql, useMutation, useQuery } from 'urql'
 import { capitalize, get, isEmpty } from 'lodash/fp'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -214,7 +215,8 @@ export default function Stream () {
   return (
     <View style={styles.container}>
       <GroupWelcomeCheck />
-      <FlatList
+      <FlashList
+        estimatedItemSize={100}
         ref={ref}
         data={posts}
         renderItem={({ item }) => (
@@ -228,12 +230,6 @@ export default function Stream () {
         onRefresh={refreshPosts}
         refreshing={fetching}
         keyExtractor={item => `post${item.id}`}
-        // TODO: URQL! - Without further setup FlatList will call this many many times while still at the bottom
-        // currently URQL is protecting us from this by caching an throttling the many api requests it creates,
-        // but it definitely needs to be elaborated such that only a single call is send and that call can start
-        // probably a higher than default bottom threshold so the additional posts are closer to already
-        // there by the time the user gets to the bottom bottom. All pretty to easy to fix, and should make
-        // our infinite scroll smoother than it is at the moment due to this hammer of requests.
         onEndReached={fetchMorePosts}
         ListHeaderComponent={
           <View>
