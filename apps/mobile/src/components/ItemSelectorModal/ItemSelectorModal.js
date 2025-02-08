@@ -1,19 +1,23 @@
 import React, { useEffect, useState, useImperativeHandle, useCallback, useMemo } from 'react'
-import { View, Modal, FlatList, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Modal, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from 'urql'
 import { isEmpty, isFunction, debounce } from 'lodash/fp'
 import getFirstRootField from '@hylo/urql/getFirstRootFieldFromData'
 import Avatar from 'components/Avatar'
+import Icon from 'components/Icon'
 import RoundCheckbox from 'components/RoundCheckBox'
 import SearchBar from 'components/SearchBar'
-import { havelockBlue, rhino80, rhino50, white, caribbeanGreen, rhino10 } from 'style/colors'
+import { havelockBlue, rhino80, rhino50, caribbeanGreen, alabaster, rhino } from 'style/colors'
 
-// TODO: URQL! Finish styling this modal component
 const ItemSelectorModalHeader = ({
+  onClose,
   searchTerm,
   headerText,
   setSearchTerm,
   searchPlaceholder,
+  title,
   autoFocus = false,
   onFocus,
   loading
@@ -24,12 +28,17 @@ const ItemSelectorModalHeader = ({
 
   return (
     <View style={styles.listHeader}>
+      <TouchableOpacity onPress={onClose} style={styles.title}>
+        <Icon name='Ex' style={styles.closeButton} />
+        {title && <Text style={styles.titleText}>{title}</Text>}
+      </TouchableOpacity>
       <SearchBar
-        style={styles.searchBar}
+        style={{ container: styles.searchBar, searchInput: styles.searchInput }}
         autoFocus={autoFocus}
         onFocus={onFocus}
         value={searchTerm}
         onChangeText={setSearchTerm}
+        onClose={onClose}
         placeholder={searchPlaceholder}
         onCancel={clearSearchTerm}
         onCancelText='Clear'
@@ -81,11 +90,13 @@ export const ItemSelectorModal = React.forwardRef(({
   itemsUseQueryArgs: providedItemsUseQueryArgs,
   itemsUseQuerySelector = getFirstRootField,
   searchPlaceholder,
+  title,
   initialSearchTerm,
   // Turn on to have multiple selections
   chooser = false
 }, ref) => {
   const [visible, setVisible] = useState(false)
+  const insets = useSafeAreaInsets()
 
   const [items, setItems] = useState(defaultItems)
   const [chosenItems, setChosenItems] = useState(providedChosenItems || [])
@@ -212,21 +223,28 @@ export const ItemSelectorModal = React.forwardRef(({
   }, [handleItemPress, isChosen, handleToggleChosen])
 
   return (
-    <Modal visible={visible} animationType='slide' onRequestClose={handleOnClose}>
-      <View style={styles.container}>
-        <TouchableOpacity style={styles.closeButton} onPress={handleOnClose}>
-          <Text style={styles.closeText}>Close</Text>
-        </TouchableOpacity>
+    <Modal visible={visible} animationType='slide' onRequestClose={handleOnClose} transparent>
+      <View
+        style={[
+          styles.container, {
+            marginTop: styles.container.margin + insets.top,
+            marginBottom: (styles.container.margin * 2) + insets.bottom + 60
+          }
+        ]}
+      >
         <ItemSelectorModalHeader
+          onClose={handleOnClose}
           setSearchTerm={setSearchTerm}
           searchTerm={searchTerm}
           searchPlaceholder={searchPlaceholder}
+          title={title}
         />
         {fetching
           ? <Text>Loading...</Text>
           : (
-            <FlatList
+            <FlashList
               data={items}
+              estimatedItemSize={55}
               renderItem={renderItem}
               keyExtractor={item => item.id}
             />
@@ -238,21 +256,18 @@ export const ItemSelectorModal = React.forwardRef(({
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 50,
-    flex: 1
-  },
-  content: {
-    flex: 1
+    backgroundColor: rhino,
+    margin: 30,
+    borderRadius: 20,
+    padding: 10
   },
   closeButton: {
-    marginBottom: 10,
-    padding: 10,
-    backgroundColor: '#ccc',
-    borderRadius: 5
-  },
-  closeText: {
-    fontSize: 16,
-    color: '#333'
+    // marginBottom: 10,
+    padding: 3,
+    borderRadius: 5,
+    fontSize: 22,
+    color: alabaster,
+    textAlign: 'left'
   },
 
   // Default Item
@@ -262,19 +277,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     borderBottomWidth: 1,
-    borderBottomColor: rhino10
+    borderBottomColor: rhino80
   },
   itemAvatar: {
     marginRight: 12
   },
   itemName: {
+    color: alabaster,
     fontFamily: 'Circular-Bold',
     flex: 1
   },
 
   // From ItemChooser, for reference
   sectionHeader: {
-    backgroundColor: 'white',
     paddingHorizontal: 10,
     paddingTop: 10
   },
@@ -286,8 +301,21 @@ const styles = StyleSheet.create({
   sectionFooter: {
     marginBottom: 40
   },
+  title: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    // backgroundColor: rhino80,
+    padding: 3
+  },
+  titleText: {
+    color: alabaster,
+    fontSize: 18,
+    fontWeight: 'bold',
+    fontFamily: 'Circular-Book'
+  },
   listHeader: {
-    backgroundColor: white
   },
   listHeaderStatus: {
     paddingHorizontal: 10,
@@ -308,11 +336,15 @@ const styles = StyleSheet.create({
     color: havelockBlue
   },
   itemList: {
-    backgroundColor: white,
     marginBottom: 50
   },
   searchBar: {
-    margin: 10
+    marginTop: 5,
+    marginBottom: 5,
+    marginHorizontal: 10
+  },
+  searchInput: {
+    color: alabaster
   }
 })
 

@@ -48,6 +48,7 @@
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/stack": "^6.4.1",
     "@sentry/react-native": "^6.5.0",
+    "@shopify/flash-list": "^1.7.3",
     "@urql/devtools": "^2.0.3",
     "@urql/exchange-graphcache": "^7.2.1",
     "babel-plugin-import-graphql": "^2.8.1",

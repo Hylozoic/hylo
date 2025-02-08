@@ -1,32 +1,13 @@
 import { gql } from 'urql'
+import messageThreadFieldsFragment from '../fragments/messageThreadFieldsFragment'
 
 export default gql` 
-  mutation FindOrCreateThreadMutation ($participantIds: [String]) {
+  mutation FindOrCreateThreadMutation ($participantIds: [String], $firstMessages: Int = 1) {
     findOrCreateThread(data: {
       participantIds: $participantIds
     }) {
-      id
-      createdAt
-      updatedAt
-      participants {
-        id
-        name
-        avatarUrl
-      }
-      messages {
-        items {
-          id
-          text
-          creator {
-            id
-            name
-            avatarUrl
-          }
-          createdAt
-        }
-        total
-        hasMore
-      }
+      ...MessageThreadFieldsFragment
     }
   }
+  ${messageThreadFieldsFragment}
 `

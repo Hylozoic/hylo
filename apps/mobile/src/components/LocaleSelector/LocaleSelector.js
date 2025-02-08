@@ -11,7 +11,11 @@ const LocaleSelector = ({ small, dark }) => {
   const { t, i18n } = useTranslation()
   const selectedLocale = i18n.language
   const [dropdownVisible, setDropdownVisible] = useState(false)
-  const [{ currentUser }] = useCurrentUser()
+  const currentUserData = useCurrentUser()
+
+  // TODO: URQL! This keeps things from crashing when network is not active on load
+  // fix another way. 
+  if (!currentUserData) return null
 
   const handleSelectLocale = (locale) => {
     i18n.changeLanguage(locale)

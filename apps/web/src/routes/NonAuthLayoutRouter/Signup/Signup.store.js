@@ -103,10 +103,8 @@ export function register (name, password) {
               name
               settings {
                 alreadySeenTour
-                digestFrequency
                 dmNotifications
                 commentNotifications
-                postNotifications
                 signupInProgress
                 locale
                 streamChildPosts
