@@ -24,7 +24,7 @@ export function useGroup ({
 } = {}) {
   const { t } = useTranslation()
   const contextGroup = useMemo(() => getContextGroup(groupSlug, groupId), [groupSlug, groupId])
-  const pause = contextGroup || useQueryArgs?.pause || (!groupSlug && !groupId)
+  const pause = !!contextGroup || useQueryArgs?.pause || (!groupSlug && !groupId)
   const [{ data, fetching, error }, reQuery] = useQuery({
     ...useQueryArgs,
     query: groupDetailsQueryMaker(groupQueryScope),
