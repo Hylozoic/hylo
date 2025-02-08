@@ -21,6 +21,7 @@ export default {
   GroupTopicQuerySet: () => null,
   JoinRequestQuerySet: () => null,
   Location: () => null,
+  Me: () => 'me',
   Membership: () => null,
   MembershipSettings: () => null,
   MembershipCommonRoleQuerySet: () => null,

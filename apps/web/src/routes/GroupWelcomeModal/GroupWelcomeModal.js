@@ -101,7 +101,7 @@ export default function GroupWelcomeModal (props) {
     await dispatch(updateMembershipSettings(
       group.id,
       { joinQuestionsAnsweredAt: new Date(), showJoinForm: false },
-      true,
+      true, // acceptAgreements
       questionAnswers ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : []
     ))
     return null

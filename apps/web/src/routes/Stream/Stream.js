@@ -294,7 +294,7 @@ export default function Stream (props) {
   }, [name, icon, info])
 
   return (
-    <div id='stream-outer-container' className='flex flex-col h-full' ref={setContainer}>
+    <div id='stream-outer-container' className='flex flex-col h-full overflow-auto' ref={setContainer}>
       <Helmet>
         <title>{name} | {group ? `${group.name} | ` : context} | Hylo</title>
         <meta name='description' content={group ? `Posts from ${group.name}. ${group.description}` : 'Group Not Found'} />
@@ -377,7 +377,7 @@ export default function Stream (props) {
 
         <ScrollListener
           onBottom={() => fetchPostsFrom(posts.length)}
-          elementId='stream-inner-container'
+          elementId='stream-outer-container'
         />
       </div>
     </div>

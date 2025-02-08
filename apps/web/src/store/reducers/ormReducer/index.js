@@ -19,7 +19,6 @@ import {
   DELETE_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_MESSAGES_PENDING,
-  FETCH_POSTS_PENDING,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   JOIN_PROJECT_PENDING,
   LEAVE_GROUP,
@@ -405,20 +404,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         // this is so that after websocket reconnect events, pagination
         // of messages works as expected
         Message.filter({ messageThread: meta.id }).delete()
-      }
-      break
-    }
-
-    case FETCH_POSTS_PENDING: {
-      // When looking at group for first time, immediately set lastViewedAt so we know first view has happened
-      // This is so that we can go to special welcome page/post on first view then every time after go to regular home page
-      if (meta.slug) {
-        group = Group.safeGet({ slug: meta.slug })
-        me = Me.first()
-        if (!me) break
-        membership = Membership.safeGet({ group: group.id, person: me.id })
-        if (!membership) break
-        membership && membership.update({ lastViewedAt: (new Date()).toISOString() }) // now non-members can possibly see the posts of a group, so in that instance, don't update
       }
       break
     }

@@ -241,7 +241,7 @@ export default function ContextMenu (props) {
   const canView = !group || group.memberCount !== 0
   const links = regularLinks
   return (
-    <div className={cn('ContextMenu bg-background z-20 overflow-y-auto h-lvh w-280 shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
+    <div className={cn('ContextMenu bg-background z-20 overflow-y-auto h-lvh w-[320px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
       <div className='ContextDetails w-full z-20 relative'>
         {routeParams.context === 'groups'
           ? <GroupMenuHeader group={group} />
@@ -422,7 +422,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
   if (widget.type === 'logout') {
     return (
-      <div key={widget.id} className='mt-6'>
+      <div key={widget.id} className='ContextMenu ContextWidgetMenuItem mt-6'>
         <span className='flex justify-between items-center content-center'>
           <WidgetIconResolver widget={widget} />
           <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex'>
@@ -626,8 +626,8 @@ function SpecialTopElementRenderer ({ widget, group }) {
 
   if (widget.type === 'about') {
     return (
-      <div className='w-full'>
-        {group.purpose && <p className='text-xs text-foreground break-words w-[12.5rem] min-h-fit m-0'>{group.purpose}</p>}
+      <div className='w-full mb-8'>
+        {group.purpose && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0 mb-2'>{group.purpose}</p>}
         {group.description && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0'>{group.description}</p>}
       </div>
     )

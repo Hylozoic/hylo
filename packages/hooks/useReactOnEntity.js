@@ -1,6 +1,6 @@
 import { gql, useMutation } from 'urql'
 
-// TODO: URQL - Re-integrate analytics reporting
+// TODO: URQL! - Re-integrate analytics reporting
 // analytics: {
 //   commentId,
 //   eventName: entityType === 'post' ? AnalyticsEvents.POST_REACTION : AnalyticsEvents.COMMENT_REACTION,

@@ -1,12 +1,12 @@
 import { get, trim } from 'lodash/fp'
-import { ArrowRight, Image, ImagePlus, SquarePen } from 'lucide-react'
+import { ArrowRight, ImagePlus, SquarePen } from 'lucide-react'
 import React, { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { useLocation, useParams } from 'react-router-dom'
 import { Button } from 'components/ui/button'
-import GroupsSelector from 'components/GroupsSelector'
+// import GroupsSelector from 'components/GroupsSelector'
 import Icon from 'components/Icon'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import {
@@ -88,7 +88,7 @@ function CreateGroup () {
   const [isNameFocused, setIsNameFocused] = useState(false)
 
   // Refs
-  const groupsSelector = useRef()
+  // const groupsSelector = useRef()
   const slugRef = useRef()
 
   // Effects
@@ -195,20 +195,19 @@ function CreateGroup () {
   return (
     <div className='CreateGroupContainer w-full h-full flex justify-center mt-10'>
       <div className='CreateGroupInnerContainer flex flex-col mx-auto w-full max-w-screen-sm items-center'>
-        
         <UploadAttachmentButton
-              type='groupBanner'
-              onInitialUpload={({ url }) => updateField('bannerUrl')(url)}
-              className='w-full group'
+          type='groupBanner'
+          onInitialUpload={({ url }) => updateField('bannerUrl')(url)}
+          className='w-full group'
         >
           <div
             className={cn('CreateGroupBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-black/0 hover:bg-black/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
             style={{ backgroundImage: `url(${bannerUrl})` }}
           >
-              <div className='flex flex-col items-center justify-center gap-1'>
-                <ImagePlus className='inline-block' />
-                <span className='ml-2 text-xs opacity-40 group-hover:opacity-100 transition-all'>{t('Set group banner')}</span>
-              </div>
+            <div className='flex flex-col items-center justify-center gap-1'>
+              <ImagePlus className='inline-block' />
+              <span className='ml-2 text-xs opacity-40 group-hover:opacity-100 transition-all'>{t('Set group banner')}</span>
+            </div>
           </div>
         </UploadAttachmentButton>
 
@@ -221,15 +220,16 @@ function CreateGroup () {
             style={bgImageStyle(avatarUrl)}
             className={cn('relative w-20 h-20 rounded-lg border-dashed border-2 border-foreground/50 shadow-md flex items-center justify-center bg-cover bg-center bg-black/0 hover:bg-black/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!avatarUrl })}
           >
-            {!avatarUrl && <div className='flex flex-col items-center justify-center gap-1'>
-              <ImagePlus className='inline-block' />
-              <span className='text-xs opacity-40 group-hover:opacity-100 transition-all'>Add icon</span>
-            </div>}
-            
+            {!avatarUrl && (
+              <div className='flex flex-col items-center justify-center gap-1'>
+                <ImagePlus className='inline-block' />
+                <span className='text-xs opacity-40 group-hover:opacity-100 transition-all'>Add icon</span>
+              </div>
+            )}
           </div>
         </UploadAttachmentButton>
 
-        <div className={cn('w-full bg-foreground/5 p-4 rounded-lg flex flex-col gap-2 border-2 border-focus/0 transition-all', {'border-2 border-focus': isNameFocused})}>
+        <div className={cn('w-full bg-foreground/5 p-4 rounded-lg flex flex-col gap-2 border-2 border-focus/0 transition-all', { 'border-2 border-focus': isNameFocused })}>
           <div className='flex items-center gap-2'>
             <input
               autoFocus

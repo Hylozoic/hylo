@@ -24,14 +24,14 @@ export function useGroup ({
 } = {}) {
   const { t } = useTranslation()
   const contextGroup = useMemo(() => getContextGroup(groupSlug, groupId), [groupSlug, groupId])
-  const pause = contextGroup || useQueryArgs?.pause || (!groupSlug && !groupId)
+  const pause = !!contextGroup || useQueryArgs?.pause || (!groupSlug && !groupId)
   const [{ data, fetching, error }, reQuery] = useQuery({
     ...useQueryArgs,
     query: groupDetailsQueryMaker(groupQueryScope),
     variables: { id: groupId, slug: groupSlug },
     pause
   })
-  const rawGroup = data?.group || contextGroup
+  const rawGroup = contextGroup || data?.group
   const group = useMemo(() => rawGroup && GroupPresenter(rawGroup, { t }), [rawGroup])
 
   return [{ group, isContextGroupSlug: !!isContextGroupSlug(groupSlug), fetching, error }, contextGroup ? () => {} : reQuery]

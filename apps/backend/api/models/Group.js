@@ -118,12 +118,12 @@ module.exports = bookshelf.Model.extend(merge({
 
   groupRelationshipInvitesFrom () {
     return this.hasMany(GroupRelationshipInvite, 'from_group_id')
-      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending }})
+      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending  }})
   },
 
   groupRelationshipInvitesTo () {
     return this.hasMany(GroupRelationshipInvite, 'to_group_id')
-      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending }})
+      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending } })
   },
 
   groupRoles () {
@@ -146,6 +146,10 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
+  hasChatFor (topic) {
+    return this.chatRooms().where('view_chat_id', topic.id).fetch()
+  },
+
   homeWidget () {
     return ContextWidget.query(q => {
       q.with('home_widget', qb => {
@@ -156,11 +160,11 @@ module.exports = bookshelf.Model.extend(merge({
           })
           .select('id')
       })
-      .from('context_widgets')
-      .whereRaw('parent_id = (select id from home_widget)')
-      .andWhere('group_id', this.id)
-      .orderBy('order', 'asc')
-      .limit(1)
+        .from('context_widgets')
+        .whereRaw('parent_id = (select id from home_widget)')
+        .andWhere('group_id', this.id)
+        .orderBy('order', 'asc')
+        .limit(1)
     }).fetch()
   },
 
@@ -565,186 +569,6 @@ module.exports = bookshelf.Model.extend(merge({
     ))
   },
 
-  async transitionToNewMenu (existingTrx) {
-    const doWork = async (trx) => {
-      // Get all widgets for this group
-      const widgets = await ContextWidget.where({ group_id: this.id }).fetchAll({ transacting: trx })
-      // const chatsWidget = widgets.find(w => w.get('view') === 'chats')
-      const autoAddWidget = widgets.find(w => w.get('type') === 'auto-view')
-      // const chatsWidgetId = chatsWidget?.get('id')
-      const autoAddWidgetId = autoAddWidget?.get('id')
-
-      // if (!chatsWidget?.get('auto_added')) {
-      //   // TODO CONTEXT: port this section to the new chat model
-      //   const chatPostResults = await bookshelf.knex.raw(`
-      //     SELECT DISTINCT t.id as tag_id, t.name, gt.visibility
-      //     FROM posts p
-      //     JOIN groups_posts gp ON gp.post_id = p.id
-      //     JOIN posts_tags pt ON pt.post_id = p.id
-      //     JOIN tags t ON t.id = pt.tag_id
-      //     JOIN groups_tags gt ON gt.tag_id = t.id AND gt.group_id = gp.group_id
-      //     WHERE gp.group_id = ? AND p.type = 'chat'
-      //   `, [this.id], { transacting: trx })
-
-      //   const groupChats = chatPostResults.rows.filter(tag => tag.name !== 'general' || tag.name !== 'home')
-
-      //   if (groupChats.length > 0) {
-      //     await Promise.all(groupChats.map(chat =>
-      //       ContextWidget.create({
-      //         group_id: this.id,
-      //         title: chat.name,
-      //         type: 'chat',
-      //         parent_id: chat.visibility === 2 ? chatsWidgetId : null,
-      //         view_chat_id: chat.tag_id,
-      //         addToEnd: (chat.visibility === 2)
-      //       }, { transacting: trx })
-      //     ))
-      //   }
-      // }
-
-      const askOfferWidget = widgets.find(w => w.get('view') === 'ask-and-offer')
-      if (askOfferWidget && !askOfferWidget.get('auto_added')) {
-        const hasAsksOffers = await bookshelf.knex('posts')
-          .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
-          .where('groups_posts.group_id', this.id)
-          .whereIn('posts.type', ['request', 'offer'])
-          .first()
-
-        if (hasAsksOffers) {
-          await ContextWidget.update({
-            id: askOfferWidget.get('id'),
-            data: { parent_id: autoAddWidgetId, addToEnd: true },
-            trx
-          })
-        }
-      }
-
-      const eventsWidget = widgets.find(w => w.get('type') === 'events')
-      if (eventsWidget && !eventsWidget.get('auto_added')) {
-        const hasEvents = await bookshelf.knex('posts')
-          .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
-          .where('groups_posts.group_id', this.id)
-          .where('posts.type', 'event')
-          .first()
-
-        if (hasEvents) {
-          await ContextWidget.update({
-            id: eventsWidget.get('id'),
-            data: { parent_id: autoAddWidgetId, addToEnd: true },
-            trx
-          })
-        }
-      }
-
-      const projectsWidget = widgets.find(w => w.get('type') === 'projects')
-      if (projectsWidget && !projectsWidget.get('auto_added')) {
-        const hasProjects = await bookshelf.knex('posts')
-          .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
-          .where('groups_posts.group_id', this.id)
-          .where('posts.type', 'project')
-          .first()
-
-        if (hasProjects) {
-          await ContextWidget.update({
-            id: projectsWidget.get('id'),
-            data: { parent_id: autoAddWidgetId, addToEnd: true },
-            trx
-          })
-        }
-      }
-
-      const groupsWidget = widgets.find(w => w.get('type') === 'groups')
-      if (groupsWidget && !groupsWidget.get('auto_added')) {
-        const hasRelatedGroups = await bookshelf.knex('group_relationships')
-          .where('parent_group_id', this.id)
-          .orWhere('child_group_id', this.id)
-          .first()
-
-        if (hasRelatedGroups) {
-          await ContextWidget.update({
-            id: groupsWidget.get('id'),
-            data: { parent_id: autoAddWidgetId, addToEnd: true },
-            trx
-          })
-        }
-      }
-
-      const decisionsWidget = widgets.find(w => w.get('type') === 'decisions')
-      if (decisionsWidget && !decisionsWidget.get('auto_added')) {
-        const [hasProposals, hasModeration] = await Promise.all([
-          bookshelf.knex('posts')
-            .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
-            .where({ 'groups_posts.group_id': this.id, 'posts.type': 'proposal' })
-            .first(),
-          bookshelf.knex('moderation_actions')
-            .where({ group_id: this.id })
-            .first()
-        ])
-
-        if (hasProposals || hasModeration) {
-          await ContextWidget.update({
-            id: decisionsWidget.get('id'),
-            data: { parent_id: autoAddWidgetId, addToEnd: true },
-            trx
-          })
-        }
-      }
-
-      const mapWidget = widgets.find(w => w.get('type') === 'map')
-      if (mapWidget && !mapWidget.get('auto_added')) {
-        const [hasLocationPosts, hasMembersWithLocation] = await Promise.all([
-          bookshelf.knex('posts')
-            .join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
-            .where({ 'groups_posts.group_id': this.id })
-            .whereNotNull('posts.location_id')
-            .first(),
-          bookshelf.knex('users')
-            .join('group_memberships', 'users.id', 'group_memberships.user_id')
-            .where('group_memberships.group_id', this.id)
-            .whereNotNull('users.location_id')
-            .first()
-        ])
-
-        if (hasLocationPosts || hasMembersWithLocation) {
-          await ContextWidget.update({
-            id: mapWidget.get('id'),
-            data: { parent_id: autoAddWidgetId, addToEnd: true },
-            trx
-          })
-        }
-      }
-
-    //   const customViews = await bookshelf.knex('custom_views')
-    //     .where({ group_id: this.id })
-    //     .whereNotExists(function() {
-    //       this.select('*')
-    //         .from('context_widgets')
-    //         .whereRaw('context_widgets.custom_view_id = custom_views.id')
-    //         .andWhere('auto_added', true)
-    //     })
-    //     if (customViews.length > 0) {
-    //       const customViewsWidget = widgets.find(w => w.get('type') === 'custom-views')
-    //       if (customViewsWidget) {
-    //         await Promise.all(customViews.map(view =>
-    //           ContextWidget.create({
-    //             group_id: this.id,
-    //             custom_view_id: view.id,
-    //             parent_id: customViewsWidget.get('id'),
-    //             auto_added: true,
-    //             addToEnd: true
-    //           }, { transacting: trx })
-    //         ))
-    //       }
-    //     }
-    }
-
-    if (existingTrx) {
-      return doWork(existingTrx)
-    }
-
-    return await bookshelf.transaction(trx => doWork(trx))
-  },
-
   update: async function (changes, updatedByUserId) {
     const whitelist = [
       'about_video_uri', 'active', 'access_code', 'accessibility', 'avatar_url', 'banner_url',
@@ -967,6 +791,29 @@ module.exports = bookshelf.Model.extend(merge({
         groupId: [groupId]
       })
     }
+  },
+
+  // Background task to do additional work/tasks after a new member finished joining a group (after they've accepted agreements and answered join questions)
+  async afterFinishedJoining ({ userId, groupId }) {
+    const group = await Group.find(groupId)
+    const user = await User.find(userId)
+    const joinQuestionAnswers = await user.groupJoinQuestionAnswers()
+      .where({ group_id: parseInt(groupId) })
+      .orderBy('created_at', 'DESC')
+      .fetch({ withRelated: ['question'] })
+
+    const answers = joinQuestionAnswers.map(qa => ({ text: qa.relations.question.get('text'), answer: qa.get('answer') }))
+
+    Queue.classMethod('Email', 'sendMemberJoinedGroupNotification', {
+      email: user.get('email'),
+      data: {
+        group_name: group.get('name'),
+        group_url: Frontend.Route.group(group),
+        member_name: user.get('name'),
+        member_url: Frontend.Route.profile(user, group),
+        join_question_answers: answers
+      }
+    })
   },
 
   async create (userId, data) {
@@ -1220,7 +1067,7 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
-  messageStewards: async function(fromUserId, groupId) {
+  messageStewards: async function (fromUserId, groupId) {
     // Make sure they can only message a group they can see
     const group = await groupFilter(fromUserId)(Group.where({ id: groupId })).fetch()
     // TODO: ADD RESP TO THIS ONE
@@ -1239,7 +1086,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   notifyAboutCreate: function (opts) {
-    return Group.find(opts.groupId, {withRelated: ['creator']})
+    return Group.find(opts.groupId, { withRelated: ['creator'] })
       .then(g => {
         const creator = g.relations.creator
         const recipient = process.env.NEW_GROUP_EMAIL

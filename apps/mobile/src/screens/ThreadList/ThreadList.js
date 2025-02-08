@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react'
-import { FlatList, TouchableOpacity, View, Text } from 'react-native'
+import { TouchableOpacity, View, Text } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from 'urql'
@@ -20,8 +21,7 @@ export default function ThreadList () {
   const [{ data, fetching }, fetchThreads] = useQuery({
     query: messageThreadsQuery,
     variables: { first: 10, offset },
-    requestPolicy: 'cache-and-network',
-    pause: true
+    requestPolicy: 'cache-and-network'
   })
   const threads = data?.me?.messageThreads?.items
   const hasMore = data?.me?.messageThreads?.hasMore
@@ -55,8 +55,9 @@ export default function ThreadList () {
       {!fetching && threads && !threads.length === 0 && (
         <Text style={styles.center}>{t('No active conversations')}</Text>
       )}
-      <FlatList
+      <FlashList
         data={threads}
+        estimatedItemSize={93}
         keyExtractor={item => item.id.toString()}
         onEndReached={fetchMoreThreads}
         onRefresh={refreshThreads}
@@ -66,7 +67,7 @@ export default function ThreadList () {
             participants={item.participants}
             message={getLatestMessage(item)}
             threadId={item.id}
-            unread={!!item.unreadCount}
+            unreadCount={item.unreadCount}
             currentUser={currentUser}
             isLast={index === threads.length - 1}
             showThread={showThread}
@@ -77,12 +78,12 @@ export default function ThreadList () {
   )
 }
 
-export function MessageRow ({ message, threadId, participants, currentUser, showThread, isLast, unread }) {
+export function MessageRow ({ message, threadId, participants, currentUser, showThread, isLast, unreadCount }) {
   return (
     <View>
       <TouchableOpacity onPress={() => showThread(threadId)}>
         <ThreadCard
-          unread={unread}
+          unreadCount={unreadCount}
           threadId={threadId}
           message={message}
           participants={participants}
