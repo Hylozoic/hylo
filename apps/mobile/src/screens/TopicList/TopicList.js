@@ -1,9 +1,11 @@
 import React from 'react'
-import { FlatList, Text, View, StyleSheet } from 'react-native'
+import { Text, View, StyleSheet } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { isEmpty } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import TopicRow from './TopicRow'
 import { useTranslation } from 'react-i18next'
+
 
 const TopicList = ({ topics, touchAction }) => {
   const { t } = useTranslation()
@@ -19,8 +21,9 @@ const TopicList = ({ topics, touchAction }) => {
           <Text style={styles.emptyList}>{t('No topics match your search')}</Text>
           )
         : (
-          <FlatList
+          <FlashList
             data={topics}
+            estimatedItemSize={50}
             renderItem={renderTopicRow}
             keyboardShouldPersistTaps='handled'
             keyExtractor={(item) => item.id}

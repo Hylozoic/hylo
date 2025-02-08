@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Modal, Text, TouchableOpacity, View, FlatList } from 'react-native'
+import { Modal, Text, TouchableOpacity, View } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { useTranslation, withTranslation } from 'react-i18next'
 import prompt from 'react-native-prompt-android'
 import { toUpper, isEmpty, trim } from 'lodash'
@@ -83,7 +84,7 @@ const FlagContent = ({ onClose, submitFlagContent, linkData, type = 'content' })
               <Icon name='Ex' style={styles.icon} />
             </TouchableOpacity>
           </View>
-          <FlatList
+          <FlashList
             data={options}
             renderItem={({ item }) => (
               <FlagOption id={item.id} title={item.title} onPress={() => showPrompt(item.id)} />

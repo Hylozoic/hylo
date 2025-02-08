@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useFocusEffect } from '@react-navigation/native'
-import { Text, TouchableOpacity, FlatList } from 'react-native'
+import { Text, TouchableOpacity } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import { white } from 'style/colors'
 import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
@@ -41,7 +42,7 @@ export default function CreateGroupParentGroups ({ navigation }) {
       <Text style={styles.heading}>{t('Is this group a member of other groups?')}</Text>
       <Text style={stepStyles.subHeading}>{t('Please select below:')}</Text>
       {/* TODO: ItemSelectorModal  */}
-      {/* <FlatList
+      {/* <FlashList
         style={stepStyles.parentGroupListContainer}
         data={parentGroupOptions}
         renderItem={({ item }) => (
