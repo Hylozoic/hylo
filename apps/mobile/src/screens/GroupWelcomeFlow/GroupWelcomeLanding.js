@@ -54,6 +54,8 @@ export default function GroupWelcomeLanding ({ route }) {
   const [, updateMembershipSettings] = useMutation(updateMembershipMutation)
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
+  // TODO redesign: there are instances where this can be rendered and then the groupSlug is changed to a contextGroup and this explodes. Need to address this
+  // TODO redesign: this also gets weird when you switch groups; the selected group renders the Group Welcome, even if you've already done that for that group
   const [{ currentGroup }] = useCurrentGroup()
   const currentStepIndex = useSelector(getCurrentStepIndex)
   const currentMemberships = currentUser?.memberships
@@ -81,7 +83,7 @@ export default function GroupWelcomeLanding ({ route }) {
     if (!showJoinForm &&
       !agreementsChanged &&
       (joinQuestionsAnsweredAt ||
-      !currentGroup.settings?.askJoinQuestions)) {
+      !currentGroup?.settings?.askJoinQuestions)) {
       // TODO: Should use useChangeToGroup hook, or simply navigate to Stream because this is already the currentGroup
       navigation.navigate('Stream', { groupId: currentGroup?.id, initial: false })
     }
