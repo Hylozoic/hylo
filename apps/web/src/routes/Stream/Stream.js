@@ -290,7 +290,7 @@ export default function Stream (props) {
   }, [name, icon, info])
 
   return (
-    <div id='stream-outer-container' className='flex flex-col h-full' ref={setContainer}>
+    <div id='stream-outer-container' className='flex flex-col h-full overflow-auto' ref={setContainer}>
       <Helmet>
         <title>{name} | {group ? `${group.name} | ` : context} | Hylo</title>
         <meta name='description' content={group ? `Posts from ${group.name}. ${group.description}` : 'Group Not Found'} />
@@ -300,7 +300,7 @@ export default function Stream (props) {
         <Route path='post/:postId' element={<PostDialog container={container} />} />
       </Routes>
 
-      <div id='stream-inner-container' className='flex flex-col flex-1 w-full max-w-[750px] mx-auto overflow-auto p-4'>
+      <div id='stream-inner-container' className='flex flex-col flex-1 w-full max-w-[750px] mx-auto p-4'>
         {hasPostPrompt && (
           <PostPrompt
             avatarUrl={currentUser.avatarUrl}
@@ -358,7 +358,7 @@ export default function Stream (props) {
 
         <ScrollListener
           onBottom={() => fetchPostsFrom(posts.length)}
-          elementId='stream-inner-container'
+          elementId='stream-outer-container'
         />
       </div>
     </div>
