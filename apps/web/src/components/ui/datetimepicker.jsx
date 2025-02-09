@@ -2,8 +2,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { add, format } from 'date-fns'
-import { enUS } from 'date-fns/locale'
+import { DateTime } from 'luxon'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import * as React from 'react'
 import { useImperativeHandle, useRef } from 'react'
@@ -195,7 +194,7 @@ function display12HourValue (hours) {
 function genMonths (locale) {
   return Array.from({ length: 12 }, (_, i) => ({
     value: i,
-    label: format(new Date(2021, i), 'MMMM', { locale })
+    label: DateTime.fromObject({ year: 2021, month: i + 1 }).toFormat('MMMM', { locale })
   }))
 }
 function genYears (yearRange = 50) {
@@ -208,7 +207,7 @@ function genYears (yearRange = 50) {
 // ---------- utils end ----------
 function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 50, ...props }) {
   const MONTHS = React.useMemo(() => {
-    let locale = enUS
+    let locale = DateTime.now().locale
     const { options, localize, formatLong } = props.locale || {}
     if (options && localize && formatLong) {
       locale = {
@@ -240,7 +239,7 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
   }
   return (
     <DayPicker
-      showOutsideDays={showOutsideDays} className={cn('p-3', className)} classNames={{
+      showOutsideDays={showOutsideDays} fixedWeeks className={cn('p-3', className)} classNames={{
         months: 'flex flex-col sm:flex-row space-y-4  sm:space-y-0 justify-center',
         month: 'flex flex-col items-center space-y-4',
         month_caption: 'flex justify-center pt-1 relative items-center',
@@ -252,14 +251,14 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
         weekdays: cn('flex', props.showWeekNumber && 'justify-end'),
         weekday: 'text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]',
         week: 'flex w-full mt-2',
-        day: 'h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 rounded-1',
+        day: 'h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-selected/50 [&:has([aria-selected])]:bg-selected first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 rounded-1',
         day_button: cn(buttonVariants({ variant: 'ghost' }), 'h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md'),
         range_end: 'day-range-end',
         selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-l-md rounded-r-md',
-        today: 'bg-accent text-accent-foreground',
-        outside: 'day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
+        today: 'bg-black text-accent-foreground rounded-full',
+        outside: 'day-outside text-muted-foreground opacity-50 aria-selected:bg-selected/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
         disabled: 'text-muted-foreground opacity-50',
-        range_middle: 'aria-selected:bg-accent aria-selected:text-accent-foreground',
+        range_middle: 'aria-selected:bg-selected aria-selected:text-accent-foreground',
         hidden: 'invisible',
         ...classNames
       }} components={{
@@ -274,7 +273,7 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
                   props.onMonthChange?.(newDate)
                 }}
               >
-                <SelectTrigger className='w-fit gap-1 border-none p-0 focus:bg-accent focus:text-accent-foreground'>
+                <SelectTrigger className='w-fit gap-1 border-none p-0 focus:bg-selected focus:text-accent-foreground'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -291,7 +290,7 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
                   props.onMonthChange?.(newDate)
                 }}
               >
-                <SelectTrigger className='w-fit gap-1 border-none p-0 focus:bg-accent focus:text-accent-foreground'>
+                <SelectTrigger className='w-fit gap-1 border-none p-0 focus:bg-selected focus:text-accent-foreground'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -333,7 +332,7 @@ const TimePeriodSelect = React.forwardRef(({ period, setPeriod, date, onDateChan
   return (
     <div className='flex h-10 items-center'>
       <Select defaultValue={period} onValueChange={(value) => handleValueChange(value)}>
-        <SelectTrigger ref={ref} className='w-[65px] focus:bg-accent focus:text-accent-foreground' onKeyDown={handleKeyDown}>
+        <SelectTrigger ref={ref} className='w-[65px] focus:bg-selected focus:text-accent-foreground' onKeyDown={handleKeyDown}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -410,7 +409,7 @@ const TimePickerInput = React.forwardRef(({ className, type = 'tel', value, id, 
   }
   return (
     <Input
-      ref={ref} id={id || picker} name={name || picker} className={cn('w-[48px] text-center font-mono text-base tabular-nums caret-transparent focus:bg-accent focus:text-accent-foreground [&::-webkit-inner-spin-button]:appearance-none', className)} value={value || calculatedValue} onChange={(e) => {
+      ref={ref} id={id || picker} name={name || picker} className={cn('w-[48px] text-center font-mono text-base tabular-nums caret-transparent focus:bg-selected focus:text-accent-foreground [&::-webkit-inner-spin-button]:appearance-none', className)} value={value || calculatedValue} onChange={(e) => {
         e.preventDefault()
         onChange?.(e)
       }} type={type} inputMode='decimal' onKeyDown={(e) => {
@@ -466,7 +465,7 @@ const TimePicker = React.forwardRef(({ date, onChange, hourCycle = 24, granulari
   )
 })
 TimePicker.displayName = 'TimePicker'
-const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
+const DateTimePicker = React.forwardRef(({ locale = DateTime.now().locale, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
   const [month, setMonth] = React.useState(value ?? defaultPopupValue)
   const buttonRef = useRef(null)
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
@@ -487,7 +486,7 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
     }
     const diff = newDay.getTime() - defaultPopupValue.getTime()
     const diffInDays = diff / (1000 * 60 * 60 * 24)
-    const newDateFull = add(defaultPopupValue, { days: Math.ceil(diffInDays) })
+    const newDateFull = DateTime.fromJSDate(defaultPopupValue).plus({ days: Math.ceil(diffInDays) }).toJSDate()
     newDateFull.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
     onMonthChange?.(newDay)
     setMonth(newDateFull)
@@ -510,15 +509,15 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
   }), [displayDate])
   const initHourFormat = {
     hour24: displayFormat?.hour24 ??
-      `P HH:mm${!granularity || granularity === 'second' ? ':ss' : ''}`,
+      `D HH:mm${!granularity || granularity === 'second' ? ':ss' : ''}`,
     hour12: displayFormat?.hour12 ??
-      `P hh:mm${!granularity || granularity === 'second' ? ':ss' : ''} aaa`
+      `D hh:mm${!granularity || granularity === 'second' ? ':ss' : ''} a`
   }
-  let loc = enUS
+  let loc = { code: DateTime.now().locale }
   const { options, localize, formatLong } = locale
   if (options && localize && formatLong) {
     loc = {
-      ...enUS,
+      ...loc,
       options,
       localize,
       formatLong
@@ -530,8 +529,8 @@ const DateTimePicker = React.forwardRef(({ locale = enUS, defaultPopupValue = ne
         <Button variant='outline' className={cn('w-full justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />
           {displayDate
-            ? (format(displayDate, hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12, {
-                locale: loc
+            ? (DateTime.fromJSDate(displayDate).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12, {
+                locale: loc.code
               }))
             : (<span>{placeholder}</span>)}
         </Button>

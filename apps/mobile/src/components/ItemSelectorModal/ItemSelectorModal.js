@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useImperativeHandle, useCallback, useMemo } from 'react'
-import { View, Modal, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { FlashList } from '@shopify/flash-list'
+import { View, FlatList, Modal, Text, TouchableOpacity, StyleSheet } from 'react-native'
+// import { FlashList } from '@shopify/flash-list'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from 'urql'
 import { isEmpty, isFunction, debounce } from 'lodash/fp'
@@ -242,7 +242,7 @@ export const ItemSelectorModal = React.forwardRef(({
         {fetching
           ? <Text>Loading...</Text>
           : (
-            <FlashList
+            <FlatList
               data={items}
               estimatedItemSize={55}
               renderItem={renderItem}
