@@ -9,13 +9,6 @@ export default gql`
   ) {
     post(id: $postId) {
       id
-      commenters(first: 20) {
-        id
-        name
-        avatarUrl
-      }
-      commentersTotal
-      commentsTotal
       comments(first: $first, cursor: $cursor, order: "desc") {
         items {
           ...CommentFieldsFragment

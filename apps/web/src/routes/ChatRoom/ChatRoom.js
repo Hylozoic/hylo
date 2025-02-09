@@ -69,16 +69,6 @@ const MAX_MINS_TO_BATCH = 5
 
 const NUM_POSTS_TO_LOAD = 30
 
-const dayFormats = {
-  // when the date is closer, specify custom values
-  lastDay: '[Yesterday]',
-  sameDay: '[Today]',
-  lastWeek: 'MMMM DD, YYYY',
-  sameElse: function () {
-    return 'MMMM DD, YYYY'
-  }
-}
-
 const getPosts = ormCreateSelector(
   orm,
   getPostResults,
@@ -121,6 +111,14 @@ const NotificationsIcon = ({ type, ...props }) => {
     default:
       return null
   }
+}
+
+const getDisplayDay = (date) => {
+  return date.hasSame(DateTime.now(), 'day')
+    ? 'Today'
+    : date.hasSame(DateTime.now().minus({ days: 1 }), 'day')
+      ? 'Yesterday'
+      : date.toFormat('MMM dd, yyyy')
 }
 
 export default function ChatRoom (props) {
@@ -608,9 +606,14 @@ const Footer = ({ context }) => {
 
 const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
+  const createdAt = firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt) : null
+  const displayDay = createdAt && getDisplayDay(createdAt)
+
   return (
     <div className={cn(styles.displayDay, '!absolute top-0')}>
-      <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt).toRelativeCalendar({ unit: 'days' }) : ''}</div>
+      <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>
+        {displayDay}
+      </div>
     </div>
   )
 }
@@ -620,7 +623,7 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
   const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
   const currentDay = DateTime.fromISO(post.createdAt)
-  const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : currentDay.toRelativeCalendar({ unit: 'days' })
+  const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
   const createdTimeDiff = Math.abs(currentDay.diff(previousDay, 'minutes'))
 
   /* Display the author header if

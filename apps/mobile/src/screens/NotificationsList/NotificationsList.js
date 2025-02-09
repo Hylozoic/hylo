@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import { useMutation, useQuery } from 'urql'
-import { FlatList, TouchableOpacity, View, Text, StyleSheet } from 'react-native'
+import { TouchableOpacity, View, Text, StyleSheet } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash'
@@ -19,6 +20,7 @@ import { alabaster } from 'style/colors'
 
 const styles = StyleSheet.create({
   notificationsList: {
+    flex: 1,
     backgroundColor: alabaster,
     position: 'relative'
   },
@@ -85,8 +87,9 @@ export default function NotificationsList (props) {
 
   return (
     <View style={styles.notificationsList}>
-      <FlatList
+      <FlashList
         data={notifications}
+        estimatedItemSize={87}
         keyExtractor={keyExtractor}
         onRefresh={refreshNotifications}
         refreshing={fetching || stale}
