@@ -1,8 +1,8 @@
-import { gql } from 'urql'
 import { get } from 'lodash/fp'
 import meQuery from '@hylo/graphql/queries/meQuery'
 import meCheckAuthQuery from '@hylo/graphql/queries/meCheckAuthQuery'
 import makeAppendToPaginatedSetResolver from './makeAppendToPaginatedSetResolver'
+import { reactOn, deleteReaction } from './reactions'
 
 export default {
   Mutation: {
@@ -115,6 +115,10 @@ export default {
         cache.invalidate(cache.keyOfEntity({ __typename: 'Post', id: args.postId }), 'postMemberships')
       }
     },
+
+    // See note on these updaters in the file these are imported from
+    reactOn,
+    deleteReaction,
 
     respondToEvent: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
