@@ -2,6 +2,7 @@ import React from 'react'
 import { Animated, TouchableOpacity, Text, StyleSheet, View, FlatList } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import { Globe, Plus, CircleHelp } from 'lucide-react-native'
+import { clsx } from 'clsx'
 import { map, sortBy } from 'lodash/fp'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
@@ -71,12 +72,12 @@ function NavRow ({ item, changeToGroup, currentGroupSlug, badgeCount = 0, classN
       activeOpacity={0.7}
     >
       <View
-        className={[
+        className={clsx(
           'bg-primary relative flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90',
           highlight && 'border-3 border-secondary opacity-100 scale-100',
           badgeCount > 0 && 'border-3 border-accent opacity-100 scale-100',
           className
-        ].filter(Boolean).join(' ')}
+        )}
       >
         {!!avatarUrl && (
           <FastImage source={{ uri: avatarUrl }} style={styles.groupAvatar} />

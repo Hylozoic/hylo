@@ -25249,6 +25249,7 @@ __metadata:
     babel-plugin-syntax-jsx: "npm:^6.18.0"
     babel-plugin-transform-remove-console: "npm:^6.9.4"
     babel-plugin-transform-runtime: "npm:^6.23.0"
+    clsx: "npm:^2.1.1"
     cross-fetch: "npm:^4.1.0"
     emoji-datasource-apple: "npm:^15.1.2"
     emoji-mart: "npm:^5.6.0"
