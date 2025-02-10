@@ -12,6 +12,7 @@ import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 import Loading from 'components/Loading'
 import ModerationListItem from 'components/ModerationListItem/ModerationListItem'
 import NoPosts from 'components/NoPosts'
+import Calendar from 'components/Calendar'
 import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
 import PostCard from 'components/PostCard'
@@ -29,6 +30,7 @@ import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 import { fetchModerationActions, clearModerationAction } from 'store/actions/moderationActions'
+// import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import { FETCH_MODERATION_ACTIONS, FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
@@ -48,7 +50,8 @@ const viewComponent = {
   cards: PostCard,
   list: PostListRow,
   grid: PostGridItem,
-  bigGrid: PostBigGridItem
+  bigGrid: PostBigGridItem,
+  calendar: Calendar
 }
 
 const getCustomView = ormCreateSelector(
@@ -96,6 +99,8 @@ export default function Stream (props) {
     sortBy = 'start_time'
   }
   const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
+  const calendarView = viewMode === 'calendar'
+  const decisionView = getQuerystringParam('d', location) || 'decisions'
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
 
@@ -130,13 +135,13 @@ export default function Stream (props) {
       topics,
       types: getTypes({ customView, view })
     }
-    if (view === 'events') {
+    if (view === 'events' && !calendarView) {
       params.afterTime = timeframe === 'future' ? new Date().toISOString() : undefined
       params.beforeTime = timeframe === 'past' ? new Date().toISOString() : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'
     }
     return params
-  }, [childPostInclusion, context, customView, groupSlug, postTypeFilter, timeframe, topic?.id, topicName, sortBy, search, view])
+  }, [childPostInclusion, context, customView, groupSlug, postTypeFilter, timeframe, topic?.id, topicName, sortBy, search, view, calendarView])
 
   let name = customView?.name || systemView?.name || ''
   let icon = customView?.icon || systemView?.iconName
@@ -175,7 +180,6 @@ export default function Stream (props) {
   const pending = useSelector(state => state.pending[FETCH_POSTS])
   const pendingModerationActions = useSelector(state => state.pending[FETCH_MODERATION_ACTIONS])
 
-  const decisionView = getQuerystringParam('d', location) || 'decisions'
   const fetchModerationActionParam = {
     slug: groupSlug,
     groupId,
@@ -299,7 +303,13 @@ export default function Stream (props) {
         <Route path='post/:postId' element={<PostDialog container={container} />} />
       </Routes>
 
-      <div id='stream-inner-container' className='flex flex-col flex-1 w-full max-w-[750px] mx-auto p-4'>
+      <div
+        id='stream-inner-container'
+        className={cn(
+          !calendarView && 'max-w-[750px]',
+          'flex flex-col flex-1 w-full mx-auto overflow-auto p-4'
+        )}
+      >
         {hasPostPrompt && (
           <PostPrompt
             avatarUrl={currentUser.avatarUrl}
@@ -317,7 +327,7 @@ export default function Stream (props) {
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
           decisionView={decisionView} changeDecisionView={changeDecisionView} changeTimeframe={changeTimeframe} timeframe={timeframe}
         />
-        {decisionView !== 'moderation' && (
+        {decisionView !== 'moderation' && !calendarView && (
           <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
             {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
             {posts.map(post => {
@@ -338,7 +348,7 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {decisionView === 'moderation' && (
+        {decisionView === 'moderation' && !calendarView && (
           <div className='streamItems'>
             {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
             {moderationActions.map(modAction => {
@@ -351,6 +361,15 @@ export default function Stream (props) {
                 />
               )
             })}
+          </div>
+        )}
+        {!pending && calendarView && (
+          <div className='calendarView'>
+            <Calendar
+              posts={posts}
+              routeParams={routeParams}
+              querystringParams={querystringParams}
+            />
           </div>
         )}
         {(pending || topicLoading) && <Loading />}

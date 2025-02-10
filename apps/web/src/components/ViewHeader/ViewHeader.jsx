@@ -41,7 +41,7 @@ const ViewHeader = () => {
           </div>
         </>)}
       {icon && <Icon name={icon} className='mr-3 text-lg' />}
-      <h2 className='text-foreground'>{title}</h2>
+      <h2 className='text-foreground m-0 whitespace-nowrap'>{title}</h2>
       {info && <InfoButton content={info} className='ml-2' />}
       {search && (
         <div className='flex-1 flex justify-center relative'>

@@ -627,7 +627,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         // commonRoles: async g => g.commonRoles(),
         homeWidget: g => g.homeWidget(),
         invitePath: g =>
-          GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
+          userId && GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
             .then(canInvite => canInvite ? Frontend.Route.invitePath(g) : null),
         location: async (g) => {
           // If location obfuscation is on then non group stewards see a display string that only includes city, region & country
