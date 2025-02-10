@@ -1,5 +1,5 @@
 import { debounce, includes, isEmpty, trim, uniqueId } from 'lodash/fp'
-import { Bell, BellDot, BellOff, Copy, Send, SendHorizontal, ImagePlus } from 'lucide-react'
+import { Bell, BellDot, BellOff, ChevronDown, Copy, Send, SendHorizontal, ImagePlus } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { useParams, useLocation, Routes, Route, useNavigate } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData } from '@virtuoso.dev/message-list'
+import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
 import AttachmentManager from 'components/AttachmentManager'
@@ -32,6 +32,7 @@ import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
+import Tooltip from 'components/Tooltip'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { Button } from 'components/ui/button'
 import {
@@ -510,6 +511,7 @@ export default function ChatRoom (props) {
                 Footer={Footer}
                 Header={Header}
                 StickyHeader={StickyHeader}
+                StickyFooter={StickyFooter}
                 ItemContent={ItemContent}
               />
             </VirtuosoMessageListLicense>
@@ -621,6 +623,39 @@ const StickyHeader = ({ data, prevData }) => {
       <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>
         {displayDay}
       </div>
+    </div>
+  )
+}
+
+const StickyFooter = () => {
+  const location = useVirtuosoLocation()
+  const virtuosoMethods = useVirtuosoMethods()
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        bottom: 10,
+        right: 50
+      }}
+    >
+      {location.bottomOffset > 200 && (
+        <>
+          <button
+            className='flex items-center justify-center bg-background border-2 border-foreground/15 rounded-full w-8 h-8 text-foreground/50 hover:bg-foreground/10 hover:text-foreground'
+            onClick={() => {
+              virtuosoMethods.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
+            }}
+            data-tooltip-content='Jump to latest post'
+            data-tooltip-id='jump-to-bottom-tt'
+          >
+            <ChevronDown className='w-6 h-6' />
+          </button>
+          <Tooltip
+            delay={250}
+            id='jump-to-bottom-tt'
+          />
+        </>
+      )}
     </div>
   )
 }
