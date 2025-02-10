@@ -43,7 +43,7 @@ export default function ContextMenu () {
         groupSlug={currentGroup.slug}
         rootPath={`/groups/${currentGroup.slug}`}
       />
-      {(!group.isContextGroup) && (
+      {(!currentGroup.isContextGroup) && (
         <View className='px-2 mb-2'>
           <TouchableOpacity
             onPress={() => navigation.navigate('All Views')}
@@ -124,7 +124,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath }) {
       {listItems.length > 0 && listItems.map(item =>
         <ChildWidgetRenderer
           key={item.id}
-          widget={widget}
+          widget={item}
           rootPath={rootPath}
           groupSlug={groupSlug}
           handleWidgetPress={handleWidgetPress}
