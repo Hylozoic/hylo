@@ -11,6 +11,9 @@ export default function GroupPresenter (group) {
     // Until more is clear we are not flattening items so that non-presented results (most)
     // from queries work largely the same as presented results (e.g. group?.posts?.items, etc)
     contextWidgets: contextWidgetsResolver(group),
+    isPublicContext: group?.slug === PUBLIC_CONTEXT_SLUG,
+    isMyContext: group?.slug === MY_CONTEXT_SLUG,
+    isAllContext: group?.slug === ALL_GROUPS_CONTEXT_SLUG,
     _presented: true
   }
 }
@@ -18,7 +21,7 @@ export default function GroupPresenter (group) {
 function contextWidgetsResolver (group) {
   if (isContextGroupSlug(group.slug)) {
     return getStaticMenuWidgets({
-      isPublic: group.slug === PUBLIC_CONTEXT_SLUG,
+      isPublicContext: group.slug === PUBLIC_CONTEXT_SLUG,
       isMyContext: group.slug === MY_CONTEXT_SLUG,
       isAllContext: group.slug === ALL_GROUPS_CONTEXT_SLUG,
       profileUrl: ''

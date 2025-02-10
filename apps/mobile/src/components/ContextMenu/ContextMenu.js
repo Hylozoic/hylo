@@ -33,10 +33,6 @@ export default function ContextMenu () {
   if (fetching && currentGroup) return <Loading />
   if (!currentGroup) return null
 
-  const isPublic = currentGroup.slug === PUBLIC_CONTEXT_SLUG
-  const isMyContext = currentGroup.slug === MY_CONTEXT_SLUG
-  const isAllContext = currentGroup.slug === ALL_GROUPS_CONTEXT_SLUG
-
   return (
     <View className='flex-1 bg-background'>
       <ContextHeader
@@ -47,8 +43,7 @@ export default function ContextMenu () {
         groupSlug={currentGroup.slug}
         rootPath={`/groups/${currentGroup.slug}`}
       />
-      {/* Add the All Views widget at the bottom, matching web behavior */}
-      {(!isMyContext && !isPublic && !isAllContext) && (
+      {(!group.isContextGroup) && (
         <View className='px-2 mb-2'>
           <TouchableOpacity
             onPress={() => navigation.navigate('All Views')}
@@ -126,24 +121,31 @@ function ContextMenuItem ({ widget, groupSlug, rootPath }) {
         {/* Need to add the SpecialTopElementRenderer here */}
       </View>
       {loading && <Text>{t('Loading...')}</Text>}
-      {listItems.length > 0 && listItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} handleWidgetPress={handleWidgetPress} />)}
+      {listItems.length > 0 && listItems.map(item =>
+        <ChildWidgetRenderer
+          key={item.id}
+          widget={widget}
+          rootPath={rootPath}
+          groupSlug={groupSlug}
+          handleWidgetPress={handleWidgetPress}
+        />
+      )}
     </View>
   )
 }
 
-function ListItemRenderer ({ item, rootPath, groupSlug, handleWidgetPress }) {
+function ChildWidgetRenderer ({ widget, rootPath, groupSlug, handleWidgetPress }) {
   const { t } = useTranslation()
-  const itemTitle = item.title
-  const itemUrl = makeWidgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
+  const itemUrl = makeWidgetUrl({ widget, rootPath, groupSlug, context: 'group' })
 
   return (
     <TouchableOpacity
-      key={item.id + itemTitle}
-      onPress={() => handleWidgetPress(item)}
+      key={widget.id + widget.title}
+      onPress={() => handleWidgetPress(widget)}
       className='flex-row items-center ml-8 h-12 py-2 gap-2 content-center border-b border-foreground/20'
     >
-      <View className='w-5'><WidgetIconResolver widget={item} className='mr-2' /></View>
-      <Text className='text-sm text-primary-accent'>{itemTitle}</Text>
+      <View className='w-5'><WidgetIconResolver widget={widget} className='mr-2' /></View>
+      <Text className='text-sm text-primary-accent'>{widget.title}</Text>
     </TouchableOpacity>
   )
 }
@@ -194,20 +196,17 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath }) {
 function ContextHeader ({ group }) {
   const { t } = useTranslation()
 
-  const isPublic = group?.slug === PUBLIC_CONTEXT_SLUG
-  const isMyContext = group?.slug === MY_CONTEXT_SLUG
-  const isAllContext = group?.slug === ALL_GROUPS_CONTEXT_SLUG
-  const isGroupContext = !isAllContext && !isMyContext && !isPublic
+  // TODO redesign: Add this when removing the banner from the stream
   return null
   // return (
   // <View className='w-full relative'>
-  //   {isGroupContext ? (
+  //   {!group?.isContextGroup ? (
   //     <GroupMenuHeader group={group} />
-  //   ) : isPublic ? (
+  //   ) : group?.isPublicContext ? (
   //     <View className='flex flex-col p-2'>
   //       <Text className='text-foreground font-bold text-lg'>{t('The Commons')}</Text>
   //     </View>
-  //   ) : (isMyContext || isAllContext) ? (
+  //   ) : (group?.isMyContext || group?.isAllContext) ? (
   //     <View className='flex flex-col p-2'>
   //       <Text className='text-foreground font-bold text-lg'>{t('My Home')}</Text>
   //     </View>

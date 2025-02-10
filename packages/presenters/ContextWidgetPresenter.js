@@ -175,10 +175,10 @@ export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
   )
 }
 
-export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl, isAllContext }) {
+export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl, isAllContext }) {
   let widgets = []
 
-  if (isPublic) {
+  if (isPublicContext) {
     widgets = PUBLIC_CONTEXT_WIDGETS
   }
 
