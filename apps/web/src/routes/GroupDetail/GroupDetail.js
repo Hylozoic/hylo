@@ -107,8 +107,10 @@ function GroupDetail ({ popup = false }) {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({ title: t('About ') + ' ' + group.name, icon: 'Info', info: '', search: true })
-  }, [group.name])
+    if (group) {
+      setHeaderDetails({ title: t('About ') + ' ' + group.name, icon: 'Info', info: '', search: true })
+    }
+  }, [group?.name])
 
   if (!group && !pending) return <NotFound />
   if (pending) return <Loading />
