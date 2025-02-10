@@ -14,6 +14,6 @@ export default function updateTopicFollow (id, data) {
         data
       }
     },
-    meta: { id, optimistic: true }
+    meta: { id, data, optimistic: true }
   }
 }

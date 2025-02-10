@@ -141,10 +141,9 @@ export default function ChatRoom (props) {
   const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: 'new', attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
   const linkPreview = useSelector(getLinkPreview) // TODO: check
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
-  // const followersTotal = useMemo(() => get('followersTotal', groupSlug ? groupTopic : topic), [groupSlug, groupTopic, topic])
   const querystringParams = getQuerystringParam(['search', 'postId'], location)
   const search = querystringParams?.search
-  const postIdToStartAt = querystringParams?.postId
+  const postIdToStartAt = querystringParams?.postId // TODO: remove from the querystring so pressing back doesn't take you to the same post?
 
   const [container, setContainer] = React.useState(null)
   const editorRef = useRef()
@@ -155,9 +154,6 @@ export default function ChatRoom (props) {
 
   // The last post seen by the current user. Doesn't update in real time as they scroll only when room is reloaded
   const [latestOldPostId, setLatestOldPostId] = useState(topicFollow?.lastReadPostId)
-
-  // The up to date last read post id, updates in real time as they scroll
-  const [lastReadPostId, setLastReadPostId] = useState(topicFollow?.lastReadPostId)
 
   const [notificationsSetting, setNotificationsSetting] = useState(topicFollow?.settings?.notifications)
 
@@ -269,7 +265,18 @@ export default function ChatRoom (props) {
 
   const resetInitialPostToScrollTo = useCallback(() => {
     if (loadedPast && loadedFuture) {
-      setInitialPostToScrollTo((postsPast && postsPast.length > 0 ? postsPast.length - 1 : 0) + Math.min(postsFuture && postsFuture.length > 0 ? postsFuture.length - 1 : 0, 3))
+      if (!topicFollow?.lastReadPostId) {
+        setInitialPostToScrollTo(0)
+      } else {
+        // Set initial scroll to the last read post
+        const lastReadPostIndex = (postsPast || []).concat(postsFuture || []).findIndex(post => post.id === topicFollow?.lastReadPostId)
+        if (lastReadPostIndex !== -1) {
+          setInitialPostToScrollTo(lastReadPostIndex)
+        } else {
+          console.error('Something went wrong, last read post not found in postsPast or postsFuture', topicFollow?.lastReadPostId)
+          setInitialPostToScrollTo(null)
+        }
+      }
     } else {
       setInitialPostToScrollTo(null)
     }
@@ -312,8 +319,7 @@ export default function ChatRoom (props) {
 
       resetInitialPostToScrollTo()
 
-      // Reset last read post
-      setLastReadPostId(topicFollow.lastReadPostId)
+      // Reset marker of new posts
       setLatestOldPostId(topicFollow.lastReadPostId)
     }
 
@@ -378,9 +384,8 @@ export default function ChatRoom (props) {
     [hasMorePostsPast, hasMorePostsFuture, loadingPast, loadingFuture]
   )
 
-  const updateLastReadPost = debounce(700, (lastPost) => {
-    if (topicFollow?.id && lastPost && (!lastReadPostId || lastPost.id > lastReadPostId)) {
-      setLastReadPostId(lastPost.id)
+  const updateLastReadPost = debounce(200, (lastPost) => {
+    if (topicFollow?.id && lastPost && (!topicFollow?.lastReadPostId || lastPost.id > topicFollow?.lastReadPostId)) {
       dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: lastPost.id }))
     }
   })
@@ -393,7 +398,7 @@ export default function ChatRoom (props) {
   const onRenderedDataChange = useCallback((data) => {
     const lastPost = data[data.length - 1]
     updateLastReadPost(lastPost)
-  }, [topicFollow?.id, lastReadPostId])
+  }, [topicFollow?.id])
 
   const onAddReaction = useCallback((post, emojiFull) => {
     const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
@@ -447,7 +452,7 @@ export default function ChatRoom (props) {
     const post = action.payload.data.createPost
     // Update the optimistic post with the real post from the server
     messageListRef.current?.data.map((item) => post.localId && item.localId && post.localId === item.localId ? post : item)
-    setLastReadPostId(post.id)
+    updateLastReadPost(post)
     return true
   })
 
@@ -496,7 +501,7 @@ export default function ChatRoom (props) {
                 ref={messageListRef}
                 context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction, topicName, numPosts: postsForDisplay.length }}
                 initialData={postsForDisplay}
-                initialLocation={{ index: initialPostToScrollTo, align: 'end' }}
+                initialLocation={{ index: initialPostToScrollTo, align: initialPostToScrollTo === 0 ? 'start' : 'end' }}
                 shortSizeAlign='bottom-smooth'
                 computeItemKey={({ data }) => data.id || data.localId}
                 onScroll={onScroll}
@@ -510,6 +515,7 @@ export default function ChatRoom (props) {
             </VirtuosoMessageListLicense>
             )}
       </div>
+
       {/* Post chat box */}
       <div className='ChatBoxContainer w-full max-w-[750px]'>
         <div className='ChatBox relative w-full px-2 shadow-md p-2 border-2 border-foreground/15 shadow-xlg rounded-t-xl bg-card'>

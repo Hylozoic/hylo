@@ -36,23 +36,23 @@ module.exports = bookshelf.Model.extend({
         if (tagFollow && !isSubscribing) {
           return TagFollow.remove({ tagId, userId, groupId })
         } else if (!tagFollow && isSubscribing) {
-          return TagFollow.add({ tagId, userId, groupId })
+          return TagFollow.findOrCreate({ tagId, userId, groupId })
         }
       })
   },
 
-  add: function ({ tagId, userId, groupId, transacting }) {
+  findOrCreate: async function ({ tagId, topicName, userId, groupId, transacting }) {
+    if (!tagId && topicName) {
+      const tag = await Tag.findOrCreate(topicName, { transacting })
+      tagId = tag.id
+    }
     const attrs = {
       tag_id: tagId,
       group_id: groupId,
       user_id: userId
     }
 
-    return TagFollow.where({
-      group_id: groupId,
-      tag_id: tagId,
-      user_id: userId
-    }).fetch({ transacting })
+    return TagFollow.where(attrs).fetch({ transacting })
       .then(follow => follow ||
         new TagFollow(attrs).save(null, { transacting })
           .then(async (tf) => {
@@ -101,18 +101,5 @@ module.exports = bookshelf.Model.extend({
       .then(tagFollows => {
         return tagFollows.models.map(tf => tf.relations.user)
       })
-  },
-
-  findFor: async function (userId, group, topicName) {
-    const groupId = isNaN(Number(group)) ? await Group.find(group) : group
-    const topic = await Tag.find({ name: topicName })
-    if (!topic || !groupId) {
-      return null
-    }
-    return TagFollow.query(q => {
-      q.where('user_id', userId)
-      q.where('group_id', groupId)
-      q.where('tag_id', topic.id)
-    }).fetch()
   }
 })

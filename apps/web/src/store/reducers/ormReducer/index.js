@@ -41,6 +41,7 @@ import {
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
   UPDATE_GROUP_TOPIC_PENDING,
+  UPDATE_TOPIC_FOLLOW_PENDING,
   UPDATE_POST,
   UPDATE_POST_PENDING,
   UPDATE_THREAD_READ_TIME,
@@ -116,14 +117,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     PostCommenter,
     ProjectMember,
     Skill,
-    Topic
+    Topic,
+    TopicFollow
   } = session
 
   if (payload && !isPromise(payload) && meta && meta.extractModel) {
     extractModelsFromAction(action, session)
   }
 
-  let me, membership, group, person, post, comment, groupTopic, childGroup
+  let me, membership, group, person, post, comment, groupTopic, childGroup, topicFollow
 
   switch (type) {
     case ACCEPT_GROUP_RELATIONSHIP_INVITE: {
@@ -692,6 +694,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       groupTopic = GroupTopic.withId(meta.id)
       groupTopic.update(meta.data)
       clearCacheFor(GroupTopic, meta.id)
+      break
+    }
+
+    case UPDATE_TOPIC_FOLLOW_PENDING: {
+      if (meta.data.lastReadPostId) {
+        topicFollow = TopicFollow.withId(meta.id)
+        topicFollow.update({ lastReadPostId: meta.data.lastReadPostId })
+        clearCacheFor(TopicFollow, meta.id)
+      }
       break
     }
 

@@ -108,7 +108,7 @@
     "@turf/centroid": "^7.1.0",
     "@turf/combine": "^7.1.0",
     "@turf/helpers": "^7.1.0",
-    "@virtuoso.dev/message-list": "^1.9.3",
+    "@virtuoso.dev/message-list": "^1.9.13",
     "@vitejs/plugin-react": "^4.3.3",
     "bootstrap": "4.0.0-alpha.6",
     "browserslist": "^4.23.3",

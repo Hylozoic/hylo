@@ -279,7 +279,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     skills: (root, args) => fetchMany('Skill', args),
     // you can specify id or name, but not both
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
-    topicFollow: (root, { groupId, topicName }, context) => TagFollow.findFor(context.currentUserId, groupId, topicName),
+    topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),
     topics: (root, args) => fetchMany('Topic', args)
   }
 }

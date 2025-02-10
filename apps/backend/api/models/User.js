@@ -778,7 +778,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   followTags: function (userId, groupId, tagIds, trx) {
     return Promise.each(tagIds, id =>
-      TagFollow.add({
+      TagFollow.findOrCreate({
         userId: userId,
         groupId: groupId,
         tagId: id,

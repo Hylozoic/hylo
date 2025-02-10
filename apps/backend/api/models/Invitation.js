@@ -53,7 +53,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     if (!this.isUsed() && this.get('tag_id')) {
       try {
-        await TagFollow.add({
+        await TagFollow.findOrCreate({
           tagId: this.get('tag_id'),
           userId,
           groupId: this.get('group_id'),
