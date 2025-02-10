@@ -466,7 +466,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"../node_modules/react-native/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"../node_modules/react-native/scripts/react-native-xcode.sh\"\nSENTRY_XCODE=\"../node_modules/@sentry/react-native/scripts/sentry-xcode.sh\"\nBUNDLE_REACT_NATIVE=\"/bin/sh $SENTRY_XCODE $REACT_NATIVE_XCODE\"\n\n# RN 0.69+\n/bin/sh -c \"$WITH_ENVIRONMENT '$REACT_NATIVE_XCODE'\"\n";
+			shellScript = "set -e\n\n# Load .env file into the shell environment\nwhile IFS='=' read -r key value; do\n  if [ -n \"$key\" ] && [ \"${key#\\#}\" = \"$key\" ]; then\n    eval \"export $key=\\\"$value\\\"\"\n  fi\ndone < \"../.env\"\n\n# Fix to help Xcode see nvm during build \nexport NVM_DIR=\"$HOME/.nvm\"\n[ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" # This loads nvm\nexport NODE_BINARY=$(command -v node)\n\nWITH_ENVIRONMENT=\"../node_modules/react-native/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"../node_modules/react-native/scripts/react-native-xcode.sh\"\nSENTRY_XCODE=\"../node_modules/@sentry/react-native/scripts/sentry-xcode.sh\"\nBUNDLE_REACT_NATIVE=\"/bin/sh $SENTRY_XCODE $REACT_NATIVE_XCODE\"\n\n# RN 0.69+ (NOTE: using single quotes instead of \\\" for escaping which was from the\n# Sentry docs as that broke React Native version parsing)\n/bin/sh -c \"$WITH_ENVIRONMENT '$BUNDLE_REACT_NATIVE'\"\n";
 		};
 		0599024E251FC7EF0564AF3B /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -569,13 +569,14 @@
 			files = (
 			);
 			inputPaths = (
+				"$(SRCROOT)/../.env",
 			);
 			name = "Upload Debug Symbols to Sentry";
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "/bin/sh ../node_modules/@sentry/react-native/scripts/sentry-xcode-debug-files.sh\n";
+			shellScript = "# Load .env file into the shell environment\nwhile IFS='=' read -r key value; do\n  if [ -n \"$key\" ] && [ \"${key#\\#}\" = \"$key\" ]; then\n    eval \"export $key=\\\"$value\\\"\"\n  fi\ndone < \"../.env\"\n\n/bin/sh ../node_modules/@sentry/react-native/scripts/sentry-xcode-debug-files.sh\n";
 		};
 		CBF1A51A3A6054587CEBCBE8 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -823,7 +824,7 @@
 				CODE_SIGN_ENTITLEMENTS = HyloReactNative/HyloReactNative.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 214;
+				CURRENT_PROJECT_VERSION = 10000;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = L4KZBPS2F3;
 				INFOPLIST_FILE = HyloReactNative/Info.plist;
@@ -860,7 +861,7 @@
 				CODE_SIGN_ENTITLEMENTS = HyloReactNative/HyloReactNativeRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 214;
+				CURRENT_PROJECT_VERSION = 10000;
 				DEVELOPMENT_TEAM = L4KZBPS2F3;
 				INFOPLIST_FILE = HyloReactNative/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
