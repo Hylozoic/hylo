@@ -419,6 +419,7 @@ export default function ChatRoom (props) {
     const imageUrls = imageAttachments && imageAttachments.map((attachment) => attachment.url)
     const postToSave = {
       ...newPost,
+      createdAt: DateTime.now().toISO(),
       creator: currentUser,
       details,
       imageUrls,
