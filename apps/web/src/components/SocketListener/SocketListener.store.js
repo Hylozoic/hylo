@@ -110,7 +110,7 @@ export function ormSessionReducer (session, { meta, type, payload }) {
           })
 
         increment(TopicFollow.filter(tf =>
-          tf.topic === post.topicId && tf.group === groupId).first())
+          post.topics.some(t => t.id === tf.topic) && tf.group === groupId).first())
 
         const group = Group.withId(groupId)
         const contextWidgets = group.contextWidgets.items
@@ -122,6 +122,7 @@ export function ormSessionReducer (session, { meta, type, payload }) {
         })
         group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
 
+        // TODO: is this working?
         increment(Membership.filter(m =>
           !m.person && m.group === groupId).first())
       }

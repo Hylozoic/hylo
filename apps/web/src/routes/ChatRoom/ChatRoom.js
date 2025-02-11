@@ -500,7 +500,7 @@ export default function ChatRoom (props) {
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto', paddingBottom: '20px' }}
                 ref={messageListRef}
-                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction, topicName, numPosts: postsForDisplay.length }}
+                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction, topicName, numPosts: postsForDisplay.length, newPostCount: topicFollow?.newPostCount }}
                 initialData={postsForDisplay}
                 initialLocation={{ index: initialPostToScrollTo, align: initialPostToScrollTo === 0 ? 'start' : 'end' }}
                 shortSizeAlign='bottom-smooth'
@@ -627,7 +627,7 @@ const StickyHeader = ({ data, prevData }) => {
   )
 }
 
-const StickyFooter = () => {
+const StickyFooter = ({ context }) => {
   const location = useVirtuosoLocation()
   const virtuosoMethods = useVirtuosoMethods()
   return (
@@ -641,14 +641,19 @@ const StickyFooter = () => {
       {location.bottomOffset > 200 && (
         <>
           <button
-            className='flex items-center justify-center bg-background border-2 border-foreground/15 rounded-full w-8 h-8 text-foreground/50 hover:bg-foreground/10 hover:text-foreground'
+            className='relative flex items-center justify-center bg-background border-2 border-foreground/15 rounded-full w-8 h-8 text-foreground/50 hover:bg-foreground/10 hover:text-foreground'
             onClick={() => {
               virtuosoMethods.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
             }}
             data-tooltip-content='Jump to latest post'
             data-tooltip-id='jump-to-bottom-tt'
           >
-            <ChevronDown className='w-6 h-6' />
+            <ChevronDown className='w-8 h-8' />
+            {context.newPostCount && context.newPostCount > 0
+              ? (
+                <div className='absolute -top-4 min-w-6 min-h-6 text-white bg-accent rounded-full p-1 text-xs text-center'>{context.newPostCount}</div>
+                )
+              : null}
           </button>
           <Tooltip
             delay={250}
