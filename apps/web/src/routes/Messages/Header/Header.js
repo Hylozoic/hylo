@@ -69,11 +69,11 @@ export default class Header extends React.Component {
           {!pending && (
             <div className='text-foreground flex flex-wrap gap-2'>
               {displayNames}
-              {andOthers && 'and' && <span className='text-foreground text-base p-2 bg-black/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>
+              {andOthers && 'and' && <span className='text-foreground p-2 bg-black/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>
                 {andOthers}
                 {showArrow && !showAll && <Icon name='ArrowDown' className='text-foreground ml-1' onClick={this.toggleShowAll} />}
               </span>}
-              {showAll && <span className='text-foreground text-base p-2 bg-black/20 rounded flex justify-center items center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer'>Show Less <Icon name='ArrowUp' className='text-foreground ml-1' onClick={this.toggleShowAll} /></span>}
+              {showAll && <span className='text-foreground p-2 bg-black/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>Show Less <Icon name='ArrowUp' className='text-foreground ml-1' /></span>}
             </div>
           )}
         </div>

@@ -22,8 +22,13 @@ const MessageForm = forwardRef((props, ref) => {
     if (event) event.preventDefault()
     startTyping.cancel()
     props.sendIsTyping(false)
-    props.updateMessageText()
+    props.updateMessageText('')  // Clear the text but maintain focus
     props.onSubmit()
+    
+    // Maintain focus after submit
+    if (textareaRef.current) {
+      textareaRef.current.focus()
+    }
   }
 
   const handleOnChange = event => {
@@ -52,7 +57,6 @@ const MessageForm = forwardRef((props, ref) => {
     placeholder = t('Write something...')
   } = props
 
-  if (pending) return <Loading />
   return (
     <form
       className={cn('w-full max-w-[750px] fixed bottom-0 flex gap-3 px-2 shadow-md p-2 border-2 border-foreground/15 shadow-xlg rounded-t-xl bg-card pb-4 transition-all', className, { 'border-focus': hasFocus })}
@@ -71,10 +75,17 @@ const MessageForm = forwardRef((props, ref) => {
         onFocus={() => { setHasFocus(true); onFocus() }}
         onBlur={() => setHasFocus(false)}
         placeholder={placeholder}
+        disabled={pending}
       />
-      <button className={styles.sendButton} data-testid='send-button'>
-        <Icon name='Reply' className={styles.replyIcon} />
-      </button>
+      {pending ? (
+        <div className='flex items-center text-sm text-foreground/50'>
+          Sending...
+        </div>
+      ) : (
+        <button className={styles.sendButton} data-testid='send-button'>
+          <Icon name='Reply' className={styles.replyIcon} />
+        </button>
+      )}
     </form>
   )
 })

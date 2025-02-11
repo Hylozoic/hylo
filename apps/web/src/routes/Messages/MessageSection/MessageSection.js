@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { array, bool, func, object } from 'prop-types'
-import React from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { throttle, debounce } from 'lodash'
 import { get } from 'lodash/fp'
 import Loading from 'components/Loading'
@@ -41,9 +41,11 @@ export default class MessageSection extends React.Component {
 
     this.state = {
       visible: true,
-      onNextVisible: null
+      onNextVisible: null,
+      showNewMessageButton: false
     }
     this.list = React.createRef()
+    this.prevMessageCount = props.messages?.length || 0
   }
 
   componentDidMount () {
@@ -67,10 +69,6 @@ export default class MessageSection extends React.Component {
     const oldMessages = this.props.messages
     const deltaLength = Math.abs(messages.length - oldMessages.length)
 
-    // Note: we write directly to the object here rather than using setState.
-    // This avoids an automatic re-render on scroll, and any inconsistencies
-    // owing to the async nature of setState and/or setState batching.
-
     this.shouldScroll = false
 
     if (deltaLength) {
@@ -79,6 +77,17 @@ export default class MessageSection extends React.Component {
 
       // Are additional messages old (at the beginning of the sorted array)?
       if (this.props.hasMore && get('id', latest) === get('id', oldLatest)) return
+
+      const moduleCenter = document.querySelector('#center-column')
+      if (moduleCenter) {
+        const isScrolledUp = moduleCenter.scrollTop < (moduleCenter.scrollHeight - moduleCenter.clientHeight - 100)
+        const isFromOtherUser = get('creator.id', latest) !== get('id', currentUser)
+
+        if (isScrolledUp && isFromOtherUser) {
+          this.setState({ showNewMessageButton: true })
+          return
+        }
+      }
 
       // If there's one new message, it's not from currentUser,
       // and we're not already at the bottom, don't scroll
@@ -91,7 +100,35 @@ export default class MessageSection extends React.Component {
   }
 
   componentDidUpdate (prevProps) {
-    if (this.shouldScroll) this.scrollToBottom()
+    const { currentUser, messages, pending, hasMore } = this.props
+    
+    // Skip if loading
+    if (pending) return
+
+    const deltaLength = Math.abs(messages.length - prevProps.messages.length)
+
+    if (deltaLength) {
+      const latest = messages[messages.length - 1]
+      const oldLatest = prevProps.messages[prevProps.messages.length - 1]
+
+      // Are additional messages old (at the beginning of the sorted array)?
+      if (hasMore && get('id', latest) === get('id', oldLatest)) return
+
+      const centerColumn = document.querySelector('#center-column')
+      if (centerColumn) {
+        const isScrolledUp = centerColumn.scrollTop < (centerColumn.scrollHeight - centerColumn.clientHeight - 100)
+        const isFromOtherUser = get('creator.id', latest) !== get('id', currentUser)
+        
+        // If we're at the bottom or the message is from the current user, auto-scroll
+        if (!isScrolledUp || !isFromOtherUser) {
+          centerColumn.scrollTop = centerColumn.scrollHeight
+          this.setState({ showNewMessageButton: false })
+        } else if (isFromOtherUser) {
+          // If we're scrolled up and it's from another user, show the button
+          this.setState({ showNewMessageButton: true })
+        }
+      }
+    }
   }
 
   atBottom = ({ offsetHeight, scrollHeight, scrollTop }) =>
@@ -122,7 +159,10 @@ export default class MessageSection extends React.Component {
   detectScrollExtremes = throttle(target => {
     if (this.props.pending) return
     // Marks entire thread as read if we've seen the last message
-    if (this.atBottom(target)) this.markAsRead()
+    if (this.atBottom(target)) {
+      this.markAsRead()
+      this.setState({ showNewMessageButton: false })
+    }
     if (target.scrollTop <= 150) this.fetchMore()
   }, 500, { trailing: true })
 
@@ -131,12 +171,17 @@ export default class MessageSection extends React.Component {
   }
 
   scrollToBottom = () => {
-    this.list.current.scrollTop = this.list.current.scrollHeight
+    console.log('scroll to bottom called')
+    const moduleCenter = document.querySelector('#center-column')
+    if (moduleCenter) {
+      moduleCenter.scrollTop = moduleCenter.scrollHeight
+    }
     if (this.state.visible) {
       this.markAsRead()
     } else {
       this.setState({ onNextVisible: this.markAsRead })
     }
+    this.setState({ showNewMessageButton: false })
   }
 
   markAsRead = debounce(() => {
@@ -146,21 +191,30 @@ export default class MessageSection extends React.Component {
 
   render () {
     const { messages, pending, messageThread } = this.props
+    const { showNewMessageButton } = this.state
 
     return (
-      <div
-        className='max-w-[750px]'
-        ref={this.list}
-        onScroll={this.handleScroll}
-        data-testid='message-section'
-      >
+      <div className='max-w-[750px] relative h-full' ref={this.list} onScroll={this.handleScroll} data-testid='message-section'>
         {pending && <Loading />}
-        {!pending &&
-          <div className='pb-[70px] pt-[20px] mt-auto'>
-            <ClickCatcher>
-              {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
-            </ClickCatcher>
-          </div>}
+        {!pending && (
+          <>
+            <div className='pb-[70px] pt-[20px] mt-auto'>
+              <ClickCatcher>
+                {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
+              </ClickCatcher>
+            </div>
+            {showNewMessageButton && (
+              <div className="sticky bottom-20 w-full flex justify-center" style={{ position: '-webkit-sticky' }}>
+                <button 
+                  onClick={this.scrollToBottom}
+                  className="bg-primary text-white px-4 py-2 rounded-full shadow-lg hover:bg-primary/90 transition-all z-50"
+                >
+                  New Messages
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     )
   }
