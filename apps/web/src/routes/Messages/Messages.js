@@ -204,13 +204,13 @@ const Messages = () => {
       <Helmet>
         <title>Messages | Hylo</title>
       </Helmet>
-      <div className={classes.content}>
+      <div className='flex h-full justify-center w-full'>
         {peoplePending
           ? <div><Loading /></div>
           : (
             <>
               {messageThreadId && (
-                <div className={classes.thread}>
+                <div className='flex flex-col w-full max-w-[750px]'>
                   {!forNewThread &&
                     <MessageSection
                       socket={socket}
@@ -223,7 +223,7 @@ const Messages = () => {
                       messageThread={messageThread}
                     />}
                   {(!forNewThread || participants.length > 0) &&
-                    <div className={classes.messageForm}>
+                    <div className='h-full overflow-y-auto relative'>
                       <MessageForm
                         onSubmit={sendMessage}
                         onFocus={() => setPeopleSelectorOpen(false)}

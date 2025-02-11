@@ -19,15 +19,15 @@ export default function Message ({ message, isHeader }) {
     : TextHelpers.markdown(message.text)
 
   return (
-    <div className={cn('text-foreground w-full flex items-center', { [classes.messageHeader]: isHeader })} data-message-id={message.id}>
+    <div className={cn('text-foreground w-full flex my-2', { [classes.messageHeader]: isHeader })} data-message-id={message.id}>
       <div className={classes.avatar}>
         {isHeader && <Avatar url={personUrl(person.id)} avatarUrl={person.avatarUrl} />}
       </div>
       <div className={classes.content}>
         {isHeader && (
-          <div>
-            <span className='text-foreground font-bold'>{person.name}</span>
-            <span className={classes.date}>{pending ? 'sending...' : TextHelpers.humanDate(message.createdAt)}</span>
+          <div className='flex justify-between items-center'>
+            <div className='text-foreground font-bold -mb-2'>{person.name}</div>
+            <span className='text-xs text-foreground/50'>{pending ? 'sending...' : TextHelpers.humanDate(message.createdAt)}</span>
           </div>
         )}
         <div className='text-foreground'>

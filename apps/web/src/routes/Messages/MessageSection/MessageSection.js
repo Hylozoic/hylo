@@ -149,14 +149,14 @@ export default class MessageSection extends React.Component {
 
     return (
       <div
-        className={cn(classes.messagesSection)}
+        className='max-w-[750px]'
         ref={this.list}
         onScroll={this.handleScroll}
         data-testid='message-section'
       >
         {pending && <Loading />}
         {!pending &&
-          <div className={cn(classes.messagesSectionInner)}>
+          <div className='pb-[70px] pt-[20px] mt-auto'>
             <ClickCatcher>
               {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
             </ClickCatcher>
