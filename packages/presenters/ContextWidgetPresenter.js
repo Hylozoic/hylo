@@ -22,9 +22,9 @@ export default function ContextWidgetPresenter (widget, { t }) {
     humanReadableType: humanReadableTypeResolver(type),
     iconName: iconNameResolver(widget, type),
     isDroppable: isDroppableResolver(widget),
-    isValidHomeWidget: isValidHomeWidget(widget),
+    isValidHomeWidget: isValidHomeWidgetResolver(widget),
     title: titleResolver({ widget, t }),
-    isHiddenInContextMenu: doNotDisplayWidget(widget),
+    isHiddenInContextMenu: isHiddenInContextMenuResolver(widget),
     type,
     // Protects us from double presenting a widget
     _presented: true
@@ -54,7 +54,7 @@ function titleResolver ({ widget, t }) {
   return title
 }
 
-function isValidHomeWidget (widget) {
+function isValidHomeWidgetResolver (widget) {
   return !!(
     widget?.viewChat?.id ||
     widget?.customView?.id ||
@@ -134,7 +134,7 @@ function widgetTypeResolver ({ widget }) {
   )
 }
 
-const doNotDisplayWidget = (widget) => {
+const isHiddenInContextMenuResolver = (widget) => {
   return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
   !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
   !widget.viewChat && !widget.customView)
