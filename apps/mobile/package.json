@@ -142,6 +142,8 @@
     "@types/fast-text-encoding": "^1",
     "@types/react": "^18.2.6",
     "@types/react-test-renderer": "^18.0.0",
+    "@types/redux-logger": "^3",
+    "@types/validator": "^13",
     "babel-jest": "^29.6.3",
     "babel-plugin-module-resolver": "^5.0.2",
     "babel-plugin-remove-style": "^0.1.0",
@@ -171,8 +173,10 @@
     "react-native-clean-project": "^4.0.3",
     "react-native-version": "^4.0.0",
     "react-test-renderer": "^19.0.0",
+    "redux-logger": "^3.0.6",
     "tailwind-merge": "^2.5.4",
-    "typescript": "5.0.4"
+    "typescript": "5.0.4",
+    "validator": "^13.12.0"
   },
   "standard": {
     "parser": "@babel/eslint-parser",

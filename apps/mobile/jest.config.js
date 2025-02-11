@@ -24,9 +24,10 @@ module.exports = {
     'react-native-gesture-handler/jestSetup'
   ],
   setupFilesAfterEnv: [
+    // https://callstack.github.io/react-native-testing-library/docs/migration/jest-matchers
     '@testing-library/jest-native/legacy-extend-expect',
     '<rootDir>/config/jest/setupTests.js',
-    '<rootDir>/config/jest/mswServer.js'
+    '<rootDir>/src/graphql/mocks/mswServer.js'
   ],
   testEnvironment: 'jest-fixed-jsdom',
   // testEnvironmentOptions: {

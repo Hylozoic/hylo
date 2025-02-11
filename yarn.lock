@@ -9411,6 +9411,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/redux-logger@npm:^3":
+  version: 3.0.13
+  resolution: "@types/redux-logger@npm:3.0.13"
+  dependencies:
+    redux: "npm:^5.0.0"
+  checksum: 10/fb8386c6a0940a3b3864039b5ceb420c5f75186e9ad2b166820e27201b3b0ca6a387bcb766d778343f69b1af768c624911e62e6bca19392e9d5b89c524ef176c
+  languageName: node
+  linkType: hard
+
 "@types/responselike@npm:^1.0.0":
   version: 1.0.3
   resolution: "@types/responselike@npm:1.0.3"
@@ -9482,6 +9491,13 @@ __metadata:
   version: 0.0.6
   resolution: "@types/use-sync-external-store@npm:0.0.6"
   checksum: 10/a95ce330668501ad9b1c5b7f2b14872ad201e552a0e567787b8f1588b22c7040c7c3d80f142cbb9f92d13c4ea41c46af57a20f2af4edf27f224d352abcfe4049
+  languageName: node
+  linkType: hard
+
+"@types/validator@npm:^13":
+  version: 13.12.2
+  resolution: "@types/validator@npm:13.12.2"
+  checksum: 10/564f60cfe112b45e1d747245d1f80db999bbc372b2b6a1c5454441b02c3d6bffbfff4365a10c3cd7874197f14ca5779b435794c7600bdcb541da948405a3b21a
   languageName: node
   linkType: hard
 
@@ -25633,6 +25649,8 @@ __metadata:
     "@types/fast-text-encoding": "npm:^1"
     "@types/react": "npm:^18.2.6"
     "@types/react-test-renderer": "npm:^18.0.0"
+    "@types/redux-logger": "npm:^3"
+    "@types/validator": "npm:^13"
     "@urql/devtools": "npm:^2.0.3"
     "@urql/exchange-graphcache": "npm:^7.2.1"
     babel-jest: "npm:^29.6.3"
@@ -25723,6 +25741,7 @@ __metadata:
     react-redux: "npm:^8.0.4"
     react-test-renderer: "npm:^19.0.0"
     redux: "npm:^4.2.0"
+    redux-logger: "npm:^3.0.6"
     redux-mock-store: "npm:^1.5.5"
     redux-promise: "npm:^0.6.0"
     reselect: "npm:^4.1.6"
@@ -25733,6 +25752,7 @@ __metadata:
     tinycolor2: "npm:^1.6.0"
     typescript: "npm:5.0.4"
     urql: "npm:^4.2.1"
+    validator: "npm:^13.12.0"
     zustand: "npm:5.0.3"
   languageName: unknown
   linkType: soft
@@ -31416,6 +31436,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"redux@npm:^5.0.0":
+  version: 5.0.1
+  resolution: "redux@npm:5.0.1"
+  checksum: 10/a373f9ed65693ead58bea5ef61c1d6bef39da9f2706db3be6f84815f3a1283230ecd1184efb1b3daa7f807d8211b0181564ca8f336fc6ee0b1e2fa0ba06737c2
+  languageName: node
+  linkType: hard
+
 "reflect.getprototypeof@npm:^1.0.6, reflect.getprototypeof@npm:^1.0.9":
   version: 1.0.10
   resolution: "reflect.getprototypeof@npm:1.0.10"
@@ -36291,7 +36318,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"validator@npm:^13.7.0":
+"validator@npm:^13.12.0, validator@npm:^13.7.0":
   version: 13.12.0
   resolution: "validator@npm:13.12.0"
   checksum: 10/db6eb0725e2b67d60d30073ae8573982713b5903195d031dc3c7db7e82df8b74e8c13baef8e2106d146d979599fd61a06cde1fec5c148e4abd53d52817ff0fd9

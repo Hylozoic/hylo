@@ -11,7 +11,7 @@ import { OneSignal } from 'react-native-onesignal'
 import { AuthProvider } from '@hylo/contexts/AuthContext'
 import mobileSubscriptionExchange from 'urql/mobileSubscriptionExchange'
 import { useMakeUrqlClient } from '@hylo/urql/makeUrqlClient'
-import { sentryConfig } from 'config'
+import { sentryConfig, isTest } from 'config'
 import store from 'store'
 import { name as appName } from './app.json'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -29,11 +29,11 @@ import './src/style/global.css'
 
 // For MSW, see https://mswjs.io/docs/integrations/react-native
 async function enableMocking() {
-  if (!__DEV__) {
+  if (!isTest) {
     return
   }
   await import('./msw.polyfills')
-  const { server } = await import('./config/jest/mswServer')
+  const { server } = await import('./src/graphql/mocks/mswServer')
   server.listen()
 }
 enableMocking().then(() => {
