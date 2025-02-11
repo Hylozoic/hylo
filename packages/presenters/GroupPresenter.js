@@ -14,12 +14,12 @@ export default function GroupPresenter (group, { currentUser }) {
     isPublicContext: group?.slug === PUBLIC_CONTEXT_SLUG,
     isMyContext: group?.slug === MY_CONTEXT_SLUG,
     isAllContext: group?.slug === ALL_GROUPS_CONTEXT_SLUG,
-    shouldWelcome: doesUserNeedToBeWelcomed(group, currentUser),
+    shouldWelcome: shouldWelcomeResolver(group, currentUser),
     _presented: true
   }
 }
 
-function doesUserNeedToBeWelcomed (group, currentUser) {
+function shouldWelcomeResolver (group, currentUser) {
   if (!group || !currentUser) return false
   if (isContextGroupSlug(group.slug)) return false
   const currentMembership = currentUser?.memberships &&
