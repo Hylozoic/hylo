@@ -186,7 +186,6 @@ export async function updateTopicFollow (userId, { id, data }) {
     whitelist.settings = JSON.stringify(newSettings)
   }
 
-  console.log('updateTopicFollow2', tagFollow.id, tagFollow.get('group_id'), tagFollow.get('tag_id'), whitelist, whitelist.last_read_post_id, !whitelist.new_post_count)
   if (whitelist.last_read_post_id && !whitelist.new_post_count) {
     // Update newPostCount based on how many more posts after the lastReadPostId
     const newPostCount = await GroupTag.taggedPostCount(tagFollow.get('group_id'), tagFollow.get('tag_id'), whitelist.last_read_post_id)
