@@ -84,7 +84,7 @@ const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   'all-views': 'Grid3x3'
 }
 function iconNameResolver (widget, type) {
-  if (widget?.icon) return widget.icon
+  if (widget?.iconName) return widget.iconName
   if (widget?.customView?.icon) return widget.customView.icon
   if (widget?.context === 'my') return null
 
@@ -253,7 +253,6 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
 export const COMMON_VIEWS = {
   'ask-and-offer': {
     name: 'Ask & Offer',
-    icon: 'Request',
     iconName: 'Request',
     defaultViewMode: 'bigGrid',
     postTypes: ['request', 'offer'],
@@ -261,7 +260,6 @@ export const COMMON_VIEWS = {
   },
   decisions: {
     name: 'Decisions',
-    icon: 'Proposal',
     iconName: 'Proposal',
     defaultViewMode: 'cards',
     postTypes: ['proposal'],
@@ -269,7 +267,6 @@ export const COMMON_VIEWS = {
   },
   discussions: {
     name: 'Discussions',
-    icon: 'Message',
     iconName: 'Message',
     defaultViewMode: 'list',
     postTypes: ['discussion'],
@@ -277,7 +274,6 @@ export const COMMON_VIEWS = {
   },
   events: {
     name: 'Events',
-    icon: 'Calendar',
     iconName: 'Calendar',
     defaultViewMode: 'cards',
     postTypes: ['event'],
@@ -285,22 +281,18 @@ export const COMMON_VIEWS = {
   },
   groups: {
     name: 'Groups',
-    icon: 'Groups',
     iconName: 'Groups'
   },
   map: {
     name: 'Map',
-    icon: 'Globe',
     iconName: 'Globe'
   },
   members: {
     name: 'Members',
-    icon: 'People',
     iconName: 'People',
   },
   projects: {
     name: 'Projects',
-    icon: 'Stack',
     iconName: 'Stack',
     defaultViewMode: 'bigGrid',
     postTypes: ['project'],
@@ -308,7 +300,6 @@ export const COMMON_VIEWS = {
   },
   resources: {
     name: 'Resources',
-    icon: 'Document',
     iconName: 'Document',
     defaultViewMode: 'grid',
     postTypes: ['resource'],
@@ -316,7 +307,6 @@ export const COMMON_VIEWS = {
   },
   stream: {
     name: 'Stream',
-    icon: 'Stream',
     iconName: 'Stream',
     defaultViewMode: 'cards',
     defaultSortBy: 'created'
