@@ -4,7 +4,7 @@ import { wrapItemInWidget } from '@hylo/presenters/ContextWidgetPresenter'
 
 // Different widgets have different sorts of children to display. This function ensures that they are always returned via a consistent interface.
 // This will eventually replace the useGatherItems hook on web
-export default function useGetContextWidgetChildren ({ widget, groupSlug }) {
+export default function useContextWidgetChildren ({ widget, groupSlug }) {
   const [listItems, setListItems] = useState([])
   const [loading, setLoading] = useState(true)
 
