@@ -41,6 +41,7 @@ import {
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
   UPDATE_GROUP_TOPIC_PENDING,
+  UPDATE_TOPIC_FOLLOW,
   UPDATE_TOPIC_FOLLOW_PENDING,
   UPDATE_POST,
   UPDATE_POST_PENDING,
@@ -567,12 +568,12 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case RESET_NEW_POST_COUNT_PENDING: {
-      if (meta.type === 'GroupTopic') {
-        session.GroupTopic.withId(meta.id).update({ newPostCount: 0 })
+      if (meta.type === 'TopicFollow') {
+        session.TopicFollow.withId(meta.id).update({ newPostCount: meta.count })
       } else if (meta.type === 'Membership') {
         me = Me.first()
         const membership = Membership.safeGet({ group: meta.id, person: me.id })
-        membership && membership.update({ newPostCount: 0 })
+        membership && membership.update({ newPostCount: meta.count })
       }
       break
     }
@@ -702,6 +703,22 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         topicFollow = TopicFollow.withId(meta.id)
         topicFollow.update({ lastReadPostId: meta.data.lastReadPostId })
         clearCacheFor(TopicFollow, meta.id)
+      }
+      break
+    }
+
+    case UPDATE_TOPIC_FOLLOW: {
+      const data = payload.data.updateTopicFollow
+      if (data.newPostCount) {
+        group = Group.withId(data.group.id)
+        const contextWidgets = group.contextWidgets.items
+        const newContextWidgets = contextWidgets.map(cw => {
+          if (cw.type === 'chat' && cw.viewChat?.id === data.topic.id) {
+            return { ...cw, highlightNumber: data.newPostCount }
+          }
+          return cw
+        })
+        group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
       }
       break
     }

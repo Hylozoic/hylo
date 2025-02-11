@@ -36,14 +36,17 @@ module.exports = bookshelf.Model.extend({
     return this.belongsTo(Group, 'group_id')
   },
 
-  highlightNumber () {
-    // TODO CONTEXT: these will need to determine a useful number based on the entity the widget is linked to
-    return 3
+  async highlightNumber (userId) {
+    if (this.get('type') === 'chat') {
+      const tf = await this.topicFollow(userId).fetch()
+      return tf ? tf.get('new_post_count') : 0
+    }
+    return 0
   },
 
   secondaryNumber () {
     // TODO CONTEXT: these will need to determine a useful number based on the entity the widget is linked to
-    return 8
+    return 0
   },
 
   parentWidget () {

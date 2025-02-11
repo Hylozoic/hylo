@@ -2659,7 +2659,7 @@ type Mutation {
   # NOT USED RIGHT NOW
   updateStripeAccount(accountId: String): GenericResult
   # Update settings related to a Person following a Topic in a Group
-  updateTopicFollow(id: ID, data: TopicFollowInput): GenericResult
+  updateTopicFollow(id: ID, data: TopicFollowInput): TopicFollow
   # Update settings for a GroupWidget
   updateWidget(id: ID, changes: GroupWidgetInput): GroupWidget
   # Accept an invitation to a Group

@@ -1,3 +1,4 @@
+import { get } from 'lodash/fp'
 import { UPDATE_TOPIC_FOLLOW } from 'store/constants'
 
 export default function updateTopicFollow (id, data) {
@@ -6,7 +7,14 @@ export default function updateTopicFollow (id, data) {
     graphql: {
       query: `mutation($id: ID, $data: TopicFollowInput) {
         updateTopicFollow(id: $id, data: $data) {
-          success
+          id
+          newPostCount
+          group {
+            id
+          }
+          topic {
+            id
+          }
         }
       }`,
       variables: {
@@ -14,6 +22,16 @@ export default function updateTopicFollow (id, data) {
         data
       }
     },
-    meta: { id, data, optimistic: true }
+    meta: {
+      id,
+      data,
+      optimistic: true,
+      extractModel: [
+        {
+          getRoot: get('updateTopicFollow'),
+          modelName: 'TopicFollow'
+        }
+      ]
+    }
   }
 }

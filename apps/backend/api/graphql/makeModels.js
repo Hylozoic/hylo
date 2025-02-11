@@ -74,7 +74,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'created_at',
         'parent_id',
         'updated_at',
-        'highlightNumber',
         'secondaryNumber'
       ],
       relations: [
@@ -90,6 +89,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         // XXX: has to be a getter not a relation because belongsTo doesn't support multiple keys
         groupTopic: cw => cw.groupTopic().fetch(),
+        highlightNumber: cw => cw.highlightNumber(userId),
         topicFollow: cw => cw.topicFollow(userId).fetch()
       },
       fetchMany: ({ groupId, includeUnordered }) => {

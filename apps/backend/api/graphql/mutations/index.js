@@ -179,14 +179,22 @@ export function updateGroupTopicFollow (userId, { id, data }) {
 
 export async function updateTopicFollow (userId, { id, data }) {
   const whitelist = mapKeys(pick(data, ['newPostCount', 'lastReadPostId']), (v, k) => snakeCase(k))
+  const tagFollow = await TagFollow.where({ id }).fetch()
   if (['all', 'none', 'important'].includes(data.settings?.notifications)) {
-    const tagFollow = await TagFollow.query().where({ id }).first()
     const newSettings = tagFollow.settings || '{}'
     newSettings.notifications = data.settings.notifications
     whitelist.settings = JSON.stringify(newSettings)
   }
+
+  console.log('updateTopicFollow2', tagFollow.id, tagFollow.get('group_id'), tagFollow.get('tag_id'), whitelist, whitelist.last_read_post_id, !whitelist.new_post_count)
+  if (whitelist.last_read_post_id && !whitelist.new_post_count) {
+    // Update newPostCount based on how many more posts after the lastReadPostId
+    const newPostCount = await GroupTag.taggedPostCount(tagFollow.get('group_id'), tagFollow.get('tag_id'), whitelist.last_read_post_id)
+    whitelist.new_post_count = newPostCount
+  }
+
   if (isEmpty(whitelist)) return Promise.resolve(null)
-  return TagFollow.query().where({ id }).update(whitelist).then(() => ({ success: true }))
+  return tagFollow.save(whitelist)
 }
 
 export function markActivityRead (userId, activityid) {

@@ -399,7 +399,7 @@ export default function ChatRoom (props) {
   const onRenderedDataChange = useCallback((data) => {
     const lastPost = data[data.length - 1]
     updateLastReadPost(lastPost)
-  }, [topicFollow?.id])
+  }, [topicFollow?.id, topicFollow?.lastReadPostId])
 
   const onAddReaction = useCallback((post, emojiFull) => {
     const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
