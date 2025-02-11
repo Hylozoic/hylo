@@ -709,7 +709,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case UPDATE_TOPIC_FOLLOW: {
       const data = payload.data.updateTopicFollow
-      if (data.newPostCount) {
+      if (typeof data.newPostCount === 'number') {
         group = Group.withId(data.group.id)
         const contextWidgets = group.contextWidgets.items
         const newContextWidgets = contextWidgets.map(cw => {
