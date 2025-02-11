@@ -27,6 +27,19 @@ import './src/style/global.css'
 
 // import FastImage from 'react-native-fast-image'
 
+// For MSW, see https://mswjs.io/docs/integrations/react-native
+async function enableMocking() {
+  if (!__DEV__) {
+    return
+  }
+  await import('./msw.polyfills')
+  const { server } = await import('./config/jest/mswServer')
+  server.listen()
+}
+enableMocking().then(() => {
+  AppRegistry.registerComponent(appName, () => App)
+})
+
 Sentry.init(sentryConfig)
 
 // For Layout animation support: https://reactnative.dev/docs/layoutanimation

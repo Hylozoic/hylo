@@ -1,5 +1,8 @@
 module.exports = {
-  presets: ['module:@react-native/babel-preset', 'nativewind/babel'],
+  presets: [
+    'module:@react-native/babel-preset',
+    'nativewind/babel'
+  ],
   plugins: [
     [
       'module-resolver',
@@ -17,14 +20,14 @@ module.exports = {
         ],
         root: ['./src'],
         alias: {
-          'config': './config',
-          'assets': './assets'
+          config: './config',
+          assets: './assets'
         }
       }
     ],
     'import-graphql',
     'react-native-reanimated/plugin',
-    ['@babel/plugin-syntax-decorators', { 'version': '2023-11' }]
+    ['@babel/plugin-proposal-decorators', { version: '2023-11' }]
   ],
   env: {
     test: {
