@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect } from 'react'
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
@@ -30,6 +30,14 @@ export default function ContextMenu () {
   const orderedWidgets = useMemo(() =>
     orderContextWidgetsForContextMenu(contextWidgets.map(widget => ContextWidgetPresenter(widget, { t }))), [contextWidgets, currentGroup, myHome]
   )
+
+  useEffect(() => {
+    if (!fetching) {
+      if ((currentGroup.shouldWelcome)) {
+        navigation.navigate('Group Welcome', { groupId: currentGroup?.id })
+      }
+    }
+  }, [currentGroup, fetching])
 
   if (fetching && currentGroup) return <Loading />
   if (!currentGroup) return null

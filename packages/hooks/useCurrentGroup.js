@@ -22,7 +22,6 @@ export function useGroup ({
   },
   useQueryArgs = {}
 } = {}) {
-  const { t } = useTranslation()
   const [{ currentUser, fetching: userFetching, error: userError }] = useCurrentUser({ pause: useQueryArgs?.pause || !groupSlug })
   const contextGroup = useMemo(() => getContextGroup(groupSlug, groupId), [groupSlug, groupId])
   const pause = !!contextGroup || useQueryArgs?.pause || (!groupSlug && !groupId)

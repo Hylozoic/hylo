@@ -5,7 +5,6 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import GroupWelcomeCheck from 'components/GroupWelcomeCheck'
 
 export default function ChatRoom () {
   const navigation = useNavigation()
@@ -45,7 +44,6 @@ export default function ChatRoom () {
 
   return (
     <KeyboardFriendlyView style={{ flex: 1 }}>
-      <GroupWelcomeCheck />
       <HyloWebView
         handledWebRoutes={handledWebRoutes}
         nativeRouteHandler={nativeRouteHandler}
