@@ -65,7 +65,7 @@ export default function ContextMenu (props) {
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const rootPath = baseUrl({ ...routeParams, view: null })
   const isAllOrPublicPath = ['/all', '/public'].includes(rootPath)
-  const isPublic = routeParams.context === 'public'
+  const isPublicContext = routeParams.context === 'public'
   const isMyContext = routeParams.context === CONTEXT_MY
   const isAllContext = routeParams.context === 'all'
   const profileUrl = personUrl(get('id', currentUser), routeParams.groupSlug)
@@ -89,8 +89,8 @@ export default function ContextMenu (props) {
   })
 
   const rawContextWidgets = useSelector(state => {
-    if (isMyContext || isPublic || isAllContext) {
-      return getStaticMenuWidgets({ isPublic, isMyContext, profileUrl, isAllContext })
+    if (isMyContext || isPublicContext || isAllContext) {
+      return getStaticMenuWidgets({ isPublicContext, isMyContext, profileUrl, isAllContext })
     }
     return getContextWidgets(state, group)
   })
@@ -100,11 +100,11 @@ export default function ContextMenu (props) {
   }, [rawContextWidgets])
 
   const hasContextWidgets = useMemo(() => {
-    if (group || isMyContext || isPublic || isAllContext) {
+    if (group || isMyContext || isPublicContext || isAllContext) {
       return contextWidgets.length > 0
     }
     return false
-  }, [group, isMyContext, isPublic, isAllContext])
+  }, [group, isMyContext, isPublicContext, isAllContext])
 
   const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
 
@@ -247,7 +247,7 @@ export default function ContextMenu (props) {
       <div className='ContextDetails w-full z-20 relative'>
         {routeParams.context === 'groups'
           ? <GroupMenuHeader group={group} />
-          : isPublic
+          : isPublicContext
             ? (
               <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
                 <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.5 }} />
@@ -284,7 +284,7 @@ export default function ContextMenu (props) {
               </li>
             </ul>
           )}
-          {canView && !isMyContext && !isPublic && !isAllContext && (
+          {canView && !isMyContext && !isPublicContext && !isAllContext && (
             <TopicNavigation
               backUrl={rootPath}
               routeParams={routeParams}
@@ -322,7 +322,7 @@ export default function ContextMenu (props) {
               )}
             </DragOverlay>
           </DndContext>
-          {(!isMyContext && !isPublic && !isAllContext) && (
+          {(!isMyContext && !isPublicContext && !isAllContext) && (
             <div className='px-2 w-full mb-[0.05em] mt-6'>
               <ContextMenuItem
                 widget={{ title: t('widget-all'), type: 'all-views', view: 'all-views', childWidgets: [] }}
