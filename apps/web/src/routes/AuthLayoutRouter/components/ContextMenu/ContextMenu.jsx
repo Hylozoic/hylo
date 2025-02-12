@@ -1,35 +1,27 @@
-import { compact, get } from 'lodash/fp'
+import { get } from 'lodash/fp'
 import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut } from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { createSelector as ormCreateSelector } from 'redux-orm'
 import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import Icon from 'components/Icon'
 import WidgetIconResolver from 'components/WidgetIconResolver'
-import NavLink from './NavLink'
 import MenuLink from './MenuLink'
-import TopicNavigation from './TopicNavigation'
 import useRouteParams from 'hooks/useRouteParams'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
-import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
 import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import getMe from 'store/selectors/getMe'
 import { removeWidgetFromMenu, updateContextWidget } from 'store/actions/contextWidgets'
-import resetNewPostCount from 'store/actions/resetNewPostCount'
 import useGatherItems from 'hooks/useGatherItems'
-import { CONTEXT_MY, FETCH_POSTS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { CONTEXT_MY, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
-import orm from 'store/models'
-import { makeDropQueryResults } from 'store/reducers/queryResults'
 import { bgImageStyle, cn } from 'util/index'
-import { viewUrl, widgetUrl, baseUrl, topicsUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
+import { widgetUrl, baseUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
 
 import classes from './ContextMenu.module.scss'
 import ContextWidgetPresenter, {
@@ -40,13 +32,6 @@ import ContextWidgetPresenter, {
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
-
-const getGroupMembership = ormCreateSelector(
-  orm,
-  getMe,
-  (state, { groupId }) => groupId,
-  (session, currentUser, id) => session.Membership.filter({ group: id, person: currentUser }).first()
-)
 
 export default function ContextMenu (props) {
   const {
@@ -64,29 +49,10 @@ export default function ContextMenu (props) {
   const group = useSelector(state => currentGroup || getGroupForSlug(state, routeParams.groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const rootPath = baseUrl({ ...routeParams, view: null })
-  const isAllOrPublicPath = ['/all', '/public'].includes(rootPath)
   const isPublicContext = routeParams.context === 'public'
   const isMyContext = routeParams.context === CONTEXT_MY
   const isAllContext = routeParams.context === 'all'
   const profileUrl = personUrl(get('id', currentUser), routeParams.groupSlug)
-
-  // TODO CONTEXT: the new post count will be refactored into the use of highlightNumber and secondaryNumber, on the context widgets
-  const badge = useSelector(state => {
-    if (group) {
-      const groupMembership = getGroupMembership(state, { groupId: group.id })
-      return get('newPostCount', groupMembership)
-    }
-    return null
-  })
-
-  const hasRelatedGroups = useSelector(state => {
-    if (group) {
-      const childGroups = getChildGroups(state, group)
-      const parentGroups = getParentGroups(state, group)
-      return childGroups.length > 0 || parentGroups.length > 0
-    }
-    return false
-  })
 
   const rawContextWidgets = useSelector(state => {
     if (isMyContext || isPublicContext || isAllContext) {
@@ -111,103 +77,10 @@ export default function ContextMenu (props) {
   const isEditing = getQuerystringParam('cme', location) === 'yes' && canAdminister
 
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
-  const streamFetchPostsParam = useSelector(state => get('Stream.fetchPostsParam', state))
 
   const [isDragging, setIsDragging] = useState(false)
   const [activeWidget, setActiveWidget] = useState(null)
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
-
-  const dropPostResults = makeDropQueryResults(FETCH_POSTS)
-
-  const clearStream = () => dispatch(dropPostResults(streamFetchPostsParam))
-  const clearBadge = () => {
-    if (badge && group) {
-      dispatch(resetNewPostCount(group.id, 'Membership'))
-    }
-  }
-
-  const homeOnClick = () => {
-    if (window.location.pathname === rootPath) {
-      // TODO REDESIGN: but we dont go to the stream here?
-      clearStream()
-      // TODO REDESIGN: when do we clear the badge? what does it mean?
-      clearBadge()
-    }
-  }
-
-  const createPath = `${location.pathname}/create${location.search}`
-  const eventsPath = viewUrl('events', routeParams)
-  const explorePath = !isAllOrPublicPath && viewUrl('explore', routeParams)
-  const groupsPath = viewUrl('groups', routeParams)
-  const streamPath = viewUrl('stream', routeParams)
-  const mapPath = viewUrl('map', routeParams)
-  const membersPath = !isAllOrPublicPath && viewUrl('members', routeParams)
-  const projectsPath = viewUrl('projects', routeParams)
-  const decisionsPath = viewUrl('decisions', routeParams)
-
-  const customViews = (group && group.customViews && group.customViews.toRefArray()) || []
-
-  const regularLinks = compact([
-    createPath && {
-      label: t('Create'),
-      icon: 'Create',
-      to: createPath
-    },
-    rootPath && {
-      label: group && group.type === GROUP_TYPES.farm ? t('Home') : t('Stream'),
-      icon: group && group.type === GROUP_TYPES.farm ? 'Home' : 'Stream',
-      to: rootPath,
-      badge,
-      handleClick: homeOnClick,
-      exact: true
-    },
-    streamPath && group && group.type === GROUP_TYPES.farm && {
-      label: t('Stream'),
-      icon: 'Stream',
-      to: streamPath
-    },
-    explorePath && group && group.type !== GROUP_TYPES.farm && {
-      label: t('Explore'),
-      icon: 'Binoculars',
-      to: explorePath
-    },
-    projectsPath && {
-      label: t('Projects'),
-      icon: 'Projects',
-      to: projectsPath
-    },
-    eventsPath && {
-      label: t('Events'),
-      icon: 'Events',
-      to: eventsPath
-    },
-    membersPath && {
-      label: t('Members'),
-      icon: 'People',
-      to: membersPath
-    },
-    decisionsPath && {
-      label: t('Decisions'),
-      icon: 'Proposal',
-      to: decisionsPath
-    },
-    (hasRelatedGroups) && groupsPath && {
-      label: t('Groups'),
-      icon: 'Groups',
-      to: groupsPath
-    },
-    mapPath && {
-      label: t('Map'),
-      icon: 'Globe',
-      to: mapPath
-    },
-    ...customViews.filter(cv => cv.name && (cv.type !== 'externalLink' || cv.externalLink)).map(cv => ({
-      label: cv.name,
-      icon: cv.icon,
-      to: cv.type !== 'externalLink' ? `${rootPath}/custom/${cv.id}` : false,
-      externalLink: cv.type === 'externalLink' ? cv.externalLink : false
-    }))
-  ])
 
   const handleDragStart = ({ active }) => {
     setIsDragging(true)
@@ -240,8 +113,6 @@ export default function ContextMenu (props) {
     setActiveWidget(null)
   }
 
-  const canView = !group || group.memberCount !== 0
-  const links = regularLinks
   return (
     <div className={cn('ContextMenu bg-background z-20 overflow-y-auto h-lvh w-[320px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
       <div className='ContextDetails w-full z-20 relative'>
@@ -265,35 +136,6 @@ export default function ContextMenu (props) {
                 )
               : null}
       </div>
-      {!hasContextWidgets && (
-        <div className={classes.navigation}>
-          {canView && (
-            <ul className={classes.links} id='groupMenu'>
-              {links.map((link, i) => (
-                <NavLink
-                  key={link.label + i}
-                  externalLink={link.externalLink}
-                  {...link}
-                  onClick={link.handleClick}
-                />
-              ))}
-              <li className={cn(classes.item, classes.topicItem)}>
-                <MenuLink to={topicsUrl(routeParams)}>
-                  <Icon name='Topics' />
-                </MenuLink>
-              </li>
-            </ul>
-          )}
-          {canView && !isMyContext && !isPublicContext && !isAllContext && (
-            <TopicNavigation
-              backUrl={rootPath}
-              routeParams={routeParams}
-              groupId={group?.id}
-              location={location}
-            />
-          )}
-        </div>
-      )}
       {hasContextWidgets && (
         <div className='relative flex flex-col items-center overflow-hidden z-20'>
           <Routes>
