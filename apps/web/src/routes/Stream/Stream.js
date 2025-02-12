@@ -35,6 +35,7 @@ import { fetchModerationActions, clearModerationAction } from 'store/actions/mod
 import { FETCH_MODERATION_ACTIONS, FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
+import { makeDropQueryResults } from 'store/reducers/queryResults'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -60,6 +61,8 @@ const getCustomView = ormCreateSelector(
   (_, customViewId) => customViewId,
   (session, id) => session.CustomView.safeGet({ id })
 )
+
+const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
 export default function Stream (props) {
   const dispatch = useDispatch()
@@ -242,13 +245,18 @@ export default function Stream (props) {
   }, [topicName])
 
   useEffect(() => {
+    dispatch(dropPostResults(fetchPostsParam))
     if (decisionView === 'moderation') {
       fetchModerationActionsAction(0)
     } else if ((!customViewId || customView?.type === 'stream') && (!topicName || topic)) {
       // Fetch posts, unless the custom view has not fully loaded yet, or the topic has not fully loaded yet
       fetchPostsFrom(0)
     }
-  }, [fetchPostsParam, decisionView])
+  }, [fetchPostsParam, decisionView, calendarView])
+
+  // useEffect(() => {
+  //   dispatch(dropPostResults(fetchPostsParam))
+  // }, [calendarView])
 
   const changeTab = useCallback(tab => {
     dispatch(updateUserSettings({ settings: { streamPostType: tab || '' } }))
