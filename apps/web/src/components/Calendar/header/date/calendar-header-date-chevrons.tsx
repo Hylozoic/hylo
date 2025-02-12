@@ -47,7 +47,7 @@ export default function CalendarHeaderDateChevrons () {
       </Button>
 
       <span className='min-w-[140px] text-center font-medium'>
-        {DateTime.fromJSDate(date).toFormat('MMMM d, yyyy')}
+        {DateTime.fromJSDate(date).toFormat('MMMM yyyy')}
       </span>
 
       <Button
