@@ -1,5 +1,5 @@
 import { debounce, includes, isEmpty, trim, uniqueId } from 'lodash/fp'
-import { Bell, BellDot, BellOff, ChevronDown, Copy, Send, SendHorizontal, ImagePlus } from 'lucide-react'
+import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send, SendHorizontal, ImagePlus } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -102,15 +102,17 @@ EditorView.prototype.updateState = function updateState (state) {
 
 // Define icon components as functions that accept props
 const NotificationsIcon = ({ type, ...props }) => {
+  const { t } = useTranslation()
+
   switch (type) {
     case 'all':
-      return <Bell {...props} />
+      return <Bell {...props} data-tooltip-id='notifications-tt' data-tooltip-content={t('You will receive notifications for all chats in this room.')} />
     case 'important':
-      return <BellDot {...props} />
+      return <BellDot {...props} data-tooltip-id='notifications-tt' data-tooltip-content={t('You will receive notifications for announcements and mentions in this room.')} />
     case 'none':
-      return <BellOff {...props} />
+      return <BellOff {...props} data-tooltip-id='notifications-tt' data-tooltip-content={t('You will not receive notifications for any chats in this room.')} />
     default:
-      return null
+      return <BellMinus {...props} data-tooltip-id='notifications-tt' data-tooltip-html={t('You are previewing this chat room. <br /> Add a chat or change your notification settings to subscribe to this room.')} />
   }
 }
 
@@ -126,6 +128,7 @@ export default function ChatRoom (props) {
   const dispatch = useDispatch()
   const routeParams = useParams()
   const location = useLocation()
+  const { t } = useTranslation()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
 
@@ -212,6 +215,8 @@ export default function ChatRoom (props) {
   const postsFuture = useSelector(state => getPosts(state, fetchPostsFutureParams))
   const hasMorePostsFuture = useSelector(state => getHasMorePosts(state, fetchPostsFutureParams))
 
+  const postsForDisplay = useMemo(() => (postsPast || []).concat(postsFuture || []), [postsPast, postsFuture])
+
   const fetchPostsPast = useCallback((offset) => {
     if (loadingPast || hasMorePostsPast === false) return Promise.resolve()
     setLoadingPast(true)
@@ -268,9 +273,12 @@ export default function ChatRoom (props) {
     if (loadedPast && loadedFuture) {
       if (!topicFollow?.lastReadPostId) {
         setInitialPostToScrollTo(0)
+      } else if (topicFollow?.lastReadPostId > postsForDisplay[postsForDisplay.length - 1].id) {
+        // XXX: We set the lastReadPostId to the largest post id as a hack to bring people to the most recent post when they join a chat room
+        setInitialPostToScrollTo(postsForDisplay.length - 1)
       } else {
         // Set initial scroll to the last read post
-        const lastReadPostIndex = (postsPast || []).concat(postsFuture || []).findIndex(post => post.id === topicFollow?.lastReadPostId)
+        const lastReadPostIndex = postsForDisplay.findIndex(post => post.id === topicFollow?.lastReadPostId)
         if (lastReadPostIndex !== -1) {
           setInitialPostToScrollTo(lastReadPostIndex)
         } else {
@@ -454,6 +462,10 @@ export default function ChatRoom (props) {
     // Update the optimistic post with the real post from the server
     messageListRef.current?.data.map((item) => post.localId && item.localId && post.localId === item.localId ? post : item)
     updateLastReadPost(post)
+    if (!notificationsSetting) {
+      // If the user has not set a notification setting for this chat room, we set it to all on the backend when creating a post so update the UI to match
+      setNotificationsSetting('all')
+    }
     return true
   })
 
@@ -476,6 +488,11 @@ export default function ChatRoom (props) {
               <SelectItem value='none'>Mute this chat room</SelectItem>
             </SelectContent>
           </Select>
+          <Tooltip
+            delay={250}
+            place='bottom-start'
+            id='notifications-tt'
+          />
         </span>
       ),
       icon: 'Message',
