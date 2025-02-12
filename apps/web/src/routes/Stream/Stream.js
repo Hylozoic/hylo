@@ -103,7 +103,6 @@ export default function Stream (props) {
     sortBy = 'start_time'
   }
   const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
-  const calendarView = viewMode === 'calendar' // TODO: change to viewMode === 'calendar'
   const decisionView = getQuerystringParam('d', location) || 'decisions'
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
@@ -146,7 +145,7 @@ export default function Stream (props) {
       types: getTypes({ customView, view })
     }
 
-    if (calendarView) {
+    if (viewMode === 'calendar') {
       const luxonDate = DateTime.fromJSDate(date)
       switch (mode) {
         case 'month':
@@ -168,9 +167,11 @@ export default function Stream (props) {
       params.beforeTime = timeframe === 'past' ? today : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'
     }
+    if (view === 'events') {
+      dispatch(dropPostResults(params))
+    }
     return params
-    // TODO: alphabetize list
-  }, [childPostInclusion, context, customView, groupSlug, postTypeFilter, timeframe, topic?.id, topicName, sortBy, search, view, calendarView, date, mode])
+  }, [childPostInclusion, context, customView, date, groupSlug, mode, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view, viewMode])
 
   let name = customView?.name || systemView?.name || ''
   let icon = customView?.icon || systemView?.iconName
@@ -245,18 +246,13 @@ export default function Stream (props) {
   }, [topicName])
 
   useEffect(() => {
-    dispatch(dropPostResults(fetchPostsParam))
     if (decisionView === 'moderation') {
       fetchModerationActionsAction(0)
     } else if ((!customViewId || customView?.type === 'stream') && (!topicName || topic)) {
       // Fetch posts, unless the custom view has not fully loaded yet, or the topic has not fully loaded yet
       fetchPostsFrom(0)
     }
-  }, [fetchPostsParam, decisionView, calendarView])
-
-  // useEffect(() => {
-  //   dispatch(dropPostResults(fetchPostsParam))
-  // }, [calendarView])
+  }, [fetchPostsParam, decisionView])
 
   const changeTab = useCallback(tab => {
     dispatch(updateUserSettings({ settings: { streamPostType: tab || '' } }))
@@ -340,7 +336,7 @@ export default function Stream (props) {
       <div
         id='stream-inner-container'
         className={cn(
-          !calendarView && 'max-w-[750px]',
+          viewMode !== 'calendar' && 'max-w-[750px]',
           'flex flex-col flex-1 w-full mx-auto overflow-auto p-4'
         )}
       >
@@ -361,7 +357,7 @@ export default function Stream (props) {
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
           decisionView={decisionView} changeDecisionView={changeDecisionView} changeTimeframe={changeTimeframe} timeframe={timeframe}
         />
-        {decisionView !== 'moderation' && !calendarView && (
+        {decisionView !== 'moderation' && viewMode !== 'calendar' && (
           <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
             {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
             {posts.map(post => {
@@ -382,7 +378,7 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {decisionView === 'moderation' && !calendarView && (
+        {decisionView === 'moderation' && viewMode !== 'calendar' && (
           <div className='streamItems'>
             {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
             {moderationActions.map(modAction => {
@@ -397,7 +393,7 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {!pending && calendarView && (
+        {!pending && viewMode === 'calendar' && (
           <div className='calendarView'>
             <Calendar
               posts={posts}
