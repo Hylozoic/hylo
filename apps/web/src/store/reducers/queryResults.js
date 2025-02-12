@@ -305,6 +305,8 @@ export function buildKey (type, params) {
 }
 
 export const queryParamWhitelist = [
+  'afterTime',
+  'beforeTime',
   'autocomplete',
   'activePostsOnly',
   'announcementsOnly',

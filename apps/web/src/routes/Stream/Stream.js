@@ -12,6 +12,7 @@ import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 import Loading from 'components/Loading'
 import ModerationListItem from 'components/ModerationListItem/ModerationListItem'
 import NoPosts from 'components/NoPosts'
+import { DateTime } from 'luxon'
 import Calendar from 'components/Calendar'
 import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
@@ -99,17 +100,19 @@ export default function Stream (props) {
     sortBy = 'start_time'
   }
   const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
-  const calendarView = viewMode === 'calendar'
+  const calendarView = viewMode === 'calendar' // TODO: change to viewMode === 'calendar'
   const decisionView = getQuerystringParam('d', location) || 'decisions'
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
 
   // TODO: merge this and getTypes
   const determinePostTypeFilter = useCallback(() => {
-    if (view === 'projects') return 'project'
-    if (view === 'decisions') return 'proposal'
-    if (view === 'events') return 'event'
-    return querystringParams.t || defaultPostType
+    switch (view) {
+      case 'projects': return 'project'
+      case 'decisions': return 'proposal'
+      case 'events': return 'event'
+      default: return querystringParams.t || defaultPostType
+    }
   }, [querystringParams, defaultPostType, view])
 
   const postTypeFilter = determinePostTypeFilter()
@@ -121,6 +124,10 @@ export default function Stream (props) {
   }, [systemView])
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
+
+  // for calendar viewmode
+  const [mode, setMode] = useState('month')
+  const [date, setDate] = useState(new Date())
 
   const fetchPostsParam = useMemo(() => {
     const params = {
@@ -135,13 +142,32 @@ export default function Stream (props) {
       topics,
       types: getTypes({ customView, view })
     }
-    if (view === 'events' && !calendarView) {
-      params.afterTime = timeframe === 'future' ? new Date().toISOString() : undefined
-      params.beforeTime = timeframe === 'past' ? new Date().toISOString() : undefined
+
+    if (calendarView) {
+      const luxonDate = DateTime.fromJSDate(date)
+      switch (mode) {
+        case 'month':
+          params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
+          params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).endOf('day').toISO()
+          break
+        case 'week':
+          params.afterTime = luxonDate.startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
+          params.beforeTime = luxonDate.endOf('week', { useLocaleWeeks: true }).endOf('day').toISO()
+          break
+        default: // day
+          params.afterTime = luxonDate.startOf('day').toISO()
+          params.beforeTime = luxonDate.endOf('day').toISO()
+      }
+      params.order = 'asc'
+    } else if (view === 'events') {
+      const today = DateTime.now().toISO()
+      params.afterTime = timeframe === 'future' ? today : undefined
+      params.beforeTime = timeframe === 'past' ? today : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'
     }
     return params
-  }, [childPostInclusion, context, customView, groupSlug, postTypeFilter, timeframe, topic?.id, topicName, sortBy, search, view, calendarView])
+    // TODO: alphabetize list
+  }, [childPostInclusion, context, customView, groupSlug, postTypeFilter, timeframe, topic?.id, topicName, sortBy, search, view, calendarView, date, mode])
 
   let name = customView?.name || systemView?.name || ''
   let icon = customView?.icon || systemView?.iconName
@@ -369,6 +395,10 @@ export default function Stream (props) {
               posts={posts}
               routeParams={routeParams}
               querystringParams={querystringParams}
+              date={date}
+              setDate={setDate}
+              mode={mode}
+              setMode={setMode}
             />
           </div>
         )}
