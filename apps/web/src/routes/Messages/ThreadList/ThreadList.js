@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import TextInput from 'components/TextInput'
 import ScrollListener from 'components/ScrollListener'
 import { toRefArray, itemsToArray } from 'util/reduxOrmMigration'
 import fetchThreads from 'store/actions/fetchThreads'
@@ -42,13 +41,11 @@ function ThreadList () {
   const setThreadSearchAction = useCallback((search) => dispatch(setThreadSearch(search)), [])
 
   const onSearchChange = event => {
-    console.log('Search input changed:', event.target.value)
     const searchTerm = event.target.value
     setThreadSearchAction(searchTerm)
   }
 
   const handleContainerClick = (e) => {
-    // Don't focus if clicking on a link or button
     if (e.target.closest('a') || e.target.closest('button')) return
     searchInputRef.current?.focus()
   }
@@ -73,60 +70,32 @@ function ThreadList () {
   }, [])
 
   const displayThreads = useMemo(() => {
-    console.log('Current search term from state:', threadSearch)
     if (!threadSearch) return threads
-    
+    const normalizedSearch = threadSearch.toLowerCase()
     return threads.filter(thread => {
-      console.log('Starting filter for thread:', {
-        threadId: thread.id,
-        searchTerm: threadSearch,
-        threadCount: threads.length
-      })
-      
-      // Check participant names
       const participants = toRefArray(thread.participants || {})
-      if (participants.some(p => p.name?.toLowerCase().includes(threadSearch))) {
-        return true
-      }
-      
-      // Check messages
+      const participantMatch = participants.some(p =>
+        (p.name || '').toLowerCase().includes(normalizedSearch)
+      )
       const messages = itemsToArray(toRefArray(thread.messages))
       const messageMatch = messages.some(msg => {
-        const text = msg.text || msg.content || ''
-        const matches = text.toLowerCase().includes(threadSearch)
-        console.log('Message content check:', {
-          threadId: thread.id,
-          messageId: msg.id,
-          originalText: text,
-          cleanText: text.toLowerCase(),
-          searchTerm: threadSearch,
-          matches
-        })
-        return matches
+        const messageContent = [
+          msg.text,
+          msg.content,
+          msg.body,
+          msg.message,
+          msg.lastMessage,
+          typeof msg === 'string' ? msg : null
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .replace(/<[^>]*>/g, '')
+        return messageContent.includes(normalizedSearch)
       })
-
-      console.log('Thread filter result:', {
-        threadId: thread.id,
-        participantMatch: false,
-        messageMatch,
-        shouldInclude: messageMatch,
-        messageCount: messages.length
-      })
-
-      return messageMatch
+      return participantMatch || messageMatch
     })
   }, [threads, threadSearch])
-
-  console.log('Threads before/after filtering:', {
-    originalThreads: threads,
-    filteredThreads: displayThreads,
-    searchTerm: threadSearch
-  })
-
-  // Add this to watch for search term changes
-  useEffect(() => {
-    console.log('Thread search updated:', threadSearch)
-  }, [threadSearch])
 
   return (
     <div
