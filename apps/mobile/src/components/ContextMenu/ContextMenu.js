@@ -2,9 +2,7 @@ import React, { useMemo, useEffect } from 'react'
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
-import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG, ALL_GROUPS_CONTEXT_SLUG } from '@hylo/shared'
 import { widgetUrl as makeWidgetUrl } from 'util/navigation'
-import FastImage from 'react-native-fast-image'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup, { useCurrentGroupSlug } from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
@@ -15,15 +13,12 @@ import useLogout from 'hooks/useLogout'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import { openURL } from 'hooks/useOpenURL'
-import { DEFAULT_APP_HOST } from 'navigation/linking'
-import { URL } from 'react-native-url-polyfill'
 import Loading from 'components/Loading'
 
 export default function ContextMenu () {
   const { myHome, groupSlug } = useRouteParams()
   // TODO redesign: myHome is probably redundant now and likely can be stripped out"
   const [{ currentGroup, fetching }] = useCurrentGroup({ setToGroupSlug: groupSlug })
-  const currentGroupSlug = useCurrentGroupSlug()
   const navigation = useNavigation()
   const { t } = useTranslation()
   const contextWidgets = currentGroup?.contextWidgets || []
@@ -80,7 +75,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath }) {
 
   const handleWidgetPress = widget => {
     const context = currentGroup?.isContextGroup ? currentGroup?.slug : 'groups'
-    const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.isContextGroup ? null : currentGroup?.slug })
+    const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.isContextGroup ? null : currentGroup?.slug, context })
 
     openURL(linkingPath)
   }
@@ -144,9 +139,6 @@ function ContextMenuItem ({ widget, groupSlug, rootPath }) {
 }
 
 function ChildWidgetRenderer ({ widget, rootPath, groupSlug, handleWidgetPress }) {
-  const { t } = useTranslation()
-  const itemUrl = makeWidgetUrl({ widget, rootPath, groupSlug, context: 'group' })
-
   return (
     <TouchableOpacity
       key={widget.id + widget.title}
