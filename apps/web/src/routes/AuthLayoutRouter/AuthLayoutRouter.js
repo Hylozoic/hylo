@@ -99,7 +99,7 @@ export default function AuthLayoutRouter (props) {
 
   const hasDetail = useMemo(() => {
     const detailRegex = /\/(group|post)\/([a-zA-Z0-9-]+)/
-    return detailRegex.test(location.pathname) && (location.pathname.includes('map/') || location.pathname.includes('explore/'))
+    return detailRegex.test(location.pathname) && (location.pathname.includes('map/') || location.pathname.includes('explore/') || location.pathname.includes('groups/'))
   }, [location.pathname])
 
   const paramPostId = useMemo(() => {
