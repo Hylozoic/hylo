@@ -185,11 +185,11 @@ export async function updateTopicFollow (userId, { id, data }) {
       // If notifications are being set for the first time, this counts as "subscribing" to the chat room
       //  Set the lastReadPostId to the most recent post id so when viewing the chat room for the first time you start at the latest post
       //  and set the newPostCount to 0 because there are no new posts
-      whitelist.last_read_post_id = await Post.query(q => q.select(bookshelf.knex.raw("max(posts.id) as max"))).fetch({ transacting }).then(result => result.get('max'))
+      whitelist.last_read_post_id = await Post.query(q => q.select(bookshelf.knex.raw("max(posts.id) as max"))).fetch().then(result => result.get('max'))
 
       whitelist.new_post_count = 0
     }
-    const newSettings = tagFollow.settings || '{}'
+    const newSettings = tagFollow.settings || {}
     newSettings.notifications = data.settings.notifications
     whitelist.settings = JSON.stringify(newSettings)
   }

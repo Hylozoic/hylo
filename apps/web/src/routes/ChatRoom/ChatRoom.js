@@ -281,8 +281,9 @@ export default function ChatRoom (props) {
         if (lastReadPostIndex !== -1) {
           setInitialPostToScrollTo(lastReadPostIndex)
         } else {
-          console.error('Something went wrong, last read post not found in postsPast or postsFuture', topicFollow?.lastReadPostId)
-          setInitialPostToScrollTo(null)
+          // XXX: When joining a room we set the lastReadPostId to the largest post id in the database as a hack to bring people to the most recent post when they join a chat room
+          // But more posts could have been added since we did this, so we if we can't find the last read post id, we scroll to the most recent post
+          setInitialPostToScrollTo(postsForDisplay.length - 1)
         }
       }
     } else {
