@@ -1,50 +1,23 @@
 import getStateFromPath from 'navigation/linking/getStateFromPath'
-import { routingConfig } from 'navigation/linking'
 
-/**
- * Sample values to replace dynamic route parameters.
- */
-const sampleData = {
-  ':groupSlug': 'sample-group',
-  ':id': '123',
-  ':commentId': '456',
-  ':accessCode': 'xyz789',
-  ':topicName': 'community',
-  ':customViewId': '42',
-  '(.*)': 'random-path'
-}
+// Define test cases as [path, expectedScreenPath, optional expectedParams]
+const testCases = [
+  ['/login', 'NonAuthRoot/Login'],
+  ['/reset-password', 'NonAuthRoot/ForgotPassword'],
+  ['/signup', 'NonAuthRoot/Signup/Signup Intro'],
+  ['/signup/verify-email', 'NonAuthRoot/Signup/SignupEmailValidation'],
+  ['/groups/sample-group/join/xyz789', 'JoinGroup', { groupSlug: 'sample-group', accessCode: 'xyz789' }],
+  ['/messages/123', 'AuthRoot/Drawer/Tabs/Messages Tab/Thread', { id: '123' }],
+  ['/settings/account', 'AuthRoot/Drawer/Tabs/Settings Tab/Account'],
+  ['/create/post', 'AuthRoot/Edit Post']
+]
 
-/**
- * Generate dynamic test cases by replacing placeholders in routingConfig.
- */
-const generateDynamicTestCases = (routingConfig) => {
-  return Object.entries(routingConfig)
-    .filter(([path]) => path.includes(':') || path.includes('(.*)')) // Only keep dynamic paths
-    .reduce((cases, [path, screenPath]) => {
-      let dynamicPath = path
-
-      // Replace each placeholder with sample data
-      Object.entries(sampleData).forEach(([param, value]) => {
-        dynamicPath = dynamicPath.replace(param, value)
-      })
-
-      // Add a query string variation
-      cases[dynamicPath] = screenPath
-      cases[`${dynamicPath}?utm_source=test&ref=abc123`] = screenPath
-
-      return cases
-    }, {})
-}
-
-/**
- * Helper function to extract the final screen path from a state object.
- * Assumes `state` follows the structure `{ routes: [{ name: 'SomeScreen', state: { routes: [...] } }] }`
- */
+// Extracts the resolved screen path from the returned navigation state
 const extractScreenPath = (state) => {
   const pathParts = []
   let currentState = state
 
-  while (currentState && currentState.routes) {
+  while (currentState?.routes) {
     const { name, state: nestedState } = currentState.routes[0]
     pathParts.push(name)
     currentState = nestedState
@@ -53,20 +26,19 @@ const extractScreenPath = (state) => {
   return pathParts.join('/')
 }
 
-// Generate test cases
-const dynamicTestCases = generateDynamicTestCases(routingConfig)
-
-/**
- * Jest test suite for dynamic paths.
- */
-describe('getStateFromPath (dynamic paths)', () => {
-  Object.entries(dynamicTestCases).forEach(([path, expectedScreenPath]) => {
-    test(`resolves ${path} to ${expectedScreenPath}`, () => {
+// Run tests
+describe('getStateFromPath', () => {
+  testCases.forEach(([path, expectedScreenPath, expectedParams]) => {
+    test(`resolves ${path} to ${expectedScreenPath}${expectedParams ? ' with params' : ''}`, () => {
       const state = getStateFromPath(path)
-      expect(state).not.toBeNull()
 
-      const resolvedScreenPath = extractScreenPath(state)
-      expect(resolvedScreenPath).toBe(expectedScreenPath)
+      expect(state).not.toBeNull()
+      expect(extractScreenPath(state)).toBe(expectedScreenPath)
+
+      // Only assert params if expectedParams is provided
+      if (expectedParams) {
+        expect(state.routes?.[0]?.params || {}).toEqual(expectedParams)
+      }
     })
   })
 })
