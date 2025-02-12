@@ -66,7 +66,7 @@ describe('getStateFromPath (static & dynamic paths)', () => {
       })
     } else {
       // 🚨 Pending test case → Prints structured output without cluttering console
-      test.failing(`☑️ ${path} untested path match result`, (t) => {
+      test.failing(`❌ ${path} untested path match result`, (t) => {
         const state = getStateFromPath(path)
         const resolvedScreenPath = extractScreenPath(state)
         const resolvedParams = getDeepestRoute(state.routes[0])?.params || {}
