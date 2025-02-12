@@ -98,8 +98,9 @@ export default function AuthLayoutRouter (props) {
   }, [location.pathname])
 
   const hasDetail = useMemo(() => {
+    // TODO: fix this hacky way to determine whether to open up the detail pane
     const detailRegex = /\/(group|post)\/([a-zA-Z0-9-]+)/
-    return detailRegex.test(location.pathname) && (location.pathname.includes('map/') || location.pathname.includes('explore/') || location.pathname.includes('groups/'))
+    return detailRegex.test(location.pathname) && (location.pathname.includes('map/') || location.pathname.includes('explore/') || location.pathname.includes('groups/group'))
   }, [location.pathname])
 
   const paramPostId = useMemo(() => {
