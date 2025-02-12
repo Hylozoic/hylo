@@ -22,19 +22,19 @@ export function useGroup ({
   },
   useQueryArgs = {}
 } = {}) {
-  const { t } = useTranslation()
+  const [{ currentUser, fetching: userFetching, error: userError }] = useCurrentUser({ pause: useQueryArgs?.pause || !groupSlug })
   const contextGroup = useMemo(() => getContextGroup(groupSlug, groupId), [groupSlug, groupId])
   const pause = !!contextGroup || useQueryArgs?.pause || (!groupSlug && !groupId)
-  const [{ data, fetching, error }, reQuery] = useQuery({
+  const [{ data, fetching: groupFetching, error: groupError }, reQuery] = useQuery({
     ...useQueryArgs,
     query: groupDetailsQueryMaker(groupQueryScope),
     variables: { id: groupId, slug: groupSlug },
     pause
   })
   const rawGroup = contextGroup || data?.group
-  const group = useMemo(() => rawGroup && GroupPresenter(rawGroup, { t }), [rawGroup])
+  const group = useMemo(() => rawGroup && GroupPresenter(rawGroup, { currentUser }), [rawGroup, currentUser])
 
-  return [{ group, isContextGroupSlug: !!isContextGroupSlug(groupSlug), fetching, error }, contextGroup ? () => {} : reQuery]
+  return [{ group, isContextGroupSlug: !!isContextGroupSlug(groupSlug), fetching: userFetching || groupFetching, error: groupError || userError }, contextGroup ? () => {} : reQuery]
 }
 
 export function useCurrentGroupSlug (setToGroupSlug, useQueryArgs = {}) {
@@ -61,7 +61,7 @@ export function useCurrentGroupSlug (setToGroupSlug, useQueryArgs = {}) {
     return null
   }, [setToGroupSlug, currentGroupSlug, lastViewedGroup])
 
-  return [{ currentGroupSlug: groupSlug, fetching, error }]
+  return [{ currentGroupSlug: groupSlug, setCurrentGroupSlug, fetching, error }]
 }
 
 export default function useCurrentGroup ({

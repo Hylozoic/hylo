@@ -9,13 +9,12 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import useStreamQueryVariables from '@hylo/hooks/useStreamQueryVariables'
 import { useTranslation } from 'react-i18next'
-import { PUBLIC_GROUP_ID, ALL_GROUP_ID, isContextGroupSlug, MY_CONTEXT_ID } from '@hylo/presenters/GroupPresenter'
+import { PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
 import useRouteParams from 'hooks/useRouteParams'
 import makeStreamQuery from './makeStreamQuery'
 import StreamHeader from './StreamHeader'
 import PostRow from './PostRow'
 import CreateGroupNotice from 'components/CreateGroupNotice'
-import GroupWelcomeCheck from 'components/GroupWelcomeCheck'
 import Icon from 'components/Icon'
 import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
@@ -139,9 +138,7 @@ export default function Stream () {
 
       if (
         currentGroup?.id &&
-        slug !== ALL_GROUP_ID &&
-        slug !== PUBLIC_GROUP_ID &&
-        slug !== MY_CONTEXT_ID &&
+        !currentGroup?.isContextGroup &&
         sortBy === DEFAULT_SORT_BY_ID &&
         !fetchPostParam.filter
       ) {
@@ -166,7 +163,7 @@ export default function Stream () {
   }, [fetchPostParam, refetchPosts])
 
   const fetchMorePosts = useCallback(() => {
-    if (posts && !fetching) {
+    if (hasMore && !fetching) {
       setOffset(curOffset => curOffset + posts?.length)
     }
   }, [hasMore, fetching, postIds])
@@ -214,7 +211,6 @@ export default function Stream () {
 
   return (
     <View style={styles.container}>
-      <GroupWelcomeCheck />
       <FlashList
         estimatedItemSize={100}
         ref={ref}
@@ -224,7 +220,7 @@ export default function Stream () {
             context={fetchPostParam?.context}
             post={item}
             forGroupId={currentGroup?.id}
-            showGroups={!currentGroup?.id || isContextGroupSlug(currentGroup?.slug)}
+            showGroups={!currentGroup?.id || currentGroup?.isContextGroup}
           />
         )}
         onRefresh={refreshPosts}
