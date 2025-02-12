@@ -1,18 +1,19 @@
 import PropTypes from 'prop-types'
-import React from 'react'
+import React, { forwardRef } from 'react'
 import { cn } from 'util/index'
 import RoundImage from 'components/RoundImage'
 import classes from './PeopleListItem.module.scss'
 
-export default function PeopleListItem ({ active, onClick, onMouseOver, person, className }) {
+const PeopleListItem = forwardRef(({ active, onClick, onMouseOver, person, className }, ref) => {
   return (
-    <li 
+    <li
+      ref={ref}
       className={cn(
         'hover:bg-selected hover:scale-105 flex items-center transition-all bg-transparent hover:cursor-pointer p-2',
         { [classes.active]: active },
         className
-      )} 
-      onClick={onClick} 
+      )}
+      onClick={onClick}
       onMouseOver={onMouseOver}
     >
       <div className='min-w-[30px]'><RoundImage url={person.avatarUrl} medium /></div>
@@ -22,7 +23,9 @@ export default function PeopleListItem ({ active, onClick, onMouseOver, person, 
       </div>
     </li>
   )
-}
+})
+
+PeopleListItem.displayName = 'PeopleListItem'
 
 PeopleListItem.propTypes = {
   active: PropTypes.bool,
@@ -36,3 +39,5 @@ PeopleListItem.propTypes = {
     group: PropTypes.string
   })
 }
+
+export default PeopleListItem

@@ -153,6 +153,7 @@ export default function PeopleSelector (props) {
               props.onFocus?.(e)
             }}
             value={currentText}
+            autoFocus={props.autoFocus}
           />
 
           {peopleSelectorOpen

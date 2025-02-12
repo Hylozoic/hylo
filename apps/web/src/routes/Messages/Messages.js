@@ -179,6 +179,7 @@ const Messages = () => {
           selectPerson={addParticipant}
           removePerson={removeParticipant}
           peopleSelectorOpen={peopleSelectorOpen}
+          autoFocus={forNewThread}
         />
       </div>
       )
