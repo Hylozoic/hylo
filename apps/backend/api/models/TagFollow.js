@@ -21,8 +21,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
 }, HasSettings), {
   create: async function (attrs, { transacting } = {}) {
-    const settings = attrs.settings || { }
-    return this.forge(Object.assign({ created_at: new Date() }, settings, attrs)).save({}, { transacting })
+    attrs.settings = attrs.settings || { }
+    return this.forge(Object.assign({ created_at: new Date() }, attrs)).save({}, { transacting })
   },
 
   // TODO: re-evaluate what subscribing means. How does it related to chat rooms and their notification settings?
@@ -62,8 +62,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
         attrs.last_read_post_id = await Post.query(q => q.select(bookshelf.knex.raw("max(posts.id) as max"))).fetch({ transacting }).then(result => result.get('max'))
         attrs.new_post_count = 0
 
-        await tagFollow.save(attrs, { transacting })
-
         // Increment the number of followers for the tag in the group
         // TODO: re-evaluate what a follower means. how does it related to chat rooms and their notification settings?
         const query = GroupTag.query(q => {
@@ -79,7 +77,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     if (!tagFollow) {
       tagFollow = await TagFollow.create(attrs, { transacting })
+    } else {
+      await tagFollow.save(attrs, { transacting })
     }
+
     return tagFollow
   },
 

@@ -270,7 +270,7 @@ export default function ChatRoom (props) {
 
   const resetInitialPostToScrollTo = useCallback(() => {
     if (loadedPast && loadedFuture) {
-      if (!topicFollow?.lastReadPostId) {
+      if (!topicFollow?.lastReadPostId || postsForDisplay.length === 0) {
         setInitialPostToScrollTo(0)
       } else if (topicFollow?.lastReadPostId > postsForDisplay[postsForDisplay.length - 1].id) {
         // XXX: We set the lastReadPostId to the largest post id as a hack to bring people to the most recent post when they join a chat room
