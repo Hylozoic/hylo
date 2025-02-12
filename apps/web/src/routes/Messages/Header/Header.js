@@ -2,7 +2,6 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { isEmpty, filter, get, map } from 'lodash/fp'
-import { cn } from 'util/index'
 import Icon from 'components/Icon'
 import { personUrl } from 'util/navigation'
 import { others } from 'store/models/MessageThread'
@@ -69,10 +68,12 @@ export default class Header extends React.Component {
           {!pending && (
             <div className='text-foreground flex flex-wrap gap-2'>
               {displayNames}
-              {andOthers && 'and' && <span className='text-foreground text-base p-2 bg-black/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>
-                {andOthers}
-                {showArrow && !showAll && <Icon name='ArrowDown' className='text-foreground ml-1' onClick={this.toggleShowAll} />}
-              </span>}
+              {andOthers && 'and' && (
+                <span className='text-foreground text-base p-2 bg-black/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>
+                  {andOthers}
+                  {showArrow && !showAll && <Icon name='ArrowDown' className='text-foreground ml-1' onClick={this.toggleShowAll} />}
+                </span>
+              )}
               {showAll && <span className='text-foreground text-base p-2 bg-black/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>Show Less <Icon name='ArrowUp' className='text-foreground ml-1' /></span>}
             </div>
           )}

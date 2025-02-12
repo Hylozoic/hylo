@@ -128,7 +128,6 @@ export default function ChatRoom (props) {
   const dispatch = useDispatch()
   const routeParams = useParams()
   const location = useLocation()
-  const { t } = useTranslation()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
 
@@ -468,8 +467,6 @@ export default function ChatRoom (props) {
     }
     return true
   })
-
-  const postsForDisplay = useMemo(() => (postsPast || []).concat(postsFuture || []), [postsPast, postsFuture])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {

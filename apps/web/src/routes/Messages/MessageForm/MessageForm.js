@@ -17,7 +17,6 @@ const MessageForm = React.memo(forwardRef((props, ref) => {
   const { t } = useTranslation()
   const _ref = useRef(null)
   const textareaRef = ref || _ref
-  const initialFocusRef = useRef(false)
 
   const handleSubmit = event => {
     if (event) event.preventDefault()

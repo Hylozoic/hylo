@@ -162,7 +162,7 @@ export default function ResponsibilitiesTab ({ group }) {
         {!unsavedRolePresent && (
           <button className='focus:text-foreground text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2' onClick={handleAddResponsibility}>
             <span>{t('Create new responsibility')}</span>
-            <Icon name='Circle-Plus' className='text-foreground h-[20px]'/>
+            <Icon name='Circle-Plus' className='text-foreground h-[20px]' />
           </button>
         )}
       </SettingsSection>
@@ -185,7 +185,6 @@ function ResponsibilityRow ({
   type,
   t
 }) {
-  const inactiveStyle = draft ? styles.inactive : ''
   if (showType !== type) return null
   return (
     <div className={cn('bg-foreground/5 mb-2 rounded-lg p-2')}>
@@ -194,7 +193,7 @@ function ResponsibilityRow ({
         {!draft && type !== 'system' && !changed && (<span onClick={onServerDelete}><Icon name='Trash' /> {t('Delete')}</span>)}
         {draft && <span className={styles.action} onClick={onSave}><Icon name='Plus' /> {t('Create')}</span>}
         {!draft && changed && (<span onClick={onUpdate}><Icon name='Unlock' /> {t('Save')}</span>)}
-        {!draft && changed && (<span  onClick={onReset}><Icon name='Back' /> {t('Revert')}</span>)}
+        {!draft && changed && (<span onClick={onReset}><Icon name='Back' /> {t('Revert')}</span>)}
       </div>
       {type === 'group' &&
         <div className={styles.responsibilityRow}>
