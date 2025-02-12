@@ -194,7 +194,7 @@ const Messages = () => {
   useEffect(() => {
     setHeaderDetails({
       title: header,
-      icon: 'Messages',
+      icon: messageThreadId ? undefined : 'Messages',
       search: false
     })
   }, [forNewThread, messageThreadId, peopleSelectorOpen, participants, contacts, messagesPending])

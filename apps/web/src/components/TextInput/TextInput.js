@@ -16,9 +16,20 @@ import styles from './TextInput.module.scss'
 //
 
 export default function TextInput (props) {
-  const { theme = {}, onChange, value, inputRef, className, noClearButton, loading, label, internalLabel } = props
+  const {
+    theme = {},
+    onChange,
+    value,
+    inputRef,
+    className,
+    inputClassName,
+    noClearButton,
+    loading,
+    label,
+    internalLabel
+  } = props
   const onKeyDown = props.onEnter ? onEnter(props.onEnter) : () => {}
-  const otherProps = omit(['onEnter', 'className', 'inputRef', 'theme', 'noClearButton', 'loading', 'label', 'internalLabel'], props)
+  const otherProps = omit(['onEnter', 'className', 'inputRef', 'theme', 'noClearButton', 'loading', 'label', 'internalLabel', 'inputClassName'], props)
   const clear = () => onChange && onChange({ target: { name: props.name, value: '' } })
 
   const [active, setActive] = useState(false)
@@ -33,7 +44,11 @@ export default function TextInput (props) {
   return (
     <div className={cn(theme.wrapperStyle || styles.wrapper, theme.wrapper || className)}>
       <input
-        className={cn(styles[theme.inputStyle] || styles.input, theme.input)}
+        className={cn(
+          styles[theme.inputStyle],
+          theme.input,
+          inputClassName
+        )}
         {...{ onKeyDown, ...otherProps }}
         ref={inputRef}
         aria-label={label || internalLabel}

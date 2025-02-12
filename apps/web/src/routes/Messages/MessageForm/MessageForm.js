@@ -12,11 +12,12 @@ import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import styles from './MessageForm.module.scss'
 
-const MessageForm = forwardRef((props, ref) => {
+const MessageForm = React.memo(forwardRef((props, ref) => {
   const [hasFocus, setHasFocus] = useState(false)
   const { t } = useTranslation()
   const _ref = useRef(null)
   const textareaRef = ref || _ref
+  const initialFocusRef = useRef(false)
 
   const handleSubmit = event => {
     if (event) event.preventDefault()
@@ -60,7 +61,6 @@ const MessageForm = forwardRef((props, ref) => {
     >
       <RoundImage url={get('avatarUrl', currentUser)} medium />
       <TextareaAutosize
-        autoFocus
         value={messageText}
         className='text-foreground bg-transparent w-full my-2 focus:outline-none mt-0'
         ref={(tag) => (textareaRef.current = tag)}
@@ -77,7 +77,16 @@ const MessageForm = forwardRef((props, ref) => {
       </button>
     </form>
   )
+}), (prevProps, nextProps) => {
+  // Only re-render if these props change
+  return (
+    prevProps.currentUser?.id === nextProps.currentUser?.id &&
+    prevProps.messageText === nextProps.messageText &&
+    prevProps.pending === nextProps.pending
+  )
 })
+
+MessageForm.displayName = 'MessageForm' // For better debugging
 
 MessageForm.propTypes = {
   className: PropTypes.string,
