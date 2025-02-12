@@ -54,8 +54,6 @@ export default function GroupWelcomeLanding ({ route }) {
   const [, updateMembershipSettings] = useMutation(updateMembershipMutation)
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
-  // TODO redesign: there are instances where this can be rendered and then the groupSlug is changed to a contextGroup and this explodes. Need to address this
-  // TODO redesign: this also gets weird when you switch groups; the selected group renders the Group Welcome, even if you've already done that for that group
   const [{ currentGroup }] = useCurrentGroup()
   const currentStepIndex = useSelector(getCurrentStepIndex)
   const currentMemberships = currentUser?.memberships
@@ -68,7 +66,7 @@ export default function GroupWelcomeLanding ({ route }) {
   const bgImageSource = { uri: bannerUrl || DEFAULT_BANNER }
 
   // Agreements logic
-  const numAgreements = agreements?.length || 0
+  const numAgreements = agreements?.items?.length || 0
   const [acceptedAgreements, setAcceptedAgreements] = useState(Array(numAgreements).fill(false))
   const numAcceptedAgreements = acceptedAgreements.reduce((count, agreement) => count + (agreement ? 1 : 0), 0)
   const acceptedAllAgreements = numAcceptedAgreements === numAgreements
@@ -80,14 +78,11 @@ export default function GroupWelcomeLanding ({ route }) {
   const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!currentGroup?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
 
   useEffect(() => {
-    if (!showJoinForm &&
-      !agreementsChanged &&
-      (joinQuestionsAnsweredAt ||
-      !currentGroup?.settings?.askJoinQuestions)) {
-      // TODO: Should use useChangeToGroup hook, or simply navigate to Stream because this is already the currentGroup
+    if (!currentGroup.shouldWelcome) {
+      // TODO redesign: change this to the group's default view aka home view
       navigation.navigate('Stream', { groupId: currentGroup?.id, initial: false })
     }
-  }, [showJoinForm, agreementsChanged, joinQuestionsAnsweredAt])
+  }, [currentGroup])
 
   useEffect(() => {
     if (numAgreements > 0) {
@@ -153,12 +148,12 @@ export default function GroupWelcomeLanding ({ route }) {
         </View>
         <View style={{ flex: 1, gap: 6, paddingLeft: 16, paddingRight: 16 }}>
           {currentStepIndex === 0 && <LandingBodyContent description={description} purpose={purpose} currentStepIndex={currentStepIndex} />}
-          {routeNames[currentStepIndex] === GROUP_WELCOME_AGREEMENTS && <AgreementsBodyContent agreements={agreements} agreementsChanged={agreementsChanged} acceptedAgreements={acceptedAgreements} handleCheckAgreement={handleCheckAgreement} acceptedAllAgreements={acceptedAllAgreements} handleCheckAllAgreements={handleCheckAllAgreements} numAgreements={numAgreements} />}
+          {routeNames[currentStepIndex] === GROUP_WELCOME_AGREEMENTS && <AgreementsBodyContent agreements={agreements.items} agreementsChanged={agreementsChanged} acceptedAgreements={acceptedAgreements} handleCheckAgreement={handleCheckAgreement} acceptedAllAgreements={acceptedAllAgreements} handleCheckAllAgreements={handleCheckAllAgreements} numAgreements={numAgreements} />}
           {routeNames[currentStepIndex] === GROUP_WELCOME_JOIN_QUESTIONS && <JoinQuestionsBodyContent questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} setAllQuestionsAnswered={setAllQuestionsAnswered} />}
           {routeNames[currentStepIndex] === GROUP_WELCOME_SUGGESTED_SKILLS && <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={currentGroup} removeSkill={removeSkill} />}
         </View>
       </ScrollView>
-      <GroupWelcomeTabBar group={currentGroup} agreements={agreements} acceptedAllAgreements={acceptedAllAgreements} handleAccept={handleAccept} allQuestionsAnswered={allQuestionsAnswered} />
+      <GroupWelcomeTabBar group={currentGroup} agreements={agreements.items} acceptedAllAgreements={acceptedAllAgreements} handleAccept={handleAccept} allQuestionsAnswered={allQuestionsAnswered} />
     </View>
   )
 }

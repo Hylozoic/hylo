@@ -15,7 +15,6 @@ import makeStreamQuery from './makeStreamQuery'
 import StreamHeader from './StreamHeader'
 import PostRow from './PostRow'
 import CreateGroupNotice from 'components/CreateGroupNotice'
-import GroupWelcomeCheck from 'components/GroupWelcomeCheck'
 import Icon from 'components/Icon'
 import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
@@ -212,7 +211,6 @@ export default function Stream () {
 
   return (
     <View style={styles.container}>
-      <GroupWelcomeCheck />
       <FlashList
         estimatedItemSize={100}
         ref={ref}

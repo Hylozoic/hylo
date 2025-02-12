@@ -1,7 +1,7 @@
 import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
 import ContextWidgetPresenter, { getStaticMenuWidgets } from './ContextWidgetPresenter'
 
-export default function GroupPresenter (group) {
+export default function GroupPresenter (group, { currentUser }) {
   if (!group || group?._presented) return group
 
   return {
@@ -14,9 +14,26 @@ export default function GroupPresenter (group) {
     isPublicContext: group?.slug === PUBLIC_CONTEXT_SLUG,
     isMyContext: group?.slug === MY_CONTEXT_SLUG,
     isAllContext: group?.slug === ALL_GROUPS_CONTEXT_SLUG,
+    shouldWelcome: shouldWelcomeResolver(group, currentUser),
     _presented: true
   }
 }
+
+function shouldWelcomeResolver (group, currentUser) {
+  if (!group || !currentUser) return false
+  if (isContextGroupSlug(group.slug)) return false
+  const currentMembership = currentUser?.memberships &&
+    currentUser.memberships.find(m => m.group.id === group?.id)
+
+  const { agreementsAcceptedAt, joinQuestionsAnsweredAt, showJoinForm } = currentMembership?.settings || {}
+
+  const numAgreements = group?.agreements?.total || 0
+
+  const agreementsChanged = (!isContextGroupSlug(group?.slug) && numAgreements > 0) &&
+    (!agreementsAcceptedAt || agreementsAcceptedAt < group?.settings?.agreementsLastUpdatedAt)
+  
+  return ((!isContextGroupSlug(group?.slug) && showJoinForm) || agreementsChanged || (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt))
+ }
 
 function contextWidgetsResolver (group) {
   if (isContextGroupSlug(group.slug)) {
