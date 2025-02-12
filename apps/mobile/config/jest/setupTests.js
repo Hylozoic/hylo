@@ -3,6 +3,7 @@ import 'react-native-gesture-handler/jestSetup'
 import mockSafeAreaContext from 'react-native-safe-area-context/jest/mock'
 import mockClipboard from '@react-native-clipboard/clipboard/jest/clipboard-mock.js'
 
+// console.log(require.resolve('urql'));
 // Mocking the global.fetch included in React Native
 global.fetch = jest.fn() // eslint-disable-line no-undef
 global.XMLHttpRequest = jest.fn()

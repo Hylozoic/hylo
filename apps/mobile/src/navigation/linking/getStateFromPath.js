@@ -2,7 +2,7 @@ import { getStateFromPath as getStateFromPathDefault } from '@react-navigation/n
 import { isEmpty } from 'lodash/fp'
 import { match } from 'path-to-regexp'
 import { URL } from 'react-native-url-polyfill'
-import QueryString from 'query-string'
+import queryString from 'query-string'
 import store from 'store'
 import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
 import {
@@ -72,7 +72,7 @@ export function addParamsToScreenPath (routeMatch) {
     const routeParams = []
 
     if (!isEmpty(search)) routeParams.push(search.substring(1))
-    if (!isEmpty(pathMatch.params)) routeParams.push(QueryString.stringify(pathMatch.params))
+    if (!isEmpty(pathMatch.params)) routeParams.push(queryString.stringify(pathMatch.params))
 
     // Needed for JoinGroup
     routeParams.push(`originalLinkingPath=${encodeURIComponent(pathname + search)}`)
