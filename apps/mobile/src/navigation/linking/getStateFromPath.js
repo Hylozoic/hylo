@@ -46,7 +46,7 @@ export function getRouteMatchForPath (providedPath, routes = routingConfig) {
   const pathname = url.pathname.toLowerCase()
 
   for (const linkingPathMatcher in routes) {
-    const pathMatch = match(linkingPathMatcher)(pathname)
+    const pathMatch = match(linkingPathMatcher, { decode: decodeURIComponent, sensitive: false })(pathname)
 
     if (pathMatch) {
       const screenPath = routes[linkingPathMatcher]
