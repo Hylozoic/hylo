@@ -289,7 +289,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         } else if (postType === 'proposal') {
           widgetToMove = allWidgets.find(w => w.view === 'decisions')
         } else if (postType === 'event') {
-          widgetToMove = allWidgets.find(w => w.view === 'event')
+          widgetToMove = allWidgets.find(w => w.view === 'events')
         } else if (postType === 'resource') {
           widgetToMove = allWidgets.find(w => w.view === 'resources')
         }
