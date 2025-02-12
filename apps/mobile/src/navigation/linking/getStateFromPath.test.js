@@ -44,7 +44,7 @@ const getDeepestRoute = (route) => {
 }
 
 // Run tests
-describe('getStateFromPath (static & dynamic paths)', () => {
+describe('getStateFromPath', () => {
   testCases.forEach((testCase) => {
     // Normalize test cases
     const path = Array.isArray(testCase) ? testCase[0] : testCase
@@ -60,22 +60,24 @@ describe('getStateFromPath (static & dynamic paths)', () => {
         expect(extractScreenPath(state)).toBe(expectedScreenPath)
 
         // Only assert params if expectedParams is provided
-        const expectedParamsWithDefault = { ...expectedParams, originalLinkingPath: path }
         const finalRoute = getDeepestRoute(state.routes[0]) // Find the deepest route where params exist
+        const expectedParamsWithDefault = { ...expectedParams, originalLinkingPath: path, pathMatcher: finalRoute.params.pathMatcher }
         expect(finalRoute.params || {}).toEqual(expectedParamsWithDefault)
       })
     } else {
       // 🚨 Pending test case → Prints structured output without cluttering console
       test.failing(`❌ ${path} untested path match result`, (t) => {
         const state = getStateFromPath(path)
+        if (!state) {
+          console.log(`${path}: (null)\n`)
+          return
+        }
         const resolvedScreenPath = extractScreenPath(state)
         const resolvedParams = getDeepestRoute(state.routes[0])?.params || {}
 
         // Format structured output
-        const formattedOutput = `${path}: ${resolvedScreenPath || '[null]'}\n` +
-          `${JSON.stringify(resolvedParams, null, 2)}\n`
-
-        console.info(formattedOutput)
+        console.log(`${path}: ${resolvedScreenPath || '[null]'}\n${JSON.stringify(resolvedParams, null, 2)}\n`)
+        console.log(`${state.pathMatcher}`)
         t.fail()
       })
     }

@@ -68,7 +68,6 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/post/:id':                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
   '/:context(groups)/:groupSlug/post/:id/comments/:commentId':`${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
   '/:context(groups)/:groupSlug/post/:id/edit':              `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-  '/:context(groups)/:groupSlug/:view'        :              `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab`,
 
   // /settings
   '/settings':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab/Edit Profile`,

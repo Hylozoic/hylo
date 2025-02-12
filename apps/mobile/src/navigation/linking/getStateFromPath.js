@@ -45,16 +45,17 @@ export function getRouteMatchForPath (providedPath, routes = routingConfig) {
   const url = new URL(providedPath, DEFAULT_APP_HOST)
   const pathname = url.pathname.toLowerCase()
 
-  for (const linkingPathMatcher in routes) {
-    const pathMatch = match(linkingPathMatcher, { decode: decodeURIComponent, sensitive: false })(pathname)
+  for (const pathMatcher in routes) {
+    const pathMatch = match(pathMatcher, { decode: decodeURIComponent, sensitive: false })(pathname)
 
     if (pathMatch) {
-      const screenPath = routes[linkingPathMatcher]
+      const screenPath = routes[pathMatcher]
 
       return {
         pathname,
-        search: url.search,
+        pathMatcher,
         pathMatch,
+        search: url.search,
         screenPath
       }
     }
@@ -65,15 +66,16 @@ export function addParamsToScreenPath (routeMatch) {
   if (routeMatch) {
     const {
       pathname,
-      search,
+      pathMatcher,
       pathMatch,
+      search,
       screenPath
     } = routeMatch
     const routeParams = []
 
     if (!isEmpty(search)) routeParams.push(search.substring(1))
     if (!isEmpty(pathMatch.params)) routeParams.push(queryString.stringify(pathMatch.params))
-
+    if (!isEmpty(pathMatcher)) routeParams.push(queryString.stringify({ pathMatcher }))
     // Needed for JoinGroup
     routeParams.push(`originalLinkingPath=${encodeURIComponent(pathname + search)}`)
 
