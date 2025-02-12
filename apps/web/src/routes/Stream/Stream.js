@@ -128,8 +128,8 @@ export default function Stream (props) {
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
   // for calendar viewmode
-  const [mode, setMode] = useState('month')
-  const [date, setDate] = useState(new Date())
+  const [calendarMode, setCalendarMode] = useState('month')
+  const [calendarDate, setCalendarDate] = useState(new Date())
 
   const fetchPostsParam = useMemo(() => {
     const params = {
@@ -146,8 +146,8 @@ export default function Stream (props) {
     }
 
     if (viewMode === 'calendar') {
-      const luxonDate = DateTime.fromJSDate(date)
-      switch (mode) {
+      const luxonDate = DateTime.fromJSDate(calendarDate)
+      switch (calendarMode) {
         case 'month':
           params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
           params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).endOf('day').toISO()
@@ -171,7 +171,7 @@ export default function Stream (props) {
       dispatch(dropPostResults(params))
     }
     return params
-  }, [childPostInclusion, context, customView, date, groupSlug, mode, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view, viewMode])
+  }, [calendarDate, calendarMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view, viewMode])
 
   let name = customView?.name || systemView?.name || ''
   let icon = customView?.icon || systemView?.iconName
@@ -399,10 +399,10 @@ export default function Stream (props) {
               posts={posts}
               routeParams={routeParams}
               querystringParams={querystringParams}
-              date={date}
-              setDate={setDate}
-              mode={mode}
-              setMode={setMode}
+              date={calendarDate}
+              setDate={setCalendarDate}
+              mode={calendarMode}
+              setMode={setCalendarMode}
             />
           </div>
         )}
