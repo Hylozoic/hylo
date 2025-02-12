@@ -15,13 +15,13 @@ import { white, rhino80 } from 'style/colors'
 
 // For now this list needs to be kept in sync with the names of the initial
 // routes for each stack in navigation/TabsNavigator.
-export const TAB_STACK_ROOTS = [
-  'Group Navigation',
-  'Messages Tab',
-  'Search Tab',
-  'Profile Tab',
-  'Group Welcome'
-]
+// export const TAB_STACK_ROOTS = [
+//   'Stream',
+//   'Messages Tab',
+//   'Search Tab',
+//   'Profile Tab',
+//   'Group Welcome'
+// ]
 
 export default function TabStackHeader ({
   navigation,
@@ -31,10 +31,10 @@ export default function TabStackHeader ({
   headerLeft,
   headerRight,
   // custom
-  rootsScreenNames = TAB_STACK_ROOTS,
+  // rootsScreenNames = TAB_STACK_ROOTS,
   ...otherProps
 }) {
-  const canGoBack = !rootsScreenNames.includes(route?.name)
+  // const canGoBack = !rootsScreenNames.includes(route?.name)
 
   const props = {
     headerBackTitleVisible: false,
@@ -59,19 +59,20 @@ export default function TabStackHeader ({
       let onPress = options.headerLeftOnPress
 
       if (!onPress) {
-        onPress = canGoBack
-          ? navigation.goBack
-          : navigation.openDrawer
+        onPress = navigation.openDrawer
+        // onPress = canGoBack
+        //   ? navigation.goBack
+        //   : navigation.openDrawer
 
-        if (canGoBack && !navigation.canGoBack()) {
-          onPress = () => navigation.navigate('Group Navigation')
-        }
+        // if (canGoBack && !navigation.canGoBack()) {
+        //   onPress = () => navigation.navigate('Group Navigation')
+        // }
       }
 
       return (
         <>
           <FocusAwareStatusBar barStyle='light-content' backgroundColor={rhino80} />
-          <MenuButton canGoBack={canGoBack} onPress={onPress} />
+          <MenuButton onPress={onPress} />
         </>
       )
     }),
@@ -116,9 +117,10 @@ export function MenuButton ({ canGoBack, onPress }) {
       labelVisible={false}
       backImage={() => (
         <View style={styles.container}>
-          {!canGoBack
+          <Icon name='Hamburger' style={styles.menuIcon} />
+          {/* {!canGoBack
             ? <Icon name='Hamburger' style={styles.menuIcon} />
-            : <Icon name='ArrowBack' style={styles.backIcon} />}
+            : <Icon name='ArrowBack' style={styles.backIcon} />} */}
           <FastImage source={{ uri: avatarUrl }} style={styles.avatar} />
         </View>
       )}

@@ -41,6 +41,8 @@ import {
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
   UPDATE_GROUP_TOPIC_PENDING,
+  UPDATE_TOPIC_FOLLOW,
+  UPDATE_TOPIC_FOLLOW_PENDING,
   UPDATE_POST,
   UPDATE_POST_PENDING,
   UPDATE_THREAD_READ_TIME,
@@ -116,14 +118,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     PostCommenter,
     ProjectMember,
     Skill,
-    Topic
+    Topic,
+    TopicFollow
   } = session
 
   if (payload && !isPromise(payload) && meta && meta.extractModel) {
     extractModelsFromAction(action, session)
   }
 
-  let me, membership, group, person, post, comment, groupTopic, childGroup
+  let me, membership, group, person, post, comment, groupTopic, childGroup, topicFollow
 
   switch (type) {
     case ACCEPT_GROUP_RELATIONSHIP_INVITE: {
@@ -289,7 +292,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         } else if (postType === 'proposal') {
           widgetToMove = allWidgets.find(w => w.view === 'decisions')
         } else if (postType === 'event') {
-          widgetToMove = allWidgets.find(w => w.view === 'event')
+          widgetToMove = allWidgets.find(w => w.view === 'events')
         } else if (postType === 'resource') {
           widgetToMove = allWidgets.find(w => w.view === 'resources')
         }
@@ -565,12 +568,12 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case RESET_NEW_POST_COUNT_PENDING: {
-      if (meta.type === 'GroupTopic') {
-        session.GroupTopic.withId(meta.id).update({ newPostCount: 0 })
+      if (meta.type === 'TopicFollow') {
+        session.TopicFollow.withId(meta.id).update({ newPostCount: meta.count })
       } else if (meta.type === 'Membership') {
         me = Me.first()
         const membership = Membership.safeGet({ group: meta.id, person: me.id })
-        membership && membership.update({ newPostCount: 0 })
+        membership && membership.update({ newPostCount: meta.count })
       }
       break
     }
@@ -692,6 +695,31 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       groupTopic = GroupTopic.withId(meta.id)
       groupTopic.update(meta.data)
       clearCacheFor(GroupTopic, meta.id)
+      break
+    }
+
+    case UPDATE_TOPIC_FOLLOW_PENDING: {
+      if (meta.data.lastReadPostId) {
+        topicFollow = TopicFollow.withId(meta.id)
+        topicFollow.update({ lastReadPostId: meta.data.lastReadPostId })
+        clearCacheFor(TopicFollow, meta.id)
+      }
+      break
+    }
+
+    case UPDATE_TOPIC_FOLLOW: {
+      const data = payload.data.updateTopicFollow
+      if (typeof data.newPostCount === 'number') {
+        group = Group.withId(data.group.id)
+        const contextWidgets = group.contextWidgets.items
+        const newContextWidgets = contextWidgets.map(cw => {
+          if (cw.type === 'chat' && cw.viewChat?.id === data.topic.id) {
+            return { ...cw, highlightNumber: data.newPostCount }
+          }
+          return cw
+        })
+        group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
+      }
       break
     }
 

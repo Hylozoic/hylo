@@ -9707,7 +9707,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@virtuoso.dev/message-list@npm:^1.9.3":
+"@virtuoso.dev/message-list@npm:^1.9.13":
   version: 1.9.13
   resolution: "@virtuoso.dev/message-list@npm:1.9.13"
   dependencies:
@@ -25344,6 +25344,7 @@ __metadata:
     babel-plugin-syntax-jsx: "npm:^6.18.0"
     babel-plugin-transform-remove-console: "npm:^6.9.4"
     babel-plugin-transform-runtime: "npm:^6.23.0"
+    clsx: "npm:^2.1.1"
     cross-fetch: "npm:^4.1.0"
     emoji-datasource-apple: "npm:^15.1.2"
     emoji-mart: "npm:^5.6.0"
@@ -36395,7 +36396,7 @@ __metadata:
     "@types/react-css-modules": "npm:^4.6.8"
     "@typescript-eslint/eslint-plugin": "npm:^8.18.2"
     "@typescript-eslint/parser": "npm:^8.18.2"
-    "@virtuoso.dev/message-list": "npm:^1.9.3"
+    "@virtuoso.dev/message-list": "npm:^1.9.13"
     "@vitejs/plugin-react": "npm:^4.3.3"
     autoprefixer: "npm:10.4.20"
     babel-jest: "npm:^29.7.0"

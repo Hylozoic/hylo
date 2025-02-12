@@ -11,7 +11,6 @@ import AllTopicsWebView from 'screens/AllTopicsWebView'
 import ChatRoom from 'screens/ChatRoomWebView'
 import Stream from 'screens/Stream'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
-import GroupNavigation from 'screens/GroupNavigation'
 import Groups from 'screens/Groups'
 import AllViews from 'screens/AllViews'
 import MemberDetails from 'screens/MemberProfile/MemberDetails'
@@ -70,7 +69,6 @@ export default function HomeNavigator ({ navigation }) {
 
   return (
     <HomeTab.Navigator {...navigatorProps}>
-      <HomeTab.Screen name='Group Navigation' component={GroupNavigation} />
       <HomeTab.Screen name='Stream' component={Stream} />
       <HomeTab.Screen name='All Views' component={AllViews} />
       <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />

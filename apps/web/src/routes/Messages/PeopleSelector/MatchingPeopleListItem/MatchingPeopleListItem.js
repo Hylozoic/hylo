@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import Icon from 'components/Icon'
-import classes from './MatchingPeopleListItem.module.scss'
 
 export default function MatchingPeopleListItem ({ avatarUrl, name, onClick }) {
   return (

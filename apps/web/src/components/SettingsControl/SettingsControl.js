@@ -16,16 +16,17 @@ export default function SettingsControl (props) {
       case 'textarea':
         control = (
           <div>
-          <TextareaAutosize
-            id={id}
-            minRows={1}
-            maxRows={100}
-            onChange={onChange}
-            readOnly={!onChange}
-            className='bg-black/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2'
-            value={value}
-            {...otherProps}
-          /></div>
+            <TextareaAutosize
+              id={id}
+              minRows={1}
+              maxRows={100}
+              onChange={onChange}
+              readOnly={!onChange}
+              className='bg-black/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2'
+              value={value}
+              {...otherProps}
+            />
+          </div>
         )
         break
       case 'icon-selector':

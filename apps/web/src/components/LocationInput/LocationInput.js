@@ -54,7 +54,7 @@ class LocationInput extends Component {
   handleSuggest = e => { }
 
   render () {
-    const { id, inputClass, locationObject, location, placeholder = this.props.t('Search for a location...'), mapboxToken, className } = this.props
+    const { id, locationObject, location, placeholder = this.props.t('Search for a location...'), mapboxToken, className } = this.props
     const centerAt = (locationObject && locationObject.center) || this.state.browserLocation
 
     return (

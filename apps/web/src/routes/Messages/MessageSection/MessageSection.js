@@ -1,4 +1,3 @@
-import { cn } from 'util/index'
 import { array, bool, func, object } from 'prop-types'
 import React, { useRef, useState, useEffect } from 'react'
 import { throttle, debounce } from 'lodash'
@@ -6,7 +5,6 @@ import { get } from 'lodash/fp'
 import Loading from 'components/Loading'
 import Message from '../Message'
 import ClickCatcher from 'components/ClickCatcher'
-import classes from './MessageSection.module.scss'
 
 // the maximum amount of time in minutes that can pass between messages to still
 // include them under the same avatar and timestamp

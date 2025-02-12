@@ -35,7 +35,6 @@ import { FETCH_MODERATION_ACTIONS, FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, 
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-// import getGroupTopicForCurrentRoute from 'store/selectors/getGroupTopicForCurrentRoute'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
