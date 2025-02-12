@@ -2,6 +2,7 @@ import React from 'react'
 import { StyleSheet, Text } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import Intercom from '@intercom/intercom-react-native'
+import { useNavigation } from '@react-navigation/native'
 import { isIOS } from 'util/platform'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import Icon from 'components/Icon'
@@ -10,11 +11,14 @@ import { black10OnCaribbeanGreen, gainsboro, gunsmoke, rhino05, rhino10, rhino60
 import HomeNavigator from 'navigation/HomeNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
 import MessagesNavigator from 'navigation/MessagesNavigator'
-import UserSettingsTabsNavigator from './UserSettingsTabsNavigator'
+import useChangeToGroup from 'hooks/useChangeToGroup'
+import { MY_CONTEXT_SLUG } from '@hylo/shared'
 
 const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
   const [{ currentUser }] = useCurrentUser()
+  const navigation = useNavigation()
+  const changeToGroup = useChangeToGroup()
   const messagesBadgeCount = currentUser?.unseenThreadCount > 0
     ? currentUser?.unseenThreadCount
     : null
@@ -54,6 +58,11 @@ export default function TabsNavigator () {
     Intercom.present()
   }
 
+  const handleMyContextPress = () => {
+    changeToGroup(MY_CONTEXT_SLUG, false)
+    navigation.openDrawer()
+  }
+
   return (
     <Tabs.Navigator {...navigatorProps}>
       <Tabs.Screen name='Home Tab' component={HomeNavigator} />
@@ -77,7 +86,14 @@ export default function TabsNavigator () {
       />
       <Tabs.Screen
         name='Settings Tab'
-        component={UserSettingsTabsNavigator}
+        component={HomeNavigator} // it will never navigate to this but we need to pass a valid component here anyway
+        listeners={{
+          tabPress: (e) => {
+            handleMyContextPress()
+
+            e.preventDefault()
+          }
+        }}
         options={{
           tabBarIcon: ({ focused }) => (
             <Avatar
