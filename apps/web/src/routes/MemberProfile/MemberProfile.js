@@ -182,7 +182,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             <Button className={styles.editProfileButton} onClick={() => push(currentUserSettingsUrl())}>
               <Icon name='Edit' /> {t('Edit Profile')}
             </Button>}
-          <div className={'w-full h-[40vh] flex flex-col items-center items-end justify-end pb-10 bg-cover'} style={bgImageStyle(person.bannerUrl)}>
+          <div className='w-full h-[40vh] flex flex-col items-center items-end justify-end pb-10 bg-cover' style={bgImageStyle(person.bannerUrl)}>
             <RoundImage className={styles.headerMemberAvatar} url={person.avatarUrl} xlarge />
             <h1 className={styles.headerMemberName}>{person.name}</h1>
             <div className={styles.badgeRow}>
@@ -201,16 +201,18 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             <ActionButtons items={actionButtonsItems} />
             <ActionDropdown items={actionDropdownItems} />
           </div>
-          {(person.tagline || person.bio) && <div className='flex items-center flex-col'>
-            {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}
-            {person.bio && (
-              <div className={cn('text-foreground text-center max-w-[720px]')}>
-                <ClickCatcher>
-                  <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
-                </ClickCatcher>
-              </div>
-            )}
-          </div>}
+          {(person.tagline || person.bio) && (
+            <div className='flex items-center flex-col'>
+              {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}
+              {person.bio && (
+                <div className={cn('text-foreground text-center max-w-[720px]')}>
+                  <ClickCatcher>
+                    <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
+                  </ClickCatcher>
+                </div>
+              )}
+            </div>
+          )}
           <div className='flex flex-col max-w-[720px]'>
             <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>
               {t('Skills & Interests')}
@@ -231,7 +233,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
               {memberships && memberships.length > 0 && memberships.map((m, index) => <Membership key={m.id} index={index} membership={m} />)}
             </div>
             {showExpandGroupsButton && (
-              <button onClick={toggleShowAllGroups} className={'text-sm font-bold mt-4 mb-2 text-center w-full block'}>
+              <button onClick={toggleShowAllGroups} className='text-sm font-bold mt-4 mb-2 text-center w-full block'>
                 {showAllGroups ? 'Show Less' : 'Show More'}
               </button>
             )}

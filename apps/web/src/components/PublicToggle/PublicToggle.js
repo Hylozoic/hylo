@@ -3,7 +3,6 @@ import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import { cn } from 'util/index'
 import SwitchStyled from 'components/SwitchStyled'
-import Icon from 'components/Icon'
 import classes from './PublicToggle.module.scss'
 const { func, bool } = PropTypes
 

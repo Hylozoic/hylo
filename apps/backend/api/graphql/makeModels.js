@@ -74,7 +74,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'created_at',
         'parent_id',
         'updated_at',
-        'highlightNumber',
         'secondaryNumber'
       ],
       relations: [
@@ -89,7 +88,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       getters: {
         // XXX: has to be a getter not a relation because belongsTo doesn't support multiple keys
-        groupTopic: cw => cw.groupTopic().fetch()
+        groupTopic: cw => cw.groupTopic().fetch(),
+        highlightNumber: cw => cw.highlightNumber(userId),
+        topicFollow: cw => cw.topicFollow(userId).fetch()
       },
       fetchMany: ({ groupId, includeUnordered }) => {
         return ContextWidget.collection().query(q => {
@@ -158,7 +159,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
             }
           }
         },
-        { messageThreads: { typename: 'MessageThread', querySet: true } }
+        { messageThreads: { typename: 'MessageThread', querySet: true } },
+        { tagFollows: { alias: 'topicFollows', querySet: true } }
       ],
       getters: {
         blockedUsers: u => u.blockedUsers().fetch(),
@@ -180,7 +182,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { user: { alias: 'person' } },
         { commonRoles: { querySet: true } },
         { membershipCommonRoles: { querySet: true } },
-        { joinQuestionAnswers: { querySet: true } }
+        { joinQuestionAnswers: { querySet: true } },
+        { tagFollows: { alias: 'topicFollows', querySet: true } }
       ],
       getters: {
         settings: m => mapKeys(camelCase, m.get('settings')),
@@ -1074,6 +1077,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
       }],
       fetchMany: ({ groupSlug, name, isDefault, visibility, autocomplete, first, offset = 0, sortBy }) =>
         searchQuerySet('tags', { userId, groupSlug, name, autocomplete, isDefault, visibility, limit: first, offset, sort: sortBy })
+    },
+
+    TopicFollow: {
+      model: TagFollow,
+      attributes: ['created_at', 'last_read_post_id', 'new_post_count', 'settings', 'updated_at' ],
+      relations: [
+        'group',
+        { tag: { alias: 'topic' } },
+        'user'
+      ],
+      fetchMany: args => TagFollow.query()
     },
 
     Notification: {

@@ -5,7 +5,6 @@ import { withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
-import BadgeEmoji from 'components/BadgeEmoji'
 import Dropdown from 'components/Dropdown'
 import Highlight from 'components/Highlight'
 import FlagContent from 'components/FlagContent'
@@ -63,7 +62,6 @@ class PostHeader extends PureComponent {
       unfulfillPost,
       updateProposalOutcome,
       postUrl,
-      roles,
       t
     } = this.props
 

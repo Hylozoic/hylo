@@ -141,12 +141,13 @@ export function humanDate (date, short) {
     // client side, it's "N+1 seconds ago"
     const match = ret.match(/(\d+) seconds? ago/)
     if (match) {
-      if (Number(match[1]) >= 50) return '1m ago'
-      return 'just now'
+      if (Number(match[1]) >= 50) return '1m'
+      return 'now'
     }
   }
 
-  return ret.replace(/ minutes?/, 'm')
+  return ret.replace(/ seconds?/, 's')
+    .replace(/ minutes?/, 'm')
     .replace(/ hours?/, 'h')
     .replace(/ days?/, 'd')
     .replace(/ weeks?/, 'w')

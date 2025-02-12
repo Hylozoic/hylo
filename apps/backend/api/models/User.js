@@ -666,11 +666,9 @@ module.exports = bookshelf.Model.extend(merge({
       created_at: new Date(),
       updated_at: new Date(),
       settings: {
-        digest_frequency: 'daily',
         signup_in_progress: true,
         dm_notifications: 'both',
-        comment_notifications: 'both',
-        post_notifications: 'all'
+        comment_notifications: 'both'
       },
       active: true
     }, omit(attributes, 'account', 'group', 'role'))
@@ -780,12 +778,12 @@ module.exports = bookshelf.Model.extend(merge({
 
   followTags: function (userId, groupId, tagIds, trx) {
     return Promise.each(tagIds, id =>
-      TagFollow.add({
-        userId: userId,
-        groupId: groupId,
+      TagFollow.findOrCreate({
+        userId,
+        groupId,
         tagId: id,
-        transacting: trx
-      })
+        isSubscribing: true
+      }, { transacting: trx })
         .catch(err => {
           if (!err.message.match(/duplicate key value/)) throw err
         })
