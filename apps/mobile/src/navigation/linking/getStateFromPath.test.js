@@ -136,8 +136,8 @@ describe('getStateFromPath', () => {
       const state = getStateFromPath(path)
       pendingCases[path] = state
         ? {
-            resolvedScreenPath: extractScreenPath(state),
-            resolvedParams: getDeepestRoute(state.routes[0])?.params || {}
+            path: extractScreenPath(state),
+            routeParams: getDeepestRoute(state.routes[0])?.params || {}
           }
         : null
     }

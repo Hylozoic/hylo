@@ -31,8 +31,6 @@ module.exports = function(api) {
       'import-graphql',
       'react-native-reanimated/plugin',
       ['@babel/plugin-proposal-decorators', { version: '2023-11' }],
-      // '@babel/plugin-syntax-jsx',
-      // '@babel/plugin-transform-runtime',
       // Suppressed warnings
       ['@babel/plugin-transform-private-methods', { loose: true }],
       ['@babel/plugin-transform-private-property-in-object', { loose: true }],
