@@ -47,7 +47,7 @@ export default function CalendarHeaderDateChevrons () {
       </Button>
 
       <span className='min-w-[140px] text-center font-medium'>
-        {DateTime.fromJSDate(date).toFormat('MMMM yyyy')}
+        {DateTime.fromJSDate(date).toLocaleString({ month: 'long' as const, year: 'numeric' as const })}
       </span>
 
       <Button
