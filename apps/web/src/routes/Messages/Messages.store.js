@@ -333,7 +333,7 @@ export function filterThreadsByParticipant (threadSearch) {
   return thread => {
     // Check participant names
     const participants = toRefArray(thread.participants)
-    const participantMatch = some(p => 
+    const participantMatch = some(p =>
       some(name => name.toLowerCase().includes(threadSearchLC), p.name.split(' ')), participants
     )
 

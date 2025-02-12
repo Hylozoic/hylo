@@ -111,7 +111,7 @@ function ThreadList () {
           </div>
           <input
             ref={searchInputRef}
-            type="text"
+            type='text'
             placeholder={t('Search messages...')}
             value={threadSearch || ''}
             onChange={onSearchChange}
