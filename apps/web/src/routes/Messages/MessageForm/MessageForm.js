@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import PropTypes from 'prop-types'
-import React, { useState, useRef, forwardRef } from 'react'
+import React, { useState, useRef, forwardRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { throttle } from 'lodash'
 import { get } from 'lodash/fp'
@@ -12,12 +12,11 @@ import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import styles from './MessageForm.module.scss'
 
-const MessageForm = React.memo(forwardRef((props, ref) => {
+const MessageForm = forwardRef((props, ref) => {
   const [hasFocus, setHasFocus] = useState(false)
   const { t } = useTranslation()
   const _ref = useRef(null)
   const textareaRef = ref || _ref
-  const initialFocusRef = useRef(false)
 
   const handleSubmit = event => {
     if (event) event.preventDefault()
@@ -32,8 +31,8 @@ const MessageForm = React.memo(forwardRef((props, ref) => {
     }
   }
 
-  const handleOnChange = event => {
-    props.updateMessageText(event.target.value)
+  const handleOnChange = e => {
+    props.updateMessageText(e.target.value)
   }
 
   const handleKeyDown = event => {
@@ -49,35 +48,35 @@ const MessageForm = React.memo(forwardRef((props, ref) => {
     props.sendIsTyping(true)
   }, STARTED_TYPING_INTERVAL)
 
-  const {
-    className,
-    currentUser,
-    messageText,
-    onFocus,
-    pending,
-    placeholder = t('Write something...')
-  } = props
+  useEffect(() => {
+    console.log('MessageForm state', {
+      messageText: props.messageText,
+      pending: props.pending,
+      hasRef: !!textareaRef.current,
+      disabled: textareaRef.current?.disabled
+    })
+  }, [props.messageText, props.pending])
 
   return (
     <form
-      className={cn('w-full max-w-[750px] fixed bottom-0 flex gap-3 px-2 shadow-md p-2 border-2 border-foreground/15 shadow-xlg rounded-t-xl bg-card pb-4 transition-all', className, { 'border-focus': hasFocus })}
+      className={cn('w-full max-w-[750px] fixed bottom-0 flex gap-3 px-2 shadow-md p-2 border-2 border-foreground/15 shadow-xlg rounded-t-xl bg-card pb-4 transition-all', props.className, { 'border-focus': hasFocus })}
       onSubmit={handleSubmit}
     >
-      <RoundImage url={get('avatarUrl', currentUser)} medium />
+      <RoundImage url={get('avatarUrl', props.currentUser)} medium />
       <TextareaAutosize
-        value={messageText}
+        value={props.messageText}
         className='text-foreground bg-transparent w-full my-2 focus:outline-none mt-0'
-        ref={(tag) => (textareaRef.current = tag)}
+        ref={textareaRef}
         minRows={1}
         maxRows={8}
         onChange={handleOnChange}
         onKeyDown={handleKeyDown}
-        onFocus={() => { setHasFocus(true); onFocus() }}
+        onFocus={() => { setHasFocus(true); props.onFocus?.() }}
         onBlur={() => setHasFocus(false)}
-        placeholder={placeholder}
-        disabled={pending}
+        placeholder={props.placeholder || t('Write something...')}
+        disabled={props.pending}
       />
-      {pending ? (
+      {props.pending ? (
         <div className='flex items-center text-sm text-foreground/50'>
           Sending...
         </div>
@@ -88,16 +87,9 @@ const MessageForm = React.memo(forwardRef((props, ref) => {
       )}
     </form>
   )
-}), (prevProps, nextProps) => {
-  // Only re-render if these props change
-  return (
-    prevProps.currentUser?.id === nextProps.currentUser?.id &&
-    prevProps.messageText === nextProps.messageText &&
-    prevProps.pending === nextProps.pending
-  )
 })
 
-MessageForm.displayName = 'MessageForm' // For better debugging
+MessageForm.displayName = 'MessageForm'
 
 MessageForm.propTypes = {
   className: PropTypes.string,
