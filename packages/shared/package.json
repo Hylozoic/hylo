@@ -1,5 +1,8 @@
 {
   "name": "@hylo/shared",
+  "installConfig": {
+    "hoistingLimits": "none"
+  },
   "private": true,
   "description": "Code shared across Hylo applications for consistency of results",
   "type": "module",
