@@ -13,7 +13,7 @@
     "bump-version": "node scripts/version.js",
     "postversion": "react-native-version --never-amend",
     "start": "rm -f node_modules/react-native-config/ios/ReactNativeConfig/GeneratedDotEnv.m node_modules/react-native-config/android/build/generated/source/buildConfig/debug/com/lugg/RNCConfig/BuildConfig.java node_modules/react-native-config/android/build/generated/source/buildConfig/release/com/lugg/RNCConfig/BuildConfig.java && react-native start",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "test": "yarn jest",
     "clean": "react-native-clean-project",
     "clean-auto": "react-native clean-project-auto",
     "check-dependencies": "rnx-align-deps",

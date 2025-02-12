@@ -1,8 +1,41 @@
 import getStateFromPath from 'navigation/linking/getStateFromPath'
 
+// // Transcription of "notifications paths" from Web
+// '/my/account',
+// '/groups/:groupSlug/join/:accessCode',
+// '/groups/:groupSlug/settings/requests',
+// '/groups/:groupSlug',
+// '/groups/:groupSlug',
+// '/groups/:groupSlug/members/:personId',
+// '/groups/:groupSlug/stream/post/:postId',
+// '/groups/:groupSlug/post/:postId',
+// '/groups/:groupSlug/discussions/post/:postId',
+// '/groups/:groupSlug/events/post/:postId',
+// '/groups/:groupSlug/projects/post/:postId',
+// '/groups/:groupSlug/proposals/post/:postId',
+// '/groups/:groupSlug/requests-and-offers/post/:postId',
+// '/groups/:groupSlug/resources/post/:postId',
+// '/groups/:groupSlug/chat/:topicName?postId=:postId',
+// '/groups/:groupSlug/stream/post/:postId',
+// '/groups/:groupSlug/events/post/:postId',
+// '/groups/:groupSlug/stream/post/:postId',
+// '/groups/:groupSlug/chat/:topicName/post/:postId',
+// '/groups/:groupSlug/stream/post/:postId?commentId=:commentId',
+// '/groups/:groupSlug/chat/:topicName/post/:postId?commentId=:commentId',
+// '/groups/:groupSlug/stream/post/:postId?commentId=:commentId',
+// '/groups/:groupSlug/chat/:topicName/post/:postId?commentId=:commentId',
+// '/messages/42076',
+// '/groups/:groupSlug/settings/relationships#parentInvites',
+// '/groups/:groupSlug',
+// '/groups/:groupSlug/settings/relationships#childRequests',
+// '/groups/:groupSlug/events/post/:postId',
+// '/groups/:groupSlug/proposals/post/:postId',
+// '/groups/:groupSlug/requests-and-offers/post/:postId'
+
 // Define test cases as [path, expectedScreenPath, optional expectedParams]
 // If a test case is just a string or an array with only one element, it is treated as a pending test.
-const testCases = [
+const notificationsSamplePaths = [
+  // Original sample sorta hodge-podge test set:
   ['/login', 'NonAuthRoot/Login'],
   ['/reset-password', 'NonAuthRoot/ForgotPassword'],
   ['/signup', 'NonAuthRoot/Signup/Signup Intro'],
@@ -16,9 +49,42 @@ const testCases = [
   ['/settings/account', 'AuthRoot/Drawer/Tabs/Settings Tab/Account'],
   ['/create/post', 'AuthRoot/Edit Post', { unmatchedBasePath: '' }],
 
-  // No Screen Path target yet defined, creates pending test cases
+  // When no Screen Path target yet defined, creates pending test cases
   ['/groups/rogue-scholars/discussions'],
-  '/groups/rogue-scholars/discussions/post/22799'
+  '/groups/rogue-scholars/discussions/post/22799',
+
+
+  // Transcription of "notifications paths" from Web with sample data set:
+  '/my/account',
+  '/groups/rogue-scholars/join/abcdef',
+  '/groups/rogue-scholars/settings/requests',
+  '/groups/rogue-scholars',
+  '/groups/rogue-scholars',
+  '/groups/rogue-scholars/members/6789',
+  '/groups/rogue-scholars/stream/post/12345',
+  '/groups/rogue-scholars/post/12345',
+  '/groups/rogue-scholars/discussions/post/12345',
+  '/groups/rogue-scholars/events/post/12345',
+  '/groups/rogue-scholars/projects/post/12345',
+  '/groups/rogue-scholars/proposals/post/12345',
+  '/groups/rogue-scholars/requests-and-offers/post/12345',
+  '/groups/rogue-scholars/resources/post/12345',
+  '/groups/rogue-scholars/chat/philosophy?postId=12345',
+  '/groups/rogue-scholars/stream/post/12345',
+  '/groups/rogue-scholars/events/post/12345',
+  '/groups/rogue-scholars/stream/post/12345',
+  '/groups/rogue-scholars/chat/philosophy/post/12345',
+  '/groups/rogue-scholars/stream/post/12345?commentId=5555',
+  '/groups/rogue-scholars/chat/philosophy/post/12345?commentId=5555',
+  '/groups/rogue-scholars/stream/post/12345?commentId=5555',
+  '/groups/rogue-scholars/chat/philosophy/post/12345?commentId=5555',
+  '/messages/42076',
+  '/groups/rogue-scholars/settings/relationships#parentInvites',
+  '/groups/rogue-scholars',
+  '/groups/rogue-scholars/settings/relationships#childRequests',
+  '/groups/rogue-scholars/events/post/12345',
+  '/groups/rogue-scholars/proposals/post/12345',
+  '/groups/rogue-scholars/requests-and-offers/post/12345'
 ]
 
 // Extracts the resolved screen path from the returned navigation state
@@ -43,9 +109,10 @@ const getDeepestRoute = (route) => {
   return route
 }
 
-// Run tests
 describe('getStateFromPath', () => {
-  testCases.forEach((testCase) => {
+  const pendingCases = {}
+
+  notificationsSamplePaths.forEach((testCase) => {
     // Normalize test cases
     const path = Array.isArray(testCase) ? testCase[0] : testCase
     const expectedScreenPath = Array.isArray(testCase) && testCase.length > 1 ? testCase[1] : null
@@ -61,25 +128,23 @@ describe('getStateFromPath', () => {
 
         // Only assert params if expectedParams is provided
         const finalRoute = getDeepestRoute(state.routes[0]) // Find the deepest route where params exist
-        const expectedParamsWithDefault = { ...expectedParams, originalLinkingPath: path, pathMatcher: finalRoute.params.pathMatcher }
+        const expectedParamsWithDefault = { ...expectedParams, originalLinkingPath: path, pathMatcher: finalRoute.params?.pathMatcher }
         expect(finalRoute.params || {}).toEqual(expectedParamsWithDefault)
       })
     } else {
-      // 🚨 Pending test case → Prints structured output without cluttering console
-      test.failing(`❌ ${path} untested path match result`, (t) => {
-        const state = getStateFromPath(path)
-        if (!state) {
-          console.log(`${path}: (null)\n`)
-          return
-        }
-        const resolvedScreenPath = extractScreenPath(state)
-        const resolvedParams = getDeepestRoute(state.routes[0])?.params || {}
-
-        // Format structured output
-        console.log(`${path}: ${resolvedScreenPath || '[null]'}\n${JSON.stringify(resolvedParams, null, 2)}\n`)
-        console.log(`${state.pathMatcher}`)
-        t.fail()
-      })
+      // Collect pending test results for snapshot comparison
+      const state = getStateFromPath(path)
+      pendingCases[path] = state
+        ? {
+            resolvedScreenPath: extractScreenPath(state),
+            resolvedParams: getDeepestRoute(state.routes[0])?.params || {}
+          }
+        : null
     }
+  })
+
+  // Run a single test snapshot for all pending cases
+  test('❌ PENDING TEST OUTPUT', () => {
+    expect(pendingCases).toMatchSnapshot()
   })
 })
