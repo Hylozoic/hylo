@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react'
 import { useNavigation, useIsFocused, useRoute } from '@react-navigation/native'
 import { View, TouchableOpacity } from 'react-native'
-import { FlashList } from "@shopify/flash-list"
+import { FlashList } from '@shopify/flash-list'
 import { gql, useMutation, useQuery } from 'urql'
 import { capitalize, get, isEmpty } from 'lodash/fp'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -134,8 +134,6 @@ export default function Stream () {
   // to run it independently or make it a mutation, like this resetGroupNewPostCount
   useEffect(() => {
     if (fetchPostParam && isFocused && isEmpty(postIds) && hasMore !== false) {
-      const slug = fetchPostParam.context
-
       if (
         currentGroup?.id &&
         !currentGroup?.isContextGroup &&
