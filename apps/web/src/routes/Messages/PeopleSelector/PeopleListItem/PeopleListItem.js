@@ -25,8 +25,6 @@ const PeopleListItem = forwardRef(({ active, onClick, onMouseOver, person, class
   )
 })
 
-PeopleListItem.displayName = 'PeopleListItem'
-
 PeopleListItem.propTypes = {
   active: PropTypes.bool,
   onClick: PropTypes.func,

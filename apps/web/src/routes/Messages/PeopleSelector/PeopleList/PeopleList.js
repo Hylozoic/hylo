@@ -11,13 +11,11 @@ export default function PeopleList ({ currentMatch, onClick, onMouseOver, people
       const container = containerRef.current
       const itemHeight = 56 // height of each item including padding
       const selectedElement = container.children[0].children[selectedIndex]
-      
       if (selectedElement) {
         const elementTop = selectedElement.offsetTop
         const elementBottom = elementTop + itemHeight
         const containerTop = container.scrollTop
         const containerBottom = containerTop + container.clientHeight
-        
         if (elementTop < containerTop) {
           // Element is above viewport, scroll up
           container.scrollTo({
@@ -36,7 +34,7 @@ export default function PeopleList ({ currentMatch, onClick, onMouseOver, people
   }, [selectedIndex])
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className='w-[320px] max-h-[400px] overflow-y-auto overflow-x-clip absolute top-12 bg-theme-background shadow-xl rounded-lg'
     >

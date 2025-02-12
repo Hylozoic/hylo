@@ -1,5 +1,5 @@
 import { array, bool, func, object } from 'prop-types'
-import React, { useRef, useState, useEffect } from 'react'
+import React, { Component } from 'react'
 import { throttle, debounce } from 'lodash'
 import { get } from 'lodash/fp'
 import Loading from 'components/Loading'
@@ -33,17 +33,14 @@ function createMessageList (messages, lastSeenAt) {
   }, [])
 }
 
-export default class MessageSection extends React.Component {
+export default class MessageSection extends Component {
   constructor (props) {
     super(props)
-
     this.state = {
       visible: true,
-      onNextVisible: null,
-      showNewMessageButton: false
+      showNewMessageButton: false,
+      onNextVisible: null
     }
-    this.list = React.createRef()
-    this.prevMessageCount = props.messages?.length || 0
   }
 
   componentDidMount () {
@@ -52,6 +49,14 @@ export default class MessageSection extends React.Component {
     this.reconnectHandler = () => fetchMessages()
     socket && socket.on('reconnect', this.reconnectHandler)
     document && document.addEventListener('visibilitychange', this.handleVisibilityChange)
+    this.setupScrollHandler()
+    // Check if we're already at bottom after initial render
+    setTimeout(() => {
+      const container = document.querySelector('#center-column')
+      if (container && this.atBottom(container)) {
+        this.markAsRead()
+      }
+    }, 0)
   }
 
   componentWillUnmount () {
@@ -91,7 +96,7 @@ export default class MessageSection extends React.Component {
       // and we're not already at the bottom, don't scroll
       if (deltaLength === 1 &&
         get('creator.id', latest) !== get('id', currentUser) &&
-        !this.atBottom(this.list.current)) return
+        !this.atBottom(document.querySelector('#message-list'))) return
 
       this.shouldScroll = true
     }
@@ -99,7 +104,6 @@ export default class MessageSection extends React.Component {
 
   componentDidUpdate (prevProps) {
     const { currentUser, messages, pending, hasMore } = this.props
-    
     // Skip if loading
     if (pending) return
 
@@ -116,7 +120,6 @@ export default class MessageSection extends React.Component {
       if (centerColumn) {
         const isScrolledUp = centerColumn.scrollTop < (centerColumn.scrollHeight - centerColumn.clientHeight - 100)
         const isFromOtherUser = get('creator.id', latest) !== get('id', currentUser)
-        
         // If we're at the bottom or the message is from the current user, auto-scroll
         if (!isScrolledUp || !isFromOtherUser) {
           centerColumn.scrollTop = centerColumn.scrollHeight
@@ -125,6 +128,14 @@ export default class MessageSection extends React.Component {
           // If we're scrolled up and it's from another user, show the button
           this.setState({ showNewMessageButton: true })
         }
+      }
+    }
+
+    // If messages changed (new messages loaded)
+    if (prevProps.messages !== this.props.messages) {
+      const container = document.querySelector('#message-list')
+      if (container && this.atBottom(container)) {
+        this.markAsRead()
       }
     }
   }
@@ -169,17 +180,21 @@ export default class MessageSection extends React.Component {
   }
 
   scrollToBottom = () => {
-    console.log('scroll to bottom called')
-    const moduleCenter = document.querySelector('#center-column')
-    if (moduleCenter) {
-      moduleCenter.scrollTop = moduleCenter.scrollHeight
+    const messageList = document.querySelector('#message-list')
+    const centerColumn = document.querySelector('#center-column')
+    if (messageList && centerColumn) {
+      const messageBottom = messageList.scrollHeight
+      const containerHeight = centerColumn.clientHeight
+      const headerHeight = 100 // approximate height of headers/toolbars
+
+      centerColumn.scrollTop = messageBottom - containerHeight + headerHeight
+      if (this.state.visible) {
+        this.markAsRead()
+      } else {
+        this.setState({ onNextVisible: this.markAsRead })
+      }
+      this.setState({ showNewMessageButton: false })
     }
-    if (this.state.visible) {
-      this.markAsRead()
-    } else {
-      this.setState({ onNextVisible: this.markAsRead })
-    }
-    this.setState({ showNewMessageButton: false })
   }
 
   markAsRead = debounce(() => {
@@ -187,12 +202,19 @@ export default class MessageSection extends React.Component {
     if (messageThread) updateThreadReadTime(messageThread.id)
   }, 2000)
 
+  setupScrollHandler = () => {
+    const centerColumn = document.querySelector('#center-column')
+    if (centerColumn) {
+      centerColumn.addEventListener('scroll', this.handleScroll)
+    }
+  }
+
   render () {
     const { messages, pending, messageThread } = this.props
     const { showNewMessageButton } = this.state
 
     return (
-      <div className='max-w-[750px] relative h-full' ref={this.list} onScroll={this.handleScroll} data-testid='message-section'>
+      <div id='message-list' className='max-w-[750px] relative h-full' onScroll={this.handleScroll} data-testid='message-section'>
         {pending && <Loading />}
         {!pending && (
           <>
@@ -202,10 +224,10 @@ export default class MessageSection extends React.Component {
               </ClickCatcher>
             </div>
             {showNewMessageButton && (
-              <div className="sticky bottom-20 w-full flex justify-center" style={{ position: '-webkit-sticky' }}>
-                <button 
+              <div className='sticky bottom-20 w-full flex justify-center' style={{ position: '-webkit-sticky' }}>
+                <button
                   onClick={this.scrollToBottom}
-                  className="bg-primary text-white px-4 py-2 rounded-full shadow-lg hover:bg-primary/90 transition-all z-50"
+                  className='bg-primary text-white px-4 py-2 rounded-full shadow-lg hover:bg-primary/90 transition-all z-50'
                 >
                   New Messages
                 </button>

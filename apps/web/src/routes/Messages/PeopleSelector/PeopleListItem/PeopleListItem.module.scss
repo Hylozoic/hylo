@@ -22,16 +22,11 @@
 }
 
 .name {
-  composes: bdy-lt-sm from 'css/typography.scss';
   flex: 1;
   padding-right: $space-2x;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.group {
-  composes: faint-lt-sm from 'css/typography.scss';
 }
 
 @media screen and (max-width: 650px) {
