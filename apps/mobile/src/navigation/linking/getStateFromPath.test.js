@@ -53,7 +53,7 @@ describe('getStateFromPath (static & dynamic paths)', () => {
 
     if (expectedScreenPath) {
       // ✅ Regular test case
-      test(`resolves ${path} to ${expectedScreenPath}${expectedParams ? ' with params' : ''}`, () => {
+      test(`${path} => "${expectedScreenPath}"${expectedParams ? ' with params' : ''}`, () => {
         const state = getStateFromPath(path)
 
         expect(state).not.toBeNull()
