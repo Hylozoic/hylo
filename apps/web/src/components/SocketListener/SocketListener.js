@@ -1,64 +1,124 @@
-import PropTypes from 'prop-types'
-import { Component } from 'react'
-import { getSocket, socketUrl } from 'client/websockets.js'
 import { isEqual } from 'lodash'
+import { useEffect, useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { useLocation } from 'react-router-dom'
+import { getSocket, socketUrl } from 'client/websockets.js'
 import rollbar from 'client/rollbar'
-const { func } = PropTypes
+import useRouteParams from 'hooks/useRouteParams'
+import {
+  receiveThread,
+  receiveMessage,
+  receiveComment,
+  receiveNotification,
+  receivePost
+} from './SocketListener.store'
+import {
+  addUserTyping,
+  clearUserTyping
+} from 'components/PeopleTyping/PeopleTyping.store'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
-export default class SocketListener extends Component {
-  static propTypes = {
-    receiveThread: func,
-    receiveMessage: func,
-    receiveComment: func,
-    receiveNotification: func,
-    receivePost: func,
-    addUserTyping: func,
-    clearUserTyping: func
-  }
+const SocketListener = (props) => {
+  const dispatch = useDispatch()
+  const location = useLocation()
+  const routeParams = useRouteParams()
+  const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
 
-  constructor (props) {
-    super(props)
-    this.handlers = {
-      commentAdded: props.receiveComment,
-      messageAdded: props.receiveMessage,
-      newNotification: props.receiveNotification,
-      newPost: props.receivePost,
-      newThread: props.receiveThread,
-      userTyping: this.userTypingHandler
+  const handlers = useMemo(() => ({
+    commentAdded: data => dispatch(receiveComment(data)),
+    messageAdded: data => {
+      const message = convertToMessage(data)
+      dispatch(receiveMessage(message, {
+        bumpUnreadCount: !isActiveThread(location, data)
+      }))
+    },
+    newNotification: data => dispatch(receiveNotification(data)),
+    newPost: data => dispatch(receivePost(data, group.id)),
+    newThread: data => dispatch(receiveThread(convertToThread(data))),
+    userTyping: ({ userId, userName, isTyping }) => {
+      isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))
     }
-  }
+  }), [location, group?.id])
 
-  componentDidMount () {
-    this.socket = getSocket()
-    this.reconnect()
-    Object.keys(this.handlers).forEach(socketEvent =>
-      this.socket.on(socketEvent, this.handlers[socketEvent]))
-  }
+  useEffect(() => {
+    const socket = getSocket()
+    reconnect(socket)
 
-  componentWillUnmount () {
-    this.socket.post(socketUrl('/noo/threads/unsubscribe'))
-    Object.keys(this.handlers).forEach(socketEvent =>
-      this.socket.off(socketEvent, this.handlers[socketEvent]))
-  }
+    Object.keys(handlers).forEach(socketEvent =>
+      socket.on(socketEvent, handlers[socketEvent]))
 
-  render () {
-    return null
-  }
+    return () => {
+      socket.post(socketUrl('/noo/threads/unsubscribe'))
+      Object.keys(handlers).forEach(socketEvent =>
+        socket.off(socketEvent, handlers[socketEvent]))
+    }
+  }, [handlers])
 
-  reconnect = () => {
+  const reconnect = (socket) => {
     if (process.env.NODE_ENV === 'development') {
       console.log('connecting SocketListener...')
     }
 
-    this.socket.post(socketUrl('/noo/threads/subscribe'), (body, jwr) => {
+    socket.post(socketUrl('/noo/threads/subscribe'), (body, jwr) => {
       if (!isEqual(body, {})) {
         rollbar.error(`Failed to connect SocketListener: ${body}`)
       }
     })
   }
 
-  userTypingHandler = ({ userId, userName, isTyping }) => {
-    const { addUserTyping, clearUserTyping } = this.props
-    isTyping ? addUserTyping(userId, userName) : clearUserTyping(userId)
+  return null
+}
+
+export default SocketListener
+
+// Helper functions
+function convertToThread (data) {
+  if (data.createdAt) {
+    return {
+      ...data,
+      createdAt: new Date(data.createdAt).toString(),
+      updatedAt: new Date(data.updatedAt).toString(),
+      messages: data.messages.map(({ id, createdAt, text, creator }) => ({
+        id,
+        text,
+        creator,
+        createdAt: new Date(createdAt).toString(),
+        messageThread: data.id
+      })),
+      unreadCount: 1
+    }
   }
+
+  const { id, created_at: createdAt, updated_at: updatedAt, people, comments } = data
+  return {
+    id,
+    createdAt: new Date(createdAt).toString(),
+    updatedAt: new Date(updatedAt).toString(),
+    participants: people.map(({ id, name, avatar_url: avatarUrl }) => ({ id, name, avatarUrl })),
+    messages: comments.map(c => convertToMessage({ message: c, postId: id })),
+    unreadCount: 1
+  }
+}
+
+function convertToMessage (data) {
+  if (data.createdAt) {
+    return {
+      ...data,
+      createdAt: new Date(data.createdAt).toString()
+    }
+  }
+
+  const { message: { id, created_at: createdAt, text, user_id: userId }, postId } = data
+  return {
+    id,
+    createdAt: new Date(createdAt).toString(),
+    text,
+    creator: userId,
+    messageThread: postId
+  }
+}
+
+function isActiveThread (location, data) {
+  const [namespace, id] = location.pathname.split('/').slice(1, 3)
+  return namespace === 't' && data.postId === id
 }

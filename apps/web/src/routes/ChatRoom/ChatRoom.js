@@ -1,5 +1,5 @@
 import { debounce, includes, isEmpty, trim, uniqueId } from 'lodash/fp'
-import { Copy, Send, SendHorizontal, ImagePlus } from 'lucide-react'
+import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send, SendHorizontal, ImagePlus } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { useParams, useLocation, Routes, Route, useNavigate } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData } from '@virtuoso.dev/message-list'
+import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
 import AttachmentManager from 'components/AttachmentManager'
@@ -32,25 +32,30 @@ import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
+import Tooltip from 'components/Tooltip'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { Button } from 'components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger
+} from '@/components/ui/select'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import ChatPost from './ChatPost'
 import createPost from 'store/actions/createPost'
-import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchPosts from 'store/actions/fetchPosts'
-import fetchTopic from 'store/actions/fetchTopic'
-import updateGroupTopicLastReadPost from 'store/actions/updateGroupTopicLastReadPost'
-import { FETCH_TOPIC, FETCH_GROUP_TOPIC } from 'store/constants'
+import fetchTopicFollow from 'store/actions/fetchTopicFollow'
+import updateTopicFollow from 'store/actions/updateTopicFollow'
+import { FETCH_TOPIC_FOLLOW } from 'store/constants'
 import orm from 'store/models'
 import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import getGroupTopicForCurrentRoute from 'store/selectors/getGroupTopicForCurrentRoute'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
-import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
+import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { MAX_POST_TOPICS } from 'util/constants'
 import { cn } from 'util/index'
@@ -95,6 +100,22 @@ EditorView.prototype.updateState = function updateState (state) {
   this.updateStateInner(state, this.state.plugins !== state.plugins)
 }
 
+// Define icon components as functions that accept props
+const NotificationsIcon = ({ type, ...props }) => {
+  const { t } = useTranslation()
+
+  switch (type) {
+    case 'all':
+      return <Bell {...props} data-tooltip-id='notifications-tt' data-tooltip-content={t('You will receive notifications for all chats in this room.')} />
+    case 'important':
+      return <BellDot {...props} data-tooltip-id='notifications-tt' data-tooltip-content={t('You will receive notifications for announcements and mentions in this room.')} />
+    case 'none':
+      return <BellOff {...props} data-tooltip-id='notifications-tt' data-tooltip-content={t('You will not receive notifications for any chats in this room.')} />
+    default:
+      return <BellMinus {...props} data-tooltip-id='notifications-tt' data-tooltip-html={t('You are previewing this chat room. <br /> Add a chat or change your notification settings to subscribe to this room.')} />
+  }
+}
+
 const getDisplayDay = (date) => {
   return date.hasSame(DateTime.now(), 'day')
     ? 'Today'
@@ -107,6 +128,7 @@ export default function ChatRoom (props) {
   const dispatch = useDispatch()
   const routeParams = useParams()
   const location = useLocation()
+  const { t } = useTranslation()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
 
@@ -118,16 +140,14 @@ export default function ChatRoom (props) {
   const currentUser = useSelector(getMe)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupIds = useMemo(() => group?.id ? [group.id] : [], [group])
-  const groupTopic = useSelector(state => getGroupTopicForCurrentRoute(state, groupSlug, topicName))
-  const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
-  const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
+  const topicFollow = useSelector(state => getTopicFollowForCurrentRoute(state, group?.id, topicName))
+  const topicFollowLoading = useSelector(state => isPendingFor([FETCH_TOPIC_FOLLOW], state))
   const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: 'new', attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
   const linkPreview = useSelector(getLinkPreview) // TODO: check
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
-  // const followersTotal = useMemo(() => get('followersTotal', groupSlug ? groupTopic : topic), [groupSlug, groupTopic, topic])
   const querystringParams = getQuerystringParam(['search', 'postId'], location)
   const search = querystringParams?.search
-  const postIdToStartAt = querystringParams?.postId
+  const postIdToStartAt = querystringParams?.postId // TODO: remove from the querystring so pressing back doesn't take you to the same post?
 
   const [container, setContainer] = React.useState(null)
   const editorRef = useRef()
@@ -137,10 +157,9 @@ export default function ChatRoom (props) {
   const [postInProgress, setPostInProgress] = useState(false)
 
   // The last post seen by the current user. Doesn't update in real time as they scroll only when room is reloaded
-  const [latestOldPostId, setLatestOldPostId] = useState(groupTopic?.lastReadPostId)
+  const [latestOldPostId, setLatestOldPostId] = useState(topicFollow?.lastReadPostId)
 
-  // The up to date last read post id, updates in real time as they scroll
-  const [lastReadPostId, setLastReadPostId] = useState(groupTopic?.lastReadPostId)
+  const [notificationsSetting, setNotificationsSetting] = useState(topicFollow?.settings?.notifications)
 
   // Whether we are currently loading more past posts or future posts
   const [loadingPast, setLoadingPast] = useState(false)
@@ -167,34 +186,36 @@ export default function ChatRoom (props) {
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
-    cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(groupTopic?.lastReadPostId) + 1, // -1 because we want the lastread post id included
+    cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(topicFollow?.lastReadPostId) + 1, // -1 because we want the lastread post id included
     filter: 'chat',
     first: NUM_POSTS_TO_LOAD,
     order: 'desc',
     slug: groupSlug,
     search,
     sortBy: 'id',
-    topic: topic?.id
-  }), [context, postIdToStartAt, groupTopic?.lastReadPostId, groupSlug, search, topic?.id])
+    topic: topicFollow?.topic.id
+  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, groupSlug, search, topicFollow?.topic.id])
 
   const fetchPostsFutureParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
-    cursor: postIdToStartAt || groupTopic?.lastReadPostId,
+    cursor: postIdToStartAt || topicFollow?.lastReadPostId,
     filter: 'chat',
     first: NUM_POSTS_TO_LOAD,
     order: 'asc',
     slug: groupSlug,
     search,
     sortBy: 'id',
-    topic: topic?.id
-  }), [context, postIdToStartAt, groupTopic?.lastReadPostId, groupSlug, search, topic?.id])
+    topic: topicFollow?.topic.id
+  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, groupSlug, search, topicFollow?.topic.id])
 
   const postsPast = useSelector(state => getPosts(state, fetchPostsPastParams))
   const hasMorePostsPast = useSelector(state => getHasMorePosts(state, fetchPostsPastParams))
 
   const postsFuture = useSelector(state => getPosts(state, fetchPostsFutureParams))
   const hasMorePostsFuture = useSelector(state => getHasMorePosts(state, fetchPostsFutureParams))
+
+  const postsForDisplay = useMemo(() => (postsPast || []).concat(postsFuture || []), [postsPast, postsFuture])
 
   const fetchPostsPast = useCallback((offset) => {
     if (loadingPast || hasMorePostsPast === false) return Promise.resolve()
@@ -219,19 +240,7 @@ export default function ChatRoom (props) {
     })
   }, [fetchPostsFutureParams, loadingFuture, hasMorePostsFuture])
 
-  const fetchTopicAction = useCallback(() => {
-    if (groupSlug && topicName) {
-      return dispatch(fetchGroupTopic(topicName, groupSlug))
-    } else if (topicName) {
-      return dispatch(fetchTopic(topicName))
-    }
-  }, [dispatch, groupSlug, topicName])
-
   const clearImageAttachments = useCallback(() => dispatch(clearAttachments('post', 'new', 'image')), [dispatch])
-
-  // const toggleGroupTopicSubscribeAction = useCallback((groupTopic) => dispatch(toggleGroupTopicSubscribe(groupTopic)), [dispatch])
-
-  const updateGroupTopicLastReadPostAction = useCallback((groupTopicId, postId) => dispatch(updateGroupTopicLastReadPost(groupTopicId, postId)), [dispatch])
 
   const handleNewPostReceived = useCallback((data) => {
     if (!data.topics?.find(t => t.name === topicName)) return
@@ -262,21 +271,25 @@ export default function ChatRoom (props) {
 
   const resetInitialPostToScrollTo = useCallback(() => {
     if (loadedPast && loadedFuture) {
-      setInitialPostToScrollTo((postsPast && postsPast.length > 0 ? postsPast.length - 1 : 0) + Math.min(postsFuture && postsFuture.length > 0 ? postsFuture.length - 1 : 0, 3))
+      if (!topicFollow?.lastReadPostId) {
+        setInitialPostToScrollTo(0)
+      } else if (topicFollow?.lastReadPostId > postsForDisplay[postsForDisplay.length - 1].id) {
+        // XXX: We set the lastReadPostId to the largest post id as a hack to bring people to the most recent post when they join a chat room
+        setInitialPostToScrollTo(postsForDisplay.length - 1)
+      } else {
+        // Set initial scroll to the last read post
+        const lastReadPostIndex = postsForDisplay.findIndex(post => post.id === topicFollow?.lastReadPostId)
+        if (lastReadPostIndex !== -1) {
+          setInitialPostToScrollTo(lastReadPostIndex)
+        } else {
+          console.error('Something went wrong, last read post not found in postsPast or postsFuture', topicFollow?.lastReadPostId)
+          setInitialPostToScrollTo(null)
+        }
+      }
     } else {
       setInitialPostToScrollTo(null)
     }
   }, [loadedPast, loadedFuture, postsPast, postsFuture])
-
-  const { setHeaderDetails } = useViewHeader()
-  useEffect(() => {
-    setHeaderDetails({
-      title: `#${topicName}`,
-      icon: 'Message',
-      info: '',
-      search: true
-    })
-  }, [topicName])
 
   useEffect(() => {
     // New chat room loaded, reset everything
@@ -284,8 +297,8 @@ export default function ChatRoom (props) {
     clearImageAttachments()
     setNewPost(emptyPost)
 
-    // Make sure GroupTopic is loaded
-    fetchTopicAction()
+    // Load TopicFollow
+    dispatch(fetchTopicFollow(group?.id, topicName))
   }, [group?.id, topicName])
 
   useEffect(() => {
@@ -300,12 +313,13 @@ export default function ChatRoom (props) {
   }, [])
 
   useEffect(() => {
-    // New group topic
-    if (groupTopic?.id) {
+    // New chat room loaded, reset everything
+    if (topicFollow?.id) {
       setLoadedFuture(false)
+      setNotificationsSetting(topicFollow?.settings?.notifications)
       fetchPostsFuture(0).then(() => setLoadedFuture(true))
 
-      if (groupTopic.lastReadPostId) {
+      if (topicFollow.lastReadPostId) {
         setLoadedPast(false)
         fetchPostsPast(0).then(() => setLoadedPast(true))
       } else {
@@ -314,9 +328,8 @@ export default function ChatRoom (props) {
 
       resetInitialPostToScrollTo()
 
-      // Reset last read post
-      setLastReadPostId(groupTopic.lastReadPostId)
-      setLatestOldPostId(groupTopic.lastReadPostId)
+      // Reset marker of new posts
+      setLatestOldPostId(topicFollow.lastReadPostId)
     }
 
     setTimeout(() => {
@@ -325,7 +338,7 @@ export default function ChatRoom (props) {
         editorRef.current.focus()
       }
     }, 1000)
-  }, [groupTopic?.id])
+  }, [topicFollow?.id])
 
   // Do once after loading posts for the room to get things ready
   useEffect(() => {
@@ -380,17 +393,21 @@ export default function ChatRoom (props) {
     [hasMorePostsPast, hasMorePostsFuture, loadingPast, loadingFuture]
   )
 
-  const updateLastReadPost = debounce(700, (lastPost) => {
-    if (groupTopic?.id && lastPost && (!lastReadPostId || lastPost.id > lastReadPostId)) {
-      setLastReadPostId(lastPost.id)
-      updateGroupTopicLastReadPostAction(groupTopic.id, lastPost.id)
+  const updateLastReadPost = debounce(200, (lastPost) => {
+    if (topicFollow?.id && lastPost && (!topicFollow?.lastReadPostId || lastPost.id > topicFollow?.lastReadPostId)) {
+      dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: lastPost.id }))
     }
   })
+
+  const updateNotificationsSetting = useCallback((value) => {
+    setNotificationsSetting(value)
+    dispatch(updateTopicFollow(topicFollow?.id, { settings: { notifications: value } }))
+  }, [topicFollow?.id])
 
   const onRenderedDataChange = useCallback((data) => {
     const lastPost = data[data.length - 1]
     updateLastReadPost(lastPost)
-  }, [groupTopic?.id, lastReadPostId])
+  }, [topicFollow?.id, topicFollow?.lastReadPostId])
 
   const onAddReaction = useCallback((post, emojiFull) => {
     const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
@@ -416,6 +433,7 @@ export default function ChatRoom (props) {
     const imageUrls = imageAttachments && imageAttachments.map((attachment) => attachment.url)
     const postToSave = {
       ...newPost,
+      createdAt: DateTime.now().toISO(),
       creator: currentUser,
       details,
       imageUrls,
@@ -443,13 +461,47 @@ export default function ChatRoom (props) {
     const post = action.payload.data.createPost
     // Update the optimistic post with the real post from the server
     messageListRef.current?.data.map((item) => post.localId && item.localId && post.localId === item.localId ? post : item)
-    setLastReadPostId(post.id)
+    updateLastReadPost(post)
+    if (!notificationsSetting) {
+      // If the user has not set a notification setting for this chat room, we set it to all on the backend when creating a post so update the UI to match
+      setNotificationsSetting('all')
+    }
     return true
   })
 
   const postsForDisplay = useMemo(() => (postsPast || []).concat(postsFuture || []), [postsPast, postsFuture])
 
-  if (topicLoading) return <Loading />
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: (
+        <span className='flex items-center gap-2'>
+          #{topicName}
+          <Select value={notificationsSetting} onValueChange={updateNotificationsSetting}>
+            <SelectTrigger
+              icon={<NotificationsIcon type={notificationsSetting} className='w-8 h-8 p-1 rounded-lg border-2 border-foreground/15 cursor-pointer' />}
+              className='border-none p-0 focus:ring-0 focus:ring-offset-0'
+            />
+            <SelectContent>
+              <SelectItem value='all'>All Chats</SelectItem>
+              <SelectItem value='important'>Only Announcements & Mentions</SelectItem>
+              <SelectItem value='none'>Mute this chat room</SelectItem>
+            </SelectContent>
+          </Select>
+          <Tooltip
+            delay={250}
+            place='bottom-start'
+            id='notifications-tt'
+          />
+        </span>
+      ),
+      icon: 'Message',
+      info: '',
+      search: true
+    })
+  }, [topicName, notificationsSetting])
+
+  if (topicFollowLoading) return <Loading />
 
   return (
     <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })}>
@@ -465,9 +517,9 @@ export default function ChatRoom (props) {
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto', paddingBottom: '20px' }}
                 ref={messageListRef}
-                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction, topicName, numPosts: postsForDisplay.length }}
+                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction, topicName, numPosts: postsForDisplay.length, newPostCount: topicFollow?.newPostCount }}
                 initialData={postsForDisplay}
-                initialLocation={{ index: initialPostToScrollTo, align: 'end' }}
+                initialLocation={{ index: initialPostToScrollTo, align: initialPostToScrollTo === 0 ? 'start' : 'end' }}
                 shortSizeAlign='bottom-smooth'
                 computeItemKey={({ data }) => data.id || data.localId}
                 onScroll={onScroll}
@@ -476,11 +528,13 @@ export default function ChatRoom (props) {
                 Footer={Footer}
                 Header={Header}
                 StickyHeader={StickyHeader}
+                StickyFooter={StickyFooter}
                 ItemContent={ItemContent}
               />
             </VirtuosoMessageListLicense>
             )}
       </div>
+
       {/* Post chat box */}
       <div className='ChatBoxContainer w-full max-w-[750px]'>
         <div className='ChatBox relative w-full px-2 shadow-md p-2 border-2 border-foreground/15 shadow-xlg rounded-t-xl bg-card'>
@@ -586,6 +640,44 @@ const StickyHeader = ({ data, prevData }) => {
       <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>
         {displayDay}
       </div>
+    </div>
+  )
+}
+
+const StickyFooter = ({ context }) => {
+  const location = useVirtuosoLocation()
+  const virtuosoMethods = useVirtuosoMethods()
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        bottom: 10,
+        right: 50
+      }}
+    >
+      {location.bottomOffset > 200 && (
+        <>
+          <button
+            className='relative flex items-center justify-center bg-background border-2 border-foreground/15 rounded-full w-8 h-8 text-foreground/50 hover:bg-foreground/10 hover:text-foreground'
+            onClick={() => {
+              virtuosoMethods.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
+            }}
+            data-tooltip-content='Jump to latest post'
+            data-tooltip-id='jump-to-bottom-tt'
+          >
+            <ChevronDown className='w-8 h-8' />
+            {context.newPostCount && context.newPostCount > 0
+              ? (
+                <div className='absolute -top-4 min-w-6 min-h-6 text-white bg-accent rounded-full p-1 text-xs text-center'>{context.newPostCount}</div>
+                )
+              : null}
+          </button>
+          <Tooltip
+            delay={250}
+            id='jump-to-bottom-tt'
+          />
+        </>
+      )}
     </div>
   )
 }

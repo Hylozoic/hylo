@@ -49,10 +49,6 @@ export default gql`
     hasDevice
     intercomHash
     hasStripeAccount
-    blockedUsers {
-      id
-      name
-    }
     settings {
       alreadySeenTour
       dmNotifications
@@ -64,18 +60,6 @@ export default gql`
       streamViewMode
       streamSortBy
       streamPostType
-    }
-    affiliations {
-      items {
-        id
-        role
-        preposition
-        orgName
-        url
-        createdAt
-        updatedAt
-        isActive
-      }
     }
     joinRequests(status: 0) {
       items {
@@ -125,19 +109,6 @@ export default gql`
         id
         avatarUrl
         bannerUrl
-        chatRooms {
-          items {
-            id
-            groupTopic {
-              id
-              followersTotal
-              topic {
-                id
-                name
-              }
-            }
-          }
-        }
         name
         memberCount
         stewardDescriptor

@@ -1,5 +1,5 @@
 import { isEmpty, get } from 'lodash/fp'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation } from 'react-router-dom'
@@ -17,6 +17,7 @@ import SavedSearchesTab from './SavedSearchesTab/SavedSearchesTab'
 import FullPageModal from 'routes/FullPageModal'
 import deactivateMe from 'store/actions/deactivateMe'
 import deleteMe from 'store/actions/deleteMe'
+import fetchUserSettings from 'store/actions/fetchUserSettings'
 import logout from 'store/actions/logout'
 import unBlockUser from 'store/actions/unBlockUser'
 import { FETCH_FOR_CURRENT_USER } from 'store/constants'
@@ -45,6 +46,10 @@ const UserSettings = () => {
   const queryParams = {
     registered: getQuerystringParam('registered', location)
   }
+
+  useEffect(() => {
+    dispatch(fetchUserSettings())
+  }, [])
 
   const setConfirm = newState => {
     if (newState === confirm) return

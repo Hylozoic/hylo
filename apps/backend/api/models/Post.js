@@ -454,30 +454,37 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   createActivities: async function (trx) {
-    await this.load(['groups', 'tags'], {transacting: trx})
+    await this.load(['groups', 'tags'], { transacting: trx })
     const { tags, groups } = this.relations
-
-    const tagFollows = await TagFollow.query(qb => {
-      qb.whereIn('tag_id', tags.map('id'))
-      qb.whereIn('group_id', groups.map('id'))
-    })
-    .fetchAll({withRelated: ['tag'], transacting: trx})
-
-    const tagFollowers = tagFollows.map(tagFollow => ({
-      reader_id: tagFollow.get('user_id'),
-      post_id: this.id,
-      actor_id: this.get('user_id'),
-      group_id: tagFollow.get('group_id'),
-      reason: `tag: ${tagFollow.relations.tag.get('name')}`
-    }))
+    let activitiesToCreate = []
 
     const mentions = RichText.getUserMentions(this.details())
-    const mentioned = mentions.map(userId => ({
+    let mentioned = mentions.map(userId => ({
       reader_id: userId,
       post_id: this.id,
       actor_id: this.get('user_id'),
       reason: 'mention'
     }))
+
+    if (this.type === Post.Type.CHAT) {
+      const tagFollows = await TagFollow.query(qb => {
+        qb.whereIn('tag_id', tags.map('id'))
+        qb.whereIn('group_id', groups.map('id'))
+        qb.whereRaw("settings->>'notifications' != 'none'")
+      })
+      .fetchAll({ withRelated: ['tag'], transacting: trx })
+
+      const tagFollowers = tagFollows.map(tagFollow => ({
+        reader_id: tagFollow.get('user_id'),
+        post_id: this.id,
+        actor_id: this.get('user_id'),
+        group_id: tagFollow.get('group_id'),
+        reason: `tag: ${tagFollow.relations.tag.get('name')}`
+      }))
+      activitiesToCreate.concat(tagFollowers)
+      // TODO: filter out mentions above if they are in chats and they have notifications turned off
+    }
+    activitiesToCreate.concat(mentioned)
 
     const eventInvitations = await EventInvitation.query(qb => {
       qb.where('event_id', this.id)
@@ -490,6 +497,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       actor_id: eventInvitation.get('inviter_id'),
       reason: 'eventInvitation'
     }))
+    activitiesToCreate.concat(invitees)
 
     let members = await Promise.all(groups.map(async group => {
       const userIds = await group.members().fetch().then(u => u.pluck('id'))
@@ -517,12 +525,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
       return newPosts
     }))
 
-    members = flatten(members)
+    activitiesToCreate.concat(flatten(members))
 
-    const readers = filter(r => r.reader_id !== this.get('user_id'),
-      mentioned.concat(members).concat(tagFollowers).concat(invitees))
+    activitiesToCreate = filter(r => r.reader_id !== this.get('user_id'), activitiesToCreate)
 
-    return Activity.saveForReasons(readers, trx)
+    return Activity.saveForReasons(activitiesToCreate, trx)
   },
 
   createVoteResetActivities: async function (trx) {
