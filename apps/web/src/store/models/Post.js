@@ -122,12 +122,12 @@ export const POST_TYPES = {
     label: 'Discussion',
     description: 'Talk about what\'s important with others'
   },
-  request: {
-    primaryColor: [102, 75, 165, 255], // $color-persimmon;
-    backgroundColor: 'rgba(102, 75, 165, .2)', // $color-peach-schnapps;
+  event: {
+    primaryColor: [254, 72, 80, 255], // $color-medium-purple
+    backgroundColor: 'rgba(254, 72, 80, .2)', // $color-moon-raker
     map: true,
-    label: 'Request',
-    description: 'What can people help you with?'
+    label: 'Event',
+    description: 'Invite people to your event'
   },
   offer: {
     primaryColor: [0, 199, 157, 255], // $color-caribbean-green
@@ -135,6 +135,13 @@ export const POST_TYPES = {
     map: true,
     label: 'Offer',
     description: 'What do you have for others?'
+  },
+  request: {
+    primaryColor: [102, 75, 165, 255], // $color-persimmon;
+    backgroundColor: 'rgba(102, 75, 165, .2)', // $color-peach-schnapps;
+    map: true,
+    label: 'Request',
+    description: 'What can people help you with?'
   },
   resource: {
     primaryColor: [255, 212, 3, 255], // $color-mango-yellow;
@@ -149,13 +156,6 @@ export const POST_TYPES = {
     map: true,
     label: 'Project',
     description: 'Create a project that people can help with'
-  },
-  event: {
-    primaryColor: [254, 72, 80, 255], // $color-medium-purple
-    backgroundColor: 'rgba(254, 72, 80, .2)', // $color-moon-raker
-    map: true,
-    label: 'Event',
-    description: 'Invite people to your event'
   },
   proposal: {
     primaryColor: [0, 163, 227, 255], // $color-picton-blue

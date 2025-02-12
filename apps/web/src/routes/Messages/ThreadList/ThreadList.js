@@ -69,7 +69,7 @@ function ThreadList () {
   }, [])
 
   return (
-    <div 
+    <div
       className={cn(
         'bg-background h-full flex flex-col flex-wrap overflow-visible w-[320px]'
       )}

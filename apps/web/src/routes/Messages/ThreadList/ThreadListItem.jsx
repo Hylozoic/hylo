@@ -26,7 +26,7 @@ export default function ThreadListItem ({
         </div>
         <div className='w-full flex flex-col justify-center'>
           <div className='flex items-center justify-between w-full'>
-            <div className={cn('max-w-[200px] w-full')}><ThreadNames names={names} unreadCount={unreadCount} active={active}/></div>
+            <div className={cn('max-w-[200px] w-full')}><ThreadNames names={names} unreadCount={unreadCount} active={active} /></div>
             <div className='text-xs text-foreground opacity-70'>{TextHelpers.humanDate(get('createdAt', latestMessage), true)}</div>
           </div>
           <div className='flex items-center w-full justify-between'>
@@ -52,27 +52,32 @@ ThreadListItem.propTypes = {
 
 function ThreadAvatars ({ avatarUrls }) {
   const count = avatarUrls.length
-  const style = `avatar${count < 4 ? count : 'More'}`
   return (
     <div className='text-center relative min-w-[62px] h-full justify-center items-center flex min-h-[62px] h-[62px]'>
       {count === 1 && <RoundImage url={avatarUrls[0]} large className='scale-90' />}
-      {count === 2 && <div className='w-[60px] h-[60px] bg-black/20 rounded-full text-center items-center flex justify-center gap-1'>
-        <RoundImage url={avatarUrls[0]} medium className='inline relative left-1 bottom-1' />
-        <RoundImage url={avatarUrls[1]} medium className='inline relative right-1 top-1' />
-      </div>}
-      {(count > 2 && count < 5) && <div className='w-[60px] h-[60px] bg-black/20 rounded-full text-center items-center flex justify-center gap-1 flex-wrap'>
-        <RoundImage url={avatarUrls[0]} small className='inline relative top-1 left-1' />
-        <RoundImage url={avatarUrls[1]} medium className='inline relative top-1 right-1' />
-        <RoundImage url={avatarUrls[2]} medium className='inline relative bottom-2 left-1' />
-        <RoundImage url={avatarUrls[3]} small className='inline relative bottom-1 right-1' />
-      </div>}
-      
-      {count > 4 && <div className='w-[60px] h-[60px] bg-black/20 rounded-full text-center items-center flex justify-center gap-1 flex-wrap'>
-        <RoundImage url={avatarUrls[0]} medium className='inline relative top-1 left-1' />
-        <RoundImage url={avatarUrls[1]} small className='inline relative top-1 right-1' />
-        <RoundImage url={avatarUrls[2]} small className='inline relative bottom-1 left-1' />
-        <div className='bg-black/50 absolute bottom-0 right-0 w-[30px] h-[30px] rounded-full text-foreground text-xs flex items-center justify-center relative bottom-2 right-1'>+{count - 4}</div>
-      </div>}
+      {count === 2 && (
+        <div className='w-[60px] h-[60px] bg-black/20 rounded-full text-center items-center flex justify-center gap-1'>
+          <RoundImage url={avatarUrls[0]} medium className='inline relative left-1 bottom-1' />
+          <RoundImage url={avatarUrls[1]} medium className='inline relative right-1 top-1' />
+        </div>
+      )}
+      {(count > 2 && count < 5) && (
+        <div className='w-[60px] h-[60px] bg-black/20 rounded-full text-center items-center flex justify-center gap-1 flex-wrap'>
+          <RoundImage url={avatarUrls[0]} small className='inline relative top-1 left-1' />
+          <RoundImage url={avatarUrls[1]} medium className='inline relative top-1 right-1' />
+          <RoundImage url={avatarUrls[2]} medium className='inline relative bottom-2 left-1' />
+          <RoundImage url={avatarUrls[3]} small className='inline relative bottom-1 right-1' />
+        </div>
+      )}
+
+      {count > 4 && (
+        <div className='w-[60px] h-[60px] bg-black/20 rounded-full text-center items-center flex justify-center gap-1 flex-wrap'>
+          <RoundImage url={avatarUrls[0]} medium className='inline relative top-1 left-1' />
+          <RoundImage url={avatarUrls[1]} small className='inline relative top-1 right-1' />
+          <RoundImage url={avatarUrls[2]} small className='inline relative bottom-1 left-1' />
+          <div className='bg-black/50 absolute bottom-0 right-0 w-[30px] h-[30px] rounded-full text-foreground text-xs flex items-center justify-center relative bottom-2 right-1'>+{count - 4}</div>
+        </div>
+      )}
     </div>
   )
 }

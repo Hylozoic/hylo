@@ -64,19 +64,23 @@ module.exports = bookshelf.Model.extend({
     .save({}, {transacting})
   },
 
-  taggedPostCount (groupId, tagId) {
-    return bookshelf.knex('posts_tags')
-    .join('posts', 'posts.id', 'posts_tags.post_id')
-    .join('groups_posts', 'groups_posts.post_id', 'posts_tags.post_id')
-    .where('posts.active', true)
-    .where({group_id: groupId, tag_id: tagId})
-    .count()
-    .then(rows => Number(rows[0].count))
+  taggedPostCount (groupId, tagId, afterPostId = false) {
+    const query = bookshelf.knex('posts_tags')
+      .join('posts', 'posts.id', 'posts_tags.post_id')
+      .join('groups_posts', 'groups_posts.post_id', 'posts_tags.post_id')
+      .where('posts.active', true)
+      .where({group_id: groupId, tag_id: tagId})
+
+    if (afterPostId) {
+      query.where('posts.id', '>', afterPostId)
+    }
+
+    return query.count().then(rows => Number(rows[0].count))
   },
 
   defaults (groupId, trx) {
     return GroupTag.where({group_id: groupId, is_default: true})
-    .fetchAll({withRelated: 'tag', transacting: trx})
+      .fetchAll({ withRelated: 'tag', transacting: trx })
   },
 
   findByTagAndGroup (topicName, groupSlug) {

@@ -128,7 +128,9 @@ export default function ContextMenu (props) {
 
   const homeOnClick = () => {
     if (window.location.pathname === rootPath) {
+      // TODO REDESIGN: but we dont go to the stream here?
       clearStream()
+      // TODO REDESIGN: when do we clear the badge? what does it mean?
       clearBadge()
     }
   }
@@ -439,7 +441,11 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
         {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (
             <>
-              <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+              <MenuLink
+                to={url}
+                externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}
+                className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'
+              >
                 <div>
                   <WidgetIconResolver widget={widget} />
                   <span className='text-base font-normal ml-2'>{title}</span>
@@ -452,7 +458,13 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
             <div>
               {widget.view &&
                 <span className='flex justify-between items-center content-center'>
-                  <MenuLink to={url} externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}> <h3 className='text-base font-light opacity-50 text-foreground'>{title}</h3></MenuLink>
+                  <MenuLink
+                    to={url}
+                    externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}
+                    badgeCount={widget.highlightNumber}
+                  >
+                    <h3 className='text-base font-light opacity-50 text-foreground'>{title}</h3>
+                  </MenuLink>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {!widget.view &&
@@ -461,9 +473,11 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {widget.type !== 'members' &&
-                <div className={cn('flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground', {
-                  'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditing && widget.type !== 'home'
-                })}>
+                <div className={cn('flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground',
+                  {
+                    'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditing && widget.type !== 'home'
+                  })}
+                >
                   <SpecialTopElementRenderer widget={widget} group={group} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
@@ -536,7 +550,6 @@ function DropZone ({ droppableParams, isDroppable = true, height = '', hide = fa
 }
 
 function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = false, activeWidget, invalidChild = false, handlePositionedAdd }) {
-  const { t } = useTranslation()
   const itemTitle = item.title
   const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
   let hideDropZone = isOverlay
@@ -560,6 +573,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
           if (item.type === 'chat') {
             return (
               <MenuLink
+                badgeCount={item.highlightNumber}
                 to={itemUrl}
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
                 className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between'
@@ -713,7 +727,7 @@ function GroupSettingsMenu ({ group }) {
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
           {t('Group Settings')}
         </h3>
-        <ul className='flex flex-col gap-2 p-0' onClick={() => { console.log('menu') }}>
+        <ul className='flex flex-col gap-2 p-0'>
           {SETTINGS_MENU_ITEMS.map(item => (
             <li key={item.url}>
               <MenuLink
