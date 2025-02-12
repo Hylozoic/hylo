@@ -779,11 +779,11 @@ module.exports = bookshelf.Model.extend(merge({
   followTags: function (userId, groupId, tagIds, trx) {
     return Promise.each(tagIds, id =>
       TagFollow.findOrCreate({
-        userId: userId,
-        groupId: groupId,
+        userId,
+        groupId,
         tagId: id,
-        transacting: trx
-      })
+        isSubscribing: true
+      }, { transacting: trx })
         .catch(err => {
           if (!err.message.match(/duplicate key value/)) throw err
         })

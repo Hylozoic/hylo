@@ -80,7 +80,7 @@ module.exports = bookshelf.Model.extend({
 
   defaults (groupId, trx) {
     return GroupTag.where({group_id: groupId, is_default: true})
-    .fetchAll({withRelated: 'tag', transacting: trx})
+      .fetchAll({ withRelated: 'tag', transacting: trx })
   },
 
   findByTagAndGroup (topicName, groupSlug) {

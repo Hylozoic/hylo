@@ -456,7 +456,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   createActivities: async function (trx) {
     await this.load(['groups', 'tags'], { transacting: trx })
     const { tags, groups } = this.relations
-    const activitiesToCreate = []
+    let activitiesToCreate = []
 
     const mentions = RichText.getUserMentions(this.details())
     let mentioned = mentions.map(userId => ({

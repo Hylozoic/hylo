@@ -1,6 +1,6 @@
 exports.up = async function (knex) {
   await knex.schema.table('tag_follows', t => {
-    t.jsonb('settings').defaultTo('{}')
+    t.jsonb('settings').defaultTo('{ }') // no notifications value is a signal that this is not a chat room subscription yet
   })
 
   const homeTag = await knex.select('id').from('tags').where('name', 'home').first()
@@ -25,14 +25,20 @@ exports.up = async function (knex) {
     })
     .update({ settings: { notifications: 'all' } })
 
-    // Update all existing tag follows to have a new_post_count of 0 and a last_read_post_id of the highest post id in the group topic
+    // Make the home tag the only default tag for all groups, meaning the one people get subscribed to automatically when they join a group
+    await knex('groups_tags')
+      .where('tag_id', homeTagId)
+      .update({ is_default: true })
+
+    await knex('groups_tags')
+      .whereNot('tag_id', homeTagId)
+      .update({ is_default: false })
+
+    // Update all existing tag follows to have a new_post_count of 0 and a last_read_post_id of the highest post id so they all start at the latest post
     await knex('tag_follows')
       .update({
         new_post_count: 0,
-        last_read_post_id: knex('posts')
-          .join('posts_tags', 'posts.id', 'posts_tags.post_id')
-          .max('posts.id')
-          .whereRaw('tag_follows.tag_id = posts_tags.tag_id')
+        last_read_post_id: knex('posts').max('posts.id')
       })
 }
 

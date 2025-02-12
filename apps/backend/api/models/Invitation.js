@@ -51,14 +51,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
       await GroupMembership.forPair(user, group).fetch({ transacting }) ||
       await user.joinGroup(group, { role, fromInvitation: true, transacting })
 
+    // TODO: we are not using this right now, but we could use to invite to a chat room
     if (!this.isUsed() && this.get('tag_id')) {
       try {
         await TagFollow.findOrCreate({
           tagId: this.get('tag_id'),
           userId,
           groupId: this.get('group_id'),
-          transacting
-        })
+        }, { transacting})
       } catch (err) {
         // do nothing if the tag follow already exists
         if (!err.message || !err.message.includes('duplicate key value')) {
