@@ -87,22 +87,23 @@ export const routingConfig = {
   '/messages':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Messages Tab/Messages`,
 
   // catch-alls
-  '(.*)/group/:groupSlug':                                   `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
-  '(.*)/group/:groupSlug/explore':                           `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
-  '(.*)/members/:id':                                        `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Member')}`,
-  '(.*)/post/:id':                                           `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
-  '(.*)/post/:id/comments/:commentId':                       `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
-  '(.*)/create/group':                                       `${AUTH_ROOT_SCREEN_NAME}/Create Group`,
-  '(.*)/create/post':                                        `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-  '(.*)/post/:id/edit':                                      `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
+  ':unmatchedBasePath(.*)/group/:groupSlug':                  `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
+  ':unmatchedBasePath(.*)/group/:groupSlug/explore':          `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
+  ':unmatchedBasePath(.*)/members/:id':                       `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Member')}`,
+  ':unmatchedBasePath(.*)/post/:id':                          `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
+  ':unmatchedBasePath(.*)/post/:id/comments/:commentId':      `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
+  ':unmatchedBasePath(.*)/create/group':                      `${AUTH_ROOT_SCREEN_NAME}/Create Group`,
+  ':unmatchedBasePath(.*)/create/post':                       `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
+  ':unmatchedBasePath(.*)/post/:id/edit':                                      `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
 
   '/':                                                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`
 }
 
 // These screens will always be present and be first for the key'd navigator
 export const initialRouteNamesConfig = {
-  [AUTH_ROOT_SCREEN_NAME]: 'Drawer',
-  'Messages Tab': 'Messages'
+  // [AUTH_ROOT_SCREEN_NAME]: 'Drawer',
+  // 'Home Tab': 'Group Navigation',
+  // 'Messages Tab': 'Messages'
 }
 
 export const DEFAULT_APP_HOST = 'https://www.hylo.com'

@@ -11,7 +11,7 @@ import { OneSignal } from 'react-native-onesignal'
 import { AuthProvider } from '@hylo/contexts/AuthContext'
 import mobileSubscriptionExchange from 'urql/mobileSubscriptionExchange'
 import { useMakeUrqlClient } from '@hylo/urql/makeUrqlClient'
-import { sentryConfig } from 'config'
+import { sentryConfig, isTest } from 'config'
 import store from 'store'
 import { name as appName } from './app.json'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -26,6 +26,19 @@ import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHT
 import './src/style/global.css'
 
 // import FastImage from 'react-native-fast-image'
+
+// For MSW, see https://mswjs.io/docs/integrations/react-native
+async function enableMocking() {
+  if (!isTest) {
+    return
+  }
+  await import('./msw.polyfills')
+  const { server } = await import('./src/graphql/mocks/mswServer')
+  server.listen()
+}
+enableMocking().then(() => {
+  AppRegistry.registerComponent(appName, () => App)
+})
 
 Sentry.init(sentryConfig)
 
