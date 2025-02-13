@@ -10,7 +10,7 @@ import { black10OnCaribbeanGreen, gainsboro, gunsmoke, rhino05, rhino10, rhino60
 import HomeNavigator from 'navigation/HomeNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
 import MessagesNavigator from 'navigation/MessagesNavigator'
-import UserSettingsTabsNavigator from './UserSettingsTabsNavigator'
+import UserSettingsMenu from 'screens/UserSettingsMenu'
 
 const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
@@ -77,7 +77,7 @@ export default function TabsNavigator () {
       />
       <Tabs.Screen
         name='Settings Tab'
-        component={UserSettingsTabsNavigator}
+        component={UserSettingsMenu}
         options={{
           tabBarIcon: ({ focused }) => (
             <Avatar

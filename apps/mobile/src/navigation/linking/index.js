@@ -41,26 +41,25 @@ export const unknownRouteMatch = isDev && !isTest ? { ':unmatchedBasePath(.*)': 
 export const routingConfig = {
   // Auth & Signup Routes
   '/login':                                                               `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
-  // TODO: Routing - Handle this in Login by setting the returnToOnAuth path to direct to the auth'd Welcome page for the given groupSlug querystring param
   '/reset-password':                                                      `${NON_AUTH_ROOT_SCREEN_NAME}/ForgotPassword`,
   '/signup/:step(verify-email)':                                          `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/SignupEmailValidation`,
   '/signup/:step?':                                                       `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/Signup Intro`,
   '/signup':                                                              `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/Signup Intro`,
-  // TODO:  Routing - oauth not currently handled, but there was is this implementation of jwt that may relate
-  // '/noo/login/(jwt|token)':                                               'LoginByTokenHandler',
+  '/noo/login/(jwt|token)':                                               'LoginByTokenHandler',
+  // TODO:  Routing - oauth not currently handled, and I don't think we had planned to yet in Mobile.
   '/oauth/consent/:uid':                                                  `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
   '/oauth/login/:uid':                                                    `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
 
-  // Available in both Auth and Non-Auth state, is responsible for setting returnToOnAuth path when accessed in non-auth context
+  // Note: Available in both Auth and Non-Auth state as JoinGroup needs to check for a valid invite and initiate JTW auth 
+  // but this unlike all other cases, makes JoinGroup responsible for setting returnToOnAuth path when accessed in non-auth context
   '/:context(groups)/:groupSlug/join/:accessCode':                        'JoinGroup',
-  // TODO:  Routing - not yet implemented, and should be an AUTH_ROOT_SCREEN_NAME-rooted path to the appropriate Welcome component
-  // when this path is matched when not auth'd as long as is not available in the non-authed screen set, then returnToAuth will be set
+  // TODO:  Routing - Test this. When this path is matched when not auth'd, then returnToAuth will be set.
   '/welcome':                                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/${GROUP_WELCOME_LANDING}`,
 
   // Used only for testing HyloEditor loading and config
   '/hylo-editor':                                                          `${AUTH_ROOT_SCREEN_NAME}/HyloEditor`,
 
-  // TODO: Routing - add /post/:postId optional to (probably all) routes going to Stream
+  // TODO: Routing - Add /post/:postId optional to (probably all) routes going to Stream
 
   // Public Context Routes
   // TODO:  Routing - some of these need to be available when not auth'd
@@ -96,15 +95,8 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/topics/:topicName':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
   '/:context(groups)/:groupSlug/topics/:topicName/post/:postId'         : `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
   '/:context(groups)/:groupSlug/custom/:customViewId':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug/settings/agreements':                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
-  '/:context(groups)/:groupSlug/settings/delete':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
-  '/:context(groups)/:groupSlug/settings/roles':                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
-  '/:context(groups)/:groupSlug/settings/invite':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
-  '/:context(groups)/:groupSlug/settings/privacy':                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
-  '/:context(groups)/:groupSlug/settings/relationships':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
-  '/:context(groups)/:groupSlug/settings/requests':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
-  '/:context(groups)/:groupSlug/settings/responsibilities':               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
-  '/:context(groups)/:groupSlug/settings/export':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
+  // TODO: Routing -- See VALID_GROUP_SETTINGS_AREAS in GroupSettingsMenu for handling there, it currently is just kept there but applied
+  '/:context(groups)/:groupSlug/settings/:settingsArea':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
   '/:context(groups)/:groupSlug/settings':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
   // TODO:  Routing - potentially group these
   '/:context(groups)/:groupSlug/:streamType(stream)':                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
@@ -115,7 +107,7 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/:streamType(proposals)':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/:streamType(requests-and-offers)':        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/:streamType(resources)':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug':                                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Detail`,
+  '/:context(groups)/:groupSlug':                                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab`,
 
   // All Context Routes
   '/:context(all)/map':                                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
@@ -137,15 +129,13 @@ export const routingConfig = {
   '/:context(my)/groups':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Groups`,
   '/:context(my)/interactions':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/mentions':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(my)/account':                                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
-  '/:context(my)/blocked-users':                                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
-  '/:context(my)/edit-profile':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
-  '/:context(my)/invitations':                                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
-  '/:context(my)/locale':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
-  '/:context(my)/saved-searches':                                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
-  // TODO: Routing - this used to go to Notification within the Home Tab, which I think may still pull-up a modal.
-  // Not sure why, and this seems more clear, but needs to be explored/tested.
-  '/:context(my)/notifications':                                          `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Notifications')}`,
+  '/:context(my)/:settingsArea(account)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
+  '/:context(my)/:settingsArea(blocked-users)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
+  '/:context(my)/:settingsArea(edit-profile)':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
+  '/:context(my)/:settingsArea(invitations)':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
+  '/:context(my)/:settingsArea(locale)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
+  '/:context(my)/:settingsArea(saved-searches)':                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
+  '/:context(my)/:settingsArea(notifications)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
   '/:context(my)/posts':                                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   // TODO:  Routing - potentially group these
   '/:context(my)/:streamType(discussions)':                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,

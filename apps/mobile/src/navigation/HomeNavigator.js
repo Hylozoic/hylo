@@ -10,9 +10,10 @@ import TabStackHeader from 'navigation/headers/TabStackHeader'
 import AllTopicsWebView from 'screens/AllTopicsWebView'
 import ChatRoom from 'screens/ChatRoomWebView'
 import Stream from 'screens/Stream'
-import GroupExploreWebView from 'screens/GroupExploreWebView'
-import Groups from 'screens/Groups'
 import AllViews from 'screens/AllViews'
+import Groups from 'screens/Groups'
+import GroupExploreWebView from 'screens/GroupExploreWebView'
+import GroupSettingsMenu from 'screens/GroupSettingsMenu'
 import MemberDetails from 'screens/MemberProfile/MemberDetails'
 import MemberProfile from 'screens/MemberProfile'
 import MembersComponent from 'screens/Members'
@@ -79,8 +80,9 @@ export default function HomeNavigator ({ navigation }) {
       <HomeTab.Screen name='Members' component={MembersComponent} />
       <HomeTab.Screen name='Member' key='Member' component={MemberProfile} />
       <HomeTab.Screen name='Member Details' component={MemberDetails} />
-      <HomeTab.Screen name='Group Relationships' component={Groups} />
       <HomeTab.Screen name='Group Explore' component={GroupExploreWebView} />
+      <HomeTab.Screen name='Group Relationships' component={Groups} />
+      <HomeTab.Screen name='Group Settings' component={GroupSettingsMenu} />
       <HomeTab.Screen name='Topics' component={AllTopicsWebView} />
       <HomeTab.Screen name='Map' component={MapWebView} />
       <HomeTab.Screen name='Chat' component={ChatRoom} />
