@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import type { CalendarProps } from './calendar-types'
 import CalendarHeader from './header/calendar-header'
 import CalendarBody from './body/calendar-body'
@@ -15,13 +15,13 @@ export default function Calendar ({
   routeParams,
   locationParams,
   querystringParams,
-  calendarIconIsToday = true,
-  date,
-  setDate,
-  mode,
-  setMode
+  calendarIconIsToday = true
 }: CalendarProps) {
+  const [mode, setMode] = useState('month')
+  const [date, setDate] = useState(new Date())
+
   // map posts objects to calendar "event" objects
+  // unique color per post type
   const events = posts.map((post) => {
     return {
       id: post.id,

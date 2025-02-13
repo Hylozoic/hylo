@@ -19,7 +19,7 @@ export default function CalendarBodyMonth () {
   // Get the first Monday of the first week (may be in previous month)
   const calendarStart = monthStart.startOf('week', { useLocaleWeeks: true })
   // Get the last Sunday of the last week (may be in next month)
-  const calendarEnd = monthEnd.endOf('week', { useLocaleWeeks: true }).plus({ day: 1 })
+  const calendarEnd = monthEnd.endOf('week', { useLocaleWeeks: true })
 
   // Get all days between start and end
 

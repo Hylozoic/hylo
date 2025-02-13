@@ -12,7 +12,6 @@ import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 import Loading from 'components/Loading'
 import ModerationListItem from 'components/ModerationListItem/ModerationListItem'
 import NoPosts from 'components/NoPosts'
-import { DateTime } from 'luxon'
 import Calendar from 'components/Calendar'
 import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
@@ -35,7 +34,6 @@ import { fetchModerationActions, clearModerationAction } from 'store/actions/mod
 import { FETCH_MODERATION_ACTIONS, FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
-import { makeDropQueryResults } from 'store/reducers/queryResults'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -61,8 +59,6 @@ const getCustomView = ormCreateSelector(
   (_, customViewId) => customViewId,
   (session, id) => session.CustomView.safeGet({ id })
 )
-
-const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
 export default function Stream (props) {
   const dispatch = useDispatch()
@@ -103,18 +99,17 @@ export default function Stream (props) {
     sortBy = 'start_time'
   }
   const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
+  const calendarView = viewMode === 'calendar'
   const decisionView = getQuerystringParam('d', location) || 'decisions'
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
 
   // TODO: merge this and getTypes
   const determinePostTypeFilter = useCallback(() => {
-    switch (view) {
-      case 'projects': return 'project'
-      case 'decisions': return 'proposal'
-      case 'events': return 'event'
-      default: return querystringParams.t || defaultPostType
-    }
+    if (view === 'projects') return 'project'
+    if (view === 'decisions') return 'proposal'
+    if (view === 'events') return 'event'
+    return querystringParams.t || defaultPostType
   }, [querystringParams, defaultPostType, view])
 
   const postTypeFilter = determinePostTypeFilter()
@@ -126,10 +121,6 @@ export default function Stream (props) {
   }, [systemView])
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
-
-  // for calendar viewmode
-  const [calendarMode, setCalendarMode] = useState('month')
-  const [calendarDate, setCalendarDate] = useState(new Date())
 
   const fetchPostsParam = useMemo(() => {
     const params = {
@@ -144,34 +135,13 @@ export default function Stream (props) {
       topics,
       types: getTypes({ customView, view })
     }
-
-    if (viewMode === 'calendar') {
-      const luxonDate = DateTime.fromJSDate(calendarDate)
-      switch (calendarMode) {
-        case 'month':
-          params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
-          params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).endOf('day').toISO()
-          break
-        case 'week':
-          params.afterTime = luxonDate.startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
-          params.beforeTime = luxonDate.endOf('week', { useLocaleWeeks: true }).endOf('day').toISO()
-          break
-        default: // day
-          params.afterTime = luxonDate.startOf('day').toISO()
-          params.beforeTime = luxonDate.endOf('day').toISO()
-      }
-      params.order = 'asc'
-    } else if (view === 'events') {
-      const today = DateTime.now().toISO()
-      params.afterTime = timeframe === 'future' ? today : undefined
-      params.beforeTime = timeframe === 'past' ? today : undefined
+    if (view === 'events' && !calendarView) {
+      params.afterTime = timeframe === 'future' ? new Date().toISOString() : undefined
+      params.beforeTime = timeframe === 'past' ? new Date().toISOString() : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'
     }
-    if (view === 'events') {
-      dispatch(dropPostResults(params))
-    }
     return params
-  }, [calendarDate, calendarMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view, viewMode])
+  }, [childPostInclusion, context, customView, groupSlug, postTypeFilter, timeframe, topic?.id, topicName, sortBy, search, view, calendarView])
 
   let name = customView?.name || systemView?.name || ''
   let icon = customView?.icon || systemView?.iconName
@@ -336,7 +306,7 @@ export default function Stream (props) {
       <div
         id='stream-inner-container'
         className={cn(
-          viewMode !== 'calendar' && 'max-w-[750px]',
+          !calendarView && 'max-w-[750px]',
           'flex flex-col flex-1 w-full mx-auto overflow-auto p-4'
         )}
       >
@@ -357,7 +327,7 @@ export default function Stream (props) {
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
           decisionView={decisionView} changeDecisionView={changeDecisionView} changeTimeframe={changeTimeframe} timeframe={timeframe}
         />
-        {decisionView !== 'moderation' && viewMode !== 'calendar' && (
+        {decisionView !== 'moderation' && !calendarView && (
           <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
             {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
             {posts.map(post => {
@@ -378,7 +348,7 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {decisionView === 'moderation' && viewMode !== 'calendar' && (
+        {decisionView === 'moderation' && !calendarView && (
           <div className='streamItems'>
             {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
             {moderationActions.map(modAction => {
@@ -393,16 +363,12 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {!pending && viewMode === 'calendar' && (
+        {!pending && calendarView && (
           <div className='calendarView'>
             <Calendar
               posts={posts}
               routeParams={routeParams}
               querystringParams={querystringParams}
-              date={calendarDate}
-              setDate={setCalendarDate}
-              mode={calendarMode}
-              setMode={setCalendarMode}
             />
           </div>
         )}
