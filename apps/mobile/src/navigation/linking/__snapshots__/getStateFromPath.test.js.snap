@@ -713,7 +713,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/welcome": {
-    "path": "Unknown",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Welcome",
     "routeParams": {
       "originalLinkingPath": "/welcome",
       "pathMatcher": "/welcome",
