@@ -108,11 +108,6 @@ function PostEditor ({
 
   const currentUser = useSelector(getMe)
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
-  const groupOptions = useMemo(() => {
-    return currentUser ? currentUser.memberships.toModelArray().map((m) => m.group).sort((a, b) => a.name.localeCompare(b.name)) : []
-  }, [currentUser?.memberships])
-
-  const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
   const editingPostId = routeParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
@@ -189,22 +184,36 @@ function PostEditor ({
   const [allowAddTopic] = useState(true)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
+  const groupOptions = useMemo(() => {
+    return currentUser ? currentUser.memberships.toModelArray().map((m) => m.group).sort((a, b) => a.name.localeCompare(b.name)) : []
+  }, [currentUser?.memberships])
+
+  const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
+
+  // XXX: this is a hack because using currentPost.groups directly the group doesn't have the chatRooms attached to it
+  // hoping its easier to fix with URQL :)
+  const selectedGroups = useMemo(() => {
+    return groupOptions.filter((g) => currentPost.groups.some((g2) => g2.id === g.id))
+  }, [currentPost.groups, groupOptions])
+
   const toOptions = useMemo(() => {
-    return groupOptions.map((g) => [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
-      .concat(g.chatRooms.toModelArray()
-        .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
-        .sort((a, b) => a.name.localeCompare(b.name)))
-      .flat()).flat()
+    return groupOptions.map((g) => {
+      return [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
+        .concat(g.chatRooms.toModelArray()
+          .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
+          .sort((a, b) => a.name.localeCompare(b.name)))
+    }).flat().flat()
   }, [groupOptions])
 
   const selectedToOptions = useMemo(() => {
-    return currentPost.groups.map((g) => [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
-      .concat(g.chatRooms.toModelArray()
-        .filter(cr => currentPost.topics.some(t => t.id === cr.groupTopic?.topic?.id))
-        .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
-      )
-      .flat()).flat()
-  }, [currentPost.groups])
+    return selectedGroups.map((g) => {
+      return [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
+        .concat(g.chatRooms.toModelArray()
+          .filter(cr => currentPost.topics.some(t => t.id === cr.groupTopic?.topic?.id))
+          .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
+        )
+    }).flat().flat()
+  }, [currentPost.groups, currentPost.topics])
 
   useEffect(() => {
     setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)

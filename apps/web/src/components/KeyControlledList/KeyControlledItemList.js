@@ -13,7 +13,7 @@ const KeyControlledItemList = forwardRef(({
   onChange,
   items,
   selected,
-  tabChooses,
+  tabChooses = true,
   theme = {
     items: null,
     item: null,
@@ -77,7 +77,7 @@ const KeyControlledItemList = forwardRef(({
         theme={theme}
         tagType={tagType}
         ref={kclRef}
-        tabChooses
+        tabChooses={tabChooses}
         selectedIndex={selectedIndex}
         onChange={onChangeExtractingItem}
         {...omit('onChange', props)}

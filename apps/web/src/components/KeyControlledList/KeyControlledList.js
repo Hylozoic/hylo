@@ -74,7 +74,7 @@ const KeyControlledList = forwardRef(({
         return true
       case keyMap.TAB:
         if (tabChooses) return chooseCurrentItem()
-        break
+        return true
       case keyMap.SPACE:
         if (spaceChooses !== false) return chooseCurrentItem()
         break
@@ -109,9 +109,9 @@ const KeyControlledList = forwardRef(({
     })
 
   return (
-    <div className='bg-primary w-full' ref={ref}>
+    <div className='KeyControlledList bg-primary w-full' ref={ref}>
       {tagType && tagType === 'groups' && <div className={classes.keyListLabel}>{t('Groups')}</div>}
-      <ul {...omit(propsToOmit, props)} className={cn('bg-primary w-full max-h-[200px] overflow-scroll')}>
+      <ul {...omit(propsToOmit, props)} tabIndex='-1' className={cn('KeyControlledList-list bg-primary w-full max-h-[200px] overflow-scroll')}>
         {childrenWithRefs}
       </ul>
     </div>
