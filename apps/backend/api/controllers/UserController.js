@@ -90,6 +90,8 @@ module.exports = {
     const emailable = filter(memberships.models, mem => mem.getSetting('sendEmail'))
     const pushable = filter(memberships.models, mem => mem.getSetting('sendPushNotifications'))
 
+    // TODO: how to handle shift to groups?
+
     return res.ok({
       digestFrequency: user.get('settings')?.digest_frequency || 'daily',
       dmNotifications: user.get('settings')?.dm_notifications || 'both',

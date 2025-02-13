@@ -1,6 +1,7 @@
 /* eslint-disable camelcase  */
 import HasSettings from './mixins/HasSettings'
 
+const CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY = 'ChatRoom.digests.lastSentAt'
 
 module.exports = bookshelf.Model.extend(Object.assign({
   tableName: 'tag_follows',
@@ -116,5 +117,23 @@ module.exports = bookshelf.Model.extend(Object.assign({
       .then(tagFollows => {
         return tagFollows.models.map(tf => tf.relations.user)
       })
+  },
+
+  sendDigests: async function() {
+    let lastSentAt = await redisClient.get(CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY)
+    if (lastSentAt) lastSentAt = new Date(lastSentAt)
+    const now = new Date()
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    if (lastSentAt && lastSentAt < oneDayAgo) {
+      // If for some reason (e.g. server error) the digest was not sent in the last 24 hours only send the digests for chat rooms with posts in the last 24 hours
+      // To prevent spamming the users with digests and overloading the server
+      lastSentAt = oneDayAgo
+    }
+    const tagFollows = await TagFollow.query(q => {
+      q.where('created_at', '>', lastSentAt)
+    }).fetchAll()
+    for (const tagFollow of tagFollows) {
+    }
+    await redisClient.set(CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY, now.getTime().toString())
   }
 })

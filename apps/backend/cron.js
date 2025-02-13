@@ -63,7 +63,9 @@ const every10minutes = now => {
     FullTextSearch.refreshView(),
     Comment.sendDigests().then(count => sails.log.debug(`Sent ${count} comment/message digests`)),
     Group.updateAllMemberCounts(),
-    Post.updateProposalStatuses()
+    Post.updateProposalStatuses(),
+    // Send chat room digests every 30 minutes
+    ((now.minute >= 0 && now.minute < 10) || (now.minute >= 30 && now.minute < 40)) && TagFollow.sendDigests()
   ]
 }
 

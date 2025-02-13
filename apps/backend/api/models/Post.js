@@ -466,11 +466,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
       reason: 'mention'
     }))
 
+    // TODO: hndle through digest
     if (this.type === Post.Type.CHAT) {
       const tagFollows = await TagFollow.query(qb => {
         qb.whereIn('tag_id', tags.map('id'))
         qb.whereIn('group_id', groups.map('id'))
-        qb.whereRaw("settings->>'notifications' != 'none'")
+        qb.whereRaw("settings->>'notifications' = 'all'")
+        // TODO: or if = important??
       })
       .fetchAll({ withRelated: ['tag'], transacting: trx })
 

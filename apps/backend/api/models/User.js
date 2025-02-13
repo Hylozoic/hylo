@@ -556,6 +556,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   disableAllNotifications () {
+    // TODO: turn off notifictions for all groups? or do we have a user level setting too?
     return this.addSetting({
       digest_frequency: 'never',
       comment_notifications: 'none',
