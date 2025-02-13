@@ -31,14 +31,17 @@ export default function fetchMyMemberships () {
                 chatRooms {
                   items {
                     id
-                    topicFollow {
+                    groupTopic {
                       id
-                      lastReadPostId
-                      newPostCount
                       topic {
                         id
                         name
                       }
+                     }
+                     topicFollow {
+                      id
+                      lastReadPostId
+                      newPostCount
                     }
                   }
                 }
