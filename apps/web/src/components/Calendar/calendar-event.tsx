@@ -80,7 +80,8 @@ export default function CalendarEvent ({
     useCalendarContext()
   const style = month ? {} : calculateEventPosition(event, events)
   // TODO format for multi-day events
-  const toolTipTitle = `${event.title}<br />${DateTime.fromJSDate(event.start).toFormat('h:mm a')} - ${DateTime.fromJSDate(event.end).toFormat('h:mm a')}`
+  const timeFormat = { ...DateTime.TIME_SIMPLE, timeZoneName: 'short' as const }
+  const toolTipTitle = `${event.title}<br />${DateTime.fromJSDate(event.start).toLocaleString(timeFormat)} - ${DateTime.fromJSDate(event.end).toLocaleString(timeFormat)}`
 
   // our custon event click handler
   const navigate = useNavigate()
