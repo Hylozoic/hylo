@@ -1,45 +1,100 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
+exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without expectations) 1`] = `
 {
-  "/all/discussions": null,
-  "/all/events": null,
-  "/all/groups": null,
+  "/all/discussions": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "all",
+      "originalLinkingPath": "/all/discussions",
+      "pathMatcher": "/:context(all)/:streamType(discussions)",
+      "streamType": "discussions",
+    },
+  },
+  "/all/events": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "all",
+      "originalLinkingPath": "/all/events",
+      "pathMatcher": "/:context(all)/:streamType(events)",
+      "streamType": "events",
+    },
+  },
   "/all/map": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Map",
     "routeParams": {
-      "groupSlug": "all",
+      "context": "all",
       "originalLinkingPath": "/all/map",
-      "pathMatcher": "/:groupSlug(all|public)/map",
+      "pathMatcher": "/:context(all)/map",
     },
   },
   "/all/members/123": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Member",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Member Profile",
     "routeParams": {
-      "groupSlug": "all",
-      "id": "123",
+      "context": "all",
       "originalLinkingPath": "/all/members/123",
-      "pathMatcher": "/:groupSlug(all)/members/:id",
+      "pathMatcher": "/:context(all)/members/:personId",
+      "personId": "123",
     },
   },
-  "/all/projects": null,
-  "/all/proposals": null,
-  "/all/requests-and-offers": null,
-  "/all/resources": null,
-  "/all/stream": null,
+  "/all/projects": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "all",
+      "originalLinkingPath": "/all/projects",
+      "pathMatcher": "/:context(all)/:streamType(projects)",
+      "streamType": "projects",
+    },
+  },
+  "/all/proposals": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "all",
+      "originalLinkingPath": "/all/proposals",
+      "pathMatcher": "/:context(all)/:streamType(proposals)",
+      "streamType": "proposals",
+    },
+  },
+  "/all/requests-and-offers": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "all",
+      "originalLinkingPath": "/all/requests-and-offers",
+      "pathMatcher": "/:context(all)/:streamType(requests-and-offers)",
+      "streamType": "requests-and-offers",
+    },
+  },
+  "/all/resources": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "all",
+      "originalLinkingPath": "/all/resources",
+      "pathMatcher": "/:context(all)/:streamType(resources)",
+      "streamType": "resources",
+    },
+  },
+  "/all/stream": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "all",
+      "originalLinkingPath": "/all/stream",
+      "pathMatcher": "/:context(all)/:streamType(stream)",
+      "streamType": "stream",
+    },
+  },
   "/all/topics/sustainability": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "groupSlug": "all",
+      "context": "all",
       "originalLinkingPath": "/all/topics/sustainability",
-      "pathMatcher": "/:groupSlug(all)/topics/:topicName",
+      "pathMatcher": "/:context(all)/topics/:topicName",
       "topicName": "sustainability",
     },
   },
   "/create-group": null,
   "/group/example-group/moderation": null,
   "/groups/example-group": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Detail",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -47,7 +102,15 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
       "pathMatcher": "/:context(groups)/:groupSlug",
     },
   },
-  "/groups/example-group/about": null,
+  "/groups/example-group/about": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Detail",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/about",
+      "pathMatcher": "/:context(groups)/:groupSlug/about",
+    },
+  },
   "/groups/example-group/all-views": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/All Views",
     "routeParams": {
@@ -57,7 +120,16 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
       "pathMatcher": "/:context(groups)/:groupSlug/all-views",
     },
   },
-  "/groups/example-group/chat/general": null,
+  "/groups/example-group/chat/general": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/ChatRoom",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/chat/general",
+      "pathMatcher": "/:context(groups)/:groupSlug/chat/:topicName",
+      "topicName": "general",
+    },
+  },
   "/groups/example-group/custom/42": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
@@ -68,10 +140,28 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
       "pathMatcher": "/:context(groups)/:groupSlug/custom/:customViewId",
     },
   },
-  "/groups/example-group/discussions": null,
-  "/groups/example-group/events": null,
+  "/groups/example-group/discussions": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/discussions",
+      "pathMatcher": "/:context(groups)/:groupSlug/:streamType(discussions)",
+      "streamType": "discussions",
+    },
+  },
+  "/groups/example-group/events": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/events",
+      "pathMatcher": "/:context(groups)/:groupSlug/:streamType(events)",
+      "streamType": "events",
+    },
+  },
   "/groups/example-group/groups": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Relationships",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Explorer",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -99,37 +189,65 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
     },
   },
   "/groups/example-group/members/456": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Member",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Member Profile",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
-      "id": "456",
       "originalLinkingPath": "/groups/example-group/members/456",
-      "pathMatcher": "/:context(groups)/:groupSlug/members/:id",
+      "pathMatcher": "/:context(groups)/:groupSlug/members/:personId",
+      "personId": "456",
     },
   },
   "/groups/example-group/post/789": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Post Details",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Post Detail",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
-      "id": "789",
       "originalLinkingPath": "/groups/example-group/post/789",
-      "pathMatcher": "/:context(groups)/:groupSlug/post/:id",
+      "pathMatcher": "/:context(groups)/:groupSlug/post/:postId",
+      "postId": "789",
     },
   },
-  "/groups/example-group/projects": null,
+  "/groups/example-group/projects": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/projects",
+      "pathMatcher": "/:context(groups)/:groupSlug/:streamType(projects)",
+      "streamType": "projects",
+    },
+  },
   "/groups/example-group/proposals": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
       "originalLinkingPath": "/groups/example-group/proposals",
-      "pathMatcher": "/:context(groups)/:groupSlug/proposals",
+      "pathMatcher": "/:context(groups)/:groupSlug/:streamType(proposals)",
+      "streamType": "proposals",
     },
   },
-  "/groups/example-group/requests-and-offers": null,
-  "/groups/example-group/resources": null,
+  "/groups/example-group/requests-and-offers": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/requests-and-offers",
+      "pathMatcher": "/:context(groups)/:groupSlug/:streamType(requests-and-offers)",
+      "streamType": "requests-and-offers",
+    },
+  },
+  "/groups/example-group/resources": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/resources",
+      "pathMatcher": "/:context(groups)/:groupSlug/:streamType(resources)",
+      "streamType": "resources",
+    },
+  },
   "/groups/example-group/settings": {
     "path": "AuthRoot/Group Settings/Settings",
     "routeParams": {
@@ -139,7 +257,15 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
       "pathMatcher": "/:context(groups)/:groupSlug/settings",
     },
   },
-  "/groups/example-group/settings/agreements": null,
+  "/groups/example-group/settings/agreements": {
+    "path": "AuthRoot/Group Settings/Agreements",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings/agreements",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/agreements",
+    },
+  },
   "/groups/example-group/settings/delete": {
     "path": "AuthRoot/Group Settings/Delete",
     "routeParams": {
@@ -168,7 +294,15 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
       "pathMatcher": "/:context(groups)/:groupSlug/settings/invite",
     },
   },
-  "/groups/example-group/settings/privacy": null,
+  "/groups/example-group/settings/privacy": {
+    "path": "AuthRoot/Group Settings/Privacy",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings/privacy",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/privacy",
+    },
+  },
   "/groups/example-group/settings/relationships": {
     "path": "AuthRoot/Group Settings/Related Groups",
     "routeParams": {
@@ -187,8 +321,24 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
       "pathMatcher": "/:context(groups)/:groupSlug/settings/requests",
     },
   },
-  "/groups/example-group/settings/responsibilities": null,
-  "/groups/example-group/settings/roles": null,
+  "/groups/example-group/settings/responsibilities": {
+    "path": "AuthRoot/Group Settings/Responsibilities",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings/responsibilities",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/responsibilities",
+    },
+  },
+  "/groups/example-group/settings/roles": {
+    "path": "AuthRoot/Group Settings/Roles",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings/roles",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/roles",
+    },
+  },
   "/groups/example-group/settings/topics": null,
   "/groups/example-group/settings/views": null,
   "/groups/example-group/stream": {
@@ -197,11 +347,30 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
       "context": "groups",
       "groupSlug": "example-group",
       "originalLinkingPath": "/groups/example-group/stream",
-      "pathMatcher": "/:context(groups)/:groupSlug/stream",
+      "pathMatcher": "/:context(groups)/:groupSlug/:streamType(stream)",
+      "streamType": "stream",
     },
   },
-  "/groups/example-group/topics/technology": null,
-  "/groups/rogue-scholars/discussions": null,
+  "/groups/example-group/topics/technology": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/ChatRoom",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/topics/technology",
+      "pathMatcher": "/:context(groups)/:groupSlug/topics/:topicName",
+      "topicName": "technology",
+    },
+  },
+  "/groups/rogue-scholars/discussions": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "rogue-scholars",
+      "originalLinkingPath": "/groups/rogue-scholars/discussions",
+      "pathMatcher": "/:context(groups)/:groupSlug/:streamType(discussions)",
+      "streamType": "discussions",
+    },
+  },
   "/groups/rogue-scholars/discussions/post/22799": {
     "path": "AuthRoot/Post Details - Modal",
     "routeParams": {
@@ -211,13 +380,7 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
       "unmatchedBasePath": "/groups/rogue-scholars/discussions",
     },
   },
-  "/h/use-invitation": {
-    "path": "JoinGroup",
-    "routeParams": {
-      "originalLinkingPath": "/h/use-invitation",
-      "pathMatcher": "/h/use-invitation",
-    },
-  },
+  "/h/use-invitation": null,
   "/login": {
     "path": "NonAuthRoot/Login",
     "routeParams": {
@@ -242,54 +405,171 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
       "pathMatcher": "/messages/:id",
     },
   },
-  "/my/account": null,
+  "/my/account": {
+    "path": "AuthRoot/Drawer/Tabs/Settings Tab/Account",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/account",
+      "pathMatcher": "/:context(my)/account",
+    },
+  },
   "/my/announcements": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Announcements",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "groupSlug": "my",
+      "context": "my",
       "originalLinkingPath": "/my/announcements",
-      "pathMatcher": "/:groupSlug(my)/announcements",
+      "pathMatcher": "/:context(my)/announcements",
     },
   },
-  "/my/discussions": null,
-  "/my/edit-profile": null,
-  "/my/events": null,
-  "/my/groups": null,
+  "/my/discussions": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/discussions",
+      "pathMatcher": "/:context(my)/:streamType(discussions)",
+      "streamType": "discussions",
+    },
+  },
+  "/my/edit-profile": {
+    "path": "AuthRoot/Drawer/Tabs/Settings Tab/Edit Profile",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/edit-profile",
+      "pathMatcher": "/:context(my)/edit-profile",
+    },
+  },
+  "/my/events": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/events",
+      "pathMatcher": "/:context(my)/:streamType(events)",
+      "streamType": "events",
+    },
+  },
+  "/my/groups": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/User Groups",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/groups",
+      "pathMatcher": "/:context(my)/groups",
+    },
+  },
   "/my/interactions": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Interactions",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "groupSlug": "my",
+      "context": "my",
       "originalLinkingPath": "/my/interactions",
-      "pathMatcher": "/:groupSlug(my)/interactions",
+      "pathMatcher": "/:context(my)/interactions",
     },
   },
-  "/my/invitations": null,
-  "/my/locale": null,
+  "/my/invitations": {
+    "path": "AuthRoot/Drawer/Tabs/Settings Tab/Manage Invites",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/invitations",
+      "pathMatcher": "/:context(my)/invitations",
+    },
+  },
+  "/my/locale": {
+    "path": "AuthRoot/Drawer/Tabs/Settings Tab/Locale",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/locale",
+      "pathMatcher": "/:context(my)/locale",
+    },
+  },
   "/my/mentions": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Mentions",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "groupSlug": "my",
+      "context": "my",
       "originalLinkingPath": "/my/mentions",
-      "pathMatcher": "/:groupSlug(my)/mentions",
+      "pathMatcher": "/:context(my)/mentions",
     },
   },
-  "/my/notifications": null,
-  "/my/posts": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/My Posts",
+  "/my/notifications": {
+    "path": "AuthRoot/Notifications - Modal",
     "routeParams": {
-      "groupSlug": "my",
-      "originalLinkingPath": "/my/posts",
-      "pathMatcher": "/:groupSlug(my)/posts",
+      "context": "my",
+      "originalLinkingPath": "/my/notifications",
+      "pathMatcher": "/:context(my)/notifications",
     },
   },
-  "/my/projects": null,
-  "/my/proposals": null,
-  "/my/requests-and-offers": null,
-  "/my/resources": null,
-  "/my/saved-searches": null,
-  "/notifications": null,
-  "/oauth/consent/xyz789": null,
-  "/oauth/login/xyz789": null,
+  "/my/posts": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/posts",
+      "pathMatcher": "/:context(my)/posts",
+    },
+  },
+  "/my/projects": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/projects",
+      "pathMatcher": "/:context(my)/:streamType(projects)",
+      "streamType": "projects",
+    },
+  },
+  "/my/proposals": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/proposals",
+      "pathMatcher": "/:context(my)/:streamType(proposals)",
+      "streamType": "proposals",
+    },
+  },
+  "/my/requests-and-offers": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/requests-and-offers",
+      "pathMatcher": "/:context(my)/:streamType(requests-and-offers)",
+      "streamType": "requests-and-offers",
+    },
+  },
+  "/my/resources": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/resources",
+      "pathMatcher": "/:context(my)/:streamType(resources)",
+      "streamType": "resources",
+    },
+  },
+  "/my/saved-searches": {
+    "path": "AuthRoot/Drawer/Tabs/Settings Tab/Saved Searches",
+    "routeParams": {
+      "context": "my",
+      "originalLinkingPath": "/my/saved-searches",
+      "pathMatcher": "/:context(my)/saved-searches",
+    },
+  },
+  "/notifications": {
+    "path": "AuthRoot/Notifications - Modal",
+    "routeParams": {
+      "originalLinkingPath": "/notifications",
+      "pathMatcher": "/notifications",
+    },
+  },
+  "/oauth/consent/xyz789": {
+    "path": "NonAuthRoot/Login",
+    "routeParams": {
+      "originalLinkingPath": "/oauth/consent/xyz789",
+      "pathMatcher": "/oauth/consent/:uid",
+      "uid": "xyz789",
+    },
+  },
+  "/oauth/login/xyz789": {
+    "path": "NonAuthRoot/Login",
+    "routeParams": {
+      "originalLinkingPath": "/oauth/login/xyz789",
+      "pathMatcher": "/oauth/login/:uid",
+      "uid": "xyz789",
+    },
+  },
   "/post/555": {
     "path": "AuthRoot/Post Details - Modal",
     "routeParams": {
@@ -302,28 +582,99 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
   "/public": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "groupSlug": "public",
+      "context": "public",
       "originalLinkingPath": "/public",
-      "pathMatcher": "/:groupSlug(all|public)",
+      "pathMatcher": "/:context(public)",
     },
   },
-  "/public/discussions": null,
-  "/public/events": null,
-  "/public/groups": null,
+  "/public/discussions": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "public",
+      "originalLinkingPath": "/public/discussions",
+      "pathMatcher": "/:context(public)/:streamType(discussions)",
+      "streamType": "discussions",
+    },
+  },
+  "/public/events": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "public",
+      "originalLinkingPath": "/public/events",
+      "pathMatcher": "/:context(public)/:streamType(events)",
+      "streamType": "events",
+    },
+  },
+  "/public/groups": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Explorer",
+    "routeParams": {
+      "context": "public",
+      "originalLinkingPath": "/public/groups",
+      "pathMatcher": "/:context(public)/groups",
+    },
+  },
   "/public/map": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Map",
     "routeParams": {
-      "groupSlug": "public",
+      "context": "public",
       "originalLinkingPath": "/public/map",
-      "pathMatcher": "/:groupSlug(all|public)/map",
+      "pathMatcher": "/:context(public)/map",
     },
   },
-  "/public/projects": null,
-  "/public/proposals": null,
-  "/public/requests-and-offers": null,
-  "/public/resources": null,
-  "/public/stream": null,
-  "/public/topics/climate-change": null,
+  "/public/projects": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "public",
+      "originalLinkingPath": "/public/projects",
+      "pathMatcher": "/:context(public)/:streamType(projects)",
+      "streamType": "projects",
+    },
+  },
+  "/public/proposals": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "public",
+      "originalLinkingPath": "/public/proposals",
+      "pathMatcher": "/:context(public)/:streamType(proposals)",
+      "streamType": "proposals",
+    },
+  },
+  "/public/requests-and-offers": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "public",
+      "originalLinkingPath": "/public/requests-and-offers",
+      "pathMatcher": "/:context(public)/:streamType(requests-and-offers)",
+      "streamType": "requests-and-offers",
+    },
+  },
+  "/public/resources": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "public",
+      "originalLinkingPath": "/public/resources",
+      "pathMatcher": "/:context(public)/:streamType(resources)",
+      "streamType": "resources",
+    },
+  },
+  "/public/stream": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "public",
+      "originalLinkingPath": "/public/stream",
+      "pathMatcher": "/:context(public)/:streamType(stream)",
+      "streamType": "stream",
+    },
+  },
+  "/public/topics/climate-change": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "public",
+      "originalLinkingPath": "/public/topics/climate-change",
+      "pathMatcher": "/:context(public)/topics/:topicName",
+      "topicName": "climate-change",
+    },
+  },
   "/reset-password": {
     "path": "NonAuthRoot/ForgotPassword",
     "routeParams": {
@@ -331,7 +682,13 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
       "pathMatcher": "/reset-password",
     },
   },
-  "/search": null,
+  "/search": {
+    "path": "AuthRoot/Drawer/Tabs/Search Tab",
+    "routeParams": {
+      "originalLinkingPath": "/search",
+      "pathMatcher": "/search",
+    },
+  },
   "/signup": {
     "path": "NonAuthRoot/Signup/Signup Intro",
     "routeParams": {
@@ -355,6 +712,12 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
       "step": "verify-email",
     },
   },
-  "/welcome": null,
+  "/welcome": {
+    "path": "Unknown",
+    "routeParams": {
+      "originalLinkingPath": "/welcome",
+      "pathMatcher": "/welcome",
+    },
+  },
 }
 `;

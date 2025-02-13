@@ -17,6 +17,7 @@ import LoginByTokenHandler from 'screens/LoginByTokenHandler'
 import AuthRootNavigator from 'navigation/AuthRootNavigator'
 import NonAuthRootNavigator from 'navigation/NonAuthRootNavigator'
 import LoadingScreen from 'screens/LoadingScreen'
+import UnknownScreen from 'screens/UnknownScreen'
 import { white } from 'style/colors'
 
 const Root = createStackNavigator()
@@ -49,7 +50,7 @@ export default function RootNavigator () {
   }
 
   return (
-    <View style={styles.rootContainer}>
+    <View style={{ flex: 1 }}>
       <NavigationContainer
         linking={customLinking}
         ref={navigationRef}
@@ -79,14 +80,9 @@ export default function RootNavigator () {
               options={{ title: 'Joining Group...' }}
             />
           </Root.Group>
+          <Root.Screen name='Unknown' component={UnknownScreen} />
         </Root.Navigator>
       </NavigationContainer>
     </View>
   )
-}
-
-const styles = {
-  rootContainer: {
-    flex: 1
-  }
 }

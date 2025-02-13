@@ -46,7 +46,7 @@ const notificationsSamplePaths = [
     }
   ],
   ['/messages/123', 'AuthRoot/Drawer/Tabs/Messages Tab/Thread', { id: '123' }],
-  ['/settings/account', 'AuthRoot/Drawer/Tabs/Settings Tab/Account'],
+  ['/my/account', 'AuthRoot/Drawer/Tabs/Settings Tab/Account'],
   ['/create/post', 'AuthRoot/Edit Post', { unmatchedBasePath: '' }],
 
   // When no Screen Path target yet defined, creates pending test cases
@@ -182,8 +182,10 @@ describe('getStateFromPath', () => {
 
         // Only assert params if expectedParams is provided
         const finalRoute = getDeepestRoute(state.routes[0]) // Find the deepest route where params exist
-        const expectedParamsWithDefault = { ...expectedParams, originalLinkingPath: path, pathMatcher: finalRoute.params?.pathMatcher }
-        expect(finalRoute.params || {}).toEqual(expectedParamsWithDefault)
+        if (expectedParams) {
+          const expectedParamsWithDefault = { ...expectedParams, originalLinkingPath: path, pathMatcher: finalRoute.params?.pathMatcher }
+          expect(finalRoute.params || {}).toEqual(expectedParamsWithDefault)
+        }
       })
     } else {
       // Collect pending test results for snapshot comparison
@@ -198,7 +200,7 @@ describe('getStateFromPath', () => {
   })
 
   // Run a single test snapshot for all pending cases
-  test('❌ PENDING TEST OUTPUT', () => {
+  test('❌ Snapshot test path resolutions (for paths without expectations)', () => {
     expect(pendingCases).toMatchSnapshot()
   })
 })
