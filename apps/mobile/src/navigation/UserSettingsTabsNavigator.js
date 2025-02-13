@@ -72,7 +72,7 @@ export default function UserSettingsTabsNavigator ({ navigation, route }) {
     })
   }, [navigation, route])
 
-
+  console.log('does this get called? at alll?')
   // Note: "ERROR  Warning: A props object containing a "key" prop is being spread into JSX"
   // will appear in logs from this area. This is a known issue in React Navigation material-top-tabs
   // and RN 0.76. It is only a deprecation warning, and can be patched as per
@@ -85,42 +85,42 @@ export default function UserSettingsTabsNavigator ({ navigation, route }) {
         name='Edit Profile'
         component={UserSettingsWebView}
         initialParams={{
-          path: '/settings'
+          path: '/my/edit-profile'
         }}
       />
       <UserSettings.Screen
         name='Afflilations'
         component={UserSettingsWebView}
         initialParams={{
-          path: '/settings/groups'
+          path: '/my/groups'
         }}
       />
       <UserSettings.Screen
         name='Invites &amp; Requests'
         component={UserSettingsWebView}
         initialParams={{
-          path: '/settings/invitations'
+          path: '/my/invitations'
         }}
       />
       <UserSettings.Screen
         name='Notifications'
         component={UserSettingsWebView}
         initialParams={{
-          path: '/settings/notifications'
+          path: '/my/notifications'
         }}
       />
       <UserSettings.Screen
         name='Account'
         component={UserSettingsWebView}
         initialParams={{
-          path: '/settings/account'
+          path: '/my/account'
         }}
       />
       <UserSettings.Screen
         name='Saved Searches'
         component={UserSettingsWebView}
         initialParams={{
-          path: '/settings/saved-searches'
+          path: '/my/saved-searches'
         }}
       />
       <UserSettings.Screen

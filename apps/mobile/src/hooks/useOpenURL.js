@@ -45,7 +45,7 @@ export async function openURL (providedPathOrURL, reset, navigation = navigation
 
       const actionForPath = getActionFromState(stateForPath)
 
-      DEBUG && console.log(`!!! openURL: ${linkingPath} actionForPath:`)
+      DEBUG && console.log(`!!! openURL: ${linkingPath} actionForPath:`, { reset })
       DEBUG && console.dir(actionForPath)
 
       if (reset) {
@@ -63,7 +63,7 @@ export async function openURL (providedPathOrURL, reset, navigation = navigation
     }
   } else if (await Linking.canOpenURL(providedPathOrURL)) {
     DEBUG && console.log(`!!! openURL: ${providedPathOrUrl} passing to Linking.OpenURL as origin is not for this app, or path is to a known static page.`)
-    
+
     return Linking.openURL(providedPathOrURL)
   }
 }

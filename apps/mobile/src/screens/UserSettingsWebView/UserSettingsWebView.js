@@ -7,6 +7,7 @@ import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 export default function UserSettingsWebView ({ path: pathProp, route }) {
   // TODO: URQL! - Untested, intention is to refresh cache
+  console.log('UserSettingsWebViewwwsssswww', pathProp, route) // This never gets called when navigating from the context menu
   const [, queryCurrentUser] = useCurrentUser({ requestPolicy: 'network-only', pause: true })
   const webViewRef = useRef(null)
   const logout = useLogout()
@@ -14,7 +15,7 @@ export default function UserSettingsWebView ({ path: pathProp, route }) {
   const path = pathProp || routePath
   const source = route?.params.uri && { uri: route?.params.uri }
   const sourceOrPath = source
-    ? { source}
+    ? { source }
     : { path }
 
   const messageHandler = ({ type, data }) => {
