@@ -10,7 +10,7 @@ export default function GroupPresenter (group, { currentUser }) {
     // Note: Currently this flattens to the QuerySet attribute of ".items"
     // Until more is clear we are not flattening items so that non-presented results (most)
     // from queries work largely the same as presented results (e.g. group?.posts?.items, etc)
-    contextWidgets: contextWidgetsResolver(group),
+    contextWidgets: contextWidgetsResolver(group, { currentUser }),
     isPublicContext: group?.slug === PUBLIC_CONTEXT_SLUG,
     isMyContext: group?.slug === MY_CONTEXT_SLUG,
     isAllContext: group?.slug === ALL_GROUPS_CONTEXT_SLUG,
@@ -31,21 +31,28 @@ function shouldWelcomeResolver (group, currentUser) {
 
   const agreementsChanged = (!isContextGroupSlug(group?.slug) && numAgreements > 0) &&
     (!agreementsAcceptedAt || agreementsAcceptedAt < group?.settings?.agreementsLastUpdatedAt)
-  
-  return ((!isContextGroupSlug(group?.slug) && showJoinForm) || agreementsChanged || (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt))
- }
 
-function contextWidgetsResolver (group) {
+  return ((!isContextGroupSlug(group?.slug) && showJoinForm) || agreementsChanged || (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt))
+}
+
+function contextWidgetsResolver (group, { currentUser }) {
   if (isContextGroupSlug(group.slug)) {
     return getStaticMenuWidgets({
       isPublicContext: group.slug === PUBLIC_CONTEXT_SLUG,
       isMyContext: group.slug === MY_CONTEXT_SLUG,
       isAllContext: group.slug === ALL_GROUPS_CONTEXT_SLUG,
-      profileUrl: ''
+      profileUrl: profileUrlResolver(currentUser)
     })
   }
   // TODO redesign: Presented widgets, but they need a t object (or to add global--see note in ContextWidgetPresenter)
   return (group?.contextWidgets?.items || []).map(ContextWidgetPresenter)
+}
+
+// Until such time as we have navigation helpers in a shared context,
+// we'll just use this resolver to get the profile URL for the current user
+function profileUrlResolver (currentUser) {
+  if (!currentUser) return null
+  return `all/members/${currentUser?.id}`
 }
 
 export const GROUP_ACCESSIBILITY = {

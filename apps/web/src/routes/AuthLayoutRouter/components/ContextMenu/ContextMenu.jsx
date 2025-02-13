@@ -18,12 +18,11 @@ import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import getMe from 'store/selectors/getMe'
 import { removeWidgetFromMenu, updateContextWidget } from 'store/actions/contextWidgets'
 import useGatherItems from 'hooks/useGatherItems'
-import { CONTEXT_MY, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import { bgImageStyle, cn } from 'util/index'
 import { widgetUrl, baseUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
-
-import classes from './ContextMenu.module.scss'
+import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 import ContextWidgetPresenter, {
   isValidChildWidget,
   getStaticMenuWidgets,
@@ -32,6 +31,7 @@ import ContextWidgetPresenter, {
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
+import classes from './ContextMenu.module.scss'
 
 export default function ContextMenu (props) {
   const {
@@ -49,9 +49,9 @@ export default function ContextMenu (props) {
   const group = useSelector(state => currentGroup || getGroupForSlug(state, routeParams.groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const rootPath = baseUrl({ ...routeParams, view: null })
-  const isPublicContext = routeParams.context === 'public'
-  const isMyContext = routeParams.context === CONTEXT_MY
-  const isAllContext = routeParams.context === 'all'
+  const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
+  const isMyContext = routeParams.context === MY_CONTEXT_SLUG
+  const isAllContext = routeParams.context === ALL_GROUPS_CONTEXT_SLUG
   const profileUrl = personUrl(get('id', currentUser), routeParams.groupSlug)
 
   const rawContextWidgets = useSelector(state => {
