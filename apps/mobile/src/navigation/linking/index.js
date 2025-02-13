@@ -37,6 +37,10 @@ export const NON_AUTH_ROOT_SCREEN_NAME = 'NonAuthRoot'
 // but in Production and in Tests simply does the default of nothing when a route isn't matched.
 export const unknownRouteMatch = isDev && !isTest ? { ':unmatchedBasePath(.*)': 'Unknown' } : {}
 
+
+// TODO: Routing - /:groupSlug(all|public)/post/:id/comments/:commentId is still being used, so we need to add route/s for that
+// TODO: Routing - "many of these routes can have /create/* added to the end to bring up the create post modal"
+
 /* eslint-disable key-spacing */
 export const routingConfig = {
   // Auth & Signup Routes
