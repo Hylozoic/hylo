@@ -175,6 +175,18 @@
     font-size: 16px;
   }
 
+  ul {
+    list-style-type: disc;
+  }
+
+  ol {
+    list-style-type: decimal;
+  }
+
+  ul p, ol p {
+    margin: 0;
+  }
+
   &.editing {
     padding: 10px;
     overflow-y: auto;
