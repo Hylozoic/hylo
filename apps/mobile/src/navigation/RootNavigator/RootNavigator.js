@@ -10,6 +10,7 @@ import customLinking, {
   NON_AUTH_ROOT_SCREEN_NAME
 } from 'navigation/linking'
 import { useAuth } from '@hylo/contexts/AuthContext'
+import { isProduction } from 'config'
 import { openURL } from 'hooks/useOpenURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import JoinGroup from 'screens/JoinGroup'
@@ -17,6 +18,7 @@ import LoginByTokenHandler from 'screens/LoginByTokenHandler'
 import AuthRootNavigator from 'navigation/AuthRootNavigator'
 import NonAuthRootNavigator from 'navigation/NonAuthRootNavigator'
 import LoadingScreen from 'screens/LoadingScreen'
+import Unknown from 'screens/Unknown'
 import { white } from 'style/colors'
 
 const Root = createStackNavigator()
@@ -49,7 +51,7 @@ export default function RootNavigator () {
   }
 
   return (
-    <View style={styles.rootContainer}>
+    <View style={{ flex: 1 }}>
       <NavigationContainer
         linking={customLinking}
         ref={navigationRef}
@@ -73,20 +75,13 @@ export default function RootNavigator () {
             component={LoginByTokenHandler}
           />
           <Root.Group screenOptions={{ presentation: 'modal', header: ModalHeader }}>
-            <Root.Screen
-              name='JoinGroup'
-              component={JoinGroup}
-              options={{ title: 'Joining Group...' }}
-            />
+            <Root.Screen name='JoinGroup' component={JoinGroup} options={{ title: 'Joining Group...' }} />
+            {!isProduction && (
+              <Root.Screen name='Unknown' component={Unknown} />
+            )}
           </Root.Group>
         </Root.Navigator>
       </NavigationContainer>
     </View>
   )
-}
-
-const styles = {
-  rootContainer: {
-    flex: 1
-  }
 }

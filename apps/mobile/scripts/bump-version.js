@@ -9,10 +9,10 @@
  * - Automatically triggers `react-native-version` via the `postversion` script.
  * 
  * Usage:
- *   yarn version patch      # Bumps patch version
- *   yarn version minor      # Bumps minor version
- *   yarn version major      # Bumps major version
- *   yarn version premajor   # Bumps to next major version with prerelease
+ *   yarn bump-version patch      # Bumps patch version
+ *   yarn bump-version minor      # Bumps minor version
+ *   yarn bump-version major      # Bumps major version
+ *   yarn bump-version premajor   # Bumps to next major version with prerelease
  */
 
 const { execSync } = require("child_process");

@@ -25,7 +25,7 @@ module.exports = {
   // resolver: '<rootDir>/jest.resolver.js',
   moduleDirectories: [
     '<rootDir>/node_modules',
-    '<rootDir>/../../packages/shared/node_modules'
+    '<rootDir>/../../node_modules'
   ],
   setupFilesAfterEnv: [
     // https://callstack.github.io/react-native-testing-library/docs/migration/jest-matchers
