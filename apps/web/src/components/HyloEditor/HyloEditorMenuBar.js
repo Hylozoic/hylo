@@ -7,11 +7,7 @@ import {
   Undo2, Redo2, RemoveFormatting
 } from 'lucide-react'
 import { Button } from 'components/ui/button'
-import { Tooltip, TooltipTrigger, TooltipContent } from 'components/ui/tooltip'
 import { cn } from 'util/index'
-import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover'
-
-import classes from './HyloEditor.module.scss'
 
 // export function addIframe (editor) {
 //   const url = window.prompt('URL of video or content to embed')
@@ -22,9 +18,9 @@ import classes from './HyloEditor.module.scss'
 // }
 
 export default function HyloEditorMenuBar ({ editor }) {
-  if (!editor) return null
-
   const [modal, setModal] = useState(false)
+
+  if (!editor) return null
 
   return (
     <div className='flex items-center w-full opacity-70 hover:opacity-100 transition-all'>
@@ -56,24 +52,26 @@ export default function HyloEditorMenuBar ({ editor }) {
       />
 
       <div className='relative inline-block'>
-        {editor.isActive('link') ? (
-          <button
-            className="'text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer',"
-            title="Remove link"
-            onClick={() => editor.chain().focus().unsetLink().run()}
-          >
-            <Unlink size={14} />
-          </button>
-        ) : (
-          <button
-            tabIndex='-1'
-            title="add a link"
-            onClick={() => setModal(!modal)}
-            className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer'
-          >
-            <Link size={14} />
-          </button>
-        )}
+        {editor.isActive('link')
+          ? (
+            <button
+              className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer'
+              title='Remove link'
+              onClick={() => editor.chain().focus().unsetLink().run()}
+            >
+              <Unlink size={14} />
+            </button>
+            )
+          : (
+            <button
+              tabIndex='-1'
+              title='add a link'
+              onClick={() => setModal(!modal)}
+              className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer'
+            >
+              <Link size={14} />
+            </button>
+            )}
         {modal && (
           <AddLinkBox editor={editor} setModal={setModal} />
         )}
@@ -153,20 +151,17 @@ function HyloEditorMenuBarButton ({ active, Icon, onClick, setModal }) {
 }
 
 export const AddLinkBox = ({ editor, setModal }) => {
-  const [input, setInput] = useState("");
-
-  const [linkInput, setLinkInput] = useState("");
-  const [container, setContainer] = useState(null)
+  const [linkInput, setLinkInput] = useState('')
 
   const handleLinkChange = (e) => {
-    setLinkInput(e.target.value);
-  };
+    setLinkInput(e.target.value)
+  }
 
   const setLink = (input) => {
     editor
       .chain()
       .focus()
-      .extendMarkRange("link")
+      .extendMarkRange('link')
       .setLink({ href: input })
       .run()
   }
@@ -175,26 +170,26 @@ export const AddLinkBox = ({ editor, setModal }) => {
     e.preventDefault()
     setLink(linkInput)
     setModal(false)
-    setLinkInput("")
+    setLinkInput('')
   }
 
   return (
-    <div className="absolute z-50 bg-popover rounded-md p-4 shadow-md">
-      <div className="modal">
-        <button onClick={() => setModal(false)} className="absolute top-1 right-1">
+    <div className='absolute z-50 bg-popover rounded-md p-4 shadow-md'>
+      <div className='modal'>
+        <button onClick={() => setModal(false)} className='absolute top-1 right-1'>
           x
         </button>
         <form
           onSubmit={(e) => handleSubmit(e)}
-          className="flex flex-col gap-1 items-center"
+          className='flex flex-col gap-1 items-center'
         >
-          <label className="text-popover-foreground">Add link</label>
-          <input className="bg-input" autoFocus onChange={(e) => handleChange(e)} />
+          <label className='text-popover-foreground'>Add link</label>
+          <input className='bg-input' autoFocus onChange={(e) => handleLinkChange(e)} />
           <Button onClick={() => handleSubmit}>
             Add
           </Button>
         </form>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -1,5 +1,5 @@
 .post {
-  background-color: white;
+  background-color: hsl(var(--background));
   overflow: hidden;
   max-width: 960px;
   min-width: 350px;
@@ -169,5 +169,12 @@
 
   .activity-sticky {
     top: -25px;
+  }
+}
+
+:global {
+  .tippy-box {
+    /* Fix being able to click on mentions popup in post details */
+    pointer-events: auto;
   }
 }

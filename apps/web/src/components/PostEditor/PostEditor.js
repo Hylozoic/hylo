@@ -11,8 +11,8 @@ import AttachmentManager from 'components/AttachmentManager'
 import Icon from 'components/Icon'
 import LocationInput from 'components/LocationInput'
 import HyloEditor from 'components/HyloEditor'
-import Button from 'components/Button'
 import Loading from 'components/Loading'
+import PostTypeSelect from 'components/PostTypeSelect'
 import Switch from 'components/Switch'
 import ToField from 'components/ToField'
 import MemberSelector from 'components/MemberSelector'
@@ -108,11 +108,6 @@ function PostEditor ({
 
   const currentUser = useSelector(getMe)
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
-  const groupOptions = useMemo(() => {
-    return currentUser ? currentUser.memberships.toModelArray().map((m) => m.group).sort((a, b) => a.name.localeCompare(b.name)) : []
-  }, [currentUser?.memberships])
-
-  const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
   const editingPostId = routeParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
@@ -183,28 +178,41 @@ function PostEditor ({
   const [valid, setValid] = useState(editing || !!initialPost.title)
   const [announcementSelected, setAnnouncementSelected] = useState(false)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
-  const [showPostTypeMenu, setShowPostTypeMenu] = useState(false)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
   const [allowAddTopic] = useState(true)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
+  const groupOptions = useMemo(() => {
+    return currentUser ? currentUser.memberships.toModelArray().map((m) => m.group).sort((a, b) => a.name.localeCompare(b.name)) : []
+  }, [currentUser?.memberships])
+
+  const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
+
+  // XXX: this is a hack because using currentPost.groups directly the group doesn't have the chatRooms attached to it
+  // hoping its easier to fix with URQL :)
+  const selectedGroups = useMemo(() => {
+    return groupOptions.filter((g) => currentPost.groups.some((g2) => g2.id === g.id))
+  }, [currentPost.groups, groupOptions])
+
   const toOptions = useMemo(() => {
-    return groupOptions.map((g) => [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
-      .concat(g.chatRooms.toModelArray()
-        .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
-        .sort((a, b) => a.name.localeCompare(b.name)))
-      .flat()).flat()
+    return groupOptions.map((g) => {
+      return [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
+        .concat(g.chatRooms.toModelArray()
+          .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
+          .sort((a, b) => a.name.localeCompare(b.name)))
+    }).flat().flat()
   }, [groupOptions])
 
   const selectedToOptions = useMemo(() => {
-    return currentPost.groups.map((g) => [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
-      .concat(g.chatRooms.toModelArray()
-        .filter(cr => currentPost.topics.some(t => t.id === cr.groupTopic?.topic?.id))
-        .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
-      )
-      .flat()).flat()
-  }, [currentPost.groups])
+    return selectedGroups.map((g) => {
+      return [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
+        .concat(g.chatRooms.toModelArray()
+          .filter(cr => currentPost.topics.some(t => t.id === cr.groupTopic?.topic?.id))
+          .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
+        )
+    }).flat().flat()
+  }, [currentPost.groups, currentPost.topics])
 
   useEffect(() => {
     setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
@@ -239,7 +247,7 @@ function PostEditor ({
     return DateTime.fromJSDate(startTime).plus({ milliseconds: msDiff }).toJSDate()
   }
 
-  const handlePostTypeSelection = (type) => (event) => {
+  const handlePostTypeSelection = useCallback((type) => {
     setIsDirty(true)
     navigate({
       pathname: urlLocation.pathname,
@@ -248,37 +256,7 @@ function PostEditor ({
 
     setCurrentPost({ ...currentPost, type })
     setValid(isValid({ type }))
-    setShowPostTypeMenu(!showPostTypeMenu)
-  }
-
-  const postTypeButtonProps = useCallback((forPostType) => {
-    const { type } = currentPost
-    const active = type === forPostType
-    const className = cn(
-      styles.postType,
-      styles[`postType${forPostType.charAt(0).toUpperCase() + forPostType.slice(1)}`],
-      {
-        [styles.active]: active,
-        [styles.selectable]: !loading && !active
-      }
-    )
-    const label = active
-      ? (
-        <span className={styles.initialPrompt}>
-          <span>{t(forPostType)}</span>{' '}
-          <Icon className={cn('icon', `icon-${forPostType}`)} name='ArrowDown' />
-        </span>
-        )
-      : t(forPostType)
-    return {
-      borderRadius: '5px',
-      label,
-      onClick: active ? togglePostTypeMenu : handlePostTypeSelection(forPostType),
-      disabled: loading,
-      color: '',
-      className
-    }
-  }, [currentPost, loading])
+  }, [currentPost, urlLocation])
 
   const handleTitleChange = useCallback((event) => {
     const title = event.target.value
@@ -540,10 +518,6 @@ function PostEditor ({
     setShowAnnouncementModal(!showAnnouncementModal)
   }, [showAnnouncementModal])
 
-  const togglePostTypeMenu = useCallback(() => {
-    setShowPostTypeMenu(!showPostTypeMenu)
-  }, [showPostTypeMenu])
-
   const handleSetQuorum = useCallback((quorum) => {
     setCurrentPost({ ...currentPost, quorum })
   }, [currentPost])
@@ -593,18 +567,12 @@ function PostEditor ({
   return (
     <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-xl', { [styles.hide]: showAnnouncementModal })}>
       <div className='PostEditorHeader relative my-1 pb-2'>
-        <div>
-          {currentPost.type && <Button noDefaultStyles {...postTypeButtonProps(currentPost.type)} />}
-          {showPostTypeMenu && (
-            <div className={styles.postTypeMenu}>
-              {postTypes
-                .filter((postType) => postType !== currentPost.type)
-                .map((postType) => (
-                  <Button noDefaultStyles {...postTypeButtonProps(postType)} key={postType} />
-                ))}
-            </div>
-          )}
-        </div>
+        <PostTypeSelect
+          disabled={loading}
+          includeChat={false}
+          postType={currentPost.type}
+          setPostType={handlePostTypeSelection}
+        />
       </div>
       <div
         className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, { 'border-2 border-focus': toFieldFocused })}
@@ -640,7 +608,7 @@ function PostEditor ({
           <span className={styles.titleError}>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
         )}
       </div>
-      <div className={cn('PostEditorContent', styles.section)}>
+      <div className={cn('PostEditorContent', styles.section, 'flex flex-col !items-start')}>
         {currentPost.details === null || loading
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor

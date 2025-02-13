@@ -35,8 +35,6 @@ jest.mock('react-native-reanimated', () => {
   Reanimated.default.call = () => {}
   return Reanimated
 })
-// Silence the warning: Animated: `useNativeDriver` is not supported because the native animated module is missing
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper')
 
 // https://github.com/mixpanel/mixpanel-react-native/issues/88
 jest.mock('mixpanel-react-native', () => ({
@@ -121,9 +119,3 @@ jest.mock('react-native-webview', () => {
 
 // https://github.com/react-native-clipboard/clipboard
 jest.mock('@react-native-clipboard/clipboard', () => mockClipboard)
-
-// TODO: Workaround for a mocking issue introduced in RN 0.73 in conjunction with FastImage.
-// ref. https://github.com/facebook/react-native/issues/41907#issuecomment-1858445188
-// Should be able to be removed after upgrading to RN 0.75.x as there is already a patch in
-// the current release candidate of that version:
-Image.resolveAssetSource = jest.fn().mockImplementation(source => source)

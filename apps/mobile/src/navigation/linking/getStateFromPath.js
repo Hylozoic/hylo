@@ -2,7 +2,7 @@ import { getStateFromPath as getStateFromPathDefault } from '@react-navigation/n
 import { isEmpty } from 'lodash/fp'
 import { match } from 'path-to-regexp'
 import { URL } from 'react-native-url-polyfill'
-import QueryString from 'query-string'
+import queryString from 'query-string'
 import store from 'store'
 import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
 import {
@@ -26,7 +26,7 @@ export default function getStateFromPath (providedPath) {
 
   const screenConfig = buildScreenConfigFromScreenPath(screenPath)
 
-  // TODO: URQL! - either figure out how to get auth state here and restore this,
+  // TODO: Routing - Either figure out how to get auth state here and restore this,
   // or implement another way to catch AUTH_ROOT route matches when non-authed and
   // set the returnToOnAuth path higher up the stack.
   // let { isAuthorized } = checkAuth()
@@ -45,16 +45,17 @@ export function getRouteMatchForPath (providedPath, routes = routingConfig) {
   const url = new URL(providedPath, DEFAULT_APP_HOST)
   const pathname = url.pathname.toLowerCase()
 
-  for (const linkingPathMatcher in routes) {
-    const pathMatch = match(linkingPathMatcher)(pathname)
+  for (const pathMatcher in routes) {
+    const pathMatch = match(pathMatcher, { decode: decodeURIComponent, sensitive: false })(pathname)
 
     if (pathMatch) {
-      const screenPath = routes[linkingPathMatcher]
+      const screenPath = routes[pathMatcher]
 
       return {
         pathname,
-        search: url.search,
+        pathMatcher,
         pathMatch,
+        search: url.search,
         screenPath
       }
     }
@@ -65,15 +66,16 @@ export function addParamsToScreenPath (routeMatch) {
   if (routeMatch) {
     const {
       pathname,
-      search,
+      pathMatcher,
       pathMatch,
+      search,
       screenPath
     } = routeMatch
     const routeParams = []
 
     if (!isEmpty(search)) routeParams.push(search.substring(1))
-    if (!isEmpty(pathMatch.params)) routeParams.push(QueryString.stringify(pathMatch.params))
-
+    if (!isEmpty(pathMatch.params)) routeParams.push(queryString.stringify(pathMatch.params))
+    if (!isEmpty(pathMatcher)) routeParams.push(queryString.stringify({ pathMatcher }))
     // Needed for JoinGroup
     routeParams.push(`originalLinkingPath=${encodeURIComponent(pathname + search)}`)
 

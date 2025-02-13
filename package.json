@@ -36,6 +36,8 @@
     "@luma.gl/constants": "9.0.28",
     "@luma.gl/gltf": "9.0.28",
     "@emotion/utils": "^1.1.0",
-    "@emotion/sheet": "^1.1.0"
+    "@emotion/sheet": "^1.1.0",
+    "htmlparser2": "9.1.0",
+    "entities": "4.5.0"
   }
 }

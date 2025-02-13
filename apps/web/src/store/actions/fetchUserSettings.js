@@ -33,12 +33,15 @@ export default function fetchUserSettings () {
                 chatRooms {
                   items {
                     id
-                    topicFollow {
+                    groupTopic {
                       id
                       topic {
                         id
                         name
                       }
+                    }
+                    topicFollow {
+                      id
                       settings {
                         notifications
                       }

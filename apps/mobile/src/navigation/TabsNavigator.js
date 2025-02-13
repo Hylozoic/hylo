@@ -11,9 +11,9 @@ import { black10OnCaribbeanGreen, gainsboro, gunsmoke, rhino05, rhino10, rhino60
 import HomeNavigator from 'navigation/HomeNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
 import MessagesNavigator from 'navigation/MessagesNavigator'
-import UserSettingsTabsNavigator from './UserSettingsTabsNavigator'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import { MY_CONTEXT_SLUG } from '@hylo/shared'
+import UserSettingsMenu from 'screens/UserSettingsMenu'
 
 const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
@@ -87,7 +87,7 @@ export default function TabsNavigator () {
       />
       <Tabs.Screen
         name='Settings Tab'
-        component={UserSettingsTabsNavigator} // it will never navigate to this but we need to pass a valid component here anyway
+        component={UserSettingsMenu}
         listeners={{
           tabPress: (e) => {
             handleMyContextPress()

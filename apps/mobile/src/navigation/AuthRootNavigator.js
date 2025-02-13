@@ -21,7 +21,6 @@ import ModalHeader from 'navigation/headers/ModalHeader'
 import CreateGroupTabsNavigator from 'navigation/CreateGroupTabsNavigator'
 import DrawerNavigator from 'navigation/DrawerNavigator'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
-import GroupSettingsTabsNavigator from 'navigation/GroupSettingsTabsNavigator'
 import LoadingScreen from 'screens/LoadingScreen'
 import MemberProfile from 'screens/MemberProfile'
 import PostDetails from 'screens/PostDetails'
@@ -160,7 +159,6 @@ export default function AuthRootNavigator () {
             options={{ title: 'Explore' }}
           />
           <AuthRoot.Screen name='Edit Post' component={PostEditor} options={{ headerShown: false }} />
-          <AuthRoot.Screen name='Group Settings' component={GroupSettingsTabsNavigator} />
           <AuthRoot.Screen name={modalScreenName('Thread')} component={Thread} />
           <AuthRoot.Screen name={modalScreenName('Notifications')} component={NotificationsList} />
         </AuthRoot.Group>

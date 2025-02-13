@@ -127,7 +127,7 @@ export default function ChatPost ({
 
   const showCreator = event => {
     event.stopPropagation()
-    navigate(personUrl(creator.id))
+    navigate(personUrl(creator.id, group.slug))
   }
 
   const editPost = event => {

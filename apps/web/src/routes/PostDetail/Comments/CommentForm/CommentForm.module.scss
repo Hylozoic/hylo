@@ -39,9 +39,9 @@
   border-radius: 4px;
   width: 100%;
   min-height: 56px;
-  background-color: $color-white;
+  background-color: hsl(var(--input));
   composes: bdy-lt-sm from 'css/typography.scss';
-  color: $color-rhino-80;
+  color: hsl(var(--foreground));
   font-size: 16px;
 
   &.disabled {
