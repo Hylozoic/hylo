@@ -11,8 +11,8 @@ import AttachmentManager from 'components/AttachmentManager'
 import Icon from 'components/Icon'
 import LocationInput from 'components/LocationInput'
 import HyloEditor from 'components/HyloEditor'
-import Button from 'components/Button'
 import Loading from 'components/Loading'
+import PostTypeSelect from 'components/PostTypeSelect'
 import Switch from 'components/Switch'
 import ToField from 'components/ToField'
 import MemberSelector from 'components/MemberSelector'
@@ -178,7 +178,6 @@ function PostEditor ({
   const [valid, setValid] = useState(editing || !!initialPost.title)
   const [announcementSelected, setAnnouncementSelected] = useState(false)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
-  const [showPostTypeMenu, setShowPostTypeMenu] = useState(false)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
   const [allowAddTopic] = useState(true)
@@ -248,7 +247,7 @@ function PostEditor ({
     return DateTime.fromJSDate(startTime).plus({ milliseconds: msDiff }).toJSDate()
   }
 
-  const handlePostTypeSelection = (type) => (event) => {
+  const handlePostTypeSelection = useCallback((type) => {
     setIsDirty(true)
     navigate({
       pathname: urlLocation.pathname,
@@ -257,37 +256,7 @@ function PostEditor ({
 
     setCurrentPost({ ...currentPost, type })
     setValid(isValid({ type }))
-    setShowPostTypeMenu(!showPostTypeMenu)
-  }
-
-  const postTypeButtonProps = useCallback((forPostType) => {
-    const { type } = currentPost
-    const active = type === forPostType
-    const className = cn(
-      styles.postType,
-      styles[`postType${forPostType.charAt(0).toUpperCase() + forPostType.slice(1)}`],
-      {
-        [styles.active]: active,
-        [styles.selectable]: !loading && !active
-      }
-    )
-    const label = active
-      ? (
-        <span className={styles.initialPrompt}>
-          <span>{t(forPostType)}</span>{' '}
-          <Icon className={cn('icon', `icon-${forPostType}`)} name='ArrowDown' />
-        </span>
-        )
-      : t(forPostType)
-    return {
-      borderRadius: '5px',
-      label,
-      onClick: active ? togglePostTypeMenu : handlePostTypeSelection(forPostType),
-      disabled: loading,
-      color: '',
-      className
-    }
-  }, [currentPost, loading])
+  }, [currentPost, urlLocation])
 
   const handleTitleChange = useCallback((event) => {
     const title = event.target.value
@@ -549,10 +518,6 @@ function PostEditor ({
     setShowAnnouncementModal(!showAnnouncementModal)
   }, [showAnnouncementModal])
 
-  const togglePostTypeMenu = useCallback(() => {
-    setShowPostTypeMenu(!showPostTypeMenu)
-  }, [showPostTypeMenu])
-
   const handleSetQuorum = useCallback((quorum) => {
     setCurrentPost({ ...currentPost, quorum })
   }, [currentPost])
@@ -602,18 +567,12 @@ function PostEditor ({
   return (
     <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-xl', { [styles.hide]: showAnnouncementModal })}>
       <div className='PostEditorHeader relative my-1 pb-2'>
-        <div>
-          {currentPost.type && <Button noDefaultStyles {...postTypeButtonProps(currentPost.type)} />}
-          {showPostTypeMenu && (
-            <div className={styles.postTypeMenu}>
-              {postTypes
-                .filter((postType) => postType !== currentPost.type)
-                .map((postType) => (
-                  <Button noDefaultStyles {...postTypeButtonProps(postType)} key={postType} />
-                ))}
-            </div>
-          )}
-        </div>
+        <PostTypeSelect
+          disabled={loading}
+          includeChat={false}
+          postType={currentPost.type}
+          setPostType={handlePostTypeSelection}
+        />
       </div>
       <div
         className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, { 'border-2 border-focus': toFieldFocused })}
