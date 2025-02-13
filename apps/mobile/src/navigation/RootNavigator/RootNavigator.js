@@ -10,6 +10,7 @@ import customLinking, {
   NON_AUTH_ROOT_SCREEN_NAME
 } from 'navigation/linking'
 import { useAuth } from '@hylo/contexts/AuthContext'
+import { isProduction } from 'config'
 import { openURL } from 'hooks/useOpenURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import JoinGroup from 'screens/JoinGroup'
@@ -19,7 +20,6 @@ import NonAuthRootNavigator from 'navigation/NonAuthRootNavigator'
 import LoadingScreen from 'screens/LoadingScreen'
 import Unknown from 'screens/Unknown'
 import { white } from 'style/colors'
-import { isProduction } from 'config'
 
 const Root = createStackNavigator()
 export default function RootNavigator () {
