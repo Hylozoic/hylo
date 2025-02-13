@@ -640,7 +640,7 @@ function PostEditor ({
           <span className={styles.titleError}>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
         )}
       </div>
-      <div className={cn('PostEditorContent', styles.section)}>
+      <div className={cn('PostEditorContent', styles.section, 'flex flex-col !items-start')}>
         {currentPost.details === null || loading
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
