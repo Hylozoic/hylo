@@ -171,3 +171,10 @@
     top: -25px;
   }
 }
+
+:global {
+  .tippy-box {
+    /* Fix being able to click on mentions popup in post details */
+    pointer-events: auto;
+  }
+}
