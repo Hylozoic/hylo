@@ -1,6 +1,7 @@
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import getStateFromPath from 'navigation/linking/getStateFromPath'
 import getInitialURL from 'navigation/linking/getInitialURL'
+import { isDev, isTest } from 'config'
 /*
 
 Hylo Custom link routing config and related utilities:
@@ -22,6 +23,10 @@ React Router (web)
 
 export const AUTH_ROOT_SCREEN_NAME = 'AuthRoot'
 export const NON_AUTH_ROOT_SCREEN_NAME = 'NonAuthRoot'
+
+// Handling of unknown routes, when in dev directs to "Unknown" screen/component for inspection
+// but in Production and in Tests simply does the default of nothing when a route isn't matched.
+export const unknownRoute = isDev && !isTest ? { ':unmatchedBasePath(.*)': 'Unknown' } : {}
 
 /* eslint-disable key-spacing */
 export const routingConfig = {
@@ -145,7 +150,7 @@ export const routingConfig = {
   ':unmatchedBasePath(.*)/create/group':                                  `${AUTH_ROOT_SCREEN_NAME}/Create Group`,
   ':unmatchedBasePath(.*)/create/post':                                   `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   ':unmatchedBasePath(.*)/post/:id/edit':                                 `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-  '/':                                                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`
+  ...unknownRoute
 }
 
 // Earlier version of routing

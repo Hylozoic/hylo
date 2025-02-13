@@ -14,6 +14,8 @@
     "postversion": "react-native-version --never-amend",
     "start": "rm -f node_modules/react-native-config/ios/ReactNativeConfig/GeneratedDotEnv.m node_modules/react-native-config/android/build/generated/source/buildConfig/debug/com/lugg/RNCConfig/BuildConfig.java node_modules/react-native-config/android/build/generated/source/buildConfig/release/com/lugg/RNCConfig/BuildConfig.java && react-native start",
     "test": "yarn jest",
+    "test:linking": "yarn test src/navigation/linking/getStateFromPath.test.js",
+    "open-link": "scripts/open-link.sh",
     "clean": "react-native-clean-project",
     "clean-auto": "react-native clean-project-auto",
     "check-dependencies": "rnx-align-deps",
