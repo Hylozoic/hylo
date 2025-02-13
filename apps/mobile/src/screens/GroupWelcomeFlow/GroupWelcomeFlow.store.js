@@ -98,7 +98,7 @@ export function getCurrentStepIndex (state) {
 export function getRouteNames (group, currentMembership) {
   const routeNames = [GROUP_WELCOME_LANDING]
   const { agreements, settings } = group
-  if (!isEmpty(agreements)) {
+  if (!isEmpty(agreements?.items)) {
     routeNames.push(GROUP_WELCOME_AGREEMENTS)
   }
   if (

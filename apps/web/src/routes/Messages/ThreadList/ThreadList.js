@@ -1,9 +1,9 @@
 import { isEmpty, orderBy } from 'lodash/fp'
-import React, { useCallback, useEffect } from 'react'
+import { SquarePen, Search, SearchX } from 'lucide-react'
+import React, { useCallback, useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import Icon from 'components/Icon'
 import TextInput from 'components/TextInput'
 import ScrollListener from 'components/ScrollListener'
 import { toRefArray, itemsToArray } from 'util/reduxOrmMigration'
@@ -26,6 +26,8 @@ import classes from './ThreadList.module.scss'
 function ThreadList () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const searchInputRef = useRef(null)
   const currentUser = useSelector(getMe)
   const routeParams = useParams()
   const navigate = useNavigate()
@@ -41,6 +43,20 @@ function ThreadList () {
 
   const onSearchChange = event => setThreadSearchAction(event.target.value)
 
+  const handleContainerClick = (e) => {
+    // Don't focus if clicking on a link or button
+    if (e.target.closest('a') || e.target.closest('button')) return
+    searchInputRef.current?.focus()
+  }
+
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true)
+  }
+
+  const handleSearchBlur = () => {
+    setIsSearchFocused(false)
+  }
+
   useEffect(() => {
     dispatch(fetchThreads(20, 0)).then(() => {
       if (!messageThreadId) {
@@ -53,22 +69,31 @@ function ThreadList () {
   }, [])
 
   return (
-    <div className='bg-background h-full flex flex-col flex-wrap overflow-visible w-[320px]'>
+    <div
+      className={cn(
+        'bg-background h-full flex flex-col flex-wrap overflow-visible w-[320px]'
+      )}
+      onClick={handleContainerClick}
+    >
       <div className={classes.header}>
-        <div className={classes.search}>
-          <div className={classes.searchIcon}>
-            <Icon name='Search' />
+        <div className={cn('bg-black/20 p-2 relative border-2 transition-all border-transparent rounded flex items-center', { 'border-2 border-focus': isSearchFocused })}>
+          <div className='absolute left-1 top-1'>
+            <Search />
           </div>
           <TextInput
+            ref={searchInputRef}
             placeholder={t('Search messages...')}
             value={threadSearch}
             onChange={onSearchChange}
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
+            className='text-foreground'
+            inputClassName='bg-transparent border-foreground pl-6 text-foreground placeholder:text-foreground/50 outline-none border-none'
             noClearButton
           />
         </div>
-        <Link className={classes.newMessage} to='/messages/new'>
-          <span>{t('New')}</span>
-          <Icon name='Messages' className={classes.messagesIcon} />
+        <Link className='bg-black/20 rounded-lg text-foreground flex justify-center items-center w-10 h-10 hover:bg-selected/100 scale-100 hover:scale-105 transition-all hover:text-foreground' to='/messages/new'>
+          <SquarePen />
         </Link>
       </div>
       <ul className={classes.list} id='thread-list-list' role='list'>
@@ -93,9 +118,16 @@ function ThreadList () {
         {threadsPending &&
           <Loading type='bottom' />}
         {!threadsPending && isEmpty(threads) && !threadSearch &&
-          <div className={classes.noConversations}>{t('You have no active messages')}</div>}
+          <div className={classes.noConversations}>
+            {t('You have no active messages!')}
+            <Link to='/messages/new'>{t('Send a message')}</Link>
+            {t('to get started.')}
+          </div>}
         {!threadsPending && isEmpty(threads) && threadSearch &&
-          <div className={classes.noConversations}>{t('No messages found')}</div>}
+          <div className='text-center text-foreground border-2 border-dashed border-foreground/20 rounded-lg m-4 p-4 flex flex-col items-center justify-center'>
+            <SearchX />
+            <div>{t('No messages found')}</div>
+          </div>}
       </ul>
       <ScrollListener
         elementId='thread-list-list'

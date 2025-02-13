@@ -8,8 +8,8 @@ const tDummy = t => {
   return t
 }
 
-export default function ContextWidgetPresenter (widget, { t = tDummy }) {
-  if (!widget || widget?._presented) return widget
+export default function ContextWidgetPresenter (widget, { t }) {
+  if (!widget || widget?._presented || !t) return widget
 
   // Resolve type once and pass it explicitly
   const type = widgetTypeResolver({ widget })
@@ -22,8 +22,9 @@ export default function ContextWidgetPresenter (widget, { t = tDummy }) {
     humanReadableType: humanReadableTypeResolver(type),
     iconName: iconNameResolver(widget, type),
     isDroppable: isDroppableResolver(widget),
-    isValidHomeWidget: isValidHomeWidget(widget),
+    isValidHomeWidget: isValidHomeWidgetResolver(widget),
     title: titleResolver({ widget, t }),
+    isHiddenInContextMenu: isHiddenInContextMenuResolver(widget),
     type,
     // Protects us from double presenting a widget
     _presented: true
@@ -53,7 +54,7 @@ function titleResolver ({ widget, t }) {
   return title
 }
 
-function isValidHomeWidget (widget) {
+function isValidHomeWidgetResolver (widget) {
   return !!(
     widget?.viewChat?.id ||
     widget?.customView?.id ||
@@ -83,7 +84,7 @@ const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   'all-views': 'Grid3x3'
 }
 function iconNameResolver (widget, type) {
-  if (widget?.icon) return widget.icon
+  if (widget?.iconName) return widget.iconName
   if (widget?.customView?.icon) return widget.customView.icon
   if (widget?.context === 'my') return null
 
@@ -133,6 +134,12 @@ function widgetTypeResolver ({ widget }) {
   )
 }
 
+const isHiddenInContextMenuResolver = (widget) => {
+  return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
+  !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
+  !widget.viewChat && !widget.customView)
+}
+
 /* == ContextWidget collection methods, Static Views, and utility functions == */
 
 // TODO: To be relocated to GroupPresenter once utilized in Web
@@ -168,10 +175,10 @@ export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
   )
 }
 
-export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl, isAllContext }) {
+export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl, isAllContext }) {
   let widgets = []
 
-  if (isPublic) {
+  if (isPublicContext) {
     widgets = PUBLIC_CONTEXT_WIDGETS
   }
 
@@ -246,61 +253,61 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
 export const COMMON_VIEWS = {
   'ask-and-offer': {
     name: 'Ask & Offer',
-    icon: 'Request',
+    iconName: 'Request',
     defaultViewMode: 'bigGrid',
     postTypes: ['request', 'offer'],
     defaultSortBy: 'created'
   },
   decisions: {
     name: 'Decisions',
-    icon: 'Proposal',
+    iconName: 'Proposal',
     defaultViewMode: 'cards',
     postTypes: ['proposal'],
     defaultSortBy: 'created'
   },
   discussions: {
     name: 'Discussions',
-    icon: 'Message',
+    iconName: 'Message',
     defaultViewMode: 'list',
     postTypes: ['discussion'],
     defaultSortBy: 'updated'
   },
   events: {
     name: 'Events',
-    icon: 'Calendar',
+    iconName: 'Calendar',
     defaultViewMode: 'cards',
     postTypes: ['event'],
     defaultSortBy: 'start_time'
   },
   groups: {
     name: 'Groups',
-    icon: 'Groups'
+    iconName: 'Groups'
   },
   map: {
     name: 'Map',
-    icon: 'Globe'
+    iconName: 'Globe'
   },
   members: {
     name: 'Members',
-    icon: 'People'
+    iconName: 'People',
   },
   projects: {
     name: 'Projects',
-    icon: 'Stack',
+    iconName: 'Stack',
     defaultViewMode: 'bigGrid',
     postTypes: ['project'],
     defaultSortBy: 'created'
   },
   resources: {
     name: 'Resources',
-    icon: 'Document',
+    iconName: 'Document',
     defaultViewMode: 'grid',
     postTypes: ['resource'],
     defaultSortBy: 'created'
   },
   stream: {
     name: 'Stream',
-    icon: 'Stream',
+    iconName: 'Stream',
     defaultViewMode: 'cards',
     defaultSortBy: 'created'
   }

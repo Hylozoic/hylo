@@ -5,7 +5,7 @@ import classes from './PeopleList.module.scss'
 
 export default function PeopleList ({ currentMatch, onClick, onMouseOver, people }) {
   return (
-    <div className={classes.peopleListContainer}>
+    <div className='w-[320px] max-h-[400px] overflow-y-auto overflow-x-clip absolute top-12 bg-theme-background shadow-xl rounded-lg'>
       {people && people.length > 0 &&
         <ul className={classes.peopleList}>
           {people.map(person =>

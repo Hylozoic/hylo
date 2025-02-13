@@ -1,5 +1,4 @@
 import React from 'react'
-import classes from './SettingsSection.module.scss'
 
 const SettingsSection = ({ children }) => (
   <div className='border-2 border-foreground/20 p-4 background-black/10 rounded-lg border-dashed relative mb-8'>

@@ -12,7 +12,7 @@ import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import styles from './MessageForm.module.scss'
 
-const MessageForm = forwardRef((props, ref) => {
+const MessageForm = React.memo(forwardRef((props, ref) => {
   const [hasFocus, setHasFocus] = useState(false)
   const { t } = useTranslation()
   const _ref = useRef(null)
@@ -55,14 +55,13 @@ const MessageForm = forwardRef((props, ref) => {
   if (pending) return <Loading />
   return (
     <form
-      className={cn(styles.messageForm, className, { [styles.hasFocus]: hasFocus })}
+      className={cn('w-full max-w-[750px] fixed bottom-0 flex gap-3 px-2 shadow-md p-2 border-2 border-foreground/15 shadow-xlg rounded-t-xl bg-card pb-4 transition-all', className, { 'border-focus': hasFocus })}
       onSubmit={handleSubmit}
     >
-      <RoundImage url={get('avatarUrl', currentUser)} className={styles.userImage} medium />
+      <RoundImage url={get('avatarUrl', currentUser)} medium />
       <TextareaAutosize
-        autoFocus
         value={messageText}
-        className={styles.messageTextarea}
+        className='text-foreground bg-transparent w-full my-2 focus:outline-none mt-0'
         ref={(tag) => (textareaRef.current = tag)}
         minRows={1}
         maxRows={8}
@@ -77,7 +76,16 @@ const MessageForm = forwardRef((props, ref) => {
       </button>
     </form>
   )
+}), (prevProps, nextProps) => {
+  // Only re-render if these props change
+  return (
+    prevProps.currentUser?.id === nextProps.currentUser?.id &&
+    prevProps.messageText === nextProps.messageText &&
+    prevProps.pending === nextProps.pending
+  )
 })
+
+MessageForm.displayName = 'MessageForm' // For better debugging
 
 MessageForm.propTypes = {
   className: PropTypes.string,

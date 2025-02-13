@@ -4,8 +4,6 @@ import EmojiPicker from 'components/EmojiPicker'
 import EmojiPill from 'components/EmojiPill'
 import useReactionActions from 'hooks/useReactionActions'
 
-import classes from './EmojiRow.module.scss'
-
 export default function EmojiRow (props) {
   const {
     className,

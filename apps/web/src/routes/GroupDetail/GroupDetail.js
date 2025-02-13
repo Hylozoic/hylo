@@ -132,7 +132,7 @@ function GroupDetail ({ popup = false }) {
           <div className={g.groupTitleContainer}>
             <img src={group.avatarUrl || DEFAULT_AVATAR} className={g.groupAvatar} />
             <div>
-              <div className='text-foreground text-lg ml-8'>{isAboutCurrentGroup && <span>{t('About')}</span>} {group.name}</div>
+              <div className='text-background text-lg ml-4'>{isAboutCurrentGroup && <span>{t('About')}</span>} {group.name}</div>
               <div className={g.groupContextInfo}>
                 <div>
                   <span className={g.groupPrivacy}>

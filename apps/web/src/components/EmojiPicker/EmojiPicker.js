@@ -2,7 +2,6 @@ import { cn } from 'util/index'
 import { SmilePlus } from 'lucide-react'
 import Picker from '@emoji-mart/react'
 import React, { useState, useEffect } from 'react'
-import Icon from 'components/Icon'
 import {
   Popover,
   PopoverContent,
@@ -47,7 +46,7 @@ export default function EmojiPicker (props) {
         <Popover onOpenChange={handleOpenChange} open={modalOpen}>
           <PopoverTrigger asChild>
             <div className={classes.emojiPickerToggle} onClick={toggleModalOpen}>
-              <SmilePlus className='h-[20px]'/>
+              <SmilePlus className='h-[20px]' />
             </div>
           </PopoverTrigger>
           <PopoverContent className='w-auto p-0' hideWhenDetached sideOffset={0}>

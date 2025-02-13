@@ -1,4 +1,3 @@
-import { cn } from 'util/index'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
@@ -6,7 +5,6 @@ import { debounce, throttle } from 'lodash/fp'
 import { getKeyCode, keyMap } from 'util/textInput'
 import PeopleList from './PeopleList'
 import MatchingPeopleListItem from './MatchingPeopleListItem'
-import classes from './PeopleSelector.module.scss'
 
 const invalidPersonName = /[^a-z '-]+/gi
 
@@ -102,9 +100,9 @@ export default function PeopleSelector (props) {
     }
   }
   return (
-    <div className={cn(classes.threadHeader)} tabIndex='0'>
-      <div className={classes.autocompleteControl}>
-        <span className={classes.to}>{t('With:')}</span>
+    <div className='w-full relative' tabIndex='0'>
+      <div className='w-full relative flex flex-wrap gap-1'>
+        <span className='p-2'>{t('With:')}</span>
         {selectedPeople && selectedPeople.map(person =>
           <MatchingPeopleListItem
             avatarUrl={person.avatarUrl}
@@ -113,9 +111,9 @@ export default function PeopleSelector (props) {
             key={person.id}
           />
         )}
-        <div className={classes.selectPeople}>
+        <div className='relative'>
           <input
-            className={classes.autocomplete}
+            className='w-[150px] bg-black/20 focus:bg-theme-background rounded p-2 text-foreground placeholder:text-foreground/50 border-2 border-transparent focus:border-focus transition-all outline-none'
             autoFocus
             ref={autocompleteInput}
             type='text'
