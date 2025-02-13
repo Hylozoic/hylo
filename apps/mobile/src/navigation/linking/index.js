@@ -70,17 +70,22 @@ export const routingConfig = {
   '/groups/:groupSlug/proposals':                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/groups/:groupSlug/requests-and-offers':              `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/groups/:groupSlug/resources':                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+
   '/groups/:groupSlug/settings':                         `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Settings`,
   '/groups/:groupSlug/settings/agreements':              `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Agreements`,
   '/groups/:groupSlug/settings/delete':                  `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Delete`,
-  '/groups/:groupSlug/settings/export':                  `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Export Data`,
-  '/groups/:groupSlug/settings/import':                  `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Import Export`,
+
+  // TODO:  Routing - not currently handled
+  // '/groups/:groupSlug/settings/export':                  `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Export Data`,
+  // '/groups/:groupSlug/settings/import':                  `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Import Export`,
+  // TODO:  Routing - this was around before...
+  // '/:context(groups)/:groupSlug/settings':               `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Settings`,
+  '/groups/:groupSlug/settings/roles':                   `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Roles`,
   '/groups/:groupSlug/settings/invite':                  `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Invite`,
   '/groups/:groupSlug/settings/privacy':                 `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Privacy`,
   '/groups/:groupSlug/settings/relationships':           `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Related Groups`,
   '/groups/:groupSlug/settings/requests':                `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Join Requests`,
   '/groups/:groupSlug/settings/responsibilities':        `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Responsibilities`,
-  '/groups/:groupSlug/settings/roles':                   `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Roles`,
   '/groups/:groupSlug/stream':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/groups/:groupSlug/topics/:topicName':                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
 
