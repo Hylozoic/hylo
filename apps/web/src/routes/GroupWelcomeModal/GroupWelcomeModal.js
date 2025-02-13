@@ -59,6 +59,8 @@ export default function GroupWelcomeModal (props) {
   useEffect(() => {
     if (numAgreements > 0) {
       setCurrentAgreements(group.agreements.map(ga => membershipAgreements?.find(ma => ma.id === ga.id)?.accepted))
+    } else {
+      setCurrentAgreements([])
     }
   }, [group?.agreements?.length, membershipAgreements?.length])
 
