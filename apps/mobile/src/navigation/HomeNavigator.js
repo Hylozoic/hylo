@@ -21,7 +21,6 @@ import PostDetails from 'screens/PostDetails'
 import ProjectMembers from 'screens/ProjectMembers/ProjectMembers'
 import MapWebView from 'screens/MapWebView/MapWebView'
 import GroupWelcomeLanding from 'screens/GroupWelcomeFlow/GroupWelcomeLanding'
-import { GROUP_WELCOME_LANDING } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
 import { useTranslation } from 'react-i18next'
 
 const HomeTab = createStackNavigator()
@@ -90,7 +89,7 @@ export default function HomeNavigator ({ navigation }) {
       <HomeTab.Screen name='Announcements' component={Stream} initialParams={{ myHome: 'Announcements' }} />
       <HomeTab.Screen name='Mentions' component={Stream} initialParams={{ myHome: 'Mentions' }} />
       <HomeTab.Screen name='Interactions' component={Stream} initialParams={{ myHome: 'Interactions' }} />
-      <HomeTab.Screen name={GROUP_WELCOME_LANDING} component={GroupWelcomeLanding} />
+      <HomeTab.Screen name='Group Welcome' component={GroupWelcomeLanding} />
     </HomeTab.Navigator>
   )
 }

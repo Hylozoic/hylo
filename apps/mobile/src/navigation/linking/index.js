@@ -2,14 +2,6 @@ import { modalScreenName } from 'hooks/useIsModalScreen'
 import getStateFromPath from 'navigation/linking/getStateFromPath'
 import getInitialURL from 'navigation/linking/getInitialURL'
 import { isDev, isTest } from 'config'
-// TODO: Routing -- Tom -- This is becoming a special case. We have so far decided against constants
-// to keep the noise down, but it otherwise is a totally reasonable case for one. Let's just
-// keep doing it the way we have though (as plain strings) until we decide otherwise. 
-// The reality is that searching for 'Group Welcome' is mostly as reliable as searching for
-// GROUP_WELCOME_LANDING and has the same effect (hence why I've decided against constants for now).
-// Another alternative would be to define it either here or in the HomeNavigator as a const, as it
-// is the source of truth for the screen name, not data about the GroupWelcomeFlow...
-import { GROUP_WELCOME_LANDING } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
 
 /*
 
@@ -48,17 +40,16 @@ export const routingConfig = {
   '/reset-password':                                                      `${NON_AUTH_ROOT_SCREEN_NAME}/ForgotPassword`,
   '/signup/:step(verify-email)':                                          `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/SignupEmailValidation`,
   '/signup/:step?':                                                       `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/Signup Intro`,
-  '/signup':                                                              `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/Signup Intro`,
   '/noo/login/(jwt|token)':                                               'LoginByTokenHandler',
   // TODO:  Routing - oauth not currently handled, and I don't think we had planned to yet in Mobile.
   '/oauth/consent/:uid':                                                  `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
   '/oauth/login/:uid':                                                    `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
 
-  // Note: Available in both Auth and Non-Auth state as JoinGroup needs to check for a valid invite and initiate JTW auth 
+  // Available in both Auth and Non-Auth state as JoinGroup needs to check for a valid invite and initiate JTW auth
   // but this unlike all other cases, makes JoinGroup responsible for setting returnToOnAuth path when accessed in non-auth context
   '/:context(groups)/:groupSlug/join/:accessCode':                        'JoinGroup',
   // TODO:  Routing - Test this. When this path is matched when not auth'd, then returnToAuth will be set.
-  '/welcome':                                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/${GROUP_WELCOME_LANDING}`,
+  '/welcome':                                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Welcome`,
 
   // Used only for testing HyloEditor loading and config
   '/hylo-editor':                                                          `${AUTH_ROOT_SCREEN_NAME}/HyloEditor`,
