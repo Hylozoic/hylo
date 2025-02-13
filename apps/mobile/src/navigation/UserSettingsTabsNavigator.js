@@ -1,150 +1,97 @@
-import React, { useLayoutEffect } from 'react'
-import { StyleSheet } from 'react-native'
-import { useSelector } from 'react-redux'
-import { useTranslation } from 'react-i18next'
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs'
-import { isIOS } from 'util/platform'
-import ModalHeader from 'navigation/headers/ModalHeader'
-import useLogout from 'hooks/useLogout'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
-import UserSettingsWebView from 'screens/UserSettingsWebView'
-import LocaleSelector from 'components/LocaleSelector/LocaleSelector'
-import { alabaster, capeCod, rhino, rhino30, rhino40 } from 'style/colors'
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import UserSettingsWebView from 'screens/UserSettingsWebView';
+import { alabaster, capeCod, rhino30 } from 'style/colors';
 
-const UserSettings = createMaterialTopTabNavigator()
-export default function UserSettingsTabsNavigator ({ navigation, route }) {
-  const initialURL = useSelector(state => state.initialURL)
-  const { t } = useTranslation()
-  const logout = useLogout()
-  const navigatorProps = {
-    screenOptions: {
-      animationEnabled: !initialURL,
-      lazy: true,
-      tabBarActiveTintColor: rhino,
-      tabBarInactiveTintColor: rhino40,
-      tabBarIndicatorStyle: {
-        backgroundColor: 'transparent'
-      },
-      tabBarLabelStyle: {
-        fontFamily: 'Circular-Bold',
-        fontSize: 14,
-        textTransform: 'none'
-      },
-      tabBarScrollEnabled: true,
-      tabBarStyle: styles.tabBarStyle,
-      swipeEnabled: false
-    }
-  }
+export default function UserSettingsScreen() {
+  const insets = useSafeAreaInsets()
+  const [selectedSetting, setSelectedSetting] = useState(null);
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: 'Settings',
-      headerShown: true,
-      headerStyle: { backgroundColor: capeCod },
-      headerTitleStyle: { color: rhino30 },
-      header: headerProps => (
-        <ModalHeader
-          headerTransparent={false}
-          {...headerProps}
-          // Hides "X button
-          headerLeft={() => (<LocaleSelector small dark />)}
-          // // Bring the below back while hiding `TabBar`
-          // // to force reload of User after settings changed:
-          // headerLeftConfirm={true}
-          // headerLeftCloseIcon={false}
-          // headerLeftOnPress={() => {
-          //   dispatch(fetchCurrentUser())
-          //   navigation.navigate('Home Tab')
-          // }}
-          // headerRight={()=> <Button text="Logout"></Button>}
-          headerRightButtonLabel='Logout'
-          headerRightButtonOnPress={() => confirmDiscardChanges({
-            title: '',
-            confirmationMessage: 'Are you sure you want to logout?',
-            continueButtonText: 'Cancel',
-            disgardButtonText: 'Yes',
-            onDiscard: async () => logout(),
-            t
-          })}
-          headerRightButtonStyle={{ color: alabaster }}
-        />
-      )
-    })
-  }, [navigation, route])
-
-
-  // Note: "ERROR  Warning: A props object containing a "key" prop is being spread into JSX"
-  // will appear in logs from this area. This is a known issue in React Navigation material-top-tabs
-  // and RN 0.76. It is only a deprecation warning, and can be patched as per
-  // https://github.com/react-navigation/react-navigation/issues/11989
-  // otherwise it will likely be resolved when we move up to React Navigation 7
+  const settingsOptions = [
+    { name: 'Edit Profile', path: '/settings' },
+    { name: 'Affiliations', path: '/settings/groups' },
+    { name: 'Invites & Requests', path: '/settings/invitations' },
+    { name: 'Notifications', path: '/settings/notifications' },
+    { name: 'Account', path: '/settings/account' },
+    { name: 'Saved Searches', path: '/settings/saved-searches' },
+    { name: 'Terms & Privacy', uri: 'https://hylo-landing.surge.sh/terms' },
+  ];
 
   return (
-    <UserSettings.Navigator {...navigatorProps}>
-      <UserSettings.Screen
-        name='Edit Profile'
-        component={UserSettingsWebView}
-        initialParams={{
-          path: '/settings'
-        }}
-      />
-      <UserSettings.Screen
-        name='Afflilations'
-        component={UserSettingsWebView}
-        initialParams={{
-          path: '/settings/groups'
-        }}
-      />
-      <UserSettings.Screen
-        name='Invites &amp; Requests'
-        component={UserSettingsWebView}
-        initialParams={{
-          path: '/settings/invitations'
-        }}
-      />
-      <UserSettings.Screen
-        name='Notifications'
-        component={UserSettingsWebView}
-        initialParams={{
-          path: '/settings/notifications'
-        }}
-      />
-      <UserSettings.Screen
-        name='Account'
-        component={UserSettingsWebView}
-        initialParams={{
-          path: '/settings/account'
-        }}
-      />
-      <UserSettings.Screen
-        name='Saved Searches'
-        component={UserSettingsWebView}
-        initialParams={{
-          path: '/settings/saved-searches'
-        }}
-      />
-      <UserSettings.Screen
-        name='Terms & Privacy'
-        component={UserSettingsWebView}
-        initialParams={{
-          uri: 'https://hylo-landing.surge.sh/terms'
-        }}
-      />
-    </UserSettings.Navigator>
-  )
+    <View style={[styles.container, { marginTop: insets.top, marginBottom: insets.bottom }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        {selectedSetting && (
+          <TouchableOpacity onPress={() => setSelectedSetting(null)} style={styles.backButton}>
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+        )}
+        <Text style={styles.headerTitle}>
+          {selectedSetting ? selectedSetting.name : 'Settings'}
+        </Text>
+      </View>
+
+      {/* Content: Either WebView or Menu List */}
+      {selectedSetting ? (
+        <UserSettingsWebView path={selectedSetting.path} uri={selectedSetting.uri} />
+      ) : (
+        <ScrollView contentContainerStyle={styles.menu}>
+          {settingsOptions.map((option, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.menuItem}
+              onPress={() => setSelectedSetting(option)}
+            >
+              <Text style={styles.menuText}>{option.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+    </View>
+  );
 }
 
-const styles = {
-  tabBarStyle: (
-    isIOS
-      ? {
-          display: 'flex',
-          backgroundColor: alabaster
-        }
-      : {
-          display: 'flex',
-          backgroundColor: alabaster,
-          borderTopWidth: StyleSheet.hairlineWidth
-        }
-  )
-}
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: alabaster,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: capeCod, // Ensures header visibility
+    height: 60, // Explicit height to make sure it's seen
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white', // Adjusted for better contrast
+  },
+  backButton: {
+    position: 'absolute',
+    left: 20,
+    zIndex: 10,
+  },
+  backButtonText: {
+    fontSize: 20,
+    color: 'white', // Ensures visibility
+  },
+  menu: {
+    paddingVertical: 10,
+  },
+  menuItem: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: capeCod,
+  },
+  menuText: {
+    fontSize: 16,
+    color: rhino30,
+  },
+});

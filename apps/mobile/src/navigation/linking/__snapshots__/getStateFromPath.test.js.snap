@@ -161,7 +161,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/groups": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Explorer",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Relationships",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -249,7 +249,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/settings": {
-    "path": "AuthRoot/Group Settings/Settings",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -258,7 +258,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/settings/agreements": {
-    "path": "AuthRoot/Group Settings/Agreements",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -267,7 +267,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/settings/delete": {
-    "path": "AuthRoot/Group Settings/Delete",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -276,7 +276,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/settings/export": {
-    "path": "AuthRoot/Group Settings/Export Data",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -286,7 +286,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
   },
   "/groups/example-group/settings/import": null,
   "/groups/example-group/settings/invite": {
-    "path": "AuthRoot/Group Settings/Invite",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -295,7 +295,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/settings/privacy": {
-    "path": "AuthRoot/Group Settings/Privacy",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -304,7 +304,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/settings/relationships": {
-    "path": "AuthRoot/Group Settings/Related Groups",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -313,7 +313,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/settings/requests": {
-    "path": "AuthRoot/Group Settings/Join Requests",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -322,7 +322,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/settings/responsibilities": {
-    "path": "AuthRoot/Group Settings/Responsibilities",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -331,7 +331,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/settings/roles": {
-    "path": "AuthRoot/Group Settings/Roles",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -406,7 +406,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/my/account": {
-    "path": "AuthRoot/Drawer/Tabs/Settings Tab/Account",
+    "path": "AuthRoot/Drawer/Tabs/Settings Tab",
     "routeParams": {
       "context": "my",
       "originalLinkingPath": "/my/account",
@@ -431,7 +431,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/my/edit-profile": {
-    "path": "AuthRoot/Drawer/Tabs/Settings Tab/Edit Profile",
+    "path": "AuthRoot/Drawer/Tabs/Settings Tab",
     "routeParams": {
       "context": "my",
       "originalLinkingPath": "/my/edit-profile",
@@ -464,7 +464,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/my/invitations": {
-    "path": "AuthRoot/Drawer/Tabs/Settings Tab/Manage Invites",
+    "path": "AuthRoot/Drawer/Tabs/Settings Tab",
     "routeParams": {
       "context": "my",
       "originalLinkingPath": "/my/invitations",
@@ -472,7 +472,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/my/locale": {
-    "path": "AuthRoot/Drawer/Tabs/Settings Tab/Locale",
+    "path": "AuthRoot/Drawer/Tabs/Settings Tab",
     "routeParams": {
       "context": "my",
       "originalLinkingPath": "/my/locale",
@@ -540,7 +540,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/my/saved-searches": {
-    "path": "AuthRoot/Drawer/Tabs/Settings Tab/Saved Searches",
+    "path": "AuthRoot/Drawer/Tabs/Settings Tab",
     "routeParams": {
       "context": "my",
       "originalLinkingPath": "/my/saved-searches",

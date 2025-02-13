@@ -35,7 +35,7 @@ export const NON_AUTH_ROOT_SCREEN_NAME = 'NonAuthRoot'
 
 // Handling of unknown routes, when in dev directs to "Unknown" screen/component for inspection
 // but in Production and in Tests simply does the default of nothing when a route isn't matched.
-export const unknownRoute = isDev && !isTest ? { ':unmatchedBasePath(.*)': 'Unknown' } : {}
+export const unknownRouteMatch = isDev && !isTest ? { ':unmatchedBasePath(.*)': 'Unknown' } : {}
 
 /* eslint-disable key-spacing */
 export const routingConfig = {
@@ -46,7 +46,8 @@ export const routingConfig = {
   '/signup/:step(verify-email)':                                          `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/SignupEmailValidation`,
   '/signup/:step?':                                                       `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/Signup Intro`,
   '/signup':                                                              `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/Signup Intro`,
-  // TODO:  Routing - not currently handled correctly here, but there was at some point an implementation, I think. Search for jwt in project.
+  // TODO:  Routing - oauth not currently handled, but there was is this implementation of jwt that may relate
+  // '/noo/login/(jwt|token)':                                               'LoginByTokenHandler',
   '/oauth/consent/:uid':                                                  `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
   '/oauth/login/:uid':                                                    `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
 
@@ -56,10 +57,16 @@ export const routingConfig = {
   // when this path is matched when not auth'd as long as is not available in the non-authed screen set, then returnToAuth will be set
   '/welcome':                                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/${GROUP_WELCOME_LANDING}`,
 
+  // Used only for testing HyloEditor loading and config
+  '/hylo-editor':                                                          `${AUTH_ROOT_SCREEN_NAME}/HyloEditor`,
+
+  // TODO: Routing - add /post/:postId optional to (probably all) routes going to Stream
+
   // Public Context Routes
   // TODO:  Routing - some of these need to be available when not auth'd
   '/:context(public)/groups':                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explorer`,
   '/:context(public)/map':                                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
+  '/:context(public)/:groupSlug/post/:postId':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Detail`,
   '/:context(public)/topics/:topicName':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(public)/:streamType(stream)':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(public)/:streamType(discussions)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
@@ -71,30 +78,34 @@ export const routingConfig = {
   '/:context(public)':                                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
 
   // Group Context Routes
-  // TODO: Routing - add /post/:postId optional to (probably all) routes going to Stream
   '/:context(groups)/:groupSlug/about':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Detail`,
   '/:context(groups)/:groupSlug/all-views':                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/All Views`,
   '/:context(groups)/:groupSlug/chat/:topicName':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
+  '/:context(groups)/:groupSlug/post/:postId':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Detail`,
+  '/:context(groups)/:groupSlug/post/:id/edit':                           `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   // TODO: Routing - should probably go to Post Modal for now, or let it through and it will go to PostDetail in Webview, same for topics variant below
   '/:context(groups)/:groupSlug/chat/:topicName/post/:postId':            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
-  '/:context(groups)/:groupSlug/groups':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explorer`,
+  '/:context(groups)/:groupSlug/create':                                  `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
+  '/:context(groups)/:groupSlug/explore':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explore`,
+  '/:context(groups)/:groupSlug/groups':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Relationships`,
   '/:context(groups)/:groupSlug/map':                                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
+  '/:context(groups)/:groupSlug/map/create':                              `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
+  '/:context(groups)/:groupSlug/members':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Members`,
   '/:context(groups)/:groupSlug/members/:personId':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member Profile`,
   // TODO: Routing -- Actually legacy redirection, consider creating or adding to a redirect mapper
   '/:context(groups)/:groupSlug/topics/:topicName':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
   '/:context(groups)/:groupSlug/topics/:topicName/post/:postId'         : `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
-  '/:context(groups)/:groupSlug/post/:postId':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Detail`,
   '/:context(groups)/:groupSlug/custom/:customViewId':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug/settings/agreements':                     `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Agreements`,
-  '/:context(groups)/:groupSlug/settings/delete':                         `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Delete`,
-  '/:context(groups)/:groupSlug/settings/roles':                          `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Roles`,
-  '/:context(groups)/:groupSlug/settings/invite':                         `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Invite`,
-  '/:context(groups)/:groupSlug/settings/privacy':                        `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Privacy`,
-  '/:context(groups)/:groupSlug/settings/relationships':                  `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Related Groups`,
-  '/:context(groups)/:groupSlug/settings/requests':                       `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Join Requests`,
-  '/:context(groups)/:groupSlug/settings/responsibilities':               `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Responsibilities`,
-  '/:context(groups)/:groupSlug/settings/export':                         `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Export Data`,
-  '/:context(groups)/:groupSlug/settings':                                `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Settings`,
+  '/:context(groups)/:groupSlug/settings/agreements':                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
+  '/:context(groups)/:groupSlug/settings/delete':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
+  '/:context(groups)/:groupSlug/settings/roles':                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
+  '/:context(groups)/:groupSlug/settings/invite':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
+  '/:context(groups)/:groupSlug/settings/privacy':                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
+  '/:context(groups)/:groupSlug/settings/relationships':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
+  '/:context(groups)/:groupSlug/settings/requests':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
+  '/:context(groups)/:groupSlug/settings/responsibilities':               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
+  '/:context(groups)/:groupSlug/settings/export':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
+  '/:context(groups)/:groupSlug/settings':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
   // TODO:  Routing - potentially group these
   '/:context(groups)/:groupSlug/:streamType(stream)':                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/:streamType(moderation)':                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
@@ -109,6 +120,8 @@ export const routingConfig = {
   // All Context Routes
   '/:context(all)/map':                                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
   '/:context(all)/members/:personId':                                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member Profile`,
+  '/:context(all)/:groupSlug/post/:postId':                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Detail`,
+  '/:context(all)/:groupSlug/map/create':                                 `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   '/:context(all)/topics/:topicName':                                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   // TODO:  Routing - potentially group these
   '/:context(all)/:streamType(stream)':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
@@ -120,19 +133,20 @@ export const routingConfig = {
   '/:context(all)/:streamType(resources)':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
 
   // User-Specific Routes
-  '/:context(my)/account':                                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab/Account`,
   '/:context(my)/announcements':                                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(my)/edit-profile':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab/Edit Profile`,
   '/:context(my)/groups':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Groups`,
   '/:context(my)/interactions':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(my)/invitations':                                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab/Manage Invites`,
-  '/:context(my)/locale':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab/Locale`,
   '/:context(my)/mentions':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(my)/account':                                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
+  '/:context(my)/blocked-users':                                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
+  '/:context(my)/edit-profile':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
+  '/:context(my)/invitations':                                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
+  '/:context(my)/locale':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
+  '/:context(my)/saved-searches':                                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
   // TODO: Routing - this used to go to Notification within the Home Tab, which I think may still pull-up a modal.
   // Not sure why, and this seems more clear, but needs to be explored/tested.
   '/:context(my)/notifications':                                          `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Notifications')}`,
   '/:context(my)/posts':                                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(my)/saved-searches':                                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab/Saved Searches`,
   // TODO:  Routing - potentially group these
   '/:context(my)/:streamType(discussions)':                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/:streamType(events)':                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
@@ -160,84 +174,8 @@ export const routingConfig = {
   ':unmatchedBasePath(.*)/create/group':                                  `${AUTH_ROOT_SCREEN_NAME}/Create Group`,
   ':unmatchedBasePath(.*)/create/post':                                   `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   ':unmatchedBasePath(.*)/post/:id/edit':                                 `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-  ...unknownRoute
+  ...unknownRouteMatch
 }
-
-// Earlier version of routing
-// export const routingConfig = {
-//   '/login':                                                  `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
-//   '/reset-password':                                         `${NON_AUTH_ROOT_SCREEN_NAME}/ForgotPassword`,
-//   '/noo/login/(jwt|token)':                                  'LoginByTokenHandler',
-//   '/h/use-invitation':                                       'JoinGroup',
-//   '/:context(groups)/:groupSlug/join/:accessCode':           'JoinGroup',
-//   '/signup/:step(verify-email)':                             `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/SignupEmailValidation`,
-//   '/signup/:step?':                                          `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/Signup Intro`,
-//   '/signup':                                                 `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/Signup Intro`,
-
-//   '/hylo-editor':                                            `${AUTH_ROOT_SCREEN_NAME}/HyloEditor`,
-
-//   // context group routes (/all, /public, /my)
-//   '/:groupSlug(all|public)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-//   '/:groupSlug(all|public)/post/:id':                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
-//   '/:groupSlug(all|public)/post/:id/comments/:commentId':    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
-//   '/:groupSlug(all)/members/:id':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member`,
-//   '/:groupSlug(all)/topics/:topicName':                      `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-//   '/:groupSlug(my)/posts':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/My Posts`,
-//   '/:groupSlug(my)/interactions':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Interactions`,
-//   '/:groupSlug(my)/mentions':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Mentions`,
-//   '/:groupSlug(my)/announcements':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Announcements`,
-
-//   // map routes
-//   '/:groupSlug(all|public)/map':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
-//   '/:context(groups)/:groupSlug/map':                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
-//   '/:context(groups)/:groupSlug/map/create':                 `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-
-//   // /groups
-//   '/:context(groups)/:groupSlug/settings/invite':            `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Invite`,
-//   '/:context(groups)/:groupSlug/settings/requests':          `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Join Requests`,
-//   '/:context(groups)/:groupSlug/settings/relationships':     `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Related Groups`,
-//   '/:context(groups)/:groupSlug/settings/export':            `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Export Data`,
-//   '/:context(groups)/:groupSlug/settings/delete':            `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Delete`,
-//   '/:context(groups)/:groupSlug/settings':                   `${AUTH_ROOT_SCREEN_NAME}/Group Settings/Settings`,
-//   '/:context(groups)/:groupSlug/groups':                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Relationships`,
-//   '/:context(groups)/:groupSlug/chats/:topicName':           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat`,
-//   '/:context(groups)/:groupSlug/members/:id':                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member`,
-//   '/:context(groups)/:groupSlug/members':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Members`,
-//   '/:context(groups)/:groupSlug/stream':                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-//   '/:context(groups)/:groupSlug/all-views':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/All Views`,
-//   '/:context(groups)/:groupSlug':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-//   '/:context(groups)/:groupSlug/custom/:customViewId':       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-//   '/:context(groups)/:groupSlug/explore':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explore`,
-//   '/:context(groups)/:groupSlug/proposals':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-//   '/:context(groups)/:groupSlug/create':                     `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-//   '/:context(groups)/:groupSlug/post/:id':                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
-//   '/:context(groups)/:groupSlug/post/:id/comments/:commentId':`${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
-//   '/:context(groups)/:groupSlug/post/:id/edit':              `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-
-//   // /settings
-//   '/settings':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab/Edit Profile`,
-//   '/settings/account':                                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab/Account`,
-//   '/settings/notifications':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab/Notifications`,
-//   '/settings/blocked-users':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab/Blocked Users`,
-//   '/settings/:section?':                                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab/Edit Profile`,
-
-//   // /messages
-//   '/messages/new':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Messages Tab/New Message`,
-//   '/messages/:id':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Messages Tab/Thread`,
-//   '/messages':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Messages Tab/Messages`,
-
-//   // catch-alls
-//   ':unmatchedBasePath(.*)/group/:groupSlug':                  `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
-//   ':unmatchedBasePath(.*)/group/:groupSlug/explore':          `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
-//   ':unmatchedBasePath(.*)/members/:id':                       `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Member')}`,
-//   ':unmatchedBasePath(.*)/post/:id':                          `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
-//   ':unmatchedBasePath(.*)/post/:id/comments/:commentId':      `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
-//   ':unmatchedBasePath(.*)/create/group':                      `${AUTH_ROOT_SCREEN_NAME}/Create Group`,
-//   ':unmatchedBasePath(.*)/create/post':                       `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-//   ':unmatchedBasePath(.*)/post/:id/edit':                     `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-
-//   '/':                                                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`
-// }
 
 // These screens will always be present and be first for the key'd navigator
 export const initialRouteNamesConfig = {
