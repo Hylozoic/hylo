@@ -15,7 +15,6 @@ export default function PeopleSelector (props) {
   const [selectedIndex, setSelectedIndex] = useState(-1) // -1 means input is focused
 
   const {
-    focusMessage,
     people,
     setPeopleSearch,
     selectedPeople,
@@ -56,21 +55,6 @@ export default function PeopleSelector (props) {
 
   const removePerson = (person) => {
     props.removePerson(person)
-  }
-
-  const arrow = (direction, event) => {
-    if (people) {
-      event.preventDefault()
-      let delta = 0
-      const idx = finalPeopleList.findIndex(m => currentMatch && m.id === currentMatch.id)
-      if (direction === 'up') {
-        if (idx > 0) delta = -1
-      }
-      if (direction === 'down') {
-        if (idx < people.length - 1) delta = 1
-      }
-      setCurrentMatch(finalPeopleList[idx + delta])
-    }
   }
 
   const autocompleteSearch = throttle(1000, props.fetchPeople)
