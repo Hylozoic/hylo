@@ -46,7 +46,7 @@ const notificationsSamplePaths = [
     }
   ],
   ['/messages/123', 'AuthRoot/Drawer/Tabs/Messages Tab/Thread', { id: '123' }],
-  ['/my/account', 'AuthRoot/Drawer/Tabs/Settings Tab',  { context: 'my' }],
+  ['/my/account', 'AuthRoot/Drawer/Tabs/Settings Tab', { context: 'my', settingsArea: 'account' }],
   ['/create/post', 'AuthRoot/Edit Post', { unmatchedBasePath: '' }],
 
   // When no Screen Path target yet defined, creates pending test cases

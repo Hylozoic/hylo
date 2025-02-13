@@ -94,7 +94,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
   "/create-group": null,
   "/group/example-group/moderation": null,
   "/groups/example-group": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Detail",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -263,7 +263,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
       "context": "groups",
       "groupSlug": "example-group",
       "originalLinkingPath": "/groups/example-group/settings/agreements",
-      "pathMatcher": "/:context(groups)/:groupSlug/settings/agreements",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/:settingsArea",
+      "settingsArea": "agreements",
     },
   },
   "/groups/example-group/settings/delete": {
@@ -272,7 +273,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
       "context": "groups",
       "groupSlug": "example-group",
       "originalLinkingPath": "/groups/example-group/settings/delete",
-      "pathMatcher": "/:context(groups)/:groupSlug/settings/delete",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/:settingsArea",
+      "settingsArea": "delete",
     },
   },
   "/groups/example-group/settings/export": {
@@ -281,17 +283,28 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
       "context": "groups",
       "groupSlug": "example-group",
       "originalLinkingPath": "/groups/example-group/settings/export",
-      "pathMatcher": "/:context(groups)/:groupSlug/settings/export",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/:settingsArea",
+      "settingsArea": "export",
     },
   },
-  "/groups/example-group/settings/import": null,
+  "/groups/example-group/settings/import": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings/import",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/:settingsArea",
+      "settingsArea": "import",
+    },
+  },
   "/groups/example-group/settings/invite": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
       "originalLinkingPath": "/groups/example-group/settings/invite",
-      "pathMatcher": "/:context(groups)/:groupSlug/settings/invite",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/:settingsArea",
+      "settingsArea": "invite",
     },
   },
   "/groups/example-group/settings/privacy": {
@@ -300,7 +313,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
       "context": "groups",
       "groupSlug": "example-group",
       "originalLinkingPath": "/groups/example-group/settings/privacy",
-      "pathMatcher": "/:context(groups)/:groupSlug/settings/privacy",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/:settingsArea",
+      "settingsArea": "privacy",
     },
   },
   "/groups/example-group/settings/relationships": {
@@ -309,7 +323,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
       "context": "groups",
       "groupSlug": "example-group",
       "originalLinkingPath": "/groups/example-group/settings/relationships",
-      "pathMatcher": "/:context(groups)/:groupSlug/settings/relationships",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/:settingsArea",
+      "settingsArea": "relationships",
     },
   },
   "/groups/example-group/settings/requests": {
@@ -318,7 +333,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
       "context": "groups",
       "groupSlug": "example-group",
       "originalLinkingPath": "/groups/example-group/settings/requests",
-      "pathMatcher": "/:context(groups)/:groupSlug/settings/requests",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/:settingsArea",
+      "settingsArea": "requests",
     },
   },
   "/groups/example-group/settings/responsibilities": {
@@ -327,7 +343,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
       "context": "groups",
       "groupSlug": "example-group",
       "originalLinkingPath": "/groups/example-group/settings/responsibilities",
-      "pathMatcher": "/:context(groups)/:groupSlug/settings/responsibilities",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/:settingsArea",
+      "settingsArea": "responsibilities",
     },
   },
   "/groups/example-group/settings/roles": {
@@ -336,11 +353,30 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
       "context": "groups",
       "groupSlug": "example-group",
       "originalLinkingPath": "/groups/example-group/settings/roles",
-      "pathMatcher": "/:context(groups)/:groupSlug/settings/roles",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/:settingsArea",
+      "settingsArea": "roles",
     },
   },
-  "/groups/example-group/settings/topics": null,
-  "/groups/example-group/settings/views": null,
+  "/groups/example-group/settings/topics": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings/topics",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/:settingsArea",
+      "settingsArea": "topics",
+    },
+  },
+  "/groups/example-group/settings/views": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Settings",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings/views",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/:settingsArea",
+      "settingsArea": "views",
+    },
+  },
   "/groups/example-group/stream": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
@@ -410,7 +446,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "routeParams": {
       "context": "my",
       "originalLinkingPath": "/my/account",
-      "pathMatcher": "/:context(my)/account",
+      "pathMatcher": "/:context(my)/:settingsArea(account)",
+      "settingsArea": "account",
     },
   },
   "/my/announcements": {
@@ -435,7 +472,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "routeParams": {
       "context": "my",
       "originalLinkingPath": "/my/edit-profile",
-      "pathMatcher": "/:context(my)/edit-profile",
+      "pathMatcher": "/:context(my)/:settingsArea(edit-profile)",
+      "settingsArea": "edit-profile",
     },
   },
   "/my/events": {
@@ -468,7 +506,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "routeParams": {
       "context": "my",
       "originalLinkingPath": "/my/invitations",
-      "pathMatcher": "/:context(my)/invitations",
+      "pathMatcher": "/:context(my)/:settingsArea(invitations)",
+      "settingsArea": "invitations",
     },
   },
   "/my/locale": {
@@ -476,7 +515,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "routeParams": {
       "context": "my",
       "originalLinkingPath": "/my/locale",
-      "pathMatcher": "/:context(my)/locale",
+      "pathMatcher": "/:context(my)/:settingsArea(locale)",
+      "settingsArea": "locale",
     },
   },
   "/my/mentions": {
@@ -488,11 +528,12 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/my/notifications": {
-    "path": "AuthRoot/Notifications - Modal",
+    "path": "AuthRoot/Drawer/Tabs/Settings Tab",
     "routeParams": {
       "context": "my",
       "originalLinkingPath": "/my/notifications",
-      "pathMatcher": "/:context(my)/notifications",
+      "pathMatcher": "/:context(my)/:settingsArea(notifications)",
+      "settingsArea": "notifications",
     },
   },
   "/my/posts": {
@@ -544,7 +585,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "routeParams": {
       "context": "my",
       "originalLinkingPath": "/my/saved-searches",
-      "pathMatcher": "/:context(my)/saved-searches",
+      "pathMatcher": "/:context(my)/:settingsArea(saved-searches)",
+      "settingsArea": "saved-searches",
     },
   },
   "/notifications": {
