@@ -2,45 +2,206 @@
 
 exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
 {
-  "/groups/rogue-scholars": {
+  "/all/discussions": null,
+  "/all/events": null,
+  "/all/groups": null,
+  "/all/map": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Map",
+    "routeParams": {
+      "groupSlug": "all",
+      "originalLinkingPath": "/all/map",
+      "pathMatcher": "/:groupSlug(all|public)/map",
+    },
+  },
+  "/all/members/123": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Member",
+    "routeParams": {
+      "groupSlug": "all",
+      "id": "123",
+      "originalLinkingPath": "/all/members/123",
+      "pathMatcher": "/:groupSlug(all)/members/:id",
+    },
+  },
+  "/all/projects": null,
+  "/all/proposals": null,
+  "/all/requests-and-offers": null,
+  "/all/resources": null,
+  "/all/stream": null,
+  "/all/topics/sustainability": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "groupSlug": "all",
+      "originalLinkingPath": "/all/topics/sustainability",
+      "pathMatcher": "/:groupSlug(all)/topics/:topicName",
+      "topicName": "sustainability",
+    },
+  },
+  "/create-group": null,
+  "/group/example-group/moderation": null,
+  "/groups/example-group": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "groups",
-      "groupSlug": "rogue-scholars",
-      "originalLinkingPath": "/groups/rogue-scholars",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group",
       "pathMatcher": "/:context(groups)/:groupSlug",
     },
   },
-  "/groups/rogue-scholars/chat/philosophy/post/12345": {
-    "path": "AuthRoot/Post Details - Modal",
+  "/groups/example-group/about": null,
+  "/groups/example-group/all-views": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/All Views",
     "routeParams": {
-      "id": "12345",
-      "originalLinkingPath": "/groups/rogue-scholars/chat/philosophy/post/12345",
-      "pathMatcher": ":unmatchedBasePath(.*)/post/:id",
-      "unmatchedBasePath": "/groups/rogue-scholars/chat/philosophy",
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/all-views",
+      "pathMatcher": "/:context(groups)/:groupSlug/all-views",
     },
   },
-  "/groups/rogue-scholars/chat/philosophy/post/12345?commentId=5555": {
-    "path": "AuthRoot/Post Details - Modal",
+  "/groups/example-group/chat/general": null,
+  "/groups/example-group/custom/42": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "commentId": "5555",
-      "id": "12345",
-      "originalLinkingPath": "/groups/rogue-scholars/chat/philosophy/post/12345?commentId=5555",
-      "pathMatcher": ":unmatchedBasePath(.*)/post/:id",
-      "unmatchedBasePath": "/groups/rogue-scholars/chat/philosophy",
+      "context": "groups",
+      "customViewId": "42",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/custom/42",
+      "pathMatcher": "/:context(groups)/:groupSlug/custom/:customViewId",
     },
   },
-  "/groups/rogue-scholars/chat/philosophy?postId=12345": null,
+  "/groups/example-group/discussions": null,
+  "/groups/example-group/events": null,
+  "/groups/example-group/groups": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Relationships",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/groups",
+      "pathMatcher": "/:context(groups)/:groupSlug/groups",
+    },
+  },
+  "/groups/example-group/join/abc123": {
+    "path": "JoinGroup",
+    "routeParams": {
+      "accessCode": "abc123",
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/join/abc123",
+      "pathMatcher": "/:context(groups)/:groupSlug/join/:accessCode",
+    },
+  },
+  "/groups/example-group/map": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Map",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/map",
+      "pathMatcher": "/:context(groups)/:groupSlug/map",
+    },
+  },
+  "/groups/example-group/members/456": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Member",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "id": "456",
+      "originalLinkingPath": "/groups/example-group/members/456",
+      "pathMatcher": "/:context(groups)/:groupSlug/members/:id",
+    },
+  },
+  "/groups/example-group/post/789": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Post Details",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "id": "789",
+      "originalLinkingPath": "/groups/example-group/post/789",
+      "pathMatcher": "/:context(groups)/:groupSlug/post/:id",
+    },
+  },
+  "/groups/example-group/projects": null,
+  "/groups/example-group/proposals": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/proposals",
+      "pathMatcher": "/:context(groups)/:groupSlug/proposals",
+    },
+  },
+  "/groups/example-group/requests-and-offers": null,
+  "/groups/example-group/resources": null,
+  "/groups/example-group/settings": {
+    "path": "AuthRoot/Group Settings/Settings",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings",
+    },
+  },
+  "/groups/example-group/settings/agreements": null,
+  "/groups/example-group/settings/delete": {
+    "path": "AuthRoot/Group Settings/Delete",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings/delete",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/delete",
+    },
+  },
+  "/groups/example-group/settings/export": {
+    "path": "AuthRoot/Group Settings/Export Data",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings/export",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/export",
+    },
+  },
+  "/groups/example-group/settings/import": null,
+  "/groups/example-group/settings/invite": {
+    "path": "AuthRoot/Group Settings/Invite",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings/invite",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/invite",
+    },
+  },
+  "/groups/example-group/settings/privacy": null,
+  "/groups/example-group/settings/relationships": {
+    "path": "AuthRoot/Group Settings/Related Groups",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings/relationships",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/relationships",
+    },
+  },
+  "/groups/example-group/settings/requests": {
+    "path": "AuthRoot/Group Settings/Join Requests",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/settings/requests",
+      "pathMatcher": "/:context(groups)/:groupSlug/settings/requests",
+    },
+  },
+  "/groups/example-group/settings/responsibilities": null,
+  "/groups/example-group/settings/roles": null,
+  "/groups/example-group/settings/topics": null,
+  "/groups/example-group/settings/views": null,
+  "/groups/example-group/stream": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "context": "groups",
+      "groupSlug": "example-group",
+      "originalLinkingPath": "/groups/example-group/stream",
+      "pathMatcher": "/:context(groups)/:groupSlug/stream",
+    },
+  },
+  "/groups/example-group/topics/technology": null,
   "/groups/rogue-scholars/discussions": null,
-  "/groups/rogue-scholars/discussions/post/12345": {
-    "path": "AuthRoot/Post Details - Modal",
-    "routeParams": {
-      "id": "12345",
-      "originalLinkingPath": "/groups/rogue-scholars/discussions/post/12345",
-      "pathMatcher": ":unmatchedBasePath(.*)/post/:id",
-      "unmatchedBasePath": "/groups/rogue-scholars/discussions",
-    },
-  },
   "/groups/rogue-scholars/discussions/post/22799": {
     "path": "AuthRoot/Post Details - Modal",
     "routeParams": {
@@ -50,135 +211,150 @@ exports[`getStateFromPath ❌ PENDING TEST OUTPUT 1`] = `
       "unmatchedBasePath": "/groups/rogue-scholars/discussions",
     },
   },
-  "/groups/rogue-scholars/events/post/12345": {
-    "path": "AuthRoot/Post Details - Modal",
-    "routeParams": {
-      "id": "12345",
-      "originalLinkingPath": "/groups/rogue-scholars/events/post/12345",
-      "pathMatcher": ":unmatchedBasePath(.*)/post/:id",
-      "unmatchedBasePath": "/groups/rogue-scholars/events",
-    },
-  },
-  "/groups/rogue-scholars/join/abcdef": {
+  "/h/use-invitation": {
     "path": "JoinGroup",
     "routeParams": {
-      "accessCode": "abcdef",
-      "context": "groups",
-      "groupSlug": "rogue-scholars",
-      "originalLinkingPath": "/groups/rogue-scholars/join/abcdef",
-      "pathMatcher": "/:context(groups)/:groupSlug/join/:accessCode",
+      "originalLinkingPath": "/h/use-invitation",
+      "pathMatcher": "/h/use-invitation",
     },
   },
-  "/groups/rogue-scholars/members/6789": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Member",
+  "/login": {
+    "path": "NonAuthRoot/Login",
     "routeParams": {
-      "context": "groups",
-      "groupSlug": "rogue-scholars",
-      "id": "6789",
-      "originalLinkingPath": "/groups/rogue-scholars/members/6789",
-      "pathMatcher": "/:context(groups)/:groupSlug/members/:id",
+      "originalLinkingPath": "/login",
+      "pathMatcher": "/login",
     },
   },
-  "/groups/rogue-scholars/post/12345": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Post Details",
+  "/members/789": {
+    "path": "AuthRoot/Member - Modal",
     "routeParams": {
-      "context": "groups",
-      "groupSlug": "rogue-scholars",
-      "id": "12345",
-      "originalLinkingPath": "/groups/rogue-scholars/post/12345",
-      "pathMatcher": "/:context(groups)/:groupSlug/post/:id",
+      "id": "789",
+      "originalLinkingPath": "/members/789",
+      "pathMatcher": ":unmatchedBasePath(.*)/members/:id",
+      "unmatchedBasePath": "",
     },
   },
-  "/groups/rogue-scholars/projects/post/12345": {
-    "path": "AuthRoot/Post Details - Modal",
-    "routeParams": {
-      "id": "12345",
-      "originalLinkingPath": "/groups/rogue-scholars/projects/post/12345",
-      "pathMatcher": ":unmatchedBasePath(.*)/post/:id",
-      "unmatchedBasePath": "/groups/rogue-scholars/projects",
-    },
-  },
-  "/groups/rogue-scholars/proposals/post/12345": {
-    "path": "AuthRoot/Post Details - Modal",
-    "routeParams": {
-      "id": "12345",
-      "originalLinkingPath": "/groups/rogue-scholars/proposals/post/12345",
-      "pathMatcher": ":unmatchedBasePath(.*)/post/:id",
-      "unmatchedBasePath": "/groups/rogue-scholars/proposals",
-    },
-  },
-  "/groups/rogue-scholars/requests-and-offers/post/12345": {
-    "path": "AuthRoot/Post Details - Modal",
-    "routeParams": {
-      "id": "12345",
-      "originalLinkingPath": "/groups/rogue-scholars/requests-and-offers/post/12345",
-      "pathMatcher": ":unmatchedBasePath(.*)/post/:id",
-      "unmatchedBasePath": "/groups/rogue-scholars/requests-and-offers",
-    },
-  },
-  "/groups/rogue-scholars/resources/post/12345": {
-    "path": "AuthRoot/Post Details - Modal",
-    "routeParams": {
-      "id": "12345",
-      "originalLinkingPath": "/groups/rogue-scholars/resources/post/12345",
-      "pathMatcher": ":unmatchedBasePath(.*)/post/:id",
-      "unmatchedBasePath": "/groups/rogue-scholars/resources",
-    },
-  },
-  "/groups/rogue-scholars/settings/relationships#childRequests": {
-    "path": "AuthRoot/Group Settings/Related Groups",
-    "routeParams": {
-      "context": "groups",
-      "groupSlug": "rogue-scholars",
-      "originalLinkingPath": "/groups/rogue-scholars/settings/relationships",
-      "pathMatcher": "/:context(groups)/:groupSlug/settings/relationships",
-    },
-  },
-  "/groups/rogue-scholars/settings/relationships#parentInvites": {
-    "path": "AuthRoot/Group Settings/Related Groups",
-    "routeParams": {
-      "context": "groups",
-      "groupSlug": "rogue-scholars",
-      "originalLinkingPath": "/groups/rogue-scholars/settings/relationships",
-      "pathMatcher": "/:context(groups)/:groupSlug/settings/relationships",
-    },
-  },
-  "/groups/rogue-scholars/settings/requests": {
-    "path": "AuthRoot/Group Settings/Join Requests",
-    "routeParams": {
-      "context": "groups",
-      "groupSlug": "rogue-scholars",
-      "originalLinkingPath": "/groups/rogue-scholars/settings/requests",
-      "pathMatcher": "/:context(groups)/:groupSlug/settings/requests",
-    },
-  },
-  "/groups/rogue-scholars/stream/post/12345": {
-    "path": "AuthRoot/Post Details - Modal",
-    "routeParams": {
-      "id": "12345",
-      "originalLinkingPath": "/groups/rogue-scholars/stream/post/12345",
-      "pathMatcher": ":unmatchedBasePath(.*)/post/:id",
-      "unmatchedBasePath": "/groups/rogue-scholars/stream",
-    },
-  },
-  "/groups/rogue-scholars/stream/post/12345?commentId=5555": {
-    "path": "AuthRoot/Post Details - Modal",
-    "routeParams": {
-      "commentId": "5555",
-      "id": "12345",
-      "originalLinkingPath": "/groups/rogue-scholars/stream/post/12345?commentId=5555",
-      "pathMatcher": ":unmatchedBasePath(.*)/post/:id",
-      "unmatchedBasePath": "/groups/rogue-scholars/stream",
-    },
-  },
-  "/messages/42076": {
+  "/messages/321": {
     "path": "AuthRoot/Drawer/Tabs/Messages Tab/Thread",
     "routeParams": {
-      "id": "42076",
-      "originalLinkingPath": "/messages/42076",
+      "id": "321",
+      "originalLinkingPath": "/messages/321",
       "pathMatcher": "/messages/:id",
     },
   },
   "/my/account": null,
+  "/my/announcements": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Announcements",
+    "routeParams": {
+      "groupSlug": "my",
+      "originalLinkingPath": "/my/announcements",
+      "pathMatcher": "/:groupSlug(my)/announcements",
+    },
+  },
+  "/my/discussions": null,
+  "/my/edit-profile": null,
+  "/my/events": null,
+  "/my/groups": null,
+  "/my/interactions": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Interactions",
+    "routeParams": {
+      "groupSlug": "my",
+      "originalLinkingPath": "/my/interactions",
+      "pathMatcher": "/:groupSlug(my)/interactions",
+    },
+  },
+  "/my/invitations": null,
+  "/my/locale": null,
+  "/my/mentions": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Mentions",
+    "routeParams": {
+      "groupSlug": "my",
+      "originalLinkingPath": "/my/mentions",
+      "pathMatcher": "/:groupSlug(my)/mentions",
+    },
+  },
+  "/my/notifications": null,
+  "/my/posts": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/My Posts",
+    "routeParams": {
+      "groupSlug": "my",
+      "originalLinkingPath": "/my/posts",
+      "pathMatcher": "/:groupSlug(my)/posts",
+    },
+  },
+  "/my/projects": null,
+  "/my/proposals": null,
+  "/my/requests-and-offers": null,
+  "/my/resources": null,
+  "/my/saved-searches": null,
+  "/notifications": null,
+  "/oauth/consent/xyz789": null,
+  "/oauth/login/xyz789": null,
+  "/post/555": {
+    "path": "AuthRoot/Post Details - Modal",
+    "routeParams": {
+      "id": "555",
+      "originalLinkingPath": "/post/555",
+      "pathMatcher": ":unmatchedBasePath(.*)/post/:id",
+      "unmatchedBasePath": "",
+    },
+  },
+  "/public": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
+    "routeParams": {
+      "groupSlug": "public",
+      "originalLinkingPath": "/public",
+      "pathMatcher": "/:groupSlug(all|public)",
+    },
+  },
+  "/public/discussions": null,
+  "/public/events": null,
+  "/public/groups": null,
+  "/public/map": {
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Map",
+    "routeParams": {
+      "groupSlug": "public",
+      "originalLinkingPath": "/public/map",
+      "pathMatcher": "/:groupSlug(all|public)/map",
+    },
+  },
+  "/public/projects": null,
+  "/public/proposals": null,
+  "/public/requests-and-offers": null,
+  "/public/resources": null,
+  "/public/stream": null,
+  "/public/topics/climate-change": null,
+  "/reset-password": {
+    "path": "NonAuthRoot/ForgotPassword",
+    "routeParams": {
+      "originalLinkingPath": "/reset-password",
+      "pathMatcher": "/reset-password",
+    },
+  },
+  "/search": null,
+  "/signup": {
+    "path": "NonAuthRoot/Signup/Signup Intro",
+    "routeParams": {
+      "originalLinkingPath": "/signup",
+      "pathMatcher": "/signup/:step?",
+    },
+  },
+  "/signup/finish": {
+    "path": "NonAuthRoot/Signup/Signup Intro",
+    "routeParams": {
+      "originalLinkingPath": "/signup/finish",
+      "pathMatcher": "/signup/:step?",
+      "step": "finish",
+    },
+  },
+  "/signup/verify-email": {
+    "path": "NonAuthRoot/Signup/SignupEmailValidation",
+    "routeParams": {
+      "originalLinkingPath": "/signup/verify-email",
+      "pathMatcher": "/signup/:step(verify-email)",
+      "step": "verify-email",
+    },
+  },
+  "/welcome": null,
 }
 `;
