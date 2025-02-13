@@ -40,7 +40,7 @@ $comment-row-padding: 25px;
   top: -16px;
   right: 0;
   height: 32px;
-  background-color: rgba(255,255,255,1);
+  background-color: hsl(var(--popover));
   border-radius: 30px;
   box-shadow: 0 5px 10px rgb(0 0 0 / 20%);
   display: none;
@@ -66,7 +66,7 @@ $comment-row-padding: 25px;
   font-size: 14px;
   margin-right: 7px;
   &:hover {
-    color: $color-rhino;
+    color: hsl(var(--foreground)/50);
     text-decoration: none;
   }
 }
