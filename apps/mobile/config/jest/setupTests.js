@@ -3,7 +3,6 @@ import 'react-native-gesture-handler/jestSetup'
 import mockSafeAreaContext from 'react-native-safe-area-context/jest/mock'
 import mockClipboard from '@react-native-clipboard/clipboard/jest/clipboard-mock.js'
 
-// console.log(require.resolve('urql'));
 // Mocking the global.fetch included in React Native
 global.fetch = jest.fn() // eslint-disable-line no-undef
 global.XMLHttpRequest = jest.fn()
@@ -36,8 +35,6 @@ jest.mock('react-native-reanimated', () => {
   Reanimated.default.call = () => {}
   return Reanimated
 })
-// // Silence the warning: Animated: `useNativeDriver` is not supported because the native animated module is missing
-// jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper')
 
 // https://github.com/mixpanel/mixpanel-react-native/issues/88
 jest.mock('mixpanel-react-native', () => ({
