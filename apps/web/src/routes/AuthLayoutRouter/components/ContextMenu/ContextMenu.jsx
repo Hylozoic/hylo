@@ -393,7 +393,7 @@ function DropZone ({ droppableParams, isDroppable = true, height = '', hide = fa
 
 function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = false, activeWidget, invalidChild = false, handlePositionedAdd }) {
   const itemTitle = item.title
-  const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
+  const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug })
   let hideDropZone = isOverlay
 
   const isItemDraggable = item.isDroppable && canDnd

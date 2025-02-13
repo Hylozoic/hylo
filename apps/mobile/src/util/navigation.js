@@ -2,7 +2,7 @@
 import { host } from 'config'
 import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
 import qs from 'query-string'
-import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
 import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 
 export const HYLO_ID_MATCH = '\\d+'
@@ -24,6 +24,10 @@ export function allGroupsUrl () {
 
 export function publicGroupsUrl () {
   return '/public'
+}
+
+export function myHomeUrl () {
+  return '/my'
 }
 
 export function baseUrl ({
@@ -49,6 +53,8 @@ export function baseUrl ({
     return allGroupsUrl()
   } else if (context === PUBLIC_CONTEXT_SLUG) {
     return publicGroupsUrl()
+  } else if (context === MY_CONTEXT_SLUG) {
+    return myHomeUrl()
   } else {
     return defaultUrl
   }

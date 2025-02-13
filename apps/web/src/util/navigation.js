@@ -1,6 +1,8 @@
 import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
 import qs from 'query-string'
 import { host } from 'config/index'
+import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
@@ -50,11 +52,11 @@ export function baseUrl ({
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
   } else if (groupSlug) {
     return groupUrl(groupSlug)
-  } else if (context === 'all') {
+  } else if (context === ALL_GROUPS_CONTEXT_SLUG) {
     return allGroupsUrl()
-  } else if (context === 'public') {
+  } else if (context === PUBLIC_CONTEXT_SLUG) {
     return publicGroupsUrl()
-  } else if (context === 'my') {
+  } else if (context === MY_CONTEXT_SLUG) {
     return myHomeUrl()
   } else {
     return defaultUrl
@@ -182,8 +184,8 @@ export function customViewUrl (customViewId, rootPath, opts) {
 
 export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
   if (!widget) return null
-  // TODO redesign: isContextGroupSlug function or similar could replace this. Needs to be added to shared
-  const groupSlug = ['my', 'all', 'public'].includes(providedSlug) ? null : providedSlug
+
+  const groupSlug = isContextGroupSlug(providedSlug) ? null : providedSlug
   let url = ''
   if (widget.url) return widget.url
   if (widget.view === 'about') {
