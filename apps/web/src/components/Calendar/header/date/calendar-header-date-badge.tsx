@@ -10,7 +10,7 @@ export default function CalendarHeaderDateBadge () {
 
   return (
     <div className='whitespace-nowrap rounded-sm border px-1.5 py-0.5 text-xs'>
-      {`${monthEvents.length === 0 ? t('No') : monthEvents.length} ${t('Events')}`}
+      {monthEvents.length === 0 ? t('No events') : t('eventCount', { count: monthEvents.length })}
     </div>
   )
 }
