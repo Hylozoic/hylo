@@ -2,6 +2,15 @@ import { modalScreenName } from 'hooks/useIsModalScreen'
 import getStateFromPath from 'navigation/linking/getStateFromPath'
 import getInitialURL from 'navigation/linking/getInitialURL'
 import { isDev, isTest } from 'config'
+// TODO: Routing -- Tom -- This is becoming a special case. We have so far decided against constants
+// to keep the noise down, but it otherwise is a totally reasonable case for one. Let's just
+// keep doing it the way we have though (as plain strings) until we decide otherwise. 
+// The reality is that searching for 'Group Welcome' is mostly as reliable as searching for
+// GROUP_WELCOME_LANDING and has the same effect (hence why I've decided against constants for now).
+// Another alternative would be to define it either here or in the HomeNavigator as a const, as it
+// is the source of truth for the screen name, not data about the GroupWelcomeFlow...
+import { GROUP_WELCOME_LANDING } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
+
 /*
 
 Hylo Custom link routing config and related utilities:
@@ -41,10 +50,11 @@ export const routingConfig = {
   '/oauth/consent/:uid':                                                  `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
   '/oauth/login/:uid':                                                    `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
 
-  // Routes available in both Auth and Non-Auth state
+  // Available in both Auth and Non-Auth state, is responsible for setting returnToOnAuth path when accessed in non-auth context
   '/:context(groups)/:groupSlug/join/:accessCode':                        'JoinGroup',
-  // TODO:  Routing - note yet implemented, and should be handled with returnToOnAuth
-  '/welcome':                                                             'Unknown',
+  // TODO:  Routing - not yet implemented, and should be an AUTH_ROOT_SCREEN_NAME-rooted path to the appropriate Welcome component
+  // when this path is matched when not auth'd as long as is not available in the non-authed screen set, then returnToAuth will be set
+  '/welcome':                                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/${GROUP_WELCOME_LANDING}`,
 
   // Public Context Routes
   // TODO:  Routing - some of these need to be available when not auth'd

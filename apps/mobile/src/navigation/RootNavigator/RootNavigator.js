@@ -19,6 +19,7 @@ import NonAuthRootNavigator from 'navigation/NonAuthRootNavigator'
 import LoadingScreen from 'screens/LoadingScreen'
 import Unknown from 'screens/Unknown'
 import { white } from 'style/colors'
+import { isProduction } from 'config'
 
 const Root = createStackNavigator()
 export default function RootNavigator () {
@@ -75,7 +76,9 @@ export default function RootNavigator () {
           />
           <Root.Group screenOptions={{ presentation: 'modal', header: ModalHeader }}>
             <Root.Screen name='JoinGroup' component={JoinGroup} options={{ title: 'Joining Group...' }} />
-            <Root.Screen name='Unknown' component={Unknown} />
+            {!isProduction && (
+              <Root.Screen name='Unknown' component={Unknown} />
+            )}
           </Root.Group>
         </Root.Navigator>
       </NavigationContainer>
