@@ -22,7 +22,7 @@ export default function SearchBar ({
 
   return (
     <View style={[styles.container, style.container]}>
-      <Icon style={styles.searchIcon} name='Search' />
+      <Icon style={[styles.searchIcon, style.searchIcon]} name='Search' />
       <TextInput
         autoFocus={autoFocus}
         onFocus={onFocus}
