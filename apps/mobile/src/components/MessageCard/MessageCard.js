@@ -15,7 +15,7 @@ export default function MessageCard ({ message }) {
 
   return (
     <View style={[styles.container, suppressCreator && styles.padLeftNoAvatar]}>
-      <View style={styles.header}>
+      <View style={[styles.header, suppressCreator && styles.headerWithoutAvatar]}>
         {!suppressCreator && (
           <View style={styles.person}>
             <Avatar style={styles.avatar} avatarUrl={creator.avatarUrl} />
@@ -26,8 +26,13 @@ export default function MessageCard ({ message }) {
           <Text style={styles.date}>{TextHelpers.humanDate(createdAt)}</Text>
         )}
       </View>
-      <View style={[styles.message]}>
-        <HyloHTML html={messageHTML} />
+      <View style={styles.messageRow}>
+        <View style={styles.message}>
+          <HyloHTML html={messageHTML} />
+        </View>
+        {suppressCreator && suppressDate && (
+          <Text style={styles.dateInline}>{TextHelpers.humanDate(createdAt)}</Text>
+        )}
       </View>
     </View>
   )
@@ -38,37 +43,46 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     paddingVertical: 5,
     paddingHorizontal: 10,
-    backgroundColor: alabaster // flag-messages-background-color
+    backgroundColor: alabaster
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-end'
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  headerWithoutAvatar: {
+    justifyContent: 'flex-end' // Align date to the right if no avatar
   },
   person: {
     flexDirection: 'row',
+    alignItems: 'center',
     flex: 1
   },
   avatar: {
     marginRight: 8
+  },
+  name: {
+    color: capeCod,
+    fontFamily: 'Circular-Bold'
   },
   date: {
     fontSize: 12,
     color: rhino30,
     fontFamily: 'Circular-Book'
   },
-  name: {
-    color: capeCod,
-    fontFamily: 'Circular-Bold'
-  },
-  padLeftNoAvatar: {
-    // paddingLeft: 44
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between' // Ensure text and timestamp stay in one row
   },
   message: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'nowrap',
-    flex: 0.9,
-    paddingLeft: 44,
-    // marginTop: -10
+    flex: 1, // Ensure message takes up the available space
+    paddingLeft: 44
   },
+  dateInline: {
+    fontSize: 12,
+    color: rhino30,
+    fontFamily: 'Circular-Book',
+    marginLeft: 8 // Add spacing to prevent overlap with message text
+  }
 })
