@@ -25509,7 +25509,7 @@ __metadata:
     react-native-restart: "npm:^0.0.27"
     react-native-safe-area-context: "npm:^5.1.0"
     react-native-screens: "npm:^4.5.0"
-    react-native-share: "npm:^12.0.3"
+    react-native-share: "npm:12.0.6"
     react-native-sse: "npm:^1.2.1"
     react-native-svg: "npm:15.11.1"
     react-native-tab-view: "npm:^3.5.2"
@@ -30309,10 +30309,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-share@npm:^12.0.3":
-  version: 12.0.7
-  resolution: "react-native-share@npm:12.0.7"
-  checksum: 10/17c8f246a65b31f21b74970dfaa715c0de925365812f843f536a8a73b462112842f18a99c4484192d09b866e161df652696e3c087c1eb89a676137b418c458a4
+"react-native-share@npm:12.0.6":
+  version: 12.0.6
+  resolution: "react-native-share@npm:12.0.6"
+  checksum: 10/4b229936cef1dc1c7816618173418b68435dcb708b2ee5dc65a8e4e5240b46b200de9806c1a273bda43c409acdff0b1aac8180c644a941fd3f19b843363eedf6
   languageName: node
   linkType: hard
 
