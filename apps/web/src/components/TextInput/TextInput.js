@@ -47,7 +47,7 @@ const TextInput = forwardRef(({
         ref={ref}
         type='text'
         className={cn(
-          styles[theme.inputStyle],
+          styles[theme.inputStyle] || styles.input,
           theme.input,
           inputClassName
         )}
@@ -56,6 +56,7 @@ const TextInput = forwardRef(({
         onAnimationStart={handleAnimation}
         onBlur={onBlur}
         onFocus={onFocus}
+        aria-label={label || internalLabel}
         id={props.id}
       />
       {internalLabel && (
