@@ -1,14 +1,19 @@
 import React from 'react'
-import { Text, View, StyleSheet } from 'react-native'
+import { Text, View, StyleSheet, TouchableOpacity } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
 import { TextHelpers } from '@hylo/shared'
+import { modalScreenName } from 'hooks/useIsModalScreen'
 import HyloHTML from 'components/HyloHTML'
 import Avatar from 'components/Avatar'
 import { alabaster, capeCod, rhino30 } from 'style/colors'
 
 export default function MessageCard ({ message }) {
+  const navigation = useNavigation()
   if (!message) return null
 
   const { creator, displayDate, suppressCreator, text } = message
+  const goToCreator = () => navigation.navigate(modalScreenName('Member'), { id: creator.id })
+
   // TODO: Markdown is being used on both Web and Mobile as some messages are HTML
   //       and others are plain text with purposeful linebreaks.
   const messageHTML = TextHelpers.markdown(text)
@@ -18,10 +23,10 @@ export default function MessageCard ({ message }) {
       <View style={[styles.header, suppressCreator && styles.headerWithoutAvatar]}>
         {!suppressCreator && (
           <>
-            <View style={styles.person}>
+            <TouchableOpacity style={styles.person} onPress={goToCreator}>
               <Avatar style={styles.avatar} avatarUrl={creator.avatarUrl} />
               <Text style={styles.name}>{creator.name}</Text>
-            </View>
+            </TouchableOpacity>
             <Text style={styles.date}>{displayDate}</Text>
           </>
         )}

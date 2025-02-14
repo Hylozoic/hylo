@@ -138,6 +138,7 @@ export default function Thread() {
         estimatedItemSize={60}
         inverted
         keyExtractor={(item) => item.id}
+        keyboardDismissMode='on-drag'
         refreshing={fetching}
         onEndReached={fetchMore}
         onEndReachedThreshold={0.3}
