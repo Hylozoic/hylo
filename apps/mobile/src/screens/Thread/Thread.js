@@ -32,6 +32,35 @@ const markThreadReadMutation = gql`
   }
 `
 
+const isWithinBatchLimit = (timestamp1, timestamp2) => {
+  return Math.abs(new Date(timestamp1) - new Date(timestamp2)) <= BATCH_LIMIT_MS
+}
+
+const refineMessages = messages => {
+  return messages.map((msg, i, arr) => {
+    const prev = arr[i + 1]
+    const next = arr[i - 1]
+
+    // Precompute human-readable date for current message
+    const msgHumanDate = TextHelpers.humanDate(msg.createdAt)
+    const nextHumanDate = next ? TextHelpers.humanDate(next.createdAt) : null
+
+    const suppressCreator = prev && msg.creator.id === prev.creator.id
+    const suppressDate =
+      suppressCreator &&
+      next &&
+      msg.creator.id === next.creator.id &&
+      isWithinBatchLimit(next.createdAt, msg.createdAt) &&
+      msgHumanDate === nextHumanDate // Avoid redundant dates
+
+    return {
+      ...msg,
+      suppressCreator,
+      displayDate: !suppressDate && msgHumanDate
+    }
+  })
+}
+
 export default function Thread() {
   const { t } = useTranslation()
   const navigation = useNavigation()
@@ -54,28 +83,6 @@ export default function Thread() {
   const [newMessages, setNewMessages] = useState()
   const [yOffset, setYOffset] = useState(0)
   const atBottom = useMemo(() => yOffset < BOTTOM_THRESHOLD, [yOffset])
-
-  const isWithinBatchLimit = (timestamp1, timestamp2) => {
-    return Math.abs(new Date(timestamp1) - new Date(timestamp2)) <= BATCH_LIMIT_MS
-  }
-
-  const refineMessages = messages => {
-    return messages.map((msg, i, arr) => {
-      const prev = arr[i + 1]
-      const next = arr[i - 1]
-      const suppressCreator = prev && msg.creator.id === prev.creator.id
-      const suppressDate =
-        next &&
-        msg.creator.id === next.creator.id &&
-        isWithinBatchLimit(next.createdAt, msg.createdAt)
-
-      return {
-        ...msg,
-        suppressCreator,
-        suppressDate
-      }
-    })
-  }
 
   const fetchMore = () => {
     if (!fetching && messages && messages?.length) {
@@ -110,7 +117,7 @@ export default function Thread() {
         )
       })
       markAsRead()
-    }, [])
+    }, [data?.messageThread])
   )
 
   // New message indicator disabled for now, needs more thought
@@ -122,7 +129,9 @@ export default function Thread() {
 
   return (
     <KeyboardFriendlyView style={styles.container}>
-      {fetching && <Loading />}
+      {fetching && (
+        <Loading />
+      )}
       <FlashList
         style={styles.messageList}
         data={refineMessages(messages)}
