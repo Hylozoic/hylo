@@ -110,7 +110,7 @@ export default function Thread() {
         )
       })
       markAsRead()
-    }, [])
+    }, [data?.messageThread])
   )
 
   // New message indicator disabled for now, needs more thought
@@ -122,7 +122,9 @@ export default function Thread() {
 
   return (
     <KeyboardFriendlyView style={styles.container}>
-      {fetching && <Loading />}
+      {fetching && (
+        <Loading />
+      )}
       <FlashList
         style={styles.messageList}
         data={refineMessages(messages)}

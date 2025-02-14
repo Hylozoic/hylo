@@ -106,10 +106,11 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     fontSize: 16,
-    fontFamily: 'Circular-Book'
+    fontFamily: 'Circular-Book',
+    marginRight: -7
   },
   sendButton: {
-    fontSize: 50
+    fontSize: 52
   }
 })
 

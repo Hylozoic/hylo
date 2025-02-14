@@ -17,21 +17,21 @@ export default function MessageCard ({ message }) {
     <View style={[styles.container, suppressCreator && styles.padLeftNoAvatar]}>
       <View style={[styles.header, suppressCreator && styles.headerWithoutAvatar]}>
         {!suppressCreator && (
-          <View style={styles.person}>
-            <Avatar style={styles.avatar} avatarUrl={creator.avatarUrl} />
-            <Text style={styles.name}>{creator.name}</Text>
-          </View>
-        )}
-        {!suppressDate && (
-          <Text style={styles.date}>{TextHelpers.humanDate(createdAt)}</Text>
+          <>
+            <View style={styles.person}>
+              <Avatar style={styles.avatar} avatarUrl={creator.avatarUrl} />
+              <Text style={styles.name}>{creator.name}</Text>
+            </View>
+            <Text style={styles.date}>{TextHelpers.humanDate(createdAt, true)}</Text>
+          </>
         )}
       </View>
       <View style={styles.messageRow}>
         <View style={styles.message}>
           <HyloHTML html={messageHTML} />
         </View>
-        {suppressCreator && suppressDate && (
-          <Text style={styles.dateInline}>{TextHelpers.humanDate(createdAt)}</Text>
+        {suppressCreator && !suppressDate && (
+          <Text style={styles.dateInline}>{TextHelpers.humanDate(createdAt, true)}</Text>
         )}
       </View>
     </View>
@@ -41,7 +41,6 @@ export default function MessageCard ({ message }) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
-    paddingVertical: 5,
     paddingHorizontal: 10,
     backgroundColor: alabaster
   },
