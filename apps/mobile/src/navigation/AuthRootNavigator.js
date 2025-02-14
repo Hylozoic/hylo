@@ -6,9 +6,6 @@ import { LogLevel, OneSignal } from 'react-native-onesignal'
 import { gql, useMutation, useQuery, useSubscription } from 'urql'
 import mixpanel from 'services/mixpanel'
 import { useTranslation } from 'react-i18next'
-import { version as hyloAppVersion } from '../../package.json'
-import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
-import { modalScreenName } from 'hooks/useIsModalScreen'
 import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
 import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
 import messageThreadFieldsFragment from '@hylo/graphql/fragments/messageThreadFieldsFragment'
@@ -17,6 +14,10 @@ import registerDeviceMutation from '@hylo/graphql/mutations/registerDeviceMutati
 import commonRolesQuery from '@hylo/graphql/queries/commonRolesQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
+import { isDev } from 'config'
+import { version as hyloAppVersion } from '../../package.json'
+import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
+import { modalScreenName } from 'hooks/useIsModalScreen'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import CreateGroupTabsNavigator from 'navigation/CreateGroupTabsNavigator'
 import DrawerNavigator from 'navigation/DrawerNavigator'
@@ -81,31 +82,37 @@ export default function AuthRootNavigator () {
     resetNotificationsCount()
   }, [])
 
+  const oneSignalChangeListener = ({ externalId, onesignalId }) => {
+    if (externalId === currentUser?.id) {
+      registerDevice({
+        playerId: onesignalId,
+        platform: Platform.OS + (isDev ? '_dev' : ''),
+        version: hyloAppVersion
+      })
+    } else {
+      console.warn(
+        'Not registering to OneSignal for push notifications:\n' +
+        `externalId: ${externalId} onesignalId: ${onesignalId} currentUser.id: ${currentUser?.id}`
+      )
+    }
+  }
+
   useEffect(() => {
     (async function () {
       if (currentUser && !fetching && !error) {
         const locale = currentUser?.settings?.locale || 'en'
 
-        // Locale setting
+        // Locale setup
         i18n.changeLanguage(locale)
 
-        // OneSignal registration and identification
-        OneSignal.Debug.setLogLevel(LogLevel.Verbose)
+        // OneSignal setup
+        if (isDev) OneSignal.Debug.setLogLevel(LogLevel.Verbose)
+        OneSignal.User.addEventListener('change', oneSignalChangeListener)
+        const permissionGranted = await OneSignal.Notifications.canRequestPermission()
+        if (permissionGranted) OneSignal.Notifications.requestPermission(true)
         OneSignal.login(currentUser?.id)
-        OneSignal.Notifications.requestPermission(true)
-        const onesignalPushSubscriptionId = await OneSignal.User.pushSubscription.getIdAsync()
 
-        if (onesignalPushSubscriptionId) {
-          await registerDevice({
-            playerId: onesignalPushSubscriptionId,
-            platform: Platform.OS + (__DEV__ ? '_dev' : ''),
-            version: hyloAppVersion
-          })
-        } else {
-          console.warn('Not registering to OneSignal for push notifications. OneSignal did not successfully retrieve a userId')
-        }
-
-        // Intercom user setup
+        // Intercom setup
         // TODO: URQL - does  setUserHash need to happen? Test. It stopped working.
         // Intercom.setUserHash(user.hash)
         Intercom.loginUserWithUserAttributes({
@@ -114,7 +121,7 @@ export default function AuthRootNavigator () {
           email: currentUser?.email
         })
 
-        // MixPanel user identify
+        // MixPanel setup
         mixpanel.identify(currentUser?.id)
         mixpanel.getPeople().set({
           $name: currentUser?.name,
@@ -125,6 +132,10 @@ export default function AuthRootNavigator () {
         setLoading(false)
       }
     })()
+
+    return () => {
+      OneSignal.User.removeEventListener('change', oneSignalChangeListener)
+    }
   }, [currentUser, fetching, error])
 
   // TODO: What do we want to happen if there is an error loading the current user?
