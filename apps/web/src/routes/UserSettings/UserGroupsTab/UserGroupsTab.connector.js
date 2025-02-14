@@ -8,7 +8,10 @@ import orm from 'store/models'
 export const getCurrentUserAffiliations = ormCreateSelector(
   orm,
   session => {
-    return session.Me.first().affiliations
+    const me = session.Me.first()
+    // TODO post-redesign: this was being weird; affiliations aren't on the User Model
+    if (!me) return {}
+    return me?._fields?.affiliations
   }
 )
 
@@ -16,7 +19,6 @@ export function mapStateToProps (state, props) {
   const action = get(state, 'UserGroupsTab.action')
   const affiliations = getCurrentUserAffiliations(state, props)
   const memberships = getMyMemberships(state, props).sort((a, b) => a.group.name.localeCompare(b.group.name))
-
   return {
     action,
     affiliations,
