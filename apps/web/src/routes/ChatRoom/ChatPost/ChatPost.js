@@ -10,6 +10,7 @@ import Avatar from 'components/Avatar'
 import Button from 'components/Button'
 import ClickCatcher from 'components/ClickCatcher'
 import CardFileAttachments from 'components/CardFileAttachments'
+import CardImageAttachments from 'components/CardImageAttachments'
 import EmojiRow from 'components/EmojiRow'
 import EmojiPicker from 'components/EmojiPicker'
 import FlagContent from 'components/FlagContent'
@@ -23,13 +24,13 @@ import RoundImageRow from 'components/RoundImageRow'
 import useReactionActions from 'hooks/useReactionActions'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
-import { bgImageStyle, cn } from 'util/index'
 import isWebView from 'util/webView'
 import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
 import { personUrl, postUrl } from 'util/navigation'
+import { cn } from 'util/index'
 
 import styles from './ChatPost.module.scss'
 
@@ -52,7 +53,6 @@ export default function ChatPost ({
     fileAttachments,
     groups, // TODO: why pass this in, why not pull from getGroupFromSlug?
     id,
-    imageAttachments,
     linkPreview,
     linkPreviewFeatured,
     myReactions,
@@ -296,15 +296,7 @@ export default function ChatPost ({
         {linkPreview && !linkPreviewFeatured && (
           <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className={styles.linkPreview} />
         )}
-        {!isEmpty(imageAttachments) && (
-          <div className={styles.images} onClick={handleClick}>
-            <div className={styles.imagesInner}>
-              {imageAttachments.map(image =>
-                <a href={image.url} className={styles.image} target='_blank' rel='noreferrer' key={image.url}>
-                  <div className={styles.imageInner} style={bgImageStyle(image.url)} role='img' aria-label={image.url} />
-                </a>)}
-            </div>
-          </div>)}
+        <CardImageAttachments attachments={post.attachments} isFlagged={false} forChatPost />
         {!isEmpty(fileAttachments) && (
           <CardFileAttachments attachments={fileAttachments} />
         )}

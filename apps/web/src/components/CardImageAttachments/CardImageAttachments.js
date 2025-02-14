@@ -1,14 +1,16 @@
-import { cn } from 'util/index'
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import { filter, isEmpty } from 'lodash/fp'
 import ModalDialog from 'components/ModalDialog'
 import ImageCarousel from 'components/ImageCarousel'
+import { bgImageStyle, cn } from 'util/index'
+
 import classes from './CardImageAttachments.module.scss'
 
 export default function CardImageAttachments ({
   attachments,
   className,
+  forChatPost = false,
   isFlagged
 }) {
   const imageAttachments = filter({ type: 'image' }, attachments)
@@ -38,28 +40,48 @@ export default function CardImageAttachments ({
 
   return (
     <>
-      <div className={cn(className, classes.image, { [classes.flagged]: isFlagged })}>
-        <img
-          src={firstImageUrl}
-          alt='Attached image 1'
-          data-index={0}
-          onClick={toggleModal}
-          data-testid='first-image'
-        />
-        <div className={classes.others}>
-          <div className={classes.othersInner}>
-            {!isEmpty(otherImageUrls) && otherImageUrls.map((url, index) =>
+      <div className={cn(className, classes.images, { [classes.chatPost]: forChatPost, [classes.flagged]: isFlagged })}>
+        {forChatPost
+          ? (
+            <div className={classes.imagesInner}>
+              {imageAttachments.map((image, index) =>
+                <div key={image.url} data-index={index} className={classes.image} style={bgImageStyle(image.url)} role='img' aria-label={image.url} onClick={toggleModal} />
+              )}
+            </div>
+            )
+          : (
+            <>
               <img
-                className={classes.other}
-                data-index={index + 1}
-                src={url}
-                alt={`Attached image ${index + 2}`}
-                key={index}
+                src={firstImageUrl}
+                alt='Attached image 1'
+                data-index={0}
                 onClick={toggleModal}
+                data-testid='first-image'
+                style={{
+                  maxHeight: '500px',
+                  width: '100%',
+                  height: 'auto',
+                  display: 'block',
+                  margin: '0 auto',
+                  objectFit: 'cover'
+                }}
               />
+              <div className={classes.others}>
+                <div className={classes.othersInner}>
+                  {!isEmpty(otherImageUrls) && otherImageUrls.map((url, index) =>
+                    <img
+                      className={classes.other}
+                      data-index={index + 1}
+                      src={url}
+                      alt={`Attached image ${index + 2}`}
+                      key={index}
+                      onClick={toggleModal}
+                    />
+                  )}
+                </div>
+              </div>
+            </>
             )}
-          </div>
-        </div>
       </div>
       {modalVisible && (
         <ModalDialog {...modalSettings}>
