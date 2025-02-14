@@ -13,7 +13,6 @@ import SearchNavigator from 'navigation/SearchNavigator'
 import MessagesNavigator from 'navigation/MessagesNavigator'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import { MY_CONTEXT_SLUG } from '@hylo/shared'
-import UserSettingsMenu from 'screens/UserSettingsMenu'
 
 const DummyComponent = () => null
 
