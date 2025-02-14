@@ -89,7 +89,7 @@ export function afterCreatingPost (post, opts) {
 
 async function updateTagsAndGroups (post, localId, trx) {
   await post.load([
-    'groups', 'linkPreview', 'tags', 'user'
+    'media', 'groups', 'linkPreview', 'tags', 'user'
   ], { transacting: trx })
 
   const { tags, groups } = post.relations
