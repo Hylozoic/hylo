@@ -6,7 +6,6 @@ export default {
   ContextWidgetQuerySet: () => null,
   CustomViewQuerySet: () => null,
   EventInvitationQuerySet: () => null,
-  EventInvitation: () => null,
   GroupExistsOutput: () => null,
   GroupExtensionQuerySet: () => null,
   GroupJoinQuestionQuerySet: () => null,
