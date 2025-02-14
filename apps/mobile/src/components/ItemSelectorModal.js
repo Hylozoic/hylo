@@ -1,11 +1,13 @@
 import React, { useState, useImperativeHandle, useCallback } from 'react'
-import { View, Modal, StyleSheet } from 'react-native'
+import { View, Modal, StyleSheet, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import ItemSelector from 'components/ItemSelector'
+import ItemSelector, { defaultColors } from 'components/ItemSelector'
 import Icon from 'components/Icon'
 import { alabaster, rhino } from 'style/colors'
 
-export const ItemSelectorModal = React.forwardRef((props, ref) => {
+// TODO: Make it close when pressing outside the modal: https://stackoverflow.com/a/52936928
+export const ItemSelectorModal = React.forwardRef((props = {}, ref) => {
+  const { colors, title } = props
   const [visible, setVisible] = useState(false)
   const insets = useSafeAreaInsets()
 
@@ -19,8 +21,19 @@ export const ItemSelectorModal = React.forwardRef((props, ref) => {
 
   return (
     <Modal visible={visible} animationType='slide' onRequestClose={handleOnClose} transparent>
-      <View style={[styles.container, { marginTop: insets.top, marginBottom: insets.bottom + 60 }]}>
-        <Icon name='Ex' style={styles.closeButton} onPress={handleOnClose} />
+      <View
+        style={[
+          styles.container,
+          { marginTop: insets.top, marginBottom: insets.bottom + 60 },
+          { backgroundColor: colors?.background || rhino }
+        ]}
+      >
+        <View style={styles.header}>
+          <Icon name='Ex' style={[styles.closeButton, { color: colors?.text || defaultColors.text }]} onPress={handleOnClose} />
+          {title && (
+            <Text style={[styles.title, { color: colors?.text || defaultColors.text }]}>{title}</Text>
+          )}
+        </View>
         <ItemSelector {...props} onClose={handleOnClose} />
       </View>
     </Modal>
@@ -30,16 +43,22 @@ export const ItemSelectorModal = React.forwardRef((props, ref) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: rhino,
     margin: 30,
     borderRadius: 20,
     padding: 10
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
   closeButton: {
-    padding: 3,
     fontSize: 22,
-    color: alabaster,
-    textAlign: 'left'
+    padding: 8
+  },
+  title: {
+    fontSize: 16, // Kept reasonable, not too big
+    fontWeight: '500', // Not too bold
+    marginLeft: 8, // Ensures it aligns left against the X icon
   }
 })
 

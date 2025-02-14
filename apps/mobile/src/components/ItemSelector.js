@@ -38,22 +38,22 @@ export const ItemSelector = ({
   itemsUseQueryArgs: providedItemsUseQueryArgs,
   itemsUseQuerySelector = getFirstRootField,
   searchPlaceholder,
-  title,
   initialSearchTerm = '',
   chooser = false,
+  search = true,
   onClose,
   styles = defaultStyles,
-  colors = defaultColors
+  colors: providedColors = defaultColors
 }) => {
   const [items, setItems] = useState(defaultItems)
   const [chosenItems, setChosenItems] = useState(providedChosenItems || [])
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm)
   const [debouncedSearchTerm, providedSetDebouncedSearchTerm] = useState(initialSearchTerm)
-
   const setDebouncedSearchTerm = useCallback(
     debounce(300, value => providedSetDebouncedSearchTerm(value)),
     []
   )
+  const colors = { ...defaultColors, ...providedColors }
 
   const itemsUseQueryArgs = useMemo(() => (
     !fetchItems && isFunction(providedItemsUseQueryArgs)
@@ -127,16 +127,18 @@ export const ItemSelector = ({
 
   return (
     <View style={styles.container}>
-      <SearchBar
-        style={{
-          container: [styles.searchBar, { borderColor: colors.border }],
-          searchInput: [styles.searchInput, { color: colors.text }]
-        }}
-        value={searchTerm}
-        onChangeText={setSearchTerm}
-        placeholder={searchPlaceholder}
-        onCancel={() => setSearchTerm()}
-      />
+      {search && (
+        <SearchBar
+          style={{
+            container: [styles.searchBar, { borderColor: colors.border }],
+            searchInput: { color: colors.text }
+          }}
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+          placeholder={searchPlaceholder}
+          onCancel={() => setSearchTerm()}
+        />
+      )}
       {fetching
         ? (
           <Text style={[styles.loading, { color: colors.text }]}>Loading...</Text>
@@ -148,7 +150,7 @@ export const ItemSelector = ({
   )
 }
 
-const defaultColors = {
+export const defaultColors = {
   text: alabaster,
   border: rhino80
 }
@@ -159,14 +161,12 @@ export const defaultStyles = StyleSheet.create({
     padding: 15,
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: rhino80
+    borderBottomWidth: 1
   },
   itemAvatar: {
     marginRight: 12
   },
   itemName: {
-    color: alabaster,
     flex: 1
   },
   // ItemSelector
@@ -176,14 +176,10 @@ export const defaultStyles = StyleSheet.create({
     borderRadius: 20
   },
   loading: {
-    padding: 15,
-    color: alabaster
+    padding: 15
   },
   searchBar: {
     marginBottom: 5
-  },
-  searchInput: {
-    color: alabaster
   }
 })
 
