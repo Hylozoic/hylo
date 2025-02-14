@@ -88,9 +88,11 @@ export default function AuthRootNavigator () {
 
         // Locale setting
         i18n.changeLanguage(locale)
-        OneSignal.Debug.setLogLevel(LogLevel.Verbose)
 
         // OneSignal registration and identification
+        OneSignal.Debug.setLogLevel(LogLevel.Verbose)
+        OneSignal.login(currentUser?.id)
+        OneSignal.Notifications.requestPermission(true)
         const onesignalPushSubscriptionId = await OneSignal.User.pushSubscription.getIdAsync()
 
         if (onesignalPushSubscriptionId) {
@@ -99,8 +101,6 @@ export default function AuthRootNavigator () {
             platform: Platform.OS + (__DEV__ ? '_dev' : ''),
             version: hyloAppVersion
           })
-          OneSignal.login(currentUser?.id)
-          OneSignal.Notifications.requestPermission(true)
         } else {
           console.warn('Not registering to OneSignal for push notifications. OneSignal did not successfully retrieve a userId')
         }
