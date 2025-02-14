@@ -57,7 +57,7 @@ const CreateModal = (props) => {
               <PostEditor
                 {...props}
                 selectedLocation={mapLocation}
-                onClose={closeModal}
+                afterSave={closeModal}
                 onCancel={confirmClose}
                 setIsDirty={setIsDirty}
                 editing={props.editingPost}
@@ -71,7 +71,7 @@ const CreateModal = (props) => {
                     <PostEditor
                       {...props}
                       selectedLocation={mapLocation}
-                      onClose={closeModal}
+                      afterSave={closeModal}
                       onCancel={confirmClose}
                       setIsDirty={setIsDirty}
                     />
