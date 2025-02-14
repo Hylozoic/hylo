@@ -1,21 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { View, ScrollView, Text, TouchableOpacity } from 'react-native'
+import { View, ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { gql, useClient, useMutation, useQuery } from 'urql'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { isArray, isEmpty } from 'lodash/fp'
-import useRouteParams from 'hooks/useRouteParams'
 import peopleAutocompleteQuery from '@hylo/graphql/queries/peopleAutocompleteQuery'
 import findOrCreateThreadMutation from '@hylo/graphql/mutations/findOrCreateThreadMutation'
 import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation'
+import { isIOS } from 'util/platform'
+import useRouteParams from 'hooks/useRouteParams'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
-import ItemSelectorModal from 'components/ItemSelectorModal'
-import Button from 'components/Button'
+import ItemSelector from 'components/ItemSelector'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import styles from './NewMessage.styles'
+import { capeCod20, pictonBlue, alabaster, amaranth, rhino80 } from 'style/colors'
 
 export const recentContactsQuery = gql`
   query RecentContactsQuery ($first: Int = 20) {
@@ -139,39 +139,35 @@ export default function NewMessage () {
 
   return (
     <KeyboardFriendlyView style={styles.container}>
-      <ScrollView>
-        <ItemSelectorModal
-          ref={participantsSelectorRef}
-          title={t('Add Participant')}
-          searchPlaceholder={t('Search by name')}
-          defaultItems={recentContacts}
-          chosenItems={participants}
-          onItemPress={handleAddParticipant}
-          itemsUseQueryArgs={({ searchTerm }) => {
-            // Don't query if no searchTerm so defaultItems will show
-            return !isEmpty(searchTerm) && {
-              query: peopleAutocompleteQuery,
-              variables: { autocomplete: searchTerm }
-            }
-          }}
-          itemsUseQuerySelector={data => data?.people?.items}
-        />
-        <TouchableOpacity onPress={() => participantsSelectorRef.current.show()} style={styles.participants}>
-          {participants.map((participant, index) =>
-            <Participant
-              participant={participant}
-              onPress={handleRemoveParticipant}
-              key={index}
-            />)}
-        </TouchableOpacity>
-        <View style={styles.addParticipantButtonWrapper}>
-          <Button
-            text={t('Add Participant')}
-            style={styles.addParticipantButton}
-            onPress={() => participantsSelectorRef.current.show()}
-          />
-        </View>
+      <ScrollView style={{ flexGrow: 0 }}>
+        {participants.length > 0 && (
+          <TouchableOpacity onPress={() => participantsSelectorRef.current.show()} style={styles.participants}>
+            {participants.map((participant, index) =>
+              <Participant
+                participant={participant}
+                onPress={handleRemoveParticipant}
+                key={index}
+              />)}
+          </TouchableOpacity>
+        )}
       </ScrollView>
+      <ItemSelector
+        // ref={participantsSelectorRef}
+        title={t('Add Participant')}
+        searchPlaceholder={t('Search by name')}
+        defaultItems={recentContacts}
+        chosenItems={participants}
+        onItemPress={handleAddParticipant}
+        itemsUseQueryArgs={({ searchTerm }) => {
+          // Don't query if no searchTerm so defaultItems will show
+          return !isEmpty(searchTerm) && {
+            query: peopleAutocompleteQuery,
+            variables: { autocomplete: searchTerm }
+          }
+        }}
+        colors={{ text: rhino80, border: alabaster }}
+        itemsUseQuerySelector={data => data?.people?.items}
+      />
       <MessageInput
         style={styles.messageInput}
         value={prompt}
@@ -197,3 +193,61 @@ export function Participant ({ participant, onPress }) {
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: alabaster,
+    position: 'relative',
+    flex: 1
+  },
+  // participants
+  addParticipantButtonWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  addParticipantButton: {
+    backgroundColor: pictonBlue,
+    width: 150,
+    fontSize: 14,
+    height: 36
+  },
+  participants: {
+    borderTopWidth: isIOS ? 0 : 1,
+    borderTopColor: capeCod20,
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    padding: 12,
+    paddingBottom: 0
+  },
+  participant: {
+    borderWidth: 1,
+    borderColor: capeCod20,
+    borderRadius: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 38,
+    marginRight: 3,
+    marginLeft: 3,
+    marginBottom: 5,
+    paddingLeft: 6,
+    paddingRight: 5,
+    flexBasis: 'auto'
+  },
+  participantName: {
+    maxWidth: 99,
+    fontFamily: 'Circular-Bold'
+  },
+  personAvatar: {
+    marginRight: 10
+  },
+  participantRemoveIcon: {
+    paddingLeft: 5,
+    fontSize: 20,
+    color: amaranth,
+    marginRight: 'auto'
+  }
+})
