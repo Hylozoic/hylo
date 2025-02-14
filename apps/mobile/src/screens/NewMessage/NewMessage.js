@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { View, ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { gql, useClient, useMutation, useQuery } from 'urql'
 import { useNavigation } from '@react-navigation/native'
@@ -86,14 +86,12 @@ const useParticipantsQuery = (participantIds = []) => {
 export default function NewMessage () {
   const navigation = useNavigation()
   const { t } = useTranslation()
+  const [participants, setParticipants] = useState([])
+  const [loading, setLoading] = useState()
   const { prompt, participants: routeParticipants } = useRouteParams()
   const initialParticipantIds = !isArray(routeParticipants)
     ? routeParticipants?.split(',')
     : routeParticipants || []
-
-  const participantsSelectorRef = useRef(null)
-  const [participants, setParticipants] = useState([])
-  const [loading, setLoading] = useState()
 
   const [, findOrCreateThread] = useMutation(findOrCreateThreadMutation)
   const [, createMessage] = useMutation(createMessageMutation)
@@ -139,17 +137,14 @@ export default function NewMessage () {
 
   return (
     <KeyboardFriendlyView style={styles.container}>
-      <ScrollView style={{ flexGrow: 0 }}>
-        {participants.length > 0 && (
-          <TouchableOpacity onPress={() => participantsSelectorRef.current.show()} style={styles.participants}>
-            {participants.map((participant, index) =>
-              <Participant
-                participant={participant}
-                onPress={handleRemoveParticipant}
-                key={index}
-              />)}
-          </TouchableOpacity>
-        )}
+      <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={styles.participants}>
+        {participants.length > 0 && participants.map((participant, index) => (
+          <Participant
+            participant={participant}
+            onPress={handleRemoveParticipant}
+            key={index}
+          />
+        ))}
       </ScrollView>
       <ItemSelector
         // ref={participantsSelectorRef}
@@ -187,7 +182,7 @@ export function Participant ({ participant, onPress }) {
         <Avatar avatarUrl={participant.avatarUrl} style={styles.personAvatar} dimension={24} />
       )}
       <Text numberOfLines={1} ellipsizeMode='tail' style={styles.participantName}>{participant.name}</Text>
-      <TouchableOpacity onPress={() => { onPress(participant) }}>
+      <TouchableOpacity onPress={() => onPress(participant)}>
         <Icon name='Ex' style={styles.participantRemoveIcon} />
       </TouchableOpacity>
     </View>
