@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     maxHeight: MAX_INPUT_HEIGHT,
     padding: 10,
     borderRadius: 10,
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Circular-Book'
   },
   sendButton: {
