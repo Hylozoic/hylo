@@ -5,17 +5,19 @@ import HyloWebView from 'components/HyloWebView'
 import useLogout from 'hooks/useLogout'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
+export const TERMS_URL = 'https://hylo-landing.surge.sh/terms'
+
 export default function UserSettingsWebView ({ path: pathProp, route }) {
+  const webViewRef = useRef(null)
+  // const [selectedSetting, setSelectedSetting] = useState(null)
   // TODO: URQL! - Untested, intention is to refresh cache
   const [, queryCurrentUser] = useCurrentUser({ requestPolicy: 'network-only', pause: true })
-  const webViewRef = useRef(null)
   const logout = useLogout()
-  const { path: routePath } = useRouteParams()
-  const path = pathProp || routePath
-  const source = route?.params.uri && { uri: route?.params.uri }
-  const sourceOrPath = source
-    ? { source}
-    : { path }
+  const { originalLinkingPath, settingsArea } = useRouteParams()
+
+  const sourceOrPath = settingsArea === 'terms'
+    ? { uri: TERMS_URL }
+    : { path: originalLinkingPath }
 
   const messageHandler = ({ type, data }) => {
     switch (type) {

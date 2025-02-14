@@ -1,26 +1,131 @@
-import React, { useRef } from 'react'
-import HyloWebView from 'components/HyloWebView'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import RNRestart from 'react-native-restart'
+import useRouteParams from 'hooks/useRouteParams'
+import HyloWebView from 'components/HyloWebView'
+import { alabaster, capeCod, rhino40, rhino80 } from 'style/colors'
 
-export default function GroupSettingsWebView ({ path: pathProp, route }) {
-  const webViewRef = useRef(null)
-  const path = pathProp || route?.params?.path
+export default function GroupSettingsWebView () {
+  const webViewRef = useRef()
+  const { groupSlug, originalLinkingPath, settingsArea: routeSettingsArea } = useRouteParams()
+  const [selectedSettingsArea, setSelectedSettingsArea] = useState(routeSettingsArea)
+
+  useEffect(() => {
+    setSelectedSettingsArea(routeSettingsArea)
+  }, [routeSettingsArea])
+
+  const handleNavigationStateChange = useCallback(({ url }) => {
+    // Temporary sorta fix for Group delete which reloads the page
+    if (url.match(/\/all/)) {
+      RNRestart.Restart()
+      return false
+    }
+    if (!url.match(/\/groups\/([^\/]+)settings/)) {
+      webViewRef.current?.goBack()
+      return false
+    }
+  })
+
+  const path = useMemo(() => selectedSettingsArea
+    ? `/groups/${groupSlug}/settings/${selectedSettingsArea === 'details' ? '' : selectedSettingsArea}`
+    : originalLinkingPath
+  , [selectedSettingsArea, originalLinkingPath])
+
+  const settingsOptions = [
+    { settingsArea: 'details', label: 'Group Details' },
+    { settingsArea: 'agreements', label: 'Agreements' },
+    { settingsArea: 'responsibilities', label: 'Responsibilities' },
+    { settingsArea: 'roles', label: 'Roles & Badges' },
+    { settingsArea: 'privacy', label: 'Privacy & Access' },
+    { settingsArea: 'topics', label: 'Topics' },
+    { settingsArea: 'invite', label: 'Invitations' },
+    { settingsArea: 'requests', label: 'Join Requests' },
+    { settingsArea: 'relationships', label: 'Related Groups' },
+    { settingsArea: 'export', label: 'Export Data' },
+    { settingsArea: 'delete', label: 'Delete' }
+    // TODO: Routing - Doesn't seem to currently appear on Web so leaving it out here?
+    // { settingsArea: 'views', label: 'Custom Views' }
+  ]
 
   return (
-    <HyloWebView
-      ref={webViewRef}
-      path={path}
-      onNavigationStateChange={({ url }) => {
-        // Temporary sorta fix for Group delete which reloads the page
-        if (url.match(/\/all/)) {
-          RNRestart.Restart()
-          return false
-        }
-        if (!url.match(/\/groups\/([^\/]+)settings/)) {
-          webViewRef.current?.goBack()
-          return false
-        }
-      }}
-    />
+    <View style={[styles.container]}>
+      {selectedSettingsArea
+        ? (
+          <>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={() => setSelectedSettingsArea(null)} style={styles.backButton}>
+                <Text style={styles.backButtonText}>←</Text>
+              </TouchableOpacity>
+            </View>
+            <HyloWebView
+              ref={webViewRef}
+              key={path}
+              path={path}
+              onNavigationStateChange={handleNavigationStateChange}
+            />
+          </>
+          )
+        : (
+          <ScrollView contentContainerStyle={styles.menu}>
+            {settingsOptions.map(({ settingsArea, label }) => (
+              <TouchableOpacity
+                key={settingsArea}
+                style={styles.menuItem}
+                onPress={() => setSelectedSettingsArea(settingsArea)}
+              >
+                <Text style={styles.menuText}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          )}
+    </View>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: alabaster
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: capeCod,
+    height: 60
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: alabaster
+  },
+  backButton: {
+    position: 'absolute',
+    left: 20,
+    zIndex: 10
+  },
+  backButtonText: {
+    fontSize: 20,
+    color: 'white'
+  },
+  menu: {
+    paddingVertical: 10
+  },
+  menuItem: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    marginBottom: 10,
+    marginHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: rhino40,
+    backgroundColor: alabaster
+  },
+  menuText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: rhino80
+  }
+})

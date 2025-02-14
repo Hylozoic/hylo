@@ -60,6 +60,7 @@ export default function PostDetails () {
   const setHeader = () => {
     !isModalScreen && navigation.setOptions({ title: currentGroup?.name })
   }
+
   const clearSelectedComment = () => {
     setSelectedComment(null)
     commentsRef.current && commentsRef.current.clearHighlightedComment()

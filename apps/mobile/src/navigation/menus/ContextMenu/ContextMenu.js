@@ -158,7 +158,7 @@ function SpecialTopElementRenderer({ widget, group }) {
   if (widget.type === 'members' && canAddMembers) {
     return (
       <TouchableOpacity 
-        onPress={() => navigation.navigate('Group Settings', { screen: 'Invite' })}
+        onPress={() => navigation.navigate('Group Settings', { groupSlug: group?.slug, screen: 'invite' })}
         className='px-4 py-2 bg-primary rounded-md'
       >
         <Text className='text-sm font-medium text-white'>{t('Add Members')}</Text>

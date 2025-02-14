@@ -4,7 +4,6 @@ import { View, Text, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
-import Avatar from 'components/Avatar'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 
 export default function GroupMenuHeader ({ group }) {
@@ -45,8 +44,8 @@ export default function GroupMenuHeader ({ group }) {
             onPress={() => navigation.navigate('Group Settings')}
           >
             <View className='w-6 h-6 drop-shadow-md'>
-            <Settings color='white' size={24} />
-          </View>
+              <Settings color='white' size={24} />
+            </View>
           </TouchableOpacity>
         </View>
       )}

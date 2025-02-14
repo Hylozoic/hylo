@@ -26,7 +26,7 @@ export default function getStateFromPath (providedPath) {
 
   const screenConfig = buildScreenConfigFromScreenPath(screenPath)
 
-  // TODO: URQL! - either figure out how to get auth state here and restore this,
+  // TODO: Routing - Either figure out how to get auth state here and restore this,
   // or implement another way to catch AUTH_ROOT route matches when non-authed and
   // set the returnToOnAuth path higher up the stack.
   // let { isAuthorized } = checkAuth()
