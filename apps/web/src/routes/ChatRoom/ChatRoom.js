@@ -192,6 +192,8 @@ export default function ChatRoom (props) {
 
   const handleNewPostReceived = useCallback((data) => {
     if (!data.topics?.find(t => t.name === topicName)) return
+    data.imageAttachments = data.attachments.filter(a => a.type === 'image')
+    data.fileAttachments = data.attachments.filter(a => a.type === 'file')
 
     let updateExisting = false
     messageListRef.current?.data.map((item) => {
