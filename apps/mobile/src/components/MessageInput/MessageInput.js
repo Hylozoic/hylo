@@ -3,15 +3,13 @@ import { TextInput, TouchableOpacity, View, Alert, StyleSheet } from 'react-nati
 import { useTranslation } from 'react-i18next'
 import { throttle, isEmpty } from 'lodash'
 import Icon from 'components/Icon'
-import { azureRadiance, rhino30, alabaster, mercury } from 'style/colors'
+import { azureRadiance, rhino30, alabaster, mercury, rhino10 } from 'style/colors'
 
 const IS_TYPING_THROTTLE = 3000
-const MIN_INPUT_HEIGHT = 22
-const MAX_INPUT_HEIGHT = 100
+const MAX_INPUT_HEIGHT = 180
 
-const MessageInput = ({ onSubmit, emptyParticipants, placeholder, sendIsTyping, style }) => {
+const MessageInput = ({ onSubmit, emptyParticipants, multiline, placeholder, sendIsTyping, style }) => {
   const [message, setMessage] = useState('')
-  const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT)
   const [submittable, setSubmittable] = useState(false)
   const textInputRef = useRef(null)
   const { t } = useTranslation()
@@ -32,10 +30,6 @@ const MessageInput = ({ onSubmit, emptyParticipants, placeholder, sendIsTyping, 
     setMessage(text)
   }
 
-  const handleContentSizeChange = ({ nativeEvent }) => {
-    setInputHeight(nativeEvent.contentSize.height)
-  }
-
   const handleSubmit = async () => {
     const canSend = submittable || message.length > 0
     if (canSend && !emptyParticipants) {
@@ -51,8 +45,6 @@ const MessageInput = ({ onSubmit, emptyParticipants, placeholder, sendIsTyping, 
     }
   }
 
-  const restrictedHeight = () => Math.min(MAX_INPUT_HEIGHT, Math.max(MIN_INPUT_HEIGHT, inputHeight))
-
   const startTyping = useCallback(
     throttle(() => {
       if (sendIsTyping) sendIsTyping()
@@ -63,18 +55,18 @@ const MessageInput = ({ onSubmit, emptyParticipants, placeholder, sendIsTyping, 
   return (
     <View style={[styles.container, style]}>
       <TextInput
+        multiline={multiline}
         placeholderTextColor={rhino30}
         placeholder={placeholder}
         value={message}
         onChangeText={handleChange}
-        onContentSizeChange={handleContentSizeChange}
-        underlineColorAndroid="transparent"
+        underlineColorAndroid='transparent'
         ref={textInputRef}
-        style={[styles.input, { height: restrictedHeight() }]}
+        style={styles.input}
       />
       <TouchableOpacity onPress={handleSubmit}>
         <Icon
-          name="Send"
+          name='Send'
           style={{ ...styles.sendButton, color: submittable ? azureRadiance : rhino30 }}
         />
       </TouchableOpacity>
@@ -87,11 +79,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alabaster,
-    borderRadius: 4,
-    marginHorizontal: 5,
-    paddingHorizontal: 5,
-    paddingBottom: 3,
+    backgroundColor: rhino10,
+    padding: 10,
     shadowColor: mercury,
     shadowOffset: { width: 0, height: 5 },
     shadowRadius: 10,
@@ -100,11 +89,12 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    backgroundColor: alabaster,
+    maxHeight: MAX_INPUT_HEIGHT,
+    padding: 10,
+    borderRadius: 10,
     fontSize: 14,
-    lineHeight: 18,
-    fontFamily: 'Circular-Book',
-    marginLeft: 5,
-    paddingVertical: 0
+    fontFamily: 'Circular-Book'
   },
   sendButton: {
     fontSize: 50
