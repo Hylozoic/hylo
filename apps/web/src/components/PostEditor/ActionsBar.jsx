@@ -23,13 +23,15 @@ export default function ActionsBar ({
   myAdminGroups,
   setAnnouncementSelected,
   setShowLocation,
-  save,
+  doSave, // Pops up announcement modal first if announcement is selected
+  save, // Does actual save
   showAnnouncementModal,
   showLocation,
   showFiles,
   showImages,
   submitButtonLabel,
   toggleAnnouncementModal,
+  type,
   valid
 }) {
   const dispatch = useDispatch()
@@ -66,7 +68,7 @@ export default function ActionsBar ({
             dataTestId='add-file-icon'
           />
         </UploadAttachmentButton>
-        {!showLocation && (
+        {type !== 'chat' && !showLocation && (
           <span data-tooltip-content={t('Add Location')} data-tooltip-id='location-tt' onClick={() => setShowLocation(true)}>
             <MapPin className={styles.actionIcon} />
           </span>
@@ -105,12 +107,12 @@ export default function ActionsBar ({
         </label>
         <Button
           disabled={!valid || loading}
-          onClick={save}
-          className='bg-foreground/30 px-2 py-1 rounded flex items-center'
+          onClick={doSave}
+          className='border-2 border-foreground/30 bg-foreground/30 px-2 py-1 rounded flex items-center'
           dataTipHtml={!valid ? invalidMessage : ''}
           dataFor='submit-tt'
         >
-          <SendHorizontal className={!valid || loading ? 'text-background' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
+          <SendHorizontal className={!valid || loading ? 'text-foreground/30' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
         </Button>
 
         <Tooltip

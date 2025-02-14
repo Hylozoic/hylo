@@ -257,6 +257,8 @@ function PostEditor ({
     dispatch(clearAttachments('post', 'new', 'image'))
     setCurrentPost(initialPost)
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
+    setAnnouncementSelected(false)
+    setShowAnnouncementModal(false)
     if (isChat) {
       setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
     } else {
@@ -542,9 +544,7 @@ function PostEditor ({
     if (onSave) onSave(postToSave)
     const savedPost = await dispatch(saveFunc(postToSave))
     if (afterSave) afterSave(savedPost.payload.data.createPost)
-    if (!modal) {
-      reset()
-    }
+    reset()
   }, [currentPost, isEditing, afterSave, onSave])
 
   const doSave = useEventCallback(() => {
@@ -615,7 +615,7 @@ function PostEditor ({
   }
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-xl', { [styles.hide]: showAnnouncementModal })}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-xl')}>
       <div className={cn('PostEditorHeader relative', { 'my-1 pb-2': !isChat })}>
         <PostTypeSelect
           disabled={loading}
@@ -1018,7 +1018,8 @@ function PostEditor ({
         invalidMessage={invalidMessage}
         loading={loading}
         myAdminGroups={myAdminGroups}
-        save={doSave}
+        doSave={doSave}
+        save={save}
         setAnnouncementSelected={setAnnouncementSelected}
         setShowLocation={setShowLocation}
         showAnnouncementModal={showAnnouncementModal}
@@ -1027,6 +1028,7 @@ function PostEditor ({
         showLocation={showLocation}
         submitButtonLabel={buttonLabel()}
         toggleAnnouncementModal={toggleAnnouncementModal}
+        type={currentPost.type}
         valid={isValid}
       />
     </div>
