@@ -397,7 +397,7 @@ export default function ChatRoom (props) {
           : (
             <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
               <VirtuosoMessageList
-                style={{ height: '100%', width: '100%', marginTop: 'auto' }}
+                style={{ height: '100%', width: '100%', marginTop: 'auto', marginBottom: '5px' }}
                 ref={messageListRef}
                 context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction, topicName, numPosts: postsForDisplay.length, newPostCount: topicFollow?.newPostCount }}
                 initialData={postsForDisplay}
