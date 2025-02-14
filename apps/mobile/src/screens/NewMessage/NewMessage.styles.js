@@ -7,9 +7,6 @@ export default {
     position: 'relative',
     flex: 1
   },
-  messageInput: {
-    marginBottom: 20
-  },
   // participants
   addParticipantButtonWrapper: {
     flex: 1,

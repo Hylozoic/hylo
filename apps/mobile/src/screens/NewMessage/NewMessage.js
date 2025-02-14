@@ -117,21 +117,16 @@ export default function NewMessage () {
 
   const handleCreateMessage = async text => {
     const { data: messageThreadData, error: messageThreadError } = await findOrCreateThread({ participantIds: participants.map(p => p.id) })
-
     if (messageThreadError) {
       console.error('Error creating thread:', messageThreadError)
       return
     }
-
     const messageThreadId = messageThreadData?.findOrCreateThread?.id
-
     const { error: createMessageError } = await createMessage({ messageThreadId, text })
-
     if (createMessageError) {
       console.error('Error creating message:', createMessageError)
       return
     }
-
     navigation.replace('Thread', { id: messageThreadId })
   }
 
