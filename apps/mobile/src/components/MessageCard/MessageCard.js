@@ -8,7 +8,7 @@ import { alabaster, capeCod, rhino30 } from 'style/colors'
 export default function MessageCard ({ message }) {
   if (!message) return null
 
-  const { createdAt, creator, suppressCreator, suppressDate, text } = message
+  const { creator, displayDate, suppressCreator, text } = message
   // TODO: Markdown is being used on both Web and Mobile as some messages are HTML
   //       and others are plain text with purposeful linebreaks.
   const messageHTML = TextHelpers.markdown(text)
@@ -22,7 +22,7 @@ export default function MessageCard ({ message }) {
               <Avatar style={styles.avatar} avatarUrl={creator.avatarUrl} />
               <Text style={styles.name}>{creator.name}</Text>
             </View>
-            <Text style={styles.date}>{TextHelpers.humanDate(createdAt, true)}</Text>
+            <Text style={styles.date}>{displayDate}</Text>
           </>
         )}
       </View>
@@ -30,8 +30,8 @@ export default function MessageCard ({ message }) {
         <View style={styles.message}>
           <HyloHTML html={messageHTML} />
         </View>
-        {suppressCreator && !suppressDate && (
-          <Text style={styles.dateInline}>{TextHelpers.humanDate(createdAt, true)}</Text>
+        {suppressCreator && displayDate && (
+          <Text style={styles.dateInline}>{displayDate}</Text>
         )}
       </View>
     </View>
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   },
   messageRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between' // Ensure text and timestamp stay in one row
   },
   message: {
