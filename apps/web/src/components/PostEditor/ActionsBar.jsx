@@ -1,8 +1,7 @@
-import { MapPin } from 'lucide-react'
+import { MapPin, SendHorizontal } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Tooltip as ReactTooltip } from 'react-tooltip'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
@@ -19,7 +18,7 @@ export default function ActionsBar ({
   canMakeAnnouncement,
   groupCount,
   groups,
-  invalidPostWarning,
+  invalidMessage,
   loading,
   myAdminGroups,
   setAnnouncementSelected,
@@ -82,9 +81,9 @@ export default function ActionsBar ({
                 [styles.highlightIcon]: announcementSelected
               })}
             />
-            <ReactTooltip
+            <Tooltip
               effect='solid'
-              delayShow={550}
+              delayShow={10}
               id='announcement-tt'
             />
           </span>
@@ -99,19 +98,27 @@ export default function ActionsBar ({
           />
         )}
       </div>
-      <Button
-        onClick={save}
-        disabled={!valid || loading}
-        className={styles.postButton}
-        label={submitButtonLabel}
-        dataTip={!valid ? invalidPostWarning : ''}
-        dataFor='submit-tt'
-      />
-      <Tooltip
-        delay={150}
-        position='bottom'
-        id='submit-tt'
-      />
+
+      <div className='flex items-center gap-2'>
+        <label className='text-xs italic text-foreground/50'>
+          {t(navigator.platform.includes('Mac') ? 'Option-Enter to post' : 'Alt-Enter to post')}
+        </label>
+        <Button
+          disabled={!valid || loading}
+          onClick={save}
+          className='bg-foreground/30 px-2 py-1 rounded flex items-center'
+          dataTipHtml={!valid ? invalidMessage : ''}
+          dataFor='submit-tt'
+        >
+          <SendHorizontal className={!valid || loading ? 'text-background' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
+        </Button>
+
+        <Tooltip
+          delay={10}
+          position='bottom'
+          id='submit-tt'
+        />
+      </div>
     </div>
   )
 }
