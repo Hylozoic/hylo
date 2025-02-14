@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { View, ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { gql, useClient, useMutation, useQuery } from 'urql'
 import { useNavigation } from '@react-navigation/native'
@@ -8,6 +8,7 @@ import peopleAutocompleteQuery from '@hylo/graphql/queries/peopleAutocompleteQue
 import findOrCreateThreadMutation from '@hylo/graphql/mutations/findOrCreateThreadMutation'
 import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation'
 import { isIOS } from 'util/platform'
+import confirmDiscardChanges from 'util/confirmDiscardChanges'
 import useRouteParams from 'hooks/useRouteParams'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
@@ -86,6 +87,7 @@ const useParticipantsQuery = (participantIds = []) => {
 export default function NewMessage () {
   const navigation = useNavigation()
   const { t } = useTranslation()
+  const messageInputRef = useRef()
   const [participants, setParticipants] = useState([])
   const [loading, setLoading] = useState()
   const { prompt, participants: routeParticipants } = useRouteParams()
@@ -112,6 +114,24 @@ export default function NewMessage () {
   useEffect(() => {
     setLoading(participantsFetching || recentContactsFetching)
   }, [participantsFetching, recentContactsFetching])
+
+  useEffect(() => {
+    const removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
+      e.preventDefault()
+      confirmDiscardChanges({
+        hasChanges: participants.length > 0 ||
+          (messageInputRef.current && messageInputRef.current.getMessageText().length > 0),
+        onDiscard: () => navigation.dispatch(e.data.action),
+        title: t('Are you sure?'),
+        confirmationMessage: t('Your new unsent message will not be saved'),
+        t
+      })
+    })
+
+    return () => {
+      removeBeforeRemove()
+    }
+  }, [participants, navigation, t])
 
   const handleCreateMessage = async text => {
     const { data: messageThreadData, error: messageThreadError } = await findOrCreateThread({ participantIds: participants.map(p => p.id) })
@@ -147,7 +167,6 @@ export default function NewMessage () {
         ))}
       </ScrollView>
       <ItemSelector
-        // ref={participantsSelectorRef}
         title={t('Add Participant')}
         searchPlaceholder={t('Search by name')}
         defaultItems={recentContacts}
@@ -170,6 +189,7 @@ export default function NewMessage () {
         onSubmit={handleCreateMessage}
         placeholder={t('Type your message here')}
         emptyParticipants={emptyParticipantsList}
+        ref={messageInputRef}
       />
     </KeyboardFriendlyView>
   )

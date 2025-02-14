@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useImperativeHandle } from 'react'
 import { TextInput, TouchableOpacity, View, Alert, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { throttle, isEmpty } from 'lodash'
@@ -8,7 +8,14 @@ import { azureRadiance, rhino30, alabaster, mercury, rhino10 } from 'style/color
 const IS_TYPING_THROTTLE = 3000
 const MAX_INPUT_HEIGHT = 180
 
-const MessageInput = ({ onSubmit, emptyParticipants, multiline, placeholder, sendIsTyping, style }) => {
+const MessageInput = React.forwardRef(({
+  onSubmit,
+  emptyParticipants,
+  multiline,
+  placeholder,
+  sendIsTyping,
+  style
+}, ref) => {
   const [message, setMessage] = useState('')
   const [submittable, setSubmittable] = useState(false)
   const textInputRef = useRef(null)
@@ -52,6 +59,10 @@ const MessageInput = ({ onSubmit, emptyParticipants, multiline, placeholder, sen
     [sendIsTyping]
   )
 
+  useImperativeHandle(ref, () => ({
+    getMessageText: () => message
+  }))
+
   return (
     <View style={[styles.container, style]}>
       <TextInput
@@ -72,7 +83,7 @@ const MessageInput = ({ onSubmit, emptyParticipants, multiline, placeholder, sen
       </TouchableOpacity>
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   container: {
