@@ -36,7 +36,7 @@ export function mapStateToProps (state, props) {
 
 export function mapDispatchToProps (dispatch, props) {
   const { groupSlug } = props.routeParams
-  const closeUrl = removePostFromUrl(window.location.pathname)
+  const closeUrl = removePostFromUrl(`${location.pathname}${location.search}`)
   const deletePostWithConfirm = (postId, groupId, text) => {
     if (window.confirm((text))) {
       dispatch(deletePost(postId, groupId))

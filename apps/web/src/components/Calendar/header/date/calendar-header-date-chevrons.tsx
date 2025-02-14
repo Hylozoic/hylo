@@ -7,6 +7,16 @@ import { DateTime } from 'luxon'
 export default function CalendarHeaderDateChevrons () {
   const { mode, date, setDate } = useCalendarContext()
   const luxonDate = DateTime.fromJSDate(date)
+  const dateFormat = mode === 'day'
+    ? {
+        month: 'long' as const,
+        day: 'numeric' as const,
+        year: 'numeric' as const
+      }
+    : {
+        month: 'long' as const,
+        year: 'numeric' as const
+      }
 
   const handleDateBackward = () => {
     switch (mode) {
@@ -47,7 +57,7 @@ export default function CalendarHeaderDateChevrons () {
       </Button>
 
       <span className='min-w-[140px] text-center font-medium'>
-        {DateTime.fromJSDate(date).toFormat('MMMM d, yyyy')}
+        {DateTime.fromJSDate(date).toLocaleString(dateFormat)}
       </span>
 
       <Button

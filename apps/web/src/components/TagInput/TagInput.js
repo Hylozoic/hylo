@@ -29,7 +29,8 @@ class TagInput extends Component {
     className: string,
     theme: object,
     addLeadingHashtag: bool,
-    renderSuggestion: func
+    renderSuggestion: func,
+    tabChooses: bool
   }
 
   static defaultProps = {
@@ -44,7 +45,8 @@ class TagInput extends Component {
       suggestions: 'suggestions',
       suggestionsList: 'suggestionsList',
       suggestion: 'suggestion',
-      readOnly: 'readOnly'
+      readOnly: 'readOnly',
+      tabChooses: true
     }
   }
 
@@ -204,6 +206,7 @@ class TagInput extends Component {
                     itemActive: theme.suggestionActive
                   }}
                   ref={this.list}
+                  tabChooses={this.props.tabChooses}
                 />
               </div>}
           </li>

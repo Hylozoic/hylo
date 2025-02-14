@@ -8,7 +8,6 @@ import ReactPlayer from 'react-player'
 import { useLongPress } from 'use-long-press'
 import Avatar from 'components/Avatar'
 import Button from 'components/Button'
-import BadgeEmoji from 'components/BadgeEmoji'
 import ClickCatcher from 'components/ClickCatcher'
 import CardFileAttachments from 'components/CardFileAttachments'
 import EmojiRow from 'components/EmojiRow'
@@ -29,7 +28,6 @@ import isWebView from 'util/webView'
 import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
-import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
 import { personUrl, postUrl } from 'util/navigation'
 
@@ -81,7 +79,6 @@ export default function ChatPost ({
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
 
   const isCreator = currentUser.id === creator.id
-  const creatorRoles = useSelector(state => getRolesForGroup(state, { person: creator, groupId: group.id }))
 
   const groupIds = groups.map(g => g.id)
 
@@ -127,7 +124,7 @@ export default function ChatPost ({
 
   const showCreator = event => {
     event.stopPropagation()
-    navigate(personUrl(creator.id))
+    navigate(personUrl(creator.id, group.slug))
   }
 
   const editPost = event => {
@@ -267,11 +264,6 @@ export default function ChatPost ({
             <div onClick={showCreator} className={styles.author}>
               <Avatar avatarUrl={creator.avatarUrl} className={styles.avatar} />
               <div className={styles.name}>{creator.name}</div>
-              <div className={styles.badgeRow}>
-                {creatorRoles.map(role => (
-                  <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={post.id} />
-                ))}
-              </div>
             </div>
             <div className={styles.date}>
               {DateTime.fromISO(createdAt).toFormat('t')}

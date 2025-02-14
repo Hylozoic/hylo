@@ -1,5 +1,6 @@
 import React from 'react'
 import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import Icon from 'components/Icon'
 import { bgImageStyle } from 'util/index'
 

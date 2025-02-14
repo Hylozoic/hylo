@@ -18,9 +18,9 @@ import { cn } from 'util/index'
 // }
 
 export default function HyloEditorMenuBar ({ editor }) {
-  if (!editor) return null
-
   const [modal, setModal] = useState(false)
+
+  if (!editor) return null
 
   return (
     <div className='flex items-center w-full opacity-70 hover:opacity-100 transition-all'>
@@ -148,7 +148,6 @@ function HyloEditorMenuBarButton ({ active, Icon, onClick, setModal }) {
 
 export const AddLinkBox = ({ editor, setModal, isOpen }) => {
   const [linkInput, setLinkInput] = useState('')
-  const [container, setContainer] = useState(null)
 
   if (!isOpen) return null
 

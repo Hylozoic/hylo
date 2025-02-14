@@ -13,6 +13,7 @@ export default function Button ({
   color = 'green',
   dataTestId,
   dataTip,
+  dataTipHtml,
   dataFor,
   disabled = false,
   hover,
@@ -45,6 +46,7 @@ export default function Button ({
       style={{ borderRadius }}
       onClick={!disabled ? onClick : undefined}
       data-tooltip-content={dataTip}
+      data-tooltip-html={dataTipHtml}
       data-tooltip-id={dataFor}
       data-testid={dataTestId}
       aria-label={name || label}

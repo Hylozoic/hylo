@@ -151,7 +151,7 @@ textarea {
 
 .bdy-lt-lg {
   @include font-regular;
-  color: rgba(44, 64, 89, 0.7);
+  color: hsl(var(--foreground)/70);
   font-size: 17px;
   letter-spacing: 0;
   line-height: 25px;
@@ -167,7 +167,7 @@ textarea {
 
 .bdy-lt-sm {
   @include font-regular;
-  color: rgba(44, 64, 89, 0.7);
+  color: hsl(var(--foreground)/70);
   font-size: 15px;
   letter-spacing: 0;
   line-height: 22px;
@@ -263,7 +263,7 @@ textarea {
 
 .timestamp {
   @include font-regular;
-  color: $color-rhino-40;
+  color: hsl(var(--foreground)/40);
   font-size: 12px;
   letter-spacing: 0;
   line-height: 16px;
