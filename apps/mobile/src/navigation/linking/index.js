@@ -90,7 +90,6 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/topics/:topicName':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
   '/:context(groups)/:groupSlug/topics/:topicName/post/:postId'         : `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
   '/:context(groups)/:groupSlug/custom/:customViewId':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  // TODO: Routing -- See VALID_GROUP_SETTINGS_AREAS in GroupSettingsMenu for handling there, it currently is just kept there but applied
   '/:context(groups)/:groupSlug/settings/:settingsArea':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
   '/:context(groups)/:groupSlug/settings':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
   // TODO:  Routing - potentially group these
@@ -124,13 +123,14 @@ export const routingConfig = {
   '/:context(my)/groups':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Groups`,
   '/:context(my)/interactions':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/mentions':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(my)/:settingsArea(account)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
-  '/:context(my)/:settingsArea(blocked-users)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
-  '/:context(my)/:settingsArea(edit-profile)':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
-  '/:context(my)/:settingsArea(invitations)':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
-  '/:context(my)/:settingsArea(locale)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
-  '/:context(my)/:settingsArea(saved-searches)':                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
-  '/:context(my)/:settingsArea(notifications)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Settings Tab`,
+  '/:context(my)/:settingsArea(account)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
+  '/:context(my)/:settingsArea(blocked-users)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
+  '/:context(my)/:settingsArea(edit-profile)':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
+  '/:context(my)/:settingsArea(invitations)':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
+  '/:context(my)/:settingsArea(locale)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
+  '/:context(my)/:settingsArea(saved-searches)':                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
+  '/:context(my)/:settingsArea(notifications)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
+  '/:context(my)/:settingsArea(terms)':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/posts':                                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   // TODO:  Routing - potentially group these
   '/:context(my)/:streamType(discussions)':                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
@@ -162,10 +162,11 @@ export const routingConfig = {
   ...unknownRouteMatch
 }
 
-// These screens will always be present and be first for the key'd navigator
+// NOTE: Any screens set here will be inserted before any other screens at this root
+// If we want I think we can turn this back on for AUTH_ROOT_SCREEN_NAME and take
+// "Drawer" out of the screen path of all of the above routes. Same for Messages.
 export const initialRouteNamesConfig = {
   // [AUTH_ROOT_SCREEN_NAME]: 'Drawer',
-  // 'Home Tab': 'Group Navigation',
   // 'Messages Tab': 'Messages'
 }
 
@@ -196,8 +197,9 @@ export const staticPages = [
   '/newapp'
 ]
 
-// Used for the `linking` prop of `NavigationContainer`.
-// As we have replaced and handled most everything we use, this is probably not necessary
+// NOTE: This default export is here for optional/experimental use to apply our custom configuration to
+// the `linking` prop of `NavigationContainer`. As we have replaced and handled most everything
+// we use, this is probably not that appealing. See React Navigation docs on Linking for more details.
 export default {
   prefixes,
   getStateFromPath,

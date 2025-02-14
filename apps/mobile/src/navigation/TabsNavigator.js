@@ -15,6 +15,8 @@ import useChangeToGroup from 'hooks/useChangeToGroup'
 import { MY_CONTEXT_SLUG } from '@hylo/shared'
 import UserSettingsMenu from 'screens/UserSettingsMenu'
 
+const DummyComponent = () => null
+
 const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
   const [{ currentUser }] = useCurrentUser()
@@ -87,14 +89,14 @@ export default function TabsNavigator () {
       />
       <Tabs.Screen
         name='Settings Tab'
-        component={UserSettingsMenu}
-        listeners={{
-          tabPress: (e) => {
+        component={DummyComponent}
+        listeners={({ navigation }) => ({
+          tabPress: event => {
             handleMyContextPress()
 
-            e.preventDefault()
+            event.preventDefault()
           }
-        }}
+        })}
         options={{
           tabBarIcon: ({ focused }) => (
             <Avatar

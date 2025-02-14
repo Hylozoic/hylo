@@ -62,7 +62,7 @@ export async function openURL (providedPathOrURL, reset, navigation = navigation
       return null
     }
   } else if (await Linking.canOpenURL(providedPathOrURL)) {
-    DEBUG && console.log(`!!! openURL: ${providedPathOrUrl} passing to Linking.OpenURL as origin is not for this app, or path is to a known static page.`)
+    DEBUG && console.log(`!!! openURL: ${providedPathOrURL} passing to Linking.OpenURL as origin is not for this app, or path is to a known static page.`)
 
     return Linking.openURL(providedPathOrURL)
   }
