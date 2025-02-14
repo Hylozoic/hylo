@@ -1,8 +1,7 @@
-import { MapPin } from 'lucide-react'
+import { MapPin, SendHorizontal } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Tooltip as ReactTooltip } from 'react-tooltip'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
@@ -19,18 +18,20 @@ export default function ActionsBar ({
   canMakeAnnouncement,
   groupCount,
   groups,
-  invalidPostWarning,
+  invalidMessage,
   loading,
   myAdminGroups,
   setAnnouncementSelected,
   setShowLocation,
-  save,
+  doSave, // Pops up announcement modal first if announcement is selected
+  save, // Does actual save
   showAnnouncementModal,
   showLocation,
   showFiles,
   showImages,
   submitButtonLabel,
   toggleAnnouncementModal,
+  type,
   valid
 }) {
   const dispatch = useDispatch()
@@ -67,7 +68,7 @@ export default function ActionsBar ({
             dataTestId='add-file-icon'
           />
         </UploadAttachmentButton>
-        {!showLocation && (
+        {type !== 'chat' && !showLocation && (
           <span data-tooltip-content={t('Add Location')} data-tooltip-id='location-tt' onClick={() => setShowLocation(true)}>
             <MapPin className={styles.actionIcon} />
           </span>
@@ -82,9 +83,9 @@ export default function ActionsBar ({
                 [styles.highlightIcon]: announcementSelected
               })}
             />
-            <ReactTooltip
+            <Tooltip
               effect='solid'
-              delayShow={550}
+              delayShow={10}
               id='announcement-tt'
             />
           </span>
@@ -99,19 +100,27 @@ export default function ActionsBar ({
           />
         )}
       </div>
-      <Button
-        onClick={save}
-        disabled={!valid || loading}
-        className={styles.postButton}
-        label={submitButtonLabel}
-        dataTip={!valid ? invalidPostWarning : ''}
-        dataFor='submit-tt'
-      />
-      <Tooltip
-        delay={150}
-        position='bottom'
-        id='submit-tt'
-      />
+
+      <div className='flex items-center gap-2'>
+        <label className='text-xs italic text-foreground/50'>
+          {t(navigator.platform.includes('Mac') ? 'Option-Enter to post' : 'Alt-Enter to post')}
+        </label>
+        <Button
+          disabled={!valid || loading}
+          onClick={doSave}
+          className='border-2 border-foreground/30 bg-foreground/30 px-2 py-1 rounded flex items-center'
+          dataTipHtml={!valid ? invalidMessage : ''}
+          dataFor='submit-tt'
+        >
+          <SendHorizontal className={!valid || loading ? 'text-foreground/30' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
+        </Button>
+
+        <Tooltip
+          delay={10}
+          position='bottom'
+          id='submit-tt'
+        />
+      </div>
     </div>
   )
 }

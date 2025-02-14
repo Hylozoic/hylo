@@ -26,6 +26,7 @@ const HyloEditor = React.forwardRef(({
   onCreate = () => {},
   onUpdate,
   onEnter,
+  onAltEnter,
   onEscape,
   placeholder,
   readOnly,
@@ -49,6 +50,10 @@ const HyloEditor = React.forwardRef(({
       // },
       addKeyboardShortcuts () {
         return {
+          'Alt-Enter': () => {
+            if (!onAltEnter) return false
+            return onAltEnter(editor.getHTML())
+          },
           Enter: ({ editor }) => {
             if (!onEnter) return false
             return onEnter(editor.getHTML())
