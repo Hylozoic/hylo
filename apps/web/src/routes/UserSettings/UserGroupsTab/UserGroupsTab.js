@@ -37,9 +37,15 @@ class UserGroupsTab extends Component {
     showAddAffiliations: undefined
   }
 
+  shouldComponentUpdate (nextProps) {
+    // Only check if props have changed
+    return nextProps.memberships !== this.props.memberships ||
+           nextProps.affiliations !== this.props.affiliations
+  }
+
   render () {
-    const { action, t } = this.props
-    const { affiliations, memberships, errorMessage, successMessage, showAddAffiliations } = this.state
+    const { action, t, affiliations } = this.props
+    const { memberships, errorMessage, successMessage, showAddAffiliations } = this.state
     const displayMessage = errorMessage || successMessage
     if (!memberships || !affiliations) return <Loading />
 
