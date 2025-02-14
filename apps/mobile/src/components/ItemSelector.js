@@ -91,7 +91,7 @@ export const ItemSelector = ({
 
   useEffect(() => {
     if (!fetching) {
-      let filteredItems = providedItems || (itemsUseQueryArgs && itemsUseQuerySelector(data)) || []
+      let filteredItems = providedItems || (itemsUseQueryArgs && itemsUseQuerySelector(data)) || defaultItems || []
       if (!chooser) {
         filteredItems = filteredItems.filter(item => !isChosen(item))
       }
