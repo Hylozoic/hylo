@@ -26,8 +26,6 @@ const TextInput = forwardRef(({
   label,
   internalLabel,
   placeholder,
-  onFocus,
-  onBlur,
   ...props
 }, ref) => {
   const onKeyDown = props.onEnter ? onEnter(props.onEnter) : () => {}
@@ -35,6 +33,9 @@ const TextInput = forwardRef(({
   const clear = () => onChange && onChange({ target: { name: props.name, value: '' } })
 
   const [active, setActive] = useState(false)
+
+  const onBlur = () => { props.onBlur && props.onBlur(); setActive(false) }
+  const onFocus = () => { props.onFocus && props.onFocus(); setActive(true) }
 
   const handleAnimation = (e) => {
     setActive(e.animationName === 'onAutoFillStart')
