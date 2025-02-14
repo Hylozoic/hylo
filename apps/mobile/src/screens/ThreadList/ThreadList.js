@@ -7,6 +7,7 @@ import { useMutation, useQuery } from 'urql'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import messageThreadsQuery from '@hylo/graphql/queries/messageThreadsQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import Loading from 'components/Loading'
 import ThreadCard from 'components/ThreadCard'
 import styles from './ThreadList.styles'
 
@@ -74,6 +75,9 @@ export default function ThreadList () {
           />
         )}
       />
+      {fetching && (
+        <Loading />
+      )}
     </View>
   )
 }
