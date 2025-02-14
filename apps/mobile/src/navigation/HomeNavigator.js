@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { createStackNavigator } from '@react-navigation/stack'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import useReturnToOnAuthPath from 'hooks/useReturnToOnAuthPath'
 import getReturnToOnAuthPath from 'store/selectors/getReturnToOnAuthPath'
@@ -13,18 +15,19 @@ import Stream from 'screens/Stream'
 import AllViews from 'screens/AllViews'
 import Groups from 'screens/Groups'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
-import GroupSettingsMenu from 'screens/GroupSettingsMenu'
+import GroupSettingsWebView from 'screens/GroupSettingsWebView'
+import GroupWelcomeLanding from 'screens/GroupWelcomeFlow/GroupWelcomeLanding'
 import MemberDetails from 'screens/MemberProfile/MemberDetails'
 import MemberProfile from 'screens/MemberProfile'
 import MembersComponent from 'screens/Members'
 import PostDetails from 'screens/PostDetails'
 import ProjectMembers from 'screens/ProjectMembers/ProjectMembers'
 import MapWebView from 'screens/MapWebView/MapWebView'
-import GroupWelcomeLanding from 'screens/GroupWelcomeFlow/GroupWelcomeLanding'
-import { useTranslation } from 'react-i18next'
+import UserSettingsWebView from 'screens/UserSettingsWebView'
 
 const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
+  const [{ currentGroup }] = useCurrentGroup()
   const initialURL = useSelector(state => state.initialURL)
   const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
   const { t } = useTranslation()
@@ -42,6 +45,7 @@ export default function HomeNavigator ({ navigation }) {
     initialRouteName: 'Group Navigation',
     screenOptions: {
       animationEnabled: !initialURL,
+      title: currentGroup?.name || 'Home',
       transitionSpec: {
         open: {
           animation: 'spring',
@@ -81,7 +85,7 @@ export default function HomeNavigator ({ navigation }) {
       <HomeTab.Screen name='Member Details' component={MemberDetails} />
       <HomeTab.Screen name='Group Explore' component={GroupExploreWebView} />
       <HomeTab.Screen name='Group Relationships' component={Groups} />
-      <HomeTab.Screen name='Group Settings' component={GroupSettingsMenu} />
+      <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
       <HomeTab.Screen name='Topics' component={AllTopicsWebView} />
       <HomeTab.Screen name='Map' component={MapWebView} />
       <HomeTab.Screen name='Chat' component={ChatRoom} />
@@ -90,6 +94,7 @@ export default function HomeNavigator ({ navigation }) {
       <HomeTab.Screen name='Mentions' component={Stream} initialParams={{ myHome: 'Mentions' }} />
       <HomeTab.Screen name='Interactions' component={Stream} initialParams={{ myHome: 'Interactions' }} />
       <HomeTab.Screen name='Group Welcome' component={GroupWelcomeLanding} />
+      <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
     </HomeTab.Navigator>
   )
 }
