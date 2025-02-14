@@ -47,8 +47,6 @@ export default function SearchBar ({
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
-    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
