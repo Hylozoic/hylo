@@ -9,7 +9,7 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import useStreamQueryVariables from '@hylo/hooks/useStreamQueryVariables'
 import { useTranslation } from 'react-i18next'
-import { PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
+import { PUBLIC_GROUP_ID, MY_CONTEXT_SLUG, ALL_GROUPS_CONTEXT_SLUG } from '@hylo/presenters/GroupPresenter'
 import useRouteParams from 'hooks/useRouteParams'
 import makeStreamQuery from './makeStreamQuery'
 import StreamHeader from './StreamHeader'
@@ -120,12 +120,21 @@ export default function Stream () {
 
   useEffect(() => {
     navigation.setOptions({
-      title: myHome || streamType === 'Moderation'
-        ? t('Moderation')
-        : streamType
-          ? capitalize(t(streamType) + 's')
-          : currentGroup?.name
+      title: getTitle()
     })
+
+    function getTitle() {
+      if (currentGroup?.slug === MY_CONTEXT_SLUG || currentGroup?.slug === ALL_GROUPS_CONTEXT_SLUG) {
+        return t('My Home')
+      }
+      if (streamType === 'Moderation') {
+        return t('Moderation')
+      }
+      if (streamType) {
+        return capitalize(t(streamType) + 's')
+      }
+      return currentGroup?.name
+    }
   }, [navigation, currentGroup?.id, streamType, myHome])
 
   // TODO: URQL - Can this be simplified? Also, does this perhaps follow the same logic as
