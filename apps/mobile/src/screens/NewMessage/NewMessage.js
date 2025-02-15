@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { View, ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { gql, useClient, useMutation, useQuery } from 'urql'
 import { useNavigation } from '@react-navigation/native'
@@ -16,7 +16,7 @@ import ItemSelector from 'components/ItemSelector'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import { capeCod20, pictonBlue, alabaster, amaranth, rhino80 } from 'style/colors'
+import { capeCod20, pictonBlue, alabaster, amaranth, rhino80, caribbeanGreen } from 'style/colors'
 
 export const recentContactsQuery = gql`
   query RecentContactsQuery ($first: Int = 20) {
@@ -116,6 +116,10 @@ export default function NewMessage () {
   }, [participantsFetching, recentContactsFetching])
 
   useEffect(() => {
+    navigation.setOptions({ headerLeftStyle: { color: caribbeanGreen } })
+  }, [])
+
+  useEffect(() => {
     const removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
       e.preventDefault()
       confirmDiscardChanges({
@@ -180,6 +184,7 @@ export default function NewMessage () {
           }
         }}
         colors={{ text: rhino80, border: alabaster }}
+        style={{ paddingHorizontal: 10 }}
         itemsUseQuerySelector={data => data?.people?.items}
       />
       <MessageInput

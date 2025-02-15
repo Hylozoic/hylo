@@ -1,9 +1,10 @@
 import React, { useState, useImperativeHandle, useCallback } from 'react'
-import { View, Modal, StyleSheet, Text } from 'react-native'
+import { View, Modal, StyleSheet, Text, TouchableOpacity } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ItemSelector, { defaultColors } from 'components/ItemSelector'
 import Icon from 'components/Icon'
 import { alabaster, rhino } from 'style/colors'
+import { X } from 'lucide-react-native'
 
 // TODO: Make it close when pressing outside the modal: https://stackoverflow.com/a/52936928
 export const ItemSelectorModal = React.forwardRef((props = {}, ref) => {
@@ -29,7 +30,9 @@ export const ItemSelectorModal = React.forwardRef((props = {}, ref) => {
         ]}
       >
         <View style={styles.header}>
-          <Icon name='Ex' style={[styles.closeButton, { color: colors?.text || defaultColors.text }]} onPress={handleOnClose} />
+          <TouchableOpacity onPress={handleOnClose}>
+            <X style={[styles.closeButton, { color: colors?.text || defaultColors.text }]} />
+          </TouchableOpacity>
           {title && (
             <Text style={[styles.title, { color: colors?.text || defaultColors.text }]}>{title}</Text>
           )}
@@ -52,8 +55,8 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   closeButton: {
-    fontSize: 22,
-    padding: 8
+    padding: 12,
+    margin: 12
   },
   title: {
     fontSize: 16, // Kept reasonable, not too big

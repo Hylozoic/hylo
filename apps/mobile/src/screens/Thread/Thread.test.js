@@ -10,17 +10,6 @@ jest.mock('./Thread.store', () => {
     updateThreadReadTime: jest.fn()
   }
 })
-jest.mock('util/websockets', () => {
-  return {
-    getSocket: async () => ({
-      post: jest.fn(),
-      on: jest.fn(),
-      off: jest.fn()
-    }),
-    sendIsTyping: jest.fn()
-  }
-})
-jest.mock('components/SocketSubscriber', () => () => null)
 // Throws multiple render warnings that muddy tests results without this
 jest.mock('components/HyloHTML', () => ({ html }) => html)
 

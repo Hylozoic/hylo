@@ -17,7 +17,7 @@ import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
 import PeopleTyping from 'components/PeopleTyping'
 import ThreadHeaderTitle from './ThreadHeaderTitle'
-import { rhino10, alabaster, mercury } from 'style/colors'
+import { alabaster, caribbeanGreen } from 'style/colors'
 
 const BOTTOM_THRESHOLD = 10
 const MESSAGE_PAGE_SIZE = 20
@@ -111,7 +111,7 @@ export default function Thread() {
   useFocusEffect(
     useCallback(() => {
       navigation.setOptions({
-        headerTitleStyle: { color: rhino10 },
+        headerLeftStyle: { color: caribbeanGreen },
         headerTitle: () => (
           <ThreadHeaderTitle thread={data?.messageThread} currentUserId={currentUser?.id} />
         )
@@ -170,23 +170,6 @@ export default function Thread() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: alabaster // flag-messages-background-color
-  },
-  input: {
-    fontSize: 14,
-    fontFamily: 'Circular-Book',
-    paddingBottom: 4,
-    borderRadius: 4,
-    shadowColor: mercury,
-    shadowOffset: { width: 0, height: 5 },
-    shadowRadius: 15,
-    shadowOpacity: 0.1,
-    margin: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 12,
-
-    // Android-only
-    elevation: 1
-  },
-  messageList: {}
+    backgroundColor: alabaster
+  }
 })

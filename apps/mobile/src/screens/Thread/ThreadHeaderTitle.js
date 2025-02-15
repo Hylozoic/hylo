@@ -6,7 +6,7 @@ import { modalScreenName } from 'hooks/useIsModalScreen'
 import { firstName } from '@hylo/presenters/PersonPresenter'
 import Avatar from 'components/Avatar'
 import PeopleListModal from 'components/PeopleListModal'
-import { gainsboro, rhino10, rhino40, rhino80 } from 'style/colors'
+import { rhino } from 'style/colors'
 
 export default function ThreadHeaderTitle ({ thread, currentUserId }) {
   const navigation = useNavigation()
@@ -50,7 +50,6 @@ export default function ThreadHeaderTitle ({ thread, currentUserId }) {
           title={t('Participants')}
           onItemPress={goToParticipant}
           items={otherParticipants}
-          colors={{ background: gainsboro, text: rhino80, border: rhino40 }}
         />
       </View>
     </>
@@ -75,7 +74,7 @@ const styles = StyleSheet.create({
   },
   participantNames: {
     paddingLeft: 10,
-    color: rhino10,
+    color: rhino,
     fontSize: 18,
     fontFamily: 'Circular-Bold'
   }
