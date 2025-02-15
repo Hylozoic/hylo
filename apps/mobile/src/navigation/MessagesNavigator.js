@@ -1,13 +1,13 @@
 import React from 'react'
+import { TouchableOpacity } from 'react-native'
+import { useSelector } from 'react-redux'
 import { createStackNavigator } from '@react-navigation/stack'
-// Helper Components
+import { SquarePen } from 'lucide-react-native'
 import ModalHeader from 'navigation/headers/ModalHeader'
-// Screens
 import NewMessage from 'screens/NewMessage'
 import Thread from 'screens/Thread'
 import ThreadList from 'screens/ThreadList'
-import { alabaster, rhino } from 'style/colors'
-import { useSelector } from 'react-redux'
+import { alabaster, caribbeanGreen, rhino } from 'style/colors'
 
 const Messages = createStackNavigator()
 export default function MessagesNavigator () {
@@ -36,8 +36,8 @@ export default function MessagesNavigator () {
           restSpeedThreshold: 0.01
         }
       },
-      headerStyle: { backgroundColor: rhino },
-      headerTitleStyle: { color: alabaster } // flag-messages-background-color
+      headerStyle: { backgroundColor: alabaster },
+      headerTitleStyle: { color: rhino }
     }
   }
 
@@ -51,10 +51,14 @@ export default function MessagesNavigator () {
             <ModalHeader
               {...headerProps}
               headerLeft={() => {}}
-              // For a more custom "New Message" button:
-              // headerRight={() => <TouchableOpacity style={{ marginRight: 20 }} onPress={() => headerProps.navigation.navigate('New Message')}><Icon size={22} color={rhino05} name='Plus' /></TouchableOpacity>}
-              headerRightButtonLabel='New'
-              headerRightButtonOnPress={() => headerProps.navigation.navigate('New Message')}
+              headerRight={() => (
+                <TouchableOpacity
+                  style={{ marginRight: 20 }}
+                  onPress={() => headerProps.navigation.navigate('New Message')}
+                >
+                  <SquarePen color={caribbeanGreen} size={28} />
+                </TouchableOpacity>
+              )}
             />
           )
         }}

@@ -203,41 +203,6 @@
   }
 }
 
-.images {
-  display: flex;
-  overflow-x: auto;
-  height: 90px;
-  margin-left: 20px;
-}
-
-.images-inner {
-  display: flex;
-  flex-direction: row;
-  //margin-left: auto;
-}
-
-.image {
-  display: block;
-
-  > div {
-    width: 80px;
-    height: 80px;
-    border-radius: 3px;
-    margin-right: 20px;
-    background-size: cover;
-    border: 1px solid $color-cape-cod-10;
-    box-shadow: 0px 4px 10px rgba(42, 64, 89, 0.3);
-
-    &:hover {
-      filter: brightness(110%);
-    }
-  }
-}
-
-.image-inner {
-  /* empty */
-}
-
 .link-preview {
   padding: 0 1.25rem .6rem 1.25rem;
 
@@ -330,6 +295,7 @@
 @media screen and (max-width: 425px) {
   .container {
     -webkit-user-select: none; /* disable selection/Copy of UIWebView */
+    user-select: none;
     -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
   }
 }

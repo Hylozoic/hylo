@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import { TouchableOpacity, View, Text } from 'react-native'
+import { View, Text } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
@@ -64,37 +64,20 @@ export default function ThreadList () {
         onRefresh={refreshThreads}
         refreshing={fetching}
         renderItem={({ item, index }) => (
-          <MessageRow
-            participants={item.participants}
-            message={getLatestMessage(item)}
-            threadId={item.id}
-            unreadCount={item.unreadCount}
+          <ThreadCard
             currentUser={currentUser}
             isLast={index === threads.length - 1}
-            showThread={showThread}
+            message={getLatestMessage(item)}
+            onPress={() => showThread(item.id)}
+            participants={item.participants}
+            threadId={item.id}
+            unreadCount={item.unreadCount}
           />
         )}
       />
       {fetching && (
         <Loading />
       )}
-    </View>
-  )
-}
-
-export function MessageRow ({ message, threadId, participants, currentUser, showThread, isLast, unreadCount }) {
-  return (
-    <View>
-      <TouchableOpacity onPress={() => showThread(threadId)}>
-        <ThreadCard
-          unreadCount={unreadCount}
-          threadId={threadId}
-          message={message}
-          participants={participants}
-          currentUser={currentUser}
-          isLast={isLast}
-        />
-      </TouchableOpacity>
     </View>
   )
 }

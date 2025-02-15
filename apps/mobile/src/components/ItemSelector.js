@@ -172,14 +172,13 @@ export const defaultStyles = StyleSheet.create({
   // ItemSelector
   container: {
     flex: 1,
-    padding: 10,
     borderRadius: 20
   },
   loading: {
     padding: 15
   },
   searchBar: {
-    marginBottom: 5
+    marginBottom: 10
   }
 })
 

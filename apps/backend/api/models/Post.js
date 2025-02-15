@@ -257,7 +257,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   // TODO: if we were in a position to avoid duplicating the graphql layer
   // here, that'd be grand.
   getNewPostSocketPayload: function () {
-    const { groups, linkPreview, tags, user, proposalOptions } = this.relations
+    const { media, groups, linkPreview, tags, user, proposalOptions } = this.relations
 
     const creator = refineOne(user, [ 'id', 'name', 'avatar_url' ])
     const topics = refineMany(tags, [ 'id', 'name' ])
@@ -270,20 +270,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
         { description: 'details', name: 'title', num_people_reacts: 'peopleReactedTotal', num_votes: 'votesTotal' }
       ),
       {
+        attachments: refineMany(media, [ 'id', 'type', 'url' ]),
         // Shouldn't have commenters immediately after creation
         commenters: [],
-        proposalVotes: [],
         commentsTotal: 0,
+        creator,
         details: this.details(),
         groups: refineMany(groups, [ 'id', 'name', 'slug' ]),
-        creator,
         linkPreview: refineOne(linkPreview, [ 'id', 'image_url', 'title', 'description', 'url' ]),
-        topics,
         proposalOptions,
-
-        // TODO: Once legacy site is decommissioned, these are no longer required.
-        creatorId: creator.id,
-        tags: topics
+        proposalVotes: [],
+        topics
       }
     )
   },

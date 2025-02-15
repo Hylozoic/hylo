@@ -3,7 +3,7 @@ import { TextInput, TouchableOpacity, View, Alert, StyleSheet } from 'react-nati
 import { useTranslation } from 'react-i18next'
 import { throttle, isEmpty } from 'lodash'
 import Icon from 'components/Icon'
-import { azureRadiance, rhino30, alabaster, mercury, rhino10 } from 'style/colors'
+import { azureRadiance, rhino30, alabaster, rhino } from 'style/colors'
 
 const IS_TYPING_THROTTLE = 3000
 const MAX_INPUT_HEIGHT = 180
@@ -90,20 +90,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: rhino10,
+    backgroundColor: alabaster,
     paddingLeft: 10,
-    paddingVertical: 7,
-    shadowColor: mercury,
-    shadowOffset: { width: 0, height: 5 },
+    paddingVertical: 5,
+    shadowColor: rhino,
+    shadowOffset: { width: 2, height: 5 },
     shadowRadius: 10,
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.5,
     elevation: 2 // Android-only
   },
   input: {
     flex: 1,
     backgroundColor: alabaster,
     maxHeight: MAX_INPUT_HEIGHT,
-    padding: 10,
+    padding: 5,
     borderRadius: 10,
     fontSize: 18,
     fontFamily: 'Circular-Book',
