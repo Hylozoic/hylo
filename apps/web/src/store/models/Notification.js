@@ -26,7 +26,7 @@ export const ACTION_NEW_COMMENT = 'newComment'
 export const ACTION_TAG = 'tag'
 export const ACTION_NEW_POST = 'newPost'
 
-export function urlForNotification ({ activity: { action, actor,post, comment, group, meta: { reasons }, otherGroup } }) {
+export function urlForNotification ({ activity: { action, actor, post, comment, group, meta: { reasons }, otherGroup } }) {
   const groupSlug = get('slug', group) ||
     // 2020-06-03 - LEJ
     // Some notifications (i.e. new comment and comment mention)
