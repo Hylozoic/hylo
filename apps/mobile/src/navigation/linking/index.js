@@ -105,7 +105,8 @@ export const routingConfig = {
 
   // All Context Routes
   '/:context(all)/map':                                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
-  '/:context(all)/members/:personId':                                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member Profile`,
+  // TODO routing: commenting this out and letting the modal catch-all handle it. Thoughts?
+  // '/:context(all)/members/:personId':                                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member Profile`,
   '/:context(all)/:groupSlug/post/:postId':                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Detail`,
   '/:context(all)/:groupSlug/map/create':                                 `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   '/:context(all)/topics/:topicName':                                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,

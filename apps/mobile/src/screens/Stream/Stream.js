@@ -85,7 +85,7 @@ export default function Stream () {
   const navigation = useNavigation()
   const route = useRoute()
   const isFocused = useIsFocused()
-  const { customViewId, streamType, myHome } = useRouteParams()
+  const { customViewId, streamType, myHome, context } = useRouteParams()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
 
@@ -99,6 +99,7 @@ export default function Stream () {
   const [timeframe, setTimeframe] = useState(DEFAULT_TIMEFRAME_ID)
   const [offset, setOffset] = useState(0)
   const fetchPostParam = useStreamQueryVariables({
+    context,
     currentUser,
     customView,
     streamType,
@@ -135,7 +136,7 @@ export default function Stream () {
       }
       return currentGroup?.name
     }
-  }, [navigation, currentGroup?.id, streamType, myHome])
+  }, [navigation, currentGroup?.id, streamType, myHome, context])
 
   // TODO: URQL - Can this be simplified? Also, does this perhaps follow the same logic as
   // group(updateLastViewed: true) and could we combine this? Currently that extra

@@ -3,6 +3,7 @@ import { isNull, isUndefined, omitBy } from 'lodash/fp'
 import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 
 export default function useStreamQueryVariables ({
+  context,
   currentUser,
   customView,
   filter,
@@ -24,7 +25,7 @@ export default function useStreamQueryVariables ({
       : null,
     childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
     collectionToFilterOut: null,
-    context: isContextGroupSlug(forGroup?.slug)
+    context: context || isContextGroupSlug(forGroup?.slug) // Relying on context now but will fall back to prior logic
       ? forGroup.slug
       : myHome
         ? 'my'
