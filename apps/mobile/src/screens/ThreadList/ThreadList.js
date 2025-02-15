@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import { View, Text } from 'react-native'
+import { View, Text, Dimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
@@ -59,6 +59,7 @@ export default function ThreadList () {
       <FlashList
         data={threads}
         estimatedItemSize={93}
+        estimatedListSize={Dimensions.get('screen')}
         keyExtractor={item => item.id.toString()}
         onEndReached={fetchMoreThreads}
         onRefresh={refreshThreads}

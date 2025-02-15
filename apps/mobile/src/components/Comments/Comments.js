@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import React, { useState, useRef, useImperativeHandle, useCallback } from 'react'
-import { Text, TouchableOpacity, View } from 'react-native'
+import { Dimensions, Text, TouchableOpacity, View } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useQuery } from 'urql'
 import { isIOS } from 'util/platform'
@@ -106,8 +106,6 @@ export const Comments = React.forwardRef(({
 
   return (
     <FlashList
-      style={style}
-      contentContainerStyle={styles.contentContainerStyle}
       ref={commentsListRef}
       // Footer is Header, etc.
       inverted
@@ -117,6 +115,7 @@ export const Comments = React.forwardRef(({
       // This means that FlashList will re-render anytime this/these values change
       extraData={highlightedComment}
       estimatedItemSize={100}
+      estimatedListSize={Dimensions.get('screen')}
       keyExtractor={comment => comment.id}
       keyboardShouldPersistTaps='never'
       keyboardDismissMode={isIOS ? 'interactive' : 'on-drag'}
