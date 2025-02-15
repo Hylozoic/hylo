@@ -512,8 +512,10 @@ function PostEditor ({
       donationsLink: sanitizeURL(donationsLink),
       endTime,
       eventInviteeIds,
+      fileAttachments, // For optimistic display of the new post
       fileUrls,
       groups,
+      imageAttachments, // For optimistic display of the new post
       imageUrls,
       isAnonymousVote,
       isPublic,
@@ -545,7 +547,7 @@ function PostEditor ({
     const savedPost = await dispatch(saveFunc(postToSave))
     if (afterSave) afterSave(savedPost.payload.data.createPost)
     reset()
-  }, [currentPost, isEditing, afterSave, onSave])
+  }, [afterSave, announcementSelected, currentPost, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
 
   const doSave = useEventCallback(() => {
     if (!isValid || loading) return
@@ -558,7 +560,7 @@ function PostEditor ({
     } else {
       _save()
     }
-  }, [currentPost.type, currentPost.proposalOptions, isEditing, initialPost, save, isValid, invalidMessage, loading, announcementSelected, hasDescription])
+  }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading])
 
   const buttonLabel = useCallback(() => {
     if (postPending) return t('Posting...')
