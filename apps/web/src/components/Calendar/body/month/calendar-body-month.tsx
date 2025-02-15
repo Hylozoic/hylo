@@ -61,7 +61,7 @@ export default function CalendarBodyMonth () {
         >
           {calendarDays.map((day) => {
             const dayEvents = visibleEvents.filter((event) =>
-              sameDay(event.start, day)
+              sameDay(event.start, day, event.end)
             )
             const isToday = sameDay(day, today)
             const isCurrentMonth = sameMonth(day, date)
