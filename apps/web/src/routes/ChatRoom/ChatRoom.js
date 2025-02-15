@@ -192,6 +192,8 @@ export default function ChatRoom (props) {
 
   const handleNewPostReceived = useCallback((data) => {
     if (!data.topics?.find(t => t.name === topicName)) return
+    data.imageAttachments = data.attachments.filter(a => a.type === 'image')
+    data.fileAttachments = data.attachments.filter(a => a.type === 'file')
 
     let updateExisting = false
     messageListRef.current?.data.map((item) => {
@@ -397,7 +399,7 @@ export default function ChatRoom (props) {
           : (
             <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
               <VirtuosoMessageList
-                style={{ height: '100%', width: '100%', marginTop: 'auto' }}
+                style={{ height: '100%', width: '100%', marginTop: 'auto', marginBottom: '5px' }}
                 ref={messageListRef}
                 context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction, topicName, numPosts: postsForDisplay.length, newPostCount: topicFollow?.newPostCount }}
                 initialData={postsForDisplay}
