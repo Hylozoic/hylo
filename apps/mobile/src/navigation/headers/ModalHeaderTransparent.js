@@ -1,5 +1,5 @@
-import { TouchableOpacity, View, StyleSheet } from 'react-native'
-import Icon from 'components/Icon'
+import { TouchableOpacity, StyleSheet } from 'react-native'
+import { X } from 'lucide-react-native'
 import { suvaGrey, white } from 'style/colors'
 
 export default function ModalHeaderTransparent ({ navigation, ...params }) {
@@ -7,10 +7,11 @@ export default function ModalHeaderTransparent ({ navigation, ...params }) {
     title: '',
     headerTransparent: true,
     headerLeft: () => (
-      <TouchableOpacity onPress={() => params?.headerLeftOnPress ? params.headerLeftOnPress() : navigation.goBack()}>
-        <View style={styles.iconBackground}>
-          <Icon name='Ex' style={styles.icon} />
-        </View>
+      <TouchableOpacity
+        style={styles.iconBackground}
+        onPress={() => params?.headerLeftOnPress ? params.headerLeftOnPress() : navigation.goBack()}
+      >
+        <X style={styles.icon} />
       </TouchableOpacity>
     )
   }
@@ -29,8 +30,6 @@ const styles = StyleSheet.create({
   },
   icon: {
     color: suvaGrey,
-    fontSize: 24,
-    lineHeight: 24,
     alignSelf: 'center'
   }
 })

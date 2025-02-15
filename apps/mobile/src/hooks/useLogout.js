@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native'
 import { GoogleSignin } from '@react-native-google-signin/google-signin'
 import Intercom from '@intercom/intercom-react-native'
 import mixpanel from 'services/mixpanel'
+import { OneSignal } from 'react-native-onesignal'
 import { clearSessionCookie } from 'util/session'
 import { useAuth } from '@hylo/contexts/AuthContext'
 
@@ -10,8 +11,8 @@ export const logoutServices = async () => {
   try {
     await clearSessionCookie()
 
+    OneSignal.logout()
     Intercom.logout()
-
     mixpanel.flush()
     mixpanel.reset()
 

@@ -1,13 +1,13 @@
-import React, { useState } from 'react'
+import React, { useRef } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import { get, find, filter, isEmpty, sortBy } from 'lodash/fp'
 import LinearGradient from 'react-native-linear-gradient'
 import { RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import Avatar from 'components/Avatar'
 import PeopleListModal from 'components/PeopleListModal'
 import { postCardLinearGradientColors, rhino40 } from 'style/colors'
-import { useTranslation } from 'react-i18next'
 
 export default function PostFooter ({
   commenters,
@@ -22,10 +22,10 @@ export default function PostFooter ({
 }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const [peopleModalVisible, setPeopleModalVisible] = useState(false)
-  const togglePeopleModal = () => setPeopleModalVisible(!peopleModalVisible)
+  const peopleListRef = useRef()
   const goToMember = person => navigation.navigate('Member', { id: person.id })
   const eventAttendees = filter(ei => ei?.response === RESPONSES.YES, eventInvitations)
+  const showPeopleList = () => peopleListRef.current.show()
 
   let peopleRowResult
 
@@ -82,12 +82,12 @@ export default function PostFooter ({
         */}
         <View style={styles.container}>
           <PeopleListModal
-            people={sortedPeople}
-            onPressPerson={goToMember}
-            toggleModal={togglePeopleModal}
-            isVisible={peopleModalVisible}
+            ref={peopleListRef}
+            title={t('Commenters')}
+            onItemPress={goToMember}
+            items={sortedPeople}
           />
-          <TouchableOpacity onPress={togglePeopleModal} onLongPress={togglePeopleModal} style={styles.comments}>
+          <TouchableOpacity onPress={showPeopleList} onLongPress={showPeopleList} style={styles.comments}>
             {avatarUrls.slice(0, 3).map((avatarUrl, index) => {
               return (
                 <Avatar

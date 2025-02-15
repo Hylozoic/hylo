@@ -17,7 +17,7 @@ import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
 import PeopleTyping from 'components/PeopleTyping'
 import ThreadHeaderTitle from './ThreadHeaderTitle'
-import { rhino10, alabaster, mercury } from 'style/colors'
+import { alabaster, caribbeanGreen } from 'style/colors'
 
 const BOTTOM_THRESHOLD = 10
 const MESSAGE_PAGE_SIZE = 20
@@ -31,6 +31,35 @@ const markThreadReadMutation = gql`
     }
   }
 `
+
+const isWithinBatchLimit = (timestamp1, timestamp2) => {
+  return Math.abs(new Date(timestamp1) - new Date(timestamp2)) <= BATCH_LIMIT_MS
+}
+
+const refineMessages = messages => {
+  return messages.map((msg, i, arr) => {
+    const prev = arr[i + 1]
+    const next = arr[i - 1]
+
+    // Precompute human-readable date for current message
+    const msgHumanDate = TextHelpers.humanDate(msg.createdAt)
+    const nextHumanDate = next ? TextHelpers.humanDate(next.createdAt) : null
+
+    const suppressCreator = prev && msg.creator.id === prev.creator.id
+    const suppressDate =
+      suppressCreator &&
+      next &&
+      msg.creator.id === next.creator.id &&
+      isWithinBatchLimit(next.createdAt, msg.createdAt) &&
+      msgHumanDate === nextHumanDate // Avoid redundant dates
+
+    return {
+      ...msg,
+      suppressCreator,
+      displayDate: !suppressDate && msgHumanDate
+    }
+  })
+}
 
 export default function Thread() {
   const { t } = useTranslation()
@@ -54,28 +83,6 @@ export default function Thread() {
   const [newMessages, setNewMessages] = useState()
   const [yOffset, setYOffset] = useState(0)
   const atBottom = useMemo(() => yOffset < BOTTOM_THRESHOLD, [yOffset])
-
-  const isWithinBatchLimit = (timestamp1, timestamp2) => {
-    return Math.abs(new Date(timestamp1) - new Date(timestamp2)) <= BATCH_LIMIT_MS
-  }
-
-  const refineMessages = messages => {
-    return messages.map((msg, i, arr) => {
-      const prev = arr[i + 1]
-      const next = arr[i - 1]
-      const suppressCreator = prev && msg.creator.id === prev.creator.id
-      const suppressDate =
-        next &&
-        msg.creator.id === next.creator.id &&
-        isWithinBatchLimit(next.createdAt, msg.createdAt)
-
-      return {
-        ...msg,
-        suppressCreator,
-        suppressDate
-      }
-    })
-  }
 
   const fetchMore = () => {
     if (!fetching && messages && messages?.length) {
@@ -104,13 +111,13 @@ export default function Thread() {
   useFocusEffect(
     useCallback(() => {
       navigation.setOptions({
-        headerTitleStyle: { color: rhino10 },
+        headerLeftStyle: { color: caribbeanGreen },
         headerTitle: () => (
           <ThreadHeaderTitle thread={data?.messageThread} currentUserId={currentUser?.id} />
         )
       })
       markAsRead()
-    }, [])
+    }, [data?.messageThread])
   )
 
   // New message indicator disabled for now, needs more thought
@@ -122,13 +129,16 @@ export default function Thread() {
 
   return (
     <KeyboardFriendlyView style={styles.container}>
-      {fetching && <Loading />}
+      {fetching && (
+        <Loading />
+      )}
       <FlashList
         style={styles.messageList}
         data={refineMessages(messages)}
         estimatedItemSize={60}
         inverted
         keyExtractor={(item) => item.id}
+        keyboardDismissMode='on-drag'
         refreshing={fetching}
         onEndReached={fetchMore}
         onEndReachedThreshold={0.3}
@@ -160,23 +170,6 @@ export default function Thread() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: alabaster // flag-messages-background-color
-  },
-  input: {
-    fontSize: 14,
-    fontFamily: 'Circular-Book',
-    paddingBottom: 4,
-    borderRadius: 4,
-    shadowColor: mercury,
-    shadowOffset: { width: 0, height: 5 },
-    shadowRadius: 15,
-    shadowOpacity: 0.1,
-    margin: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 12,
-
-    // Android-only
-    elevation: 1
-  },
-  messageList: {}
+    backgroundColor: alabaster
+  }
 })

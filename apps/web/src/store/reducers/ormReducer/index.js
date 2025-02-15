@@ -711,14 +711,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const data = payload.data.updateTopicFollow
       if (typeof data.newPostCount === 'number') {
         group = Group.withId(data.group.id)
-        const contextWidgets = group.contextWidgets.items
-        const newContextWidgets = contextWidgets.map(cw => {
-          if (cw.type === 'chat' && cw.viewChat?.id === data.topic.id) {
-            return { ...cw, highlightNumber: data.newPostCount }
-          }
-          return cw
-        })
-        group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
+        const contextWidgets = group.contextWidgets?.items
+        if (contextWidgets) {
+          const newContextWidgets = contextWidgets.map(cw => {
+            if (cw.type === 'chat' && cw.viewChat?.id === data.topic.id) {
+              return { ...cw, highlightNumber: data.newPostCount }
+            }
+            return cw
+          })
+          group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
+        }
       }
       break
     }

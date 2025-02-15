@@ -32,7 +32,7 @@ function MemberProfile ({ isFocused }) {
   const person = id ? data?.person : currentUser
   const isMe = Number(get('id', currentUser)) === Number(get('id', person))
   const canFlag = currentUser && id && currentUser.id !== id
-  const isBlocked = currentUser?.blockedUsers && currentUser.blockedUsers.filter(blockedPerson => blockedPerson.id === id)
+  const isBlocked = currentUser?.blockedUsers && currentUser.blockedUsers.find(blockedPerson => blockedPerson.id === id)
 
   const goToDetails = () => navigation.navigate('Member Details', { id })
 
@@ -55,7 +55,7 @@ function MemberProfile ({ isFocused }) {
     setHeader()
   }, [currentGroup?.name])
 
-  if (!person || fetching) return <Loading />
+  if (!person || isBlocked || fetching) return <Loading />
 
   // Used to generate a link to this post from the backend.
   const linkData = {

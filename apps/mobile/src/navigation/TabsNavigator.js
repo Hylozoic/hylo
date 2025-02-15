@@ -7,7 +7,10 @@ import { isIOS } from 'util/platform'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import Icon from 'components/Icon'
 import Avatar from 'components/Avatar'
-import { black10OnCaribbeanGreen, gainsboro, gunsmoke, rhino05, rhino10, rhino60, white } from 'style/colors'
+import {
+  alabaster, black10OnCaribbeanGreen, gainsboro,
+  gunsmoke, rhino05, rhino60, white
+} from 'style/colors'
 import HomeNavigator from 'navigation/HomeNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
 import MessagesNavigator from 'navigation/MessagesNavigator'
@@ -36,11 +39,11 @@ export default function TabsNavigator () {
       tabBarStyle: isIOS
         ? {
             display: 'flex',
-            backgroundColor: rhino10
+            backgroundColor: alabaster
           }
         : {
             display: 'flex',
-            backgroundColor: rhino10,
+            backgroundColor: alabaster,
             borderTopWidth: StyleSheet.hairlineWidth
           },
       tabBarIcon: ({ focused }) => (

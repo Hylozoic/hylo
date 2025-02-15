@@ -78,7 +78,7 @@ function NotificationSettingsTab ({
   const allGroupsSettings = useSelector(getAllGroupsSettings)
 
   // Get a group row to jump to from the query params
-  const jumpToGroupId = getQuerystringParam(['group'], location)
+  const jumpToGroupId = getQuerystringParam('group', location)
 
   const updateUserSetting = settingKey => changes => {
     const currentSettings = getCurrentSettings(me, settingKey)
@@ -107,6 +107,17 @@ function NotificationSettingsTab ({
       updateAllGroups(changes)
     }
   }
+
+  useEffect(() => {
+    setTimeout(() => {
+      const groupSection = document.getElementById(`group-${jumpToGroupId}`)
+      console.log('groupSection', jumpToGroupId, groupSection)
+      if (groupSection) {
+        console.log('scrolling to groupSection')
+        groupSection.scrollIntoView({ behavior: 'instant' })
+      }
+    }, 100)
+  }, [jumpToGroupId])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
