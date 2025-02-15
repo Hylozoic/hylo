@@ -11,7 +11,6 @@ export default function UserSettingsWebView ({ path: pathProp, route }) {
   const webViewRef = useRef(null)
   // const [selectedSetting, setSelectedSetting] = useState(null)
   // TODO: URQL! - Untested, intention is to refresh cache
-  console.log('UserSettingsWebViewwwsssswww', pathProp, route) // This never gets called when navigating from the context menu
   const [, queryCurrentUser] = useCurrentUser({ requestPolicy: 'network-only', pause: true })
   const logout = useLogout()
   const { originalLinkingPath, settingsArea } = useRouteParams()
