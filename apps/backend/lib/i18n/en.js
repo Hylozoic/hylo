@@ -42,6 +42,7 @@ exports.en = {
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `The group ${childGroup.name} just joined your group ${parentGroup.name}!`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `Your group ${childGroup.name} has joined ${parentGroup.name}.`,
   textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} asked to join ${groupName}`,
+  textForMemberJoinedGroup: ({ group, actor }) => `New member has joined ${group.get('name')}: ${actor.get('name')}`,
   textForPostMention: ({ groupName, person, postName }) => `${person} mentioned you in post "${postName}" in ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} posted "${postName}" in ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} changed the options for proposal: "${postName}" in ${groupName}. This has reset the votes`

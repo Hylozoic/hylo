@@ -5,7 +5,8 @@ import { TextHelpers } from '@hylo/shared'
 import {
   postCommentUrl,
   postUrl,
-  groupUrl
+  groupUrl,
+  personUrl
 } from 'util/navigation'
 
 export const ACTION_ANNOUNCEMENT = 'announcement'
@@ -19,12 +20,13 @@ export const ACTION_GROUP_CHILD_GROUP_INVITE_ACCEPTED = 'groupChildGroupInviteAc
 export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST = 'groupParentGroupJoinRequest'
 export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED = 'groupParentGroupJoinRequestAccepted'
 export const ACTION_JOIN_REQUEST = 'joinRequest'
+export const ACTION_MEMBER_JOINED_GROUP = 'memberJoinedGroup'
 export const ACTION_MENTION = 'mention'
 export const ACTION_NEW_COMMENT = 'newComment'
 export const ACTION_TAG = 'tag'
 export const ACTION_NEW_POST = 'newPost'
 
-export function urlForNotification ({ activity: { action, post, comment, group, meta: { reasons }, otherGroup } }) {
+export function urlForNotification ({ activity: { action, actor,post, comment, group, meta: { reasons }, otherGroup } }) {
   const groupSlug = get('slug', group) ||
     // 2020-06-03 - LEJ
     // Some notifications (i.e. new comment and comment mention)
@@ -66,6 +68,8 @@ export function urlForNotification ({ activity: { action, post, comment, group, 
       }
       return postUrl(post.id, { groupSlug, topicName })
     }
+    case ACTION_MEMBER_JOINED_GROUP:
+      return personUrl(actor.id, groupSlug)
     case ACTION_TAG: {
       // Put this one first so clicking on a chat notification always goes to that chat room, even if there was also a mention in the same post
       const tagReason = find(r => r.startsWith('tag: '), reasons)
@@ -77,6 +81,16 @@ export function urlForNotification ({ activity: { action, post, comment, group, 
 
 const NOTIFICATION_TEXT_MAX = 76
 export const truncateHTML = html => TextHelpers.presentHTMLToText(html, { truncate: NOTIFICATION_TEXT_MAX })
+
+export function imageForNotification (notification) {
+  const { activity: { action, actor, group } } = notification
+  switch (action) {
+    case ACTION_MEMBER_JOINED_GROUP:
+      return group.avatarUrl
+    default:
+      return actor.avatarUrl
+  }
+}
 
 export function titleForNotification (notification, trans) {
   // XXX: Need the imported option for the electron notifications in SocketListener.store to work, but doesn't actually have the translations available
@@ -122,6 +136,8 @@ export function titleForNotification (notification, trans) {
       return t('Group Requesting to Join')
     case ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED:
       return t('New Group Joined')
+    case ACTION_MEMBER_JOINED_GROUP:
+      return t('New Member joined <strong>{{groupName}}</strong>', { groupName: group.name })
     default:
       return null
   }
@@ -166,6 +182,8 @@ export function bodyForNotification (notification, trans) {
       return t('<strong>{{groupName}}</strong> has joined <strong>{{otherGroupName}}</strong>', { groupName: group.name, otherGroupName: otherGroup.name })
     case ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST:
       return t('<strong>{{groupName}}</strong> has requested to join <strong>{{otherGroupName}}</strong>', { groupName: group.name, otherGroupName: otherGroup.name })
+    case ACTION_MEMBER_JOINED_GROUP:
+      return t('<strong>{{name}}</strong> joined your group. Time to welcome them in!', { name })
     default:
       return null
   }

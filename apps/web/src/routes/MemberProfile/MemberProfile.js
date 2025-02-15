@@ -306,7 +306,7 @@ function ActionButtons ({ items }) {
       <React.Fragment key={index}>
         <Icon
           key={index}
-          className='text-foreground bg-background w-[50px] h-[50px] flex items-center justify-center rounded-full cursor-pointer mx-2'
+          className='text-foreground text-3xl bg-background flex items-center justify-center rounded-full cursor-pointer mx-2'
           name={iconName}
           onClick={onClick}
           {...tooltipProps}

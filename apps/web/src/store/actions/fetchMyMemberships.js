@@ -50,6 +50,13 @@ export default function fetchMyMemberships () {
                 stewardDescriptor
                 stewardDescriptorPlural
                 settings {
+                  agreementsLastUpdatedAt
+                  allowGroupInvites
+                  askGroupToGroupJoinQuestions
+                  askJoinQuestions
+                  hideExtensionData
+                  locationDisplayPrecision
+                  publicMemberDirectory
                   showSuggestedSkills
                 }
                 slug

@@ -488,8 +488,8 @@ module.exports = bookshelf.Model.extend(merge({
 
     const updatedAttribs = Object.assign(
       {},
-      {settings: {}},
-      pick(omitBy(attrs, isUndefined), GROUP_ATTR_UPDATE_WHITELIST)
+      pick(omitBy(attrs, isUndefined), GROUP_ATTR_UPDATE_WHITELIST),
+      { settings: { joinQuestionsAnsweredAt: null, showJoinForm: true } } // updateAndSave will leave the rest of the settings intact
     )
 
     return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, {transacting}))
@@ -796,24 +796,17 @@ module.exports = bookshelf.Model.extend(merge({
   // Background task to do additional work/tasks after a new member finished joining a group (after they've accepted agreements and answered join questions)
   async afterFinishedJoining ({ userId, groupId }) {
     const group = await Group.find(groupId)
-    const user = await User.find(userId)
-    const joinQuestionAnswers = await user.groupJoinQuestionAnswers()
-      .where({ group_id: parseInt(groupId) })
-      .orderBy('created_at', 'DESC')
-      .fetch({ withRelated: ['question'] })
 
-    const answers = joinQuestionAnswers.map(qa => ({ text: qa.relations.question.get('text'), answer: qa.get('answer') }))
+    const moderators = await group.moderators().fetch()
 
-    Queue.classMethod('Email', 'sendMemberJoinedGroupNotification', {
-      email: user.get('email'),
-      data: {
-        group_name: group.get('name'),
-        group_url: Frontend.Route.group(group),
-        member_name: user.get('name'),
-        member_url: Frontend.Route.profile(user, group),
-        join_question_answers: answers
-      }
-    })
+    const activities = moderators.map(moderator => ({
+      actor_id: userId,
+      reader_id: moderator.id,
+      group_id: groupId,
+      reason: 'memberJoinedGroup'
+    }))
+
+    Activity.saveForReasons(activities)
   },
 
   async create (userId, data) {
