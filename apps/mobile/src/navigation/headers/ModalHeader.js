@@ -1,12 +1,11 @@
-import { StyleSheet, Text, TouchableOpacity } from 'react-native'
-import { Header, HeaderBackButton, getHeaderTitle } from '@react-navigation/elements'
+import { Pressable, StyleSheet, Text, TouchableOpacity } from 'react-native'
+import { Header, getHeaderTitle } from '@react-navigation/elements'
+import { useTranslation } from 'react-i18next'
+import { ChevronLeft } from 'lucide-react-native'
 import confirmDiscardChanges from 'util/confirmDiscardChanges'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
-import {
-  black10onRhino, rhino05, rhino80, rhino10, havelockBlue, ghost
-} from 'style/colors'
-import { useTranslation } from 'react-i18next'
+import { black10onRhino, rhino05, rhino80, rhino10, havelockBlue, ghost } from 'style/colors'
 
 export default function ModalHeader ({
   navigation,
@@ -17,9 +16,9 @@ export default function ModalHeader ({
   headerRight,
   // custom props
   headerLeftCloseIcon: providedHeaderLeftCloseIcon = true,
-  headerLeftLabel,
   headerLeftOnPress: providedHeaderLeftOnPress,
   headerLeftConfirm,
+  headerLeftStyle,
   headerRightButtonLabel = 'Save',
   headerRightButtonOnPress,
   headerRightButtonDisabled,
@@ -33,8 +32,8 @@ export default function ModalHeader ({
 }) {
   const { t } = useTranslation()
   const headerLeftCloseIcon = options.headerLeftCloseIcon ?? providedHeaderLeftCloseIcon
-  const headerTitleStyleColor = otherProps.headerTitleStyle?.color ||
-    (options.headerTitleStyle?.color ?? black10onRhino)
+  const headerTitleStyleColor = otherProps.headerTitleStyle?.color || (options.headerTitleStyle?.color ?? black10onRhino)
+  const headerLeftStyleColor = options?.headerLeftStyle?.color || headerLeftStyle?.color
   const props = {
     headerTransparent: typeof options.headerTransparent !== 'undefined' ? options.headerTransparent : headerTransparent,
     headerStatusBarHeight: options.headerStatusBarHeight ?? (options.presentation ? 0 : undefined),
@@ -58,13 +57,12 @@ export default function ModalHeader ({
       const onPress = headerLeftConfirm
         ? () => confirmDiscardChanges({ onDiscard: headerLeftOnPress, t })
         : headerLeftOnPress
-      const label = headerLeftLabel || props.label
       return (
         <>
           <FocusAwareStatusBar {...statusBarOptions} />
           {headerLeftCloseIcon
-            ? <HeaderLeftCloseIcon {...props} color={headerTitleStyleColor} onPress={onPress} />
-            : <HeaderBackButton {...props} label={label} onPress={onPress} />}
+            ? <HeaderLeftCloseIcon {...props} color={headerLeftStyleColor} onPress={onPress} />
+            : <Pressable onPress={onPress}><ChevronLeft size={32} color={headerLeftStyleColor} style={{ marginLeft: 10 }} /></Pressable>}
         </>
       )
     }),
