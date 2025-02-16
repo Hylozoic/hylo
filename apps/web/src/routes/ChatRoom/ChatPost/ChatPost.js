@@ -1,5 +1,6 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
 import { DateTime } from 'luxon'
+import qs from 'query-string'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
@@ -63,7 +64,7 @@ export default function ChatPost ({
   const { t } = useTranslation()
   const routeParams = useParams()
   const location = useLocation()
-  const querystringParams = new URLSearchParams(location.search)
+  const querystringParams = qs.parse(location.search)
   const navigate = useNavigate()
   const ref = useRef()
   const editorRef = useRef()

@@ -1,16 +1,19 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { cn } from 'util/index'
-import { DateTime } from 'luxon'
-
 import { isEmpty } from 'lodash/fp'
-import { personUrl, topicUrl } from 'util/navigation'
+import { DateTime } from 'luxon'
+import qs from 'query-string'
+import React, { useCallback } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+
 import Avatar from 'components/Avatar'
 import EmojiRow from 'components/EmojiRow'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
+import useRouteParams from 'hooks/useRouteParams'
+import { cn } from 'util/index'
+import { personUrl, postUrl, topicUrl } from 'util/navigation'
+
 import classes from './PostListRow.module.scss'
 
 // :SHONK: no idea why React propagates events from child elements but NOT IN OTHER COMPONENTS
@@ -19,13 +22,12 @@ const stopEvent = (e) => e.stopPropagation()
 const PostListRow = (props) => {
   const {
     childPost,
-    routeParams,
     currentGroupId,
     post,
-    showDetails,
     expanded,
     currentUser
   } = props
+
   const {
     title,
     details,
@@ -36,6 +38,14 @@ const PostListRow = (props) => {
   } = post
 
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const routeParams = useRouteParams()
+  const querystringParams = qs.parse(location.search)
+
+  const showDetails = useCallback(() => {
+    navigate(postUrl(post.id, routeParams, querystringParams))
+  }, [post.id, routeParams, querystringParams])
 
   if (!creator) { // PostCard guards against this, so it must be important? ;P
     return null

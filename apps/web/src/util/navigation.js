@@ -8,7 +8,7 @@ const GROUP_SLUG_MATCH = '[^\\\\]+'
 // TODO: do this validation elsewhere?
 export const OPTIONAL_POST_MATCH = ':detail(post)?/:postId?/:action(new|edit)?'
 export const OPTIONAL_NEW_POST_MATCH = ':detail(post)?/:action(new)?' // TODO: need this?
-export const POST_DETAIL_MATCH = 'post/:postId/*'
+export const POST_DETAIL_MATCH = 'post/:postId/comments?/:commentId?/*'
 
 export const REQUIRED_EDIT_POST_MATCH = ':detail(post)/:postId/:action(edit)'
 

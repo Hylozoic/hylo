@@ -1,8 +1,8 @@
-import { cn } from 'util/index'
 import { get } from 'lodash/fp'
+import PropTypes from 'prop-types'
+import qs from 'query-string'
 import React, { useCallback, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import CardImageAttachments from 'components/CardImageAttachments'
@@ -17,6 +17,7 @@ import PostBody from './PostBody'
 import PostFooter from './PostFooter'
 import PostHeader from './PostHeader'
 import PostGroups from './PostGroups'
+import { cn } from 'util/index'
 
 import classes from './PostCard.module.scss'
 
@@ -43,7 +44,7 @@ export default function PostCard (props) {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const location = useLocation()
-  const querystringParams = new URLSearchParams(location.search)
+  const querystringParams = qs.parse(location.search)
 
   const currentUser = useSelector(getMe)
 

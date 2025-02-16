@@ -397,8 +397,9 @@ export default function AuthLayoutRouter (props) {
                 <Route path='groups/:groupSlug/chat/:topicName/*' element={<ChatRoom context='groups' />} />
                 <Route path='groups/:groupSlug/settings/*' element={<GroupSettings context='groups' />} />
                 <Route path='groups/:groupSlug/all-views' element={<AllView context='groups' />} />
+                <Route path={`groups/:groupSlug/${POST_DETAIL_MATCH}`} element={<PostDetail />} />
                 <Route path='groups/:groupSlug/*' element={homeRoute} />
-                <Route path='post/:postId/*' element={<PostDetail />} />
+                <Route path={`${POST_DETAIL_MATCH}`} element={<PostDetail />} />
                 {/* **** My Routes **** */}
                 <Route path='my/posts/*' element={<Stream context='my' view='posts' />} />
                 <Route path='my/interactions/*' element={<Stream context='my' view='interactions' />} />

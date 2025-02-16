@@ -34,6 +34,7 @@ import processStripeToken from 'store/actions/processStripeToken'
 import respondToEvent from 'store/actions/respondToEvent'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { FETCH_POST } from 'store/constants'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
@@ -79,6 +80,18 @@ function PostDetail () {
   useEffect(() => {
     onPostIdChange()
   }, [postId])
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    if (view === 'post') {
+      setHeaderDetails({
+        title: t('Post'),
+        icon: '',
+        info: '',
+        search: false
+      })
+    }
+  }, [])
 
   const handleSetComponentPositions = useCallback(() => {
     const container = document.getElementById(DETAIL_COLUMN_ID)
