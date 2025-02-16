@@ -69,7 +69,7 @@ const MessageForm = forwardRef((props, ref) => {
           setHasFocus(false)
         }}
         placeholder={props.placeholder || t('Write something...')}
-        disabled={props.pending}
+        disabled={props.pending || props.disabled}
       />
       {props.pending
         ? (

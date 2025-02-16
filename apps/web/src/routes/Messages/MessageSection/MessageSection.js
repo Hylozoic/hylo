@@ -55,7 +55,7 @@ export default class MessageSection extends Component {
       const container = document.querySelector('#message-list')
       if (container && this.atBottom(container)) {
         this.markAsRead()
-        updateThreadReadTime(messageThread.id)
+        if (messageThread) updateThreadReadTime(messageThread.id)
       }
     }, 100)
   }
