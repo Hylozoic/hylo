@@ -21,15 +21,6 @@ export type HyloPost = {
 export type CalendarProps = {
   posts?: HyloPost[]
   events?: CalendarEvent[]
-  routeParams: {
-    [x: string]: string | string[];
-  }
-  locationParams: {
-    [x: string]: string | string[];
-  }
-  querystringParams: {
-    [x: string]: string | string[];
-  }
   mode: string
   setMode: (mode: Mode) => void
   date: Date

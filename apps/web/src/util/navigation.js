@@ -125,8 +125,29 @@ export function duplicatePostUrl (id, opts = {}) {
   return createPostUrl(opts, { fromPostId: id })
 }
 
-export function postCommentUrl ({ postId, commentId, ...opts }, querystringParams = {}) {
-  return `${postUrl(postId, opts, querystringParams)}/comments/${commentId}`
+// Given a post return the the main way to view the post
+// Chats go to the chat room scrolled to the post
+// Posts go to the stream with the post opened
+export function primaryPostUrl (post, opts = {}, querystringParams = {}) {
+  let result = baseUrl(opts)
+  const postId = get('id', post) || post
+  if (post.type === 'chat') {
+    // If topicName passed in we are opening the post from a specific chat room, otherwise if a chat then always open its first topic chat room
+    const topicName = post.topics[0].name
+    if (opts.commentId) {
+      // When there is a commentId we pass the postId in the route params so that the post is opened when the room is loaded
+      result = `${result}/chat/${topicName}/post/${postId}?commentId=${opts.commentId}`
+    } else {
+      // When there is no commentId, we pass the postId in the querystring so that the post is highlighted but not opened when the room is loaded
+      result = `${result}/chat/${topicName}?postId=${postId}`
+    }
+  } else {
+    result = `${result}/post/${postId}`
+    if (opts.commentId) {
+      result = `${result}?commentId=${opts.commentId}`
+    }
+  }
+  return addQuerystringToPath(result, querystringParams)
 }
 
 // Messages URLs
@@ -195,7 +216,7 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
   } else if (widget.viewUser) {
     url = personUrl(widget.viewUser.id, groupSlug)
   } else if (widget.viewPost) {
-    url = postUrl(widget.viewPost.id, { groupSlug, context })
+    url = postUrl(widget.viewPost, { groupSlug, context })
   } else if (widget.viewChat) {
     url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
   } else if (widget.customView) {

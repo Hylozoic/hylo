@@ -1,8 +1,7 @@
 import { isEmpty } from 'lodash/fp'
 import { DateTime } from 'luxon'
-import qs from 'query-string'
-import React, { useCallback } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import React from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import Avatar from 'components/Avatar'
@@ -11,8 +10,9 @@ import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import useRouteParams from 'hooks/useRouteParams'
+import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
-import { personUrl, postUrl, topicUrl } from 'util/navigation'
+import { personUrl, topicUrl } from 'util/navigation'
 
 import classes from './PostListRow.module.scss'
 
@@ -38,14 +38,9 @@ const PostListRow = (props) => {
   } = post
 
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const location = useLocation()
   const routeParams = useRouteParams()
-  const querystringParams = qs.parse(location.search)
 
-  const showDetails = useCallback(() => {
-    navigate(postUrl(post.id, routeParams, querystringParams))
-  }, [post.id, routeParams, querystringParams])
+  const viewPostDetails = useViewPostDetails()
 
   if (!creator) { // PostCard guards against this, so it must be important? ;P
     return null
@@ -61,7 +56,7 @@ const PostListRow = (props) => {
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
   return (
-    <div className={cn(classes.postRow, { [classes.unread]: unread, [classes.expanded]: expanded })} onClick={showDetails}>
+    <div className={cn(classes.postRow, { [classes.unread]: unread, [classes.expanded]: expanded })} onClick={() => viewPostDetails(post)}>
       <div className={classes.contentSummary}>
         <div className={classes.typeAuthor}>
           {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}

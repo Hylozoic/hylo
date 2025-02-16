@@ -388,12 +388,12 @@ export default function ChatRoom (props) {
   if (topicFollowLoading) return <Loading />
 
   return (
-    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })}>
+    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
 
-      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden' ref={setContainer}>
+      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden'>
         {initialPostToScrollTo === null
           ? <div className={styles.loadingContainer}><Loading /></div>
           : (

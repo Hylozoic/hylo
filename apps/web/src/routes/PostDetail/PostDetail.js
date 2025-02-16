@@ -54,7 +54,8 @@ function PostDetail () {
   const location = useLocation()
   const routeParams = useParams()
   const postId = routeParams.postId || getQuerystringParam('fromPostId', location)
-  const { groupSlug, commentId, view } = routeParams
+  const { groupSlug, view } = routeParams
+  const commentId = getQuerystringParam('commentId', location) || routeParams.commentId
 
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   const postSelector = useSelector(state => getPost(state, postId))
@@ -207,7 +208,7 @@ function PostDetail () {
       <ScrollListener elementId={DETAIL_COLUMN_ID} onScroll={handleScroll} />
       <PostHeader
         className={classes.header}
-        {...post}
+        post={post}
         routeParams={{ groupSlug, postId, commentId, view }}
         close={onClose}
         expanded
@@ -219,7 +220,7 @@ function PostDetail () {
           <PostHeader
             className={classes.header}
             currentUser={currentUser}
-            {...post}
+            post={post}
             routeParams={{ groupSlug, postId, commentId, view }}
             close={onClose}
             isFlagged={isFlagged}

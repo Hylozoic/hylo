@@ -42,6 +42,9 @@ export default function fetchMyMemberships () {
                       id
                       lastReadPostId
                       newPostCount
+                      settings {
+                        notifications
+                      }
                     }
                   }
                 }

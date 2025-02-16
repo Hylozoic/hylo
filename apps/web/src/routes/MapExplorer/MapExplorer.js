@@ -695,8 +695,6 @@ function MapExplorer (props) {
   const { hideNavLayout } = layoutFlags
   const withoutNav = isWebView() || hideNavLayout
 
-  const locationParams = location !== undefined ? getQuerystringParam(['zoom', 'center', 'lat', 'lng'], location) : null
-
   return (
     <div className={cn(classes.container, { [classes.noUser]: !currentUser, [classes.withoutNav]: withoutNav })}>
       <Helmet>
@@ -735,7 +733,6 @@ function MapExplorer (props) {
           changeChildPostInclusion={changeChildPostInclusion}
           childPostInclusion={childPostInclusion}
           context={context}
-          locationParams={locationParams}
           currentUser={currentUser}
           fetchPostsForDrawer={doFetchPostsForDrawer}
           filters={filters}
