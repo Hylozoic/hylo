@@ -67,7 +67,6 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
       <div className={cx(classes.wrapper, { [classes.alignRight]: alignRight, [classes.menuAbove]: menuAbove })}>
         <ul
           className={cx(classes.dropdownMenu, { [classes.active]: active, [classes.alignRight]: alignRight, [classes.noOverflow]: noOverflow })}
-          onClick={toggle}
         >
           {renderMenuItems()}
         </ul>
