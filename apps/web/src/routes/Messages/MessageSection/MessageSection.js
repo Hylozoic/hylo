@@ -44,19 +44,20 @@ export default class MessageSection extends Component {
   }
 
   componentDidMount () {
-    const { socket, fetchMessages } = this.props
-    this.scrollToBottom()
+    const { socket, fetchMessages, messageThread, updateThreadReadTime } = this.props
     this.reconnectHandler = () => fetchMessages()
     socket && socket.on('reconnect', this.reconnectHandler)
     document && document.addEventListener('visibilitychange', this.handleVisibilityChange)
     this.setupScrollHandler()
     // Check if we're already at bottom after initial render
     setTimeout(() => {
-      const container = document.querySelector('#center-column')
+      this.scrollToBottom()
+      const container = document.querySelector('#message-list')
       if (container && this.atBottom(container)) {
         this.markAsRead()
+        updateThreadReadTime(messageThread.id)
       }
-    }, 0)
+    }, 100)
   }
 
   componentWillUnmount () {
@@ -81,9 +82,9 @@ export default class MessageSection extends Component {
       // Are additional messages old (at the beginning of the sorted array)?
       if (this.props.hasMore && get('id', latest) === get('id', oldLatest)) return
 
-      const moduleCenter = document.querySelector('#center-column')
-      if (moduleCenter) {
-        const isScrolledUp = moduleCenter.scrollTop < (moduleCenter.scrollHeight - moduleCenter.clientHeight - 100)
+      const messageList = document.querySelector('#message-list')
+      if (messageList) {
+        const isScrolledUp = messageList.scrollTop < (messageList.scrollHeight - messageList.clientHeight - 100)
         const isFromOtherUser = get('creator.id', latest) !== get('id', currentUser)
 
         if (isScrolledUp && isFromOtherUser) {
@@ -103,6 +104,8 @@ export default class MessageSection extends Component {
   }
 
   componentDidUpdate (prevProps) {
+    if (this.shouldScroll) setTimeout(() => this.scrollToBottom(), 200)
+
     const { currentUser, messages, pending, hasMore } = this.props
     // Skip if loading
     if (pending) return
@@ -116,7 +119,7 @@ export default class MessageSection extends Component {
       // Are additional messages old (at the beginning of the sorted array)?
       if (hasMore && get('id', latest) === get('id', oldLatest)) return
 
-      const centerColumn = document.querySelector('#center-column')
+      const centerColumn = document.querySelector('#message-list')
       if (centerColumn) {
         const isScrolledUp = centerColumn.scrollTop < (centerColumn.scrollHeight - centerColumn.clientHeight - 100)
         const isFromOtherUser = get('creator.id', latest) !== get('id', currentUser)
@@ -181,13 +184,9 @@ export default class MessageSection extends Component {
 
   scrollToBottom = () => {
     const messageList = document.querySelector('#message-list')
-    const centerColumn = document.querySelector('#center-column')
-    if (messageList && centerColumn) {
-      const messageBottom = messageList.scrollHeight
-      const containerHeight = centerColumn.clientHeight
-      const headerHeight = 100 // approximate height of headers/toolbars
-
-      centerColumn.scrollTop = messageBottom - containerHeight + headerHeight
+    if (messageList) {
+      // Set scrollTop to scrollHeight to scroll to the bottom
+      messageList.scrollTop = messageList.scrollHeight
       if (this.state.visible) {
         this.markAsRead()
       } else {
@@ -195,6 +194,7 @@ export default class MessageSection extends Component {
       }
       this.setState({ showNewMessageButton: false })
     }
+    this.shouldScroll = false
   }
 
   markAsRead = debounce(() => {
@@ -203,7 +203,7 @@ export default class MessageSection extends Component {
   }, 2000)
 
   setupScrollHandler = () => {
-    const centerColumn = document.querySelector('#center-column')
+    const centerColumn = document.querySelector('#message-list')
     if (centerColumn) {
       centerColumn.addEventListener('scroll', this.handleScroll)
     }
@@ -214,11 +214,11 @@ export default class MessageSection extends Component {
     const { showNewMessageButton } = this.state
 
     return (
-      <div id='message-list' className='max-w-[750px] relative h-full' onScroll={this.handleScroll} data-testid='message-section'>
+      <div id='message-list' className='w-full overflow-y-auto mx-3 relative flex-1' onScroll={this.handleScroll} data-testid='message-section'>
         {pending && <Loading />}
         {!pending && (
           <>
-            <div className='pb-[70px] pt-[20px] mt-auto'>
+            <div className='max-w-[750px] mx-auto pt-[20px] mt-auto flex flex-col justify-end'>
               <ClickCatcher>
                 {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
               </ClickCatcher>

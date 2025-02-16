@@ -49,7 +49,7 @@ const MessageForm = forwardRef((props, ref) => {
 
   return (
     <form
-      className={cn('w-full max-w-[750px] fixed bottom-0 flex gap-3 px-2 shadow-md p-2 border-2 border-foreground/15 shadow-xlg rounded-t-xl bg-card pb-4 transition-all', props.className, { 'border-focus': hasFocus })}
+      className={cn('w-full max-w-[750px] mx-auto flex gap-3 px-2 shadow-md p-2 border-2 border-foreground/15 shadow-xlg rounded-t-xl bg-card pb-4 transition-all', props.className, { 'border-focus': hasFocus })}
       onSubmit={handleSubmit}
     >
       <RoundImage url={get('avatarUrl', props.currentUser)} medium />
@@ -65,7 +65,9 @@ const MessageForm = forwardRef((props, ref) => {
           setHasFocus(true)
           if (props.onFocus) props.onFocus(e)
         }}
-        onBlur={() => setHasFocus(false)}
+        onBlur={() => {
+          setHasFocus(false)
+        }}
         placeholder={props.placeholder || t('Write something...')}
         disabled={props.pending}
       />
