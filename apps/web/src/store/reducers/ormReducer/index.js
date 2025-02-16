@@ -764,6 +764,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case UPDATE_THREAD_READ_TIME: {
+      me = Me.first()
+      me.update({
+        unseenThreadCount: Math.max(0, me.unseenThreadCount - 1)
+      })
       MessageThread.withId(meta.id).markAsRead()
       break
     }

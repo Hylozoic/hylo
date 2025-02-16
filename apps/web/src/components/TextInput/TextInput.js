@@ -1,7 +1,6 @@
 import { cn } from 'util/index'
 import { omit } from 'lodash/fp'
-import React, { useState } from 'react'
-
+import React, { useState, forwardRef } from 'react'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import { onEnter } from 'util/textInput'
@@ -15,19 +14,20 @@ import styles from './TextInput.module.scss'
 // https://facebook.github.io/react/docs/refs-and-the-dom.html#exposing-dom-refs-to-parent-components
 //
 
-export default function TextInput (props) {
-  const {
-    theme = {},
-    onChange,
-    value,
-    inputRef,
-    className,
-    inputClassName,
-    noClearButton,
-    loading,
-    label,
-    internalLabel
-  } = props
+const TextInput = forwardRef(({
+  theme = {},
+  onChange,
+  value,
+  inputRef,
+  className,
+  inputClassName,
+  noClearButton,
+  loading,
+  label,
+  internalLabel,
+  placeholder,
+  ...props
+}, ref) => {
   const onKeyDown = props.onEnter ? onEnter(props.onEnter) : () => {}
   const otherProps = omit(['onEnter', 'className', 'inputRef', 'theme', 'noClearButton', 'loading', 'label', 'internalLabel', 'inputClassName'], props)
   const clear = () => onChange && onChange({ target: { name: props.name, value: '' } })
@@ -44,17 +44,19 @@ export default function TextInput (props) {
   return (
     <div className={cn(theme.wrapperStyle || styles.wrapper, theme.wrapper || className)}>
       <input
+        ref={ref}
+        type='text'
         className={cn(
-          styles[theme.inputStyle],
+          styles[theme.inputStyle] || styles.input,
           theme.input,
           inputClassName
         )}
+        placeholder={placeholder}
         {...{ onKeyDown, ...otherProps }}
-        ref={inputRef}
-        aria-label={label || internalLabel}
         onAnimationStart={handleAnimation}
         onBlur={onBlur}
         onFocus={onFocus}
+        aria-label={label || internalLabel}
         id={props.id}
       />
       {internalLabel && (
@@ -68,4 +70,8 @@ export default function TextInput (props) {
       {loading && <Loading type='inline' className={styles.loading} />}
     </div>
   )
-}
+})
+
+TextInput.displayName = 'TextInput'
+
+export default TextInput

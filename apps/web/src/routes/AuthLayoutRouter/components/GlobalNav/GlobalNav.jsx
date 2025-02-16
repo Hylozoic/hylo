@@ -41,7 +41,7 @@ export default function GlobalNav (props) {
         </Suspense>
 
         <GlobalNavItem tooltip={t('Messages')} url='/messages' className={cn('opacity-1')}>
-          <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' />
+          <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' showBadge={currentUser.unseenThreadCount && currentUser.unseenThreadCount > 0} />
         </GlobalNavItem>
 
         <GlobalNavItem tooltip={t('The Commons')} url='/public/stream' className={cn('opacity-1')}>

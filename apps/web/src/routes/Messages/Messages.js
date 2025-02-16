@@ -10,14 +10,12 @@ import { getSocket, sendIsTyping } from 'client/websockets'
 import { push } from 'redux-first-history'
 import { messageThreadUrl } from 'util/navigation'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
-import { FETCH_PEOPLE } from 'store/constants'
 import isPendingFor from 'store/selectors/isPendingFor'
 import fetchPeople from 'store/actions/fetchPeople'
 import fetchRecentContacts from 'store/actions/fetchRecentContacts'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import Icon from 'components/Icon'
-import Loading from 'components/Loading'
 import PeopleSelector from './PeopleSelector'
 import Header from './Header'
 import MessageSection from './MessageSection'
@@ -62,7 +60,6 @@ const Messages = () => {
   const messageThread = useSelector(state => getCurrentMessageThread(state, routeParams))
   const messageText = useSelector(state => getTextForCurrentMessageThread(state, routeParams))
   const messagesPending = useSelector(state => isPendingFor(fetchMessages, state))
-  const peoplePending = useSelector(state => isPendingFor(FETCH_PEOPLE, state))
   const messages = useSelector(state => getMessages(state, routeParams))
   const hasMoreMessages = useSelector(state => getMessagesHasMore(state, { id: messageThreadId }))
   const messageCreatePending = useSelector(state =>
@@ -113,8 +110,8 @@ const Messages = () => {
       if (!newForNewThread) {
         fetchThreadAction()
       }
-      focusForm()
     }
+    focusForm()
   }, [messageThreadId])
 
   const sendMessage = () => {
@@ -179,6 +176,7 @@ const Messages = () => {
           selectPerson={addParticipant}
           removePerson={removeParticipant}
           peopleSelectorOpen={peopleSelectorOpen}
+          autoFocus={forNewThread}
         />
       </div>
       )
@@ -200,47 +198,36 @@ const Messages = () => {
   }, [forNewThread, messageThreadId, peopleSelectorOpen, participants, contacts, messagesPending])
 
   return (
-    <div className={cn({ [classes.messagesOpen]: messageThreadId })}>
+    <div className={cn('flex flex-col w-full h-full justify-center w-full', { [classes.messagesOpen]: messageThreadId })}>
       <Helmet>
         <title>Messages | Hylo</title>
       </Helmet>
-      <div className='flex h-full justify-center w-full'>
-        {peoplePending
-          ? <div><Loading /></div>
-          : (
-            <>
-              {messageThreadId && (
-                <div className='flex flex-col w-full max-w-[750px]'>
-                  {!forNewThread &&
-                    <MessageSection
-                      socket={socket}
-                      currentUser={currentUser}
-                      fetchMessages={fetchMessagesAction}
-                      messages={messages}
-                      hasMore={hasMoreMessages}
-                      pending={messagesPending}
-                      updateThreadReadTime={updateThreadReadTimeAction}
-                      messageThread={messageThread}
-                    />}
-                  {(!forNewThread || participants.length > 0) &&
-                    <div className='h-full overflow-y-auto relative'>
-                      <MessageForm
-                        onSubmit={sendMessage}
-                        onFocus={() => setPeopleSelectorOpen(false)}
-                        currentUser={currentUser}
-                        ref={formRef}
-                        updateMessageText={updateMessageTextAction}
-                        messageText={messageText}
-                        sendIsTyping={status => sendIsTyping(messageThreadId, status)}
-                        pending={messageCreatePending}
-                      />
-                    </div>}
-                  <PeopleTyping className={classes.peopleTyping} />
-                  {socket && <SocketSubscriber type='post' id={messageThreadId} />}
-                </div>)}
-            </>
-            )}
-      </div>
+      {messageThreadId && (
+        <div className='flex flex-col h-full w-full px-3'>
+          <MessageSection
+            socket={socket}
+            currentUser={currentUser}
+            fetchMessages={fetchMessagesAction}
+            messages={messages}
+            hasMore={hasMoreMessages}
+            pending={messagesPending}
+            updateThreadReadTime={updateThreadReadTimeAction}
+            messageThread={messageThread}
+          />
+          <MessageForm
+            disabled={!messageThreadId && participants.length === 0}
+            onSubmit={sendMessage}
+            onFocus={() => setPeopleSelectorOpen(false)}
+            currentUser={currentUser}
+            ref={formRef}
+            updateMessageText={updateMessageTextAction}
+            messageText={messageText}
+            sendIsTyping={status => sendIsTyping(messageThreadId, status)}
+            pending={messageCreatePending}
+          />
+          <PeopleTyping className={classes.peopleTyping} />
+          {socket && <SocketSubscriber type='post' id={messageThreadId} />}
+        </div>)}
     </div>
   )
 }

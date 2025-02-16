@@ -19,7 +19,7 @@ export default function Message ({ message, isHeader }) {
     : TextHelpers.markdown(message.text)
 
   return (
-    <div className={cn('text-foreground w-full flex my-2', { [classes.messageHeader]: isHeader })} data-message-id={message.id}>
+    <div className={cn('text-foreground w-full flex', { 'pt-2': isHeader })} data-message-id={message.id}>
       <div className={classes.avatar}>
         {isHeader && <Avatar url={personUrl(person.id)} avatarUrl={person.avatarUrl} />}
       </div>

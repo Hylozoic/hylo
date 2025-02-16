@@ -331,8 +331,19 @@ export function filterThreadsByParticipant (threadSearch) {
 
   const threadSearchLC = threadSearch.toLowerCase()
   return thread => {
+    // Check participant names
     const participants = toRefArray(thread.participants)
-    const match = name => name.toLowerCase().startsWith(threadSearchLC)
-    return some(p => some(match, p.name.split(' ')), participants)
+    const participantMatch = some(p =>
+      some(name => name.toLowerCase().includes(threadSearchLC), p.name.split(' ')), participants
+    )
+
+    // Check message content
+    const messages = toRefArray(thread.messages)
+    const messageMatch = some(message => {
+      const text = (message.text || message.content || '').toLowerCase()
+      return text.includes(threadSearchLC)
+    }, messages)
+
+    return participantMatch || messageMatch
   }
 }
