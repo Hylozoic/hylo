@@ -154,6 +154,7 @@
   "Moderation": "Moderación",
   "Moderator: Confirm Delete": "Moderador: Confirmar eliminación",
   "Multiple people are typing": "Varias personas están escribiendo...",
+  "My Groups Map": "El mapa de mi grupo",
   "My Home": "Mi hogar",
   "My Posts": "Mis publicaciones",
   "My Profile": "Mi perfil",
@@ -366,6 +367,7 @@
   "status-active": "Estado: Activo",
   "status-cleared": "Estado: Borrado por el moderador",
   "we just need to know your name and password and youre account will be created": "sólo necesitamos saber su nombre y contraseña y se creará su cuenta",
+  "welcome page backup text": "Tómese un momento para explorar y ver qué hay vivo en nuestro grupo.\n \n Preséntate haciendo clic en Crear y publicando una discusión para compartir quién eres y qué te trae aquí.\n \n  No olvide completar nuestro perfil para que personas con ideas afines puedan conectarse con usted.",
   "widget-about": "Acerca De",
   "widget-all": "Todos",
   "widget-ask-and-offer": "Pedir Y Ofrecer",
@@ -408,7 +410,6 @@
   "widget-resources": "Recursos",
   "widget-setup": "Configuración",
   "widget-stream": "Flujo",
-  "welcome page backup text": "Tómese un momento para explorar y ver qué hay vivo en nuestro grupo.\n \n Preséntate haciendo clic en Crear y publicando una discusión para compartir quién eres y qué te trae aquí.\n \n  No olvide completar nuestro perfil para que personas con ideas afines puedan conectarse con usted.",
   "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}": "Los grupos {{childGroupsLength}} son parte de {{currentGroupName}}",
   "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)": "{{currentGroupName}} es parte de {{parentGroupsLength}} grupo(s)"
 }

@@ -26,7 +26,7 @@ export default function useStreamQueryVariables ({
     childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
     collectionToFilterOut: null,
     context: context || isContextGroupSlug(forGroup?.slug) // Relying on context now but will fall back to prior logic
-      ? forGroup.slug
+      ? forGroup?.slug
       : myHome
         ? 'my'
         : 'groups',
