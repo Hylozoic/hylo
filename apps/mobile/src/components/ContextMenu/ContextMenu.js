@@ -197,21 +197,19 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath }) {
 function ContextHeader ({ group }) {
   const { t } = useTranslation()
 
-  // TODO redesign: Add this when removing the banner from the stream
-  return null
-  // return (
-  // <View className='w-full relative'>
-  //   {!group?.isContextGroup ? (
-  //     <GroupMenuHeader group={group} />
-  //   ) : group?.isPublicContext ? (
-  //     <View className='flex flex-col p-2'>
-  //       <Text className='text-foreground font-bold text-lg'>{t('The Commons')}</Text>
-  //     </View>
-  //   ) : (group?.isMyContext || group?.isAllContext) ? (
-  //     <View className='flex flex-col p-2'>
-  //       <Text className='text-foreground font-bold text-lg'>{t('My Home')}</Text>
-  //     </View>
-  //   ) : null}
-  // </View>
-  // )
+  return (
+    <View className='w-full relative'>
+      {!group?.isContextGroup
+        ? <GroupMenuHeader group={group} />
+        : group?.isPublicContext
+          ? <View className='flex flex-col p-2'>
+            <Text className='text-foreground font-bold text-lg'>{t('The Commons')}</Text>
+          </View>
+          : (group?.isMyContext || group?.isAllContext)
+              ? <View className='flex flex-col p-2'>
+                <Text className='text-foreground font-bold text-lg'>{t('My Home')}</Text>
+              </View>
+              : null}
+    </View>
+  )
 }
