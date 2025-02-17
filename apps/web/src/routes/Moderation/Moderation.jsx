@@ -22,7 +22,6 @@ import { cn } from 'util/index'
 
 export default function Moderation (props) {
   const dispatch = useDispatch()
-  // const location = useLocation()
   const routeParams = useRouteParams()
   const { t } = useTranslation()
   const { groupSlug } = routeParams
@@ -30,14 +29,8 @@ export default function Moderation (props) {
 
   const [container, setContainer] = useState(null)
 
-  // const currentUser = useSelector(getMe)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id || 0
-
-  // const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe'], location)
-
-  // let sortBy = querystringParams.s || customView?.defaultSort || defaultSortBy
-  // const timeframe = querystringParams.timeframe || 'future'
 
   const pendingModerationActions = useSelector(state => state.pending[FETCH_MODERATION_ACTIONS])
 
@@ -70,6 +63,7 @@ export default function Moderation (props) {
     fetchModerationActionsAction(0)
   }, [fetchModerationActionParams])
 
+  // TODO: add sort and search
   // const changeSort = useCallback(sort => {
   //   dispatch(updateUserSettings({ settings: { streamSortBy: sort } }))
   //   dispatch(changeQuerystringParam(location, 's', sort, 'all'))
