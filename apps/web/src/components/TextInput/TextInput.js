@@ -15,6 +15,7 @@ import styles from './TextInput.module.scss'
 //
 
 const TextInput = forwardRef(({
+  id,
   theme = {},
   onChange,
   value,
@@ -25,17 +26,18 @@ const TextInput = forwardRef(({
   loading,
   label,
   internalLabel,
+  name,
   placeholder,
   ...props
 }, ref) => {
-  const onKeyDown = props.onEnter ? onEnter(props.onEnter) : () => {}
-  const otherProps = omit(['onEnter', 'className', 'inputRef', 'theme', 'noClearButton', 'loading', 'label', 'internalLabel', 'inputClassName'], props)
-  const clear = () => onChange && onChange({ target: { name: props.name, value: '' } })
-
-  const [active, setActive] = useState(false)
-
+  const onKeyDown = onEnter ? onEnter(props.onEnter) : () => {}
   const onBlur = () => { props.onBlur && props.onBlur(); setActive(false) }
   const onFocus = () => { props.onFocus && props.onFocus(); setActive(true) }
+
+  const otherProps = omit(['onEnter', 'onBlur', 'onFocus'], props)
+  const clear = () => onChange && onChange({ target: { name, value: '' } })
+
+  const [active, setActive] = useState(false)
 
   const handleAnimation = (e) => {
     setActive(e.animationName === 'onAutoFillStart')
@@ -52,15 +54,17 @@ const TextInput = forwardRef(({
           inputClassName
         )}
         placeholder={placeholder}
-        {...{ onKeyDown, ...otherProps }}
         onAnimationStart={handleAnimation}
+        onKeyDown={onKeyDown}
         onBlur={onBlur}
         onFocus={onFocus}
+        onChange={onChange}
         aria-label={label || internalLabel}
-        id={props.id}
+        id={id}
+        {...otherProps}
       />
       {internalLabel && (
-        <label htmlFor={props.id} className={cn(styles.internalLabel, active || (value && value.length > 0) ? styles.active : '')}>{internalLabel}</label>
+        <label htmlFor={id} className={cn(styles.internalLabel, active || (value && value.length > 0) ? styles.active : '')}>{internalLabel}</label>
       )}
 
       {value && !noClearButton &&
