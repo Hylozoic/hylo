@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
+import { openURL } from 'hooks/useOpenURL'
 
 export default function GroupMenuHeader ({ group }) {
   const { t } = useTranslation()
@@ -85,7 +86,7 @@ export default function GroupMenuHeader ({ group }) {
         </View>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate('About', { groupSlug: group.slug })}
+          onPress={() => openURL(`/groups/${group.slug}/about`)}
           hitSlop={6}
         >
           <View className='cursor-pointer'>
