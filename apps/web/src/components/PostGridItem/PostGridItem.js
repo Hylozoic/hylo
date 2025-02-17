@@ -1,22 +1,21 @@
-import React, { useCallback } from 'react'
-import { cn } from 'util/index'
-import Tooltip from 'components/Tooltip'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import { personUrl, postUrl } from 'util/navigation'
+import { personUrl } from 'util/navigation'
 import Avatar from 'components/Avatar'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
+import Tooltip from 'components/Tooltip'
+import useRouteParams from 'hooks/useRouteParams'
+import useViewPostDetails from 'hooks/useViewPostDetails'
+import { cn } from 'util/index'
+
 import classes from './PostGridItem.module.scss'
 
 export default function PostGridItem ({
   childPost,
   currentGroupId,
-  routeParams,
   post,
-  expanded,
-  locationParams,
-  querystringParams
+  expanded
 }) {
   const {
     title,
@@ -26,7 +25,7 @@ export default function PostGridItem ({
     attachments
   } = post
 
-  const navigate = useNavigate()
+  const routeParams = useRouteParams()
 
   const numAttachments = attachments.length || 0
   const firstAttachment = attachments[0] || 0
@@ -39,12 +38,10 @@ export default function PostGridItem ({
   // will reintegrate once I have attachment vars
   /* const start = DateTime.fromISO(post.startTime) */
 
-  const showDetails = useCallback(() => {
-    navigate(postUrl(post.id, routeParams, { ...locationParams, ...querystringParams }))
-  }, [post.id, routeParams, locationParams, querystringParams])
+  const viewPostDetails = useViewPostDetails()
 
   return (
-    <div className={cn('h-[160px] w-full bg-background rounded-lg shadow-lg relative hover:scale-105 transition-all overflow-hidden', { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType])} onClick={showDetails}>
+    <div className={cn('h-[160px] w-full bg-background rounded-lg shadow-lg relative hover:scale-105 transition-all overflow-hidden', { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType])} onClick={() => viewPostDetails(post)}>
       <div className={classes.contentSummary}>
         {childPost &&
           <div

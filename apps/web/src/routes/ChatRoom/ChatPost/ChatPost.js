@@ -1,9 +1,8 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
 import { DateTime } from 'luxon'
-import qs from 'query-string'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import ReactPlayer from 'react-player'
 import { useLongPress } from 'use-long-press'
@@ -23,6 +22,7 @@ import Feature from 'components/PostCard/Feature'
 import LinkPreview from 'components/LinkPreview'
 import RoundImageRow from 'components/RoundImageRow'
 import useReactionActions from 'hooks/useReactionActions'
+import useViewPostDetails from 'hooks/useViewPostDetails'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
 import isWebView from 'util/webView'
@@ -30,7 +30,7 @@ import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { personUrl, postUrl } from 'util/navigation'
+import { personUrl } from 'util/navigation'
 import { cn } from 'util/index'
 
 import styles from './ChatPost.module.scss'
@@ -62,9 +62,6 @@ export default function ChatPost ({
 
   const dispatch = useDispatch()
   const { t } = useTranslation()
-  const routeParams = useParams()
-  const location = useLocation()
-  const querystringParams = qs.parse(location.search)
   const navigate = useNavigate()
   const ref = useRef()
   const editorRef = useRef()
@@ -106,9 +103,7 @@ export default function ChatPost ({
 
   const updatePostAction = useCallback((post) => dispatch(updatePost(post)), [])
 
-  const showDetails = useCallback((postId) => {
-    navigate(postUrl(postId, routeParams, { ...location.state, ...querystringParams }))
-  }, [routeParams, location.state, querystringParams])
+  const viewPostDetails = useViewPostDetails()
 
   const bindLongPress = useLongPress(() => {
     setIsLongPress(false)
@@ -118,24 +113,24 @@ export default function ChatPost ({
     }
   })
 
-  const showPost = () => {
-    showDetails(id)
+  const showPost = useCallback(() => {
+    viewPostDetails(post)
     setIsLongPress(false)
-  }
+  }, [post, viewPostDetails])
 
-  const showCreator = event => {
+  const showCreator = useCallback((event) => {
     event.stopPropagation()
     navigate(personUrl(creator.id, group.slug))
-  }
+  }, [creator.id, group.slug])
 
-  const editPost = event => {
+  const editPost = useCallback((event) => {
     setEditing(true)
     setTimeout(() => {
       editorRef.current.focus('end')
     }, 500)
     event.stopPropagation()
     return true
-  }
+  }, [])
 
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
   const handleReaction = (emojiFull) => {
@@ -148,11 +143,11 @@ export default function ChatPost ({
     onRemoveReaction(post, emojiFull)
   }
 
-  const handleEditCancel = () => {
+  const handleEditCancel = useCallback(() => {
     editorRef.current.setContent(details)
     setEditing(false)
     return true
-  }
+  }, [details])
 
   const handleEditSave = contentHTML => {
     if (editorRef.current.isEmpty()) {

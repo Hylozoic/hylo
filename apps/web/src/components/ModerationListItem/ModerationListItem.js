@@ -1,7 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { agreementsURL, RESP_MANAGE_CONTENT } from 'store/constants'
 import getPlatformAgreements from 'store/selectors/getPlatformAgreements'

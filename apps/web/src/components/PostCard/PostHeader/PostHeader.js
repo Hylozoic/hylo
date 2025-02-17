@@ -30,23 +30,14 @@ class PostHeader extends PureComponent {
   render () {
     const {
       routeParams,
+      post,
       canEdit,
-      creator,
-      createdTimestamp,
-      exactCreatedTimestamp,
       expanded,
-      group,
-      type,
-      id,
       isFlagged,
-      startTime,
       hasImage,
-      endTime,
-      fulfilledAt,
       proposalOutcome,
       proposalStatus,
       pinned,
-      topics,
       close,
       className,
       constrained,
@@ -57,13 +48,26 @@ class PostHeader extends PureComponent {
       pinPost,
       highlightProps,
       moderationActionsGroupUrl = '',
-      announcement,
       fulfillPost,
       unfulfillPost,
       updateProposalOutcome,
       postUrl,
       t
     } = this.props
+
+    const {
+      announcement,
+      creator,
+      createdTimestamp,
+      exactCreatedTimestamp,
+      group,
+      type,
+      id,
+      endTime,
+      startTime,
+      fulfilledAt,
+      topics
+    } = post
 
     if (!creator) return null
 

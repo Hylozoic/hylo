@@ -210,8 +210,7 @@ module.exports = bookshelf.Model.extend({
     const post = comment.relations.post
     const group = post.relations.groups.first()
     const locale = this.locale()
-    const groupSlug = getSlug(group)
-    const path = new URL(Frontend.Route.comment({ comment, groupSlug, post })).pathname
+    const path = new URL(Frontend.Route.comment({ comment, group, post })).pathname
     const alertText = PushNotification.textForComment(comment, version, locale)
     if (!this.reader().enabledNotification(TYPE.Comment, MEDIUM.Push)) {
       return Promise.resolve()
