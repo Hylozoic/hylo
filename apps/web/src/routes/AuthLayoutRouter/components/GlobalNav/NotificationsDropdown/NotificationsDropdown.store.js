@@ -45,6 +45,11 @@ export function fetchNotifications (first = 20, offset = 0) {
                   id
                   slug
                 }
+                type
+                topics {
+                  id
+                  name
+                }
               }
               group {
                 id

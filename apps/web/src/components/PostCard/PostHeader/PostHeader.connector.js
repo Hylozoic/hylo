@@ -17,7 +17,7 @@ import getRolesForGroup from 'store/selectors/getRolesForGroup'
 
 export function mapStateToProps (state, props) {
   const group = getGroup(state, props)
-  const url = postUrl(props.id, props.routeParams)
+  const url = postUrl(props.post.id, props.routeParams)
   const context = props.routeParams.context
   const currentUser = getMe(state, props)
   const responsibilities = getResponsibilitiesForGroup(state, { groupId: group?.id }).map(r => r.title)

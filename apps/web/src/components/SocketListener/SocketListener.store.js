@@ -86,6 +86,11 @@ export function ormSessionReducer (session, { meta, type, payload }) {
 
   switch (type) {
     case RECEIVE_MESSAGE: {
+      currentUser = Me.first()
+      currentUser.update({
+        unseenThreadCount: currentUser.unseenThreadCount + 1
+      })
+
       const id = payload.data.message.messageThread
       if (!MessageThread.idExists(id)) {
         MessageThread.create({

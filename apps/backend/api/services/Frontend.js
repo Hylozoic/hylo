@@ -79,11 +79,9 @@ module.exports = {
 
     root: () => url('/app'),
 
-    comment: function ({ comment, groupSlug, post }) {
-      const groupUrl = isEmpty(groupSlug) ? '/all' : `/groups/${groupSlug}`
-
-      const postId = comment?.relations?.post?.id || post.id
-      return url(`${groupUrl}/post/${postId}/comments/${comment.id}`)
+    comment: function ({ comment, group, post }) {
+      const usePost = comment?.relations?.post || post
+      return this.post(usePost, group, `commentId=${comment.id}`)
     },
 
     group: function (group) {

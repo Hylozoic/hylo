@@ -252,7 +252,7 @@ function PostEditor ({
     if (!isChat) {
       toFieldRef.current.reset()
     }
-    editorRef.current.setContent(initialPost.details)
+    editorRef.current?.setContent(initialPost.details)
     dispatch(clearLinkPreview())
     dispatch(clearAttachments('post', 'new', 'image'))
     setCurrentPost(initialPost)

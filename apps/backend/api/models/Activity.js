@@ -147,6 +147,7 @@ module.exports = bookshelf.Model.extend({
     Announcement: 'announcement',
     ApprovedJoinRequest: 'approvedJoinRequest',
     JoinRequest: 'joinRequest',
+    MemberJoinedGroup: 'memberJoinedGroup',
     GroupChildGroupInvite: 'groupChildGroupInvite',
     GroupChildGroupInviteAccepted: 'groupChildGroupInviteAccepted',
     GroupParentGroupJoinRequest: 'groupParentGroupJoinRequest',

@@ -1,11 +1,9 @@
-import React, { useCallback } from 'react'
-import { useNavigate } from 'react-router'
-import { postUrl } from 'util/navigation'
-import { useCalendarContext } from 'components/Calendar/calendar-context'
+import React from 'react'
 import { DateTime } from 'luxon'
 import { cn } from '@/lib/utils'
 import { CalendarEvent as CalendarEventType } from 'components/Calendar/calendar-types'
 import Tooltip from 'components/Tooltip'
+import useViewPostDetails from 'hooks/useViewPostDetails'
 
 import classes from '../../calendar.module.scss'
 
@@ -14,12 +12,8 @@ export default function CalendarBodyDayEvent ({
 } : {
   event: CalendarEventType
 }) {
-  const { routeParams, locationParams, querystringParams } =
-    useCalendarContext()
-  const navigate = useNavigate()
-  const showDetails = useCallback(() => {
-    navigate(postUrl(event.id, routeParams, { ...locationParams, ...querystringParams }))
-  }, [event.id, routeParams, locationParams, querystringParams])
+  const viewPostDetails = useViewPostDetails()
+
   // TODO format for multi-day events
   const timeFormat = { ...DateTime.TIME_SIMPLE, timeZoneName: 'short' as const }
   const toolTipTitle = `${event.title}<br />${DateTime.fromJSDate(event.start).toLocaleString(timeFormat)} - ${DateTime.fromJSDate(event.end).toLocaleString(timeFormat)}`
@@ -30,7 +24,7 @@ export default function CalendarBodyDayEvent ({
         classes[event.type],
         'flex items-center gap-2 px-2 cursor-pointer rounded-md border-2'
       )}
-      onClick={showDetails}
+      onClick={() => viewPostDetails(event.id)}
       data-tooltip-id={`title-tip-${event.id}`} data-tooltip-html={toolTipTitle}
     >
       <div className='flex items-center gap-2'>

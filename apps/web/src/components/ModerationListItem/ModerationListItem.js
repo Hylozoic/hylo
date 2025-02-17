@@ -1,7 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { agreementsURL, RESP_MANAGE_CONTENT } from 'store/constants'
 import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
@@ -26,8 +26,6 @@ const ModerationListItem = ({
   const { t } = useTranslation()
   const currentUser = useSelector(getMe)
   const routeParams = useRouteParams()
-  const location = useLocation()
-  const querystringParams = new URLSearchParams(location.search)
   const canModerate = useSelector((state) => hasResponsibilityForGroup(state, { groupId: group.id, responsibility: [RESP_MANAGE_CONTENT] }))
 
   const {
@@ -72,7 +70,6 @@ const ModerationListItem = ({
           currentGroupId={group && group.id}
           currentUser={currentUser}
           routeParams={routeParams}
-          querystringParams={querystringParams}
         />
         <div className={classes.agreements}>
           {agreements.length > 0 && (
