@@ -13,7 +13,7 @@ it('works for a group', async () => {
 
 it('works for all groups', async () => {
   const posts = await fetchPosts({
-    context: 'all',
+    context: 'my',
     offset: 20,
     search: 'graphic design',
     filter: 'request'

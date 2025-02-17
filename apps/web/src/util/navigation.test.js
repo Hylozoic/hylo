@@ -17,8 +17,8 @@ import {
 import { host } from 'config/index'
 
 describe('postUrl', () => {
-  it('should default to displaying the all groups context', () => {
-    const expected = '/all/post/123'
+  it('should default to displaying the my groups context', () => {
+    const expected = '/my/groups/stream/post/123'
     const actual = postUrl('123')
     expect(actual).toEqual(expected)
   })
@@ -42,7 +42,7 @@ describe('postUrl', () => {
   })
 
   it('should show a member context when memberId is passed in opts', () => {
-    const expected = '/all/members/321/post/123'
+    const expected = '/members/321/post/123'
     const actual = postUrl('123', { memberId: '321' })
     expect(actual).toEqual(expected)
   })
@@ -54,14 +54,14 @@ describe('postUrl', () => {
   })
 
   it('should show a topic context when topicName is passed in opts', () => {
-    const expected = '/all/topics/petitions/post/123'
-    const actual = postUrl('123', { context: 'all', view: 'topics', topicName: 'petitions' })
+    const expected = '/my/groups/topics/petitions/post/123'
+    const actual = postUrl('123', { context: 'my', view: 'topics', topicName: 'petitions' })
     expect(actual).toEqual(expected)
   })
 
   it('should concatenate an action path parameter when action is passed in opts', () => {
-    const expected = '/all/post/123/action'
-    const actual = postUrl('123', { context: 'all', action: 'action' })
+    const expected = '/my/groups/stream/post/123/action'
+    const actual = postUrl('123', { context: 'my', action: 'action' })
     expect(actual).toEqual(expected)
   })
 })
@@ -160,7 +160,7 @@ describe('createUrl', () => {
 
 describe('primaryPostUrl with comment', () => {
   it('returns correct path', () => {
-    const expected = '/all/post/123/comments/456'
+    const expected = '/my/groups/stream/post/123/comments/456'
     const actual = primaryPostUrl('123', { commentId: '456' })
     expect(actual).toEqual(expected)
   })

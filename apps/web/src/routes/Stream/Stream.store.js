@@ -72,7 +72,7 @@ export function fetchPosts ({ activePostsOnly, afterTime, beforeTime, childPostI
     query = groupQuery(childPostInclusion === 'yes')
     extractModel = 'Group'
     getItems = get('payload.data.group.posts')
-  } else if (context === 'all' || context === 'public') {
+  } else if (context === 'my' || context === 'public') {
     query = postsQuery
     extractModel = 'Post'
     getItems = get('payload.data.posts')

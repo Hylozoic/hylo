@@ -146,7 +146,7 @@ function MapDrawer ({
         ? (
           <div className={styles.contentWrapper}>
             <div className={styles.postsHeader}>
-              {![CONTEXT_MY, 'all', 'public'].includes(context) && (
+              {![CONTEXT_MY, 'public'].includes(context) && (
                 <>
                   <span
                     onClick={handleChildPostInclusion}
