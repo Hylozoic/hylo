@@ -3286,17 +3286,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@flyerhq/react-native-keyboard-accessory-view@npm:^2.4.0":
-  version: 2.4.0
-  resolution: "@flyerhq/react-native-keyboard-accessory-view@npm:2.4.0"
-  peerDependencies:
-    react: "*"
-    react-native: "*"
-    react-native-safe-area-context: "*"
-  checksum: 10/8126676592880e473e5a04e93f4e2b7d37745981925e8e37326fa15543c29225851ee7878adc36b0954a6cb2682048f40ed797eb56779e5935bfaca4d0a44747
-  languageName: node
-  linkType: hard
-
 "@formidable-webview/webshell@npm:^2.6.0":
   version: 2.6.0
   resolution: "@formidable-webview/webshell@npm:2.6.0"
@@ -25388,7 +25377,6 @@ __metadata:
     "@emoji-mart/data": "npm:^1.2.1"
     "@emoji-mart/react": "npm:^1.1.1"
     "@expo/react-native-action-sheet": "npm:^4.1.0"
-    "@flyerhq/react-native-keyboard-accessory-view": "npm:^2.4.0"
     "@hylo/contexts": "workspace:*"
     "@hylo/graphql": "workspace:*"
     "@hylo/hooks": "workspace:*"

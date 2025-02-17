@@ -14,7 +14,6 @@ export const Comments = React.forwardRef(({
   groupId,
   postId,
   header: providedHeader = null,
-  style = {},
   showMember,
   panHandlers,
   onSelect
