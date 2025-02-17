@@ -89,7 +89,7 @@ export default function HomeNavigator ({ navigation }) {
       <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
       <HomeTab.Screen name='Topics' component={AllTopicsWebView} />
       <HomeTab.Screen name='Map' component={MapWebView} />
-      <HomeTab.Screen name='Chat' component={ChatRoom} />
+      <HomeTab.Screen name='ChatRoom' component={ChatRoom} />
       <HomeTab.Screen name='My Posts' component={Stream} initialParams={{ myHome: 'My Posts' }} />
       <HomeTab.Screen name='Announcements' component={Stream} initialParams={{ myHome: 'Announcements' }} />
       <HomeTab.Screen name='Mentions' component={Stream} initialParams={{ myHome: 'Mentions' }} />

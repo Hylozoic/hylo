@@ -15,7 +15,7 @@ export default function useGoToTopic () {
       if (isContextGroupSlug(currentGroupSlug)) {
         return navigation.navigate('Stream', { topicName })
       } else {
-        return navigation.navigate('Chat', { topicName })
+        return navigation.navigate('ChatRoom', { topicName })
       }
     }
   }

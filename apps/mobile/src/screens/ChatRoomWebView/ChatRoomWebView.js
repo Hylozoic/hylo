@@ -11,9 +11,9 @@ export default function ChatRoom () {
   const route = useRoute()
   const [{ currentGroup }] = useCurrentGroup()
   const { topicName } = useRouteParams()
-  const path = `/groups/${currentGroup.slug}/chats/${topicName}`
+  const path = `/groups/${currentGroup.slug}/chat/${topicName}`
   const handledWebRoutes = [
-    `/groups/${currentGroup.slug}/chats/:topicName`
+    `/groups/${currentGroup.slug}/chat/:topicName`
   ]
   const nativeRouteHandler = () => ({
     '(.*)/:type(post|members)/:id': ({ routeParams }) => {
