@@ -1,13 +1,6 @@
 // TODO: Get "t" from current i18n instance so it doesn't need to be passed
 // import i18n from 'react-i18next'
 
-// TODO: URQL! Remove this before release
-// t / translate is currently set to a dummy function if not sent
-const tDummy = t => {
-  // console.error('!!! ContextWidgetPresenter REQUIRES t to be passed in the second arg options, using dummy function instead')
-  return t
-}
-
 export default function ContextWidgetPresenter (widget, { t }) {
   if (!widget || widget?._presented || !t) return widget
 
@@ -24,7 +17,6 @@ export default function ContextWidgetPresenter (widget, { t }) {
     isDroppable: isDroppableResolver(widget),
     isValidHomeWidget: isValidHomeWidgetResolver(widget),
     title: titleResolver({ widget, t }),
-    isHiddenInContextMenu: isHiddenInContextMenuResolver(widget),
     type,
     // Protects us from double presenting a widget
     _presented: true
@@ -134,7 +126,8 @@ function widgetTypeResolver ({ widget }) {
   )
 }
 
-const isHiddenInContextMenuResolver = (widget) => {
+export const isHiddenInContextMenuResolver = (widget) => {
+  // This doesnt work properly if evoked before the widgets are ordered.
   return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
   !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
   !widget.viewChat && !widget.customView)

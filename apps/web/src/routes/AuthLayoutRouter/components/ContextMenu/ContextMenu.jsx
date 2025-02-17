@@ -26,7 +26,8 @@ import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@
 import ContextWidgetPresenter, {
   isValidChildWidget,
   getStaticMenuWidgets,
-  orderContextWidgetsForContextMenu
+  orderContextWidgetsForContextMenu,
+  isHiddenInContextMenuResolver
 } from '@hylo/presenters/ContextWidgetPresenter'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -63,7 +64,7 @@ export default function ContextMenu (props) {
 
   const contextWidgets = useMemo(() => {
     return rawContextWidgets.map(widget => ContextWidgetPresenter(widget, { t }))
-  }, [rawContextWidgets])
+  }, [rawContextWidgets, t])
 
   const hasContextWidgets = useMemo(() => {
     if (group || isMyContext || isPublicContext || isAllContext) {
@@ -249,7 +250,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   }
 
   // Check if the widget should be rendered
-  if (widget.isHiddenInContextMenu && !isEditing) return null
+  if (isHiddenInContextMenuResolver(widget) && !isEditing) return null
 
   // Check admin visibility
   if (widget.visibility === 'admin' && !canAdminister) {

@@ -2,11 +2,10 @@ import React, { useMemo, useEffect } from 'react'
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
-import { widgetUrl as makeWidgetUrl } from 'util/navigation'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import useCurrentGroup, { useCurrentGroupSlug } from '@hylo/hooks/useCurrentGroup'
+import { widgetUrl as makeWidgetUrl, groupUrl } from 'util/navigation'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
-import ContextWidgetPresenter, { orderContextWidgetsForContextMenu } from '@hylo/presenters/ContextWidgetPresenter'
+import ContextWidgetPresenter, { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 import useLogout from 'hooks/useLogout'
@@ -45,6 +44,7 @@ export default function ContextMenu () {
       <ContextWidgetList
         contextWidgets={orderedWidgets}
         groupSlug={currentGroup.slug}
+        group={currentGroup}
         rootPath={`/groups/${currentGroup.slug}`}
       />
       {(!currentGroup.isContextGroup) && (
@@ -62,7 +62,7 @@ export default function ContextMenu () {
   )
 }
 
-function ContextMenuItem ({ widget, groupSlug, rootPath }) {
+function ContextMenuItem ({ widget, groupSlug, rootPath, group }) {
   const { t } = useTranslation()
   const { listItems, loading } = useContextWidgetChildren({ widget, groupSlug })
   const logout = useLogout()
@@ -79,7 +79,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath }) {
 
     openURL(linkingPath)
   }
-  if (widget.isHiddenInContextMenu) return null
+  if (isHiddenInContextMenuResolver(widget)) return null
   if (widget.visibility === 'admin' && !canAdmin) return null
 
   if (widget.type === 'logout') {
@@ -122,7 +122,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath }) {
         </View>
       )}
       <View className='flex flex-col justify-center items-center relative'>
-        {/* Need to add the SpecialTopElementRenderer here */}
+        <SpecialTopElementRenderer widget={widget} group={group} />
       </View>
       {loading && <Text>{t('Loading...')}</Text>}
       {listItems.length > 0 && listItems.map(item =>
@@ -176,9 +176,69 @@ function SpecialTopElementRenderer ({ widget, group }) {
       </View>
     )
   }
+
+  if (widget.type === 'setup') {
+    const settingsUrl = groupUrl(group.slug, 'settings')
+
+    const ListItem = ({ title, url }) => (
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Group Settings', { groupSlug: group?.slug })}
+        className='w-full'
+      >
+        <View className='border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
+          <Text className='text-base text-foreground'>{title}</Text>
+        </View>
+      </TouchableOpacity>
+    )
+
+    return (
+      <View className='mb-2'>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Group Settings', { groupSlug: group?.slug })}
+        >
+          <View className='border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
+            <Text className='text-base text-foreground'>{t('Settings')}</Text>
+          </View>
+        </TouchableOpacity>
+
+        <View className='w-full'>
+          {!group.avatarUrl && (
+            <ListItem
+              title={t('Add Avatar')}
+              url={settingsUrl}
+            />
+          )}
+          {!group.bannerUrl && (
+            <ListItem
+              title={t('Add Banner')}
+              url={settingsUrl}
+            />
+          )}
+          {!group.purpose && (
+            <ListItem
+              title={t('Add Purpose')}
+              url={settingsUrl}
+            />
+          )}
+          {(!group.description || group.description === 'This is a long-form description of the group') && (
+            <ListItem
+              title={t('Add Description')}
+              url={settingsUrl}
+            />
+          )}
+          {!group.locationObject && (
+            <ListItem
+              title={t('Add Location')}
+              url={settingsUrl}
+            />
+          )}
+        </View>
+      </View>
+    )
+  }
 }
 
-function ContextWidgetList ({ contextWidgets, groupSlug, rootPath }) {
+function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, group }) {
   return (
     <ScrollView className='p-2'>
       {contextWidgets.map(widget => (
@@ -187,6 +247,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath }) {
             widget={widget}
             groupSlug={groupSlug}
             rootPath={rootPath}
+            group={group}
           />
         </View>
       ))}
