@@ -50,7 +50,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
     let tagFollow = await TagFollow.where(attrs).fetch({ transacting })
     attrs.settings = tagFollow?.get('settings') || { }
-    const hasChanged = false
+    let hasChanged = false
 
     // If "subscribing" and there's no tag follow yet or there's an existing tag follow but they haven't "subscribed" yet
     if (isSubscribing && !attrs.settings.notifications) {
