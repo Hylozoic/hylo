@@ -1,6 +1,7 @@
 import { cn } from 'util/index'
 import { filter, isFunction } from 'lodash'
 import React, { PureComponent } from 'react'
+import ReactDOM from 'react-dom'
 import { withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
@@ -35,6 +36,7 @@ class PostHeader extends PureComponent {
       expanded,
       isFlagged,
       hasImage,
+      group,
       proposalOutcome,
       proposalStatus,
       pinned,
@@ -60,7 +62,6 @@ class PostHeader extends PureComponent {
       creator,
       createdTimestamp,
       exactCreatedTimestamp,
-      group,
       type,
       id,
       endTime,
@@ -177,18 +178,6 @@ class PostHeader extends PureComponent {
                 </a>}
             </div>
           </div>
-          {flaggingVisible && !group &&
-            <FlagContent
-              type='post'
-              linkData={flagPostData}
-              onClose={() => this.setState({ flaggingVisible: false })}
-            />}
-          {flaggingVisible && group &&
-            <FlagGroupContent
-              type='post'
-              linkData={flagPostData}
-              onClose={() => this.setState({ flaggingVisible: false })}
-            />}
         </div>
 
         <div className={cn('flex flex-col xs:flex-row justify-between', { 'absolute z-11 w-full': hasImage, relative: showNormal })}>
@@ -223,6 +212,26 @@ class PostHeader extends PureComponent {
             </div>
           )
         }
+
+        {flaggingVisible && !group &&
+          ReactDOM.createPortal(
+            <FlagContent
+              type='post'
+              linkData={flagPostData}
+              onClose={() => this.setState({ flaggingVisible: false })}
+            />,
+            document.body
+          )}
+
+        {flaggingVisible && group &&
+          ReactDOM.createPortal(
+            <FlagGroupContent
+              type='post'
+              linkData={flagPostData}
+              onClose={() => this.setState({ flaggingVisible: false })}
+            />,
+            document.body
+          )}
 
         <Tooltip
           className='bg-background z-1000'
