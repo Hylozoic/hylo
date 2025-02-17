@@ -2,7 +2,6 @@ import { white, rhino80, gunsmoke, azureRadiance, rhino10, amaranth } from 'styl
 
 export default {
   keyboardAccessoryContainerStyle: {
-    // backgroundColor: rhino10,
     backgroundColor: white,
     marginBottom: 0,
     borderWidth: 0
