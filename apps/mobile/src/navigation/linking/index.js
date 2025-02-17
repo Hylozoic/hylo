@@ -58,7 +58,9 @@ export const routingConfig = {
 
   // Public Context Routes
   // TODO:  Routing - some of these need to be available when not auth'd
-  '/:context(public)/groups':                                             `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
+
+  // This route isn't correct; no such screen exists. And its not to be confused with the Group Explore screen.
+  '/:context(public)/groups':                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explorer`,
   '/:context(public)/map':                                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
   '/:context(public)/:groupSlug/post/:postId':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Detail`,
   '/:context(public)/topics/:topicName':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
