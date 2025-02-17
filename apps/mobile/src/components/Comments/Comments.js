@@ -106,6 +106,13 @@ export const Comments = React.forwardRef(({
   return (
     <FlashList
       ref={commentsListRef}
+      // TODO: Make height fill screen so it starts at top when content size is < screen size.
+      // Haven't been able to arrive at a solution yet, but the below methods are the keys to
+      // getting there. The fallback to to use a FlatList here again instead of FlashList, as we
+      // previously had a functioning hack for FlatList for this case.
+      // onLoad={() => {}}
+      // onLayout={({ nativeEvent }) => { nativeEvent.layout.height }}
+      // onContentSizeChange={(width, height) => {}}
       // Footer is Header, etc.
       inverted
       ListFooterComponent={Header}
