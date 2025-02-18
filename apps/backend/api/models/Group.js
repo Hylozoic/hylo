@@ -289,14 +289,8 @@ module.exports = bookshelf.Model.extend(merge({
       .query({ where: { 'posts.active': true } })
   },
 
-  postCount: function () {
-    return Post.query(q => {
-      q.select(bookshelf.knex.raw('count(*)'))
-      q.join('groups_posts', 'posts.id', 'groups_posts.post_id')
-      q.where({ 'groups_posts.group_id': this.id, active: true })
-    })
-      .fetch()
-      .then(result => result.get('count'))
+  postCount: function (includeChat) {
+    return Group.postCount(this.id, includeChat)
   },
 
   skills: function () {
@@ -949,9 +943,38 @@ module.exports = bookshelf.Model.extend(merge({
 
         // Handle post cases - multiple conditions can apply
         if (post) {
+          // Check if it is time to display the stream widget
+          const streamWidget = widgets.find(w => w.get('view') === 'stream')
+          if (streamWidget && !streamWidget.get('order')) {
+            // If there are more than 3 non chat posts, then that stream is flowing
+            const groupPostCount = await Group.postCount(groupId, false)
+            if (groupPostCount > 3) {
+              await ContextWidget.reorder({
+                id: streamWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check discussions
+          if (postType === 'discussion') {
+            const discussionsWidget = widgets.find(w => w.get('view') === 'discussions')
+            if (discussionsWidget && !discussionsWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: discussionsWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
           // Check events
           if (postType === 'event') {
             const eventsWidget = widgets.find(w => w.get('view') === 'events')
+            // TODO: instead of checking auto_added shouldnt we just check order? to see if it is added anywhere already?
             if (eventsWidget && !eventsWidget.get('auto_added')) {
               await ContextWidget.reorder({
                 id: eventsWidget.get('id'),
@@ -968,19 +991,6 @@ module.exports = bookshelf.Model.extend(merge({
             if (askOfferWidget && !askOfferWidget.get('auto_added')) {
               await ContextWidget.reorder({
                 id: askOfferWidget.get('id'),
-                parentId: autoAddWidget.get('id'),
-                addToEnd: true,
-                trx
-              })
-            }
-          }
-
-          // Check location
-          if (post?.location_id) {
-            const mapWidget = widgets.find(w => w.get('view') === 'map')
-            if (mapWidget && !mapWidget.get('auto_added')) {
-              await ContextWidget.reorder({
-                id: mapWidget.get('id'),
                 parentId: autoAddWidget.get('id'),
                 addToEnd: true,
                 trx
@@ -1007,6 +1017,32 @@ module.exports = bookshelf.Model.extend(merge({
             if (decisionsWidget && !decisionsWidget.get('auto_added')) {
               await ContextWidget.reorder({
                 id: decisionsWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check resources
+          if (postType === 'resources') {
+            const resourcesWidget = widgets.find(w => w.get('view') === 'resources')
+            if (resourcesWidget && !resourcesWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: resourcesWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check location
+          if (post?.location_id) {
+            const mapWidget = widgets.find(w => w.get('view') === 'map')
+            if (mapWidget && !mapWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: mapWidget.get('id'),
                 parentId: autoAddWidget.get('id'),
                 addToEnd: true,
                 trx
@@ -1117,6 +1153,19 @@ module.exports = bookshelf.Model.extend(merge({
 
   async pluckIdsForMember (userOrId, where) {
     return await this.selectIdsForMember(userOrId, where).pluck('groups.id')
+  },
+
+  postCount: function (groupId, includeChat = true) {
+    return Post.query(q => {
+      q.select(bookshelf.knex.raw('count(*)'))
+      q.join('groups_posts', 'posts.id', 'groups_posts.post_id')
+      q.where({ 'groups_posts.group_id': groupId, active: true })
+      if (!includeChat) {
+        q.where('posts.type', '!=', 'chat')
+      }
+    })
+      .fetch()
+      .then(result => result.get('count'))
   },
 
   queryByAccessCode: function (accessCode) {
