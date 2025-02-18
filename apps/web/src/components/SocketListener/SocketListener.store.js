@@ -108,7 +108,7 @@ export function ormSessionReducer (session, { meta, type, payload }) {
       currentUser = Me.first()
       const { post } = payload.data
       const groupId = payload.groupId
-      if (currentUser && post.creatorId !== currentUser.id) {
+      if (currentUser && post.creator.id !== currentUser.id) {
         const increment = obj =>
           obj && obj.update({
             newPostCount: (obj.newPostCount || 0) + 1
