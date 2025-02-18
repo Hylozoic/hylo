@@ -337,7 +337,7 @@ export default function Stream (props) {
         id='stream-inner-container'
         className={cn(
           viewMode !== 'calendar' && 'max-w-[750px]',
-          'flex flex-col flex-1 w-full mx-auto overflow-auto p-4'
+          'flex flex-col flex-1 w-full mx-auto p-4'
         )}
       >
         {hasPostPrompt && (
