@@ -98,7 +98,7 @@ export default function Stream () {
   )
   const [timeframe, setTimeframe] = useState(DEFAULT_TIMEFRAME_ID)
   const [offset, setOffset] = useState(0)
-  const fetchPostParam = useStreamQueryVariables({
+  const streamQueryVariables = useStreamQueryVariables({
     context,
     currentUser,
     customView,
@@ -110,7 +110,7 @@ export default function Stream () {
     timeframe
   })
 
-  const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...fetchPostParam, offset }))
+  const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...streamQueryVariables, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore
   const posts = postsQuerySet?.items
@@ -143,17 +143,17 @@ export default function Stream () {
   // query arg for GroupDetailsQuery makes the URQL caching not merged, so it would be nice
   // to run it independently or make it a mutation, like this resetGroupNewPostCount
   useEffect(() => {
-    if (fetchPostParam && isFocused && isEmpty(postIds) && hasMore !== false) {
+    if (streamQueryVariables && isFocused && isEmpty(postIds) && hasMore !== false) {
       if (
         currentGroup?.id &&
         !currentGroup?.isContextGroup &&
         sortBy === DEFAULT_SORT_BY_ID &&
-        !fetchPostParam.filter
+        !streamQueryVariables.filter
       ) {
         resetGroupNewPostCount({ id: currentGroup?.id })
       }
     }
-  }, [currentGroup?.id, fetchPostParam?.filter, fetchPostParam?.context, hasMore, isFocused, postIds])
+  }, [currentGroup?.id, streamQueryVariables?.filter, streamQueryVariables?.context, hasMore, isFocused, postIds])
 
   // Only custom views can be sorted by manual order
   useEffect(() => {
@@ -164,11 +164,11 @@ export default function Stream () {
   }, [customView, sortBy])
 
   const refreshPosts = useCallback(() => {
-    if (fetchPostParam) {
+    if (streamQueryVariables) {
       setOffset(0)
       refetchPosts({ requestPolicy: 'network-only' })
     }
-  }, [fetchPostParam, refetchPosts])
+  }, [streamQueryVariables, refetchPosts])
 
   const fetchMorePosts = useCallback(() => {
     if (hasMore && !fetching) {
@@ -181,15 +181,15 @@ export default function Stream () {
     : STREAM_SORT_OPTIONS
 
   const handleChildPostToggle = () => {
-    const childPostInclusion = fetchPostParam?.childPostInclusion === 'yes' ? 'no' : 'yes'
+    const childPostInclusion = streamQueryVariables?.childPostInclusion === 'yes' ? 'no' : 'yes'
     updateUserSettings({ changes: { settings: { streamChildPosts: childPostInclusion } } })
   }
 
-  const extraToggleStyles = fetchPostParam?.childPostInclusion === 'yes'
+  const extraToggleStyles = streamQueryVariables?.childPostInclusion === 'yes'
     ? { backgroundColor: pictonBlue }
     : { backgroundColor: '#FFFFFF' }
 
-  if (!fetchPostParam) return null
+  if (!streamQueryVariables) return null
   if (!currentUser) return <Loading style={{ flex: 1 }} />
   if (!currentGroup) return null
 
@@ -225,7 +225,7 @@ export default function Stream () {
         data={posts}
         renderItem={({ item }) => (
           <PostRow
-            context={fetchPostParam?.context}
+            context={streamQueryVariables?.context}
             post={item}
             forGroupId={currentGroup?.id}
             showGroups={!currentGroup?.id || currentGroup?.isContextGroup}
@@ -251,14 +251,14 @@ export default function Stream () {
               <View style={[styles.listControls]}>
                 <ListControl selected={sortBy} onChange={setSortBy} options={sortOptions} />
                 <View style={styles.steamControlRightSide}>
-                  {!['my', 'public'].includes(fetchPostParam?.context) &&
+                  {!['my', 'public'].includes(streamQueryVariables?.context) &&
                     <TouchableOpacity onPress={handleChildPostToggle}>
                       <View style={{ ...styles.childGroupToggle, ...extraToggleStyles }}>
-                        <Icon name='Subgroup' color={fetchPostParam?.childPostInclusion === 'yes' ? '#FFFFFF' : pictonBlue} />
+                        <Icon name='Subgroup' color={streamQueryVariables?.childPostInclusion === 'yes' ? '#FFFFFF' : pictonBlue} />
                       </View>
                     </TouchableOpacity>}
-                  {!fetchPostParam?.types && (
-                    <ListControl selected={fetchPostParam.filter} onChange={setFilter} options={POST_TYPE_OPTIONS} />
+                  {!streamQueryVariables?.types && (
+                    <ListControl selected={streamQueryVariables.filter} onChange={setFilter} options={POST_TYPE_OPTIONS} />
                   )}
                 </View>
               </View>
