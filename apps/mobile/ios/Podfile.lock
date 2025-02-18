@@ -2484,7 +2484,7 @@ SPEC CHECKSUMS:
   Mixpanel-swift: 2192b9a24cf41b870749e4e0e10fbc9822bb2b4a
   MixpanelReactNative: 76314cf184a17d493e2dd8a3e367c81d91361eea
   OneSignalXCFramework: f5b2a3c4f130e4c910ead7bb25bed7455e976fbf
-  RCT-Folly: 84578c8756030547307e4572ab1947de1685c599
+  RCT-Folly: bf5c0376ffe4dd2cf438dcf86db385df9fdce648
   RCTDeprecation: 063fc281b30b7dc944c98fe53a7e266dab1a8706
   RCTRequired: 8eda2a5a745f6081157a4f34baac40b65fe02b31
   RCTTypeSafety: 0f96bf6c99efc33eb43352212703854933f22930
