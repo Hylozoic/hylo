@@ -1,6 +1,7 @@
 import React from 'react'
 import { Animated, TouchableOpacity, Text, StyleSheet, View, FlatList } from 'react-native'
 import FastImage from 'react-native-fast-image'
+import Intercom from '@intercom/intercom-react-native'
 import { Globe, Plus, CircleHelp } from 'lucide-react-native'
 import { clsx } from 'clsx'
 import { map, sortBy } from 'lodash/fp'
@@ -8,6 +9,7 @@ import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { PUBLIC_GROUP } from '@hylo/presenters/GroupPresenter'
 import useChangeToGroup from 'hooks/useChangeToGroup'
+import { openURL } from 'hooks/useOpenURL'
 
 export default function ContextSwitchMenu () {
   const [{ currentUser }] = useCurrentUser()
@@ -30,9 +32,10 @@ export default function ContextSwitchMenu () {
         )}
         showsVerticalScrollIndicator={false}
       />
+      <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-100'>&nbsp;</div>
       <View className='w-full mt-auto bg-theme-background pt-4'>
-        <TouchableOpacity 
-          onPress={() => {}} // TODO redesign: Needs to open some creation dialog...
+        <TouchableOpacity
+          onPress={() => openURL('/create/group')}
           style={styles.rowTouchable}
           activeOpacity={0.7}
         >
@@ -46,7 +49,7 @@ export default function ContextSwitchMenu () {
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => {}} // Needs to open some creation dialog?
+          onPress={() => Intercom.present()} // Needs to open some creation dialog?
           style={styles.rowTouchable}
           activeOpacity={0.7}
         >
