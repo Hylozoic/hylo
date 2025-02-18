@@ -25,11 +25,11 @@ export default function useStreamQueryVariables ({
       : null,
     childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
     collectionToFilterOut: null,
-    context: context || isContextGroupSlug(forGroup?.slug) // Relying on context now but will fall back to prior logic
+    context: context || (isContextGroupSlug(forGroup?.slug) // Relying on context now but will fall back to prior logic
       ? forGroup?.slug
       : myHome
         ? 'my'
-        : 'groups',
+        : 'groups'),
     createdBy: myHome === 'My Posts'
       ? [currentUser.id]
       : null,
