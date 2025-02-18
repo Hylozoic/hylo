@@ -255,7 +255,7 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
     }`)
     extractModel = 'Group'
     getItems = get('payload.data.group.posts')
-  } else if (context === 'all' || context === 'public') {
+  } else if (context === 'my' || context === 'public') {
     query = postsQuery(`posts(
       activePostsOnly: $activePostsOnly,
       afterTime: $afterTime,
@@ -344,7 +344,7 @@ export function fetchPostsForDrawer ({ activePostsOnly, childPostInclusion = 'ye
     query = groupPostsQuery(groupViewPostsQueryFragment(childPostInclusion === 'yes'))
     extractModel = 'Group'
     getItems = get('payload.data.group.posts')
-  } else if (context === 'all' || context === 'public') {
+  } else if (context === 'my' || context === 'public') {
     query = postsQuery(postsQueryFragment)
     extractModel = 'Post'
     getItems = get('payload.data.posts')
@@ -391,12 +391,12 @@ export function fetchMembers ({ boundingBox, context, slug, sortBy, search, grou
     query = groupMembersQuery
     extractModel = 'Group'
     getItems = get('payload.data.group.members')
-  } else if (context === 'all') {
+  } else if (context === 'my') {
     // query = allGroupsMembersQuery
     // extractModel = 'User'
     // getItems = get('payload.data.people')
     // No Members in All Groups Context, yet
-    return { type: 'RETURN NO MEMBERS FOR ALL GROUPS' }
+    return { type: 'RETURN NO MEMBERS FOR ALL MY GROUPS' }
   } else if (context === 'public') {
     // No Members in Public Context, yet
     return { type: 'RETURN NO MEMBERS FOR PUBLIC' }

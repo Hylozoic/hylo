@@ -64,15 +64,15 @@ describe('RichText', function () {
   describe('.qualifyLinks', function () {
     it('turns relative links into fully-qualified links', function () {
       // Note: This text is legacy, e.g. `data-search` vs `data-label`, `data-user-id` vs `data-id`, etc
-      const text = '<p>a paragraph, and of course <span href="/all/members/5942" class="mention" data-type="mention" data-id="5942" data-label="Minda Myers">Minda Myers</span>&nbsp;' +
-        '<span href="/all/members/8781" class="mention" data-type="mention" data-id="8781" data-label="Ray Hylo">Ray Hylo</span>' +
-        '<span href="/all/topics/boom" class="topic" data-type="topic" data-id="boom" data-label="#boom">#boom</span>.</p><p>danke</p>'
+      const text = '<p>a paragraph, and of course <span href="/my/groups/members/5942" class="mention" data-type="mention" data-id="5942" data-label="Minda Myers">Minda Myers</span>&nbsp;' +
+        '<span href="/members/8781" class="mention" data-type="mention" data-id="8781" data-label="Ray Hylo">Ray Hylo</span>' +
+        '<span href="/my/groups/topics/boom" class="topic" data-type="topic" data-id="boom" data-label="#boom">#boom</span>.</p><p>danke</p>'
       const expectedWithGroupSlug = `<p>a paragraph, and of course <a href="${prefix}/groups/my-group-slug/members/5942" class="mention" data-type="mention" data-id="5942" data-label="Minda Myers">Minda Myers</a>&nbsp;` +
         `<a href="${prefix}/groups/my-group-slug/members/8781" class="mention" data-type="mention" data-id="8781" data-label="Ray Hylo">Ray Hylo</a>` +
         `<a href="${prefix}/groups/my-group-slug/topics/boom" class="topic" data-type="topic" data-id="boom" data-label="#boom">#boom</a>.</p><p>danke</p>`
-      const expectedWithoutGroupSlug = `<p>a paragraph, and of course <a href="${prefix}/all/members/5942" class="mention" data-type="mention" data-id="5942" data-label="Minda Myers">Minda Myers</a>&nbsp;` +
-        `<a href="${prefix}/all/members/8781" class="mention" data-type="mention" data-id="8781" data-label="Ray Hylo">Ray Hylo</a>` +
-        `<a href="${prefix}/all/topics/boom" class="topic" data-type="topic" data-id="boom" data-label="#boom">#boom</a>.</p><p>danke</p>`
+      const expectedWithoutGroupSlug = `<p>a paragraph, and of course <a href="${prefix}/my/groups/members/5942" class="mention" data-type="mention" data-id="5942" data-label="Minda Myers">Minda Myers</a>&nbsp;` +
+        `<a href="${prefix}/my/groups/members/8781" class="mention" data-type="mention" data-id="8781" data-label="Ray Hylo">Ray Hylo</a>` +
+        `<a href="${prefix}/my/groups/topics/boom" class="topic" data-type="topic" data-id="boom" data-label="#boom">#boom</a>.</p><p>danke</p>`
 
       expect(RichText.qualifyLinks(text, 'my-group-slug')).to.equal(expectedWithGroupSlug)
       expect(RichText.qualifyLinks(text)).to.equal(expectedWithoutGroupSlug)
@@ -87,12 +87,12 @@ describe('RichText', function () {
     }),
 
     it('gets all the mentions', () => {
-      const text = `<p><a href="${prefix}/all/topics/hashtag" class="topic" data-type="topic" data-id="hashtag" data-label="#hashtag">#hashtag</a>, ` +
-        `<a href="${prefix}/all/topics/anotherhashtag" class="topic" data-type="topic" data-id="anotherhashtag" data-label="#anotherhashtag">#anotherhashtag</a>, ` +
+      const text = `<p><a href="${prefix}/my/groups/topics/hashtag" class="topic" data-type="topic" data-id="hashtag" data-label="#hashtag">#hashtag</a>, ` +
+        `<a href="${prefix}/my/groups/topics/anotherhashtag" class="topic" data-type="topic" data-id="anotherhashtag" data-label="#anotherhashtag">#anotherhashtag</a>, ` +
         `<a href="https://www.metafilter.com/wooooo" class="linkified" target="_blank">https://www.metafilter.com/wooooo</a></p>` +
-        `<p>a paragraph, and of course <a href="${prefix}/all/members/5942" class="mention" data-type="mention" data-id="5942" data-label="@Minda Myers">@Minda Myers</a>&nbsp;` +
-        `<a href="${prefix}/all/members/8781" class="mention" data-type="mention" data-id="8781" data-label="@Ray Hylo">@Ray Hylo</a>&nbsp;` +
-        `<a href="${prefix}/all/topics/boom" class="topic" data-type="topic" data-id="boom" data-label="#boom">#boom</a>.</p><p>danke</p>`
+        `<p>a paragraph, and of course <a href="${prefix}/my/groups/members/5942" class="mention" data-type="mention" data-id="5942" data-label="@Minda Myers">@Minda Myers</a>&nbsp;` +
+        `<a href="${prefix}/my/groups/members/8781" class="mention" data-type="mention" data-id="8781" data-label="@Ray Hylo">@Ray Hylo</a>&nbsp;` +
+        `<a href="${prefix}/my/groups/topics/boom" class="topic" data-type="topic" data-id="boom" data-label="#boom">#boom</a>.</p><p>danke</p>`
 
       expect(RichText.getUserMentions(text)).to.have.members(['5942', '8781'])
     })

@@ -27,7 +27,7 @@ export function formatParams (search) {
   const { group, context, createdAt, postTypes, searchText, topics } = search
   return [
     `Created on ${DateTime.fromISO(createdAt).toFormat('MMMM d yyyy')}`, // this was 'do' as in ordinal, but not supported in luxon
-    ['all', 'public'].includes(context) ? `Context: ${context}` : '',
+    ['my', 'public'].includes(context) ? `Context: ${context}` : '',
     group ? parsegroup(group) : '',
     searchText ? parseSearch(searchText) : '',
     postTypes ? parsePostTypes(postTypes) : '',
@@ -46,13 +46,13 @@ export function formatParamPreview (search) {
 }
 
 export function generateViewParams (search) {
-  console.log('generateViewParams', search)
   const { boundingBox, context, group, postTypes, searchText, topics } = search
 
   let mapPath, groupSlug
   switch (context) {
+    case 'my':
     case 'all': {
-      mapPath = '/all/map'
+      mapPath = '/my/groups/map'
       break
     }
     case 'groups': {

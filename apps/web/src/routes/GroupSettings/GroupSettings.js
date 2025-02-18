@@ -22,7 +22,7 @@ import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import FullPageModal from 'routes/FullPageModal'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
-import { allGroupsUrl, groupUrl } from 'util/navigation'
+import { myHomeUrl, groupUrl } from 'util/navigation'
 import presentGroup from 'store/presenters/presentGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getParentGroups } from 'store/selectors/getGroupRelationships'
@@ -69,7 +69,7 @@ export default function GroupSettings () {
     if (group) {
       dispatch(deleteGroup(group.id)).then(({ error }) => {
         if (!error) {
-          window.location = allGroupsUrl()
+          window.location = myHomeUrl()
         }
       })
     }

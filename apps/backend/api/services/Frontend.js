@@ -113,7 +113,7 @@ module.exports = {
     },
 
     mapPost: function (post, context, slug) {
-      let contextUrl = '/all'
+      let contextUrl = '/my/groups'
 
       if (context === 'public') {
         contextUrl = '/public'
@@ -137,7 +137,7 @@ module.exports = {
 
     post: function (post, group, extraParams = '') {
       const groupSlug = getSlug(group)
-      let groupUrl = '/all'
+      let groupUrl = '/my/groups'
 
       if (!group) {
         groupUrl = '/public'

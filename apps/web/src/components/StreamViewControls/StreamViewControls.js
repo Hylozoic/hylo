@@ -119,7 +119,7 @@ const StreamViewControls = ({
         <div className={cn('bg-primary px-2 flex items-center rounded transition-all', { 'bg-selected': searchActive })} onClick={handleSearchToggle}>
           <Icon name='Search' className={cn(classes.toggleIcon, { [classes.active]: searchActive })} />
         </div>
-        {![CONTEXT_MY, 'all', 'public'].includes(context) &&
+        {![CONTEXT_MY, 'public'].includes(context) &&
           <div
             className={cn('bg-primary rounded text-foreground px-1 flex items-center transition-all hover:scale-125 group')}
             onClick={handleChildPostInclusion}

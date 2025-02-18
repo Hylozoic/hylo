@@ -82,7 +82,7 @@ describe('GlobalNav', () => {
     )
 
     render(
-      <GlobalNav routeParams={{ context: 'all', view: 'stream' }} />
+      <GlobalNav routeParams={{ context: 'my', view: 'groups/stream' }} />
     )
 
     await waitFor(() => {

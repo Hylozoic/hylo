@@ -51,12 +51,11 @@ export default function ContextMenu (props) {
   const rootPath = baseUrl({ ...routeParams, view: null })
   const isPublicContext = routeParams.context === 'public'
   const isMyContext = routeParams.context === CONTEXT_MY
-  const isAllContext = routeParams.context === 'all'
   const profileUrl = personUrl(get('id', currentUser), routeParams.groupSlug)
 
   const rawContextWidgets = useSelector(state => {
-    if (isMyContext || isPublicContext || isAllContext) {
-      return getStaticMenuWidgets({ isPublicContext, isMyContext, profileUrl, isAllContext })
+    if (isMyContext || isPublicContext) {
+      return getStaticMenuWidgets({ isPublicContext, isMyContext, profileUrl })
     }
     return getContextWidgets(state, group)
   })
@@ -66,11 +65,11 @@ export default function ContextMenu (props) {
   }, [rawContextWidgets])
 
   const hasContextWidgets = useMemo(() => {
-    if (group || isMyContext || isPublicContext || isAllContext) {
+    if (group || isMyContext || isPublicContext) {
       return contextWidgets.length > 0
     }
     return false
-  }, [group, isMyContext, isPublicContext, isAllContext])
+  }, [group, isMyContext, isPublicContext])
 
   const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
 
@@ -128,7 +127,7 @@ export default function ContextMenu (props) {
                 </div>
               </div>
               )
-            : isMyContext || isAllContext
+            : isMyContext
               ? (
                 <div className='flex flex-col p-2'>
                   <h2 className='text-foreground font-bold leading-3 text-lg'>My Home</h2>
@@ -164,7 +163,7 @@ export default function ContextMenu (props) {
               )}
             </DragOverlay>
           </DndContext>
-          {(!isMyContext && !isPublicContext && !isAllContext) && (
+          {(!isMyContext && !isPublicContext) && (
             <div className='px-2 w-full mb-[0.05em] mt-6'>
               <ContextMenuItem
                 widget={{ title: t('widget-all'), type: 'all-views', view: 'all-views', childWidgets: [] }}
@@ -427,7 +426,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
               </MenuLink>
             )
-          } else if ((rootPath !== '/my' && rootPath !== '/all' && !item.title) || (item.type === 'viewUser')) {
+          } else if ((rootPath !== '/my' && !item.title) || (item.type === 'viewUser')) {
             return (
               <MenuLink
                 to={itemUrl}
@@ -441,7 +440,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
               </MenuLink>
             )
-          } else if (rootPath === '/my' || rootPath === '/all' || rootPath !== '/members' || (item.title && item.type !== 'chat')) {
+          } else if (rootPath === '/my' || rootPath !== '/members' || (item.title && item.type !== 'chat')) {
             return (
               <MenuLink
                 to={itemUrl}

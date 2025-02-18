@@ -17,10 +17,6 @@ export const OPTIONAL_GROUP_MATCH = ':detail(group)?/(:detailGroupSlug)?'
 
 // Fundamental URL paths
 
-export function allGroupsUrl () {
-  return '/all'
-}
-
 export function publicGroupsUrl () {
   return '/public'
 }
@@ -32,7 +28,7 @@ export function myHomeUrl () {
 export function baseUrl ({
   context,
   customViewId,
-  defaultUrl = allGroupsUrl(),
+  defaultUrl = myHomeUrl(),
   groupSlug,
   memberId, personId, // TODO: switch to one of these?
   topicName,
@@ -50,8 +46,6 @@ export function baseUrl ({
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
   } else if (groupSlug) {
     return groupUrl(groupSlug)
-  } else if (context === 'all') {
-    return allGroupsUrl()
   } else if (context === 'public') {
     return publicGroupsUrl()
   } else if (context === 'my') {
@@ -81,7 +75,7 @@ export function viewUrl (view, { context, groupSlug, defaultUrl, customViewId })
 }
 
 // Group URLS
-export function groupUrl (slug, view = '', defaultUrl = allGroupsUrl()) {
+export function groupUrl (slug, view = '', defaultUrl = myHomeUrl()) {
   if (slug === 'public') { // TODO: remove this?
     return publicGroupsUrl()
   } else if (slug) {
@@ -185,7 +179,7 @@ export function personUrl (id, groupSlug) {
 }
 
 // Topics URLs
-export function topicsUrl (opts, defaultUrl = allGroupsUrl()) {
+export function topicsUrl (opts, defaultUrl = myHomeUrl()) {
   return baseUrl({ ...opts, view: 'topics' }, defaultUrl)
 }
 
@@ -204,7 +198,7 @@ export function customViewUrl (customViewId, rootPath, opts) {
 export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
   if (!widget) return null
   // TODO redesign: isContextGroupSlug function or similar could replace this. Needs to be added to shared
-  const groupSlug = ['my', 'all', 'public'].includes(providedSlug) ? null : providedSlug
+  const groupSlug = ['my', 'public'].includes(providedSlug) ? null : providedSlug
   let url = ''
   if (widget.url) return widget.url
   if (widget.view === 'about') {

@@ -175,14 +175,14 @@ export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
   )
 }
 
-export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl, isAllContext }) {
+export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl }) {
   let widgets = []
 
   if (isPublicContext) {
     widgets = PUBLIC_CONTEXT_WIDGETS
   }
 
-  if (isMyContext || isAllContext) {
+  if (isMyContext) {
     widgets = MY_CONTEXT_WIDGETS(profileUrl)
   }
 
@@ -229,9 +229,9 @@ const PUBLIC_CONTEXT_WIDGETS = [
 
 const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { title: 'widget-my-groups-content', id: 'widget-my-groups-content', order: 2, parentId: null },
-  { title: 'widget-my-groups-stream', id: 'widget-my-groups-stream', context: 'all', view: 'stream', order: 1, parentId: 'widget-my-groups-content' },
-  { title: 'widget-my-groups-map', id: 'widget-my-groups-map', context: 'all', view: 'map', type: 'map', order: 2, parentId: 'widget-my-groups-content' },
-  { title: 'widget-my-groups-events', id: 'widget-my-groups-events', context: 'all', view: 'events', order: 3, parentId: 'widget-my-groups-content' },
+  { title: 'widget-my-groups-stream', id: 'widget-my-groups-stream', context: 'my', view: 'groups/stream', order: 1, parentId: 'widget-my-groups-content' },
+  { title: 'widget-my-groups-map', id: 'widget-my-groups-map', context: 'my', view: 'groups/map', type: 'map', order: 2, parentId: 'widget-my-groups-content' },
+  { title: 'widget-my-groups-events', id: 'widget-my-groups-events', context: 'my', view: 'groups/events', order: 3, parentId: 'widget-my-groups-content' },
   { title: 'widget-my-content', id: 'widget-my-content', order: 1, parentId: null },
   { iconName: 'Posticon', title: 'widget-my-posts', id: 'widget-my-posts', view: 'posts', order: 1, parentId: 'widget-my-content', context: 'my' },
   { iconName: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', view: 'interactions', order: 2, parentId: 'widget-my-content', context: 'my' },

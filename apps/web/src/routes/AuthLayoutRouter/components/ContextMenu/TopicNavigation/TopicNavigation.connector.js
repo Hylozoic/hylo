@@ -3,7 +3,7 @@ import { push } from 'redux-first-history'
 import { get } from 'lodash/fp'
 import { getTopicsFromSubscribedGroupTopics } from './TopicNavigation.store'
 import resetNewPostCount from 'store/actions/resetNewPostCount'
-import { topicsUrl, allGroupsUrl } from 'util/navigation'
+import { topicsUrl, myHomeUrl } from 'util/navigation'
 import { FETCH_POSTS } from 'store/constants'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
 
@@ -13,7 +13,7 @@ export function mapStateToProps (state, props) {
 
   return {
     streamFetchPostsParam: get('Stream.fetchPostsParam', state),
-    seeAllUrl: topicsUrl(routeParams, allGroupsUrl()),
+    seeAllUrl: topicsUrl(routeParams, myHomeUrl()),
     routeParams,
     topics
   }

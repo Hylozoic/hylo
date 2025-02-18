@@ -22,6 +22,7 @@ import s from './Drawer.module.scss'
 
 const myPath = '/my'
 
+// TODO: remove this component
 export default function Drawer (props) {
   const navigate = useNavigate()
   const { t } = useTranslation()
