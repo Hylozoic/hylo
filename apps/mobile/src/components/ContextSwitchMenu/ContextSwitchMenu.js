@@ -32,7 +32,6 @@ export default function ContextSwitchMenu () {
         )}
         showsVerticalScrollIndicator={false}
       />
-      <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-100'>&nbsp;</div>
       <View className='w-full mt-auto bg-theme-background pt-4'>
         <TouchableOpacity
           onPress={() => openURL('/create/group')}
