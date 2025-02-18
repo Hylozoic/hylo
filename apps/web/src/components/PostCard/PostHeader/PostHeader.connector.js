@@ -72,7 +72,7 @@ export function mapDispatchToProps (dispatch, props) {
 
 export function mergeProps (stateProps, dispatchProps, ownProps) {
   const { currentUser, group, responsibilities, connectorGetRolesForGroup } = stateProps
-  const { id, creator } = ownProps
+  const { id, creator } = ownProps.post
   const { deletePost, editPost, duplicatePost, fulfillPost, unfulfillPost, removePost, pinPost, updateProposalOutcome } = dispatchProps
   const isCreator = currentUser && creator && currentUser.id === creator.id
   const canEdit = isCreator
