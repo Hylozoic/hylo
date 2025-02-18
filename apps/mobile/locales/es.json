@@ -410,6 +410,7 @@
   "widget-resources": "Recursos",
   "widget-setup": "Configuración",
   "widget-stream": "Flujo",
+  "widget-terms-and-conditions": "Términos y Condiciones",
   "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}": "Los grupos {{childGroupsLength}} son parte de {{currentGroupName}}",
   "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)": "{{currentGroupName}} es parte de {{parentGroupsLength}} grupo(s)"
 }

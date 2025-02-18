@@ -213,6 +213,8 @@ export const orderContextWidgetsForContextMenu = (contextWidgets) => {
   return parentWidgets
 }
 
+const TERMS_AND_CONDITIONS_URL = 'https://hylo-landing.surge.sh/terms'
+
 const PUBLIC_CONTEXT_WIDGETS = [
   { context: 'public', title: 'widget-public-stream', id: 'widget-public-stream', view: 'stream', order: 1, parentId: null },
   { context: 'public', title: 'widget-public-groups', id: 'widget-public-groups', view: 'groups', order: 2, parentId: null },
@@ -239,6 +241,7 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { title: 'widget-my-locale', id: 'widget-my-locale', context: 'my', view: 'locale', order: 6, parentId: 'widget-myself' },
   { title: 'widget-my-account', id: 'widget-my-account', context: 'my', view: 'account', order: 7, parentId: 'widget-myself' },
   { title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', context: 'my', view: 'saved-searches', order: 8, parentId: 'widget-myself' },
+  { title: 'widget-terms-and-conditions', id: 'widget-terms-and-conditions', context: 'my', order: 9, parentId: 'widget-myself', url: TERMS_AND_CONDITIONS_URL },
   { title: 'widget-my-logout', id: 'widget-my-logout', view: 'logout', type: 'logout', order: 4, parentId: null }
 ]
 
