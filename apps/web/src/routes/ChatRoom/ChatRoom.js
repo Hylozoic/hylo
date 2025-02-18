@@ -355,6 +355,10 @@ export default function ChatRoom (props) {
     }
   }, [notificationsSetting])
 
+  const onRemovePost = useCallback((postId) => {
+    messageListRef.current?.data.findAndDelete((item) => { console.log(item); return postId === item.id })
+  }, [currentUser])
+
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
@@ -401,7 +405,7 @@ export default function ChatRoom (props) {
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto', marginBottom: '5px' }}
                 ref={messageListRef}
-                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction, topicName, numPosts: postsForDisplay.length, newPostCount: topicFollow?.newPostCount }}
+                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction, onRemovePost, topicName, numPosts: postsForDisplay.length, newPostCount: topicFollow?.newPostCount }}
                 initialData={postsForDisplay}
                 initialLocation={{ index: initialPostToScrollTo, align: initialPostToScrollTo === 0 ? 'start' : 'end' }}
                 shortSizeAlign='bottom-smooth'
@@ -565,6 +569,7 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
               post={post}
               onAddReaction={context.onAddReaction}
               onRemoveReaction={context.onRemoveReaction}
+              onRemovePost={context.onRemovePost}
             />
           </div>
           )
@@ -576,6 +581,7 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
               post={post}
               onAddReaction={context.onAddReaction}
               onRemoveReaction={context.onRemoveReaction}
+              onRemovePost={context.onRemovePost}
             />
           </div>
           )}

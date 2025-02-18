@@ -32,7 +32,8 @@ export default function PostCard (props) {
     mapDrawer,
     post,
     onAddReaction = () => {},
-    onRemoveReaction = () => {}
+    onRemoveReaction = () => {},
+    onRemovePost
   } = props
 
   const postCardRef = useRef()
@@ -102,6 +103,7 @@ export default function PostCard (props) {
             isFlagged={isFlagged}
             constrained={constrained}
             hasImage={hasImage}
+            onRemovePost={onRemovePost}
           />
         </div>
         <div onClick={onClick}>

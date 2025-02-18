@@ -8,7 +8,7 @@ import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
 import Highlight from 'components/Highlight'
 import FlagContent from 'components/FlagContent'
-import FlagGroupContent from 'components/FlagGroupContent/FlagGroupContent'
+import FlagGroupContent from 'components/FlagGroupContent'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
@@ -44,6 +44,7 @@ class PostHeader extends PureComponent {
       editPost,
       deletePost,
       duplicatePost,
+      group,
       removePost,
       pinPost,
       highlightProps,
@@ -60,7 +61,6 @@ class PostHeader extends PureComponent {
       creator,
       createdTimestamp,
       exactCreatedTimestamp,
-      group,
       type,
       id,
       endTime,
@@ -90,8 +90,8 @@ class PostHeader extends PureComponent {
       { icon: 'CopyLink', label: t('Copy Link'), onClick: copyLink },
       { icon: 'Flag', label: t('Flag'), onClick: this.flagPostFunc() },
       { icon: 'Duplicate', label: t('Duplicate'), onClick: duplicatePost },
-      { icon: 'Trash', label: t('Delete'), onClick: deletePost ? () => deletePost(t('Are you sure you want to delete this post?')) : undefined, red: true },
-      { icon: 'Trash', label: t('Remove From Group'), onClick: removePost, red: true }
+      { icon: 'Trash', label: t('Delete'), onClick: deletePost ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
+      { icon: 'Trash', label: t('Remove From Group'), onClick: removePost ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
     ], item => isFunction(item.onClick))
 
     const typesWithTimes = ['offer', 'request', 'resource', 'project', 'proposal']
@@ -163,10 +163,10 @@ class PostHeader extends PureComponent {
             </div>
 
             <div className={cn('flex items-center justify-end ml-auto', { hidden: constrained })}>
-              {isFlagged && <Link to={moderationActionsGroupUrl} className='text-decoration-none'><Icon name='Flag' className='top-1 mr-3 text-xl text-accent font-bold' dataTip={t('See why this post was flagged')} data-tooltip-id='flag-tt' /></Link>}
+              {isFlagged && <Link to={moderationActionsGroupUrl} className='text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='post-header-flag-tt'><Icon name='Flag' className='top-1 mr-3 text-xl text-accent font-bold' /></Link>}
               <Tooltip
                 delay={250}
-                id='flag-tt'
+                id='post-header-flag-tt'
               />
               {pinned && <Icon name='Pin' className='top-1 mr-3 text-xl text-accent font-bold' />}
               {dropdownItems.length > 0 &&

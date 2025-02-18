@@ -1,8 +1,8 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
 import { DateTime } from 'luxon'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import ReactPlayer from 'react-player'
 import { useLongPress } from 'use-long-press'
@@ -13,7 +13,7 @@ import CardFileAttachments from 'components/CardFileAttachments'
 import CardImageAttachments from 'components/CardImageAttachments'
 import EmojiRow from 'components/EmojiRow'
 import EmojiPicker from 'components/EmojiPicker'
-import FlagContent from 'components/FlagContent'
+import FlagGroupContent from 'components/FlagGroupContent'
 import Highlight from 'components/Highlight'
 import HyloEditor from 'components/HyloEditor'
 import HyloHTML from 'components/HyloHTML'
@@ -21,6 +21,7 @@ import Icon from 'components/Icon'
 import Feature from 'components/PostCard/Feature'
 import LinkPreview from 'components/LinkPreview'
 import RoundImageRow from 'components/RoundImageRow'
+import Tooltip from 'components/Tooltip'
 import useReactionActions from 'hooks/useReactionActions'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import deletePost from 'store/actions/deletePost'
@@ -30,7 +31,7 @@ import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { personUrl } from 'util/navigation'
+import { groupUrl, personUrl } from 'util/navigation'
 import { cn } from 'util/index'
 
 import styles from './ChatPost.module.scss'
@@ -42,7 +43,8 @@ export default function ChatPost ({
   post,
   showHeader = true,
   onAddReaction = () => {},
-  onRemoveReaction = () => {}
+  onRemoveReaction = () => {},
+  onRemovePost = () => {}
 }) {
   const {
     commenters,
@@ -77,6 +79,7 @@ export default function ChatPost ({
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
 
   const isCreator = currentUser.id === creator.id
+  const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.includes(group.id), group, post.flaggedGroups)
 
   const groupIds = groups.map(g => g.id)
 
@@ -165,16 +168,18 @@ export default function ChatPost ({
   }
 
   const deletePostWithConfirm = useCallback((event) => {
-    if (window.confirm('Are you sure you want to delete this post? You cannot undo this.')) {
+    if (window.confirm(t('Are you sure you want to delete this post? You cannot undo this.'))) {
       dispatch(deletePost(id, group.id))
+      onRemovePost(post.id)
     }
     event.stopPropagation()
     return true
   })
 
   const removePostWithConfirm = useCallback((event) => {
-    if (window.confirm('Are you sure you want to remove this post? You cannot undo this.')) {
+    if (window.confirm(t('Are you sure you want to remove this post? You cannot undo this.'))) {
       dispatch(removePost(id, group.slug))
+      onRemovePost(post.id)
     }
     event.stopPropagation()
     return true
@@ -191,9 +196,11 @@ export default function ChatPost ({
     { icon: 'Trash', label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true }
   ])
 
-  const myEmojis = myReactions ? myReactions.map((reaction) => reaction.emojiFull) : []
+  const myEmojis = useMemo(() => myReactions ? myReactions.map((reaction) => reaction.emojiFull) : [], myReactions)
 
   const commenterAvatarUrls = commenters.map(p => p.avatarUrl)
+
+  const moderationActionsGroupUrl = group && groupUrl(group.slug, 'moderation')
 
   const handleMouseEnter = () => {
     setIsHovered(true)
@@ -247,7 +254,7 @@ export default function ChatPost ({
             onOpenChange={handleEmojiPickerOpen}
           />
           {flaggingVisible && (
-            <FlagContent
+            <FlagGroupContent
               type='post'
               linkData={{ id, slug: group.slug, type: 'post' }}
               onClose={() => setFlaggingVisible(false)}
@@ -281,18 +288,23 @@ export default function ChatPost ({
         )}
         {details && !editing && (
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
-            <div className={styles.postContentContainer}>
+            <div className={cn(styles.postContentContainer, { [styles.isFlagged]: isFlagged })}>
               <HyloHTML className={styles.postContent} html={details} />
             </div>
           </ClickCatcher>
         )}
+        {isFlagged && <Link to={moderationActionsGroupUrl} className='absolute top-1 ml-[50%] text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='flag-tt'><Icon name='Flag' className='text-xl text-accent font-bold' /></Link>}
+        <Tooltip
+          delay={250}
+          id='flag-tt'
+        />
         {linkPreview?.url && linkPreviewFeatured && isVideo && (
           <Feature url={linkPreview.url} />
         )}
         {linkPreview && !linkPreviewFeatured && (
           <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className={styles.linkPreview} />
         )}
-        <CardImageAttachments attachments={post.attachments} isFlagged={false} forChatPost />
+        <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} forChatPost />
         {!isEmpty(fileAttachments) && (
           <CardFileAttachments attachments={fileAttachments} />
         )}

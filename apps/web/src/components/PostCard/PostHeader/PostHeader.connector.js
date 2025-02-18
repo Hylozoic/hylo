@@ -37,10 +37,20 @@ export function mapStateToProps (state, props) {
 export function mapDispatchToProps (dispatch, props) {
   const { groupSlug } = props.routeParams
   const closeUrl = removePostFromUrl(`${location.pathname}${location.search}`)
+
   const deletePostWithConfirm = (postId, groupId, text) => {
     if (window.confirm((text))) {
       dispatch(deletePost(postId, groupId))
       dispatch(push(closeUrl))
+      props.onRemovePost?.(postId)
+    }
+  }
+
+  const removePostWithConfirm = (postId, text) => {
+    if (window.confirm((text))) {
+      dispatch(removePost(postId, groupSlug))
+      dispatch(push(closeUrl))
+      props.onRemovePost?.(postId)
     }
   }
 
@@ -60,9 +70,9 @@ export function mapDispatchToProps (dispatch, props) {
     unfulfillPost: postId => props.unfulfillPost
       ? props.unfulfillPost(postId)
       : dispatch(unfulfillPost(postId)),
-    removePost: postId => props.removePost
-      ? props.removePost(postId)
-      : dispatch(removePost(postId, groupSlug)),
+    removePost: (postId, text) => {
+      removePostWithConfirm(postId, text)
+    },
     pinPost: (postId, groupId) => props.pinPost
       ? props.pinPost(postId)
       : dispatch(pinPost(postId, groupId)),
@@ -87,7 +97,7 @@ export function mergeProps (stateProps, dispatchProps, ownProps) {
     unfulfillPost: isCreator ? () => unfulfillPost(id) : undefined,
     canFlag: !isCreator,
     pinPost: (responsibilities.includes(RESP_MANAGE_CONTENT)) && group ? () => pinPost(id, group.id) : undefined,
-    removePost: !isCreator && (responsibilities.includes(RESP_MANAGE_CONTENT)) ? () => removePost(id) : undefined,
+    removePost: !isCreator && (responsibilities.includes(RESP_MANAGE_CONTENT)) ? (text) => removePost(id, text) : undefined,
     roles: creator && connectorGetRolesForGroup(creator.id),
     updateProposalOutcome: isCreator ? (proposalOutcome) => updateProposalOutcome(id, proposalOutcome) : undefined,
     canEdit
