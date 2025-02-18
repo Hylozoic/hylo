@@ -9,8 +9,6 @@ export const TERMS_URL = 'https://hylo-landing.surge.sh/terms'
 
 export default function UserSettingsWebView ({ path: pathProp, route }) {
   const webViewRef = useRef(null)
-  // const [selectedSetting, setSelectedSetting] = useState(null)
-  // TODO: URQL! - Untested, intention is to refresh cache
   const [, queryCurrentUser] = useCurrentUser({ requestPolicy: 'network-only', pause: true })
   const logout = useLogout()
   const { originalLinkingPath, settingsArea } = useRouteParams()
@@ -23,6 +21,9 @@ export default function UserSettingsWebView ({ path: pathProp, route }) {
     switch (type) {
       case WebViewMessageTypes.LEFT_GROUP: {
         if (data.groupId) {
+          // TODO: URQL! - Untested, but this should refresh currentUser data after settings updated
+          // in WebView. See where it is called below, but this could also be simply be called when
+          // the screen is unmounted
           queryCurrentUser()
         }
       }

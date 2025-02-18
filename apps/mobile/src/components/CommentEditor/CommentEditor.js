@@ -4,7 +4,7 @@ import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash/fp'
 import { isIOS } from 'util/platform'
-import MaterialIcon from 'react-native-vector-icons/MaterialIcons'
+import { SendHorizonal } from 'lucide-react-native'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import createCommentMutation from '@hylo/graphql/mutations/createCommentMutation'
 import { firstName } from '@hylo/presenters/PersonPresenter'
@@ -17,12 +17,12 @@ import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import { white, rhino80, gunsmoke, rhino10, amaranth, alabaster, caribbeanGreen } from 'style/colors'
 
 export const CommentEditor = React.forwardRef(({
+  isModal,
   post,
   replyingTo,
   scrollToReplyingTo,
   clearReplyingTo
 }, ref) => {
-  const isModal = useIsModalScreen()
   const safeAreaInsets = useSafeAreaInsets()
   const { t } = useTranslation()
   const [, createComment] = useMutation(createCommentMutation)
@@ -94,7 +94,7 @@ export const CommentEditor = React.forwardRef(({
           </TouchableOpacity>
         </View>
       )}
-      <ScrollView contentContainerStyle={[styles.editor, { paddingBottom: isModal ? safeAreaInsets.bottom : 8 }]}>
+      <ScrollView contentContainerStyle={[styles.editor, isModal && { paddingBottom: safeAreaInsets.bottom }]}>
         <HyloEditorWebView
           placeholder={t('Write a comment')}
           readOnly={submitting}
@@ -104,7 +104,14 @@ export const CommentEditor = React.forwardRef(({
           customEditorCSS='max-height: 200px; overflow-y: auto;'
         />
         <TouchableOpacity onPress={handleCreateComment} disabled={!hasContent}>
-          {submitting ? <ActivityIndicator /> : <MaterialIcon name='send' size={26} style={[styles.submitButton, hasContent && styles.activeButton]} />}
+          {submitting
+            ? (
+              <ActivityIndicator />
+              )
+            : (
+              <SendHorizonal size={32} style={[styles.submitButton, hasContent && styles.activeButton]} />
+              )
+            }
         </TouchableOpacity>
       </ScrollView>
     </KeyboardFriendlyView>
@@ -161,8 +168,6 @@ const styles = StyleSheet.create({
   },
 
   submitButton: {
-    fontSize: 26,
-    lineHeight: 24,
     marginLeft: 8,
     marginRight: 4,
     color: gunsmoke
