@@ -463,7 +463,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       reason: 'mention'
     }))
 
-    if (this.type === Post.Type.CHAT) {
+    if (this.get('type') === Post.Type.CHAT) {
       const tagFollows = await TagFollow.query(qb => {
         qb.whereIn('tag_id', tags.map('id'))
         qb.whereIn('group_id', groups.map('id'))
@@ -478,10 +478,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
         group_id: tagFollow.get('group_id'),
         reason: `tag: ${tagFollow.relations.tag.get('name')}`
       }))
-      activitiesToCreate.concat(tagFollowers)
+      activitiesToCreate = activitiesToCreate.concat(tagFollowers)
       // TODO: filter out mentions above if they are in chats and they have notifications turned off
     }
-    activitiesToCreate.concat(mentioned)
+    activitiesToCreate = activitiesToCreate.concat(mentioned)
 
     const eventInvitations = await EventInvitation.query(qb => {
       qb.where('event_id', this.id)
@@ -494,7 +494,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       actor_id: eventInvitation.get('inviter_id'),
       reason: 'eventInvitation'
     }))
-    activitiesToCreate.concat(invitees)
+    activitiesToCreate = activitiesToCreate.concat(invitees)
 
     let members = await Promise.all(groups.map(async group => {
       const userIds = await group.members().fetch().then(u => u.pluck('id'))
@@ -522,7 +522,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       return newPosts
     }))
 
-    activitiesToCreate.concat(flatten(members))
+    activitiesToCreate = activitiesToCreate.concat(flatten(members))
 
     activitiesToCreate = filter(r => r.reader_id !== this.get('user_id'), activitiesToCreate)
 
