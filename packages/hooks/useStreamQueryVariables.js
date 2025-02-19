@@ -14,7 +14,7 @@ export default function useStreamQueryVariables ({
   timeframe,
   topicName
 }) {
-  const fetchPostParam = useMemo(() => omitBy(x => isNull(x) || isUndefined(x), {
+  const streamQueryVariables = useMemo(() => omitBy(x => isNull(x) || isUndefined(x), {
     activePostsOnly: customView?.activePostsOnly || null,
     afterTime: streamType === 'event'
       ? (timeframe === 'future' ? new Date().toISOString() : null)
@@ -78,5 +78,5 @@ export default function useStreamQueryVariables ({
     currentUser?.id
   ])
 
-  return fetchPostParam
+  return streamQueryVariables
 }

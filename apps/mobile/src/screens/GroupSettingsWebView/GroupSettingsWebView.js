@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import RNRestart from 'react-native-restart'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
-import { alabaster, capeCod, rhino40, rhino80 } from 'style/colors'
+import { alabaster, amaranth, capeCod, rhino40, rhino80 } from 'style/colors'
 
-export default function GroupSettingsWebView () {
+export default function GroupSettingsWebView ({ path: pathProp, route}) {
   const webViewRef = useRef()
+  const [, queryCurrentUser] = useCurrentUser({ requestPolicy: 'network-only', pause: true })
   const { groupSlug, originalLinkingPath, settingsArea: routeSettingsArea } = useRouteParams()
   const [selectedSettingsArea, setSelectedSettingsArea] = useState(routeSettingsArea)
-
+console.log('!! routeSettingsArea', routeSettingsArea, pathProp, route)
   useEffect(() => {
     setSelectedSettingsArea(routeSettingsArea)
   }, [routeSettingsArea])
@@ -17,7 +18,10 @@ export default function GroupSettingsWebView () {
   const handleNavigationStateChange = useCallback(({ url }) => {
     // Temporary sorta fix for Group delete which reloads the page
     if (url.match(/\/all/)) {
-      RNRestart.Restart()
+      // TODO: After deleting a group on Web the user used to be forwarded to /all. Needs to be confirm that this is still
+      // the case, and tested if this re-query of currentUser adequately updates the list of groups for the user. It should.
+      // queryCurrentUser is provisional and replacing what as a RNRestart() call, which we should basically never do.
+      queryCurrentUser()
       return false
     }
     if (!url.match(/\/groups\/([^\/]+)settings/)) {
@@ -42,7 +46,7 @@ export default function GroupSettingsWebView () {
     { settingsArea: 'requests', label: 'Join Requests' },
     { settingsArea: 'relationships', label: 'Related Groups' },
     { settingsArea: 'export', label: 'Export Data' },
-    { settingsArea: 'delete', label: 'Delete' }
+    { settingsArea: 'delete', label: 'Delete', style: { color: amaranth } }
     // TODO: Routing - Doesn't seem to currently appear on Web so leaving it out here?
     // { settingsArea: 'views', label: 'Custom Views' }
   ]
@@ -67,13 +71,13 @@ export default function GroupSettingsWebView () {
           )
         : (
           <ScrollView contentContainerStyle={styles.menu}>
-            {settingsOptions.map(({ settingsArea, label }) => (
+            {settingsOptions.map(({ settingsArea, label, style }) => (
               <TouchableOpacity
                 key={settingsArea}
                 style={styles.menuItem}
                 onPress={() => setSelectedSettingsArea(settingsArea)}
               >
-                <Text style={styles.menuText}>{label}</Text>
+                <Text style={[styles.menuText, style]}>{label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>

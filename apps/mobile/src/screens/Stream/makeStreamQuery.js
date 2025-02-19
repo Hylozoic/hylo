@@ -34,7 +34,7 @@ export const makeStreamQuery = ({
 
   if (context === 'groups') {
     query = makeGroupPostsQuery(childPostInclusion === 'yes')
-  // TODO: URQL - Amend to make 'my' a ContextGroup as well
+  // TODO: URQL! - Amend to make 'my' a ContextGroup as well --- MAY NO LONGER BE RELEVANT and this special case may be able to be removed
   } else if (isContextGroupSlug(context)) {
     query = postsQuery
   } else {
@@ -104,8 +104,8 @@ const postsQuery = gql`
 
 // TODO: URQL - eliminate Group.viewPosts and add "includeChildPost" filter (or similar)
 // viewPosts shows all the aggregate posts from current group and any
-// children the current user is a member of. We alias as posts so
-// redux-orm sets up the relationship between group and posts correctly
+// children the current user is a member of. We aliased as posts so
+// redux-orm would setup the relationship between group and posts correctly
 const makeGroupPostsQuery = withChildPosts => gql`
   query StreamGroupPostsQuery (
     $slug: String,
