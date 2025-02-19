@@ -23,7 +23,7 @@ export default function MapWebView ({ navigation }) {
 
   const screenTitle = (group) => {
     if (group?.slug === PUBLIC_CONTEXT_SLUG) return t('Public Map')
-    if (group?.slug === ALL_GROUPS_CONTEXT_SLUG || group?.slug === MY_CONTEXT_SLUG) return t('My Groups Map')
+    if (group?.slug === MY_CONTEXT_SLUG) return t('My Groups Map')
     return group?.name
   }
 

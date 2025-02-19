@@ -57,7 +57,7 @@ export default function ContextMenu (props) {
 
   const rawContextWidgets = useSelector(state => {
     if (isMyContext || isPublicContext || isAllContext) {
-      return getStaticMenuWidgets({ isPublicContext, isMyContext, profileUrl, isAllContext })
+      return getStaticMenuWidgets({ isPublicContext, isMyContext: isMyContext || isAllContext, profileUrl })
     }
     return getContextWidgets(state, group)
   })
@@ -129,7 +129,7 @@ export default function ContextMenu (props) {
                 </div>
               </div>
               )
-            : isMyContext || isAllContext
+            : isMyContext
               ? (
                 <div className='flex flex-col p-2'>
                   <h2 className='text-foreground font-bold leading-3 text-lg'>My Home</h2>

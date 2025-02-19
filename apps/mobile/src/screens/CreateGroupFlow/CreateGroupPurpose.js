@@ -11,7 +11,6 @@ import {
 } from './CreateGroupFlow.store'
 import ErrorBubble from 'components/ErrorBubble'
 import styles from './CreateGroupFlow.styles'
-import { ALL_GROUP_ID, MY_CONTEXT_ID, PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
 
 export default function CreateGroupPurpose ({ route }) {
   const { t } = useTranslation()
@@ -40,7 +39,7 @@ export default function CreateGroupPurpose ({ route }) {
   }, [groupPurpose]))
 
   useFocusEffect(useCallback(() => {
-    if (!edited && ![ALL_GROUP_ID, PUBLIC_GROUP_ID, MY_CONTEXT_ID].includes(currentGroup?.id)) {
+    if (!edited && !currentGroup?.isContextGroup) {
       dispatch(updateGroupData({ parentIds: [currentGroup?.id] }))
     }
   }, [edited, currentGroup?.id]))

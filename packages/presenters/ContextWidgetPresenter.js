@@ -18,7 +18,7 @@ export default function ContextWidgetPresenter (widget, { t }) {
     isValidHomeWidget: isValidHomeWidgetResolver(widget),
     title: titleResolver({ widget, t }),
     type,
-    // Protects us from double presenting a widget
+    // Protection from double presenting
     _presented: true
   }
 }
@@ -168,18 +168,9 @@ export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
   )
 }
 
-export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl, isAllContext }) {
-  let widgets = []
-
-  if (isPublicContext) {
-    widgets = PUBLIC_CONTEXT_WIDGETS
-  }
-
-  if (isMyContext || isAllContext) {
-    widgets = MY_CONTEXT_WIDGETS(profileUrl)
-  }
-
-  return widgets
+export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl }) {
+  if (isPublicContext) return PUBLIC_CONTEXT_WIDGETS
+  if (isMyContext) return MY_CONTEXT_WIDGETS(profileUrl)
 }
 
 export const orderContextWidgetsForContextMenu = (contextWidgets) => {
@@ -245,7 +236,6 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { title: 'widget-my-logout', id: 'widget-my-logout', view: 'logout', type: 'logout', order: 4, parentId: null }
 ]
 
-// What are views? Highly suspect :)
 export const COMMON_VIEWS = {
   proposals: {
     name: 'Proposals',

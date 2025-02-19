@@ -2,11 +2,10 @@ import React, { useMemo } from 'react'
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { capitalize } from 'lodash/fp'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { widgetUrl as makeWidgetUrl } from 'util/navigation'
 import { openURL } from 'hooks/useOpenURL'
-import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
-import ContextWidgetPresenter from '@hylo/presenters/ContextWidgetPresenter'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 
 function WidgetCard ({ widget, onPress }) {
@@ -40,18 +39,17 @@ function WidgetCard ({ widget, onPress }) {
 }
 
 export default function AllViews () {
-  const { t } = useTranslation()
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdminister = hasResponsibility(RESP_ADMINISTRATION)
-  const contextWidgets = currentGroup?.contextWidgets || []
+  const widgets = currentGroup?.contextWidgets || []
   const visibleWidgets = useMemo(() => {
-    return contextWidgets.filter(widget => {
+    return widgets.filter(widget => {
       if (widget.visibility === 'admin' && !canAdminister) return false
       if (widget.type === 'home') return false
       return true
-    }).map(widget => ContextWidgetPresenter(widget, { t }))
-  }, [contextWidgets, canAdminister])
+    })
+  }, [widgets, canAdminister])
 
   const handleWidgetPress = (widget) => {
     const widgetUrl = makeWidgetUrl({ widget, groupSlug: currentGroup?.slug })

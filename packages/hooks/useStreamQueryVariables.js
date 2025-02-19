@@ -25,11 +25,7 @@ export default function useStreamQueryVariables ({
       : null,
     childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
     collectionToFilterOut: null,
-    context: context || (isContextGroupSlug(forGroup?.slug) // Relying on context now but will fall back to prior logic
-      ? forGroup?.slug
-      : myHome
-        ? 'my'
-        : 'groups'),
+    context,
     createdBy: myHome === 'My Posts'
       ? [currentUser.id]
       : null,
@@ -62,6 +58,9 @@ export default function useStreamQueryVariables ({
       ? customView?.postTypes
       : null
   }), [
+    context,
+    currentUser?.id,
+    currentUser?.settings?.streamChildPosts,
     customView,
     customView?.activePostsOnly,
     customView?.collectionId,
@@ -73,9 +72,7 @@ export default function useStreamQueryVariables ({
     sortBy,
     streamType,
     timeframe,
-    topicName,
-    currentUser?.settings?.streamChildPosts,
-    currentUser?.id
+    topicName
   ])
 
   return streamQueryVariables

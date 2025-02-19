@@ -9,7 +9,6 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import useStreamQueryVariables from '@hylo/hooks/useStreamQueryVariables'
 import { useTranslation } from 'react-i18next'
-import { PUBLIC_GROUP_ID, MY_CONTEXT_SLUG, ALL_GROUPS_CONTEXT_SLUG } from '@hylo/presenters/GroupPresenter'
 import useRouteParams from 'hooks/useRouteParams'
 import makeStreamQuery from './makeStreamQuery'
 import StreamHeader from './StreamHeader'
@@ -124,15 +123,15 @@ export default function Stream () {
       title: getTitle()
     })
 
-    function getTitle() {
-      if (currentGroup?.slug === MY_CONTEXT_SLUG || currentGroup?.slug === ALL_GROUPS_CONTEXT_SLUG) {
-        return t('My Home')
+    function getTitle () {
+      if (currentGroup?.isMyContext) {
+        return t(currentGroup?.title)
       }
       if (streamType === 'Moderation') {
         return t('Moderation')
       }
       if (streamType) {
-        return capitalize(t(streamType) + 's')
+        return capitalize(t(streamType))
       }
       return currentGroup?.name
     }
@@ -193,7 +192,7 @@ export default function Stream () {
   if (!currentUser) return <Loading style={{ flex: 1 }} />
   if (!currentGroup) return null
 
-  if (isEmpty(currentUser?.memberships) && currentGroup?.id !== PUBLIC_GROUP_ID) {
+  if (isEmpty(currentUser?.memberships) && currentGroup?.isPublicContext) {
     return (
       <CreateGroupNotice />
     )

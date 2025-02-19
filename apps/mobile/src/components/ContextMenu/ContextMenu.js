@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { widgetUrl as makeWidgetUrl, groupUrl } from 'util/navigation'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import ContextWidgetPresenter, { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver } from '@hylo/presenters/ContextWidgetPresenter'
+import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 import useLogout from 'hooks/useLogout'
@@ -16,10 +16,7 @@ export default function ContextMenu () {
   const navigation = useNavigation()
   const { t } = useTranslation()
   const [{ currentGroup }] = useCurrentGroup()
-  const contextWidgets = currentGroup?.contextWidgets || []
-  const orderedWidgets = useMemo(() =>
-    orderContextWidgetsForContextMenu(contextWidgets.map(widget => ContextWidgetPresenter(widget, { t }))), [contextWidgets, currentGroup]
-  )
+  const widgets = useMemo(() => orderContextWidgetsForContextMenu(currentGroup?.contextWidgets || []), [currentGroup?.contextWidgets])
 
   useEffect(() => {
     if ((currentGroup.shouldWelcome)) {
@@ -31,8 +28,19 @@ export default function ContextMenu () {
 
   return (
     <View className='flex-1 bg-background'>
-      <ContextHeader group={currentGroup} />
-      <ContextWidgetList contextWidgets={orderedWidgets} group={currentGroup} />
+      <Header group={currentGroup} />
+      <ScrollView className='p-2'>
+        {widgets.map(widget => (
+          <View key={widget.id} className='mb-1'>
+            <MenuItem
+              widget={widget}
+              groupSlug={currentGroup.slug}
+              rootPath={`/groups/${currentGroup.slug}`}
+              group={currentGroup}
+            />
+          </View>
+        ))}
+      </ScrollView>
       {(!currentGroup.isContextGroup) && (
         <View className='px-2 mb-2'>
           <TouchableOpacity
@@ -48,7 +56,7 @@ export default function ContextMenu () {
   )
 }
 
-function ContextMenuItem ({ widget, groupSlug, rootPath, group }) {
+function MenuItem ({ widget, groupSlug, rootPath, group }) {
   const { t } = useTranslation()
   const { listItems, loading } = useContextWidgetChildren({ widget, groupSlug })
   const logout = useLogout()
@@ -56,15 +64,14 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, group }) {
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
   const [{ currentGroup }] = useCurrentGroup()
 
-  const title = widget.title
+  const title = t(widget.title)
   const url = makeWidgetUrl({ widget, rootPath, groupSlug })
-
   const handleWidgetPress = widget => {
-    const context = currentGroup?.isContextGroup ? currentGroup?.slug : 'groups'
-    const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.isContextGroup ? null : currentGroup?.slug, context })
+    const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.slug })
 
     openURL(linkingPath)
   }
+
   if (isHiddenInContextMenuResolver(widget)) return null
   if (widget.visibility === 'admin' && !canAdmin) return null
 
@@ -105,7 +112,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, group }) {
       </View>
       {loading && <Text>{t('Loading...')}</Text>}
       {listItems.length > 0 && listItems.map(item =>
-        <ChildWidgetRenderer
+        <ChildWidget
           key={item.id}
           widget={item}
           rootPath={rootPath}
@@ -117,7 +124,8 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, group }) {
   )
 }
 
-function ChildWidgetRenderer ({ widget, rootPath, groupSlug, handleWidgetPress }) {
+function ChildWidget ({ widget, handleWidgetPress }) {
+  const { t } = useTranslation()
   return (
     <TouchableOpacity
       key={widget.id + widget.title}
@@ -125,7 +133,7 @@ function ChildWidgetRenderer ({ widget, rootPath, groupSlug, handleWidgetPress }
       className='flex-row items-center ml-8 h-12 py-2 gap-2 content-center border-b border-foreground/20'
     >
       <View className='w-5'><WidgetIconResolver widget={widget} className='mr-2' /></View>
-      <Text className='text-sm text-primary-accent'>{widget.title}</Text>
+      <Text className='text-sm text-primary-accent'>{t(widget.title)}</Text>
     </TouchableOpacity>
   )
 }
@@ -217,45 +225,23 @@ function TopElements ({ widget, group }) {
   }
 }
 
-function ContextWidgetList ({ contextWidgets, group }) {
-  return (
-    <ScrollView className='p-2'>
-      {contextWidgets.map(widget => (
-        <View key={widget.id} className='mb-1'>
-          <ContextMenuItem
-            widget={widget}
-            groupSlug={group.slug}
-            rootPath={`/groups/${group.slug}`}
-            group={group}
-          />
-        </View>
-      ))}
-    </ScrollView>
-  )
-}
-
-function ContextHeader ({ group }) {
+function Header ({ group }) {
   const { t } = useTranslation()
+
+  if (!group) return null
 
   return (
     <View className='w-full relative'>
-      {!group?.isContextGroup
-        ? <GroupMenuHeader group={group} />
-        : group?.isPublicContext
-          ? (
-            <View className='flex flex-col p-2'>
-              <Text className='text-foreground font-bold text-lg'>{t('The Commons')}</Text>
-            </View>
-            )
-          : (
-              group?.isMyContext || group?.isAllContext)
-              ? (
-                <View className='flex flex-col p-2'>
-                  <Text className='text-foreground font-bold text-lg'>{t('My Home')}</Text>
-                </View>
-                )
-              : null
-        }
+      {!group.isContextGroup && (
+        <GroupMenuHeader group={group} />
+      )}
+      {group.isContextGroup && (
+        <View className='flex flex-col p-2'>
+          <Text className='text-foreground font-bold text-lg'>
+            {t(group.name)}
+          </Text>
+        </View>
+      )}
     </View>
   )
 }

@@ -3,27 +3,24 @@ import { Animated, TouchableOpacity, Text, StyleSheet, View, FlatList } from 're
 import FastImage from 'react-native-fast-image'
 import Intercom from '@intercom/intercom-react-native'
 import { Globe, Plus, CircleHelp } from 'lucide-react-native'
-import { clsx } from 'clsx'
 import { map, sortBy } from 'lodash/fp'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import { MY_CONTEXT_GROUP, PUBLIC_GROUP } from '@hylo/presenters/GroupPresenter'
-import useChangeToGroup from 'hooks/useChangeToGroup'
+import { clsx } from 'clsx'
 import { openURL } from 'hooks/useOpenURL'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useCurrentGroup, { useContextGroups } from '@hylo/hooks/useCurrentGroup'
+import useChangeToGroup from 'hooks/useChangeToGroup'
 
 export default function ContextSwitchMenu () {
+  const changeToGroup = useChangeToGroup()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
-  const changeToGroup = useChangeToGroup()
-
-  // TODO: Push this down into GroupPresenter and handle this likely by having a presented
-  // My group that gets/already has the right avatarUrl from currentUser
-  const myContextGroup = { ...MY_CONTEXT_GROUP, avatarUrl: currentUser?.avatarUrl }
-  const myGroups = [myContextGroup, PUBLIC_GROUP].concat(sortBy('name', map(m => m.group, currentUser.memberships)))
+  const { myContext, publicContext } = useContextGroups()
+  const myGroups = [myContext, publicContext].concat(
+    sortBy('name', map(m => m.group, currentUser.memberships))
+  )
 
   return (
     <Animated.View className='flex-col h-full bg-theme-background z-50 items-center py-2 px-3'>
-      {/* FlatList used instead of FlashList because of strict-sizing requirements of FlashList */}
       <FlatList
         data={myGroups}
         keyExtractor={(item) => item.id}
@@ -37,6 +34,7 @@ export default function ContextSwitchMenu () {
         showsVerticalScrollIndicator={false}
       />
       <View className='w-full mt-auto bg-theme-background pt-4'>
+        {/* TODO redesign: A Group or Post Creation option is expected based on Web-parity */}
         <TouchableOpacity
           onPress={() => openURL('/create/group')}
           style={styles.rowTouchable}
@@ -52,7 +50,7 @@ export default function ContextSwitchMenu () {
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => Intercom.present()} // Needs to open some creation dialog?
+          onPress={() => Intercom.present()}
           style={styles.rowTouchable}
           activeOpacity={0.7}
         >
@@ -66,13 +64,12 @@ export default function ContextSwitchMenu () {
 }
 
 function NavRow ({ item, changeToGroup, currentGroupSlug, badgeCount = 0, className }) {
-  const { id, avatarUrl, name, slug } = item
   const newPostCount = Math.min(99, item.newPostCount)
-  const highlight = slug === currentGroupSlug
+  const highlight = item?.slug === currentGroupSlug
 
   return (
     <TouchableOpacity
-      key={id}
+      key={item?.id}
       onPress={() => changeToGroup(item?.slug, false)}
       style={styles.rowTouchable}
       activeOpacity={0.7}
@@ -85,10 +82,10 @@ function NavRow ({ item, changeToGroup, currentGroupSlug, badgeCount = 0, classN
           className
         )}
       >
-        {!!avatarUrl && (
-          <FastImage source={{ uri: avatarUrl }} style={styles.groupAvatar} />
+        {!!item?.avatarUrl && (
+          <FastImage source={{ uri: item?.avatarUrl }} style={styles.groupAvatar} />
         )}
-        {slug === PUBLIC_GROUP.slug &&
+        {item?.isPublicContext &&
           <View className='flex items-center w-14 h-14 min-h-10 rounded-lg'>
             <Globe />
           </View>}

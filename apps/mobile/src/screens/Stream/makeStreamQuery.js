@@ -30,19 +30,10 @@ export const makeStreamQuery = ({
   topics,
   types
 }) => {
-  let query
-
-  if (context === 'groups') {
-    query = makeGroupPostsQuery(childPostInclusion === 'yes')
-  // TODO: URQL! - Amend to make 'my' a ContextGroup as well --- MAY NO LONGER BE RELEVANT and this special case may be able to be removed
-  } else if (isContextGroupSlug(context)) {
-    query = postsQuery
-  } else {
-    throw new Error(`makeQuery with context=${context} is not implemented`)
-  }
-
   return {
-    query,
+    query: isContextGroupSlug(context)
+      ? postsQuery
+      : makeGroupPostsQuery(childPostInclusion === 'yes'),
     variables: {
       activePostsOnly,
       afterTime,

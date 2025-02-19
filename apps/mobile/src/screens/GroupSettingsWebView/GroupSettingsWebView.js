@@ -10,7 +10,7 @@ export default function GroupSettingsWebView ({ path: pathProp, route}) {
   const [, queryCurrentUser] = useCurrentUser({ requestPolicy: 'network-only', pause: true })
   const { groupSlug, originalLinkingPath, settingsArea: routeSettingsArea } = useRouteParams()
   const [selectedSettingsArea, setSelectedSettingsArea] = useState(routeSettingsArea)
-console.log('!! routeSettingsArea', routeSettingsArea, pathProp, route)
+
   useEffect(() => {
     setSelectedSettingsArea(routeSettingsArea)
   }, [routeSettingsArea])

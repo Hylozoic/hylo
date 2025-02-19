@@ -1,20 +1,33 @@
-import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
+import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
 import ContextWidgetPresenter, { getStaticMenuWidgets } from './ContextWidgetPresenter'
 
-export default function GroupPresenter (group, { currentUser }) {
+// TODO: We will move "t" to a shared instance so it will no longer have to be passed here,
+// also see note below about things like currentUser
+export default function GroupPresenter (group, { currentUser, t }) {
   if (!group || group?._presented) return group
+
+  const isContextGroup = isContextGroupSlug(group?.slug)
+  const isPublicContext = group?.slug === PUBLIC_CONTEXT_SLUG
+  const isMyContext = group?.slug === MY_CONTEXT_SLUG
 
   return {
     ...group,
-    isContextGroup: isContextGroupSlug(group?.slug),
+    avatarUrl: (isMyContext ? currentUser?.avatarUrl : group?.avatarUrl) || DEFAULT_AVATAR,
+    bannerUrl: group?.bannerUrl || DEFAULT_BANNER,
+
     // Note: Currently this flattens to the QuerySet attribute of ".items"
     // Until more is clear we are not flattening items so that non-presented results (most)
     // from queries work largely the same as presented results (e.g. group?.posts?.items, etc)
-    contextWidgets: contextWidgetsResolver(group, { currentUser }),
-    isPublicContext: group?.slug === PUBLIC_CONTEXT_SLUG,
-    isMyContext: group?.slug === MY_CONTEXT_SLUG,
-    isAllContext: group?.slug === ALL_GROUPS_CONTEXT_SLUG,
+    // TODO: We shouldn't bind data that. Resolvers which need data not provided by the queried
+    // entity should have get* functions e.g. getContextWidgets (or getContextWidgetsForUser)
+    // which then take the required params on the presented result.
+    contextWidgets: contextWidgetsResolver(group, { currentUser, t }),
+
+    isContextGroup,
+    isPublicContext,
+    isMyContext,
     shouldWelcome: shouldWelcomeResolver(group, currentUser),
+    // Protection from double presenting
     _presented: true
   }
 }
@@ -35,17 +48,16 @@ function shouldWelcomeResolver (group, currentUser) {
   return ((!isContextGroupSlug(group?.slug) && showJoinForm) || agreementsChanged || (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt))
 }
 
-function contextWidgetsResolver (group, { currentUser }) {
+function contextWidgetsResolver (group, { currentUser, t }) {
   if (isContextGroupSlug(group.slug)) {
     return getStaticMenuWidgets({
       isPublicContext: group.slug === PUBLIC_CONTEXT_SLUG,
       isMyContext: group.slug === MY_CONTEXT_SLUG,
-      isAllContext: group.slug === ALL_GROUPS_CONTEXT_SLUG,
       profileUrl: profileUrlResolver(currentUser)
     })
   }
   // TODO redesign: Presented widgets, but they need a t object (or to add global--see note in ContextWidgetPresenter)
-  return (group?.contextWidgets?.items || []).map(ContextWidgetPresenter)
+  return (group?.contextWidgets?.items || []).map(widget => ContextWidgetPresenter(widget, { t }))
 }
 
 // Until such time as we have navigation helpers in a shared context,
@@ -133,36 +145,20 @@ export const LOCATION_PRECISION = {
 export const DEFAULT_BANNER = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_banner.jpg'
 export const DEFAULT_AVATAR = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png'
 
-export const ALL_GROUP_ID = ALL_GROUPS_CONTEXT_SLUG
-export const ALL_GROUP_AVATAR_PATH = '/assets/white-merkaba.png'
-export const ALL_GROUP = {
-  id: ALL_GROUP_ID,
-  slug: ALL_GROUP_ID,
-  headerAvatarUrl: 'assets/All_Groups.png',
-  avatarUrl: 'assets/All_Groups2.png',
-  bannerUrl: 'assets/all-groups-banner.png',
-  name: 'All My Groups',
-  parentGroups: { items: [], hasMore: false, total: 0 },
-  childGroups: { items: [], hasMore: false, total: 0 }
-}
-
-export const PUBLIC_GROUP_ID = PUBLIC_CONTEXT_SLUG
-export const PUBLIC_GROUP = {
-  id: PUBLIC_GROUP_ID,
-  slug: PUBLIC_GROUP_ID,
+const PUBLIC_CONTEXT_DATA = {
+  id: PUBLIC_CONTEXT_SLUG,
+  slug: PUBLIC_CONTEXT_SLUG,
   headerAvatarUrl: 'assets/green-icon.jpg',
   avatarUrl: 'assets/public.png',
   bannerUrl: 'assets/green-hero.jpg',
-  name: 'Public Stream',
+  name: 'The Commons',
   parentGroups: { items: [], hasMore: false, total: 0 },
   childGroups: { items: [], hasMore: false, total: 0 }
 }
 
-export const MY_CONTEXT_ID = 'my'
-export const MY_CONTEXT_AVATAR_PATH = '/assets/my-home.png'
-export const MY_CONTEXT_GROUP = {
-  id: MY_CONTEXT_ID,
-  slug: MY_CONTEXT_ID,
+const MY_CONTEXT_DATA = {
+  id: MY_CONTEXT_SLUG,
+  slug: MY_CONTEXT_SLUG,
   headerAvatarUrl: 'assets/purple-icon.jpg',
   avatarUrl: 'assets/my-home.png',
   bannerUrl: 'assets/purple-hero.jpg',
@@ -172,11 +168,10 @@ export const MY_CONTEXT_GROUP = {
 }
 
 export const isContextGroupSlug = slug =>
-  [ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(slug)
+  [PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(slug)
 
-export function getContextGroup (groupSlug, groupId) {
-  if (groupId === ALL_GROUP_ID || groupSlug === ALL_GROUP_ID) return ALL_GROUP
-  if (groupId === PUBLIC_GROUP_ID || groupSlug === PUBLIC_GROUP_ID) return PUBLIC_GROUP
-  if (groupId === MY_CONTEXT_ID || groupSlug === MY_CONTEXT_ID) return MY_CONTEXT_GROUP
+export function getContextGroup (contextSlug, presenterArgs = {}) {
+  if (contextSlug === PUBLIC_CONTEXT_SLUG) return GroupPresenter(PUBLIC_CONTEXT_DATA, presenterArgs)
+  if (contextSlug === MY_CONTEXT_SLUG) return GroupPresenter(MY_CONTEXT_DATA, presenterArgs)
   return null
 }

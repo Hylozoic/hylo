@@ -1,18 +1,24 @@
 import React, { useEffect, useState } from 'react'
 import { LayoutAnimation, View, Keyboard, Alert } from 'react-native'
-import Button from 'components/Button'
-import { useSelector, useDispatch } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
-import { getWorkflowOptions, getCurrentStepIndex, getRouteNames, decrementCurrentStepIndex, incrementCurrentStepIndex, GROUP_WELCOME_AGREEMENTS, GROUP_WELCOME_JOIN_QUESTIONS } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
-import { isIOS } from 'util/platform'
-import isEmpty from 'lodash/isEmpty'
-import {
-  caribbeanGreen, rhino30, white, white20onCaribbeanGreen, white40onCaribbeanGreen
-} from 'style/colors'
-import { useKeyboard } from '@react-native-community/hooks'
-import { ALL_GROUP } from '@hylo/presenters/GroupPresenter'
 import { useTranslation } from 'react-i18next'
+import isEmpty from 'lodash/isEmpty'
+import { useSelector, useDispatch } from 'react-redux'
+import { useKeyboard } from '@react-native-community/hooks'
+import { MY_CONTEXT_SLUG } from '@hylo/shared'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { isIOS } from 'util/platform'
+import {
+  getWorkflowOptions,
+  getCurrentStepIndex,
+  getRouteNames,
+  decrementCurrentStepIndex,
+  incrementCurrentStepIndex,
+  GROUP_WELCOME_AGREEMENTS,
+  GROUP_WELCOME_JOIN_QUESTIONS
+} from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
+import Button from 'components/Button'
+import { caribbeanGreen, rhino30, white, white20onCaribbeanGreen, white40onCaribbeanGreen } from 'style/colors'
 
 export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agreements, handleAccept, allQuestionsAnswered }) {
   const { t } = useTranslation()
@@ -72,7 +78,7 @@ export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agre
     const getOutTitle = enforceAgreements ? t('Exit this Group & Return Home') : t('Skip')
     const getOutFunc = enforceAgreements
       ? () => {
-          navigation.navigate('Group Navigation', { groupSlug: ALL_GROUP.slug })
+          navigation.navigate('Group Navigation', { groupSlug: MY_CONTEXT_SLUG })
           navigation.navigate('Stream', { initial: false })
         }
       : () => completeWorkflow()

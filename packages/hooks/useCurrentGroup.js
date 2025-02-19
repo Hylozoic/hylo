@@ -2,6 +2,7 @@ import { useMemo, useEffect } from 'react'
 import { useQuery } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { create } from 'zustand'
+import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
 import mixpanel from 'services/mixpanel'
 import useCurrentUser from './useCurrentUser'
 import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
@@ -22,8 +23,10 @@ export function useGroup ({
   },
   useQueryArgs = {}
 } = {}) {
+  const { t } = useTranslation()
   const [{ currentUser, fetching: userFetching, error: userError }] = useCurrentUser({ pause: useQueryArgs?.pause || !groupSlug })
-  const contextGroup = useMemo(() => getContextGroup(groupSlug, groupId), [groupSlug, groupId])
+  const contextGroup = useMemo(() => getContextGroup(groupSlug || groupId, { currentUser, t }), [groupSlug, groupId])
+
   const pause = !!contextGroup || useQueryArgs?.pause || (!groupSlug && !groupId)
   const [{ data, fetching: groupFetching, error: groupError }, reQuery] = useQuery({
     ...useQueryArgs,
@@ -31,10 +34,20 @@ export function useGroup ({
     variables: { id: groupId, slug: groupSlug },
     pause
   })
-  const rawGroup = contextGroup || data?.group
-  const group = useMemo(() => rawGroup && GroupPresenter(rawGroup, { currentUser }), [rawGroup, currentUser])
+
+  const group = contextGroup || GroupPresenter(data?.group, { currentUser, t })
 
   return [{ group, isContextGroupSlug: !!isContextGroupSlug(groupSlug), fetching: userFetching || groupFetching, error: groupError || userError }, contextGroup ? () => {} : reQuery]
+}
+
+export function useContextGroups () {
+  const { t } = useTranslation()
+  const [{ currentUser }] = useCurrentUser()
+
+  return {
+    myContext: getContextGroup(MY_CONTEXT_SLUG, { currentUser, t }),
+    publicContext: getContextGroup(PUBLIC_CONTEXT_SLUG, { currentUser, t })
+  }
 }
 
 export function useCurrentGroupSlug (setToGroupSlug, useQueryArgs = {}) {
