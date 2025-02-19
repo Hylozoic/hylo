@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
-import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 
 import Loading from 'components/Loading'
 import ModerationListItem from 'components/ModerationListItem/ModerationListItem'
@@ -13,17 +12,13 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { fetchModerationActions, clearModerationAction } from 'store/actions/moderationActions'
 import { FETCH_MODERATION_ACTIONS } from 'store/constants'
-import orm from 'store/models'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import getMe from 'store/selectors/getMe'
-import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getHasMoreModerationActions, getModerationActions } from 'store/selectors/getModerationActions'
 import { cn } from 'util/index'
 
 export default function Moderation (props) {
   const dispatch = useDispatch()
   const routeParams = useRouteParams()
-  const { t } = useTranslation()
   const { groupSlug } = routeParams
   const context = props.context
 
