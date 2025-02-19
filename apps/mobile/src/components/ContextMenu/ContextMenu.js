@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { widgetUrl as makeWidgetUrl, groupUrl } from 'util/navigation'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import useRouteParams from 'hooks/useRouteParams'
 import ContextWidgetPresenter, { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
@@ -12,41 +11,28 @@ import useLogout from 'hooks/useLogout'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import { openURL } from 'hooks/useOpenURL'
-import Loading from 'components/Loading'
 
 export default function ContextMenu () {
-  const { myHome, groupSlug } = useRouteParams()
-  // TODO redesign: myHome is probably redundant now and likely can be stripped out"
-  const [{ currentGroup, fetching }] = useCurrentGroup({ setToGroupSlug: groupSlug })
   const navigation = useNavigation()
   const { t } = useTranslation()
+  const [{ currentGroup }] = useCurrentGroup()
   const contextWidgets = currentGroup?.contextWidgets || []
   const orderedWidgets = useMemo(() =>
-    orderContextWidgetsForContextMenu(contextWidgets.map(widget => ContextWidgetPresenter(widget, { t }))), [contextWidgets, currentGroup, myHome]
+    orderContextWidgetsForContextMenu(contextWidgets.map(widget => ContextWidgetPresenter(widget, { t }))), [contextWidgets, currentGroup]
   )
 
   useEffect(() => {
-    if (!fetching) {
-      if ((currentGroup.shouldWelcome)) {
-        navigation.navigate('Group Welcome', { groupId: currentGroup?.id })
-      }
+    if ((currentGroup.shouldWelcome)) {
+      navigation.navigate('Group Welcome', { groupId: currentGroup?.id })
     }
-  }, [currentGroup, fetching])
+  }, [currentGroup])
 
-  if (fetching && currentGroup) return <Loading />
   if (!currentGroup) return null
 
   return (
     <View className='flex-1 bg-background'>
-      <ContextHeader
-        group={currentGroup}
-      />
-      <ContextWidgetList
-        contextWidgets={orderedWidgets}
-        groupSlug={currentGroup.slug}
-        group={currentGroup}
-        rootPath={`/groups/${currentGroup.slug}`}
-      />
+      <ContextHeader group={currentGroup} />
+      <ContextWidgetList contextWidgets={orderedWidgets} group={currentGroup} />
       {(!currentGroup.isContextGroup) && (
         <View className='px-2 mb-2'>
           <TouchableOpacity
@@ -108,21 +94,14 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, group }) {
 
   return (
     <View className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem]'>
-      {widget.view && (
-        <TouchableOpacity
-          onPress={() => handleWidgetPress(widget)}
-          className='flex-row justify-between items-center content-center'
-        >
-          <Text className='text-sm font-semibold text-foreground'>{title}</Text>
-        </TouchableOpacity>
-      )}
-      {!widget.view && (
-        <View className='flex-row justify-between items-center content-center'>
-          <Text className='text-sm font-semibold text-foreground'>{title}</Text>
-        </View>
-      )}
+      <TouchableOpacity
+        onPress={widget.view && (() => handleWidgetPress(widget))}
+        className='flex-row justify-between items-center content-center'
+      >
+        <Text className='text-sm font-semibold text-foreground'>{title}</Text>
+      </TouchableOpacity>
       <View className='flex flex-col justify-center items-center relative'>
-        <SpecialTopElementRenderer widget={widget} group={group} />
+        <TopElements widget={widget} group={group} />
       </View>
       {loading && <Text>{t('Loading...')}</Text>}
       {listItems.length > 0 && listItems.map(item =>
@@ -151,7 +130,7 @@ function ChildWidgetRenderer ({ widget, rootPath, groupSlug, handleWidgetPress }
   )
 }
 
-function SpecialTopElementRenderer ({ widget, group }) {
+function TopElements ({ widget, group }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
@@ -238,15 +217,15 @@ function SpecialTopElementRenderer ({ widget, group }) {
   }
 }
 
-function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, group }) {
+function ContextWidgetList ({ contextWidgets, group }) {
   return (
     <ScrollView className='p-2'>
       {contextWidgets.map(widget => (
         <View key={widget.id} className='mb-1'>
           <ContextMenuItem
             widget={widget}
-            groupSlug={groupSlug}
-            rootPath={rootPath}
+            groupSlug={group.slug}
+            rootPath={`/groups/${group.slug}`}
             group={group}
           />
         </View>
@@ -263,14 +242,20 @@ function ContextHeader ({ group }) {
       {!group?.isContextGroup
         ? <GroupMenuHeader group={group} />
         : group?.isPublicContext
-          ? <View className='flex flex-col p-2'>
-            <Text className='text-foreground font-bold text-lg'>{t('The Commons')}</Text>
-          </View>
-          : (group?.isMyContext || group?.isAllContext)
-              ? <View className='flex flex-col p-2'>
-                <Text className='text-foreground font-bold text-lg'>{t('My Home')}</Text>
-              </View>
-              : null}
+          ? (
+            <View className='flex flex-col p-2'>
+              <Text className='text-foreground font-bold text-lg'>{t('The Commons')}</Text>
+            </View>
+            )
+          : (
+              group?.isMyContext || group?.isAllContext)
+              ? (
+                <View className='flex flex-col p-2'>
+                  <Text className='text-foreground font-bold text-lg'>{t('My Home')}</Text>
+                </View>
+                )
+              : null
+        }
     </View>
   )
 }

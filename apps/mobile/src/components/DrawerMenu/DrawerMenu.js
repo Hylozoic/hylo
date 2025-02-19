@@ -8,9 +8,10 @@ import ContextSwitchMenu from 'components/ContextSwitchMenu/ContextSwitchMenu'
 
 export default function DrawerMenu (props) {
   const insets = useSafeAreaInsets()
-  const { myHome, groupSlug } = useRouteParams()
+  const { groupSlug } = useRouteParams()
+  const [{ fetching }] = useCurrentGroup({ setToGroupSlug: groupSlug })
 
-  useCurrentGroup({ setToGroupSlug: groupSlug })
+  if (fetching) return null
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
