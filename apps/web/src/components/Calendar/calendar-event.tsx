@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router'
 import { CalendarEvent as CalendarEventType } from 'components/Calendar/calendar-types'
 import { postUrl } from 'util/navigation'
 import { useCalendarContext } from 'components/Calendar/calendar-context'
-import { DateTime } from 'luxon'
+import { DateTime, Interval } from 'luxon'
 import { cn } from '@/lib/utils'
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
 import Tooltip from 'components/Tooltip'
-import { includes, sameDay, sameMonth } from './calendar-util'
+import { sameDay, sameMonth } from './calendar-util'
 
 import classes from './calendar.module.scss'
 
@@ -22,29 +22,27 @@ function getOverlappingEvents (
   currentEvent: CalendarEventType,
   events: CalendarEventType[]
 ): CalendarEventType[] {
+  const dt1 = DateTime.fromJSDate(currentEvent.start)
   return events.filter((event) => {
-    if (event.id === currentEvent.id) return false
-    return (
-      currentEvent.start < event.end &&
-      currentEvent.end > event.start &&
-      (includes(currentEvent.start, event.start, currentEvent.end) ||
-      includes(event.start, currentEvent.start, event.end))
-    )
+    if (event.id === currentEvent.id) return true
+    const dt2 = DateTime.fromJSDate(event.start)
+    const interval = Interval.fromDateTimes(dt1, dt2)
+    return Math.abs(interval.length('minutes')) <= 15
   })
 }
 
 function calculateEventPosition (
   event: CalendarEventType,
   allEvents: CalendarEventType[],
-  day?: Date
+  day: Date
 ): EventPosition {
   const overlappingEvents = getOverlappingEvents(event, allEvents)
-  const group = [event, ...overlappingEvents].sort(
+  const group = overlappingEvents.sort(
     (a, b) => a.start.getTime() - b.start.getTime()
   )
   const position = group.indexOf(event)
-  const width = `${100 / (overlappingEvents.length + 1)}%`
-  const left = `${(position * 100) / (overlappingEvents.length + 1)}%`
+  const width = `${100 / (overlappingEvents.length)}%`
+  const left = `${(position * 100) / (overlappingEvents.length)}%`
 
   const startHour = (day && event.start.getTime() < day.getTime()) ? 0 : event.start.getHours()
   const startMinutes = event.start.getMinutes()
