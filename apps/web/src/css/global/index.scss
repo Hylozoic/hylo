@@ -125,31 +125,31 @@
   }
 
   .discussion::after, .discussion::before {
-    border-color: rgba(0, 0, 0, 0) $color-discussions;
+    border-color: rgba(0, 0, 0, 0) $color-discussions-50;
     transform: scale(0.6, 1.0);
   }
   .event::after, .event::before {
-    border-color: rgba(0, 0, 0, 0) $color-events;
+    border-color: rgba(0, 0, 0, 0) $color-events-50;
     transform: scale(0.6, 1.0);
   }
   .offer::after, .offer::before {
-    border-color: rgba(0, 0, 0, 0) $color-offers;
+    border-color: rgba(0, 0, 0, 0) $color-offers-50;
     transform: scale(0.6, 1.0);
   }
   .resource::after, .resource::before {
-    border-color: rgba(0, 0, 0, 0) $color-resources;
+    border-color: rgba(0, 0, 0, 0) $color-resources-50;
     transform: scale(0.6, 1.0);
   }
   .project::after, .project::before {
-    border-color: rgba(0, 0, 0, 0) $color-projects;
+    border-color: rgba(0, 0, 0, 0) $color-projects-50;
     transform: scale(0.6, 1.0);
   }
   .request::after, .request::before {
-    border-color: rgba(0, 0, 0, 0) $color-requests;
+    border-color: rgba(0, 0, 0, 0) $color-requests-50;
     transform: scale(0.6, 1.0);
   }
   .proposal::after, .proposal::before {
-    border-color: rgba(0, 0, 0, 0) $color-proposals;
+    border-color: rgba(0, 0, 0, 0) $color-proposals-50;
     transform: scale(0.6, 1.0);
   }
 
