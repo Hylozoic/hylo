@@ -661,6 +661,11 @@ function PostEditor ({
             maxLength={MAX_TITLE_LENGTH}
             onFocus={() => setTitleFocused(true)}
             onBlur={() => setTitleFocused(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && event.altKey) {
+                doSave()
+              }
+            }}
           />
           {titleLengthError && (
             <span className={styles.titleError}>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
