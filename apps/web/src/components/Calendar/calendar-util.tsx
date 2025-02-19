@@ -1,4 +1,5 @@
 import { DateTime, Interval, DateTimeUnit } from 'luxon'
+import { HyloPost } from './calendar-types'
 
 export const same = (
   dt1 : Date,
@@ -16,8 +17,8 @@ export const includes = (
   const _dt1 = DateTime.fromJSDate(dt1)
   const _dt2 = DateTime.fromJSDate(dt2)
   const _dt3 = DateTime.fromJSDate(dt3)
-  return _dt1.hasSame(_dt2, 'day') ||
-    _dt3.hasSame(_dt2, 'day') ||
+  return _dt2.hasSame(_dt1, 'day') ||
+    _dt2.hasSame(_dt3, 'day') ||
     (_dt1 < _dt2 && _dt2 < _dt3)
 }
 
@@ -40,4 +41,10 @@ export const eachIntervalDay = (
   interval: Interval
 ): Date[] => {
   return Array.from({ length: interval.length('day') }, (_, i) => interval.start.plus({ day: i }).toJSDate())
+}
+
+export const isMultiday = (
+  post: HyloPost
+) : boolean => {
+  return !DateTime.fromISO(post.startTime).hasSame(DateTime.fromISO(post.endTime), 'day')
 }

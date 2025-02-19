@@ -7,6 +7,7 @@ export type CalendarEvent = {
   start: Date
   end: Date
   type: string
+  multiday: boolean
 }
 
 export type HyloPost = {

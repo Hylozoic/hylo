@@ -27,7 +27,8 @@ function getOverlappingEvents (
     return (
       currentEvent.start < event.end &&
       currentEvent.end > event.start &&
-      sameDay(currentEvent.start, event.start)
+      (sameDay(currentEvent.start, event.start, currentEvent.end) ||
+      sameDay(event.start, currentEvent.start, event.end))
     )
   })
 }
@@ -101,7 +102,11 @@ export default function CalendarEvent ({
         <motion.div
           className={cn(
             classes[event.type],
-            'px-0 py-0 rounded-md truncate cursor-pointer transition-all duration-300 border',
+            'cursor-pointer transition-all duration-300 border',
+            month && event.multiday && sameDay(event.start, day) && 'rounded-l-md border-r-0',
+            month && event.multiday && sameDay(event.end, day) && 'rounded-r-md border-l-0',
+            month && event.multiday && !sameDay(event.start, day) && !sameDay(event.end, day) && 'border-l-0 border-r-0',
+            month && !event.multiday && 'rounded-md',
             !month && 'absolute',
             className
           )}
@@ -146,11 +151,16 @@ export default function CalendarEvent ({
           <motion.div
             className={cn(
               'flex flex-col w-full',
-              month && 'flex-row items-center justify-between'
+              // Note: at this time, css for arrow is same as arrow-start
+              month && event.multiday && sameDay(event.start, day) && 'arrow-start p-0',
+              month && event.multiday && !sameDay(event.start, day) && !sameDay(event.end, day) && 'arrow p-0',
+              month && event.multiday && sameDay(event.end, day) && 'arrow-end p-0',
+              month && event.multiday && event.type,
+              month && 'flex-row items-center justify-between pl-1'
             )}
             layout='position'
           >
-            <p className={cn('font-bold truncate', month && 'text-xs', 'm-0')}>
+            <p className={cn(month && 'truncate text-xs', 'm-0')}>
               {event.title}
             </p>
           </motion.div>

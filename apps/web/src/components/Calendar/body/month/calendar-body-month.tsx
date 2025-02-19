@@ -32,6 +32,8 @@ export default function CalendarBodyMonth () {
     (event) =>
       interval.contains(DateTime.fromJSDate(event.start)) ||
       interval.contains(DateTime.fromJSDate(event.end))
+  ).sort(
+    (a, b) => a.multiday ? -1 : a.start.getTime() - b.start.getTime()
   )
 
   return (
@@ -81,7 +83,7 @@ export default function CalendarBodyMonth () {
               >
                 <div
                   className={cn(
-                    'text-sm font-medium w-fit p-1 flex flex-col items-center justify-center rounded-full aspect-square',
+                    'text-sm font-medium w-fit p-1 items-center justify-center flex flex-col rounded-full aspect-square',
                     isToday && isCurrentMonth && 'bg-black text-white',
                     isToday && !isCurrentMonth && 'bg-black/50 text-white',
                     !isToday && !isCurrentMonth && 'text-gray-600/50'
@@ -90,7 +92,7 @@ export default function CalendarBodyMonth () {
                   {DateTime.fromJSDate(day).toFormat('d')}
                 </div>
                 <AnimatePresence mode='wait'>
-                  <div className='flex flex-col gap-1 mt-1'>
+                  <div className='flex flex-col gap-1'>
                     {dayEvents.slice(0, maxEventsPerDay).map((event) => (
                       <CalendarEvent
                         key={event.id}
@@ -108,7 +110,7 @@ export default function CalendarBodyMonth () {
                         transition={{
                           duration: 0.2
                         }}
-                        className='text-xs text-muted-foreground'
+                        className='text-xs text-muted-foreground leading-none'
                         onClick={(e) => {
                           e.stopPropagation()
                           setDate(day)
