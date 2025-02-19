@@ -1,29 +1,39 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { useFocusEffect } from '@react-navigation/native'
+import { useGroup } from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import { alabaster, amaranth, capeCod, rhino40, rhino80 } from 'style/colors'
 
 export default function GroupSettingsWebView ({ path: pathProp, route}) {
   const webViewRef = useRef()
-  const [, queryCurrentUser] = useCurrentUser({ requestPolicy: 'network-only', pause: true })
   const { groupSlug, originalLinkingPath, settingsArea: routeSettingsArea } = useRouteParams()
+  const [, queryGroup] = useGroup({ groupSlug, useQueryArgs: { requestPolicy: 'network-only', pause: true } })
   const [selectedSettingsArea, setSelectedSettingsArea] = useState(routeSettingsArea)
 
   useEffect(() => {
     setSelectedSettingsArea(routeSettingsArea)
   }, [routeSettingsArea])
 
+  // Always re-queries group onBlur
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        queryGroup()
+      }
+    }, [])
+  )
+
   const handleNavigationStateChange = useCallback(({ url }) => {
-    // Temporary sorta fix for Group delete which reloads the page
-    if (url.match(/\/all/)) {
-      // TODO: After deleting a group on Web the user used to be forwarded to /all. Needs to be confirm that this is still
-      // the case, and tested if this re-query of currentUser adequately updates the list of groups for the user. It should.
-      // queryCurrentUser is provisional and replacing what as a RNRestart() call, which we should basically never do.
-      queryCurrentUser()
-      return false
-    }
+    // // Temporary sorta fix for Group delete which reloads the page
+    // if (url.match(/\/all/)) {
+    //   // TODO: After deleting a group on Web the user used to be forwarded to /all. Needs to be confirm that this is still
+    //   // the case, and tested if this re-query of currentUser adequately updates the list of groups for the user. It should.
+    //   // queryCurrentUser is provisional and replacing what as a RNRestart() call, which we should basically never do.
+    //   queryCurrentUser()
+    //   return false
+    // }
     if (!url.match(/\/groups\/([^\/]+)settings/)) {
       webViewRef.current?.goBack()
       return false
