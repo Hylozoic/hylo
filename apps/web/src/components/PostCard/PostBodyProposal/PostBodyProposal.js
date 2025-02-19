@@ -142,7 +142,6 @@ export default function PostBodyProposal ({
       {proposalOptionsArray && proposalOptionsArray.map((option, i) => {
         const optionVotes = proposalVotesArray.filter(vote => vote.optionId === option.id)
         const voterNames = isAnonymousVote ? [] : optionVotes.map(vote => vote.user.name)
-        console.log('voterNames', voterNames, `<pre>${voterNames.join('\r\n')}</pre>`)
         const avatarUrls = optionVotes.map(vote => vote.user.avatarUrl)
         return (
           <div
