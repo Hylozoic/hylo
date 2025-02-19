@@ -2,7 +2,7 @@ import React from 'react'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
 import { DateTime } from 'luxon'
-import { sameDay } from '../../calendar-util'
+import { includes } from '../../calendar-util'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 
@@ -20,7 +20,7 @@ export default function CalendarBodyDayCalendar () {
       }}
       formatters={({
         formatDay: (date, options) => {
-          const numEvents = events.filter((event) => sameDay(event.start, date)).length
+          const numEvents = events.filter((event) => includes(event.start, date, event.end)).length
           const symbols = '•'.repeat(Math.min(numEvents, 3))
           return `${DateTime.fromJSDate(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}`
         }

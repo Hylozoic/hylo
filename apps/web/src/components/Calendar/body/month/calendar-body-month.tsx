@@ -99,6 +99,7 @@ export default function CalendarBodyMonth () {
                         event={event}
                         className='relative h-auto'
                         month
+                        day={day}
                       />
                     ))}
                     {dayEvents.length > maxEventsPerDay && (

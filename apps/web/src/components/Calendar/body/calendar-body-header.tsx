@@ -37,6 +37,15 @@ export default function CalendarBodyHeader ({
           {DateTime.fromJSDate(date).toFormat('dd')}
         </span>
       )}
+      {isToday && (
+        <span
+          className={cn(
+            'text-xs font-medium text-white font-bold bg-black'
+          )}
+        >
+          (Today)
+        </span>
+      )}
     </div>
   )
 }

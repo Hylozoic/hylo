@@ -35,7 +35,8 @@ function getOverlappingEvents (
 
 function calculateEventPosition (
   event: CalendarEventType,
-  allEvents: CalendarEventType[]
+  allEvents: CalendarEventType[],
+  day?: Date
 ): EventPosition {
   const overlappingEvents = getOverlappingEvents(event, allEvents)
   const group = [event, ...overlappingEvents].sort(
@@ -45,7 +46,7 @@ function calculateEventPosition (
   const width = `${100 / (overlappingEvents.length + 1)}%`
   const left = `${(position * 100) / (overlappingEvents.length + 1)}%`
 
-  const startHour = event.start.getHours()
+  const startHour = (day && event.start.getTime() < day.getTime()) ? 0 : event.start.getHours()
   const startMinutes = event.start.getMinutes()
 
   let endHour = event.end.getHours()
@@ -71,15 +72,17 @@ function calculateEventPosition (
 export default function CalendarEvent ({
   event,
   month = false,
-  className
+  className,
+  day
 }: {
   event: CalendarEventType
   month?: boolean
   className?: string
+  day?: Date
 }) {
   const { events, date, routeParams, locationParams, querystringParams } =
     useCalendarContext()
-  const style = month ? {} : calculateEventPosition(event, events)
+  const style = month ? {} : calculateEventPosition(event, events, day)
   // TODO format for multi-day events
   const timeFormat = { ...DateTime.TIME_SIMPLE, timeZoneName: 'short' as const }
   const toolTipTitle = `${event.title}<br />${DateTime.fromJSDate(event.start).toLocaleString(timeFormat)} - ${DateTime.fromJSDate(event.end).toLocaleString(timeFormat)}`

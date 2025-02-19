@@ -20,7 +20,8 @@ export const filterAndSortPosts = curry((opts, q) => {
     sortBy = 'updated',
     topic,
     type,
-    types
+    types,
+    multiday
   } = opts
 
   let { topics = [] } = opts
@@ -75,14 +76,17 @@ export const filterAndSortPosts = curry((opts, q) => {
     })
   }
 
-  if (afterTime) {
+  if (afterTime && beforeTime) {
+    q.where(q2 =>
+      q2.where('posts.start_time', '<', beforeTime)
+      .andWhere('posts.end_time', '>', afterTime)
+    )
+  } else if (afterTime) {
     q.where(q2 =>
       q2.where('posts.start_time', '>=', afterTime)
       .orWhere('posts.end_time', '>=', afterTime)
     )
-  }
-
-  if (beforeTime) {
+  } else if (beforeTime) {
     q.where(q2 =>
       q2.where('posts.start_time', '<', beforeTime)
       .andWhere('posts.end_time', '<', beforeTime)
