@@ -46,7 +46,6 @@ class PostHeader extends PureComponent {
       editPost,
       deletePost,
       duplicatePost,
-      group,
       removePost,
       pinPost,
       highlightProps,
