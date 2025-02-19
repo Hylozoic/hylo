@@ -79,7 +79,7 @@ export default function ChatPost ({
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
 
   const isCreator = currentUser.id === creator.id
-  const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.includes(group.id), group, post.flaggedGroups)
+  const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.includes(group.id), [group, post.flaggedGroups])
 
   const groupIds = groups.map(g => g.id)
 
