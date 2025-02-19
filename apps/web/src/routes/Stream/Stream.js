@@ -10,7 +10,6 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 
 import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 import Loading from 'components/Loading'
-import ModerationListItem from 'components/ModerationListItem/ModerationListItem'
 import NoPosts from 'components/NoPosts'
 import { DateTime } from 'luxon'
 import Calendar from 'components/Calendar'
@@ -30,9 +29,8 @@ import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
-import { fetchModerationActions, clearModerationAction } from 'store/actions/moderationActions'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
-import { FETCH_MODERATION_ACTIONS, FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS } from 'store/constants'
+import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
@@ -43,7 +41,6 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getHasMorePosts, getPosts } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
-import { getHasMoreModerationActions, getModerationActions } from 'store/selectors/getModerationActions'
 import { createPostUrl } from 'util/navigation'
 
 import styles from './Stream.module.scss'
@@ -103,7 +100,6 @@ export default function Stream (props) {
     sortBy = 'start_time'
   }
   const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
-  const decisionView = getQuerystringParam('d', location) || 'decisions'
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
 
@@ -111,7 +107,7 @@ export default function Stream (props) {
   const determinePostTypeFilter = useCallback(() => {
     switch (view) {
       case 'projects': return 'project'
-      case 'decisions': return 'proposal'
+      case 'proposals': return 'proposal'
       case 'events': return 'event'
       default: return querystringParams.t || defaultPostType
     }
@@ -208,25 +204,6 @@ export default function Stream (props) {
   const posts = useMemo(() => postsSelector.map(p => presentPost(p, groupId)), [groupId, postsSelector])
   const hasMore = useSelector(state => getHasMorePosts(state, fetchPostsParam))
   const pending = useSelector(state => state.pending[FETCH_POSTS])
-  const pendingModerationActions = useSelector(state => state.pending[FETCH_MODERATION_ACTIONS])
-
-  const fetchModerationActionParam = {
-    slug: groupSlug,
-    groupId,
-    sortBy
-  }
-  const moderationActions = useSelector(state => {
-    return decisionView === 'moderation' ? getModerationActions(state, fetchModerationActionParam) : []
-  }, (prevModerationActions, nextModerationActions) => {
-    if (prevModerationActions.length !== nextModerationActions.length) return false
-    return prevModerationActions.every((item, index) => item.id === nextModerationActions[index].id && item.status === nextModerationActions[index].status)
-  })
-  const hasMoreModerationActions = useSelector(state => decisionView === 'moderation' ? getHasMoreModerationActions(state, fetchModerationActionParam) : false)
-
-  const fetchModerationActionsAction = useCallback((offset) => {
-    if (pendingModerationActions || hasMoreModerationActions === false) return
-    return dispatch(fetchModerationActions({ offset, ...fetchModerationActionParam }))
-  }, [pendingModerationActions, hasMoreModerationActions, fetchModerationActionParam])
 
   const fetchPostsFrom = useCallback((offset) => {
     if (pending || hasMore === false) return
@@ -246,13 +223,11 @@ export default function Stream (props) {
   }, [topicName])
 
   useEffect(() => {
-    if (decisionView === 'moderation') {
-      fetchModerationActionsAction(0)
-    } else if ((!customViewId || customView?.type === 'stream') && (!topicName || topic)) {
+    if ((!customViewId || customView?.type === 'stream') && (!topicName || topic)) {
       // Fetch posts, unless the custom view has not fully loaded yet, or the topic has not fully loaded yet
       fetchPostsFrom(0)
     }
-  }, [fetchPostsParam, decisionView])
+  }, [fetchPostsParam])
 
   const changeTab = useCallback(tab => {
     dispatch(updateUserSettings({ settings: { streamPostType: tab || '' } }))
@@ -276,10 +251,6 @@ export default function Stream (props) {
 
   const changeSearch = useCallback(search => {
     dispatch(changeQuerystringParam(location, 'search', search, 'all'))
-  }, [location])
-
-  const changeDecisionView = useCallback(view => {
-    dispatch(changeQuerystringParam(location, 'd', view, 'proposals'))
   }, [location])
 
   const changeTimeframe = useCallback(timeframe => {
@@ -355,9 +326,9 @@ export default function Stream (props) {
           postTypeFilter={postTypeFilter} sortBy={sortBy} viewMode={viewMode} searchValue={search}
           changeTab={changeTab} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
-          decisionView={decisionView} changeDecisionView={changeDecisionView} changeTimeframe={changeTimeframe} timeframe={timeframe}
+          changeTimeframe={changeTimeframe} timeframe={timeframe}
         />
-        {decisionView !== 'moderation' && viewMode !== 'calendar' && (
+        {viewMode !== 'calendar' && (
           <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
             {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
             {posts.map(post => {
@@ -373,21 +344,6 @@ export default function Stream (props) {
                   currentUser={currentUser}
                   querystringParams={querystringParams}
                   childPost={![CONTEXT_MY, 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
-                />
-              )
-            })}
-          </div>
-        )}
-        {decisionView === 'moderation' && viewMode !== 'calendar' && (
-          <div className='streamItems'>
-            {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
-            {moderationActions.map(modAction => {
-              return (
-                <ModerationListItem
-                  group={group}
-                  key={modAction.id}
-                  moderationAction={modAction}
-                  handleClearModerationAction={() => dispatch(clearModerationAction({ postId: modAction?.post?.id, moderationActionId: modAction?.id, groupId: group?.id }))}
                 />
               )
             })}

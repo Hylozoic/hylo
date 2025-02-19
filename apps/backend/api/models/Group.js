@@ -545,15 +545,16 @@ module.exports = bookshelf.Model.extend(merge({
     // These are accessible in the all view
     const unorderedWidgets = [
       { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
-      { title: 'widget-ask-and-offer', view: 'ask-and-offer' },
+      { title: 'widget-requests-and-offers', view: 'requests-and-offers' },
       { title: 'widget-stream', view: 'stream' },
       { title: 'widget-events', type: 'events', view: 'events' },
       { title: 'widget-resources', type: 'resources', view: 'resources' },
       { title: 'widget-projects', type: 'projects', view: 'projects' },
       { title: 'widget-groups', type: 'groups', view: 'groups' },
-      { title: 'widget-decisions', type: 'decisions', view: 'decisions' },
+      { title: 'widget-proposals', type: 'proposals', view: 'proposals' },
       { title: 'widget-about', type: 'about', view: 'about' },
-      { title: 'widget-map', type: 'map', view: 'map' }
+      { title: 'widget-map', type: 'map', view: 'map' },
+      { title: 'widget-moderation', type: 'moderation', view: 'moderation' }
     ]
 
     await Promise.all([
@@ -964,10 +965,10 @@ module.exports = bookshelf.Model.extend(merge({
 
           // Check asks and offers
           if (postType === 'request' || postType === 'offer') {
-            const askOfferWidget = widgets.find(w => w.get('view') === 'ask-and-offer')
-            if (askOfferWidget && !askOfferWidget.get('auto_added')) {
+            const requestsOffersWidget = widgets.find(w => w.get('view') === 'requests-and-offers')
+            if (requestsOffersWidget && !requestsOffersWidget.get('auto_added')) {
               await ContextWidget.reorder({
-                id: askOfferWidget.get('id'),
+                id: requestsOffersWidget.get('id'),
                 parentId: autoAddWidget.get('id'),
                 addToEnd: true,
                 trx
@@ -1001,12 +1002,12 @@ module.exports = bookshelf.Model.extend(merge({
             }
           }
 
-          // Check proposals/decisions
+          // Check proposals
           if (postType === 'proposal') {
-            const decisionsWidget = widgets.find(w => w.get('view') === 'decisions')
-            if (decisionsWidget && !decisionsWidget.get('auto_added')) {
+            const proposalsWidget = widgets.find(w => w.get('view') === 'proposals')
+            if (proposalsWidget && !proposalsWidget.get('auto_added')) {
               await ContextWidget.reorder({
-                id: decisionsWidget.get('id'),
+                id: proposalsWidget.get('id'),
                 parentId: autoAddWidget.get('id'),
                 addToEnd: true,
                 trx
