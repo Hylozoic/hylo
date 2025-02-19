@@ -20,8 +20,7 @@ export const filterAndSortPosts = curry((opts, q) => {
     sortBy = 'updated',
     topic,
     type,
-    types,
-    multiday
+    types
   } = opts
 
   let { topics = [] } = opts
