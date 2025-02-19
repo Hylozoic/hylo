@@ -242,6 +242,9 @@
   composes: caption-lt-lg from 'css/typography.scss';
 }
 
+.isFlagged {
+  filter: blur(4px);
+}
 
 @media screen and (max-width: 600px) {
   .container {

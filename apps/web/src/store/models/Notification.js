@@ -5,7 +5,6 @@ import { TextHelpers } from '@hylo/shared'
 import presentPost from 'store/presenters/presentPost'
 import {
   primaryPostUrl,
-  postUrl,
   groupUrl,
   personUrl
 } from 'util/navigation'
