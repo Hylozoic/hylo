@@ -309,7 +309,8 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   </MenuLink>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
-              {!widget.view &&
+              {/* For container widgets only display them if they have children or are in edit mode */}
+              {!widget.view && (widget.childWidgets.length > 0 || widget.parentId || isEditing || ['setup'].includes(widget.type)) &&
                 <span className='flex justify-between items-center content-center'>
                   <h3 className='text-base font-light opacity-50 text-foreground'>{title}</h3>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
