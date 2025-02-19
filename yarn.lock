@@ -3513,14 +3513,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hylo/config@workspace:*, @hylo/config@workspace:packages/config":
-  version: 0.0.0-use.local
-  resolution: "@hylo/config@workspace:packages/config"
-  dependencies:
-    "@babel/runtime": "npm:^7.25.0"
-  languageName: unknown
-  linkType: soft
-
 "@hylo/contexts@workspace:*, @hylo/contexts@workspace:packages/contexts":
   version: 0.0.0-use.local
   resolution: "@hylo/contexts@workspace:packages/contexts"
@@ -25199,7 +25191,6 @@ __metadata:
     "@emoji-mart/react": "npm:^1.1.1"
     "@expo/react-native-action-sheet": "npm:^4.1.0"
     "@flyerhq/react-native-keyboard-accessory-view": "npm:^2.4.0"
-    "@hylo/config": "workspace:*"
     "@hylo/contexts": "workspace:*"
     "@hylo/graphql": "workspace:*"
     "@hylo/hooks": "workspace:*"
@@ -36202,7 +36193,6 @@ __metadata:
     "@eslint/eslintrc": "npm:^3.1.0"
     "@eslint/js": "npm:^9.14.0"
     "@faker-js/faker": "npm:^6.0.0-alpha.5"
-    "@hylo/config": "workspace:*"
     "@hylo/contexts": "workspace:*"
     "@hylo/graphql": "workspace:*"
     "@hylo/hooks": "workspace:*"

@@ -25,7 +25,6 @@
     "@emoji-mart/react": "^1.1.1",
     "@expo/react-native-action-sheet": "^4.1.0",
     "@flyerhq/react-native-keyboard-accessory-view": "^2.4.0",
-    "@hylo/config": "workspace:*",
     "@hylo/contexts": "workspace:*",
     "@hylo/graphql": "workspace:*",
     "@hylo/hooks": "workspace:*",

@@ -33,7 +33,6 @@ const config = {
   // Look into https://github.com/mmazzarolo/react-native-monorepo-tools for other another ways to handle this
   watchFolders: [
     path.resolve(__dirname, '../../node_modules'),
-    path.resolve(__dirname, '../../packages/config'),
     path.resolve(__dirname, '../../packages/contexts'),
     path.resolve(__dirname, '../../packages/graphql'),
     path.resolve(__dirname, '../../packages/hooks'),
