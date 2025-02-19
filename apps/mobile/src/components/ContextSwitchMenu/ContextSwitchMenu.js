@@ -7,7 +7,7 @@ import { clsx } from 'clsx'
 import { map, sortBy } from 'lodash/fp'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import { PUBLIC_GROUP } from '@hylo/presenters/GroupPresenter'
+import { MY_CONTEXT_GROUP, PUBLIC_GROUP } from '@hylo/presenters/GroupPresenter'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import { openURL } from 'hooks/useOpenURL'
 
@@ -15,7 +15,11 @@ export default function ContextSwitchMenu () {
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
   const changeToGroup = useChangeToGroup()
-  const myGroups = [PUBLIC_GROUP].concat(sortBy('name', map(m => m.group, currentUser.memberships)))
+
+  // TODO: Push this down into GroupPresenter and handle this likely by having a presented
+  // My group that gets/already has the right avatarUrl from currentUser
+  const myContextGroup = { ...MY_CONTEXT_GROUP, avatarUrl: currentUser?.avatarUrl }
+  const myGroups = [myContextGroup, PUBLIC_GROUP].concat(sortBy('name', map(m => m.group, currentUser.memberships)))
 
   return (
     <Animated.View className='flex-col h-full bg-theme-background z-50 items-center py-2 px-3'>
@@ -68,7 +72,7 @@ function NavRow ({ item, changeToGroup, currentGroupSlug, badgeCount = 0, classN
 
   return (
     <TouchableOpacity
-      key={id} 
+      key={id}
       onPress={() => changeToGroup(item?.slug, false)}
       style={styles.rowTouchable}
       activeOpacity={0.7}
@@ -87,8 +91,7 @@ function NavRow ({ item, changeToGroup, currentGroupSlug, badgeCount = 0, classN
         {slug === PUBLIC_GROUP.slug &&
           <View className='flex items-center w-14 h-14 min-h-10 rounded-lg'>
             <Globe />
-          </View>
-        }
+          </View>}
         {!!newPostCount && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{newPostCount}</Text>
