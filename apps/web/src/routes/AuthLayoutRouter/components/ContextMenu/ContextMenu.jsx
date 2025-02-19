@@ -18,20 +18,21 @@ import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import getMe from 'store/selectors/getMe'
 import { removeWidgetFromMenu, updateContextWidget } from 'store/actions/contextWidgets'
 import useGatherItems from 'hooks/useGatherItems'
-import { CONTEXT_MY, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import { bgImageStyle, cn } from 'util/index'
 import { widgetUrl, baseUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
-
-import classes from './ContextMenu.module.scss'
+import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 import ContextWidgetPresenter, {
   isValidChildWidget,
   getStaticMenuWidgets,
-  orderContextWidgetsForContextMenu
+  orderContextWidgetsForContextMenu,
+  isHiddenInContextMenuResolver
 } from '@hylo/presenters/ContextWidgetPresenter'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
+import classes from './ContextMenu.module.scss'
 
 export default function ContextMenu (props) {
   const {
@@ -49,21 +50,21 @@ export default function ContextMenu (props) {
   const group = useSelector(state => currentGroup || getGroupForSlug(state, routeParams.groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const rootPath = baseUrl({ ...routeParams, view: null })
-  const isPublicContext = routeParams.context === 'public'
-  const isMyContext = routeParams.context === CONTEXT_MY
-  const isAllContext = routeParams.context === 'all'
+  const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
+  const isMyContext = routeParams.context === MY_CONTEXT_SLUG
+  const isAllContext = routeParams.context === ALL_GROUPS_CONTEXT_SLUG
   const profileUrl = personUrl(get('id', currentUser), routeParams.groupSlug)
 
   const rawContextWidgets = useSelector(state => {
     if (isMyContext || isPublicContext || isAllContext) {
-      return getStaticMenuWidgets({ isPublicContext, isMyContext, profileUrl, isAllContext })
+      return getStaticMenuWidgets({ isPublicContext, isMyContext: isMyContext || isAllContext, profileUrl })
     }
     return getContextWidgets(state, group)
   })
 
   const contextWidgets = useMemo(() => {
     return rawContextWidgets.map(widget => ContextWidgetPresenter(widget, { t }))
-  }, [rawContextWidgets])
+  }, [rawContextWidgets, t])
 
   const hasContextWidgets = useMemo(() => {
     if (group || isMyContext || isPublicContext || isAllContext) {
@@ -128,7 +129,7 @@ export default function ContextMenu (props) {
                 </div>
               </div>
               )
-            : isMyContext || isAllContext
+            : isMyContext
               ? (
                 <div className='flex flex-col p-2'>
                   <h2 className='text-foreground font-bold leading-3 text-lg'>My Home</h2>
@@ -249,7 +250,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   }
 
   // Check if the widget should be rendered
-  if (widget.isHiddenInContextMenu && !isEditing) return null
+  if (isHiddenInContextMenuResolver(widget) && !isEditing) return null
 
   // Check admin visibility
   if (widget.visibility === 'admin' && !canAdminister) {
@@ -393,7 +394,7 @@ function DropZone ({ droppableParams, isDroppable = true, height = '', hide = fa
 
 function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = false, activeWidget, invalidChild = false, handlePositionedAdd }) {
   const itemTitle = item.title
-  const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug, context: 'group' })
+  const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug })
   let hideDropZone = isOverlay
 
   const isItemDraggable = item.isDroppable && canDnd

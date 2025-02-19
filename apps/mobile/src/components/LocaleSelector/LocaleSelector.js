@@ -20,7 +20,7 @@ const LocaleSelector = ({ small, dark }) => {
   const handleSelectLocale = (locale) => {
     i18n.changeLanguage(locale)
     setDropdownVisible(false)
-    if (!currentUser) return
+    if (!currentUserData) return
     updateUserSettings({ changes: { settings: { locale } } })
   }
 

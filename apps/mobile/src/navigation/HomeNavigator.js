@@ -83,12 +83,13 @@ export default function HomeNavigator ({ navigation }) {
       <HomeTab.Screen name='Members' component={MembersComponent} />
       <HomeTab.Screen name='Member' key='Member' component={MemberProfile} />
       <HomeTab.Screen name='Member Details' component={MemberDetails} />
-      <HomeTab.Screen name='Group Explore' component={GroupExploreWebView} />
+      {/* TODO post redesign: after a launch and no one remembers the group explore, remove this entire screen and its webview */}
+      {/* <HomeTab.Screen name='Group Explore' component={GroupExploreWebView} /> */}
       <HomeTab.Screen name='Group Relationships' component={Groups} />
       <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
       <HomeTab.Screen name='Topics' component={AllTopicsWebView} />
       <HomeTab.Screen name='Map' component={MapWebView} />
-      <HomeTab.Screen name='Chat' component={ChatRoom} />
+      <HomeTab.Screen name='ChatRoom' component={ChatRoom} />
       <HomeTab.Screen name='My Posts' component={Stream} initialParams={{ myHome: 'My Posts' }} />
       <HomeTab.Screen name='Announcements' component={Stream} initialParams={{ myHome: 'Announcements' }} />
       <HomeTab.Screen name='Mentions' component={Stream} initialParams={{ myHome: 'Mentions' }} />

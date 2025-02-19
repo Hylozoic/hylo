@@ -10,12 +10,14 @@ import CheckBox from '@react-native-community/checkbox'
 import MultiSelect from 'components/MultiSelect/MultiSelect'
 import createModerationActionMutation from '@hylo/graphql/mutations/createModerationActionMutation'
 import { agreementsURL } from 'store/constants'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
 import GroupPresenter from '@hylo/presenters/GroupPresenter'
 import { mangoOrange } from 'style/colors'
 
 const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
   const { t } = useTranslation()
+  const [{ currentUser }] = useCurrentUser()
   const { id: postId, slug: groupSlug } = linkData || {}
   const [, createModerationAction] = useMutation(createModerationActionMutation)
   const [{ data: groupData }] = useQuery({
@@ -37,7 +39,7 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
     `,
     variables: { slug: groupSlug }
   })
-  const group = useMemo(() => GroupPresenter(groupData?.group), [groupData])
+  const group = useMemo(() => GroupPresenter(groupData?.group, { currentUser, t }), [groupData])
   const agreements = group?.agreements?.items || []
   const groupAgreementsUrl = group ? groupUrl(group.slug) + `/group/${group.slug}` : ''
   const [anonymous, setAnonymous] = useState(false)

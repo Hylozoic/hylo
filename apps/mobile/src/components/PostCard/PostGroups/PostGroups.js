@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { isEmpty } from 'lodash/fp'
 import { Text, View, TouchableOpacity } from 'react-native'
-import { PUBLIC_GROUP } from '@hylo/presenters/GroupPresenter'
+import { useContextGroups, useGroup } from '@hylo/hooks/useCurrentGroup'
 import GroupsList from 'components/GroupsList'
 import Icon from 'components/Icon'
 import { caribbeanGreen, rhino40 } from 'style/colors'
@@ -14,12 +14,11 @@ export default function PostGroups ({
   style
 }) {
   const { t } = useTranslation()
+  const { publicContext } = useContextGroups()
   const [expanded, setExpanded] = useState(false)
   const toggleExpanded = () => setExpanded(!expanded)
 
-  const groups = includePublic
-    ? [...providedGroups, PUBLIC_GROUP]
-    : providedGroups
+  const groups = includePublic ? [...providedGroups, publicContext] : providedGroups
 
   // don't show if there are no groups or there is exactly 1 group and the flag isn't set
   if (isEmpty(groups)) {

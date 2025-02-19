@@ -29,7 +29,6 @@ export const NON_AUTH_ROOT_SCREEN_NAME = 'NonAuthRoot'
 // but in Production and in Tests simply does the default of nothing when a route isn't matched.
 export const unknownRouteMatch = isDev && !isTest ? { ':unmatchedBasePath(.*)': 'Unknown' } : {}
 
-
 // TODO: Routing - /:groupSlug(all|public)/post/:id/comments/:commentId is still being used, so we need to add route/s for that
 // TODO: Routing - "many of these routes can have /create/* added to the end to bring up the create post modal"
 
@@ -47,7 +46,7 @@ export const routingConfig = {
 
   // Available in both Auth and Non-Auth state as JoinGroup needs to check for a valid invite and initiate JTW auth
   // but this unlike all other cases, makes JoinGroup responsible for setting returnToOnAuth path when accessed in non-auth context
-  '/:context(groups)/:groupSlug/join/:accessCode':                        'JoinGroup',
+  '/groups/:groupSlug/join/:accessCode':                                  'JoinGroup',
   // TODO:  Routing - Test this. When this path is matched when not auth'd, then returnToAuth will be set.
   '/welcome':                                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Welcome`,
 
@@ -56,8 +55,9 @@ export const routingConfig = {
 
   // TODO: Routing - Add /post/:postId optional to (probably all) routes going to Stream
 
-  // Public Context Routes
+  // /public context routes
   // TODO:  Routing - some of these need to be available when not auth'd
+  // This route isn't correct; no such screen exists. And its not to be confused with the Group Explore screen.
   '/:context(public)/groups':                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explorer`,
   '/:context(public)/map':                                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
   '/:context(public)/:groupSlug/post/:postId':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Detail`,
@@ -71,67 +71,20 @@ export const routingConfig = {
   '/:context(public)/:streamType(resources)':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(public)':                                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
 
-  // Group Context Routes
-  '/:context(groups)/:groupSlug/about':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Detail`,
-  '/:context(groups)/:groupSlug/all-views':                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/All Views`,
-  '/:context(groups)/:groupSlug/chat/:topicName':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
-  '/:context(groups)/:groupSlug/post/:postId':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Detail`,
-  '/:context(groups)/:groupSlug/post/:id/edit':                           `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-  // TODO: Routing - should probably go to Post Modal for now, or let it through and it will go to PostDetail in Webview, same for topics variant below
-  '/:context(groups)/:groupSlug/chat/:topicName/post/:postId':            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
-  '/:context(groups)/:groupSlug/create':                                  `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-  '/:context(groups)/:groupSlug/explore':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explore`,
-  '/:context(groups)/:groupSlug/groups':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Relationships`,
-  '/:context(groups)/:groupSlug/map':                                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
-  '/:context(groups)/:groupSlug/map/create':                              `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-  '/:context(groups)/:groupSlug/members':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Members`,
-  '/:context(groups)/:groupSlug/members/:personId':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member Profile`,
-  // TODO: Routing -- Actually legacy redirection, consider creating or adding to a redirect mapper
-  '/:context(groups)/:groupSlug/topics/:topicName':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
-  '/:context(groups)/:groupSlug/topics/:topicName/post/:postId'         : `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
-  '/:context(groups)/:groupSlug/custom/:customViewId':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug/settings/:settingsArea':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
-  '/:context(groups)/:groupSlug/settings':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
-  // TODO:  Routing - potentially group these
-  '/:context(groups)/:groupSlug/stream':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug/:streamType(moderation)':                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug/:streamType(discussions)':                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug/:streamType(events)':                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug/:streamType(projects)':                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug/:streamType(proposals)':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug/:streamType(requests-and-offers)':        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug/:streamType(resources)':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(groups)/:groupSlug':                                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab`,
-
-  // All Context Routes
-  '/:context(all)/map':                                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
-  '/:context(all)/members/:personId':                                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member Profile`,
-  '/:context(all)/:groupSlug/post/:postId':                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Detail`,
-  '/:context(all)/:groupSlug/map/create':                                 `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-  '/:context(all)/topics/:topicName':                                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  // TODO:  Routing - potentially group these
-  '/:context(all)/stream':                                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(all)/:streamType(discussions)':                              `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(all)/:streamType(events)':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(all)/:streamType(projects)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(all)/:streamType(proposals)':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(all)/:streamType(requests-and-offers)':                      `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(all)/:streamType(resources)':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-
-  // User-Specific Routes
-  '/:context(my)/announcements':                                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(my)/groups':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Groups`,
-  '/:context(my)/interactions':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(my)/mentions':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  // /my context routes
+  '/:context(my)/announcements':                                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Announcements`,
+  '/:context(my)/interactions':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Interactions`,
+  '/:context(my)/mentions':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Mentions`,
   '/:context(my)/:settingsArea(account)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(blocked-users)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(edit-profile)':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(invitations)':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
+  '/:context(my)/:settingsArea(groups)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(locale)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(saved-searches)':                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(notifications)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(terms)':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
-  '/:context(my)/posts':                                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(my)/posts':                                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/My Posts`,
   // TODO:  Routing - potentially group these
   '/:context(my)/:streamType(discussions)':                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/:streamType(events)':                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
@@ -139,6 +92,52 @@ export const routingConfig = {
   '/:context(my)/:streamType(proposals)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/:streamType(requests-and-offers)':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/:streamType(resources)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  // /all  routes, only utilized in "my" context
+  '/all/map':                                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
+  // TODO routing: commenting this out and letting the modal catch-all handle it. Thoughts?
+  // '/all/members/:personId':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member Profile`,
+  '/all/:groupSlug/map/create':                                           `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
+  '/all/topics/:topicName':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  // TODO:  Routing - potentially group these
+  '/all/stream':                                                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/all/:streamType(discussions)':                                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/all/:streamType(events)':                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/all/:streamType(projects)':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/all/:streamType(proposals)':                                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/all/:streamType(requests-and-offers)':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/all/:streamType(resources)':                                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+
+  // /groups Routes
+  '/groups/:groupSlug/about':                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Detail`,
+  '/groups/:groupSlug/all-views':                                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/All Views`,
+  '/groups/:groupSlug/chat/:topicName':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
+  '/groups/:groupSlug/post/:postId':                                      `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Detail`,
+  '/groups/:groupSlug/post/:id/edit':                                     `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
+  // TODO: Routing - should probably go to Post Modal for now, or let it through and it will go to PostDetail in Webview, same for topics variant below
+  '/groups/:groupSlug/chat/:topicName/post/:postId':                      `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
+  '/groups/:groupSlug/create':                                            `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
+  '/groups/:groupSlug/explore':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explore`,
+  '/groups/:groupSlug/groups':                                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Relationships`,
+  '/groups/:groupSlug/map':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
+  '/groups/:groupSlug/map/create':                                        `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
+  '/groups/:groupSlug/members':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Members`,
+  '/groups/:groupSlug/members/:personId':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member Profile`,
+  // TODO: Routing -- Actually legacy redirection, consider creating or adding to a redirect mapper
+  '/groups/:groupSlug/topics/:topicName':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
+  '/groups/:groupSlug/topics/:topicName/post/:postId'                   : `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
+  '/groups/:groupSlug/custom/:customViewId':                              `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/groups/:groupSlug/settings/:settingsArea':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
+  '/groups/:groupSlug/settings':                                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
+  // TODO:  Routing - potentially group these
+  '/groups/:groupSlug/stream':                                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/groups/:groupSlug/:streamType(moderation)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/groups/:groupSlug/:streamType(discussions)':                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/groups/:groupSlug/:streamType(events)':                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/groups/:groupSlug/:streamType(projects)':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/groups/:groupSlug/:streamType(proposals)':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/groups/:groupSlug/:streamType(requests-and-offers)':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/groups/:groupSlug/:streamType(resources)':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/groups/:groupSlug':                                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab`,
 
   // /messages
   '/messages/new':                                                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Messages Tab/New Message`,

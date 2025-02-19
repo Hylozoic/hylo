@@ -3,6 +3,7 @@ import { isNull, isUndefined, omitBy } from 'lodash/fp'
 import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 
 export default function useStreamQueryVariables ({
+  context,
   currentUser,
   customView,
   filter,
@@ -13,7 +14,7 @@ export default function useStreamQueryVariables ({
   timeframe,
   topicName
 }) {
-  const fetchPostParam = useMemo(() => omitBy(x => isNull(x) || isUndefined(x), {
+  const streamQueryVariables = useMemo(() => omitBy(x => isNull(x) || isUndefined(x), {
     activePostsOnly: customView?.activePostsOnly || null,
     afterTime: streamType === 'event'
       ? (timeframe === 'future' ? new Date().toISOString() : null)
@@ -24,11 +25,7 @@ export default function useStreamQueryVariables ({
       : null,
     childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
     collectionToFilterOut: null,
-    context: isContextGroupSlug(forGroup?.slug)
-      ? forGroup.slug
-      : myHome
-        ? 'my'
-        : 'groups',
+    context,
     createdBy: myHome === 'My Posts'
       ? [currentUser.id]
       : null,
@@ -61,6 +58,9 @@ export default function useStreamQueryVariables ({
       ? customView?.postTypes
       : null
   }), [
+    context,
+    currentUser?.id,
+    currentUser?.settings?.streamChildPosts,
     customView,
     customView?.activePostsOnly,
     customView?.collectionId,
@@ -72,10 +72,8 @@ export default function useStreamQueryVariables ({
     sortBy,
     streamType,
     timeframe,
-    topicName,
-    currentUser?.settings?.streamChildPosts,
-    currentUser?.id
+    topicName
   ])
 
-  return fetchPostParam
+  return streamQueryVariables
 }

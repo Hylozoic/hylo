@@ -1,13 +1,6 @@
 // TODO: Get "t" from current i18n instance so it doesn't need to be passed
 // import i18n from 'react-i18next'
 
-// TODO: URQL! Remove this before release
-// t / translate is currently set to a dummy function if not sent
-const tDummy = t => {
-  // console.error('!!! ContextWidgetPresenter REQUIRES t to be passed in the second arg options, using dummy function instead')
-  return t
-}
-
 export default function ContextWidgetPresenter (widget, { t }) {
   if (!widget || widget?._presented || !t) return widget
 
@@ -24,9 +17,8 @@ export default function ContextWidgetPresenter (widget, { t }) {
     isDroppable: isDroppableResolver(widget),
     isValidHomeWidget: isValidHomeWidgetResolver(widget),
     title: titleResolver({ widget, t }),
-    isHiddenInContextMenu: isHiddenInContextMenuResolver(widget),
     type,
-    // Protects us from double presenting a widget
+    // Protection from double presenting
     _presented: true
   }
 }
@@ -134,7 +126,8 @@ function widgetTypeResolver ({ widget }) {
   )
 }
 
-const isHiddenInContextMenuResolver = (widget) => {
+export const isHiddenInContextMenuResolver = (widget) => {
+  // This doesnt work properly if evoked before the widgets are ordered.
   return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
   !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
   !widget.viewChat && !widget.customView)
@@ -175,18 +168,9 @@ export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
   )
 }
 
-export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl, isAllContext }) {
-  let widgets = []
-
-  if (isPublicContext) {
-    widgets = PUBLIC_CONTEXT_WIDGETS
-  }
-
-  if (isMyContext || isAllContext) {
-    widgets = MY_CONTEXT_WIDGETS(profileUrl)
-  }
-
-  return widgets
+export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl }) {
+  if (isPublicContext) return PUBLIC_CONTEXT_WIDGETS
+  if (isMyContext) return MY_CONTEXT_WIDGETS(profileUrl)
 }
 
 export const orderContextWidgetsForContextMenu = (contextWidgets) => {
@@ -220,6 +204,8 @@ export const orderContextWidgetsForContextMenu = (contextWidgets) => {
   return parentWidgets
 }
 
+const TERMS_AND_CONDITIONS_URL = 'https://hylo-landing.surge.sh/terms'
+
 const PUBLIC_CONTEXT_WIDGETS = [
   { context: 'public', title: 'widget-public-stream', id: 'widget-public-stream', view: 'stream', order: 1, parentId: null },
   { context: 'public', title: 'widget-public-groups', id: 'widget-public-groups', view: 'groups', order: 2, parentId: null },
@@ -246,10 +232,10 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { title: 'widget-my-locale', id: 'widget-my-locale', context: 'my', view: 'locale', order: 6, parentId: 'widget-myself' },
   { title: 'widget-my-account', id: 'widget-my-account', context: 'my', view: 'account', order: 7, parentId: 'widget-myself' },
   { title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', context: 'my', view: 'saved-searches', order: 8, parentId: 'widget-myself' },
+  { title: 'widget-terms-and-conditions', id: 'widget-terms-and-conditions', context: 'my', order: 9, parentId: 'widget-myself', url: TERMS_AND_CONDITIONS_URL },
   { title: 'widget-my-logout', id: 'widget-my-logout', view: 'logout', type: 'logout', order: 4, parentId: null }
 ]
 
-// What are views? Highly suspect :)
 export const COMMON_VIEWS = {
   proposals: {
     name: 'Proposals',
