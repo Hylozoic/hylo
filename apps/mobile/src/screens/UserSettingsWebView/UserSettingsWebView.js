@@ -1,5 +1,6 @@
-import React, { useRef } from 'react'
+import React, { useCallback, useRef } from 'react'
 import { WebViewMessageTypes } from '@hylo/shared'
+import { useFocusEffect } from '@react-navigation/native'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import useLogout from 'hooks/useLogout'
@@ -19,6 +20,17 @@ export default function UserSettingsWebView ({ path: pathProp, route }) {
     ? { uri: TERMS_URL }
     : { path: originalLinkingPath }
 
+  useFocusEffect(
+    useCallback(() => {
+      // onBlur
+      return () => {
+        queryCurrentUser()
+      }
+    }, [])
+  )
+
+  // TODO: The single case here currently, and likely most cases for this in the future
+  // are mitigated by the above useFocusEffect / onBlur handler which re-queries currentUser
   const messageHandler = ({ type, data }) => {
     switch (type) {
       case WebViewMessageTypes.LEFT_GROUP: {
