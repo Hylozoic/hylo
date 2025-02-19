@@ -127,7 +127,12 @@ function widgetTypeResolver ({ widget }) {
 }
 
 export const isHiddenInContextMenuResolver = (widget) => {
-  // This doesnt work properly if evoked before the widgets are ordered.
+  /*
+    One of the AND rules for hiding a widget for the context menu
+    (something needs to fail a set of the rules to be hidden),
+    is not having any children. Since widgets arrive from the server in a flat array,
+    the needs-to-be-hidden quality of a widget has to wait until things are ordered for this to be accurate.
+  */
   return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
   !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
   !widget.viewChat && !widget.customView)
