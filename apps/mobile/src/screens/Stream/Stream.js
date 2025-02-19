@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react'
 import { useNavigation, useIsFocused, useRoute } from '@react-navigation/native'
-import { FlatList, View, TouchableOpacity } from 'react-native'
+import { View, TouchableOpacity } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { gql, useMutation, useQuery } from 'urql'
 import { capitalize, get, isEmpty } from 'lodash/fp'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -8,13 +9,12 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import useStreamQueryVariables from '@hylo/hooks/useStreamQueryVariables'
 import { useTranslation } from 'react-i18next'
-import { PUBLIC_GROUP_ID, ALL_GROUP_ID, isContextGroupSlug, MY_CONTEXT_ID } from '@hylo/presenters/GroupPresenter'
+import { PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
 import useRouteParams from 'hooks/useRouteParams'
 import makeStreamQuery from './makeStreamQuery'
 import StreamHeader from './StreamHeader'
 import PostRow from './PostRow'
 import CreateGroupNotice from 'components/CreateGroupNotice'
-import GroupWelcomeCheck from 'components/GroupWelcomeCheck'
 import Icon from 'components/Icon'
 import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
@@ -134,13 +134,9 @@ export default function Stream () {
   // to run it independently or make it a mutation, like this resetGroupNewPostCount
   useEffect(() => {
     if (fetchPostParam && isFocused && isEmpty(postIds) && hasMore !== false) {
-      const slug = fetchPostParam.context
-
       if (
         currentGroup?.id &&
-        slug !== ALL_GROUP_ID &&
-        slug !== PUBLIC_GROUP_ID &&
-        slug !== MY_CONTEXT_ID &&
+        !currentGroup?.isContextGroup &&
         sortBy === DEFAULT_SORT_BY_ID &&
         !fetchPostParam.filter
       ) {
@@ -165,7 +161,7 @@ export default function Stream () {
   }, [fetchPostParam, refetchPosts])
 
   const fetchMorePosts = useCallback(() => {
-    if (posts && !fetching) {
+    if (hasMore && !fetching) {
       setOffset(curOffset => curOffset + posts?.length)
     }
   }, [hasMore, fetching, postIds])
@@ -213,8 +209,8 @@ export default function Stream () {
 
   return (
     <View style={styles.container}>
-      <GroupWelcomeCheck />
-      <FlatList
+      <FlashList
+        estimatedItemSize={100}
         ref={ref}
         data={posts}
         renderItem={({ item }) => (
@@ -222,18 +218,12 @@ export default function Stream () {
             context={fetchPostParam?.context}
             post={item}
             forGroupId={currentGroup?.id}
-            showGroups={!currentGroup?.id || isContextGroupSlug(currentGroup?.slug)}
+            showGroups={!currentGroup?.id || currentGroup?.isContextGroup}
           />
         )}
         onRefresh={refreshPosts}
         refreshing={fetching}
         keyExtractor={item => `post${item.id}`}
-        // TODO: URQL! - Without further setup FlatList will call this many many times while still at the bottom
-        // currently URQL is protecting us from this by caching an throttling the many api requests it creates,
-        // but it definitely needs to be elaborated such that only a single call is send and that call can start
-        // probably a higher than default bottom threshold so the additional posts are closer to already
-        // there by the time the user gets to the bottom bottom. All pretty to easy to fix, and should make
-        // our infinite scroll smoother than it is at the moment due to this hammer of requests.
         onEndReached={fetchMorePosts}
         ListHeaderComponent={
           <View>

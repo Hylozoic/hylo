@@ -20,8 +20,9 @@ const defaultOptions = {
 const sendSimpleEmail = function (address, templateId, data, extraOptions, locale = 'en-US') {
   return sendEmail(merge({}, defaultOptions, {
     email_id: templateId,
-    recipient: {address},
-    email_data: data
+    recipient: { address },
+    email_data: data,
+    locale: mapLocaleToSendWithUS(locale)
   }, extraOptions))
 }
 
@@ -83,6 +84,7 @@ module.exports = {
   sendPostMentionNotification: sendEmailWithOptions('tem_wXiqtyNzAr8EF4fqBna5WQ'),
   sendJoinRequestNotification: sendEmailWithOptions('tem_9sW4aBxaLi5ve57bp7FGXZ'),
   sendApprovedJoinRequestNotification: sendEmailWithOptions('tem_eMJADwteU3zPyjmuCAAYVK'),
+  sendMemberJoinedGroupNotification: sendEmailWithOptions('tem_94twpVMrvWmF8QxHPBY6bKg3'),
   sendDonationToEmail: sendEmailWithOptions('tem_bhptVWGW6k67tpFtqRDWKTHQ'),
   sendDonationFromEmail: sendEmailWithOptions('tem_TCgS9xJykShS9mJjwj9Kd3v6'),
   sendEventInvitationEmail: sendEmailWithOptions('tem_DxG3FjMdcvYh63rKvh7gDmmY'),
@@ -94,11 +96,11 @@ module.exports = {
 
   sendMessageDigest: opts =>
     sendEmailWithOptions('tem_xwQCfpdRT9K6hvrRFqDdhBRK',
-      Object.assign({version: 'v2'}, opts)),
+      Object.assign({ version: 'v2' }, opts)),
 
   sendCommentDigest: opts =>
     sendEmailWithOptions('tem_tP6JzrYzvvDXhgTNmtkxuW',
-      Object.assign({version: 'v2'}, opts)),
+      Object.assign({ version: 'v2' }, opts)),
 
   postReplyAddress: function (postId, userId) {
     const plaintext = format('%s%s|%s', process.env.INBOUND_EMAIL_SALT, postId, userId)
@@ -114,30 +116,30 @@ module.exports = {
   },
 
   postCreationAddress: function (groupId, userId, type) {
-    var plaintext = format('%s%s|%s|', process.env.INBOUND_EMAIL_SALT, groupId, userId, type)
+    const plaintext = format('%s%s|%s|', process.env.INBOUND_EMAIL_SALT, groupId, userId, type)
     return format('create-%s@%s', PlayCrypto.encrypt(plaintext), process.env.INBOUND_EMAIL_DOMAIN)
   },
 
   decodePostCreationAddress: function (address) {
-    var salt = new RegExp(format('^%s', process.env.INBOUND_EMAIL_SALT))
-    var match = address.match(/create-(.*?)@/)
-    var plaintext = PlayCrypto.decrypt(match[1]).replace(salt, '')
-    var decodedData = plaintext.split('|')
+    const salt = new RegExp(format('^%s', process.env.INBOUND_EMAIL_SALT))
+    const match = address.match(/create-(.*?)@/)
+    const plaintext = PlayCrypto.decrypt(match[1]).replace(salt, '')
+    const decodedData = plaintext.split('|')
 
-    return {groupId: decodedData[0], userId: decodedData[1], type: decodedData[2]}
+    return { groupId: decodedData[0], userId: decodedData[1], type: decodedData[2] }
   },
 
   formToken: function (groupId, userId) {
-    var plaintext = format('%s%s|%s|', process.env.INBOUND_EMAIL_SALT, groupId, userId)
+    const plaintext = format('%s%s|%s|', process.env.INBOUND_EMAIL_SALT, groupId, userId)
     return PlayCrypto.encrypt(plaintext)
   },
 
   decodeFormToken: function (token) {
-    var salt = new RegExp(format('^%s', process.env.INBOUND_EMAIL_SALT))
-    var plaintext = PlayCrypto.decrypt(token).replace(salt, '')
-    var decodedData = plaintext.split('|')
+    const salt = new RegExp(format('^%s', process.env.INBOUND_EMAIL_SALT))
+    const plaintext = PlayCrypto.decrypt(token).replace(salt, '')
+    const decodedData = plaintext.split('|')
 
-    return {groupId: decodedData[0], userId: decodedData[1]}
+    return { groupId: decodedData[0], userId: decodedData[1] }
   }
 
 }

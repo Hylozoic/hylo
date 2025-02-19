@@ -1,4 +1,4 @@
-import { BadgeInfo, Settings, UsersRound } from 'lucide-react'
+import { BadgeInfo, Bell, Settings, UsersRound } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
@@ -7,7 +7,8 @@ import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { bgImageStyle } from 'util/index'
-import { groupUrl } from 'util/navigation'
+import { groupUrl, currentUserSettingsUrl } from 'util/navigation'
+
 export default function GroupMenuHeader ({
   group
 }) {
@@ -50,6 +51,11 @@ export default function GroupMenuHeader ({
   return (
     <div className='GroupMenuHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md' data-testid='group-header'>
       <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} />
+      <div className='absolute top-2 left-2'>
+        <button onClick={() => { navigate(currentUserSettingsUrl('notifications?group=' + group.id)) }}>
+          <Bell className='w-6 h-6 text-foreground drop-shadow-md' />
+        </button>
+      </div>
       {canAdminister && (
         <div className='absolute top-2 right-2'>
           <button onClick={() => { navigate(groupUrl(group.slug, 'settings', {})) }}>

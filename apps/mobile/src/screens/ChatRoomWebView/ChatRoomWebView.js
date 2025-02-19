@@ -5,16 +5,15 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import GroupWelcomeCheck from 'components/GroupWelcomeCheck'
 
 export default function ChatRoom () {
   const navigation = useNavigation()
   const route = useRoute()
   const [{ currentGroup }] = useCurrentGroup()
   const { topicName } = useRouteParams()
-  const path = `/groups/${currentGroup.slug}/topics/${topicName}`
+  const path = `/groups/${currentGroup.slug}/chats/${topicName}`
   const handledWebRoutes = [
-    `/groups/${currentGroup.slug}/topics/:topicName`
+    `/groups/${currentGroup.slug}/chats/:topicName`
   ]
   const nativeRouteHandler = () => ({
     '(.*)/:type(post|members)/:id': ({ routeParams }) => {
@@ -45,7 +44,6 @@ export default function ChatRoom () {
 
   return (
     <KeyboardFriendlyView style={{ flex: 1 }}>
-      <GroupWelcomeCheck />
       <HyloWebView
         handledWebRoutes={handledWebRoutes}
         nativeRouteHandler={nativeRouteHandler}

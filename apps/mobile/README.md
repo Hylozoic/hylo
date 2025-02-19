@@ -31,19 +31,28 @@ yarn react-native generate-bootsplash ./bootsplash_logo.png \
   --background=0DC39F \
   --logo-width=160
 ```
+#### Versioning
+
+We use the conventional commits standard for for our versioning, so please brush-up on that here: https://www.conventionalcommits.org/en/v1.0.0. Run `yarn bump-version patch|minor|major|prerelease` to manage the version, which manages setting the version in `package.json` as well as the appropriately places in each of the native app's code. 
+
+⚠️ Note `yarn bump-version` is not `yarn version` which is a yarn 4 version command which we do not use.
+
+Here are the common scenarios in which we should run the `bump-version` command:
+
+1) To reset to a prerelease version as which should always be done as the last step in the release process: `yarn bump-version prerelease`. So if the currently released version is "5.4.0" this changes it to "5.4.1-0". This is important as otherwise TestFlight will reject builds for an already released major.minor.patch version number.
+2) To move up to a minor version for a new feature release still in development: `yarn bump-version preminor` (or `yarn bump-version premajor` if we're wanting to go there)
+   - Current version is "5.4.0-19", running `yarn bump-version preminor` will move the version to "5.5.0-0"
+   - Current version is "5.4.0-19", running `yarn bump-version premajor` will move the version to "6.0.0-0"
+3) Optional: We want to increment the prereelase number. Current version is "5.4.0-19", running `yarn bump-version prerelease` will move the version to "5.4.0-20". This can be done anytime in development, but is not strictly necessary as the build number is always incremented by bitrise at build and that satisfies the TestFlight unique version test as long as is not an already released `<major>.<minor>.<patch>` version. So generally unnecessary unless pushing iOS builds directly to TestFlight from your own computer via Xcode, or otherwise feels helpful to clarity in development.
 
 #### Release checklist
 
 - Merge changes to `dev`
-- Make sure tests are passing
 - Update and commit `CHANGELOG`:
-  - Remove any pre-release qualifier from the version heading (e.g. 5.4.0-0 becomes 5.4.0)
-  - Review Github Milestone for release and existing entries in `CHANGELOG` for the current pre-release
-- Run `npm version patch|minor|major` to move off current pre-release version:
-  - For example, if current version is 5.4.0-0 running `npm version minor` will move the version to 5.4.0
-- `git push --tags`
+  - Remove any pre-release version qualifiers in the version heading (e.g. 5.4.0-0 becomes 5.4.0)
+  - Review git history and Github Milestone for the release and existing entries in `CHANGELOG` for the current pre-release
 - Wait for Bitrise build and confirm it built successfully
-- Install and manually test Bitrise builds
+- Install and manually test Bitrise builds:
   - For iOS install from TestFlight
   - For Android manually install APK file on physical device (or emulator if no physical device available)
 - Prepare release notes appropriate for stores by reviewing `CHANGELOG` and the related issues and PRs on the release Github Milestone
@@ -57,9 +66,9 @@ yarn react-native generate-bootsplash ./bootsplash_logo.png \
   - Upload the APK file downloaded from Bitrise and tested above
   - Add release notes
   - Submit for review/release
-- Once the release is accepted by both the stores run `npm version prereleaase` on `dev` and `git push --tags` to setup the next prereleae build versioning (will bump up on patch version and add `-0` to the end of the version number)
-- Open a new Milestone with the current pre-release patch version:
-  - Look to `package.json#version` to get the version generated, but leave off the `-0`
+- Once the release is accepted by both the stores run `yarn bump-version version prereleaase` on `dev`, commit the changes, then `git push --tags` to setup the next prerelease build versioning.
+- Open a new Milestone with the current pre-release version:
+  - Look to `package.json#version` to get the new version, but leave off the `-0`
 
 ### Enabling Sentry exception tracking in dev
 

@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react'
-import { View, FlatList, StyleSheet } from 'react-native'
+import { View, StyleSheet } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { useNavigation } from '@react-navigation/native'
 import { gql, useMutation, useQuery } from 'urql'
 import { DECISIONS_OPTIONS } from 'screens/Stream/Stream'
@@ -97,9 +98,10 @@ export default function ModerationList ({ forGroup, header, scrollRef, streamTyp
 
   return (
     <View style={styles.container}>
-      <FlatList
+      <FlashList
         ref={scrollRef}
         data={moderationActions || []}
+        estimatedItemSize={365}
         renderItem={renderModerationItem}
         onRefresh={handleRefresh}
         refreshing={!!pending}

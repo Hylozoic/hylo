@@ -79,19 +79,9 @@ module.exports = {
 
     root: () => url('/app'),
 
-    // Just using the regular url for chats in mobile will keep directing to a mobile UI with poor UX, so we need a specific url to flag it as a chat early
-    chatPostForMobile: function (post, group, topic) {
-      const groupSlug = getSlug(group)
-      if (isEmpty(groupSlug) || !topic) return this.post(post) // fallback but all chats ought to have a group
-      const groupUrl = `/groups/${groupSlug}/topics/${topic}`
-      return url(`${groupUrl}/?postId=${getModelId(post)}`)
-    },
-
-    comment: function ({ comment, groupSlug, post }) {
-      const groupUrl = isEmpty(groupSlug) ? '/all' : `/groups/${groupSlug}`
-
-      const postId = comment?.relations?.post?.id || post.id
-      return url(`${groupUrl}/post/${postId}/comments/${comment.id}`)
+    comment: function ({ comment, group, post }) {
+      const usePost = comment?.relations?.post || post
+      return this.post(usePost, group, `commentId=${comment.id}`)
     },
 
     group: function (group) {
@@ -145,16 +135,22 @@ module.exports = {
       return url(`/members/${getModelId(user)}`)
     },
 
-    post: function (post, group, isPublic, topic) {
+    post: function (post, group, extraParams = '') {
       const groupSlug = getSlug(group)
       let groupUrl = '/all'
 
-      if (isPublic) {
+      if (!group) {
         groupUrl = '/public'
       } else if (!isEmpty(groupSlug)) {
-        groupUrl = `/groups/${groupSlug}` + (topic ? `/topics/${topic}` : '')
+        const tags = post.relations.tags
+        const firstTopic = tags && tags.first()?.get('name')
+        if (firstTopic && (post.get('type') === Post.Type.CHAT || group.hasChatFor(firstTopic))) {
+          return url(`/groups/${groupSlug}/chat/${firstTopic}?postId=${post.id}&${extraParams}`)
+        } else {
+          groupUrl = `/groups/${groupSlug}` + (firstTopic ? `/topics/${firstTopic}` : '')
+        }
       }
-      return url(`${groupUrl}/post/${getModelId(post)}`)
+      return url(`${groupUrl}/post/${getModelId(post)}?${extraParams}`)
     },
 
     signup: (error) => {

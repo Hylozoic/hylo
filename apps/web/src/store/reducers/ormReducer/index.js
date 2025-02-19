@@ -19,7 +19,6 @@ import {
   DELETE_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_MESSAGES_PENDING,
-  FETCH_POSTS_PENDING,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   JOIN_PROJECT_PENDING,
   LEAVE_GROUP,
@@ -42,6 +41,8 @@ import {
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
   UPDATE_GROUP_TOPIC_PENDING,
+  UPDATE_TOPIC_FOLLOW,
+  UPDATE_TOPIC_FOLLOW_PENDING,
   UPDATE_POST,
   UPDATE_POST_PENDING,
   UPDATE_THREAD_READ_TIME,
@@ -117,14 +118,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     PostCommenter,
     ProjectMember,
     Skill,
-    Topic
+    Topic,
+    TopicFollow
   } = session
 
   if (payload && !isPromise(payload) && meta && meta.extractModel) {
     extractModelsFromAction(action, session)
   }
 
-  let me, membership, group, person, post, comment, groupTopic, childGroup
+  let me, membership, group, person, post, comment, groupTopic, childGroup, topicFollow
 
   switch (type) {
     case ACCEPT_GROUP_RELATIONSHIP_INVITE: {
@@ -282,15 +284,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         let widgetToMove = null
 
         if (postType === 'request' || postType === 'offer') {
-          widgetToMove = allWidgets.find(w => w.view === 'ask-and-offer')
+          widgetToMove = allWidgets.find(w => w.view === 'requests-and-offers')
         } else if (postType === 'discussion') {
           widgetToMove = allWidgets.find(w => w.view === 'discussions')
         } else if (postType === 'project') {
           widgetToMove = allWidgets.find(w => w.view === 'projects')
         } else if (postType === 'proposal') {
-          widgetToMove = allWidgets.find(w => w.view === 'decisions')
+          widgetToMove = allWidgets.find(w => w.view === 'proposals')
         } else if (postType === 'event') {
-          widgetToMove = allWidgets.find(w => w.view === 'event')
+          widgetToMove = allWidgets.find(w => w.view === 'events')
         } else if (postType === 'resource') {
           widgetToMove = allWidgets.find(w => w.view === 'resources')
         }
@@ -405,20 +407,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         // this is so that after websocket reconnect events, pagination
         // of messages works as expected
         Message.filter({ messageThread: meta.id }).delete()
-      }
-      break
-    }
-
-    case FETCH_POSTS_PENDING: {
-      // When looking at group for first time, immediately set lastViewedAt so we know first view has happened
-      // This is so that we can go to special welcome page/post on first view then every time after go to regular home page
-      if (meta.slug) {
-        group = Group.safeGet({ slug: meta.slug })
-        me = Me.first()
-        if (!me) break
-        membership = Membership.safeGet({ group: group.id, person: me.id })
-        if (!membership) break
-        membership && membership.update({ lastViewedAt: (new Date()).toISOString() }) // now non-members can possibly see the posts of a group, so in that instance, don't update
       }
       break
     }
@@ -580,12 +568,12 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case RESET_NEW_POST_COUNT_PENDING: {
-      if (meta.type === 'GroupTopic') {
-        session.GroupTopic.withId(meta.id).update({ newPostCount: 0 })
+      if (meta.type === 'TopicFollow') {
+        session.TopicFollow.withId(meta.id).update({ newPostCount: meta.count })
       } else if (meta.type === 'Membership') {
         me = Me.first()
         const membership = Membership.safeGet({ group: meta.id, person: me.id })
-        membership && membership.update({ newPostCount: 0 })
+        membership && membership.update({ newPostCount: meta.count })
       }
       break
     }
@@ -710,6 +698,33 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case UPDATE_TOPIC_FOLLOW_PENDING: {
+      if (meta.data.lastReadPostId) {
+        topicFollow = TopicFollow.withId(meta.id)
+        topicFollow.update({ lastReadPostId: meta.data.lastReadPostId })
+        clearCacheFor(TopicFollow, meta.id)
+      }
+      break
+    }
+
+    case UPDATE_TOPIC_FOLLOW: {
+      const data = payload.data.updateTopicFollow
+      if (typeof data.newPostCount === 'number') {
+        group = Group.withId(data.group.id)
+        const contextWidgets = group.contextWidgets?.items
+        if (contextWidgets) {
+          const newContextWidgets = contextWidgets.map(cw => {
+            if (cw.type === 'chat' && cw.viewChat?.id === data.topic.id) {
+              return { ...cw, highlightNumber: data.newPostCount }
+            }
+            return cw
+          })
+          group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
+        }
+      }
+      break
+    }
+
     case UPDATE_MEMBERSHIP_SETTINGS_PENDING: {
       me = Me.first()
       membership = Membership.safeGet({ group: meta.groupId, person: me.id })
@@ -749,6 +764,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case UPDATE_THREAD_READ_TIME: {
+      me = Me.first()
+      me.update({
+        unseenThreadCount: Math.max(0, me.unseenThreadCount - 1)
+      })
       MessageThread.withId(meta.id).markAsRead()
       break
     }

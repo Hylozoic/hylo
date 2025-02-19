@@ -59,6 +59,8 @@ export default function GroupWelcomeModal (props) {
   useEffect(() => {
     if (numAgreements > 0) {
       setCurrentAgreements(group.agreements.map(ga => membershipAgreements?.find(ma => ma.id === ga.id)?.accepted))
+    } else {
+      setCurrentAgreements([])
     }
   }, [group?.agreements?.length, membershipAgreements?.length])
 
@@ -101,7 +103,7 @@ export default function GroupWelcomeModal (props) {
     await dispatch(updateMembershipSettings(
       group.id,
       { joinQuestionsAnsweredAt: new Date(), showJoinForm: false },
-      true,
+      true, // acceptAgreements
       questionAnswers ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : []
     ))
     return null

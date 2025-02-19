@@ -8,12 +8,12 @@ const tDummy = t => {
   return t
 }
 
-export default function ContextWidgetPresenter (widget, { t = tDummy }) {
-  if (!widget || widget?._presented) return widget
+export default function ContextWidgetPresenter (widget, { t }) {
+  if (!widget || widget?._presented || !t) return widget
 
   // Resolve type once and pass it explicitly
   const type = widgetTypeResolver({ widget })
-  const avatarData = avatarDataResolver()
+  const avatarData = avatarDataResolver(widget)
 
   return {
     ...widget,
@@ -22,8 +22,9 @@ export default function ContextWidgetPresenter (widget, { t = tDummy }) {
     humanReadableType: humanReadableTypeResolver(type),
     iconName: iconNameResolver(widget, type),
     isDroppable: isDroppableResolver(widget),
-    isValidHomeWidget: isValidHomeWidget(widget),
+    isValidHomeWidget: isValidHomeWidgetResolver(widget),
     title: titleResolver({ widget, t }),
+    isHiddenInContextMenu: isHiddenInContextMenuResolver(widget),
     type,
     // Protects us from double presenting a widget
     _presented: true
@@ -53,7 +54,7 @@ function titleResolver ({ widget, t }) {
   return title
 }
 
-function isValidHomeWidget (widget) {
+function isValidHomeWidgetResolver (widget) {
   return !!(
     widget?.viewChat?.id ||
     widget?.customView?.id ||
@@ -83,11 +84,11 @@ const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   'all-views': 'Grid3x3'
 }
 function iconNameResolver (widget, type) {
-  if (widget?.icon) return widget.icon
+  if (widget?.iconName) return widget.iconName
   if (widget?.customView?.icon) return widget.customView.icon
   if (widget?.context === 'my') return null
 
-  return WIDGET_TYPE_TO_ICON_NAME_MAP[type] || COMMON_VIEWS[type]?.icon || null
+  return WIDGET_TYPE_TO_ICON_NAME_MAP[type] || COMMON_VIEWS[type]?.iconName || null
 }
 
 // Determines whether a widget can be dropped into another container
@@ -133,6 +134,12 @@ function widgetTypeResolver ({ widget }) {
   )
 }
 
+const isHiddenInContextMenuResolver = (widget) => {
+  return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
+  !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
+  !widget.viewChat && !widget.customView)
+}
+
 /* == ContextWidget collection methods, Static Views, and utility functions == */
 
 // TODO: To be relocated to GroupPresenter once utilized in Web
@@ -168,10 +175,10 @@ export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
   )
 }
 
-export function getStaticMenuWidgets ({ isPublic, isMyContext, profileUrl, isAllContext }) {
+export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl, isAllContext }) {
   let widgets = []
 
-  if (isPublic) {
+  if (isPublicContext) {
     widgets = PUBLIC_CONTEXT_WIDGETS
   }
 
@@ -226,10 +233,10 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { title: 'widget-my-groups-map', id: 'widget-my-groups-map', context: 'all', view: 'map', type: 'map', order: 2, parentId: 'widget-my-groups-content' },
   { title: 'widget-my-groups-events', id: 'widget-my-groups-events', context: 'all', view: 'events', order: 3, parentId: 'widget-my-groups-content' },
   { title: 'widget-my-content', id: 'widget-my-content', order: 1, parentId: null },
-  { icon: 'Posticon', title: 'widget-my-posts', id: 'widget-my-posts', view: 'posts', order: 1, parentId: 'widget-my-content', context: 'my' },
-  { icon: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', view: 'interactions', order: 2, parentId: 'widget-my-content', context: 'my' },
-  { icon: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', view: 'mentions', order: 3, parentId: 'widget-my-content', context: 'my' },
-  { icon: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', view: 'announcements', order: 4, parentId: 'widget-my-content', context: 'my' },
+  { iconName: 'Posticon', title: 'widget-my-posts', id: 'widget-my-posts', view: 'posts', order: 1, parentId: 'widget-my-content', context: 'my' },
+  { iconName: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', view: 'interactions', order: 2, parentId: 'widget-my-content', context: 'my' },
+  { iconName: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', view: 'mentions', order: 3, parentId: 'widget-my-content', context: 'my' },
+  { iconName: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', view: 'announcements', order: 4, parentId: 'widget-my-content', context: 'my' },
   { title: 'widget-myself', id: 'widget-myself', order: 3, parentId: null },
   { title: 'widget-my-profile', id: 'widget-my-profile', url: profileUrl, order: 1, parentId: 'widget-myself' },
   { title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', context: 'my', view: 'edit-profile', order: 2, parentId: 'widget-myself' },
@@ -244,15 +251,8 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
 
 // What are views? Highly suspect :)
 export const COMMON_VIEWS = {
-  'ask-and-offer': {
-    name: 'Ask & Offer',
-    iconName: 'Request',
-    defaultViewMode: 'bigGrid',
-    postTypes: ['request', 'offer'],
-    defaultSortBy: 'created'
-  },
-  decisions: {
-    name: 'Decisions',
+  proposals: {
+    name: 'Proposals',
     iconName: 'Proposal',
     defaultViewMode: 'cards',
     postTypes: ['proposal'],
@@ -284,6 +284,10 @@ export const COMMON_VIEWS = {
     name: 'Members',
     iconName: 'People'
   },
+  moderation: {
+    name: 'Moderation',
+    iconName: 'Shield'
+  },
   projects: {
     name: 'Projects',
     iconName: 'Stack',
@@ -291,9 +295,16 @@ export const COMMON_VIEWS = {
     postTypes: ['project'],
     defaultSortBy: 'created'
   },
+  'requests-and-offers': {
+    name: 'Requests & Offers',
+    iconName: 'Request',
+    defaultViewMode: 'bigGrid',
+    postTypes: ['request', 'offer'],
+    defaultSortBy: 'created'
+  },
   resources: {
     name: 'Resources',
-    icon: 'Document',
+    iconName: 'Document',
     defaultViewMode: 'grid',
     postTypes: ['resource'],
     defaultSortBy: 'created'

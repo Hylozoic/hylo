@@ -1,10 +1,9 @@
 import { isEmpty, orderBy } from 'lodash/fp'
-import React, { useCallback, useEffect } from 'react'
+import { SquarePen, Search, SearchX } from 'lucide-react'
+import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import Icon from 'components/Icon'
-import TextInput from 'components/TextInput'
 import ScrollListener from 'components/ScrollListener'
 import { toRefArray, itemsToArray } from 'util/reduxOrmMigration'
 import fetchThreads from 'store/actions/fetchThreads'
@@ -26,6 +25,8 @@ import classes from './ThreadList.module.scss'
 function ThreadList () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const searchInputRef = useRef(null)
   const currentUser = useSelector(getMe)
   const routeParams = useParams()
   const navigate = useNavigate()
@@ -39,7 +40,23 @@ function ThreadList () {
   const fetchMoreThreadsAction = useCallback(() => hasMoreThreads && dispatch(fetchThreads(20, threads.length)), [hasMoreThreads])
   const setThreadSearchAction = useCallback((search) => dispatch(setThreadSearch(search)), [])
 
-  const onSearchChange = event => setThreadSearchAction(event.target.value)
+  const onSearchChange = event => {
+    const searchTerm = event.target.value
+    setThreadSearchAction(searchTerm)
+  }
+
+  const handleContainerClick = (e) => {
+    if (e.target.closest('a') || e.target.closest('button')) return
+    searchInputRef.current?.focus()
+  }
+
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true)
+  }
+
+  const handleSearchBlur = () => {
+    setIsSearchFocused(false)
+  }
 
   useEffect(() => {
     dispatch(fetchThreads(20, 0)).then(() => {
@@ -52,27 +69,63 @@ function ThreadList () {
     })
   }, [])
 
+  const displayThreads = useMemo(() => {
+    if (!threadSearch) return threads
+    const normalizedSearch = threadSearch.toLowerCase()
+    return threads.filter(thread => {
+      const participants = toRefArray(thread.participants || {})
+      const participantMatch = participants.some(p =>
+        (p.name || '').toLowerCase().includes(normalizedSearch)
+      )
+      const messages = itemsToArray(toRefArray(thread.messages))
+      const messageMatch = messages.some(msg => {
+        const messageContent = [
+          msg.text,
+          msg.content,
+          msg.body,
+          msg.message,
+          msg.lastMessage,
+          typeof msg === 'string' ? msg : null
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .replace(/<[^>]*>/g, '')
+        return messageContent.includes(normalizedSearch)
+      })
+      return participantMatch || messageMatch
+    })
+  }, [threads, threadSearch])
+
   return (
-    <div className={cn(classes.threadList)}>
+    <div
+      className={cn(
+        'bg-background h-full flex flex-col flex-wrap overflow-visible w-[320px]'
+      )}
+      onClick={handleContainerClick}
+    >
       <div className={classes.header}>
-        <div className={classes.search}>
-          <div className={classes.searchIcon}>
-            <Icon name='Search' />
+        <div className={cn('bg-black/20 p-2 relative border-2 transition-all border-transparent rounded flex items-center', { 'border-2 border-focus': isSearchFocused })}>
+          <div className='absolute left-1 top-1'>
+            <Search />
           </div>
-          <TextInput
+          <input
+            ref={searchInputRef}
+            type='text'
             placeholder={t('Search messages...')}
-            value={threadSearch}
+            value={threadSearch || ''}
             onChange={onSearchChange}
-            noClearButton
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
+            className='bg-transparent border-foreground pl-6 text-foreground placeholder:text-foreground/50 outline-none border-none w-full'
           />
         </div>
-        <Link className={classes.newMessage} to='/messages/new'>
-          <span>{t('New')}</span>
-          <Icon name='Messages' className={classes.messagesIcon} />
+        <Link className='bg-black/20 rounded-lg text-foreground flex justify-center items-center w-10 h-10 hover:bg-selected/100 scale-100 hover:scale-105 transition-all hover:text-foreground' to='/messages/new'>
+          <SquarePen />
         </Link>
       </div>
       <ul className={classes.list} id='thread-list-list' role='list'>
-        {!isEmpty(threads) && threads.map(t => {
+        {!isEmpty(displayThreads) && displayThreads.map(t => {
           const messages = itemsToArray(toRefArray(t.messages))
           const isUnread = t.unreadCount > 0
           const latestMessage = orderBy(m => Date.parse(m.createdAt), 'desc', messages)[0]
@@ -92,10 +145,17 @@ function ThreadList () {
         })}
         {threadsPending &&
           <Loading type='bottom' />}
-        {!threadsPending && isEmpty(threads) && !threadSearch &&
-          <div className={classes.noConversations}>{t('You have no active messages')}</div>}
-        {!threadsPending && isEmpty(threads) && threadSearch &&
-          <div className={classes.noConversations}>{t('No messages found')}</div>}
+        {!threadsPending && isEmpty(displayThreads) && !threadSearch &&
+          <div className={classes.noConversations}>
+            {t('You have no active messages!')}
+            <Link to='/messages/new'>{t('Send a message')}</Link>
+            {t('to get started.')}
+          </div>}
+        {!threadsPending && isEmpty(displayThreads) && threadSearch &&
+          <div className='text-center text-foreground border-2 border-dashed border-foreground/20 rounded-lg m-4 p-4 flex flex-col items-center justify-center'>
+            <SearchX />
+            <div>{t('No messages found')}</div>
+          </div>}
       </ul>
       <ScrollListener
         elementId='thread-list-list'

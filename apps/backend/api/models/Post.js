@@ -257,7 +257,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   // TODO: if we were in a position to avoid duplicating the graphql layer
   // here, that'd be grand.
   getNewPostSocketPayload: function () {
-    const { groups, linkPreview, tags, user, proposalOptions } = this.relations
+    const { media, groups, linkPreview, tags, user, proposalOptions } = this.relations
 
     const creator = refineOne(user, [ 'id', 'name', 'avatar_url' ])
     const topics = refineMany(tags, [ 'id', 'name' ])
@@ -270,20 +270,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
         { description: 'details', name: 'title', num_people_reacts: 'peopleReactedTotal', num_votes: 'votesTotal' }
       ),
       {
+        attachments: refineMany(media, [ 'id', 'type', 'url' ]),
         // Shouldn't have commenters immediately after creation
         commenters: [],
-        proposalVotes: [],
         commentsTotal: 0,
+        creator,
         details: this.details(),
         groups: refineMany(groups, [ 'id', 'name', 'slug' ]),
-        creator,
         linkPreview: refineOne(linkPreview, [ 'id', 'image_url', 'title', 'description', 'url' ]),
-        topics,
         proposalOptions,
-
-        // TODO: Once legacy site is decommissioned, these are no longer required.
-        creatorId: creator.id,
-        tags: topics
+        proposalVotes: [],
+        topics
       }
     )
   },
@@ -454,30 +451,37 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   createActivities: async function (trx) {
-    await this.load(['groups', 'tags'], {transacting: trx})
+    await this.load(['groups', 'tags'], { transacting: trx })
     const { tags, groups } = this.relations
-
-    const tagFollows = await TagFollow.query(qb => {
-      qb.whereIn('tag_id', tags.map('id'))
-      qb.whereIn('group_id', groups.map('id'))
-    })
-    .fetchAll({withRelated: ['tag'], transacting: trx})
-
-    const tagFollowers = tagFollows.map(tagFollow => ({
-      reader_id: tagFollow.get('user_id'),
-      post_id: this.id,
-      actor_id: this.get('user_id'),
-      group_id: tagFollow.get('group_id'),
-      reason: `tag: ${tagFollow.relations.tag.get('name')}`
-    }))
+    let activitiesToCreate = []
 
     const mentions = RichText.getUserMentions(this.details())
-    const mentioned = mentions.map(userId => ({
+    let mentioned = mentions.map(userId => ({
       reader_id: userId,
       post_id: this.id,
       actor_id: this.get('user_id'),
       reason: 'mention'
     }))
+
+    if (this.get('type') === Post.Type.CHAT) {
+      const tagFollows = await TagFollow.query(qb => {
+        qb.whereIn('tag_id', tags.map('id'))
+        qb.whereIn('group_id', groups.map('id'))
+        qb.whereRaw("settings->>'notifications' != 'none'")
+      })
+      .fetchAll({ withRelated: ['tag'], transacting: trx })
+
+      const tagFollowers = tagFollows.map(tagFollow => ({
+        reader_id: tagFollow.get('user_id'),
+        post_id: this.id,
+        actor_id: this.get('user_id'),
+        group_id: tagFollow.get('group_id'),
+        reason: `tag: ${tagFollow.relations.tag.get('name')}`
+      }))
+      activitiesToCreate = activitiesToCreate.concat(tagFollowers)
+      // TODO: filter out mentions above if they are in chats and they have notifications turned off
+    }
+    activitiesToCreate = activitiesToCreate.concat(mentioned)
 
     const eventInvitations = await EventInvitation.query(qb => {
       qb.where('event_id', this.id)
@@ -490,6 +494,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       actor_id: eventInvitation.get('inviter_id'),
       reason: 'eventInvitation'
     }))
+    activitiesToCreate = activitiesToCreate.concat(invitees)
 
     let members = await Promise.all(groups.map(async group => {
       const userIds = await group.members().fetch().then(u => u.pluck('id'))
@@ -517,12 +522,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
       return newPosts
     }))
 
-    members = flatten(members)
+    activitiesToCreate = activitiesToCreate.concat(flatten(members))
 
-    const readers = filter(r => r.reader_id !== this.get('user_id'),
-      mentioned.concat(members).concat(tagFollowers).concat(invitees))
+    activitiesToCreate = filter(r => r.reader_id !== this.get('user_id'), activitiesToCreate)
 
-    return Activity.saveForReasons(readers, trx)
+    return Activity.saveForReasons(activitiesToCreate, trx)
   },
 
   createVoteResetActivities: async function (trx) {
@@ -759,7 +763,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     num_comments: 0,
     num_people_reacts: 0
   }),
-  
+
   create: function (attrs, opts) {
     return Post.forge(_.merge(Post.newPostAttrs(), attrs))
       .save(null, _.pick(opts, 'transacting'))
@@ -865,8 +869,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
   zapierTriggers: async ({ postId }) => {
     const post = await Post.find(postId, { withRelated: ['groups', 'tags', 'user'] })
     if (!post) return
-    const tags = post.relations.tags
-    const firstTag = tags && tags.first()?.get('name')
 
     const groupIds = post.relations.groups.map(g => g.id)
     const zapierTriggers = await ZapierTrigger.forTypeAndGroups('new_post', groupIds).fetchAll()
@@ -877,9 +879,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           continue
         }
 
-        const entityUrl = (post.get('type') === Post.Type.CHAT && post.relations.groups.length > 0 && firstTag)
-          ? Frontend.Route.chatPostForMobile(post, post.relations.groups[0], firstTag)
-          : Frontend.Route.post(post, post.relations.groups[0])
+        const entityUrl = Frontend.Route.post(post, post.relations.groups[0])
 
         const creator = post.relations.user
         const response = await fetch(trigger.get('target_url'), {

@@ -23,7 +23,7 @@ const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
 export function mapDispatchToProps (dispatch, props) {
   return {
-    clearBadge: id => dispatch(resetNewPostCount(id, 'GroupTopic')),
+    clearBadge: id => dispatch(resetNewPostCount(id, 'TopicFollow')),
     dropPostResultsMaker: props => () => dispatch(dropPostResults(props)),
     goBack: event => {
       // this action is assigned to an element inside a link, so preventDefault

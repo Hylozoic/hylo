@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types'
 import React, { Component, forwardRef, useImperativeHandle } from 'react'
-import { withTranslation } from 'react-i18next'
 import { debounce, includes, isEmpty } from 'lodash'
 import { uniqBy } from 'lodash/fp'
 import { cn } from 'util/index'
@@ -30,7 +29,8 @@ class TagInput extends Component {
     className: string,
     theme: object,
     addLeadingHashtag: bool,
-    renderSuggestion: func
+    renderSuggestion: func,
+    tabChooses: bool
   }
 
   static defaultProps = {
@@ -45,7 +45,8 @@ class TagInput extends Component {
       suggestions: 'suggestions',
       suggestionsList: 'suggestionsList',
       suggestion: 'suggestion',
-      readOnly: 'readOnly'
+      readOnly: 'readOnly',
+      tabChooses: true
     }
   }
 
@@ -62,7 +63,7 @@ class TagInput extends Component {
       this.input.current.focus()
     }
   }
-  
+
   resetInput = () => {
     if (this.input.current) this.input.current.value = ''
     this.props.handleInputChange('')
@@ -107,11 +108,6 @@ class TagInput extends Component {
     event.preventDefault()
   }
 
-  focus = () => {
-    if (this.input.current && !this.props.readOnly) {
-      this.input.current.focus()
-    }
-  }
   handleContainerClick = () => {
     // Only focus if we're not in readOnly mode
     if (!this.props.readOnly) {
@@ -121,13 +117,13 @@ class TagInput extends Component {
 
   handleFocus = (e) => {
     this.handleChange('')
-    this.props.onFocus?.(e)  // Propagate focus up
+    this.props.onFocus?.(e) // Propagate focus up
   }
 
   handleBlur = (e) => {
     this.input.current.value = ''
     this.handleChange(null)
-    this.props.onBlur?.(e)  // Propagate blur up
+    this.props.onBlur?.(e) // Propagate blur up
   }
 
   handleChange = debounce(value => {
@@ -138,7 +134,6 @@ class TagInput extends Component {
     this.props.handleInputChange(strippedValue)
   }, 200)
 
-  
   render () {
     const { tags = [], placeholder = this.props.t('Type...'), suggestions, className, theme, readOnly, maxTags, addLeadingHashtag, renderSuggestion, tagType } = this.props
     const optionalHashtag = addLeadingHashtag ? '#' : ''
@@ -181,7 +176,7 @@ class TagInput extends Component {
       <div className={cn('w-full relative h-full', { [theme.readOnly]: readOnly }, className)} onClick={this.handleContainerClick}>
         <ul className={theme.selected}>
           {selectedItems}
-        
+
           <li className={cn('text-foreground bg-transparent inline-flex', { tagsEmpty: selectedItems.length === 0 })}>
             <div className={cn('relative', theme.searchInput)}>
               <input
@@ -211,18 +206,19 @@ class TagInput extends Component {
                     itemActive: theme.suggestionActive
                   }}
                   ref={this.list}
+                  tabChooses={this.props.tabChooses}
                 />
               </div>}
           </li>
         </ul>
-        
+
       </div>
     )
   }
 }
 export default forwardRef((props, ref) => {
   const component = React.createRef()
-  
+
   useImperativeHandle(ref, () => ({
     focus: () => component.current?.focus()
   }))

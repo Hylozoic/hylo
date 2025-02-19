@@ -476,7 +476,7 @@ function RoleList ({
   }
 
   const handleRemoveRoleFromMember = (id) => {
-    dispatch(removeRoleFromMember({ personId: id, roleId, isCommonRole })).then(() => {
+    dispatch(removeRoleFromMember({ personId: id, groupId: group.id, roleId, isCommonRole })).then(() => {
       const updatedMembers = membersForRole.filter(member => member.id !== id)
       setMembersForRole(updatedMembers)
     })

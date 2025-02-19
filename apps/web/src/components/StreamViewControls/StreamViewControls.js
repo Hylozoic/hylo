@@ -20,17 +20,12 @@ const POST_TYPE_OPTIONS = [
   { id: 'resource', label: 'Resources' }
 ]
 
-const DECISIONS_OPTIONS = [
-  { id: 'proposals', label: 'Proposals' },
-  { id: 'moderation', label: 'Moderation' }
-]
-
 const TIMEFRAME_OPTIONS = [
   { id: 'future', label: 'Upcoming Events' },
   { id: 'past', label: 'Past Events' }
 ]
 
-const makeDropdown = (selected, options, onChange, t) => {
+const makeFilterDropdown = (selected, options, onChange, t) => {
   // Load these strings in the component
   t('Proposals')
   t('Moderation')
@@ -69,26 +64,35 @@ const StreamViewControls = ({
   customPostTypes,
   changeChildPostInclusion,
   childPostInclusion,
-  decisionView,
-  changeDecisionView,
   timeframe,
   changeTimeframe
 }) => {
   const { t } = useTranslation()
-  let decisionViewDropdown, timeframeDropdown
 
   const [searchActive, setSearchActive] = useState(!!searchValue)
   const [searchState, setSearchState] = useState('')
 
-  const postTypeOptionsForFilter = customPostTypes && customPostTypes.length > 1 ? POST_TYPE_OPTIONS.filter(postType => postType.label === 'All Posts' || customPostTypes.includes(postType.id)) : POST_TYPE_OPTIONS
-  const postTypeFilterDropdown = makeDropdown(postTypeFilter, postTypeOptionsForFilter, changeTab, t)
+  const postTypeOptionsForFilter = customPostTypes && customPostTypes.length > 1
+    ? POST_TYPE_OPTIONS.filter(postType => postType.label === 'All Posts' || customPostTypes.includes(postType.id))
+    : POST_TYPE_OPTIONS
+  const defaultOptionsForFilter = customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS
+  const postHasDates = view !== 'discussions'
 
-  if (view === 'decisions') {
-    decisionViewDropdown = makeDropdown(decisionView, DECISIONS_OPTIONS, changeDecisionView, t)
+  let filterDropdown
+
+  if (viewMode === 'calendar') {
+    const options = [{ id: 'all', label: 'All' }]
+    filterDropdown = makeFilterDropdown('all', options, (id) => {}, t)
   }
-
-  if (view === 'events') {
-    timeframeDropdown = makeDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t)
+  switch (view) {
+    case 'events':
+      filterDropdown ||= makeFilterDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t)
+      break
+    case 'calendar':
+      filterDropdown ||= makeFilterDropdown(postTypeFilter, postTypeOptionsForFilter, changeTab, t)
+      break
+    default:
+      filterDropdown ||= makeFilterDropdown(sortBy, defaultOptionsForFilter, changeSort, t)
   }
 
   const handleSearchToggle = () => {
@@ -102,7 +106,7 @@ const StreamViewControls = ({
   return (
     <div className={cn(classes.streamViewContainer, { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
       <div className='flex w-full flex-row-reverse justify-between'>
-        <div className={cn('bg-primary px-2 flex items-center rounded transition-all', {'bg-selected': searchActive })} onClick={handleSearchToggle}>
+        <div className={cn('bg-primary px-2 flex items-center rounded transition-all', { 'bg-selected': searchActive })} onClick={handleSearchToggle}>
           <Icon name='Search' className={cn(classes.toggleIcon, { [classes.active]: searchActive })} />
         </div>
         {![CONTEXT_MY, 'all', 'public'].includes(context) &&
@@ -121,7 +125,7 @@ const StreamViewControls = ({
         />
         <div className='bg-primary rounded px-1 flex gap-2 items-center'>
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'cards' })}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'cards' })}
             onClick={() => changeView('cards')}
             data-tooltip-content={t('Card view')}
             data-tooltip-id='stream-viewmode-tip'
@@ -130,7 +134,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'list' })}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'list' })}
             onClick={() => changeView('list')}
             data-tooltip-content={t('List view')}
             data-tooltip-id='stream-viewmode-tip'
@@ -139,7 +143,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'bigGrid' })}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'bigGrid' })}
             onClick={() => changeView('bigGrid')}
             data-tooltip-content={t('Large Grid')}
             data-tooltip-id='stream-viewmode-tip'
@@ -148,18 +152,26 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', {'bg-selected': viewMode === 'grid' }, classes.smallGrid)}
+            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'grid' }, classes.smallGrid)}
             onClick={() => changeView('grid')}
             data-tooltip-content={t('Small Grid')}
             data-tooltip-id='stream-viewmode-tip'
           >
             <Icon name='SmallGridView' className={classes.gridViewIcon} />
           </div>
+
+          {postHasDates && (
+            <div
+              className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'calendar' }, classes.calendar)}
+              onClick={() => changeView('calendar')}
+              data-tooltip-content={t('Calendar')}
+              data-tooltip-id='stream-viewmode-tip'
+            >
+              <Icon name='Calendar' className={classes.gridViewIcon} />
+            </div>
+          )}
         </div>
-        {view === 'events' && timeframeDropdown}
-        {view !== 'events' && makeDropdown(sortBy, customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS, changeSort, t)}
-        {!['events', 'projects', 'decisions', 'ask-and-offer', 'resources', 'discussions'].includes(view) && postTypeFilterDropdown}
-        {view === 'decisions' && decisionViewDropdown}
+        {viewMode !== 'calendar' && filterDropdown}
         <Tooltip id='stream-viewmode-tip' position='bottom' />
       </div>
       {searchActive &&

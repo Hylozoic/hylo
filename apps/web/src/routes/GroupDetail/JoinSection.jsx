@@ -64,7 +64,7 @@ export default function JoinSection ({ addSkill, currentUser, fullPage, group, g
             ? <JoinQuestionsAndButtons group={group} joinGroup={joinGroup} joinText={t('Join {{group.name}}', { group })} t={t} />
             : group.accessibility === GROUP_ACCESSIBILITY.Restricted
               ? hasPendingRequest
-                ? <div className={classes.requestPending}>{t('Request to join pending')}</div>
+                ? <div className='border border-dashed rounded-md p-2 text-foreground'>{t('Request to join pending')}</div>
                 : <JoinQuestionsAndButtons group={group} joinGroup={requestToJoinGroup} joinText={t('Request Membership in {{group.name}}', { group })} t={t} />
               : ''}
     </div>
@@ -97,7 +97,7 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
       )}
       <div className={classes.center}>
         <div
-          className={cn('shadow-md', { [classes.disabledButton]: !allQuestionsAnswered })}
+          className={cn('cursor-pointer text-foreground shadow-md', { [classes.disabledButton]: !allQuestionsAnswered })}
           onClick={allQuestionsAnswered ? () => joinGroup(group.id, questionAnswers) : () => {}}
           data-tooltip-content={!allQuestionsAnswered ? t('You must answer all the questions to join') : ''}
           data-tooltip-id='join-tip'

@@ -20,6 +20,7 @@ export default gql`
         creator {
           id
           name
+          avatarUrl
         }
       }
     }

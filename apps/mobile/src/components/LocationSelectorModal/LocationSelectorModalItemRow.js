@@ -2,7 +2,7 @@ import React from 'react'
 import { Text, TouchableOpacity } from 'react-native'
 import Icon from 'components/Icon'
 import useFindOrCreateLocationObject from 'components/LocationSelectorModal/useFindOrCreateLocationObject'
-import { rhino80, rhino20, caribbeanGreen } from 'style/colors'
+import { rhino80, rhino20, caribbeanGreen, alabaster } from 'style/colors'
 
 export default function LocationSelectorModalItemRow ({ item, onPress }) {
   const [, findOrCreateLocationObject] = useFindOrCreateLocationObject()
@@ -37,23 +37,21 @@ export default function LocationSelectorModalItemRow ({ item, onPress }) {
 
 const styles = {
   locationRow: {
-    paddingHorizontal: 13,
-    paddingTop: 13,
-    marginTop: 13,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
     borderTopWidth: 1,
-    borderTopColor: rhino20
+    borderTopColor: rhino80
   },
   notGeocodedRow: {
-    color: rhino80
+    color: rhino20
   },
   locationIcon: {
     marginRight: 10
   },
   locationText: {
-    color: caribbeanGreen,
+    color: alabaster,
     fontWeight: 'normal',
     fontFamily: 'Circular-Bold',
     flex: 1

@@ -1,28 +1,35 @@
 import { RESET_NEW_POST_COUNT } from 'store/constants'
 
-export default function resetNewPostCount (id, type) {
-  if (!['GroupTopic', 'Membership'].includes(type)) {
+export default function resetNewPostCount (id, type, count = 0) {
+  if (!['TopicFollow', 'Membership'].includes(type)) {
     throw new Error(`bad type for resetNewPostCount: ${type}`)
   }
 
   return {
     type: RESET_NEW_POST_COUNT,
     graphql: {
-      query: type === 'GroupTopic' ? GroupTopicQuery : MembershipQuery,
+      query: type === 'TopicFollow' ? TopicFollowQuery : MembershipQuery,
       variables: {
         id,
         data: {
-          newPostCount: 0
+          newPostCount: count
         }
       }
     },
-    meta: { id, type, optimistic: true }
+    meta: { id, type, count, optimistic: true }
   }
 }
 
-const GroupTopicQuery = `mutation($id: ID, $data: GroupTopicFollowInput) {
-    updateGroupTopicFollow(id: $id, data: $data) {
-      success
+const TopicFollowQuery = `mutation($id: ID, $data: TopicFollowInput) {
+    updateTopicFollow(id: $id, data: $data) {
+      id
+      newPostCount
+      group {
+        id
+      }
+      topic {
+        id
+      }
     }
   }`
 

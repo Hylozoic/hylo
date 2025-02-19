@@ -3,11 +3,10 @@ import PropTypes from 'prop-types'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
-import { ImageUp, Info, CircleFadingArrowUp } from 'lucide-react'
+import { ImageUp, Info } from 'lucide-react'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import EditableMap from 'components/Map/EditableMap/EditableMap'
 import EditableMapModal from 'components/Map/EditableMap/EditableMapModal'
@@ -26,11 +25,10 @@ import { bgImageStyle, cn } from 'util/index'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss'
-import styles from './GroupSettingsTab.module.scss'
 
 const { object, func } = PropTypes
 
-function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, updateGroupSettings, transitionGroupToNewMenu }) {
+function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, updateGroupSettings }) {
   const dispatch = useDispatch()
   const [state, setState] = useState(defaultEditState())
   const { t } = useTranslation()
@@ -152,11 +150,11 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     <div className='w-full flex flex-col'>
       <div className='w-full h-[30vh] bg-background mb-[50px]'>
         <UploadAttachmentButton
-            type='groupBanner'
-            id={group.id}
-            onSuccess={({ url }) => updateSettingDirectly('bannerUrl')(url)}
-            className='relative z-0'
-          >
+          type='groupBanner'
+          id={group.id}
+          onSuccess={({ url }) => updateSettingDirectly('bannerUrl')(url)}
+          className='relative z-0'
+        >
           <div style={bgImageStyle(bannerUrl)} className='w-full group h-[30vh] hover:scale-105 rounded-xl transition-all relative z-0 hover:scale-105 shadow-xl hover:shadow-2xl'>
             <div className='absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[100px] h-[100px] bg-black/60 opacity-0 group-hover:opacity-100 transition-all rounded-xl text-xs flex flex-col justify-center items-center text-center'>
               <ImageUp className='w-[30px] h-[30px]' />
@@ -165,10 +163,10 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           </div>
         </UploadAttachmentButton>
         <UploadAttachmentButton
-        type='groupAvatar'
-        id={group.id}
-        onSuccess={({ url }) => updateSettingDirectly('avatarUrl')(url)}
-        className='relative z-1 bg-background w-full'
+          type='groupAvatar'
+          id={group.id}
+          onSuccess={({ url }) => updateSettingDirectly('avatarUrl')(url)}
+          className='relative z-1 bg-background w-full'
         >
           <div style={bgImageStyle(avatarUrl)} className='w-[100px] group h-[100px] rounded-xl bg-cover absolute top-[-50px] left-[50%] translate-x-[-50%] flex justify-center items-center shadow-xl hover:shadow-2xl hover:scale-105 transition-all'>
             <div className='absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[100px] h-[100px] bg-black/60 opacity-0 group-hover:opacity-100 transition-all rounded-xl text-xs flex flex-col justify-center items-center text-center'>
@@ -179,7 +177,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
         </UploadAttachmentButton>
       </div>
       <div className='w-full flex justify-center items-center mt-2'>
-        <input type='text' onChange={updateSetting('name')} value={name || ''} id='nameField' className='bg-transparent text-foreground text-center text-2xl font-bold outline-none focus:border-2 focus:border-dashed focus:border-foreground/80 rounded-lg hover:scale-105 transition-all hover:border-2 hover:border-foreground/50 border-dashed border-2 border-transparent hover:border-dashed'/>
+        <input type='text' onChange={updateSetting('name')} value={name || ''} id='nameField' className='bg-transparent text-foreground text-center text-2xl font-bold outline-none focus:border-2 focus:border-dashed focus:border-foreground/80 rounded-lg hover:scale-105 transition-all hover:border-2 hover:border-foreground/50 border-dashed border-2 border-transparent hover:border-dashed' />
       </div>
 
       <SettingsControl
@@ -222,11 +220,11 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           </p>
         </div>
         <SettingsControl
-        label={t('Define your regional boundary')}
-        onChange={updateSetting('geoShape')}
-        placeholder={t('Paste GeoJSON here or draw on the map below')}
-        type='text'
-        value={geoShape || ''}
+          label={t('Define your regional boundary')}
+          onChange={updateSetting('geoShape')}
+          placeholder={t('Paste GeoJSON here or draw on the map below')}
+          type='text'
+          value={geoShape || ''}
         />
         <div className='w-full h-[275px] mt-[-2rem] rounded-lg overflow-hidden'>
           {state.isModal
@@ -293,21 +291,12 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           </div>
         </div>
       </SettingsSection>
-      <SettingsSection>
-        <h3 className='text-foreground text-xl mb-4 mt-0'>{t('New group menu interface')}</h3>
-        <p>The new group menu is faster, easier to use and more customizable.</p>
-          
-          <Button className='flex items-center p-2 rounded-lg justify-center m-8' onClick={transitionGroupToNewMenu}>
-            <CircleFadingArrowUp className='h-[20px]'/>
-            <span>Upgrade this group's menu</span>
-          </Button>
-      </SettingsSection>
       <div className={cn(
         'sticky bottom-4 left-[50%] translate-x-[-50%] w-[60%] bg-background/80 rounded-xl p-4 flex justify-between items-center translate-y-[200px] transition-all opacity-0 scale-0',
         {
-          'border-2 border-accent border-dashed text-accent translate-y-[0px] opacity-100 scale-100' : changed
-        }
-      )}>
+          'border-2 border-accent border-dashed text-accent translate-y-[0px] opacity-100 scale-100': changed
+        })}
+      >
         <span className={saveButtonContent().style}>{saveButtonContent().text}</span>
         <button onClick={changed && !error ? save : null} className='bg-foreground rounded text-background py-1 px-2 text-bold'>
           {t('Save Changes')}
@@ -322,8 +311,7 @@ GroupSettingsTab.propTypes = {
   group: object,
   fetchLocation: func,
   fetchPending: object,
-  updateGroupSettings: func,
-  transitionGroupToNewMenu: func
+  updateGroupSettings: func
 }
 
 export default GroupSettingsTab

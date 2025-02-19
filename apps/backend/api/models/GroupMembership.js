@@ -41,6 +41,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.hasMany(GroupJoinQuestionAnswer, 'group_id').where({ user_id: this.get('user_id') })
   },
 
+  tagFollows: function () {
+    return this.hasMany(TagFollow, 'group_id', 'group_id').where({ user_id: this.get('user_id') })
+  },
+
   user () {
     return this.belongsTo(User)
   },

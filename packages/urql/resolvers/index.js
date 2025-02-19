@@ -6,10 +6,14 @@ export default {
     search: makePaginationResolver(),
     notifications: makePaginationResolver()
   },
+  Post: {
+    comments: makePaginationResolver()
+  },
   Comment: {
     childComments: makePaginationResolver()
   },
   Group: {
+    posts: makePaginationResolver(),
     viewPosts: makePaginationResolver()
   },
   Me: {

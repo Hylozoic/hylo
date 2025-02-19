@@ -14,8 +14,6 @@ import { mapbox } from 'config/index'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-import classes from './EditableMap.module.scss'
-
 export default function EditableMap (props) {
   const { locationObject, polygon, savePolygon, toggleModal } = props
 
@@ -165,20 +163,20 @@ export default function EditableMap (props) {
 
   const zoomTools = (
     <div className='absolute top-0 right-0 flex flex-col gap-2 p-2'>
-        <button
-          className='w-[40px] h-[40px] rounded-lg shadow-lg bg-background text-foreground'
-          title='Zoom In'
-          onClick={zoomIn}
-        >
-          <Icon name='Plus' />
-        </button>
-        <button
-          className='w-[40px] h-[40px] rounded-lg shadow-lg bg-background text-foreground'
-          title='Zoom Out'
-          onClick={zoomOut}
-        >
-          <Icon name='Minus' />
-        </button>
+      <button
+        className='w-[40px] h-[40px] rounded-lg shadow-lg bg-background text-foreground'
+        title='Zoom In'
+        onClick={zoomIn}
+      >
+        <Icon name='Plus' />
+      </button>
+      <button
+        className='w-[40px] h-[40px] rounded-lg shadow-lg bg-background text-foreground'
+        title='Zoom Out'
+        onClick={zoomOut}
+      >
+        <Icon name='Minus' />
+      </button>
     </div>
   )
 

@@ -2,6 +2,7 @@ import { get } from 'lodash/fp'
 import meQuery from '@hylo/graphql/queries/meQuery'
 import meCheckAuthQuery from '@hylo/graphql/queries/meCheckAuthQuery'
 import makeAppendToPaginatedSetResolver from './makeAppendToPaginatedSetResolver'
+import { reactOn, deleteReaction } from './reactions'
 
 export default {
   Mutation: {
@@ -23,13 +24,10 @@ export default {
     },
 
     createComment: (result, args, cache, info) => {
-      const parentId = args?.data?.parentCommentId || args?.data?.postId
-      const parentType = args?.data?.parentCommentId ? 'Comment' : 'Post'
-      const fieldName = args?.data?.parentCommentId ? 'childComments' : 'comments'
       makeAppendToPaginatedSetResolver({
-        parentType,
-        parentId,
-        fieldName
+        parentType: args?.data?.parentCommentId ? 'Comment' : 'Post',
+        parentId: args?.data?.parentCommentId || args?.data?.postId,
+        fieldName: args?.data?.parentCommentId ? 'childComments' : 'comments'
       })(result, args, cache, info)
     },
 
@@ -118,6 +116,10 @@ export default {
       }
     },
 
+    // See note on these updaters in the file these are imported from
+    reactOn,
+    deleteReaction,
+
     respondToEvent: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         cache.invalidate(cache.keyOfEntity({ __typename: 'Post', id: args.id }), 'myEventResponse')
@@ -157,10 +159,19 @@ export default {
             parentId: update?.messageThread?.id,
             fieldName: 'messages'
           })(result, args, cache, info)
+          cache.invalidate({ __typename: 'MessageThread', id: update?.messageThread?.id })
+          cache.updateQuery({ query: meQuery }, ({ me }) => {
+            if (!me) return null
+            return { me: { ...me, unseenThreadCount: me.unseenThreadCount + 1 } }
+          })
           return
         }
 
         case 'MessageThread': {
+          makeAppendToPaginatedSetResolver({
+            parentType: 'Me',
+            fieldName: 'messageThreads'
+          })(result, args, cache, info)
           cache.updateQuery({ query: meQuery }, ({ me }) => {
             if (!me) return null
             return { me: { ...me, unseenThreadCount: me.unseenThreadCount + 1 } }

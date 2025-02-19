@@ -7,7 +7,7 @@
 .form-wrapper {
   position: absolute;
   bottom: 0;
-  background-color: rgba(255,255,255,.9);
+  background-color: hsl(var(--background));
   padding: 0 20px;
   z-index: 10;
 }

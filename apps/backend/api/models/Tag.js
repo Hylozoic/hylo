@@ -42,14 +42,14 @@ const addToTaggable = (taggable, name, userId, opts) => {
     }), opts)
     // userId here is the id of the user making the edit, which is not always
     // the same as the user who created the taggable. we add the tag only to
-    // those communities of which the user making the edit is a member.
+    // those groups of which the user making the edit is a member.
     .then(() => userId && Group.pluckIdsForMember(userId))
     .then(groupIds => {
       if (!groupIds) return
       const groups = filter(c => includes(groupIds, c.id),
         getGroups(taggable).models)
-      return Promise.map(groups, com => Tag.addToGroup({
-        group_id: com.id,
+      return Promise.map(groups, g => Tag.addToGroup({
+        group_id: g.id,
         tag_id: tag.id,
         user_id: taggable.get('user_id'),
         isSubscribing: true
@@ -108,19 +108,18 @@ module.exports = bookshelf.Model.extend({
   }
 
 }, {
-  addToGroup: ({ group_id, tag_id, user_id, description, is_default, isSubscribing }, opts) =>
-    GroupTag.where({group_id, tag_id}).fetch(opts)
-    .tap(groupTag => groupTag ||
-      GroupTag.create({group_id, tag_id, user_id, description, is_default}, opts)
-      .catch(() => {}))
-      // the catch above is for the case where another user just created the
-      // GroupTag (race condition): the save fails, but we don't care about
-      // the result
-    .then(groupTag => groupTag && groupTag.save({updated_at: new Date(), is_default}))
-    .then(() => user_id && isSubscribing &&
-      TagFollow.where({group_id, tag_id, user_id}).fetch(opts)
-      .then(follow => follow ||
-        TagFollow.create({group_id, tag_id, user_id}, opts))),
+  addToGroup: ({ group_id, tag_id, user_id, description, is_default, isSubscribing }, opts) => {
+    return GroupTag.where({group_id, tag_id}).fetch(opts)
+      .tap(groupTag => groupTag ||
+        GroupTag.create({group_id, tag_id, user_id, description, is_default}, opts)
+        .catch(() => {}))
+        // the catch above is for the case where another user just created the
+        // GroupTag (race condition): the save fails, but we don't care about
+        // the result
+      .then(groupTag => groupTag && groupTag.save({updated_at: new Date(), is_default}))
+      .then(() => user_id && isSubscribing &&
+        TagFollow.findOrCreate({ groupId: group_id, tagId: tag_id, userId: user_id, isSubscribing }, opts))
+  },
 
   isValidTag: function (text) {
     return !Validators.validateTopicName(text)

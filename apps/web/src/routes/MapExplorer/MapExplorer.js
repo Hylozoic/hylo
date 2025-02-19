@@ -15,6 +15,7 @@ import combine from '@turf/combine'
 import { featureCollection, point } from '@turf/helpers'
 import isWebView from 'util/webView'
 import Dropdown from 'components/Dropdown'
+import CreateMenu from 'components/CreateMenu'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import LocationInput from 'components/LocationInput'
@@ -37,7 +38,7 @@ import { FETCH_FOR_GROUP } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { personUrl, postUrl, groupDetailUrl, createUrl } from 'util/navigation'
+import { personUrl, postUrl, groupDetailUrl } from 'util/navigation'
 
 import {
   fetchSavedSearches, deleteSearch, saveSearch, viewSavedSearch
@@ -265,8 +266,6 @@ function MapExplorer (props) {
   const [groupIconLayer, setGroupIconLayer] = useState(null)
   const [polygonLayer, setPolygonLayer] = useState(null)
   const [hoveredObject, setHoveredObject] = useState(null)
-  const [creatingPost, setCreatingPost] = useState(false)
-  // const [coordinates, setCoordinates] = useState(null)
   const [isAddingItemToMap, setIsAddingItemToMap] = useState(false)
   const [pointerCoords, setPointerCoords] = useState([0, 0])
   const [groupsForDrawer, setGroupsForDrawer] = useState(groups || [])
@@ -287,6 +286,14 @@ function MapExplorer (props) {
     bearing: 0,
     pitch: 0
   })
+
+  const [createCreatePopupVisible, setCreatePopupVisible] = useState(false)
+  const [createPopupPosition, setCreatePopupPosition] = useState({ top: 0, left: 0, lat: 0, lng: 0 })
+
+  const showCreatePopup = (point, lngLat) => {
+    setCreatePopupPosition({ top: point.y, left: point.x, lat: lngLat.lat, lng: lngLat.lng })
+    setCreatePopupVisible(true)
+  }
 
   const updateUrlFromStore = useCallback((params, replace) => {
     const querystringParams = getQuerystringParam(['sortBy', 'search', 'hide', 'topics'], location)
@@ -336,13 +343,11 @@ function MapExplorer (props) {
     dispatch(saveSearch(attributes))
   }, [context, currentBoundingBox, currentUser?.id, dispatch, filters, groupSlug])
 
-  const showDetails = useCallback((postId) => dispatch(navigate(postUrl(postId, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location)))), [dispatch, navigate, routeParams, location])
+  const showDetails = useCallback((postId) => navigate(postUrl(postId, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location))), [navigate, routeParams, location])
 
-  const showGroupDetails = useCallback((groupSlug) => dispatch(navigate(groupDetailUrl(groupSlug, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location)))), [dispatch, navigate, routeParams, location])
+  const showGroupDetails = useCallback((groupSlug) => navigate(groupDetailUrl(groupSlug, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location))), [navigate, routeParams, location])
 
-  const showCreateModal = useCallback((location) => dispatch(navigate(createUrl(routeParams, location))), [dispatch, navigate, routeParams])
-
-  const gotoMember = useCallback((memberId) => dispatch(navigate(personUrl(memberId, groupSlug))), [dispatch, groupSlug, navigate])
+  const gotoMember = useCallback((memberId) => navigate(personUrl(memberId, groupSlug)), [dispatch, groupSlug, navigate])
 
   const toggleDrawer = useCallback(() => {
     dispatch(changeQuerystringParam(location, 'hideDrawer', !hideDrawer))
@@ -432,25 +437,27 @@ function MapExplorer (props) {
     }
   }, [gotoMember, hideDrawer, showDetails, showGroupDetails, viewport])
 
+  const creatingPostRef = useRef(false)
+
   const onMapMouseDown = useCallback((e) => {
     const oneSecondInMs = 1000
-    setCreatingPost(true)
+    setCreatePopupVisible(false)
+    creatingPostRef.current = true
     setTimeout(() => {
-      if (creatingPost) {
-        const newCoordinates = { lng: e.lngLat[0], lat: e.lngLat[1] }
-        // setCoordinates(newCoordinates)
-        const currentParams = Object.fromEntries(new URLSearchParams(location.search))
-        showCreateModal({ ...currentParams, ...newCoordinates })
+      console.log('creatingPost', creatingPostRef.current)
+      if (creatingPostRef.current) {
+        showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
+        console.log('showCreatePopup', e.point, e.lngLat)
       }
     }, isAddingItemToMap ? 0 : oneSecondInMs)
-  }, [isAddingItemToMap, creatingPost, location.search, showCreateModal])
+  }, [isAddingItemToMap, showCreatePopup])
 
   const onMapMouseUp = useCallback(() => {
-    if (creatingPost) {
-      setCreatingPost(false)
+    if (creatingPostRef.current) {
+      creatingPostRef.current = false
       setIsAddingItemToMap(false)
     }
-  }, [creatingPost])
+  }, [])
 
   const updatedMapFeatures = useCallback((boundingBox) => {
     const bbox = bboxPolygon(boundingBox)
@@ -614,7 +621,7 @@ function MapExplorer (props) {
     updatedMapFeatures(newBoundingBox)
   }
 
-  const afterViewportUpdate = useRef(debounce((update) => {
+  const afterViewportUpdate = debounce((update) => {
     let bounds = mapRef.current.getBounds()
     bounds = [bounds._sw.lng, bounds._sw.lat, bounds._ne.lng, bounds._ne.lat]
     updateBoundingBoxQuery(bounds)
@@ -623,8 +630,9 @@ function MapExplorer (props) {
     if (!isEqual(centerLocation, newCenter) || !isEqual(zoom, newZoom)) {
       updateView({ centerLocation: newCenter, zoom: newZoom })
     }
-    setCreatingPost(false)
-  }, 300)).current
+    setCreatePopupVisible(false)
+    creatingPostRef.current = false
+  }, 300)
 
   const toggleFeatureType = useCallback((type, checked) => {
     const newFeatureTypes = { ...filters.featureTypes }
@@ -687,8 +695,6 @@ function MapExplorer (props) {
   const { hideNavLayout } = layoutFlags
   const withoutNav = isWebView() || hideNavLayout
 
-  const locationParams = location !== undefined ? getQuerystringParam(['zoom', 'center', 'lat', 'lng'], location) : null
-
   return (
     <div className={cn(classes.container, { [classes.noUser]: !currentUser, [classes.withoutNav]: withoutNav })}>
       <Helmet>
@@ -727,7 +733,6 @@ function MapExplorer (props) {
           changeChildPostInclusion={changeChildPostInclusion}
           childPostInclusion={childPostInclusion}
           context={context}
-          locationParams={locationParams}
           currentUser={currentUser}
           fetchPostsForDrawer={doFetchPostsForDrawer}
           filters={filters}
@@ -860,6 +865,17 @@ function MapExplorer (props) {
         position='bottom'
         className={classes.helpTipTwo}
       />
+
+      {createCreatePopupVisible && (
+        <div
+          className='absolute w-[200px] bg-background z-50 rounded-md drop-shadow-md p-2'
+          style={{ top: createPopupPosition.top, left: createPopupPosition.left }}
+          onClick={() => setCreatePopupVisible(false)}
+        >
+          <CreateMenu coordinates={{ lat: createPopupPosition.lat, lng: createPopupPosition.lng }} />
+          <button onClick={() => setCreatePopupVisible(false)}>Close</button>
+        </div>
+      )}
     </div>
   )
 }

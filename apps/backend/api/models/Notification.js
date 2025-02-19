@@ -69,13 +69,6 @@ module.exports = bookshelf.Model.extend({
     return this.reader().get('settings')?.locale || this.actor().getLocale()
   },
 
-  postUrlHelper: function ({ post, group, isPublic = false, topic, reader }) {
-    if (post.get('type') === Post.Type.CHAT) {
-      return Frontend.Route.chatPostForMobile(post, group, topic)
-    }
-    return Frontend.Route.post(post, group, isPublic, topic)
-  },
-
   send: async function () {
     if (await this.shouldBeBlocked()) {
       this.destroy()
@@ -105,20 +98,18 @@ module.exports = bookshelf.Model.extend({
 
   sendPush: async function () {
     switch (Notification.priorityReason(this.relations.activity.get('meta').reasons)) {
-      case 'eventInvitation':
-        return this.sendEventInvitationPush()
-      case 'mention':
-        return this.sendPostPush('mention')
-      case 'commentMention':
-        return this.sendCommentPush('mention')
-      case 'newComment':
-        return this.sendCommentPush()
-      case 'newContribution':
-        return this.sendContributionPush()
-      case 'joinRequest':
-        return this.sendJoinRequestPush()
+      case 'announcement':
+        return this.sendAnnouncementPush()
       case 'approvedJoinRequest':
         return this.sendApprovedJoinRequestPush()
+      case 'commentMention':
+        return this.sendCommentPush('mention')
+      case 'donation to':
+        return this.sendPushDonationTo()
+      case 'donation from':
+        return this.sendPushDonationFrom()
+      case 'eventInvitation':
+        return this.sendEventInvitationPush()
       case 'groupChildGroupInvite':
         return this.sendGroupChildGroupInvitePush()
       case 'groupChildGroupInviteAccepted':
@@ -127,20 +118,60 @@ module.exports = bookshelf.Model.extend({
         return this.sendGroupParentGroupJoinRequestPush()
       case 'groupParentGroupJoinRequestAccepted':
         return this.sendGroupParentGroupJoinRequestAcceptedPush()
-      case 'announcement':
-        return this.sendPushAnnouncement()
-      case 'tag':
+      case 'joinRequest':
+        return this.sendJoinRequestPush()
+      case 'memberJoinedGroup':
+        return this.sendMemberJoinedGroupPush()
+      case 'mention':
+        return this.sendPostPush('mention')
+      case 'newComment':
+        return this.sendCommentPush()
+      case 'newContribution':
+        return this.sendContributionPush()
       case 'newPost':
+      case 'tag':
         return this.sendPostPush()
-      case 'donation to':
-        return this.sendPushDonationTo()
-      case 'donation from':
-        return this.sendPushDonationFrom()
       case 'voteReset':
         return this.sendPostPush('voteReset')
       default:
         return Promise.resolve()
     }
+  },
+
+  sendApprovedJoinRequestPush: function () {
+    const groupIds = Activity.groupIds(this.relations.activity)
+    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
+    const locale = this.locale()
+    return Group.find(groupIds[0])
+      .then(group => {
+        const path = new URL(Frontend.Route.group(group)).pathname
+        const alertText = PushNotification.textForApprovedJoinRequest(group, this.actor(), locale)
+        return this.reader().sendPushNotification(alertText, path)
+      })
+  },
+
+  sendAnnouncementPush: function (version) {
+    const post = this.post()
+    const groupIds = Activity.groupIds(this.relations.activity)
+    const locale = this.locale()
+    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
+    return Group.find(groupIds[0])
+      .then(group => {
+        const path = new URL(Frontend.Route.post(post, group)).pathname
+        const alertText = PushNotification.textForAnnouncement(post, group, locale)
+        return this.reader().sendPushNotification(alertText, path)
+      })
+  },
+
+  sendContributionPush: function (version) {
+    const locale = this.locale()
+    return this.load(['contribution', 'contribution.post'])
+      .then(() => {
+        const { contribution } = this.relations.activity.relations
+        const path = new URL(Frontend.Route.post(contribution.relations.post)).pathname
+        const alertText = PushNotification.textForContribution(contribution, version, locale)
+        return this.reader().sendPushNotification(alertText, path)
+      })
   },
 
   sendEventInvitationPush: function () {
@@ -157,19 +188,6 @@ module.exports = bookshelf.Model.extend({
       })
   },
 
-  sendPushAnnouncement: function (version) {
-    const post = this.post()
-    const groupIds = Activity.groupIds(this.relations.activity)
-    const locale = this.locale()
-    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    return Group.find(groupIds[0])
-      .then(group => {
-        const path = new URL(Frontend.Route.post(post, group)).pathname
-        const alertText = PushNotification.textForAnnouncement(post, group, locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
-  },
-
   sendPostPush: async function (version) {
     const post = this.post()
     const groupIds = Activity.groupIds(this.relations.activity)
@@ -180,30 +198,19 @@ module.exports = bookshelf.Model.extend({
     // TODO: include all groups in the notification?
     return Group.find(groupIds[0])
       .then(group => {
-        const path = new URL(this.postUrlHelper({ post, isPublic: false, topic: firstTag, group })).pathname
+        const path = new URL(Frontend.Route.post(post, group)).pathname
         const alertText = PushNotification.textForPost(post, group, firstTag, version, locale)
         return this.reader().sendPushNotification(alertText, path)
       })
   },
 
-  sendContributionPush: function (version) {
-    const locale = this.locale()
-    return this.load(['contribution', 'contribution.post'])
-      .then(() => {
-        const { contribution } = this.relations.activity.relations
-        const path = new URL(Frontend.Route.post(contribution.relations.post)).pathname
-        const alertText = PushNotification.textForContribution(contribution, version, locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
-  },
 
   sendCommentPush: function (version) {
     const comment = this.comment()
     const post = comment.relations.post
     const group = post.relations.groups.first()
     const locale = this.locale()
-    const groupSlug = getSlug(group)
-    const path = new URL(Frontend.Route.comment({ comment, groupSlug, post })).pathname
+    const path = new URL(Frontend.Route.comment({ comment, group, post })).pathname
     const alertText = PushNotification.textForComment(comment, version, locale)
     if (!this.reader().enabledNotification(TYPE.Comment, MEDIUM.Push)) {
       return Promise.resolve()
@@ -219,18 +226,6 @@ module.exports = bookshelf.Model.extend({
       .then(group => {
         const path = new URL(Frontend.Route.groupJoinRequests(group)).pathname
         const alertText = PushNotification.textForJoinRequest(group, this.actor(), locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
-  },
-
-  sendApprovedJoinRequestPush: function () {
-    const groupIds = Activity.groupIds(this.relations.activity)
-    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    const locale = this.locale()
-    return Group.find(groupIds[0])
-      .then(group => {
-        const path = new URL(Frontend.Route.group(group)).pathname
-        const alertText = PushNotification.textForApprovedJoinRequest(group, this.actor(), locale)
         return this.reader().sendPushNotification(alertText, path)
       })
   },
@@ -323,19 +318,21 @@ module.exports = bookshelf.Model.extend({
     return this.reader().sendPushNotification(alertText, path)
   },
 
+  sendMemberJoinedGroupPush: async function () {
+    const group = await this.relations.activity.group().fetch()
+    const actor = await this.relations.activity.actor().fetch()
+    const locale = this.locale()
+    const path = new URL(Frontend.Route.profile(actor, group)).pathname
+    const alertText = PushNotification.textForMemberJoinedGroup(group, actor, locale)
+    return this.reader().sendPushNotification(alertText, path)
+  },
+
   sendEmail: async function () {
     switch (Notification.priorityReason(this.relations.activity.get('meta').reasons)) {
-      case 'mention':
-        return this.sendPostMentionEmail()
-      case 'joinRequest':
-        return this.sendJoinRequestEmail()
-      case 'approvedJoinRequest':
-        return this.sendApprovedJoinRequestEmail()
       case 'announcement':
         return this.sendAnnouncementEmail()
-      case 'newPost':
-      case 'tag':
-        return this.sendPostEmail()
+      case 'approvedJoinRequest':
+        return this.sendApprovedJoinRequestEmail()
       case 'donation to':
         return this.sendDonationToEmail()
       case 'donation from':
@@ -350,6 +347,15 @@ module.exports = bookshelf.Model.extend({
         return this.sendGroupParentGroupJoinRequestEmail()
       case 'groupParentGroupJoinRequestAccepted':
         return this.sendGroupParentGroupJoinRequestAcceptedEmail()
+      case 'joinRequest':
+        return this.sendJoinRequestEmail()
+      case 'memberJoinedGroup':
+        return this.sendMemberJoinedGroupEmail()
+      case 'mention':
+        return this.sendPostMentionEmail()
+      case 'newPost':
+      case 'tag':
+        return this.sendPostEmail()
       default:
         return Promise.resolve()
     }
@@ -389,7 +395,7 @@ module.exports = bookshelf.Model.extend({
             post_title: decode(post.title() || ''),
             post_type: post.get('type'),
             post_url: Frontend.Route.tokenLogin(reader, token,
-              Frontend.Route.post(post, group) + '?ctt=announcement_email&cti=' + reader.id),
+              Frontend.Route.post(post, group, 'ctt=announcement_email&cti=' + reader.id)),
             unfollow_url: Frontend.Route.tokenLogin(reader, token,
               Frontend.Route.unfollow(post, group) + '?ctt=announcement_email&cti=' + reader.id),
             tracking_pixel_url: Analytics.pixelUrl('Announcement', { userId: reader.id }),
@@ -434,7 +440,7 @@ module.exports = bookshelf.Model.extend({
         post_title: decode(post.title() || ''),
         post_topic: firstTag,
         post_type: post.get('type'),
-        post_url: Frontend.Route.tokenLogin(reader, token, this.postUrlHelper({ post, isPublic: false, topic: firstTag, group }) + '?ctt=post_email&cti=' + reader.id),
+        post_url: Frontend.Route.tokenLogin(reader, token, Frontend.Route.post(post, group, 'ctt=post_email&cti=' + reader.id)),
         unfollow_url: Frontend.Route.tokenLogin(reader, token,
           Frontend.Route.unfollow(post, group) + '?ctt=post_email&cti=' + reader.id),
         tracking_pixel_url: Analytics.pixelUrl('Post', { userId: reader.id }),
@@ -477,7 +483,7 @@ module.exports = bookshelf.Model.extend({
             post_title: decode(post.summary()),
             post_topic: firstTag,
             post_type: post.get('type'),
-            post_url: Frontend.Route.tokenLogin(reader, token, this.postUrlHelper({ post, isPublic: false, topic: firstTag, group }) + '?ctt=post_mention_email&cti=' + reader.id ),
+            post_url: Frontend.Route.tokenLogin(reader, token, Frontend.Route.post(post, group) + '?ctt=post_mention_email&cti=' + reader.id ),
             unfollow_url: Frontend.Route.tokenLogin(reader, token,
               Frontend.Route.unfollow(post, group) + '?ctt=post_mention_email&cti=' + reader.id),
             tracking_pixel_url: Analytics.pixelUrl('Mention in Post', {userId: reader.id})
@@ -727,7 +733,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         project_title: project.summary(),
         project_url: Frontend.Route.tokenLogin(reader, token,
-          Frontend.Route.post(project) + '?ctt=post_mention_email&cti=' + reader.id),
+          Frontend.Route.post(project, null, 'ctt=post_mention_email&cti=' + reader.id)),
         contribution_amount: projectContribution.get('amount') / 100,
         contributor_name: actor.get('name'),
         contributor_avatar_url: actor.get('avatar_url'),
@@ -753,7 +759,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         project_title: project.summary(),
         project_url: Frontend.Route.tokenLogin(reader, token,
-          Frontend.Route.post(project) + '?ctt=post_mention_email&cti=' + reader.id),
+          Frontend.Route.post(project, null, '?ctt=post_mention_email&cti=' + reader.id)),
         contribution_amount: projectContribution.get('amount') / 100,
         contributor_name: actor.get('name'),
         contributor_avatar_url: actor.get('avatar_url'),
@@ -795,12 +801,41 @@ module.exports = bookshelf.Model.extend({
             post_type: 'event',
             post_date: TextHelpers.formatDatePair(post.get('start_time'), post.get('end_time'), false, post.get('timezone')),
             post_url: Frontend.Route.tokenLogin(reader, token,
-              Frontend.Route.post(post) + '?ctt=post_mention_email&cti=' + reader.id),
+              Frontend.Route.post(post, group, '?ctt=post_mention_email&cti=' + reader.id)),
             unfollow_url: Frontend.Route.tokenLogin(reader, token,
               Frontend.Route.unfollow(post, group) + '?ctt=post_mention_email&cti=' + reader.id),
             tracking_pixel_url: Analytics.pixelUrl('Mention in Post', { userId: reader.id })
           }
         })))
+  },
+
+  sendMemberJoinedGroupEmail: async function () {
+    const actor = this.actor()
+    const reader = this.reader()
+    const groupIds = Activity.groupIds(this.relations.activity)
+    const locale = this.locale()
+
+    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
+
+    const group = await Group.find(groupIds[0])
+
+    console.log('answers', await GroupJoinQuestionAnswer.latestAnswersFor(group.id, actor.id))
+    console.log('group url', Frontend.Route.group(group), " member url", Frontend.Route.profile(actor, group))
+
+    return Email.sendMemberJoinedGroupNotification({
+      email: reader.get('email'),
+      locale,
+      sender: { name: actor.get('name') },
+      data: {
+        group_name: group.get('name'),
+        group_url: Frontend.Route.group(group),
+        group_avatar_url: group.get('avatar_url'),
+        member_name: actor.get('name'),
+        member_profile_url: Frontend.Route.profile(actor, group),
+        member_avatar_url: actor.get('avatar_url'),
+        join_question_answers: await GroupJoinQuestionAnswer.latestAnswersFor(group.id, actor.id)
+      }
+    })
   },
 
   shouldBeBlocked: async function () {
@@ -908,7 +943,7 @@ module.exports = bookshelf.Model.extend({
     const orderedLabels = [
       'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'tag',
       'newPost', 'follow', 'followAdd', 'unfollow', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
-      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest'
+      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'memberJoinedGroup'
     ]
 
     const match = label => reasons.some(r => r.match(new RegExp('^' + label)))

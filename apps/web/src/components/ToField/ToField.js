@@ -15,13 +15,12 @@ const ToField = forwardRef(({
   onBlur,
   ...props
 }, ref) => {
-  const defaultState = { suggestions: [] }
-  const [state, setState] = useState(defaultState)
+  const [suggestions, setSuggestions] = useState([])
   const tagInputRef = useRef()
 
   useImperativeHandle(ref, () => ({
     reset: () => {
-      setState(defaultState)
+      setSuggestions([])
     },
 
     focus: () => tagInputRef.current?.focus()
@@ -32,15 +31,15 @@ const ToField = forwardRef(({
     if (searchText && searchText.trim().length > 0) {
       newSuggestions = differenceBy(options, selected, 'id')
         .filter(o => o.name.match(new RegExp(searchText, 'i')))
-      setState({ suggestions: newSuggestions })
+      setSuggestions(newSuggestions)
     } else {
       newSuggestions = differenceBy(options, selected, 'id')
-      setState({ suggestions: newSuggestions })
+      setSuggestions(newSuggestions)
     }
   }
 
   const clearSuggestions = () =>
-    setState({ suggestions: defaultState.suggestions })
+    setSuggestions([])
 
   const handleInputChange = (input) => {
     if (input === null) {
@@ -67,7 +66,7 @@ const ToField = forwardRef(({
     <TagInput
       groupSettings={groupSettings}
       tags={selected}
-      suggestions={state.suggestions}
+      suggestions={suggestions}
       handleInputChange={handleInputChange}
       handleAddition={handleAddition}
       handleDelete={handleDelete}
@@ -77,6 +76,7 @@ const ToField = forwardRef(({
       ref={tagInputRef}
       onFocus={onFocus} // Pass through to parent
       onBlur={onBlur} // Pass through to parent
+      tabChooses={false}
     />
   )
 })

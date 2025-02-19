@@ -158,5 +158,9 @@ module.exports = bookshelf.Model.extend({
 
     const amount = contribution.get('amount') / 100
     return locales[locale].textForDonationFrom({actor, postName, amount})
+  },
+
+  textForMemberJoinedGroup: function (group, actor, locale) {
+    return locales[locale].textForMemberJoinedGroup({group, actor})
   }
 })

@@ -2,6 +2,7 @@ import { includes, every } from 'lodash/fp'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
+import { useLocation } from 'react-router-dom'
 import { createSelector } from 'reselect'
 import Tooltip from 'components/Tooltip'
 import Icon from 'components/Icon'
@@ -17,6 +18,7 @@ import InfoButton from 'components/ui/info'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import MembershipSettingsRow from './MembershipSettingRow'
 import SettingsToggles from './SettingToggles'
 
@@ -71,8 +73,12 @@ function NotificationSettingsTab ({
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const location = useLocation()
   const me = useSelector(getMe) // Assuming getMe is a selector that fetches the current user
   const allGroupsSettings = useSelector(getAllGroupsSettings)
+
+  // Get a group row to jump to from the query params
+  const jumpToGroupId = getQuerystringParam('group', location)
 
   const updateUserSetting = settingKey => changes => {
     const currentSettings = getCurrentSettings(me, settingKey)
@@ -101,6 +107,17 @@ function NotificationSettingsTab ({
       updateAllGroups(changes)
     }
   }
+
+  useEffect(() => {
+    setTimeout(() => {
+      const groupSection = document.getElementById(`group-${jumpToGroupId}`)
+      console.log('groupSection', jumpToGroupId, groupSection)
+      if (groupSection) {
+        console.log('scrolling to groupSection')
+        groupSection.scrollIntoView({ behavior: 'instant' })
+      }
+    }, 100)
+  }, [jumpToGroupId])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -186,6 +203,7 @@ function NotificationSettingsTab ({
           <MembershipSettingsRow
             key={membership.id}
             membership={membership}
+            open={membership.group.id === jumpToGroupId}
             updateMembershipSettings={changes => dispatch(updateMembershipSettings(membership.group.id, changes))}
           />
         ))}
