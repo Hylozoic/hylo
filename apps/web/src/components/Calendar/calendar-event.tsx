@@ -7,7 +7,7 @@ import { DateTime } from 'luxon'
 import { cn } from '@/lib/utils'
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
 import Tooltip from 'components/Tooltip'
-import { sameDay, sameMonth } from './calendar-util'
+import { includes, sameDay, sameMonth } from './calendar-util'
 
 import classes from './calendar.module.scss'
 
@@ -27,8 +27,8 @@ function getOverlappingEvents (
     return (
       currentEvent.start < event.end &&
       currentEvent.end > event.start &&
-      (sameDay(currentEvent.start, event.start, currentEvent.end) ||
-      sameDay(event.start, currentEvent.start, event.end))
+      (includes(currentEvent.start, event.start, currentEvent.end) ||
+      includes(event.start, currentEvent.start, event.end))
     )
   })
 }

@@ -4,7 +4,7 @@ import { DateTime, Interval } from 'luxon'
 import { cn } from '@/lib/utils'
 import CalendarEvent from '../../calendar-event'
 import { AnimatePresence, motion } from 'framer-motion'
-import { eachIntervalDay, sameDay, sameMonth } from '../../calendar-util'
+import { eachIntervalDay, includes, sameDay, sameMonth } from '../../calendar-util'
 
 export default function CalendarBodyMonth () {
   const { date, events, setDate, setMode } = useCalendarContext()
@@ -63,7 +63,7 @@ export default function CalendarBodyMonth () {
         >
           {calendarDays.map((day) => {
             const dayEvents = visibleEvents.filter((event) =>
-              sameDay(event.start, day, event.end)
+              includes(event.start, day, event.end)
             )
             const isToday = sameDay(day, today)
             const isCurrentMonth = sameMonth(day, date)
