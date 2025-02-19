@@ -11,12 +11,10 @@ export default function DrawerMenu (props) {
   const { groupSlug } = useRouteParams()
   const [{ fetching }] = useCurrentGroup({ setToGroupSlug: groupSlug })
 
-  if (fetching) return null
-
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <ContextSwitchMenu {...props} />
-      <ContextMenu />
+      {!fetching && <ContextMenu />}
     </View>
   )
 }
