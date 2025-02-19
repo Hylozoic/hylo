@@ -13,7 +13,7 @@ export default function changeQuerystringParam (location, key, value, defaultVal
   return useReplace ? replace(newUrl) : push(newUrl)
 }
 
-export function changeQuerystringParams (location, newParams, useReplace) {
+export function changeQuerystringParams (location, newParams, useReplace = false) {
   const querystringParams = qs.parse(location.search)
   const newQuerystringParams = {
     ...querystringParams,

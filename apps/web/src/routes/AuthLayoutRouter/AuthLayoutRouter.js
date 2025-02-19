@@ -9,11 +9,14 @@ import { useResizeDetector } from 'react-resize-detector'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
 import config, { isTest } from 'config/index'
+import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
 import GlobalNav from './components/GlobalNav'
+import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
+import ViewHeader from 'components/ViewHeader'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
@@ -50,9 +53,7 @@ import Loading from 'components/Loading'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
 import Messages from 'routes/Messages'
-import ContextMenu from './components/ContextMenu'
-import NotFound from 'components/NotFound'
-import ViewHeader from 'components/ViewHeader'
+import Moderation from 'routes/Moderation'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
@@ -354,8 +355,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='public/stream/*' element={<Stream context='public' />} />
                 <Route path='all/projects/*' element={<Stream context='all' view='projects' />} />
                 <Route path='public/projects/*' element={<Stream context='public' view='projects' />} />
-                <Route path='all/decisions/*' element={<Stream context='all' view='decisions' />} />
-                <Route path='public/decisions/*' element={<Stream context='public' view='decisions' />} />
+                <Route path='all/proposals/*' element={<Stream context='all' view='proposals' />} />
+                <Route path='public/proposals/*' element={<Stream context='public' view='proposals' />} />
                 <Route path='all/events/*' element={<Stream context='all' />} />
                 <Route path='public/events/*' element={<Stream context='public' />} />
                 <Route path='all/map/*' element={<MapExplorer context='all' />} />
@@ -380,13 +381,13 @@ export default function AuthLayoutRouter (props) {
                 <Route path='groups/:groupSlug/about/*' element={<GroupDetail context='groups' />} />
                 <Route path='groups/:groupSlug/map/*' element={<MapExplorer context='groups' view='map' />} />
                 <Route path='groups/:groupSlug/stream/*' element={<Stream context='groups' view='stream' />} />
-                <Route path='groups/:groupSlug/decisions/*' element={<Stream context='groups' view='decisions' />} />
                 <Route path='groups/:groupSlug/explore/*' element={<LandingPage context='groups' />} />
-                <Route path='groups/:groupSlug/ask-and-offer/*' element={<Stream context='groups' view='ask-and-offer' />} />
                 <Route path='groups/:groupSlug/discussions/*' element={<Stream context='groups' view='discussions' />} />
                 <Route path='groups/:groupSlug/events/*' element={<Stream context='groups' view='events' />} />
                 <Route path='groups/:groupSlug/resources/*' element={<Stream context='groups' view='resources' />} />
                 <Route path='groups/:groupSlug/projects/*' element={<Stream context='groups' view='projects' />} />
+                <Route path='groups/:groupSlug/proposals/*' element={<Stream context='groups' view='proposals' />} />
+                <Route path='groups/:groupSlug/requests-and-offers/*' element={<Stream context='groups' view='requests-and-offers' />} />
                 <Route path='groups/:groupSlug/custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
                 <Route path='groups/:groupSlug/groups/*' element={<Groups context='groups' />} />
                 <Route path='groups/:groupSlug/members/create/*' element={<Members context='groups' />} />
@@ -398,6 +399,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='groups/:groupSlug/settings/*' element={<GroupSettings context='groups' />} />
                 <Route path='groups/:groupSlug/all-views' element={<AllView context='groups' />} />
                 <Route path={`groups/:groupSlug/${POST_DETAIL_MATCH}`} element={<PostDetail />} />
+                <Route path='groups/:groupSlug/moderation/*' element={<Moderation context='groups' />} />
                 <Route path='groups/:groupSlug/*' element={homeRoute} />
                 <Route path={`${POST_DETAIL_MATCH}`} element={<PostDetail />} />
                 {/* **** My Routes **** */}

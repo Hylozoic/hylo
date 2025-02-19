@@ -73,7 +73,7 @@ export default function PostBigGridItem ({
     return attachmentType === 'image' || post.type === 'event' ? viewPostDetails(post.id) : null
   }
   return (
-    <div className={cn(classes.postGridItemContainer, { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType], classes[detailClass], classes[post.type])} onClick={attachmentType !== 'image' && post.type !== 'event' ? viewPostDetails(post.id) : null}>
+    <div className={cn(classes.postGridItemContainer, { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType], classes[detailClass], classes[post.type])} onClick={attachmentType !== 'image' && post.type !== 'event' ? () => viewPostDetails(post.id) : null}>
       <div className={classes.contentSummary}>
         {childPost && (
           <div
@@ -99,7 +99,7 @@ export default function PostBigGridItem ({
         <h3 className={classes.title} onClick={showDetailsTargeted}>{title}</h3>
 
         {attachmentType === 'image'
-          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cn(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} onClick={viewPostDetails(post)} />
+          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cn(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} onClick={() => viewPostDetails(post)} />
           : null}
 
         {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}

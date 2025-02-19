@@ -621,7 +621,7 @@ function MapExplorer (props) {
     updatedMapFeatures(newBoundingBox)
   }
 
-  const afterViewportUpdate = useRef(debounce((update) => {
+  const afterViewportUpdate = debounce((update) => {
     let bounds = mapRef.current.getBounds()
     bounds = [bounds._sw.lng, bounds._sw.lat, bounds._ne.lng, bounds._ne.lat]
     updateBoundingBoxQuery(bounds)
@@ -632,7 +632,7 @@ function MapExplorer (props) {
     }
     setCreatePopupVisible(false)
     creatingPostRef.current = false
-  }, 300)).current
+  }, 300)
 
   const toggleFeatureType = useCallback((type, checked) => {
     const newFeatureTypes = { ...filters.featureTypes }

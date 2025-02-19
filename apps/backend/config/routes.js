@@ -62,13 +62,13 @@ module.exports.routes = {
   'POST    /noo/payment/registerStripe':                  'PaymentController.registerStripe',
 
   // websockets routes
+  'POST   /noo/user/subscribe':                           'UserController.subscribeToUpdates',
+  'POST   /noo/user/unsubscribe':                         'UserController.unsubscribeFromUpdates',
   'POST   /noo/group/:groupId/subscribe':                 'GroupController.subscribe',
   'POST   /noo/group/:groupId/unsubscribe':               'GroupController.unsubscribe',
   'POST   /noo/post/:postId/subscribe':                   'PostController.subscribe', // to comments
   'POST   /noo/post/:postId/unsubscribe':                 'PostController.unsubscribe', // from comments
   'POST   /noo/post/:postId/typing':                      'PostController.typing',
-  'POST   /noo/threads/subscribe':                        'PostController.subscribeToUpdates',
-  'POST   /noo/threads/unsubscribe':                      'PostController.unsubscribeFromUpdates',
 
   'POST   /noo/upload':                                   'UploadController.create',
 
