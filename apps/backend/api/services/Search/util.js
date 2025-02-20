@@ -78,7 +78,7 @@ export const filterAndSortPosts = curry((opts, q) => {
   if (afterTime && beforeTime) {
     q.where(q2 =>
       q2.where('posts.start_time', '<', beforeTime)
-      .andWhere('posts.end_time', '>', afterTime)
+      .andWhere('posts.end_time', '>=', afterTime)
     )
   } else if (afterTime) {
     q.where(q2 =>
