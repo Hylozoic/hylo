@@ -5,6 +5,9 @@ import { FlashList } from '@shopify/flash-list'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash'
+import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
+import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import {
   markActivityReadMutation,
   markAllActivitiesReadMutation,
@@ -13,9 +16,6 @@ import {
 import ModalHeader from 'navigation/headers/ModalHeader'
 import NotificationCard from 'components/NotificationCard'
 import CreateGroupNotice from 'components/CreateGroupNotice'
-import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
-import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { alabaster, rhino } from 'style/colors'
 
 const styles = StyleSheet.create({
