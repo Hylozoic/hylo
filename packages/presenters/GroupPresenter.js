@@ -59,7 +59,7 @@ function contextWidgetsResolver (group, currentUser) {
     })
   }
   // TODO redesign: Presented widgets, but they need a t object (or to add global--see note in ContextWidgetPresenter)
-  return (group?.contextWidgets?.items || []).map(widget => ContextWidgetPresenter(widget, { t }))
+  return (group?.contextWidgets?.items || []).map(widget => ContextWidgetPresenter(widget))
 }
 
 // Until such time as we have navigation helpers in a shared context,
