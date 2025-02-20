@@ -3581,6 +3581,8 @@ __metadata:
     coordinate-parser: "npm:^1.0.7"
     eslint: "npm:^8.8.0"
     html-to-text: "npm:^8.1.0"
+    i18next: "npm:^23.16.5"
+    intl-pluralrules: "npm:^2.0.1"
     jest: "npm:^27.5.0"
     lodash: "npm:~4.17.21"
     luxon: "npm:^3.5.0"
@@ -20135,7 +20137,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"i18next@npm:^23.12.2, i18next@npm:^23.16.5, i18next@npm:^23.6.0":
+"i18next@npm:^23.16.5, i18next@npm:^23.6.0":
   version: 23.16.8
   resolution: "i18next@npm:23.16.8"
   dependencies:
@@ -25457,8 +25459,6 @@ __metadata:
     fast-text-encoding: "npm:^1.0.6"
     graphql: "npm:^16.9.0"
     html-entities: "npm:^2.5.2"
-    i18next: "npm:^23.12.2"
-    intl-pluralrules: "npm:^2.0.1"
     jest: "npm:^29.7.0"
     jest-environment-jsdom: "npm:^29.7.0"
     jest-fixed-jsdom: "npm:^0.0.9"
@@ -36554,7 +36554,6 @@ __metadata:
     graphql-tag: "npm:^2.12.6"
     history: "npm:^5.3.0"
     husky: "npm:^7.0.4"
-    i18next: "npm:^23.16.5"
     i18next-browser-languagedetector: "npm:^8.0.0"
     i18next-http-backend: "npm:^2.6.2"
     identity-obj-proxy: "npm:^3.0.0"

@@ -63,7 +63,7 @@ export default function ContextMenu (props) {
   })
 
   const contextWidgets = useMemo(() => {
-    return rawContextWidgets.map(widget => ContextWidgetPresenter(widget, { t }))
+    return rawContextWidgets.map(widget => ContextWidgetPresenter(widget))
   }, [rawContextWidgets, t])
 
   const hasContextWidgets = useMemo(() => {
@@ -218,7 +218,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
 
   const presentedlistItems = useMemo(() => {
-    return listItems.map(widget => ContextWidgetPresenter(widget, { t }))
+    return listItems.map(widget => ContextWidgetPresenter(widget))
   }, [listItems])
 
   const isDroppable = widget.isDroppable

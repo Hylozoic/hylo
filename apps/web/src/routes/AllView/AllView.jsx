@@ -96,7 +96,7 @@ export default function AllViews () {
 
   const widgetsSorted = useMemo(() => {
     return visibleWidgets.map(widget => {
-      return ContextWidgetPresenter(widget, { t })
+      return ContextWidgetPresenter(widget)
     }).sort((a, b) => a.title.localeCompare(b.title))
   }, [visibleWidgets])
 

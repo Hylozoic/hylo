@@ -35,7 +35,7 @@ export function useGroup ({
     pause
   })
 
-  const group = contextGroup || GroupPresenter(data?.group, { currentUser, t })
+  const group = contextGroup || GroupPresenter(data?.group, { currentUser })
 
   return [{ group, isContextGroupSlug: !!isContextGroupSlug(groupSlug), fetching: userFetching || groupFetching, error: groupError || userError }, contextGroup ? () => {} : reQuery]
 }
