@@ -1,8 +1,7 @@
-// TODO: Get "t" from current i18n instance so it doesn't need to be passed
-// import i18n from 'react-i18next'
+import i18n from '@hylo/shared/i18n'
 
-export default function ContextWidgetPresenter (widget, { t }) {
-  if (!widget || widget?._presented || !t) return widget
+export default function ContextWidgetPresenter (widget) {
+  if (!widget || widget?._presented) return widget
 
   // Resolve type once and pass it explicitly
   const type = widgetTypeResolver({ widget })
@@ -16,7 +15,7 @@ export default function ContextWidgetPresenter (widget, { t }) {
     iconName: iconNameResolver(widget, type),
     isDroppable: isDroppableResolver(widget),
     isValidHomeWidget: isValidHomeWidgetResolver(widget),
-    title: titleResolver({ widget, t }),
+    title: titleResolver(widget),
     type,
     // Protection from double presenting
     _presented: true
@@ -25,7 +24,8 @@ export default function ContextWidgetPresenter (widget, { t }) {
 
 /* == Attribute Resolvers == */
 
-function titleResolver ({ widget, t }) {
+function titleResolver (widget) {
+  const { t } = i18n
   let title = widget?.title
   if (title && title.startsWith('widget-')) {
     title = t(title)

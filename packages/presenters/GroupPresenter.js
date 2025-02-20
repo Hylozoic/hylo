@@ -1,9 +1,10 @@
+import i18n from '@hylo/shared/i18n'
 import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
 import ContextWidgetPresenter, { getStaticMenuWidgets } from './ContextWidgetPresenter'
 
 // TODO: We will move "t" to a shared instance so it will no longer have to be passed here,
 // also see note below about things like currentUser
-export default function GroupPresenter (group, { currentUser, t }) {
+export default function GroupPresenter (group, { currentUser }) {
   if (!group || group?._presented) return group
 
   const isContextGroup = isContextGroupSlug(group?.slug)
@@ -21,7 +22,7 @@ export default function GroupPresenter (group, { currentUser, t }) {
     // TODO: We shouldn't bind data that. Resolvers which need data not provided by the queried
     // entity should have get* functions e.g. getContextWidgets (or getContextWidgetsForUser)
     // which then take the required params on the presented result.
-    contextWidgets: contextWidgetsResolver(group, { currentUser, t }),
+    contextWidgets: contextWidgetsResolver(group, currentUser),
 
     isContextGroup,
     isPublicContext,
@@ -48,7 +49,8 @@ function shouldWelcomeResolver (group, currentUser) {
   return ((!isContextGroupSlug(group?.slug) && showJoinForm) || agreementsChanged || (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt))
 }
 
-function contextWidgetsResolver (group, { currentUser, t }) {
+function contextWidgetsResolver (group, currentUser) {
+  const { t } = i18n
   if (isContextGroupSlug(group.slug)) {
     return getStaticMenuWidgets({
       isPublicContext: group.slug === PUBLIC_CONTEXT_SLUG,
