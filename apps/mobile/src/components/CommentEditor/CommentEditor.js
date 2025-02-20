@@ -177,35 +177,3 @@ const styles = StyleSheet.create({
     color: caribbeanGreen
   }
 })
-
-// export const KeyboardAccessoryCommentEditor = React.forwardRef(({
-//   renderScrollable,
-//   isModal,
-//   ...commentFormProps
-// }, ref) => {
-//   const safeAreaInsets = useSafeAreaInsets()
-
-//   return (
-//     <BottomTabBarHeightContext.Consumer>
-//       {actualTabBarHeight => {
-//         const tabBarHeight = (isModal || !actualTabBarHeight) ? 0 : actualTabBarHeight
-
-//         return (
-//           <KeyboardAccessoryView
-//             contentContainerStyle={{
-//               ...styles.keyboardAccessoryContainerStyle,
-//               paddingBottom: isModal ? safeAreaInsets.bottom : 0
-//             }}
-//             // These offsets are needed for iOS as it seems the tabbar may
-//             // be included in the calculations before it is hidden.
-//             spaceBetweenKeyboardAndAccessoryView={isIOS ? -tabBarHeight : 0}
-//             contentOffsetKeyboardOpened={isIOS ? -tabBarHeight : 0}
-//             renderScrollable={renderScrollable}
-//           >
-//             <CommentEditor {...commentFormProps} ref={ref} />
-//           </KeyboardAccessoryView>
-//         )
-//       }}
-//     </BottomTabBarHeightContext.Consumer>
-//   )
-// })
