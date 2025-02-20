@@ -1,4 +1,4 @@
-export const calendarModes = ['day', 'month'] as const
+export const calendarModes = ['day', 'week', 'month'] as const
 export type Mode = (typeof calendarModes)[number]
 
 export type HyloGroup = {

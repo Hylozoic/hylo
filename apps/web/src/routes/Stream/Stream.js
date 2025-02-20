@@ -147,17 +147,8 @@ export default function Stream (props) {
 
     if (viewMode === 'calendar') {
       const luxonDate = DateTime.fromJSDate(calendarDate)
-      switch (calendarMode) {
-        case 'month':
-        case 'day':
-          params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
-          params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).endOf('day').toISO()
-          break
-        case 'week':
-          params.afterTime = luxonDate.startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
-          params.beforeTime = luxonDate.endOf('week', { useLocaleWeeks: true }).endOf('day').toISO()
-          break
-      }
+      params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
+      params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).plus({ day: 1 }).endOf('day').toISO()
       params.order = 'asc'
     } else if (view === 'events') {
       const today = DateTime.now().toISO()
