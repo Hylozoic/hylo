@@ -33,7 +33,7 @@ export default function CalendarBodyMonth () {
       interval.contains(DateTime.fromJSDate(event.start)) ||
       interval.contains(DateTime.fromJSDate(event.end))
   ).sort(
-    (a, b) => a.multiday ? -1 : a.start.getTime() - b.start.getTime()
+    (a, b) => a.multiday && !b.multiday ? -1 : a.start.getTime() - b.start.getTime()
   )
 
   return (
