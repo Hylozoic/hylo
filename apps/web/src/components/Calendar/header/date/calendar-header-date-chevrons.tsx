@@ -23,9 +23,6 @@ export default function CalendarHeaderDateChevrons () {
       case 'month':
         setDate(luxonDate.minus({ months: 1 }).toJSDate())
         break
-      case 'week':
-        setDate(luxonDate.minus({ weeks: 1 }).toJSDate())
-        break
       case 'day':
         setDate(luxonDate.minus({ days: 1 }).toJSDate())
         break
@@ -36,9 +33,6 @@ export default function CalendarHeaderDateChevrons () {
     switch (mode) {
       case 'month':
         setDate(luxonDate.plus({ months: 1 }).toJSDate())
-        break
-      case 'week':
-        setDate(luxonDate.plus({ weeks: 1 }).toJSDate())
         break
       case 'day':
         setDate(luxonDate.plus({ days: 1 }).toJSDate())

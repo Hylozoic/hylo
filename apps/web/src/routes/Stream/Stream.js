@@ -395,6 +395,7 @@ export default function Stream (props) {
           <div className='calendarView'>
             <Calendar
               posts={posts}
+              group={group}
               routeParams={routeParams}
               querystringParams={querystringParams}
               date={calendarDate}

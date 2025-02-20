@@ -13,6 +13,7 @@ import { isMultiday } from './calendar-util'
 
 export default function Calendar ({
   posts,
+  group,
   routeParams,
   locationParams,
   querystringParams,
@@ -30,13 +31,15 @@ export default function Calendar ({
       end: DateTime.fromISO(post.endTime).toJSDate(),
       title: post.title,
       type: post.type,
-      multiday: isMultiday(post)
+      multiday: isMultiday(post),
+      post
     }
   })
 
   return (
     <CalendarProvider
       events={events}
+      group={group}
       routeParams={routeParams}
       locationParams={locationParams}
       querystringParams={querystringParams}
