@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react'
+import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { useNavigation, useIsFocused, useRoute } from '@react-navigation/native'
 import { View, TouchableOpacity } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
@@ -84,9 +84,14 @@ export default function Stream () {
   const navigation = useNavigation()
   const route = useRoute()
   const isFocused = useIsFocused()
-  const { customViewId, streamType, myHome, context } = useRouteParams()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
+  const {
+    context,
+    customViewId,
+    myHome,
+    streamType
+  } = useRouteParams()
 
   const customView = currentGroup?.customViews?.items?.find(view => view.id === customViewId)
   const [filter, setFilter] = useState()
@@ -118,24 +123,32 @@ export default function Stream () {
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
 
-  useEffect(() => {
-    navigation.setOptions({
-      title: getTitle()
-    })
-
-    function getTitle () {
-      if (currentGroup?.isMyContext) {
-        return t(currentGroup?.title)
-      }
-      if (streamType === 'Moderation') {
-        return t('Moderation')
-      }
-      if (streamType) {
-        return capitalize(t(streamType))
-      }
-      return currentGroup?.name
+  const title = useMemo(() => {
+    if (myHome) {
+      return capitalize(t(myHome))
     }
-  }, [navigation, currentGroup?.id, streamType, myHome, context])
+
+    switch (streamType) {
+      case 'event':
+        return t('Events')
+      case 'moderation':
+        return t('Moderation')
+      case 'projects':
+        return t('Projects')
+      case 'proposal':
+        return t('Decisions')
+    }
+
+    if (streamType) {
+      return capitalize(t(streamType))
+    }
+
+    return currentGroup?.name
+  }, [navigation, currentGroup?.id, myHome, streamType, context])
+
+  useEffect(() => {
+    navigation.setOptions({ title })
+  }, [title])
 
   // TODO: URQL - Can this be simplified? Also, does this perhaps follow the same logic as
   // group(updateLastViewed: true) and could we combine this? Currently that extra
@@ -174,6 +187,14 @@ export default function Stream () {
       setOffset(curOffset => curOffset + posts?.length)
     }
   }, [hasMore, fetching, postIds])
+
+  const handleDecisionOptionsOnChange = () => navigation.navigate('Stream', {
+    streamType: 'moderation',
+    initial: false,
+    options: {
+      title: 'Moderation'
+    }
+  })
 
   const sortOptions = customView?.type === 'collection'
     ? COLLECTION_SORT_OPTIONS
@@ -273,9 +294,7 @@ export default function Stream () {
               <View style={[styles.listControls]}>
                 <ListControl
                   selected={streamType}
-                  onChange={() => (
-                    navigation.navigate('Decisions', { streamType: 'moderation', initial: false, options: { title: 'Moderation' } })
-                  )}
+                  onChange={handleDecisionOptionsOnChange}
                   options={DECISIONS_OPTIONS}
                 />
               </View>

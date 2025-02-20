@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { MY_CONTEXT_SLUG } from '@hylo/shared'
 
 export default function useStreamQueryVariables ({
   context,
@@ -26,7 +26,7 @@ export default function useStreamQueryVariables ({
     childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
     collectionToFilterOut: null,
     context,
-    createdBy: myHome === 'My Posts'
+    createdBy: context === MY_CONTEXT_SLUG || myHome === 'My Posts'
       ? [currentUser.id]
       : null,
     cursor: null,
@@ -45,7 +45,7 @@ export default function useStreamQueryVariables ({
       ? (timeframe === 'future' ? 'asc' : 'desc')
       : null,
     search: null,
-    slug: myHome
+    slug: context === MY_CONTEXT_SLUG || myHome
       ? null
       : forGroup?.slug,
     sortBy,

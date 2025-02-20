@@ -72,16 +72,7 @@ export default function HomeNavigator ({ navigation }) {
 
   return (
     <HomeTab.Navigator {...navigatorProps}>
-      {/* Stream screens */}
       <HomeTab.Screen name='Stream' component={Stream} />
-      <HomeTab.Screen name='Announcements' component={Stream} initialParams={{ myHome: 'Announcements' }} />
-      <HomeTab.Screen name='Events' component={Stream} initialParams={{ streamType: 'event' }} />
-      <HomeTab.Screen name='Decisions' component={Stream} initialParams={{ streamType: 'proposal' }} options={{ title: t('Decisions') }} />
-      <HomeTab.Screen name='Interactions' component={Stream} initialParams={{ myHome: 'Interactions' }} />
-      <HomeTab.Screen name='Mentions' component={Stream} initialParams={{ myHome: 'Mentions' }} />
-      <HomeTab.Screen name='My Posts' component={Stream} initialParams={{ myHome: 'My Posts' }} />
-      <HomeTab.Screen name='Projects' component={Stream} initialParams={{ streamType: 'project' }} />
-      <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />
       {/* WebView screens (may link/route internally) */}
       <HomeTab.Screen name='ChatRoom' component={ChatRoomWebView} />
       <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
@@ -95,6 +86,7 @@ export default function HomeNavigator ({ navigation }) {
       <HomeTab.Screen name='Members' component={MembersComponent} />
       <HomeTab.Screen name='Member Details' component={MemberDetails} />
       <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
+      <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />
       <HomeTab.Screen name='Topics' component={AllTopicsWebView} />
     </HomeTab.Navigator>
   )

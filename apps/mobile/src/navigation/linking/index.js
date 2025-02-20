@@ -46,7 +46,7 @@ export const routingConfig = {
 
   // Available in both Auth and Non-Auth state as JoinGroup needs to check for a valid invite and initiate JTW auth
   // but this unlike all other cases, makes JoinGroup responsible for setting returnToOnAuth path when accessed in non-auth context
-  '/:context(groups)/:groupSlug/join/:accessCode':                                  'JoinGroup',
+  '/:context(groups)/:groupSlug/join/:accessCode':                        'JoinGroup',
   // TODO:  Routing - Test this. When this path is matched when not auth'd, then returnToAuth will be set.
   '/welcome':                                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Welcome`,
 
@@ -72,9 +72,9 @@ export const routingConfig = {
   '/:context(public)':                                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
 
   // /my context routes
-  '/:context(my)/announcements':                                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Announcements`,
-  '/:context(my)/interactions':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Interactions`,
-  '/:context(my)/mentions':                                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Mentions`,
+  '/:context(my)/:myHome(announcements)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(my)/:myHome(interactions)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(my)/:myHome(mentions)':                                      `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/:settingsArea(account)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(blocked-users)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(edit-profile)':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,

@@ -96,6 +96,8 @@ export default function ModerationList ({ forGroup, header, scrollRef, streamTyp
     }
   }, [hasMore, pending])
 
+  const handleDecisionOptionsOnChange = () => navigate('Stream', { streamType: 'proposal' })
+
   return (
     <View style={styles.container}>
       <FlashList
@@ -111,7 +113,11 @@ export default function ModerationList ({ forGroup, header, scrollRef, streamTyp
           <View>
             {header}
             <View style={[styles.listControls]}>
-              <ListControl selected={streamType} onChange={() => navigate('Decisions')} options={DECISIONS_OPTIONS} />
+              <ListControl
+                selected={streamType}
+                onChange={handleDecisionOptionsOnChange}
+                options={DECISIONS_OPTIONS}
+              />
             </View>
           </View>
         )}
