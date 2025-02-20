@@ -86,12 +86,15 @@ export default function Stream () {
   const isFocused = useIsFocused()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
+  // TODO: Keeping logging for now for Stream testing due-diligence
+  const routeParams = useRouteParams()
+  console.log('!!! routeParams', routeParams)
   const {
     context,
     customViewId,
     myHome,
     streamType
-  } = useRouteParams()
+  } = routeParams
 
   const customView = currentGroup?.customViews?.items?.find(view => view.id === customViewId)
   const [filter, setFilter] = useState()
@@ -113,7 +116,7 @@ export default function Stream () {
     sortBy,
     timeframe
   })
-
+console.log('!!!! streamQueryVariables', streamQueryVariables)
   const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...streamQueryVariables, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore

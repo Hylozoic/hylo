@@ -30,7 +30,7 @@ export const makeStreamQuery = ({
   types
 }) => {
   return {
-    query: (context === 'public' || context === 'all')
+    query: isContextGroupSlug(context)
       ? postsQuery
       : makeGroupPostsQuery(childPostInclusion === 'yes'),
     variables: {
