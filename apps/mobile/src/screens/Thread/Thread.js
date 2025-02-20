@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
-import { StyleSheet } from 'react-native'
+import { Dimensions, StyleSheet } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
@@ -135,6 +135,7 @@ export default function Thread() {
       <FlashList
         style={styles.messageList}
         data={refineMessages(messages)}
+        estimatedListSize={Dimensions.get('screen')}
         estimatedItemSize={60}
         inverted
         keyExtractor={(item) => item.id}
