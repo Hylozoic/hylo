@@ -20,7 +20,6 @@ export const makeStreamQuery = ({
   forCollection,
   interactedWithBy,
   mentionsOf,
-  myHome,
   offset,
   order,
   search,
@@ -31,7 +30,7 @@ export const makeStreamQuery = ({
   types
 }) => {
   return {
-    query: isContextGroupSlug(context)
+    query: (context === 'public' || context === 'all')
       ? postsQuery
       : makeGroupPostsQuery(childPostInclusion === 'yes'),
     variables: {
@@ -49,7 +48,6 @@ export const makeStreamQuery = ({
       forCollection,
       interactedWithBy,
       mentionsOf,
-      myHome,
       offset,
       order,
       search,

@@ -41,7 +41,6 @@ export default function useStreamQueryVariables ({
     mentionsOf: myHome === 'Mentions'
       ? [currentUser.id]
       : null,
-    myHome,
     order: streamType === 'event'
       ? (timeframe === 'future' ? 'asc' : 'desc')
       : null,
