@@ -6,7 +6,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 
-export default function ChatRoom () {
+export default function ChatRoomWebView () {
   const navigation = useNavigation()
   const route = useRoute()
   const [{ currentGroup }] = useCurrentGroup()
