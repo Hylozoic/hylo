@@ -252,15 +252,8 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
 
 // What are views? Highly suspect :)
 export const COMMON_VIEWS = {
-  'ask-and-offer': {
-    name: 'Ask & Offer',
-    iconName: 'Request',
-    defaultViewMode: 'bigGrid',
-    postTypes: ['request', 'offer'],
-    defaultSortBy: 'created'
-  },
-  decisions: {
-    name: 'Decisions',
+  proposals: {
+    name: 'Proposals',
     iconName: 'Proposal',
     defaultViewMode: 'cards',
     postTypes: ['proposal'],
@@ -290,13 +283,24 @@ export const COMMON_VIEWS = {
   },
   members: {
     name: 'Members',
-    iconName: 'People',
+    iconName: 'People'
+  },
+  moderation: {
+    name: 'Moderation',
+    iconName: 'Shield'
   },
   projects: {
     name: 'Projects',
     iconName: 'Stack',
     defaultViewMode: 'bigGrid',
     postTypes: ['project'],
+    defaultSortBy: 'created'
+  },
+  'requests-and-offers': {
+    name: 'Requests & Offers',
+    iconName: 'Request',
+    defaultViewMode: 'bigGrid',
+    postTypes: ['request', 'offer'],
     defaultSortBy: 'created'
   },
   resources: {

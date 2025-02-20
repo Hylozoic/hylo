@@ -20,11 +20,6 @@ const POST_TYPE_OPTIONS = [
   { id: 'resource', label: 'Resources' }
 ]
 
-const DECISIONS_OPTIONS = [
-  { id: 'proposals', label: 'Proposals' },
-  { id: 'moderation', label: 'Moderation' }
-]
-
 const TIMEFRAME_OPTIONS = [
   { id: 'future', label: 'Upcoming Events' },
   { id: 'past', label: 'Past Events' }
@@ -69,8 +64,6 @@ const StreamViewControls = ({
   customPostTypes,
   changeChildPostInclusion,
   childPostInclusion,
-  decisionView,
-  changeDecisionView,
   timeframe,
   changeTimeframe
 }) => {
@@ -92,9 +85,6 @@ const StreamViewControls = ({
     filterDropdown = makeFilterDropdown('all', options, (id) => {}, t)
   }
   switch (view) {
-    case 'decisions':
-      filterDropdown ||= makeFilterDropdown(decisionView, DECISIONS_OPTIONS, changeDecisionView, t)
-      break
     case 'events':
       filterDropdown ||= makeFilterDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t)
       break
