@@ -101,10 +101,10 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
   }
 
   return (
-    <View className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem]'>
+    <>
       <TouchableOpacity
         onPress={widget.view && (() => handleWidgetPress(widget))}
-        className='flex-row justify-between items-center content-center'
+        className='flex-row justify-between items-center content-center mb-2'
       >
         <Text className='text-sm font-semibold text-foreground'>{title}</Text>
       </TouchableOpacity>
@@ -121,7 +121,7 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
           handleWidgetPress={handleWidgetPress}
         />
       )}
-    </View>
+    </>
   )
 }
 
@@ -131,7 +131,8 @@ function ChildWidget ({ widget, handleWidgetPress }) {
     <TouchableOpacity
       key={widget.id + widget.title}
       onPress={() => handleWidgetPress(widget)}
-      className='flex-row items-center ml-8 h-12 py-2 gap-2 content-center border-b border-foreground/20'
+      style={{ borderRadius: 10, borderWidth: 1, flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 8 }}
+      className='border-foreground/20'
     >
       <View className='w-5'><WidgetIconResolver widget={widget} className='mr-2' /></View>
       <Text className='text-sm text-primary-accent'>{t(widget.title)}</Text>

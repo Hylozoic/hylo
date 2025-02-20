@@ -116,7 +116,7 @@ export default function Stream () {
     sortBy,
     timeframe
   })
-console.log('!!!! streamQueryVariables', streamQueryVariables)
+  console.log('!!!! streamQueryVariables', streamQueryVariables)
   const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...streamQueryVariables, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore
@@ -128,7 +128,7 @@ console.log('!!!! streamQueryVariables', streamQueryVariables)
 
   const title = useMemo(() => {
     if (myHome) {
-      return capitalize(t(myHome))
+      return 'My ' + capitalize(t(myHome))
     }
 
     switch (streamType) {
@@ -261,7 +261,7 @@ console.log('!!!! streamQueryVariables', streamQueryVariables)
         onEndReached={fetchMorePosts}
         ListHeaderComponent={
           <View>
-            <StreamHeader
+            {/* <StreamHeader
               image={currentGroup.bannerUrl ? { uri: currentGroup.bannerUrl } : null}
               icon={customView?.icon}
               name={customView?.name || myHome || currentGroup.name}
@@ -269,7 +269,7 @@ console.log('!!!! streamQueryVariables', streamQueryVariables)
               streamType={streamType}
               customView={customView}
               postPrompt
-            />
+            /> */}
 
             {!streamType && (
               <View style={[styles.listControls]}>
