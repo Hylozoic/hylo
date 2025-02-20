@@ -83,9 +83,9 @@ export default function CalendarBodyMonth () {
               >
                 <div
                   className={cn(
-                    'text-sm font-medium w-fit p-1 items-center justify-center flex flex-col rounded-full aspect-square',
-                    isToday && isCurrentMonth && 'bg-black text-white',
-                    isToday && !isCurrentMonth && 'bg-black/50 text-white',
+                    'text-sm font-medium w-fit p-1 m-1 items-center justify-center flex flex-col rounded-md aspect-square',
+                    isToday && isCurrentMonth && 'bg-gray-400 text-white',
+                    isToday && !isCurrentMonth && 'bg-gray/200 text-white',
                     !isToday && !isCurrentMonth && 'text-gray-600/50'
                   )}
                 >
