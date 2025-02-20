@@ -10,7 +10,6 @@ import createCommentMutation from '@hylo/graphql/mutations/createCommentMutation
 import { firstName } from '@hylo/presenters/PersonPresenter'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import mixpanel from 'services/mixpanel'
-import useIsModalScreen from 'hooks/useIsModalScreen'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
