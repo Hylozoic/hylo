@@ -19,7 +19,7 @@ function WidgetCard ({ widget, onPress }) {
       className='p-4 border border-foreground/20 rounded-md shadow-sm bg-background'
     >
       <View className='items-center'>
-        <Text className='text-lg font-semibold text-foreground mb-2'>{widget.title}</Text>
+        <Text className='text-lg font-semibold text-foreground mb-2'>{t(widget.title)}</Text>
         {widget.humanReadableType && (
           <Text className='text-sm text-foreground/70'>
             {t('Type')}: {t(capitalize(widget?.humanReadableType))}
