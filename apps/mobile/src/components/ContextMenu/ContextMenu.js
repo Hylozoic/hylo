@@ -15,14 +15,14 @@ import { openURL } from 'hooks/useOpenURL'
 export default function ContextMenu () {
   const navigation = useNavigation()
   const { t } = useTranslation()
-  const [{ currentGroup }] = useCurrentGroup()
+  const [{ currentGroup, fetching }] = useCurrentGroup()
   const widgets = useMemo(() => orderContextWidgetsForContextMenu(currentGroup?.contextWidgets || []), [currentGroup?.contextWidgets])
 
   useEffect(() => {
-    if ((currentGroup.shouldWelcome)) {
+    if ((!fetching && currentGroup?.shouldWelcome)) {
       navigation.navigate('Group Welcome', { groupId: currentGroup?.id })
     }
-  }, [currentGroup])
+  }, [currentGroup, fetching])
 
   if (!currentGroup) return null
 
