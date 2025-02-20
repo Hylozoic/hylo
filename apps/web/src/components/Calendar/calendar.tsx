@@ -12,9 +12,6 @@ import { DateTime } from 'luxon'
 
 export default function Calendar ({
   posts,
-  routeParams,
-  locationParams,
-  querystringParams,
   calendarIconIsToday = true,
   date,
   setDate,
@@ -35,9 +32,6 @@ export default function Calendar ({
   return (
     <CalendarProvider
       events={events}
-      routeParams={routeParams}
-      locationParams={locationParams}
-      querystringParams={querystringParams}
       mode={mode}
       setMode={setMode}
       date={date}

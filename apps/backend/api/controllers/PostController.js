@@ -84,14 +84,6 @@ const PostController = {
     return User.find(req.session.userId)
       .then(user => post.pushTypingToSockets(user.id, user.get('name'), isTyping, socket))
       .then(() => res.ok({}))
-  },
-
-  subscribeToUpdates: function (req, res) {
-    joinRoom(req, res, 'user', req.session.userId)
-  },
-
-  unsubscribeFromUpdates: function (req, res) {
-    leaveRoom(req, res, 'user', req.session.userId)
   }
 }
 

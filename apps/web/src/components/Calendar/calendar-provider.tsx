@@ -4,9 +4,6 @@ import { CalendarEvent, Mode } from './calendar-types'
 
 export default function CalendarProvider ({
   events,
-  routeParams,
-  locationParams,
-  querystringParams,
   mode,
   setMode,
   date,
@@ -15,15 +12,6 @@ export default function CalendarProvider ({
   children
 }: {
   events: CalendarEvent[]
-  routeParams: {
-    [x: string]: string | string[];
-  }
-  locationParams: {
-    [x: string]: string | string[];
-  }
-  querystringParams: {
-    [x: string]: string | string[];
-  }
   mode: string
   setMode: (mode: Mode) => void
   date: Date
@@ -35,9 +23,6 @@ export default function CalendarProvider ({
     <CalendarContext.Provider
       value={{
         events,
-        routeParams,
-        locationParams,
-        querystringParams,
         mode,
         setMode,
         date,

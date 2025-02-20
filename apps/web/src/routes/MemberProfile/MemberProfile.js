@@ -29,7 +29,7 @@ import PostDialog from 'components/PostDialog'
 import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-
+import useViewPostDetails from 'hooks/useViewPostDetails'
 import blockUser from 'store/actions/blockUser'
 import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
@@ -50,8 +50,7 @@ import {
   currentUserSettingsUrl,
   messagePersonUrl,
   messagesUrl,
-  gotoExternalUrl,
-  postUrl
+  gotoExternalUrl
 } from 'util/navigation'
 
 import styles from './MemberProfile.module.scss'
@@ -88,7 +87,6 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const fetchPersonAction = (id) => dispatch(fetchPerson(id))
   const blockUserAction = (id) => dispatch(blockUser(id))
   const push = (url) => navigate(url)
-  const showDetails = (id, params) => navigate(postUrl(id, params))
   const goToPreviousLocation = () => navigate(previousLocation)
 
   const [currentTabState, setCurrentTabState] = useState(currentTab)
@@ -242,10 +240,10 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             {affiliations && affiliations.length > 0 && affiliations.map((a, index) => <Affiliation key={a.id} index={index} affiliation={a} />)}
 
             {events && events.length > 0 && <div className={styles.profileSubhead}>{t('Upcoming Events')}</div>}
-            {events && events.length > 0 && events.map((e, index) => <Event key={index} memberCap={3} event={e} routeParams={routeParams} showDetails={showDetails} />)}
+            {events && events.length > 0 && events.map((e, index) => <Event key={index} memberCap={3} event={e} routeParams={routeParams} />)}
 
             {projects && projects.length > 0 && <div className={styles.profileSubhead}>{t('Projects')}</div>}
-            {projects && projects.length > 0 && projects.map((p, index) => <Project key={index} memberCap={3} project={p} routeParams={routeParams} showDetails={showDetails} />)}
+            {projects && projects.length > 0 && projects.map((p, index) => <Project key={index} memberCap={3} project={p} routeParams={routeParams} />)}
           </div>
         </div>
         <div className='flex flex-col align-items-center max-w-[720px]'>
@@ -306,7 +304,7 @@ function ActionButtons ({ items }) {
       <React.Fragment key={index}>
         <Icon
           key={index}
-          className='text-foreground bg-background w-[50px] h-[50px] flex items-center justify-center rounded-full cursor-pointer mx-2'
+          className='text-foreground text-3xl bg-background flex items-center justify-center rounded-full cursor-pointer mx-2'
           name={iconName}
           onClick={onClick}
           {...tooltipProps}
@@ -342,10 +340,11 @@ function ActionDropdown ({ items }) {
     />
 }
 
-function Project ({ memberCap, project, routeParams, showDetails }) {
-  const { title, id, createdAt, creator, members } = project
+function Project ({ memberCap, project }) {
+  const { title, createdAt, creator, members } = project
+  const viewPostDetails = useViewPostDetails()
   return (
-    <div className={styles.project} onClick={() => showDetails(id, { ...routeParams })}>
+    <div className={styles.project} onClick={() => viewPostDetails(project)}>
       <div>
         <div className={styles.title}>{title} </div>
         <div className={styles.meta}>{creator.name} - {DateTime.fromJSDate(createdAt).toRelative()} </div>
@@ -355,10 +354,11 @@ function Project ({ memberCap, project, routeParams, showDetails }) {
   )
 }
 
-function Event ({ memberCap, event, routeParams, showDetails }) {
-  const { id, location, eventInvitations, startTime, title } = event
+function Event ({ memberCap, event }) {
+  const { location, eventInvitations, startTime, title } = event
+  const viewPostDetails = useViewPostDetails()
   return (
-    <div className={styles.event} onClick={() => showDetails(id, { ...routeParams })}>
+    <div className={styles.event} onClick={() => viewPostDetails(event)}>
       <div className={styles.date}>
         <div className={styles.month}>{DateTime.fromJSDate(startTime).toFormat('MMM')}</div>
         <div className={styles.day}>{DateTime.fromJSDate(startTime).toFormat('dd')}</div>

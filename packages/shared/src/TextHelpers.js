@@ -132,16 +132,15 @@ export function humanDate (date, short) {
     ? prettyDate.format(isString ? new Date(date) : date)
     : ''
 
+  // Always return 'now' for very recent timestamps
+  if (ret === 'just now') {
+    return 'now'
+  }
+
   if (short) {
     ret = ret.replace(' ago', '')
   } else {
-    // this workaround prevents a "React attempted to use reuse markup" error
-    // which happens if the timestamp is less than 1 minute ago, because the
-    // server renders "N seconds ago", but by the time React is loaded on the
-    // client side, it's "N+1 seconds ago"
-    const match = ret.match(/(\d+) seconds? ago/)
-    if (match) {
-      if (Number(match[1]) >= 50) return '1m'
+    if (ret.match(/(\d+) seconds? ago/)) {
       return 'now'
     }
   }

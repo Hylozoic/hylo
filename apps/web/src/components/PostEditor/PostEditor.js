@@ -249,10 +249,7 @@ function PostEditor ({
   }, [topic])
 
   const reset = useCallback(() => {
-    if (!isChat) {
-      toFieldRef.current.reset()
-    }
-    editorRef.current.setContent(initialPost.details)
+    editorRef.current?.setContent(initialPost.details)
     dispatch(clearLinkPreview())
     dispatch(clearAttachments('post', 'new', 'image'))
     setCurrentPost(initialPost)
@@ -262,6 +259,7 @@ function PostEditor ({
     if (isChat) {
       setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
     } else {
+      toFieldRef.current.reset()
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
   }, [initialPost])
@@ -278,10 +276,14 @@ function PostEditor ({
 
   const handlePostTypeSelection = useCallback((type) => {
     setIsDirty(true)
-    navigate({
-      pathname: urlLocation.pathname,
-      search: setQuerystringParam('newPostType', type, urlLocation)
-    }, { replace: true })
+
+    if (modal) {
+      // Track the post type in the URL. So you can share the url with others. And maybe some other reason I'm forgetting right now
+      navigate({
+        pathname: urlLocation.pathname,
+        search: setQuerystringParam('newPostType', type, urlLocation)
+      }, { replace: true })
+    }
 
     setCurrentPost({ ...currentPost, type })
     if (type === 'chat') {
@@ -659,6 +661,11 @@ function PostEditor ({
             maxLength={MAX_TITLE_LENGTH}
             onFocus={() => setTitleFocused(true)}
             onBlur={() => setTitleFocused(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && event.altKey) {
+                doSave()
+              }
+            }}
           />
           {titleLengthError && (
             <span className={styles.titleError}>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
