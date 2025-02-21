@@ -130,6 +130,7 @@ export default function Stream (props) {
   // for calendar viewmode
   const [calendarMode, setCalendarMode] = useState('month')
   const [calendarDate, setCalendarDate] = useState(new Date())
+  const calendarViewMode = viewMode === 'calendar'
 
   const fetchPostsParam = useMemo(() => {
     const params = {
@@ -142,10 +143,11 @@ export default function Stream (props) {
       slug: groupSlug,
       sortBy,
       topics,
-      types: getTypes({ customView, view })
+      types: getTypes({ customView, view }),
+      calendarViewMode
     }
 
-    if (viewMode === 'calendar') {
+    if (calendarViewMode) {
       const luxonDate = DateTime.fromJSDate(calendarDate)
       params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
       params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).plus({ day: 1 }).endOf('day').toISO()
@@ -156,11 +158,11 @@ export default function Stream (props) {
       params.beforeTime = timeframe === 'past' ? today : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'
     }
-    if (view === 'events' || viewMode === 'calendar') {
+    if (view === 'events' || calendarViewMode) {
       dispatch(dropPostResults(params))
     }
     return params
-  }, [calendarDate, calendarMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view, viewMode])
+  }, [calendarDate, calendarViewMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view])
 
   let name = customView?.name || systemView?.name || ''
   let icon = customView?.icon || systemView?.iconName
@@ -382,7 +384,7 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {!pending && viewMode === 'calendar' && (
+        {!pending && calendarViewMode && (
           <div className='calendarView'>
             <Calendar
               posts={posts}

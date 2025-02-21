@@ -20,7 +20,8 @@ export const filterAndSortPosts = curry((opts, q) => {
     sortBy = 'updated',
     topic,
     type,
-    types
+    types,
+    calendarViewMode = false
   } = opts
 
   let { topics = [] } = opts
@@ -75,21 +76,28 @@ export const filterAndSortPosts = curry((opts, q) => {
     })
   }
 
-  if (afterTime && beforeTime) {
+  if (calendarViewMode) {
+      // get all posts that intersect the range afterTime-beforeTime
     q.where(q2 =>
       q2.where('posts.start_time', '<', beforeTime)
       .andWhere('posts.end_time', '>=', afterTime)
     )
-  } else if (afterTime) {
-    q.where(q2 =>
-      q2.where('posts.start_time', '>=', afterTime)
-      .orWhere('posts.end_time', '>=', afterTime)
-    )
-  } else if (beforeTime) {
-    q.where(q2 =>
-      q2.where('posts.start_time', '<', beforeTime)
-      .andWhere('posts.end_time', '<', beforeTime)
-    )
+  } else {
+    if (afterTime) {
+      // get all posts that have not "expired"
+      q.where(q2 =>
+        q2.where('posts.start_time', '>=', afterTime)
+        .orWhere('posts.end_time', '>=', afterTime)
+      )
+    }
+
+    if (beforeTime) {
+      // get all posts that have "expired"
+      q.where(q2 =>
+        q2.where('posts.start_time', '<', beforeTime)
+        .andWhere('posts.end_time', '<', beforeTime)
+      )
+    }
   }
 
   if (forCollection) {
