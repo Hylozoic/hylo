@@ -121,6 +121,7 @@ export default function NewMessage () {
 
   useEffect(() => {
     const removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
+      if (loading) return null
       e.preventDefault()
       confirmDiscardChanges({
         hasChanges: participants.length > 0 ||
@@ -135,17 +136,20 @@ export default function NewMessage () {
     return () => {
       removeBeforeRemove()
     }
-  }, [participants, navigation, t])
+  }, [loading, participants, navigation, t])
 
   const handleCreateMessage = async text => {
+    setLoading(true)
     const { data: messageThreadData, error: messageThreadError } = await findOrCreateThread({ participantIds: participants.map(p => p.id) })
     if (messageThreadError) {
+      setLoading(false)
       console.error('Error creating thread:', messageThreadError)
       return
     }
     const messageThreadId = messageThreadData?.findOrCreateThread?.id
     const { error: createMessageError } = await createMessage({ messageThreadId, text })
     if (createMessageError) {
+      setLoading(false)
       console.error('Error creating message:', createMessageError)
       return
     }

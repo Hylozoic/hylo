@@ -52,6 +52,13 @@ export default function PostHeader ({
   const creatorIsSteward = creatorHasResponsibility(null)
   const badges = useRolesForGroup(currentGroup?.id, creator)
   const { avatarUrl, name } = creator
+  const handleFlagOnPress = () => navigation.navigate('Moderation', {
+    streamType: 'moderation',
+    initial: false,
+    options: {
+      title: 'Moderation'
+    }
+  })
 
   return (
     <View style={[styles.container, style]}>
@@ -71,7 +78,7 @@ export default function PostHeader ({
       </View>
       <View style={styles.upperRight}>
         {isFlagged && (
-          <TouchableOpacity hitSlop={5} onPress={() => navigation.navigate('Decisions', { streamType: 'moderation', initial: false, options: { title: 'Moderation' } })}>
+          <TouchableOpacity hitSlop={5} onPress={handleFlagOnPress}>
             <Icon name='Flag' style={styles.flagIcon} />
           </TouchableOpacity>
         )}

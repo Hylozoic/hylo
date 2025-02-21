@@ -2,6 +2,7 @@ import React from 'react'
 import { StyleSheet, Text } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import Intercom from '@intercom/intercom-react-native'
+import { useNavigation } from '@react-navigation/native'
 import { isIOS } from 'util/platform'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import Icon from 'components/Icon'
@@ -13,12 +14,16 @@ import {
 import HomeNavigator from 'navigation/HomeNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
 import MessagesNavigator from 'navigation/MessagesNavigator'
+import useChangeToGroup from 'hooks/useChangeToGroup'
+import { MY_CONTEXT_SLUG } from '@hylo/shared'
 
 const DummyComponent = () => null
 
 const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
   const [{ currentUser }] = useCurrentUser()
+  const navigation = useNavigation()
+  const changeToGroup = useChangeToGroup()
   const messagesBadgeCount = currentUser?.unseenThreadCount > 0
     ? currentUser?.unseenThreadCount
     : null
@@ -58,12 +63,17 @@ export default function TabsNavigator () {
     Intercom.present()
   }
 
+  const handleMyContextPress = () => {
+    changeToGroup(MY_CONTEXT_SLUG, false)
+    navigation.openDrawer()
+  }
+
   return (
     <Tabs.Navigator {...navigatorProps}>
       <Tabs.Screen name='Home Tab' component={HomeNavigator} />
-      <Tabs.Screen name='Search Tab' component={SearchNavigator} />
       <Tabs.Screen name='Messages Tab' component={MessagesNavigator} options={{ tabBarBadge: messagesBadgeCount }} />
-      <Tabs.Screen
+      <Tabs.Screen name='Search Tab' component={SearchNavigator} />
+      {/* <Tabs.Screen
         name='Support Tab'
         component={HomeNavigator} // it will never navigate to this but we need to pass a valid component here anyway
         listeners={{
@@ -78,16 +88,15 @@ export default function TabsNavigator () {
             <Text style={{ fontSize: 28, fontFamily: 'Circular-Bold', color: focused ? black10OnCaribbeanGreen : rhino60 }}>?</Text>
           )
         }}
-      />
-      <Tabs.Screen
+      /> */}
+      {/* <Tabs.Screen
         name='Settings Tab'
         component={DummyComponent}
         listeners={({ navigation }) => ({
           tabPress: event => {
+            handleMyContextPress()
+
             event.preventDefault()
-            // TODO: Routing - We want to navigate to /my and then openDrawer...
-            // navigation.navigate('User Settings', { settingsArea: 'settings' })
-            navigation.openDrawer()
           }
         })}
         options={{
@@ -103,7 +112,7 @@ export default function TabsNavigator () {
             />
           )
         }}
-      />
+      /> */}
     </Tabs.Navigator>
   )
 }

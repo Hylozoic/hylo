@@ -45,7 +45,7 @@ export async function openURL (providedPathOrURL, reset, navigation = navigation
 
       const actionForPath = getActionFromState(stateForPath)
 
-      DEBUG && console.log(`!!! openURL: ${linkingPath} actionForPath:`)
+      DEBUG && console.log(`!!! openURL: ${linkingPath} actionForPath:`, { reset })
       DEBUG && console.dir(actionForPath)
 
       if (reset) {

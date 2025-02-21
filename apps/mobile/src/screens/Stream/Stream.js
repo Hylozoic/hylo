@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react'
+import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { useNavigation, useIsFocused, useRoute } from '@react-navigation/native'
 import { View, TouchableOpacity, Dimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
@@ -9,7 +9,6 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import useStreamQueryVariables from '@hylo/hooks/useStreamQueryVariables'
 import { useTranslation } from 'react-i18next'
-import { PUBLIC_GROUP_ID } from '@hylo/presenters/GroupPresenter'
 import useRouteParams from 'hooks/useRouteParams'
 import makeStreamQuery from './makeStreamQuery'
 import StreamHeader from './StreamHeader'
@@ -18,7 +17,7 @@ import CreateGroupNotice from 'components/CreateGroupNotice'
 import Icon from 'components/Icon'
 import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
-import ModerationList from 'components/ModerationList'
+import { isDev } from 'config'
 import styles from './Stream.styles'
 import { pictonBlue } from 'style/colors'
 
@@ -54,11 +53,6 @@ export const EVENT_STREAM_TIMEFRAME_OPTIONS = [
   { id: 'past', label: 'Past Events' }
 ]
 
-export const DECISIONS_OPTIONS = [
-  { id: 'proposal', label: 'Proposals' },
-  { id: 'moderation', label: 'Moderation' }
-]
-
 export const DEFAULT_SORT_BY_ID = 'updated'
 export const DEFAULT_TIMEFRAME_ID = 'future'
 
@@ -85,9 +79,17 @@ export default function Stream () {
   const navigation = useNavigation()
   const route = useRoute()
   const isFocused = useIsFocused()
-  const { customViewId, streamType, myHome } = useRouteParams()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
+  // TODO: Keeping logging for now for Stream testing due-diligence
+  const routeParams = useRouteParams()
+  if (isDev) console.log('!!! routeParams', routeParams)
+  const {
+    context,
+    customViewId,
+    myHome,
+    streamType
+  } = routeParams
 
   const customView = currentGroup?.customViews?.items?.find(view => view.id === customViewId)
   const [filter, setFilter] = useState()
@@ -98,7 +100,8 @@ export default function Stream () {
   )
   const [timeframe, setTimeframe] = useState(DEFAULT_TIMEFRAME_ID)
   const [offset, setOffset] = useState(0)
-  const fetchPostParam = useStreamQueryVariables({
+  const streamQueryVariables = useStreamQueryVariables({
+    context,
     currentUser,
     customView,
     streamType,
@@ -108,8 +111,8 @@ export default function Stream () {
     sortBy,
     timeframe
   })
-
-  const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...fetchPostParam, offset }))
+  if (isDev) console.log('!!!! streamQueryVariables', streamQueryVariables)
+  const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...streamQueryVariables, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore
   const posts = postsQuerySet?.items
@@ -118,32 +121,47 @@ export default function Stream () {
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
 
+  const title = useMemo(() => {
+    if (myHome) {
+      return capitalize(t(myHome))
+    }
+
+    switch (streamType) {
+      case 'event':
+        return t('Events')
+      case 'projects':
+        return t('Projects')
+      case 'proposal':
+        return t('Proposals')
+    }
+
+    if (streamType) {
+      return capitalize(t(streamType))
+    }
+
+    return currentGroup?.name
+  }, [navigation, currentGroup?.id, myHome, streamType, context])
+
   useEffect(() => {
-    navigation.setOptions({
-      title: myHome || streamType === 'Moderation'
-        ? t('Moderation')
-        : streamType
-          ? capitalize(t(streamType) + 's')
-          : currentGroup?.name
-    })
-  }, [navigation, currentGroup?.id, streamType, myHome])
+    navigation.setOptions({ title })
+  }, [title])
 
   // TODO: URQL - Can this be simplified? Also, does this perhaps follow the same logic as
   // group(updateLastViewed: true) and could we combine this? Currently that extra
   // query arg for GroupDetailsQuery makes the URQL caching not merged, so it would be nice
   // to run it independently or make it a mutation, like this resetGroupNewPostCount
   useEffect(() => {
-    if (fetchPostParam && isFocused && isEmpty(postIds) && hasMore !== false) {
+    if (streamQueryVariables && isFocused && isEmpty(postIds) && hasMore !== false) {
       if (
         currentGroup?.id &&
         !currentGroup?.isContextGroup &&
         sortBy === DEFAULT_SORT_BY_ID &&
-        !fetchPostParam.filter
+        !streamQueryVariables.filter
       ) {
         resetGroupNewPostCount({ id: currentGroup?.id })
       }
     }
-  }, [currentGroup?.id, fetchPostParam?.filter, fetchPostParam?.context, hasMore, isFocused, postIds])
+  }, [currentGroup?.id, streamQueryVariables?.filter, streamQueryVariables?.context, hasMore, isFocused, postIds])
 
   // Only custom views can be sorted by manual order
   useEffect(() => {
@@ -154,11 +172,11 @@ export default function Stream () {
   }, [customView, sortBy])
 
   const refreshPosts = useCallback(() => {
-    if (fetchPostParam) {
+    if (streamQueryVariables) {
       setOffset(0)
       refetchPosts({ requestPolicy: 'network-only' })
     }
-  }, [fetchPostParam, refetchPosts])
+  }, [streamQueryVariables, refetchPosts])
 
   const fetchMorePosts = useCallback(() => {
     if (hasMore && !fetching) {
@@ -171,39 +189,21 @@ export default function Stream () {
     : STREAM_SORT_OPTIONS
 
   const handleChildPostToggle = () => {
-    const childPostInclusion = fetchPostParam?.childPostInclusion === 'yes' ? 'no' : 'yes'
+    const childPostInclusion = streamQueryVariables?.childPostInclusion === 'yes' ? 'no' : 'yes'
     updateUserSettings({ changes: { settings: { streamChildPosts: childPostInclusion } } })
   }
 
-  const extraToggleStyles = fetchPostParam?.childPostInclusion === 'yes'
+  const extraToggleStyles = streamQueryVariables?.childPostInclusion === 'yes'
     ? { backgroundColor: pictonBlue }
     : { backgroundColor: '#FFFFFF' }
 
-  if (!fetchPostParam) return null
+  if (!streamQueryVariables) return null
   if (!currentUser) return <Loading style={{ flex: 1 }} />
   if (!currentGroup) return null
 
-  if (isEmpty(currentUser?.memberships) && currentGroup?.id !== PUBLIC_GROUP_ID) {
+  if (isEmpty(currentUser?.memberships) && currentGroup?.isPublicContext) {
     return (
       <CreateGroupNotice />
-    )
-  }
-
-  if (streamType === 'moderation') {
-    return (
-      <ModerationList
-        scrollRef={ref}
-        forGroup={currentGroup}
-        header={(
-          <StreamHeader
-            image={currentGroup.bannerUrl ? { uri: currentGroup.bannerUrl } : null}
-            icon={customView?.icon}
-            name={customView?.name || myHome || currentGroup.name}
-          />
-        )}
-        route={route}
-        streamType={streamType}
-      />
     )
   }
 
@@ -216,7 +216,7 @@ export default function Stream () {
         data={posts}
         renderItem={({ item }) => (
           <PostRow
-            context={fetchPostParam?.context}
+            context={streamQueryVariables?.context}
             post={item}
             forGroupId={currentGroup?.id}
             showGroups={!currentGroup?.id || currentGroup?.isContextGroup}
@@ -242,14 +242,14 @@ export default function Stream () {
               <View style={[styles.listControls]}>
                 <ListControl selected={sortBy} onChange={setSortBy} options={sortOptions} />
                 <View style={styles.steamControlRightSide}>
-                  {!['my', 'public'].includes(fetchPostParam?.context) &&
+                  {!['my', 'public'].includes(streamQueryVariables?.context) &&
                     <TouchableOpacity onPress={handleChildPostToggle}>
                       <View style={{ ...styles.childGroupToggle, ...extraToggleStyles }}>
-                        <Icon name='Subgroup' color={fetchPostParam?.childPostInclusion === 'yes' ? '#FFFFFF' : pictonBlue} />
+                        <Icon name='Subgroup' color={streamQueryVariables?.childPostInclusion === 'yes' ? '#FFFFFF' : pictonBlue} />
                       </View>
                     </TouchableOpacity>}
-                  {!fetchPostParam?.types && (
-                    <ListControl selected={fetchPostParam.filter} onChange={setFilter} options={POST_TYPE_OPTIONS} />
+                  {!streamQueryVariables?.types && (
+                    <ListControl selected={streamQueryVariables.filter} onChange={setFilter} options={POST_TYPE_OPTIONS} />
                   )}
                 </View>
               </View>
@@ -260,19 +260,6 @@ export default function Stream () {
                 <ListControl selected={timeframe} onChange={setTimeframe} options={EVENT_STREAM_TIMEFRAME_OPTIONS} />
               </View>
             )}
-
-            {streamType === 'proposal' && (
-              <View style={[styles.listControls]}>
-                <ListControl
-                  selected={streamType}
-                  onChange={() => (
-                    navigation.navigate('Decisions', { streamType: 'moderation', initial: false, options: { title: 'Moderation' } })
-                  )}
-                  options={DECISIONS_OPTIONS}
-                />
-              </View>
-            )}
-
           </View>
         }
         ListFooterComponent={(

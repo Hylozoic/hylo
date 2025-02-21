@@ -2,7 +2,7 @@
 import { host } from 'config'
 import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
 import qs from 'query-string'
-import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
 import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 
 export const HYLO_ID_MATCH = '\\d+'
@@ -18,18 +18,18 @@ export const OPTIONAL_GROUP_MATCH = ':detail(group)?/(:detailGroupSlug)?'
 
 // Fundamental URL paths
 
-export function allGroupsUrl () {
-  return '/all'
+export function publicContextUrl () {
+  return '/public'
 }
 
-export function publicGroupsUrl () {
-  return '/public'
+export function myContextUrl () {
+  return '/my'
 }
 
 export function baseUrl ({
   context,
   customViewId,
-  defaultUrl = allGroupsUrl(),
+  defaultUrl = myContextUrl(),
   groupSlug,
   memberId, personId, // TODO: switch to one of these?
   topicName,
@@ -45,10 +45,10 @@ export function baseUrl ({
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
   } else if (groupSlug) {
     return groupUrl(groupSlug)
-  } else if (context === ALL_GROUPS_CONTEXT_SLUG) {
-    return allGroupsUrl()
   } else if (context === PUBLIC_CONTEXT_SLUG) {
-    return publicGroupsUrl()
+    return publicContextUrl()
+  } else if (context === MY_CONTEXT_SLUG) {
+    return myContextUrl()
   } else {
     return defaultUrl
   }
@@ -74,9 +74,9 @@ export function viewUrl (view, { context, groupSlug, defaultUrl, customViewId })
 }
 
 // Group URLS
-export function groupUrl (slug, view = '', defaultUrl = allGroupsUrl()) {
+export function groupUrl (slug, view = '', defaultUrl = myContextUrl()) {
   if (slug === PUBLIC_CONTEXT_SLUG) { // TODO: remove this?
-    return publicGroupsUrl()
+    return publicContextUrl()
   } else if (slug) {
     return `/groups/${slug}` + (view ? '/' + view : '')
   } else {
@@ -150,7 +150,7 @@ export function personUrl (id, groupSlug) {
 }
 
 // Topics and Chat URLs
-export function topicsUrl (opts, defaultUrl = allGroupsUrl()) {
+export function topicsUrl (opts, defaultUrl = myContextUrl()) {
   return baseUrl({ ...opts, view: 'topics' }, defaultUrl)
 }
 
