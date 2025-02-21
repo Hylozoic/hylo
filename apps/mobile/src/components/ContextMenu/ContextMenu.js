@@ -44,7 +44,7 @@ export default function ContextMenu () {
       {(!currentGroup.isContextGroup) && (
         <View className='px-2 mb-2'>
           <TouchableOpacity
-            onPress={() => navigation.navigate('All Views')}
+            onPress={() => openURL(makeWidgetUrl({ widget: { type: 'all-views', view: 'all-views' }, rootPath: `/groups/${currentGroup.slug}`, groupSlug: currentGroup?.slug }))}
             className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md gap-2'
           >
             <WidgetIconResolver widget={{ type: 'all-views' }} className='mr-2' />
