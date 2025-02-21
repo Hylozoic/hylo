@@ -38,7 +38,7 @@ export type CalendarProps = {
   querystringParams: {
     [x: string]: string | string[];
   }
-  mode: string
+  mode: Mode
   setMode: (mode: Mode) => void
   date: Date
   setDate: (date: Date) => void
