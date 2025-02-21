@@ -1,23 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { View, Alert } from 'react-native'
+import { Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { gql, useQuery, useSubscription } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
+import commentFieldsFragment from '@hylo/graphql/fragments/commentFieldsFragment'
+import PostPresenter from '@hylo/presenters/PostPresenter'
 import mixpanel from 'services/mixpanel'
 import useGoToMember from 'hooks/useGoToMember'
 import useIsModalScreen from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
-import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
-import commentFieldsFragment from '@hylo/graphql/fragments/commentFieldsFragment'
-import PostPresenter from '@hylo/presenters/PostPresenter'
-import { KeyboardAccessoryCommentEditor } from 'components/CommentEditor/CommentEditor'
+import CommentEditor from 'components/CommentEditor'
 import Comments from 'components/Comments'
 import Loading from 'components/Loading'
 import PostCardForDetails from 'components/PostCard/PostCardForDetails'
-import { white } from 'style/colors'
 
 export const postDetailsQuery = gql`
   query PostDetailsQuery ($id: ID) {
@@ -95,12 +94,11 @@ export default function PostDetails () {
     return null
   }
 
-  const renderPostDetails = panHandlers => {
-    // TOOD: It is not clear why we do this vs just relying on currentGroup
-    const firstGroupSlug = get('groups.0.slug', post)
-    const showGroups = isModalScreen || post?.groups.find(g => g.slug !== currentGroup?.slug)
+  const firstGroupSlug = get('groups.0.slug', post)
+  const showGroups = isModalScreen || post?.groups.find(g => g.slug !== currentGroup?.slug)
 
-    return (
+  return (
+    <>
       <Comments
         ref={commentsRef}
         groupId={firstGroupSlug}
@@ -114,15 +112,8 @@ export default function PostDetails () {
         )}
         onSelect={setSelectedComment}
         showMember={goToMember}
-        panHandlers={panHandlers}
       />
-    )
-  }
-
-  return (
-    <View style={styles.container}>
-      <KeyboardAccessoryCommentEditor
-        renderScrollable={renderPostDetails}
+      <CommentEditor
         isModal={isModalScreen}
         post={post}
         groupId={groupId}
@@ -130,13 +121,6 @@ export default function PostDetails () {
         scrollToReplyingTo={scrollToSelectedComment}
         clearReplyingTo={clearSelectedComment}
       />
-    </View>
+    </>
   )
-}
-
-const styles = {
-  container: {
-    flex: 1,
-    backgroundColor: white
-  }
 }

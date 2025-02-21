@@ -14,7 +14,7 @@ const LocaleSelector = ({ small, dark }) => {
   const currentUserData = useCurrentUser()
 
   // TODO: URQL! This keeps things from crashing when network is not active on load
-  // fix another way. 
+  // fix another way.
   if (!currentUserData) return null
 
   const handleSelectLocale = (locale) => {

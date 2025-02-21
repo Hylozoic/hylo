@@ -23,6 +23,7 @@ export default function UserSettingsWebView ({ path: pathProp, route }) {
     useCallback(() => {
       return () => {
         queryCurrentUser()
+
       }
     }, [])
   )

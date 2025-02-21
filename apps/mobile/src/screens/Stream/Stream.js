@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { useNavigation, useIsFocused, useRoute } from '@react-navigation/native'
-import { View, TouchableOpacity } from 'react-native'
+import { View, TouchableOpacity, Dimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { gql, useMutation, useQuery } from 'urql'
 import { capitalize, get, isEmpty } from 'lodash/fp'
@@ -210,7 +210,8 @@ export default function Stream () {
   return (
     <View style={styles.container}>
       <FlashList
-        estimatedItemSize={100}
+        estimatedItemSize={200}
+        estimatedListSize={Dimensions.get('screen')}
         ref={ref}
         data={posts}
         renderItem={({ item }) => (

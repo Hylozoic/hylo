@@ -50,20 +50,6 @@ const DELETE_COMMENT_REACTION_MUTATION = gql`
   mutation deleteCommentReaction($entityId: ID, $data: ReactionInput) {
     deleteReaction(entityId: $entityId, data: $data) {
       id
-      postReactions {
-        id
-        emojiFull
-        user {
-          id
-          name
-          avatarUrl
-        }
-      }
-      myReactions {
-        id
-        emojiFull
-      }
-      peopleReactedTotal
     }
   }
 `
