@@ -92,8 +92,9 @@ export const routingConfig = {
   '/:context(my)/:streamType(proposals)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/:streamType(requests-and-offers)':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/:streamType(resources)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  // TODO routing: As of 21 Feb 2025, these two routes only exists on mobile but it is an example of how we could shift the web routes.
+  '/:context(my)/stream':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/map':                                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
-  '/:context(my)/stream':                                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
 
   // /all  routes -- NOTE: the "all" context is re-mapped to "my" by addParamsToScreenPath in getStateFromPath)
   '/:context(all)/map':                                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
