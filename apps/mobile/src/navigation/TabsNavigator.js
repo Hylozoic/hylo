@@ -71,9 +71,9 @@ export default function TabsNavigator () {
   return (
     <Tabs.Navigator {...navigatorProps}>
       <Tabs.Screen name='Home Tab' component={HomeNavigator} />
-      <Tabs.Screen name='Search Tab' component={SearchNavigator} />
       <Tabs.Screen name='Messages Tab' component={MessagesNavigator} options={{ tabBarBadge: messagesBadgeCount }} />
-      <Tabs.Screen
+      <Tabs.Screen name='Search Tab' component={SearchNavigator} />
+      {/* <Tabs.Screen
         name='Support Tab'
         component={HomeNavigator} // it will never navigate to this but we need to pass a valid component here anyway
         listeners={{
@@ -88,8 +88,8 @@ export default function TabsNavigator () {
             <Text style={{ fontSize: 28, fontFamily: 'Circular-Bold', color: focused ? black10OnCaribbeanGreen : rhino60 }}>?</Text>
           )
         }}
-      />
-      <Tabs.Screen
+      /> */}
+      {/* <Tabs.Screen
         name='Settings Tab'
         component={DummyComponent}
         listeners={({ navigation }) => ({
@@ -112,7 +112,7 @@ export default function TabsNavigator () {
             />
           )
         }}
-      />
+      /> */}
     </Tabs.Navigator>
   )
 }

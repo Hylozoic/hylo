@@ -8,7 +8,6 @@ const esModules = [
   '@react-navigation',
   'react-native-render-html',
   '@invertase/react-native-apple-authentication',
-  '@flyerhq/react-native-keyboard-accessory-view',
   '@react-native-picker',
   'react-native-css-interop',
   // Our own packages are ESM modules only so need to be

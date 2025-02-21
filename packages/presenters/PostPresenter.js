@@ -1,7 +1,7 @@
 import { uniq } from 'lodash/fp'
 import { butterflyBush, caribbeanGreen, fakeAlpha, flushOrange, gold, pictonBlue, sunsetOrange } from 'style/colors'
 
-export default function PostPresenter (post, forGroupId) {
+export default function PostPresenter (post, { forGroupId } = {}) {
   if (!post) return post
 
   const groupPostMembership = post.postMemberships.find(postMembership => {
@@ -26,7 +26,7 @@ export default function PostPresenter (post, forGroupId) {
     startTime: post.startTime ? new Date(post.startTime) : post.startTime,
     endTime: post.endTime ? new Date(post.endTime) : post.endTime,
     startTimeRaw: post.startTime,
-    endTimeRaw: post.endTime,
+    endTimeRaw: post.endTime
     // TODO: URQL -- Doesn't seem to still be necessary, but confirm before removing
     // topics: post.topics.map(topic => presentTopic(topic, {}))
   }

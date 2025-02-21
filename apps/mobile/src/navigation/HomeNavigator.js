@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react'
 import { useSelector } from 'react-redux'
-import { useTranslation } from 'react-i18next'
 import { createStackNavigator } from '@react-navigation/stack'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
@@ -9,13 +8,14 @@ import getReturnToOnAuthPath from 'store/selectors/getReturnToOnAuthPath'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
 // Screens
-import AllTopicsWebView from 'screens/AllTopicsWebView'
-import ChatRoom from 'screens/ChatRoomWebView'
+import UserSettingsWebView from 'screens/UserSettingsWebView'
+import GroupSettingsWebView from 'screens/GroupSettingsWebView'
+import ChatRoomWebView from 'screens/ChatRoomWebView'
 import Stream from 'screens/Stream'
+import Moderation from 'screens/Moderation'
+import AllTopicsWebView from 'screens/AllTopicsWebView'
 import AllViews from 'screens/AllViews'
 import Groups from 'screens/Groups'
-import GroupExploreWebView from 'screens/GroupExploreWebView'
-import GroupSettingsWebView from 'screens/GroupSettingsWebView'
 import GroupWelcomeLanding from 'screens/GroupWelcomeFlow/GroupWelcomeLanding'
 import MemberDetails from 'screens/MemberProfile/MemberDetails'
 import MemberProfile from 'screens/MemberProfile'
@@ -23,14 +23,12 @@ import MembersComponent from 'screens/Members'
 import PostDetails from 'screens/PostDetails'
 import ProjectMembers from 'screens/ProjectMembers/ProjectMembers'
 import MapWebView from 'screens/MapWebView/MapWebView'
-import UserSettingsWebView from 'screens/UserSettingsWebView'
 
 const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
   const [{ currentGroup }] = useCurrentGroup()
   const initialURL = useSelector(state => state.initialURL)
   const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
-  const { t } = useTranslation()
 
   useEffect(() => {
     if (!initialURL && !returnToOnAuthPath) {
@@ -74,28 +72,22 @@ export default function HomeNavigator ({ navigation }) {
   return (
     <HomeTab.Navigator {...navigatorProps}>
       <HomeTab.Screen name='Stream' component={Stream} />
-      <HomeTab.Screen name='All Views' component={AllViews} />
-      <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
-      <HomeTab.Screen name='Projects' component={Stream} initialParams={{ streamType: 'project' }} />
-      <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />
-      <HomeTab.Screen name='Events' component={Stream} initialParams={{ streamType: 'event' }} />
-      <HomeTab.Screen name='Decisions' component={Stream} initialParams={{ streamType: 'proposal' }} options={{ title: t('Decisions') }} />
-      <HomeTab.Screen name='Members' component={MembersComponent} />
-      <HomeTab.Screen name='Member' key='Member' component={MemberProfile} />
-      <HomeTab.Screen name='Member Details' component={MemberDetails} />
-      {/* TODO post redesign: after a launch and no one remembers the group explore, remove this entire screen and its webview */}
-      {/* <HomeTab.Screen name='Group Explore' component={GroupExploreWebView} /> */}
-      <HomeTab.Screen name='Group Relationships' component={Groups} />
+      {/* WebView screens (may link/route internally) */}
+      <HomeTab.Screen name='ChatRoom' component={ChatRoomWebView} />
       <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
-      <HomeTab.Screen name='Topics' component={AllTopicsWebView} />
-      <HomeTab.Screen name='Map' component={MapWebView} />
-      <HomeTab.Screen name='ChatRoom' component={ChatRoom} />
-      <HomeTab.Screen name='My Posts' component={Stream} initialParams={{ myHome: 'My Posts' }} />
-      <HomeTab.Screen name='Announcements' component={Stream} initialParams={{ myHome: 'Announcements' }} />
-      <HomeTab.Screen name='Mentions' component={Stream} initialParams={{ myHome: 'Mentions' }} />
-      <HomeTab.Screen name='Interactions' component={Stream} initialParams={{ myHome: 'Interactions' }} />
-      <HomeTab.Screen name='Group Welcome' component={GroupWelcomeLanding} />
       <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
+      {/* Other screens */}
+      <HomeTab.Screen name='All Views' component={AllViews} />
+      <HomeTab.Screen name='Group Relationships' component={Groups} />
+      <HomeTab.Screen name='Group Welcome' component={GroupWelcomeLanding} />
+      <HomeTab.Screen name='Map' component={MapWebView} />
+      <HomeTab.Screen name='Member' key='Member' component={MemberProfile} />
+      <HomeTab.Screen name='Members' component={MembersComponent} />
+      <HomeTab.Screen name='Member Details' component={MemberDetails} />
+      <HomeTab.Screen name='Moderation' component={Moderation} />
+      <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
+      <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />
+      <HomeTab.Screen name='Topics' component={AllTopicsWebView} />
     </HomeTab.Navigator>
   )
 }

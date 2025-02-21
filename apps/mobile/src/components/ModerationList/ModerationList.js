@@ -1,12 +1,9 @@
 import React, { useCallback, useState } from 'react'
 import { View, StyleSheet } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
-import { useNavigation } from '@react-navigation/native'
 import { gql, useMutation, useQuery } from 'urql'
-import { DECISIONS_OPTIONS } from 'screens/Stream/Stream'
 import Loading from 'components/Loading'
 import ModerationListItem from 'components/ModerationListItem'
-import ListControl from 'components/ListControl'
 
 export const clearModerationActionMutation = gql`
   mutation ClearModerationActionMutation ( $postId: ID, $moderationActionId: ID, $groupId: ID ) {
@@ -61,8 +58,6 @@ export const moderationActionsQuery = gql`
 `
 
 export default function ModerationList ({ forGroup, header, scrollRef, streamType }) {
-  const navigation = useNavigation()
-  const { navigate } = navigation
   const [offset, setOffset] = useState(0)
   const [, clearModerationAction] = useMutation(clearModerationActionMutation)
   const [{ data, pending }] = useQuery({
@@ -107,14 +102,6 @@ export default function ModerationList ({ forGroup, header, scrollRef, streamTyp
         refreshing={!!pending}
         keyExtractor={item => `moderation-action-${item.id}`}
         onEndReached={fetchMoreModerationActions}
-        ListHeaderComponent={(
-          <View>
-            {header}
-            <View style={[styles.listControls]}>
-              <ListControl selected={streamType} onChange={() => navigate('Decisions')} options={DECISIONS_OPTIONS} />
-            </View>
-          </View>
-        )}
         ListFooterComponent={pending ? <Loading style={styles.loading} /> : null}
       />
     </View>

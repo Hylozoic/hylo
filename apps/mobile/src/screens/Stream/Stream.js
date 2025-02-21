@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react'
+import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { useNavigation, useIsFocused, useRoute } from '@react-navigation/native'
-import { View, TouchableOpacity } from 'react-native'
+import { View, TouchableOpacity, Dimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { gql, useMutation, useQuery } from 'urql'
 import { capitalize, get, isEmpty } from 'lodash/fp'
@@ -9,7 +9,6 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import useStreamQueryVariables from '@hylo/hooks/useStreamQueryVariables'
 import { useTranslation } from 'react-i18next'
-import { PUBLIC_GROUP_ID, MY_CONTEXT_SLUG, ALL_GROUPS_CONTEXT_SLUG } from '@hylo/presenters/GroupPresenter'
 import useRouteParams from 'hooks/useRouteParams'
 import makeStreamQuery from './makeStreamQuery'
 import StreamHeader from './StreamHeader'
@@ -18,7 +17,7 @@ import CreateGroupNotice from 'components/CreateGroupNotice'
 import Icon from 'components/Icon'
 import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
-import ModerationList from 'components/ModerationList'
+import { isDev } from 'config'
 import styles from './Stream.styles'
 import { pictonBlue } from 'style/colors'
 
@@ -54,11 +53,6 @@ export const EVENT_STREAM_TIMEFRAME_OPTIONS = [
   { id: 'past', label: 'Past Events' }
 ]
 
-export const DECISIONS_OPTIONS = [
-  { id: 'proposal', label: 'Proposals' },
-  { id: 'moderation', label: 'Moderation' }
-]
-
 export const DEFAULT_SORT_BY_ID = 'updated'
 export const DEFAULT_TIMEFRAME_ID = 'future'
 
@@ -85,9 +79,17 @@ export default function Stream () {
   const navigation = useNavigation()
   const route = useRoute()
   const isFocused = useIsFocused()
-  const { customViewId, streamType, myHome, context } = useRouteParams()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
+  // TODO: Keeping logging for now for Stream testing due-diligence
+  const routeParams = useRouteParams()
+  if (isDev) console.log('!!! routeParams', routeParams)
+  const {
+    context,
+    customViewId,
+    myHome,
+    streamType
+  } = routeParams
 
   const customView = currentGroup?.customViews?.items?.find(view => view.id === customViewId)
   const [filter, setFilter] = useState()
@@ -109,7 +111,7 @@ export default function Stream () {
     sortBy,
     timeframe
   })
-
+  if (isDev) console.log('!!!! streamQueryVariables', streamQueryVariables)
   const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...streamQueryVariables, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore
@@ -119,24 +121,30 @@ export default function Stream () {
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
 
-  useEffect(() => {
-    navigation.setOptions({
-      title: getTitle()
-    })
-
-    function getTitle() {
-      if (currentGroup?.slug === MY_CONTEXT_SLUG || currentGroup?.slug === ALL_GROUPS_CONTEXT_SLUG) {
-        return t('My Home')
-      }
-      if (streamType === 'Moderation') {
-        return t('Moderation')
-      }
-      if (streamType) {
-        return capitalize(t(streamType) + 's')
-      }
-      return currentGroup?.name
+  const title = useMemo(() => {
+    if (myHome) {
+      return capitalize(t(myHome))
     }
-  }, [navigation, currentGroup?.id, streamType, myHome, context])
+
+    switch (streamType) {
+      case 'event':
+        return t('Events')
+      case 'projects':
+        return t('Projects')
+      case 'proposal':
+        return t('Proposals')
+    }
+
+    if (streamType) {
+      return capitalize(t(streamType))
+    }
+
+    return currentGroup?.name
+  }, [navigation, currentGroup?.id, myHome, streamType, context])
+
+  useEffect(() => {
+    navigation.setOptions({ title })
+  }, [title])
 
   // TODO: URQL - Can this be simplified? Also, does this perhaps follow the same logic as
   // group(updateLastViewed: true) and could we combine this? Currently that extra
@@ -193,34 +201,17 @@ export default function Stream () {
   if (!currentUser) return <Loading style={{ flex: 1 }} />
   if (!currentGroup) return null
 
-  if (isEmpty(currentUser?.memberships) && currentGroup?.id !== PUBLIC_GROUP_ID) {
+  if (isEmpty(currentUser?.memberships) && currentGroup?.isPublicContext) {
     return (
       <CreateGroupNotice />
-    )
-  }
-
-  if (streamType === 'moderation') {
-    return (
-      <ModerationList
-        scrollRef={ref}
-        forGroup={currentGroup}
-        header={(
-          <StreamHeader
-            image={currentGroup.bannerUrl ? { uri: currentGroup.bannerUrl } : null}
-            icon={customView?.icon}
-            name={customView?.name || myHome || currentGroup.name}
-          />
-        )}
-        route={route}
-        streamType={streamType}
-      />
     )
   }
 
   return (
     <View style={styles.container}>
       <FlashList
-        estimatedItemSize={100}
+        estimatedItemSize={200}
+        estimatedListSize={Dimensions.get('screen')}
         ref={ref}
         data={posts}
         renderItem={({ item }) => (
@@ -269,19 +260,6 @@ export default function Stream () {
                 <ListControl selected={timeframe} onChange={setTimeframe} options={EVENT_STREAM_TIMEFRAME_OPTIONS} />
               </View>
             )}
-
-            {streamType === 'proposal' && (
-              <View style={[styles.listControls]}>
-                <ListControl
-                  selected={streamType}
-                  onChange={() => (
-                    navigation.navigate('Decisions', { streamType: 'moderation', initial: false, options: { title: 'Moderation' } })
-                  )}
-                  options={DECISIONS_OPTIONS}
-                />
-              </View>
-            )}
-
           </View>
         }
         ListFooterComponent={(

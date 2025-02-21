@@ -57,13 +57,13 @@ export default function ContextMenu (props) {
 
   const rawContextWidgets = useSelector(state => {
     if (isMyContext || isPublicContext || isAllContext) {
-      return getStaticMenuWidgets({ isPublicContext, isMyContext, profileUrl, isAllContext })
+      return getStaticMenuWidgets({ isPublicContext, isMyContext: isMyContext || isAllContext, profileUrl })
     }
     return getContextWidgets(state, group)
   })
 
   const contextWidgets = useMemo(() => {
-    return rawContextWidgets.map(widget => ContextWidgetPresenter(widget, { t }))
+    return rawContextWidgets.map(widget => ContextWidgetPresenter(widget))
   }, [rawContextWidgets, t])
 
   const hasContextWidgets = useMemo(() => {
@@ -129,7 +129,7 @@ export default function ContextMenu (props) {
                 </div>
               </div>
               )
-            : isMyContext || isAllContext
+            : isMyContext
               ? (
                 <div className='flex flex-col p-2'>
                   <h2 className='text-foreground font-bold leading-3 text-lg'>My Home</h2>
@@ -218,7 +218,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
 
   const presentedlistItems = useMemo(() => {
-    return listItems.map(widget => ContextWidgetPresenter(widget, { t }))
+    return listItems.map(widget => ContextWidgetPresenter(widget))
   }, [listItems])
 
   const isDroppable = widget.isDroppable
@@ -233,7 +233,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, transform } = useDraggable({ id: widget.id })
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 
-  const title = widget.title
+  const title = t(widget.title)
   const url = widgetUrl({ widget, rootPath, groupSlug })
   const canDnd = !allView && isEditing && widget.type !== 'home'
   const showEdit = allView && canAdminister
@@ -393,7 +393,8 @@ function DropZone ({ droppableParams, isDroppable = true, height = '', hide = fa
 }
 
 function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = false, activeWidget, invalidChild = false, handlePositionedAdd }) {
-  const itemTitle = item.title
+  const { t } = useTranslation()
+  const itemTitle = t(item.title)
   const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug })
   let hideDropZone = isOverlay
 
@@ -551,6 +552,7 @@ function GroupSettingsMenu ({ group }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   // XXX: hacky way to track the view we were at before opening the settings menu. also see locationHistory.js
   const previousLocation = useSelector(state => get('locationHistory.currentLocation', state))
 
