@@ -150,14 +150,12 @@ export default function Stream (props) {
       params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
       params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).plus({ day: 1 }).endOf('day').toISO()
       params.order = 'asc'
+      dispatch(dropPostResults(params))
     } else if (view === 'events') {
       const today = DateTime.now().toISO()
       params.afterTime = timeframe === 'future' ? today : undefined
       params.beforeTime = timeframe === 'past' ? today : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'
-    }
-    if (view === 'events') {
-      dispatch(dropPostResults(params))
     }
     return params
   }, [calendarDate, calendarMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view, viewMode])
