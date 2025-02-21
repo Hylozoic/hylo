@@ -47,12 +47,7 @@ export default function useStreamQueryVariables ({
       ? (timeframe === 'future' ? 'asc' : 'desc')
       : null,
     search: null,
-    // We just can't get away from some sort of jank until /all is removed from the whole repo
-    slug: myHome === 'stream'
-      ? 'all'
-      : !isContextGroupSlug(forGroup?.slug)
-          ? forGroup?.slug
-          : null,
+    slug: !isContextGroupSlug(forGroup?.slug) ? forGroup?.slug : null,
     sortBy,
     topic: topicName,
     topics: (customView?.type === 'stream' && customView?.topics)
