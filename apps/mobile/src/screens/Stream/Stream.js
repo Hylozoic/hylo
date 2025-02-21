@@ -18,6 +18,7 @@ import Icon from 'components/Icon'
 import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
 import ModerationList from 'components/ModerationList'
+import { isDev } from 'config'
 import styles from './Stream.styles'
 import { pictonBlue } from 'style/colors'
 
@@ -88,7 +89,7 @@ export default function Stream () {
   const [{ currentGroup }] = useCurrentGroup()
   // TODO: Keeping logging for now for Stream testing due-diligence
   const routeParams = useRouteParams()
-  console.log('!!! routeParams', routeParams)
+  if (isDev) console.log('!!! routeParams', routeParams)
   const {
     context,
     customViewId,
@@ -116,7 +117,7 @@ export default function Stream () {
     sortBy,
     timeframe
   })
-console.log('!!!! streamQueryVariables', streamQueryVariables)
+  if (isDev) console.log('!!!! streamQueryVariables', streamQueryVariables)
   const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...streamQueryVariables, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore

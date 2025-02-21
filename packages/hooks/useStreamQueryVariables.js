@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
 import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
-import { MY_CONTEXT_SLUG } from '@hylo/shared'
 import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 
 export default function useStreamQueryVariables ({
@@ -30,7 +29,7 @@ export default function useStreamQueryVariables ({
     childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
     collectionToFilterOut: null,
     context,
-    createdBy: context === MY_CONTEXT_SLUG || myHome === 'posts'
+    createdBy: myHome === 'posts'
       ? [currentUser.id]
       : null,
     cursor: null,
@@ -48,7 +47,12 @@ export default function useStreamQueryVariables ({
       ? (timeframe === 'future' ? 'asc' : 'desc')
       : null,
     search: null,
-    slug: !isContextGroupSlug(forGroup?.slug) ? forGroup?.slug : null,
+    // We just can't get away from some sort of jank until /all is removed from the whole repo
+    slug: myHome === 'stream'
+      ? 'all'
+      : !isContextGroupSlug(forGroup?.slug)
+          ? forGroup?.slug
+          : null,
     sortBy,
     topic: topicName,
     topics: (customView?.type === 'stream' && customView?.topics)
