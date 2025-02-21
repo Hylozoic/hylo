@@ -111,7 +111,7 @@ export default function AllViews () {
         <div>
           <h3 className='text-lg font-semibold text-foreground'>
             <WidgetIconResolver widget={widget} />
-            <span className='ml-2'>{widget.title}</span>
+            <span className='ml-2'>{t(widget.title)}</span>
           </h3>
           {widget.humanReadableType && (
             <span className='text-sm  text-foreground'>
