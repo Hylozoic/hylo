@@ -48,8 +48,12 @@ const PostListRow = (props) => {
   const creatorUrl = personUrl(creator.id, routeParams.slug)
   const numOtherCommentors = commentersTotal - 1
   const unread = false
-  const start = typeof post.startTime === 'string' ? DateTime.fromISO(post.startTime) : DateTime.fromJSDate(post.startTime)
-  const end = typeof post.endTime === 'string' ? DateTime.fromISO(post.endTime) : DateTime.fromJSDate(post.endTime)
+  const start = typeof post.startTime === 'string'
+    ? DateTime.fromISO(post.startTime)
+    : DateTime.fromJSDate(post.startTime)
+  const end = typeof post.endTime === 'string'
+    ? DateTime.fromISO(post.endTime)
+    : DateTime.fromJSDate(post.endTime)
   const isSameDay = sameDay(start.toJSDate(), end.toJSDate())
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
