@@ -124,7 +124,7 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/map':                                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
   '/:context(groups)/:groupSlug/map/create':                              `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   '/:context(groups)/:groupSlug/members':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Members`,
-  '/:context(groups)/:groupSlug/members/:personId':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member Profile`,
+  '/:context(groups)/:groupSlug/members/:id':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member`,
   // TODO: Routing -- Actually legacy redirection, consider creating or adding to a redirect mapper
   '/:context(groups)/:groupSlug/topics/:topicName':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
   '/:context(groups)/:groupSlug/topics/:topicName/post/:postId'         : `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/ChatRoom`,
