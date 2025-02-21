@@ -52,7 +52,7 @@ export default function PostHeader ({
   const creatorIsSteward = creatorHasResponsibility(null)
   const badges = useRolesForGroup(currentGroup?.id, creator)
   const { avatarUrl, name } = creator
-  const handleFlagOnPress = () => navigation.navigate('Stream', {
+  const handleFlagOnPress = () => navigation.navigate('Moderation', {
     streamType: 'moderation',
     initial: false,
     options: {

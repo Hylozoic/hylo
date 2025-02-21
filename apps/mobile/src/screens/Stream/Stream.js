@@ -17,7 +17,6 @@ import CreateGroupNotice from 'components/CreateGroupNotice'
 import Icon from 'components/Icon'
 import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
-import ModerationList from 'components/ModerationList'
 import { isDev } from 'config'
 import styles from './Stream.styles'
 import { pictonBlue } from 'style/colors'
@@ -52,11 +51,6 @@ export const COLLECTION_SORT_OPTIONS = [
 export const EVENT_STREAM_TIMEFRAME_OPTIONS = [
   { id: 'future', label: 'Upcoming Events' },
   { id: 'past', label: 'Past Events' }
-]
-
-export const DECISIONS_OPTIONS = [
-  { id: 'proposal', label: 'Proposals' },
-  { id: 'moderation', label: 'Moderation' }
 ]
 
 export const DEFAULT_SORT_BY_ID = 'updated'
@@ -135,12 +129,10 @@ export default function Stream () {
     switch (streamType) {
       case 'event':
         return t('Events')
-      case 'moderation':
-        return t('Moderation')
       case 'projects':
         return t('Projects')
       case 'proposal':
-        return t('Decisions')
+        return t('Proposals')
     }
 
     if (streamType) {
@@ -192,14 +184,6 @@ export default function Stream () {
     }
   }, [hasMore, fetching, postIds])
 
-  const handleDecisionOptionsOnChange = () => navigation.navigate('Stream', {
-    streamType: 'moderation',
-    initial: false,
-    options: {
-      title: 'Moderation'
-    }
-  })
-
   const sortOptions = customView?.type === 'collection'
     ? COLLECTION_SORT_OPTIONS
     : STREAM_SORT_OPTIONS
@@ -220,24 +204,6 @@ export default function Stream () {
   if (isEmpty(currentUser?.memberships) && currentGroup?.isPublicContext) {
     return (
       <CreateGroupNotice />
-    )
-  }
-
-  if (streamType === 'moderation') {
-    return (
-      <ModerationList
-        scrollRef={ref}
-        forGroup={currentGroup}
-        header={(
-          <StreamHeader
-            image={currentGroup.bannerUrl ? { uri: currentGroup.bannerUrl } : null}
-            icon={customView?.icon}
-            name={customView?.name || myHome || currentGroup.name}
-          />
-        )}
-        route={route}
-        streamType={streamType}
-      />
     )
   }
 
@@ -293,17 +259,6 @@ export default function Stream () {
                 <ListControl selected={timeframe} onChange={setTimeframe} options={EVENT_STREAM_TIMEFRAME_OPTIONS} />
               </View>
             )}
-
-            {streamType === 'proposal' && (
-              <View style={[styles.listControls]}>
-                <ListControl
-                  selected={streamType}
-                  onChange={handleDecisionOptionsOnChange}
-                  options={DECISIONS_OPTIONS}
-                />
-              </View>
-            )}
-
           </View>
         }
         ListFooterComponent={(
