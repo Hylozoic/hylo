@@ -75,22 +75,17 @@ export const filterAndSortPosts = curry((opts, q) => {
     })
   }
 
-  if (afterTime && beforeTime) {
-      // get all posts that intersect the range afterTime-beforeTime
-      // this is for calendar views and search ranges
-    q.where(q2 =>
-      q2.where('posts.start_time', '<', beforeTime)
-      .andWhere('posts.end_time', '>=', afterTime)
-    )
-  } else if (afterTime) {
-      // get all posts that have not "expired"
+  if (afterTime) {
     q.where(q2 =>
       q2.where('posts.end_time', '>=', afterTime)
     )
-  } else if (beforeTime) {
-      // get all posts that have "expired"
+  }
+  
+  if (beforeTime) {
+      // if afterTime also supplied, this is a calendar view
+      // so get posts that intersect the date range
     q.where(q2 =>
-      q2.where('posts.end_time', '<', beforeTime)
+      q2.where(afterTime ? 'posts.start_time' : 'posts.end_time', '<', beforeTime)
     )
   }
 
