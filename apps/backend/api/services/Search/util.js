@@ -77,6 +77,7 @@ export const filterAndSortPosts = curry((opts, q) => {
 
   if (afterTime && beforeTime) {
       // get all posts that intersect the range afterTime-beforeTime
+      // this is for calendar views and search ranges
     q.where(q2 =>
       q2.where('posts.start_time', '<', beforeTime)
       .andWhere('posts.end_time', '>=', afterTime)
