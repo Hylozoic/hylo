@@ -2,15 +2,15 @@ import React, { useMemo, useEffect } from 'react'
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
-import { widgetUrl as makeWidgetUrl, groupUrl } from 'util/navigation'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
+import { widgetUrl as makeWidgetUrl, groupUrl } from 'util/navigation'
 import useLogout from 'hooks/useLogout'
-import WidgetIconResolver from 'components/WidgetIconResolver'
-import GroupMenuHeader from 'components/GroupMenuHeader'
 import { openURL } from 'hooks/useOpenURL'
+import GroupMenuHeader from 'components/GroupMenuHeader'
+import WidgetIconResolver from 'components/WidgetIconResolver'
 
 export default function ContextMenu () {
   const navigation = useNavigation()
@@ -23,6 +23,17 @@ export default function ContextMenu () {
       navigation.navigate('Group Welcome', { groupId: currentGroup?.id })
     }
   }, [currentGroup, fetching])
+
+  const handleGoToAllViews = () => openURL(
+    makeWidgetUrl({
+      widget: {
+        type: 'all-views',
+        view: 'all-views'
+      },
+      rootPath: `/groups/${currentGroup?.slug}`,
+      groupSlug: currentGroup?.slug
+    })
+  )
 
   if (!currentGroup) return null
 
@@ -44,7 +55,7 @@ export default function ContextMenu () {
       {(!currentGroup.isContextGroup) && (
         <View className='px-2 mb-2'>
           <TouchableOpacity
-            onPress={() => openURL(makeWidgetUrl({ widget: { type: 'all-views', view: 'all-views' }, rootPath: `/groups/${currentGroup.slug}`, groupSlug: currentGroup?.slug }))}
+            onPress={handleGoToAllViews}
             className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md gap-2'
           >
             <WidgetIconResolver widget={{ type: 'all-views' }} className='mr-2' />

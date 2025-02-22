@@ -5,9 +5,9 @@ import Intercom from '@intercom/intercom-react-native'
 import { Globe, Plus, CircleHelp } from 'lucide-react-native'
 import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
-import { openURL } from 'hooks/useOpenURL'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup, { useContextGroups } from '@hylo/hooks/useCurrentGroup'
+import { openURL } from 'hooks/useOpenURL'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 
 export default function ContextSwitchMenu () {
@@ -19,14 +19,18 @@ export default function ContextSwitchMenu () {
     sortBy('name', map(m => m.group, currentUser.memberships))
   )
 
+  const handleOnPress = context => {
+    changeToGroup(context?.slug, false)
+  }
+
   return (
     <Animated.View className='flex-col h-full bg-theme-background z-50 items-center py-2 px-3'>
       <FlatList
         data={myGroups}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <NavRow
-            changeToGroup={changeToGroup}
+          <ContextRow
+            onPress={handleOnPress}
             item={item}
             currentGroupSlug={currentGroup?.slug}
           />
@@ -63,14 +67,14 @@ export default function ContextSwitchMenu () {
   )
 }
 
-function NavRow ({ item, changeToGroup, currentGroupSlug, badgeCount = 0, className }) {
+function ContextRow ({ item, onPress, currentGroupSlug, badgeCount = 0, className }) {
   const newPostCount = Math.min(99, item.newPostCount)
   const highlight = item?.slug === currentGroupSlug
 
   return (
     <TouchableOpacity
       key={item?.id}
-      onPress={() => changeToGroup(item?.slug, false)}
+      onPress={() => onPress(item)}
       style={styles.rowTouchable}
       activeOpacity={0.7}
     >

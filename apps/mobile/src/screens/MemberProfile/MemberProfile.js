@@ -41,7 +41,7 @@ function MemberProfile ({ isFocused }) {
   const setHeader = () => {
     isModalScreen
       ? navigation.setOptions(ModalHeaderTransparent({ navigation }))
-      : navigation.setOptions({ title: currentGroup.name })
+      : navigation.setOptions({ title: currentGroup?.name })
   }
 
   useEffect(() => {
