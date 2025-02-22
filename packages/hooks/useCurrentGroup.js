@@ -1,6 +1,5 @@
 import { useMemo, useEffect } from 'react'
 import { useQuery } from 'urql'
-import { useTranslation } from 'react-i18next'
 import { create } from 'zustand'
 import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
 import mixpanel from 'services/mixpanel'
@@ -23,9 +22,8 @@ export function useGroup ({
   },
   useQueryArgs = {}
 } = {}) {
-  const { t } = useTranslation()
   const [{ currentUser, fetching: userFetching, error: userError }] = useCurrentUser({ pause: useQueryArgs?.pause || !groupSlug })
-  const contextGroup = useMemo(() => getContextGroup(groupSlug || groupId, { currentUser, t }), [groupSlug, groupId])
+  const contextGroup = useMemo(() => getContextGroup(groupSlug || groupId, { currentUser }), [groupSlug, groupId, currentUser])
 
   const pause = !!contextGroup || useQueryArgs?.pause || (!groupSlug && !groupId)
   const [{ data, fetching: groupFetching, error: groupError }, reQuery] = useQuery({
@@ -41,12 +39,11 @@ export function useGroup ({
 }
 
 export function useContextGroups () {
-  const { t } = useTranslation()
   const [{ currentUser }] = useCurrentUser()
 
   return {
-    myContext: getContextGroup(MY_CONTEXT_SLUG, { currentUser, t }),
-    publicContext: getContextGroup(PUBLIC_CONTEXT_SLUG, { currentUser, t })
+    myContext: getContextGroup(MY_CONTEXT_SLUG, { currentUser }),
+    publicContext: getContextGroup(PUBLIC_CONTEXT_SLUG, { currentUser })
   }
 }
 

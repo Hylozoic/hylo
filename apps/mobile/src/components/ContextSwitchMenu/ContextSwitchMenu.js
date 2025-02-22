@@ -8,6 +8,7 @@ import { clsx } from 'clsx'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup, { useContextGroups } from '@hylo/hooks/useCurrentGroup'
 import { openURL } from 'hooks/useOpenURL'
+import { widgetUrl as makeWidgetUrl } from 'util/navigation'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 
 export default function ContextSwitchMenu () {
@@ -18,9 +19,14 @@ export default function ContextSwitchMenu () {
   const myGroups = [myContext, publicContext].concat(
     sortBy('name', map(m => m.group, currentUser.memberships))
   )
+  const homePath = currentGroup && makeWidgetUrl({
+    widget: currentGroup?.homeWidget,
+    groupSlug: currentGroup?.slug
+  })
 
   const handleOnPress = context => {
     changeToGroup(context?.slug, false)
+    if (homePath) openURL(homePath)
   }
 
   return (
