@@ -143,8 +143,7 @@ export default function Stream (props) {
       slug: groupSlug,
       sortBy,
       topics,
-      types: getTypes({ customView, view }),
-      calendarViewMode
+      types: getTypes({ customView, view })
     }
 
     if (calendarViewMode) {
