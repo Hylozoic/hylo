@@ -30,17 +30,16 @@ export default function HomeNavigator ({ navigation }) {
   const initialURL = useSelector(state => state.initialURL)
   const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
 
-  useEffect(() => {
-    if (!initialURL && !returnToOnAuthPath) {
-      setTimeout(() => navigation.navigate('Stream'), 400)
-    }
-  }, [])
+  // useEffect(() => {
+  //   if (!initialURL && !returnToOnAuthPath) {
+  //     setTimeout(() => navigation.navigate('Stream'), 400)
+  //   }
+  // }, [])
 
   useOpenInitialURL()
   useReturnToOnAuthPath()
 
   const navigatorProps = {
-    initialRouteName: 'Group Navigation',
     screenOptions: {
       animationEnabled: !initialURL,
       title: currentGroup?.name || 'Home',
@@ -71,12 +70,12 @@ export default function HomeNavigator ({ navigation }) {
 
   return (
     <HomeTab.Navigator {...navigatorProps}>
-      <HomeTab.Screen name='Stream' component={Stream} />
       {/* WebView screens (may link/route internally) */}
-      <HomeTab.Screen name='ChatRoom' component={ChatRoomWebView} />
+      <HomeTab.Screen name='Chat Room' component={ChatRoomWebView} />
       <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
       <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
       {/* Other screens */}
+      <HomeTab.Screen name='Stream' component={Stream} />
       <HomeTab.Screen name='All Views' component={AllViews} />
       <HomeTab.Screen name='Group Relationships' component={Groups} />
       <HomeTab.Screen name='Group Welcome' component={GroupWelcomeLanding} />
