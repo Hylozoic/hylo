@@ -1,4 +1,3 @@
-import i18n from '@hylo/shared/i18n'
 import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
 import ContextWidgetPresenter, { findHomeWidget, getStaticMenuWidgets } from './ContextWidgetPresenter'
 
@@ -51,7 +50,6 @@ function shouldWelcomeResolver (group, currentUser) {
 }
 
 function contextWidgetsResolver (group, currentUser) {
-  const { t } = i18n
   if (isContextGroupSlug(group.slug)) {
     return getStaticMenuWidgets({
       isPublicContext: group.slug === PUBLIC_CONTEXT_SLUG,
