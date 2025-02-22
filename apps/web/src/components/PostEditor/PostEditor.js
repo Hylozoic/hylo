@@ -677,7 +677,6 @@ function PostEditor ({
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
               key={currentPost.id}
-              className={styles.editor}
               placeholder={isChat ? t('Send a chat to #{{topicName}}', { topicName: currentPost?.topics?.[0]?.name }) : t('Add a description')}
               onUpdate={handleDetailsChange}
               onAltEnter={doSave}
