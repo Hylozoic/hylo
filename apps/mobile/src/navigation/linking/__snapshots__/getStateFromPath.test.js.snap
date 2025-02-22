@@ -128,7 +128,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/chat/general": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/ChatRoom",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Chat Room",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -394,7 +394,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/topics/technology": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/ChatRoom",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Chat Room",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
