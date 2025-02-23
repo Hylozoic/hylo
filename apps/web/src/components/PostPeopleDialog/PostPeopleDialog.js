@@ -1,11 +1,11 @@
 import React from 'react'
-import { withTranslation } from 'react-i18next'
+import { useTranslation, withTranslation } from 'react-i18next'
 import { filter, get } from 'lodash/fp'
 import ModalDialog from 'components/ModalDialog'
 import TextInput from 'components/TextInput'
 import Member from 'components/Member'
 import classes from './PostPeopleDialog.module.scss'
-import { humanResponse } from 'store/models/EventInvitation'
+import { humanResponse } from '@hylo/presenters/EventInvitationPresenter'
 import { bgImageStyle, cn } from 'util/index'
 
 class PostPeopleDialog extends React.PureComponent {
@@ -83,6 +83,7 @@ class PostPeopleDialog extends React.PureComponent {
 }
 
 function MemberRow ({ member, selected, onClick }) {
+  const { t } = useTranslation()
   const { name, avatarUrl, response } = member
 
   return (
@@ -93,7 +94,7 @@ function MemberRow ({ member, selected, onClick }) {
       <div className={classes.col}>
         {name}
       </div>
-      {response && <div className={cn(classes.col, classes.response)}>{humanResponse(response)}</div>}
+      {response && <div className={cn(classes.col, classes.response)}>{t(humanResponse(response))}</div>}
     </div>
   )
 }
