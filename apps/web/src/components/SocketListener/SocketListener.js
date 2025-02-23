@@ -48,7 +48,7 @@ const SocketListener = (props) => {
       socket.on(socketEvent, handlers[socketEvent]))
 
     return () => {
-      socket.post(socketUrl('/noo/threads/unsubscribe'))
+      socket.post(socketUrl('/noo/user/unsubscribe'))
       Object.keys(handlers).forEach(socketEvent =>
         socket.off(socketEvent, handlers[socketEvent]))
     }
@@ -59,7 +59,7 @@ const SocketListener = (props) => {
       console.log('connecting SocketListener...')
     }
 
-    socket.post(socketUrl('/noo/threads/subscribe'), (body, jwr) => {
+    socket.post(socketUrl('/noo/user/subscribe'), (body, jwr) => {
       if (!isEqual(body, {})) {
         rollbar.error(`Failed to connect SocketListener: ${body}`)
       }

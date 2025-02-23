@@ -60,21 +60,17 @@ export default function HyloEditorMenuBar ({ editor }) {
               onClick={() => editor.chain().focus().unsetLink().run()}
             >
               <Unlink size={14} />
-            </button>
-            )
+            </button>)
           : (
             <button
               tabIndex='-1'
-              title='add a link'
+              title='Add a link'
               onClick={() => setModal(!modal)}
               className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer'
             >
               <Link size={14} />
-            </button>
-            )}
-        {modal && (
-          <AddLinkBox editor={editor} setModal={setModal} />
-        )}
+            </button>)}
+        <AddLinkBox editor={editor} setModal={setModal} isOpen={modal} />
       </div>
 
       <div className={cn('bg-foreground bg-opacity-30 w-px')} />
@@ -150,8 +146,10 @@ function HyloEditorMenuBarButton ({ active, Icon, onClick, setModal }) {
   )
 }
 
-export const AddLinkBox = ({ editor, setModal }) => {
+export const AddLinkBox = ({ editor, setModal, isOpen }) => {
   const [linkInput, setLinkInput] = useState('')
+
+  if (!isOpen) return null
 
   const handleLinkChange = (e) => {
     setLinkInput(e.target.value)

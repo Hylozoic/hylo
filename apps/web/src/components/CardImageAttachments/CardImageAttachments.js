@@ -8,7 +8,7 @@ import { bgImageStyle, cn } from 'util/index'
 import classes from './CardImageAttachments.module.scss'
 
 export default function CardImageAttachments ({
-  attachments,
+  attachments = [],
   className,
   forChatPost = false,
   isFlagged
@@ -93,7 +93,8 @@ export default function CardImageAttachments ({
 }
 
 CardImageAttachments.propTypes = {
-  attachments: PropTypes.array.isRequired,
-  linked: PropTypes.bool,
-  className: PropTypes.string
+  attachments: PropTypes.array,
+  className: PropTypes.string,
+  forChatPost: PropTypes.bool,
+  isFlagged: PropTypes.bool
 }

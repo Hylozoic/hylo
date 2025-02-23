@@ -13,7 +13,7 @@ import PostTitle from '../PostTitle'
 import PostContent from '../PostContent'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
 import { recordClickthrough } from 'store/actions/moderationActions'
-import { RESPONSES } from 'store/models/EventInvitation'
+import { RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import classes from '../PostBody/PostBody.module.scss'
 
 function EventBody (props) {

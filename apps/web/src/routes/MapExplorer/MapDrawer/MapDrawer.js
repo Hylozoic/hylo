@@ -27,7 +27,6 @@ function MapDrawer ({
   filters,
   group,
   groups = [],
-  locationParams,
   members = [],
   numFetchedPosts,
   numTotalPosts,
@@ -191,7 +190,6 @@ function MapDrawer ({
                     mapDrawer
                     expanded={false}
                     key={p.id}
-                    locationParams={locationParams}
                     group={group}
                     post={p}
                     className={styles.contentCard}

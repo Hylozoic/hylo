@@ -284,13 +284,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         let widgetToMove = null
 
         if (postType === 'request' || postType === 'offer') {
-          widgetToMove = allWidgets.find(w => w.view === 'ask-and-offer')
+          widgetToMove = allWidgets.find(w => w.view === 'requests-and-offers')
         } else if (postType === 'discussion') {
           widgetToMove = allWidgets.find(w => w.view === 'discussions')
         } else if (postType === 'project') {
           widgetToMove = allWidgets.find(w => w.view === 'projects')
         } else if (postType === 'proposal') {
-          widgetToMove = allWidgets.find(w => w.view === 'decisions')
+          widgetToMove = allWidgets.find(w => w.view === 'proposals')
         } else if (postType === 'event') {
           widgetToMove = allWidgets.find(w => w.view === 'events')
         } else if (postType === 'resource') {
@@ -711,14 +711,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const data = payload.data.updateTopicFollow
       if (typeof data.newPostCount === 'number') {
         group = Group.withId(data.group.id)
-        const contextWidgets = group.contextWidgets.items
-        const newContextWidgets = contextWidgets.map(cw => {
-          if (cw.type === 'chat' && cw.viewChat?.id === data.topic.id) {
-            return { ...cw, highlightNumber: data.newPostCount }
-          }
-          return cw
-        })
-        group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
+        const contextWidgets = group.contextWidgets?.items
+        if (contextWidgets) {
+          const newContextWidgets = contextWidgets.map(cw => {
+            if (cw.type === 'chat' && cw.viewChat?.id === data.topic.id) {
+              return { ...cw, highlightNumber: data.newPostCount }
+            }
+            return cw
+          })
+          group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
+        }
       }
       break
     }
@@ -762,6 +764,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case UPDATE_THREAD_READ_TIME: {
+      me = Me.first()
+      me.update({
+        unseenThreadCount: Math.max(0, me.unseenThreadCount - 1)
+      })
       MessageThread.withId(meta.id).markAsRead()
       break
     }

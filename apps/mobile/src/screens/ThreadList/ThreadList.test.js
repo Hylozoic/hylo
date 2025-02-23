@@ -1,17 +1,7 @@
 import React from 'react'
-import { TouchableOpacity } from 'react-native'
 import TestRenderer from 'react-test-renderer'
 import ReactShallowRenderer from 'react-test-renderer/shallow'
-import { ThreadList, MessageRow } from './ThreadList'
-
-jest.mock('util/websockets', () => {
-  return {
-    getSocket: () => Promise.resolve({
-      post: jest.fn(),
-      on: jest.fn()
-    })
-  }
-})
+import { ThreadList } from './ThreadList'
 
 describe('ThreadList', () => {
   it('renders correctly', () => {
@@ -75,58 +65,5 @@ describe('ThreadList', () => {
     )
     renderer.getInstance().setState({ ready: true })
     expect(renderer.toJSON()).toMatchSnapshot()
-  })
-})
-
-describe('MessageRow', () => {
-  it('renders correctly', () => {
-    const message = [
-      {
-        id: 1,
-        creator: {
-          id: 1
-        }
-      }
-    ]
-    const participants = [{ id: 2 }]
-    const renderer = new ReactShallowRenderer()
-    renderer.render(<MessageRow
-      message={message}
-      participants={participants}
-                    />)
-    const actual = renderer.getRenderOutput()
-    expect(actual).toMatchSnapshot()
-  })
-
-  it('calls showThread', () => {
-    const name = 'Test User'
-    const text = 'This is a message.'
-    const showThread = jest.fn()
-    const currentUser = { id: 1 }
-    const message = {
-      id: 1,
-      creator: { id: 2 },
-      text
-    }
-
-    const participants = [
-      { id: 1, avatarUrl: 'me', name: 'me' },
-      { id: 2, avatarUrl: 'blah', name }
-    ]
-
-    const renderer = TestRenderer.create(
-      <MessageRow
-        t={str => str}
-        showThread={showThread}
-        message={message}
-        participants={participants}
-        currentUser={currentUser}
-      />
-    )
-
-    expect(renderer.toJSON()).toMatchSnapshot()
-    const { root } = renderer
-    root.findByType(TouchableOpacity).props.onPress()
-    expect(showThread).toBeCalled()
   })
 })

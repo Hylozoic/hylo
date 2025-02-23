@@ -1,13 +1,13 @@
 import React from 'react'
-import Avatar from 'components/Avatar'
 import { Grid3x3 } from 'lucide-react'
-import Icon from 'components/Icon'
 import ContextWidgetPresenter from '@hylo/presenters/ContextWidgetPresenter'
+import Avatar from 'components/Avatar'
+import Icon from 'components/Icon'
 
 export function WidgetIconResolver ({ widget: providedWidget, style, className }) {
   if (!providedWidget) return null
 
-  const widget = ContextWidgetPresenter(providedWidget, { t: t => t })
+  const widget = ContextWidgetPresenter(providedWidget)
 
   if (widget?.avatarUrl) {
     return <Avatar avatarUrl={widget.avatarUrl} name={widget?.displayName} small style={style} className={className} />

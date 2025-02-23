@@ -6,14 +6,14 @@ import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 
-export default function ChatRoom () {
+export default function ChatRoomWebView () {
   const navigation = useNavigation()
   const route = useRoute()
   const [{ currentGroup }] = useCurrentGroup()
   const { topicName } = useRouteParams()
-  const path = `/groups/${currentGroup.slug}/chats/${topicName}`
+  const path = `/groups/${currentGroup.slug}/chat/${topicName}`
   const handledWebRoutes = [
-    `/groups/${currentGroup.slug}/chats/:topicName`
+    `/groups/${currentGroup.slug}/chat/:topicName`
   ]
   const nativeRouteHandler = () => ({
     '(.*)/:type(post|members)/:id': ({ routeParams }) => {

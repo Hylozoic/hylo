@@ -15,7 +15,7 @@ export default function AllTopicsWebView () {
       navigation.navigate('Stream', { topicName })
     },
     '(.*)/topics/:topicName': ({ routeParams: { topicName } }) => {
-      navigation.navigate('Chat', { topicName })
+      navigation.navigate('ChatRoom', { topicName })
     }
   })
 

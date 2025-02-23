@@ -1,13 +1,15 @@
-import React, { useCallback } from 'react'
-import { useNavigate } from 'react-router'
+import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
+import { DateTime } from 'luxon'
+import React from 'react'
 import { CalendarEvent as CalendarEventType } from 'components/Calendar/calendar-types'
-import { postUrl } from 'util/navigation'
 import { useCalendarContext } from 'components/Calendar/calendar-context'
 import { DateTime, Interval } from 'luxon'
 import { cn } from '@/lib/utils'
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
 import Tooltip from 'components/Tooltip'
 import { sameDay, sameMonth } from './calendar-util'
+import useViewPostDetails from 'hooks/useViewPostDetails'
+import { cn } from 'util/index'
 
 import classes from './calendar.module.scss'
 
@@ -85,11 +87,7 @@ export default function CalendarEvent ({
   const timeFormat = { ...DateTime.TIME_SIMPLE, timeZoneName: 'short' as const }
   const toolTipTitle = `${event.title}<br />${DateTime.fromJSDate(event.start).toLocaleString(timeFormat)} - ${DateTime.fromJSDate(event.end).toLocaleString(timeFormat)}`
 
-  // our custon event click handler
-  const navigate = useNavigate()
-  const showDetails = useCallback(() => {
-    navigate(postUrl(event.id, routeParams, { ...locationParams, ...querystringParams }))
-  }, [event.id, routeParams, locationParams, querystringParams])
+  const viewPostDetails = useViewPostDetails()
 
   // Generate a unique key that includes the current month to prevent animation conflicts
   const isEventInCurrentMonth = sameMonth(event.start, date)
@@ -114,7 +112,7 @@ export default function CalendarEvent ({
           style={style}
           onClick={(e) => {
             e.stopPropagation()
-            showDetails()
+            viewPostDetails(event)
           }}
           data-tooltip-id={`title-tip-${event.id}`} data-tooltip-html={toolTipTitle}
           initial={{

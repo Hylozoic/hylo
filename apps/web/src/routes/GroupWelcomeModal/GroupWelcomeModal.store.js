@@ -5,6 +5,16 @@ export const groupWelcomeQuery = `
   query GroupWelcomeQuery ($id: ID, $userId: ID) {
     group (id: $id) {
       id
+      settings {
+        agreementsLastUpdatedAt
+        allowGroupInvites
+        askGroupToGroupJoinQuestions
+        askJoinQuestions
+        hideExtensionData
+        locationDisplayPrecision
+        publicMemberDirectory
+        showSuggestedSkills
+      }
       agreements {
         items {
           id

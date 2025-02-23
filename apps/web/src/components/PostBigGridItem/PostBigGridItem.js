@@ -2,7 +2,7 @@ import { cn } from 'util/index'
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import Avatar from 'components/Avatar'
 import EmojiRow from 'components/EmojiRow'
 import EventDate from 'components/PostCard/EventDate'
@@ -10,9 +10,10 @@ import EventRSVP from 'components/PostCard/EventRSVP'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
+import useViewPostDetails from 'hooks/useViewPostDetails'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
-import { personUrl, postUrl } from 'util/navigation'
+import { personUrl } from 'util/navigation'
 
 import classes from './PostBigGridItem.module.scss'
 
@@ -20,9 +21,7 @@ export default function PostBigGridItem ({
   childPost,
   currentGroupId,
   post,
-  expanded,
-  locationParams,
-  querystringParams
+  expanded
 }) {
   const {
     title,
@@ -33,7 +32,6 @@ export default function PostBigGridItem ({
   } = post
   const { t } = useTranslation()
   const routeParams = useParams()
-  const navigate = useNavigate()
   const dispatch = useDispatch()
   const numAttachments = attachments.length || 0
   const firstAttachment = attachments[0] || 0
@@ -43,10 +41,7 @@ export default function PostBigGridItem ({
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
   const currentUser = useSelector(getMe)
-
-  const showDetails = useCallback(() => {
-    navigate(postUrl(post.id, routeParams, { ...locationParams, ...querystringParams }))
-  }, [post.id, routeParams, locationParams, querystringParams])
+  const viewPostDetails = useViewPostDetails()
 
   const handleRespondToEvent = useCallback((response) => {
     dispatch(respondToEvent(post, response))
@@ -75,10 +70,10 @@ export default function PostBigGridItem ({
   const donationService = d ? d[1] : null
 
   const showDetailsTargeted = () => {
-    return attachmentType === 'image' || post.type === 'event' ? showDetails() : null
+    return attachmentType === 'image' || post.type === 'event' ? viewPostDetails(post.id) : null
   }
   return (
-    <div className={cn(classes.postGridItemContainer, { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType], classes[detailClass], classes[post.type])} onClick={attachmentType !== 'image' && post.type !== 'event' ? showDetails : null}>
+    <div className={cn(classes.postGridItemContainer, { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType], classes[detailClass], classes[post.type])} onClick={attachmentType !== 'image' && post.type !== 'event' ? () => viewPostDetails(post.id) : null}>
       <div className={classes.contentSummary}>
         {childPost && (
           <div
@@ -104,7 +99,7 @@ export default function PostBigGridItem ({
         <h3 className={classes.title} onClick={showDetailsTargeted}>{title}</h3>
 
         {attachmentType === 'image'
-          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cn(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} onClick={showDetails} />
+          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cn(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} onClick={() => viewPostDetails(post)} />
           : null}
 
         {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
@@ -120,7 +115,7 @@ export default function PostBigGridItem ({
                 <EventDate {...post} />
               </div>
             )}
-            <h3 className={classes.title} onClick={showDetails}>{title}</h3>
+            <h3 className={classes.title} onClick={() => viewPostDetails(post)}>{title}</h3>
             <div className={classes.contentSnippet}>
               <HyloHTML className={classes.details} html={details} onClick={showDetailsTargeted} />
               <div className={classes.fade} />
@@ -156,7 +151,7 @@ export default function PostBigGridItem ({
                 </div>
               )}
             </div>
-            <div className={classes.author} onClick={showDetails}>
+            <div className={classes.author} onClick={() => viewPostDetails(post)}>
               <div className={classes.typeAuthor}>
                 <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />
                 {creator.name}

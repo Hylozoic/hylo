@@ -133,7 +133,7 @@ export const sendDigests = async () => {
             count: commentData.length,
             post_title: post.summary(),
             post_creator_avatar_url: post.relations.user.get('avatar_url'),
-            thread_url: Frontend.Route.comment({ comment: commentData[0], groupSlug: firstGroup?.get('slug'), post }),
+            thread_url: Frontend.Route.comment({ comment: commentData[0], group: firstGroup, post }),
             comments: commentData,
             subject_prefix: some(hasMention, commentData)
               ? 'You were mentioned in'

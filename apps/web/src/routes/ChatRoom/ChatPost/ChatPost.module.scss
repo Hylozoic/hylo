@@ -139,13 +139,6 @@
 
 .postContentContainer {
   margin-left: 13px;
-
-  &.editing {
-    // border-radius: 0.5rem;
-    border: 1px solid $color-cape-cod-10;
-    border-radius: 5px;
-    box-shadow: 0 4px 10px rgba(35, 65, 91, .2);
-  }
 }
 
 .postContent {
@@ -192,8 +185,6 @@
     overflow-y: auto;
     max-height: 200px;
     cursor: text;
-    background: white;
-    border-radius: 5px;
 
     &:after {
       content: " ";
@@ -242,6 +233,9 @@
   composes: caption-lt-lg from 'css/typography.scss';
 }
 
+.isFlagged {
+  filter: blur(4px);
+}
 
 @media screen and (max-width: 600px) {
   .container {
@@ -271,10 +265,10 @@
     margin-left: 0;
   }
 
-  .postContent {
-    font-size: 14px;
-    line-height: 20px;
-  }
+  // .postContent {
+  //   font-size: 14px;
+  //   line-height: 20px;
+  // }
 
   .avatar div {
     width: 30px;

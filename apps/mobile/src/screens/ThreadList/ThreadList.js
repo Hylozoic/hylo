@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import { TouchableOpacity, View, Text } from 'react-native'
+import { View, Text, Dimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,7 @@ import { useMutation, useQuery } from 'urql'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import messageThreadsQuery from '@hylo/graphql/queries/messageThreadsQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import Loading from 'components/Loading'
 import ThreadCard from 'components/ThreadCard'
 import styles from './ThreadList.styles'
 
@@ -58,39 +59,26 @@ export default function ThreadList () {
       <FlashList
         data={threads}
         estimatedItemSize={93}
+        estimatedListSize={Dimensions.get('screen')}
         keyExtractor={item => item.id.toString()}
         onEndReached={fetchMoreThreads}
         onRefresh={refreshThreads}
         refreshing={fetching}
         renderItem={({ item, index }) => (
-          <MessageRow
-            participants={item.participants}
-            message={getLatestMessage(item)}
-            threadId={item.id}
-            unreadCount={item.unreadCount}
+          <ThreadCard
             currentUser={currentUser}
             isLast={index === threads.length - 1}
-            showThread={showThread}
+            message={getLatestMessage(item)}
+            onPress={() => showThread(item.id)}
+            participants={item.participants}
+            threadId={item.id}
+            unreadCount={item.unreadCount}
           />
         )}
       />
-    </View>
-  )
-}
-
-export function MessageRow ({ message, threadId, participants, currentUser, showThread, isLast, unreadCount }) {
-  return (
-    <View>
-      <TouchableOpacity onPress={() => showThread(threadId)}>
-        <ThreadCard
-          unreadCount={unreadCount}
-          threadId={threadId}
-          message={message}
-          participants={participants}
-          currentUser={currentUser}
-          isLast={isLast}
-        />
-      </TouchableOpacity>
+      {fetching && (
+        <Loading />
+      )}
     </View>
   )
 }

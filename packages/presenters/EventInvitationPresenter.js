@@ -4,10 +4,10 @@ export const RESPONSES = {
   INTERESTED: 'interested'
 }
 
-export const humanResponse = (response, t) => {
+export const humanResponse = (response) => {
   return {
-    yes: t('Going'),
-    no: t('Not Going'),
-    interested: t('Interested')
+    yes: 'Going',
+    no: 'Not Going',
+    interested: 'Interested'
   }[response]
 }
