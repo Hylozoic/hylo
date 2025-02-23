@@ -27,7 +27,8 @@ import ContextWidgetPresenter, {
   isValidChildWidget,
   getStaticMenuWidgets,
   orderContextWidgetsForContextMenu,
-  isHiddenInContextMenuResolver
+  isHiddenInContextMenuResolver,
+  translateTitle
 } from '@hylo/presenters/ContextWidgetPresenter'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -233,7 +234,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, transform } = useDraggable({ id: widget.id })
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 
-  const title = t(widget.title)
+  const title = translateTitle(widget.title, t)
   const url = widgetUrl({ widget, rootPath, groupSlug })
   const canDnd = !allView && isEditing && widget.type !== 'home'
   const showEdit = allView && canAdminister

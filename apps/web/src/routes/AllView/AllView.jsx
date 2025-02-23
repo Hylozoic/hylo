@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash/fp'
-import ContextWidgetPresenter, { humanReadableTypeResolver, isValidChildWidget } from '@hylo/presenters/ContextWidgetPresenter'
+import ContextWidgetPresenter, { humanReadableTypeResolver, isValidChildWidget, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import { addQuerystringToPath, baseUrl, widgetUrl } from 'util/navigation'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -111,7 +111,7 @@ export default function AllViews () {
         <div>
           <h3 className='text-lg font-semibold text-foreground'>
             <WidgetIconResolver widget={widget} />
-            <span className='ml-2'>{t(widget.title)}</span>
+            <span className='ml-2'>{translateTitle(widget.title, t)}</span>
           </h3>
           {widget.humanReadableType && (
             <span className='text-sm  text-foreground'>

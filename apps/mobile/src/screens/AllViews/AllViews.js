@@ -2,10 +2,11 @@ import React, { useMemo } from 'react'
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { capitalize } from 'lodash/fp'
+import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
+import { translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { widgetUrl as makeWidgetUrl } from 'util/navigation'
 import { openURL } from 'hooks/useOpenURL'
-import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 
 function WidgetCard ({ widget, onPress }) {
@@ -19,7 +20,7 @@ function WidgetCard ({ widget, onPress }) {
       className='p-4 border border-foreground/20 rounded-md shadow-sm bg-background'
     >
       <View className='items-center'>
-        <Text className='text-lg font-semibold text-foreground mb-2'>{t(widget.title)}</Text>
+        <Text className='text-lg font-semibold text-foreground mb-2'>{translateTitle(widget.title, t)}</Text>
         {widget.humanReadableType && (
           <Text className='text-sm text-foreground/70'>
             {t('Type')}: {t(capitalize(widget?.humanReadableType))}

@@ -68,15 +68,15 @@ export default function PostBody ({
 export function EventRSVP ({ myEventResponse, respondToEvent }) {
   const { t } = useTranslation()
   const actions = [
-    [humanResponse(RESPONSES.YES), () => respondToEvent(RESPONSES.YES)],
-    [humanResponse(RESPONSES.INTERESTED), () => respondToEvent(RESPONSES.INTERESTED)],
-    [humanResponse(RESPONSES.NO), () => respondToEvent(RESPONSES.NO)]
+    [t(humanResponse(RESPONSES.YES)), () => respondToEvent(RESPONSES.YES)],
+    [t(humanResponse(RESPONSES.INTERESTED)), () => respondToEvent(RESPONSES.INTERESTED)],
+    [t(humanResponse(RESPONSES.NO)), () => respondToEvent(RESPONSES.NO)]
   ]
 
   return (
     <PopupMenuButton actions={actions}>
       <View style={styles.RSVPOption}>
-        <Text style={styles.RSVPOptionText}>{humanResponse(myEventResponse)} |</Text>
+        <Text style={styles.RSVPOptionText}>{t(humanResponse(myEventResponse))} |</Text>
         <Icon name='ArrowDown' color={white} style={styles.RSVPOptionText} />
       </View>
     </PopupMenuButton>

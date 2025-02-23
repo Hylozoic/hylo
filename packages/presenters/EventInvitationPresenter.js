@@ -1,5 +1,3 @@
-import i18n from '@hylo/shared/i18n'
-
 export const RESPONSES = {
   YES: 'yes',
   NO: 'no',
@@ -7,10 +5,9 @@ export const RESPONSES = {
 }
 
 export const humanResponse = (response) => {
-  const { t } = i18n
   return {
-    yes: t('Going'),
-    no: t('Not Going'),
-    interested: t('Interested')
+    yes: 'Going',
+    no: 'Not Going',
+    interested: 'Interested'
   }[response]
 }
