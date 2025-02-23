@@ -105,9 +105,9 @@ export default function CalendarEvent ({
             classes[event.type],
             'cursor-pointer transition-all duration-300 border',
             month && event.multiday && sameDay(event.start, day) && 'rounded-l-md border-r-0',
-            month && event.multiday && sameDay(event.end, day) && 'rounded-r-md border-l-0',
+            month && event.multiday && sameDay(event.end, day) && 'rounded-r-md border-l-0 mr-1',
             month && event.multiday && !sameDay(event.start, day) && !sameDay(event.end, day) && 'border-l-0 border-r-0',
-            month && !event.multiday && 'rounded-md',
+            month && !event.multiday && 'rounded-md mr-1',
             !month && 'absolute',
             className
           )}
