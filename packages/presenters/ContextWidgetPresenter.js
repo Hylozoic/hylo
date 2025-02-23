@@ -24,7 +24,7 @@ export default function ContextWidgetPresenter (widget) {
 
 function titleResolver (widget) {
   let title = widget?.title
-  if (title.startsWith('widget-')) return title
+  if (title && title.startsWith('widget-')) return title
   if (!title) {
     title =
       widget?.viewGroup?.name ||
