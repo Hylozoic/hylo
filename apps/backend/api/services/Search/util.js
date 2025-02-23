@@ -75,6 +75,8 @@ export const filterAndSortPosts = curry((opts, q) => {
     })
   }
 
+  // NB: ongoing posts are returned in both cases
+  // NB: calendarView needs WHERE post.start_time < beforeTime AND post.end_time >= afterTime
   if (afterTime) {
     q.where(q2 =>
       q2.where('posts.end_time', '>=', afterTime)
@@ -82,10 +84,8 @@ export const filterAndSortPosts = curry((opts, q) => {
   }
   
   if (beforeTime) {
-      // if afterTime also supplied, this is a calendar view
-      // so get posts that intersect the date range
     q.where(q2 =>
-      q2.where(afterTime ? 'posts.start_time' : 'posts.end_time', '<', beforeTime)
+      q2.where('posts.start_time', '<', beforeTime)
     )
   }
 
