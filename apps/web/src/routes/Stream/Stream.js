@@ -297,7 +297,7 @@ export default function Stream (props) {
       <div
         id='stream-inner-container'
         className={cn(
-          viewMode !== 'calendar' && 'max-w-[750px]',
+          !calendarViewMode && 'max-w-[750px]',
           'flex flex-col flex-1 w-full mx-auto p-4'
         )}
       >
@@ -318,7 +318,7 @@ export default function Stream (props) {
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
           changeTimeframe={changeTimeframe} timeframe={timeframe}
         />
-        {viewMode !== 'calendar' && (
+        {!calendarViewMode && (
           <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
             {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
             {posts.map(post => {
@@ -339,7 +339,7 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {decisionView === 'moderation' && viewMode !== 'calendar' && (
+        {decisionView === 'moderation' && !calendarViewMode && (
           <div className='streamItems'>
             {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
             {moderationActions.map(modAction => {
