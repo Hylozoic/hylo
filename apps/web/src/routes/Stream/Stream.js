@@ -126,7 +126,7 @@ export default function Stream (props) {
   // for calendar viewmode
   const [calendarMode, setCalendarMode] = useState('month')
   const [calendarDate, setCalendarDate] = useState(new Date())
-  const calendarViewMode = viewMode === 'calendar'
+  const isCalendarViewMode = viewMode === 'calendar'
 
   const fetchPostsParam = useMemo(() => {
     const params = {
@@ -142,7 +142,7 @@ export default function Stream (props) {
       types: getTypes({ customView, view })
     }
 
-    if (calendarViewMode) {
+    if (isCalendarViewMode) {
       const luxonDate = DateTime.fromJSDate(calendarDate)
       params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
       params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).plus({ day: 1 }).endOf('day').toISO()
@@ -153,11 +153,11 @@ export default function Stream (props) {
       params.beforeTime = timeframe === 'past' ? today : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'
     }
-    if (view === 'events' || calendarViewMode) {
+    if (view === 'events' || isCalendarViewMode) {
       dispatch(dropPostResults(params))
     }
     return params
-  }, [calendarDate, calendarViewMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view])
+  }, [calendarDate, isCalendarViewMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view])
 
   let name = customView?.name || systemView?.name || ''
   let icon = customView?.icon || systemView?.iconName
@@ -297,7 +297,7 @@ export default function Stream (props) {
       <div
         id='stream-inner-container'
         className={cn(
-          !calendarViewMode && 'max-w-[750px]',
+          !isCalendarViewMode && 'max-w-[750px]',
           'flex flex-col flex-1 w-full mx-auto p-4'
         )}
       >
@@ -318,7 +318,7 @@ export default function Stream (props) {
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
           changeTimeframe={changeTimeframe} timeframe={timeframe}
         />
-        {!calendarViewMode && (
+        {!isCalendarViewMode && (
           <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
             {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
             {posts.map(post => {
@@ -339,7 +339,7 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {decisionView === 'moderation' && !calendarViewMode && (
+        {decisionView === 'moderation' && !isCalendarViewMode && (
           <div className='streamItems'>
             {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
             {moderationActions.map(modAction => {
@@ -354,7 +354,7 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {!pending && calendarViewMode && (
+        {!pending && isCalendarViewMode && (
           <div className='calendarView'>
             <Calendar
               posts={posts}
