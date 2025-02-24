@@ -24,11 +24,15 @@ export default function SignupUploadAvatar ({ navigation }) {
 
   useFocusEffect(() => {
     navigation.setOptions({
-      headerLeftOnPress: () => {
+      headerLeftOnPress: async () => {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
-        updateUserSettings({ changes: { signupInProgress: false } })
-        mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
+        const { error } = await updateUserSettings({ changes: { settings: { signupInProgress: false } } })
+        if (error) {
+          console.log('!!! Error cancelling signup', error)
+        } else {
+          mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
+        }
       }
     })
   })
@@ -39,7 +43,7 @@ export default function SignupUploadAvatar ({ navigation }) {
   }
 
   const saveAndNext = async () => {
-    const { error } = await updateUserSettings({ changes: { avatarUrl } })
+    const { error } = await updateUserSettings({ changes: { settings: { signupInProgress: false } } })
     if (!error) navigation.navigate('SignupSetLocation')
   }
 

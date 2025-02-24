@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native'
-import { useFocusEffect } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { gql, useMutation } from 'urql'
 import { CodeField, Cursor, useBlurOnFulfill, useClearByFocusCell } from 'react-native-confirmation-code-field'
@@ -8,6 +8,7 @@ import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import { AnalyticsEvents } from '@hylo/shared'
 import mixpanel from 'services/mixpanel'
 import errorMessages from 'util/errorMessages'
+import useRouteParams from 'hooks/useRouteParams'
 import { sendEmailVerificationMutation } from '../Signup'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
@@ -42,16 +43,15 @@ export const verifyEmailMutation = gql`
   }
 `
 
-export default function SignupEmailValidation ({ navigation, route }) {
+export default function SignupEmailValidation () {
   const { t } = useTranslation()
+  const navigation = useNavigation()
+  const { email, token } = useRouteParams()
   const [, verifyEmail] = useMutation(verifyEmailMutation)
   const [, sendEmailVerification] = useMutation(sendEmailVerificationMutation)
   const [loading, setLoading] = useState()
   const [verificationCode, setVerificationCode] = useState()
   const [error, setError] = useState()
-
-  const email = route.params?.email
-  const token = route.params?.token
 
   const verificationCodeRef = useBlurOnFulfill({
     value: verificationCode,
@@ -79,7 +79,7 @@ export default function SignupEmailValidation ({ navigation, route }) {
       setLoading(true)
 
       const response = await verifyEmail({ email, verificationCode, token })
-      const { error: responseError = null } = response.payload.getData()
+      const { error: responseError = null } = response?.data?.verifyEmail
 
       if (responseError) {
         if (responseError === 'invalid-link') {

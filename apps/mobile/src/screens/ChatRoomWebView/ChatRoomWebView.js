@@ -9,11 +9,11 @@ import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 export default function ChatRoomWebView () {
   const navigation = useNavigation()
   const route = useRoute()
-  const [{ currentGroup }] = useCurrentGroup()
-  const { topicName } = useRouteParams()
-  const path = `/groups/${currentGroup.slug}/chat/${topicName}`
+  const [{ currentGroup, fetching }] = useCurrentGroup()
+  const { topicName, originalLinkingPath } = useRouteParams()
+  const path = originalLinkingPath || `/groups/${currentGroup?.slug}/chat/${topicName}`
   const handledWebRoutes = [
-    `/groups/${currentGroup.slug}/chat/:topicName`
+    `/groups/${currentGroup?.slug}/chat/:topicName`
   ]
   const nativeRouteHandler = () => ({
     '(.*)/:type(post|members)/:id': ({ routeParams }) => {
@@ -40,7 +40,9 @@ export default function ChatRoomWebView () {
 
   useEffect(() => {
     navigation.setOptions({ title: currentGroup?.name })
-  }, [currentGroup?.name])
+  }, [fetching, currentGroup?.name])
+
+  if (fetching) return null
 
   return (
     <KeyboardFriendlyView style={{ flex: 1 }}>

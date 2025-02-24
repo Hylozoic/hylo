@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Text, TextInput, TouchableOpacity } from 'react-native'
 import styles from './SettingControl.styles.js'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
 import FormattedError from 'components/FormattedError'
 
-const SettingControl = ({
+const SettingControl = React.forwardRef(({
   label,
   value,
   onChange,
@@ -19,12 +19,10 @@ const SettingControl = ({
   error,
   theme = {},
   onSubmitEditing
-}) => {
+}, ref) => {
   const [securePassword, setSecurePassword] = useState(true)
   const [editable, setEditable] = useState(!toggleEditable)
   const [highlight, setHighlight] = useState(false)
-
-  const inputRef = useRef(null)
 
   useEffect(() => {
     if (toggleEditable) {
@@ -54,7 +52,7 @@ const SettingControl = ({
     <View style={[styles.control, style, theme.control]}>
       <Text style={[styles.label, theme.label]}>{label}</Text>
       <TextInput
-        ref={inputRef}
+        ref={ref}
         style={[styles.textInput, theme.textInput]}
         onChangeText={onChange}
         onFocus={onFocus}
@@ -94,6 +92,6 @@ const SettingControl = ({
       <FormattedError error={error} styles={styles} theme={theme} />
     </View>
   )
-}
+})
 
 export default SettingControl

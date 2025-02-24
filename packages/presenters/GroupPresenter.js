@@ -1,5 +1,5 @@
 import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
-import ContextWidgetPresenter, { getStaticMenuWidgets } from './ContextWidgetPresenter'
+import ContextWidgetPresenter, { findHomeWidget, getStaticMenuWidgets } from './ContextWidgetPresenter'
 
 // TODO: We will move "t" to a shared instance so it will no longer have to be passed here,
 // also see note below about things like currentUser
@@ -22,6 +22,7 @@ export default function GroupPresenter (group, { currentUser }) {
     // entity should have get* functions e.g. getContextWidgets (or getContextWidgetsForUser)
     // which then take the required params on the presented result.
     contextWidgets: contextWidgetsResolver(group, currentUser),
+    homeWidget: group?.contextWidgets && findHomeWidget(group),
 
     isContextGroup,
     isPublicContext,

@@ -86,7 +86,7 @@ export function refineActivity ({ action, actor, comment, group, post, meta }, {
         body: `wrote: "${truncateHTML(post.details)}"`,
         header: 'New Post in',
         onPress: () => {
-          navigate('ChatRoom', { topicName: topic, postId: post.id })
+          navigate('Chat Room', { topicName: topic, postId: post.id })
         },
         objectName: topic
       }
