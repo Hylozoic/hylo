@@ -10,10 +10,12 @@ import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
 import checkInvitationQuery from '@hylo/graphql/queries/checkInvitationQuery'
 import acceptInvitationMutation from '@hylo/graphql/mutations/acceptInvitationMutation'
 import LoadingScreen from 'screens/LoadingScreen'
+import useChangeToGroup from 'hooks/useChangeToGroup'
 
 export default function JoinGroup (props) {
   const navigation = useNavigation()
   const dispatch = useDispatch()
+  const changeToGroup = useChangeToGroup()
   const { token: invitationToken, accessCode, originalLinkingPath } = useRouteParams()
   const invitationTokenAndCode = { invitationToken, accessCode }
 
@@ -31,12 +33,12 @@ export default function JoinGroup (props) {
           }
 
           if (isAuthorized) {
-            const { data } = await acceptInvitation(invitationTokenAndCode)
-            const newMembership = data?.acceptInvitation?.membership
+            const { data, error } = await acceptInvitation(invitationTokenAndCode)
+            const newMembership = data?.useInvitation?.membership
             const groupSlug = newMembership?.group?.slug
 
             if (groupSlug) {
-              openURL(`/groups/${groupSlug}/explore`, true)
+              changeToGroup(groupSlug, false)
             } else {
               throw new Error('Join group was unsuccessful')
             }
