@@ -1,5 +1,3 @@
-import i18n from '@hylo/shared/i18n'
-
 export default function ContextWidgetPresenter (widget) {
   if (!widget || widget?._presented) return widget
 
@@ -25,11 +23,9 @@ export default function ContextWidgetPresenter (widget) {
 /* == Attribute Resolvers == */
 
 function titleResolver (widget) {
-  const { t } = i18n
   let title = widget?.title
-  if (title && title.startsWith('widget-')) {
-    title = t(title)
-  } else if (!title) {
+  if (title && title.startsWith('widget-')) return title
+  if (!title) {
     title =
       widget?.viewGroup?.name ||
       widget?.viewUser?.name ||
@@ -149,11 +145,9 @@ export function findHomeWidget (group) {
   return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
 }
 
-export function wrapItemInWidget (item, type) {
-  return {
-    [type]: item,
-    id: 'fake-id-' + crypto.randomUUID()
-  }
+export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl }) {
+  if (isPublicContext) return PUBLIC_CONTEXT_WIDGETS
+  if (isMyContext) return MY_CONTEXT_WIDGETS(profileUrl)
 }
 
 // Determines if a child widget is valid inside a parent widget
@@ -171,11 +165,6 @@ export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
     childWidget?.id === parentWidget?.id ||
     childWidget?.type === 'container'
   )
-}
-
-export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl }) {
-  if (isPublicContext) return PUBLIC_CONTEXT_WIDGETS
-  if (isMyContext) return MY_CONTEXT_WIDGETS(profileUrl)
 }
 
 export const orderContextWidgetsForContextMenu = (contextWidgets) => {
@@ -209,6 +198,18 @@ export const orderContextWidgetsForContextMenu = (contextWidgets) => {
   return parentWidgets
 }
 
+export function translateTitle (title, t) {
+  return title && title.startsWith('widget-') ? t(title) : title
+}
+
+export function wrapItemInWidget (item, type) {
+  return {
+    [type]: item,
+    id: 'fake-id-' + crypto.randomUUID()
+  }
+}
+
+// Static widgets and widget data
 const TERMS_AND_CONDITIONS_URL = 'https://hylo-landing.surge.sh/terms'
 
 const PUBLIC_CONTEXT_WIDGETS = [

@@ -290,5 +290,53 @@ describe('ContextWidget', () => {
       })
     })
 
+    it('should make the widgets order and parentId null if newWidgetPosition.remove === true', () => {
+      const widgetToBeMovedId = 3
+      const newWidgetPosition = { id: 3, remove: true }
+      const reorderedWidgets = reorderTree({ widgetToBeMovedId, newWidgetPosition, allWidgets: testTreeFour })
+
+      const expectedWidgets = [
+        { id: 1, order: 1, parentId: null, type: 'home' },
+        { id: 2, order: 2, parentId: null, type: 'chats' },
+        { id: 3, order: null, parentId: null, type: 'chat' },
+        { id: 4, order: 3, parentId: null, type: null },
+        { id: 5, order: 1, parentId: 4, type: null },
+        { id: 6, order: 2, parentId: 4, type: null },
+        { id: 7, order: 3, parentId: 4, type: null },
+        { id: 8, order: 1, parentId: 2, type: 'chat' },
+        { id: 9, order: 2, parentId: 2, type: 'chat' },
+        { id: 10, order: null, parentId: null, type: 'chat' },
+      ]
+
+      expectedWidgets.forEach((expectedWidget, index) => {
+        const reorderedWidget = reorderedWidgets.find(widget => widget.id === expectedWidget.id)
+        expect(reorderedWidget).to.deep.equal(expectedWidget)
+      })
+    })
+
+    it('should make the widget and all its children order and parentId null if newWidgetPosition.remove === true', () => {
+      const widgetToBeMovedId = 4
+      const newWidgetPosition = { id: 4, remove: true }
+      const reorderedWidgets = reorderTree({ widgetToBeMovedId, newWidgetPosition, allWidgets: testTreeFour })
+
+      const expectedWidgets = [
+        { id: 1, order: 1, parentId: null, type: 'home' },
+        { id: 2, order: 2, parentId: null, type: 'chats' },
+        { id: 3, order: 1, parentId: 1, type: 'chat' },
+        { id: 4, order: null, parentId: null, type: null },
+        { id: 5, order: null, parentId: null, type: null },
+        { id: 6, order: null, parentId: null, type: null },
+        { id: 7, order: null, parentId: null, type: null },
+        { id: 8, order: 1, parentId: 2, type: 'chat' },
+        { id: 9, order: 2, parentId: 2, type: 'chat' },
+        { id: 10, order: null, parentId: null, type: 'chat' },
+      ]
+
+      expectedWidgets.forEach((expectedWidget, index) => {
+        const reorderedWidget = reorderedWidgets.find(widget => widget.id === expectedWidget.id)
+        expect(reorderedWidget).to.deep.equal(expectedWidget)
+      })
+    })
+
   })
 })

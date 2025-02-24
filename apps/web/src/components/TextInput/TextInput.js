@@ -26,8 +26,6 @@ const TextInput = forwardRef(({
   loading,
   label,
   internalLabel,
-  name,
-  placeholder,
   ...props
 }, ref) => {
   const onKeyDown = onEnter ? onEnter(props.onEnter) : () => {}
@@ -53,7 +51,6 @@ const TextInput = forwardRef(({
           theme.input,
           inputClassName
         )}
-        placeholder={placeholder}
         onAnimationStart={handleAnimation}
         onKeyDown={onKeyDown}
         onBlur={onBlur}

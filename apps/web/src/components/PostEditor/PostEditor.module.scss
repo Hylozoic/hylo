@@ -174,14 +174,6 @@
   }
 }
 
-.editor {
-  padding: 5px;
-  min-height: 100px;
-  max-height: calc(100vh - 400px);
-  color: hsl(var(--foreground));
-  overflow: auto;
-}
-
 .section {
   display: flex;
   width: 100%;

@@ -276,6 +276,7 @@ export default function ChatPost ({
         )}
         {details && editing && (
           <HyloEditor
+            containerClassName={styles.postContentContainer}
             contentHTML={details}
             groupIds={groupIds}
             onEscape={handleEditCancel}
@@ -283,7 +284,7 @@ export default function ChatPost ({
             placeholder='Edit Post'
             ref={editorRef}
             showMenu={!isWebView()}
-            className={cn(styles.postContentContainer, styles.editing, styles.postContent)}
+            className={cn(styles.editing, styles.postContent)}
           />
         )}
         {details && !editing && (

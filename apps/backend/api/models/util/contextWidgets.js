@@ -15,6 +15,15 @@ export function reorderTree ({ widgetToBeMovedId, newWidgetPosition, allWidgets 
   })
 
   if (newWidgetPosition.remove) {
+    // Update all child widgets to have null order and parentId
+    updatedWidgets = updatedWidgets.map(widget => {
+      if (widget.parentId === widgetToBeMovedId) {
+        return { ...widget, order: null, parentId: null }
+      }
+      return widget
+    })
+
+    // Add back the moved widget with null order and parentId
     updatedWidgets.push({ ...oldWidgetDetails, order: null, parentId: null })
     return updatedWidgets
   }

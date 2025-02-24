@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver } from '@hylo/presenters/ContextWidgetPresenter'
+import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 import { widgetUrl as makeWidgetUrl, groupUrl } from 'util/navigation'
@@ -75,7 +75,7 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
   const [{ currentGroup }] = useCurrentGroup()
 
-  const title = t(widget.title)
+  const title = translateTitle(widget.title, t)
   const url = makeWidgetUrl({ widget, rootPath, groupSlug })
   // TODO: Now that we re-map /all to /my, which is helping elsewhere, it will break here when the
   // URL that will be build for /all/stream is /my/stream
@@ -145,7 +145,7 @@ function ChildWidget ({ widget, handleWidgetPress }) {
       className='flex-row items-center ml-8 h-12 py-2 gap-2 content-center border-b border-foreground/20'
     >
       <View className='w-5'><WidgetIconResolver widget={widget} className='mr-2' /></View>
-      <Text className='text-sm text-primary-accent'>{t(widget.title)}</Text>
+      <Text className='text-sm text-primary-accent'>{translateTitle(widget.title, t)}</Text>
     </TouchableOpacity>
   )
 }
