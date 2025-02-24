@@ -40,7 +40,7 @@ export default function JoinGroup (props) {
             if (groupSlug) {
               changeToGroup(groupSlug, false)
             } else {
-              throw new Error('Join group was unsuccessful')
+              throw new Error('Join group was unsuccessful', error)
             }
           } else {
             const result = await checkInvitation()
