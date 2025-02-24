@@ -1,12 +1,9 @@
 export const calendarModes = ['day', 'week', 'month'] as const
 export type Mode = (typeof calendarModes)[number]
 
-export type CalendarEvent = {
+export type HyloGroup = {
+  slug: string
   id: string
-  title: string
-  start: Date
-  end: Date
-  type: string
 }
 
 export type HyloPost = {
@@ -14,14 +11,34 @@ export type HyloPost = {
   startTime: string
   endTime: string
   title: string
-  group: string
+  groups: HyloGroup[]
   type: string
+}
+
+export type CalendarEvent = {
+  id: string
+  title: string
+  start: Date
+  end: Date
+  type: string
+  multiday: boolean
+  post: HyloPost
 }
 
 export type CalendarProps = {
   posts?: HyloPost[]
   events?: CalendarEvent[]
-  mode: string
+  group: HyloGroup
+  routeParams: {
+    [x: string]: string | string[];
+  }
+  locationParams: {
+    [x: string]: string | string[];
+  }
+  querystringParams: {
+    [x: string]: string | string[];
+  }
+  mode: Mode
   setMode: (mode: Mode) => void
   date: Date
   setDate: (date: Date) => void

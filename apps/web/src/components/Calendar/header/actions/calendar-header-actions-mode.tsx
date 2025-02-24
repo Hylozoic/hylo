@@ -7,7 +7,6 @@ import { useCalendarContext } from '../../calendar-context'
 import { calendarModeIconMap } from '../../calendar-mode-icon-map'
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import classes from '../../calendar.module.scss'
 
 export default function CalendarHeaderActionsMode () {
   const { mode, setMode } = useCalendarContext()

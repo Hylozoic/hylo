@@ -255,7 +255,7 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
         day_button: cn(buttonVariants({ variant: 'ghost' }), 'h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md'),
         range_end: 'day-range-end',
         selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-l-md rounded-r-md',
-        today: 'bg-black text-accent-foreground rounded-full',
+        today: 'bg-gray-400 text-accent-foreground rounded-full',
         outside: 'day-outside text-muted-foreground opacity-50 aria-selected:bg-selected/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
         disabled: 'text-muted-foreground opacity-50',
         range_middle: 'aria-selected:bg-selected aria-selected:text-accent-foreground',

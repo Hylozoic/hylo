@@ -75,17 +75,17 @@ export const filterAndSortPosts = curry((opts, q) => {
     })
   }
 
+  // NB: ongoing posts are returned in both cases
+  // NB: calendarView needs WHERE post.start_time < beforeTime AND post.end_time >= afterTime
   if (afterTime) {
     q.where(q2 =>
-      q2.where('posts.start_time', '>=', afterTime)
-      .orWhere('posts.end_time', '>=', afterTime)
+      q2.where('posts.end_time', '>=', afterTime)
     )
   }
-
+  
   if (beforeTime) {
     q.where(q2 =>
       q2.where('posts.start_time', '<', beforeTime)
-      .andWhere('posts.end_time', '<', beforeTime)
     )
   }
 
