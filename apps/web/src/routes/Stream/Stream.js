@@ -339,21 +339,6 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {decisionView === 'moderation' && !isCalendarViewMode && (
-          <div className='streamItems'>
-            {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
-            {moderationActions.map(modAction => {
-              return (
-                <ModerationListItem
-                  group={group}
-                  key={modAction.id}
-                  moderationAction={modAction}
-                  handleClearModerationAction={() => dispatch(clearModerationAction({ postId: modAction?.post?.id, moderationActionId: modAction?.id, groupId: group?.id }))}
-                />
-              )
-            })}
-          </div>
-        )}
         {!pending && isCalendarViewMode && (
           <div className='calendarView'>
             <Calendar
