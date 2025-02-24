@@ -98,6 +98,7 @@ export function getCurrentStepIndex (state) {
 export function getRouteNames (group, currentMembership) {
   const routeNames = [GROUP_WELCOME_LANDING]
   const { agreements, settings } = group
+  // TODO redesign: have run into instances of group being null here, so need to guard against that...
   if (!isEmpty(agreements?.items)) {
     routeNames.push(GROUP_WELCOME_AGREEMENTS)
   }
