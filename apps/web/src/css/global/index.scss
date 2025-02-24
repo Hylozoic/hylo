@@ -103,7 +103,46 @@
     }
   }
 
+  .arrow-start::after, .arrow::before, .arrow::after, .arrow-end::before {
+    content: "";
+    display: block;
+    position: absolute;
+    top: -1px;
+    border-style: solid;
+    width: 0;
+    height: 0;
+    transform: scale(0.6, 1.0);
+  }
+  .arrow-start::after, .arrow::after {
+    left: 98%;
+    border-width: 9px 0 9px 9px;
+  }
+  .arrow::before, .arrow-end::before {
+    right: 98%;
+    border-width: 9px 9px 9px 0;
+  }
 
+  .discussion::after, .discussion::before {
+    border-color: rgba(0, 0, 0, 0) $color-discussions-50;
+  }
+  .event::after, .event::before {
+    border-color: rgba(0, 0, 0, 0) $color-events-50;
+  }
+  .offer::after, .offer::before {
+    border-color: rgba(0, 0, 0, 0) $color-offers-50;
+  }
+  .resource::after, .resource::before {
+    border-color: rgba(0, 0, 0, 0) $color-resources-50;
+  }
+  .project::after, .project::before {
+    border-color: rgba(0, 0, 0, 0) $color-projects-50;
+  }
+  .request::after, .request::before {
+    border-color: rgba(0, 0, 0, 0) $color-requests-50;
+  }
+  .proposal::after, .proposal::before {
+    border-color: rgba(0, 0, 0, 0) $color-proposals-50;
+  }
 
   body {
     @apply bg-background text-foreground;

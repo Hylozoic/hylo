@@ -9,9 +9,14 @@ import CalendarHeaderDate from './header/date/calendar-header-date'
 import CalendarHeaderActionsMode from './header/actions/calendar-header-actions-mode'
 import CalendarProvider from './calendar-provider'
 import { DateTime } from 'luxon'
+import { isMultiday } from './calendar-util'
 
 export default function Calendar ({
   posts,
+  group,
+  routeParams,
+  locationParams,
+  querystringParams,
   calendarIconIsToday = true,
   date,
   setDate,
@@ -25,13 +30,19 @@ export default function Calendar ({
       start: DateTime.fromISO(post.startTime).toJSDate(),
       end: DateTime.fromISO(post.endTime).toJSDate(),
       title: post.title,
-      type: post.type
+      type: post.type,
+      multiday: isMultiday(post),
+      post
     }
   })
 
   return (
     <CalendarProvider
       events={events}
+      group={group}
+      routeParams={routeParams}
+      locationParams={locationParams}
+      querystringParams={querystringParams}
       mode={mode}
       setMode={setMode}
       date={date}

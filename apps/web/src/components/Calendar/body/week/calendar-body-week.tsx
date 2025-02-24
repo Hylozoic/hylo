@@ -1,31 +1,38 @@
 import React from 'react'
+import { cn } from 'util/index'
+import useRouteParams from 'hooks/useRouteParams'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import CalendarBodyWeekCalendar from './calendar-body-week-calendar'
 import { useCalendarContext } from '../../calendar-context'
-import { DateTime } from 'luxon'
-import CalendarBodyMarginDayMargin from '../day/calendar-body-margin-day-margin'
-import CalendarBodyDayContent from '../day/calendar-body-day-content'
-export default function CalendarBodyWeek () {
-  const { date } = useCalendarContext()
+import { inWeek } from '../../calendar-util'
+import PostListRow from 'components/PostListRow'
+import styles from 'routes/Stream/Stream.module.scss'
 
-  const weekStart = DateTime.fromJSDate(date).startOf('week', { useLocaleWeeks: true })
-  const weekDays = Array.from({ length: 7 }, (_, i) => weekStart.plus({ day: i }))
-
+export default function CalendarBodyDay () {
+  const { date, events, group } = useCalendarContext()
+  const routeParams = useRouteParams()
+  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe'], location)
+  const dayEvents = events.filter((event) => inWeek(event.start, date, event.end))
   return (
-    <div className='flex divide-x flex-grow overflow-hidden'>
-      <div className='flex flex-col flex-grow divide-y overflow-hidden'>
-        <div className='flex flex-col flex-1 overflow-y-auto'>
-          <div className='relative flex flex-1 divide-x flex-col md:flex-row'>
-            <CalendarBodyMarginDayMargin className='hidden md:block' />
-            {weekDays.map((day) => (
-              <div
-                key={day.toISO()}
-                className='flex flex-1 divide-x md:divide-x-0'
-              >
-                <CalendarBodyMarginDayMargin className='block md:hidden' />
-                <CalendarBodyDayContent date={day.toJSDate()} />
-              </div>
-            ))}
-          </div>
-        </div>
+    <div className='flex flex-grow p-0'>
+      <div className='flex flex-col flex-grow'>
+        {dayEvents.map(event => {
+          const post = event.post
+          return (
+            <PostListRow
+              className={cn({ [styles.cardItem]: false })}
+              routeParams={routeParams}
+              post={post}
+              group={group}
+              key={post.id}
+              currentGroupId={group && group.id}
+              querystringParams={querystringParams}
+            />
+          )
+        })}
+      </div>
+      <div className='lg:flex hidden flex-col flex-grow divide-y max-w-[276px]'>
+        <CalendarBodyWeekCalendar />
       </div>
     </div>
   )

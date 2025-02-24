@@ -126,6 +126,7 @@ export default function Stream (props) {
   // for calendar viewmode
   const [calendarMode, setCalendarMode] = useState('month')
   const [calendarDate, setCalendarDate] = useState(new Date())
+  const isCalendarViewMode = viewMode === 'calendar'
 
   const fetchPostsParam = useMemo(() => {
     const params = {
@@ -141,21 +142,10 @@ export default function Stream (props) {
       types: getTypes({ customView, view })
     }
 
-    if (viewMode === 'calendar') {
+    if (isCalendarViewMode) {
       const luxonDate = DateTime.fromJSDate(calendarDate)
-      switch (calendarMode) {
-        case 'month':
-          params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
-          params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).endOf('day').toISO()
-          break
-        case 'week':
-          params.afterTime = luxonDate.startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
-          params.beforeTime = luxonDate.endOf('week', { useLocaleWeeks: true }).endOf('day').toISO()
-          break
-        default: // day
-          params.afterTime = luxonDate.startOf('day').toISO()
-          params.beforeTime = luxonDate.endOf('day').toISO()
-      }
+      params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
+      params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).plus({ day: 1 }).endOf('day').toISO()
       params.order = 'asc'
     } else if (view === 'events') {
       const today = DateTime.now().toISO()
@@ -163,11 +153,11 @@ export default function Stream (props) {
       params.beforeTime = timeframe === 'past' ? today : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'
     }
-    if (view === 'events') {
+    if (view === 'events' || isCalendarViewMode) {
       dispatch(dropPostResults(params))
     }
     return params
-  }, [calendarDate, calendarMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view, viewMode])
+  }, [calendarDate, isCalendarViewMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view])
 
   let name = customView?.name || systemView?.name || ''
   let icon = customView?.icon || systemView?.iconName
@@ -307,7 +297,7 @@ export default function Stream (props) {
       <div
         id='stream-inner-container'
         className={cn(
-          viewMode !== 'calendar' && 'max-w-[750px]',
+          !isCalendarViewMode && 'max-w-[750px]',
           'flex flex-col flex-1 w-full mx-auto p-4'
         )}
       >
@@ -328,7 +318,7 @@ export default function Stream (props) {
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
           changeTimeframe={changeTimeframe} timeframe={timeframe}
         />
-        {viewMode !== 'calendar' && (
+        {!isCalendarViewMode && (
           <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
             {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
             {posts.map(post => {
@@ -349,10 +339,26 @@ export default function Stream (props) {
             })}
           </div>
         )}
-        {!pending && viewMode === 'calendar' && (
+        {decisionView === 'moderation' && !isCalendarViewMode && (
+          <div className='streamItems'>
+            {!pendingModerationActions && moderationActions.length === 0 ? <NoPosts /> : ''}
+            {moderationActions.map(modAction => {
+              return (
+                <ModerationListItem
+                  group={group}
+                  key={modAction.id}
+                  moderationAction={modAction}
+                  handleClearModerationAction={() => dispatch(clearModerationAction({ postId: modAction?.post?.id, moderationActionId: modAction?.id, groupId: group?.id }))}
+                />
+              )
+            })}
+          </div>
+        )}
+        {!pending && isCalendarViewMode && (
           <div className='calendarView'>
             <Calendar
               posts={posts}
+              group={group}
               routeParams={routeParams}
               querystringParams={querystringParams}
               date={calendarDate}
