@@ -290,14 +290,14 @@ function SuggestedSkills ({ addSkill, currentUser, group, removeSkill }) {
       <Text>{t('Which of the following skills & interests are relevant to you')}</Text>
       <View style={styles.skillPills}>
         {pills && pills.map(pill => {
-          const color = selectedSkills.includes(pill.id) ? caribbeanGreen : rhino
+          const isSelected = selectedSkills.includes(pill.id)
           return (
             <Pill
               key={pill.id}
               id={pill.id}
               label={pill.label}
-              style={{ borderRadius: 15, borderWidth: 1, borderColor: color, padding: 6, margin: 5 }}
-              displayColor={color}
+              style={{ borderRadius: 15, borderWidth: 1, padding: 6, margin: 5 }}
+              textClasses={isSelected ? 'text-secondary' : 'text-foreground'}
               onPress={() => handlePress(pill.id)}
             />
           )
