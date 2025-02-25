@@ -4,7 +4,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { DateTime } from 'luxon'
 import { includes, sameDay } from '../../calendar-util'
 import { cn } from '@/lib/utils'
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 
 export default function CalendarBodyDayCalendar () {
   const today = new Date()
@@ -47,7 +47,14 @@ export default function CalendarBodyDayCalendar () {
           }
         })}
       />
-      {!hideGoToToday && <button onClick={() => goToToday()}>Go to Today</button>}
+      {!hideGoToToday &&
+        <Button
+          variant='outline'
+          className='h-7'
+          onClick={() => goToToday()}
+        >
+          Go to Today
+        </Button>}
     </>
   )
 }

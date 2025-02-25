@@ -4,7 +4,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { DateTime, Interval } from 'luxon'
 import { includes, eachIntervalDay, sameWeek } from '../../calendar-util'
 import { cn } from '@/lib/utils'
-import { buttonVariants } from '@/components/ui/button'
+import { buttonVariants, Button } from '@/components/ui/button'
 
 const selectedWeekDates = function (date: Date) {
   const luxonDate = DateTime.fromJSDate(date)
@@ -63,7 +63,14 @@ export default function CalendarBodyWeekCalendar () {
           }
         })}
       />
-      {!hideGoToThisWeek && <button onClick={() => goToThisWeek()}>Go to This Week</button>}
+      {!hideGoToThisWeek &&
+        <Button
+          variant='outline'
+          className='h-7'
+          onClick={() => goToThisWeek()}
+        >
+          Go to This Week
+        </Button>}
     </>
   )
 }
