@@ -266,7 +266,7 @@ export default function PostEditor (props) {
         : t('Post')
 
     return () => (
-      <View className="border-border" style={styles.headerContainer}>
+      <View className="border-border bg-background" style={styles.headerContainer}>
         <View style={styles.header}>
           <HeaderLeftCloseIcon
             style={styles.headerCloseIcon}
@@ -409,7 +409,7 @@ export default function PostEditor (props) {
               </View>
 
               <TouchableOpacity
-                className="border-border"
+                className="border-border bg-background"
                 style={[styles.pressSelectionSection, styles.topics]}
                 onPress={() => topicSelectorModalRef.current.show()}
               >
@@ -513,7 +513,7 @@ export default function PostEditor (props) {
               )}
 
               <TouchableOpacity
-                className="border-border"
+                className="border-border bg-background"
                 style={styles.pressSelectionSection}
                 onPress={() => groupSelectorModalRef.current.show()}
               >
@@ -551,7 +551,7 @@ export default function PostEditor (props) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="border-border"
+                className="border-border bg-background"
                 style={[styles.pressSelectionSection, styles.topics]}
                 onPress={() => locationSelectorModalRef.current.show()}
               >
