@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useCalendarContext } from '../../calendar-context'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -42,6 +43,7 @@ const formatDate = (luxonDate: DateTime, mode: Mode) => {
 }
 
 export default function CalendarHeaderDateChevrons () {
+  const { t } = useTranslation()
   const { mode, date, setDate } = useCalendarContext()
   const luxonDate = DateTime.fromJSDate(date)
   const today = new Date()
@@ -65,11 +67,11 @@ export default function CalendarHeaderDateChevrons () {
   const goToButtonText = () => {
     switch (mode) {
       case 'month':
-        return 'Go To This Month'
+        return t('Go To This Month')
       case 'week':
-        return 'Go To This Week'
+        return t('Go To This Week')
       case 'day':
-        return 'Go To Today'
+        return t('Go To Today')
     }
   }
 

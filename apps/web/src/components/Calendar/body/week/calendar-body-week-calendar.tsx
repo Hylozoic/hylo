@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
 import { DateTime, Interval } from 'luxon'
@@ -18,6 +19,7 @@ const selectedWeekDates = function (date: Date) {
 }
 
 export default function CalendarBodyWeekCalendar () {
+  const { t } = useTranslation()
   const { date, events, setDate } = useCalendarContext()
   const today = new Date()
 
@@ -69,7 +71,7 @@ export default function CalendarBodyWeekCalendar () {
           className='h-7'
           onClick={() => handleGoToButton()}
         >
-          Go to This Week
+          {t('Go to This Week')}
         </Button>}
     </>
   )

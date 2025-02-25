@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
 import { DateTime } from 'luxon'
@@ -7,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 
 export default function CalendarBodyDayCalendar () {
+  const { t } = useTranslation()
   const today = new Date()
   const { date, events, setDate } = useCalendarContext()
 
@@ -53,7 +55,7 @@ export default function CalendarBodyDayCalendar () {
           className='h-7'
           onClick={() => handleGoToButton()}
         >
-          Go to Today
+          {t('Go to Today')}
         </Button>}
     </>
   )
