@@ -46,11 +46,24 @@ export default function CalendarHeaderDateChevrons () {
   const luxonDate = DateTime.fromJSDate(date)
   const today = new Date()
 
-  const [hideGoToThisMonth, setHideGoToThisMonth] = useState(sameMonth(date, today))
-  const goToThisMonth = () => {
+  const goToButton = () => {
     setDate(today)
-    setHideGoToThisMonth(true)
+    setHideGoToButton(true)
   }
+
+  const goToButtonText = () => {
+    switch (mode) {
+      case 'month':
+        return 'Go To This Month'
+      case 'week':
+        return 'Go To This Week'
+      case 'day':
+        return 'Go To Today'
+    }
+  }
+
+  const [hideGoToButton, setHideGoToButton] = useState(sameMonth(date, today))
+  const [goToText, setGoToText] = useState(goToButtonText())
 
   const handleDateBackward = () => {
     switch (mode) {
@@ -64,7 +77,8 @@ export default function CalendarHeaderDateChevrons () {
         setDate(luxonDate.minus({ days: 1 }).toJSDate())
         break
     }
-    setHideGoToThisMonth(sameMonth(date, today))
+    setHideGoToButton(sameMonth(date, today))
+    setGoToText(goToButtonText())
   }
 
   const handleDateForward = () => {
@@ -79,7 +93,8 @@ export default function CalendarHeaderDateChevrons () {
         setDate(luxonDate.plus({ days: 1 }).toJSDate())
         break
     }
-    setHideGoToThisMonth(sameMonth(date, today))
+    setHideGoToButton(sameMonth(date, today))
+    setGoToText(goToButtonText())
   }
 
   return (
@@ -104,13 +119,13 @@ export default function CalendarHeaderDateChevrons () {
         <ChevronRight className='min-w-5 min-h-5' />
       </Button>
 
-      {!hideGoToThisMonth &&
+      {!hideGoToButton &&
         <Button
           variant='outline'
           className='h-7 p-3'
-          onClick={() => goToThisMonth()}
+          onClick={() => goToButton()}
         >
-          Go to This Month
+          {goToText}
         </Button>}
     </div>
   )
