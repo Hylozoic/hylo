@@ -8,7 +8,7 @@ export default function EmojiPill ({ emojiFull, onPress = () => {}, count, selec
       <Pill
         key={emojiFull}
         onPress={() => onPress(emojiFull)}
-        className={`py-1 px-1.5 rounded ${selected ? 'bg-secondary' : 'bg-muted'}`}
+        className={`py-1.5 px-1.5 rounded font-normal leading-[18px] mb-0 ${selected ? 'bg-secondary' : 'bg-muted'}`}
         textClasses={selected ? 'text-foreground' : 'text-foreground'}
         label={`${emojiFull} ${count}`}
         id={emojiFull}
