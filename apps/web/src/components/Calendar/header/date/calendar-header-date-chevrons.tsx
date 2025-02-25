@@ -76,7 +76,6 @@ export default function CalendarHeaderDateChevrons () {
   }
 
   const [hideGoToButton, setHideGoToButton] = useState(shouldHideGoToButton())
-  const [goToText, setGoToText] = useState(goToButtonText())
 
   const handleDateBackward = () => {
     switch (mode) {
@@ -91,7 +90,6 @@ export default function CalendarHeaderDateChevrons () {
         break
     }
     setHideGoToButton(shouldHideGoToButton())
-    setGoToText(goToButtonText())
   }
 
   const handleDateForward = () => {
@@ -107,7 +105,6 @@ export default function CalendarHeaderDateChevrons () {
         break
     }
     setHideGoToButton(shouldHideGoToButton())
-    setGoToText(goToButtonText())
   }
 
   return (
@@ -138,7 +135,7 @@ export default function CalendarHeaderDateChevrons () {
           className='h-7 p-3'
           onClick={() => handleGoToButton()}
         >
-          {goToText}
+          {goToButtonText()}
         </Button>}
     </div>
   )
