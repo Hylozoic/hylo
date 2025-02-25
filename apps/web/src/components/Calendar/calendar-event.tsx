@@ -1,10 +1,7 @@
-import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
-import { DateTime } from 'luxon'
 import React from 'react'
 import { CalendarEvent as CalendarEventType } from 'components/Calendar/calendar-types'
 import { useCalendarContext } from 'components/Calendar/calendar-context'
 import { DateTime, Interval } from 'luxon'
-import { cn } from '@/lib/utils'
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
 import Tooltip from 'components/Tooltip'
 import { sameDay, sameMonth } from './calendar-util'
@@ -80,7 +77,7 @@ export default function CalendarEvent ({
   className?: string
   day?: Date
 }) {
-  const { events, date, routeParams, locationParams, querystringParams } =
+  const { events, date } =
     useCalendarContext()
   const style = month ? {} : calculateEventPosition(event, events, day)
   // TODO format for multi-day events
