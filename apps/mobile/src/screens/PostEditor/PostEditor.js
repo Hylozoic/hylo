@@ -694,7 +694,7 @@ export default function PostEditor (props) {
                         return (
                           <Loading
                             size={30}
-                            style={[styles.pressSelectionRightIcon, { padding: 8 }, styles.buttonBarIconLoading]}
+                            style={[styles.pressSelectionRightIcon, { padding: 8 }]}
                           />
                         )
                       }

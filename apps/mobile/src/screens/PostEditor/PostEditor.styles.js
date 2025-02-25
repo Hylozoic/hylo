@@ -132,7 +132,6 @@ export const styles = StyleSheet.create({
   },
   pressSelectionSection: {
     borderBottomWidth: 0.5,
-    borderColor: 'rhino30',
     paddingVertical: 10,
     flex: 1,
     justifyContent: 'center'
@@ -144,7 +143,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10
   },
   pressSelectionSectionPublicSelected: {
-    backgroundColor: 'white80onCaribbeanGreen',
   },
   pressSelectionLeft: {
     flexDirection: 'row',
@@ -171,7 +169,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   pressSelectionRightIcon: {
-    color: 'caribbeanGreen',
     fontSize: 16
   },
   pressSelectionSwitch: {
@@ -186,12 +183,7 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Circular-Book'
   },
-  pressDisabled: {
-    color: 'rhino30',
-    borderColor: 'rhino30'
-  },
   groupRemoveIcon: {
-    color: 'rhino30',
     fontSize: 20
   },
   imageSelector: {
@@ -212,15 +204,9 @@ export const styles = StyleSheet.create({
   buttonBarIcon: {
     fontSize: 46
   },
-  buttonBarIconLoading: {
-    color: 'rhino30'
-  },
   buttonBarAnnouncement: {
     borderRadius: 10,
     marginTop: -4
-  },
-  buttonBarAnnouncementEnabled: {
-    backgroundColor: 'caribbeanGreen'
   },
   buttonBarAnnouncementIcon: {
     fontSize: 46
