@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
 import { DateTime, Interval } from 'luxon'
-import { includes, eachIntervalDay, sameWeek } from '../../calendar-util'
+import { includes, eachIntervalDay, sameWeek, getLocaleAsString } from '../../calendar-util'
 import { cn } from '@/lib/utils'
 import { buttonVariants, Button } from '@/components/ui/button'
 
 const selectedWeekDates = function (date: Date) {
-  const luxonDate = DateTime.fromJSDate(date)
+  const luxonDate = DateTime.fromJSDate(date).setLocale(getLocaleAsString())
   // Get the first day of the week
   const weekStart = luxonDate.startOf('week', { useLocaleWeeks: true })
   // Get the last day of the week

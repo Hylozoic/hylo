@@ -14,9 +14,9 @@ export default function CalendarBodyMonth () {
   const maxEventsPerDay = 3
 
   // Get the first day of the month
-  const monthStart = luxonDate.startOf('month')
+  const monthStart = luxonDate.startOf('month').setLocale(getLocaleAsString())
   // Get the last day of the month
-  const monthEnd = luxonDate.endOf('month')
+  const monthEnd = luxonDate.endOf('month').setLocale(getLocaleAsString())
 
   // Get the first Monday of the first week (may be in previous month)
   const calendarStart = monthStart.startOf('week', { useLocaleWeeks: true })
