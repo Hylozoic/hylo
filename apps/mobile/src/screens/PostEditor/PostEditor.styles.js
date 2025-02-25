@@ -82,7 +82,6 @@ export const styles = StyleSheet.create({
   textInput: {
     fontSize: 16,
     textAlignVertical: 'top',
-    color: 'rgba(44, 64, 89, 0.7)',
     fontFamily: 'Circular-Book',
     margin: 0,
     padding: 0
@@ -92,7 +91,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10
   },
   titleInput: {
-    color: 'rhino',
     fontSize: 19,
     fontFamily: 'Circular-Medium',
     padding: 0
@@ -113,7 +111,6 @@ export const styles = StyleSheet.create({
     paddingBottom: 10
   },
   sectionLabel: {
-    color: 'rhino80',
     fontFamily: 'Circular-Bold'
   },
   topics: {
@@ -148,7 +145,6 @@ export const styles = StyleSheet.create({
   },
   pressSelectionSectionPublicSelected: {
     backgroundColor: 'white80onCaribbeanGreen',
-    color: 'caribbeanGreen'
   },
   pressSelectionLeft: {
     flexDirection: 'row',
@@ -156,13 +152,11 @@ export const styles = StyleSheet.create({
     justifyContent: 'flex-start'
   },
   pressSelectionLeftText: {
-    color: 'rhino80',
     fontFamily: 'Circular-Bold'
   },
   pressSelectionRight: {
     height: 25,
     width: 25,
-    borderColor: 'caribbeanGreen',
     borderRadius: 100,
     borderWidth: 1,
     display: 'flex',
@@ -190,7 +184,6 @@ export const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 5,
     fontSize: 14,
-    color: 'caribbeanGreen',
     fontFamily: 'Circular-Book'
   },
   pressDisabled: {
@@ -217,8 +210,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row'
   },
   buttonBarIcon: {
-    fontSize: 46,
-    color: 'caribbeanGreen'
+    fontSize: 46
   },
   buttonBarIconLoading: {
     color: 'rhino30'
