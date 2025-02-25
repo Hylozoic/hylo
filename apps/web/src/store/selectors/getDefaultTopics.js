@@ -13,8 +13,7 @@ export const getDefaultTopics = ormCreateSelector(
     groupSlug: get('groups[0].slug', props),
     sortBy: props?.sortBy || 'name'
   }),
-  (_, props) => props,
-  (session, results, props) => {
+  (session, results) => {
     if (isEmpty(results) || isEmpty(results.ids)) return []
 
     const topics = session.Topic.all()
@@ -22,7 +21,7 @@ export const getDefaultTopics = ormCreateSelector(
       .orderBy(x => results.ids.indexOf(x.id))
       .toModelArray()
 
-    return topics.map(topic => presentTopic(topic, props))
+    return topics.map(topic => presentTopic(topic))
   }
 )
 
