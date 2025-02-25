@@ -67,11 +67,11 @@ export default function CalendarHeaderDateChevrons () {
   const goToButtonText = () => {
     switch (mode) {
       case 'month':
-        return t('Go To This Month')
+        return t('Go to This Month')
       case 'week':
-        return t('Go To This Week')
+        return t('Go to This Week')
       case 'day':
-        return t('Go To Today')
+        return t('Go to Today')
     }
   }
 
