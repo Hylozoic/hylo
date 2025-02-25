@@ -46,7 +46,7 @@ export default function CalendarHeaderDateChevrons () {
   const luxonDate = DateTime.fromJSDate(date)
   const today = new Date()
 
-  const goToButton = () => {
+  const handleGoToButton = () => {
     setDate(today)
     setHideGoToButton(true)
   }
@@ -123,7 +123,7 @@ export default function CalendarHeaderDateChevrons () {
         <Button
           variant='outline'
           className='h-7 p-3'
-          onClick={() => goToButton()}
+          onClick={() => handleGoToButton()}
         >
           {goToText}
         </Button>}

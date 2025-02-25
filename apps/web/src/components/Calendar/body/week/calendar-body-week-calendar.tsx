@@ -21,7 +21,7 @@ export default function CalendarBodyWeekCalendar () {
   const { date, events, setDate } = useCalendarContext()
   const today = new Date()
 
-  const [hideGoToThisWeek, setHideGoToThisWeek] = useState(sameWeek(date, today))
+  const [hideGoToButton, setHideGoToButton] = useState(sameWeek(date, today))
   const [selected, setSelected] = useState<Date[]>(selectedWeekDates(date))
   const [month, setMonth] = useState(date)
 
@@ -33,10 +33,10 @@ export default function CalendarBodyWeekCalendar () {
   const handleMonthChange = (day : Date) => {
     setDate(day)
     setMonth(day)
-    setHideGoToThisWeek(sameWeek(day, today))
+    setHideGoToButton(sameWeek(day, today))
   }
 
-  const goToThisWeek = () => {
+  const handleGoToButton = () => {
     handleMonthChange(today)
     setSelected(selectedWeekDates(today))
     setDate(today)
@@ -63,11 +63,11 @@ export default function CalendarBodyWeekCalendar () {
           }
         })}
       />
-      {!hideGoToThisWeek &&
+      {!hideGoToButton &&
         <Button
           variant='outline'
           className='h-7'
-          onClick={() => goToThisWeek()}
+          onClick={() => handleGoToButton()}
         >
           Go to This Week
         </Button>}

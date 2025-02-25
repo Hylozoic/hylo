@@ -10,17 +10,17 @@ export default function CalendarBodyDayCalendar () {
   const today = new Date()
   const { date, events, setDate } = useCalendarContext()
 
-  const [hideGoToToday, setHideGoToToday] = useState(sameDay(date, today))
+  const [hideGoToButton, setHideGoToButton] = useState(sameDay(date, today))
   const [selected, setSelected] = useState<Date>(date)
   const [month, setMonth] = useState(date)
 
   const handleMonthChange = (day : Date) => {
-    setHideGoToToday(sameDay(day, today))
+    setHideGoToButton(sameDay(day, today))
     setMonth(day)
     setDate(day)
   }
 
-  const goToToday = () => {
+  const handleGoToButton = () => {
     handleMonthChange(today)
     setSelected(today)
     setDate(today)
@@ -47,11 +47,11 @@ export default function CalendarBodyDayCalendar () {
           }
         })}
       />
-      {!hideGoToToday &&
+      {!hideGoToButton &&
         <Button
           variant='outline'
           className='h-7'
-          onClick={() => goToToday()}
+          onClick={() => handleGoToButton()}
         >
           Go to Today
         </Button>}
