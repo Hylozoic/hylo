@@ -209,6 +209,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
   const [addChoice, setAddChoice] = useState(initialAddChoice)
   const [selectedItem, setSelectedItem] = useState(null)
   const [widgetData, setWidgetData] = useState({ title: '', visibility: 'all' })
+  const [isCreating, setIsCreating] = useState(false)
 
   const handleReset = () => {
     setAddChoice(null)
@@ -217,6 +218,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
   }
 
   const handleCreate = useCallback(async ({ widgetData, selectedItem, addChoice }) => {
+    setIsCreating(true)
     let groupTopic
     // if a topic comes here with 'create' as its id, we need to create a groupTopic before we can create the widget
     if (addChoice === CHAT && selectedItem.id === 'create') {
@@ -248,6 +250,8 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
       navigate(addQuerystringToPath(location.pathname, { cme: 'yes' }))
     } catch (error) {
       console.error('Failed to create context widget:', error)
+    } finally {
+      setIsCreating(false)
     }
   }, [])
 
@@ -319,10 +323,11 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
           {(selectedItem || addChoice === CONTAINER) &&
             <Button
               variant='primary'
+              disabled={isCreating}
               onClick={() => handleCreate({ widgetData, selectedItem, addChoice })}
               className='bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600'
             >
-              {t('Create')}
+              {isCreating ? t('Creating...') : t('Create')}
             </Button>}
         </div>
       </div>
