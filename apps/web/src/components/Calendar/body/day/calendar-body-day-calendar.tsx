@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
 import { DateTime } from 'luxon'
-import { includes, sameMonth } from '../../calendar-util'
+import { includes, sameDay } from '../../calendar-util'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 
@@ -10,13 +10,14 @@ export default function CalendarBodyDayCalendar () {
   const today = new Date()
   const { date, events, setDate } = useCalendarContext()
 
-  const [hideGoToToday, setHideGoToToday] = useState(sameMonth(date, today))
+  const [hideGoToToday, setHideGoToToday] = useState(sameDay(date, today))
   const [selected, setSelected] = useState<Date>(date)
   const [month, setMonth] = useState(date)
 
   const handleMonthChange = (day : Date) => {
-    setHideGoToToday(sameMonth(day, today))
+    setHideGoToToday(sameDay(day, today))
     setMonth(day)
+    setDate(day)
   }
 
   const goToToday = () => {

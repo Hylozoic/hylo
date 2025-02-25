@@ -43,6 +43,13 @@ export const sameDay = (
   return dt3 ? includes(dt1, dt2, dt3) : same(dt1, dt2, 'day')
 }
 
+export const sameWeek = (
+  dt1: Date,
+  dt2: Date
+): boolean => {
+  return same(dt1, dt2, 'week')
+}
+
 export const sameMonth = (
   dt1: Date,
   dt2: Date

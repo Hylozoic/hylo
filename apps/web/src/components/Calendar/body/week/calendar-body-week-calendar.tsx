@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
 import { DateTime, Interval } from 'luxon'
-import { includes, eachIntervalDay, sameMonth } from '../../calendar-util'
+import { includes, eachIntervalDay, sameWeek } from '../../calendar-util'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 
@@ -21,7 +21,7 @@ export default function CalendarBodyWeekCalendar () {
   const { date, events, setDate } = useCalendarContext()
   const today = new Date()
 
-  const [hideGoToThisWeek, setHideGoToThisWeek] = useState(sameMonth(date, today))
+  const [hideGoToThisWeek, setHideGoToThisWeek] = useState(sameWeek(date, today))
   const [selected, setSelected] = useState<Date[]>(selectedWeekDates(date))
   const [month, setMonth] = useState(date)
 
@@ -31,8 +31,9 @@ export default function CalendarBodyWeekCalendar () {
   }
 
   const handleMonthChange = (day : Date) => {
+    setDate(day)
     setMonth(day)
-    setHideGoToThisWeek(sameMonth(day, today))
+    setHideGoToThisWeek(sameWeek(day, today))
   }
 
   const goToThisWeek = () => {
