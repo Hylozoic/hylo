@@ -4,6 +4,7 @@ import { View, TouchableOpacity, Dimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { gql, useMutation, useQuery } from 'urql'
 import { capitalize, get, isEmpty } from 'lodash/fp'
+import { clsx } from 'clsx'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
@@ -208,7 +209,7 @@ export default function Stream () {
   }
 
   return (
-    <View style={styles.container}>
+    <View className='bg-background flex-1'>
       <FlashList
         estimatedItemSize={200}
         estimatedListSize={Dimensions.get('screen')}
@@ -239,32 +240,52 @@ export default function Stream () {
             />
 
             {!streamType && (
-              <View style={[styles.listControls]}>
+              <View className='bg-card flex-row justify-between items-center px-2.5 py-2'>
                 <ListControl selected={sortBy} onChange={setSortBy} options={sortOptions} />
-                <View style={styles.steamControlRightSide}>
+                <View className='flex-row items-center gap-2'>
                   {!['my', 'public'].includes(streamQueryVariables?.context) &&
                     <TouchableOpacity onPress={handleChildPostToggle}>
-                      <View style={{ ...styles.childGroupToggle, ...extraToggleStyles }}>
-                        <Icon name='Subgroup' color={streamQueryVariables?.childPostInclusion === 'yes' ? '#FFFFFF' : pictonBlue} />
+                      <View className={clsx(
+                        'w-8 h-8 rounded items-center justify-center',
+                        streamQueryVariables?.childPostInclusion === 'yes' 
+                          ? 'bg-secondary' 
+                          : 'bg-background border border-secondary'
+                      )}>
+                        <Icon 
+                          name='Subgroup' 
+                          className={clsx(
+                            streamQueryVariables?.childPostInclusion === 'yes' 
+                              ? 'text-background' 
+                              : 'text-secondary'
+                          )} 
+                        />
                       </View>
                     </TouchableOpacity>}
                   {!streamQueryVariables?.types && (
-                    <ListControl selected={streamQueryVariables.filter} onChange={setFilter} options={POST_TYPE_OPTIONS} />
+                    <ListControl 
+                      selected={streamQueryVariables.filter} 
+                      onChange={setFilter} 
+                      options={POST_TYPE_OPTIONS} 
+                    />
                   )}
                 </View>
               </View>
             )}
 
             {streamType === 'event' && (
-              <View style={[styles.listControls]}>
-                <ListControl selected={timeframe} onChange={setTimeframe} options={EVENT_STREAM_TIMEFRAME_OPTIONS} />
+              <View className='bg-card px-2.5 py-2'>
+                <ListControl 
+                  selected={timeframe} 
+                  onChange={setTimeframe} 
+                  options={EVENT_STREAM_TIMEFRAME_OPTIONS} 
+                />
               </View>
             )}
           </View>
         }
-        ListFooterComponent={(
-          fetching ? <Loading style={styles.loading} /> : null
-        )}
+        ListFooterComponent={
+          fetching ? <Loading className='py-5' /> : null
+        }
       />
     </View>
   )
