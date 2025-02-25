@@ -7,6 +7,7 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import { createSelector } from 'reselect'
+import { getHourCycle } from 'components/Calendar/calendar-util'
 import AttachmentManager from 'components/AttachmentManager'
 import Icon from 'components/Icon'
 import LocationInput from 'components/LocationInput'
@@ -106,6 +107,7 @@ function PostEditor ({
   const urlLocation = useLocation()
   const routeParams = useParams()
   const navigate = useNavigate()
+  const hourCycle = getHourCycle()
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
@@ -900,7 +902,7 @@ function PostEditor ({
           <div className={styles.sectionLabel}>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
           <div className={styles.datePickerModule}>
             <DateTimePicker
-              hourCycle={12}
+              hourCycle={hourCycle}
               granularity='minute'
               value={currentPost.startTime}
               placeholder={t('Select Start')}
@@ -910,7 +912,7 @@ function PostEditor ({
             <div className={styles.sectionHelper}>{t('To')}</div>
             <DateTimePicker
               ref={endTimeRef}
-              hourCycle={12}
+              hourCycle={hourCycle}
               granularity='minute'
               value={currentPost.endTime}
               placeholder={t('Select End')}

@@ -1,5 +1,40 @@
 import { DateTime, Interval, DateTimeUnit } from 'luxon'
+import { localeLocalStorageSync } from 'util/locale'
+import { enUS, es } from 'react-day-picker/locale'
 import { HyloPost } from './calendar-types'
+
+export const getLocaleAsString = () => {
+  switch (localeLocalStorageSync()) {
+    case 'en':
+      return 'en-US'
+    case 'es':
+      return 'es'
+    default:
+      return 'en-US'
+  }
+}
+
+export const getLocaleForDayPicker = () => {
+  switch (localeLocalStorageSync()) {
+    case 'en':
+      return enUS
+    case 'es':
+      return es
+    default:
+      return enUS
+  }
+}
+
+export const getHourCycle = () => {
+  switch (localeLocalStorageSync()) {
+    case 'en':
+      return 12
+    case 'es':
+      return 24
+    default:
+      return 24
+  }
+}
 
 export const same = (
   dt1 : Date,
