@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useCalendarContext } from '../../calendar-context'
@@ -48,11 +48,6 @@ export default function CalendarHeaderDateChevrons () {
   const luxonDate = DateTime.fromJSDate(date).setLocale(getLocaleAsString())
   const today = new Date()
 
-  const handleGoToButton = () => {
-    setDate(today)
-    setHideGoToButton(true)
-  }
-
   const shouldHideGoToButton = () => {
     switch (mode) {
       case 'month':
@@ -75,8 +70,6 @@ export default function CalendarHeaderDateChevrons () {
     }
   }
 
-  const [hideGoToButton, setHideGoToButton] = useState(shouldHideGoToButton())
-
   const handleDateBackward = () => {
     switch (mode) {
       case 'month':
@@ -89,7 +82,6 @@ export default function CalendarHeaderDateChevrons () {
         setDate(luxonDate.minus({ days: 1 }).toJSDate())
         break
     }
-    setHideGoToButton(shouldHideGoToButton())
   }
 
   const handleDateForward = () => {
@@ -104,7 +96,6 @@ export default function CalendarHeaderDateChevrons () {
         setDate(luxonDate.plus({ days: 1 }).toJSDate())
         break
     }
-    setHideGoToButton(shouldHideGoToButton())
   }
 
   return (
@@ -129,11 +120,11 @@ export default function CalendarHeaderDateChevrons () {
         <ChevronRight className='min-w-5 min-h-5' />
       </Button>
 
-      {!hideGoToButton &&
+      {!shouldHideGoToButton() &&
         <Button
           variant='outline'
           className='h-7 p-3'
-          onClick={() => handleGoToButton()}
+          onClick={() => setDate(today)}
         >
           {goToButtonText()}
         </Button>}
