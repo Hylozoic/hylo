@@ -46,7 +46,7 @@ export default function ContextSwitchMenu () {
       <View className='w-full mt-auto bg-theme-background pt-4'>
         {/* TODO redesign: A Group or Post Creation option is expected based on Web-parity */}
         <TouchableOpacity
-          onPress={() => openURL('/create/group')}
+          onPress={() => openURL('/create')}
           style={styles.rowTouchable}
           activeOpacity={0.7}
         >

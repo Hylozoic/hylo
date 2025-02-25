@@ -160,6 +160,7 @@ export const routingConfig = {
   ':unmatchedBasePath(.*)/post/:id/comments/:commentId':                  `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
   ':unmatchedBasePath(.*)/create/group':                                  `${AUTH_ROOT_SCREEN_NAME}/Create Group`,
   ':unmatchedBasePath(.*)/create/post':                                   `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
+  ':unmatchedBasePath(.*)/create':                                        `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Creation')}`,
   ':unmatchedBasePath(.*)/post/:id/edit':                                 `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   ...unknownRouteMatch
 }
