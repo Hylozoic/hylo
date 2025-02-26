@@ -1,6 +1,8 @@
+import i18n from '../../i18n.mjs'
 import { DateTime } from 'luxon'
 import presentTopic from 'store/presenters/presentTopic'
 import { TextHelpers } from '@hylo/shared'
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 export default function presentPost (post, groupId) {
   if (!post) return null
@@ -42,9 +44,9 @@ export default function presentPost (post, groupId) {
     }),
     proposalOptions: post.proposalOptions?.toModelArray() || [],
     createdTimestampForGrid: createdAtHumanDate,
-    createdTimestamp: `Posted ${createdAtHumanDate}`,
-    editedTimestamp: post.editedAt ? `Edited ${editedAtHumanDate}` : null,
-    exactCreatedTimestamp: DateTime.fromISO(post.createdAt).toFormat('D t ZZZZ'),
-    exactEditedTimestamp: DateTime.fromISO(post.editedAt).toFormat('D t ZZZZ')
+    createdTimestamp: `${i18n.t('Posted')} ${createdAtHumanDate}`,
+    editedTimestamp: post.editedAt ? `${i18n.t('Edited')} ${editedAtHumanDate}` : null,
+    exactCreatedTimestamp: DateTime.fromISO(post.createdAt).setLocale(getLocaleAsString()).toFormat('D t ZZZZ'),
+    exactEditedTimestamp: DateTime.fromISO(post.editedAt).setLocale(getLocaleAsString()).toFormat('D t ZZZZ')
   }
 }
