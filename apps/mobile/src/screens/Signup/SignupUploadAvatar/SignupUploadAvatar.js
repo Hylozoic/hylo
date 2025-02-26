@@ -1,10 +1,9 @@
 import React, { useState } from 'react'
-import { useFocusEffect } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { ScrollView, View, Text, ImageBackground, ActivityIndicator } from 'react-native'
 import { useMutation } from 'urql'
 import { AnalyticsEvents } from '@hylo/shared'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import mixpanel from 'services/mixpanel'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
@@ -13,10 +12,12 @@ import Button from 'components/Button'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import styles from './SignupUploadAvatar.styles'
+import { useAuth } from '@hylo/contexts/AuthContext'
 
-export default function SignupUploadAvatar ({ navigation }) {
+export default function SignupUploadAvatar () {
   const { t } = useTranslation()
-  const [{ currentUser, fetching }] = useCurrentUser()
+  const navigation = useNavigation()
+  const { currentUser, fetching } = useAuth()
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl)
   const [avatarImageSource, setAvatarImageSource] = useState({ uri: avatarUrl })
@@ -43,8 +44,8 @@ export default function SignupUploadAvatar ({ navigation }) {
   }
 
   const saveAndNext = async () => {
-    const { error } = await updateUserSettings({ changes: { settings: { signupInProgress: false } } })
-    if (!error) navigation.navigate('SignupSetLocation')
+    const response = await updateUserSettings({ changes: { avatarUrl, settings: { signupInProgress: false } } })
+    if (!response?.error) navigation.navigate('SignupSetLocation')
   }
 
   if (fetching) {
@@ -61,7 +62,7 @@ export default function SignupUploadAvatar ({ navigation }) {
           <ImagePicker
             type='userAvatar'
             cameraType='front'
-            id={currentUser.id}
+            id={currentUser?.id}
             onChoice={handleAvatarImageUpload}
             onPendingChange={pending => setImagePickerPending(pending)}
           >

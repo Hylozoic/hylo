@@ -4,7 +4,7 @@ import Icon from 'components/Icon'
 import useFindOrCreateLocationObject from 'components/LocationSelectorModal/useFindOrCreateLocationObject'
 import { rhino80, rhino20, caribbeanGreen, alabaster } from 'style/colors'
 
-export default function LocationSelectorModalItemRow ({ item, onPress }) {
+export default function LocationSelectorItemRow ({ item, onPress, colors = {} }) {
   const [, findOrCreateLocationObject] = useFindOrCreateLocationObject()
   const isGeocoded = item.id !== 'NEW'
 
@@ -18,17 +18,17 @@ export default function LocationSelectorModalItemRow ({ item, onPress }) {
   }
 
   return (
-    <TouchableOpacity style={styles.locationRow} onPress={() => selectLocation(item)}>
+    <TouchableOpacity style={[styles.locationRow, { borderTopColor: colors?.border }]} onPress={() => selectLocation(item)}>
       {!isGeocoded && (
         <>
           <Icon name='Back' color={rhino80} style={styles.locationIcon} />
-          <Text style={[styles.locationText, styles.notGeocodedRow]}>Use "{item.fullText}" (without mapping)</Text>
+          <Text style={[styles.locationText, styles.notGeocodedRow, { color: colors?.text }]}>Use "{item.fullText}" (without mapping)</Text>
         </>
       )}
       {isGeocoded && (
         <>
           <Icon name='Location' color={caribbeanGreen} style={styles.locationIcon} />
-          <Text style={styles.locationText}>{item.fullText}</Text>
+          <Text style={[styles.locationText, { color: colors?.text }]}>{item.fullText}</Text>
         </>
       )}
     </TouchableOpacity>

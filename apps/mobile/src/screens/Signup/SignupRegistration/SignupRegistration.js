@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react'
 import { ScrollView, View, Text } from 'react-native'
-import { useFocusEffect } from '@react-navigation/native'
 import { gql, useMutation } from 'urql'
+import { useFocusEffect } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import { pickBy, identity } from 'lodash/fp'
 import { AnalyticsEvents, Validators } from '@hylo/shared'
 import mixpanel from 'services/mixpanel'
@@ -13,7 +14,6 @@ import Button from 'components/Button'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
 import styles from './SignupRegistration.styles'
-import { useTranslation } from 'react-i18next'
 
 export const registerMutation = gql`
   mutation RegisterMutation ($name: String!, $password: String!) {
@@ -53,12 +53,12 @@ export default function SignupRegistration ({ navigation, route }) {
     try {
       setLoading(true)
       const response = await register({ name: values.name, password: values.password })
-      const { error: responseError = null } = response.payload.getData()
-
+      const { error: responseError = null } = response?.data
       if (responseError) {
         setError(responseError)
       } else {
         mixpanel.track(AnalyticsEvents.SIGNUP_REGISTERED)
+        navigation.navigate('SignupUploadAvatar')
       }
     } catch (e) {
       setError(e.message)
@@ -87,7 +87,6 @@ export default function SignupRegistration ({ navigation, route }) {
           continueButtonText: t('No'),
           onDiscard: () => {
             logout()
-            navigation.navigate('Signup Intro')
           },
           t
         })

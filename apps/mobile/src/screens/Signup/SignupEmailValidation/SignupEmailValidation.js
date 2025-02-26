@@ -89,6 +89,7 @@ export default function SignupEmailValidation () {
         setError(responseError)
       } else {
         mixpanel.track(AnalyticsEvents.SIGNUP_EMAIL_VERIFIED, { email })
+        navigation.navigate('SignupRegistration')
       }
     } catch (e) {
       setError(t('Expired or invalid code'))

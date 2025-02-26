@@ -59,9 +59,9 @@ const styles = StyleSheet.create({
     margin: 12
   },
   title: {
-    fontSize: 16, // Kept reasonable, not too big
-    fontWeight: '500', // Not too bold
-    marginLeft: 8, // Ensures it aligns left against the X icon
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 8
   }
 })
 

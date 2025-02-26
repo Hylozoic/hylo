@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react'
-import { ScrollView, View, Text } from 'react-native'
+import { ScrollView, View, Text, TouchableOpacity } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
@@ -9,20 +9,18 @@ import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import LocationSelectorModal from 'components/LocationSelectorModal'
+import { LocationSelector } from 'components/LocationSelectorModal/LocationSelectorModal'
 import Button from 'components/Button'
-import SettingControl from 'components/SettingControl'
-import styles from './SignupSetLocation.styles'
+import styles from '../SignupFlow.styles'
+import { amaranth, azureRadiance, black10OnCaribbeanGreen, black10onRhino, gunsmoke, linkWater, nevada, pictonBlue, rhino, rhino50, white } from 'style/colors'
 
 export default function SignupSetLocation ({ navigation }) {
   const { t } = useTranslation()
-  const locationSelectorModalRef = useRef()
   const [{ currentUser }] = useCurrentUser()
+  console.log('!!! currentUser', currentUser)
   const [location, setLocation] = useState(currentUser?.location)
-  const [locationId, setLocationId] = useState(currentUser?.locationId)
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const { checkAuth } = useAuth()
-  const controlRef = useRef()
 
   useFocusEffect(() => {
     navigation.setOptions({
@@ -36,7 +34,6 @@ export default function SignupSetLocation ({ navigation }) {
   })
 
   const finish = async () => {
-    controlRef.current && controlRef.current.blur()
     await updateUserSettings({
       changes: {
         location,
@@ -49,11 +46,9 @@ export default function SignupSetLocation ({ navigation }) {
     await checkAuth()
   }
 
-  const showLocationPicker = () => locationSelectorModalRef.current.show()
-
   const handleUpdateLocation = pickedLocation => {
     setLocation(pickedLocation?.fullText)
-    pickedLocation?.id !== 'NEW' && setLocationId(pickedLocation?.id)
+    // pickedLocation?.id !== 'NEW' && setLocationId(pickedLocation?.id)
   }
 
   return (
@@ -66,16 +61,14 @@ export default function SignupSetLocation ({ navigation }) {
           </Text>
         </View>
         <View style={styles.content}>
-          <LocationSelectorModal
-            ref={locationSelectorModalRef}
-            onItemPress={handleUpdateLocation}
-          />
-          <SettingControl
-            ref={controlRef}
-            label={t('Where do you call home')}
-            value={location}
-            onFocus={() => showLocationPicker(location)}
-          />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: white }}>Selected:</Text>
+            <TouchableOpacity onPress={() => setLocation()}>
+              <Text style={{ color: nevada, fontWeight: 'bold' }}>{location && 'Clear'}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={{ fontSize: 16, marginBottom: 20, color: white }}>{location || '(none selected)'}</Text>
+          <LocationSelector colors={{ text: rhino50, border: gunsmoke }} onItemPress={handleUpdateLocation} />
         </View>
       </ScrollView>
       <View style={styles.bottomBar}>

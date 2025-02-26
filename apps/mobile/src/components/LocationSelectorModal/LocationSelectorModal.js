@@ -5,7 +5,8 @@ import { LocationHelpers } from '@hylo/shared'
 import { fetchMapboxLocations, convertMapboxToLocation } from 'services/mapbox'
 import useCurrentLocation from 'hooks/useCurrentLocation'
 import ItemSelectorModal from 'components/ItemSelectorModal'
-import LocationSelectorModalItemRow from './LocationSelectorModalItemRow'
+import LocationSelectorItemRow from './LocationSelectorItemRow'
+import ItemSelector from 'components/ItemSelector'
 
 export async function locationSearch (searchTerm, proximity) {
   const coordinate = LocationHelpers.parseCoordinate(searchTerm).coordinate
@@ -28,7 +29,7 @@ export async function locationSearch (searchTerm, proximity) {
   return locations
 }
 
-export const LocationSelectorModal = React.forwardRef((forwardedProps, ref) => {
+export const LocationSelectorComponent = React.forwardRef(({ Component, ...forwardedProps }, ref) => {
   const { t } = useTranslation()
   const [, getLocation] = useCurrentLocation()
   const [locations, setLocations] = useState([])
@@ -43,16 +44,24 @@ export const LocationSelectorModal = React.forwardRef((forwardedProps, ref) => {
   }
 
   return (
-    <ItemSelectorModal
+    <Component
       title='Search for your location'
       fetchItems={fetchItems}
       items={locations}
       searchPlaceholder={t('Search for your location')}
       {...forwardedProps}
       ref={ref}
-      renderItem={LocationSelectorModalItemRow}
+      renderItem={LocationSelectorItemRow}
     />
   )
 })
+
+export const LocationSelectorModal = React.forwardRef((props, ref) => (
+  <LocationSelectorComponent Component={ItemSelectorModal} {...props} ref={ref} />
+))
+
+export const LocationSelector = React.forwardRef((props, ref) => (
+  <LocationSelectorComponent Component={ItemSelector} {...props} ref={ref} />
+))
 
 export default LocationSelectorModal
