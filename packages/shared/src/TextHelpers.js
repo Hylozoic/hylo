@@ -155,36 +155,42 @@ export function humanDate (date, short) {
 }
 
 export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
-  const start = DateTime.fromISO(startTime, {zone: timezone || DateTime.now().zoneName || 'UTC'})
-  const end = DateTime.fromISO(endTime, {zone: timezone || DateTime.now().zoneName || 'UTC'})
-  const now = DateTime.now()
+  if (!startTime || !endTime) return '(invalid start or end)'
 
-  const isThisYear = start.get('year') === now.get('year') && end.get('year') === now.get('year')
+  let locale = localStorage.getItem('hylo-i18n-lng') || 'en'
+  switch (locale) {
+    case 'en':
+      locale = 'en-US'
+      break
+    case 'es':
+      locale = 'es'
+      break
+    default:
+      locale = 'en-US'
+  }
 
-  let to = ''
-  let from = ''
+  const now = DateTime.now().setLocale(locale)
+  const timeZoneName = now.zoneName
+  const start = DateTime.fromISO(startTime, {zone: timezone || timeZoneName || 'UTC'}).setLocale(locale)
+  const end = DateTime.fromISO(endTime, {zone: timezone || timeZoneName || 'UTC'}).setLocale(locale)
 
-  // TODO post-redesign: This was previously trying to add YYYY if it wasn't this year but that was just adding YYYY to the string
-  if (isThisYear) {
-    from = endTime ? start.toFormat("EEE, DD 'at' t") : start.toFormat("EEE, DD 'at' t ZZZZ")
+  const isStartThisYear = start.hasSame(now, 'year')
+  const isEndThisYear = end.hasSame(now, 'year')
+  const isSameYear = isStartThisYear && isEndThisYear
+
+  const from = !isSameYear || !isStartThisYear ? start.toFormat('EEE, DD, yyyy, t') : start.toFormat('EEE, DD, t')
+  let to = !isSameYear || !isEndThisYear ? end.toFormat('EEE, DD, yyyy, t ZZZZ') : end.toFormat('EEE, DD, t ZZZZ')
+
+  if (!isSameYear) {
+    to = end.toFormat('EEE, DD, yyyy, t ZZZZ')
+  } else if (!end.hasSame(start, 'month')) {
+    to = end.toFormat('EEE, DD, t ZZZZ')
+  } else if (!end.hasSame(start, 'day')) {
+    to = end.toFormat('EEE, DD, t ZZZZ')
   } else {
-    from = endTime ? start.toFormat("EEE, DD 'at' t") : start.toFormat("EEE, DD 'at' t ZZZZ")
+    to = end.toFormat('t ZZZZ')
   }
-
-  if (endTime) {
-    if (end.get('year') !== start.get('year')) {
-      to = end.toFormat("EEE, DD, yyyy 'at' t ZZZZ")
-    } else if (end.get('month') !== start.get('month') ||
-               end.get('day') !== start.get('day') ||
-               end <= now) {
-      to = end.toFormat("EEE, DD 'at' t ZZZZ")
-    } else {
-      to = end.toFormat('t ZZZZ')
-    }
-    to = returnAsObj ? to : ' - ' + to
-  }
-
-  return returnAsObj ? { from, to } : from + to
+  return returnAsObj ? { from, to } : `${from} \u2013 ${to}`
 }
 
 export function isDateInTheFuture (date) {
