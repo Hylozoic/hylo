@@ -50,7 +50,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       user_id: userId
     }
     let tagFollow = await TagFollow.where(attrs).fetch({ transacting })
-    attrs.settings = tagFollow?.settings || { }
+    attrs.settings = tagFollow?.get('settings') || { }
+    let hasChanged = false
 
     // If "subscribing" and there's no tag follow yet or there's an existing tag follow but they haven't "subscribed" yet
     if (isSubscribing && !attrs.settings.notifications) {
@@ -62,6 +63,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         // Set last_read_post_id to the most recent post id so when viewing chat room for first time you start at latest post
         attrs.last_read_post_id = await Post.query(q => q.select(bookshelf.knex.raw("max(posts.id) as max"))).fetch({ transacting }).then(result => result.get('max'))
         attrs.new_post_count = 0
+        hasChanged = true
 
         // Increment the number of followers for the tag in the group
         // TODO: re-evaluate what a follower means. how does it related to chat rooms and their notification settings?
@@ -78,7 +80,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     if (!tagFollow) {
       tagFollow = await TagFollow.create(attrs, { transacting })
-    } else {
+    } else if (hasChanged) {
       await tagFollow.save(attrs, { transacting })
     }
 

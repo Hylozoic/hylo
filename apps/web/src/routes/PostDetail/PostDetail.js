@@ -34,6 +34,7 @@ import processStripeToken from 'store/actions/processStripeToken'
 import respondToEvent from 'store/actions/respondToEvent'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { FETCH_POST } from 'store/constants'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
@@ -53,7 +54,8 @@ function PostDetail () {
   const location = useLocation()
   const routeParams = useParams()
   const postId = routeParams.postId || getQuerystringParam('fromPostId', location)
-  const { groupSlug, commentId, view } = routeParams
+  const { groupSlug, view } = routeParams
+  const commentId = getQuerystringParam('commentId', location) || routeParams.commentId
 
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   const postSelector = useSelector(state => getPost(state, postId))
@@ -79,6 +81,18 @@ function PostDetail () {
   useEffect(() => {
     onPostIdChange()
   }, [postId])
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    if (view === 'post') {
+      setHeaderDetails({
+        title: t('Post'),
+        icon: '',
+        info: '',
+        search: false
+      })
+    }
+  }, [])
 
   const handleSetComponentPositions = useCallback(() => {
     const container = document.getElementById(DETAIL_COLUMN_ID)
@@ -194,7 +208,7 @@ function PostDetail () {
       <ScrollListener elementId={DETAIL_COLUMN_ID} onScroll={handleScroll} />
       <PostHeader
         className={classes.header}
-        {...post}
+        post={post}
         routeParams={{ groupSlug, postId, commentId, view }}
         close={onClose}
         expanded
@@ -206,7 +220,7 @@ function PostDetail () {
           <PostHeader
             className={classes.header}
             currentUser={currentUser}
-            {...post}
+            post={post}
             routeParams={{ groupSlug, postId, commentId, view }}
             close={onClose}
             isFlagged={isFlagged}

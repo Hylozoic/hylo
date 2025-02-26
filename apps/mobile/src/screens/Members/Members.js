@@ -18,7 +18,7 @@ export default function Members ({ isFocused }) {
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
 
-  const goToInvitePeople = () => navigation.navigate('Group Settings', { screen: 'Invite' })
+  const goToInvitePeople = () => navigation.navigate('Group Settings', { groupSlug: group?.slug, settingsArea: 'invite' })
   const showInviteButton = get('allowGroupInvites', group) || canInvite
   const showMember = id => navigation.navigate('Member', { id })
 

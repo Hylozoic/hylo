@@ -23,7 +23,7 @@ export default function MembershipSettingsRow ({ membership, open, updateMembers
   const chatRooms = useMemo(() => (membership.group?.chatRooms.toModelArray() || []).filter(cr => cr.topicFollow), [membership.group?.chatRooms])
 
   return (
-    <div className='py-3 border-b border-gray-200'>
+    <div id={`group-${membership.group.id}`} className='py-3 border-b border-gray-200'>
       <div className='flex items-center cursor-pointer' onClick={() => setIsOpen(!isOpen)}>
         <div className={classes.groupAvatar} style={bgImageStyle(membership.group.avatarUrl)} />
         <h2 className='text-xl font-bold flex-1'>{membership.group.name}</h2>
@@ -88,7 +88,7 @@ function ChatRoomRow ({ chatRoom }) {
 
   return (
     <div className='flex items-center justify-between mt-2' key={chatRoom.id}>
-      <span><span className='text-secondary'>#{chatRoom.topicFollow.topic.name}</span> chat notifications</span>
+      <span><span className='text-secondary'>#{chatRoom.groupTopic.topic.name}</span> chat notifications</span>
       <Select
         value={notificationsSettings}
         onValueChange={updateNotificationsSettings}

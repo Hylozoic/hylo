@@ -432,6 +432,7 @@ export default function PostEditor (props) {
                 }
                 return items
               }}
+              chosenItems={post.topics}
               renderItem={TopicRow}
             />
             <Topics

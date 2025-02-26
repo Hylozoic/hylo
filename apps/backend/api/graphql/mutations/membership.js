@@ -22,7 +22,7 @@ export async function updateMembership (userId, { groupId, data, data: { setting
         await GroupJoinQuestionAnswer.forge({ group_id: groupId, question_id: qa.questionId, answer: qa.answer, user_id: userId }).save()
       }
     }
-    if (membership.hasSetting('agreementsAcceptedAt') && settings.showJoinForm === false) {
+    if (membership.hasSetting('agreementsAcceptedAt') && settings?.showJoinForm === false) {
       // Once agreements are accepted and join questtions are answered, we do some additional work/tasks
       Queue.classMethod('Group', 'afterFinishedJoining', { userId, groupId })
     }

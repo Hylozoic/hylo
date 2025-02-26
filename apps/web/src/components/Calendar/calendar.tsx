@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import type { CalendarProps } from './calendar-types'
 import CalendarHeader from './header/calendar-header'
 import CalendarBody from './body/calendar-body'
@@ -9,32 +9,37 @@ import CalendarHeaderDate from './header/date/calendar-header-date'
 import CalendarHeaderActionsMode from './header/actions/calendar-header-actions-mode'
 import CalendarProvider from './calendar-provider'
 import { DateTime } from 'luxon'
+import { isMultiday } from './calendar-util'
 
 export default function Calendar ({
   posts,
+  group,
   routeParams,
   locationParams,
   querystringParams,
-  calendarIconIsToday = true
+  calendarIconIsToday = true,
+  date,
+  setDate,
+  mode,
+  setMode
 }: CalendarProps) {
-  const [mode, setMode] = useState('month')
-  const [date, setDate] = useState(new Date())
-
   // map posts objects to calendar "event" objects
-  // unique color per post type
   const events = posts.map((post) => {
     return {
       id: post.id,
       start: DateTime.fromISO(post.startTime).toJSDate(),
       end: DateTime.fromISO(post.endTime).toJSDate(),
       title: post.title,
-      type: post.type
+      type: post.type,
+      multiday: isMultiday(post),
+      post
     }
   })
 
   return (
     <CalendarProvider
       events={events}
+      group={group}
       routeParams={routeParams}
       locationParams={locationParams}
       querystringParams={querystringParams}

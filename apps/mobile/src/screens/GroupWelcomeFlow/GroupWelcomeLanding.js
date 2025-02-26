@@ -9,7 +9,6 @@ import { Text, View, ImageBackground, ScrollView, TouchableOpacity, TextInput } 
 import CheckBox from 'react-native-bouncy-checkbox'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { DEFAULT_AVATAR, DEFAULT_BANNER } from '@hylo/presenters/GroupPresenter'
 import {
   GROUP_WELCOME_AGREEMENTS,
   GROUP_WELCOME_JOIN_QUESTIONS,
@@ -61,9 +60,9 @@ export default function GroupWelcomeLanding ({ route }) {
   const routeNames = getRouteNames(currentGroup, currentMembership)
 
   const { name, avatarUrl, purpose, bannerUrl, description, agreements, joinQuestions } = currentGroup
-  const { agreementsAcceptedAt, joinQuestionsAnsweredAt,showJoinForm } = currentMembership?.settings || {}
-  const imageSource = { uri: avatarUrl || DEFAULT_AVATAR }
-  const bgImageSource = { uri: bannerUrl || DEFAULT_BANNER }
+  const { agreementsAcceptedAt, joinQuestionsAnsweredAt, showJoinForm } = currentMembership?.settings || {}
+  const imageSource = { uri: avatarUrl }
+  const bgImageSource = { uri: bannerUrl }
 
   // Agreements logic
   const numAgreements = agreements?.items?.length || 0

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { Settings, Users, ChevronRight } from 'lucide-react-native'
 import { View, Text, TouchableOpacity } from 'react-native'
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
-import Avatar from 'components/Avatar'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
+import { openURL } from 'hooks/useOpenURL'
 
 export default function GroupMenuHeader ({ group }) {
   const { t } = useTranslation()
@@ -45,8 +46,8 @@ export default function GroupMenuHeader ({ group }) {
             onPress={() => navigation.navigate('Group Settings')}
           >
             <View className='w-6 h-6 drop-shadow-md'>
-            <Settings color='white' size={24} />
-          </View>
+              <Settings color='white' size={24} />
+            </View>
           </TouchableOpacity>
         </View>
       )}
@@ -62,10 +63,10 @@ export default function GroupMenuHeader ({ group }) {
           }}
         />
 
-        <View className={[
+        <View className={clsx([
           'flex flex-col flex-1',
           `text-${textColor} drop-shadow-md`
-        ]}
+        ])}
         >
           <Text className='text-xl font-bold m-0 text-white'>
             {group.name}
@@ -85,7 +86,7 @@ export default function GroupMenuHeader ({ group }) {
         </View>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate('About', { groupSlug: group.slug })}
+          onPress={() => openURL(`/groups/${group.slug}/about`)}
           hitSlop={6}
         >
           <View className='cursor-pointer'>

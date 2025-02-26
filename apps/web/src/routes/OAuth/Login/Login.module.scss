@@ -37,6 +37,7 @@
     border: 1px solid rgba(225, 229, 233, 1.00);
     background-color: rgba(251, 252, 253, 1.00);
     padding-top: 8px;
+    width: 100%;
   }
 }
 
@@ -44,6 +45,11 @@
   width: 100%;
   text-align: center;
   cursor: pointer;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
 }
 
 .forgot-password {

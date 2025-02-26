@@ -1,14 +1,14 @@
 import React from 'react'
-import { StyleSheet, View, Text } from 'react-native'
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native'
 import { filter, get, map, find, isEmpty } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import { useTranslation } from 'react-i18next'
 import { rhino30, limedSpruce, nevada, rhino60, rhino, alabaster, rhino10, persimmon } from 'style/colors'
 
-const MAX_THREAD_PREVIEW_LENGTH = 54
+const MAX_THREAD_PREVIEW_LENGTH = 55
 
-export default function ThreadCard ({ message, currentUser, participants, isLast, unreadCount }) {
+export default function ThreadCard ({ message, currentUser, onPress, participants, isLast, unreadCount }) {
   if (!message) return null
 
   const latestMessagePreview = TextHelpers.presentHTMLToText(message?.text, {
@@ -22,7 +22,7 @@ export default function ThreadCard ({ message, currentUser, participants, isLast
     : map('avatarUrl', otherParticipants)
 
   return (
-    <View style={[styles.threadCard, !!unreadCount && styles.highlight]}>
+    <TouchableOpacity onPress={onPress} style={styles.threadCard}>
       <ThreadAvatars avatarUrls={avatarUrls} />
       <View style={[styles.messageContent, isLast && styles.lastCard]}>
         <Text style={styles.header}>{names}</Text>
@@ -34,7 +34,7 @@ export default function ThreadCard ({ message, currentUser, participants, isLast
           <Text style={styles.badgeText}>{unreadCount}</Text>
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   )
 }
 
@@ -86,17 +86,18 @@ const styles = StyleSheet.create({
   threadCard: {
     flex: 1,
     flexDirection: 'row',
+    alignItems: 'center',
     paddingTop: 8,
-    backgroundColor: rhino10 // flag-messages-background-color
-  },
-  highlight: {
-    backgroundColor: alabaster
-  },
-  firstCard: {
-    marginTop: 0
+    backgroundColor: alabaster, // flag-messages-background-color
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: rhino30
   },
   lastCard: {
     borderColor: '#FFF'
+  },
+  messageContent: {
+    flex: 1,
+    paddingBottom: 20
   },
   header: {
     marginTop: 7,
@@ -104,9 +105,6 @@ const styles = StyleSheet.create({
     color: limedSpruce,
     fontSize: 14,
     marginBottom: 3
-  },
-  footer: {
-    fontSize: 12
   },
   body: {
     marginRight: 30,
@@ -119,25 +117,25 @@ const styles = StyleSheet.create({
     color: rhino60,
     fontSize: 12
   },
-  messageContent: {
-    flex: 1,
-    paddingBottom: 24,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: rhino30
-  },
   badge: {
     backgroundColor: persimmon,
-    marginTop: 10,
     marginRight: 10,
-    height: 20,
-    width: 20,
+    height: 26,
+    width: 26,
     borderRadius: 100,
     alignItems: 'center',
     justifyContent: 'center'
   },
   badgeText: {
     color: 'white',
+    fontSize: 14
+  },
+  footer: {
     fontSize: 12
+  },
+  threadAvatars: {
+    alignSelf: 'flex-start',
+    marginRight: 3
   },
   count: {
     backgroundColor: rhino,
@@ -155,9 +153,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Circular-Bold',
     overflow: 'hidden',
     backgroundColor: 'transparent'
-  },
-  threadAvatars: {
-    marginRight: 3
   },
   firstThreadAvatar: {
     marginLeft: 10,

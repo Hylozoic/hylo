@@ -22,7 +22,7 @@ export default function SearchBar ({
 
   return (
     <View style={[styles.container, style.container]}>
-      <Icon style={styles.searchIcon} name='Search' />
+      <Icon style={[styles.searchIcon, style.searchIcon]} name='Search' />
       <TextInput
         autoFocus={autoFocus}
         onFocus={onFocus}
@@ -47,8 +47,6 @@ export default function SearchBar ({
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
-    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,

@@ -7,7 +7,7 @@ import {
   setQuerystringParam,
   removeGroupFromUrl,
   createUrl,
-  postCommentUrl,
+  primaryPostUrl,
   messagePersonUrl,
   isPublicPath,
   isMapView,
@@ -158,10 +158,10 @@ describe('createUrl', () => {
   })
 })
 
-describe('postCommentUrl', () => {
+describe('primaryPostUrl with comment', () => {
   it('returns correct path', () => {
     const expected = '/all/post/123/comments/456'
-    const actual = postCommentUrl({ postId: '123', commentId: '456' })
+    const actual = primaryPostUrl('123', { commentId: '456' })
     expect(actual).toEqual(expected)
   })
 })

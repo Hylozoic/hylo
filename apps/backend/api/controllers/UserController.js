@@ -4,6 +4,7 @@ import { es } from '../../lib/i18n/es'
 import InvitationService from '../services/InvitationService'
 import OIDCAdapter from '../services/oidc/KnexAdapter'
 import { decodeHyloJWT } from '../../lib/HyloJWT'
+import { joinRoom, leaveRoom } from '../services/Websockets'
 
 const locales = { es, en }
 
@@ -149,6 +150,14 @@ module.exports = {
     }
 
     return res.ok({ message: 'Notification settings updated' })
+  },
+
+  subscribeToUpdates: function (req, res) {
+    joinRoom(req, res, 'user', req.session.userId)
+  },
+
+  unsubscribeFromUpdates: function (req, res) {
+    leaveRoom(req, res, 'group', req.session.userId)
   }
 
 }

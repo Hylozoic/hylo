@@ -1,6 +1,7 @@
-const path = require('path');
-const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
-const { withNativeWind } = require("nativewind/metro");
+const path = require('path')
+const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config')
+const { withNativeWind } = require('nativewind/metro')
+const { withSentryConfig } = require('@sentry/react-native/metro')
 
 /**
  * Metro configuration
@@ -42,4 +43,14 @@ const config = {
   ]
 };
 
-module.exports = withNativeWind(mergeConfig(getDefaultConfig(__dirname), config), { input: path.resolve(__dirname, './src/style/global.css') });
+// Merge default config with custom config
+const mergedConfig = mergeConfig(getDefaultConfig(__dirname), config)
+
+// Apply NativeWind config
+const withNativeWindConfig = withNativeWind(mergedConfig, {
+  input: path.resolve(__dirname, './src/style/global.css')
+})
+
+// Sentry config should always be applied last
+// https://docs.sentry.io/platforms/react-native/manual-setup/metro
+module.exports = withSentryConfig(withNativeWindConfig)

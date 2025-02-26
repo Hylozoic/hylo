@@ -8,7 +8,6 @@ const esModules = [
   '@react-navigation',
   'react-native-render-html',
   '@invertase/react-native-apple-authentication',
-  '@flyerhq/react-native-keyboard-accessory-view',
   '@react-native-picker',
   'react-native-css-interop',
   // Our own packages are ESM modules only so need to be
@@ -25,7 +24,7 @@ module.exports = {
   // resolver: '<rootDir>/jest.resolver.js',
   moduleDirectories: [
     '<rootDir>/node_modules',
-    '<rootDir>/../../packages/shared/node_modules'
+    '<rootDir>/../../node_modules'
   ],
   setupFilesAfterEnv: [
     // https://callstack.github.io/react-native-testing-library/docs/migration/jest-matchers

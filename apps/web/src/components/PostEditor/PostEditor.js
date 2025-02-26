@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import { debounce, get, isEqual, isEmpty, uniqBy } from 'lodash/fp'
+import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
@@ -11,8 +11,8 @@ import AttachmentManager from 'components/AttachmentManager'
 import Icon from 'components/Icon'
 import LocationInput from 'components/LocationInput'
 import HyloEditor from 'components/HyloEditor'
-import Button from 'components/Button'
 import Loading from 'components/Loading'
+import PostTypeSelect from 'components/PostTypeSelect'
 import Switch from 'components/Switch'
 import ToField from 'components/ToField'
 import MemberSelector from 'components/MemberSelector'
@@ -23,9 +23,9 @@ import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
 import Dropdown from 'components/Dropdown/Dropdown'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
+import useEventCallback from 'hooks/useEventCallback'
 import fetchMyMemberships from 'store/actions/fetchMyMemberships'
 import {
-  POST_TYPES,
   PROPOSAL_ADVICE,
   PROPOSAL_CONSENSUS,
   PROPOSAL_CONSENT,
@@ -57,6 +57,7 @@ import createPost from 'store/actions/createPost'
 import updatePost from 'store/actions/updatePost'
 import {
   addAttachment,
+  clearAttachments,
   getAttachments,
   getUploadAttachmentPending
 } from 'components/AttachmentManager/AttachmentManager.store'
@@ -92,12 +93,13 @@ const getMyAdminGroups = createSelector(
 
 function PostEditor ({
   context,
+  modal = true,
   post: propsPost,
-  postTypes = Object.keys(POST_TYPES).filter(t => t !== 'chat'),
   editing = false,
   setIsDirty = () => {},
   onCancel,
-  onClose,
+  onSave,
+  afterSave,
   selectedLocation
 }) {
   const dispatch = useDispatch()
@@ -156,7 +158,7 @@ function PostEditor ({
   const initialPost = useMemo(() => ({
     title: '',
     details: '',
-    type: postType || 'discussion',
+    type: postType || (modal ? 'discussion' : 'chat'),
     groups: currentGroup ? [currentGroup] : [],
     topics: topic ? [topic] : [],
     acceptContributions: false,
@@ -175,13 +177,12 @@ function PostEditor ({
   }), [inputPost?.id, postType, currentGroup, topic, context])
 
   const [currentPost, setCurrentPost] = useState(initialPost)
-  const [valid, setValid] = useState(editing || !!initialPost.title)
+  const [invalidMessage, setInvalidMessage] = useState('')
+  const [hasDescription, setHasDescription] = useState(false) // TODO: an optimization to not run isValid no every character changed in the description
   const [announcementSelected, setAnnouncementSelected] = useState(false)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
-  const [showPostTypeMenu, setShowPostTypeMenu] = useState(false)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
-  const [allowAddTopic] = useState(true)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
   const groupOptions = useMemo(() => {
@@ -213,32 +214,57 @@ function PostEditor ({
           .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
         )
     }).flat().flat()
-  }, [currentPost.groups, currentPost.topics])
+  }, [selectedGroups, currentPost.groups, currentPost.topics])
 
   useEffect(() => {
-    setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+    if (isChat) {
+      setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
+    } else {
+      setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+    }
     dispatch(fetchMyMemberships())
     return () => {
       dispatch(clearLinkPreview())
+      dispatch(clearAttachments('post', 'new', 'image'))
     }
   }, [])
 
   useEffect(() => {
-    setShowLocation(showLocation || POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type))
+    setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
   }, [initialPost.type])
 
   useEffect(() => {
-    toFieldRef.current.reset()
-    editorRef.current.setContent(initialPost.details)
-    setCurrentPost(initialPost)
-    editorRef.current.focus()
+    reset()
   }, [initialPost.id])
 
   useEffect(() => {
     setCurrentPost({ ...currentPost, linkPreview })
   }, [linkPreview])
 
-  const calcEndTime = (startTime) => {
+  useEffect(() => {
+    // XXX: to make sure the topic gets included in the selectedToOptions once its loaded
+    // TODO: we may want to just make sure all the necessary stuff is loaded from the server before we display the editor
+    if (!topic || currentPost.topics.some(t => t.id === topic.id)) return
+    setCurrentPost({ ...currentPost, topics: [...currentPost.topics, topic] })
+  }, [topic])
+
+  const reset = useCallback(() => {
+    editorRef.current?.setContent(initialPost.details)
+    dispatch(clearLinkPreview())
+    dispatch(clearAttachments('post', 'new', 'image'))
+    setCurrentPost(initialPost)
+    setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
+    setAnnouncementSelected(false)
+    setShowAnnouncementModal(false)
+    if (isChat) {
+      setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
+    } else {
+      toFieldRef.current.reset()
+      setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+    }
+  }, [initialPost])
+
+  const calcEndTime = useCallback((startTime) => {
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
       const start = DateTime.fromJSDate(currentPost.startTime)
@@ -246,48 +272,26 @@ function PostEditor ({
       msDiff = end.diff(start)
     }
     return DateTime.fromJSDate(startTime).plus({ milliseconds: msDiff }).toJSDate()
-  }
+  }, [currentPost.startTime, currentPost.endTime])
 
-  const handlePostTypeSelection = (type) => (event) => {
+  const handlePostTypeSelection = useCallback((type) => {
     setIsDirty(true)
-    navigate({
-      pathname: urlLocation.pathname,
-      search: setQuerystringParam('newPostType', type, urlLocation)
-    }, { replace: true })
+
+    if (modal) {
+      // Track the post type in the URL. So you can share the url with others. And maybe some other reason I'm forgetting right now
+      navigate({
+        pathname: urlLocation.pathname,
+        search: setQuerystringParam('newPostType', type, urlLocation)
+      }, { replace: true })
+    }
 
     setCurrentPost({ ...currentPost, type })
-    setValid(isValid({ type }))
-    setShowPostTypeMenu(!showPostTypeMenu)
-  }
-
-  const postTypeButtonProps = useCallback((forPostType) => {
-    const { type } = currentPost
-    const active = type === forPostType
-    const className = cn(
-      styles.postType,
-      styles[`postType${forPostType.charAt(0).toUpperCase() + forPostType.slice(1)}`],
-      {
-        [styles.active]: active,
-        [styles.selectable]: !loading && !active
-      }
-    )
-    const label = active
-      ? (
-        <span className={styles.initialPrompt}>
-          <span>{t(forPostType)}</span>{' '}
-          <Icon className={cn('icon', `icon-${forPostType}`)} name='ArrowDown' />
-        </span>
-        )
-      : t(forPostType)
-    return {
-      borderRadius: '5px',
-      label,
-      onClick: active ? togglePostTypeMenu : handlePostTypeSelection(forPostType),
-      disabled: loading,
-      color: '',
-      className
+    if (type === 'chat') {
+      setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
+    } else {
+      setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
-  }, [currentPost, loading])
+  }, [currentPost, urlLocation])
 
   const handleTitleChange = useCallback((event) => {
     const title = event.target.value
@@ -297,13 +301,14 @@ function PostEditor ({
         : setTitleLengthError(false)
       setIsDirty(true)
       setCurrentPost({ ...currentPost, title })
-      setValid(isValid({ title }))
     }
   }, [currentPost])
 
-  const handleDetailsChange = useCallback(() => {
+  const handleDetailsChange = useCallback((event) => {
+    const details = editorRef.current.getText()
+    setHasDescription(details.length > 0)
     setIsDirty(true)
-  }, [])
+  }, [currentPost])
 
   const handleToggleContributions = useCallback(() => {
     setCurrentPost({ ...currentPost, acceptContributions: !currentPost.acceptContributions })
@@ -314,26 +319,22 @@ function PostEditor ({
     const endTime = calcEndTime(startTime)
     validateTimeChange(startTime, endTime)
     setCurrentPost({ ...currentPost, startTime, endTime })
-    setValid(isValid({ startTime, endTime }))
     endTimeRef.current.setValue(endTime)
   }
 
   const handleEndTimeChange = useCallback((endTime) => {
     validateTimeChange(currentPost.startTime, endTime)
     setCurrentPost({ ...currentPost, endTime })
-    setValid(isValid({ endTime }))
   }, [currentPost])
 
   const handleDonationsLinkChange = useCallback((evt) => {
     const donationsLink = evt.target.value
     setCurrentPost({ ...currentPost, donationsLink })
-    setValid(isValid({ donationsLink }))
   }, [currentPost])
 
   const handleProjectManagementLinkChange = useCallback((evt) => {
     const projectManagementLink = evt.target.value
     setCurrentPost({ ...currentPost, projectManagementLink })
-    setValid(isValid({ projectManagementLink }))
   }, [currentPost])
 
   const validateTimeChange = useCallback((startTime, endTime) => {
@@ -350,7 +351,6 @@ function PostEditor ({
       location: locationObject.fullText,
       locationId: locationObject.id
     })
-    setValid(isValid({ locationId: locationObject.id }))
   }, [currentPost])
 
   // Checks for linkPreview every 1/2 second
@@ -363,10 +363,10 @@ function PostEditor ({
   const handleAddTopic = useCallback((topic) => {
     const { topics } = currentPost
 
-    if (!allowAddTopic || topics?.length >= MAX_POST_TOPICS) return
+    if (topics?.length >= MAX_POST_TOPICS) return
     setCurrentPost({ ...currentPost, topics: [...topics, topic] })
     setIsDirty(true)
-  }, [currentPost, allowAddTopic])
+  }, [currentPost])
 
   const handleFeatureLinkPreview = useCallback(featured => {
     setCurrentPost({ ...currentPost, linkPreviewFeatured: featured })
@@ -383,7 +383,6 @@ function PostEditor ({
     const hasChanged = !isEqual(initialPost.groups, groups) || !isEqual(initialPost.topics, topics)
 
     setCurrentPost({ ...currentPost, groups, topics })
-    setValid(isValid({ groups, topics }))
 
     if (hasChanged) {
       setIsDirty(true)
@@ -413,34 +412,49 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, eventInvitations })
   }, [currentPost])
 
-  const isValid = useCallback((postUpdates = {}) => {
-    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions } = Object.assign(
-      {},
-      currentPost,
-      postUpdates
-    )
+  const isValid = useMemo(() => {
+    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions } = currentPost
 
-    let validTypeData = type?.length > 0
+    const errorMessages = []
+
     switch (type) {
       case 'event':
-        validTypeData = endTime && startTime && startTime < endTime
+        if (!endTime || !startTime || startTime >= endTime) {
+          errorMessages.push(t('Valid start and end time required'))
+        }
         break
       case 'project':
-        validTypeData = (!donationsLink || sanitizeURL(donationsLink)) &&
-          (!projectManagementLink || sanitizeURL(projectManagementLink))
+        if (!donationsLink || !sanitizeURL(donationsLink) || !projectManagementLink || !sanitizeURL(projectManagementLink)) {
+          errorMessages.push(t('Donations and project management links must be valid URLs'))
+        }
         break
       case 'proposal':
-        validTypeData = proposalOptions?.length > 0
+        if (proposalOptions?.length === 0) {
+          errorMessages.push(t('At least one proposal option required'))
+        }
         break
     }
 
-    return !!(
-      validTypeData &&
-      editorRef.current &&
-      groups?.length > 0 &&
-      title?.length > 0 && title?.length <= MAX_TITLE_LENGTH
-    )
-  }, [currentPost])
+    if (type === 'chat') {
+      if (!hasDescription) {
+        errorMessages.push(t('Chat must have content'))
+      }
+    } else {
+      if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
+        errorMessages.push(t('Title is required'))
+      }
+    }
+
+    if (groups?.length === 0) {
+      errorMessages.push(t('At least one group required'))
+    }
+
+    if (errorMessages.length > 0) {
+      setInvalidMessage(errorMessages.join('<br />'))
+    }
+
+    return errorMessages.length === 0
+  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.proposalOptions])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -493,21 +507,28 @@ function PostEditor ({
     const postToSave = {
       id,
       acceptContributions,
+      commenters: [], // For optimistic display of the new post
+      createdAt: DateTime.now().toISO(), // For optimistic display of the new post
+      creator: currentUser, // For optimistic display of the new post
       details,
       donationsLink: sanitizeURL(donationsLink),
       endTime,
       eventInviteeIds,
+      fileAttachments, // For optimistic display of the new post
       fileUrls,
       groups,
+      imageAttachments, // For optimistic display of the new post
       imageUrls,
       isAnonymousVote,
       isPublic,
       isStrictProposal,
       linkPreview,
       linkPreviewFeatured,
+      localId: uniqueId('post_'), // For optimistic display of the new post
       location: postLocation,
       locationId: actualLocationId,
       memberIds,
+      pending: true, // For optimistic display of the new post
       projectManagementLink: sanitizeURL(projectManagementLink),
       proposalOptions: proposalOptions.map(({ color, emoji, text, id }) => {
         return { color, text, emoji, id }
@@ -524,11 +545,15 @@ function PostEditor ({
 
     const saveFunc = isEditing ? updatePost : createPost
     setAnnouncementSelected(false)
-    await dispatch(saveFunc(postToSave))
-    onClose()
-  }, [currentPost, isEditing, onClose])
+    if (onSave) onSave(postToSave)
+    const savedPost = await dispatch(saveFunc(postToSave))
+    if (afterSave) afterSave(savedPost.payload.data.createPost)
+    reset()
+  }, [afterSave, announcementSelected, currentPost, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
 
-  const doSave = useCallback(() => {
+  const doSave = useEventCallback(() => {
+    if (!isValid || loading) return
+
     const _save = announcementSelected ? toggleAnnouncementModal : save
     if (currentPost.type === 'proposal' && isEditing && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions)) {
       if (window.confirm(t('Changing proposal options will reset the votes. Are you sure you want to continue?'))) {
@@ -537,7 +562,7 @@ function PostEditor ({
     } else {
       _save()
     }
-  }, [currentPost, isEditing, initialPost, save])
+  }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading])
 
   const buttonLabel = useCallback(() => {
     if (postPending) return t('Posting...')
@@ -548,10 +573,6 @@ function PostEditor ({
   const toggleAnnouncementModal = useCallback(() => {
     setShowAnnouncementModal(!showAnnouncementModal)
   }, [showAnnouncementModal])
-
-  const togglePostTypeMenu = useCallback(() => {
-    setShowPostTypeMenu(!showPostTypeMenu)
-  }, [showPostTypeMenu])
 
   const handleSetQuorum = useCallback((quorum) => {
     setCurrentPost({ ...currentPost, quorum })
@@ -570,14 +591,12 @@ function PostEditor ({
       quorum: templateData.form.quorum,
       votingMethod: templateData.form.votingMethod
     })
-    setValid(isValid({ proposalOptions: templateData.form.proposalOptions }))
   }, [currentPost])
 
   const handleAddOption = useCallback(() => {
     const { proposalOptions } = currentPost
     const newOptions = [...proposalOptions, { text: '', emoji: '', color: '', tempId: generateTempID() }]
     setCurrentPost({ ...currentPost, proposalOptions: newOptions })
-    setValid(isValid({ proposalOptions: newOptions }))
   }, [currentPost])
 
   const canMakeAnnouncement = useCallback(() => {
@@ -589,74 +608,78 @@ function PostEditor ({
     return true
   }, [currentPost, myAdminGroups])
 
-  const canHaveTimes = currentPost.type !== 'discussion'
+  const canHaveTimes = currentPost.type !== 'discussion' && currentPost.type !== 'chat'
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
-  const invalidPostWarning = currentPost.type === 'proposal' ? t('You need a title, a group and at least one option for a proposal') : t('You need a title and at least one group to post')
+  const isChat = currentPost.type === 'chat'
 
   const handleToFieldContainerClick = () => {
     toFieldRef.current?.focus() // This will call the focus method on ToField
   }
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-xl', { [styles.hide]: showAnnouncementModal })}>
-      <div className='PostEditorHeader relative my-1 pb-2'>
-        <div>
-          {currentPost.type && <Button noDefaultStyles {...postTypeButtonProps(currentPost.type)} />}
-          {showPostTypeMenu && (
-            <div className={styles.postTypeMenu}>
-              {postTypes
-                .filter((postType) => postType !== currentPost.type)
-                .map((postType) => (
-                  <Button noDefaultStyles {...postTypeButtonProps(postType)} key={postType} />
-                ))}
-            </div>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-xl')}>
+      <div className={cn('PostEditorHeader relative', { 'my-1 pb-2': !isChat })}>
+        <PostTypeSelect
+          disabled={loading}
+          includeChat={!modal}
+          postType={currentPost.type}
+          setPostType={handlePostTypeSelection}
+          className={cn({ 'absolute top-1 right-1 z-10': isChat })}
+        />
+      </div>
+      {!isChat && (
+        <div
+          className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, { 'border-2 border-focus': toFieldFocused })}
+          onClick={handleToFieldContainerClick}
+        >
+          <div className='text-xs text-foreground/50 px-2'>{t('To')}</div>
+          <div className={cn('border-foreground w-full', styles.sectionGroups)}>
+            <ToField
+              options={toOptions}
+              selected={selectedToOptions}
+              onChange={handleAddToOption}
+              readOnly={loading}
+              ref={toFieldRef}
+              onFocus={() => setToFieldFocused(true)}
+              onBlur={() => setToFieldFocused(false)}
+            />
+          </div>
+        </div>
+      )}
+      {!isChat && (
+        <div className={cn('PostEditorTitle transition-all border-2 border-transparent', styles.section, { 'border-2 border-focus': titleFocused })}>
+          <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
+          <input
+            type='text'
+            className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
+            value={currentPost.title || ''}
+            onChange={handleTitleChange}
+            disabled={loading}
+            ref={titleInputRef}
+            maxLength={MAX_TITLE_LENGTH}
+            onFocus={() => setTitleFocused(true)}
+            onBlur={() => setTitleFocused(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && event.altKey) {
+                doSave()
+              }
+            }}
+          />
+          {titleLengthError && (
+            <span className={styles.titleError}>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
           )}
         </div>
-      </div>
-      <div
-        className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, { 'border-2 border-focus': toFieldFocused })}
-        onClick={handleToFieldContainerClick}
-      >
-        <div className='text-xs text-foreground/50 px-2'>{t('To')}</div>
-        <div className={cn('border-foreground w-full', styles.sectionGroups)}>
-          <ToField
-            options={toOptions}
-            selected={selectedToOptions}
-            onChange={handleAddToOption}
-            readOnly={loading}
-            ref={toFieldRef}
-            onFocus={() => setToFieldFocused(true)}
-            onBlur={() => setToFieldFocused(false)}
-          />
-        </div>
-      </div>
-      <div className={cn('PostEditorTitle transition-all border-2 border-transparent', styles.section, { 'border-2 border-focus': titleFocused })}>
-        <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
-        <input
-          type='text'
-          className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
-          value={currentPost.title || ''}
-          onChange={handleTitleChange}
-          disabled={loading}
-          ref={titleInputRef}
-          maxLength={MAX_TITLE_LENGTH}
-          onFocus={() => setTitleFocused(true)}
-          onBlur={() => setTitleFocused(false)}
-        />
-        {titleLengthError && (
-          <span className={styles.titleError}>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
-        )}
-      </div>
+      )}
       <div className={cn('PostEditorContent', styles.section, 'flex flex-col !items-start')}>
         {currentPost.details === null || loading
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
               key={currentPost.id}
-              className={styles.editor}
-              placeholder={t('Add a description')}
+              placeholder={isChat ? t('Send a chat to #{{topicName}}', { topicName: currentPost?.topics?.[0]?.name }) : t('Add a description')}
               onUpdate={handleDetailsChange}
+              onAltEnter={doSave}
               // Disable edit cancel through escape due to event bubbling issues
               // onEscape={handleCancel}
               onAddTopic={handleAddTopic}
@@ -715,12 +738,14 @@ function PostEditor ({
           />
         </div>
       </div> */}
-      <div className={cn('PostEditorPublic', styles.section)}>
-        <PublicToggle
-          togglePublic={togglePublic}
-          isPublic={!!currentPost.isPublic}
-        />
-      </div>
+      {!isChat && (
+        <div className={cn('PostEditorPublic', styles.section)}>
+          <PublicToggle
+            togglePublic={togglePublic}
+            isPublic={!!currentPost.isPublic}
+          />
+        </div>
+      )}
       {currentPost.type === 'proposal' && currentPost.proposalOptions.length === 0 && (
         <div className={styles.section}>
           <div className={styles.sectionLabel}>{t('Proposal template')}</div>
@@ -802,7 +827,6 @@ function PostEditor ({
                     })
 
                     setCurrentPost({ ...currentPost, proposalOptions: newOptions })
-                    setValid(isValid({ proposalOptions: newOptions }))
                   }}
                 />
               </div>
@@ -999,10 +1023,11 @@ function PostEditor ({
         canMakeAnnouncement={canMakeAnnouncement()}
         groupCount={get('groups', currentPost).length}
         groups={currentPost.groups}
-        invalidPostWarning={invalidPostWarning}
+        invalidMessage={invalidMessage}
         loading={loading}
         myAdminGroups={myAdminGroups}
-        save={doSave}
+        doSave={doSave}
+        save={save}
         setAnnouncementSelected={setAnnouncementSelected}
         setShowLocation={setShowLocation}
         showAnnouncementModal={showAnnouncementModal}
@@ -1011,7 +1036,8 @@ function PostEditor ({
         showLocation={showLocation}
         submitButtonLabel={buttonLabel()}
         toggleAnnouncementModal={toggleAnnouncementModal}
-        valid={valid}
+        type={currentPost.type}
+        valid={isValid}
       />
     </div>
   )

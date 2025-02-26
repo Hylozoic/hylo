@@ -1,15 +1,5 @@
-// TODO: Get "t" from current i18n instance so it doesn't need to be passed
-// import i18n from 'react-i18next'
-
-// TODO: URQL! Remove this before release
-// t / translate is currently set to a dummy function if not sent
-const tDummy = t => {
-  // console.error('!!! ContextWidgetPresenter REQUIRES t to be passed in the second arg options, using dummy function instead')
-  return t
-}
-
-export default function ContextWidgetPresenter (widget, { t }) {
-  if (!widget || widget?._presented || !t) return widget
+export default function ContextWidgetPresenter (widget) {
+  if (!widget || widget?._presented) return widget
 
   // Resolve type once and pass it explicitly
   const type = widgetTypeResolver({ widget })
@@ -23,21 +13,19 @@ export default function ContextWidgetPresenter (widget, { t }) {
     iconName: iconNameResolver(widget, type),
     isDroppable: isDroppableResolver(widget),
     isValidHomeWidget: isValidHomeWidgetResolver(widget),
-    title: titleResolver({ widget, t }),
-    isHiddenInContextMenu: isHiddenInContextMenuResolver(widget),
+    title: titleResolver(widget),
     type,
-    // Protects us from double presenting a widget
+    // Protection from double presenting
     _presented: true
   }
 }
 
 /* == Attribute Resolvers == */
 
-function titleResolver ({ widget, t }) {
+function titleResolver (widget) {
   let title = widget?.title
-  if (title && title.startsWith('widget-')) {
-    title = t(title)
-  } else if (!title) {
+  if (title && title.startsWith('widget-')) return title
+  if (!title) {
     title =
       widget?.viewGroup?.name ||
       widget?.viewUser?.name ||
@@ -88,7 +76,7 @@ function iconNameResolver (widget, type) {
   if (widget?.customView?.icon) return widget.customView.icon
   if (widget?.context === 'my') return null
 
-  return WIDGET_TYPE_TO_ICON_NAME_MAP[type] || COMMON_VIEWS[type]?.icon || null
+  return WIDGET_TYPE_TO_ICON_NAME_MAP[type] || COMMON_VIEWS[type]?.iconName || null
 }
 
 // Determines whether a widget can be dropped into another container
@@ -134,7 +122,13 @@ function widgetTypeResolver ({ widget }) {
   )
 }
 
-const isHiddenInContextMenuResolver = (widget) => {
+export const isHiddenInContextMenuResolver = (widget) => {
+  /*
+    One of the AND rules for hiding a widget for the context menu
+    (something needs to fail a set of the rules to be hidden),
+    is not having any children. Since widgets arrive from the server in a flat array,
+    the needs-to-be-hidden quality of a widget has to wait until things are ordered for this to be accurate.
+  */
   return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
   !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
   !widget.viewChat && !widget.customView)
@@ -151,11 +145,9 @@ export function findHomeWidget (group) {
   return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
 }
 
-export function wrapItemInWidget (item, type) {
-  return {
-    [type]: item,
-    id: 'fake-id-' + crypto.randomUUID()
-  }
+export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl }) {
+  if (isPublicContext) return PUBLIC_CONTEXT_WIDGETS
+  if (isMyContext) return MY_CONTEXT_WIDGETS(profileUrl)
 }
 
 // Determines if a child widget is valid inside a parent widget
@@ -173,20 +165,6 @@ export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
     childWidget?.id === parentWidget?.id ||
     childWidget?.type === 'container'
   )
-}
-
-export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl, isAllContext }) {
-  let widgets = []
-
-  if (isPublicContext) {
-    widgets = PUBLIC_CONTEXT_WIDGETS
-  }
-
-  if (isMyContext || isAllContext) {
-    widgets = MY_CONTEXT_WIDGETS(profileUrl)
-  }
-
-  return widgets
 }
 
 export const orderContextWidgetsForContextMenu = (contextWidgets) => {
@@ -220,46 +198,53 @@ export const orderContextWidgetsForContextMenu = (contextWidgets) => {
   return parentWidgets
 }
 
+export function translateTitle (title, t) {
+  return title && title.startsWith('widget-') ? t(title) : title
+}
+
+export function wrapItemInWidget (item, type) {
+  return {
+    [type]: item,
+    id: 'fake-id-' + crypto.randomUUID()
+  }
+}
+
+// Static widgets and widget data
+const TERMS_AND_CONDITIONS_URL = 'https://hylo-landing.surge.sh/terms'
+
 const PUBLIC_CONTEXT_WIDGETS = [
-  { context: 'public', title: 'widget-public-stream', id: 'widget-public-stream', view: 'stream', order: 1, parentId: null },
-  { context: 'public', title: 'widget-public-groups', id: 'widget-public-groups', view: 'groups', order: 2, parentId: null },
-  { context: 'public', title: 'widget-public-map', id: 'widget-public-map', view: 'map', type: 'map', order: 3, parentId: null },
-  { context: 'public', title: 'widget-public-events', id: 'widget-public-events', view: 'events', order: 4, parentId: null }
+  { context: 'public', view: 'stream', title: 'widget-public-stream', id: 'widget-public-stream', order: 1, parentId: null },
+  { context: 'public', view: 'groups', title: 'widget-public-groups', id: 'widget-public-groups', order: 2, parentId: null },
+  { context: 'public', view: 'map', title: 'widget-public-map', id: 'widget-public-map', type: 'map', order: 3, parentId: null },
+  { context: 'public', view: 'events', title: 'widget-public-events', id: 'widget-public-events', order: 4, parentId: null }
 ]
 
 const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { title: 'widget-my-groups-content', id: 'widget-my-groups-content', order: 2, parentId: null },
-  { title: 'widget-my-groups-stream', id: 'widget-my-groups-stream', context: 'all', view: 'stream', order: 1, parentId: 'widget-my-groups-content' },
-  { title: 'widget-my-groups-map', id: 'widget-my-groups-map', context: 'all', view: 'map', type: 'map', order: 2, parentId: 'widget-my-groups-content' },
-  { title: 'widget-my-groups-events', id: 'widget-my-groups-events', context: 'all', view: 'events', order: 3, parentId: 'widget-my-groups-content' },
+  { context: 'all', view: 'stream', title: 'widget-my-groups-stream', id: 'widget-my-groups-stream', order: 1, parentId: 'widget-my-groups-content' },
+  { context: 'all', view: 'map', title: 'widget-my-groups-map', id: 'widget-my-groups-map', type: 'map', order: 2, parentId: 'widget-my-groups-content' },
+  { context: 'all', view: 'events', title: 'widget-my-groups-events', id: 'widget-my-groups-events', order: 3, parentId: 'widget-my-groups-content' },
   { title: 'widget-my-content', id: 'widget-my-content', order: 1, parentId: null },
-  { icon: 'Posticon', title: 'widget-my-posts', id: 'widget-my-posts', view: 'posts', order: 1, parentId: 'widget-my-content', context: 'my' },
-  { icon: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', view: 'interactions', order: 2, parentId: 'widget-my-content', context: 'my' },
-  { icon: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', view: 'mentions', order: 3, parentId: 'widget-my-content', context: 'my' },
-  { icon: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', view: 'announcements', order: 4, parentId: 'widget-my-content', context: 'my' },
+  { context: 'my', view: 'posts', iconName: 'Posticon', title: 'widget-my-posts', id: 'widget-my-posts', order: 1, parentId: 'widget-my-content' },
+  { context: 'my', view: 'interactions', iconName: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', order: 2, parentId: 'widget-my-content' },
+  { context: 'my', view: 'mentions', iconName: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', order: 3, parentId: 'widget-my-content' },
+  { context: 'my', view: 'announcements', iconName: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', order: 4, parentId: 'widget-my-content' },
   { title: 'widget-myself', id: 'widget-myself', order: 3, parentId: null },
   { title: 'widget-my-profile', id: 'widget-my-profile', url: profileUrl, order: 1, parentId: 'widget-myself' },
-  { title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', context: 'my', view: 'edit-profile', order: 2, parentId: 'widget-myself' },
-  { title: 'widget-my-groups', id: 'widget-my-groups', context: 'my', view: 'groups', order: 3, parentId: 'widget-myself' },
-  { title: 'widget-my-invites', id: 'widget-my-invites', context: 'my', view: 'invitations', order: 4, parentId: 'widget-myself' },
-  { title: 'widget-my-notifications', id: 'widget-my-notifications', context: 'my', view: 'notifications', order: 5, parentId: 'widget-myself' },
-  { title: 'widget-my-locale', id: 'widget-my-locale', context: 'my', view: 'locale', order: 6, parentId: 'widget-myself' },
-  { title: 'widget-my-account', id: 'widget-my-account', context: 'my', view: 'account', order: 7, parentId: 'widget-myself' },
-  { title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', context: 'my', view: 'saved-searches', order: 8, parentId: 'widget-myself' },
-  { title: 'widget-my-logout', id: 'widget-my-logout', view: 'logout', type: 'logout', order: 4, parentId: null }
+  { context: 'my', view: 'edit-profile', title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', order: 2, parentId: 'widget-myself' },
+  { context: 'my', view: 'groups', title: 'widget-my-groups', id: 'widget-my-groups', order: 3, parentId: 'widget-myself' },
+  { context: 'my', view: 'invitations', title: 'widget-my-invites', id: 'widget-my-invites', order: 4, parentId: 'widget-myself' },
+  { context: 'my', view: 'notifications', title: 'widget-my-notifications', id: 'widget-my-notifications', order: 5, parentId: 'widget-myself' },
+  { context: 'my', view: 'locale', title: 'widget-my-locale', id: 'widget-my-locale', order: 6, parentId: 'widget-myself' },
+  { context: 'my', view: 'account', title: 'widget-my-account', id: 'widget-my-account', order: 7, parentId: 'widget-myself' },
+  { context: 'my', view: 'saved-searches', title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', order: 8, parentId: 'widget-myself' },
+  { context: 'my', url: TERMS_AND_CONDITIONS_URL, title: 'widget-terms-and-conditions', id: 'widget-terms-and-conditions', order: 9, parentId: 'widget-myself' },
+  { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', order: 4, parentId: null }
 ]
 
-// What are views? Highly suspect :)
 export const COMMON_VIEWS = {
-  'ask-and-offer': {
-    name: 'Ask & Offer',
-    iconName: 'Request',
-    defaultViewMode: 'bigGrid',
-    postTypes: ['request', 'offer'],
-    defaultSortBy: 'created'
-  },
-  decisions: {
-    name: 'Decisions',
+  proposals: {
+    name: 'Proposals',
     iconName: 'Proposal',
     defaultViewMode: 'cards',
     postTypes: ['proposal'],
@@ -289,13 +274,24 @@ export const COMMON_VIEWS = {
   },
   members: {
     name: 'Members',
-    iconName: 'People',
+    iconName: 'People'
+  },
+  moderation: {
+    name: 'Moderation',
+    iconName: 'Shield'
   },
   projects: {
     name: 'Projects',
     iconName: 'Stack',
     defaultViewMode: 'bigGrid',
     postTypes: ['project'],
+    defaultSortBy: 'created'
+  },
+  'requests-and-offers': {
+    name: 'Requests & Offers',
+    iconName: 'Request',
+    defaultViewMode: 'bigGrid',
+    postTypes: ['request', 'offer'],
     defaultSortBy: 'created'
   },
   resources: {

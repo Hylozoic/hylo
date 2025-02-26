@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash/fp'
-import ContextWidgetPresenter, { humanReadableTypeResolver, isValidChildWidget } from '@hylo/presenters/ContextWidgetPresenter'
+import ContextWidgetPresenter, { humanReadableTypeResolver, isValidChildWidget, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import { addQuerystringToPath, baseUrl, widgetUrl } from 'util/navigation'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -56,15 +56,16 @@ export default function AllViews () {
   const dispatch = useDispatch()
   const routeParams = useParams()
 
-  // Access the current group and its contextWidgets
-  const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
-  const contextWidgets = group?.contextWidgets?.items || []
-
   const isEditing = getQuerystringParam('cme', location) === 'yes'
   const isAddingView = getQuerystringParam('addview', location) === 'yes'
   const orderInFrontOfWidgetId = getQuerystringParam('orderInFrontOfWidgetId', location)
   const parentId = getQuerystringParam('parentId', location)
   const addToEnd = getQuerystringParam('addToEnd', location)
+
+  // Access the current group and its contextWidgets
+  const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const contextWidgets = group?.contextWidgets?.items || []
+
   const parentWidget = parentId ? contextWidgets.find(widget => widget.id === parentId) : null
 
   // Determine the rootPath
@@ -72,13 +73,6 @@ export default function AllViews () {
 
   // Check if the user can administer the group
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
-
-  // Filter widgets based on visibility
-  const visibleWidgets = contextWidgets.filter(widget => {
-    if (widget.visibility === 'admin' && !canAdminister) return false
-    if (widget.type === 'home') return false
-    return true
-  })
 
   const handleWidgetHomePromotion = useCallback((widget) => {
     if (window.confirm(t('Are you sure you want to set this widget as the home/default widget for this group?'))) {
@@ -94,22 +88,30 @@ export default function AllViews () {
     }))
   }, [updateContextWidget])
 
-  const widgetsSorted = useMemo(() => {
-    return visibleWidgets.map(widget => {
-      return ContextWidgetPresenter(widget, { t })
-    }).sort((a, b) => a.title.localeCompare(b.title))
-  }, [visibleWidgets])
+  // Filter and sort widgets and get them ready for display
+  const visibleWidgets = useMemo(() => {
+    return contextWidgets.filter(widget => {
+      // When not editing only show widgets with a related view or chat room
+      if (!isEditing && !widget.view && !widget.customView && widget.type !== 'chat') return false
+      // When editing only show widgets that have not already been added
+      if (isEditing && widget.order) return false
+      if (widget.visibility === 'admin' && !canAdminister) return false
+      return true
+    })
+      .map(widget => ContextWidgetPresenter(widget))
+      .sort((a, b) => a.title.localeCompare(b.title))
+  }, [contextWidgets, isEditing])
 
   // Create widget cards
   const widgetCards = useMemo(() => {
-    return widgetsSorted.map(widget => {
+    return visibleWidgets.map(widget => {
       // TODO: Integrate into ContextWidgetPresenter as makeUrl() method on presented object (requires shared url makers/helpers)
       const url = widgetUrl({ widget, rootPath, groupSlug: routeParams.groupSlug, context: 'group' })
       const cardContent = (
         <div>
           <h3 className='text-lg font-semibold text-foreground'>
             <WidgetIconResolver widget={widget} />
-            <span className='ml-2'>{widget.title}</span>
+            <span className='ml-2'>{translateTitle(widget.title, t)}</span>
           </h3>
           {widget.humanReadableType && (
             <span className='text-sm  text-foreground'>
@@ -158,12 +160,12 @@ export default function AllViews () {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: t('All Views'),
+      title: isEditing ? t('Editing Group Menu') : t('All Views'),
       icon: 'Window',
       info: '',
       search: true
     })
-  }, [])
+  }, [isEditing])
 
   return (
     <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4'>
@@ -207,6 +209,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
   const [addChoice, setAddChoice] = useState(initialAddChoice)
   const [selectedItem, setSelectedItem] = useState(null)
   const [widgetData, setWidgetData] = useState({ title: '', visibility: 'all' })
+  const [isCreating, setIsCreating] = useState(false)
 
   const handleReset = () => {
     setAddChoice(null)
@@ -215,6 +218,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
   }
 
   const handleCreate = useCallback(async ({ widgetData, selectedItem, addChoice }) => {
+    setIsCreating(true)
     let groupTopic
     // if a topic comes here with 'create' as its id, we need to create a groupTopic before we can create the widget
     if (addChoice === CHAT && selectedItem.id === 'create') {
@@ -246,6 +250,8 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
       navigate(addQuerystringToPath(location.pathname, { cme: 'yes' }))
     } catch (error) {
       console.error('Failed to create context widget:', error)
+    } finally {
+      setIsCreating(false)
     }
   }, [])
 
@@ -317,10 +323,11 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
           {(selectedItem || addChoice === CONTAINER) &&
             <Button
               variant='primary'
+              disabled={isCreating}
               onClick={() => handleCreate({ widgetData, selectedItem, addChoice })}
               className='bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600'
             >
-              {t('Create')}
+              {isCreating ? t('Creating...') : t('Create')}
             </Button>}
         </div>
       </div>

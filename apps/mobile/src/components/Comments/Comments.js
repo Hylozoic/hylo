@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import React, { useState, useRef, useImperativeHandle, useCallback } from 'react'
-import { Text, TouchableOpacity, View } from 'react-native'
+import { Dimensions, Text, TouchableOpacity, View } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useQuery } from 'urql'
 import { isIOS } from 'util/platform'
@@ -14,7 +14,6 @@ export const Comments = React.forwardRef(({
   groupId,
   postId,
   header: providedHeader = null,
-  style = {},
   showMember,
   panHandlers,
   onSelect
@@ -106,9 +105,14 @@ export const Comments = React.forwardRef(({
 
   return (
     <FlashList
-      style={style}
-      contentContainerStyle={styles.contentContainerStyle}
       ref={commentsListRef}
+      // TODO: Make height fill screen so it starts at top when content size is < screen size.
+      // Haven't been able to arrive at a solution yet, but the below methods are the keys to
+      // getting there. The fallback to to use a FlatList here again instead of FlashList, as we
+      // previously had a functioning hack for FlatList for this case.
+      // onLoad={() => {}}
+      // onLayout={({ nativeEvent }) => { nativeEvent.layout.height }}
+      // onContentSizeChange={(width, height) => {}}
       // Footer is Header, etc.
       inverted
       ListFooterComponent={Header}
@@ -117,6 +121,7 @@ export const Comments = React.forwardRef(({
       // This means that FlashList will re-render anytime this/these values change
       extraData={highlightedComment}
       estimatedItemSize={100}
+      estimatedListSize={Dimensions.get('screen')}
       keyExtractor={comment => comment.id}
       keyboardShouldPersistTaps='never'
       keyboardDismissMode={isIOS ? 'interactive' : 'on-drag'}

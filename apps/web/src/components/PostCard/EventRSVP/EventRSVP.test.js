@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import EventRSVP from './EventRSVP'
-import { RESPONSES } from 'store/models/EventInvitation'
 
 describe('EventRSVP', () => {
   const mockRespondToEvent = jest.fn()

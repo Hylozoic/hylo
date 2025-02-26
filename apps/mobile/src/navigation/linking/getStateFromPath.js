@@ -5,6 +5,7 @@ import { URL } from 'react-native-url-polyfill'
 import queryString from 'query-string'
 import store from 'store'
 import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
+import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 import {
   routingConfig,
   initialRouteNamesConfig,
@@ -26,7 +27,7 @@ export default function getStateFromPath (providedPath) {
 
   const screenConfig = buildScreenConfigFromScreenPath(screenPath)
 
-  // TODO: URQL! - either figure out how to get auth state here and restore this,
+  // TODO: Routing - Either figure out how to get auth state here and restore this,
   // or implement another way to catch AUTH_ROOT route matches when non-authed and
   // set the returnToOnAuth path higher up the stack.
   // let { isAuthorized } = checkAuth()
@@ -72,6 +73,16 @@ export function addParamsToScreenPath (routeMatch) {
       screenPath
     } = routeMatch
     const routeParams = []
+
+    // Overrides "all" context routes to be "my" context, remove when/if routing changes to align
+    if (pathMatch?.params?.context === ALL_GROUPS_CONTEXT_SLUG || pathMatch?.params?.context === MY_CONTEXT_SLUG) {
+      pathMatch.params.context = MY_CONTEXT_SLUG
+    }
+
+    // My and Public contexts are treated as groups so their identifying slug gets assigned to groupSlug
+    if (pathMatch?.params?.context === PUBLIC_CONTEXT_SLUG || pathMatch?.params?.context === MY_CONTEXT_SLUG) {
+      pathMatch.params.groupSlug = pathMatch?.params?.context
+    }
 
     if (!isEmpty(search)) routeParams.push(search.substring(1))
     if (!isEmpty(pathMatch.params)) routeParams.push(queryString.stringify(pathMatch.params))

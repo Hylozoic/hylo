@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import ModalDialog from 'components/ModalDialog'
 import CheckBox from 'components/CheckBox'
 import Button from 'components/Button'
-import { humanResponse } from 'store/models/EventInvitation'
+import { humanResponse } from '@hylo/presenters/EventInvitationPresenter'
 import TextInput from 'components/TextInput'
 import { useInView } from 'react-cool-inview'
 import Loading from 'components/Loading'
@@ -122,6 +122,7 @@ const EventInviteDialog = ({
 }
 
 export const InviteeRow = React.forwardRef((props, ref) => {
+  const { t } = useTranslation()
   const { person, selected, showResponse, onClick } = props
   const { name, avatarUrl, response } = person
   return (
@@ -139,7 +140,7 @@ export const InviteeRow = React.forwardRef((props, ref) => {
       )}
       {showResponse && response && (
         <div className={cn(styles.col, styles.response)}>
-          {humanResponse(response)}
+          {t(humanResponse(response))}
         </div>
       )}
     </div>
