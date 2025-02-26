@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Mode, calendarModes } from '../../calendar-types'
 import { useCalendarContext } from '../../calendar-context'
@@ -9,6 +10,7 @@ import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 export default function CalendarHeaderActionsMode () {
+  const { t } = useTranslation()
   const { mode, setMode } = useCalendarContext()
 
   return (
@@ -115,7 +117,7 @@ export default function CalendarHeaderActionsMode () {
                           }
                         }}
                       >
-                        {modeValue.charAt(0).toUpperCase() + modeValue.slice(1)}
+                        {t(modeValue.charAt(0).toUpperCase() + modeValue.slice(1))}
                       </motion.p>
                     )}
                   </AnimatePresence>

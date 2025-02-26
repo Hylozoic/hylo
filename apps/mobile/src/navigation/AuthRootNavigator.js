@@ -21,6 +21,7 @@ import { modalScreenName } from 'hooks/useIsModalScreen'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import CreateGroupTabsNavigator from 'navigation/CreateGroupTabsNavigator'
 import DrawerNavigator from 'navigation/DrawerNavigator'
+import CreationOptions from 'screens/CreationOptions'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
 import LoadingScreen from 'screens/LoadingScreen'
 import MemberProfile from 'screens/MemberProfile'
@@ -160,6 +161,10 @@ export default function AuthRootNavigator () {
           <AuthRoot.Screen
             name={modalScreenName('Post Details')} component={PostDetails}
             options={{ title: 'Post Details' }}
+          />
+          <AuthRoot.Screen
+            name={modalScreenName('Creation')} component={CreationOptions}
+            options={{ title: 'Create' }}
           />
           <AuthRoot.Screen
             name={modalScreenName('Member')} component={MemberProfile}

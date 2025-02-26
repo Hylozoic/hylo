@@ -1,9 +1,11 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useCalendarContext } from '../../calendar-context'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { Mode } from '../../calendar-types'
+import { sameMonth, sameWeek, sameDay, getLocaleAsString } from '../../calendar-util'
 
 const formatDate = (luxonDate: DateTime, mode: Mode) => {
   const weekStart = luxonDate.startOf('week', { useLocaleWeeks: true })
@@ -41,8 +43,32 @@ const formatDate = (luxonDate: DateTime, mode: Mode) => {
 }
 
 export default function CalendarHeaderDateChevrons () {
+  const { t } = useTranslation()
   const { mode, date, setDate } = useCalendarContext()
-  const luxonDate = DateTime.fromJSDate(date)
+  const luxonDate = DateTime.fromJSDate(date).setLocale(getLocaleAsString())
+  const today = new Date()
+
+  const shouldHideGoToButton = () => {
+    switch (mode) {
+      case 'month':
+        return sameMonth(date, today)
+      case 'week':
+        return sameWeek(date, today)
+      case 'day':
+        return sameDay(date, today)
+    }
+  }
+
+  const goToButtonText = () => {
+    switch (mode) {
+      case 'month':
+        return t('Go to This Month')
+      case 'week':
+        return t('Go to This Week')
+      case 'day':
+        return t('Go to Today')
+    }
+  }
 
   const handleDateBackward = () => {
     switch (mode) {
@@ -93,6 +119,15 @@ export default function CalendarHeaderDateChevrons () {
       >
         <ChevronRight className='min-w-5 min-h-5' />
       </Button>
+
+      {!shouldHideGoToButton() &&
+        <Button
+          variant='outline'
+          className='h-7 p-3'
+          onClick={() => setDate(today)}
+        >
+          {goToButtonText()}
+        </Button>}
     </div>
   )
 }
