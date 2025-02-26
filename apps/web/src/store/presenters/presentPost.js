@@ -11,6 +11,7 @@ export default function presentPost (post, groupId) {
     Number(p.group) === Number(groupId))
   const pinned = postMembership && postMembership.pinned
   const createdAtHumanDate = TextHelpers.humanDate(post.createdAt)
+  const createdAtHumanDateShort = TextHelpers.humanDate(post.createdAt, true)
   const editedAtHumanDate = TextHelpers.humanDate(post.editedAt)
 
   return {
@@ -43,7 +44,7 @@ export default function presentPost (post, groupId) {
       }
     }),
     proposalOptions: post.proposalOptions?.toModelArray() || [],
-    createdTimestampForGrid: createdAtHumanDate,
+    createdTimestampForGrid: createdAtHumanDateShort,
     createdTimestamp: `${i18n.t('Posted')} ${createdAtHumanDate}`,
     editedTimestamp: post.editedAt ? `${i18n.t('Edited')} ${editedAtHumanDate}` : null,
     exactCreatedTimestamp: DateTime.fromISO(post.createdAt).setLocale(getLocaleAsString()).toFormat('D t ZZZZ'),
