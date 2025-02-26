@@ -294,7 +294,7 @@ export default function ChatPost ({
             </div>
           </ClickCatcher>
         )}
-        {isFlagged && <Link to={moderationActionsGroupUrl} className='absolute top-1 ml-[50%] text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='flag-tt'><Icon name='Flag' className='text-xl text-accent font-bold' /></Link>}
+        {isFlagged && <Link to={moderationActionsGroupUrl} className='absolute top-[calc(50%-14px)] ml-[50%] text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='flag-tt'><Icon name='Flag' className='text-xl text-accent font-bold' /></Link>}
         <Tooltip
           delay={250}
           id='flag-tt'
