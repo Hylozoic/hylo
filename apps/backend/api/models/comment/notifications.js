@@ -101,7 +101,7 @@ export const sendDigests = async () => {
 
         const otherAvatarUrls = others.map(other => other.get('avatar_url'))
 
-        const participantNames = otherNames.slice(0, otherNames.length - 1).join(', ') +
+        const participantNames = otherNames.length === 1 ? otherNames[0] : otherNames.slice(0, otherNames.length - 1).join(', ') +
         ' & ' + otherNames[otherNames.length - 1]
 
         return Email.sendMessageDigest({
