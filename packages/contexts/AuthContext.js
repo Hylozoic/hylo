@@ -20,47 +20,6 @@ Each state below below implies transition from the previous state has completed,
 
 */
 
-export const AuthState = {
-  None: 'None',
-  EmailValidation: 'EmailValidation',
-  Registration: 'Registration',
-  SignupInProgress: 'SignupInProgress',
-  Authorized: 'Authorized'
-}
-
-// Determines the current user's authentication state
-function getAuthState (currentUser) {
-  if (!currentUser) return AuthState.None
-
-  const { emailValidated, hasRegistered, settings } = currentUser
-  const { signupInProgress } = settings
-
-  switch (true) {
-    case !emailValidated:
-      return AuthState.EmailValidation
-    case !hasRegistered:
-      return AuthState.Registration
-    case signupInProgress:
-      return AuthState.SignupInProgress
-    default:
-      return AuthState.Authorized
-  }
-}
-
-// Computes derived authentication statuses based on authState
-function getAuthStatuses (authState) {
-  return {
-    isAuthenticated: authState !== AuthState.None,
-    // Signup statuses
-    isEmailValidated: authState === AuthState.EmailValidation,
-    isRegistered: authState === AuthState.Registration,
-    isSignupInProgress: authState === AuthState.SignupInProgress,
-    // Signup complete
-    isAuthorized: authState === AuthState.Authorized
-  }
-}
-
-// Create Auth Context
 const AuthContext = createContext(null)
 
 export function AuthProvider ({ children }) {
@@ -73,8 +32,11 @@ export function AuthProvider ({ children }) {
   const [, executeLogout] = useMutation(logoutMutation)
 
   const currentUser = data?.me
-  const authState = getAuthState(currentUser)
-  const authStatuses = getAuthStatuses(authState)
+  const isAuthenticated = currentUser
+  const isAuthorized = isAuthenticated &&
+    currentUser?.emailValidated &&
+    currentUser?.hasRegistered &&
+    !currentUser?.settings?.signupInProgress
 
   // **Login function**
   const login = useCallback(async ({ email, password }) => {
@@ -100,7 +62,7 @@ export function AuthProvider ({ children }) {
   }, [executeLogout, checkAuth])
 
   return (
-    <AuthContext.Provider value={{ ...authStatuses, login, logout, error, fetching, checkAuth }}>
+    <AuthContext.Provider value={{ isAuthenticated, isAuthorized, login, logout, error, fetching, checkAuth }}>
       {children}
     </AuthContext.Provider>
   )

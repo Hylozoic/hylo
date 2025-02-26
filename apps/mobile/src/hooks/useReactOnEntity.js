@@ -2,8 +2,8 @@ import { gql, useMutation } from 'urql'
 import { AnalyticsEvents } from '@hylo/shared'
 import mixpanel from 'services/mixpanel'
 
-const REACT_ON_MUTATION = gql` 
-  mutation reactOn($entityId: ID, $data: ReactionInput) {
+const reactOnMutation = gql` 
+  mutation ReactOnMutation($entityId: ID, $data: ReactionInput) {
     reactOn(entityId: $entityId, data: $data) {
       id
       postReactions {
@@ -24,8 +24,8 @@ const REACT_ON_MUTATION = gql`
   }
 `
 
-const DELETE_POST_REACTION_MUTATION = gql`
-  mutation deletePostReaction($entityId: ID, $data: ReactionInput) {
+const deletePostReactionMutation = gql`
+  mutation DeletePostReactionMutation($entityId: ID, $data: ReactionInput) {
     deleteReaction(entityId: $entityId, data: $data) {
       id
       postReactions {
@@ -46,8 +46,8 @@ const DELETE_POST_REACTION_MUTATION = gql`
   }
 `
 
-const DELETE_COMMENT_REACTION_MUTATION = gql`
-  mutation deleteCommentReaction($entityId: ID, $data: ReactionInput) {
+const deleteCommentReactionMutation = gql`
+  mutation DeleteCommentReactionMutation($entityId: ID, $data: ReactionInput) {
     deleteReaction(entityId: $entityId, data: $data) {
       id
     }
@@ -55,9 +55,9 @@ const DELETE_COMMENT_REACTION_MUTATION = gql`
 `
 
 export default function useReactOnEntity () {
-  const [, reactOn] = useMutation(REACT_ON_MUTATION)
-  const [, deletePostReaction] = useMutation(DELETE_POST_REACTION_MUTATION)
-  const [, deleteCommentReaction] = useMutation(DELETE_COMMENT_REACTION_MUTATION)
+  const [, reactOn] = useMutation(reactOnMutation)
+  const [, deletePostReaction] = useMutation(deletePostReactionMutation)
+  const [, deleteCommentReaction] = useMutation(deleteCommentReactionMutation)
   const reactOnEntity = async (entityType, entityId, emojiFull) => {
     reactOn({ entityId, data: { emojiFull, entityType, entityId } })
     mixpanel.track(

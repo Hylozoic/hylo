@@ -5,9 +5,10 @@ import Intercom from '@intercom/intercom-react-native'
 import { Globe, Plus, CircleHelp } from 'lucide-react-native'
 import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
-import { openURL } from 'hooks/useOpenURL'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup, { useContextGroups } from '@hylo/hooks/useCurrentGroup'
+import { openURL } from 'hooks/useOpenURL'
+import { widgetUrl as makeWidgetUrl } from 'util/navigation'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 
 export default function ContextSwitchMenu () {
@@ -18,6 +19,15 @@ export default function ContextSwitchMenu () {
   const myGroups = [myContext, publicContext].concat(
     sortBy('name', map(m => m.group, currentUser.memberships))
   )
+  const homePath = currentGroup && makeWidgetUrl({
+    widget: currentGroup?.homeWidget,
+    groupSlug: currentGroup?.slug
+  })
+
+  const handleOnPress = context => {
+    changeToGroup(context?.slug, false)
+    if (homePath) openURL(homePath)
+  }
 
   return (
     <Animated.View className='flex-col h-full bg-theme-background z-50 items-center py-2 px-3'>
@@ -25,8 +35,8 @@ export default function ContextSwitchMenu () {
         data={myGroups}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <NavRow
-            changeToGroup={changeToGroup}
+          <ContextRow
+            onPress={handleOnPress}
             item={item}
             currentGroupSlug={currentGroup?.slug}
           />
@@ -36,7 +46,7 @@ export default function ContextSwitchMenu () {
       <View className='w-full mt-auto bg-theme-background pt-4'>
         {/* TODO redesign: A Group or Post Creation option is expected based on Web-parity */}
         <TouchableOpacity
-          onPress={() => openURL('/create/group')}
+          onPress={() => openURL('/create')}
           style={styles.rowTouchable}
           activeOpacity={0.7}
         >
@@ -63,14 +73,14 @@ export default function ContextSwitchMenu () {
   )
 }
 
-function NavRow ({ item, changeToGroup, currentGroupSlug, badgeCount = 0, className }) {
+function ContextRow ({ item, onPress, currentGroupSlug, badgeCount = 0, className }) {
   const newPostCount = Math.min(99, item.newPostCount)
   const highlight = item?.slug === currentGroupSlug
 
   return (
     <TouchableOpacity
       key={item?.id}
-      onPress={() => changeToGroup(item?.slug, false)}
+      onPress={() => onPress(item)}
       style={styles.rowTouchable}
       activeOpacity={0.7}
     >
