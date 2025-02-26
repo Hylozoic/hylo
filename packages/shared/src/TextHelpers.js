@@ -1,3 +1,5 @@
+import i18n from '../../../apps/web/src/i18n.mjs'
+import { getLocaleAsString } from '../../../apps/web/src/components/Calendar/calendar-util'
 import { convert as convertHtmlToText } from 'html-to-text'
 import { isURL } from 'validator'
 import { marked } from 'marked'
@@ -126,53 +128,32 @@ export const sanitizeURL = url => {
 // Date string related
 
 export function humanDate (date, short) {
-  const isString = typeof date === 'string'
-  const isValidDate = !isNaN(Number(date)) && Number(date) !== 0
-  let ret = date && (isString || isValidDate)
-    ? prettyDate.format(isString ? new Date(date) : date)
-    : ''
+  const dt = typeof date === 'string' ? DateTime.fromISO(date) : DateTime.fromJSDate(date)
+  if (dt.invalid) return ''
+  let ret = new String(dt.toRelative())
 
   // Always return 'now' for very recent timestamps
-  if (ret === 'just now') {
-    return 'now'
+  if (ret.includes('seconds')) {
+    return i18n.t('now')
   }
 
-  if (short) {
-    ret = ret.replace(' ago', '')
-  } else {
-    if (ret.match(/(\d+) seconds? ago/)) {
-      return 'now'
-    }
-  }
+  ret = dt.setLocale(getLocaleAsString()).toRelative({ style: 'short' })
 
-  return ret.replace(/ seconds?/, 's')
-    .replace(/ minutes?/, 'm')
-    .replace(/ hours?/, 'h')
-    .replace(/ days?/, 'd')
-    .replace(/ weeks?/, 'w')
-    .replace(/ years?/, 'y')
-    .replace(/ month(s?)/, ' mo$1')
+  return short
+    // TODO solve this problem in the future when we translate loads of languages
+    ? ret.replace(' ago', '').replace('hace ', '')
+    : ret
 }
 
 export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
   if (!startTime || !endTime) return '(invalid start or end)'
 
-  let locale = localStorage.getItem('hylo-i18n-lng') || 'en'
-  switch (locale) {
-    case 'en':
-      locale = 'en-US'
-      break
-    case 'es':
-      locale = 'es'
-      break
-    default:
-      locale = 'en-US'
-  }
-
+  const locale = getLocaleAsString()
   const now = DateTime.now().setLocale(locale)
-  const timeZoneName = now.zoneName
-  const start = DateTime.fromISO(startTime, {zone: timezone || timeZoneName || 'UTC'}).setLocale(locale)
-  const end = DateTime.fromISO(endTime, {zone: timezone || timeZoneName || 'UTC'}).setLocale(locale)
+  timezone ||= now.zoneName
+
+  const start = DateTime.fromISO(startTime, {zone: timezone || 'UTC'}).setLocale(locale)
+  const end = DateTime.fromISO(endTime, {zone: timezone || 'UTC'}).setLocale(locale)
 
   const isStartThisYear = start.hasSame(now, 'year')
   const isEndThisYear = end.hasSame(now, 'year')
