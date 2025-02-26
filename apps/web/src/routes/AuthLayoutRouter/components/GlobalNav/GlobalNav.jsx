@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
 import { Globe } from 'lucide-react'
-import React, { Suspense } from 'react'
+import React, { Suspense, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector } from 'react-redux'
@@ -26,35 +26,73 @@ export default function GlobalNav (props) {
   const groups = useSelector(getMyGroups)
   const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
   const { t } = useTranslation()
+  const [visibleCount, setVisibleCount] = useState(0)
+
+  useEffect(() => {
+    const totalItems = 4 + groups.length + 2 // fixed items + groups + plus & help buttons
+    let currentCount = 0
+    
+    const interval = setInterval(() => {
+      if (currentCount >= totalItems) {
+        clearInterval(interval)
+        return
+      }
+      currentCount++
+      setVisibleCount(currentCount)
+    }, 50) // 50ms between each item
+
+    return () => clearInterval(interval)
+  }, [groups.length])
+
+  const isVisible = (index) => {
+    return index < visibleCount ? 'animate-slide-up invisible' : 'opacity-0'
+  }
 
   return (
     <div className={cn('flex flex-col bg-theme-background h-full z-50 items-center pb-0 pt-2')} onClick={onClick}>
       <div className={cn('overflow-y-auto pt-2 flex flex-col items-center pl-5 pr-3 relative bg-theme-background overflow-x-hidden', styles.globalNavContainer)}>
-        <GlobalNavItem img={get('avatarUrl', currentUser)} tooltip={t('Your Profile')} url='/my/posts' className={cn('opacity-1')} />
+        <GlobalNavItem 
+          img={get('avatarUrl', currentUser)} 
+          tooltip={t('Your Profile')} 
+          url='/my/posts' 
+          className={isVisible(0)}
+        />
 
-        <Suspense fallback={<GlobalNavItem className={cn('opacity-1')}><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
+        <Suspense fallback={<GlobalNavItem className={isVisible(1)}><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
-            <GlobalNavItem tooltip='Activity' className={cn('opacity-1')}>
+            <GlobalNavItem 
+              tooltip='Activity' 
+              className={isVisible(1)}
+            >
               <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' showBadge={showBadge} />
             </GlobalNavItem>}
           />
         </Suspense>
 
-        <GlobalNavItem tooltip={t('Messages')} url='/messages' className={cn('opacity-1')}>
+        <GlobalNavItem 
+          tooltip={t('Messages')} 
+          url='/messages' 
+          className={isVisible(2)}
+        >
           <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' showBadge={currentUser.unseenThreadCount && currentUser.unseenThreadCount > 0} />
         </GlobalNavItem>
 
-        <GlobalNavItem tooltip={t('The Commons')} url='/public/stream' className={cn('opacity-1')}>
+        <GlobalNavItem 
+          tooltip={t('The Commons')} 
+          url='/public/stream' 
+          className={isVisible(3)}
+        >
           <Globe color='hsl(var(--primary-foreground))' />
         </GlobalNavItem>
 
-        {groups.map(group =>
+        {groups.map((group, index) =>
           <GlobalNavItem
             key={group.id}
             badgeCount={group.newPostCount || 0}
             img={group.avatarUrl}
             tooltip={group.name}
             url={`/groups/${group.slug}`}
+            className={isVisible(4 + index)}
           />
         )}
 
@@ -63,7 +101,7 @@ export default function GlobalNav (props) {
 
       <Popover>
         <PopoverTrigger>
-          <div className='bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md scale-90 hover:scale-125 hover:drop-shadow-lg hover:my-1 text-3xl mb-4'>
+          <div className={cn('bg-primary relative transition-colors ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md hover:opacity-100 scale-90 hover:scale-125 hover:drop-shadow-lg hover:my-1 text-3xl mb-4', isVisible(4 + groups.length))}>
             <span className='inline-block text-themeForeground p-1 w-10 line-height-1'>+</span>
           </div>
         </PopoverTrigger>
@@ -74,7 +112,7 @@ export default function GlobalNav (props) {
 
       <Popover>
         <PopoverTrigger>
-          <span className='inline-block text-themeForeground border-2 border-themeForeground rounded-xl p-1 w-10 line-height-1'>?</span>
+          <span className={cn('inline-block text-themeForeground border-2 border-themeForeground rounded-xl p-1 w-10 line-height-1', isVisible(4 + groups.length + 1))}>?</span>
         </PopoverTrigger>
         <PopoverContent side='right' align='start'>
           <ul>

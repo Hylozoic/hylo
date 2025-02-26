@@ -165,15 +165,23 @@ export default function ChatRoom (props) {
   const postsFuture = useSelector(state => getPosts(state, fetchPostsFutureParams))
   const hasMorePostsFuture = useSelector(state => getHasMorePosts(state, fetchPostsFutureParams))
 
-  const postsForDisplay = useMemo(() => (postsPast || []).concat(postsFuture || []), [postsPast, postsFuture])
+  const postsForDisplay = useMemo(() => {
+    if (!postsPast && !postsFuture) return []
+    return (postsPast || []).concat(postsFuture || [])
+  }, [postsPast, postsFuture])
 
   const fetchPostsPast = useCallback((offset) => {
     if (loadingPast || hasMorePostsPast === false) return Promise.resolve()
     setLoadingPast(true)
-    return dispatch(fetchPosts({ offset, ...fetchPostsPastParams })).then((action) => {
-      messageListRef.current?.data.prepend(action.payload?.data?.group?.posts?.items?.reverse() || [])
-      setLoadingPast(false)
-    })
+    return dispatch(fetchPosts({ offset, ...fetchPostsPastParams }))
+      .then((action) => {
+        const posts = action.payload?.data?.group?.posts?.items
+        if (posts?.length) {
+          messageListRef.current?.data.prepend(posts.reverse() || [])
+        }
+        setLoadingPast(false)
+      })
+      .catch(() => setLoadingPast(false))
   }, [fetchPostsPastParams, loadingPast, hasMorePostsPast])
 
   const fetchPostsFuture = useCallback((offset) => {
@@ -289,8 +297,8 @@ export default function ChatRoom (props) {
     resetInitialPostToScrollTo()
   }, [loadedPast, loadedFuture])
 
-  const onScroll = React.useCallback(
-    (location) => {
+  const onScroll = useMemo(
+    () => debounce(200, (location) => {
       if (!loadingPast && !loadingFuture) {
         if (location.listOffset > -100 && hasMorePostsPast) {
           fetchPostsPast(postsPast.length)
@@ -298,7 +306,7 @@ export default function ChatRoom (props) {
           fetchPostsFuture(postsFuture.length)
         }
       }
-    },
+    }),
     [hasMorePostsPast, hasMorePostsFuture, loadingPast, loadingFuture]
   )
 
@@ -390,6 +398,9 @@ export default function ChatRoom (props) {
   }, [topicName, notificationsSetting])
 
   if (topicFollowLoading) return <Loading />
+
+  // Add performance marks in ChatRoom.js
+  performance.mark('chat-room-start')
 
   return (
     <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
@@ -522,17 +533,18 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
   const showHeader = !prevData || firstUnread || !!displayDay || createdTimeDiff > MAX_MINS_TO_BATCH || prevData.creator.id !== post.creator.id || prevData.commentersTotal > 0 || prevData.type !== 'chat'
 
-  // Calculate delay from bottom to top with faster 35ms intervals
-  const totalItems = context.numPosts
-  const reverseIndex = totalItems - index - 1
-  const delay = Math.min(reverseIndex * 35, 2000)
-  
-  const animationClass = !post.pending && context.numPosts > 0
-    ? 'animate-slide-up invisible'
-    : ''
-  const style = !post.pending && context.numPosts > 0
-    ? { '--delay': `${delay}ms` }
-    : {}
+  // Only calculate delay for initial load near bottom
+  const isInitialLoad = context.numPosts > 0 && index > context.numPosts - 20
+  const delay = isInitialLoad ? Math.min((context.numPosts - index - 1) * 35, 2000) : 0
+
+  const shouldAnimate = !post.pending && (
+    isInitialLoad ||
+    // For new messages
+    post.id > context.latestOldPostId
+  )
+
+  const animationClass = shouldAnimate ? 'animate-slide-up invisible' : ''
+  const style = shouldAnimate ? { '--delay': `${delay}ms` } : {}
 
   return (
     <>
@@ -593,3 +605,11 @@ const HomeChatWelcome = ({ group }) => {
     </div>
   )
 }
+
+// Use React DevTools Profiler
+// Add React.Profiler component around key areas:
+<Profiler id="chat-room" onRender={(id, phase, actualDuration) => {
+  console.log(`${id} took ${actualDuration}ms to render`)
+}}>
+  <ChatRoom />
+</Profiler>
