@@ -16,6 +16,7 @@ import Icon from 'components/Icon'
 import Topics from 'components/Topics'
 import styles from 'components/PostCard/PostCard.styles'
 import { useNavigation } from '@react-navigation/native'
+import { clsx } from 'clsx'
 
 export default function PostCard ({
   goToGroup,
@@ -42,13 +43,14 @@ export default function PostCard ({
   return (
     <>
       {childPost && (
-        <View style={styles.childPost}>
-          <View style={styles.childPostInner}>
-            <Icon name='Subgroup' style={styles.childPostIcon} /><Text style={styles.childPostText}>{' '}{t('post from child group')}</Text>
+        <View className='border-b border-border'>
+          <View className='flex-row items-center py-2 px-4'>
+            <Icon name='Subgroup' className='text-foreground/70 mr-1' />
+            <Text className='text-foreground/70'>{t('post from child group')}</Text>
           </View>
         </View>
       )}
-      <View style={styles.container}>
+      <View className='bg-card border-b border-border'>
         <PostHeader
           announcement={post.announcement}
           creator={post.creator}
@@ -63,13 +65,13 @@ export default function PostCard ({
           type={post.type}
         />
         {isFlagged && !post.clickthrough && (
-          <View style={styles.clickthroughContainer}>
-            <Text style={styles.clickthroughText}>{t('clickthroughExplainer')}</Text>
+          <View className='bg-background/5 p-4'>
+            <Text className='text-foreground/70'>{t('clickthroughExplainer')}</Text>
             <TouchableOpacity
-              style={styles.clickthroughButton}
+              className='bg-secondary mt-2 rounded-md py-2 px-4'
               onPress={() => recordClickthrough({ postId: post.id })}
             >
-              <Text style={styles.clickthroughButtonText}>{t('View post')}</Text>
+              <Text className='text-background text-center'>{t('View post')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -77,7 +79,7 @@ export default function PostCard ({
           <Topics
             topics={post.topics}
             onPress={t => goToTopic(t.name)}
-            style={styles.topics}
+            className='mx-4 mt-2'
           />
         )}
         {(images && images.length > 0) && !(isFlagged && !post.clickthrough) && (
@@ -87,20 +89,20 @@ export default function PostCard ({
             isFlagged={isFlagged && !post.clickthrough}
             onlyLongPress
             onPress={onPress}
-            style={styles.images}
+            className='mt-2'
             title={post.title}
           >
             <Topics
               topics={post.topics}
               onPress={t => goToTopic(t.name)}
-              style={[styles.topics, styles.topicsOnImage]}
+              className='absolute top-2 left-4 z-10'
             />
           </ImageAttachments>
         )}
         {!!locationText && (
-          <View style={styles.locationRow}>
-            <Icon style={styles.locationIcon} name='Location' />
-            <Text style={styles.locationText} selectable>{locationText}</Text>
+          <View className='flex-row items-center mx-4 mt-2'>
+            <Icon className='text-foreground/50 mr-2' name='Location' />
+            <Text className='text-foreground/70' selectable>{locationText}</Text>
           </View>
         )}
         <PostBody
@@ -119,13 +121,13 @@ export default function PostCard ({
           title={post.title}
           type={post.type}
         />
-        <Files urls={post.fileUrls} style={styles.files} />
+        <Files urls={post.fileUrls} className='mx-4 mb-2' />
         {showGroups && (
           <PostGroups
             goToGroup={goToGroup}
             groups={post.groups}
             includePublic={post.isPublic}
-            style={styles.groups}
+            className='mx-4 mb-2'
           />
         )}
         <PostFooter
