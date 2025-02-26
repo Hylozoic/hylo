@@ -18,10 +18,12 @@ export default function PostGridItem ({
   expanded
 }) {
   const {
+    id,
     title,
     details,
     creator,
     createdTimestampForGrid,
+    exactCreatedTimestamp,
     attachments
   } = post
 
@@ -83,13 +85,18 @@ export default function PostGridItem ({
               <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />
               {creator.name}
             </div>
-            <span className={classes.timestamp}>
+            <span className={classes.timestamp} data-tooltip-id={`dateTip-${post.id}`} data-tooltip-content={exactCreatedTimestamp}>
               {createdTimestampForGrid}
             </span>
           </div>
         </div>
         <div className='absolute bottom-0 left-0 right-0 h-full bg-gradient-to-t from-background to-transparent' />
       </div>
+      <Tooltip
+        delay={550}
+        id={`dateTip-${id}`}
+        position='left'
+      />
     </div>
   )
 }

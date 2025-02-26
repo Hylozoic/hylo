@@ -24,10 +24,12 @@ export default function PostBigGridItem ({
   expanded
 }) {
   const {
+    id,
     title,
     details,
     creator,
     createdTimestamp,
+    exactCreatedTimestamp,
     attachments
   } = post
   const { t } = useTranslation()
@@ -156,7 +158,7 @@ export default function PostBigGridItem ({
                 <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />
                 {creator.name}
               </div>
-              <div className={classes.timestamp}>
+              <div className={classes.timestamp} data-tooltip-id={`dateTip-${post.id}`} data-tooltip-content={exactCreatedTimestamp}>
                 {createdTimestamp}
               </div>
             </div>
@@ -171,6 +173,11 @@ export default function PostBigGridItem ({
           </div>
         </div>
       </div>
+      <Tooltip
+        delay={550}
+        id={`dateTip-${id}`}
+        position='left'
+      />
     </div>
   )
 }

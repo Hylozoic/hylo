@@ -30,10 +30,12 @@ const PostListRow = (props) => {
   } = props
 
   const {
+    id,
     title,
     details,
     creator,
     createdTimestamp,
+    exactCreatedTimestamp,
     commentersTotal,
     topics
   } = post
@@ -104,7 +106,7 @@ const PostListRow = (props) => {
               />
             </div>
           )}
-          <div className={cn(classes.timestamp, { [classes.pushToRight]: !childPost })}>
+          <div className={cn(classes.timestamp, { [classes.pushToRight]: !childPost })} data-tooltip-id={`dateTip-${post.id}`} data-tooltip-content={exactCreatedTimestamp}>
             {createdTimestamp}
           </div>
         </div>
@@ -128,6 +130,11 @@ const PostListRow = (props) => {
       <Tooltip
         delay={550}
         id={`post-tt-${post.id}`}
+      />
+      <Tooltip
+        delay={550}
+        id={`dateTip-${id}`}
+        position='left'
       />
     </div>
   )
