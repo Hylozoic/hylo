@@ -513,55 +513,40 @@ const StickyFooter = ({ context }) => {
   )
 }
 
-const ItemContent = ({ data: post, context, prevData, nextData }) => {
+const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   const expanded = context.selectedPostId === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
   const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
   const currentDay = DateTime.fromISO(post.createdAt)
   const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
-
-  /* Display the author header if
-    * There was no previous post
-    * Or this post is the first unread post
-    * Or this post is from a different day than the last post
-    * Or it's been more than 5 minutes since the last post
-    * Or the last post was a different author
-    * Or the last post had any comments on it
-    * Or the last past was a non chat type post
-  */
-
   const showHeader = !prevData || firstUnread || !!displayDay || createdTimeDiff > MAX_MINS_TO_BATCH || prevData.creator.id !== post.creator.id || prevData.commentersTotal > 0 || prevData.type !== 'chat'
+
+  // Calculate delay from bottom to top with faster 35ms intervals
+  const totalItems = context.numPosts
+  const reverseIndex = totalItems - index - 1
+  const delay = Math.min(reverseIndex * 35, 2000)
+  
+  const animationClass = !post.pending && context.numPosts > 0
+    ? 'animate-slide-up invisible'
+    : ''
+  const style = !post.pending && context.numPosts > 0
+    ? { '--delay': `${delay}ms` }
+    : {}
+
   return (
     <>
-      {firstUnread && !displayDay
-        ? (
-          <div className={styles.firstUnread}>
-            <div className={cn('border-dashed border-b-2 border-background')} />
-            <div className={styles.newPost}>NEW</div>
-          </div>
-          )
-        : null}
-      {firstUnread && displayDay
-        ? (
-          <div className={styles.unreadAndDay}>
-            <div className={cn('border-dashed border-b-2 border-background')} />
-            <div className={styles.newPost}>NEW</div>
-            <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
-          </div>
-          )
-        : null}
-      {!firstUnread && displayDay
-        ? (
-          <div className='w-full flex items-center'>
-            <div className={cn('border-dashed border-b-2 border-background/50 w-full')} />
-            <div className={cn('uppercase text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
-          </div>
-          )
-        : null}
+      {firstUnread && !displayDay && <div className={styles.firstUnread}>...</div>}
+      {firstUnread && displayDay && <div className={styles.unreadAndDay}>...</div>}
+      {!firstUnread && displayDay && (
+        <div className='w-full flex items-center'>...</div>
+      )}
       {post.type === 'chat'
         ? (
-          <div className='mx-auto px-4 max-w-[750px]'>
+          <div 
+            className={`mx-auto px-4 max-w-[750px] ${animationClass}`}
+            style={style}
+          >
             <ChatPost
               expanded={expanded}
               group={context.group}
@@ -571,10 +556,12 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
               onRemoveReaction={context.onRemoveReaction}
               onRemovePost={context.onRemovePost}
             />
-          </div>
-          )
+          </div>)
         : (
-          <div className='mx-auto px-4 max-w-[750px]'>
+          <div 
+            className={`mx-auto px-4 max-w-[750px] ${animationClass}`}
+            style={style}
+          >
             <PostCard
               group={context.group}
               expanded={expanded}
@@ -584,7 +571,7 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
               onRemovePost={context.onRemovePost}
             />
           </div>
-          )}
+        )}
     </>
   )
 }
