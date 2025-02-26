@@ -225,7 +225,7 @@ export default function ChatPost ({
   return (
     <Highlight {...highlightProps}>
       <div
-        className={cn('rounded-lg', className, styles.container, {
+        className={cn('rounded-lg pl-[20px] relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer', className, styles.container, {
           [styles.longPressed]: isLongPress,
           [styles.hovered]: isHovered
         })}
@@ -234,20 +234,18 @@ export default function ChatPost ({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <div className={styles.actionBar}>
+        <div className='flex p-2 gap-2 absolute z-10 right-2 top-2 transition-all rounded-lg bg-theme-background opacity-0 group-hover:opacity-100 delay-300 scale-0 group-hover:scale-100'>
           {actionItems.map(item => (
-            <Button
+            <button
               key={item.label}
-              noDefaultStyles
-              borderRadius='0'
               onClick={item.onClick}
-              className={styles.actionItem}
+              className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
             >
               <Icon name={item.icon} />
-            </Button>
+            </button>
           ))}
           <EmojiPicker
-            className={styles.actionItem}
+            className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
             handleReaction={handleReaction}
             handleRemoveReaction={handleRemoveReaction}
             myEmojis={myEmojis}
@@ -263,12 +261,12 @@ export default function ChatPost ({
         </div>
 
         {showHeader && (
-          <div className={styles.header} onClick={handleClick}>
-            <div onClick={showCreator} className={styles.author}>
-              <Avatar avatarUrl={creator.avatarUrl} className={styles.avatar} />
-              <div className={styles.name}>{creator.name}</div>
+          <div className='flex justify-between items-center relative z-0' onClick={handleClick}>
+            <div onClick={showCreator} className='flex items-center gap-2 relative -left-[24px]'>
+              <Avatar avatarUrl={creator.avatarUrl} large />
+              <div className='w-full font-bold'>{creator.name}</div>
             </div>
-            <div className={styles.date}>
+            <div className='text-xs text-foreground/50'>
               {DateTime.fromISO(createdAt).toFormat('t')}
               {editedAt && <span>&nbsp;({t('edited')} {DateTime.fromISO(editedAt).toFormat('t')})</span>}
             </div>

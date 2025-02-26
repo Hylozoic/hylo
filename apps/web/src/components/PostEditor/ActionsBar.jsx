@@ -37,6 +37,13 @@ export default function ActionsBar ({
   const dispatch = useDispatch()
   const { t } = useTranslation()
 
+  console.log('ActionsBar render:', {
+    valid,
+    loading,
+    invalidMessage,
+    type
+  })
+
   return (
     <div className='w-full flex justify-between'>
       <div className='flex items-center gap-2'>

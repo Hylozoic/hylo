@@ -710,23 +710,31 @@ function PostEditor ({
           )}
         </div>
       )}
-      <div className={cn('PostEditorContent', styles.section, 'flex flex-col !items-start')}>
+      <div className={cn(
+        'PostEditorContent',
+        styles.section,
+        'flex flex-col !items-start border-2 border-transparent',
+        'transition-all duration-200',
+        'focus-within:border-2 focus-within:border-focus'
+      )}>
         {currentPost.details === null || loading
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
-              key={currentPost.id}
               placeholder={isChat ? t('Send a chat to #{{topicName}}', { topicName: currentPost?.topics?.[0]?.name }) : t('Add a description')}
-              onUpdate={handleDetailsChange}
+              onUpdate={(html) => {
+                if (html) {
+                  handleDetailsChange(html)
+                }
+              }}
               onAltEnter={doSave}
-              // Disable edit cancel through escape due to event bubbling issues
-              // onEscape={handleCancel}
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
               contentHTML={currentPost.details}
               showMenu
               readOnly={loading}
               ref={editorRef}
-            />}
+            />
+        }
         {(currentPost.linkPreview || fetchLinkPreviewPending) && (
           <LinkPreview
             loading={fetchLinkPreviewPending}

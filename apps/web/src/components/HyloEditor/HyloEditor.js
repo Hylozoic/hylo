@@ -28,6 +28,8 @@ const HyloEditor = React.forwardRef(({
   onEnter,
   onAltEnter,
   onEscape,
+  onFocus,
+  onBlur,
   placeholder,
   readOnly,
   showMenu = false,
@@ -128,19 +130,60 @@ const HyloEditor = React.forwardRef(({
   const editor = useEditor({
     content: contentHTML,
     extensions,
-    onCreate,
+    onCreate: ({ editor }) => {
+      console.log('HyloEditor onCreate:', {
+        hasEditor: !!editor,
+        content: editor?.getHTML()
+      })
+      if (onCreate) onCreate(editor)
+    },
     onUpdate: ({ editor }) => {
-      if (!onUpdate) return
-      onUpdate(editor.getHTML())
+      // Only check if editor exists and is not destroyed
+      if (!onUpdate || !editor || editor.isDestroyed) {
+        console.log('HyloEditor update skipped:', {
+          hasOnUpdate: !!onUpdate,
+          hasEditor: !!editor,
+          isDestroyed: editor?.isDestroyed
+        })
+        return
+      }
+      
+      try {
+        const html = editor.getHTML()
+        console.log('HyloEditor onUpdate:', {
+          html,
+          hasOnUpdate: !!onUpdate
+        })
+        
+        onUpdate(html)
+      } catch (error) {
+        console.error('Error in HyloEditor onUpdate:', error)
+      }
+    },
+    onFocus: ({ editor }) => {
+      console.log('HyloEditor onFocus')
+      onFocus && onFocus()
+    },
+    onBlur: ({ editor }) => {
+      console.log('HyloEditor onBlur')
+      onBlur && onBlur()
+    },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none'
+      }
     }
   })
 
-  // Dynamic setting of initial editor content
+  // Add an effect to handle editor ready state
   useEffect(() => {
-    if (editor.isInitialized) {
-      editor.commands.setContent(contentHTML)
+    if (editor && onUpdate) {
+      // Initial content update
+      const html = editor.getHTML()
+      console.log('Initial editor content:', html)
+      onUpdate(html)
     }
-  }, [editor?.isInitialized, contentHTML])
+  }, [editor, onUpdate])
 
   // Dynamic placeholder text
   useEffect(() => {
@@ -157,7 +200,10 @@ const HyloEditor = React.forwardRef(({
 
     if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
 
-    editor.setEditable(!readOnly)
+    // Wrap in setTimeout to ensure editor is ready
+    setTimeout(() => {
+      editor.setEditable(!readOnly)
+    }, 0)
   }, [groupIds, readOnly])
 
   useImperativeHandle(ref, () => ({
