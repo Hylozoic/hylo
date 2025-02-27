@@ -19,6 +19,7 @@ export default function ContextSwitchMenu () {
   const myGroups = [myContext, publicContext].concat(
     sortBy('name', map(m => m.group, currentUser.memberships))
   )
+  // TODO: Set a home path for My and Public
   const homePath = currentGroup && makeWidgetUrl({
     widget: currentGroup?.homeWidget,
     groupSlug: currentGroup?.slug

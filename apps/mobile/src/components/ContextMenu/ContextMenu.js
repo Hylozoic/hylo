@@ -77,8 +77,6 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
 
   const title = translateTitle(widget.title, t)
   const url = makeWidgetUrl({ widget, rootPath, groupSlug })
-  // TODO: Now that we re-map /all to /my, which is helping elsewhere, it will break here when the
-  // URL that will be build for /all/stream is /my/stream
   const handleWidgetPress = widget => {
     const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.slug })
     openURL(linkingPath)

@@ -80,8 +80,8 @@ export default function Stream () {
   const isFocused = useIsFocused()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
-  // TODO: Keeping logging for now for Stream testing due-diligence
   const routeParams = useRouteParams()
+  // TODO: Keeping logging for now for Stream testing due-diligence
   if (isDev) console.log('!!! routeParams', routeParams)
   const {
     context,
