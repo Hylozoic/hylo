@@ -92,6 +92,20 @@ const getMyAdminGroups = createSelector(
   }
 )
 
+/**
+ * PostEditor component for creating and editing various post types (discussions, events, projects, proposals, etc.)
+ * @param {Object} props - Component props
+ * @param {string} props.context - Context for the post (e.g., 'public')
+ * @param {boolean} props.modal - Whether the editor is displayed in a modal
+ * @param {Object} props.post - Post data when editing an existing post
+ * @param {boolean} props.editing - Whether we're editing an existing post
+ * @param {Function} props.setIsDirty - Callback to notify parent when content changes
+ * @param {Function} props.onCancel - Callback when cancel is clicked
+ * @param {Function} props.onSave - Callback when save is clicked
+ * @param {Function} props.afterSave - Callback after post is successfully saved
+ * @param {string} props.selectedLocation - Pre-selected location if any
+ */
+
 function PostEditor ({
   context,
   modal = true,
@@ -193,10 +207,16 @@ function PostEditor ({
 
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
+  /**
+   * Filters the available group options to find only those groups
+   * that are currently selected in the post.
+   * This creates an intersection between all available groups and selected groups,
+   * ensuring we only work with valid, accessible groups that the user has selected.
+   * @returns {Array} Array of group objects that are both available and selected
+   */
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
-    
-    return groupOptions.filter((g) => 
+    return groupOptions.filter((g) =>
       g && currentPost.groups.some((g2) => g2 && g.id === g2.id)
     )
   }, [currentPost?.groups, groupOptions])
@@ -225,17 +245,16 @@ function PostEditor ({
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
       if (!g) return []
-      
-      const baseOption = [{ 
-        id: `group_${g.id}`, 
-        name: g.name, 
-        avatarUrl: g.avatarUrl, 
-        group: g 
+      const baseOption = [{
+        id: `group_${g.id}`,
+        name: g.name,
+        avatarUrl: g.avatarUrl,
+        group: g
       }]
 
       const chatRoomOptions = g.chatRooms?.toModelArray()
-        ?.filter(cr => 
-          cr?.groupTopic?.topic?.id && 
+        ?.filter(cr =>
+          cr?.groupTopic?.topic?.id &&
           currentPost.topics?.some(t => t?.id === cr.groupTopic.topic.id)
         )
         ?.map(cr => {
@@ -286,6 +305,10 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, topics: [...currentPost.topics, topic] })
   }, [topic])
 
+  /**
+   * Resets the editor to its initial state
+   * Clears form fields, attachments, and link previews
+   */
   const reset = useCallback(() => {
     editorRef.current?.setContent(initialPost.details)
     dispatch(clearLinkPreview())
@@ -302,6 +325,11 @@ function PostEditor ({
     }
   }, [initialPost])
 
+  /**
+   * Calculates an end time based on start time, preserving duration if both times exist
+   * @param {Date} startTime - The new start time
+   * @returns {Date} - The calculated end time
+   */
   const calcEndTime = useCallback((startTime) => {
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
@@ -342,9 +370,21 @@ function PostEditor ({
     }
   }, [currentPost])
 
-  const handleDetailsChange = useCallback((event) => {
+  /**
+   * Handles changes to the post content in the editor
+   * @param {string} html - The HTML content from the editor
+   */
+  const handleDetailsChange = useCallback((html) => {
+    // Early return if no content is provided
+    if (!html) return
+
+    // Get plain text from the editor for validation purposes
     const details = editorRef.current.getText()
+
+    // Track whether description has content for validation
     setHasDescription(details.length > 0)
+
+    // Mark the form as dirty to enable save functionality
     setIsDirty(true)
   }, [currentPost])
 
@@ -375,6 +415,11 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, projectManagementLink })
   }, [currentPost])
 
+  /**
+   * Validates time inputs to ensure end time is after start time
+   * @param {Date} startTime - The start time to validate
+   * @param {Date} endTime - The end time to validate
+   */
   const validateTimeChange = useCallback((startTime, endTime) => {
     if (endTime) {
       startTime < endTime
@@ -450,6 +495,10 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, eventInvitations })
   }, [currentPost])
 
+  /**
+   * Determines if the current form state is valid for submission
+   * Checks various conditions based on post type and sets error messages
+   */
   const isValid = useMemo(() => {
     const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions } = currentPost
 
@@ -501,6 +550,10 @@ function PostEditor ({
   //   }
   // }
 
+  /**
+   * Saves the post to the server
+   * Collects all form data and dispatches the appropriate action (create or update)
+   */
   const save = useCallback(async () => {
     const {
       acceptContributions,
@@ -589,6 +642,10 @@ function PostEditor ({
     reset()
   }, [afterSave, announcementSelected, currentPost, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
 
+  /**
+   * Initiates the save process with validation and confirmation checks
+   * Shows announcement modal or warning if needed
+   */
   const doSave = useEventCallback(() => {
     if (!isValid || loading) return
 
@@ -620,6 +677,10 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, votingMethod })
   }, [currentPost])
 
+  /**
+   * Applies a proposal template to the current post
+   * @param {string} template - Template identifier
+   */
   const handleUseTemplate = useCallback((template) => {
     const templateData = PROPOSAL_TEMPLATES[template]
     setCurrentPost({
@@ -637,6 +698,10 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, proposalOptions: newOptions })
   }, [currentPost])
 
+  /**
+   * Checks if the current user can make an announcement in all selected groups
+   * @returns {boolean} - True if user has admin rights in all selected groups
+   */
   const canMakeAnnouncement = useCallback(() => {
     const { groups = [] } = currentPost
     const myAdminGroupsSlugs = myAdminGroups.map(group => group.slug)
@@ -652,6 +717,10 @@ function PostEditor ({
   const hasStripeAccount = get('hasStripeAccount', currentUser)
   const isChat = currentPost.type === 'chat'
 
+  /**
+   * Handles the To field container click, focusing the actual ToField
+   * This improves UX by making the entire container clickable
+   */
   const handleToFieldContainerClick = () => {
     toFieldRef.current?.focus() // This will call the focus method on ToField
   }
@@ -721,11 +790,7 @@ function PostEditor ({
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
               placeholder={isChat ? t('Send a chat to #{{topicName}}', { topicName: currentPost?.topics?.[0]?.name }) : t('Add a description')}
-              onUpdate={(html) => {
-                if (html) {
-                  handleDetailsChange(html)
-                }
-              }}
+              onUpdate={handleDetailsChange}
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}

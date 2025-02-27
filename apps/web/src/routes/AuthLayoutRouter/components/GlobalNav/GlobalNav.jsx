@@ -12,7 +12,8 @@ import {
 } from 'components/ui/popover'
 import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
-import GlobalNavItem, { GlobalNavTooltipContainer } from './GlobalNavItem'
+import GlobalNavItem from './GlobalNavItem'
+import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
 
@@ -54,7 +55,6 @@ export default function GlobalNav (props) {
         clearTimeout(menuTimeoutId)
         setMenuTimeoutId(null)
       }
-      
       // Set a new timeout to check if still hovering after 10 seconds
       const timeoutId = setTimeout(() => {
         // Check if the menu container is actually being hovered
@@ -64,10 +64,8 @@ export default function GlobalNav (props) {
           setShowGradient(false)
         }
       }, 10000) // 10 seconds
-      
       setMenuTimeoutId(timeoutId)
     }
-    
     return () => {
       if (menuTimeoutId) {
         clearTimeout(menuTimeoutId)
@@ -104,16 +102,16 @@ export default function GlobalNav (props) {
       >
         <GlobalNavItem
           img={get('avatarUrl', currentUser)}
-          tooltip={t('Your Profile')} 
-          url='/my/posts' 
+          tooltip={t('Your Profile')}
+          url='/my/posts'
           className={isVisible(0)}
           showTooltip={isContainerHovered}
         />
 
         <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={isContainerHovered}><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
-            <GlobalNavItem 
-              tooltip='Activity' 
+            <GlobalNavItem
+              tooltip='Activity'
               className={isVisible(1)}
               showTooltip={isContainerHovered}
             >
@@ -200,3 +198,5 @@ export default function GlobalNav (props) {
     </div>
   )
 }
+
+export { GlobalNavTooltipContainer }

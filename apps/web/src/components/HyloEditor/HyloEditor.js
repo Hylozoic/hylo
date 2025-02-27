@@ -168,6 +168,9 @@ const HyloEditor = React.forwardRef(({
 
   // Also update the useEffect to match the new onUpdate signature
   useEffect(() => {
+    if (editor.isInitialized) {
+      editor.commands.setContent(contentHTML)
+    }
     if (editor && !editor.isDestroyed && onUpdate) {
       try {
         const html = editor.getHTML()
