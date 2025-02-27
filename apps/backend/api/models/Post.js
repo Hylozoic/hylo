@@ -463,26 +463,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
       reason: 'mention'
     }))
 
-    // TODO: hndle through digest
-    if (this.get('type') === Post.Type.CHAT) {
-      const tagFollows = await TagFollow.query(qb => {
-        qb.whereIn('tag_id', tags.map('id'))
-        qb.whereIn('group_id', groups.map('id'))
-        qb.whereRaw("settings->>'notifications' = 'all'")
-        // TODO: or if = important??
-      })
-      .fetchAll({ withRelated: ['tag'], transacting: trx })
-
-      const tagFollowers = tagFollows.map(tagFollow => ({
-        reader_id: tagFollow.get('user_id'),
-        post_id: this.id,
-        actor_id: this.get('user_id'),
-        group_id: tagFollow.get('group_id'),
-        reason: `tag: ${tagFollow.relations.tag.get('name')}`
-      }))
-      activitiesToCreate = activitiesToCreate.concat(tagFollowers)
-      // TODO: filter out mentions above if they are in chats and they have notifications turned off
-    }
     activitiesToCreate = activitiesToCreate.concat(mentioned)
 
     const eventInvitations = await EventInvitation.query(qb => {

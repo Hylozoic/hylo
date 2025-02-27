@@ -1,4 +1,3 @@
-/* globals RedisClient */
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import { has, isEmpty, merge, omit, pick, intersectionBy } from 'lodash'
@@ -7,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 import validator from 'validator'
 import { GraphQLError } from 'graphql'
 import { Validators } from '@hylo/shared'
+import RedisClient from '../services/RedisClient'
 import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
