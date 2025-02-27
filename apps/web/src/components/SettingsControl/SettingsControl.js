@@ -84,7 +84,7 @@ export default function SettingsControl (props) {
   }
 
   return (
-    <div className={cn('w-full bg-transparent text-foreground', { [classes.error]: error }, controlClass)}>
+    <div className={cn('w-full bg-transparent text-foreground mb-2', { [classes.error]: error }, controlClass)}>
       <label className={cn('w-full text-foreground/50 text-sm mb-2 block', { [classes.error]: error })} htmlFor={id}>
         {label}
         {helpText

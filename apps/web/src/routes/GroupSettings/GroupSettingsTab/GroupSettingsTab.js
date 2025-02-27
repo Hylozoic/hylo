@@ -176,8 +176,13 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           </div>
         </UploadAttachmentButton>
       </div>
-      <div className='w-full flex justify-center items-center mt-2'>
-        <input type='text' onChange={updateSetting('name')} value={name || ''} id='nameField' className='bg-transparent text-foreground text-center text-2xl font-bold outline-none focus:border-2 focus:border-dashed focus:border-foreground/80 rounded-lg hover:scale-105 transition-all hover:border-2 hover:border-foreground/50 border-dashed border-2 border-transparent hover:border-dashed' />
+      <div className='w-full flex justify-center items-center mt-2 mb-1'>
+        <input
+          type='text'
+          onChange={updateSetting('name')}
+          value={name || ''} id='nameField'
+          className='w-full bg-transparent text-foreground text-center text-2xl font-bold outline-none focus:border-2 focus:border-dashed focus:border-foreground/80 rounded-lg hover:scale-105 transition-all hover:border-2 hover:border-foreground/50 border-dashed border-2 border-transparent hover:border-dashed'
+        />
       </div>
 
       <SettingsControl
@@ -226,7 +231,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           type='text'
           value={geoShape || ''}
         />
-        <div className='w-full h-[275px] mt-[-2rem] rounded-lg overflow-hidden'>
+        <div className='w-full h-[275px] rounded-lg overflow-hidden'>
           {state.isModal
             ? (
               <EditableMapModal group={group} toggleModal={toggleModal}>
