@@ -474,13 +474,13 @@ function SpecialTopElementRenderer ({ widget, group }) {
   if (widget.type === 'members' && canAddMembers) {
     return (
       <div className='relative'>
-        <div className='absolute -top-10 right-0 bg-foreground/20 rounded-sm flex gap-2 hover:bg-selected/50 transition-all'>
+        <div className='absolute -top-10 right-0  border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
           <MenuLink
             to={groupUrl(group.slug, 'members')}
             className='flex items-center gap-2 px-2 py-1 text-foreground/50 hover:text-foreground/100 transition-all'
           >
             <Users className='w-4 h-4' />
-            <span>{group.membersCount || 0}</span>
+            <span>{group.memberCount || 0}</span>
           </MenuLink>
         </div>
         <MenuLink to={groupUrl(group.slug, 'settings/invite')}>
