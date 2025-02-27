@@ -7,6 +7,7 @@ import { postUrl, createPostUrl } from 'util/navigation'
 import RoundImage from '../../RoundImage'
 
 import classes from './ProjectsWidget.module.scss'
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 const { array, bool, object } = PropTypes
 
@@ -27,7 +28,7 @@ class ProjectsWidget extends Component {
             <div className={classes.project}>
               <div className={classes.meta}>
                 <div className={classes.title}>{p.title}</div>
-                <div className={classes.lastActivity}>{DateTime.fromJSDate(p.updatedAt).toRelative()}</div>
+                <div className={classes.lastActivity}>{DateTime.fromJSDate(p.updatedAt).setLocale(getLocaleAsString()).toRelative()}</div>
               </div>
               <div className={classes.createdBy}>
                 <RoundImage url={p.creator.avatarUrl} />

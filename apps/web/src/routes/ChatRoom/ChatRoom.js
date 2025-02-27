@@ -46,6 +46,7 @@ import { groupInviteUrl, groupUrl } from 'util/navigation'
 import isWebView from 'util/webView'
 
 import styles from './ChatRoom.module.scss'
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 // the maximum amount of time in minutes that can pass between messages to still
 // include them under the same avatar and timestamp
@@ -463,7 +464,7 @@ const Footer = ({ context }) => {
 
 const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
-  const createdAt = firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt) : null
+  const createdAt = firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt).setLocale(getLocaleAsString()) : null
   const displayDay = createdAt && getDisplayDay(createdAt)
 
   return (
@@ -517,7 +518,7 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
   const expanded = context.selectedPostId === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
   const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
-  const currentDay = DateTime.fromISO(post.createdAt)
+  const currentDay = DateTime.fromISO(post.createdAt).setLocale(getLocaleAsString())
   const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
 

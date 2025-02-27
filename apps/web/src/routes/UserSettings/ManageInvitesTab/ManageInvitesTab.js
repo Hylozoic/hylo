@@ -9,6 +9,7 @@ import { JOIN_REQUEST_STATUS } from 'store/models/JoinRequest'
 import { currentUserSettingsUrl, personUrl } from 'util/navigation'
 
 import classes from './ManageInvitesTab.module.scss'
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 const { array, bool, func } = PropTypes
 
@@ -118,7 +119,7 @@ function GroupInvite ({ acceptInvite, declineInvite, invite }) {
           </div>
         </div>
         <div className={classes.invitationResponse}>
-          <span className={classes.createdDate}>{t('Sent')} {DateTime.fromISO(createdAt).toFormat('MM-dd-yyyy')}</span>
+          <span className={classes.createdDate}>{t('Sent')} {DateTime.fromISO(createdAt).setLocale(getLocaleAsString()).toLocaleString(DateTime.DATE_SHORT)}</span>
           <span onClick={decline} className={classes.cancelButton}>{t('Decline')}</span>
           <span onClick={() => acceptInvite(token, group.slug)} className={classes.joinButton}>{t('Join')}</span>
         </div>
@@ -143,7 +144,7 @@ function JoinRequest ({ joinRequest, cancelJoinRequest }) {
         <GroupButton group={group} />
       </div>
       <div className={classes.requestDetail}>
-        <span className={`${classes.createdDate} ${classes.joinRequestDate}`}>{t('Requested')} {DateTime.fromISO(createdAt).toFormat('yyyy-MM-dd')}</span>
+        <span className={`${classes.createdDate} ${classes.joinRequestDate}`}>{t('Requested')} {DateTime.fromISO(createdAt).setLocale(getLocaleAsString()).toLocaleString(DateTime.DATE_SHORT)}</span>
         {joinRequest.status === JOIN_REQUEST_STATUS.Pending && (
           <span onClick={cancel} className={classes.cancelButton}>{t('Cancel')}</span>
         )}
