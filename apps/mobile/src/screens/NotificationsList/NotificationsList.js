@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import { useMutation, useQuery } from 'urql'
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native'
+import { TouchableOpacity, View, Text } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
@@ -16,18 +16,6 @@ import CreateGroupNotice from 'components/CreateGroupNotice'
 import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
 import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { alabaster, rhino } from 'style/colors'
-
-const styles = StyleSheet.create({
-  notificationsList: {
-    flex: 1,
-    backgroundColor: alabaster,
-    position: 'relative'
-  },
-  center: {
-    padding: 20
-  }
-})
 
 export default function NotificationsList (props) {
   const navigation = useNavigation()
@@ -82,11 +70,11 @@ export default function NotificationsList (props) {
   }
 
   if (!fetching && notifications.length === 0) {
-    return <Text style={styles.center}>{t('Nothing new for you!')}</Text>
+    return <Text className='p-10 text-xl'>{t('Nothing new for you!')}</Text>
   }
 
   return (
-    <View style={styles.notificationsList}>
+    <View className='flex-1 position-relative bg-background'>
       <FlashList
         data={notifications}
         estimatedItemSize={87}

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import { View, Text, Dimensions } from 'react-native'
+import { View, Text, Dimensions, StyleSheet } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
@@ -9,7 +9,6 @@ import messageThreadsQuery from '@hylo/graphql/queries/messageThreadsQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import Loading from 'components/Loading'
 import ThreadCard from 'components/ThreadCard'
-import styles from './ThreadList.styles'
 
 export default function ThreadList () {
   const { t } = useTranslation()
@@ -52,7 +51,7 @@ export default function ThreadList () {
   }, [])
 
   return (
-    <View style={styles.threadList}>
+    <View className='flex-1 bg-background'>
       {!fetching && threads && !threads.length === 0 && (
         <Text style={styles.center}>{t('No active conversations')}</Text>
       )}
@@ -82,3 +81,10 @@ export default function ThreadList () {
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  center: {
+    textAlign: 'center',
+    paddingTop: 10
+  }
+})

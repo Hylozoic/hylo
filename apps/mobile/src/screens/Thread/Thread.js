@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
-import { Dimensions, StyleSheet } from 'react-native'
+import { Dimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
@@ -17,7 +17,7 @@ import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
 import PeopleTyping from 'components/PeopleTyping'
 import ThreadHeaderTitle from './ThreadHeaderTitle'
-import { alabaster, caribbeanGreen } from 'style/colors'
+import { caribbeanGreen } from 'style/colors'
 
 const BOTTOM_THRESHOLD = 10
 const MESSAGE_PAGE_SIZE = 20
@@ -128,12 +128,11 @@ export default function Thread() {
   // }, [messages, atBottom])
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <KeyboardFriendlyView className='flex-1 bg-background'>
       {fetching && (
         <Loading />
       )}
       <FlashList
-        style={styles.messageList}
         data={refineMessages(messages)}
         estimatedListSize={Dimensions.get('screen')}
         estimatedItemSize={60}
@@ -167,10 +166,3 @@ export default function Thread() {
     </KeyboardFriendlyView>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: alabaster
-  }
-})

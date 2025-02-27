@@ -22,7 +22,7 @@ export default function ThreadCard ({ message, currentUser, onPress, participant
     : map('avatarUrl', otherParticipants)
 
   return (
-    <TouchableOpacity onPress={onPress} style={styles.threadCard}>
+    <TouchableOpacity onPress={onPress} style={styles.threadCard} className='flex-1 bg-background'>
       <ThreadAvatars avatarUrls={avatarUrls} />
       <View style={[styles.messageContent, isLast && styles.lastCard]}>
         <Text style={styles.header}>{names}</Text>
@@ -84,11 +84,9 @@ export function ThreadAvatars ({ avatarUrls }) {
 
 const styles = StyleSheet.create({
   threadCard: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: 8,
-    backgroundColor: alabaster, // flag-messages-background-color
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: rhino30
   },

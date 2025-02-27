@@ -46,8 +46,7 @@ export default function MessageCard ({ message }) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
-    paddingHorizontal: 10,
-    backgroundColor: alabaster
+    paddingHorizontal: 10
   },
   header: {
     flexDirection: 'row',

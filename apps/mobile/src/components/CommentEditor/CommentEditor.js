@@ -13,7 +13,7 @@ import mixpanel from 'services/mixpanel'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import { white, rhino80, gunsmoke, rhino10, amaranth, alabaster, caribbeanGreen } from 'style/colors'
+import { rhino80, gunsmoke, rhino10, amaranth, caribbeanGreen } from 'style/colors'
 
 export const CommentEditor = React.forwardRef(({
   isModal,
@@ -80,7 +80,7 @@ export const CommentEditor = React.forwardRef(({
   }))
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <KeyboardFriendlyView className='bg-background'>
       {replyingTo?.creator?.name && (
         <View style={styles.prompt}>
           <TouchableOpacity onPress={handleDone}>
@@ -120,10 +120,6 @@ export const CommentEditor = React.forwardRef(({
 export default CommentEditor
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: alabaster
-  },
-
   editor: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -133,7 +129,6 @@ const styles = StyleSheet.create({
 
   htmlEditor: {
     minHeight: 44,
-    backgroundColor: white,
     borderWidth: 1,
     borderColor: '#CCC',
     borderRadius: 10

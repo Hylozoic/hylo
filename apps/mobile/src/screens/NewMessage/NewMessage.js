@@ -16,7 +16,7 @@ import ItemSelector from 'components/ItemSelector'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import { capeCod20, pictonBlue, alabaster, amaranth, rhino80, caribbeanGreen } from 'style/colors'
+import { capeCod20, pictonBlue, amaranth, rhino80, caribbeanGreen, rhino60, white } from 'style/colors'
 
 export const recentContactsQuery = gql`
   query RecentContactsQuery ($first: Int = 20) {
@@ -164,7 +164,7 @@ export default function NewMessage () {
   const emptyParticipantsList = participants.length === 0
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <KeyboardFriendlyView className='flex-1 position-relative bg-background'>
       <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={styles.participants}>
         {participants.length > 0 && participants.map((participant, index) => (
           <Participant
@@ -187,8 +187,8 @@ export default function NewMessage () {
             variables: { autocomplete: searchTerm }
           }
         }}
-        colors={{ text: rhino80, border: alabaster }}
-        style={{ paddingHorizontal: 10 }}
+        colors={{ text: rhino80, border: rhino60 }}
+        style={{ padding: 13 }}
         itemsUseQuerySelector={data => data?.people?.items}
       />
       <MessageInput
@@ -219,11 +219,6 @@ export function Participant ({ participant, onPress }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: alabaster,
-    position: 'relative',
-    flex: 1
-  },
   // participants
   addParticipantButtonWrapper: {
     flex: 1,
@@ -250,6 +245,7 @@ const styles = StyleSheet.create({
   participant: {
     borderWidth: 1,
     borderColor: capeCod20,
+    backgroundColor: white,
     borderRadius: 4,
     flexDirection: 'row',
     alignItems: 'center',

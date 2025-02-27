@@ -3,7 +3,7 @@ import { TextInput, TouchableOpacity, View, Alert, StyleSheet } from 'react-nati
 import { useTranslation } from 'react-i18next'
 import { throttle, isEmpty } from 'lodash'
 import Icon from 'components/Icon'
-import { azureRadiance, rhino30, alabaster, rhino } from 'style/colors'
+import { azureRadiance, rhino30, alabaster, rhino, rhino50 } from 'style/colors'
 
 const IS_TYPING_THROTTLE = 3000
 const MAX_INPUT_HEIGHT = 180
@@ -64,7 +64,7 @@ const MessageInput = React.forwardRef(({
   }))
 
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, style]} className='bg-background'>
       <TextInput
         multiline={multiline}
         placeholderTextColor={rhino30}
@@ -74,6 +74,7 @@ const MessageInput = React.forwardRef(({
         underlineColorAndroid='transparent'
         ref={textInputRef}
         style={styles.input}
+        className='bg-background'
       />
       <TouchableOpacity onPress={handleSubmit}>
         <Icon
@@ -90,18 +91,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alabaster,
     paddingLeft: 10,
     paddingVertical: 5,
-    shadowColor: rhino,
-    shadowOffset: { width: 2, height: 5 },
+    shadowColor: rhino50,
+    shadowOffset: { width: 2, height: 8 },
     shadowRadius: 10,
     shadowOpacity: 0.5,
     elevation: 2 // Android-only
   },
   input: {
     flex: 1,
-    backgroundColor: alabaster,
     maxHeight: MAX_INPUT_HEIGHT,
     padding: 5,
     borderRadius: 10,
