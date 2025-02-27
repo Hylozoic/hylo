@@ -27,7 +27,6 @@ export function AuthProvider ({ children }) {
     requestPolicy: 'cache-and-network',
     query: meCheckAuthQuery
   })
-
   const [, executeLogin] = useMutation(loginMutation)
   const [, executeLogout] = useMutation(logoutMutation)
 

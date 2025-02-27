@@ -11,7 +11,7 @@ export default function LocationSelectorItemRow ({ item, onPress, colors = {} })
 
   const selectLocation = async locationData => {
     if (!isGeocoded) {
-      onPress(locationData)
+      onPress({ id: null, fullText: locationData.fullText })
     } else {
       const { locationObject } = await findOrCreateLocationObject(locationData)
       onPress(locationObject)
@@ -22,13 +22,13 @@ export default function LocationSelectorItemRow ({ item, onPress, colors = {} })
     <TouchableOpacity style={[styles.locationRow, { borderTopColor: colors?.border }]} onPress={() => selectLocation(item)}>
       {!isGeocoded && (
         <>
-          <Icon name='Back' color={rhino80} style={styles.locationIcon} />
+          <Icon name='Back' color={colors?.border || rhino80} style={styles.locationIcon} />
           <Text style={[styles.locationText, styles.notGeocodedRow, { color: colors?.text }]}>Use "{item.fullText}" (without mapping)</Text>
         </>
       )}
       {isGeocoded && (
         <>
-          <Icon name='Location' color={caribbeanGreen} style={styles.locationIcon} />
+          <Icon name='Location' color={caribbeanGreen} style={styles.locationIcon} size={18} />
           <Text style={[styles.locationText, { color: colors?.text }]}>{item.fullText}</Text>
         </>
       )}

@@ -76,6 +76,7 @@ export default function SignupRegistration ({ navigation, route }) {
           continueButtonText: 'No',
           onDiscard: () => {
             logout()
+            navigation.navigate('Login', {})
           }
         })
       }

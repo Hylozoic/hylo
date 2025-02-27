@@ -317,7 +317,7 @@ export default function PostEditor (props) {
   const handleUpdateLocation = locationObject => {
     updatePost({
       location: locationObject.fullText,
-      locationObject: locationObject?.id !== 'NEW' ? locationObject : null
+      locationObject: locationObject?.id && locationObject
     })
   }
 

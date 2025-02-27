@@ -8,13 +8,14 @@ import {
   ScrollView,
   TextInput
 } from 'react-native'
-import { gql, useMutation } from 'urql'
+import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { useNavigation, useRoute, useNavigationState, useFocusEffect } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import validator from 'validator'
 import { AnalyticsEvents } from '@hylo/shared'
 import { useAuth } from '@hylo/contexts/AuthContext'
+import sendEmailVerificationMutation from '@hylo/graphql/mutations/sendEmailVerificationMutation'
 import mixpanel from 'services/mixpanel'
 import { openURL } from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
@@ -27,34 +28,15 @@ import providedStyles from './Signup.styles'
 const backgroundImage = require('assets/signin_background.png')
 const merkabaImage = require('assets/merkaba_white.png')
 
-export const sendEmailVerificationMutation = gql`
-  mutation SendEmailVerificationMutation ($email: String!) {
-    sendEmailVerification(email: $email) {
-      success
-      error
-    }
-  }
-`
-
-export default function Signup () {
-  const { t } = useTranslation()
+function useSignupWorkflow () {
   const navigation = useNavigation()
-  const safeAreaInsets = useSafeAreaInsets()
   const route = useRoute()
-  const { email: routeEmail, error: routeError, bannerError: routeBannerError, step } = useRouteParams()
   const currentRouteName = useNavigationState(state => state?.routes[state.index]?.name)
+  const { step, email } = useRouteParams()
   const { currentUser, fetching } = useAuth()
-  const [, sendEmailVerification] = useMutation(sendEmailVerificationMutation)
-  const [email, providedSetEmail] = useState(routeEmail)
-  const [signingUp, setSigningUp] = useState(false)
-  const [error, setError] = useState(routeError)
-  // WIP: Positive message for `checkInvitation` result
-  // const [message, setMessage] = useState(route.params?.message)
-  const [bannerError, setBannerError] = useState(routeBannerError)
-  const [canSubmit, setCanSubmit] = useState(!fetching && !signingUp && email)
-  const genericError = new Error(t('An account may already exist for this email address, Login or try resetting your password'))
 
   const signupRedirect = useCallback(() => {
+    if (fetching) return
     if (currentUser?.settings?.signupInProgress) {
       if (!currentUser.emailValidated) {
         navigation.navigate('SignupEmailValidation', route.params)
@@ -65,13 +47,15 @@ export default function Signup () {
           navigation.navigate('SignupUploadAvatar', route.params)
         }
       }
+    } else if (step === 'verify-email' && email) {
+      navigation.navigate('SignupEmailValidation', route.params)
     }
   }, [
     currentUser?.settings?.signupInProgress,
     currentUser?.emailValidated,
     currentUser?.hasRegistered,
     fetching,
-    signingUp
+    step
   ])
   useFocusEffect(signupRedirect)
   useEffect(() => {
@@ -80,9 +64,27 @@ export default function Signup () {
     currentUser?.settings?.signupInProgress,
     currentUser?.emailValidated,
     currentUser?.hasRegistered,
-    fetching,
-    signingUp
+    fetching
   ])
+
+  return { currentUser, fetching }
+}
+
+export default function Signup () {
+  const { t } = useTranslation()
+  const navigation = useNavigation()
+  const safeAreaInsets = useSafeAreaInsets()
+  const { email: routeEmail, error: routeError, bannerError: routeBannerError } = useRouteParams()
+  const { fetching } = useSignupWorkflow()
+  const [, sendEmailVerification] = useMutation(sendEmailVerificationMutation)
+  const [email, providedSetEmail] = useState(routeEmail)
+  const [signingUp, setSigningUp] = useState(false)
+  const [error, setError] = useState(routeError)
+  // WIP: Positive message for `checkInvitation` result
+  // const [message, setMessage] = useState(route.params?.message)
+  const [bannerError, setBannerError] = useState(routeBannerError)
+  const [canSubmit, setCanSubmit] = useState(!fetching && !signingUp && email)
+  const genericError = new Error(t('An account may already exist for this email address, Login or try resetting your password'))
 
   const setEmail = validateEmail => {
     setBannerError()

@@ -18,7 +18,7 @@ export default function SearchBar ({
 }) {
   const Cancel = () => onCancelText
     ? <Text style={styles.cancelText}>{onCancelText}</Text>
-    : <Icon name='Ex' style={styles.cancelButton} />
+    : <Icon name='Ex' style={[styles.cancelButton, style.cancelButton]} />
 
   return (
     <View style={[styles.container, style.container]}>
