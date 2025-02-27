@@ -133,7 +133,7 @@ export function humanDate (date, short) {
   let ret = new String(dt.toRelative())
 
   // Always return 'now' for very recent timestamps
-  if (ret.includes('seconds')) {
+  if (ret.includes('second')) {
     return i18n.t('now')
   }
 
