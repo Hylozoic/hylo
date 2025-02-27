@@ -131,42 +131,34 @@ const HyloEditor = React.forwardRef(({
     content: contentHTML,
     extensions,
     onCreate: ({ editor }) => {
-      console.log('HyloEditor onCreate:', {
-        hasEditor: !!editor,
-        content: editor?.getHTML()
-      })
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('HyloEditor onCreate:', {
+          hasEditor: !!editor,
+          content: editor?.getHTML()
+        })
+      }
       if (onCreate) onCreate(editor)
     },
     onUpdate: ({ editor }) => {
-      // Only check if editor exists and is not destroyed
       if (!onUpdate || !editor || editor.isDestroyed) {
-        console.log('HyloEditor update skipped:', {
-          hasOnUpdate: !!onUpdate,
-          hasEditor: !!editor,
-          isDestroyed: editor?.isDestroyed
-        })
         return
       }
       
       try {
         const html = editor.getHTML()
-        console.log('HyloEditor onUpdate:', {
-          html,
-          hasOnUpdate: !!onUpdate
-        })
-        
-        onUpdate(html)
+        const text = editor.getText ? editor.getText() : ''
+        // Pass both HTML and text to avoid PostEditor needing to call getText()
+        onUpdate(html, text)
       } catch (error) {
         console.error('Error in HyloEditor onUpdate:', error)
       }
     },
     onFocus: ({ editor }) => {
-      console.log('HyloEditor onFocus')
-      onFocus && onFocus()
+      if (editor && onFocus) onFocus()
     },
     onBlur: ({ editor }) => {
-      console.log('HyloEditor onBlur')
-      onBlur && onBlur()
+      if (editor && onBlur) onBlur()
     },
     editorProps: {
       attributes: {
@@ -175,13 +167,16 @@ const HyloEditor = React.forwardRef(({
     }
   })
 
-  // Add an effect to handle editor ready state
+  // Also update the useEffect to match the new onUpdate signature
   useEffect(() => {
-    if (editor && onUpdate) {
-      // Initial content update
-      const html = editor.getHTML()
-      console.log('Initial editor content:', html)
-      onUpdate(html)
+    if (editor && !editor.isDestroyed && onUpdate) {
+      try {
+        const html = editor.getHTML()
+        const text = editor.getText()
+        onUpdate(html, text)
+      } catch (error) {
+        console.error('Error in HyloEditor useEffect update:', error)
+      }
     }
   }, [editor, onUpdate])
 
@@ -202,7 +197,21 @@ const HyloEditor = React.forwardRef(({
 
     // Wrap in setTimeout to ensure editor is ready
     setTimeout(() => {
-      editor.setEditable(!readOnly)
+      try {
+        // Temporarily disable the onUpdate handler
+        const originalOnUpdate = editor.options.onUpdate
+        editor.options.onUpdate = null
+        
+        // Set editable state
+        editor.setEditable(!readOnly)
+        
+        // Restore the onUpdate handler
+        setTimeout(() => {
+          editor.options.onUpdate = originalOnUpdate
+        }, 0)
+      } catch (error) {
+        console.error('Error setting editor editable state:', error)
+      }
     }, 0)
   }, [groupIds, readOnly])
 

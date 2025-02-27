@@ -27,8 +27,9 @@ export const GROUP_ATTR_UPDATE_WHITELIST = [
   'active'
 ]
 
-const DEFAULT_BANNER = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_banner.jpg'
-const DEFAULT_AVATAR = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png'
+// For files in the public directory, reference them with the base URL
+const DEFAULT_BANNER = '/default-group-banner.svg'
+const DEFAULT_AVATAR = '/default-group-avatar.svg'
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'groups',
