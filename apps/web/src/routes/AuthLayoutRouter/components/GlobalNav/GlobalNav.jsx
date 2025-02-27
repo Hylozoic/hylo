@@ -13,6 +13,7 @@ import {
 import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
 import GlobalNavItem from './GlobalNavItem'
+import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
 
@@ -222,3 +223,5 @@ export default function GlobalNav (props) {
     </div>
   )
 }
+
+export { GlobalNavTooltipContainer }
