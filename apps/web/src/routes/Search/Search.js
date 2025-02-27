@@ -143,9 +143,9 @@ function TabBar ({ filter, setSearchFilter }) {
   const { t } = useTranslation()
   const tabs = [
     { id: 'all', label: t('All') },
-    { id: 'post', label: t('Discussions') },
-    { id: 'person', label: t('People') },
-    { id: 'comment', label: t('Comments') }
+    { id: 'post', label: t('Posts') },
+    { id: 'comment', label: t('Comments') },
+    { id: 'person', label: t('People') }
   ]
 
   return (
