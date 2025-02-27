@@ -33,6 +33,12 @@ export default function EmojiPicker (props) {
     return true
   }
 
+  const stopPropagation = (evt) => {
+    evt.preventDefault()
+    evt.stopPropagation()
+    return false
+  }
+
   const toggleModalOpen = (evt) => {
     setModalOpen(!modalOpen)
     evt.preventDefault()
@@ -42,7 +48,7 @@ export default function EmojiPicker (props) {
 
   return forReactions
     ? (
-      <div className={cn(classes.emojiPickerContainer, props.className)}>
+      <div onClick={stopPropagation} className={cn(classes.emojiPickerContainer, props.className)}>
         <Popover onOpenChange={handleOpenChange} open={modalOpen}>
           <PopoverTrigger asChild>
             <div className={classes.emojiPickerToggle} onClick={toggleModalOpen}>
@@ -58,7 +64,7 @@ export default function EmojiPicker (props) {
       </div>
       )
     : (
-      <div className={cn(classes.emojiPickerContainer, props.className)}>
+      <div onClick={stopPropagation} className={cn(classes.emojiPickerContainer, props.className)}>
         <Popover onOpenChange={handleOpenChange} open={modalOpen}>
           <PopoverTrigger asChild>
             <span onClick={toggleModalOpen}>{emoji || '?'}</span>
