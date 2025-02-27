@@ -1,5 +1,5 @@
 import { get } from 'lodash/fp'
-import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut } from 'lucide-react'
+import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut, Users} from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -473,11 +473,22 @@ function SpecialTopElementRenderer ({ widget, group }) {
 
   if (widget.type === 'members' && canAddMembers) {
     return (
-      <MenuLink to={groupUrl(group.slug, 'settings/invite')}>
-        <div className='inline-block px-2 py-2 text-base font-medium text-foreground bg-foreground/20 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer animate-slide-up invisible'>
-          <UserPlus className='inline-block h-[20px] mr-1' /> {t('Add Members')}
+      <div className='relative'>
+        <div className='absolute -top-10 right-0 bg-foreground/20 rounded-sm flex gap-2 hover:bg-selected/50 transition-all'>
+          <MenuLink
+            to={groupUrl(group.slug, 'members')}
+            className='flex items-center gap-2 px-2 py-1 text-foreground/50 hover:text-foreground/100 transition-all'
+          >
+            <Users className='w-4 h-4' />
+            <span>{group.membersCount || 0}</span>
+          </MenuLink>
         </div>
-      </MenuLink>
+        <MenuLink to={groupUrl(group.slug, 'settings/invite')}>
+          <div className='inline-block px-2 py-2 text-base font-medium text-foreground bg-foreground/20 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer animate-slide-up invisible'>
+            <UserPlus className='inline-block h-[20px] mr-1' /> {t('Add Members')}
+          </div>
+        </MenuLink>
+      </div>
     )
   }
 
