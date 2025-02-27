@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react'
-import { useNavigation, useIsFocused, useRoute } from '@react-navigation/native'
+import { useNavigation, useIsFocused } from '@react-navigation/native'
 import { View, TouchableOpacity, Dimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { FlashList } from '@shopify/flash-list'
 import { gql, useMutation, useQuery } from 'urql'
 import { capitalize, get, isEmpty } from 'lodash/fp'
@@ -9,17 +10,15 @@ import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import useStreamQueryVariables from '@hylo/hooks/useStreamQueryVariables'
-import { useTranslation } from 'react-i18next'
+import { isDev } from 'config'
 import useRouteParams from 'hooks/useRouteParams'
 import makeStreamQuery from './makeStreamQuery'
-import StreamHeader from './StreamHeader'
-import PostRow from './PostRow'
 import CreateGroupNotice from 'components/CreateGroupNotice'
 import Icon from 'components/Icon'
 import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
-import { isDev } from 'config'
-import styles from './Stream.styles'
+import PostRow from './PostRow'
+import StreamHeader from './StreamHeader'
 import { pictonBlue } from 'style/colors'
 
 /* === CONSTANTS === */
@@ -78,7 +77,6 @@ export default function Stream () {
   const ref = useRef(null)
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const route = useRoute()
   const isFocused = useIsFocused()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
@@ -107,7 +105,7 @@ export default function Stream () {
     customView,
     streamType,
     filter,
-    forGroup: currentGroup,
+    slug: currentGroup?.slug,
     myHome,
     sortBy,
     timeframe
@@ -194,6 +192,7 @@ export default function Stream () {
     updateUserSettings({ changes: { settings: { streamChildPosts: childPostInclusion } } })
   }
 
+  // TODO: Unused. Remove or explain in comment
   const extraToggleStyles = streamQueryVariables?.childPostInclusion === 'yes'
     ? { backgroundColor: pictonBlue }
     : { backgroundColor: '#FFFFFF' }
