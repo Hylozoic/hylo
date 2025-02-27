@@ -179,10 +179,17 @@ export default function ChatRoom (props) {
     return dispatch(fetchPosts({ offset, ...fetchPostsPastParams }))
       .then((action) => {
         const posts = action.payload?.data?.group?.posts?.items
+        // Always reset loading state
+        setLoadingPast(false)
+        // Handle empty posts case - clear the list or do other necessary resets
+        if (!posts?.length) {
+          messageListRef.current?.data.clear()
+          return
+        }
+        // Process posts only if they exist
         if (posts?.length) {
           messageListRef.current?.data.prepend(posts.reverse() || [])
         }
-        setLoadingPast(false)
       })
       .catch(() => setLoadingPast(false))
   }, [fetchPostsPastParams, loadingPast, hasMorePostsPast])
@@ -414,9 +421,6 @@ export default function ChatRoom (props) {
 
   if (topicFollowLoading) return <Loading />
 
-  // Add performance marks in ChatRoom.js
-  performance.mark('chat-room-start')
-
   return (
     <Profiler id="chat-room" onRender={(id, phase, actualDuration) => {
       console.log(`${id} took ${actualDuration}ms to render`)
@@ -565,9 +569,17 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
   const showHeader = !prevData || firstUnread || !!displayDay || createdTimeDiff > MAX_MINS_TO_BATCH || prevData.creator.id !== post.creator.id || prevData.commentersTotal > 0 || prevData.type !== 'chat'
-
-  // Only apply animations if not pending and initial animation is not complete
-  const isInitialLoad = !context.initialAnimationComplete && context.numPosts > 0 && index > context.numPosts - 20
+  /* Display the author header if
+  * There was no previous post
+  * Or this post is the first unread post
+  * Or this post is from a different day than the last post
+  * Or it's been more than 5 minutes since the last post
+  * Or the last post was a different author
+  * Or the last post had any comments on it
+  * Or the last past was a non chat type post
+  */
+  // Only calculate delay for initial load near bottom
+  const isInitialLoad = context.numPosts > 0 && index > context.numPosts - 20
   const delay = isInitialLoad ? Math.min((context.numPosts - index - 1) * 35, 2000) : 0
 
   // Only animate during initial load, never animate after initial animation is complete

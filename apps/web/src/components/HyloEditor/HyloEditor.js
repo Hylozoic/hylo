@@ -144,7 +144,6 @@ const HyloEditor = React.forwardRef(({
       if (!onUpdate || !editor || editor.isDestroyed) {
         return
       }
-      
       try {
         const html = editor.getHTML()
         const text = editor.getText ? editor.getText() : ''
@@ -169,6 +168,9 @@ const HyloEditor = React.forwardRef(({
 
   // Also update the useEffect to match the new onUpdate signature
   useEffect(() => {
+    if (editor.isInitialized) {
+      editor.commands.setContent(contentHTML)
+    }
     if (editor && !editor.isDestroyed && onUpdate) {
       try {
         const html = editor.getHTML()
@@ -201,10 +203,8 @@ const HyloEditor = React.forwardRef(({
         // Temporarily disable the onUpdate handler
         const originalOnUpdate = editor.options.onUpdate
         editor.options.onUpdate = null
-        
         // Set editable state
         editor.setEditable(!readOnly)
-        
         // Restore the onUpdate handler
         setTimeout(() => {
           editor.options.onUpdate = originalOnUpdate

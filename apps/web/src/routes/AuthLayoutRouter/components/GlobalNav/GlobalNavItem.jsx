@@ -8,54 +8,18 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { cn } from 'util/index'
-import { cx } from 'class-variance-authority'
 
-// Add this at the top of your file
-// This ensures the tooltip portal has a constrained height
-const setupTooltipContainer = () => {
-  useEffect(() => {
-    // Function to find and modify the tooltip provider
-    const modifyTooltipContainer = () => {
-      // Look for the tooltip portal - this might need adjustment based on your DOM
-      const tooltipPortals = document.querySelectorAll('[data-radix-portal]');
-      
-      tooltipPortals.forEach(portal => {
-        // Set max height to end above the plus button
-        // Adjust the value (85vh) as needed to position above the plus button
-        portal.style.maxHeight = 'calc(85vh)';
-        portal.style.overflow = 'hidden';
-        
-        // Add a bottom margin to ensure tooltips don't go too low
-        const tooltips = portal.querySelectorAll('[role="tooltip"]');
-        tooltips.forEach(tooltip => {
-          tooltip.style.maxHeight = 'calc(85vh)';
-          // Add a constraint to prevent tooltips from appearing too low
-          tooltip.style.bottom = 'auto';
-        });
-      });
-    };
-
-    // Run immediately and also set up a mutation observer to catch dynamically added tooltips
-    modifyTooltipContainer();
-    
-    // Create a mutation observer to watch for new tooltip portals
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.addedNodes.length) {
-          modifyTooltipContainer();
-        }
-      }
-    });
-    
-    // Start observing the document body for changes
-    observer.observe(document.body, { childList: true, subtree: true });
-    
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-};
-
+/**
+ * GlobalNavItem component renders a navigation item with tooltip and hover animations
+ * @param {ReactNode} children - Content to render inside the nav item
+ * @param {string} className - Additional CSS classes
+ * @param {number} badgeCount - Number to show in badge (if > 0)
+ * @param {string} img - URL of image to show as background
+ * @param {string} tooltip - Text to show in tooltip
+ * @param {string} url - URL to navigate to when clicked
+ * @param {boolean} showTooltip - Whether parent is triggering tooltip cascade
+ * @param {number} index - Position in nav list for staggered animations
+ */
 export default function GlobalNavItem ({
   children,
   className,
@@ -71,25 +35,23 @@ export default function GlobalNavItem ({
   const [isHovered, setIsHovered] = useState(false)
   const [open, setOpen] = useState(false)
   const [shouldAnimate, setShouldAnimate] = useState(false)
-  
-  // Setup tooltip container once
-  setupTooltipContainer();
 
+  /**
+   * Handles tooltip visibility and animation states
+   * - Immediate show on direct hover
+   * - Staggered show when parent triggers cascade
+   * - Hide when neither condition is true
+   */
   useEffect(() => {
     if (isHovered) {
-      // Immediate display for hovered item
       setOpen(true)
       setShouldAnimate(true)
     } else if (parentShowTooltip) {
-      // Delayed cascade for parent hover
       const timer = setTimeout(() => {
         setOpen(true)
         setShouldAnimate(true)
-      }, 300 + (index * 100)) // 300ms initial delay + 100ms per item
-
-      return () => {
-        clearTimeout(timer)
-      }
+      }, 300 + (index * 100))
+      return () => clearTimeout(timer)
     } else {
       setOpen(false)
       setShouldAnimate(false)
@@ -147,8 +109,8 @@ export default function GlobalNavItem ({
           </div>
         </TooltipTrigger>
         {tooltip && (
-          <TooltipContent 
-            side='right' 
+          <TooltipContent
+            side='right'
             className={cn(
               'transition-all duration-300 ease-out transform',
               {
@@ -171,20 +133,4 @@ export default function GlobalNavItem ({
       </div>
     </Tooltip>
   )
-}
-
-// Add this component to your file
-export function GlobalNavTooltipContainer({ children }) {
-  return (
-    <div className='relative h-full'>
-      <div className='absolute inset-0 overflow-hidden'>
-        {children}
-      </div>
-      <div className='absolute bottom-0 left-0 right-0 h-32 pointer-events-none' 
-           style={{
-             background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 70%, rgba(0,0,0,1) 100%)'
-           }} 
-      />
-    </div>
-  );
 }

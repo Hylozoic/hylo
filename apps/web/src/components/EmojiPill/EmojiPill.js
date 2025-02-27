@@ -5,14 +5,8 @@ import Pill from 'components/Pill'
 import classes from './EmojiPill.module.scss'
 
 export default function EmojiPill ({ emojiFull, onClick = () => {}, count, userList, selected, toolTip }) {
-  console.log('Classes:', {
-    tagPill: classes.tagPill,
-    selected: classes.selected,
-    selectedProp: selected,
-    finalClassName: cn(classes.tagPill, { [classes.selected]: selected })
-  })
   return (
-    <div data-tooltip-content={toolTip}>
+    <div data-tooltip-content={toolTip} data-tooltip-id={`${emojiFull}-emoji`}>
       <Pill
         darkText
         id={emojiFull}
