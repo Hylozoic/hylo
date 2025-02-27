@@ -4,7 +4,8 @@ import {
   // RiH1, RiH2, RiH3,
   List, ListOrdered, Link, Unlink,
   IndentIncrease, Code,
-  Undo2, Redo2, RemoveFormatting
+  Undo2, Redo2, RemoveFormatting,
+  Heading1, Heading2, Heading3
 } from 'lucide-react'
 import { Button } from 'components/ui/button'
 import { cn } from 'util/index'
@@ -17,13 +18,34 @@ import { cn } from 'util/index'
 //   }
 // }
 
-export default function HyloEditorMenuBar ({ editor }) {
+export default function HyloEditorMenuBar ({ editor, extendedMenu }) {
   const [modal, setModal] = useState(false)
 
   if (!editor) return null
 
   return (
     <div className='flex items-center w-full opacity-70 hover:opacity-100 transition-all'>
+      {extendedMenu && (
+        <HyloEditorMenuBarButton
+          Icon={Heading1}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          active={editor.isActive('heading', { level: 1 })}
+        />
+      )}
+      {extendedMenu && (
+        <HyloEditorMenuBarButton
+          Icon={Heading2}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          active={editor.isActive('heading', { lebel: 2 })}
+        />
+      )}
+      {extendedMenu && (
+        <HyloEditorMenuBarButton
+          Icon={Heading3}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          active={editor.isActive('heading', { level: 3 })}
+        />
+      )}
       <HyloEditorMenuBarButton
         Icon={Bold}
         setModal={setModal}

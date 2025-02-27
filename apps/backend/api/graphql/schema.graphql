@@ -735,6 +735,10 @@ type Group {
   typeDescriptor: String
   # Word used to describe this type of groups. Defaults to Groups, or if type is set then defaults to the type (e.g. Farms)
   typeDescriptorPlural: String
+  # The primary website for the group
+  websiteUrl: String
+  # The content for the group welcome page
+  welcomePage: String
   # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
   visibility: Int
 
@@ -2998,6 +3002,10 @@ input GroupInput {
   typeDescriptor: String
   # Word used to describe this type of groups. Defaults to Groups, or if type is set then defaults to the type (e.g. Farms)
   typeDescriptorPlural: String
+  # The primary website for the group
+  websiteUrl: String
+  # The content for the group welcome page
+  welcomePage: String
   # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
   visibility: Int
 }

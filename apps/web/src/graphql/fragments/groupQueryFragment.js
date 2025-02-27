@@ -62,6 +62,8 @@ export default function groupQueryFragment () {
     typeDescriptor
     typeDescriptorPlural
     visibility
+    websiteUrl
+    welcomePage
     activeProjects: posts(filter: "project", sortBy: "updated", order: "desc", first: 4) {
       items {
         id

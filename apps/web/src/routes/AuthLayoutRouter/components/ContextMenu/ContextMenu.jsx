@@ -538,6 +538,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
 const SETTINGS_MENU_ITEMS = [
   { title: 'Group Details', url: 'settings' },
   { title: 'Agreements', url: 'settings/agreements' },
+  { title: 'Welcome Page', url: 'settings/welcome' },
   { title: 'Responsibilities', url: 'settings/responsibilities' },
   { title: 'Roles & Badges', url: 'settings/roles' },
   { title: 'Privacy & Access', url: 'settings/privacy' },

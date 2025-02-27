@@ -42,6 +42,7 @@ import CreateGroup from 'routes/CreateGroup'
 import GroupDetail from 'routes/GroupDetail'
 import GroupSettings from 'routes/GroupSettings'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
+import GroupWelcomePage from 'routes/GroupWelcomePage'
 import Groups from 'routes/Groups'
 import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
@@ -61,7 +62,7 @@ import SiteTour from 'routes/AuthLayoutRouter/components/SiteTour'
 import ThreadList from 'routes/Messages/ThreadList'
 
 import UserSettings from 'routes/UserSettings'
-import { DEFAULT_CHAT_TOPIC, GROUP_TYPES } from 'store/models/Group'
+import { GROUP_TYPES } from 'store/models/Group'
 import classes from './AuthLayoutRouter.module.scss'
 import { findHomeWidget } from '@hylo/presenters/ContextWidgetPresenter'
 import { localeLocalStorageSync } from 'util/locale'
@@ -101,7 +102,7 @@ export default function AuthLayoutRouter (props) {
   const hasDetail = useMemo(() => {
     // TODO: fix this hacky way to determine whether to open up the detail pane
     const detailRegex = /\/(group|post)\/([a-zA-Z0-9-]+)/
-    return detailRegex.test(location.pathname) && (location.pathname.includes('map/') || location.pathname.includes('explore/') || location.pathname.includes('groups/group'))
+    return detailRegex.test(location.pathname) && (location.pathname.includes('map/') || location.pathname.includes('groups/group'))
   }, [location.pathname])
 
   const paramPostId = useMemo(() => {
@@ -228,13 +229,11 @@ export default function AuthLayoutRouter (props) {
     return <Navigate to={postUrl(paramPostId, { context: 'all', groupSlug: null })} />
   }
 
-  /* First time viewing a group redirect to home chat */
+  /* First time viewing a group redirect to welcome page */
   // XXX: this is a hack, figure out better way to do this
   if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
     currentGroupMembership.update({ lastViewedAt: (new Date()).toISOString() })
-    setTimeout(() => {
-      navigate(`/groups/${currentGroupSlug}/chat/${DEFAULT_CHAT_TOPIC}`, { replace: true })
-    }, 100)
+    navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
   }
 
   if (currentGroupSlug && !currentGroup && !currentGroupLoading) {
@@ -379,9 +378,9 @@ export default function AuthLayoutRouter (props) {
                   <Route path='groups/:groupSlug' element={<GroupDetail context='groups' group={currentGroup} />} />
                 )}
                 <Route path='groups/:groupSlug/about/*' element={<GroupDetail context='groups' />} />
+                <Route path='groups/:groupSlug/welcome/*' element={<GroupWelcomePage />} />
                 <Route path='groups/:groupSlug/map/*' element={<MapExplorer context='groups' view='map' />} />
                 <Route path='groups/:groupSlug/stream/*' element={<Stream context='groups' view='stream' />} />
-                <Route path='groups/:groupSlug/explore/*' element={<LandingPage context='groups' />} />
                 <Route path='groups/:groupSlug/discussions/*' element={<Stream context='groups' view='discussions' />} />
                 <Route path='groups/:groupSlug/events/*' element={<Stream context='groups' view='events' />} />
                 <Route path='groups/:groupSlug/resources/*' element={<Stream context='groups' view='resources' />} />
@@ -425,13 +424,11 @@ export default function AuthLayoutRouter (props) {
             <div className={cn(classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
               <Routes>
                 {/* All context routes */}
-                <Route path={`/all/explore/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
                 <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
                 <Route path={`/all/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
                 <Route path={`/all/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='all' />} />
 
                 {/* Public context routes */}
-                <Route path={`/public/explore/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
                 <Route path={`/public/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
                 <Route path={`/public/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
                 <Route path={`/public/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
@@ -444,10 +441,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path={`/my/announcements/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} /> */}
 
                 {/* Groups context routes */}
-                <Route path={`/groups/:groupSlug/explore/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-                <Route path={`/groups/:groupSlug/explore/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />

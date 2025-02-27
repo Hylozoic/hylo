@@ -28,6 +28,8 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   typeDescriptor
   typeDescriptorPlural
   visibility
+  websiteUrl
+  welcomePage
   agreements {
     items {
       id

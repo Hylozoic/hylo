@@ -31,6 +31,7 @@ const HyloEditor = React.forwardRef(({
   placeholder,
   readOnly,
   showMenu = false,
+  extendedMenu = false,
   suggestionsThemeName = 'suggestions'
 }, ref) => {
   const { t } = useTranslation()
@@ -202,7 +203,7 @@ const HyloEditor = React.forwardRef(({
   return (
     <div className={cn('flex-1', containerClassName)}>
       {showMenu && (
-        <HyloEditorMenuBar editor={editor} />
+        <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} />
       )}
       <EditorContent className={cn('HyloEditor_EditorContent text-foreground py-3 px-3', className)} editor={editor} />
       {editor && (

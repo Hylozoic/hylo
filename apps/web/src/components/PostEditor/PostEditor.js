@@ -195,8 +195,8 @@ function PostEditor ({
 
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
-    
-    return groupOptions.filter((g) => 
+
+    return groupOptions.filter((g) =>
       g && currentPost.groups.some((g2) => g2 && g.id === g2.id)
     )
   }, [currentPost?.groups, groupOptions])
@@ -210,12 +210,12 @@ function PostEditor ({
         if (!g) return []
         return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g }]
           .concat((g.chatRooms?.toModelArray() || [])
-            .map((cr) => ({ 
-              id: cr?.groupTopic?.id, 
-              group: g, 
-              name: g.name + ' #' + cr?.groupTopic?.topic?.name, 
-              topic: cr?.groupTopic?.topic, 
-              avatarUrl: g.avatarUrl 
+            .map((cr) => ({
+              id: cr?.groupTopic?.id,
+              group: g,
+              name: g.name + ' #' + cr?.groupTopic?.topic?.name,
+              topic: cr?.groupTopic?.topic,
+              avatarUrl: g.avatarUrl
             }))
             .filter(Boolean)
             .sort((a, b) => a.name.localeCompare(b.name)))
@@ -225,17 +225,17 @@ function PostEditor ({
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
       if (!g) return []
-      
-      const baseOption = [{ 
-        id: `group_${g.id}`, 
-        name: g.name, 
-        avatarUrl: g.avatarUrl, 
-        group: g 
+
+      const baseOption = [{
+        id: `group_${g.id}`,
+        name: g.name,
+        avatarUrl: g.avatarUrl,
+        group: g
       }]
 
       const chatRoomOptions = g.chatRooms?.toModelArray()
-        ?.filter(cr => 
-          cr?.groupTopic?.topic?.id && 
+        ?.filter(cr =>
+          cr?.groupTopic?.topic?.id &&
           currentPost.topics?.some(t => t?.id === cr.groupTopic.topic.id)
         )
         ?.map(cr => {

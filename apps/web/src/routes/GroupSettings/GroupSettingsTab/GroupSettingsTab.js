@@ -43,7 +43,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     if (!group) return { edits: {}, changed: false, valid: false }
 
     const {
-      aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, locationObject, name, settings
+      aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, locationObject, name, settings, websiteUrl
     } = group
 
     return {
@@ -59,7 +59,8 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
         stewardDescriptorPlural: group.stewardDescriptorPlural || t('Moderators'),
         name: name || '',
         purpose: group.purpose || '',
-        settings: typeof settings !== 'undefined' ? settings : { }
+        settings: typeof settings !== 'undefined' ? settings : { },
+        websiteUrl
       },
       error: null,
       changed: false,
@@ -136,7 +137,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
 
   const { changed, edits, error } = state
   const {
-    aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings
+    aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings, websiteUrl
   } = edits
 
   const { locationDisplayPrecision, showSuggestedSkills } = settings
@@ -189,6 +190,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
         value={purpose}
       />
       <SettingsControl label={t('Description')} onChange={updateSetting('description')} value={description} type='textarea' id='descriptionField' />
+      <SettingsControl label={t('Website URL')} onChange={updateSetting('websiteUrl')} value={websiteUrl} />
       <SettingsControl label={t('About Video URL')} onChange={updateSetting('aboutVideoUri')} value={aboutVideoUri} />
       <SettingsSection>
         <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Location Settings')}</h3>
@@ -199,7 +201,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           locationObject={group.locationObject}
           type='location'
         />
-        <div className='mb-10'>
+        <div className='mb-5'>
           <label className='w-full text-foreground/50 text-sm mb-2 block'>{t('Display location')}</label>
           <Dropdown
             className='bg-black/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2 text-base'
