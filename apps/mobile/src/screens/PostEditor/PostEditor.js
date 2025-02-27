@@ -266,7 +266,7 @@ export default function PostEditor (props) {
         : t('Post')
 
     return () => (
-      <View style={styles.headerContainer}>
+      <View className="border-border bg-background" style={styles.headerContainer}>
         <View style={styles.header}>
           <HeaderLeftCloseIcon
             style={styles.headerCloseIcon}
@@ -361,384 +361,402 @@ export default function PostEditor (props) {
 
   const renderForm = () => {
     return (
-      <View style={styles.formContainer}>
-
-        {/*  Form Top */}
-
-        <View style={styles.formTop}>
-          <View style={[styles.titleInputWrapper]}>
-            <TextInput
-              style={[styles.titleInput]}
-              editable={!isSaving}
-              onChangeText={title => updatePost({ title })}
-              placeholder={t(titlePlaceholders[post.type])}
-              placeholderTextColor={rhino30}
-              underlineColorAndroid='transparent'
-              autoCorrect={false}
-              value={post.title}
-              multiline
-              numberOfLines={2}
-              blurOnSubmit
-              maxLength={MAX_TITLE_LENGTH}
-            />
-            {titleLengthWarning && (
-              <Text style={styles.titleInputError}>😬 {MAX_TITLE_LENGTH} {t('characters max')}</Text>
-            )}
-          </View>
-
-          <View style={[styles.textInputWrapper, styles.detailsInputWrapper]}>
-            <HyloEditorWebView
-              placeholder={t('Add a description')}
-              contentHTML={post?.details}
-              // groupIds={groupOptions && groupOptions.map(g => g.id)}
-              onChange={details => updatePost({ details })}
-              onAddTopic={!topicsPicked && handleAddTopic}
-              readOnly={selectedPostLoading || isSaving}
-              ref={detailsEditorRef}
-              widthOffset={0}
-              customEditorCSS={`
-                min-height: 90px
-              `}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.pressSelectionSection, styles.topics]}
-            onPress={() => topicSelectorModalRef.current.show()}
-          >
-            <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeftText}>{t('Topics')}</Text>
-              <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
-            </View>
-            <ItemSelectorModal
-              ref={topicSelectorModalRef}
-              title={t('Pick a Topic')}
-              searchPlaceholder={t('Search for a topic by name')}
-              onItemPress={topic => handleAddTopic(topic, true)}
-              itemsUseQueryArgs={({ searchTerm }) => ({
-                query: topicsForGroupIdQuery,
-                variables: {
-                  searchTerm,
-                  // Note: Only finds topics for first group
-                  groupId: get('[0].id', post.groups)
-                }
-              })}
-              itemsUseQuerySelector={data => 
-                data?.group?.groupTopics?.items &&
-                data?.group?.groupTopics?.items.map(item => item.topic)}
-              itemsTransform={(items, searchTerm) => {
-                if (!items.find(item => item.name.match(searchTerm))) {
-                  items.unshift({ id: searchTerm, name: searchTerm })
-                }
-                return items
-              }}
-              chosenItems={post.topics}
-              renderItem={TopicRow}
-            />
-            <Topics
-              style={styles.pressSelectionValue}
-              pillStyle={styles.topicPillStyle}
-              textStyle={styles.topicTextStyle}
-              onPress={() => topicSelectorModalRef.current.show()}
-              onPressRemove={handleRemoveTopic}
-              topics={post.topics}
-            />
-          </TouchableOpacity>
-
-          {post.type === 'proposal' && (
-            <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeftText}>{t('Proposal details can be edited in the web-app')}</Text>
-            </View>
-          )}
-
-          {post.type === 'project' && (
-            <TouchableOpacity style={styles.pressSelectionSection} onPress={() => projectMembersSelectorModalRef?.current.show()}>
-              <View style={styles.pressSelection}>
-                <Text style={styles.pressSelectionLeftText}>{t('Project Members')}</Text>
-                <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
-              </View>
-              <ItemSelectorModal
-                ref={projectMembersSelectorModalRef}
-                itemsUseQueryArgs={({ searchTerm }) => ({
-                  query: peopleAutocompleteQuery,
-                  variables: { autocomplete: searchTerm }
-                })}
-                itemsUseQuerySelector={data => data?.people?.items}
-                title={t('Project Members')}
-                searchPlaceholder={t('Type in the names of people to add to project')}
-                chooser
-                chosenItems={post?.members?.items || []}
-                onClose={chosenItems => {
-                  chosenItems && updatePost({ members: { items: chosenItems } })
-                }}
-              />
-              {post.members.items.length > 0 && (
-                <ProjectMembersSummary
-                  style={styles.pressSelectionValue}
-                  members={post.members.items}
-                  onPress={() => projectMembersSelectorModalRef?.current.show()}
-                />
-              )}
-            </TouchableOpacity>
-          )}
-
-          {canHaveTimeframe && (
-            <>
-              <DatePickerWithLabel
-                style={styles.pressSelectionSection}
-                label={t('Start Time')}
-                date={post.startTime}
-                minimumDate={new Date()}
-                onSelect={startTime => updatePost({ startTime })}
-              />
-              <DatePickerWithLabel
-                style={styles.pressSelectionSection}
-                label={t('End Time')}
-                disabled={!post.startTime}
-                date={post.endTime}
-                minimumDate={post.startTime || new Date()}
-                onSelect={endTime => updatePost({ endTime })}
-              />
-            </>
-          )}
-
-          <TouchableOpacity
-            style={styles.pressSelectionSection}
-            onPress={() => groupSelectorModalRef.current.show()}
-          >
-            <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeftText}>{t('Post In')}</Text>
-              <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
-            </View>
-            <ItemSelectorModal
-              ref={groupSelectorModalRef}
-              title={t('Post in Groups')}
-              items={groupOptions}
-              itemsTransform={(items, searchTerm) => (
-                items.filter(item => searchTerm
-                  ? item.name.toLowerCase().match(searchTerm?.toLowerCase())
-                  : item
-                )
-              )}
-              chosenItems={post.groups}
-              onItemPress={handleAddGroup}
-              searchPlaceholder={t('Search for group by name')}
-            />
-            <GroupsList
-              style={[styles.pressSelectionValue]}
-              groups={post.groups}
-              columns={1}
-              onPress={() => groupSelectorModalRef.current.show()}
-              onRemove={handleRemoveGroup}
-              RemoveIcon={() => (
-                <Icon name='Ex' style={styles.groupRemoveIcon} />
-              )}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.pressSelectionSection, styles.topics]}
-            onPress={() => locationSelectorModalRef.current.show()}
-          >
-            <LocationSelectorModal
-              ref={locationSelectorModalRef}
-              onItemPress={handleUpdateLocation}
-              initialSearchTerm={post?.location || post?.locationObject?.fullText}
-            />
-            <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeftText}>{t('Location')}</Text>
-              <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View>
-            </View>
-            {(post.location || post.locationObject) && (
-              <Text style={styles.pressSelectionValue}>{post.location || post.locationObject.fullText}</Text>
-            )}
-          </TouchableOpacity>
-
-          {post.type === 'project' && (
-            <>
-              <View style={[styles.pressSelectionSection, styles.topics]}>
-                <View style={styles.pressSelection}>
-                  <Text style={styles.pressSelectionLeft}>{t('Donation Link')}</Text>
-                  {/* <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View> */}
-                </View>
+      <View className="bg-background" style={styles.formWrapper}>
+        <ScrollView
+          ref={scrollViewRef}
+          keyboardShouldPersistTaps='never'
+          keyboardDismissMode={isIOS ? 'interactive' : 'on-drag'}
+          // Avoids a known issue on Android with overscroll and WebViews
+          overScrollMode='never'
+        >
+          {selectedPostLoading ? <Loading /> : (
+            <View className="bg-card" style={styles.formTop}>
+              <View style={[styles.titleInputWrapper]}>
                 <TextInput
-                  style={styles.pressSelectionValue}
-                  onChangeText={donationsLink => updatePost(({ donationsLink }))}
-                  returnKeyType='next'
-                  autoCapitalize='none'
-                  value={post.donationsLink}
-                  autoCorrect={false}
+                  className="text-foreground"
+                  style={[styles.titleInput]}
+                  editable={!isSaving}
+                  onChangeText={title => updatePost({ title })}
+                  placeholder={t(titlePlaceholders[post.type])}
+                  placeholderTextColor={rhino30}
                   underlineColorAndroid='transparent'
+                  autoCorrect={false}
+                  value={post.title}
+                  multiline
+                  numberOfLines={2}
+                  blurOnSubmit
+                  maxLength={MAX_TITLE_LENGTH}
+                />
+                {titleLengthWarning && (
+                  <Text className="text-error" style={styles.titleInputError}>😬 {MAX_TITLE_LENGTH} {t('characters max')}</Text>
+                )}
+              </View>
+
+              <View className="border-border" style={[styles.textInputWrapper, styles.detailsInputWrapper]}>
+                <HyloEditorWebView
+                  placeholder={t('Add a description')}
+                  contentHTML={post?.details}
+                  // groupIds={groupOptions && groupOptions.map(g => g.id)}
+                  onChange={details => updatePost({ details })}
+                  onAddTopic={!topicsPicked && handleAddTopic}
+                  readOnly={selectedPostLoading || isSaving}
+                  ref={detailsEditorRef}
+                  widthOffset={0}
+                  customEditorCSS={`
+                    min-height: 90px
+                  `}
                 />
               </View>
 
-              <View style={[styles.pressSelectionSection, styles.topics]}>
+              <TouchableOpacity
+                className="border-border bg-background"
+                style={[styles.pressSelectionSection, styles.topics]}
+                onPress={() => topicSelectorModalRef.current.show()}
+              >
                 <View style={styles.pressSelection}>
-                  <Text style={styles.pressSelectionLeft}>{t('Project Management')}</Text>
+                  <Text className="text-foreground/80" style={styles.pressSelectionLeftText}>{t('Topics')}</Text>
+                  <View className="border-secondary" style={styles.pressSelectionRight}>
+                    <Icon className="text-secondary" name='Plus' style={styles.pressSelectionRightIcon} />
+                  </View>
                 </View>
-                <TextInput
+                <ItemSelectorModal
+                  ref={topicSelectorModalRef}
+                  title={t('Pick a Topic')}
+                  searchPlaceholder={t('Search for a topic by name')}
+                  onItemPress={topic => handleAddTopic(topic, true)}
+                  itemsUseQueryArgs={({ searchTerm }) => ({
+                    query: topicsForGroupIdQuery,
+                    variables: {
+                      searchTerm,
+                      // Note: Only finds topics for first group
+                      groupId: get('[0].id', post.groups)
+                    }
+                  })}
+                  itemsUseQuerySelector={data => 
+                    data?.group?.groupTopics?.items &&
+                    data?.group?.groupTopics?.items.map(item => item.topic)}
+                  itemsTransform={(items, searchTerm) => {
+                    if (!items.find(item => item.name.match(searchTerm))) {
+                      items.unshift({ id: searchTerm, name: searchTerm })
+                    }
+                    return items
+                  }}
+                  chosenItems={post.topics}
+                  renderItem={TopicRow}
+                />
+                <Topics
+                  className="text-secondary"
                   style={styles.pressSelectionValue}
-                  onChangeText={projectManagementLink => updatePost(({ projectManagementLink }))}
-                  returnKeyType='next'
-                  autoCapitalize='none'
-                  value={post.projectManagementLink}
-                  autoCorrect={false}
-                  underlineColorAndroid='transparent'
+                  pillStyle={styles.topicPillStyle}
+                  textStyle={styles.topicTextStyle}
+                  onPress={() => topicSelectorModalRef.current.show()}
+                  onPressRemove={handleRemoveTopic}
+                  topics={post.topics}
                 />
-              </View>
-            </>
-          )}
-        </View>
+              </TouchableOpacity>
 
-        {/*  Form Bottom */}
+              {post.type === 'proposal' && (
+                <View style={styles.pressSelection}>
+                  <Text style={styles.pressSelectionLeftText}>{t('Proposal details can be edited in the web-app')}</Text>
+                </View>
+              )}
 
-        <View style={styles.formBottom}>
-          <TouchableOpacity
-            style={[styles.pressSelectionSection, post.isPublic && styles.pressSelectionSectionPublicSelected]}
-            onPress={handleTogglePublicPost}
-          >
-            <View style={styles.pressSelection}>
-              <View style={styles.pressSelectionLeft}>
-                <Icon
-                  name='Public'
-                  style={[{ fontSize: 16, marginRight: 10 }, post.isPublic && styles.pressSelectionSectionPublicSelected]}
-                  color={rhino80}
+              {post.type === 'project' && (
+                <TouchableOpacity style={styles.pressSelectionSection} onPress={() => projectMembersSelectorModalRef?.current.show()}>
+                  <View style={styles.pressSelection}>
+                    <Text style={styles.pressSelectionLeftText}>{t('Project Members')}</Text>
+                    <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
+                  </View>
+                  <ItemSelectorModal
+                    ref={projectMembersSelectorModalRef}
+                    itemsUseQueryArgs={({ searchTerm }) => ({
+                      query: peopleAutocompleteQuery,
+                      variables: { autocomplete: searchTerm }
+                    })}
+                    itemsUseQuerySelector={data => data?.people?.items}
+                    title={t('Project Members')}
+                    searchPlaceholder={t('Type in the names of people to add to project')}
+                    chooser
+                    chosenItems={post?.members?.items || []}
+                    onClose={chosenItems => {
+                      chosenItems && updatePost({ members: { items: chosenItems } })
+                    }}
+                  />
+                  {post.members.items.length > 0 && (
+                    <ProjectMembersSummary
+                      style={styles.pressSelectionValue}
+                      members={post.members.items}
+                      onPress={() => projectMembersSelectorModalRef?.current.show()}
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {canHaveTimeframe && (
+                <>
+                  <DatePickerWithLabel
+                    style={styles.pressSelectionSection}
+                    label={t('Start Time')}
+                    date={post.startTime}
+                    minimumDate={new Date()}
+                    onSelect={startTime => updatePost({ startTime })}
+                  />
+                  <DatePickerWithLabel
+                    style={styles.pressSelectionSection}
+                    label={t('End Time')}
+                    disabled={!post.startTime}
+                    date={post.endTime}
+                    minimumDate={post.startTime || new Date()}
+                    onSelect={endTime => updatePost({ endTime })}
+                  />
+                </>
+              )}
+
+              <TouchableOpacity
+                className="border-border bg-background"
+                style={styles.pressSelectionSection}
+                onPress={() => groupSelectorModalRef.current.show()}
+              >
+                <View style={styles.pressSelection}>
+                  <Text className="text-foreground/80" style={styles.pressSelectionLeftText}>{t('Post In')}</Text>
+                  <View className="border-secondary" style={styles.pressSelectionRight}>
+                    <Icon className="text-secondary" name='Plus' style={styles.pressSelectionRightIcon} />
+                  </View>
+                </View>
+                <ItemSelectorModal
+                  ref={groupSelectorModalRef}
+                  title={t('Post in Groups')}
+                  items={groupOptions}
+                  itemsTransform={(items, searchTerm) => (
+                    items.filter(item => searchTerm
+                      ? item.name.toLowerCase().match(searchTerm?.toLowerCase())
+                      : item
+                    )
+                  )}
+                  chosenItems={post.groups}
+                  onItemPress={handleAddGroup}
+                  searchPlaceholder={t('Search for group by name')}
                 />
-                <Text style={[styles.pressSelectionLeftText, post.isPublic && styles.pressSelectionSectionPublicSelected]}>{t('Make Public')}</Text>
-              </View>
-              <View style={styles.pressSelectionRightNoBorder}>
-                <Switch
-                  trackColor={{ true: caribbeanGreen, false: rhino80 }}
-                  onValueChange={handleTogglePublicPost}
-                  style={styles.pressSelectionSwitch}
-                  value={post.isPublic}
+                <GroupsList
+                  className="text-secondary"
+                  style={[styles.pressSelectionValue]}
+                  groups={post.groups}
+                  columns={1}
+                  onPress={() => groupSelectorModalRef.current.show()}
+                  onRemove={handleRemoveGroup}
+                  RemoveIcon={() => (
+                    <Icon className="text-muted" name='Ex' style={styles.groupRemoveIcon} />
+                  )}
                 />
-              </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="border-border bg-background"
+                style={[styles.pressSelectionSection, styles.topics]}
+                onPress={() => locationSelectorModalRef.current.show()}
+              >
+                <LocationSelectorModal
+                  ref={locationSelectorModalRef}
+                  onItemPress={handleUpdateLocation}
+                  initialSearchTerm={post?.location || post?.locationObject?.fullText}
+                />
+                <View style={styles.pressSelection}>
+                  <Text className="text-foreground/80" style={styles.pressSelectionLeftText}>{t('Location')}</Text>
+                  <View className="border-secondary" style={styles.pressSelectionRight}>
+                    <Icon className="text-secondary" name='ArrowDown' style={styles.pressSelectionRightIcon} />
+                  </View>
+                </View>
+                {(post.location || post.locationObject) && (
+                  <Text className="text-secondary" style={styles.pressSelectionValue}>
+                    {post.location || post.locationObject.fullText}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              {post.type === 'project' && (
+                <>
+                  <View style={[styles.pressSelectionSection, styles.topics]}>
+                    <View style={styles.pressSelection}>
+                      <Text style={styles.pressSelectionLeft}>{t('Donation Link')}</Text>
+                      {/* <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View> */}
+                    </View>
+                    <TextInput
+                      style={styles.pressSelectionValue}
+                      onChangeText={donationsLink => updatePost(({ donationsLink }))}
+                      returnKeyType='next'
+                      autoCapitalize='none'
+                      value={post.donationsLink}
+                      autoCorrect={false}
+                      underlineColorAndroid='transparent'
+                    />
+                  </View>
+
+                  <View style={[styles.pressSelectionSection, styles.topics]}>
+                    <View style={styles.pressSelection}>
+                      <Text style={styles.pressSelectionLeft}>{t('Project Management')}</Text>
+                    </View>
+                    <TextInput
+                      style={styles.pressSelectionValue}
+                      onChangeText={projectManagementLink => updatePost(({ projectManagementLink }))}
+                      returnKeyType='next'
+                      autoCapitalize='none'
+                      value={post.projectManagementLink}
+                      autoCorrect={false}
+                      underlineColorAndroid='transparent'
+                    />
+                  </View>
+                </>
+              )}
             </View>
-          </TouchableOpacity>
+          )}
 
-          {canAdminister && (
+          {/*  Form Bottom */}
+
+          <View className="bg-background" style={styles.formBottom}>
             <TouchableOpacity
-              style={[styles.pressSelectionSection, post?.announcement && styles.pressSelectionSectionPublicSelected]}
-              onPress={handleToggleAnnouncement}
+              className="border-border"
+              style={[styles.pressSelectionSection, post.isPublic && styles.pressSelectionSectionPublicSelected]}
+              onPress={handleTogglePublicPost}
             >
               <View style={styles.pressSelection}>
                 <View style={styles.pressSelectionLeft}>
                   <Icon
-                    name='Announcement'
-                    style={[{ fontSize: 16, marginRight: 10 }, post?.announcement && styles.pressSelectionSectionPublicSelected]}
+                    name='Public'
+                    style={[{ fontSize: 16, marginRight: 10 }, post.isPublic && styles.pressSelectionSectionPublicSelected]}
                     color={rhino80}
                   />
-                  <Text style={[styles.pressSelectionLeftText, post?.announcement && styles.pressSelectionSectionPublicSelected]}>{t('Announcement?')}</Text>
+                  <Text style={[styles.pressSelectionLeftText, post.isPublic && styles.pressSelectionSectionPublicSelected]}>{t('Make Public')}</Text>
                 </View>
                 <View style={styles.pressSelectionRightNoBorder}>
                   <Switch
                     trackColor={{ true: caribbeanGreen, false: rhino80 }}
-                    onValueChange={handleToggleAnnouncement}
+                    onValueChange={handleTogglePublicPost}
                     style={styles.pressSelectionSwitch}
-                    value={post?.announcement}
+                    value={post.isPublic}
                   />
                 </View>
               </View>
             </TouchableOpacity>
-          )}
 
-          <TouchableOpacity
-            style={styles.pressSelectionSection}
-          >
-            <View style={styles.pressSelection}>
-              <View style={styles.pressSelectionLeft}>
-                <Icon
-                  name='AddImage'
-                  style={{ padding: 0, margin: 0, fontSize: 24, marginRight: 5 }}
-                  color={rhino80}
-                />
-                <Text style={styles.pressSelectionLeftText}>{t('Images')}</Text>
-              </View>
-              <View style={styles.pressSelectionRight}>
-                <ImagePicker
-                  type='post'
-                  id={post?.id}
-                  selectionLimit={10}
-                  onChoice={attachment => handleAddAttachment('image', attachment)}
-                  onError={(errorMessage, attachment) => handleAttachmentUploadError('image', errorMessage, attachment)}
-                  renderPicker={loading => {
-                    if (!loading) {
-                      return (
-                        <Icon name='Plus' style={styles.pressSelectionRightIcon} />
-                      )
-                    } else {
-                      return (
-                        <Loading
-                          size={30}
-                          style={[styles.pressSelectionRightIcon, { padding: 8 }, styles.buttonBarIconLoading]}
-                        />
-                      )
-                    }
-                  }}
-                />
-              </View>
-            </View>
-            <ImageSelector
-              images={post.images}
-              onRemove={attachment => handleRemoveAttachment('image', attachment)}
-              style={[styles.imageSelector]}
-              type='post'
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.pressSelectionSection}
-            onPress={handleShowFilePicker}
-          >
-            <View style={styles.pressSelection}>
-              <View style={styles.pressSelectionLeft}>
-                <Icon
-                  name='Paperclip'
-                  style={{ padding: 0, margin: 0, fontSize: 24, marginRight: 5 }}
-                  color={rhino80}
-                />
-                <Text style={styles.pressSelectionLeftText}>{t('Files')}</Text>
-              </View>
-              <View style={styles.pressSelectionRight}>
-                <TouchableOpacity onPress={handleShowFilePicker}>
-                  {filePickerPending && (
-                    <Loading
-                      size={30}
-                      style={[styles.buttonBarIcon, { padding: 8 }, styles.buttonBarIconLoading]}
+            {canAdminister && (
+              <TouchableOpacity
+                className="border-border"
+                style={[styles.pressSelectionSection, post?.announcement && styles.pressSelectionSectionPublicSelected]}
+                onPress={handleToggleAnnouncement}
+              >
+                <View style={styles.pressSelection}>
+                  <View style={styles.pressSelectionLeft}>
+                    <Icon
+                      name='Announcement'
+                      style={[{ fontSize: 16, marginRight: 10 }, post?.announcement && styles.pressSelectionSectionPublicSelected]}
+                      color={rhino80}
                     />
-                  )}
-                  {!filePickerPending && (
-                    <Icon name='Plus' style={styles.pressSelectionRightIcon} />
-                  )}
-                </TouchableOpacity>
+                    <Text style={[styles.pressSelectionLeftText, post?.announcement && styles.pressSelectionSectionPublicSelected]}>{t('Announcement?')}</Text>
+                  </View>
+                  <View style={styles.pressSelectionRightNoBorder}>
+                    <Switch
+                      trackColor={{ true: caribbeanGreen, false: rhino80 }}
+                      onValueChange={handleToggleAnnouncement}
+                      style={styles.pressSelectionSwitch}
+                      value={post?.announcement}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              className="border-border"
+              style={styles.pressSelectionSection}
+            >
+              <View style={styles.pressSelection}>
+                <View style={styles.pressSelectionLeft}>
+                  <Icon
+                    name='AddImage'
+                    style={{ padding: 0, margin: 0, fontSize: 24, marginRight: 5 }}
+                    color={rhino80}
+                  />
+                  <Text style={styles.pressSelectionLeftText}>{t('Images')}</Text>
+                </View>
+                <View style={styles.pressSelectionRight}>
+                  <ImagePicker
+                    type='post'
+                    id={post?.id}
+                    selectionLimit={10}
+                    onChoice={attachment => handleAddAttachment('image', attachment)}
+                    onError={(errorMessage, attachment) => handleAttachmentUploadError('image', errorMessage, attachment)}
+                    renderPicker={loading => {
+                      if (!loading) {
+                        return (
+                          <Icon name='Plus' style={styles.pressSelectionRightIcon} />
+                        )
+                      } else {
+                        return (
+                          <Loading
+                            size={30}
+                            style={[styles.pressSelectionRightIcon, { padding: 8 }]}
+                          />
+                        )
+                      }
+                    }}
+                  />
+                </View>
               </View>
-            </View>
-            <FileSelector
-              onRemove={attachment => handleRemoveAttachment('file', attachment)}
-              files={post.files}
-            />
-          </TouchableOpacity>
-        </View>
+              <ImageSelector
+                images={post.images}
+                onRemove={attachment => handleRemoveAttachment('image', attachment)}
+                style={[styles.imageSelector]}
+                type='post'
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="border-border"
+              style={styles.pressSelectionSection}
+              onPress={handleShowFilePicker}
+            >
+              <View style={styles.pressSelection}>
+                <View style={styles.pressSelectionLeft}>
+                  <Icon
+                    name='Paperclip'
+                    style={{ padding: 0, margin: 0, fontSize: 24, marginRight: 5 }}
+                    color={rhino80}
+                  />
+                  <Text style={styles.pressSelectionLeftText}>{t('Files')}</Text>
+                </View>
+                <View style={styles.pressSelectionRight}>
+                  <TouchableOpacity onPress={handleShowFilePicker}>
+                    {filePickerPending && (
+                      <Loading
+                        size={30}
+                        style={[styles.buttonBarIcon, { padding: 8 }, styles.buttonBarIconLoading]}
+                      />
+                    )}
+                    {!filePickerPending && (
+                      <Icon name='Plus' style={styles.pressSelectionRightIcon} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <FileSelector
+                onRemove={attachment => handleRemoveAttachment('file', attachment)}
+                files={post.files}
+              />
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
     )
   }
 
   return (
     <KeyboardAvoidingView
+      className="bg-background"
       style={styles.formWrapper}
       behavior={isIOS ? 'padding' : null}
       keyboardVerticalOffset={isIOS ? 110 : 80}
     >
-      <ScrollView
-        ref={scrollViewRef}
-        keyboardShouldPersistTaps='never'
-        keyboardDismissMode={isIOS ? 'interactive' : 'on-drag'}
-        // Avoids a known issue on Android with overscroll and WebViews
-        overScrollMode='never'
-      >
-        {selectedPostLoading ? <Loading /> : renderForm()}
-      </ScrollView>
+      {renderForm()}
     </KeyboardAvoidingView>
   )
 }

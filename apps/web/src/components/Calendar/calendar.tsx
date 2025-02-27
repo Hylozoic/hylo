@@ -5,7 +5,7 @@ import type { CalendarProps } from './calendar-types'
 import CalendarHeader from './header/calendar-header'
 import CalendarBody from './body/calendar-body'
 import CalendarHeaderActions from './header/actions/calendar-header-actions'
-import CalendarHeaderDate from './header/date/calendar-header-date'
+import CalendarHeaderDateChevrons from './header/date/calendar-header-date-chevrons'
 import CalendarHeaderActionsMode from './header/actions/calendar-header-actions-mode'
 import CalendarProvider from './calendar-provider'
 import { DateTime } from 'luxon'
@@ -50,7 +50,7 @@ export default function Calendar ({
       calendarIconIsToday={calendarIconIsToday}
     >
       <CalendarHeader>
-        <CalendarHeaderDate />
+        <CalendarHeaderDateChevrons />
         <CalendarHeaderActions>
           <CalendarHeaderActionsMode />
         </CalendarHeaderActions>

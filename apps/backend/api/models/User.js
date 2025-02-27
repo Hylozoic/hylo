@@ -531,6 +531,11 @@ module.exports = bookshelf.Model.extend(merge({
         if (!isEmpty(changedForTrigger)) {
           Queue.classMethod('User', 'afterUpdate', { userId: this.id, changes: changedForTrigger })
         }
+
+        if (changes.settings && changes.settings.signup_in_progress === false) {
+          // Send welcome email 2 minutes after signup, to make sure that group membership has been setup if they signup after getting invitation from the group
+          Queue.classMethod('User', 'sendWelcomeEmail', { userId: this.id }, 2 * 60 * 1000 )
+        }
       }
       return this
     })
@@ -857,7 +862,23 @@ module.exports = bookshelf.Model.extend(merge({
         }
       })
     }
+  },
+
+  async sendWelcomeEmail ({ userId }) {
+    const user = await User.find(userId)
+    if (user) {
+      const memberships = await user.memberships().fetch({ withRelated: 'group' })
+      const initialGroup = memberships?.models[0]?.relations?.group
+      Email.sendWelcomeEmail({
+        email: user.get('email'),
+        templateData: {
+          member_name: user.get('name'),
+          group_name: initialGroup?.get('name')
+        }
+      })
+    }
   }
+
 })
 
 function validateUserAttributes (attrs, { existingUser, transacting } = {}) {

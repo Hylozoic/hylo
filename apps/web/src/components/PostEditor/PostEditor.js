@@ -7,6 +7,7 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import { createSelector } from 'reselect'
+import { getHourCycle } from 'components/Calendar/calendar-util'
 import AttachmentManager from 'components/AttachmentManager'
 import Icon from 'components/Icon'
 import LocationInput from 'components/LocationInput'
@@ -106,6 +107,7 @@ function PostEditor ({
   const urlLocation = useLocation()
   const routeParams = useParams()
   const navigate = useNavigate()
+  const hourCycle = getHourCycle()
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
@@ -191,29 +193,65 @@ function PostEditor ({
 
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
-  // XXX: this is a hack because using currentPost.groups directly the group doesn't have the chatRooms attached to it
-  // hoping its easier to fix with URQL :)
   const selectedGroups = useMemo(() => {
-    return groupOptions.filter((g) => currentPost.groups.some((g2) => g2.id === g.id))
-  }, [currentPost.groups, groupOptions])
+    if (!groupOptions || !currentPost?.groups) return []
+    
+    return groupOptions.filter((g) => 
+      g && currentPost.groups.some((g2) => g2 && g.id === g2.id)
+    )
+  }, [currentPost?.groups, groupOptions])
 
   const toOptions = useMemo(() => {
-    return groupOptions.map((g) => {
-      return [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
-        .concat(g.chatRooms.toModelArray()
-          .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
-          .sort((a, b) => a.name.localeCompare(b.name)))
-    }).flat().flat()
+    if (!groupOptions) return []
+
+    return groupOptions
+      .filter(Boolean)
+      .map((g) => {
+        if (!g) return []
+        return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g }]
+          .concat((g.chatRooms?.toModelArray() || [])
+            .map((cr) => ({ 
+              id: cr?.groupTopic?.id, 
+              group: g, 
+              name: g.name + ' #' + cr?.groupTopic?.topic?.name, 
+              topic: cr?.groupTopic?.topic, 
+              avatarUrl: g.avatarUrl 
+            }))
+            .filter(Boolean)
+            .sort((a, b) => a.name.localeCompare(b.name)))
+      }).flat()
   }, [groupOptions])
 
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
-      return [{ id: 'group_' + g.id, name: g.name, avatarUrl: g.avatarUrl, group: g }]
-        .concat(g.chatRooms.toModelArray()
-          .filter(cr => currentPost.topics.some(t => t.id === cr.groupTopic?.topic?.id))
-          .map((cr) => ({ id: cr.groupTopic.id, group: g, name: g.name + ' #' + cr.groupTopic.topic.name, topic: cr.groupTopic.topic, avatarUrl: g.avatarUrl }))
+      if (!g) return []
+      
+      const baseOption = [{ 
+        id: `group_${g.id}`, 
+        name: g.name, 
+        avatarUrl: g.avatarUrl, 
+        group: g 
+      }]
+
+      const chatRoomOptions = g.chatRooms?.toModelArray()
+        ?.filter(cr => 
+          cr?.groupTopic?.topic?.id && 
+          currentPost.topics?.some(t => t?.id === cr.groupTopic.topic.id)
         )
-    }).flat().flat()
+        ?.map(cr => {
+          if (!cr?.groupTopic?.topic) return null
+          return {
+            id: cr.groupTopic.id,
+            group: g,
+            name: `${g.name} #${cr.groupTopic.topic.name}`,
+            topic: cr.groupTopic.topic,
+            avatarUrl: g.avatarUrl
+          }
+        })
+        .filter(Boolean) || []
+
+      return baseOption.concat(chatRoomOptions)
+    }).flat()
   }, [selectedGroups, currentPost.groups, currentPost.topics])
 
   useEffect(() => {
@@ -754,7 +792,7 @@ function PostEditor ({
               className={styles.dropdown}
               toggleChildren={
                 <span className={styles.dropdownLabel}>
-                  {t('Select pre-set')}
+                  {t('Select a template')}
                   <Icon name='ArrowDown' blue />
                 </span>
               }
@@ -900,7 +938,7 @@ function PostEditor ({
           <div className={styles.sectionLabel}>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
           <div className={styles.datePickerModule}>
             <DateTimePicker
-              hourCycle={12}
+              hourCycle={hourCycle}
               granularity='minute'
               value={currentPost.startTime}
               placeholder={t('Select Start')}
@@ -910,7 +948,7 @@ function PostEditor ({
             <div className={styles.sectionHelper}>{t('To')}</div>
             <DateTimePicker
               ref={endTimeRef}
-              hourCycle={12}
+              hourCycle={hourCycle}
               granularity='minute'
               value={currentPost.endTime}
               placeholder={t('Select End')}

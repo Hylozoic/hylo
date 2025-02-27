@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
 import { DateTime } from 'luxon'
@@ -7,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 
 export default function CalendarBodyDayCalendar () {
+  const { t } = useTranslation()
   const today = new Date()
   const { date, events, setDate } = useCalendarContext()
 
@@ -41,9 +43,11 @@ export default function CalendarBodyDayCalendar () {
         }}
         formatters={({
           formatDay: (date, options) => {
+            const maxNumEvents = 3
             const numEvents = events.filter((event) => includes(event.start, date, event.end)).length
-            const symbols = '•'.repeat(Math.min(numEvents, 3))
-            return `${DateTime.fromJSDate(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}`
+            const symbols = '•'.repeat(Math.min(numEvents, maxNumEvents))
+            const moreSymbol = numEvents > maxNumEvents
+            return `${DateTime.fromJSDate(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
           }
         })}
       />
@@ -53,7 +57,7 @@ export default function CalendarBodyDayCalendar () {
           className='h-7'
           onClick={() => handleGoToButton()}
         >
-          Go to Today
+          {t('Go to Today')}
         </Button>}
     </>
   )

@@ -1,6 +1,7 @@
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { getLocaleForDayPicker, getLocaleAsString } from '@/components/Calendar/calendar-util'
 import { cn } from '@/lib/utils'
 import { DateTime } from 'luxon'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
@@ -207,16 +208,7 @@ function genYears (yearRange = 50) {
 // ---------- utils end ----------
 function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 50, ...props }) {
   const MONTHS = React.useMemo(() => {
-    let locale = DateTime.now().locale
-    const { options, localize, formatLong } = props.locale || {}
-    if (options && localize && formatLong) {
-      locale = {
-        options,
-        localize,
-        formatLong
-      }
-    }
-    return genMonths(locale)
+    return genMonths(getLocaleAsString())
   }, [])
   const YEARS = React.useMemo(() => genYears(yearRange), [])
   const disableLeftNavigation = () => {
@@ -239,7 +231,11 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
   }
   return (
     <DayPicker
-      showOutsideDays={showOutsideDays} fixedWeeks className={cn('p-3', className)} classNames={{
+      locale={getLocaleForDayPicker()}
+      showOutsideDays={showOutsideDays}
+      fixedWeeks
+      className={cn('p-3', className)}
+      classNames={{
         months: 'flex flex-col sm:flex-row space-y-4  sm:space-y-0 justify-center',
         month: 'flex flex-col items-center space-y-4',
         month_caption: 'flex justify-center pt-1 relative items-center',
@@ -261,7 +257,8 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
         range_middle: 'aria-selected:bg-selected aria-selected:text-accent-foreground',
         hidden: 'invisible',
         ...classNames
-      }} components={{
+      }}
+      components={{
         Chevron: ({ ...props }) => props.orientation === 'left' ? (<ChevronLeft className='h-4 w-4' />) : (<ChevronRight className='h-4 w-4' />),
         MonthCaption: ({ calendarMonth }) => {
           return (
@@ -303,7 +300,8 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
             </div>
           )
         }
-      }} {...props}
+      }}
+      {...props}
     />
   )
 }
@@ -465,7 +463,7 @@ const TimePicker = React.forwardRef(({ date, onChange, hourCycle = 24, granulari
   )
 })
 TimePicker.displayName = 'TimePicker'
-const DateTimePicker = React.forwardRef(({ locale = DateTime.now().locale, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
+const DateTimePicker = React.forwardRef(({ locale = getLocaleAsString(), defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
   const [month, setMonth] = React.useState(value ?? defaultPopupValue)
   const buttonRef = useRef(null)
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
@@ -513,16 +511,6 @@ const DateTimePicker = React.forwardRef(({ locale = DateTime.now().locale, defau
     hour12: displayFormat?.hour12 ??
       `D hh:mm${!granularity || granularity === 'second' ? ':ss' : ''} a`
   }
-  let loc = { code: DateTime.now().locale }
-  const { options, localize, formatLong } = locale
-  if (options && localize && formatLong) {
-    loc = {
-      ...loc,
-      options,
-      localize,
-      formatLong
-    }
-  }
   return (
     <Popover>
       <PopoverTrigger asChild disabled={disabled}>
@@ -530,7 +518,7 @@ const DateTimePicker = React.forwardRef(({ locale = DateTime.now().locale, defau
           <CalendarIcon className='mr-2 h-4 w-4' />
           {displayDate
             ? (DateTime.fromJSDate(displayDate).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12, {
-                locale: loc.code
+                locale: getLocaleAsString()
               }))
             : (<span>{placeholder}</span>)}
         </Button>
@@ -542,7 +530,7 @@ const DateTimePicker = React.forwardRef(({ locale = DateTime.now().locale, defau
               newDate.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
               onSelect(newDate)
             }
-          }} onMonthChange={handleMonthChange} yearRange={yearRange} locale={locale} {...props}
+          }} onMonthChange={handleMonthChange} yearRange={yearRange} {...props}
         />
         {granularity !== 'day' && (
           <div className='border-t border-border p-3'>

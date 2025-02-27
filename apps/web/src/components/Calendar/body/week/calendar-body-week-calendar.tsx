@@ -1,13 +1,14 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
 import { DateTime, Interval } from 'luxon'
-import { includes, eachIntervalDay, sameWeek } from '../../calendar-util'
+import { includes, eachIntervalDay, sameWeek, getLocaleAsString } from '../../calendar-util'
 import { cn } from '@/lib/utils'
 import { buttonVariants, Button } from '@/components/ui/button'
 
 const selectedWeekDates = function (date: Date) {
-  const luxonDate = DateTime.fromJSDate(date)
+  const luxonDate = DateTime.fromJSDate(date).setLocale(getLocaleAsString())
   // Get the first day of the week
   const weekStart = luxonDate.startOf('week', { useLocaleWeeks: true })
   // Get the last day of the week
@@ -18,6 +19,7 @@ const selectedWeekDates = function (date: Date) {
 }
 
 export default function CalendarBodyWeekCalendar () {
+  const { t } = useTranslation()
   const { date, events, setDate } = useCalendarContext()
   const today = new Date()
 
@@ -57,9 +59,11 @@ export default function CalendarBodyWeekCalendar () {
         }}
         formatters={({
           formatDay: (date, options) => {
+            const maxNumEvents = 3
             const numEvents = events.filter((event) => includes(event.start, date, event.end)).length
-            const symbols = '•'.repeat(Math.min(numEvents, 3))
-            return `${DateTime.fromJSDate(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}`
+            const symbols = '•'.repeat(Math.min(numEvents, maxNumEvents))
+            const moreSymbol = numEvents > maxNumEvents
+            return `${DateTime.fromJSDate(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
           }
         })}
       />
@@ -69,7 +73,7 @@ export default function CalendarBodyWeekCalendar () {
           className='h-7'
           onClick={() => handleGoToButton()}
         >
-          Go to This Week
+          {t('Go to This Week')}
         </Button>}
     </>
   )

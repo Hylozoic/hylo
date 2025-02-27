@@ -7,6 +7,8 @@ export default function Pill ({
   label,
   onRemove,
   displayColor = 'rgba(112, 239, 241, 1.0)',
+  textClasses = 'text-sm',
+  className,
   style,
   editable,
   onPress
@@ -23,24 +25,22 @@ export default function Pill ({
   }
   const mouseOut = () => setRemoving(false)
 
-  const pillStyles = [
-    style || styles.pill
-  ]
-
   return (
-    <TouchableOpacity hitSlop={2} onPress={onPress}>
+    <TouchableOpacity onPress={onPress} hitSlop={2}>
       <View
-        style={pillStyles}
+        className={`relative mr-2 mb-2 ${className}`}
         onMouseLeave={mouseOut}
       >
         <View>
-          <Text style={{ color: displayColor }}>{label}</Text>
+          <Text className={textClasses}>{label}</Text>
         </View>
-        {editable &&
+        {editable && (
           <Icon
             name='Ex'
             onClick={deletePill}
-          />}
+            className='text-xs font-bold text-transparent absolute top-1 right-1.5 p-1 rounded'
+          />
+        )}
       </View>
     </TouchableOpacity>
   )

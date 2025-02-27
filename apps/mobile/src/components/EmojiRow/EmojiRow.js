@@ -69,6 +69,7 @@ const styles = {
     display: 'flex',
     position: 'relative',
     gap: 4,
+    marginBottom: 6,
     flexDirection: 'row',
     alignItems: 'center',
     height: 'auto',

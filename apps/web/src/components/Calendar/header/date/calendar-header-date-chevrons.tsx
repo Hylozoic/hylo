@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useCalendarContext } from '../../calendar-context'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { Mode } from '../../calendar-types'
-import { sameMonth } from '../../calendar-util'
+import { sameMonth, sameWeek, sameDay, getLocaleAsString } from '../../calendar-util'
 
 const formatDate = (luxonDate: DateTime, mode: Mode) => {
   const weekStart = luxonDate.startOf('week', { useLocaleWeeks: true })
@@ -19,20 +20,12 @@ const formatDate = (luxonDate: DateTime, mode: Mode) => {
       })
     case 'week':
       return `${(isSameMonth
-        ? weekStart.toLocaleString({
-          month: 'long' as const,
-          day: 'numeric' as const
-        })
-        : weekStart.toLocaleString({
-          month: 'short' as const,
-          day: 'numeric' as const
-        }))}\u2013${isSameMonth
+        ? weekStart.toFormat('LLLL d')
+        : weekStart.toFormat('LLL d')
+      )}\u2013${isSameMonth
         ? weekEnd.toFormat('d, yyyy')
-        : weekEnd.toLocaleString({
-          month: 'short' as const,
-          day: 'numeric' as const,
-          year: 'numeric' as const
-        })}`
+        : weekEnd.toFormat('LLL d, yyyy')
+        }`
     default:
       return luxonDate.toLocaleString({
         month: 'long' as const,
@@ -42,28 +35,32 @@ const formatDate = (luxonDate: DateTime, mode: Mode) => {
 }
 
 export default function CalendarHeaderDateChevrons () {
+  const { t } = useTranslation()
   const { mode, date, setDate } = useCalendarContext()
-  const luxonDate = DateTime.fromJSDate(date)
+  const luxonDate = DateTime.fromJSDate(date).setLocale(getLocaleAsString())
   const today = new Date()
 
-  const handleGoToButton = () => {
-    setDate(today)
-    setHideGoToButton(true)
+  const shouldHideGoToButton = () => {
+    switch (mode) {
+      case 'month':
+        return sameMonth(date, today)
+      case 'week':
+        return sameWeek(date, today)
+      case 'day':
+        return sameDay(date, today)
+    }
   }
 
   const goToButtonText = () => {
     switch (mode) {
       case 'month':
-        return 'Go To This Month'
+        return t('Go to This Month')
       case 'week':
-        return 'Go To This Week'
+        return t('Go to This Week')
       case 'day':
-        return 'Go To Today'
+        return t('Go to Today')
     }
   }
-
-  const [hideGoToButton, setHideGoToButton] = useState(sameMonth(date, today))
-  const [goToText, setGoToText] = useState(goToButtonText())
 
   const handleDateBackward = () => {
     switch (mode) {
@@ -77,8 +74,6 @@ export default function CalendarHeaderDateChevrons () {
         setDate(luxonDate.minus({ days: 1 }).toJSDate())
         break
     }
-    setHideGoToButton(sameMonth(date, today))
-    setGoToText(goToButtonText())
   }
 
   const handleDateForward = () => {
@@ -93,8 +88,6 @@ export default function CalendarHeaderDateChevrons () {
         setDate(luxonDate.plus({ days: 1 }).toJSDate())
         break
     }
-    setHideGoToButton(sameMonth(date, today))
-    setGoToText(goToButtonText())
   }
 
   return (
@@ -119,13 +112,13 @@ export default function CalendarHeaderDateChevrons () {
         <ChevronRight className='min-w-5 min-h-5' />
       </Button>
 
-      {!hideGoToButton &&
+      {!shouldHideGoToButton() &&
         <Button
           variant='outline'
           className='h-7 p-3'
-          onClick={() => handleGoToButton()}
+          onClick={() => setDate(today)}
         >
-          {goToText}
+          {goToButtonText()}
         </Button>}
     </div>
   )
