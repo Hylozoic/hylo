@@ -28,7 +28,7 @@ export default function PostBigGridItem ({
     title,
     details,
     creator,
-    createdTimestamp,
+    createdTimestampForBigGrd,
     exactCreatedTimestamp,
     attachments
   } = post
@@ -159,7 +159,7 @@ export default function PostBigGridItem ({
                 {creator.name}
               </div>
               <div className={classes.timestamp} data-tooltip-id={`dateTip-${post.id}`} data-tooltip-content={exactCreatedTimestamp}>
-                {createdTimestamp}
+                {createdTimestampForBigGrd}
               </div>
             </div>
           </div>

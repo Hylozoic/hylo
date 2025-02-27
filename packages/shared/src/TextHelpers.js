@@ -137,7 +137,7 @@ export function humanDate (date, short) {
     return i18n.t('now')
   }
 
-  ret = dt.setLocale(getLocaleAsString()).toRelative({ style: 'short' })
+  ret = dt.setLocale(getLocaleAsString()).toRelative({ style: (short ? 'short' : 'long') })
 
   return short
     // TODO solve this problem in the future when we translate loads of languages

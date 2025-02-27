@@ -46,6 +46,7 @@ export default function presentPost (post, groupId) {
     proposalOptions: post.proposalOptions?.toModelArray() || [],
     createdTimestampForGrid: createdAtHumanDateShort,
     createdTimestamp: `${i18n.t('Posted')} ${createdAtHumanDate}`,
+    createdTimestampForBigGrd: `${i18n.t('Posted')} ${createdAtHumanDateShort}`,
     editedTimestamp: post.editedAt ? `${i18n.t('Edited')} ${editedAtHumanDate}` : null,
     exactCreatedTimestamp: DateTime.fromISO(post.createdAt).setLocale(getLocaleAsString()).toFormat('D t ZZZZ'),
     exactEditedTimestamp: DateTime.fromISO(post.editedAt).setLocale(getLocaleAsString()).toFormat('D t ZZZZ')
