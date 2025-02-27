@@ -230,12 +230,12 @@ function PostEditor ({
         if (!g) return []
         return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g }]
           .concat((g.chatRooms?.toModelArray() || [])
-            .map((cr) => ({ 
-              id: cr?.groupTopic?.id, 
-              group: g, 
-              name: g.name + ' #' + cr?.groupTopic?.topic?.name, 
-              topic: cr?.groupTopic?.topic, 
-              avatarUrl: g.avatarUrl 
+            .map((cr) => ({
+              id: cr?.groupTopic?.id,
+              group: g,
+              name: g.name + ' #' + cr?.groupTopic?.topic?.name,
+              topic: cr?.groupTopic?.topic,
+              avatarUrl: g.avatarUrl
             }))
             .filter(Boolean)
             .sort((a, b) => a.name.localeCompare(b.name)))
@@ -785,7 +785,8 @@ function PostEditor ({
         'flex flex-col !items-start border-2 border-transparent',
         'transition-all duration-200',
         'focus-within:border-2 focus-within:border-focus'
-      )}>
+      )}
+      >
         {currentPost.details === null || loading
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
@@ -798,8 +799,7 @@ function PostEditor ({
               showMenu
               readOnly={loading}
               ref={editorRef}
-            />
-        }
+            />}
         {(currentPost.linkPreview || fetchLinkPreviewPending) && (
           <LinkPreview
             loading={fetchLinkPreviewPending}

@@ -3,7 +3,7 @@ import React from 'react'
 /**
  * Container for global navigation tooltips with gradient fade
  */
-function GlobalNavTooltipContainer({ children }) {
+function GlobalNavTooltipContainer ({ children }) {
   return (
     <div className='relative h-full'>
       <div className='absolute inset-0 overflow-hidden'>

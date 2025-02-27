@@ -314,7 +314,6 @@ export default function ChatRoom (props) {
       const timer = setTimeout(() => {
         setInitialAnimationComplete(true)
       }, 2500)
-      
       return () => clearTimeout(timer)
     }
   }, [loadedPast, loadedFuture, initialAnimationComplete])
@@ -422,9 +421,12 @@ export default function ChatRoom (props) {
   if (topicFollowLoading) return <Loading />
 
   return (
-    <Profiler id="chat-room" onRender={(id, phase, actualDuration) => {
-      console.log(`${id} took ${actualDuration}ms to render`)
-    }}>
+    <Profiler
+      id='chat-room'
+      onRender={(id, phase, actualDuration) => {
+        console.log(`${id} took ${actualDuration}ms to render`)
+      }}
+    >
       <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
         <Helmet>
           <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
@@ -590,14 +592,15 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   return (
     <>
       {firstUnread && !displayDay && <div className={styles.firstUnread}><hr className='border-t-2 border-red-500' /></div>}
-      {firstUnread && displayDay && <div className={styles.unreadAndDay}>
-        <hr className='border-t-2 border-red-500' />
-        <div className='flex w-full items-center my-3'>
-          <div className='grow h-px bg-foreground/10' />
-          <div className='mx-4 text-foreground/40 text-sm whitespace-nowrap'>{displayDay}</div>
-          <div className='grow h-px bg-foreground/10' />
-        </div>
-      </div>}
+      {firstUnread && displayDay &&
+        <div className={styles.unreadAndDay}>
+          <hr className='border-t-2 border-red-500' />
+          <div className='flex w-full items-center my-3'>
+            <div className='grow h-px bg-foreground/10' />
+            <div className='mx-4 text-foreground/40 text-sm whitespace-nowrap'>{displayDay}</div>
+            <div className='grow h-px bg-foreground/10' />
+          </div>
+        </div>}
       {!firstUnread && displayDay && (
         <div className='w-full flex items-center my-3'>
           <div className='grow h-px bg-foreground/10' />
