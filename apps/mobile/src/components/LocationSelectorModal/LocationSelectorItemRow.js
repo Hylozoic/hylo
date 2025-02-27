@@ -1,12 +1,13 @@
 import React from 'react'
 import { Text, TouchableOpacity } from 'react-native'
+import useFindOrCreateLocationObject from '@hylo/hooks/useFindOrCreateLocationObject'
+import { PLAIN_TEXT_LOCATION_ID } from './LocationSelectorModal'
 import Icon from 'components/Icon'
-import useFindOrCreateLocationObject from 'components/LocationSelectorModal/useFindOrCreateLocationObject'
 import { rhino80, rhino20, caribbeanGreen, alabaster } from 'style/colors'
 
 export default function LocationSelectorItemRow ({ item, onPress, colors = {} }) {
   const [, findOrCreateLocationObject] = useFindOrCreateLocationObject()
-  const isGeocoded = item.id !== 'NEW'
+  const isGeocoded = item.id !== PLAIN_TEXT_LOCATION_ID
 
   const selectLocation = async locationData => {
     if (!isGeocoded) {

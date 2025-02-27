@@ -8,6 +8,8 @@ import ItemSelectorModal from 'components/ItemSelectorModal'
 import LocationSelectorItemRow from './LocationSelectorItemRow'
 import ItemSelector from 'components/ItemSelector'
 
+export const PLAIN_TEXT_LOCATION_ID = 'NEW'
+
 export async function locationSearch (searchTerm, proximity) {
   const coordinate = LocationHelpers.parseCoordinate(searchTerm).coordinate
   const mapboxLocations = coordinate
@@ -23,7 +25,7 @@ export async function locationSearch (searchTerm, proximity) {
   if (coordinate) {
     locations.unshift({ center: { lat: coordinate.lat, lng: coordinate.lng }, fullText: coordinate.string })
   } else if (!isEmpty(searchTerm)) {
-    locations.unshift({ id: 'NEW', fullText: searchTerm })
+    locations.unshift({ id: PLAIN_TEXT_LOCATION_ID, fullText: searchTerm })
   }
 
   return locations
