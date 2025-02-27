@@ -5,10 +5,11 @@ import { useFocusEffect } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { pickBy, identity } from 'lodash/fp'
 import { AnalyticsEvents, Validators } from '@hylo/shared'
+import meAuthFieldsFragment from '@hylo/graphql/fragments/meAuthFieldsFragment'
 import mixpanel from 'services/mixpanel'
 import useLogout from 'hooks/useLogout'
 import useForm from 'hooks/useForm'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
+import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
 import SettingControl from 'components/SettingControl'
 import Button from 'components/Button'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
@@ -19,30 +20,18 @@ export const registerMutation = gql`
   mutation RegisterMutation ($name: String!, $password: String!) {
     register(name: $name, password: $password) {
       me {
-        id
-        avatarUrl
-        email
-        emailValidated
-        hasRegistered
-        name
-        settings {
-          alreadySeenTour
-          dmNotifications
-          commentNotifications
-          signupInProgress
-          streamViewMode
-          streamSortBy
-          streamPostType
-        }
-      }
+        ...MeAuthFieldsFragment
+      },
     }
+    ${meAuthFieldsFragment}
   }
 `
 
 export default function SignupRegistration ({ navigation, route }) {
   const { t } = useTranslation()
+  const confirmDiscardChanges = useConfirmDiscardChanges()
   const [, register] = useMutation(registerMutation)
-  const logout = useLogout()
+  const logout = useLogout({ loadingRedirect: false })
   const passwordControlRef = useRef()
   const confirmPasswordControlRef = useRef()
   const [loading, setLoading] = useState()
@@ -82,13 +71,12 @@ export default function SignupRegistration ({ navigation, route }) {
       headerLeftOnPress: () => {
         confirmDiscardChanges({
           title: '',
-          confirmationMessage: t('Were almost done, are you sure you want to cancel signing-up?'),
-          disgardButtonText: t('Yes'),
-          continueButtonText: t('No'),
+          confirmationMessage: 'Were almost done, are you sure you want to cancel signing-up?',
+          discardButtonText: 'Yes',
+          continueButtonText: 'No',
           onDiscard: () => {
             logout()
-          },
-          t
+          }
         })
       }
     })

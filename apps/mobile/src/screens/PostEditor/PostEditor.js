@@ -49,7 +49,7 @@ import Loading from 'components/Loading'
 import ProjectMembersSummary from 'components/ProjectMembersSummary'
 import Topics from 'components/Topics'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
+import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
 import styles from './PostEditor.styles'
 import { caribbeanGreen, rhino30, rhino80 } from 'style/colors'
 
@@ -73,6 +73,7 @@ export default function PostEditor (props) {
   const detailsEditorRef = useRef(null)
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
+  const confirmDiscardChanges = useConfirmDiscardChanges()
   const hasResponsibility = useHasResponsibility({ forCurrentUser: true })
 
   const {
@@ -184,9 +185,8 @@ export default function PostEditor (props) {
       e.preventDefault()
       confirmDiscardChanges({
         onDiscard: () => navigation.dispatch(e.data.action),
-        title: t('Are you sure?'),
-        confirmationMessage: t('If you made changes they will be lost'),
-        t
+        title: 'Are you sure?',
+        confirmationMessage: 'If you made changes they will be lost'
       })
     })
 

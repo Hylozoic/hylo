@@ -19,7 +19,7 @@ import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import useChangeToGroup from 'hooks/useChangeToGroup'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
+import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
 import { openURL } from 'hooks/useOpenURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import TabStackHeader from 'navigation/headers/TabStackHeader'
@@ -34,6 +34,7 @@ export default function MemberDetails () {
   const navigation = useNavigation()
   const route = useRoute()
   const logout = useLogout()
+  const confirmDiscardChanges = useConfirmDiscardChanges()
   const { id, editing: editingParam } = useRouteParams()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ currentUser }] = useCurrentUser()
@@ -95,12 +96,11 @@ export default function MemberDetails () {
             headerLeftConfirm={changed}
             headerRightButtonLabel={t('Logout')}
             headerRightButtonOnPress={() => confirmDiscardChanges({
-              title: t('Logout'),
-              confirmationMessage: t('Are you sure you want to logout?'),
-              continueButtonText: t('Cancel'),
-              disgardButtonText: t('Yes'),
-              onDiscard: logout,
-              t
+              title: 'Logout',
+              confirmationMessage: 'Are you sure you want to logout?',
+              continueButtonText: 'Cancel',
+              discardButtonText: 'Yes',
+              onDiscard: logout
             })}
           />
       })
