@@ -20,20 +20,12 @@ const formatDate = (luxonDate: DateTime, mode: Mode) => {
       })
     case 'week':
       return `${(isSameMonth
-        ? weekStart.toLocaleString({
-          month: 'long' as const,
-          day: 'numeric' as const
-        })
-        : weekStart.toLocaleString({
-          month: 'short' as const,
-          day: 'numeric' as const
-        }))}\u2013${isSameMonth
+        ? weekStart.toFormat('LLLL d')
+        : weekStart.toFormat('LLL d')
+      )}\u2013${isSameMonth
         ? weekEnd.toFormat('d, yyyy')
-        : weekEnd.toLocaleString({
-          month: 'short' as const,
-          day: 'numeric' as const,
-          year: 'numeric' as const
-        })}`
+        : weekEnd.toFormat('LLL d, yyyy')
+        }`
     default:
       return luxonDate.toLocaleString({
         month: 'long' as const,
