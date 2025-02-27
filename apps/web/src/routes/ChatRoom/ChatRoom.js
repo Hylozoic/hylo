@@ -2,7 +2,7 @@ import { debounce, includes, isEmpty } from 'lodash/fp'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { EditorView } from 'prosemirror-view'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState, Profiler } from 'react'
 import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
@@ -132,6 +132,9 @@ export default function ChatRoom (props) {
   const [loadedPast, setLoadedPast] = useState(false)
   const [loadedFuture, setLoadedFuture] = useState(false)
   const [initialPostToScrollTo, setInitialPostToScrollTo] = useState(null)
+
+  // Add this new state to track if initial animation is complete
+  const [initialAnimationComplete, setInitialAnimationComplete] = useState(false)
 
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
@@ -297,6 +300,18 @@ export default function ChatRoom (props) {
     resetInitialPostToScrollTo()
   }, [loadedPast, loadedFuture])
 
+  // Add this useEffect to mark initial animation as complete after a timeout
+  useEffect(() => {
+    if (loadedPast && loadedFuture && !initialAnimationComplete) {
+      // Set a timeout slightly longer than the maximum animation delay (2000ms)
+      const timer = setTimeout(() => {
+        setInitialAnimationComplete(true)
+      }, 2500)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [loadedPast, loadedFuture, initialAnimationComplete])
+
   const onScroll = useMemo(
     () => debounce(200, (location) => {
       if (!loadingPast && !loadingFuture) {
@@ -403,51 +418,69 @@ export default function ChatRoom (props) {
   performance.mark('chat-room-start')
 
   return (
-    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
-      <Helmet>
-        <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
-      </Helmet>
+    <Profiler id="chat-room" onRender={(id, phase, actualDuration) => {
+      console.log(`${id} took ${actualDuration}ms to render`)
+    }}>
+      <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+        <Helmet>
+          <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
+        </Helmet>
 
-      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden'>
-        {initialPostToScrollTo === null
-          ? <div className={styles.loadingContainer}><Loading /></div>
-          : (
-            <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
-              <VirtuosoMessageList
-                style={{ height: '100%', width: '100%', marginTop: 'auto', marginBottom: '5px' }}
-                ref={messageListRef}
-                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction, onRemovePost, topicName, numPosts: postsForDisplay.length, newPostCount: topicFollow?.newPostCount }}
-                initialData={postsForDisplay}
-                initialLocation={{ index: initialPostToScrollTo, align: initialPostToScrollTo === 0 ? 'start' : 'end' }}
-                shortSizeAlign='bottom-smooth'
-                computeItemKey={({ data }) => data.id || data.localId}
-                onScroll={onScroll}
-                onRenderedDataChange={onRenderedDataChange}
-                EmptyPlaceholder={EmptyPlaceholder}
-                Footer={Footer}
-                Header={Header}
-                StickyHeader={StickyHeader}
-                StickyFooter={StickyFooter}
-                ItemContent={ItemContent}
-              />
-            </VirtuosoMessageListLicense>
-            )}
+        <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden'>
+          {initialPostToScrollTo === null
+            ? <div className={styles.loadingContainer}><Loading /></div>
+            : (
+              <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
+                <VirtuosoMessageList
+                  style={{ height: '100%', width: '100%', marginTop: 'auto', marginBottom: '5px' }}
+                  ref={messageListRef}
+                  context={{
+                    currentUser,
+                    loadingPast,
+                    loadingFuture,
+                    selectedPostId,
+                    group,
+                    latestOldPostId,
+                    onAddReaction,
+                    onRemoveReaction,
+                    onRemovePost,
+                    topicName,
+                    numPosts: postsForDisplay.length,
+                    newPostCount: topicFollow?.newPostCount,
+                    initialAnimationComplete
+                  }}
+                  initialData={postsForDisplay}
+                  initialLocation={{ index: initialPostToScrollTo, align: initialPostToScrollTo === 0 ? 'start' : 'end' }}
+                  shortSizeAlign='bottom-smooth'
+                  computeItemKey={({ data }) => data.id || data.localId}
+                  onScroll={onScroll}
+                  onRenderedDataChange={onRenderedDataChange}
+                  EmptyPlaceholder={EmptyPlaceholder}
+                  Footer={Footer}
+                  Header={Header}
+                  StickyHeader={StickyHeader}
+                  StickyFooter={StickyFooter}
+                  ItemContent={ItemContent}
+                />
+              </VirtuosoMessageListLicense>
+              )}
+        </div>
+
+        {/* Post chat box */}
+        <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg'>
+          <PostEditor
+            context='groups'
+            modal={false}
+            onSave={onCreate}
+            afterSave={afterCreate}
+          />
+        </div>
+
+        <Routes>
+          <Route path='post/:postId' element={<PostDialog container={container} />} />
+        </Routes>
       </div>
-
-      {/* Post chat box */}
-      <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg'>
-        <PostEditor
-          context='groups'
-          modal={false}
-          onSave={onCreate}
-          afterSave={afterCreate}
-        />
-      </div>
-
-      <Routes>
-        <Route path='post/:postId' element={<PostDialog container={container} />} />
-      </Routes>
-    </div>
+    </Profiler>
   )
 }
 
@@ -533,29 +566,36 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
   const showHeader = !prevData || firstUnread || !!displayDay || createdTimeDiff > MAX_MINS_TO_BATCH || prevData.creator.id !== post.creator.id || prevData.commentersTotal > 0 || prevData.type !== 'chat'
 
-  // Only calculate delay for initial load near bottom
-  const isInitialLoad = context.numPosts > 0 && index > context.numPosts - 20
+  // Only apply animations if not pending and initial animation is not complete
+  const isInitialLoad = !context.initialAnimationComplete && context.numPosts > 0 && index > context.numPosts - 20
   const delay = isInitialLoad ? Math.min((context.numPosts - index - 1) * 35, 2000) : 0
 
-  const shouldAnimate = !post.pending && (
-    isInitialLoad ||
-    // For new messages
-    post.id > context.latestOldPostId
-  )
-
+  // Only animate during initial load, never animate after initial animation is complete
+  const shouldAnimate = !post.pending && !context.initialAnimationComplete && isInitialLoad
   const animationClass = shouldAnimate ? 'animate-slide-up invisible' : ''
   const style = shouldAnimate ? { '--delay': `${delay}ms` } : {}
 
   return (
     <>
-      {firstUnread && !displayDay && <div className={styles.firstUnread}>...</div>}
-      {firstUnread && displayDay && <div className={styles.unreadAndDay}>...</div>}
+      {firstUnread && !displayDay && <div className={styles.firstUnread}><hr className='border-t-2 border-red-500' /></div>}
+      {firstUnread && displayDay && <div className={styles.unreadAndDay}>
+        <hr className='border-t-2 border-red-500' />
+        <div className='flex w-full items-center my-3'>
+          <div className='grow h-px bg-foreground/10' />
+          <div className='mx-4 text-foreground/40 text-sm whitespace-nowrap'>{displayDay}</div>
+          <div className='grow h-px bg-foreground/10' />
+        </div>
+      </div>}
       {!firstUnread && displayDay && (
-        <div className='w-full flex items-center'>...</div>
+        <div className='w-full flex items-center my-3'>
+          <div className='grow h-px bg-foreground/10' />
+          <div className='mx-4 text-foreground/40 text-sm whitespace-nowrap'>{displayDay}</div>
+          <div className='grow h-px bg-foreground/10' />
+        </div>
       )}
       {post.type === 'chat'
         ? (
-          <div 
+          <div
             className={`mx-auto px-4 max-w-[750px] ${animationClass}`}
             style={style}
           >
@@ -570,7 +610,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
             />
           </div>)
         : (
-          <div 
+          <div
             className={`mx-auto px-4 max-w-[750px] ${animationClass}`}
             style={style}
           >
@@ -583,7 +623,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
               onRemovePost={context.onRemovePost}
             />
           </div>
-        )}
+          )}
     </>
   )
 }
@@ -605,11 +645,3 @@ const HomeChatWelcome = ({ group }) => {
     </div>
   )
 }
-
-// Use React DevTools Profiler
-// Add React.Profiler component around key areas:
-<Profiler id="chat-room" onRender={(id, phase, actualDuration) => {
-  console.log(`${id} took ${actualDuration}ms to render`)
-}}>
-  <ChatRoom />
-</Profiler>
