@@ -68,7 +68,7 @@ export function useCurrentGroupSlug (setToGroupSlug, useQueryArgs = {}) {
     if (currentGroupSlug) return currentGroupSlug
     if (lastViewedGroup?.slug) return lastViewedGroup.slug
 
-    return null
+    return MY_CONTEXT_SLUG
   }, [setToGroupSlug, currentGroupSlug, lastViewedGroup])
 
   return [{ currentGroupSlug: groupSlug, setCurrentGroupSlug, fetching, error }]

@@ -7,8 +7,8 @@ import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup, { useContextGroups } from '@hylo/hooks/useCurrentGroup'
-import { openURL } from 'hooks/useOpenURL'
 import { widgetUrl as makeWidgetUrl } from 'util/navigation'
+import { openURL } from 'hooks/useOpenURL'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 
 export default function ContextSwitchMenu () {
@@ -19,14 +19,13 @@ export default function ContextSwitchMenu () {
   const myGroups = [myContext, publicContext].concat(
     sortBy('name', map(m => m.group, currentUser.memberships))
   )
-  // TODO: Set a home path for My and Public
-  const homePath = currentGroup && makeWidgetUrl({
-    widget: currentGroup?.homeWidget,
-    groupSlug: currentGroup?.slug
-  })
 
   const handleOnPress = context => {
     changeToGroup(context?.slug, false)
+    const homePath = context && makeWidgetUrl({
+      widget: context?.homeWidget,
+      groupSlug: context?.slug
+    })
     if (homePath) openURL(homePath)
   }
 

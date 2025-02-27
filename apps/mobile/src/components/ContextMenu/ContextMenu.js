@@ -16,7 +16,9 @@ export default function ContextMenu () {
   const navigation = useNavigation()
   const { t } = useTranslation()
   const [{ currentGroup, fetching }] = useCurrentGroup()
-  const widgets = useMemo(() => orderContextWidgetsForContextMenu(currentGroup?.contextWidgets || []), [currentGroup?.contextWidgets])
+  const widgets = useMemo(() =>
+    orderContextWidgetsForContextMenu(currentGroup?.contextWidgets || []),
+  [currentGroup?.contextWidgets])
 
   useEffect(() => {
     if ((!fetching && currentGroup?.shouldWelcome)) {
