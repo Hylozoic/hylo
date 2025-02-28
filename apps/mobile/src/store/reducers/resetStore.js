@@ -2,9 +2,7 @@ import { pick } from 'lodash/fp'
 import { getEmptyState } from 'store'
 import { LOGOUT, RESET_STORE } from '../constants'
 
-export const KEYS_PRESERVED_ON_LOGOUT = [
-  'initialURL'
-]
+export const KEYS_PRESERVED_ON_LOGOUT = []
 
 export const KEYS_PRESERVED_ON_RESET = []
 

@@ -27,8 +27,8 @@ import MapWebView from 'screens/MapWebView/MapWebView'
 const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
   const [{ currentGroup }] = useCurrentGroup()
-  const initialURL = useSelector(state => state.initialURL)
   const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
+  const initialURL = useOpenInitialURL()
 
   // TODO: URQL - Re-introduce initialUrl and returnToOnAuthPath handling, what is below may still work fine, but needs to be tested
   // useEffect(() => {
@@ -37,7 +37,6 @@ export default function HomeNavigator ({ navigation }) {
   //   }
   // }, [])
 
-  useOpenInitialURL()
   useReturnToOnAuthPath()
 
   const navigatorProps = {
