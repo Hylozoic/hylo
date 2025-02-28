@@ -39,30 +39,54 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
   }, [visibility, accessibility]))
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <KeyboardFriendlyView className="bg-secondary p-5 flex-1">
       <ScrollView style={{ margins: 0 }}>
-        <View style={styles.content}>
-          <View style={stepStyles.optionsContainer}>
-            <Text style={stepStyles.optionsLabel}>{t('Who can see this group')}</Text>
+        <View>
+          <View className="mb-6">
+            <Text className="text-secondary-foreground text-xl font-bold mb-2.5">{t('Who can see this group')}</Text>
             {groupVisibilityOptions.map(option => (
               <Option
-                option={option} chosen={option.value === visibility}
-                onPress={setVisibility} key={option.value}
+                option={option} 
+                chosen={option.value === visibility}
+                onPress={setVisibility} 
+                key={option.value}
               />
             ))}
           </View>
-          <View style={styles.optionsContainer}>
-            <Text style={stepStyles.optionsLabel}>{t('Who can join this group')}</Text>
+          <View className="mb-6">
+            <Text className="text-secondary-foreground text-xl font-bold mb-2.5">{t('Who can join this group')}</Text>
             {groupAccessibilityOptions.map(option => (
               <Option
-                option={option} chosen={option.value === accessibility}
-                onPress={setAccessibility} key={option.value}
+                option={option} 
+                chosen={option.value === accessibility}
+                onPress={setAccessibility} 
+                key={option.value}
               />
             ))}
           </View>
         </View>
       </ScrollView>
     </KeyboardFriendlyView>
+  )
+}
+
+export function Option ({ option, chosen, onPress }) {
+  return (
+    <TouchableOpacity className="p-4 pb-0 mb-2.5 flex-row justify-start" onPress={() => onPress(option.value)}>
+      <RoundCheckbox
+        className="mt-2.5"
+        size={24}
+        checked={chosen}
+        iconColor="rgba(var(--secondary-foreground), 0.2)"
+        borderColor="hsl(var(--secondary-foreground))"
+        backgroundColor="hsl(var(--secondary-foreground))"
+        onValueChange={() => onPress(option.value)}
+      />
+      <Icon className="ml-2.5 text-xl text-secondary-foreground" name={option.iconName} />
+      <Text className="mt-[-4] ml-2.5 font-circular-bold flex-1 text-base text-secondary-foreground">
+        {option.label}
+      </Text>
+    </TouchableOpacity>
   )
 }
 
@@ -76,25 +100,6 @@ const stepStyles = {
     fontWeight: 'bold',
     marginBottom: 10
   },
-}
-
-export function Option ({ option, chosen, onPress }) {
-  return (
-    <TouchableOpacity style={optionStyles.optionRow} onPress={() => onPress(option.value)}>
-      <RoundCheckbox
-        style={optionStyles.optionCheckbox}
-        size={24}
-        // icon={'checkmark-outline'}
-        checked={chosen}
-        iconColor={white20onCaribbeanGreen}
-        borderColor={white}
-        backgroundColor={white}
-        onValueChange={() => onPress(option.value)}
-      />
-      <Icon style={optionStyles.optionIcon} name={option.iconName} />
-      <Text style={optionStyles.optionsLabel}>{option.label}</Text>
-    </TouchableOpacity>
-  )
 }
 
 const optionStyles = {

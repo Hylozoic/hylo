@@ -1,15 +1,22 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useFocusEffect } from '@react-navigation/native'
-import { Text, TouchableOpacity } from 'react-native'
-import { FlashList } from '@shopify/flash-list'
+import { Text, TouchableOpacity, View } from 'react-native'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import { white } from 'style/colors'
 import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 import { getGroupData, updateGroupData } from './CreateGroupFlow.store'
-import styles from './CreateGroupFlow.styles'
 import { useTranslation } from 'react-i18next'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import ItemSelectorModal from 'components/ItemSelectorModal'
+import FastImage from 'react-native-fast-image'
+import Icon from 'components/Icon'
+
+const styles = {
+  pressSelectionValue: {
+    marginTop: 10,
+    fontSize: 16
+  }
+}
 
 export default function CreateGroupParentGroups ({ navigation }) {
   const dispatch = useDispatch()
@@ -23,11 +30,22 @@ export default function CreateGroupParentGroups ({ navigation }) {
     .map((m) => m.group)
     .sort((a, b) => a.name.localeCompare(b.name))
 
+  const groupSelectorModalRef = useRef(null)
+
   const isChosen = item => !!parentIds.find(groupId => groupId === item.id)
 
-  const toggleChosen = item => parentIds.find(groupId => groupId === item.id)
-    ? setParentGroupIds(parentIds.filter(groupId => groupId !== item.id))
-    : setParentGroupIds([...parentIds, item.id])
+  const handleAddGroup = group => {
+    if (!isChosen(group)) {
+      setParentGroupIds([...parentIds, group.id])
+    }
+  }
+
+  const handleRemoveGroup = groupSlug => {
+    const group = parentGroupOptions.find(g => g.slug === groupSlug)
+    if (group) {
+      setParentGroupIds(parentIds.filter(id => id !== group.id))
+    }
+  }
 
   const clear = () => setParentGroupIds([])
 
@@ -37,43 +55,65 @@ export default function CreateGroupParentGroups ({ navigation }) {
     dispatch(updateGroupData({ parentIds }))
   }, [parentIds]))
 
+  const selectedGroups = parentGroupOptions.filter(group => isChosen(group))
+
   return (
-    <KeyboardFriendlyView style={styles.container}>
-      <Text style={styles.heading}>{t('Is this group a member of other groups?')}</Text>
-      <Text style={stepStyles.subHeading}>{t('Please select below:')}</Text>
-      {/* TODO: ItemSelectorModal  */}
-      {/* <FlashList
-        style={stepStyles.parentGroupListContainer}
-        data={parentGroupOptions}
-        renderItem={({ item }) => (
-          <ItemChooserItemRow item={item} chosen={isChosen(item)} toggleChosen={toggleChosen} />
+    <KeyboardFriendlyView className="bg-secondary p-5 flex-1">
+      <Text className="text-secondary-foreground text-xl font-bold pb-2.5">{t('Is this group a member of other groups?')}</Text>
+      <Text className="text-secondary-foreground/80 mb-2.5">{t('Please select below:')}</Text>
+
+      <View className="border border-secondary-foreground/20 bg-background rounded-lg p-4">
+        <TouchableOpacity 
+          className="flex-row justify-between items-center"
+          onPress={() => groupSelectorModalRef.current.show()}
+        >
+          <Text className="text-secondary-foreground/90 font-bold">{t('Parent Groups')}</Text>
+          <View className="border border-secondary rounded-full p-1">
+            <Icon className="text-secondary text-xl" name='Plus' />
+          </View>
+        </TouchableOpacity>
+        
+        <ItemSelectorModal
+          ref={groupSelectorModalRef}
+          title={t('Select Parent Groups')}
+          items={parentGroupOptions}
+          itemsTransform={(items, searchTerm) => (
+            items.filter(item => searchTerm
+              ? item.name.toLowerCase().match(searchTerm?.toLowerCase())
+              : item
+            )
+          )}
+          chosenItems={selectedGroups}
+          onItemPress={handleAddGroup}
+          searchPlaceholder={t('Search for group by name')}
+        />
+
+        {selectedGroups.length > 0 && (
+          <View className="mt-3 space-y-3">
+            {selectedGroups.map(group => (
+              <View key={group.id} className="flex-row items-center py-0.5 px-1 gap-1">
+                <FastImage 
+                  source={{ uri: group.avatarUrl }} 
+                  style={{ width: 20, height: 20, borderRadius: 10 }}
+                  className="mr-3"
+                />
+                <Text className="flex-1 text-secondary-foreground text-base">{group.name}</Text>
+                <TouchableOpacity
+                  className="ml-3"
+                  hitSlop={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                  onPress={() => handleRemoveGroup(group.slug)}
+                >
+                  <Icon className="text-secondary-foreground/60 text-lg" name='Ex' />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
         )}
-      /> */}
+      </View>
+
       <TouchableOpacity onPress={clear}>
-        <Text style={stepStyles.clearButton}>{t('Clear')}</Text>
+        <Text className="text-secondary-foreground font-bold mt-2.5 self-end mr-5">{t('Clear')}</Text>
       </TouchableOpacity>
     </KeyboardFriendlyView>
   )
-}
-
-const stepStyles = {
-  subHeading: {
-    color: white,
-    marginTop: 10,
-    marginBottom: 10
-  },
-  clearButton: {
-    color: white,
-    marginTop: 10,
-    marginBottom: 20,
-    marginRight: 20,
-    fontWeight: 'bold',
-    alignSelf: 'flex-end'
-  },
-  parentGroupListContainer: {
-    minWidth: '90%',
-    padding: 0,
-    backgroundColor: white,
-    borderRadius: 15
-  }
 }

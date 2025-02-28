@@ -45,18 +45,18 @@ export default function CreateGroupPurpose ({ route }) {
   }, [edited, currentGroup?.id]))
 
   return (
-    <View style={styles.container}>
+    <View className="bg-secondary p-5 flex-1">
       <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
-        <View style={styles.header}>
-          <Text style={styles.heading}>{t('Group Purpose')}</Text>
-          <Text style={styles.description}>{t('Your purpose statement is a concise summary of why your group')}</Text>
-          <Text style={styles.description}>{t('Aim for one or two sentences')}</Text>
+        <View className="mb-5">
+          <Text className="text-secondary-foreground text-xl font-bold pb-2.5">{t('Group Purpose')}</Text>
+          <Text className="text-secondary-foreground/80 mb-1">{t('Your purpose statement is a concise summary of why your group')}</Text>
+          <Text className="text-secondary-foreground/80 mb-1">{t('Aim for one or two sentences')}</Text>
         </View>
-        <View style={styles.content}>
-          <View style={styles.textInputContainer}>
-            <Text style={styles.textInputLabel}>{t('Whats the purpose of the group?')}</Text>
+        <View>
+          <View className="mb-4 border-b border-secondary-foreground/20">
+            <Text className="text-secondary-foreground/90 font-bold">{t('Whats the purpose of the group?')}</Text>
             <TextInput
-              style={styles.textInput}
+              className="text-secondary-foreground text-lg font-bold my-2.5"
               onChangeText={setGroupPurpose}
               returnKeyType='next'
               autoCapitalize='none'
@@ -67,7 +67,7 @@ export default function CreateGroupPurpose ({ route }) {
               multiline
             />
           </View>
-          {error && <View style={styles.errorBubble}><ErrorBubble text={error} topArrow /></View>}
+          {error && <View className="mt-[-8]"><ErrorBubble text={error} topArrow /></View>}
         </View>
       </ScrollView>
     </View>

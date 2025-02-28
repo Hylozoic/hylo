@@ -68,17 +68,17 @@ export default function CreateGroupUrl ({ navigation }) {
   }, [groupExistsCheckResult?.data]))
 
   return (
-    <View style={styles.container}>
+    <View className="bg-secondary p-5 flex-1">
       <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
-        <View style={styles.header}>
-          <Text style={styles.heading}>{t('Choose an address for your group')}</Text>
-          <Text style={styles.description}>{t('Your URL is the address that members will use to access your group online The shorter the better')}</Text>
+        <View className="mb-5">
+          <Text className="text-secondary-foreground text-xl font-bold pb-2.5">{t('Choose an address for your group')}</Text>
+          <Text className="text-secondary-foreground/80 mb-1">{t('Your URL is the address that members will use to access your group online The shorter the better')}</Text>
         </View>
-        <View style={styles.content}>
-          <View style={styles.textInputContainer}>
-            <Text style={styles.textInputLabel}>{t('Whats the address for your group')}</Text>
+        <View>
+          <View className="mb-4 border-b border-secondary-foreground/20">
+            <Text className="text-secondary-foreground/90 font-bold">{t('Whats the address for your group')}</Text>
             <TextInput
-              style={styles.textInput}
+              className="text-secondary-foreground text-lg font-bold my-2.5"
               onChangeText={slug => setGroupSlug(removeDomainFromURL(slug))}
               returnKeyType='next'
               autoCapitalize='none'
@@ -87,7 +87,7 @@ export default function CreateGroupUrl ({ navigation }) {
               underlineColorAndroid='transparent'
             />
           </View>
-          {error && <View style={styles.errorBubble}><ErrorBubble text={error} topArrow /></View>}
+          {error && <View className="mt-[-8]"><ErrorBubble text={error} topArrow /></View>}
         </View>
       </ScrollView>
     </View>

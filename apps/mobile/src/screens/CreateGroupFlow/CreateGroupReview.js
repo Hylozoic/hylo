@@ -51,21 +51,20 @@ export default function CreateGroupReview () {
   }, [groupData])
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={{ flex: 1 }}>
-        <View style={styles.header}>
-          <Text style={styles.heading}>{t('Everything look good?')}</Text>
-          <Text style={styles.description}>{t('You can always come back and change your details at any time')}</Text>
+    <View className="bg-secondary p-5 flex-1">
+      <ScrollView className="flex-1">
+        <View className="mb-5">
+          <Text className="text-secondary-foreground text-xl font-bold pb-2.5">{t('Everything look good?')}</Text>
+          <Text className="text-secondary-foreground/80 mb-1">{t('You can always come back and change your details at any time')}</Text>
         </View>
-        <View style={styles.content}>
-
-          <View style={styles.textInputContainer}>
-            <View style={stepStyles.itemHeader}>
-              <Text style={stepStyles.textInputLabel}>{t('Whats the name of your group?')}</Text>
+        <View className="flex-1">
+          <View className="mb-4 border-b border-secondary-foreground/20">
+            <View className="flex-row justify-between items-center">
+              <Text className="text-secondary-foreground/90 font-bold">{t('Whats the name of your group?')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupName')} />
             </View>
             <TextInput
-              style={stepStyles.reviewTextInput}
+              className="text-secondary-foreground text-lg font-bold my-2.5"
               value={groupData.name}
               underlineColorAndroid='transparent'
               editable={false}
@@ -73,13 +72,13 @@ export default function CreateGroupReview () {
             />
           </View>
 
-          <View style={styles.textInputContainer}>
-            <View style={stepStyles.itemHeader}>
-              <Text style={stepStyles.textInputLabel}>{t('Whats the URL of your group?')}</Text>
+          <View className="mb-4 border-b border-secondary-foreground/20">
+            <View className="flex-row justify-between items-center">
+              <Text className="text-secondary-foreground/90 font-bold">{t('Whats the URL of your group?')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupUrl')} />
             </View>
             <TextInput
-              style={stepStyles.reviewTextInput}
+              className="text-secondary-foreground text-lg font-bold my-2.5"
               value={formatDomainWithUrl(groupData.slug)}
               underlineColorAndroid='transparent'
               editable={false}
@@ -87,13 +86,13 @@ export default function CreateGroupReview () {
             />
           </View>
 
-          <View style={styles.textInputContainer}>
-            <View style={stepStyles.itemHeader}>
-              <Text style={stepStyles.textInputLabel}>{t('What is the purpose of this group')}</Text>
+          <View className="mb-4 border-b border-secondary-foreground/20">
+            <View className="flex-row justify-between items-center">
+              <Text className="text-secondary-foreground/90 font-bold">{t('What is the purpose of this group')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupPurpose')} />
             </View>
             <TextInput
-              style={stepStyles.reviewTextInput}
+              className="text-secondary-foreground text-lg font-bold my-2.5"
               multiline
               value={groupData.purpose}
               underlineColorAndroid='transparent'
@@ -101,36 +100,36 @@ export default function CreateGroupReview () {
               selectTextOnFocus={false}
             />
           </View>
-        </View>
 
-        <View style={styles.textInputContainer}>
-          <View style={stepStyles.itemHeader}>
-            <Text style={stepStyles.textInputLabel}>{t('Who can see this group?')}</Text>
-            <EditButton onPress={() => navigation.navigate('CreateGroupVisibilityAccessibility')} />
+          <View className="mb-4 border-b border-secondary-foreground/20">
+            <View className="flex-row justify-between items-center">
+              <Text className="text-secondary-foreground/90 font-bold">{t('Who can see this group?')}</Text>
+              <EditButton onPress={() => navigation.navigate('CreateGroupVisibilityAccessibility')} />
+            </View>
+            <TextInput
+              className="text-secondary-foreground text-lg font-bold my-2.5"
+              multiline
+              value={visibilityDescription(groupData.visibility)}
+              underlineColorAndroid='transparent'
+              editable={false}
+              selectTextOnFocus={false}
+            />
           </View>
-          <TextInput
-            style={stepStyles.reviewTextInput}
-            multiline
-            value={visibilityDescription(groupData.visibility)}
-            underlineColorAndroid='transparent'
-            editable={false}
-            selectTextOnFocus={false}
-          />
-        </View>
 
-        <View style={styles.textInputContainer}>
-          <View style={stepStyles.itemHeader}>
-            <Text style={stepStyles.textInputLabel}>{t('Who can join this group?')}</Text>
-            <EditButton onPress={() => navigation.navigate('CreateGroupVisibilityAccessibility')} />
+          <View className="mb-4 border-b border-secondary-foreground/20">
+            <View className="flex-row justify-between items-center">
+              <Text className="text-secondary-foreground/90 font-bold">{t('Who can join this group?')}</Text>
+              <EditButton onPress={() => navigation.navigate('CreateGroupVisibilityAccessibility')} />
+            </View>
+            <TextInput
+              className="text-secondary-foreground text-lg font-bold my-2.5"
+              multiline
+              value={accessibilityDescription(groupData.accessibility)}
+              underlineColorAndroid='transparent'
+              editable={false}
+              selectTextOnFocus={false}
+            />
           </View>
-          <TextInput
-            style={stepStyles.reviewTextInput}
-            multiline
-            value={accessibilityDescription(groupData.accessibility)}
-            underlineColorAndroid='transparent'
-            editable={false}
-            selectTextOnFocus={false}
-          />
         </View>
 
         {/* {parentGroups.length > 0 && (
@@ -145,16 +144,16 @@ export default function CreateGroupReview () {
           </View>
         )} */}
 
-        {error && <View style={styles.errorBubble}><ErrorBubble text={error} /></View>}
+        {error && <View className="mt-[-8]"><ErrorBubble text={error} /></View>}
       </ScrollView>
     </View>
   )
 }
 
 const GroupRow = ({ group }) => (
-  <View style={stepStyles.groupRow} key={group.name}>
-    <Avatar style={stepStyles.groupAvatar} avatarUrl={group.avatarUrl} dimension={20} />
-    <Text style={stepStyles.groupName}>{group.name}</Text>
+  <View className="flex-row mb-2.5" key={group.name}>
+    <Avatar className="mr-3.5" avatarUrl={group.avatarUrl} dimension={20} />
+    <Text className="text-secondary-foreground font-circular-bold flex-1 text-sm">{group.name}</Text>
   </View>
 )
 
@@ -163,7 +162,7 @@ const EditButton = ({ onPress }) => {
 
   return (
     <TouchableOpacity onPress={onPress}>
-      <Text style={stepStyles.editLink}>{t('Edit')}</Text>
+      <Text className="text-secondary-foreground/80 text-xs font-bold">{t('Edit')}</Text>
     </TouchableOpacity>
   )
 }

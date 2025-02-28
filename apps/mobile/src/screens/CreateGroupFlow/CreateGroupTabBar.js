@@ -1,14 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { LayoutAnimation, View, Keyboard } from 'react-native'
-import Button from 'components/Button'
 import { useSelector } from 'react-redux'
 import { getWorkflowOptions } from 'screens/CreateGroupFlow/CreateGroupFlow.store'
 import { isIOS } from 'util/platform'
-import {
-  caribbeanGreen, rhino30, white, white20onCaribbeanGreen, white40onCaribbeanGreen
-} from 'style/colors'
 import { useKeyboard } from '@react-native-community/hooks'
 import { useTranslation } from 'react-i18next'
+import ButtonNW from 'components/Button/ButtonNW'
 
 export default function CreateGroupTabBar ({ state, descriptors, navigation }) {
   const { t } = useTranslation()
@@ -66,61 +63,38 @@ export default function CreateGroupTabBar ({ state, descriptors, navigation }) {
     : (isIOS ? 80 : 60)
 
   return (
-    <View style={[styles.container, { height: keyboardAdjustedHeight }]}>
-      {prevStepScreenName && (
-        <Button
-          text={t('< Back')}
-          onPress={gotoPrevStep}
-          style={styles.backButton}
-        />
-      )}
+    <View 
+      className="flex-row justify-between px-5 pt-2.5 bg-secondary/20"
+      style={{ height: keyboardAdjustedHeight }}
+    >
+      <View className="w-[100px]">
+        {prevStepScreenName && (
+          <ButtonNW
+            text={t('< Back')}
+            onPress={gotoPrevStep}
+            className="w-[100px] bg-secondary/40"
+            textClassName="text-secondary-foreground"
+          />
+        )}
+      </View>
       {nextStepScreenName && (
-        <Button
+        <ButtonNW
           text={t('Continue')}
           onPress={gotoNextStep}
-          style={styles.continueButton}
           disabled={disableContinue}
+          className="w-[134px] bg-background"
+          textClassName="text-secondary"
         />
       )}
       {!nextStepScreenName && (
-        <Button
+        <ButtonNW
           text={t("Lets Do This!")}
           onPress={completeWorkflow}
           disabled={completeButtonDisabled}
-          style={styles.continueButton}
+          className="w-[134px] bg-background"
+          textClassName="text-secondary"
         />
       )}
     </View>
   )
-}
-
-const buttonStyle = {
-  height: 40,
-  fontSize: 16,
-  paddingBottom: isIOS ? 30 : 10
-}
-
-const styles = {
-  container: {
-    backgroundColor: white20onCaribbeanGreen,
-    paddingTop: 10,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  backButton: {
-    ...buttonStyle,
-    width: 100,
-    color: white,
-    backgroundColor: white40onCaribbeanGreen
-  },
-  continueButton: {
-    ...buttonStyle,
-    width: 134,
-    marginLeft: 'auto',
-    color: caribbeanGreen,
-    backgroundColor: white,
-    disabledColor: white,
-    disabledBackgroundColor: rhino30
-  }
 }

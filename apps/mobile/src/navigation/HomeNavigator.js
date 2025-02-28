@@ -5,6 +5,7 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import useReturnToOnAuthPath from 'hooks/useReturnToOnAuthPath'
 import getReturnToOnAuthPath from 'store/selectors/getReturnToOnAuthPath'
+import useRouteParams from 'hooks/useRouteParams'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
 // Screens
@@ -29,7 +30,8 @@ export default function HomeNavigator ({ navigation }) {
   const [{ currentGroup }] = useCurrentGroup()
   const initialURL = useSelector(state => state.initialURL)
   const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
-
+  const routeParams = useRouteParams()
+  console.log('routeParamsssss', routeParams, currentGroup)
   // TODO: URQL - Re-introduce initialUrl and returnToOnAuthPath handling, what is below may still work fine, but needs to be tested
   // useEffect(() => {
   //   if (!initialURL && !returnToOnAuthPath) {

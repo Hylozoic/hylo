@@ -1,4 +1,4 @@
-import { caribbeanGreen, white, white80onCaribbeanGreen } from 'style/colors'
+import { caribbeanGreen, white, white80onCaribbeanGreen, rhino30 } from 'style/colors'
 import { StyleSheet } from 'react-native'
 import { isIOS } from 'util/platform'
 
@@ -66,5 +66,30 @@ export default {
     color: white,
     fontSize: 16,
     marginTop: 10
+  },
+  pressSelectionSection: {
+    borderBottomWidth: 1,
+    padding: 15
+  },
+  pressSelection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  pressSelectionRight: {
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 5
+  },
+  pressSelectionRightIcon: {
+    fontSize: 20
+  },
+  pressSelectionValue: {
+    marginTop: 10,
+    fontSize: 16
+  },
+  groupRemoveIcon: {
+    fontSize: 16,
+    color: rhino30
   }
 }

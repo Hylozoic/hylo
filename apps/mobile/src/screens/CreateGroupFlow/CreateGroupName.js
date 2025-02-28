@@ -49,17 +49,17 @@ export default function CreateGroupName ({ route }) {
   }, [edited, currentGroup?.id]))
 
   return (
-    <View style={styles.container}>
+    <View className="bg-secondary p-5 flex-1">
       <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
-        <View style={styles.header}>
-          <Text style={styles.heading}>{t('Lets get started!')}</Text>
-          <Text style={styles.description}>{t('All good things start somewhere! Lets kick things off with a catchy name for your group')}</Text>
+        <View className="mb-5">
+          <Text className="text-secondary-foreground text-xl font-bold pb-2.5">{t('Lets get started!')}</Text>
+          <Text className="text-secondary-foreground/80 mb-1">{t('All good things start somewhere! Lets kick things off with a catchy name for your group')}</Text>
         </View>
-        <View style={styles.content}>
-          <View style={styles.textInputContainer}>
-            <Text style={styles.textInputLabel}>{t('Whats the name of your group?')}</Text>
+        <View>
+          <View className="mb-4 border-b border-secondary-foreground/20">
+            <Text className="text-secondary-foreground/90 font-bold">{t('Whats the name of your group?')}</Text>
             <TextInput
-              style={styles.textInput}
+              className="text-secondary-foreground text-lg font-bold my-2.5"
               onChangeText={setGroupName}
               returnKeyType='next'
               autoCapitalize='none'
@@ -69,7 +69,7 @@ export default function CreateGroupName ({ route }) {
               maxLength={60}
             />
           </View>
-          {error && <View style={styles.errorBubble}><ErrorBubble text={error} topArrow /></View>}
+          {error && <View className="mt-[-8]"><ErrorBubble text={error} topArrow /></View>}
         </View>
       </ScrollView>
     </View>
