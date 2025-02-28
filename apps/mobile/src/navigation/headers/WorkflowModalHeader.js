@@ -14,7 +14,7 @@ export default function WorkflowModalHeader (props) {
       headerTitleStyle={{
         color: white,
         fontFamily: 'Circular-Bold',
-        fontSize: 12
+        fontSize: 16
       }}
       headerTintColor={white60onCaribbeanGreen}
       statusBarOptions={{

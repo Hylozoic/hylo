@@ -1,3 +1,3 @@
-import styles from '../SignupFlow.styles'
+import defaultStyles from '../SignupFlow.styles'
 
-export default styles
+export default defaultStyles

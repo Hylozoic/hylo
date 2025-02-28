@@ -2,19 +2,34 @@ import React from 'react'
 import { useDispatch } from 'react-redux'
 import { Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import { isIOS } from 'util/platform'
 import { loginWithApple, loginWithGoogle } from './actions'
 import AppleLoginButton from './AppleLoginButton'
 import GoogleLoginButton from './GoogleLoginButton'
 import { rhino60 } from 'style/colors'
 
-export default function SocialAuth ({ onStart, onComplete, forSignup }) {
+export default function SocialAuth ({
+  onStart: providedOnStart,
+  onComplete: providedOnComplete,
+  forSignup
+}) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const { checkAuth } = useAuth()
+
+  const handleOnStart = async () => {
+    await providedOnStart()
+  }
+
+  const handleOnComplete = async error => {
+    await providedOnComplete(error)
+    await checkAuth()
+  }
 
   const socialLoginMaker = loginWith => async token => {
     try {
-      onStart()
+      handleOnStart()
 
       const response = await dispatch(loginWith(token))
 
@@ -25,10 +40,10 @@ export default function SocialAuth ({ onStart, onComplete, forSignup }) {
           throw new Error(errorMessage)
         }
       } else {
-        await onComplete()
+        await handleOnComplete()
       }
     } catch (e) {
-      await onComplete(e.message)
+      await handleOnComplete(e.message)
     }
   }
 
@@ -39,14 +54,14 @@ export default function SocialAuth ({ onStart, onComplete, forSignup }) {
         <AppleLoginButton
           style={styles.socialLoginButton}
           onLoginFinished={socialLoginMaker(loginWithApple)}
-          createErrorNotification={onComplete}
+          createErrorNotification={handleOnComplete}
           signup={forSignup}
         />
       )}
       <GoogleLoginButton
         style={styles.socialLoginButton}
         onLoginFinished={socialLoginMaker(loginWithGoogle)}
-        createErrorNotification={onComplete}
+        createErrorNotification={handleOnComplete}
         signup={forSignup}
       />
     </View>

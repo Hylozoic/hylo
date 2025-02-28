@@ -61,7 +61,6 @@ export default function NotificationsList (props) {
         header: props => (
           <ModalHeader
             {...props}
-            headerLeftStyle={{ color: rhino }}
             headerRightButtonLabel={t('Mark as read')}
             headerRightButtonOnPress={() => markAllActivitiesRead()}
           />

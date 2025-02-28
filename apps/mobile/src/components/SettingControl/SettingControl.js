@@ -15,6 +15,7 @@ const SettingControl = React.forwardRef(({
   returnKeyType,
   autoCapitalize,
   autoCorrect,
+  onPress,
   style,
   error,
   theme = {},
@@ -49,7 +50,7 @@ const SettingControl = React.forwardRef(({
   }
 
   return (
-    <View style={[styles.control, style, theme.control]}>
+    <TouchableOpacity onPress={onPress} style={[styles.control, style, theme.control]}>
       <Text style={[styles.label, theme.label]}>{label}</Text>
       <TextInput
         ref={ref}
@@ -90,7 +91,7 @@ const SettingControl = React.forwardRef(({
         </View>
       )}
       <FormattedError error={error} styles={styles} theme={theme} />
-    </View>
+    </TouchableOpacity>
   )
 })
 

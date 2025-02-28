@@ -178,6 +178,7 @@ export default function AuthRootNavigator () {
           <AuthRoot.Screen name={modalScreenName('Thread')} component={Thread} />
           <AuthRoot.Screen name={modalScreenName('Notifications')} component={NotificationsList} />
         </AuthRoot.Group>
+        <AuthRoot.Screen name='Loading' component={LoadingScreen} options={{ headerShown: false, animationEnabled: false }} />
       </AuthRoot.Navigator>
     </HyloHTMLConfigProvider>
   )
