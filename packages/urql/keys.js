@@ -2,6 +2,7 @@ export default {
   AffiliationQuerySet: () => null,
   ActivityMeta: () => null,
   AgreementQuerySet: () => null,
+  CheckInvitationResult: () => null,
   CommentQuerySet: () => null,
   ContextWidgetQuerySet: () => null,
   CustomViewQuerySet: () => null,

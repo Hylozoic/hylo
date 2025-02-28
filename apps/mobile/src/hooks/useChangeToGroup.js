@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
@@ -32,19 +33,13 @@ export default function useChangeToGroup () {
   const [{ currentGroupSlug, setCurrentGroupSlug }] = useCurrentGroupSlug()
   const myMemberships = currentUser?.memberships
 
-  return (groupSlug, confirm = true) => {
-    if (!myMemberships) {
-      throw new Error('Must provide current user memberships as 2nd parameter')
-    }
-
+  const changeToGroup = useCallback((groupSlug, confirm = true) => {
     if (groupSlug === currentGroupSlug) return
 
     const canViewGroup = myMemberships.find(m => m.group.slug === groupSlug) || isContextGroupSlug(groupSlug)
 
     if (canViewGroup) {
-      const goToGroup = () => {
-        setCurrentGroupSlug(groupSlug)
-      }
+      const goToGroup = () => setCurrentGroupSlug(groupSlug)
 
       confirm
         ? confirmNavigate(goToGroup, {
@@ -55,5 +50,7 @@ export default function useChangeToGroup () {
     } else {
       navigation.navigate(modalScreenName('Group Explore'), { groupSlug })
     }
-  }
+  }, [navigation, currentUser, currentGroupSlug, myMemberships])
+
+  return changeToGroup
 }
