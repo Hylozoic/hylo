@@ -1,10 +1,8 @@
 import React, { useEffect } from 'react'
-import { useSelector } from 'react-redux'
 import { createStackNavigator } from '@react-navigation/stack'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import useReturnToOnAuthPath from 'hooks/useReturnToOnAuthPath'
-import getReturnToOnAuthPath from 'store/selectors/getReturnToOnAuthPath'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
 // Screens
@@ -27,17 +25,17 @@ import MapWebView from 'screens/MapWebView/MapWebView'
 const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
   const [{ currentGroup }] = useCurrentGroup()
-  const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
   const initialURL = useOpenInitialURL()
+  const returnToOnAuthPath = useReturnToOnAuthPath()
 
-  // TODO: URQL - Re-introduce initialUrl and returnToOnAuthPath handling, what is below may still work fine, but needs to be tested
+  // TODO: This was responsible for defaulting to Stream when otherwise there was no link to direct
+  // I suspect it is no longer relevant, but keeping here until I have a change to test further and
+  // sure.
   // useEffect(() => {
   //   if (!initialURL && !returnToOnAuthPath) {
   //     setTimeout(() => navigation.navigate('Stream'), 400)
   //   }
   // }, [])
-
-  useReturnToOnAuthPath()
 
   const navigatorProps = {
     screenOptions: {

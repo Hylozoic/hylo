@@ -1,6 +1,5 @@
 import { combineReducers } from 'redux'
 import pending from './pending'
-import returnToOnAuthPath from './returnToOnAuthPathReducer'
 import resetStore from './resetStore'
 import { SET_STATE } from 'store/constants'
 // Local store
@@ -16,7 +15,6 @@ export const handleSetState = (state = {}, { type, payload }) =>
 export const createCombinedReducers = () => combineReducers({
   // Global store
   pending,
-  returnToOnAuthPath,
   // Local store (Component)
   CreateGroupFlow,
   GroupWelcomeFlow

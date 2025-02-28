@@ -3,9 +3,8 @@ import { isEmpty } from 'lodash/fp'
 import { match } from 'path-to-regexp'
 import { URL } from 'react-native-url-polyfill'
 import queryString from 'query-string'
-import store from 'store'
-import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
 import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import useLinkingStore from 'navigation/linking/store'
 import {
   routingConfig,
   initialRouteNamesConfig,
@@ -19,6 +18,7 @@ export default function getStateFromPath (providedPath) {
   // historically been there so keeping it for now
   const groomedPath = providedPath.trim()
   const routeMatch = getRouteMatchForPath(groomedPath)
+  const linkingState = useLinkingStore.getState()
 
   // 404 handling
   if (!routeMatch) return null
@@ -34,8 +34,7 @@ export default function getStateFromPath (providedPath) {
 
   // // Set `returnToOnAuthPath` for routes requiring auth when not auth'd
   // if (!isAuthorized && screenPath.match(new RegExp(`^${AUTH_ROOT_SCREEN_NAME}`))) {
-  //   store.dispatch(setReturnToOnAuthPath(providedPath))
-
+  //   linkingState.setReturnToOnAuthPath(providedPath)
   //   return null
   // }
 
