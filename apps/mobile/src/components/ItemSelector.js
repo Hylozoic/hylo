@@ -31,6 +31,7 @@ export const ItemSelector = ({
   items: providedItems,
   defaultItems,
   chosenItems: providedChosenItems,
+  className,
   onItemPress,
   renderItem: CustomItem,
   itemsTransform,
@@ -127,7 +128,7 @@ export const ItemSelector = ({
   }, [handleItemPress, isChosen, handleToggleChosen])
 
   return (
-    <View style={[styles.container, style]}>
+    <View className={className} style={[styles.container, style]}>
       {search && (
         <SearchBar
           style={{

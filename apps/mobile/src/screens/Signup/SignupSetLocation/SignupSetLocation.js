@@ -1,16 +1,17 @@
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity } from 'react-native'
+import { View, Text } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { AnalyticsEvents } from '@hylo/shared'
-import mixpanel from 'services/mixpanel'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import { X } from 'lucide-react-native'
+import mixpanel from 'services/mixpanel'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import { LocationSelector } from 'components/LocationSelectorModal/LocationSelectorModal'
 import Button from 'components/Button'
 import styles from '../SignupFlow.styles'
-import { nevada, rhino80, white, white80onCaribbeanGreen } from 'style/colors'
+import { caribbeanGreen, white, white80onCaribbeanGreen } from 'style/colors'
 
 export default function SignupSetLocation ({ navigation }) {
   const { t } = useTranslation()
@@ -49,15 +50,19 @@ export default function SignupSetLocation ({ navigation }) {
       </View>
       <View style={styles.content}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <Text style={{ fontSize: 16, fontWeight: 'bold', color: white }}>Selected:</Text>
-          <TouchableOpacity onPress={() => setLocationObject()}>
-            <Text style={{ color: nevada, fontWeight: 'bold' }}>{locationObject?.fullText && 'Clear'}</Text>
-          </TouchableOpacity>
+          <Text style={{ fontWeight: 'bold', fontSize: 16, color: white }}>Selected:</Text>
+          {locationObject?.fullText && (
+            <X size={20} style={{ color: white80onCaribbeanGreen }} onPress={() => setLocationObject()} />
+          )}
         </View>
-        <Text style={{ fontSize: 16, marginBottom: 20, color: white }}>{locationObject?.fullText || '(none selected)'}</Text>
-        <View style={{ flex: 1, padding: 10, backgroundColor: white80onCaribbeanGreen, borderRadius: 20 }}>
-          <LocationSelector colors={{ text: rhino80, border: rhino80 }} onItemPress={setLocationObject} />
-        </View>
+        <Text style={{ fontSize: 16, marginBottom: 18, color: white }}>
+          {locationObject?.fullText || '(None selected)'}
+        </Text>
+        <LocationSelector
+          style={{ flex: 0, padding: 10, backgroundColor: white80onCaribbeanGreen, borderRadius: 20 }}
+          colors={{ text: caribbeanGreen, border: caribbeanGreen }}
+          onItemPress={setLocationObject}
+        />
       </View>
       <View style={styles.bottomBar}>
         <Button
