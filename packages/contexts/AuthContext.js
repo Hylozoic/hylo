@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useCallback } from 'react'
+import React, { createContext, useContext, useCallback, useEffect } from 'react'
 import { useQuery, useMutation } from 'urql'
+import { create } from 'zustand'
 import meCheckAuthQuery from '@hylo/graphql/queries/meCheckAuthQuery'
 import loginMutation from '@hylo/graphql/mutations/loginMutation'
 import logoutMutation from '@hylo/graphql/mutations/logoutMutation'
@@ -20,9 +21,17 @@ Each state below below implies transition from the previous state has completed,
 
 */
 
+export const useAuthState = create((set) => ({
+  isAuthenticated: false,
+  isAuthorized: false,
+  setIsAuthenticated: isAuthenticated => set({ isAuthenticated }),
+  setIsAuthorized: isAuthorized => set({ isAuthorized })
+}))
+
 const AuthContext = createContext(null)
 
 export function AuthProvider ({ children }) {
+  const { setIsAuthenticated, setIsAuthorized } = useAuthState()
   const [{ data, fetching, error }, checkAuth] = useQuery({
     requestPolicy: 'cache-and-network',
     query: meCheckAuthQuery
@@ -31,11 +40,16 @@ export function AuthProvider ({ children }) {
   const [, executeLogout] = useMutation(logoutMutation)
 
   const currentUser = data?.me
-  const isAuthenticated = currentUser
-  const isAuthorized = isAuthenticated &&
+  const isAuthenticated = !!currentUser
+  const isAuthorized = !!(isAuthenticated &&
     currentUser?.emailValidated &&
     currentUser?.hasRegistered &&
-    !currentUser?.settings?.signupInProgress
+    !currentUser?.settings?.signupInProgress)
+
+  useEffect(() => {
+    setIsAuthenticated(isAuthenticated)
+    setIsAuthorized(isAuthorized)
+  }, [isAuthenticated, isAuthorized])
 
   // **Login function**
   const login = useCallback(async ({ email, password }) => {

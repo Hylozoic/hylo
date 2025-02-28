@@ -26,16 +26,8 @@ const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
   const [{ currentGroup }] = useCurrentGroup()
   const initialURL = useOpenInitialURL()
-  const returnToOnAuthPath = useReturnToOnAuthPath()
 
-  // TODO: This was responsible for defaulting to Stream when otherwise there was no link to direct
-  // I suspect it is no longer relevant, but keeping here until I have a change to test further and
-  // sure.
-  // useEffect(() => {
-  //   if (!initialURL && !returnToOnAuthPath) {
-  //     setTimeout(() => navigation.navigate('Stream'), 400)
-  //   }
-  // }, [])
+  useReturnToOnAuthPath()
 
   const navigatorProps = {
     screenOptions: {
