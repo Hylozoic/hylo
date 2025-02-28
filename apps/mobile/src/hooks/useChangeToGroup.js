@@ -1,10 +1,29 @@
+import { Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import confirmNavigate from 'util/confirmNavigate'
-import { modalScreenName } from 'hooks/useIsModalScreen'
 import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 import { useCurrentGroupSlug } from '@hylo/hooks/useCurrentGroup'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { modalScreenName } from 'hooks/useIsModalScreen'
+
+function confirmNavigate (onConfirm, options = {}) {
+  options = {
+    title: 'Changing context',
+    confirmationMessage: 'You sure you want to navigate away from this area?',
+    confirmButtonText: 'Yes',
+    cancelButtonText: 'Stay',
+    ...options
+  }
+
+  Alert.alert(
+    options.title,
+    options.confirmationMessage,
+    [
+      { text: options.confirmButtonText, onPress: onConfirm },
+      { text: options.cancelButtonText, style: 'cancel' }
+    ]
+  )
+}
 
 export default function useChangeToGroup () {
   const { t } = useTranslation()
