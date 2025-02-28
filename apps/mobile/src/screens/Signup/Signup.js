@@ -88,8 +88,8 @@ export default function Signup () {
     setSigningUp(true)
   }
 
-  const handleSocialAuthComplete = socialAuthError => {
-    if (socialAuthError) setBannerError(socialAuthError)
+  const handleSocialAuthComplete = error => {
+    if (error) setBannerError(error)
     setSigningUp(false)
   }
 

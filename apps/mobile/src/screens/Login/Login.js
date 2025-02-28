@@ -18,7 +18,7 @@ export default function Login () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const passwordInputRef = useRef()
-  const { login, checkAuth } = useAuth()
+  const { login } = useAuth()
   const [email, providedSetEmail] = useState()
   const [password, providedSetPassword] = useState()
   const [securePassword, setSecurePassword] = useState(true)
@@ -81,7 +81,6 @@ export default function Login () {
 
   const handleSocialAuthComplete = async error => {
     if (error) setBannerError(error)
-    await checkAuth()
     setLoggingIn(false)
   }
 
