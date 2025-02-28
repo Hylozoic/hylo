@@ -1,16 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import {
-  View,
-  Text,
-  Image,
-  ImageBackground,
-  TouchableOpacity,
-  ScrollView,
-  TextInput
-} from 'react-native'
+import React, { useCallback, useState } from 'react'
+import { View, Text, Image, ImageBackground, TouchableOpacity, ScrollView, TextInput } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
-import { useNavigation, useRoute, useNavigationState, useFocusEffect } from '@react-navigation/native'
+import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import validator from 'validator'
 import { AnalyticsEvents } from '@hylo/shared'
@@ -30,42 +22,35 @@ const merkabaImage = require('assets/merkaba_white.png')
 
 function useSignupWorkflow () {
   const navigation = useNavigation()
-  const route = useRoute()
-  const currentRouteName = useNavigationState(state => state?.routes[state.index]?.name)
-  const { step, email } = useRouteParams()
+  const routeParams = useRouteParams()
+  const { step, email } = routeParams
   const { currentUser, fetching } = useAuth()
 
-  const signupRedirect = useCallback(() => {
-    if (fetching) return
-    if (currentUser?.settings?.signupInProgress) {
-      if (!currentUser.emailValidated) {
-        navigation.navigate('SignupEmailValidation', route.params)
-      } else if (!currentUser.hasRegistered) {
-        navigation.navigate('SignupRegistration', route.params)
-      } else {
-        if (!['SignupUploadAvatar', 'SignupSetLocation'].includes(currentRouteName)) {
-          navigation.navigate('SignupUploadAvatar', route.params)
+  useFocusEffect(
+    useCallback(() => {
+      if (fetching) return
+      if (currentUser?.settings?.signupInProgress) {
+        if (!currentUser.emailValidated) {
+          navigation.navigate('SignupEmailValidation', routeParams)
+        } else if (!currentUser.hasRegistered) {
+          navigation.navigate('SignupRegistration', routeParams)
+        } else if (!currentUser?.avatarUrl || currentUser.avatarUrl?.startsWith('https://www.gravatar.com/avatar/')) {
+          navigation.navigate('SignupUploadAvatar', routeParams)
+        } else {
+          navigation.navigate('SignupSetLocation', routeParams)
         }
+      } else if (step === 'verify-email' && email) {
+        navigation.navigate('SignupEmailValidation', routeParams)
       }
-    } else if (step === 'verify-email' && email) {
-      navigation.navigate('SignupEmailValidation', route.params)
-    }
-  }, [
-    currentUser?.settings?.signupInProgress,
-    currentUser?.emailValidated,
-    currentUser?.hasRegistered,
-    fetching,
-    step
-  ])
-  useFocusEffect(signupRedirect)
-  useEffect(() => {
-    signupRedirect()
-  }, [
-    currentUser?.settings?.signupInProgress,
-    currentUser?.emailValidated,
-    currentUser?.hasRegistered,
-    fetching
-  ])
+    }, [
+      currentUser?.settings?.signupInProgress,
+      currentUser?.emailValidated,
+      currentUser?.hasRegistered,
+      currentUser?.avatarUrl,
+      fetching,
+      step
+    ])
+  )
 
   return { currentUser, fetching }
 }
@@ -80,11 +65,17 @@ export default function Signup () {
   const [email, providedSetEmail] = useState(routeEmail)
   const [signingUp, setSigningUp] = useState(false)
   const [error, setError] = useState(routeError)
-  // WIP: Positive message for `checkInvitation` result
-  // const [message, setMessage] = useState(route.params?.message)
-  const [bannerError, setBannerError] = useState(routeBannerError)
+  // TODO: Positive message for `checkInvitation` result
+  // const [message, setMessage] = useState(routeParams?.message)
+  const [bannerError, setBannerError] = useState()
   const [canSubmit, setCanSubmit] = useState(!fetching && !signingUp && email)
   const genericError = new Error(t('An account may already exist for this email address, Login or try resetting your password'))
+
+  useFocusEffect(
+    useCallback(() => {
+      setBannerError(routeBannerError)
+    }, [routeBannerError])
+  )
 
   const setEmail = validateEmail => {
     setBannerError()

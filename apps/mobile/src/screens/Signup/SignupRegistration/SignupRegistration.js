@@ -35,7 +35,7 @@ export default function SignupRegistration ({ navigation, route }) {
   const passwordControlRef = useRef()
   const confirmPasswordControlRef = useRef()
   const [loading, setLoading] = useState()
-  // WIP: Need to display response error somewhere on page
+  // TODO: Display response error somewhere on page
   const [error, setError] = useState()
 
   const saveAndNext = async () => {

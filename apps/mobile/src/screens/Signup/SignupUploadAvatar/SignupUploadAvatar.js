@@ -4,15 +4,15 @@ import { useTranslation } from 'react-i18next'
 import { ScrollView, View, Text, ImageBackground, ActivityIndicator } from 'react-native'
 import { useMutation } from 'urql'
 import { AnalyticsEvents } from '@hylo/shared'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import mixpanel from 'services/mixpanel'
-import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import ImagePicker from 'components/ImagePicker'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
+import ImagePicker from 'components/ImagePicker'
+import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
 import styles from './SignupUploadAvatar.styles'
-import { useAuth } from '@hylo/contexts/AuthContext'
 
 export default function SignupUploadAvatar () {
   const { t } = useTranslation()
@@ -40,8 +40,8 @@ export default function SignupUploadAvatar () {
   }
 
   const saveAndNext = async () => {
-    const response = await updateUserSettings({ changes: { avatarUrl } })
-    if (!response?.error) navigation.navigate('SignupSetLocation')
+    await updateUserSettings({ changes: { avatarUrl } })
+    navigation.navigate('SignupSetLocation')
   }
 
   if (fetching) {

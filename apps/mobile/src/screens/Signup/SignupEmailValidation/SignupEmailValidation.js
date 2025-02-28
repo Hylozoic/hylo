@@ -86,18 +86,15 @@ export default function SignupEmailValidation () {
   useFocusEffect(
     useCallback(() => {
       if (!email) navigation.navigate('Signup')
+      if (token) submit()
 
       navigation.setOptions({
         headerLeftOnPress: () => {
           navigation.navigate('Signup Intro', { email })
         }
       })
-    }, [email])
+    }, [token, email])
   )
-
-  useEffect(() => {
-    if (token) submit()
-  }, [token])
 
   useEffect(() => {
     setError()

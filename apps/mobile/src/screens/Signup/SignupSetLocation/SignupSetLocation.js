@@ -29,7 +29,7 @@ export default function SignupSetLocation ({ navigation }) {
     })
   })
 
-  const finish = () => {
+  const saveAndNext = () => {
     updateUserSettings({
       changes: {
         location: locationObject.fullText,
@@ -73,7 +73,7 @@ export default function SignupSetLocation ({ navigation }) {
         <Button
           style={styles.continueButton}
           text={t('Finish')}
-          onPress={finish}
+          onPress={saveAndNext}
         />
       </View>
     </KeyboardFriendlyView>
