@@ -39,11 +39,11 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
   }, [visibility, accessibility]))
 
   return (
-    <KeyboardFriendlyView className="bg-secondary p-5 flex-1">
+    <KeyboardFriendlyView className="bg-background p-5 flex-1">
       <ScrollView style={{ margins: 0 }}>
         <View>
           <View className="mb-6">
-            <Text className="text-secondary-foreground text-xl font-bold mb-2.5">{t('Who can see this group')}</Text>
+            <Text className="text-foreground text-xl font-bold mb-2.5">{t('Who can see this group')}</Text>
             {groupVisibilityOptions.map(option => (
               <Option
                 option={option} 
@@ -54,7 +54,7 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
             ))}
           </View>
           <View className="mb-6">
-            <Text className="text-secondary-foreground text-xl font-bold mb-2.5">{t('Who can join this group')}</Text>
+            <Text className="text-foreground text-xl font-bold mb-2.5">{t('Who can join this group')}</Text>
             {groupAccessibilityOptions.map(option => (
               <Option
                 option={option} 
@@ -77,13 +77,10 @@ export function Option ({ option, chosen, onPress }) {
         className="mt-2.5"
         size={24}
         checked={chosen}
-        iconColor="rgba(var(--secondary-foreground), 0.2)"
-        borderColor="hsl(var(--secondary-foreground))"
-        backgroundColor="hsl(var(--secondary-foreground))"
         onValueChange={() => onPress(option.value)}
       />
-      <Icon className="ml-2.5 text-xl text-secondary-foreground" name={option.iconName} />
-      <Text className="mt-[-4] ml-2.5 font-circular-bold flex-1 text-base text-secondary-foreground">
+      <Icon className="ml-2.5 text-xl text-foreground" name={option.iconName} />
+      <Text className="mt-[-4] ml-2.5 font-circular-bold flex-1 text-base text-foreground">
         {option.label}
       </Text>
     </TouchableOpacity>

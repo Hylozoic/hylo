@@ -49,17 +49,17 @@ export default function CreateGroupName ({ route }) {
   }, [edited, currentGroup?.id]))
 
   return (
-    <View className="bg-secondary p-5 flex-1">
+    <View className="bg-background p-5 flex-1">
       <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
         <View className="mb-5">
-          <Text className="text-secondary-foreground text-xl font-bold pb-2.5">{t('Lets get started!')}</Text>
-          <Text className="text-secondary-foreground/80 mb-1">{t('All good things start somewhere! Lets kick things off with a catchy name for your group')}</Text>
+          <Text className="text-foreground text-xl font-bold pb-2.5">{t('Lets get started!')}</Text>
+          <Text className="text-foreground/80 mb-1">{t('All good things start somewhere! Lets kick things off with a catchy name for your group')}</Text>
         </View>
         <View>
-          <View className="mb-4 border-b border-secondary-foreground/20">
-            <Text className="text-secondary-foreground/90 font-bold">{t('Whats the name of your group?')}</Text>
+          <View className="mb-4 border-b border-foreground/20">
+            <Text className="text-foreground/90 font-bold">{t('Whats the name of your group?')}</Text>
             <TextInput
-              className="text-secondary-foreground text-lg font-bold my-2.5"
+              className="text-foreground text-lg font-bold my-2.5"
               onChangeText={setGroupName}
               returnKeyType='next'
               autoCapitalize='none'

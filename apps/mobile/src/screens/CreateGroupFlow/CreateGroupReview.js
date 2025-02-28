@@ -51,20 +51,20 @@ export default function CreateGroupReview () {
   }, [groupData])
 
   return (
-    <View className="bg-secondary p-5 flex-1">
+    <View className="bg-background p-5 flex-1">
       <ScrollView className="flex-1">
         <View className="mb-5">
-          <Text className="text-secondary-foreground text-xl font-bold pb-2.5">{t('Everything look good?')}</Text>
-          <Text className="text-secondary-foreground/80 mb-1">{t('You can always come back and change your details at any time')}</Text>
+          <Text className="text-foreground text-xl font-bold pb-2.5">{t('Everything look good?')}</Text>
+          <Text className="text-foreground/80 mb-1">{t('You can always come back and change your details at any time')}</Text>
         </View>
         <View className="flex-1">
-          <View className="mb-4 border-b border-secondary-foreground/20">
+          <View className="mb-4 border-b border-foreground/20">
             <View className="flex-row justify-between items-center">
-              <Text className="text-secondary-foreground/90 font-bold">{t('Whats the name of your group?')}</Text>
+              <Text className="text-foreground/90 font-bold">{t('Whats the name of your group?')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupName')} />
             </View>
             <TextInput
-              className="text-secondary-foreground text-lg font-bold my-2.5"
+              className="text-foreground text-lg font-bold my-2.5"
               value={groupData.name}
               underlineColorAndroid='transparent'
               editable={false}
@@ -72,13 +72,13 @@ export default function CreateGroupReview () {
             />
           </View>
 
-          <View className="mb-4 border-b border-secondary-foreground/20">
+          <View className="mb-4 border-b border-foreground/20">
             <View className="flex-row justify-between items-center">
-              <Text className="text-secondary-foreground/90 font-bold">{t('Whats the URL of your group?')}</Text>
+              <Text className="text-foreground/90 font-bold">{t('Whats the URL of your group?')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupUrl')} />
             </View>
             <TextInput
-              className="text-secondary-foreground text-lg font-bold my-2.5"
+              className="text-foreground text-lg font-bold my-2.5"
               value={formatDomainWithUrl(groupData.slug)}
               underlineColorAndroid='transparent'
               editable={false}
@@ -86,13 +86,13 @@ export default function CreateGroupReview () {
             />
           </View>
 
-          <View className="mb-4 border-b border-secondary-foreground/20">
+          <View className="mb-4 border-b border-foreground/20">
             <View className="flex-row justify-between items-center">
-              <Text className="text-secondary-foreground/90 font-bold">{t('What is the purpose of this group')}</Text>
+              <Text className="text-foreground/90 font-bold">{t('What is the purpose of this group')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupPurpose')} />
             </View>
             <TextInput
-              className="text-secondary-foreground text-lg font-bold my-2.5"
+              className="text-foreground text-lg font-bold my-2.5"
               multiline
               value={groupData.purpose}
               underlineColorAndroid='transparent'
@@ -101,13 +101,13 @@ export default function CreateGroupReview () {
             />
           </View>
 
-          <View className="mb-4 border-b border-secondary-foreground/20">
+          <View className="mb-4 border-b border-foreground/20">
             <View className="flex-row justify-between items-center">
-              <Text className="text-secondary-foreground/90 font-bold">{t('Who can see this group?')}</Text>
+              <Text className="text-foreground/90 font-bold">{t('Who can see this group?')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupVisibilityAccessibility')} />
             </View>
             <TextInput
-              className="text-secondary-foreground text-lg font-bold my-2.5"
+              className="text-foreground text-lg font-bold my-2.5"
               multiline
               value={visibilityDescription(groupData.visibility)}
               underlineColorAndroid='transparent'
@@ -116,13 +116,13 @@ export default function CreateGroupReview () {
             />
           </View>
 
-          <View className="mb-4 border-b border-secondary-foreground/20">
+          <View className="mb-4 border-b border-foreground/20">
             <View className="flex-row justify-between items-center">
-              <Text className="text-secondary-foreground/90 font-bold">{t('Who can join this group?')}</Text>
+              <Text className="text-foreground/90 font-bold">{t('Who can join this group?')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupVisibilityAccessibility')} />
             </View>
             <TextInput
-              className="text-secondary-foreground text-lg font-bold my-2.5"
+              className="text-foreground text-lg font-bold my-2.5"
               multiline
               value={accessibilityDescription(groupData.accessibility)}
               underlineColorAndroid='transparent'
@@ -153,7 +153,7 @@ export default function CreateGroupReview () {
 const GroupRow = ({ group }) => (
   <View className="flex-row mb-2.5" key={group.name}>
     <Avatar className="mr-3.5" avatarUrl={group.avatarUrl} dimension={20} />
-    <Text className="text-secondary-foreground font-circular-bold flex-1 text-sm">{group.name}</Text>
+    <Text className="text-foreground font-circular-bold flex-1 text-sm">{group.name}</Text>
   </View>
 )
 
@@ -162,7 +162,7 @@ const EditButton = ({ onPress }) => {
 
   return (
     <TouchableOpacity onPress={onPress}>
-      <Text className="text-secondary-foreground/80 text-xs font-bold">{t('Edit')}</Text>
+      <Text className="text-foreground/80 text-xs font-bold">{t('Edit')}</Text>
     </TouchableOpacity>
   )
 }

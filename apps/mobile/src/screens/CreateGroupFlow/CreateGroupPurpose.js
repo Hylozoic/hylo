@@ -45,18 +45,18 @@ export default function CreateGroupPurpose ({ route }) {
   }, [edited, currentGroup?.id]))
 
   return (
-    <View className="bg-secondary p-5 flex-1">
+    <View className="bg-background p-5 flex-1">
       <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
         <View className="mb-5">
-          <Text className="text-secondary-foreground text-xl font-bold pb-2.5">{t('Group Purpose')}</Text>
-          <Text className="text-secondary-foreground/80 mb-1">{t('Your purpose statement is a concise summary of why your group')}</Text>
-          <Text className="text-secondary-foreground/80 mb-1">{t('Aim for one or two sentences')}</Text>
+          <Text className="text-foreground text-xl font-bold pb-2.5">{t('Group Purpose')}</Text>
+          <Text className="text-foreground/80 mb-1">{t('Your purpose statement is a concise summary of why your group')}</Text>
+          <Text className="text-foreground/80 mb-1">{t('Aim for one or two sentences')}</Text>
         </View>
         <View>
-          <View className="mb-4 border-b border-secondary-foreground/20">
-            <Text className="text-secondary-foreground/90 font-bold">{t('Whats the purpose of the group?')}</Text>
+          <View className="mb-4 border-b border-foreground/20">
+            <Text className="text-foreground/90 font-bold">{t('Whats the purpose of the group?')}</Text>
             <TextInput
-              className="text-secondary-foreground text-lg font-bold my-2.5"
+              className="text-foreground text-lg font-bold my-2.5"
               onChangeText={setGroupPurpose}
               returnKeyType='next'
               autoCapitalize='none'

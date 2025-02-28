@@ -38,7 +38,7 @@ export default function ContextMenu () {
   if (!currentGroup) return null
 
   return (
-    <View className='flex-1 bg-background'>
+    <View className='flex-1 bg-background dark:bg-midground'>
       <Header group={currentGroup} />
       <ScrollView className='p-2'>
         {widgets.map(widget => (

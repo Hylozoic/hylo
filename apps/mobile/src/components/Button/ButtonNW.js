@@ -16,20 +16,20 @@ export default function ButtonNW ({
   // Default classes that can be overridden by provided classNames
   const defaultContainerClasses = 'items-center'
   const defaultButtonClasses = 'flex justify-center items-center border rounded-full h-[30px] bg-secondary'
-  const defaultTextClasses = 'text-sm font-circular-bold text-white'
-  const defaultIconClasses = 'text-base text-white pr-1.5'
+  const defaultTextClasses = 'text-sm font-circular-bold text-foreground'
+  const defaultIconClasses = 'text-base text-foreground pr-1.5'
 
   // Combine default classes with provided classes, handling disabled state
   const buttonClasses = `${defaultButtonClasses} ${
-    disabled ? 'bg-secondary/30' : ''
+    disabled ? 'opacity-30' : ''
   } ${className}`
   
   const containerClasses = `${defaultContainerClasses} ${containerClassName}`
   const textClasses = `${defaultTextClasses} ${
-    disabled ? 'text-white/60' : ''
+    disabled ? 'opacity-60' : ''
   } ${textClassName}`
   const iconClasses = `${defaultIconClasses} ${
-    disabled ? 'text-white/60' : ''
+    disabled ? 'opacity-60' : ''
   } ${iconClassName}`
 
   return (

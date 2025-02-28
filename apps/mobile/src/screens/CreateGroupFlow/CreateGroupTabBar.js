@@ -64,7 +64,7 @@ export default function CreateGroupTabBar ({ state, descriptors, navigation }) {
 
   return (
     <View 
-      className="flex-row justify-between px-5 pt-2.5 bg-secondary/20"
+      className="flex-row justify-between px-5 pt-2.5 bg-midground"
       style={{ height: keyboardAdjustedHeight }}
     >
       <View className="w-[100px]">
@@ -72,8 +72,8 @@ export default function CreateGroupTabBar ({ state, descriptors, navigation }) {
           <ButtonNW
             text={t('< Back')}
             onPress={gotoPrevStep}
-            className="w-[100px] bg-secondary/40"
-            textClassName="text-secondary-foreground"
+            className="w-[100px] bg-foreground/5"
+            textClassName="text-foreground/80"
           />
         )}
       </View>
@@ -82,8 +82,8 @@ export default function CreateGroupTabBar ({ state, descriptors, navigation }) {
           text={t('Continue')}
           onPress={gotoNextStep}
           disabled={disableContinue}
-          className="w-[134px] bg-background"
-          textClassName="text-secondary"
+          className="w-[134px] border-2 border-foreground/50"
+          textClassName="text-foreground"
         />
       )}
       {!nextStepScreenName && (
@@ -91,8 +91,8 @@ export default function CreateGroupTabBar ({ state, descriptors, navigation }) {
           text={t("Lets Do This!")}
           onPress={completeWorkflow}
           disabled={completeButtonDisabled}
-          className="w-[134px] bg-background"
-          textClassName="text-secondary"
+          className="w-[134px] border-2 border-foreground/50"
+          textClassName="text-foreground"
         />
       )}
     </View>
