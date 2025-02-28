@@ -33,6 +33,12 @@ export default function EmojiPicker (props) {
     return true
   }
 
+  const stopPropagation = (evt) => {
+    evt.preventDefault()
+    evt.stopPropagation()
+    return false
+  }
+
   const toggleModalOpen = (evt) => {
     setModalOpen(!modalOpen)
     evt.preventDefault()
@@ -42,7 +48,7 @@ export default function EmojiPicker (props) {
 
   return forReactions
     ? (
-      <div className={cn(classes.emojiPickerContainer, props.className)}>
+      <div onClick={stopPropagation} className={cn(classes.emojiPickerContainer, props.className)}>
         <Popover onOpenChange={handleOpenChange} open={modalOpen}>
           <PopoverTrigger asChild>
             <div className={classes.emojiPickerToggle} onClick={toggleModalOpen}>
@@ -51,20 +57,20 @@ export default function EmojiPicker (props) {
           </PopoverTrigger>
           <PopoverContent className='w-auto p-0' hideWhenDetached sideOffset={0}>
             <div>
-              <EmojiPickerContent {...props} onClickOutside={toggleModalOpen} onEmojiSelect={handleSelection} />
+              <EmojiPickerContent {...props} onEmojiSelect={handleSelection} />
             </div>
           </PopoverContent>
         </Popover>
       </div>
       )
     : (
-      <div onClick={toggleModalOpen} className={cn(classes.emojiPickerContainer, props.className)}>
+      <div onClick={stopPropagation} className={cn(classes.emojiPickerContainer, props.className)}>
         <Popover onOpenChange={handleOpenChange} open={modalOpen}>
           <PopoverTrigger asChild>
-            <span>{emoji || '?'}</span>
+            <span onClick={toggleModalOpen}>{emoji || '?'}</span>
           </PopoverTrigger>
           <PopoverContent className='w-auto p-0' hideWhenDetached sideOffset={0}>
-            <EmojiPickerContent {...props} onClickOutside={toggleModalOpen} onEmojiSelect={handleSelection} />
+            <EmojiPickerContent {...props} onEmojiSelect={handleSelection} />
           </PopoverContent>
         </Popover>
       </div>

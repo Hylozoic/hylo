@@ -346,7 +346,7 @@ function PostEditor ({
     const details = editorRef.current.getText()
     setHasDescription(details.length > 0)
     setIsDirty(true)
-  }, [currentPost])
+  }, [])
 
   const handleToggleContributions = useCallback(() => {
     setCurrentPost({ ...currentPost, acceptContributions: !currentPost.acceptContributions })
