@@ -38,6 +38,7 @@ const HyloEditor = React.forwardRef(({
 }, ref) => {
   const { t } = useTranslation()
   const editorRef = useRef(null)
+  const [initialized, setInitialized] = useState(false)
   const [selectedLink, setSelectedLink] = useState()
 
   const extensions = [
@@ -140,15 +141,17 @@ const HyloEditor = React.forwardRef(({
     extensions,
     onCreate,
     onUpdate: ({ editor }) => {
-      if (!onUpdate) return
+      // Don't call onUpdate until the editor is full initialized (including initial content added)
+      if (!onUpdate || !initialized) return
       onUpdate(editor.getHTML())
     }
   })
 
-  // Dynamic setting of initial editor content
+  // Dynamic setting of initial editor content, and setting the initialized state
   useEffect(() => {
     if (editor.isInitialized) {
       editor.commands.setContent(contentHTML)
+      setInitialized(true)
     }
   }, [editor?.isInitialized, contentHTML])
 
@@ -164,11 +167,13 @@ const HyloEditor = React.forwardRef(({
 
   useEffect(() => {
     if (!editor) return
-
     if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
+  }, [groupIds])
 
+  useEffect(() => {
+    if (!editor) return
     editor.setEditable(!readOnly)
-  }, [groupIds, readOnly])
+  }, [readOnly])
 
   useImperativeHandle(ref, () => ({
     blur: () => {

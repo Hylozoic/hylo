@@ -11508,7 +11508,6 @@ __metadata:
     "@mapbox/mapbox-sdk": "npm:^0.13.3"
     "@sailshq/connect-redis": "npm:^6.1.3"
     "@sailshq/socket.io-redis": "npm:^6.1.2"
-    "@tiptap/extension-image": "npm:^2.11.5"
     analytics-node: "npm:^1.2.0"
     apple-signin-auth: "npm:^1.2.1"
     async-repl: "npm:0.4.0"

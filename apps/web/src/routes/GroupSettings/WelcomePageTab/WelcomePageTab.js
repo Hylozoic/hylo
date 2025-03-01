@@ -22,7 +22,7 @@ function WelcomePageTab ({ group, updateGroupSettings }) {
   }
 
   const toggleShowWelcomePage = () => {
-    setChanged(changed || showWelcomePage === group.settings.showWelcomePage) // TODO: or content has changed
+    setChanged(showWelcomePage === group.settings.showWelcomePage || !isEqual(editorRef.current.getHTML(), group.welcomePage)) // TODO: or content has changed
     setShowWelcomePage(!showWelcomePage)
   }
 
@@ -57,7 +57,9 @@ function WelcomePageTab ({ group, updateGroupSettings }) {
           className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
           extendedMenu
           groupIds={[group.id]}
-          onUpdate={(v) => setChanged(!isEqual(v, group.welcomePage))}
+          onUpdate={(html) => {
+            setChanged(!isEqual(html, group.welcomePage))
+          }}
           placeholder={t('Your welcome page content here')}
           ref={editorRef}
           showMenu
