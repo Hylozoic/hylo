@@ -1,3 +1,4 @@
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 import { DateTime } from 'luxon'
 import { groupUrl } from 'util/navigation'
 
@@ -26,7 +27,7 @@ export function currentFilters (filters) {
 export function formatParams (search) {
   const { group, context, createdAt, postTypes, searchText, topics } = search
   return [
-    `Created on ${DateTime.fromISO(createdAt).toFormat('MMMM d yyyy')}`, // this was 'do' as in ordinal, but not supported in luxon
+    `Created on ${DateTime.fromISO(createdAt).setLocale(getLocaleAsString()).toLocaleString(DateTime.DATE_FULL)}`,
     ['all', 'public'].includes(context) ? `Context: ${context}` : '',
     group ? parsegroup(group) : '',
     searchText ? parseSearch(searchText) : '',

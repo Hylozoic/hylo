@@ -34,7 +34,8 @@ i18n
     interpolation: {
       escapeValue: false // not needed for react as it escapes by default
     },
-    defaultNS: false,
+    ns: ['en.json', 'es.json'],
+    defaultNS: 'en.json',
     preload: ['en', 'es']
   })
 

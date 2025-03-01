@@ -9,6 +9,7 @@ import HyloHTML from 'components/HyloHTML'
 import RoundImage from 'components/RoundImage'
 
 import classes from './ChatCard.module.scss'
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 export default function ChatCard ({
   expanded,
@@ -32,7 +33,7 @@ export default function ChatCard ({
               {!slug && <span>in&nbsp; <span className={classes.groupName}>{firstGroup}</span></span>}
             </div>
           </Highlight>
-          <span className={classes.date}>{DateTime.fromISO(post.createdAt).toFormat('yyyy t')}</span>
+          <span className={classes.date}>{DateTime.fromISO(post.createdAt).setLocale(getLocaleAsString()).toFormat('yyyy t')}</span>
         </div>
         <CardImageAttachments attachments={post.attachments} linked className={classes.postImages} />
         <CardFileAttachments attachments={post.attachments} className={classes.postFiles} />

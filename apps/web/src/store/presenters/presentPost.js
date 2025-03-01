@@ -1,6 +1,8 @@
+import i18n from '../../i18n.mjs'
 import { DateTime } from 'luxon'
 import presentTopic from 'store/presenters/presentTopic'
 import { TextHelpers } from '@hylo/shared'
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 export default function presentPost (post, groupId) {
   if (!post) return null
@@ -9,6 +11,7 @@ export default function presentPost (post, groupId) {
     Number(p.group) === Number(groupId))
   const pinned = postMembership && postMembership.pinned
   const createdAtHumanDate = TextHelpers.humanDate(post.createdAt)
+  const createdAtHumanDateShort = TextHelpers.humanDate(post.createdAt, true)
   const editedAtHumanDate = TextHelpers.humanDate(post.editedAt)
 
   return {
@@ -41,10 +44,11 @@ export default function presentPost (post, groupId) {
       }
     }),
     proposalOptions: post.proposalOptions?.toModelArray() || [],
-    createdTimestampForGrid: createdAtHumanDate,
-    createdTimestamp: `Posted ${createdAtHumanDate}`,
-    editedTimestamp: post.editedAt ? `Edited ${editedAtHumanDate}` : null,
-    exactCreatedTimestamp: DateTime.fromISO(post.createdAt).toFormat('D t ZZZZ'),
-    exactEditedTimestamp: DateTime.fromISO(post.editedAt).toFormat('D t ZZZZ')
+    createdTimestampForGrid: createdAtHumanDateShort,
+    createdTimestamp: `${i18n.t('Posted')} ${createdAtHumanDate}`,
+    createdTimestampForBigGrd: `${i18n.t('Posted')} ${createdAtHumanDateShort}`,
+    editedTimestamp: post.editedAt ? `${i18n.t('Edited')} ${editedAtHumanDate}` : null,
+    exactCreatedTimestamp: DateTime.fromISO(post.createdAt).setLocale(getLocaleAsString()).toFormat('D t ZZZZ'),
+    exactEditedTimestamp: DateTime.fromISO(post.editedAt).setLocale(getLocaleAsString()).toFormat('D t ZZZZ')
   }
 }

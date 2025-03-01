@@ -54,6 +54,7 @@ import {
 } from 'util/navigation'
 
 import styles from './MemberProfile.module.scss'
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 const GROUPS_DIV_HEIGHT = 200
 
@@ -347,7 +348,7 @@ function Project ({ memberCap, project }) {
     <div className={styles.project} onClick={() => viewPostDetails(project)}>
       <div>
         <div className={styles.title}>{title} </div>
-        <div className={styles.meta}>{creator.name} - {DateTime.fromJSDate(createdAt).toRelative()} </div>
+        <div className={styles.meta}>{creator.name} - {DateTime.fromJSDate(createdAt).setLocale(getLocaleAsString()).toRelative()} </div>
       </div>
       <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: members.items.length > memberCap })} inline imageUrls={members.items.map(m => m.avatarUrl)} cap={memberCap} />
     </div>
@@ -356,12 +357,13 @@ function Project ({ memberCap, project }) {
 
 function Event ({ memberCap, event }) {
   const { location, eventInvitations, startTime, title } = event
+  const start = DateTime.fromJSDate(startTime).setLocale(getLocaleAsString())
   const viewPostDetails = useViewPostDetails()
   return (
     <div className={styles.event} onClick={() => viewPostDetails(event)}>
       <div className={styles.date}>
-        <div className={styles.month}>{DateTime.fromJSDate(startTime).toFormat('MMM')}</div>
-        <div className={styles.day}>{DateTime.fromJSDate(startTime).toFormat('dd')}</div>
+        <div className={styles.month}>{start.toFormat('MMM')}</div>
+        <div className={styles.day}>{start.toFormat('dd')}</div>
       </div>
       <div className={styles.details}>
         <div className={styles.title}>{title}</div>

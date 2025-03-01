@@ -30,6 +30,7 @@ import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
 import { INITIAL_SUBCOMMENTS_DISPLAYED } from 'util/constants'
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 function Comment ({
   comment,
@@ -123,11 +124,11 @@ function Comment ({
       <div className={styles.header}>
         <Avatar avatarUrl={creator.avatarUrl} url={profileUrl} className={styles.avatar} />
         <Link to={profileUrl} className={styles.userName}>{creator.name}</Link>
-        <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(createdAt).toFormat('D t ZZZZ')}>
+        <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(createdAt).setLocale(getLocaleAsString()).toFormat('D t ZZZZ')}>
           {timestamp}
         </span>
         {(editedTimestamp) && (
-          <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(editedAt).toFormat('D t ZZZZ')}>
+          <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(editedAt).setLocale(getLocaleAsString()).toFormat('D t ZZZZ')}>
             ({editedTimestamp})
           </span>
         )}

@@ -15,7 +15,7 @@ import { cn } from 'util/index'
 import { personUrl, topicUrl } from 'util/navigation'
 
 import classes from './PostListRow.module.scss'
-import { sameDay } from 'components/Calendar/calendar-util'
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 // :SHONK: no idea why React propagates events from child elements but NOT IN OTHER COMPONENTS
 const stopEvent = (e) => e.stopPropagation()
@@ -30,10 +30,12 @@ const PostListRow = (props) => {
   } = props
 
   const {
+    id,
     title,
     details,
     creator,
     createdTimestamp,
+    exactCreatedTimestamp,
     commentersTotal,
     topics
   } = post
@@ -53,13 +55,13 @@ const PostListRow = (props) => {
   const creatorUrl = personUrl(creator.id, routeParams.slug)
   const numOtherCommentors = commentersTotal - 1
   const unread = false
-  const start = typeof post.startTime === 'string'
+  const start = (typeof post.startTime === 'string'
     ? DateTime.fromISO(post.startTime)
-    : DateTime.fromJSDate(post.startTime)
-  const end = typeof post.endTime === 'string'
+    : DateTime.fromJSDate(post.startTime)).setLocale(getLocaleAsString())
+  const end = (typeof post.endTime === 'string'
     ? DateTime.fromISO(post.endTime)
-    : DateTime.fromJSDate(post.endTime)
-  const isSameDay = sameDay(start.toJSDate(), end.toJSDate())
+    : DateTime.fromJSDate(post.endTime)).setLocale(getLocaleAsString())
+  const isSameDay = start.hasSame(end, 'day')
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
   return (
@@ -104,7 +106,7 @@ const PostListRow = (props) => {
               />
             </div>
           )}
-          <div className={cn(classes.timestamp, { [classes.pushToRight]: !childPost })}>
+          <div className={cn(classes.timestamp, { [classes.pushToRight]: !childPost })} data-tooltip-id={`dateTip-${post.id}`} data-tooltip-content={exactCreatedTimestamp}>
             {createdTimestamp}
           </div>
         </div>
@@ -128,6 +130,11 @@ const PostListRow = (props) => {
       <Tooltip
         delay={550}
         id={`post-tt-${post.id}`}
+      />
+      <Tooltip
+        delay={550}
+        id={`dateTip-${id}`}
+        position='left'
       />
     </div>
   )

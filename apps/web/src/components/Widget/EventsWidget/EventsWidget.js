@@ -10,6 +10,7 @@ import { postUrl, createPostUrl } from 'util/navigation'
 import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'
 import classes from './EventsWidget.module.scss'
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 const settings = {
   dots: true,
@@ -46,7 +47,7 @@ export default ({ items, group, routeParams, isMember }) => {
           <div className={cn(classes.event, { [classes.narrow]: items.length > 1 })} key={e.id}>
             <Link to={postUrl(e.id, routeParams)} onClickCapture={handleOnItemClick}>
               <div className={classes.content}>
-                <div className={classes.time}>{DateTime.fromJSDate(e.startTime).toFormat('MMM d yyyy')}</div>
+                <div className={classes.time}>{DateTime.fromJSDate(e.startTime).setLocale(getLocaleAsString()).toLocaleString(DateTime.DATE_MED)}</div>
                 <div className={classes.title}>{e.title}</div>
                 <div className={classes.location}>{e.location}</div>
               </div>

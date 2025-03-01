@@ -35,6 +35,7 @@ import { groupUrl, personUrl } from 'util/navigation'
 import { cn } from 'util/index'
 
 import styles from './ChatPost.module.scss'
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 export default function ChatPost ({
   className,
@@ -269,8 +270,8 @@ export default function ChatPost ({
               <div className={styles.name}>{creator.name}</div>
             </div>
             <div className={styles.date}>
-              {DateTime.fromISO(createdAt).toFormat('t')}
-              {editedAt && <span>&nbsp;({t('edited')} {DateTime.fromISO(editedAt).toFormat('t')})</span>}
+              {DateTime.fromISO(createdAt).setLocale(getLocaleAsString()).toFormat('t')}
+              {editedAt && <span>&nbsp;({t('edited')} {DateTime.fromISO(editedAt).setLocale(getLocaleAsString()).toFormat('t')})</span>}
             </div>
           </div>
         )}

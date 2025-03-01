@@ -7,6 +7,7 @@ import { postUrl } from 'util/navigation'
 import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'
 import classes from './AnnouncementWidget.module.scss'
+import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 const settings = {
   dots: true,
@@ -45,7 +46,7 @@ export default ({ items = [], group, routeParams }) => {
                 <div>
                   <div className={classes.meta}>
                     <span className={classes.author}>{a.author}</span>
-                    <span className={classes.created}>{DateTime.fromJSDate(a.createdAt).toRelative()}</span>
+                    <span className={classes.created}>{DateTime.fromJSDate(a.createdAt).setLocale(getLocaleAsString()).toRelative()}</span>
                   </div>
                   <div className={classes.title}>{a.title}</div>
                 </div>

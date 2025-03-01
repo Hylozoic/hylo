@@ -192,10 +192,10 @@ function display12HourValue (hours) {
   }
   return `0${hours % 12}`
 }
-function genMonths (locale) {
+function genMonths () {
   return Array.from({ length: 12 }, (_, i) => ({
     value: i,
-    label: DateTime.fromObject({ year: 2021, month: i + 1 }).toFormat('MMMM', { locale })
+    label: DateTime.fromObject({ year: 2021, month: i + 1 }).setLocale(getLocaleAsString()).toFormat('MMMM')
   }))
 }
 function genYears (yearRange = 50) {
@@ -208,7 +208,7 @@ function genYears (yearRange = 50) {
 // ---------- utils end ----------
 function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 50, ...props }) {
   const MONTHS = React.useMemo(() => {
-    return genMonths(getLocaleAsString())
+    return genMonths()
   }, [])
   const YEARS = React.useMemo(() => genYears(yearRange), [])
   const disableLeftNavigation = () => {
@@ -511,16 +511,13 @@ const DateTimePicker = React.forwardRef(({ locale = getLocaleAsString(), default
     hour12: displayFormat?.hour12 ??
       `D hh:mm${!granularity || granularity === 'second' ? ':ss' : ''} a`
   }
+  const dateFormatted = DateTime.fromJSDate(displayDate).setLocale(getLocaleAsString()).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12)
   return (
     <Popover>
       <PopoverTrigger asChild disabled={disabled}>
         <Button variant='outline' className={cn('w-full justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />
-          {displayDate
-            ? (DateTime.fromJSDate(displayDate).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12, {
-                locale: getLocaleAsString()
-              }))
-            : (<span>{placeholder}</span>)}
+          {displayDate ? dateFormatted : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className='w-auto p-0 z-40'>
