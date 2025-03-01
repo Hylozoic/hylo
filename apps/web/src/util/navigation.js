@@ -2,6 +2,7 @@ import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
 import qs from 'query-string'
 import { host } from 'config/index'
 import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { findHomeWidget } from '@hylo/presenters/ContextWidgetPresenter'
 import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 
 export const HYLO_ID_MATCH = '\\d+'
@@ -102,6 +103,10 @@ export function groupDetailUrl (slug, opts = {}, querystringParams = {}) {
 
 export function groupInviteUrl (group) {
   return group.invitePath ? origin() + group.invitePath : ''
+}
+
+export function groupHomeUrl ({ group, routeParams }) {
+  return widgetUrl({ ...routeParams, widget: findHomeWidget(group) })
 }
 
 // Post URLS

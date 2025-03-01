@@ -2,12 +2,13 @@ import React, { useEffect, useRef, useState } from 'react'
 import {
   Bold, Italic, SquareCode, Strikethrough,
   List, ListOrdered, Link, Unlink,
-  IndentIncrease, Code,
+  IndentIncrease, Code, ImagePlus,
   Undo2, Redo2, RemoveFormatting,
   Heading1, Heading2, Heading3
 } from 'lucide-react'
 import { Button } from 'components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent } from 'components/ui/popover'
+import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { cn } from 'util/index'
 
 // export function addIframe (editor) {
@@ -18,7 +19,7 @@ import { cn } from 'util/index'
 //   }
 // }
 
-export default function HyloEditorMenuBar ({ editor, extendedMenu }) {
+export default function HyloEditorMenuBar ({ editor, extendedMenu, type, id }) {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
 
   if (!editor) return null
@@ -96,6 +97,22 @@ export default function HyloEditorMenuBar ({ editor, extendedMenu }) {
               </PopoverContent>
             </Popover>)}
       </div>
+
+      {extendedMenu && (
+        <UploadAttachmentButton
+          type={type}
+          id={id}
+          attachmentType='image'
+          onSuccess={(attachment) => editor.commands.setImage({
+            src: attachment.url,
+            alt: attachment.filename,
+            title: attachment.filename
+          })}
+          allowMultiple
+        >
+          <HyloEditorMenuBarButton Icon={ImagePlus} />
+        </UploadAttachmentButton>
+      )}
 
       <div className={cn('bg-foreground bg-opacity-30 w-px')} />
 

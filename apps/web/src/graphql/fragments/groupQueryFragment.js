@@ -56,6 +56,7 @@ export default function groupQueryFragment () {
       locationDisplayPrecision
       publicMemberDirectory
       showSuggestedSkills
+      showWelcomePage
     }
     slug
     type
@@ -122,6 +123,7 @@ export default function groupQueryFragment () {
           locationDisplayPrecision
           publicMemberDirectory
           showSuggestedSkills
+          showWelcomePage
         }
       }
     }
@@ -279,6 +281,7 @@ export default function groupQueryFragment () {
           locationDisplayPrecision
           publicMemberDirectory
           showSuggestedSkills
+          showWelcomePage
         }
         type
       }
