@@ -1,35 +1,38 @@
-import React, { useEffect, useState } from 'react'
-import { LayoutAnimation, View, Keyboard, Alert } from 'react-native'
+import React, { useState } from 'react'
+import { View, Keyboard, Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import isEmpty from 'lodash/isEmpty'
-import { useSelector, useDispatch } from 'react-redux'
-import { useKeyboard } from '@react-native-community/hooks'
 import { MY_CONTEXT_SLUG } from '@hylo/shared'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { isIOS } from 'util/platform'
 import {
-  getWorkflowOptions,
-  getCurrentStepIndex,
   getRouteNames,
-  decrementCurrentStepIndex,
-  incrementCurrentStepIndex,
+  useGroupWelcomeStore,
   GROUP_WELCOME_AGREEMENTS,
   GROUP_WELCOME_JOIN_QUESTIONS
 } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
 import Button from 'components/Button'
 import { caribbeanGreen, rhino30, white, white20onCaribbeanGreen, white40onCaribbeanGreen } from 'style/colors'
 
-export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agreements, handleAccept, allQuestionsAnswered }) {
+export default function GroupWelcomeTabBar ({
+  acceptedAllAgreements,
+  agreements,
+  handleAccept,
+  allQuestionsAnswered
+}) {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const dispatch = useDispatch()
-  const workflowOptions = useSelector(getWorkflowOptions)
-  const currentStepIndex = useSelector(getCurrentStepIndex)
-  const disableContinue = !!workflowOptions?.disableContinue
-  const [completeButtonDisabled, setCompleteButtonDisabled] = useState(false)
-  // TODO: URQL! - untested
+
   const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroup: group }] = useCurrentGroup()
+  const {
+    currentStepIndex,
+    decrementCurrentStepIndex,
+    incrementCurrentStepIndex,
+    workflowOptions
+  } = useGroupWelcomeStore()
   const currentMemberships = currentUser?.memberships
   const currentMembership = currentMemberships && currentMemberships.find(m => m.group.id === group.id)
 
@@ -37,34 +40,12 @@ export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agre
   const prevStepScreenName = routeNames[currentStepIndex - 1]
   const nextStepScreenName = routeNames[currentStepIndex + 1]
   const currentStepName = routeNames[currentStepIndex]
-  const keyboard = useKeyboard()
-  const [keyboardWillShow, setKeyboardWillShow] = useState(false)
+
+  const disableContinue = !!workflowOptions?.disableContinue
+  const [completeButtonDisabled, setCompleteButtonDisabled] = useState(false)
 
   const onAgreementStepButNotReady = currentStepName === GROUP_WELCOME_AGREEMENTS && !acceptedAllAgreements
   const onJoinQuestionStepButNotReady = currentStepName === GROUP_WELCOME_JOIN_QUESTIONS && !allQuestionsAnswered
-
-  useEffect(() => {
-    const willShowSubscription = Keyboard.addListener('keyboardWillShow', (e) => {
-      LayoutAnimation.configureNext(LayoutAnimation.create(
-        e.duration,
-        LayoutAnimation.Types[e.easing],
-        LayoutAnimation.Properties.scaleXY
-      ))
-      setKeyboardWillShow(true)
-    })
-    const willHideSubscription = Keyboard.addListener('keyboardWillHide', (e) => {
-      LayoutAnimation.configureNext(LayoutAnimation.create(
-        e.duration,
-        LayoutAnimation.Types[e.easing],
-        LayoutAnimation.Properties.scaleXY
-      ))
-      setKeyboardWillShow(false)
-    })
-    return () => {
-      willShowSubscription.remove()
-      willHideSubscription.remove()
-    }
-  }, [])
 
   const handleBackOut = async () => {
     const enforceAgreements = !isEmpty(agreements)
@@ -100,12 +81,13 @@ export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agre
   }
 
   const gotoPrevStep = () => {
-    setCompleteButtonDisabled(false) // TOOD: is this even useful still?
-    dispatch(decrementCurrentStepIndex())
+    // TODO: is this even useful still?
+    setCompleteButtonDisabled(false)
+    decrementCurrentStepIndex()
   }
 
   const gotoNextStep = () => {
-    dispatch(incrementCurrentStepIndex())
+    incrementCurrentStepIndex()
   }
 
   const completeWorkflow = () => {
@@ -113,12 +95,8 @@ export default function GroupWelcomeTabBar ({ group, acceptedAllAgreements, agre
     setCompleteButtonDisabled(true)
   }
 
-  const keyboardAdjustedHeight = keyboardWillShow
-    ? keyboard.keyboardHeight + (isIOS ? 60 : 40)
-    : (isIOS ? 80 : 60)
-
   return (
-    <View style={[styles.container, { height: keyboardAdjustedHeight }]}>
+    <View style={[styles.container]}>
       {nextStepScreenName && (
         <Button
           text={t('Exit')}

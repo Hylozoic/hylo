@@ -122,7 +122,6 @@ export async function showImagePicker ({
             onChoice && onChoice({ local: asset.uri, remote: null })
 
             const response = await upload(type, id, file)
-            console.log('!!!!', response)
             const { payload, error } = response
 
             if (error) {

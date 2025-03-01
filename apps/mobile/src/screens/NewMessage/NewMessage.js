@@ -16,7 +16,7 @@ import ItemSelector from 'components/ItemSelector'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import { capeCod20, pictonBlue, alabaster, amaranth, rhino80, caribbeanGreen } from 'style/colors'
+import { capeCod20, pictonBlue, alabaster, amaranth, rhino80, caribbeanGreen, black10onRhino, ghost } from 'style/colors'
 
 export const recentContactsQuery = gql`
   query RecentContactsQuery ($first: Int = 20) {
@@ -166,12 +166,9 @@ export default function NewMessage () {
   return (
     <KeyboardFriendlyView style={styles.container}>
       <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={styles.participants}>
+        <Text style={{ fontSize: 16, color: black10onRhino, fontWeight: 'bold', marginRight: 10 }}>To:</Text>
         {participants.length > 0 && participants.map((participant, index) => (
-          <Participant
-            participant={participant}
-            onPress={handleRemoveParticipant}
-            key={index}
-          />
+          <Participant participant={participant} onPress={handleRemoveParticipant} key={index} />
         ))}
       </ScrollView>
       <ItemSelector
@@ -187,7 +184,7 @@ export default function NewMessage () {
             variables: { autocomplete: searchTerm }
           }
         }}
-        colors={{ text: rhino80, border: alabaster }}
+        colors={{ text: rhino80, border: ghost }}
         style={{ paddingHorizontal: 10 }}
         itemsUseQuerySelector={data => data?.people?.items}
       />
@@ -245,12 +242,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     flexWrap: 'wrap',
     padding: 12,
-    paddingBottom: 0
+    paddingBottom: 10
   },
   participant: {
     borderWidth: 1,
     borderColor: capeCod20,
-    borderRadius: 4,
+    borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     height: 38,

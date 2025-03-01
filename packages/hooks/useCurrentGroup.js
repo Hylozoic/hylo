@@ -33,7 +33,9 @@ export function useGroup ({
     pause
   })
 
-  const group = contextGroup || GroupPresenter(data?.group, { currentUser })
+  const group = useMemo(() => (
+    contextGroup || GroupPresenter(data?.group, { currentUser })
+  ), [contextGroup, data?.group])
 
   return [{ group, isContextGroupSlug: !!isContextGroupSlug(groupSlug), fetching: userFetching || groupFetching, error: groupError || userError }, contextGroup ? () => {} : reQuery]
 }

@@ -22,9 +22,9 @@ export default function ContextMenu () {
 
   useEffect(() => {
     if ((!fetching && currentGroup?.shouldWelcome)) {
-      navigation.navigate('Group Welcome', { groupId: currentGroup?.id })
+      navigation.navigate('Group Welcome')
     }
-  }, [currentGroup, fetching])
+  }, [fetching, currentGroup])
 
   const handleGoToAllViews = () => openURL(
     makeWidgetUrl({

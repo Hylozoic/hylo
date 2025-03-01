@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     shadowColor: rhino,
     shadowOffset: { width: 2, height: 5 },
     shadowRadius: 10,
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.3,
     elevation: 2 // Android-only
   },
   input: {
