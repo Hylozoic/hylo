@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Animated, TouchableOpacity, Text, StyleSheet, View, FlatList } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import Intercom from '@intercom/intercom-react-native'
@@ -16,10 +16,23 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
   const { myContext, publicContext } = useContextGroups()
-  const [isLongPressing, setIsLongPressing] = useState(false)
+  const [isInteracting, setIsInteracting] = useState(false)
   const myGroups = [myContext, publicContext].concat(
     sortBy('name', map(m => m.group, currentUser.memberships))
   )
+
+  // Auto-close menu after 5 seconds when expanded
+  useEffect(() => {
+    let timeoutId
+    if (isExpanded && !isInteracting) {
+      timeoutId = setTimeout(() => {
+        setIsExpanded(false)
+      }, 1250)
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+    }
+  }, [isExpanded, isInteracting])
 
   const handleOnPress = context => {
     changeToGroup(context?.slug, false)
@@ -31,25 +44,21 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   }
 
   const handleScrollBegin = () => {
+    setIsInteracting(true)
     setIsExpanded(true)
   }
 
   const handleScrollEnd = () => {
-    if (!isLongPressing) {
-      setIsExpanded(false)
-    }
+    setIsInteracting(false)
   }
 
   const handleLongPress = () => {
-    setIsLongPressing(true)
+    setIsInteracting(true)
     setIsExpanded(true)
   }
 
   const handlePressOut = () => {
-    setIsLongPressing(false)
-    if (!isLongPressing) {
-      setIsExpanded(false)
-    }
+    setIsInteracting(false)
   }
 
   return (
@@ -79,8 +88,8 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
         <TouchableOpacity
           onPress={() => openURL('/create')}
           activeOpacity={0.7}
-          onLongPress={() => setIsExpanded(true)}
-          onPressOut={() => setIsExpanded(false)}
+          onLongPress={handleLongPress}
+          onPressOut={handlePressOut}
           delayLongPress={200}
           className='flex flex-row items-center gap-3 justify-start p-1'
         >
@@ -96,8 +105,8 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
         <TouchableOpacity
           onPress={() => Intercom.present()}
           activeOpacity={0.7}
-          onLongPress={() => setIsExpanded(true)}
-          onPressOut={() => setIsExpanded(false)}
+          onLongPress={handleLongPress}
+          onPressOut={handlePressOut}
           delayLongPress={200}
           className='flex flex-row items-center gap-3 justify-start p-1'
         >
