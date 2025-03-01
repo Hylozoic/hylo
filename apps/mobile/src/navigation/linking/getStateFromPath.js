@@ -4,7 +4,7 @@ import { match } from 'path-to-regexp'
 import { URL } from 'react-native-url-polyfill'
 import queryString from 'query-string'
 import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
-import { useAuthState } from '@hylo/contexts/AuthContext'
+import { useAuthStore } from '@hylo/contexts/AuthContext'
 import useLinkingStore from 'navigation/linking/store'
 import {
   routingConfig,
@@ -19,7 +19,7 @@ export default function getStateFromPath (providedPath) {
   // historically been there so keeping it for now
   const groomedPath = providedPath.trim()
   const routeMatch = getRouteMatchForPath(groomedPath)
-  const authState = useAuthState.getState()
+  const authState = useAuthStore.getState()
   const linkingState = useLinkingStore.getState()
 
   // 404 handling

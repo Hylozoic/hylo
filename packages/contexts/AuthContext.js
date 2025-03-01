@@ -12,16 +12,12 @@ Hylo Authentication and Authorization state reflected in terms of "Signup State"
   *Authentication*: We know who you are (you've validated your email)
   *Authorization*: You are allowed to access things
 
-The state statuses return are intended for managing the Signup Flow when a user is
-authorized but has not finished required steps in the registration of their account.
-
-Each state below below implies transition from the previous state has completed, e.g.:
-
-  None > EmailValidation > Registration > SignupInProgress > Complete
+  useAuth()         The preferred access to auth state in components
+  useAuthStore()    Use when needing POJS access to auth state (i.e. useAuthStore.getState())
 
 */
 
-export const useAuthState = create((set) => ({
+export const useAuthStore = create((set) => ({
   isAuthenticated: false,
   isAuthorized: false,
   setIsAuthenticated: isAuthenticated => set({ isAuthenticated }),
@@ -31,7 +27,7 @@ export const useAuthState = create((set) => ({
 const AuthContext = createContext(null)
 
 export function AuthProvider ({ children }) {
-  const { setIsAuthenticated, setIsAuthorized } = useAuthState()
+  const { setIsAuthenticated, setIsAuthorized } = useAuthStore()
   const [{ data, fetching, error }, checkAuth] = useQuery({
     requestPolicy: 'cache-and-network',
     query: meCheckAuthQuery
