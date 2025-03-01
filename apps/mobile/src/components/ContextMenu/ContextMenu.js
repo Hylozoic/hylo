@@ -22,9 +22,9 @@ export default function ContextMenu () {
 
   useEffect(() => {
     if ((!fetching && currentGroup?.shouldWelcome)) {
-      navigation.navigate('Group Welcome', { groupId: currentGroup?.id })
+      navigation.navigate('Group Welcome')
     }
-  }, [currentGroup, fetching])
+  }, [fetching, currentGroup])
 
   const handleGoToAllViews = () => openURL(
     makeWidgetUrl({
@@ -177,11 +177,10 @@ function TopElements ({ widget, group }) {
   }
 
   if (widget.type === 'setup') {
-    const settingsUrl = groupUrl(group.slug, 'settings')
-
+    const settingsUrl = groupUrl(group.slug, 'settings') + '/details'
     const ListItem = ({ title, url }) => (
       <TouchableOpacity
-        onPress={() => navigation.navigate('Group Settings', { groupSlug: group?.slug })}
+        onPress={() => openURL(url)}
         className='w-full'
       >
         <View className='border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
@@ -219,7 +218,7 @@ function TopElements ({ widget, group }) {
               url={settingsUrl}
             />
           )}
-          {(!group.description || group.description === 'This is a long-form description of the group') && (
+          {(!group.description || group.description === 'This is a long-form description of the group' || group.description === '') && (
             <ListItem
               title={t('Add Description')}
               url={settingsUrl}

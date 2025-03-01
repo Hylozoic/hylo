@@ -8,6 +8,7 @@ import { AppRegistry, Platform, AppState, UIManager, LogBox } from 'react-native
 import Timer from 'react-native-background-timer'
 import * as Sentry from '@sentry/react-native'
 import { OneSignal } from 'react-native-onesignal'
+import KeyboardManager from 'react-native-keyboard-manager'
 import { AuthProvider } from '@hylo/contexts/AuthContext'
 import mobileSubscriptionExchange from 'urql/mobileSubscriptionExchange'
 import { useMakeUrqlClient } from '@hylo/urql/makeUrqlClient'
@@ -81,6 +82,14 @@ AppRegistry.registerComponent(appName, () => App)
 // }
 
 enableScreens()
+
+// TODO: Enable and test/fix all keyboard + ScrollView usages currently only used by GroupWelcomeFlow
+// ref. https://github.com/douglasjunior/react-native-keyboard-manager/tree/main
+if (Platform.OS === 'ios') {
+  KeyboardManager.setEnable(false)
+  KeyboardManager.setLayoutIfNeededOnUpdate(true)
+  KeyboardManager.setShouldResignOnTouchOutside(true)
+}
 
 // Useful to debug in dev to diagnose any potential image loading issues,
 // or simply to start fresh:

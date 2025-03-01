@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
-import { Dimensions, StyleSheet } from 'react-native'
+import { Dimensions, StyleSheet, View } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
@@ -129,9 +129,6 @@ export default function Thread() {
 
   return (
     <KeyboardFriendlyView style={styles.container}>
-      {fetching && (
-        <Loading />
-      )}
       <FlashList
         style={styles.messageList}
         data={refineMessages(messages)}
@@ -140,6 +137,7 @@ export default function Thread() {
         inverted
         keyExtractor={(item) => item.id}
         keyboardDismissMode='on-drag'
+        keyboardShouldPersistTaps
         refreshing={fetching}
         onEndReached={fetchMore}
         onEndReachedThreshold={0.3}
@@ -148,22 +146,27 @@ export default function Thread() {
         renderItem={({ item }) => (
           <MessageCard message={item} />
         )}
+        ListFooterComponent={fetching && <Loading />}
+        ListHeaderComponent={
+          <View>
+            {!!(newMessages && !atBottom) && (
+              <NotificationOverlay
+                position='bottom'
+                message={t('New messages')}
+                onPress={handleScrollToBottom}
+              />
+            )}
+            <MessageInput
+              blurOnSubmit={false}
+              multiline
+              sendIsTyping={handleSendTyping}
+              onSubmit={handleSubmit}
+              placeholder={t('Write something')}
+            />
+            <PeopleTyping messageThreadId={threadId} ref={peopleTypingRef} />
+          </View>
+        }
       />
-      {!!(newMessages && !atBottom) && (
-        <NotificationOverlay
-          position='bottom'
-          message={t('New messages')}
-          onPress={handleScrollToBottom}
-        />
-      )}
-      <MessageInput
-        blurOnSubmit={false}
-        multiline
-        sendIsTyping={handleSendTyping}
-        onSubmit={handleSubmit}
-        placeholder={t('Write something')}
-      />
-      <PeopleTyping messageThreadId={threadId} ref={peopleTypingRef} />
     </KeyboardFriendlyView>
   )
 }

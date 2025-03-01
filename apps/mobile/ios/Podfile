@@ -34,6 +34,9 @@ target 'HyloReactNative' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # See: https://github.com/douglasjunior/react-native-keyboard-manager
+  pod 'IQKeyboardManagerSwift', :git => 'https://github.com/douglasjunior/IQKeyboardManager.git', :branch => 'react-native-keyboard-manager'
+
   target 'HyloReactNativeTests' do
     inherit! :complete
     # Pods for testing

@@ -58,11 +58,13 @@ export default function SignupSetLocation ({ navigation }) {
         <Text style={{ fontSize: 16, marginBottom: 18, color: white }}>
           {locationObject?.fullText || '(None selected)'}
         </Text>
-        <LocationSelector
-          style={{ flex: 0, padding: 10, backgroundColor: white80onCaribbeanGreen, borderRadius: 20 }}
-          colors={{ text: caribbeanGreen, border: caribbeanGreen }}
-          onItemPress={setLocationObject}
-        />
+        {!locationObject?.fullText && (
+          <LocationSelector
+            style={{ flex: 0, padding: 10, backgroundColor: white80onCaribbeanGreen, borderRadius: 20 }}
+            colors={{ text: caribbeanGreen, border: caribbeanGreen }}
+            onItemPress={setLocationObject}
+          />
+        )}
       </View>
       <View style={styles.bottomBar}>
         <Button
