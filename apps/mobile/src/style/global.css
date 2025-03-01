@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* copied over as of 16 JAN 2025 */
+/* from apps/web/src/css/global/index.scss as of git commit 29585486b874a079feb0b796afe3432afaf33468 */
+
 @layer base {
 
   :root {
@@ -26,6 +27,7 @@
     --destructive-foreground: 0 0% 98%;
     --error: 0 84.2% 60.2%;
     --error-foreground: 0 0% 98%;
+    --focus: 209 100% 50%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
     --ring: 240 10% 3.9%;

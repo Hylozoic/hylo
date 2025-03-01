@@ -8,7 +8,7 @@ import peopleAutocompleteQuery from '@hylo/graphql/queries/peopleAutocompleteQue
 import findOrCreateThreadMutation from '@hylo/graphql/mutations/findOrCreateThreadMutation'
 import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation'
 import { isIOS } from 'util/platform'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
+import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
 import useRouteParams from 'hooks/useRouteParams'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
@@ -87,6 +87,7 @@ const useParticipantsQuery = (participantIds = []) => {
 export default function NewMessage () {
   const navigation = useNavigation()
   const { t } = useTranslation()
+  const confirmDiscardChanges = useConfirmDiscardChanges()
   const messageInputRef = useRef()
   const [participants, setParticipants] = useState([])
   const [loading, setLoading] = useState()
@@ -127,9 +128,8 @@ export default function NewMessage () {
         hasChanges: participants.length > 0 ||
           (messageInputRef.current && messageInputRef.current.getMessageText().length > 0),
         onDiscard: () => navigation.dispatch(e.data.action),
-        title: t('Are you sure?'),
-        confirmationMessage: t('Your new unsent message will not be saved'),
-        t
+        title: 'Are you sure?',
+        confirmationMessage: 'Your new unsent message will not be saved'
       })
     })
 

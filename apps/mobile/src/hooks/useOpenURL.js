@@ -2,10 +2,11 @@ import { useCallback } from 'react'
 import { Linking } from 'react-native'
 import { getActionFromState, CommonActions, useNavigation } from '@react-navigation/native'
 import { prefixes, DEFAULT_APP_HOST, staticPages } from 'navigation/linking'
-import getStateFromPath, { getRouteMatchForPath } from 'navigation/linking/getStateFromPath'
+import getStateFromPath from 'navigation/linking/getStateFromPath'
 import { URL } from 'react-native-url-polyfill'
 import { navigationRef } from 'navigation/linking/helpers'
 import { isDev } from 'config'
+
 // DEBUG is always false in production
 const DEBUG = isDev && true
 
@@ -24,18 +25,6 @@ export async function openURL (providedPathOrURL, reset, navigation = navigation
     !staticPages.includes(linkingURL.pathname)
   ) {
     const linkingPath = linkingURL.pathname + linkingURL.search
-
-    if (DEBUG) {
-      // This happens in getStateFromPath, here only for debugging convenience
-      const routeMatchForPath = getRouteMatchForPath(linkingPath)
-
-      if (routeMatchForPath) {
-        console.log(`!!! openURL: ${linkingPath} routeMatchForPath:`)
-        console.dir(routeMatchForPath)
-      } else {
-        console.log(`!!! openURL: ${linkingPath} NO ROUTE MATCHED`)
-      }
-    }
 
     const stateForPath = getStateFromPath(linkingPath)
 

@@ -14,8 +14,8 @@ export default function MessageCard ({ message }) {
   const { creator, displayDate, suppressCreator, text } = message
   const goToCreator = () => navigation.navigate(modalScreenName('Member'), { id: creator.id })
 
-  // TODO: Markdown is being used on both Web and Mobile as some messages are HTML
-  //       and others are plain text with purposeful linebreaks.
+  // NOTE: Markdown is being used on both Web and Mobile as some messages are HTML
+  // and others are plain text with purposeful linebreaks.
   const messageHTML = TextHelpers.markdown(text)
 
   return (

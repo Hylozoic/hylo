@@ -37,7 +37,7 @@ export const routingConfig = {
   // Auth & Signup Routes
   '/login':                                                               `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
   '/reset-password':                                                      `${NON_AUTH_ROOT_SCREEN_NAME}/ForgotPassword`,
-  '/signup/:step(verify-email)':                                          `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/SignupEmailValidation`,
+  // '/signup/:step(verify-email)':                                          `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/SignupEmailValidation`,
   '/signup/:step?':                                                       `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/Signup Intro`,
   '/noo/login/(jwt|token)':                                               'LoginByTokenHandler',
   // TODO:  Routing - oauth not currently handled, and I don't think we had planned to yet in Mobile.

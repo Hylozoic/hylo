@@ -125,7 +125,7 @@ export const Comments = React.forwardRef(({
       keyExtractor={comment => comment.id}
       keyboardShouldPersistTaps='never'
       // TODO: Bring back "interactive" dismiss mode for iOS once we have a better
-      // kyboard avoiding scroll view control added, without the interactive scroll
+      // keyboard avoiding scroll view control added, without the interactive scroll
       // is out-of-sync and on-drag is better.
       keyboardDismissMode={isIOS ? 'on-drag' : 'on-drag'}
       {...panHandlers}

@@ -8,12 +8,12 @@ export default function useStreamQueryVariables ({
   currentUser,
   customView,
   filter,
-  forGroup,
+  slug,
   myHome,
   sortBy,
   streamType,
   timeframe,
-  topicName
+  topic
 }) {
   const filterFromStreamType = COMMON_VIEWS[streamType] ? COMMON_VIEWS[streamType].postTypes[0] : null
 
@@ -27,12 +27,10 @@ export default function useStreamQueryVariables ({
       ? (timeframe === 'past' ? new Date().toISOString() : null)
       : null,
     childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
-    collectionToFilterOut: null,
     context,
     createdBy: myHome === 'posts'
       ? [currentUser.id]
       : null,
-    cursor: null,
     filter: filterFromStreamType ||
       filter ||
       currentUser?.settings?.streamPostType,
@@ -46,16 +44,21 @@ export default function useStreamQueryVariables ({
     order: streamType === 'event'
       ? (timeframe === 'future' ? 'asc' : 'desc')
       : null,
-    search: null,
-    slug: !isContextGroupSlug(forGroup?.slug) ? forGroup?.slug : null,
+    slug: !isContextGroupSlug(slug) ? slug : null,
     sortBy,
-    topic: topicName,
+    topic,
     topics: (customView?.type === 'stream' && customView?.topics)
       ? customView.topics.map(t => t.id)
       : null,
     types: customView?.type === 'stream'
       ? customView?.postTypes
-      : null
+      : null,
+
+    // Unused or not implemented
+
+    collectionToFilterOut: null,
+    cursor: null,
+    search: null
   }), [
     context,
     currentUser?.id,
@@ -65,13 +68,12 @@ export default function useStreamQueryVariables ({
     customView?.collectionId,
     customView?.type,
     filter,
-    forGroup,
-    forGroup?.slug,
     myHome,
+    slug,
     sortBy,
     streamType,
     timeframe,
-    topicName
+    topic
   ])
 
   return streamQueryVariables

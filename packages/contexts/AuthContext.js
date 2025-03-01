@@ -27,7 +27,6 @@ export function AuthProvider ({ children }) {
     requestPolicy: 'cache-and-network',
     query: meCheckAuthQuery
   })
-
   const [, executeLogin] = useMutation(loginMutation)
   const [, executeLogout] = useMutation(logoutMutation)
 
@@ -62,7 +61,7 @@ export function AuthProvider ({ children }) {
   }, [executeLogout, checkAuth])
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isAuthorized, login, logout, error, fetching, checkAuth }}>
+    <AuthContext.Provider value={{ isAuthenticated, isAuthorized, login, logout, error, fetching, currentUser, checkAuth }}>
       {children}
     </AuthContext.Provider>
   )
