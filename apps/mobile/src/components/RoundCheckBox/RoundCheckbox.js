@@ -6,6 +6,7 @@ const RoundCheckbox = ({
   onValueChange,
   icon = 'checkmark-outline',
   size = 24,
+  style = {},
   className = '',
   checked = false
 }) => {
@@ -33,7 +34,8 @@ const RoundCheckbox = ({
         `}
         style={{
           width: size,
-          height: size
+          height: size,
+          ...style
         }}
       >
         {checked && (
@@ -42,13 +44,14 @@ const RoundCheckbox = ({
               transform: [{ scale: scaleAndOpacity }],
               opacity: scaleAndOpacity,
               justifyContent: 'center',
-              alignItems: 'center'
+              alignItems: 'center',
+              ...style
             }}
           >
             <Icon
               name={icon}
               size={size * 0.8}
-              color="hsl(var(--background))"
+              color='hsl(var(--background))'
             />
           </Animated.View>
         )}
