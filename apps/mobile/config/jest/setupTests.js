@@ -36,6 +36,8 @@ jest.mock('react-native-reanimated', () => {
   return Reanimated
 })
 
+jest.mock('react-native-keyboard-manager', () => require('react-native-keyboard-manager/jest/mock'))
+
 // https://github.com/mixpanel/mixpanel-react-native/issues/88
 jest.mock('mixpanel-react-native', () => ({
   __esModule: true,

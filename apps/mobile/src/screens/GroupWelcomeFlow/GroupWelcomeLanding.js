@@ -1,25 +1,25 @@
 import React, { useEffect, useState } from 'react'
-import { isEmpty, trim } from 'lodash'
-import { useSelector } from 'react-redux'
-import { gql, useMutation } from 'urql'
-import { useNavigation } from '@react-navigation/native'
-import { useTranslation } from 'react-i18next'
-import FastImage from 'react-native-fast-image'
 import { Text, View, ImageBackground, ScrollView, TouchableOpacity, TextInput } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import { useNavigation } from '@react-navigation/native'
+import { gql, useMutation } from 'urql'
+import { isEmpty, trim } from 'lodash'
+import FastImage from 'react-native-fast-image'
 import CheckBox from 'react-native-bouncy-checkbox'
+import KeyboardManager, { PreviousNextView } from 'react-native-keyboard-manager'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import {
+  getRouteNames,
+  useGroupWelcomeStore,
   GROUP_WELCOME_AGREEMENTS,
   GROUP_WELCOME_JOIN_QUESTIONS,
-  GROUP_WELCOME_SUGGESTED_SKILLS,
-  getCurrentStepIndex,
-  getRouteNames
-} from './GroupWelcomeFlow.store'
+  GROUP_WELCOME_SUGGESTED_SKILLS
+} from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
+import GroupWelcomeTabBar from 'screens/GroupWelcomeFlow/GroupWelcomeTabBar'
 import Pill from 'components/Pill'
-import GroupWelcomeTabBar from './GroupWelcomeTabBar'
-import { caribbeanGreen, rhino } from 'style/colors'
-import styles from './GroupWelcomeFlow.styles'
+import styles from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.styles'
+import { caribbeanGreen } from 'style/colors'
 
 export const addSkillMutation = gql`
   mutation AddSkillMutation ($name: String) {
@@ -46,15 +46,15 @@ export const updateMembershipMutation = gql`
   }
 `
 
-export default function GroupWelcomeLanding ({ route }) {
+export default function GroupWelcomeLanding () {
   const { t } = useTranslation()
+  const navigation = useNavigation()
   const [, addSkill] = useMutation(addSkillMutation)
   const [, removeSkill] = useMutation(removeSkillMutation)
   const [, updateMembershipSettings] = useMutation(updateMembershipMutation)
-  const navigation = useNavigation()
+  const { currentStepIndex } = useGroupWelcomeStore()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
-  const currentStepIndex = useSelector(getCurrentStepIndex)
   const currentMemberships = currentUser?.memberships
   const currentMembership = currentMemberships.find(m => m.group.id === currentGroup?.id)
   const routeNames = getRouteNames(currentGroup, currentMembership)
@@ -77,11 +77,11 @@ export default function GroupWelcomeLanding ({ route }) {
   const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!currentGroup?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
 
   useEffect(() => {
-    if (!currentGroup.shouldWelcome) {
-      // TODO redesign: change this to the group's default view aka home view
-      navigation.navigate('Stream', { groupId: currentGroup?.id, initial: false })
+    KeyboardManager.setEnable(true)
+    return () => {
+      KeyboardManager.setEnable(false)
     }
-  }, [currentGroup])
+  }, [])
 
   useEffect(() => {
     if (numAgreements > 0) {
@@ -122,7 +122,7 @@ export default function GroupWelcomeLanding ({ route }) {
   }
 
   return (
-    <View style={styles.container}>
+    <PreviousNextView style={styles.container}>
       <ScrollView
         keyboardDismissMode='on-drag'
         keyboardShouldPersistTaps='handled'
@@ -146,14 +146,49 @@ export default function GroupWelcomeLanding ({ route }) {
           </ImageBackground>
         </View>
         <View style={{ flex: 1, gap: 6, paddingLeft: 16, paddingRight: 16 }}>
-          {currentStepIndex === 0 && <LandingBodyContent description={description} purpose={purpose} currentStepIndex={currentStepIndex} />}
-          {routeNames[currentStepIndex] === GROUP_WELCOME_AGREEMENTS && <AgreementsBodyContent agreements={agreements.items} agreementsChanged={agreementsChanged} acceptedAgreements={acceptedAgreements} handleCheckAgreement={handleCheckAgreement} acceptedAllAgreements={acceptedAllAgreements} handleCheckAllAgreements={handleCheckAllAgreements} numAgreements={numAgreements} />}
-          {routeNames[currentStepIndex] === GROUP_WELCOME_JOIN_QUESTIONS && <JoinQuestionsBodyContent questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} setAllQuestionsAnswered={setAllQuestionsAnswered} />}
-          {routeNames[currentStepIndex] === GROUP_WELCOME_SUGGESTED_SKILLS && <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={currentGroup} removeSkill={removeSkill} />}
+          {currentStepIndex === 0 && (
+            <LandingBodyContent
+              description={description}
+              purpose={purpose}
+              currentStepIndex={currentStepIndex}
+            />
+          )}
+          {routeNames[currentStepIndex] === GROUP_WELCOME_AGREEMENTS && (
+            <AgreementsBodyContent
+              agreements={agreements.items}
+              agreementsChanged={agreementsChanged}
+              acceptedAgreements={acceptedAgreements}
+              handleCheckAgreement={handleCheckAgreement}
+              acceptedAllAgreements={acceptedAllAgreements}
+              handleCheckAllAgreements={handleCheckAllAgreements}
+              numAgreements={numAgreements}
+            />
+          )}
+          {routeNames[currentStepIndex] === GROUP_WELCOME_JOIN_QUESTIONS && (
+            <JoinQuestionsBodyContent
+              questionAnswers={questionAnswers}
+              setQuestionAnswers={setQuestionAnswers}
+              setAllQuestionsAnswered={setAllQuestionsAnswered}
+            />
+          )}
+          {routeNames[currentStepIndex] === GROUP_WELCOME_SUGGESTED_SKILLS && (
+            <SuggestedSkills
+              addSkill={addSkill}
+              currentUser={currentUser}
+              group={currentGroup}
+              removeSkill={removeSkill}
+            />
+          )}
         </View>
       </ScrollView>
-      <GroupWelcomeTabBar group={currentGroup} agreements={agreements.items} acceptedAllAgreements={acceptedAllAgreements} handleAccept={handleAccept} allQuestionsAnswered={allQuestionsAnswered} />
-    </View>
+      <GroupWelcomeTabBar
+        group={currentGroup}
+        agreements={agreements.items}
+        acceptedAllAgreements={acceptedAllAgreements}
+        handleAccept={handleAccept}
+        allQuestionsAnswered={allQuestionsAnswered}
+      />
+    </PreviousNextView>
   )
 }
 
