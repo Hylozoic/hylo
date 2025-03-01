@@ -1,7 +1,6 @@
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import getStateFromPath from 'navigation/linking/getStateFromPath'
 import getInitialURL from 'navigation/linking/getInitialURL'
-import subscribe from 'navigation/linking/subscribe'
 import { isDev, isTest } from 'config'
 
 /*
@@ -206,6 +205,5 @@ export const staticPages = [
 export default {
   prefixes,
   getStateFromPath,
-  getInitialURL,
-  subscribe
+  getInitialURL
 }
