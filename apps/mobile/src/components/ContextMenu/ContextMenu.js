@@ -9,6 +9,7 @@ import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hy
 import { widgetUrl as makeWidgetUrl, groupUrl } from 'util/navigation'
 import useLogout from 'hooks/useLogout'
 import { openURL } from 'hooks/useOpenURL'
+import useRouteParams from 'hooks/useRouteParams'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 
@@ -44,7 +45,7 @@ export default function ContextMenu () {
       <Header group={currentGroup} />
       <ScrollView className='p-2'>
         {widgets.map(widget => (
-          <View key={widget.id} className='mb-1'>
+          <View key={widget.id} className='mb-0.5'>
             <MenuItem
               widget={widget}
               groupSlug={currentGroup.slug}
@@ -61,7 +62,7 @@ export default function ContextMenu () {
             className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md gap-2'
           >
             <WidgetIconResolver widget={{ type: 'all-views' }} className='mr-2' />
-            <Text className='text-sm font-bold text-foreground'>{t('All Views')}</Text>
+            <Text className='text-base font-normal text-foreground'>{t('All Views')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -76,9 +77,18 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
   const [{ currentGroup }] = useCurrentGroup()
+  const routeParams = useRouteParams()
 
   const title = translateTitle(widget.title, t)
   const url = makeWidgetUrl({ widget, rootPath, groupSlug })
+  const isActive = useMemo(() => {
+    if (!url || !routeParams.originalLinkingPath) return false
+    // Remove any trailing slashes for comparison
+    const cleanUrl = url.replace(/\/$/, '')
+    const cleanPath = routeParams.originalLinkingPath.replace(/\/$/, '')
+    return cleanPath === cleanUrl || cleanPath.startsWith(cleanUrl + '/')
+  }, [url, routeParams.originalLinkingPath])
+
   const handleWidgetPress = widget => {
     const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.slug })
     openURL(linkingPath)
@@ -94,7 +104,7 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
         className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md mb-2 gap-2'
       >
         <WidgetIconResolver widget={widget} className='mr-2' />
-        <Text className='text-sm font-bold text-foreground'>{title}</Text>
+        <Text className='text-base font-normal text-foreground'>{title}</Text>
       </TouchableOpacity>
     )
   }
@@ -103,26 +113,28 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
     return (
       <TouchableOpacity
         onPress={() => handleWidgetPress(widget)}
-        className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md mb-2 gap-2'
+        className={`w-full flex-row items-center p-2 rounded-md mb-0.5 gap-2 ${
+          isActive ? 'bg-selected/10 opacity-100' : ''
+        }`}
       >
         <WidgetIconResolver widget={widget} className='mr-2' />
-        <Text className='text-sm font-bold text-foreground'>{title}</Text>
+        <Text className={`text-base font-normal ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>{title}</Text>
       </TouchableOpacity>
     )
   }
 
   return (
-    <View className='border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground mb-[.5rem]'>
+    <View className='w-full rounded-md p-2 bg-background mb-0.5'>
       <TouchableOpacity
         onPress={widget.view && (() => handleWidgetPress(widget))}
-        className='flex-row justify-between items-center content-center'
+        className='w-full flex-row justify-between items-center'
       >
-        <Text className='text-sm font-semibold text-foreground'>{title}</Text>
+        <Text className={`text-base font-light opacity-50 ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>{title}</Text>
       </TouchableOpacity>
-      <View className='flex flex-col justify-center items-center relative'>
+      <View className='w-full flex flex-col justify-center items-center relative'>
         <TopElements widget={widget} group={group} />
       </View>
-      {loading && <Text>{t('Loading...')}</Text>}
+      {loading && <Text className='text-foreground'>{t('Loading...')}</Text>}
       {listItems.length > 0 && listItems.map(item =>
         <ChildWidget
           key={item.id}
@@ -130,22 +142,37 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
           rootPath={rootPath}
           groupSlug={groupSlug}
           handleWidgetPress={handleWidgetPress}
+          parentUrl={url}
         />
       )}
     </View>
   )
 }
 
-function ChildWidget ({ widget, handleWidgetPress }) {
+function ChildWidget ({ widget, handleWidgetPress, rootPath, groupSlug, parentUrl }) {
   const { t } = useTranslation()
+  const routeParams = useRouteParams()
+  const url = makeWidgetUrl({ widget, rootPath, groupSlug })
+  const isActive = useMemo(() => {
+    if (!url || !routeParams.originalLinkingPath) return false
+    // Remove any trailing slashes for comparison
+    const cleanUrl = url.replace(/\/$/, '')
+    const cleanPath = routeParams.originalLinkingPath.replace(/\/$/, '')
+    return cleanPath === cleanUrl || cleanPath.startsWith(cleanUrl + '/')
+  }, [url, routeParams.originalLinkingPath])
+
   return (
     <TouchableOpacity
       key={widget.id + widget.title}
       onPress={() => handleWidgetPress(widget)}
-      className='flex-row items-center ml-8 h-12 py-2 gap-2 content-center border-b border-foreground/20'
+      className={`w-full flex-row items-center p-3 bg-background border-2 rounded-md mb-2 gap-2 ${
+        isActive ? 'border-selected bg-selected/10 opacity-100' : 'border-foreground/20'
+      }`}
     >
-      <View className='w-5'><WidgetIconResolver widget={widget} className='mr-2' /></View>
-      <Text className='text-sm text-primary-accent'>{translateTitle(widget.title, t)}</Text>
+      <WidgetIconResolver widget={widget} className='mr-2' />
+      <Text className={`text-base font-normal ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>
+        {translateTitle(widget.title, t)}
+      </Text>
     </TouchableOpacity>
   )
 }
@@ -183,18 +210,19 @@ function TopElements ({ widget, group }) {
         onPress={() => openURL(url)}
         className='w-full'
       >
-        <View className='border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
+        <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
           <Text className='text-base text-foreground'>{title}</Text>
         </View>
       </TouchableOpacity>
     )
 
     return (
-      <View className='mb-2'>
+      <View className='w-full mb-2'>
         <TouchableOpacity
           onPress={() => navigation.navigate('Group Settings', { groupSlug: group?.slug })}
+          className='w-full'
         >
-          <View className='border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
+          <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
             <Text className='text-base text-foreground'>{t('Settings')}</Text>
           </View>
         </TouchableOpacity>
