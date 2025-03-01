@@ -292,7 +292,8 @@ export const COMMON_VIEWS = {
     iconName: 'Request',
     defaultViewMode: 'bigGrid',
     postTypes: ['request', 'offer'],
-    defaultSortBy: 'created'
+    defaultSortBy: 'created',
+    defaultActivePostsOnly: true
   },
   resources: {
     name: 'Resources',

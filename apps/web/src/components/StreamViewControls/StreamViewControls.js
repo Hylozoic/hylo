@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
@@ -50,6 +50,8 @@ const makeFilterDropdown = (selected, options, onChange, t) => {
 }
 
 const StreamViewControls = ({
+  activePostsOnly,
+  changeActivePostsOnly,
   customViewType,
   sortBy,
   postTypeFilter,
@@ -98,37 +100,47 @@ const StreamViewControls = ({
   const handleSearchToggle = () => {
     setSearchActive(!searchActive)
   }
-  const handleChildPostInclusion = () => {
+
+  const handleClickActivePostsOnly = useCallback(() => {
+    changeActivePostsOnly(!activePostsOnly)
+  }, [activePostsOnly])
+
+  const handleChildPostInclusion = useCallback(() => {
     const updatedValue = childPostInclusion === 'yes' ? 'no' : 'yes'
     changeChildPostInclusion(updatedValue)
-  }
+  }, [childPostInclusion])
 
   return (
     <div className={cn(classes.streamViewContainer, { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
       <div className='flex w-full flex-row-reverse justify-between'>
-        <div className={cn('bg-primary px-2 flex items-center rounded transition-all', { 'bg-selected': searchActive })} onClick={handleSearchToggle}>
+        <div className={cn('bg-primary px-2 flex items-center rounded transition-all cursor-pointer', { 'bg-selected': searchActive })} onClick={handleSearchToggle}>
           <Icon name='Search' className={cn(classes.toggleIcon, { [classes.active]: searchActive })} />
         </div>
-        {![CONTEXT_MY, 'all', 'public'].includes(context) &&
+        <div className='bg-primary rounded px-1 flex gap-2 items-center'>
           <div
-            className={cn('bg-primary rounded text-foreground px-1 flex items-center transition-all hover:scale-125 group')}
-            onClick={handleChildPostInclusion}
-            data-tooltip-content={childPostInclusion === 'yes' ? t('Hide posts from child groups you are a member of') : t('Show posts from child groups you are a member of')}
-            data-tooltip-id='childgroup-toggle-tt'
+            className={cn('bg-primary rounded text-foreground px-1 flex items-center transition-all hover:scale-125 group cursor-pointer')}
+            onClick={handleClickActivePostsOnly}
+            data-tooltip-content={activePostsOnly ? t('Show both active and completed posts') : t('Hide complete posts, show only active ones')}
+            data-tooltip-id='stream-controls-tip'
           >
-            <Icon name='Subgroup' className={cn('p-1 rounded transition-all group-hover:bg-selected/50', { 'bg-selected': childPostInclusion === 'yes' })} />
-          </div>}
-        <Tooltip
-          delay={250}
-          id='childgroup-toggle-tt'
-          position='bottom'
-        />
+            <Icon name='Checkmark' className={cn('p-1 rounded transition-all group-hover:bg-selected/50', { 'bg-selected': activePostsOnly })} />
+          </div>
+          {![CONTEXT_MY, 'all', 'public'].includes(context) &&
+            <div
+              className={cn('bg-primary rounded text-foreground px-1 flex items-center transition-all hover:scale-125 group cursor-pointer')}
+              onClick={handleChildPostInclusion}
+              data-tooltip-content={childPostInclusion === 'yes' ? t('Hide posts from child groups you are a member of') : t('Show posts from child groups you are a member of')}
+              data-tooltip-id='stream-controls-tip'
+            >
+              <Icon name='Subgroup' className={cn('p-1 rounded transition-all group-hover:bg-selected/50', { 'bg-selected': childPostInclusion === 'yes' })} />
+            </div>}
+        </div>
         <div className='bg-primary rounded px-1 flex gap-2 items-center'>
           <div
             className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'cards' })}
             onClick={() => changeView('cards')}
             data-tooltip-content={t('Card view')}
-            data-tooltip-id='stream-viewmode-tip'
+            data-tooltip-id='stream-controls-tip'
           >
             <Icon name='CardView' />
           </div>
@@ -137,7 +149,7 @@ const StreamViewControls = ({
             className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'list' })}
             onClick={() => changeView('list')}
             data-tooltip-content={t('List view')}
-            data-tooltip-id='stream-viewmode-tip'
+            data-tooltip-id='stream-controls-tip'
           >
             <Icon name='ListView' />
           </div>
@@ -146,7 +158,7 @@ const StreamViewControls = ({
             className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'bigGrid' })}
             onClick={() => changeView('bigGrid')}
             data-tooltip-content={t('Large Grid')}
-            data-tooltip-id='stream-viewmode-tip'
+            data-tooltip-id='stream-controls-tip'
           >
             <Icon name='GridView' className={classes.gridViewIcon} />
           </div>
@@ -155,7 +167,7 @@ const StreamViewControls = ({
             className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'grid' }, classes.smallGrid)}
             onClick={() => changeView('grid')}
             data-tooltip-content={t('Small Grid')}
-            data-tooltip-id='stream-viewmode-tip'
+            data-tooltip-id='stream-controls-tip'
           >
             <Icon name='SmallGridView' className={classes.gridViewIcon} />
           </div>
@@ -165,14 +177,13 @@ const StreamViewControls = ({
               className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'calendar' }, classes.calendar)}
               onClick={() => changeView('calendar')}
               data-tooltip-content={t('Calendar')}
-              data-tooltip-id='stream-viewmode-tip'
+              data-tooltip-id='stream-controls-tip'
             >
               <Icon name='Calendar' className={classes.gridViewIcon} />
             </div>
           )}
         </div>
         {viewMode !== 'calendar' && filterDropdown}
-        <Tooltip id='stream-viewmode-tip' position='bottom' />
       </div>
       {searchActive &&
         <div>
@@ -201,6 +212,7 @@ const StreamViewControls = ({
           &quot;{searchValue}&quot;
           <Icon name='Ex' className={classes.textEx} />
         </div>}
+      <Tooltip id='stream-controls-tip' position='bottom' />
     </div>
   )
 }
