@@ -82,7 +82,7 @@ export default function HyloEditorMenuBar ({ editor, extendedMenu, type, id }) {
             </button>)
           : (
             <Popover onOpenChange={(v) => setLinkModalOpen(v)} open={linkModalOpen}>
-              <PopoverTrigger>
+              <PopoverTrigger asChild>
                 <button
                   tabIndex='-1'
                   title='Add a link'

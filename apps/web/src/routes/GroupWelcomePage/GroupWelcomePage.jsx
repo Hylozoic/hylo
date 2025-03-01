@@ -15,7 +15,7 @@ function GroupWelcomePage () {
   useEffect(() => {
     setHeaderDetails({
       title: 'Welcome',
-      icon: 'Cooperative',
+      icon: 'Hand',
       search: true
     })
   }, [])

@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { TextHelpers } from '@hylo/shared'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
@@ -75,6 +76,8 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     if (key === 'location') {
       edits.location = event.target.value.fullText
       edits.locationId = event.target.value.id
+    } else if (key === 'websiteUrl') {
+      edits.websiteUrl = TextHelpers.sanitizeURL(event.target.value)
     } else {
       set(edits, key, event.target.value)
     }
