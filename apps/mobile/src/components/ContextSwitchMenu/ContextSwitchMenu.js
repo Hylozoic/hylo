@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Animated, TouchableOpacity, Text, StyleSheet, View, FlatList } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import Intercom from '@intercom/intercom-react-native'
@@ -11,11 +11,12 @@ import { widgetUrl as makeWidgetUrl } from 'util/navigation'
 import { openURL } from 'hooks/useOpenURL'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 
-export default function ContextSwitchMenu () {
+export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const changeToGroup = useChangeToGroup()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
   const { myContext, publicContext } = useContextGroups()
+  const [isLongPressing, setIsLongPressing] = useState(false)
   const myGroups = [myContext, publicContext].concat(
     sortBy('name', map(m => m.group, currentUser.memberships))
   )
@@ -29,9 +30,32 @@ export default function ContextSwitchMenu () {
     if (homePath) openURL(homePath)
   }
 
+  const handleScrollBegin = () => {
+    setIsExpanded(true)
+  }
+
+  const handleScrollEnd = () => {
+    if (!isLongPressing) {
+      setIsExpanded(false)
+    }
+  }
+
+  const handleLongPress = () => {
+    setIsLongPressing(true)
+    setIsExpanded(true)
+  }
+
+  const handlePressOut = () => {
+    setIsLongPressing(false)
+    if (!isLongPressing) {
+      setIsExpanded(false)
+    }
+  }
+
   return (
-    <Animated.View className='flex-col h-full bg-theme-background z-50 items-center py-2 px-3'>
+    <Animated.View className='flex-col h-full bg-theme-background z-50 w-full py-2 px-3'>
       <FlatList
+        className='w-full'
         data={myGroups}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -39,50 +63,67 @@ export default function ContextSwitchMenu () {
             onPress={handleOnPress}
             item={item}
             currentGroupSlug={currentGroup?.slug}
+            setIsExpanded={setIsExpanded}
+            isExpanded={isExpanded}
+            onLongPress={handleLongPress}
+            onPressOut={handlePressOut}
           />
         )}
         showsVerticalScrollIndicator={false}
+        onScrollBeginDrag={handleScrollBegin}
+        onScrollEndDrag={handleScrollEnd}
+        onMomentumScrollBegin={handleScrollBegin}
+        onMomentumScrollEnd={handleScrollEnd}
       />
       <View className='w-full mt-auto bg-theme-background pt-4'>
-        {/* TODO redesign: A Group or Post Creation option is expected based on Web-parity */}
         <TouchableOpacity
           onPress={() => openURL('/create')}
-          style={styles.rowTouchable}
           activeOpacity={0.7}
+          onLongPress={() => setIsExpanded(true)}
+          onPressOut={() => setIsExpanded(false)}
+          delayLongPress={200}
+          className='flex flex-row items-center gap-3 justify-start p-1'
         >
           <View
-            className={`
-                bg-primary relative flex flex-col text-primary-foreground items-center justify-center
-                w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90
-            `}
+            className='bg-primary relative flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90'
           >
             <Plus />
           </View>
+          {isExpanded && (
+            <Text className='text-xl font-medium text-foreground flex-1 px-2 py-1 bg-foreground/20 rounded-md'>Create</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => Intercom.present()}
-          style={styles.rowTouchable}
           activeOpacity={0.7}
+          onLongPress={() => setIsExpanded(true)}
+          onPressOut={() => setIsExpanded(false)}
+          delayLongPress={200}
+          className='flex flex-row items-center gap-3 justify-start p-1'
         >
-          <View className='bg-primary relative flex flex-col text-primary-foreground items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90'>
+          <View className='bg-primary relative flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90'>
             <CircleHelp />
           </View>
+          {isExpanded && (
+            <Text className='text-xl font-medium text-foreground flex-1 px-2 py-1 bg-foreground/20 rounded-md'>Support</Text>
+          )}
         </TouchableOpacity>
       </View>
     </Animated.View>
   )
 }
 
-function ContextRow ({ item, onPress, currentGroupSlug, badgeCount = 0, className }) {
+function ContextRow ({ item, onPress, currentGroupSlug, badgeCount = 0, className, setIsExpanded, isExpanded, onLongPress, onPressOut }) {
   const newPostCount = Math.min(99, item.newPostCount)
   const highlight = item?.slug === currentGroupSlug
-
   return (
     <TouchableOpacity
       key={item?.id}
       onPress={() => onPress(item)}
-      style={styles.rowTouchable}
+      className='flex flex-row items-center gap-3 justify-start p-1'
       activeOpacity={0.7}
+      onLongPress={onLongPress}
+      onPressOut={onPressOut}
     >
       <View
         className={clsx(
@@ -105,6 +146,9 @@ function ContextRow ({ item, onPress, currentGroupSlug, badgeCount = 0, classNam
           </View>
         )}
       </View>
+      {isExpanded && (
+        <Text className='text-xl font-medium text-foreground flex-1 px-2 py-1 bg-foreground/20 rounded-md'>{item?.name}</Text>
+      )}
     </TouchableOpacity>
   )
 }
