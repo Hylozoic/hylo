@@ -7,7 +7,6 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import { getGroupData, getEdited, updateGroupData, setWorkflowOptions, clearCreateGroupStore } from './CreateGroupFlow.store'
 import ErrorBubble from 'components/ErrorBubble'
-import styles from './CreateGroupFlow.styles'
 
 export default function CreateGroupName ({ route }) {
   const dispatch = useDispatch()

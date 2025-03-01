@@ -8,7 +8,6 @@ import { debounce } from 'lodash/fp'
 import { slugValidatorRegex, invalidSlugMessage, formatDomainWithUrl, removeDomainFromURL } from './util'
 import { updateGroupData, setWorkflowOptions, groupExistsCheckQuery, getGroupData } from './CreateGroupFlow.store'
 import ErrorBubble from 'components/ErrorBubble'
-import styles from './CreateGroupFlow.styles'
 
 export default function CreateGroupUrl ({ navigation }) {
   const { t } = useTranslation()

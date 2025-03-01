@@ -26,7 +26,7 @@ const RoundCheckbox = ({
 
   return (
     <TouchableWithoutFeedback onPress={handlePress}>
-      <View 
+      <View
         className={`
           justify-center items-center rounded-full border
           ${checked ? 'bg-secondary border-background' : 'border-foreground/50'}

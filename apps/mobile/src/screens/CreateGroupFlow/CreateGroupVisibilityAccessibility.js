@@ -8,12 +8,10 @@ import {
   visibilityDescription, accessibilityDescription,
   visibilityIcon, accessibilityIcon
 } from '@hylo/presenters/GroupPresenter'
-import { caribbeanGreen, white20onCaribbeanGreen, white } from 'style/colors'
 import { getGroupData, updateGroupData } from './CreateGroupFlow.store'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import RoundCheckbox from 'components/RoundCheckBox'
 import Icon from 'components/Icon'
-import styles from './CreateGroupFlow.styles'
 
 const groupVisibilityOptions = Object.keys(GROUP_VISIBILITY).map(label => ({
   label: label + ': ' + visibilityDescription(GROUP_VISIBILITY[label]),
@@ -40,10 +38,10 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
 
   return (
     <KeyboardFriendlyView className='bg-background p-5 flex-1'>
-      <ScrollView style={{ margins: 0 }}>
+      <ScrollView>
         <View>
           <View className='mb-6'>
-            <Text className='text-foreground text-xl font-bold mb-2.5'>{t('Who can see this group')}</Text>
+            <Text className='text-foreground text-xl font-bold mb-2.5'>{t('Who can see this group?')}</Text>
             {groupVisibilityOptions.map(option => (
               <Option
                 option={option}
@@ -54,7 +52,7 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
             ))}
           </View>
           <View className='mb-6'>
-            <Text className='text-foreground text-xl font-bold mb-2.5'>{t('Who can join this group')}</Text>
+            <Text className='text-foreground text-xl font-bold mb-2.5'>{t('Who can join this group?')}</Text>
             {groupAccessibilityOptions.map(option => (
               <Option
                 option={option}
@@ -72,56 +70,12 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
 
 export function Option ({ option, chosen, onPress }) {
   return (
-    <TouchableOpacity className='p-4 pb-0 mb-2.5 flex-row justify-start' onPress={() => onPress(option.value)}>
-      <RoundCheckbox
-        className='mt-2.5'
-        size={24}
-        checked={chosen}
-        onValueChange={() => onPress(option.value)}
-      />
-      <Icon className='ml-2.5 text-xl text-foreground' name={option.iconName} />
-      <Text className='mt-[-4] ml-2.5 font-circular-bold flex-1 text-base text-foreground'>
+    <TouchableOpacity className='p-4 pb-0 mb-2.5 flex-row items-center' onPress={() => onPress(option.value)}>
+      <RoundCheckbox className='mr-3' size={24} checked={chosen} onValueChange={() => onPress(option.value)} />
+      <Icon className='mr-3 self-center' size={22} name={option.iconName} />
+      <Text className='mt-[-4] ml-2.5 font-circular-bold flex-1 self-center'>
         {option.label}
       </Text>
     </TouchableOpacity>
   )
-}
-
-const stepStyles = {
-  optionsContainer: {
-    marginBottom: 24
-  },
-  optionsLabel: {
-    fontSize: 20,
-    color: white,
-    fontWeight: 'bold',
-    marginBottom: 10
-  }
-}
-
-const optionStyles = {
-  optionRow: {
-    padding: 15,
-    paddingBottom: 0,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'flex-start'
-  },
-  optionCheckbox: {
-    marginTop: 10,
-    color: caribbeanGreen
-  },
-  optionIcon: {
-    marginLeft: 10,
-    fontSize: 20,
-    color: white
-  },
-  optionsLabel: {
-    marginTop: -4,
-    marginLeft: 10,
-    fontFamily: 'Circular-Bold',
-    flex: 1,
-    fontSize: 16,
-    color: white
-  }
 }

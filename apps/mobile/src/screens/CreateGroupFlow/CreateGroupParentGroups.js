@@ -11,13 +11,6 @@ import Icon from 'components/Icon'
 import ItemSelectorModal from 'components/ItemSelectorModal'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 
-const styles = {
-  pressSelectionValue: {
-    marginTop: 10,
-    fontSize: 16
-  }
-}
-
 export default function CreateGroupParentGroups ({ navigation }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()

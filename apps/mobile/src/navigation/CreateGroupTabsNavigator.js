@@ -11,7 +11,7 @@ import CreateGroupVisibilityAccessibility from 'screens/CreateGroupFlow/CreateGr
 import CreateGroupPurpose from 'screens/CreateGroupFlow/CreateGroupPurpose'
 import CreateGroupParentGroups from 'screens/CreateGroupFlow/CreateGroupParentGroups'
 import CreateGroupReview from 'screens/CreateGroupFlow/CreateGroupReview'
-import { white20onCaribbeanGreen } from 'style/colors'
+import { white, white20onCaribbeanGreen } from 'style/colors'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 const CreateGroupTabs = createBottomTabNavigator()
@@ -38,7 +38,6 @@ export default function CreateGroupTabsNavigator () {
             {...headerProps}
             headerLeftCloseIcon
             headerLeftOnPress={close}
-            style={{ backgroundColor: white20onCaribbeanGreen }}
           />
         )
       }

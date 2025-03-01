@@ -3,22 +3,29 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useFocusEffect } from '@react-navigation/native'
 import { Text, View, ScrollView, TextInput } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import KeyboardManager from 'react-native-keyboard-manager'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import { getGroupData, getEdited, updateGroupData, setWorkflowOptions, clearCreateGroupStore } from './CreateGroupFlow.store'
 import ErrorBubble from 'components/ErrorBubble'
-import styles from './CreateGroupFlow.styles'
 
 export default function CreateGroupPurpose ({ route }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  // Add current group in as pre-selected as a parent group for Parent Groups Step
   const edited = useSelector(getEdited)
+  // Add current group in as pre-selected as a parent group for Parent Groups Step
   const [{ currentGroup }] = useCurrentGroup()
   const groupData = useSelector(getGroupData)
   const [groupPurpose, setGroupPurpose] = useState()
   const [error, setError] = useState()
   const { reset } = useRouteParams()
+
+  useFocusEffect(useCallback(() => {
+    KeyboardManager.setEnable(true)
+    return () => {
+      KeyboardManager.setEnable(false)
+    }
+  }, []))
 
   useEffect(() => {
     if (reset) {
