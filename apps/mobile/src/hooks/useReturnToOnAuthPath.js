@@ -1,18 +1,15 @@
 import { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
 import { isEmpty } from 'lodash/fp'
+import useLinkingStore from 'navigation/linking/store'
 import { openURL } from 'hooks/useOpenURL'
-import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
-import getReturnToOnAuthPath from 'store/selectors/getReturnToOnAuthPath'
 
 export default function useReturnToOnAuthPath (loading = false) {
-  const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
-  const dispatch = useDispatch()
+  const { returnToOnAuthPath, setReturnToOnAuthPath } = useLinkingStore()
 
   useEffect(() => {
     (async function () {
       if (!loading && !isEmpty(returnToOnAuthPath)) {
-        await dispatch(setReturnToOnAuthPath())
+        setReturnToOnAuthPath()
         await openURL(returnToOnAuthPath)
       }
     })()
@@ -21,5 +18,5 @@ export default function useReturnToOnAuthPath (loading = false) {
     returnToOnAuthPath
   ])
 
-  return null
+  return returnToOnAuthPath
 }

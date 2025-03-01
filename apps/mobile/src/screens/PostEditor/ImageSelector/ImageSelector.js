@@ -36,7 +36,7 @@ export default function ImageSelector ({ images = [], onRemove, style }) {
       horizontal
       keyExtractor={(_, index) => index}
       renderItem={renderImage}
-      style={[styles.imageGrid, style]}
+      contentContainerStyle={[styles.imageGrid, style]}
     />
   )
 }

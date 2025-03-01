@@ -7,10 +7,10 @@ import { useNavigation } from '@react-navigation/native'
 import { filter, isEmpty } from 'lodash/fp'
 import Clipboard from '@react-native-clipboard/clipboard'
 import { AnalyticsEvents } from '@hylo/shared'
-import useHyloActionSheet from 'hooks/useHyloActionSheet'
-import useMixpanelTrack from 'hooks/useMixpanelTrack'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import mixpanel from 'services/mixpanel'
+import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import useHasResponsibility, { RESP_MANAGE_CONTENT } from '@hylo/hooks/useHasResponsibility'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import Icon from 'components/Icon'
@@ -55,7 +55,6 @@ export default function usePostActionSheet ({
   const [, removePost] = useMutation(removePostMutation)
   const [, pinPost] = useMutation(pinPostMutation)
   const { showHyloActionSheet } = useHyloActionSheet()
-  const mixpanelTrack = useMixpanelTrack()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ currentUser }] = useCurrentUser()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
@@ -101,7 +100,7 @@ export default function usePostActionSheet ({
           subject: t('shareSubject', { title, name: creator.name })
         })
 
-        mixpanelTrack(AnalyticsEvents.POST_SHARED)
+        mixpanel.track(AnalyticsEvents.POST_SHARED)
       } catch (e) {
         console.log(e)
       }

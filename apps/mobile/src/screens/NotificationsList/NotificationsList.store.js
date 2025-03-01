@@ -158,7 +158,7 @@ export const refineNotifications = (notifications, navigation) => {
   if (!notifications) return []
 
   return notifications
-    // TODO: The extra sort is probably not necessary now that we're on URQL
+    // TODO: The extra sort is probably not necessary now that we're on URQL, confirm this and then remove
     // .sort((a, b) => Number(a.id) - Number(b.id))
     .map(refineNotification(navigation))
     .filter(n => n.reasons.every(r => reasonInWhitelist(r, NOTIFICATIONS_WHITELIST)))

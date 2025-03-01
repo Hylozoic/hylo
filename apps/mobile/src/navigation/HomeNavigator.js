@@ -1,10 +1,8 @@
 import React, { useEffect } from 'react'
-import { useSelector } from 'react-redux'
 import { createStackNavigator } from '@react-navigation/stack'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import useReturnToOnAuthPath from 'hooks/useReturnToOnAuthPath'
-import getReturnToOnAuthPath from 'store/selectors/getReturnToOnAuthPath'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
 // Screens
@@ -27,17 +25,8 @@ import MapWebView from 'screens/MapWebView/MapWebView'
 const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
   const [{ currentGroup }] = useCurrentGroup()
-  const initialURL = useSelector(state => state.initialURL)
-  const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
+  const initialURL = useOpenInitialURL()
 
-  // TODO: URQL - Re-introduce initialUrl and returnToOnAuthPath handling, what is below may still work fine, but needs to be tested
-  // useEffect(() => {
-  //   if (!initialURL && !returnToOnAuthPath) {
-  //     setTimeout(() => navigation.navigate('Stream'), 400)
-  //   }
-  // }, [])
-
-  useOpenInitialURL()
   useReturnToOnAuthPath()
 
   const navigatorProps = {

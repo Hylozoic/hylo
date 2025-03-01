@@ -25495,6 +25495,7 @@ __metadata:
     react-native-gesture-handler: "npm:^2.22.0"
     react-native-image-picker: "npm:^7.2.3"
     react-native-image-viewing: "npm:^0.2.2"
+    react-native-keyboard-manager: "npm:^6.5.16-0"
     react-native-linear-gradient: "npm:^2.8.3"
     react-native-localization: "npm:^2.3.2"
     react-native-modal: "npm:^13.0.1"
@@ -30131,6 +30132,15 @@ __metadata:
     react: ">=18.2.0"
     react-native: ">=0.73.0"
   checksum: 10/4e07c1e34c01c8d50fd7c1d0460db06f6f0515197405230386a8ffb950cb724b10743af032310d1384df0a90059bfb8992ba2d93344ce86315315f0493feccc2
+  languageName: node
+  linkType: hard
+
+"react-native-keyboard-manager@npm:^6.5.16-0":
+  version: 6.5.16-0
+  resolution: "react-native-keyboard-manager@npm:6.5.16-0"
+  peerDependencies:
+    react-native: ">=0.60"
+  checksum: 10/ea7950835fb0d1b0d5a90420f04117f0fb67f885a327595bc28bc3fc4dfc15149082880aa4d4b4736600940150579f16557c3b5ef0dd0ebedc9182b1093e9c2d
   languageName: node
   linkType: hard
 

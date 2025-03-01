@@ -16,7 +16,7 @@ export default function FileSelector (props) {
   if (isEmpty(files)) return null
 
   return (
-    // TODO: Extra "View" wrapper moved from PostEditor, but may not be necessary
+    // TODO: Extra "View" wrapper moved from PostEditor, but may not be necessary. Confirm and remove.
     <View>
       <View>
         {files.map((file, index) => renderFileButton(file, index, onRemove))}
