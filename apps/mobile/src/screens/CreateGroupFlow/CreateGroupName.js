@@ -1,27 +1,24 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Text, View, ScrollView, TextInput } from 'react-native'
-import { useSelector, useDispatch } from 'react-redux'
 import { useFocusEffect } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
-import { getGroupData, getEdited, updateGroupData, setWorkflowOptions, clearCreateGroupStore } from './CreateGroupFlow.store'
+import { useCreateGroupStore } from './CreateGroupFlow.store'
 import ErrorBubble from 'components/ErrorBubble'
 
 export default function CreateGroupName ({ route }) {
-  const dispatch = useDispatch()
   const { t } = useTranslation()
   // Add current group in as pre-selected as a parent group for Parent Groups Step
-  const edited = useSelector(getEdited)
+  const { groupData, updateGroupData, edited, setDisableContinue, clearStore } = useCreateGroupStore()
   const [{ currentGroup }] = useCurrentGroup()
-  const groupData = useSelector(getGroupData)
   const [groupName, setGroupName] = useState()
   const [error, setError] = useState()
   const { reset } = useRouteParams()
 
   useEffect(() => {
     if (reset) {
-      dispatch(clearCreateGroupStore())
+      clearStore()
       setGroupName('')
     } else {
       setGroupName(groupData?.name)
@@ -30,17 +27,17 @@ export default function CreateGroupName ({ route }) {
 
   useFocusEffect(useCallback(() => {
     if (!groupName || groupName.length === 0) {
-      dispatch(setWorkflowOptions({ disableContinue: true }))
+      setDisableContinue(true)
     } else {
-      dispatch(updateGroupData({ name: groupName }))
+      updateGroupData({ name: groupName })
       setError()
-      dispatch(setWorkflowOptions({ disableContinue: false }))
+      setDisableContinue(false)
     }
   }, [groupName]))
 
   useFocusEffect(useCallback(() => {
     if (!edited && !currentGroup?.isContextGroup) {
-      dispatch(updateGroupData({ parentIds: [currentGroup?.id] }))
+      updateGroupData({ parentGroups: [currentGroup] })
     }
   }, [edited, currentGroup?.id]))
 

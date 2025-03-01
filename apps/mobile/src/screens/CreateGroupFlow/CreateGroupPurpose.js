@@ -1,21 +1,18 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
 import { useFocusEffect } from '@react-navigation/native'
 import { Text, View, ScrollView, TextInput } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import KeyboardManager from 'react-native-keyboard-manager'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
-import { getGroupData, getEdited, updateGroupData, setWorkflowOptions, clearCreateGroupStore } from './CreateGroupFlow.store'
+import { useCreateGroupStore } from './CreateGroupFlow.store'
 import ErrorBubble from 'components/ErrorBubble'
 
 export default function CreateGroupPurpose ({ route }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const edited = useSelector(getEdited)
+  const { edited, groupData, updateGroupData, setDisableContinue, clearStore } = useCreateGroupStore()
   // Add current group in as pre-selected as a parent group for Parent Groups Step
   const [{ currentGroup }] = useCurrentGroup()
-  const groupData = useSelector(getGroupData)
   const [groupPurpose, setGroupPurpose] = useState()
   const [error, setError] = useState()
   const { reset } = useRouteParams()
@@ -29,7 +26,7 @@ export default function CreateGroupPurpose ({ route }) {
 
   useEffect(() => {
     if (reset) {
-      dispatch(clearCreateGroupStore())
+      clearStore()
       setGroupPurpose('')
     } else {
       setGroupPurpose(groupData?.purpose)
@@ -37,14 +34,14 @@ export default function CreateGroupPurpose ({ route }) {
   }, [reset])
 
   useFocusEffect(useCallback(() => {
-    dispatch(updateGroupData({ purpose: groupPurpose }))
+    updateGroupData({ purpose: groupPurpose })
     setError()
-    dispatch(setWorkflowOptions({ disableContinue: false }))
+    setDisableContinue(false)
   }, [groupPurpose]))
 
   useFocusEffect(useCallback(() => {
     if (!edited && !currentGroup?.isContextGroup) {
-      dispatch(updateGroupData({ parentIds: [currentGroup?.id] }))
+      updateGroupData({ parentGroups: [currentGroup] })
     }
   }, [edited, currentGroup?.id]))
 
@@ -60,7 +57,7 @@ export default function CreateGroupPurpose ({ route }) {
           <View className='mb-4 border-b border-foreground/20'>
             <Text className='text-foreground/90 font-bold'>{t('Whats the purpose of the group?')}</Text>
             <TextInput
-              className='text-foreground text-lg font-bold my-2.5'
+              className='text-foreground text-lg my-2.5'
               onChangeText={setGroupPurpose}
               returnKeyType='next'
               autoCapitalize='none'

@@ -28,26 +28,6 @@ describe('reducer', () => {
       expect(newState).toEqual(initialState)
     })
   })
-  describe('on FETCH_URL_EXISTS', () => {
-    const exists = true
-    const action = {
-      type: FETCH_URL_EXISTS,
-      payload: {
-        data: {
-          groupExists: {
-            exists
-          }
-        }
-      }
-    }
-    it('sets display', () => {
-      const state = {
-        urlExists: null
-      }
-      const newState = reducer(state, action)
-      expect(newState.urlExists).toEqual(exists)
-    })
-  })
 })
 
 describe('createGroup', () => {

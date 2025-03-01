@@ -1,24 +1,23 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import { Text, View, ScrollView, TextInput } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
-import { useSelector, useDispatch } from 'react-redux'
 import { useQuery } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { debounce } from 'lodash/fp'
+import groupExistsQuery from '@hylo/graphql/queries/groupExistsQuery'
 import { slugValidatorRegex, invalidSlugMessage, formatDomainWithUrl, removeDomainFromURL } from './util'
-import { updateGroupData, setWorkflowOptions, groupExistsCheckQuery, getGroupData } from './CreateGroupFlow.store'
+import { useCreateGroupStore } from './CreateGroupFlow.store'
 import ErrorBubble from 'components/ErrorBubble'
 
 export default function CreateGroupUrl ({ navigation }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const groupData = useSelector(getGroupData)
+  const { groupData, updateGroupData, setDisableContinue } = useCreateGroupStore()
   const [error, providedSetError] = useState()
   const [groupSlug, setGroupSlug] = useState(groupData?.slug)
-  const [groupExistsCheckResult] = useQuery({ query: groupExistsCheckQuery, variables: { slug: groupSlug } })
+  const [groupExistsCheckResult] = useQuery({ query: groupExistsQuery, variables: { slug: groupSlug } })
 
   const setError = error => {
-    dispatch(setWorkflowOptions({ disableContinue: true }))
+    setDisableContinue(true)
     providedSetError(error)
   }
   const clearError = () => providedSetError()
@@ -27,7 +26,7 @@ export default function CreateGroupUrl ({ navigation }) {
     try {
       if (!slug || slug.length === 0) {
         // setError('Please enter a URL')
-        dispatch(setWorkflowOptions({ disableContinue: true }))
+        setDisableContinue(true)
         return false
       }
 
@@ -41,9 +40,9 @@ export default function CreateGroupUrl ({ navigation }) {
       if (result?.error) {
         setError(t('There was an error please try again'))
       } else if (groupExists === false) {
-        dispatch(updateGroupData({ slug }))
+        updateGroupData({ slug })
         clearError()
-        dispatch(setWorkflowOptions({ disableContinue: false }))
+        setDisableContinue(false)
       } else if (groupExists) {
         setError(t('This URL already exists Please choose another one'))
       } else {
@@ -56,7 +55,7 @@ export default function CreateGroupUrl ({ navigation }) {
   }), [])
 
   useFocusEffect(useCallback(() => {
-    dispatch(setWorkflowOptions({ disableContinue: true }))
+    setDisableContinue(true)
     validateAndSave(groupExistsCheckResult, groupSlug)
   }, [groupExistsCheckResult?.data]))
 

@@ -1,16 +1,14 @@
 import React, { useState } from 'react'
 import { View } from 'react-native'
-import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { getWorkflowOptions } from 'screens/CreateGroupFlow/CreateGroupFlow.store'
+import { useCreateGroupStore } from './CreateGroupFlow.store'
 import ButtonNW from 'components/Button/ButtonNW'
 
 export default function CreateGroupTabBar ({ state, descriptors, navigation }) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
-  const workflowOptions = useSelector(getWorkflowOptions)
-  const disableContinue = !!workflowOptions?.disableContinue
+  const { disableContinue } = useCreateGroupStore()
   const [completeButtonDisabled, setCompleteButtonDisabled] = useState(false)
   const prevStepScreenName = state.routeNames[state.index - 1]
   const nextStepScreenName = state.routeNames[state.index + 1]

@@ -1,22 +1,22 @@
-import React, { useState, useCallback, useRef } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
-import { useFocusEffect } from '@react-navigation/native'
+import React, { useRef } from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { getGroupData, updateGroupData } from './CreateGroupFlow.store'
+import { useCreateGroupStore } from './CreateGroupFlow.store'
 import Icon from 'components/Icon'
 import ItemSelectorModal from 'components/ItemSelectorModal'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 
 export default function CreateGroupParentGroups ({ navigation }) {
-  const dispatch = useDispatch()
   const { t } = useTranslation()
   const [{ currentUser }] = useCurrentUser()
-  const groupData = useSelector(getGroupData)
-  const [parentIds, setParentGroupIds] = useState(groupData.parentIds)
+  const { groupData, updateGroupData } = useCreateGroupStore()
+  const parentGroups = groupData.parentGroups
+  const setParentGroups = newParentGroups => updateGroupData({ parentGroups: newParentGroups })
+  const clearParentGroups = () => setParentGroups([])
+  // const [parentGroups, setParentGroups] = useState(groupData.parentGroups)
   const memberships = currentUser?.memberships
   const parentGroupOptions = memberships
     .filter(m => m.hasModeratorRole || m.group.accessibility === GROUP_ACCESSIBILITY.Open)
@@ -25,30 +25,20 @@ export default function CreateGroupParentGroups ({ navigation }) {
 
   const groupSelectorModalRef = useRef(null)
 
-  const isChosen = item => !!parentIds.find(groupId => groupId === item.id)
+  const isChosen = group => !!parentGroups.find(parentGroup => parentGroup.id === group.id)
 
   const handleAddGroup = group => {
     if (!isChosen(group)) {
-      setParentGroupIds([...parentIds, group.id])
+      setParentGroups([...parentGroups, group])
     }
   }
 
-  const handleRemoveGroup = groupSlug => {
-    const group = parentGroupOptions.find(g => g.slug === groupSlug)
-    if (group) {
-      setParentGroupIds(parentIds.filter(id => id !== group.id))
-    }
+  const handleRemoveGroup = removingGroup => {
+    setParentGroups(parentGroups.filter(parentGroup => parentGroup.id !== removingGroup.id))
   }
 
-  const clear = () => setParentGroupIds([])
-
-  useFocusEffect(useCallback(() => {
-    // Extra step necessary to reject a default group selection which isn't valid
-    parentIds.filter(id => parentGroupOptions.find(validId => id === validId))
-    dispatch(updateGroupData({ parentIds }))
-  }, [parentIds]))
-
-  const selectedGroups = parentGroupOptions.filter(group => isChosen(group))
+  // Extra step necessary to reject a default group selection which isn't valid
+  // groupData.parentGroups.filter(parentGroup => parentGroupOptions.find(validGroup => parentGroup.id === validGroup.id))
 
   return (
     <KeyboardFriendlyView className='bg-background p-5 flex-1'>
@@ -76,37 +66,45 @@ export default function CreateGroupParentGroups ({ navigation }) {
               : item
             )
           )}
-          chosenItems={selectedGroups}
+          chosenItems={parentGroups}
           onItemPress={handleAddGroup}
           searchPlaceholder={t('Search for group by name')}
         />
 
-        {selectedGroups.length > 0 && (
+        {parentGroups.length > 0 && (
           <View className='mt-3 space-y-3'>
-            {selectedGroups.map(group => (
-              <View key={group.id} className='flex-row items-center py-0.5 px-1 gap-1'>
-                <FastImage
-                  source={{ uri: group.avatarUrl }}
-                  style={{ width: 20, height: 20, borderRadius: 10 }}
-                  className='mr-3'
-                />
-                <Text className='flex-1 text-foreground text-base'>{group.name}</Text>
-                <TouchableOpacity
-                  className='ml-3'
-                  hitSlop={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                  onPress={() => handleRemoveGroup(group.slug)}
-                >
-                  <Icon className='text-foreground/60 text-lg' name='Ex' />
-                </TouchableOpacity>
-              </View>
+            {parentGroups.map(group => (
+              <GroupRow group={group} onRemove={handleRemoveGroup} key={group.id} />
             ))}
           </View>
         )}
       </View>
 
-      <TouchableOpacity onPress={clear}>
+      <TouchableOpacity onPress={clearParentGroups}>
         <Text className='text-foreground font-bold mt-2.5 self-end mr-5'>{t('Clear')}</Text>
       </TouchableOpacity>
     </KeyboardFriendlyView>
+  )
+}
+
+export function GroupRow ({ group, onRemove }) {
+  return (
+    <View className='flex-row items-center py-0.5 px-1 gap-1'>
+      <FastImage
+        source={{ uri: group.avatarUrl }}
+        style={{ width: 20, height: 20, borderRadius: 10 }}
+        className='mr-3'
+      />
+      <Text className='flex-1 text-foreground text-base font-bold'>{group.name}</Text>
+      {onRemove && (
+        <TouchableOpacity
+          className='ml-3'
+          hitSlop={{ top: 5, right: 5, left: 5, bottom: 5 }}
+          onPress={() => onRemove(group)}
+        >
+          <Icon className='text-foreground/60 text-lg' name='Ex' />
+        </TouchableOpacity>
+      )}
+    </View>
   )
 }

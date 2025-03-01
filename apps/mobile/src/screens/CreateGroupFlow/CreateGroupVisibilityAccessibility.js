@@ -1,5 +1,4 @@
 import React, { useCallback, useState } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
 import { useFocusEffect } from '@react-navigation/native'
 import { Text, View, ScrollView, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
@@ -8,7 +7,7 @@ import {
   visibilityDescription, accessibilityDescription,
   visibilityIcon, accessibilityIcon
 } from '@hylo/presenters/GroupPresenter'
-import { getGroupData, updateGroupData } from './CreateGroupFlow.store'
+import { useCreateGroupStore } from './CreateGroupFlow.store'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import RoundCheckbox from 'components/RoundCheckBox'
 import Icon from 'components/Icon'
@@ -19,21 +18,26 @@ const groupVisibilityOptions = Object.keys(GROUP_VISIBILITY).map(label => ({
   value: GROUP_VISIBILITY[label]
 }))
 
+export const DEFAULT_VISIBILITY_OPTION = groupVisibilityOptions.find(visibility => visibility.value === GROUP_VISIBILITY.Protected)
+
 const groupAccessibilityOptions = Object.keys(GROUP_ACCESSIBILITY).map(label => ({
   label: label + ': ' + accessibilityDescription(GROUP_ACCESSIBILITY[label]),
   iconName: accessibilityIcon(GROUP_ACCESSIBILITY[label]),
   value: GROUP_ACCESSIBILITY[label]
 }))
 
+export const DEFAULT_ACCESSIBILITY_OPTION = groupAccessibilityOptions.find(accessibility => accessibility.value === GROUP_ACCESSIBILITY.Restricted)
+
 export default function CreateGroupVisibilityAccessibility ({ navigation }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const groupData = useSelector(getGroupData)
-  const [visibility, setVisibility] = useState(groupData.visibility)
-  const [accessibility, setAccessibility] = useState(groupData.accessibility)
+  const { groupData, updateGroupData } = useCreateGroupStore()
+  const visibility = groupData.visibility
+  const setVisibility = newVisibility => updateGroupData({ visibility: newVisibility })
+  const accessibility = groupData.accessibility
+  const setAccessibility = newAccessibility => updateGroupData({ accessibility: newAccessibility })
 
   useFocusEffect(useCallback(() => {
-    dispatch(updateGroupData({ visibility, accessibility }))
+    updateGroupData({ visibility, accessibility })
   }, [visibility, accessibility]))
 
   return (
@@ -43,9 +47,9 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
           <View className='mb-6'>
             <Text className='text-foreground text-xl font-bold mb-2.5'>{t('Who can see this group?')}</Text>
             {groupVisibilityOptions.map(option => (
-              <Option
+              <GroupPrivacyOption
                 option={option}
-                chosen={option.value === visibility}
+                chosen={option.value === visibility.value}
                 onPress={setVisibility}
                 key={option.value}
               />
@@ -54,9 +58,9 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
           <View className='mb-6'>
             <Text className='text-foreground text-xl font-bold mb-2.5'>{t('Who can join this group?')}</Text>
             {groupAccessibilityOptions.map(option => (
-              <Option
+              <GroupPrivacyOption
                 option={option}
-                chosen={option.value === accessibility}
+                chosen={option.value === accessibility.value}
                 onPress={setAccessibility}
                 key={option.value}
               />
@@ -68,12 +72,15 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
   )
 }
 
-export function Option ({ option, chosen, onPress }) {
+export function GroupPrivacyOption ({ option, chosen, onPress }) {
+  if (!option) return
   return (
-    <TouchableOpacity className='p-4 pb-0 mb-2.5 flex-row items-center' onPress={() => onPress(option.value)}>
-      <RoundCheckbox className='mr-3' size={24} checked={chosen} onValueChange={() => onPress(option.value)} />
+    <TouchableOpacity className='flex-row items-center p-4 pb-0 mb-2.5' onPress={() => onPress && onPress(option)}>
+      {onPress && (
+        <RoundCheckbox className='mr-3' size={24} checked={chosen} onValueChange={() => onPress(option)} />
+      )}
       <Icon className='mr-3 self-center' size={22} name={option.iconName} />
-      <Text className='mt-[-4] ml-2.5 font-circular-bold flex-1 self-center'>
+      <Text className='mt-[-4] ml-2.5 font-circular-bold flex-1 self-center font-bold'>
         {option.label}
       </Text>
     </TouchableOpacity>

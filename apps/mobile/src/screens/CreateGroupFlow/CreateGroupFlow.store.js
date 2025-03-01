@@ -1,136 +1,43 @@
-import { gql } from 'urql'
-import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from '@hylo/presenters/GroupPresenter'
-import groupFieldsFragment from '@hylo/graphql/fragments/groupFieldsFragment'
-import groupPrerequisiteGroupsFieldsFragment from '@hylo/graphql/fragments/groupPrerequisiteGroupsFieldsFragment'
+import { create } from 'zustand'
+import { DEFAULT_ACCESSIBILITY_OPTION, DEFAULT_VISIBILITY_OPTION } from './CreateGroupVisibilityAccessibility'
 
-export const MODULE_NAME = 'CreateGroupFlow'
-export const UPDATE_GROUP_DATA = `${MODULE_NAME}/UPDATE_GROUP_DATA`
-export const FETCH_URL_EXISTS = `${MODULE_NAME}/FETCH_URL_EXISTS`
-export const CREATE_GROUP = `${MODULE_NAME}/CREATE_GROUP`
-export const CLEAR_CREATE_GROUP_STORE = `${MODULE_NAME}/CLEAR_CREATE_GROUP_STORE`
-export const FETCH_GROUP_EXISTS = `${MODULE_NAME}/FETCH_GROUP_EXISTS`
-export const SET_WORKFLOW_OPTIONS = `${MODULE_NAME}/SET_WORKFLOW_OPTIONS`
-
-export const initialState = {
-  // New Group Defaults
+const initialState = {
   groupData: {
     name: '',
     slug: '',
     purpose: '',
-    visibility: GROUP_VISIBILITY.Protected,
-    accessibility: GROUP_ACCESSIBILITY.Restricted,
-    parentIds: []
+    visibility: DEFAULT_VISIBILITY_OPTION,
+    accessibility: DEFAULT_ACCESSIBILITY_OPTION,
+    parentGroups: []
   },
-  workflowOptions: {},
-  urlExists: false,
+  disableContinue: false,
   edited: false
 }
 
-export default function reducer (state = initialState, action) {
-  const { type, payload } = action
-  switch (type) {
-    case SET_WORKFLOW_OPTIONS:
-      return {
-        ...state,
-        workflowOptions: payload
-      }
-    case UPDATE_GROUP_DATA:
-      return {
-        ...state,
-        groupData: {
-          ...state.groupData,
-          ...payload
-        },
-        edited: true
-      }
-    case CLEAR_CREATE_GROUP_STORE:
-      return initialState
-    case FETCH_URL_EXISTS:
-      return {
-        ...state,
-        urlExists: action.payload.data.groupExists.exists,
-        edited: true
-      }
-  }
-  return state
-}
+export const useCreateGroupStore = create((set, get) => ({
+  ...initialState,
 
-export const createGroupMutation = gql`
-  mutation CreateGroupMutation ($data: GroupInput) {
-    createGroup(data: $data) {
-      ...GroupFieldsFragment
-      ...GroupPrerequisiteGroupsFieldsFragment
-      memberships {
-        items {
-          id
-          hasModeratorRole
-          person {
-            id
-          }
-          settings {
-            agreementsAcceptedAt
-            joinQuestionsAnsweredAt
-            sendEmail
-            showJoinForm
-            sendPushNotifications
-          }
-        }
-      }
+  setEdited: edited => set({ edited }),
+
+  setDisableContinue: disableContinue => set({ disableContinue }),
+
+  updateGroupData: (updates) => set((state) => ({
+    groupData: { ...state.groupData, ...updates },
+    edited: true
+  })),
+
+  // https://github.com/Hylozoic/hylo/blob/0cc010845b1c9fa9354ad678dd09fca992ae30e2/apps/backend/api/graphql/schema.graphql#L2938-L2939
+  getMutationData: () => {
+    const groupData = get().groupData
+    return {
+      name: groupData.name,
+      slug: groupData.slug,
+      purpose: groupData.purpose,
+      visibility: groupData.visibility ? groupData.visibility.value : null,
+      accessibility: groupData.accessibility ? groupData.accessibility.value : null,
+      parentIds: groupData.parentGroups.map(parentGroup => parentGroup.id)
     }
-  }
-  ${groupFieldsFragment}
-  ${groupPrerequisiteGroupsFieldsFragment}
-`
+  },
 
-export const groupExistsCheckQuery = gql`
-  query GroupExistsCheckQuery ($slug: String) {
-    groupExists (slug: $slug) {
-      exists
-    }
-  }
-`
-
-export function setWorkflowOptions (value = {}) {
-  return {
-    type: SET_WORKFLOW_OPTIONS,
-    payload: value
-  }
-}
-
-export function updateGroupData (groupData) {
-  return {
-    type: UPDATE_GROUP_DATA,
-    payload: groupData
-  }
-}
-
-export function getGroupData (state) {
-  return state[MODULE_NAME]?.groupData
-}
-
-export function getGroupUrlExists (state) {
-  return state[MODULE_NAME].urlExists
-}
-
-export function getWorkflowOptions (state) {
-  return state[MODULE_NAME].workflowOptions
-}
-
-export function getEdited (state) {
-  return state[MODULE_NAME]?.edited
-}
-
-export function clearCreateGroupStore () {
-  return {
-    type: CLEAR_CREATE_GROUP_STORE
-  }
-}
-
-// export const getNewGroupParentGroups = ormCreateSelector(
-//   orm,
-//   getGroupData,
-//   (session, { parentIds }) => session.Group.all()
-//     .toRefArray()
-//     .filter(g => parentIds.includes(g.id))
-//     .sort((a, b) => a.name.localeCompare(b.name))
-// )
+  clearStore: () => set(() => ({ ...initialState }))
+}))
