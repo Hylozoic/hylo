@@ -1,19 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { debounce } from 'lodash/fp'
-import { useSelector, useDispatch } from 'react-redux'
-import { useQuery } from 'urql'
 import { Text, View, ScrollView, TextInput } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
+import { useSelector, useDispatch } from 'react-redux'
+import { useQuery } from 'urql'
 import { useTranslation } from 'react-i18next'
+import { debounce } from 'lodash/fp'
+import { slugValidatorRegex, invalidSlugMessage, formatDomainWithUrl, removeDomainFromURL } from './util'
+import { updateGroupData, setWorkflowOptions, groupExistsCheckQuery, getGroupData } from './CreateGroupFlow.store'
 import ErrorBubble from 'components/ErrorBubble'
-import {
-  slugValidatorRegex, invalidSlugMessage,
-  formatDomainWithUrl, removeDomainFromURL
-} from './util'
-import {
-  updateGroupData, setWorkflowOptions,
-  groupExistsCheckQuery, getGroupData
-} from './CreateGroupFlow.store'
 import styles from './CreateGroupFlow.styles'
 
 export default function CreateGroupUrl ({ navigation }) {
@@ -68,17 +62,17 @@ export default function CreateGroupUrl ({ navigation }) {
   }, [groupExistsCheckResult?.data]))
 
   return (
-    <View className="bg-background p-5 flex-1">
+    <View className='bg-background p-5 flex-1'>
       <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
-        <View className="mb-5">
-          <Text className="text-foreground text-xl font-bold pb-2.5">{t('Choose an address for your group')}</Text>
-          <Text className="text-foreground/80 mb-1">{t('Your URL is the address that members will use to access your group online The shorter the better')}</Text>
+        <View className='mb-5'>
+          <Text className='text-foreground text-xl font-bold pb-2.5'>{t('Choose an address for your group')}</Text>
+          <Text className='text-foreground/80 mb-1'>{t('Your URL is the address that members will use to access your group online The shorter the better')}</Text>
         </View>
         <View>
-          <View className="mb-4 border-b border-foreground/20">
-            <Text className="text-foreground/90 font-bold">{t('Whats the address for your group')}</Text>
+          <View className='mb-4 border-b border-foreground/20'>
+            <Text className='text-foreground/90 font-bold'>{t('Whats the address for your group')}</Text>
             <TextInput
-              className="text-foreground text-lg font-bold my-2.5"
+              className='text-foreground text-lg font-bold my-2.5'
               onChangeText={slug => setGroupSlug(removeDomainFromURL(slug))}
               returnKeyType='next'
               autoCapitalize='none'
@@ -87,7 +81,7 @@ export default function CreateGroupUrl ({ navigation }) {
               underlineColorAndroid='transparent'
             />
           </View>
-          {error && <View className="mt-[-8]"><ErrorBubble text={error} topArrow /></View>}
+          {error && <View className='mt-[-8]'><ErrorBubble text={error} topArrow /></View>}
         </View>
       </ScrollView>
     </View>

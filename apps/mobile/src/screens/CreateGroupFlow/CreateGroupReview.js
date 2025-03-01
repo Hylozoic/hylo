@@ -1,20 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import {
-  Text, View, TextInput, ScrollView, TouchableOpacity
-} from 'react-native'
+import { Text, View, TextInput, ScrollView, TouchableOpacity } from 'react-native'
 import { useMutation } from 'urql'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { AnalyticsEvents } from '@hylo/shared'
+import { accessibilityDescription, visibilityDescription } from '@hylo/presenters/GroupPresenter'
 import mixpanel from 'services/mixpanel'
 import { formatDomainWithUrl } from './util'
-import { createGroupMutation, clearCreateGroupStore, getGroupData } from './CreateGroupFlow.store'
-import { accessibilityDescription, visibilityDescription } from '@hylo/presenters/GroupPresenter'
 import { openURL } from 'hooks/useOpenURL'
+import { createGroupMutation, clearCreateGroupStore, getGroupData } from './CreateGroupFlow.store'
 import ErrorBubble from 'components/ErrorBubble'
 import Avatar from 'components/Avatar'
-import styles from './CreateGroupFlow.styles'
 import { white } from 'style/colors'
 
 export default function CreateGroupReview () {
@@ -51,20 +48,20 @@ export default function CreateGroupReview () {
   }, [groupData])
 
   return (
-    <View className="bg-background p-5 flex-1">
-      <ScrollView className="flex-1">
-        <View className="mb-5">
-          <Text className="text-foreground text-xl font-bold pb-2.5">{t('Everything look good?')}</Text>
-          <Text className="text-foreground/80 mb-1">{t('You can always come back and change your details at any time')}</Text>
+    <View className='bg-background p-5 flex-1'>
+      <ScrollView className='flex-1'>
+        <View className='mb-5'>
+          <Text className='text-foreground text-xl font-bold pb-2.5'>{t('Everything look good?')}</Text>
+          <Text className='text-foreground/80 mb-1'>{t('You can always come back and change your details at any time')}</Text>
         </View>
-        <View className="flex-1">
-          <View className="mb-4 border-b border-foreground/20">
-            <View className="flex-row justify-between items-center">
-              <Text className="text-foreground/90 font-bold">{t('Whats the name of your group?')}</Text>
+        <View className='flex-1'>
+          <View className='mb-4 border-b border-foreground/20'>
+            <View className='flex-row justify-between items-center'>
+              <Text className='text-foreground/90 font-bold'>{t('Whats the name of your group?')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupName')} />
             </View>
             <TextInput
-              className="text-foreground text-lg font-bold my-2.5"
+              className='text-foreground text-lg font-bold my-2.5'
               value={groupData.name}
               underlineColorAndroid='transparent'
               editable={false}
@@ -72,13 +69,13 @@ export default function CreateGroupReview () {
             />
           </View>
 
-          <View className="mb-4 border-b border-foreground/20">
-            <View className="flex-row justify-between items-center">
-              <Text className="text-foreground/90 font-bold">{t('Whats the URL of your group?')}</Text>
+          <View className='mb-4 border-b border-foreground/20'>
+            <View className='flex-row justify-between items-center'>
+              <Text className='text-foreground/90 font-bold'>{t('Whats the URL of your group?')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupUrl')} />
             </View>
             <TextInput
-              className="text-foreground text-lg font-bold my-2.5"
+              className='text-foreground text-lg font-bold my-2.5'
               value={formatDomainWithUrl(groupData.slug)}
               underlineColorAndroid='transparent'
               editable={false}
@@ -86,13 +83,13 @@ export default function CreateGroupReview () {
             />
           </View>
 
-          <View className="mb-4 border-b border-foreground/20">
-            <View className="flex-row justify-between items-center">
-              <Text className="text-foreground/90 font-bold">{t('What is the purpose of this group')}</Text>
+          <View className='mb-4 border-b border-foreground/20'>
+            <View className='flex-row justify-between items-center'>
+              <Text className='text-foreground/90 font-bold'>{t('What is the purpose of this group')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupPurpose')} />
             </View>
             <TextInput
-              className="text-foreground text-lg font-bold my-2.5"
+              className='text-foreground text-lg font-bold my-2.5'
               multiline
               value={groupData.purpose}
               underlineColorAndroid='transparent'
@@ -101,13 +98,13 @@ export default function CreateGroupReview () {
             />
           </View>
 
-          <View className="mb-4 border-b border-foreground/20">
-            <View className="flex-row justify-between items-center">
-              <Text className="text-foreground/90 font-bold">{t('Who can see this group?')}</Text>
+          <View className='mb-4 border-b border-foreground/20'>
+            <View className='flex-row justify-between items-center'>
+              <Text className='text-foreground/90 font-bold'>{t('Who can see this group?')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupVisibilityAccessibility')} />
             </View>
             <TextInput
-              className="text-foreground text-lg font-bold my-2.5"
+              className='text-foreground text-lg font-bold my-2.5'
               multiline
               value={visibilityDescription(groupData.visibility)}
               underlineColorAndroid='transparent'
@@ -116,13 +113,13 @@ export default function CreateGroupReview () {
             />
           </View>
 
-          <View className="mb-4 border-b border-foreground/20">
-            <View className="flex-row justify-between items-center">
-              <Text className="text-foreground/90 font-bold">{t('Who can join this group?')}</Text>
+          <View className='mb-4 border-b border-foreground/20'>
+            <View className='flex-row justify-between items-center'>
+              <Text className='text-foreground/90 font-bold'>{t('Who can join this group?')}</Text>
               <EditButton onPress={() => navigation.navigate('CreateGroupVisibilityAccessibility')} />
             </View>
             <TextInput
-              className="text-foreground text-lg font-bold my-2.5"
+              className='text-foreground text-lg font-bold my-2.5'
               multiline
               value={accessibilityDescription(groupData.accessibility)}
               underlineColorAndroid='transparent'
@@ -144,16 +141,16 @@ export default function CreateGroupReview () {
           </View>
         )} */}
 
-        {error && <View className="mt-[-8]"><ErrorBubble text={error} /></View>}
+        {error && <View className='mt-[-8]'><ErrorBubble text={error} /></View>}
       </ScrollView>
     </View>
   )
 }
 
 const GroupRow = ({ group }) => (
-  <View className="flex-row mb-2.5" key={group.name}>
-    <Avatar className="mr-3.5" avatarUrl={group.avatarUrl} dimension={20} />
-    <Text className="text-foreground font-circular-bold flex-1 text-sm">{group.name}</Text>
+  <View className='flex-row mb-2.5' key={group.name}>
+    <Avatar className='mr-3.5' avatarUrl={group.avatarUrl} dimension={20} />
+    <Text className='text-foreground font-circular-bold flex-1 text-sm'>{group.name}</Text>
   </View>
 )
 
@@ -162,7 +159,7 @@ const EditButton = ({ onPress }) => {
 
   return (
     <TouchableOpacity onPress={onPress}>
-      <Text className="text-foreground/80 text-xs font-bold">{t('Edit')}</Text>
+      <Text className='text-foreground/80 text-xs font-bold'>{t('Edit')}</Text>
     </TouchableOpacity>
   )
 }

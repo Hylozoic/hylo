@@ -63,17 +63,17 @@ export default function CreateGroupTabBar ({ state, descriptors, navigation }) {
     : (isIOS ? 80 : 60)
 
   return (
-    <View 
-      className="flex-row justify-between px-5 pt-2.5 bg-midground"
+    <View
+      className='flex-row justify-between px-5 pt-2.5 bg-midground'
       style={{ height: keyboardAdjustedHeight }}
     >
-      <View className="w-[100px]">
+      <View className='w-[100px]'>
         {prevStepScreenName && (
           <ButtonNW
             text={t('< Back')}
             onPress={gotoPrevStep}
-            className="w-[100px] bg-foreground/5"
-            textClassName="text-foreground/80"
+            className='w-[100px] bg-foreground/5'
+            textClassName='text-foreground/80'
           />
         )}
       </View>
@@ -82,17 +82,17 @@ export default function CreateGroupTabBar ({ state, descriptors, navigation }) {
           text={t('Continue')}
           onPress={gotoNextStep}
           disabled={disableContinue}
-          className="w-[134px] border-2 border-foreground/50"
-          textClassName="text-foreground"
+          className='w-[134px] border-2 border-foreground/50'
+          textClassName='text-foreground'
         />
       )}
       {!nextStepScreenName && (
         <ButtonNW
-          text={t("Lets Do This!")}
+          text={t('Lets Do This!')}
           onPress={completeWorkflow}
           disabled={completeButtonDisabled}
-          className="w-[134px] border-2 border-foreground/50"
-          textClassName="text-foreground"
+          className='w-[134px] border-2 border-foreground/50'
+          textClassName='text-foreground'
         />
       )}
     </View>

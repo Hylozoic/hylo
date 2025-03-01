@@ -1,16 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import { Text, View, ScrollView, TextInput } from 'react-native'
 import { useSelector, useDispatch } from 'react-redux'
 import { useFocusEffect } from '@react-navigation/native'
-import { Text, View, ScrollView, TextInput } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
-import {
-  getGroupData, getEdited, updateGroupData, setWorkflowOptions,
-  clearCreateGroupStore
-} from './CreateGroupFlow.store'
+import { getGroupData, getEdited, updateGroupData, setWorkflowOptions, clearCreateGroupStore } from './CreateGroupFlow.store'
 import ErrorBubble from 'components/ErrorBubble'
 import styles from './CreateGroupFlow.styles'
-import { useTranslation } from 'react-i18next'
 
 export default function CreateGroupName ({ route }) {
   const dispatch = useDispatch()
@@ -49,17 +46,17 @@ export default function CreateGroupName ({ route }) {
   }, [edited, currentGroup?.id]))
 
   return (
-    <View className="bg-background p-5 flex-1">
+    <View className='bg-background p-5 flex-1'>
       <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
-        <View className="mb-5">
-          <Text className="text-foreground text-xl font-bold pb-2.5">{t('Lets get started!')}</Text>
-          <Text className="text-foreground/80 mb-1">{t('All good things start somewhere! Lets kick things off with a catchy name for your group')}</Text>
+        <View className='mb-5'>
+          <Text className='text-foreground text-xl font-bold pb-2.5'>{t('Lets get started!')}</Text>
+          <Text className='text-foreground/80 mb-1'>{t('All good things start somewhere! Lets kick things off with a catchy name for your group')}</Text>
         </View>
         <View>
-          <View className="mb-4 border-b border-foreground/20">
-            <Text className="text-foreground/90 font-bold">{t('Whats the name of your group?')}</Text>
+          <View className='mb-4 border-b border-foreground/20'>
+            <Text className='text-foreground/90 font-bold'>{t('Whats the name of your group?')}</Text>
             <TextInput
-              className="text-foreground text-lg font-bold my-2.5"
+              className='text-foreground text-lg font-bold my-2.5'
               onChangeText={setGroupName}
               returnKeyType='next'
               autoCapitalize='none'
@@ -69,7 +66,7 @@ export default function CreateGroupName ({ route }) {
               maxLength={60}
             />
           </View>
-          {error && <View className="mt-[-8]"><ErrorBubble text={error} topArrow /></View>}
+          {error && <View className='mt-[-8]'><ErrorBubble text={error} topArrow /></View>}
         </View>
       </ScrollView>
     </View>
