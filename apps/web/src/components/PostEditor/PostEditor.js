@@ -377,9 +377,6 @@ function PostEditor ({
    * @param {string} html - The HTML content from the editor
    */
   const handleDetailsChange = useCallback((html) => {
-    // Early return if no content is provided
-    if (!html) return
-
     // Get plain text from the editor for validation purposes
     const details = editorRef.current.getText()
 
