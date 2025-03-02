@@ -1,4 +1,4 @@
-import { values, omit, filter, includes, isEmpty, get } from 'lodash'
+import { values, omit, filter, includes, isEmpty, get, trim } from 'lodash'
 
 const isNewPost = activity => {
   const reasons = activity.get('meta').reasons
@@ -23,6 +23,12 @@ const isAnnouncement = activity => {
 const isTopic = activity => {
   const reasons = activity.get('meta').reasons
   const t = filter(reasons, reason => reason.match(/^tag/)).length > 0
+  return t
+}
+
+const isChat = activity => {
+  const reasons = activity.get('meta').reasons
+  const t = filter(reasons, reason => reason.match(/^chat/)).length > 0
   return t
 }
 
@@ -139,6 +145,7 @@ module.exports = bookshelf.Model.extend({
 }, {
   Reason: {
     Mention: 'mention', // you are mentioned in a post or comment
+    Chat: 'chat', // someone makes a new chat in a chat room you subscribe to
     Comment: 'comment', // someone makes a comment on a post you follow
     Contribution: 'contribution', // someone add you as a contributor to a #request
     FollowAdd: 'followAdd', // you are added as a follower
@@ -288,20 +295,36 @@ module.exports = bookshelf.Model.extend({
     const membershipsPermitting = key =>
       filter(relevantMemberships, mem => mem.getSetting(key))
 
-    const emailable = membershipsPermitting('sendEmail')
-    const pushable = membershipsPermitting('sendPushNotifications')
-
-    const newPostsSetting = relevantMemberships.reduce((acc, mem) => {
-      const setting = mem.getSetting('postNotifications')
-      if (setting === 'all') return 'all'
-      if (setting === 'important' && acc !== 'all') return 'important'
-      return acc
-    }, 'none')
+    let emailable = membershipsPermitting('sendEmail')
+    let pushable = membershipsPermitting('sendPushNotifications')
 
     // Send notifications if not just about a new post, or notifications for all new posts are on, or notifications for important posts are on and its an announcement or mention
-    const sendNotification = !isNewPost(activity) ||
-      newPostsSetting === 'all' ||
-      (newPostsSetting === 'important' && (isAnnouncement(activity) || isMention(activity)))
+    let sendNotification = true
+    if (isChat(activity)) {
+      emailable = false // XXX: we don't send emails for chats, they go out in a every 10 minute digest
+
+      // Whether to send any notifications for this chat
+      const reasons = activity.get('meta').reasons
+      const topicName = trim(filter(reasons, reason => reason.match(/^chat/))[0].split(':')[1])
+      const topic = await Tag.where({ name: topicName }).fetch()
+      const chatRoom = await TagFollow.where({
+        tag_id: topic.id,
+        group_id: groups[0],
+        user_id: user.id
+      }).fetch()
+      const chatRoomSetting = chatRoom.getSetting('notifications')
+      sendNotification = chatRoomSetting === 'all' || (chatRoomSetting === 'important' && (isAnnouncement(activity) || isMention(activity)))
+    } else if (isNewPost(activity)) {
+      // Whether to send any notifications for this new post
+      const newPostsSetting = relevantMemberships.reduce((acc, mem) => {
+        const setting = mem.getSetting('postNotifications')
+        if (setting === 'all') return 'all'
+        if (setting === 'important' && acc !== 'all') return 'important'
+        return acc
+      }, 'none')
+
+      sendNotification = newPostsSetting === 'all' || (newPostsSetting === 'important' && (isAnnouncement(activity) || isMention(activity)))
+    }
 
     if (!isEmpty(emailable) && sendNotification) {
       // TODO: make sure email shows its from the first group that has sendEmail set to true, or maybe show all groups on it?
@@ -312,8 +335,9 @@ module.exports = bookshelf.Model.extend({
       notifications.push(Notification.MEDIUM.Push)
     }
 
-    // Send an in-app notification for every activity right now
-    notifications.push(Notification.MEDIUM.InApp)
+    if (sendNotification) {
+      notifications.push(Notification.MEDIUM.InApp)
+    }
 
     return notifications
   },

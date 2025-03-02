@@ -62,6 +62,7 @@ const every10minutes = now => {
   return [
     FullTextSearch.refreshView(),
     Comment.sendDigests().then(count => sails.log.debug(`Sent ${count} comment/message digests`)),
+    TagFollow.sendDigests().then(count => sails.log.debug(`Sent ${count} chat room digests`)),
     Group.updateAllMemberCounts(),
     Post.updateProposalStatuses()
   ]

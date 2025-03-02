@@ -23,6 +23,7 @@ exports.es = {
   recentActivityFrom: (name) => `Actividad reciente de ${name}`,
   textForAnnouncement: ({ groupName, person, postName }) => `${person} envió un anuncio titulado "${postName}" en ${groupName}`,
   textForApprovedJoinRequest: ({actor, groupName}) => `${actor.get('name')} aprobó tu solicitud para unirte ${groupName}`,
+  textForChatPost: ({ firstTag, groupName, person, postName }) => `${person} habló "${postName}" en ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
   textForCommentImage: person => `${person} envió una imagen`,
   textForCommentMention: ({person, blurb, postName}) => `${person} te mencionó: "${blurb}" (en "${postName}")`,
   textForComment: ({person, blurb, postName}) => `${person}: "${blurb}" (en "${postName}")`,
