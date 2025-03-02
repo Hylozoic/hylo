@@ -1,11 +1,9 @@
 import React, { useRef } from 'react'
-import { Animated, TouchableOpacity, Text, FlatList } from 'react-native'
+import { TouchableOpacity, Text, FlatList, View } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import Intercom from '@intercom/intercom-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-// See https://lucide.dev/guide/packages/lucide-react-native#one-generic-icon-component
-// this will "significantly increase the build size of the application"
-import { icons } from 'lucide-react-native'
+import { CircleHelp, Globe, Plus } from 'lucide-react-native'
 import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -13,6 +11,11 @@ import useCurrentGroup, { useContextGroups } from '@hylo/hooks/useCurrentGroup'
 import { widgetUrl as makeWidgetUrl } from 'util/navigation'
 import { openURL } from 'hooks/useOpenURL'
 import useChangeToGroup from 'hooks/useChangeToGroup'
+
+// Time to keep menu expanded without interaction
+const STAY_EXPANDED_DURATION = 2500
+// Time to press to expand menu (scroll will also expand, see DrawerMenu)
+const PRESS_IN_EXPAND_DURATION = 2000
 
 export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const insets = useSafeAreaInsets()
@@ -32,7 +35,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
     clearTimeout(collapseTimeout.current)
     collapseTimeout.current = setTimeout(() => {
       setIsExpanded(false)
-    }, 1000) // 2-second delay
+    }, STAY_EXPANDED_DURATION)
   }
 
   const handleScrollStart = () => {
@@ -51,7 +54,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
       if (!isScrolling.current) {
         setIsExpanded(true)
       }
-    }, 1000) // Press & hold for 1 second to expand
+    }, PRESS_IN_EXPAND_DURATION) 
   }
 
   const handlePressOut = () => {
@@ -68,7 +71,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   }
 
   return (
-    <Animated.View
+    <View
       className='h-full bg-theme-background z-50'
       style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
     >
@@ -113,7 +116,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
       />
-    </Animated.View>
+    </View>
   )
 }
 
@@ -127,8 +130,9 @@ function ContextRow ({
   onPressIn,
   onPressOut
 }) {
-  const CustomIcon = item?.iconName && icons[item.iconName]
   const newPostCount = Math.min(99, item.newPostCount)
+  const CustomIcons = { CircleHelp, Globe, Plus }
+  const CustomIcon = item?.iconName && CustomIcons[item.iconName]
 
   return (
     <TouchableOpacity
@@ -155,7 +159,14 @@ function ContextRow ({
         <Text>{newPostCount}</Text>
       )}
       {isExpanded && (
-        <Text className='text-xl font-medium text-foreground ml-2'>{item?.name}</Text>
+        <Text
+          className={clsx(
+            'text-xl font-medium text-background ml-2',
+            highlight && 'text-foreground'
+          )}
+        >
+          {item?.name}
+        </Text>
       )}
     </TouchableOpacity>
   )

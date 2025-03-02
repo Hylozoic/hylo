@@ -14,7 +14,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 
-export default function ContextMenu ({ isContextSwitchExpanded }) {
+export default function ContextMenu () {
   const insets = useSafeAreaInsets()
   const navigation = useNavigation()
   const { t } = useTranslation()
@@ -45,32 +45,28 @@ export default function ContextMenu ({ isContextSwitchExpanded }) {
   return (
     <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
       <Header group={currentGroup} style={{ paddingTop: insets.top }} />
-      {!isContextSwitchExpanded && (
-        <>
-          <ScrollView className='p-2'>
-            {widgets.map(widget => (
-              <View key={widget.id} className='mb-0.5'>
-                <MenuItem
-                  widget={widget}
-                  groupSlug={currentGroup.slug}
-                  rootPath={`/groups/${currentGroup.slug}`}
-                  group={currentGroup}
-                />
-              </View>
-            ))}
-          </ScrollView>
-          {(!currentGroup.isContextGroup) && (
-            <View className='px-2 mb-2'>
-              <TouchableOpacity
-                onPress={handleGoToAllViews}
-                className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md gap-2'
-              >
-                <WidgetIconResolver widget={{ type: 'all-views' }} className='mr-2' />
-                <Text className='text-base font-normal text-foreground'>{t('All Views')}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </>
+      <ScrollView className='p-2'>
+        {widgets.map(widget => (
+          <View key={widget.id} className='mb-0.5'>
+            <MenuItem
+              widget={widget}
+              groupSlug={currentGroup.slug}
+              rootPath={`/groups/${currentGroup.slug}`}
+              group={currentGroup}
+            />
+          </View>
+        ))}
+      </ScrollView>
+      {(!currentGroup.isContextGroup) && (
+        <View className='px-2 mb-2'>
+          <TouchableOpacity
+            onPress={handleGoToAllViews}
+            className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md gap-2'
+          >
+            <WidgetIconResolver widget={{ type: 'all-views' }} className='mr-2' />
+            <Text className='text-base font-normal text-foreground'>{t('All Views')}</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   )
