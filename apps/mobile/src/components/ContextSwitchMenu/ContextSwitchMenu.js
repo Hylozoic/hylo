@@ -80,10 +80,10 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ContextRow
-            onPress={handleOnPress}
             isExpanded={isExpanded}
             item={item}
             highlight={item?.slug === currentGroup?.slug}
+            onPress={handleOnPress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
           />
@@ -95,7 +95,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
         scrollEventThrottle={16}
       />
       <ContextRow
-        className='bg-primary m-1'
+        bottomItem
         isExpanded={isExpanded}
         item={{
           name: 'Create',
@@ -106,7 +106,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
         onPressOut={handlePressOut}
       />
       <ContextRow
-        className='bg-primary m-1'
+        bottomItem
         isExpanded={isExpanded}
         item={{
           name: 'Support',
@@ -125,6 +125,7 @@ function ContextRow ({
   onPress,
   highlight,
   badgeCount = 0,
+  bottomItem,
   isExpanded,
   className,
   onPressIn,
@@ -143,10 +144,14 @@ function ContextRow ({
       className={clsx(
         'flex-row rounded-lg opacity-60 p-2',
         badgeCount > 0 && 'border-3 opacity-100',
-        highlight && 'p-1 border-2 border-secondary bg-primary',
+        highlight && 'bg-primary border-2 border-secondary p-1',
+        bottomItem && 'bg-primary m-1',
         className
       )}
-      style={{ justifyContent: isExpanded ? 'flex-start' : 'center', alignItems: 'center' }}
+      style={{
+        justifyContent: isExpanded ? 'flex-start' : 'center',
+        alignItems: 'center'
+      }}
       activeOpacity={0.7}
     >
       {!CustomIcon && !!item?.avatarUrl && (
@@ -162,7 +167,7 @@ function ContextRow ({
         <Text
           className={clsx(
             'text-xl font-medium text-background ml-2',
-            highlight && 'text-foreground'
+            (highlight || bottomItem) && 'text-foreground'
           )}
         >
           {item?.name}
