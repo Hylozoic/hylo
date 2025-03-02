@@ -16,23 +16,22 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
   const { myContext, publicContext } = useContextGroups()
-  const [isInteracting, setIsInteracting] = useState(false)
+  const [isPressing, setIsPressing] = useState(false)
   const myGroups = [myContext, publicContext].concat(
     sortBy('name', map(m => m.group, currentUser.memberships))
   )
 
-  // Auto-close menu after 5 seconds when expanded
   useEffect(() => {
     let timeoutId
-    if (isExpanded && !isInteracting) {
+    if (isExpanded && !isPressing) {
       timeoutId = setTimeout(() => {
         setIsExpanded(false)
-      }, 1250)
+      }, 200)
     }
     return () => {
       if (timeoutId) clearTimeout(timeoutId)
     }
-  }, [isExpanded, isInteracting])
+  }, [isExpanded, isPressing])
 
   const handleOnPress = context => {
     changeToGroup(context?.slug, false)
@@ -43,22 +42,13 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
     if (homePath) openURL(homePath)
   }
 
-  const handleScrollBegin = () => {
-    setIsInteracting(true)
-    setIsExpanded(true)
-  }
-
-  const handleScrollEnd = () => {
-    setIsInteracting(false)
-  }
-
   const handleLongPress = () => {
-    setIsInteracting(true)
+    setIsPressing(true)
     setIsExpanded(true)
   }
 
   const handlePressOut = () => {
-    setIsInteracting(false)
+    setIsPressing(false)
   }
 
   return (
@@ -79,10 +69,6 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
           />
         )}
         showsVerticalScrollIndicator={false}
-        onScrollBeginDrag={handleScrollBegin}
-        onScrollEndDrag={handleScrollEnd}
-        onMomentumScrollBegin={handleScrollBegin}
-        onMomentumScrollEnd={handleScrollEnd}
       />
       <View className='w-full mt-auto bg-theme-background pt-4'>
         <TouchableOpacity
