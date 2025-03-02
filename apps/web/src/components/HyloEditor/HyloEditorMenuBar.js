@@ -54,6 +54,7 @@ export default function HyloEditorMenuBar ({ editor }) {
               className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer'
               title='Remove link'
               onClick={() => editor.chain().focus().unsetLink().run()}
+              tabIndex='-1'
             >
               <Unlink size={14} />
             </button>)
