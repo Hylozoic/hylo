@@ -711,6 +711,20 @@ module.exports = bookshelf.Model.extend(merge({
         }
       }
 
+      if (typeof changes.settings.show_welcome_page === 'boolean') {
+        // Add welcome view/widget if it doesn't exist
+        let welcomeWidget = await ContextWidget.where({ group_id: this.id, type: 'welcome' }).fetch({ transacting })
+        if (!welcomeWidget) {
+          welcomeWidget = await ContextWidget.forge({
+            group_id: this.id,
+            type: 'welcome',
+            title: 'widget-welcome'
+          }).save({}, { transacting })
+        }
+        // Hide or show it based on the setting
+        await welcomeWidget.save({ visibility: changes.settings.show_welcome_page ? 'all' : 'none' }, { transacting })
+      }
+
       await this.save({}, { transacting })
     })
 

@@ -17,11 +17,11 @@ exports.up = async function (knex) {
     try {
       await trx.raw(`
         INSERT INTO context_widgets (
-          group_id, title, type, view, created_at, updated_at
+          group_id, title, type, view, created_at, updated_at, visibility
         )
         SELECT v.* FROM (VALUES
-          (CAST(? AS bigint), 'widget-welcome', 'welcome', 'welcome', NOW(), NOW())
-        ) AS v(group_id, title, type, view, created_at, updated_at)
+          (CAST(? AS bigint), 'widget-welcome', 'welcome', 'welcome', NOW(), NOW(), 'none')
+        ) AS v(group_id, title, type, view, created_at, updated_at, visibility)
         WHERE NOT EXISTS (
           SELECT 1 FROM context_widgets w
           WHERE w.group_id = ? AND w.title = 'widget-welcome'
