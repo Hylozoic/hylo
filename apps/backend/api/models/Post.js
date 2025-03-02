@@ -462,8 +462,58 @@ module.exports = bookshelf.Model.extend(Object.assign({
       actor_id: this.get('user_id'),
       reason: 'mention'
     }))
-
     activitiesToCreate = activitiesToCreate.concat(mentioned)
+
+    // Activities get created for every chat or post, and then we decide whether to send notifications for them in Activity.generateNotificationMedia
+    if (this.get('type') === Post.Type.CHAT) {
+      const tagFollows = await TagFollow.query(qb => {
+        qb.join('group_memberships', 'group_memberships.group_id', 'tag_follows.group_id')
+        qb.where('group_memberships.active', true)
+        qb.whereRaw('group_memberships.user_id = tag_follows.user_id')
+        qb.whereIn('tag_id', tags.map('id'))
+        qb.whereIn('tag_follows.group_id', groups.map('id'))
+      })
+      .fetchAll({ withRelated: ['tag'], transacting: trx })
+
+      const tagFollowers = tagFollows.map(tagFollow => ({
+        reader_id: tagFollow.get('user_id'),
+        post_id: this.id,
+          actor_id: this.get('user_id'),
+          group_id: tagFollow.get('group_id'),
+          reason: `chat: ${tagFollow.relations.tag.get('name')}`
+        }))
+
+      activitiesToCreate = activitiesToCreate.concat(tagFollowers)
+    } else {
+      // Non-chat posts are sent to all members of the groups the post is in
+      let members = await Promise.all(groups.map(async group => {
+        const userIds = await group.members().fetch().then(u => u.pluck('id'))
+        const newPosts = userIds.map(userId => ({
+          reader_id: userId,
+          post_id: this.id,
+          actor_id: this.get('user_id'),
+          group_id: group.id,
+          reason: `newPost: ${group.id}`
+        }))
+
+        // TODO: RESP. moderators can also make announcements?
+        const hasAdministration = await GroupMembership.hasResponsibility(this.get('user_id'), group, Responsibility.constants.RESP_ADMINISTRATION)
+        if (this.get('announcement') && hasAdministration) {
+          const announcees = userIds.map(userId => ({
+            reader_id: userId,
+            post_id: this.id,
+            actor_id: this.get('user_id'),
+            group_id: group.id,
+            reason: `announcement: ${group.id}`
+          }))
+          return newPosts.concat(announcees)
+        }
+
+        return newPosts
+      }))
+
+      activitiesToCreate = activitiesToCreate.concat(flatten(members))
+    }
 
     const eventInvitations = await EventInvitation.query(qb => {
       qb.where('event_id', this.id)
@@ -477,34 +527,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
       reason: 'eventInvitation'
     }))
     activitiesToCreate = activitiesToCreate.concat(invitees)
-
-    let members = await Promise.all(groups.map(async group => {
-      const userIds = await group.members().fetch().then(u => u.pluck('id'))
-      const newPosts = userIds.map(userId => ({
-        reader_id: userId,
-        post_id: this.id,
-        actor_id: this.get('user_id'),
-        group_id: group.id,
-        reason: `newPost: ${group.id}`
-      }))
-
-      // TODO: RESP. moderators can also make announcements?
-      const hasAdministration = await GroupMembership.hasResponsibility(this.get('user_id'), group, Responsibility.constants.RESP_ADMINISTRATION)
-      if (this.get('announcement') && hasAdministration) {
-        const announcees = userIds.map(userId => ({
-          reader_id: userId,
-          post_id: this.id,
-          actor_id: this.get('user_id'),
-          group_id: group.id,
-          reason: `announcement: ${group.id}`
-        }))
-        return newPosts.concat(announcees)
-      }
-
-      return newPosts
-    }))
-
-    activitiesToCreate = activitiesToCreate.concat(flatten(members))
 
     activitiesToCreate = filter(r => r.reader_id !== this.get('user_id'), activitiesToCreate)
 
