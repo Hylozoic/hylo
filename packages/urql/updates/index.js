@@ -99,6 +99,10 @@ export default {
       }
     },
 
+    register: (result, args, cache, info) => {
+      cache.invalidate('Query', 'me')
+    },
+
     removePost: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         cache.invalidate({ __typename: 'Post', id: args.postId })
@@ -138,6 +142,10 @@ export default {
       if (result[info.fieldName].id) {
         cache.invalidate('Query', 'me')
       }
+    },
+
+    verifyEmail: (result, args, cache, info) => {
+      cache.invalidate('Query', 'me')
     }
   },
   Subscription: {

@@ -1,6 +1,5 @@
 import { StyleSheet } from 'react-native'
 import { isIOS } from 'util/platform'
-import { POST_TYPES } from '@hylo/presenters/PostPresenter'
 
 const typeSelectorIOSDefaults = {
   fontSize: 16,
@@ -25,20 +24,20 @@ export const typeSelectorStyles = postType => ({
     fontSize: 23,
     marginTop: isIOS ? 6 : 5,
     marginLeft: 0,
-    marginRight: 5,
+    marginRight: 5
   },
   inputIOS: {
-    ...typeSelectorIOSDefaults,
+    ...typeSelectorIOSDefaults
   },
   inputAndroid: {
-    ...typeSelectAndroidDefaults,
+    ...typeSelectAndroidDefaults
   }
 })
 
 export const styles = StyleSheet.create({
   headerContainer: {
     height: 60,
-    borderBottomWidth: 1,
+    borderBottomWidth: 1
   },
   header: {
     flex: 1,
@@ -56,7 +55,7 @@ export const styles = StyleSheet.create({
   headerSaveButton: {
     width: '25%',
     height: 39,
-    fontSize: 18,
+    fontSize: 18
   },
   typeSelectorWrapper: {
     flex: 1,
@@ -66,7 +65,7 @@ export const styles = StyleSheet.create({
   formWrapper: {
     flex: 1,
     flexDirection: 'column',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   formContainer: {
   },
@@ -77,7 +76,7 @@ export const styles = StyleSheet.create({
     paddingBottom: 12
   },
   textInputWrapper: {
-    borderBottomWidth: 0.5,
+    borderBottomWidth: 0.5
   },
   textInput: {
     fontSize: 16,
@@ -96,15 +95,14 @@ export const styles = StyleSheet.create({
     padding: 0
   },
   titleInputError: {
-    fontSize: 14,
+    fontSize: 14
   },
   detailsInputWrapper: {
-    paddingBottom: isIOS ? 10 : 0,
-    paddingHorizontal: 10
+    paddingBottom: isIOS ? 10 : 0
   },
   textInputPlaceholder: {
     fontSize: 16,
-    fontFamily: 'Circular-Book',
+    fontFamily: 'Circular-Book'
   },
   section: {
     marginBottom: 10,
@@ -187,8 +185,7 @@ export const styles = StyleSheet.create({
     fontSize: 20
   },
   imageSelector: {
-    paddingTop: 10,
-    flex: 1
+    paddingTop: 10
   },
   buttonBar: {
     flex: 1,
@@ -196,7 +193,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 10
   },
   buttonBarLeft: {
     flexDirection: 'row'

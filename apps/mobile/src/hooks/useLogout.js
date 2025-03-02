@@ -24,12 +24,12 @@ export const logoutServices = async () => {
   }
 }
 
-export const useLogout = () => {
+export const useLogout = ({ loadingRedirect = true } = {}) => {
   const navigation = useNavigation()
   const { logout } = useAuth()
   const logoutRedirect = useCallback(async () => {
     try {
-      navigation.reset({
+      loadingRedirect && navigation.reset({
         index: 0,
         routes: [{ name: 'Loading' }]
       })

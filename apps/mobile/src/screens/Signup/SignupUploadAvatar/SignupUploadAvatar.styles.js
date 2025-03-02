@@ -1,5 +1,5 @@
-import { black10onRhino, white40onCaribbeanGreen } from 'style/colors'
-import styles from '../SignupFlow.styles'
+import { white40onCaribbeanGreen } from 'style/colors'
+import defaultStyles from '../SignupFlow.styles'
 
 const imagePickerChild = {
   width: 138,
@@ -9,13 +9,13 @@ const imagePickerChild = {
 }
 
 export default {
-  ...styles,
+  ...defaultStyles,
   header: {
-    ...styles.header,
+    ...defaultStyles.header,
     alignItems: 'center'
   },
   content: {
-    ...styles.content,
+    ...defaultStyles.content,
     alignItems: 'center',
     justifyContent: 'center'
   },

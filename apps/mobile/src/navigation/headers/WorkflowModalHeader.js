@@ -1,6 +1,6 @@
 import React from 'react'
 import ModalHeader from './ModalHeader'
-import { white, caribbeanGreen, white60onCaribbeanGreen } from 'style/colors'
+import { white, white60onCaribbeanGreen, rhino } from 'style/colors'
 
 export default function WorkflowModalHeader (props) {
   return (
@@ -8,17 +8,17 @@ export default function WorkflowModalHeader (props) {
       headerBackTitleVisible={false}
       headerLeftCloseIcon={false}
       headerStyle={{
-        backgroundColor: props?.style?.backgroundColor || caribbeanGreen,
+        backgroundColor: props?.style?.backgroundColor || white,
         shadowColor: 'transparent'
       }}
       headerTitleStyle={{
-        color: white,
+        color: rhino,
         fontFamily: 'Circular-Bold',
-        fontSize: 12
+        fontSize: 16
       }}
       headerTintColor={white60onCaribbeanGreen}
       statusBarOptions={{
-        backgroundColor: props?.style?.backgroundColor || caribbeanGreen,
+        backgroundColor: props?.style?.backgroundColor || white,
         barStyle: 'light-content'
       }}
       {...props}
