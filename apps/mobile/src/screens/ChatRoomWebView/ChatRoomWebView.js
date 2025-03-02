@@ -10,7 +10,8 @@ export default function ChatRoomWebView () {
   const navigation = useNavigation()
   const route = useRoute()
   const [{ currentGroup, fetching }] = useCurrentGroup()
-  const { topicName, originalLinkingPath } = useRouteParams()
+  const { topicName: routeTopicName, originalLinkingPath } = useRouteParams()
+  const topicName = routeTopicName || 'home'
   const path = originalLinkingPath || `/groups/${currentGroup?.slug}/chat/${topicName}`
   const handledWebRoutes = [
     `/groups/${currentGroup?.slug}/chat/:topicName`
