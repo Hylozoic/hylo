@@ -26,6 +26,7 @@ export default function acceptInvitation (inviteCodes = {}) {
                   askGroupToGroupJoinQuestions
                   publicMemberDirectory
                   showSuggestedSkills
+                  showWelcomePage
                 }
                 slug
                 visibility

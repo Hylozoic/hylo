@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useEditor, EditorContent, Extension, BubbleMenu } from '@tiptap/react'
 import Highlight from '@tiptap/extension-highlight'
 import Placeholder from '@tiptap/extension-placeholder'
+import Image from '@tiptap/extension-image'
 import StarterKit from '@tiptap/starter-kit'
 import { ScanEye } from 'lucide-react'
 import Link from '@tiptap/extension-link'
@@ -31,10 +32,13 @@ const HyloEditor = React.forwardRef(({
   placeholder,
   readOnly,
   showMenu = false,
-  suggestionsThemeName = 'suggestions'
+  extendedMenu = false,
+  suggestionsThemeName = 'suggestions',
+  type = 'post' // Used for the image uploader to know what type of content it's uploading
 }, ref) => {
   const { t } = useTranslation()
   const editorRef = useRef(null)
+  const [initialized, setInitialized] = useState(false)
   const [selectedLink, setSelectedLink] = useState()
 
   const extensions = [
@@ -73,6 +77,13 @@ const HyloEditor = React.forwardRef(({
     }),
 
     Placeholder.configure({ placeholder }),
+
+    Image.configure({
+      allowBase64: true,
+      HTMLAttributes: {
+        class: 'w-full h-auto'
+      }
+    }),
 
     Link.extend({
       inclusive: false, // Link doesnt extend as you keep typing text
@@ -130,15 +141,17 @@ const HyloEditor = React.forwardRef(({
     extensions,
     onCreate,
     onUpdate: ({ editor }) => {
-      if (!onUpdate) return
+      // Don't call onUpdate until the editor is full initialized (including initial content added)
+      if (!onUpdate || !initialized) return
       onUpdate(editor.getHTML())
     }
   })
 
-  // Dynamic setting of initial editor content
+  // Dynamic setting of initial editor content, and setting the initialized state
   useEffect(() => {
     if (editor.isInitialized) {
       editor.commands.setContent(contentHTML)
+      setInitialized(true)
     }
   }, [editor?.isInitialized, contentHTML])
 
@@ -154,11 +167,13 @@ const HyloEditor = React.forwardRef(({
 
   useEffect(() => {
     if (!editor) return
-
     if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
+  }, [groupIds])
 
+  useEffect(() => {
+    if (!editor) return
     editor.setEditable(!readOnly)
-  }, [groupIds, readOnly])
+  }, [readOnly])
 
   useImperativeHandle(ref, () => ({
     blur: () => {
@@ -202,7 +217,7 @@ const HyloEditor = React.forwardRef(({
   return (
     <div className={cn('flex-1', containerClassName)}>
       {showMenu && (
-        <HyloEditorMenuBar editor={editor} />
+        <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} />
       )}
       <EditorContent className={cn('HyloEditor_EditorContent text-foreground py-3 px-3', className)} editor={editor} />
       {editor && (

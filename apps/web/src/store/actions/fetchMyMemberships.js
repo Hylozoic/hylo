@@ -61,6 +61,7 @@ export default function fetchMyMemberships () {
                   locationDisplayPrecision
                   publicMemberDirectory
                   showSuggestedSkills
+                  showWelcomePage
                 }
                 slug
               }
