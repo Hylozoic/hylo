@@ -29,6 +29,8 @@ const HyloEditor = React.forwardRef(({
   onEnter,
   onAltEnter,
   onEscape,
+  onFocus,
+  onBlur,
   placeholder,
   readOnly,
   showMenu = false,
@@ -139,11 +141,31 @@ const HyloEditor = React.forwardRef(({
   const editor = useEditor({
     content: contentHTML,
     extensions,
-    onCreate,
+    onCreate: ({ editor }) => {
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('HyloEditor onCreate:', {
+          hasEditor: !!editor,
+          content: editor?.getHTML()
+        })
+      }
+      if (onCreate) onCreate(editor)
+    },
     onUpdate: ({ editor }) => {
       // Don't call onUpdate until the editor is full initialized (including initial content added)
-      if (!onUpdate || !initialized) return
-      onUpdate(editor.getHTML())
+      if (!onUpdate || !editor || !initialized) return
+      onUpdate(editor.getHTML(), editor.getText())
+    },
+    onFocus: ({ editor }) => {
+      if (editor && onFocus) onFocus()
+    },
+    onBlur: ({ editor }) => {
+      if (editor && onBlur) onBlur()
+    },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none'
+      }
     }
   })
 
@@ -153,7 +175,7 @@ const HyloEditor = React.forwardRef(({
       editor.commands.setContent(contentHTML)
       setInitialized(true)
     }
-  }, [editor?.isInitialized, contentHTML])
+  }, [editor, editor.isInitialized])
 
   // Dynamic placeholder text
   useEffect(() => {

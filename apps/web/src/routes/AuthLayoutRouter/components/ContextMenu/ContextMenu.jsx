@@ -201,8 +201,10 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
             Drag here to remove from menu
           </DropZone>
         </div>}
-      {contextWidgets.map(widget => (
-        <li className='mb-2 items-start' key={widget.id}><ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} /></li>
+      {contextWidgets.map((widget, index) => (
+        <li className='mb-2 items-start animate-slide-up invisible' style={{ '--delay': `${index * 35}ms` }} key={widget.id}>
+          <ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} />
+        </li>
       ))}
       {isEditing && (
         <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
@@ -413,7 +415,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
       <DropZone hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
         &nbsp;
       </DropZone>
-      <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center'>
+      <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center animate-slide-up invisible'>
         {(() => {
           if (item.type === 'chat') {
             return (
@@ -472,7 +474,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
   if (widget.type === 'members' && canAddMembers) {
     return (
       <MenuLink to={groupUrl(group.slug, 'settings/invite')}>
-        <div className='inline-block px-2 py-2 text-base font-medium text-foreground bg-foreground/20 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer'>
+        <div className='inline-block px-2 py-2 text-base font-medium text-foreground bg-foreground/20 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer animate-slide-up invisible'>
           <UserPlus className='inline-block h-[20px] mr-1' /> {t('Add Members')}
         </div>
       </MenuLink>
@@ -492,7 +494,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
     const settingsUrl = groupUrl(group.slug, 'settings')
 
     const listItemComponent = ({ title, url }) => (
-      <li className='w-full'>
+      <li className='w-full animate-slide-up invisible'>
         <MenuLink to={url} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
           {title}
         </MenuLink>
@@ -502,7 +504,7 @@ function SpecialTopElementRenderer ({ widget, group }) {
     return (
       <div className='mb-2'>
         <MenuLink to={groupUrl(group.slug, 'settings')}>
-          <div className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+          <div className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 animate-slide-up invisible'>
             {t('Settings')}
           </div>
         </MenuLink>
