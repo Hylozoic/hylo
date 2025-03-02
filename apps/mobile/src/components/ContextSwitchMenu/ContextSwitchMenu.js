@@ -13,7 +13,7 @@ import { openURL } from 'hooks/useOpenURL'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 
 // Time to keep menu expanded without interaction
-const STAY_EXPANDED_DURATION = 2500
+const STAY_EXPANDED_DURATION = 1500
 // Time to press to expand menu (scroll will also expand, see DrawerMenu)
 const PRESS_IN_EXPAND_DURATION = 2000
 
@@ -62,6 +62,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   }
 
   const handleOnPress = context => {
+    setIsExpanded(false)
     changeToGroup(context?.slug, false)
     const homePath = context && makeWidgetUrl({
       widget: context?.homeWidget,

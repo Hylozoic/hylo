@@ -266,13 +266,13 @@ function TopElements ({ widget, group }) {
   }
 }
 
-function Header ({ group }) {
+function Header ({ group, style }) {
   const { t } = useTranslation()
 
   if (!group) return null
 
   return (
-    <View className='w-full relative'>
+    <View className='w-full relative' style={style}>
       {!group.isContextGroup && (
         <GroupMenuHeader group={group} />
       )}
