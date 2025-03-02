@@ -11,6 +11,7 @@ import {
 
 export const ACTION_ANNOUNCEMENT = 'announcement'
 export const ACTION_APPROVED_JOIN_REQUEST = 'approvedJoinRequest'
+export const ACTION_CHAT = 'chat'
 export const ACTION_COMMENT_MENTION = 'commentMention'
 export const ACTION_DONATION_TO = 'donation to'
 export const ACTION_DONATION_FROM = 'donation from'
@@ -23,8 +24,8 @@ export const ACTION_JOIN_REQUEST = 'joinRequest'
 export const ACTION_MEMBER_JOINED_GROUP = 'memberJoinedGroup'
 export const ACTION_MENTION = 'mention'
 export const ACTION_NEW_COMMENT = 'newComment'
-export const ACTION_TAG = 'tag'
 export const ACTION_NEW_POST = 'newPost'
+export const ACTION_TAG = 'tag'
 
 export function urlForNotification ({ id, activity: { action, actor, post, comment, group, meta: { reasons }, otherGroup } }) {
   const groupSlug = get('slug', group) ||
@@ -59,6 +60,7 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_NEW_COMMENT:
     case ACTION_COMMENT_MENTION:
       return primaryPostUrl(post, { commentId: comment.id, groupSlug })
+    case ACTION_CHAT:
     case ACTION_NEW_POST:
     case ACTION_MENTION: {
       return primaryPostUrl(post, { groupSlug })
@@ -96,11 +98,16 @@ export function titleForNotification (notification, trans) {
 
   switch (action) {
     case ACTION_NEW_COMMENT:
-      return t('New comment on "<strong>{{postSummary}}</strong>"', { postSummary })
+      return t('New comment on "<strong>{{postSummary}}</strong>" in {{groupName}}', { postSummary, groupName: group?.name })
+    case ACTION_CHAT: {
+      const topicReason = find(r => r.startsWith('chat: '), reasons)
+      const topic = topicReason.split(': ')[1]
+      return t('New chat in {{groupName}} <strong>#{{name}}</strong>', { groupName: group?.name, name: topic })
+    }
     case ACTION_TAG: {
       const tagReason = find(r => r.startsWith('tag: '), reasons)
       const tag = tagReason.split(': ')[1]
-      return t('New post in <strong>{{name}}</strong>', { name: '#' + tag })
+      return t('New post in {{groupName}} <strong>{{name}}</strong>', { groupName: group?.name, name: '#' + tag })
     }
     case ACTION_NEW_POST:
       return t('New post in <strong>{{name}}</strong>', { name: group.name })
@@ -151,6 +158,7 @@ export function bodyForNotification (notification, trans) {
       const text = truncateHTML(comment.text)
       return t('<strong>{{name}}</strong> wrote: "{{text}}"', { name, text })
     }
+    case ACTION_CHAT:
     case ACTION_TAG:
     case ACTION_NEW_POST:
     case ACTION_ANNOUNCEMENT:

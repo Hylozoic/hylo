@@ -89,6 +89,7 @@
     "react-native-gesture-handler": "^2.22.0",
     "react-native-image-picker": "^7.2.3",
     "react-native-image-viewing": "^0.2.2",
+    "react-native-keyboard-manager": "^6.5.16-0",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-localization": "^2.3.2",
     "react-native-modal": "^13.0.1",

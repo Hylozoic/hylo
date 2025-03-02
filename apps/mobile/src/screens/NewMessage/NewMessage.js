@@ -8,7 +8,7 @@ import peopleAutocompleteQuery from '@hylo/graphql/queries/peopleAutocompleteQue
 import findOrCreateThreadMutation from '@hylo/graphql/mutations/findOrCreateThreadMutation'
 import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation'
 import { isIOS } from 'util/platform'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
+import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
 import useRouteParams from 'hooks/useRouteParams'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
@@ -16,7 +16,7 @@ import ItemSelector from 'components/ItemSelector'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import { capeCod20, pictonBlue, alabaster, amaranth, rhino80, caribbeanGreen } from 'style/colors'
+import { capeCod20, pictonBlue, alabaster, amaranth, rhino80, caribbeanGreen, black10onRhino, ghost } from 'style/colors'
 
 export const recentContactsQuery = gql`
   query RecentContactsQuery ($first: Int = 20) {
@@ -87,6 +87,7 @@ const useParticipantsQuery = (participantIds = []) => {
 export default function NewMessage () {
   const navigation = useNavigation()
   const { t } = useTranslation()
+  const confirmDiscardChanges = useConfirmDiscardChanges()
   const messageInputRef = useRef()
   const [participants, setParticipants] = useState([])
   const [loading, setLoading] = useState()
@@ -127,9 +128,8 @@ export default function NewMessage () {
         hasChanges: participants.length > 0 ||
           (messageInputRef.current && messageInputRef.current.getMessageText().length > 0),
         onDiscard: () => navigation.dispatch(e.data.action),
-        title: t('Are you sure?'),
-        confirmationMessage: t('Your new unsent message will not be saved'),
-        t
+        title: 'Are you sure?',
+        confirmationMessage: 'Your new unsent message will not be saved'
       })
     })
 
@@ -166,12 +166,9 @@ export default function NewMessage () {
   return (
     <KeyboardFriendlyView style={styles.container}>
       <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={styles.participants}>
+        <Text style={{ fontSize: 16, color: black10onRhino, fontWeight: 'bold', marginRight: 10 }}>To:</Text>
         {participants.length > 0 && participants.map((participant, index) => (
-          <Participant
-            participant={participant}
-            onPress={handleRemoveParticipant}
-            key={index}
-          />
+          <Participant participant={participant} onPress={handleRemoveParticipant} key={index} />
         ))}
       </ScrollView>
       <ItemSelector
@@ -187,7 +184,7 @@ export default function NewMessage () {
             variables: { autocomplete: searchTerm }
           }
         }}
-        colors={{ text: rhino80, border: alabaster }}
+        colors={{ text: rhino80, border: ghost }}
         style={{ paddingHorizontal: 10 }}
         itemsUseQuerySelector={data => data?.people?.items}
       />
@@ -245,12 +242,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     flexWrap: 'wrap',
     padding: 12,
-    paddingBottom: 0
+    paddingBottom: 10
   },
   participant: {
     borderWidth: 1,
     borderColor: capeCod20,
-    borderRadius: 4,
+    borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     height: 38,

@@ -397,7 +397,7 @@ function DropZone ({ droppableParams, isDroppable = true, height = '', hide = fa
 
 function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = false, activeWidget, invalidChild = false, handlePositionedAdd }) {
   const { t } = useTranslation()
-  const itemTitle = t(item.title)
+  const itemTitle = translateTitle(item.title, t)
   const itemUrl = widgetUrl({ widget: item, rootPath, groupSlug })
   let hideDropZone = isOverlay
 

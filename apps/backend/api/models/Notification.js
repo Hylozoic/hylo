@@ -10,6 +10,7 @@ import { getSlug } from '../services/Frontend'
 
 const TYPE = {
   Mention: 'mention', // you are mentioned in a post or comment
+  Chat: 'chat', // someone chats you in a chat room you subscribe to
   TagFollow: 'TagFollow',
   NewPost: 'newPost',
   Comment: 'comment', // someone makes a comment on a post you follow
@@ -131,6 +132,8 @@ module.exports = bookshelf.Model.extend({
       case 'newPost':
       case 'tag':
         return this.sendPostPush()
+      case 'chat':
+        return this.sendPostPush('chat')
       case 'voteReset':
         return this.sendPostPush('voteReset')
       default:
@@ -819,9 +822,6 @@ module.exports = bookshelf.Model.extend({
 
     const group = await Group.find(groupIds[0])
 
-    console.log('answers', await GroupJoinQuestionAnswer.latestAnswersFor(group.id, actor.id))
-    console.log('group url', Frontend.Route.group(group), " member url", Frontend.Route.profile(actor, group))
-
     return Email.sendMemberJoinedGroupNotification({
       email: reader.get('email'),
       locale,
@@ -941,7 +941,7 @@ module.exports = bookshelf.Model.extend({
 
   priorityReason: function (reasons) {
     const orderedLabels = [
-      'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'tag',
+      'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'chat', 'tag',
       'newPost', 'follow', 'followAdd', 'unfollow', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
       'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'memberJoinedGroup'
     ]

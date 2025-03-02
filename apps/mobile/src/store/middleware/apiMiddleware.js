@@ -24,7 +24,6 @@ export default function apiMiddleware (store) {
     }
     const handleError = (resolve, reject) => error => {
       if (retryOnError) {
-        // TODO: Add exponential backoff
         setTimeout(() => fetcher(resolve, reject), 1000)
       } else {
         reject(error)

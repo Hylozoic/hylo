@@ -533,6 +533,7 @@
   "Nearest": "Más cercano",
   "Never": "Nunca",
   "New": "Nuevo",
+  "New chat in {{groupName}} <strong>#{{name}}</strong>": "Nuevo chat en {{groupName}} <strong>#{{name}}</strong>",
   "New Group Joined": "Nuevo grupo unido",
   "New Join Request": "Nueva solicitud de unión",
   "New Member joined <strong>{{groupName}}</strong>": "Nuevo miembro se unió a <strong>{{groupName}}</strong>",

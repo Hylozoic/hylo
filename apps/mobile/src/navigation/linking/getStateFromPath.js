@@ -3,9 +3,9 @@ import { isEmpty } from 'lodash/fp'
 import { match } from 'path-to-regexp'
 import { URL } from 'react-native-url-polyfill'
 import queryString from 'query-string'
-import store from 'store'
-import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
 import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { useAuthStore } from '@hylo/contexts/AuthContext'
+import useLinkingStore from 'navigation/linking/store'
 import {
   routingConfig,
   initialRouteNamesConfig,
@@ -19,6 +19,8 @@ export default function getStateFromPath (providedPath) {
   // historically been there so keeping it for now
   const groomedPath = providedPath.trim()
   const routeMatch = getRouteMatchForPath(groomedPath)
+  const authState = useAuthStore.getState()
+  const linkingState = useLinkingStore.getState()
 
   // 404 handling
   if (!routeMatch) return null
@@ -27,17 +29,11 @@ export default function getStateFromPath (providedPath) {
 
   const screenConfig = buildScreenConfigFromScreenPath(screenPath)
 
-  // TODO: Routing - Either figure out how to get auth state here and restore this,
-  // or implement another way to catch AUTH_ROOT route matches when non-authed and
-  // set the returnToOnAuth path higher up the stack.
-  // let { isAuthorized } = checkAuth()
-
-  // // Set `returnToOnAuthPath` for routes requiring auth when not auth'd
-  // if (!isAuthorized && screenPath.match(new RegExp(`^${AUTH_ROOT_SCREEN_NAME}`))) {
-  //   store.dispatch(setReturnToOnAuthPath(providedPath))
-
-  //   return null
-  // }
+  // Set `returnToOnAuthPath` for routes requiring auth when not auth'd
+  if (!authState.isAuthorized && screenPath.match(new RegExp(`^${AUTH_ROOT_SCREEN_NAME}`))) {
+    linkingState.setReturnToOnAuthPath(providedPath)
+    return null
+  }
 
   return getStateFromPathDefault(path, screenConfig)
 }

@@ -531,6 +531,7 @@
   "Nearest": "Nearest",
   "Never": "Never",
   "New": "New",
+  "New chat in {{groupName}} <strong>#{{name}}</strong>": "New chat in {{groupName}} <strong>#{{name}}</strong>",
   "New Group Joined": "New Group Joined",
   "New Join Request": "New Join Request",
   "New Member joined <strong>{{groupName}}</strong>": "New Member joined <strong>{{groupName}}</strong>",

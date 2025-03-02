@@ -37,7 +37,7 @@ export const routingConfig = {
   // Auth & Signup Routes
   '/login':                                                               `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
   '/reset-password':                                                      `${NON_AUTH_ROOT_SCREEN_NAME}/ForgotPassword`,
-  '/signup/:step(verify-email)':                                          `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/SignupEmailValidation`,
+  // '/signup/:step(verify-email)':                                          `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/SignupEmailValidation`,
   '/signup/:step?':                                                       `${NON_AUTH_ROOT_SCREEN_NAME}/Signup/Signup Intro`,
   '/noo/login/(jwt|token)':                                               'LoginByTokenHandler',
   // TODO:  Routing - oauth not currently handled, and I don't think we had planned to yet in Mobile.
@@ -47,8 +47,7 @@ export const routingConfig = {
   // Available in both Auth and Non-Auth state as JoinGroup needs to check for a valid invite and initiate JTW auth
   // but this unlike all other cases, makes JoinGroup responsible for setting returnToOnAuth path when accessed in non-auth context
   '/:context(groups)/:groupSlug/join/:accessCode':                        'JoinGroup',
-  // TODO:  Routing - Test this. When this path is matched when not auth'd, then returnToAuth will be set.
-  '/welcome':                                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Welcome`,
+  '/h/use-invitation':                                                    'JoinGroup',
 
   // Used only for testing HyloEditor loading and config
   '/hylo-editor':                                                          `${AUTH_ROOT_SCREEN_NAME}/HyloEditor`,

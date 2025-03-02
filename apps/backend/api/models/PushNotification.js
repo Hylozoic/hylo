@@ -72,6 +72,8 @@ module.exports = bookshelf.Model.extend({
     const groupName = group.get('name')
 
     switch (version) {
+      case 'chat':
+        return locales[locale].textForChatPost({ groupName, person, postName })
       case 'mention':
         return locales[locale].textForPostMention({ groupName, person, postName })
       case 'voteReset':

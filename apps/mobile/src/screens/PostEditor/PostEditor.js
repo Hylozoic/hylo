@@ -16,18 +16,18 @@ import { useQuery, useMutation } from 'urql'
 import { get, uniqBy, isEmpty } from 'lodash/fp'
 import { useNavigation } from '@react-navigation/native'
 import { Validators, TextHelpers } from '@hylo/shared'
-import { isIOS } from 'util/platform'
-import useRouteParams from 'hooks/useRouteParams'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
-import useFindOrCreateLocationObject from 'components/LocationSelectorModal/useFindOrCreateLocationObject'
+import useFindOrCreateLocationObject from '@hylo/hooks/useFindOrCreateLocationObject'
 import createPostMutation from '@hylo/graphql/mutations/createPostMutation'
 import createProjectMutation from '@hylo/graphql/mutations/createProjectMutation'
 import updatePostMutation from '@hylo/graphql/mutations/updatePostMutation'
 import uploadAction from 'store/actions/upload'
 import postQuery from '@hylo/graphql/queries/postQuery'
 import PostPresenter from '@hylo/presenters/PostPresenter'
+import { isIOS } from 'util/platform'
+import useRouteParams from 'hooks/useRouteParams'
 // Components
 import DatePickerWithLabel from './DatePickerWithLabel'
 import TypeSelector from './TypeSelector'
@@ -49,9 +49,9 @@ import Loading from 'components/Loading'
 import ProjectMembersSummary from 'components/ProjectMembersSummary'
 import Topics from 'components/Topics'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
-import { caribbeanGreen, rhino30, rhino80 } from 'style/colors'
+import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
 import styles from './PostEditor.styles'
+import { caribbeanGreen, rhino30, rhino80 } from 'style/colors'
 
 export const MAX_TITLE_LENGTH = 50
 
@@ -73,6 +73,7 @@ export default function PostEditor (props) {
   const detailsEditorRef = useRef(null)
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
+  const confirmDiscardChanges = useConfirmDiscardChanges()
   const hasResponsibility = useHasResponsibility({ forCurrentUser: true })
 
   const {
@@ -173,7 +174,7 @@ export default function PostEditor (props) {
         fullText: `${mapCoordinate.lat},${mapCoordinate.lng}`,
         center: {
           lat: parseFloat(mapCoordinate.lat),
-          lng: parseFloat(mapCoordinate.lng),
+          lng: parseFloat(mapCoordinate.lng)
         }
       }).then(({ locationObject }) => {
         handleUpdateLocation(locationObject)
@@ -184,9 +185,8 @@ export default function PostEditor (props) {
       e.preventDefault()
       confirmDiscardChanges({
         onDiscard: () => navigation.dispatch(e.data.action),
-        title: t('Are you sure?'),
-        confirmationMessage: t('If you made changes they will be lost'),
-        t
+        title: 'Are you sure?',
+        confirmationMessage: 'If you made changes they will be lost'
       })
     })
 
@@ -266,7 +266,7 @@ export default function PostEditor (props) {
         : t('Post')
 
     return () => (
-      <View className="border-border bg-background" style={styles.headerContainer}>
+      <View className='border-border bg-background' style={styles.headerContainer}>
         <View style={styles.header}>
           <HeaderLeftCloseIcon
             style={styles.headerCloseIcon}
@@ -317,7 +317,7 @@ export default function PostEditor (props) {
   const handleUpdateLocation = locationObject => {
     updatePost({
       location: locationObject.fullText,
-      locationObject: locationObject?.id !== 'NEW' ? locationObject : null
+      locationObject: locationObject?.id && locationObject
     })
   }
 
@@ -361,7 +361,7 @@ export default function PostEditor (props) {
 
   const renderForm = () => {
     return (
-      <View className="bg-background" style={styles.formWrapper}>
+      <View className='bg-background' style={styles.formWrapper}>
         <ScrollView
           ref={scrollViewRef}
           keyboardShouldPersistTaps='never'
@@ -369,11 +369,12 @@ export default function PostEditor (props) {
           // Avoids a known issue on Android with overscroll and WebViews
           overScrollMode='never'
         >
-          {selectedPostLoading ? <Loading /> : (
-            <View className="bg-card" style={styles.formTop}>
+          {selectedPostLoading && <Loading />}
+          {!selectedPostLoading && (
+            <View className='bg-card' style={styles.formTop}>
               <View style={[styles.titleInputWrapper]}>
                 <TextInput
-                  className="text-foreground"
+                  className='text-foreground'
                   style={[styles.titleInput]}
                   editable={!isSaving}
                   onChangeText={title => updatePost({ title })}
@@ -388,11 +389,11 @@ export default function PostEditor (props) {
                   maxLength={MAX_TITLE_LENGTH}
                 />
                 {titleLengthWarning && (
-                  <Text className="text-error" style={styles.titleInputError}>😬 {MAX_TITLE_LENGTH} {t('characters max')}</Text>
+                  <Text className='text-error' style={styles.titleInputError}>😬 {MAX_TITLE_LENGTH} {t('characters max')}</Text>
                 )}
               </View>
 
-              <View className="border-border" style={[styles.textInputWrapper, styles.detailsInputWrapper]}>
+              <View className='border-border' style={[styles.textInputWrapper, styles.detailsInputWrapper]}>
                 <HyloEditorWebView
                   placeholder={t('Add a description')}
                   contentHTML={post?.details}
@@ -409,14 +410,14 @@ export default function PostEditor (props) {
               </View>
 
               <TouchableOpacity
-                className="border-border bg-background"
+                className='border-border bg-background'
                 style={[styles.pressSelectionSection, styles.topics]}
                 onPress={() => topicSelectorModalRef.current.show()}
               >
                 <View style={styles.pressSelection}>
-                  <Text className="text-foreground/80" style={styles.pressSelectionLeftText}>{t('Topics')}</Text>
-                  <View className="border-secondary" style={styles.pressSelectionRight}>
-                    <Icon className="text-secondary" name='Plus' style={styles.pressSelectionRightIcon} />
+                  <Text className='text-foreground/80' style={styles.pressSelectionLeftText}>{t('Topics')}</Text>
+                  <View className='border-secondary' style={styles.pressSelectionRight}>
+                    <Icon className='text-secondary' name='Plus' style={styles.pressSelectionRightIcon} />
                   </View>
                 </View>
                 <ItemSelectorModal
@@ -432,7 +433,7 @@ export default function PostEditor (props) {
                       groupId: get('[0].id', post.groups)
                     }
                   })}
-                  itemsUseQuerySelector={data => 
+                  itemsUseQuerySelector={data =>
                     data?.group?.groupTopics?.items &&
                     data?.group?.groupTopics?.items.map(item => item.topic)}
                   itemsTransform={(items, searchTerm) => {
@@ -445,7 +446,7 @@ export default function PostEditor (props) {
                   renderItem={TopicRow}
                 />
                 <Topics
-                  className="text-secondary"
+                  className='text-secondary'
                   style={styles.pressSelectionValue}
                   pillStyle={styles.topicPillStyle}
                   textStyle={styles.topicTextStyle}
@@ -513,14 +514,14 @@ export default function PostEditor (props) {
               )}
 
               <TouchableOpacity
-                className="border-border bg-background"
+                className='border-border bg-background'
                 style={styles.pressSelectionSection}
                 onPress={() => groupSelectorModalRef.current.show()}
               >
                 <View style={styles.pressSelection}>
-                  <Text className="text-foreground/80" style={styles.pressSelectionLeftText}>{t('Post In')}</Text>
-                  <View className="border-secondary" style={styles.pressSelectionRight}>
-                    <Icon className="text-secondary" name='Plus' style={styles.pressSelectionRightIcon} />
+                  <Text className='text-foreground/80' style={styles.pressSelectionLeftText}>{t('Post In')}</Text>
+                  <View className='border-secondary' style={styles.pressSelectionRight}>
+                    <Icon className='text-secondary' name='Plus' style={styles.pressSelectionRightIcon} />
                   </View>
                 </View>
                 <ItemSelectorModal
@@ -538,20 +539,20 @@ export default function PostEditor (props) {
                   searchPlaceholder={t('Search for group by name')}
                 />
                 <GroupsList
-                  className="text-secondary"
+                  className='text-secondary'
                   style={[styles.pressSelectionValue]}
                   groups={post.groups}
                   columns={1}
                   onPress={() => groupSelectorModalRef.current.show()}
                   onRemove={handleRemoveGroup}
                   RemoveIcon={() => (
-                    <Icon className="text-muted" name='Ex' style={styles.groupRemoveIcon} />
+                    <Icon className='text-muted' name='Ex' style={styles.groupRemoveIcon} />
                   )}
                 />
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="border-border bg-background"
+                className='border-border bg-background'
                 style={[styles.pressSelectionSection, styles.topics]}
                 onPress={() => locationSelectorModalRef.current.show()}
               >
@@ -561,13 +562,13 @@ export default function PostEditor (props) {
                   initialSearchTerm={post?.location || post?.locationObject?.fullText}
                 />
                 <View style={styles.pressSelection}>
-                  <Text className="text-foreground/80" style={styles.pressSelectionLeftText}>{t('Location')}</Text>
-                  <View className="border-secondary" style={styles.pressSelectionRight}>
-                    <Icon className="text-secondary" name='ArrowDown' style={styles.pressSelectionRightIcon} />
+                  <Text className='text-foreground/80' style={styles.pressSelectionLeftText}>{t('Location')}</Text>
+                  <View className='border-secondary' style={styles.pressSelectionRight}>
+                    <Icon className='text-secondary' name='ArrowDown' style={styles.pressSelectionRightIcon} />
                   </View>
                 </View>
                 {(post.location || post.locationObject) && (
-                  <Text className="text-secondary" style={styles.pressSelectionValue}>
+                  <Text className='text-secondary' style={styles.pressSelectionValue}>
                     {post.location || post.locationObject.fullText}
                   </Text>
                 )}
@@ -612,9 +613,9 @@ export default function PostEditor (props) {
 
           {/*  Form Bottom */}
 
-          <View className="bg-background" style={styles.formBottom}>
+          <View className='bg-background' style={styles.formBottom}>
             <TouchableOpacity
-              className="border-border"
+              className='border-border'
               style={[styles.pressSelectionSection, post.isPublic && styles.pressSelectionSectionPublicSelected]}
               onPress={handleTogglePublicPost}
             >
@@ -640,7 +641,7 @@ export default function PostEditor (props) {
 
             {canAdminister && (
               <TouchableOpacity
-                className="border-border"
+                className='border-border'
                 style={[styles.pressSelectionSection, post?.announcement && styles.pressSelectionSectionPublicSelected]}
                 onPress={handleToggleAnnouncement}
               >
@@ -666,7 +667,7 @@ export default function PostEditor (props) {
             )}
 
             <TouchableOpacity
-              className="border-border"
+              className='border-border'
               style={styles.pressSelectionSection}
             >
               <View style={styles.pressSelection}>
@@ -711,7 +712,7 @@ export default function PostEditor (props) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="border-border"
+              className='border-border'
               style={styles.pressSelectionSection}
               onPress={handleShowFilePicker}
             >
@@ -751,7 +752,7 @@ export default function PostEditor (props) {
 
   return (
     <KeyboardAvoidingView
-      className="bg-background"
+      className='bg-background'
       style={styles.formWrapper}
       behavior={isIOS ? 'padding' : null}
       keyboardVerticalOffset={isIOS ? 110 : 80}

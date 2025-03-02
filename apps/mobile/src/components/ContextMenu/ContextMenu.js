@@ -16,13 +16,15 @@ export default function ContextMenu () {
   const navigation = useNavigation()
   const { t } = useTranslation()
   const [{ currentGroup, fetching }] = useCurrentGroup()
-  const widgets = useMemo(() => orderContextWidgetsForContextMenu(currentGroup?.contextWidgets || []), [currentGroup?.contextWidgets])
+  const widgets = useMemo(() =>
+    orderContextWidgetsForContextMenu(currentGroup?.contextWidgets || []),
+  [currentGroup?.contextWidgets])
 
   useEffect(() => {
     if ((!fetching && currentGroup?.shouldWelcome)) {
-      navigation.navigate('Group Welcome', { groupId: currentGroup?.id })
+      navigation.navigate('Group Welcome')
     }
-  }, [currentGroup, fetching])
+  }, [fetching, currentGroup])
 
   const handleGoToAllViews = () => openURL(
     makeWidgetUrl({
@@ -77,8 +79,6 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
 
   const title = translateTitle(widget.title, t)
   const url = makeWidgetUrl({ widget, rootPath, groupSlug })
-  // TODO: Now that we re-map /all to /my, which is helping elsewhere, it will break here when the
-  // URL that will be build for /all/stream is /my/stream
   const handleWidgetPress = widget => {
     const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.slug })
     openURL(linkingPath)
@@ -177,11 +177,10 @@ function TopElements ({ widget, group }) {
   }
 
   if (widget.type === 'setup') {
-    const settingsUrl = groupUrl(group.slug, 'settings')
-
+    const settingsUrl = groupUrl(group.slug, 'settings') + '/details'
     const ListItem = ({ title, url }) => (
       <TouchableOpacity
-        onPress={() => navigation.navigate('Group Settings', { groupSlug: group?.slug })}
+        onPress={() => openURL(url)}
         className='w-full'
       >
         <View className='border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
@@ -219,7 +218,7 @@ function TopElements ({ widget, group }) {
               url={settingsUrl}
             />
           )}
-          {(!group.description || group.description === 'This is a long-form description of the group') && (
+          {(!group.description || group.description === 'This is a long-form description of the group' || group.description === '') && (
             <ListItem
               title={t('Add Description')}
               url={settingsUrl}

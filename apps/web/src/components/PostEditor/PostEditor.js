@@ -216,6 +216,7 @@ function PostEditor ({
    */
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
+
     return groupOptions.filter((g) =>
       g && currentPost.groups.some((g2) => g2 && g.id === g2.id)
     )
@@ -245,6 +246,7 @@ function PostEditor ({
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
       if (!g) return []
+
       const baseOption = [{
         id: `group_${g.id}`,
         name: g.name,
@@ -386,7 +388,7 @@ function PostEditor ({
 
     // Mark the form as dirty to enable save functionality
     setIsDirty(true)
-  }, [currentPost])
+  }, [])
 
   const handleToggleContributions = useCallback(() => {
     setCurrentPost({ ...currentPost, acceptContributions: !currentPost.acceptContributions })

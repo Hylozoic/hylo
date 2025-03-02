@@ -1,11 +1,10 @@
 import { Linking } from 'react-native'
-import store from 'store'
-import { SET_INITIAL_URL } from 'store/constants'
+import useLinkingStore from 'navigation/linking/store'
 
 export default async function getInitialURL () {
   const initialURL = await Linking.getInitialURL()
 
-  store.dispatch({ type: SET_INITIAL_URL, payload: initialURL })
+  useLinkingStore.getState().setInitialURL(initialURL)
 
   return null
 }

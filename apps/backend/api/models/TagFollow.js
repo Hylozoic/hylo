@@ -1,6 +1,9 @@
 /* eslint-disable camelcase  */
 import HasSettings from './mixins/HasSettings'
+import RedisClient from '../services/RedisClient'
+import { mapLocaleToSendWithUS } from '../../lib/util'
 
+const CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY = 'ChatRoom.digests.lastSentAt'
 
 module.exports = bookshelf.Model.extend(Object.assign({
   tableName: 'tag_follows',
@@ -9,6 +12,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   group: function () {
     return this.belongsTo(Group)
+  },
+
+  groupMembership: function () {
+    return this.hasOne(GroupMembership, 'group_id', 'group_id').where({ user_id: this.get('user_id') })
   },
 
   tag: function () {
@@ -118,5 +125,92 @@ module.exports = bookshelf.Model.extend(Object.assign({
       .then(tagFollows => {
         return tagFollows.models.map(tf => tf.relations.user)
       })
+  },
+
+  sendDigests: async function() {
+    const redisClient = RedisClient.create()
+    let lastSentAt = await redisClient.get(CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY)
+    if (lastSentAt) lastSentAt = new Date(parseInt(lastSentAt))
+    const now = new Date()
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    if (!lastSentAt || lastSentAt < oneDayAgo) {
+      // If for some reason (e.g. server error) the digest was not sent in the last 24 hours only send the digests for chat rooms with posts in the last 24 hours
+      // To prevent spamming the users with digests and overloading the server
+      lastSentAt = oneDayAgo
+    }
+
+    let numSent = 0
+
+    const tagFollowsWithNewPosts = await TagFollow.query(q => {
+      q.where('new_post_count', '>', 0)
+      q.where('updated_at', '>', lastSentAt) // TODO: This is helpful to filter out ones that don't have any new posts since the last sent time, but also updated_at could be set for reasons other than a new post. Maybe we store the timestamp of the latest post in the tag follow as an extra optimization?
+      q.whereRaw(`(settings->>'notifications' = 'all' OR settings->>'notifications' = 'important')`)
+    }).fetchAll({
+      withRelated: ['tag', 'user', 'group']
+    })
+
+    for (const tagFollow of tagFollowsWithNewPosts) {
+      // TODO: check global notification setting once we have it if (!tagFollow.relations.user.enabledNotification(Notification.MEDIUM.Email)) return
+      const groupMembership = await tagFollow.groupMembership().fetch()
+      if (!groupMembership.getSetting('sendEmail')) continue
+
+      const posts = await Post.query(q => {
+        q.join('posts_tags', 'posts.id', 'posts_tags.post_id')
+        q.join('groups_posts', 'posts.id', 'groups_posts.post_id')
+        q.where('posts.created_at', '>', lastSentAt)
+        q.where('posts.id', '>', tagFollow.get('last_read_post_id'))
+        q.where('posts.type', 'chat')
+        q.where('posts.active', true)
+        q.where('groups_posts.group_id', tagFollow.get('group_id'))
+        q.where('posts_tags.tag_id', tagFollow.get('tag_id'))
+      }).fetchAll({
+        withRelated: ['user', 'media']
+      })
+
+      // If there are no new posts since last digest created by someone other than the tag follow user, then continue to the next tagFollow
+      if (posts.length === 0 || posts.every(p => p.relations.user.id === tagFollow.get('user_id'))) {
+        continue
+      }
+
+      const postData = posts.map(post => {
+        const mentions = RichText.getUserMentions(post.details())
+        const mentionedMe = mentions.includes(tagFollow.get('user_id'))
+        return {
+          id: post.id,
+          announcement: post.get('announcement'),
+          content: post.details(),
+          creator_name: post.relations.user.get('name'),
+          creator_avatar_url: post.relations.user.get('avatar_url'),
+          images: post.relations.media.filter(m => m.get('type') === Media.Type.IMAGE).map(m => m.pick('url', 'thumbnail_url')),
+          mentionedMe,
+          post_url: Frontend.Route.post({ post, group: tagFollow.relations.group })
+        }
+      })
+
+      if (tagFollow.get('settings').notifications === 'important') {
+        postData = postData.filter(p => p.mentionedMe || p.announcement)
+        if (postData.length === 0) {
+          continue
+        }
+      }
+
+      const locale = mapLocaleToSendWithUS(tagFollow.relations.user.get('settings').locale || 'en-US')
+      Email.sendChatDigest({
+        email: tagFollow.relations.user.get('email'),
+        locale,
+        data: {
+          count: postData.length,
+          chat_topic: tagFollow.relations.tag.get('name'),
+          // For the overall chat room URL use the URL of the last post in the email digest
+          chat_room_url: Frontend.Route.post({ post: posts[posts.length - 1], group: tagFollow.relations.group }),
+          group_name: tagFollow.relations.group.get('name'),
+          group_avatar_url: tagFollow.relations.group.get('avatar_url'),
+          posts: postData
+        }
+      })
+      numSent = numSent + 1
+    }
+    await redisClient.set(CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY, now.getTime().toString())
+    return numSent
   }
 })

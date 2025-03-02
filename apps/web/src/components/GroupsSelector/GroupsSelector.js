@@ -59,6 +59,7 @@ const GroupsSelector = forwardRef(({
 
   return (
     <TagInput
+      t={t}
       groupSettings={groupSettings}
       placeholder={placeholder}
       tags={selected}
