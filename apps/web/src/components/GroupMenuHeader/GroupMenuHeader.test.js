@@ -30,8 +30,8 @@ describe('GroupMenuHeader', () => {
         group={groupWithoutImages}
       />
     )
-    expect(screen.getByAltText('Group Avatar')).toHaveAttribute('src', 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png')
-    expect(screen.getByTestId('group-header')).toHaveStyle(`background-image: url(default-banner.png)`) // Assuming DEFAULT_BANNER is 'default-banner.png'
+    expect(screen.getByAltText('Group Avatar')).toHaveAttribute('src', '/default-group-avatar.svg')
+    expect(screen.getByTestId('group-header')).toHaveStyle(`background-image: url(/default-group-banner.svg)`) // Assuming DEFAULT_BANNER is 'default-banner.png'
   })
 
   it('toggles details on chevron click', () => {

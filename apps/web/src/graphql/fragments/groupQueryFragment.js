@@ -56,12 +56,15 @@ export default function groupQueryFragment () {
       locationDisplayPrecision
       publicMemberDirectory
       showSuggestedSkills
+      showWelcomePage
     }
     slug
     type
     typeDescriptor
     typeDescriptorPlural
     visibility
+    websiteUrl
+    welcomePage
     activeProjects: posts(filter: "project", sortBy: "updated", order: "desc", first: 4) {
       items {
         id
@@ -120,6 +123,7 @@ export default function groupQueryFragment () {
           locationDisplayPrecision
           publicMemberDirectory
           showSuggestedSkills
+          showWelcomePage
         }
       }
     }
@@ -277,6 +281,7 @@ export default function groupQueryFragment () {
           locationDisplayPrecision
           publicMemberDirectory
           showSuggestedSkills
+          showWelcomePage
         }
         type
       }

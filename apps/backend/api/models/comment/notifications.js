@@ -1,10 +1,9 @@
 /* eslint-disable camelcase */
-/* globals RedisClient */
 import { parse } from 'url'
 import { compact, some, sum, uniq } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import { mapLocaleToSendWithUS } from '../../../lib/util'
-
+import RedisClient from '../../services/RedisClient'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
 
 export async function notifyAboutMessage ({ commentId }) {

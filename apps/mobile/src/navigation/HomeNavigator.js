@@ -26,7 +26,6 @@ const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
   const [{ currentGroup }] = useCurrentGroup()
   const initialURL = useOpenInitialURL()
-
   useReturnToOnAuthPath()
 
   const navigatorProps = {

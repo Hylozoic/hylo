@@ -479,8 +479,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'postCount',
         'purpose',
         'slug',
+        'type',
         'visibility',
-        'type'
+        'website_url',
+        'welcome_page'
       ],
       relations: [
         { activeMembers: { querySet: true } },
