@@ -16,7 +16,6 @@ export default function CreateGroupParentGroups ({ navigation }) {
   const parentGroups = groupData.parentGroups
   const setParentGroups = newParentGroups => updateGroupData({ parentGroups: newParentGroups })
   const clearParentGroups = () => setParentGroups([])
-  // const [parentGroups, setParentGroups] = useState(groupData.parentGroups)
   const memberships = currentUser?.memberships
   const parentGroupOptions = memberships
     .filter(m => m.hasModeratorRole || m.group.accessibility === GROUP_ACCESSIBILITY.Open)
