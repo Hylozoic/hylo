@@ -306,5 +306,9 @@ export const COMMON_VIEWS = {
     iconName: 'Stream',
     defaultViewMode: 'cards',
     defaultSortBy: 'created'
-  }
+  },
+  welcome: {
+    name: 'Welcome',
+    iconName: 'Hand'
+  },
 }

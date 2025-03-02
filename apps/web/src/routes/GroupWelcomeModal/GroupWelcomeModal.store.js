@@ -14,6 +14,7 @@ export const groupWelcomeQuery = `
         locationDisplayPrecision
         publicMemberDirectory
         showSuggestedSkills
+        showWelcomePage
       }
       agreements {
         items {

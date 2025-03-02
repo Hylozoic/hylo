@@ -88,9 +88,10 @@ query FetchGroups (
         allowGroupInvites
         askGroupToGroupJoinQuestions
         askJoinQuestions
+        hideExtensionData
         publicMemberDirectory
         showSuggestedSkills
-        hideExtensionData
+        showWelcomePage
       }
       slug
       groupTopics(first: 8) {

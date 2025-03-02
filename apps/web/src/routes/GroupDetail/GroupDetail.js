@@ -267,13 +267,13 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
         ? (
           <div className={g.noDescription}>
             <div>
-              <h4>{t('Your group doesn\'t have a description')}</h4>
-              <p>{t('Add a description, location, suggested topics and more in your group settings')}</p>
+              <h4>{t('Your group doesn\'t have a purpose or description')}</h4>
+              <p>{t('Add a purpose, description, location, and more in your group settings')}</p>
               <Link to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
             </div>
           </div>
           )
-        : group.purpose || group.description
+        : group.purpose || group.description || group.websiteUrl
           ? (
             <div className={cn(g.groupDescription, g.detailSection)}>
               {group.purpose
@@ -293,6 +293,14 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
                     <ClickCatcher>
                       <HyloHTML element='span' html={TextHelpers.markdown(group.description)} />
                     </ClickCatcher>
+                  </>
+                  )
+                : ''}
+              {group.websiteUrl
+                ? (
+                  <>
+                    <h3>{t('Website')}</h3>
+                    <a href={TextHelpers.sanitizeURL(group.websiteUrl)} target='_blank' rel='noopener noreferrer'>{group.websiteUrl}</a>
                   </>
                   )
                 : ''}
