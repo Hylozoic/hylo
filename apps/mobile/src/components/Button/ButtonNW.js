@@ -23,7 +23,7 @@ export default function ButtonNW ({
   const buttonClasses = `${defaultButtonClasses} ${
     disabled ? 'opacity-30' : ''
   } ${className}`
-  
+
   const containerClasses = `${defaultContainerClasses} ${containerClassName}`
   const textClasses = `${defaultTextClasses} ${
     disabled ? 'opacity-60' : ''
@@ -34,16 +34,16 @@ export default function ButtonNW ({
 
   return (
     <View className={containerClasses}>
-      <TouchableOpacity 
-        disabled={disabled} 
-        onPress={disabled ? () => {} : onPress} 
-        className="flex-row"
+      <TouchableOpacity
+        disabled={disabled}
+        onPress={disabled ? () => {} : onPress}
+        className='flex-row'
       >
         <View className={buttonClasses}>
-          <View className="flex-1 flex-row items-center">
-            {!!customIconRender && customIconRender({ 
-              name: iconName, 
-              className: iconClasses 
+          <View className='flex-1 flex-row items-center'>
+            {!!customIconRender && customIconRender({
+              name: iconName,
+              className: iconClasses
             })}
             {!customIconRender && !!iconName && (
               <Icon name={iconName} className={iconClasses} />
@@ -54,4 +54,4 @@ export default function ButtonNW ({
       </TouchableOpacity>
     </View>
   )
-} 
+}

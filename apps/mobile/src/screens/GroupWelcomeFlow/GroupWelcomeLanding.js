@@ -60,7 +60,7 @@ export default function GroupWelcomeLanding () {
   const routeNames = getRouteNames(currentGroup, currentMembership)
 
   const { name, avatarUrl, purpose, bannerUrl, description, agreements, joinQuestions } = currentGroup
-  const { agreementsAcceptedAt, joinQuestionsAnsweredAt, showJoinForm } = currentMembership?.settings || {}
+  const { agreementsAcceptedAt, joinQuestionsAnsweredAt } = currentMembership?.settings || {}
   const imageSource = { uri: avatarUrl }
   const bgImageSource = { uri: bannerUrl }
 

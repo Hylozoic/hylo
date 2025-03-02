@@ -46,21 +46,21 @@ export default function Pill ({
   )
 }
 
-const styles = {
-  pill: {
-    position: 'relative',
-    marginRight: 8,
-    marginBottom: 8
-  },
-  removeLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: 'transparent',
-    position: 'absolute',
-    top: 1,
-    right: 5,
-    padding: 4,
-    borderRadius: 4,
-    verticalAlign: 'top'
-  }
-}
+// const styles = {
+//   pill: {
+//     position: 'relative',
+//     marginRight: 8,
+//     marginBottom: 8
+//   },
+//   removeLabel: {
+//     fontSize: 12,
+//     fontWeight: 'bold',
+//     color: 'transparent',
+//     position: 'absolute',
+//     top: 1,
+//     right: 5,
+//     padding: 4,
+//     borderRadius: 4,
+//     verticalAlign: 'top'
+//   }
+// }

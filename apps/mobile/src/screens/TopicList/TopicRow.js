@@ -22,8 +22,7 @@ export default function TopicRow ({ item, onPress }) {
             <Icon name='Post' style={styles.detailIcon} />
             <Text style={styles.detailText}>{item.postsTotal} posts</Text>
           </View>
-          )
-      }
+          )}
     </TouchableOpacity>
   )
 }

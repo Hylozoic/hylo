@@ -1,7 +1,6 @@
 import 'react-native'
 import React from 'react'
 import ReactShallowRenderer from 'react-test-renderer/shallow'
-import ReactTestRenderer from 'react-test-renderer'
 import MemberHeader, { MemberMenu } from './MemberHeader'
 
 describe('MemberHeader', () => {

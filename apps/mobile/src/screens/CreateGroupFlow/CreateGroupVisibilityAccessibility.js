@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { Text, View, ScrollView, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'

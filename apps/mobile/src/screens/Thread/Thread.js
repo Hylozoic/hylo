@@ -61,7 +61,7 @@ const refineMessages = messages => {
   })
 }
 
-export default function Thread() {
+export default function Thread () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const messageListRef = useRef()
@@ -80,7 +80,7 @@ export default function Thread() {
   const markAsRead = debounce(1000, () => { providedMarkAsRead({ messageThreadId: threadId }) })
 
   // Not currently used, but once we have subscription applied we can turn it back on
-  const [newMessages, setNewMessages] = useState()
+  const [newMessages] = useState()
   const [yOffset, setYOffset] = useState(0)
   const atBottom = useMemo(() => yOffset < BOTTOM_THRESHOLD, [yOffset])
 

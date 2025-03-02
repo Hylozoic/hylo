@@ -1,7 +1,5 @@
 import { StyleSheet } from 'react-native'
-import {
-  nevada, ghost, rhino, rhino50, rhino30, caribbeanGreen, rhino80, rhino60
-} from 'style/colors'
+import { nevada, ghost, rhino50, rhino30, caribbeanGreen, rhino60 } from 'style/colors'
 import headerStyles from '../MemberHeader.styles.js'
 
 const screenMargin = 16
@@ -109,5 +107,5 @@ export default {
     marginLeft: 5,
     marginRight: 10,
     alignSelf: 'flex-start'
-  },
+  }
 }

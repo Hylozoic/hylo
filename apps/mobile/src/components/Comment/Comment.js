@@ -39,7 +39,7 @@ export default function Comment ({
   const { reactOnEntity, deleteReactionFromEntity } = useReactOnEntity()
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [{ currentUser }] = useCurrentUser()
-  const hasResponsibility = useHasResponsibility({ forCurrentGroup: !groupId, forCurrentUser: true, groupId  })
+  const hasResponsibility = useHasResponsibility({ forCurrentGroup: !groupId, forCurrentUser: true, groupId })
 
   const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
   const isCreator = currentUser && (comment.creator.id === currentUser.id)

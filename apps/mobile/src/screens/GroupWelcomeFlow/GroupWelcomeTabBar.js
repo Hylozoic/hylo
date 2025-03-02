@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Keyboard, Alert } from 'react-native'
+import { View, Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import isEmpty from 'lodash/isEmpty'

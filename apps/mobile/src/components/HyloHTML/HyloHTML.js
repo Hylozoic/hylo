@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useMemo } from 'react'
 import { useWindowDimensions } from 'react-native'
 import { RenderHTMLConfigProvider, RenderHTMLSource } from 'react-native-render-html'
 import WebView from 'react-native-webview'

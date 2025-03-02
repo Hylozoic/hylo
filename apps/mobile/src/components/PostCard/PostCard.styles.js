@@ -133,13 +133,13 @@ export default {
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
-    elevation: 5,
+    elevation: 5
   },
   clickthroughText: {
     color: regent,
     fontSize: 14,
     lineHeight: 20,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   clickthroughButton: {
     marginTop: 6,
