@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import Badge from 'components/Badge'
 import {
   Tooltip,
@@ -35,14 +35,35 @@ export default function GlobalNavItem ({
   const [isHovered, setIsHovered] = useState(false)
   const [open, setOpen] = useState(false)
   const [shouldAnimate, setShouldAnimate] = useState(false)
+  const itemRef = useRef(null)
+  const [isInViewport, setIsInViewport] = useState(true)
+
+  /**
+   * Checks if the tooltip would appear below the maximum allowed Y position
+   */
+  const checkPosition = useCallback(() => {
+    if (itemRef.current) {
+      const rect = itemRef.current.getBoundingClientRect()
+      const maxAllowedY = window.innerHeight * 0.85 // 85% of viewport height
+      setIsInViewport(rect.top < maxAllowedY)
+    }
+  }, [])
 
   /**
    * Handles tooltip visibility and animation states
    * - Immediate show on direct hover
    * - Staggered show when parent triggers cascade
    * - Hide when neither condition is true
+   * - Only show if within viewport constraints
    */
   useEffect(() => {
+    checkPosition()
+
+    if (!isInViewport) {
+      setOpen(false)
+      return
+    }
+
     if (isHovered) {
       setOpen(true)
       setShouldAnimate(true)
@@ -56,7 +77,21 @@ export default function GlobalNavItem ({
       setOpen(false)
       setShouldAnimate(false)
     }
-  }, [parentShowTooltip, isHovered, index])
+  }, [parentShowTooltip, isHovered, index, isInViewport, checkPosition])
+
+  // Listen for the custom navScroll event from parent
+  useEffect(() => {
+    window.addEventListener('navScroll', checkPosition)
+    window.addEventListener('resize', checkPosition)
+
+    // Initial position check
+    checkPosition()
+
+    return () => {
+      window.removeEventListener('navScroll', checkPosition)
+      window.removeEventListener('resize', checkPosition)
+    }
+  }, [checkPosition])
 
   const handleClick = useCallback(() => {
     setIsHovered(false)
@@ -84,7 +119,7 @@ export default function GlobalNavItem ({
 
   return (
     <Tooltip open={open}>
-      <div className='GlobalNavItem mb-4 z-10 relative'>
+      <div className='GlobalNavItem mb-4 z-10 relative' ref={itemRef}>
         <TooltipTrigger asChild>
           <div
             onClick={handleClick}
@@ -113,7 +148,7 @@ export default function GlobalNavItem ({
           <TooltipContent
             side='right'
             className={cn(
-              'transition-all duration-300 ease-out transform',
+              'transition-all duration-100 ease-out transform',
               {
                 'opacity-60 translate-x-0 scale-80': parentShowTooltip && !isHovered && shouldAnimate,
                 'opacity-100 translate-x-0 scale-110': isHovered,

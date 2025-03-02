@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
 import { Globe } from 'lucide-react'
-import React, { Suspense, useState, useEffect } from 'react'
+import React, { Suspense, useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector } from 'react-redux'
@@ -30,6 +30,7 @@ export default function GlobalNav (props) {
   const [isContainerHovered, setIsContainerHovered] = useState(false)
   const [showGradient, setShowGradient] = useState(false)
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
+  const navContainerRef = useRef(null)
 
   useEffect(() => {
     const totalItems = 4 + groups.length + 2 // fixed items + groups + plus & help buttons
@@ -72,6 +73,26 @@ export default function GlobalNav (props) {
     }
   }, [isContainerHovered, menuTimeoutId])
 
+  // Add effect to handle scroll position updates for tooltips
+  useEffect(() => {
+    const handleScroll = () => {
+      // Dispatch a custom event that child components can listen for
+      const event = new CustomEvent('navScroll')
+      window.dispatchEvent(event)
+    }
+
+    const container = navContainerRef.current
+    if (container) {
+      container.addEventListener('scroll', handleScroll)
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', handleScroll)
+      }
+    }
+  }, [])
+
   const isVisible = (index) => {
     return index < visibleCount ? '' : 'opacity-0'
   }
@@ -96,6 +117,7 @@ export default function GlobalNav (props) {
   return (
     <div className={cn('flex flex-col bg-theme-background h-[100vh] z-50 items-center pb-0 pt-2')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
       <div
+        ref={navContainerRef}
         className={cn(
           'pt-2 flex flex-col items-center pl-5 pr-3 relative z-10 overflow-x-visible overflow-y-scroll grow',
           styles.globalNavContainer
@@ -188,11 +210,11 @@ export default function GlobalNav (props) {
           </PopoverTrigger>
           <PopoverContent side='right' align='start'>
             <ul>
-              <li><span className={styles.hoverHighlight} onClick={showIntercom}>{t('Feedback & Support')}</span></li>
-              <li><a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer' className={styles.hoverHighlight}>{t('User Guide')}</a></li>
-              <li><a href='http://hylo.com/terms/' target='_blank' rel='noreferrer' className={styles.hoverHighlight}>{t('Terms & Privacy')}</a></li>
-              <li><span className={cn(styles.hoverHighlight, styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li>
-              <li><a href='https://opencollective.com/hylo' target='_blank' rel='noreferrer' className={styles.hoverHighlight}>{t('Contribute to Hylo')}</a></li>
+              <li><span className='text-foreground hover:text-secondary/80 cursor-pointer' onClick={showIntercom}>{t('Feedback & Support')}</span></li>
+              <li><a className='text-foreground hover:text-secondary/80' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>{t('User Guide')}</a></li>
+              <li><a className='text-foreground hover:text-secondary/80' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms & Privacy')}</a></li>
+              <li><span className={cn('text-foreground hover:text-secondary/80 cursor-pointer', styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li>
+              <li><a className='text-foreground hover:text-secondary/80' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>{t('Contribute to Hylo')}</a></li>
             </ul>
           </PopoverContent>
         </Popover>
