@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Animated, TouchableOpacity, Text, StyleSheet, View, FlatList } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import Intercom from '@intercom/intercom-react-native'
@@ -111,6 +111,16 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
 function ContextRow ({ item, onPress, currentGroupSlug, badgeCount = 0, className, setIsExpanded, isExpanded, onLongPress, onPressOut }) {
   const newPostCount = Math.min(99, item.newPostCount)
   const highlight = item?.slug === currentGroupSlug
+  const textAnim = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    Animated.timing(textAnim, {
+      toValue: isExpanded ? 1 : 0,
+      duration: isExpanded ? 250 : 150,
+      useNativeDriver: true
+    }).start()
+  }, [isExpanded])
+
   return (
     <TouchableOpacity
       key={item?.id}
@@ -141,9 +151,18 @@ function ContextRow ({ item, onPress, currentGroupSlug, badgeCount = 0, classNam
           </View>
         )}
       </View>
-      {isExpanded && (
-        <Text className='text-xl font-medium text-foreground flex-1 px-2 py-1 bg-foreground/20 rounded-md'>{item?.name}</Text>
-      )}
+      <Animated.View style={{
+        flex: 1,
+        opacity: textAnim,
+        transform: [{
+          translateX: textAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [-20, 0]
+          })
+        }]
+      }}>
+        <Text className='text-xl font-medium text-foreground px-2 py-1 bg-foreground/20 rounded-md'>{item?.name}</Text>
+      </Animated.View>
     </TouchableOpacity>
   )
 }
