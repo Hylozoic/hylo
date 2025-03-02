@@ -1,17 +1,14 @@
 import React, { useEffect, useRef } from 'react'
 import { Animated, View, TouchableWithoutFeedback } from 'react-native'
 import Icon from 'react-native-vector-icons/Ionicons'
-import { caribbeanGreen, rhino50 } from 'style/colors'
 
 const RoundCheckbox = ({
   onValueChange,
   icon = 'checkmark-outline',
   size = 24,
-  checkedColor = caribbeanGreen,
-  uncheckedColor = rhino50,
-  iconColor = 'white',
-  checked = false,
-  style = {}
+  style = {},
+  className = '',
+  checked = false
 }) => {
   const scaleAndOpacity = useRef(new Animated.Value(checked ? 1 : 0)).current
 
@@ -27,33 +24,34 @@ const RoundCheckbox = ({
     onValueChange(!checked)
   }
 
-  const containerStyle = {
-    width: size,
-    height: size,
-    borderRadius: size / 2,
-    borderWidth: 1,
-    borderColor: checked ? checkedColor : uncheckedColor,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: checked ? checkedColor : 'transparent'
-  }
-
   return (
     <TouchableWithoutFeedback onPress={handlePress}>
-      <View style={[containerStyle, style]}>
+      <View
+        className={`
+          justify-center items-center rounded-full border
+          ${checked ? 'bg-secondary border-background' : 'border-foreground/50'}
+          ${className}
+        `}
+        style={{
+          width: size,
+          height: size,
+          ...style
+        }}
+      >
         {checked && (
           <Animated.View
             style={{
               transform: [{ scale: scaleAndOpacity }],
               opacity: scaleAndOpacity,
               justifyContent: 'center',
-              alignItems: 'center'
+              alignItems: 'center',
+              ...style
             }}
           >
             <Icon
               name={icon}
               size={size * 0.8}
-              color={iconColor}
+              color='hsl(var(--background))'
             />
           </Animated.View>
         )}
