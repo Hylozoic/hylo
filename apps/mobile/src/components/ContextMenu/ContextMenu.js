@@ -44,7 +44,7 @@ export default function ContextMenu () {
 
   return (
     <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
-      <Header group={currentGroup} style={{ paddingTop: insets.top }} />
+      <Header group={currentGroup} />
       <ScrollView className='p-2'>
         {widgets.map(widget => (
           <View key={widget.id} className='mb-0.5'>
@@ -268,6 +268,7 @@ function TopElements ({ widget, group }) {
 
 function Header ({ group, style }) {
   const { t } = useTranslation()
+  const insets = useSafeAreaInsets()
 
   if (!group) return null
 
@@ -277,7 +278,7 @@ function Header ({ group, style }) {
         <GroupMenuHeader group={group} />
       )}
       {group.isContextGroup && (
-        <View className='flex flex-col p-2'>
+        <View className='flex flex-col p-2' style={{ paddingTop: insets.top }}>
           <Text className='text-foreground font-bold text-lg'>
             {t(group.name)}
           </Text>
