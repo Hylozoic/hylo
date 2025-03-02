@@ -718,7 +718,8 @@ module.exports = bookshelf.Model.extend(merge({
           welcomeWidget = await ContextWidget.forge({
             group_id: this.id,
             type: 'welcome',
-            title: 'widget-welcome'
+            title: 'widget-welcome',
+            view: 'welcome'
           }).save({}, { transacting })
         }
         // Hide or show it based on the setting
