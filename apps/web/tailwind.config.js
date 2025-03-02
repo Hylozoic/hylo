@@ -28,18 +28,18 @@ export default {
     extend: {
       keyframes: {
         'slide-up': {
-          '0%': { 
-            transform: 'translateY(10px)', 
+          '0%': {
+            transform: 'translateY(10px)',
             opacity: '0',
-            visibility: 'hidden' 
+            visibility: 'hidden'
           },
           '1%': {
             visibility: 'visible'
           },
-          '100%': { 
-            transform: 'translateY(0)', 
+          '100%': {
+            transform: 'translateY(0)',
             opacity: '1',
-            visibility: 'visible' 
+            visibility: 'visible'
           }
         }
       },
@@ -50,8 +50,8 @@ export default {
       animationDelay: {
         ...Array.from({ length: 20 }, (_, i) => i * 50).reduce((acc, delay) => ({
           ...acc,
-          [delay]: `${delay}ms`,
-        }), {}),
+          [delay]: `${delay}ms`
+        }), {})
       },
       spacing: {
         190: '190px',
