@@ -1,27 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { View, StyleSheet, Animated } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ContextMenu from 'components/ContextMenu'
 import ContextSwitchMenu from 'components/ContextSwitchMenu/ContextSwitchMenu'
 
 const OPENING_DURATION = 250
-const CLOSING_DURATION = 100
+const CLOSING_DURATION = 50
 
 export default function DrawerMenu (props) {
-  const insets = useSafeAreaInsets()
   const [isContextSwitchExpanded, setIsContextSwitchExpanded] = useState(false)
-  const switchMenuFlex = useRef(new Animated.Value(0.22)).current
-  const contextMenuFlex = useRef(new Animated.Value(0.78)).current
+  const contextSwitchFlex = useRef(new Animated.Value(0.2)).current
+  const contextMenuFlex = useRef(new Animated.Value(0.8)).current
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(switchMenuFlex, {
-        toValue: isContextSwitchExpanded ? 0.78 : 0.22,
+      Animated.timing(contextSwitchFlex, {
+        toValue: isContextSwitchExpanded ? 1 : 0.2,
         duration: OPENING_DURATION,
         useNativeDriver: false
       }),
       Animated.timing(contextMenuFlex, {
-        toValue: isContextSwitchExpanded ? 0.22 : 0.78,
+        toValue: isContextSwitchExpanded ? 0 : 0.8,
         duration: CLOSING_DURATION,
         useNativeDriver: false
       })
@@ -29,16 +27,16 @@ export default function DrawerMenu (props) {
   }, [isContextSwitchExpanded])
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <Animated.View style={[styles.menuContainer, { flex: switchMenuFlex }]}>
-        <ContextSwitchMenu 
+    <View style={styles.container}>
+      <Animated.View style={[styles.menuContainer, { flex: contextSwitchFlex }]}>
+        <ContextSwitchMenu
           {...props} 
           isExpanded={isContextSwitchExpanded}
           setIsExpanded={setIsContextSwitchExpanded}
         />
       </Animated.View>
-      <Animated.View style={[styles.menuContainer, { flex: contextMenuFlex }]}>
-        <ContextMenu 
+      <Animated.View style={[styles.menuContainer, { flex: contextMenuFlex, display: isContextSwitchExpanded && 'none' }]}>
+        <ContextMenu
           isContextSwitchExpanded={isContextSwitchExpanded}
         />
       </Animated.View>

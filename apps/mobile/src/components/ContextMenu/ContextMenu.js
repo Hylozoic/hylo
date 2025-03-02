@@ -2,6 +2,7 @@ import React, { useMemo, useEffect } from 'react'
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
@@ -14,6 +15,7 @@ import GroupMenuHeader from 'components/GroupMenuHeader'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 
 export default function ContextMenu ({ isContextSwitchExpanded }) {
+  const insets = useSafeAreaInsets()
   const navigation = useNavigation()
   const { t } = useTranslation()
   const [{ currentGroup, fetching }] = useCurrentGroup()
@@ -41,8 +43,8 @@ export default function ContextMenu ({ isContextSwitchExpanded }) {
   if (!currentGroup) return null
 
   return (
-    <View className='flex-1 bg-background'>
-      <Header group={currentGroup} />
+    <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
+      <Header group={currentGroup} style={{ paddingTop: insets.top }} />
       {!isContextSwitchExpanded && (
         <>
           <ScrollView className='p-2'>

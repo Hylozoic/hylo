@@ -156,8 +156,6 @@ const MY_CONTEXT_DATA = {
   id: MY_CONTEXT_SLUG,
   slug: MY_CONTEXT_SLUG,
   headerAvatarUrl: 'assets/purple-icon.jpg',
-  avatarUrl: 'assets/my-home.png',
-  bannerUrl: 'assets/purple-hero.jpg',
   // TODO: After Web considerations, may belong in ContextWidgetPresenter#MY_CONTEXT_WIDGETS
   contextWidgets: { items: [{ type: 'home', url: '/my/posts' }] },
   name: 'My Home',
@@ -169,8 +167,7 @@ const PUBLIC_CONTEXT_DATA = {
   id: PUBLIC_CONTEXT_SLUG,
   slug: PUBLIC_CONTEXT_SLUG,
   headerAvatarUrl: 'assets/green-icon.jpg',
-  avatarUrl: 'assets/public.png',
-  bannerUrl: 'assets/green-hero.jpg',
+  iconName: 'Globe',
   name: 'The Commons',
   // TODO: After Web considerations, may belong in ContextWidgetPresenter#PUBLIC_CONTEXT_WIDGETS
   contextWidgets: { items: [{ type: 'home', url: '/public/stream' }] },
