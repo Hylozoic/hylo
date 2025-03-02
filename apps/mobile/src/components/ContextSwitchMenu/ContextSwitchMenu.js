@@ -161,7 +161,7 @@ function ContextRow ({ item, onPress, currentGroupSlug, badgeCount = 0, classNam
           })
         }]
       }}>
-        <Text className='text-xl font-medium text-foreground px-2 py-1 bg-foreground/20 rounded-md'>{item?.name}</Text>
+        <Text className='text-xl font-medium text-foreground px-2 py-1 bg-midground/20 rounded-md'>{item?.name}</Text>
       </Animated.View>
     </TouchableOpacity>
   )
