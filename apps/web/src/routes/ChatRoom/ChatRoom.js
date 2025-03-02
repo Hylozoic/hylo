@@ -2,7 +2,7 @@ import { debounce, includes, isEmpty } from 'lodash/fp'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { EditorView } from 'prosemirror-view'
-import React, { useCallback, useEffect, useMemo, useRef, useState, Profiler } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
@@ -421,72 +421,65 @@ export default function ChatRoom (props) {
   if (topicFollowLoading) return <Loading />
 
   return (
-    <Profiler
-      id='chat-room'
-      onRender={(id, phase, actualDuration) => {
-        console.log(`${id} took ${actualDuration}ms to render`)
-      }}
-    >
-      <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
-        <Helmet>
-          <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
-        </Helmet>
+    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+      <Helmet>
+        <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
+      </Helmet>
 
-        <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden'>
-          {initialPostToScrollTo === null
-            ? <div className={styles.loadingContainer}><Loading /></div>
-            : (
-              <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
-                <VirtuosoMessageList
-                  style={{ height: '100%', width: '100%', marginTop: 'auto', marginBottom: '5px' }}
-                  ref={messageListRef}
-                  context={{
-                    currentUser,
-                    loadingPast,
-                    loadingFuture,
-                    selectedPostId,
-                    group,
-                    latestOldPostId,
-                    onAddReaction,
-                    onRemoveReaction,
-                    onRemovePost,
-                    topicName,
-                    numPosts: postsForDisplay.length,
-                    newPostCount: topicFollow?.newPostCount,
-                    initialAnimationComplete
-                  }}
-                  initialData={postsForDisplay}
-                  initialLocation={{ index: initialPostToScrollTo, align: initialPostToScrollTo === 0 ? 'start' : 'end' }}
-                  shortSizeAlign='bottom-smooth'
-                  computeItemKey={({ data }) => data.id || data.localId}
-                  onScroll={onScroll}
-                  onRenderedDataChange={onRenderedDataChange}
-                  EmptyPlaceholder={EmptyPlaceholder}
-                  Footer={Footer}
-                  Header={Header}
-                  StickyHeader={StickyHeader}
-                  StickyFooter={StickyFooter}
-                  ItemContent={ItemContent}
-                />
-              </VirtuosoMessageListLicense>
-              )}
-        </div>
-
-        {/* Post chat box */}
-        <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg'>
-          <PostEditor
-            context='groups'
-            modal={false}
-            onSave={onCreate}
-            afterSave={afterCreate}
-          />
-        </div>
-
-        <Routes>
-          <Route path='post/:postId' element={<PostDialog container={container} />} />
-        </Routes>
+      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden'>
+        {initialPostToScrollTo === null
+          ? <div className={styles.loadingContainer}><Loading /></div>
+          : (
+            <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
+              <VirtuosoMessageList
+                style={{ height: '100%', width: '100%', marginTop: 'auto', marginBottom: '5px' }}
+                ref={messageListRef}
+                context={{
+                  currentUser,
+                  loadingPast,
+                  loadingFuture,
+                  selectedPostId,
+                  group,
+                  latestOldPostId,
+                  onAddReaction,
+                  onRemoveReaction,
+                  onRemovePost,
+                  topicName,
+                  numPosts: postsForDisplay.length,
+                  newPostCount: topicFollow?.newPostCount,
+                  initialAnimationComplete
+                }}
+                initialData={postsForDisplay}
+                initialLocation={{ index: initialPostToScrollTo, align: initialPostToScrollTo === 0 ? 'start' : 'end' }}
+                shortSizeAlign='bottom-smooth'
+                computeItemKey={({ data }) => data.id || data.localId}
+                onScroll={onScroll}
+                onRenderedDataChange={onRenderedDataChange}
+                EmptyPlaceholder={EmptyPlaceholder}
+                Footer={Footer}
+                Header={Header}
+                StickyHeader={StickyHeader}
+                StickyFooter={StickyFooter}
+                ItemContent={ItemContent}
+              />
+            </VirtuosoMessageListLicense>
+            )}
       </div>
-    </Profiler>
+
+      {/* Post chat box */}
+      <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg'>
+        <PostEditor
+          context='groups'
+          modal={false}
+          onSave={onCreate}
+          afterSave={afterCreate}
+        />
+      </div>
+
+      <Routes>
+        <Route path='post/:postId' element={<PostDialog container={container} />} />
+      </Routes>
+    </div>
   )
 }
 

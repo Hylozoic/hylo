@@ -13,7 +13,6 @@ import {
 import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
 import GlobalNavItem from './GlobalNavItem'
-import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
 
@@ -22,7 +21,7 @@ import styles from './GlobalNav.module.scss'
 const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown'))
 
 export default function GlobalNav (props) {
-  const { currentUser, onClick } = props
+  const { currentUser } = props
   const { show: showIntercom } = useIntercom()
   const groups = useSelector(getMyGroups)
   const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
@@ -74,16 +73,14 @@ export default function GlobalNav (props) {
   }, [isContainerHovered, menuTimeoutId])
 
   const isVisible = (index) => {
-    return index < visibleCount ? 'animate-slide-up invisible' : 'opacity-0'
+    return index < visibleCount ? '' : 'opacity-0'
   }
 
   const handleContainerMouseEnter = () => {
+    setIsContainerHovered(true)
     setTimeout(() => {
-      setIsContainerHovered(true)
-      setTimeout(() => {
-        setShowGradient(true)
-      }, 400)
-    }, 0)
+      setShowGradient(true)
+    }, 200)
   }
 
   const handleContainerMouseLeave = () => {
@@ -91,8 +88,13 @@ export default function GlobalNav (props) {
     setShowGradient(false)
   }
 
+  const handleClick = () => {
+    setIsContainerHovered(false)
+    setShowGradient(false)
+  }
+
   return (
-    <div className={cn('flex flex-col bg-theme-background h-[100vh] z-50 items-center pb-0 pt-2')} onClick={onClick} onMouseLeave={handleContainerMouseLeave}>
+    <div className={cn('flex flex-col bg-theme-background h-[100vh] z-50 items-center pb-0 pt-2')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
       <div
         className={cn(
           'pt-2 flex flex-col items-center pl-5 pr-3 relative z-10 overflow-x-visible overflow-y-scroll grow',
@@ -164,14 +166,14 @@ export default function GlobalNav (props) {
           }
         )}
         style={{
-          background: 'linear-gradient(to right, rgba(var(--theme-background)/1) 0%, rgba(var(--theme-background)/0) 100%)',
-          maxWidth: '360px'
+          background: 'linear-gradient(to right, rgba(var(--theme-background)/1) 20%, rgba(var(--theme-background)/0) 100%)',
+          maxWidth: '450px'
         }}
       />
-      <div className='flex flex-col gap-4 justify-end w-full items-center'>
+      <div className='flex flex-col gap-2 justify-end w-full items-center z-50 pb-2'>
         <Popover>
           <PopoverTrigger>
-            <div className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 hover:opacity-100 scale-90 hover:scale-125 hover:drop-shadow-lg hover:my-1 text-3xl border-foreground/0 hover:border-foreground/100', isVisible(4 + groups.length))}>
+            <div className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 hover:opacity-100 scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/100')}>
               <span className='inline-block text-themeForeground p-1 w-10 line-height-1'>+</span>
             </div>
           </PopoverTrigger>
@@ -182,7 +184,7 @@ export default function GlobalNav (props) {
 
         <Popover>
           <PopoverTrigger>
-            <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 hover:opacity-100 scale-90 hover:scale-125 hover:drop-shadow-lg hover:my-1 text-3xl border-2 border-foreground/0 hover:border-foreground/100', isVisible(4 + groups.length + 1))}>?</span>
+            <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 hover:opacity-100 scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/100')}>?</span>
           </PopoverTrigger>
           <PopoverContent side='right' align='start'>
             <ul>
@@ -198,5 +200,3 @@ export default function GlobalNav (props) {
     </div>
   )
 }
-
-export { GlobalNavTooltipContainer }
