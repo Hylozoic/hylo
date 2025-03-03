@@ -196,7 +196,7 @@ export default function GlobalNav (props) {
           background: 'linear-gradient(to right, rgba(var(--theme-background)/1) 20%, rgba(var(--theme-background)/0) 100%)',
           maxWidth: '600px',
           maskImage: 'linear-gradient(to right, rgba(0,0,0,1) calc(100% - 150px), rgba(0,0,0,0) 100%)',
-          WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) calc(100% - 150px), rgba(0,0,0,0) 100%)'
+          WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) calc(100% - 80px), rgba(0,0,0,0) 100%)'
         }}
       />
       <div className='flex flex-col gap-2 justify-end w-full items-center z-50 pb-2'>
