@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { View, ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { gql, useClient, useMutation, useQuery } from 'urql'
 import { useNavigation } from '@react-navigation/native'

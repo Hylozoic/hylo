@@ -4,10 +4,10 @@ import Geolocation from 'react-native-geolocation-service'
 
 export default function useCurrentLocation () {
   const [loading, setLoading] = useState(false)
-  const [forceLocation, setForceLocation] = useState(true)
-  const [highAccuracy, setHighAccuracy] = useState(true)
-  const [locationDialog, setLocationDialog] = useState(true)
-  const [useLocationManager, setUseLocationManager] = useState(false)
+  const [forceLocation] = useState(true)
+  const [highAccuracy] = useState(true)
+  const [locationDialog] = useState(true)
+  const [useLocationManager] = useState(false)
   const [currentLocation, setCurrentLocation] = useState(null)
 
   const hasPermissionIOS = async () => {
@@ -59,7 +59,7 @@ export default function useCurrentLocation () {
     }
 
     const status = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
     )
 
     if (status === PermissionsAndroid.RESULTS.GRANTED) {
@@ -90,23 +90,22 @@ export default function useCurrentLocation () {
       return
     }
 
-    let resolve, reject;
-    const promise = new Promise((res, rej) => {
-      resolve = res
-      reject = rej
+    let resolvePosition
+    const promise = new Promise((resolve, reject) => {
+      resolvePosition = resolve
     })
 
     Geolocation.getCurrentPosition(
       (position) => {
         setCurrentLocation(position)
         setLoading(false)
-        resolve(position)
+        resolvePosition(position)
       },
       (error) => {
         Alert.alert(`Code ${error.code}`, error.message)
         setCurrentLocation(null)
         setLoading(false)
-        resolve(null)
+        resolvePosition(null)
       },
       {
         accuracy: {

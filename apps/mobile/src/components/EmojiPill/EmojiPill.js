@@ -17,22 +17,22 @@ export default function EmojiPill ({ emojiFull, onPress = () => {}, count, selec
   )
 }
 
-const styles = {
-  tagPill: {
-    fontFamily: 'Circular Std',
-    textTransform: 'none',
-    fontWeight: 400,
-    lineHeight: 18,
-    marginBottom: 0,
-    paddingTop: 5,
-    paddingBottom: 5,
-    paddingRight: 5,
-    paddingLeft: 5,
-    border: 'none',
-    backgroundColor: 'rgba(237, 239, 241, 1.0)',
-    borderRadius: 5
-  },
-  selected: {
-    backgroundColor: 'rgba(0, 115, 216, 1.0)',
-  }
-}
+// const styles = {
+//   tagPill: {
+//     fontFamily: 'Circular Std',
+//     textTransform: 'none',
+//     fontWeight: 400,
+//     lineHeight: 18,
+//     marginBottom: 0,
+//     paddingTop: 5,
+//     paddingBottom: 5,
+//     paddingRight: 5,
+//     paddingLeft: 5,
+//     border: 'none',
+//     backgroundColor: 'rgba(237, 239, 241, 1.0)',
+//     borderRadius: 5
+//   },
+//   selected: {
+//     backgroundColor: 'rgba(0, 115, 216, 1.0)'
+//   }
+// }

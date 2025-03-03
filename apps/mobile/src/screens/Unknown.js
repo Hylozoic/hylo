@@ -1,6 +1,5 @@
 import React from 'react'
 import { View, Text, ScrollView } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import useRouteParams from 'hooks/useRouteParams'
 
 export default function Unknown () {
@@ -34,7 +33,7 @@ const styles = {
     backgroundColor: '#fff' // White background for the "code editor"
   },
   scrollContent: {
-    padding: 12,
+    padding: 12
   },
   codeBlock: {
     fontSize: 14,

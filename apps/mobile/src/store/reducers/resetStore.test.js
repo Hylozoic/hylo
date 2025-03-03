@@ -17,7 +17,7 @@ describe('resetStore', () => {
   it('preserves necessary state on reset', () => {
     const fullInitialState = resetStore(getEmptyState(), {})
     const preservedState = { [KEYS_PRESERVED_ON_RESET[0]]: 'foo' }
-    const notPreservedState = { 'randomkey': 'foo' }
+    const notPreservedState = { randomkey: 'foo' }
     const action = { type: RESET_STORE }
     const newState = resetStore({
       ...preservedState,

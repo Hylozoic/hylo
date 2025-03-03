@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
@@ -14,9 +14,7 @@ import ImageAttachments from 'components/ImageAttachments'
 import Files from 'components/Files'
 import Icon from 'components/Icon'
 import Topics from 'components/Topics'
-import styles from 'components/PostCard/PostCard.styles'
 import { useNavigation } from '@react-navigation/native'
-import { clsx } from 'clsx'
 
 export default function PostCard ({
   goToGroup,

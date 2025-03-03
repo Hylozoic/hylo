@@ -4,7 +4,6 @@ import reducer,
   fetchGroupExists,
   clearCreateGroupStore,
   CLEAR_CREATE_GROUP_STORE,
-  FETCH_URL_EXISTS,
   initialState
 }
   from './CreateGroupFlow.store'
@@ -37,7 +36,6 @@ describe('createGroup', () => {
 describe('fetchGroupExists', () => {
   it('matches snapshot', () => expect(fetchGroupExists(slug)).toMatchSnapshot())
 })
-
 
 describe('clearCreateGroupStore', () => {
   it('matches snapshot', () => expect(clearCreateGroupStore()).toMatchSnapshot())

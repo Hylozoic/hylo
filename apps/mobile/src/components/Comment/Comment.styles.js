@@ -50,7 +50,7 @@ export default {
     fontSize: 12
   },
   replyLink: {
-    flexDirection: 'row',
+    flexDirection: 'row'
   },
   // replyLinkText: {
   //   fontSize: 12,

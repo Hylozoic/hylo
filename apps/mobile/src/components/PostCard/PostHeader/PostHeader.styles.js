@@ -1,5 +1,5 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
-import {amaranth, rhino30, rhino50, caribbeanGreen, rhino40 } from 'style/colors'
+import { amaranth, rhino30, rhino50, caribbeanGreen, rhino40 } from 'style/colors'
 
 export const styles = {
   container: {

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Config from 'react-native-config'
 import { Provider as UrqlProvider } from 'urql'
 import { Provider } from 'react-redux'
-import { AppRegistry, Platform, AppState, UIManager, LogBox } from 'react-native'
+import { AppRegistry, Platform, AppState, UIManager } from 'react-native'
 import Timer from 'react-native-background-timer'
 import * as Sentry from '@sentry/react-native'
 import { OneSignal } from 'react-native-onesignal'
@@ -25,10 +25,10 @@ import { ActionSheetProvider } from '@expo/react-native-action-sheet'
 import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
 import './src/style/global.css'
 
-// import FastImage from 'react-native-fast-image'
+/* eslint-disable no-global-assign */
 
 // For MSW, see https://mswjs.io/docs/integrations/react-native
-async function enableMocking() {
+async function enableMocking () {
   if (!isTest) {
     return
   }

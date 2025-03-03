@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactShallowRenderer from 'react-test-renderer/shallow'
-import Login, { FormError, SignupLink } from './Login'
+import { FormError, SignupLink } from './Login'
 
 jest.mock('util/platform', () => ({ isIOS: false }))
 jest.mock('@react-native-google-signin/google-signin', () => ({

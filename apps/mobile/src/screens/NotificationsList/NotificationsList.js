@@ -16,7 +16,7 @@ import CreateGroupNotice from 'components/CreateGroupNotice'
 import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
 import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { alabaster, rhino } from 'style/colors'
+import { alabaster } from 'style/colors'
 
 const styles = StyleSheet.create({
   notificationsList: {

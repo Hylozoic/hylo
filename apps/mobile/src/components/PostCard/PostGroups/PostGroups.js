@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
-import { isEmpty } from 'lodash/fp'
 import { Text, View, TouchableOpacity } from 'react-native'
-import { useContextGroups, useGroup } from '@hylo/hooks/useCurrentGroup'
+import { useTranslation } from 'react-i18next'
+import { isEmpty } from 'lodash/fp'
+import { useContextGroups } from '@hylo/hooks/useCurrentGroup'
 import GroupsList from 'components/GroupsList'
 import Icon from 'components/Icon'
 import { caribbeanGreen, rhino40 } from 'style/colors'
-import { useTranslation } from 'react-i18next'
 
 export default function PostGroups ({
   goToGroup,

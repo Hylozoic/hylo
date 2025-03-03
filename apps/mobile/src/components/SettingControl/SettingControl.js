@@ -72,7 +72,8 @@ const SettingControl = React.forwardRef(({
           {toggleSecureTextEntry && (
             <TouchableOpacity
               onPress={handleTogglePassword}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <EntypoIcon
                 name={securePassword ? 'eye' : 'eye-with-line'}
                 style={[styles.eyeIcon, theme.eyeIcon]}
@@ -83,7 +84,8 @@ const SettingControl = React.forwardRef(({
             <View style={highlight && styles.highlight}>
               <TouchableOpacity
                 onPress={handleToggleEditable}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <EntypoIcon name={editable ? 'check' : 'edit'} style={styles.editIcon} />
               </TouchableOpacity>
             </View>

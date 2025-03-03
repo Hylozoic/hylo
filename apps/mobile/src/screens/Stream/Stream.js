@@ -19,7 +19,6 @@ import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
 import PostRow from './PostRow'
 import StreamHeader from './StreamHeader'
-import { pictonBlue } from 'style/colors'
 
 /* === CONSTANTS === */
 
@@ -192,10 +191,10 @@ export default function Stream () {
     updateUserSettings({ changes: { settings: { streamChildPosts: childPostInclusion } } })
   }
 
-  // TODO: Unused. Remove or explain in comment
-  const extraToggleStyles = streamQueryVariables?.childPostInclusion === 'yes'
-    ? { backgroundColor: pictonBlue }
-    : { backgroundColor: '#FFFFFF' }
+  // TODO: Unused. Remove or explain further here in comment
+  // const extraToggleStyles = streamQueryVariables?.childPostInclusion === 'yes'
+  //   ? { backgroundColor: pictonBlue }
+  //   : { backgroundColor: '#FFFFFF' }
 
   if (!streamQueryVariables) return null
   if (!currentUser) return <Loading style={{ flex: 1 }} />
@@ -246,25 +245,26 @@ export default function Stream () {
                     <TouchableOpacity onPress={handleChildPostToggle}>
                       <View className={clsx(
                         'w-8 h-8 rounded items-center justify-center',
-                        streamQueryVariables?.childPostInclusion === 'yes' 
-                          ? 'bg-secondary' 
+                        streamQueryVariables?.childPostInclusion === 'yes'
+                          ? 'bg-secondary'
                           : 'bg-background border border-secondary'
-                      )}>
-                        <Icon 
-                          name='Subgroup' 
+                      )}
+                      >
+                        <Icon
+                          name='Subgroup'
                           className={clsx(
-                            streamQueryVariables?.childPostInclusion === 'yes' 
-                              ? 'text-background' 
+                            streamQueryVariables?.childPostInclusion === 'yes'
+                              ? 'text-background'
                               : 'text-secondary'
-                          )} 
+                          )}
                         />
                       </View>
                     </TouchableOpacity>}
                   {!streamQueryVariables?.types && (
-                    <ListControl 
-                      selected={streamQueryVariables.filter} 
-                      onChange={setFilter} 
-                      options={POST_TYPE_OPTIONS} 
+                    <ListControl
+                      selected={streamQueryVariables.filter}
+                      onChange={setFilter}
+                      options={POST_TYPE_OPTIONS}
                     />
                   )}
                 </View>
@@ -273,10 +273,10 @@ export default function Stream () {
 
             {streamType === 'event' && (
               <View className='bg-card px-2.5 py-2'>
-                <ListControl 
-                  selected={timeframe} 
-                  onChange={setTimeframe} 
-                  options={EVENT_STREAM_TIMEFRAME_OPTIONS} 
+                <ListControl
+                  selected={timeframe}
+                  onChange={setTimeframe}
+                  options={EVENT_STREAM_TIMEFRAME_OPTIONS}
                 />
               </View>
             )}
