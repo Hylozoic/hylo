@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Animated, TouchableOpacity, Text, StyleSheet, View, FlatList } from 'react-native'
+import React, { useRef } from 'react'
+import { TouchableOpacity, Text, FlatList, View } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import Intercom from '@intercom/intercom-react-native'
-import { Globe, Plus, CircleHelp } from 'lucide-react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { CircleHelp, Globe, Plus } from 'lucide-react-native'
 import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -11,29 +12,57 @@ import { widgetUrl as makeWidgetUrl } from 'util/navigation'
 import { openURL } from 'hooks/useOpenURL'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 
+// Time to keep menu expanded without interaction
+const STAY_EXPANDED_DURATION = 1500
+// Time to press to expand menu (scroll will also expand, see DrawerMenu)
+const PRESS_IN_EXPAND_DURATION = 2000
+
 export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
+  const insets = useSafeAreaInsets()
   const changeToGroup = useChangeToGroup()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
   const { myContext, publicContext } = useContextGroups()
-  const [isPressing, setIsPressing] = useState(false)
   const myGroups = [myContext, publicContext].concat(
     sortBy('name', map(m => m.group, currentUser.memberships))
   )
 
-  useEffect(() => {
-    let timeoutId
-    if (isExpanded && !isPressing) {
-      timeoutId = setTimeout(() => {
-        setIsExpanded(false)
-      }, 200)
-    }
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId)
-    }
-  }, [isExpanded, isPressing])
+  const collapseTimeout = useRef(null)
+  const pressTimer = useRef(null)
+  const isScrolling = useRef(false)
+
+  const startCollapseTimer = () => {
+    clearTimeout(collapseTimeout.current)
+    collapseTimeout.current = setTimeout(() => {
+      setIsExpanded(false)
+    }, STAY_EXPANDED_DURATION)
+  }
+
+  const handleScrollStart = () => {
+    isScrolling.current = true
+    clearTimeout(pressTimer.current)
+    setIsExpanded(true)
+  }
+
+  const handleScrollStop = () => {
+    isScrolling.current = false
+    startCollapseTimer()
+  }
+
+  const handlePressIn = () => {
+    pressTimer.current = setTimeout(() => {
+      if (!isScrolling.current) {
+        setIsExpanded(true)
+      }
+    }, PRESS_IN_EXPAND_DURATION) 
+  }
+
+  const handlePressOut = () => {
+    clearTimeout(pressTimer.current)
+  }
 
   const handleOnPress = context => {
+    setIsExpanded(false)
     changeToGroup(context?.slug, false)
     const homePath = context && makeWidgetUrl({
       widget: context?.homeWidget,
@@ -42,167 +71,109 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
     if (homePath) openURL(homePath)
   }
 
-  const handleLongPress = () => {
-    setIsPressing(true)
-    setIsExpanded(true)
-  }
-
-  const handlePressOut = () => {
-    setIsPressing(false)
-  }
-
   return (
-    <Animated.View className='flex-col h-full bg-theme-background z-50 w-full py-2 px-3'>
+    <View
+      className='h-full bg-theme-background z-50'
+      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+    >
       <FlatList
-        className='w-full'
         data={myGroups}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ContextRow
-            onPress={handleOnPress}
-            item={item}
-            currentGroupSlug={currentGroup?.slug}
-            setIsExpanded={setIsExpanded}
             isExpanded={isExpanded}
-            onLongPress={handleLongPress}
+            item={item}
+            highlight={item?.slug === currentGroup?.slug}
+            onPress={handleOnPress}
+            onPressIn={handlePressIn}
             onPressOut={handlePressOut}
           />
         )}
         showsVerticalScrollIndicator={false}
+        onScrollBeginDrag={handleScrollStart}
+        onScrollEndDrag={handleScrollStop}
+        onMomentumScrollEnd={handleScrollStop}
+        scrollEventThrottle={16}
       />
-      <View className='w-full mt-auto bg-theme-background pt-4'>
-        <TouchableOpacity
-          onPress={() => openURL('/create')}
-          activeOpacity={0.7}
-          onLongPress={handleLongPress}
-          onPressOut={handlePressOut}
-          delayLongPress={200}
-          className='flex flex-row items-center gap-3 justify-start p-1'
-        >
-          <View
-            className='bg-primary relative flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90'
-          >
-            <Plus />
-          </View>
-          {isExpanded && (
-            <Text className='text-xl font-medium text-foreground flex-1 px-2 py-1 bg-foreground/20 rounded-md'>Create</Text>
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => Intercom.present()}
-          activeOpacity={0.7}
-          onLongPress={handleLongPress}
-          onPressOut={handlePressOut}
-          delayLongPress={200}
-          className='flex flex-row items-center gap-3 justify-start p-1'
-        >
-          <View className='bg-primary relative flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90'>
-            <CircleHelp />
-          </View>
-          {isExpanded && (
-            <Text className='text-xl font-medium text-foreground flex-1 px-2 py-1 bg-foreground/20 rounded-md'>Support</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </Animated.View>
+      <ContextRow
+        bottomItem
+        isExpanded={isExpanded}
+        item={{
+          name: 'Create',
+          iconName: 'Plus'
+        }}
+        onPress={() => openURL('/create')}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      />
+      <ContextRow
+        bottomItem
+        isExpanded={isExpanded}
+        item={{
+          name: 'Support',
+          iconName: 'CircleHelp'
+        }}
+        onPress={() => Intercom.present()}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      />
+    </View>
   )
 }
 
-function ContextRow ({ item, onPress, currentGroupSlug, badgeCount = 0, className, setIsExpanded, isExpanded, onLongPress, onPressOut }) {
+function ContextRow ({
+  item,
+  onPress,
+  highlight,
+  badgeCount = 0,
+  bottomItem,
+  isExpanded,
+  className,
+  onPressIn,
+  onPressOut
+}) {
   const newPostCount = Math.min(99, item.newPostCount)
-  const highlight = item?.slug === currentGroupSlug
-  const textAnim = useRef(new Animated.Value(0)).current
-
-  useEffect(() => {
-    Animated.timing(textAnim, {
-      toValue: isExpanded ? 1 : 0,
-      duration: isExpanded ? 250 : 150,
-      useNativeDriver: true
-    }).start()
-  }, [isExpanded])
+  const CustomIcons = { CircleHelp, Globe, Plus }
+  const CustomIcon = item?.iconName && CustomIcons[item.iconName]
 
   return (
     <TouchableOpacity
       key={item?.id}
       onPress={() => onPress(item)}
-      className='flex flex-row items-center gap-3 justify-start p-1'
-      activeOpacity={0.7}
-      onLongPress={onLongPress}
+      onPressIn={onPressIn}
       onPressOut={onPressOut}
+      className={clsx(
+        'flex-row rounded-lg opacity-60 p-2',
+        badgeCount > 0 && 'border-3 opacity-100',
+        highlight && 'bg-primary border-2 border-secondary p-1',
+        bottomItem && 'bg-primary m-1',
+        className
+      )}
+      style={{
+        justifyContent: isExpanded ? 'flex-start' : 'center',
+        alignItems: 'center'
+      }}
+      activeOpacity={0.7}
     >
-      <View
-        className={clsx(
-          'bg-primary relative flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90',
-          highlight && 'border-3 border-secondary opacity-100 scale-100',
-          badgeCount > 0 && 'border-3 border-accent opacity-100 scale-100',
-          className
-        )}
-      >
-        {!!item?.avatarUrl && (
-          <FastImage source={{ uri: item?.avatarUrl }} style={styles.groupAvatar} />
-        )}
-        {item?.isPublicContext &&
-          <View className='flex items-center w-14 h-14 min-h-10 rounded-lg'>
-            <Globe />
-          </View>}
-        {!!newPostCount && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{newPostCount}</Text>
-          </View>
-        )}
-      </View>
-      <Animated.View style={{
-        flex: 1,
-        opacity: textAnim,
-        transform: [{
-          translateX: textAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [-20, 0]
-          })
-        }]
-      }}>
-        <Text className='text-xl font-medium text-foreground px-2 py-1 bg-midground/20 rounded-md'>{item?.name}</Text>
-      </Animated.View>
+      {!CustomIcon && !!item?.avatarUrl && (
+        <FastImage source={{ uri: item?.avatarUrl }} style={{ height: 35, width: 35 }} />
+      )}
+      {CustomIcon && (
+        <CustomIcon size={35} />
+      )}
+      {!!newPostCount && (
+        <Text>{newPostCount}</Text>
+      )}
+      {isExpanded && (
+        <Text
+          className={clsx(
+            'text-xl font-medium text-background ml-2',
+            (highlight || bottomItem) && 'text-foreground'
+          )}
+        >
+          {item?.name}
+        </Text>
+      )}
     </TouchableOpacity>
   )
 }
-
-const styles = StyleSheet.create({
-  menuContainer: {
-    backgroundColor: '#222',
-    overflow: 'hidden',
-    paddingVertical: 10
-  },
-  groupAvatar: {
-    height: 30,
-    width: 30,
-    borderRadius: 4
-  },
-  expandButton: {
-    paddingVertical: 10,
-    alignItems: 'center',
-    backgroundColor: '#333'
-  },
-  expandButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold'
-  },
-  groupRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 8
-  },
-  groupIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10
-  },
-  groupText: {
-    fontSize: 14,
-    color: 'white',
-    flexShrink: 1
-  }
-})

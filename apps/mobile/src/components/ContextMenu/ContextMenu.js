@@ -2,6 +2,7 @@ import React, { useMemo, useEffect } from 'react'
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
@@ -13,7 +14,8 @@ import useRouteParams from 'hooks/useRouteParams'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 
-export default function ContextMenu ({ isContextSwitchExpanded }) {
+export default function ContextMenu () {
+  const insets = useSafeAreaInsets()
   const navigation = useNavigation()
   const { t } = useTranslation()
   const [{ currentGroup, fetching }] = useCurrentGroup()
@@ -41,34 +43,30 @@ export default function ContextMenu ({ isContextSwitchExpanded }) {
   if (!currentGroup) return null
 
   return (
-    <View className='flex-1 bg-background'>
+    <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
       <Header group={currentGroup} />
-      {!isContextSwitchExpanded && (
-        <>
-          <ScrollView className='p-2'>
-            {widgets.map(widget => (
-              <View key={widget.id} className='mb-0.5'>
-                <MenuItem
-                  widget={widget}
-                  groupSlug={currentGroup.slug}
-                  rootPath={`/groups/${currentGroup.slug}`}
-                  group={currentGroup}
-                />
-              </View>
-            ))}
-          </ScrollView>
-          {(!currentGroup.isContextGroup) && (
-            <View className='px-2 mb-2'>
-              <TouchableOpacity
-                onPress={handleGoToAllViews}
-                className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md gap-2'
-              >
-                <WidgetIconResolver widget={{ type: 'all-views' }} className='mr-2' />
-                <Text className='text-base font-normal text-foreground'>{t('All Views')}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </>
+      <ScrollView className='p-2'>
+        {widgets.map(widget => (
+          <View key={widget.id} className='mb-0.5'>
+            <MenuItem
+              widget={widget}
+              groupSlug={currentGroup.slug}
+              rootPath={`/groups/${currentGroup.slug}`}
+              group={currentGroup}
+            />
+          </View>
+        ))}
+      </ScrollView>
+      {(!currentGroup.isContextGroup) && (
+        <View className='px-2 mb-2'>
+          <TouchableOpacity
+            onPress={handleGoToAllViews}
+            className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md gap-2'
+          >
+            <WidgetIconResolver widget={{ type: 'all-views' }} className='mr-2' />
+            <Text className='text-base font-normal text-foreground'>{t('All Views')}</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   )
@@ -268,18 +266,19 @@ function TopElements ({ widget, group }) {
   }
 }
 
-function Header ({ group }) {
+function Header ({ group, style }) {
   const { t } = useTranslation()
+  const insets = useSafeAreaInsets()
 
   if (!group) return null
 
   return (
-    <View className='w-full relative'>
+    <View className='w-full relative' style={style}>
       {!group.isContextGroup && (
         <GroupMenuHeader group={group} />
       )}
       {group.isContextGroup && (
-        <View className='flex flex-col p-2'>
+        <View className='flex flex-col p-2' style={{ paddingTop: insets.top }}>
           <Text className='text-foreground font-bold text-lg'>
             {t(group.name)}
           </Text>

@@ -1,27 +1,33 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { View, StyleSheet, Animated } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Animated, LayoutAnimation } from 'react-native'
 import ContextMenu from 'components/ContextMenu'
 import ContextSwitchMenu from 'components/ContextSwitchMenu/ContextSwitchMenu'
 
+const COLLAPSED_SWITCH_WIDTH = 0.15
+const EXPANDED_SWITCH_WIDTH = 1
+const COLLAPSED_MENU_WIDTH = 0.85
+const EXPANDED_MENU_WIDTH = 0
+
 const OPENING_DURATION = 250
-const CLOSING_DURATION = 100
+const CLOSING_DURATION = 200
 
 export default function DrawerMenu (props) {
-  const insets = useSafeAreaInsets()
   const [isContextSwitchExpanded, setIsContextSwitchExpanded] = useState(false)
-  const switchMenuFlex = useRef(new Animated.Value(0.22)).current
-  const contextMenuFlex = useRef(new Animated.Value(0.78)).current
+  const contextSwitchWidth = useRef(new Animated.Value(COLLAPSED_SWITCH_WIDTH)).current
+  const contextMenuWidth = useRef(new Animated.Value(COLLAPSED_MENU_WIDTH)).current
 
   useEffect(() => {
+    // One of a few things that can be played with to change/improve animation behavior:
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+
     Animated.parallel([
-      Animated.timing(switchMenuFlex, {
-        toValue: isContextSwitchExpanded ? 0.78 : 0.22,
+      Animated.timing(contextSwitchWidth, {
+        toValue: isContextSwitchExpanded ? EXPANDED_SWITCH_WIDTH : COLLAPSED_SWITCH_WIDTH,
         duration: OPENING_DURATION,
         useNativeDriver: false
       }),
-      Animated.timing(contextMenuFlex, {
-        toValue: isContextSwitchExpanded ? 0.22 : 0.78,
+      Animated.timing(contextMenuWidth, {
+        toValue: isContextSwitchExpanded ? EXPANDED_MENU_WIDTH : COLLAPSED_MENU_WIDTH,
         duration: CLOSING_DURATION,
         useNativeDriver: false
       })
@@ -29,30 +35,34 @@ export default function DrawerMenu (props) {
   }, [isContextSwitchExpanded])
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <Animated.View style={[styles.menuContainer, { flex: switchMenuFlex }]}>
-        <ContextSwitchMenu 
-          {...props} 
+    <View style={{ flexDirection: 'row', flex: 1 }}>
+      <Animated.View
+        style={[
+          {
+            width: contextSwitchWidth.interpolate({
+              inputRange: [COLLAPSED_SWITCH_WIDTH, EXPANDED_SWITCH_WIDTH],
+              outputRange: [`${COLLAPSED_SWITCH_WIDTH * 100}%`, `${EXPANDED_SWITCH_WIDTH * 100}%`]
+            })
+          }
+        ]}
+      >
+        <ContextSwitchMenu
+          {...props}
           isExpanded={isContextSwitchExpanded}
           setIsExpanded={setIsContextSwitchExpanded}
         />
       </Animated.View>
-      <Animated.View style={[styles.menuContainer, { flex: contextMenuFlex }]}>
-        <ContextMenu 
-          isContextSwitchExpanded={isContextSwitchExpanded}
-        />
+      <Animated.View
+        style={{
+          opacity: contextMenuWidth,
+          width: contextMenuWidth.interpolate({
+            inputRange: [EXPANDED_MENU_WIDTH, COLLAPSED_MENU_WIDTH],
+            outputRange: [`${EXPANDED_MENU_WIDTH * 100}%`, `${COLLAPSED_MENU_WIDTH * 100}%`]
+          })
+        }}
+      >
+        <ContextMenu isContextSwitchExpanded={isContextSwitchExpanded} />
       </Animated.View>
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    flex: 1
-  },
-  menuContainer: {
-    height: '100%',
-    overflow: 'hidden'
-  }
-})
