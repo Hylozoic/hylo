@@ -596,7 +596,6 @@ module.exports = bookshelf.Model.extend(merge({
 
     this.set(saneAttrs)
     await this.validate()
-
     await bookshelf.transaction(async transacting => {
       if (changes.agreements) {
         const currentAgreementIds = (await this.agreements().fetch({ transacting })).pluck('id')
@@ -712,7 +711,7 @@ module.exports = bookshelf.Model.extend(merge({
         }
       }
 
-      if (typeof changes.settings.show_welcome_page === 'boolean') {
+      if (changes.settings && typeof changes.settings.show_welcome_page === 'boolean') {
         // Add welcome view/widget if it doesn't exist
         let welcomeWidget = await ContextWidget.where({ group_id: this.id, type: 'welcome' }).fetch({ transacting })
         if (!welcomeWidget) {
@@ -726,10 +725,8 @@ module.exports = bookshelf.Model.extend(merge({
         // Hide or show it based on the setting
         await welcomeWidget.save({ visibility: changes.settings.show_welcome_page ? 'all' : 'none' }, { transacting })
       }
-
       await this.save({}, { transacting })
     })
-
     // If a new location is being passed in but not a new location_id then we geocode on the server
     if (changes.location && changes.location !== this.get('location') && !changes.location_id) {
       await Queue.classMethod('Group', 'geocodeLocation', { groupId: this.id })
