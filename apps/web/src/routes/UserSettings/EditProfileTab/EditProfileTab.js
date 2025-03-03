@@ -120,9 +120,6 @@ class EditProfileTab extends Component {
         <Helmet>
           <title>{t('Your Settings')} | Hylo</title>
         </Helmet>
-        <label className={classes.label} htmlFor='nameField'>{t('Your Name')}</label>
-        {!validateName(name) && <div className={classes.nameValidation}>{t('Name must not be blank')}</div>}
-        <input type='text' className={classes.name} onChange={this.updateSetting('name')} value={name || ''} id='nameField' />
         <label className={classes.label}>{t('Banner and Avatar Images')}</label>
         <UploadAttachmentButton
           type='userBanner'
@@ -140,6 +137,8 @@ class EditProfileTab extends Component {
         >
           <div style={bgImageStyle(avatarUrl)} className={classes.avatarImage}><Icon name='AddImage' className={classes.uploadIcon} /></div>
         </UploadAttachmentButton>
+        <SettingsControl id='nameField' label={t('Name')} onChange={this.updateSetting('name')} value={name || ''} maxLength={60} />
+        {!validateName(name) && <div className={classes.nameValidation}>{t('Name must not be blank')}</div>}
         <SettingsControl id='taglineField' label={t('Tagline')} onChange={this.updateSetting('tagline')} value={tagline} maxLength={60} />
         <SettingsControl id='bioField' label={t('About Me')} onChange={this.updateSetting('bio')} value={bio} type='textarea' />
         <SettingsControl
