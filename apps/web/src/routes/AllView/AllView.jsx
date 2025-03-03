@@ -26,7 +26,7 @@ import PostSelector from 'components/PostSelector'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from 'components/ui/command'
 import { Input } from 'components/ui/input'
-import { Button } from 'components/ui/button'
+import Button from 'components/ui/button'
 import { Label } from 'components/ui/label'
 import {
   Select,

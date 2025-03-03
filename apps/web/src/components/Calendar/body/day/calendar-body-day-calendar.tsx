@@ -5,7 +5,8 @@ import { Calendar } from '@/components/ui/calendar'
 import { DateTime } from 'luxon'
 import { includes, sameDay } from '../../calendar-util'
 import { cn } from '@/lib/utils'
-import { Button, buttonVariants } from '@/components/ui/button'
+import Button from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
 
 export default function CalendarBodyDayCalendar () {
   const { t } = useTranslation()

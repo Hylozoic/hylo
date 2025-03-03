@@ -6,7 +6,7 @@ import {
   Undo2, Redo2, RemoveFormatting,
   Heading1, Heading2, Heading3
 } from 'lucide-react'
-import { Button } from 'components/ui/button'
+import Button from 'components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent } from 'components/ui/popover'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { cn } from 'util/index'

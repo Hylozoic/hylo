@@ -19,7 +19,7 @@ import NoPosts from 'components/NoPosts'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
 import Tooltip from 'components/Tooltip'
-import { Button } from 'components/ui/button'
+import Button from 'components/ui/button'
 import {
   Select,
   SelectContent,
