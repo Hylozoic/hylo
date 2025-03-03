@@ -510,7 +510,7 @@ function PostEditor ({
         }
         break
       case 'project':
-        if (!donationsLink || !sanitizeURL(donationsLink) || !projectManagementLink || !sanitizeURL(projectManagementLink)) {
+        if ((donationsLink?.length > 0 && !sanitizeURL(donationsLink)) || (projectManagementLink?.length > 0 && !sanitizeURL(projectManagementLink))) {
           errorMessages.push(t('Donations and project management links must be valid URLs'))
         }
         break
