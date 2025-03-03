@@ -63,9 +63,9 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ContextRow
+            context={item}
             isExpanded={isExpanded}
-            item={item}
-            highlight={item?.slug === currentGroup?.slug}
+            selected={item?.slug === currentGroup?.slug}
             onPress={handleOnPress}
           />
         )}
@@ -77,14 +77,14 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
       />
       <ContextRow
         bottomItem
+        context={{ name: 'Create', iconName: 'Plus' }}
         isExpanded={isExpanded}
-        item={{ name: 'Create', iconName: 'Plus' }}
         onPress={() => openURL('/create')}
       />
       <ContextRow
         bottomItem
+        context={{ name: 'Support', iconName: 'CircleHelp' }}
         isExpanded={isExpanded}
-        item={{ name: 'Support', iconName: 'CircleHelp' }}
         onPress={() => Intercom.present()}
       />
     </View>
@@ -95,22 +95,22 @@ function ContextRow ({
   badgeCount = 0,
   bottomItem,
   className,
-  highlight,
+  context,
+  selected,
   isExpanded,
-  item,
   onPress
 }) {
-  const newPostCount = Math.min(99, item.newPostCount)
+  const newPostCount = Math.min(99, context.newPostCount)
   const CustomIcons = { CircleHelp, Globe, Plus }
-  const CustomIcon = item?.iconName && CustomIcons[item.iconName]
+  const CustomIcon = context?.iconName && CustomIcons[context.iconName]
 
   return (
     <TouchableOpacity
-      key={item?.id}
-      onPress={() => onPress(item)}
+      key={context?.id}
+      onPress={() => onPress(context)}
       className={clsx(
         'flex-row rounded-lg p-1.5',
-        highlight && 'bg-primary',
+        selected && 'bg-primary',
         bottomItem && 'bg-primary m-1',
         className
       )}
@@ -120,8 +120,8 @@ function ContextRow ({
       }}
       activeOpacity={0.7}
     >
-      {!CustomIcon && !!item?.avatarUrl && (
-        <FastImage source={{ uri: item?.avatarUrl }} style={{ height: 35, width: 35 }} />
+      {!CustomIcon && !!context?.avatarUrl && (
+        <FastImage source={{ uri: context?.avatarUrl }} style={{ height: 35, width: 35 }} />
       )}
       {CustomIcon && (
         <CustomIcon style={{ color: bottomItem ? black : white }} size={bottomItem ? 24 : 35} />
@@ -133,10 +133,10 @@ function ContextRow ({
         <Text
           className={clsx(
             'text-xl font-medium text-background ml-2',
-            (highlight || bottomItem) && 'text-foreground'
+            (selected || bottomItem) && 'text-foreground'
           )}
         >
-          {item?.name}
+          {context?.name}
         </Text>
       )}
     </TouchableOpacity>

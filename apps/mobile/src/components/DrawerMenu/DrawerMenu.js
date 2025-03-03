@@ -9,7 +9,7 @@ const COLLAPSED_MENU_WIDTH = 0.85
 const EXPANDED_MENU_WIDTH = 0
 
 const OPENING_DURATION = 150
-const CLOSING_DURATION = 150
+const CLOSING_DURATION = 0
 
 export default function DrawerMenu (props) {
   const [isContextSwitchExpanded, setIsContextSwitchExpanded] = useState(false)
