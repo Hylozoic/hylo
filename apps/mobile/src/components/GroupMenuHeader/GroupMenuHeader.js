@@ -40,7 +40,7 @@ export default function GroupMenuHeader ({ group }) {
       />
 
       {canAdmin && (
-        <View className='absolute top-2 right-2'>
+        <View className='self-end mb-5 mr-3'>
           <TouchableOpacity
             // TODO redesign: make this actually navigate correctly
             onPress={() => navigation.navigate('Group Settings')}
