@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { TouchableOpacity, Text, FlatList, View } from 'react-native'
+import { Text, FlatList, View, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import Intercom from '@intercom/intercom-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -11,11 +11,9 @@ import useCurrentGroup, { useContextGroups } from '@hylo/hooks/useCurrentGroup'
 import { widgetUrl as makeWidgetUrl } from 'util/navigation'
 import { openURL } from 'hooks/useOpenURL'
 import useChangeToGroup from 'hooks/useChangeToGroup'
+import { black, white } from 'style/colors'
 
-// Time to keep menu expanded without interaction
 const STAY_EXPANDED_DURATION = 1500
-// Time to press to expand menu (scroll will also expand, see DrawerMenu)
-const PRESS_IN_EXPAND_DURATION = 2000
 
 export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const insets = useSafeAreaInsets()
@@ -28,8 +26,6 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   )
 
   const collapseTimeout = useRef(null)
-  const pressTimer = useRef(null)
-  const isScrolling = useRef(false)
 
   const startCollapseTimer = () => {
     clearTimeout(collapseTimeout.current)
@@ -38,27 +34,13 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
     }, STAY_EXPANDED_DURATION)
   }
 
-  const handleScrollStart = () => {
-    isScrolling.current = true
-    clearTimeout(pressTimer.current)
+  const handleScroll = () => {
     setIsExpanded(true)
+    clearTimeout(collapseTimeout.current)
   }
 
   const handleScrollStop = () => {
-    isScrolling.current = false
     startCollapseTimer()
-  }
-
-  const handlePressIn = () => {
-    pressTimer.current = setTimeout(() => {
-      if (!isScrolling.current) {
-        setIsExpanded(true)
-      }
-    }, PRESS_IN_EXPAND_DURATION) 
-  }
-
-  const handlePressOut = () => {
-    clearTimeout(pressTimer.current)
   }
 
   const handleOnPress = context => {
@@ -85,12 +67,10 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
             item={item}
             highlight={item?.slug === currentGroup?.slug}
             onPress={handleOnPress}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
           />
         )}
         showsVerticalScrollIndicator={false}
-        onScrollBeginDrag={handleScrollStart}
+        onScroll={handleScroll}
         onScrollEndDrag={handleScrollStop}
         onMomentumScrollEnd={handleScrollStop}
         scrollEventThrottle={16}
@@ -98,39 +78,27 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
       <ContextRow
         bottomItem
         isExpanded={isExpanded}
-        item={{
-          name: 'Create',
-          iconName: 'Plus'
-        }}
+        item={{ name: 'Create', iconName: 'Plus' }}
         onPress={() => openURL('/create')}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
       />
       <ContextRow
         bottomItem
         isExpanded={isExpanded}
-        item={{
-          name: 'Support',
-          iconName: 'CircleHelp'
-        }}
+        item={{ name: 'Support', iconName: 'CircleHelp' }}
         onPress={() => Intercom.present()}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
       />
     </View>
   )
 }
 
 function ContextRow ({
-  item,
-  onPress,
-  highlight,
   badgeCount = 0,
   bottomItem,
-  isExpanded,
   className,
-  onPressIn,
-  onPressOut
+  highlight,
+  isExpanded,
+  item,
+  onPress
 }) {
   const newPostCount = Math.min(99, item.newPostCount)
   const CustomIcons = { CircleHelp, Globe, Plus }
@@ -140,12 +108,9 @@ function ContextRow ({
     <TouchableOpacity
       key={item?.id}
       onPress={() => onPress(item)}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
       className={clsx(
-        'flex-row rounded-lg opacity-60 p-2',
-        badgeCount > 0 && 'border-3 opacity-100',
-        highlight && 'bg-primary border-2 border-secondary p-1',
+        'flex-row rounded-lg p-1.5',
+        highlight && 'bg-primary',
         bottomItem && 'bg-primary m-1',
         className
       )}
@@ -159,7 +124,7 @@ function ContextRow ({
         <FastImage source={{ uri: item?.avatarUrl }} style={{ height: 35, width: 35 }} />
       )}
       {CustomIcon && (
-        <CustomIcon size={35} />
+        <CustomIcon style={{ color: bottomItem ? black : white }} size={bottomItem ? 24 : 35} />
       )}
       {!!newPostCount && (
         <Text>{newPostCount}</Text>
