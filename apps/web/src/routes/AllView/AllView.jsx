@@ -95,7 +95,8 @@ export default function AllViews () {
       if (!isEditing && !widget.view && !widget.customView && widget.type !== 'chat') return false
       // When editing only show widgets that have not already been added
       if (isEditing && widget.order) return false
-      if (widget.visibility === 'admin' && !canAdminister) return false
+      // Hide widgets that are not visible to the user
+      if (widget.visibility === 'none' || (widget.visibility === 'admin' && !canAdminister)) return false
       return true
     })
       .map(widget => ContextWidgetPresenter(widget))

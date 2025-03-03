@@ -133,6 +133,9 @@ export default function ChatRoom (props) {
   const [loadedFuture, setLoadedFuture] = useState(false)
   const [initialPostToScrollTo, setInitialPostToScrollTo] = useState(null)
 
+  // Add this new state to track if initial animation is complete
+  const [initialAnimationComplete, setInitialAnimationComplete] = useState(false)
+
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
@@ -165,15 +168,30 @@ export default function ChatRoom (props) {
   const postsFuture = useSelector(state => getPosts(state, fetchPostsFutureParams))
   const hasMorePostsFuture = useSelector(state => getHasMorePosts(state, fetchPostsFutureParams))
 
-  const postsForDisplay = useMemo(() => (postsPast || []).concat(postsFuture || []), [postsPast, postsFuture])
+  const postsForDisplay = useMemo(() => {
+    if (!postsPast && !postsFuture) return []
+    return (postsPast || []).concat(postsFuture || [])
+  }, [postsPast, postsFuture])
 
   const fetchPostsPast = useCallback((offset) => {
     if (loadingPast || hasMorePostsPast === false) return Promise.resolve()
     setLoadingPast(true)
-    return dispatch(fetchPosts({ offset, ...fetchPostsPastParams })).then((action) => {
-      messageListRef.current?.data.prepend(action.payload?.data?.group?.posts?.items?.reverse() || [])
-      setLoadingPast(false)
-    })
+    return dispatch(fetchPosts({ offset, ...fetchPostsPastParams }))
+      .then((action) => {
+        const posts = action.payload?.data?.group?.posts?.items
+        // Always reset loading state
+        setLoadingPast(false)
+        // Handle empty posts case - clear the list or do other necessary resets
+        if (!posts?.length) {
+          messageListRef.current?.data.clear()
+          return
+        }
+        // Process posts only if they exist
+        if (posts?.length) {
+          messageListRef.current?.data.prepend(posts.reverse() || [])
+        }
+      })
+      .catch(() => setLoadingPast(false))
   }, [fetchPostsPastParams, loadingPast, hasMorePostsPast])
 
   const fetchPostsFuture = useCallback((offset) => {
@@ -289,8 +307,19 @@ export default function ChatRoom (props) {
     resetInitialPostToScrollTo()
   }, [loadedPast, loadedFuture])
 
-  const onScroll = React.useCallback(
-    (location) => {
+  // Add this useEffect to mark initial animation as complete after a timeout
+  useEffect(() => {
+    if (loadedPast && loadedFuture && !initialAnimationComplete) {
+      // Set a timeout slightly longer than the maximum animation delay (2000ms)
+      const timer = setTimeout(() => {
+        setInitialAnimationComplete(true)
+      }, 2500)
+      return () => clearTimeout(timer)
+    }
+  }, [loadedPast, loadedFuture, initialAnimationComplete])
+
+  const onScroll = useMemo(
+    () => debounce(200, (location) => {
       if (!loadingPast && !loadingFuture) {
         if (location.listOffset > -100 && hasMorePostsPast) {
           fetchPostsPast(postsPast.length)
@@ -298,7 +327,7 @@ export default function ChatRoom (props) {
           fetchPostsFuture(postsFuture.length)
         }
       }
-    },
+    }),
     [hasMorePostsPast, hasMorePostsFuture, loadingPast, loadingFuture]
   )
 
@@ -405,7 +434,21 @@ export default function ChatRoom (props) {
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto', marginBottom: '5px' }}
                 ref={messageListRef}
-                context={{ currentUser, loadingPast, loadingFuture, selectedPostId, group, latestOldPostId, onAddReaction, onRemoveReaction, onRemovePost, topicName, numPosts: postsForDisplay.length, newPostCount: topicFollow?.newPostCount }}
+                context={{
+                  currentUser,
+                  loadingPast,
+                  loadingFuture,
+                  selectedPostId,
+                  group,
+                  latestOldPostId,
+                  onAddReaction,
+                  onRemoveReaction,
+                  onRemovePost,
+                  topicName,
+                  numPosts: postsForDisplay.length,
+                  newPostCount: topicFollow?.newPostCount,
+                  initialAnimationComplete
+                }}
                 initialData={postsForDisplay}
                 initialLocation={{ index: initialPostToScrollTo, align: initialPostToScrollTo === 0 ? 'start' : 'end' }}
                 shortSizeAlign='bottom-smooth'
@@ -513,55 +556,57 @@ const StickyFooter = ({ context }) => {
   )
 }
 
-const ItemContent = ({ data: post, context, prevData, nextData }) => {
+const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   const expanded = context.selectedPostId === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
   const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
   const currentDay = DateTime.fromISO(post.createdAt)
   const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
-
-  /* Display the author header if
-    * There was no previous post
-    * Or this post is the first unread post
-    * Or this post is from a different day than the last post
-    * Or it's been more than 5 minutes since the last post
-    * Or the last post was a different author
-    * Or the last post had any comments on it
-    * Or the last past was a non chat type post
-  */
-
   const showHeader = !prevData || firstUnread || !!displayDay || createdTimeDiff > MAX_MINS_TO_BATCH || prevData.creator.id !== post.creator.id || prevData.commentersTotal > 0 || prevData.type !== 'chat'
+  /* Display the author header if
+  * There was no previous post
+  * Or this post is the first unread post
+  * Or this post is from a different day than the last post
+  * Or it's been more than 5 minutes since the last post
+  * Or the last post was a different author
+  * Or the last post had any comments on it
+  * Or the last past was a non chat type post
+  */
+  // Only calculate delay for initial load near bottom
+  const isInitialLoad = context.numPosts > 0 && index > context.numPosts - 20
+  const delay = isInitialLoad ? Math.min((context.numPosts - index - 1) * 35, 2000) : 0
+
+  // Only animate during initial load, never animate after initial animation is complete
+  const shouldAnimate = !post.pending && !context.initialAnimationComplete && isInitialLoad
+  const animationClass = shouldAnimate ? 'animate-slide-up invisible' : ''
+  const style = shouldAnimate ? { '--delay': `${delay}ms` } : {}
+
   return (
     <>
-      {firstUnread && !displayDay
-        ? (
-          <div className={styles.firstUnread}>
-            <div className={cn('border-dashed border-b-2 border-background')} />
-            <div className={styles.newPost}>NEW</div>
+      {firstUnread && !displayDay && <div className={styles.firstUnread}><hr className='border-t-2 border-red-500' /></div>}
+      {firstUnread && displayDay &&
+        <div className={styles.unreadAndDay}>
+          <hr className='border-t-2 border-red-500' />
+          <div className='flex w-full items-center my-3'>
+            <div className='grow h-px bg-foreground/10' />
+            <div className='mx-4 text-foreground/40 text-sm whitespace-nowrap'>{displayDay}</div>
+            <div className='grow h-px bg-foreground/10' />
           </div>
-          )
-        : null}
-      {firstUnread && displayDay
-        ? (
-          <div className={styles.unreadAndDay}>
-            <div className={cn('border-dashed border-b-2 border-background')} />
-            <div className={styles.newPost}>NEW</div>
-            <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
-          </div>
-          )
-        : null}
-      {!firstUnread && displayDay
-        ? (
-          <div className='w-full flex items-center'>
-            <div className={cn('border-dashed border-b-2 border-background/50 w-full')} />
-            <div className={cn('uppercase text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>{displayDay}</div>
-          </div>
-          )
-        : null}
+        </div>}
+      {!firstUnread && displayDay && (
+        <div className='w-full flex items-center my-3'>
+          <div className='grow h-px bg-foreground/10' />
+          <div className='mx-4 text-foreground/40 text-sm whitespace-nowrap'>{displayDay}</div>
+          <div className='grow h-px bg-foreground/10' />
+        </div>
+      )}
       {post.type === 'chat'
         ? (
-          <div className='mx-auto px-4 max-w-[750px]'>
+          <div
+            className={`mx-auto px-4 max-w-[750px] ${animationClass}`}
+            style={style}
+          >
             <ChatPost
               expanded={expanded}
               group={context.group}
@@ -571,10 +616,12 @@ const ItemContent = ({ data: post, context, prevData, nextData }) => {
               onRemoveReaction={context.onRemoveReaction}
               onRemovePost={context.onRemovePost}
             />
-          </div>
-          )
+          </div>)
         : (
-          <div className='mx-auto px-4 max-w-[750px]'>
+          <div
+            className={`mx-auto px-4 max-w-[750px] ${animationClass}`}
+            style={style}
+          >
             <PostCard
               group={context.group}
               expanded={expanded}

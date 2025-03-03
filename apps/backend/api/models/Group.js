@@ -27,8 +27,9 @@ export const GROUP_ATTR_UPDATE_WHITELIST = [
   'active'
 ]
 
-const DEFAULT_BANNER = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_banner.jpg'
-const DEFAULT_AVATAR = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png'
+// For files in the public directory, reference them with the base URL
+const DEFAULT_BANNER = '/default-group-banner.svg'
+const DEFAULT_AVATAR = '/default-group-avatar.svg'
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'groups',
@@ -568,7 +569,8 @@ module.exports = bookshelf.Model.extend(merge({
     const whitelist = [
       'about_video_uri', 'active', 'access_code', 'accessibility', 'avatar_url', 'banner_url',
       'description', 'geo_shape', 'location', 'location_id', 'name', 'purpose', 'settings',
-      'steward_descriptor', 'steward_descriptor_plural', 'type_descriptor', 'type_descriptor_plural', 'visibility'
+      'steward_descriptor', 'steward_descriptor_plural', 'type_descriptor', 'type_descriptor_plural', 'visibility',
+      'welcome_page', 'website_url'
     ]
     const trimAttrs = ['name', 'description', 'purpose']
 
@@ -708,6 +710,21 @@ module.exports = bookshelf.Model.extend(merge({
           currentView = currentViews.shift()
           newView = newViews.shift()
         }
+      }
+
+      if (typeof changes.settings.show_welcome_page === 'boolean') {
+        // Add welcome view/widget if it doesn't exist
+        let welcomeWidget = await ContextWidget.where({ group_id: this.id, type: 'welcome' }).fetch({ transacting })
+        if (!welcomeWidget) {
+          welcomeWidget = await ContextWidget.forge({
+            group_id: this.id,
+            type: 'welcome',
+            title: 'widget-welcome',
+            view: 'welcome'
+          }).save({}, { transacting })
+        }
+        // Hide or show it based on the setting
+        await welcomeWidget.save({ visibility: changes.settings.show_welcome_page ? 'all' : 'none' }, { transacting })
       }
 
       await this.save({}, { transacting })

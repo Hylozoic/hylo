@@ -22,12 +22,15 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     locationDisplayPrecision
     publicMemberDirectory
     showSuggestedSkills
+    showWelcomePage
   }
   slug
   type
   typeDescriptor
   typeDescriptorPlural
   visibility
+  websiteUrl
+  welcomePage
   agreements {
     items {
       id
@@ -185,6 +188,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           locationDisplayPrecision
           publicMemberDirectory
           showSuggestedSkills
+          showWelcomePage
         }
         slug
       }
