@@ -101,7 +101,11 @@ export default function GlobalNav (props) {
   const handleContainerMouseEnter = () => {
     setIsContainerHovered(true)
     setTimeout(() => {
-      setShowGradient(true)
+      // Check current hover state directly from DOM instead of using the captured state variable
+      const navContainer = document.querySelector('.globalNavContainer')
+      if (navContainer && navContainer.matches(':hover')) {
+        setShowGradient(true)
+      }
     }, 200)
   }
 
@@ -116,7 +120,7 @@ export default function GlobalNav (props) {
   }
 
   return (
-    <div className={cn('flex flex-col bg-theme-background h-[100vh] z-50 items-center pb-0 pt-2')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
+    <div className={cn('globalNavContainer flex flex-col bg-theme-background h-[100vh] z-50 items-center pb-0 pt-2')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
       <div
         ref={navContainerRef}
         className={cn(
@@ -181,16 +185,18 @@ export default function GlobalNav (props) {
 
       <div
         className={cn(
-          'fixed z-0 bottom-0 w-full h-full',
-          'transition-all duration-300 ease-out transform',
+          'fixed z-0 bottom-0 w-[400px] h-full',
+          'transition-all duration-300 ease-out transform  backdrop-blur-sm translate-x-0',
           {
-            'opacity-100 translate-x-0': showGradient,
+            'opacity-80 translate-x-0': !showGradient,
             'opacity-0 -translate-x-full': !showGradient
           }
         )}
         style={{
           background: 'linear-gradient(to right, rgba(var(--theme-background)/1) 20%, rgba(var(--theme-background)/0) 100%)',
-          maxWidth: '450px'
+          maxWidth: '600px',
+          maskImage: 'linear-gradient(to right, rgba(0,0,0,1) calc(100% - 150px), rgba(0,0,0,0) 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) calc(100% - 150px), rgba(0,0,0,0) 100%)'
         }}
       />
       <div className='flex flex-col gap-2 justify-end w-full items-center z-50 pb-2'>
