@@ -28,22 +28,25 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const collapseTimeout = useRef(null)
 
   const startCollapseTimer = () => {
+    console.log('startCollapseTimer')
     clearTimeout(collapseTimeout.current)
     collapseTimeout.current = setTimeout(() => {
       setIsExpanded(false)
     }, STAY_EXPANDED_DURATION)
   }
 
-  const handleScroll = () => {
+  const handleScroll = (evt) => {
     setIsExpanded(true)
     clearTimeout(collapseTimeout.current)
   }
 
   const handleScrollStop = () => {
+    console.log('handleScrollStop')
     startCollapseTimer()
   }
 
   const handleOnPress = context => {
+    clearTimeout(collapseTimeout.current)
     setIsExpanded(false)
     changeToGroup(context?.slug, false)
     const homePath = context && makeWidgetUrl({
@@ -61,6 +64,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
       <FlatList
         data={myGroups}
         keyExtractor={(item) => item.id}
+        on
         renderItem={({ item }) => (
           <ContextRow
             context={item}
@@ -70,7 +74,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
           />
         )}
         showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
+        onScrollBeginDrag={handleScroll}
         onScrollEndDrag={handleScrollStop}
         onMomentumScrollEnd={handleScrollStop}
         scrollEventThrottle={16}

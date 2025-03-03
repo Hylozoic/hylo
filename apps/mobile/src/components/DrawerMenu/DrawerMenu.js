@@ -61,7 +61,7 @@ export default function DrawerMenu (props) {
           })
         }}
       >
-        <ContextMenu isContextSwitchExpanded={isContextSwitchExpanded} />
+        <ContextMenu />
       </Animated.View>
     </View>
   )
