@@ -35,6 +35,19 @@ export default function GlobalNavItem ({
   const [isHovered, setIsHovered] = useState(false)
   const [open, setOpen] = useState(false)
   const [shouldAnimate, setShouldAnimate] = useState(false)
+  const itemRef = useRef(null)
+  const [isInViewport, setIsInViewport] = useState(true)
+
+  /**
+   * Checks if the tooltip would appear below the maximum allowed Y position
+   */
+  const checkPosition = useCallback(() => {
+    if (itemRef.current) {
+      const rect = itemRef.current.getBoundingClientRect()
+      const maxAllowedY = window.innerHeight * 0.85 // 85% of viewport height
+      setIsInViewport(rect.top < maxAllowedY)
+    }
+  }, [])
 
   /**
    * Handles tooltip visibility and animation states
