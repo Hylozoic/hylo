@@ -41,7 +41,6 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   }
 
   const handleScrollStop = () => {
-    console.log('handleScrollStop')
     startCollapseTimer()
   }
 
