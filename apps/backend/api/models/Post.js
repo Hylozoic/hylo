@@ -419,11 +419,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // Execute the insert query for options passed in
     if (options.length > 0) {
-      const insertQuery = `
-        INSERT INTO proposal_options (post_id, text, color, emoji)
-        VALUES ${options.map(option => `(${this.id}, '${option.text}', '${option.color}', '${option.emoji}')`).join(', ')};
-      `
-      await bookshelf.knex.raw(insertQuery).transacting(opts.transacting)
+      await bookshelf.knex('proposal_options').insert(options).transacting(opts.transacting)
     }
 
     // Return a resolved promise
