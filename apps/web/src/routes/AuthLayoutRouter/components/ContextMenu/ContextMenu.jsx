@@ -91,7 +91,7 @@ export default function ContextMenu (props) {
   const newWidgetRef = useRef()
 
   useEffect(() => {
-    if (newWidget && newWidgetRef.current) {
+    if (newWidgetRef.current) {
       const element = newWidgetRef.current
       element.scrollIntoView({ behavior: 'smooth', block: 'center' })
       element.classList.remove('animate-slide-up')
