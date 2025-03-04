@@ -86,7 +86,7 @@ export default function ContextMenu (props) {
   const [activeWidget, setActiveWidget] = useState(null)
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
 
-  let newWidget = previousWidgets.length > 0 ? orderedWidgets.find(widget => previousWidgets.indexOf(widget.id) === -1) : null
+  const newWidget = previousWidgets.length > 0 ? orderedWidgets.find(widget => previousWidgets.indexOf(widget.id) === -1) : null
   previousWidgets = orderedWidgets.map(widget => widget.id)
   const newWidgetRef = useRef()
 
@@ -100,7 +100,6 @@ export default function ContextMenu (props) {
       setTimeout(() => {
         element.classList.remove('animate-bounce')
       }, 2500)
-      newWidget = null
     }
   }, [newWidget])
 
