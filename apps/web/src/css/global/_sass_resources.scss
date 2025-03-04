@@ -230,17 +230,17 @@ $color-badge-special-border: #ffd192;
 
 // Fonts
 @mixin font-regular {
-  font-family:  'Onest', 'Epilogue', 'Outfit', 'Plus Jakarta Sans', 'Figtree', 'Circular Book';
+  font-family:  'Onest', 'Circular Book';
   font-weight: 300;
 }
 
 @mixin font-medium {
-  font-family:  'Onest', 'Epilogue', 'Outfit', 'Plus Jakarta Sans', 'Figtree', 'Circular Medium';
+  font-family:  'Onest', 'Circular Medium';
   font-weight: 900;
 }
 
 @mixin font-bold {
-  font-family: 'Onest', 'Epilogue', 'Outfit', 'Plus Jakarta Sans', 'Figtree', 'Circular Bold';
+  font-family: 'Onest', 'Circular Bold';
   font-weight: 1300;
 }
 
