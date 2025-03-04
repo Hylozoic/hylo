@@ -1,4 +1,4 @@
-import { cn } from 'util/index'
+import { ArrowDownWideNarrow } from 'lucide-react'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Dropdown from 'components/Dropdown'
@@ -6,6 +6,7 @@ import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import { CONTEXT_MY } from 'store/constants'
 import { COLLECTION_SORT_OPTIONS, STREAM_SORT_OPTIONS } from 'util/constants'
+import { cn } from 'util/index'
 
 import classes from './StreamViewControls.module.scss'
 
@@ -25,10 +26,8 @@ const TIMEFRAME_OPTIONS = [
   { id: 'past', label: 'Past Events' }
 ]
 
-const makeFilterDropdown = (selected, options, onChange, t) => {
+const makeFilterDropdown = (selected, options, onChange, t, IconComponent) => {
   // Load these strings in the component
-  t('Proposals')
-  t('Moderation')
   t('Upcoming Events')
   t('Past Events')
 
@@ -37,8 +36,9 @@ const makeFilterDropdown = (selected, options, onChange, t) => {
       className='bg-primary rounded text-xs px-2 mr-2 hover:scale-125 transition-all'
       toggleChildren={
         <span className={classes.dropdownLabel}>
-          <Icon name='ArrowDown' />
+          {IconComponent && <IconComponent size={14} className='text-muted-foreground mr-1' />}
           {t(options.find(o => o.id === selected)?.label)}
+          <Icon name='ArrowDown' />
         </span>
       }
       items={options.map(({ id, label }) => ({
@@ -52,49 +52,45 @@ const makeFilterDropdown = (selected, options, onChange, t) => {
 const StreamViewControls = ({
   activePostsOnly,
   changeActivePostsOnly,
-  customViewType,
-  sortBy,
-  postTypeFilter,
-  viewMode,
+  changeChildPostInclusion,
+  changePostTypeFilter,
   changeSearch,
   changeSort,
-  changeTab,
+  changeTimeframe,
   changeView,
-  context,
-  searchValue,
-  view,
-  customPostTypes,
-  changeChildPostInclusion,
   childPostInclusion,
+  context,
+  customViewType,
+  postTypeFilter,
+  postTypesAvailable,
+  searchValue,
+  sortBy,
   timeframe,
-  changeTimeframe
+  view,
+  viewMode
 }) => {
   const { t } = useTranslation()
 
   const [searchActive, setSearchActive] = useState(!!searchValue)
   const [searchState, setSearchState] = useState('')
 
-  const postTypeOptionsForFilter = customPostTypes && customPostTypes.length > 1
-    ? POST_TYPE_OPTIONS.filter(postType => postType.label === 'All Posts' || customPostTypes.includes(postType.id))
-    : POST_TYPE_OPTIONS
-  const defaultOptionsForFilter = customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS
+  const defaultSortOptions = customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS
   const postHasDates = view !== 'discussions'
 
-  let filterDropdown
+  let filterDropdown, sortDropdown
 
-  if (viewMode === 'calendar') {
-    const options = [{ id: 'all', label: 'All' }]
-    filterDropdown = makeFilterDropdown('all', options, (id) => {}, t)
+  if (!postTypesAvailable || postTypesAvailable.length > 1) {
+    const postTypeOptionsForFilter = postTypesAvailable && postTypesAvailable.length > 1
+      ? POST_TYPE_OPTIONS.filter(postType => postType.label === 'All Posts' || postTypesAvailable.includes(postType.id))
+      : POST_TYPE_OPTIONS
+    filterDropdown = makeFilterDropdown(postTypeFilter, postTypeOptionsForFilter, changePostTypeFilter, t)
+    console.log('postTypeFilter', postTypeFilter, postTypeOptionsForFilter)
   }
-  switch (view) {
-    case 'events':
-      filterDropdown ||= makeFilterDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t)
-      break
-    case 'calendar':
-      filterDropdown ||= makeFilterDropdown(postTypeFilter, postTypeOptionsForFilter, changeTab, t)
-      break
-    default:
-      filterDropdown ||= makeFilterDropdown(sortBy, defaultOptionsForFilter, changeSort, t)
+
+  if (view === 'events' && viewMode !== 'calendar') {
+    sortDropdown = makeFilterDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t)
+  } else if (viewMode !== 'calendar') {
+    sortDropdown = makeFilterDropdown(sortBy, defaultSortOptions, changeSort, t, ArrowDownWideNarrow)
   }
 
   const handleSearchToggle = () => {
@@ -135,7 +131,7 @@ const StreamViewControls = ({
               <Icon name='Subgroup' className={cn('p-1 rounded transition-all group-hover:bg-selected/50', { 'bg-selected': childPostInclusion === 'yes' })} />
             </div>}
         </div>
-        <div className='bg-primary rounded px-1 flex gap-2 items-center'>
+        <div className='bg-primary rounded p-1 flex gap-2 items-center'>
           <div
             className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'cards' })}
             onClick={() => changeView('cards')}
@@ -183,7 +179,8 @@ const StreamViewControls = ({
             </div>
           )}
         </div>
-        {viewMode !== 'calendar' && filterDropdown}
+        {filterDropdown}
+        {sortDropdown}
       </div>
       {searchActive &&
         <div>
