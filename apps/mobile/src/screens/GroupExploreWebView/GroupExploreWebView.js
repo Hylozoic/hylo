@@ -93,7 +93,7 @@ export default function GroupExploreWebView () {
       }
     },
     '/groups/:groupSlug': ({ routeParams }) => {
-      navigation.navigate(modalScreenName('Group Explore'), routeParams) // TODO redesign: this screen has been cooked
+      navigation.navigate(modalScreenName('Group Explore'), routeParams)
     },
     '(.*)': () => {
       openURL(pathname + search)

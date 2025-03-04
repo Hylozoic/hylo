@@ -71,7 +71,7 @@ export default function MapWebView ({ navigation }) {
       navigation.replace('Map', routeParams)
     },
     '(.*)/group/:groupSlug([a-zA-Z0-9-]+)': ({ routeParams }) => {
-      navigation.navigate(modalScreenName('Group Explore'), routeParams) // COOOOKED
+      navigation.navigate(modalScreenName('Group Explore'), routeParams)
     },
     '(.*)/create/post': ({ searchParams }) => {
       webViewRef?.current?.goBack()
