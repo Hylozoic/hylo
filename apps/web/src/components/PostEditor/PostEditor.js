@@ -95,7 +95,7 @@ const getMyAdminGroups = createSelector(
 /**
  * PostEditor component for creating and editing various post types (discussions, events, projects, proposals, etc.)
  * @param {Object} props - Component props
- * @param {string} props.context - Context for the post (e.g., 'public')
+ * @param {string} props.context - the overall route context (e.g., 'my', 'groups')
  * @param {boolean} props.modal - Whether the editor is displayed in a modal
  * @param {Object} props.post - Post data when editing an existing post
  * @param {boolean} props.editing - Whether we're editing an existing post
