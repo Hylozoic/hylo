@@ -1,5 +1,5 @@
 import { get } from 'lodash/fp'
-import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut, Users} from 'lucide-react'
+import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut, Users } from 'lucide-react'
 import React, { useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
