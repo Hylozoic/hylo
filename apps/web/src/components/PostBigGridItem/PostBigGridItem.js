@@ -79,7 +79,7 @@ export default function PostBigGridItem ({
           <div
             className={classes.iconContainer}
             data-tooltip-content={t('Post from child group')}
-            data-tooltip-id='childgroup-tt'
+            data-tooltip-id={'childgroup-tt' + post.id}
           >
             <Icon
               name='Subgroup'
@@ -87,7 +87,7 @@ export default function PostBigGridItem ({
             />
             <Tooltip
               delay={250}
-              id='childgroup-tt'
+              id={'childgroup-tt' + post.id}
             />
           </div>
         )}
