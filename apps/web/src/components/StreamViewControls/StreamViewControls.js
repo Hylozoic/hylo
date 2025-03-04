@@ -84,7 +84,6 @@ const StreamViewControls = ({
       ? POST_TYPE_OPTIONS.filter(postType => postType.label === 'All Posts' || postTypesAvailable.includes(postType.id))
       : POST_TYPE_OPTIONS
     filterDropdown = makeFilterDropdown(postTypeFilter, postTypeOptionsForFilter, changePostTypeFilter, t)
-    console.log('postTypeFilter', postTypeFilter, postTypeOptionsForFilter)
   }
 
   if (view === 'events' && viewMode !== 'calendar') {

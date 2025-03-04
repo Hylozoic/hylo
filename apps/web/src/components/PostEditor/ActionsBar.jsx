@@ -16,6 +16,7 @@ export default function ActionsBar ({
   addAttachment,
   announcementSelected,
   canMakeAnnouncement,
+  isEditing,
   groupCount,
   groups,
   invalidMessage,
@@ -103,7 +104,9 @@ export default function ActionsBar ({
 
       <div className='flex items-center gap-2'>
         <label className='text-xs italic text-foreground/50'>
-          {t(navigator.platform.includes('Mac') ? 'Option-Enter to post' : 'Alt-Enter to post')}
+          {isEditing
+            ? t(navigator.platform.includes('Mac') ? 'Option-Enter to save' : 'Alt-Enter to save')
+            : t(navigator.platform.includes('Mac') ? 'Option-Enter to post' : 'Alt-Enter to post')}
         </label>
         <Button
           disabled={!valid || loading}

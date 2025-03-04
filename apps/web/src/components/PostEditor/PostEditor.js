@@ -1134,6 +1134,7 @@ function PostEditor ({
         groupCount={get('groups', currentPost).length}
         groups={currentPost.groups}
         invalidMessage={invalidMessage}
+        isEditing={isEditing}
         loading={loading}
         myAdminGroups={myAdminGroups}
         doSave={doSave}
