@@ -5,6 +5,8 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash/fp'
 import ContextWidgetPresenter, { humanReadableTypeResolver, isValidChildWidget, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import { addQuerystringToPath, baseUrl, widgetUrl } from 'util/navigation'
+import fetchContextWidgets from 'store/actions/fetchContextWidgets'
+import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADMINISTRATION } from 'store/constants'
@@ -64,7 +66,7 @@ export default function AllViews () {
 
   // Access the current group and its contextWidgets
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
-  const contextWidgets = group?.contextWidgets?.items || []
+  const contextWidgets = useSelector(state => getContextWidgets(state, group))
 
   const parentWidget = parentId ? contextWidgets.find(widget => widget.id === parentId) : null
 
@@ -73,6 +75,10 @@ export default function AllViews () {
 
   // Check if the user can administer the group
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
+
+  useEffect(() => {
+    dispatch(fetchContextWidgets(group.id))
+  }, [group.id])
 
   const handleWidgetHomePromotion = useCallback((widget) => {
     if (window.confirm(t('Are you sure you want to set this widget as the home/default widget for this group?'))) {
