@@ -212,32 +212,52 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             </div>
           )}
           <div className='flex flex-col max-w-[720px]'>
-            <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>
-              {t('Skills & Interests')}
+            <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
+              <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Skills & Interests')}</div>
+              <SkillsSection personId={personId} editable={false} t={t} />
             </div>
-            <SkillsSection personId={personId} editable={false} t={t} />
-            <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>
-              {t('What I\'m Learning')}
-            </div>
-            <SkillsToLearnSection personId={personId} editable={false} t={t} />
-            {memberships && memberships.length > 0 && <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center'>{t('Hylo Groups')}</div>}
-            <div
-              ref={groupsRef}
-              className='flex flex-row flex-wrap items-center w-full overflow-hidden relative space-y-2'
-              style={{
-                maxHeight: showAllGroups ? 'none' : `${GROUPS_DIV_HEIGHT}px`
-              }}
-            >
-              {memberships && memberships.length > 0 && memberships.map((m, index) => <Membership key={m.id} index={index} membership={m} />)}
-            </div>
-            {showExpandGroupsButton && (
-              <button onClick={toggleShowAllGroups} className='text-sm font-bold mt-4 mb-2 text-center w-full block'>
-                {showAllGroups ? 'Show Less' : 'Show More'}
-              </button>
+
+            {person.skillsToLearn && person.skillsToLearn.length > 0 && (
+              <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
+                <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>
+                  {t('What I\'m Learning')}
+                </div>
+                <SkillsToLearnSection personId={personId} editable={false} t={t} />
+              </div>
             )}
 
-            {affiliations && affiliations.length > 0 && <div className='text-sm opacity-50 uppercase mt-4 mb-2 text-center w-full block'>{t('Other Affiliations')}</div>}
-            {affiliations && affiliations.length > 0 && affiliations.map((a, index) => <Affiliation key={a.id} index={index} affiliation={a} />)}
+            {memberships && memberships.length > 0 &&
+              <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
+                <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Hylo Groups')}</div>
+                <div
+                  ref={groupsRef}
+                  className='flex flex-row flex-wrap items-center w-full overflow-hidden relative gap-2'
+                  style={{
+                    maxHeight: showAllGroups ? 'none' : `${GROUPS_DIV_HEIGHT}px`
+                  }}
+                >
+                  {memberships && memberships.length > 0 && memberships.map((m, index) => <Membership key={m.id} index={index} membership={m} />)}
+
+                  {showExpandGroupsButton && (
+                    <div>
+                      <button onClick={toggleShowAllGroups} className='focus:text-foreground absolute bottom-0 left-1/2 -translate-x-1/2 text-sm border-2 border-foreground/20 z-10 hover:border-foreground/100 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex w-[200px] align-items justify-center mx-auto shadow-lg'>
+                        {showAllGroups
+                          ? 'Show Less'
+                          : `Show All ${memberships.length} Groups`}
+                      </button>
+                      <div className='w-full h-[60px] bg-gradient-to-t from-midground to-transparent absolute bottom-0 left-0 z-0' />
+                    </div>
+                  )}
+                </div>
+              </div>}
+
+            {affiliations && affiliations.length > 0 &&
+              <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-6'>
+                <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Other Affiliations')}</div>
+                <div className='flex flex-row flex-wrap items-center w-full relative gap-2'>
+                  {affiliations.map((a, index) => <Affiliation key={a.id} index={index} affiliation={a} />)}
+                </div>
+              </div>}
 
             {events && events.length > 0 && <div className={styles.profileSubhead}>{t('Upcoming Events')}</div>}
             {events && events.length > 0 && events.map((e, index) => <Event key={index} memberCap={3} event={e} routeParams={routeParams} />)}
