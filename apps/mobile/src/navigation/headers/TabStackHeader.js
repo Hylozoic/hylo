@@ -3,12 +3,9 @@ import { StyleSheet, View } from 'react-native'
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native'
 import { Header, HeaderBackButton, getHeaderTitle } from '@react-navigation/elements'
 import FastImage from 'react-native-fast-image'
-import { get } from 'lodash/fp'
 import { isIOS } from 'util/platform'
-import { modalScreenName } from 'hooks/useIsModalScreen'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import BadgedIcon from 'components/BadgedIcon'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 import Icon from 'components/Icon'
 import { white, rhino80 } from 'style/colors'
@@ -76,34 +73,10 @@ export default function TabStackHeader ({
         </>
       )
     }),
-    headerRight: headerRight || (() => (
-      <View
-        style={{
-          flex: 1,
-          flexDirection: 'row',
-          alignItems: 'center'
-        }}
-      >
-        <NotificationsIcon showNotifications={() => navigation.navigate(modalScreenName('Notifications'))} />
-      </View>
-    ))
+    headerRight
   }
 
   return <Header {...props} {...otherProps} />
-}
-
-export function NotificationsIcon ({ showNotifications }) {
-  const [{ currentUser }] = useCurrentUser()
-  const showBadge = !!get('newNotificationCount', currentUser)
-
-  return (
-    <BadgedIcon
-      name='Notifications'
-      action={showNotifications}
-      showBadge={showBadge}
-      style={styles.headerIcon}
-    />
-  )
 }
 
 export function MenuButton ({ canGoBack, onPress }) {
