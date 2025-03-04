@@ -139,7 +139,7 @@ class PostHeader extends PureComponent {
             <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
             <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
               <Highlight {...highlightProps}>
-                <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
+                <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
                   {creator.name}
                 </Link>
               </Highlight>

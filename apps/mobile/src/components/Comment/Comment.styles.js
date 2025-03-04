@@ -7,7 +7,7 @@ export default {
     padding: 10,
     paddingTop: 3,
     paddingBottom: 3,
-    marginRight: 10
+    paddingRight: 10
   },
   avatar: {
     marginRight: 10

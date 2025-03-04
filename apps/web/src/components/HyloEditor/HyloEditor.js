@@ -173,15 +173,7 @@ const HyloEditor = React.forwardRef(({
   useEffect(() => {
     if (editor.isInitialized) {
       editor.commands.setContent(contentHTML)
-    }
-    if (editor && !editor.isDestroyed && onUpdate) {
-      try {
-        const html = editor.getHTML()
-        const text = editor.getText()
-        onUpdate(html, text)
-      } catch (error) {
-        console.error('Error in HyloEditor useEffect update:', error)
-      }
+      setInitialized(true)
     }
   }, [editor, editor.isInitialized])
 

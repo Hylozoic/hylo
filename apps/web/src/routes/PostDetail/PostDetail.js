@@ -227,7 +227,9 @@ function PostDetail () {
           />
         </div>
       )}
-      <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
+      {post.attachments && post.attachments.length > 0 && (
+        <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
+      )}
       {isEvent && (
         <EventBody
           className={classes.body}

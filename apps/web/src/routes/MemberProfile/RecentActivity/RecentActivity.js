@@ -23,7 +23,7 @@ export default class RecentActivity extends React.Component {
     return (
       <div>
         {activityItems && activityItems.map((item, i) => (
-          <div className={classes.activityItem} key={i} data-testid='activity-item'>
+          <div className='bg-transparent' key={i} data-testid='activity-item'>
             {Object.prototype.hasOwnProperty.call(item, 'title')
               ? <PostCard post={item} expanded={this.itemSelected(item.id)} />
               : <CommentCard comment={item} expanded={this.itemSelected(item.post.id)} />}

@@ -41,7 +41,7 @@ const config = {
     path.resolve(__dirname, '../../packages/shared'),
     path.resolve(__dirname, '../../packages/urql')
   ]
-};
+}
 
 // Merge default config with custom config
 const mergedConfig = mergeConfig(getDefaultConfig(__dirname), config)
