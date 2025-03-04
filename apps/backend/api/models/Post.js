@@ -419,11 +419,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // Execute the insert query for options passed in
     if (options.length > 0) {
-      options.forEach(option => {
-        option.post_id = this.id
-        delete option['id']
-      })
-      await bookshelf.knex('proposal_options').insert(options).transacting(opts.transacting)
+      await bookshelf.knex('proposal_options').insert(options.map(option => {
+        return { ...option, post_id: this.id }
+      })).transacting(opts.transacting)
     }
 
     // Return a resolved promise
