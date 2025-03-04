@@ -8,12 +8,13 @@ import CreateModalChooser from './CreateModalChooser'
 import CreateGroup from 'components/CreateGroup'
 import Icon from 'components/Icon'
 import PostEditor from 'components/PostEditor'
+import { removePostEditorFromUrl } from 'util/navigation'
 import classes from './CreateModal.module.scss'
 
 const CreateModal = (props) => {
   const location = useLocation()
   const navigate = useNavigate()
-  const previousLocation = useSelector(getPreviousLocation) || { pathname: '/' }
+  const previousLocation = useSelector(getPreviousLocation) || removePostEditorFromUrl(`${location.pathname}${location.search}`)
   const [returnToLocation] = useState(previousLocation)
   const [isDirty, setIsDirty] = useState()
   const { t } = useTranslation()
