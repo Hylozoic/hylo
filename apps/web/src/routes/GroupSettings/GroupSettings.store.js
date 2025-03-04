@@ -60,6 +60,7 @@ export function fetchGroupSettings (slug) {
             locationDisplayPrecision
             publicMemberDirectory
             showSuggestedSkills
+            showWelcomePage
           }
           type
           slug

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import DatePicker from 'react-native-date-picker'
 import Icon from 'components/Icon'
-import styles, { typeSelectorStyles } from './PostEditor.styles'
+import styles from './PostEditor.styles'
 
 export default function DatePickerWithLabel ({
   date,

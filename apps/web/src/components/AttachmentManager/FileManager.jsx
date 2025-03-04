@@ -29,6 +29,7 @@ export function FileManager ({
             attachmentType='file'
             onSuccess={attachment => addAttachment(type, id, attachment)}
             className={classes.addFileRow}
+            allowMultiple
           >
             <div className={classes.addFile}>
               <span className={classes.addFilePlus}>+</span> {t('Add File')}

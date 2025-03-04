@@ -5,7 +5,6 @@
 //   removeEventListener: jest.fn()
 // }))
 
-
 //   it('tidies up event handlers', () => {
 //     AppState.removeEventListener = jest.fn()
 //     instance.componentWillUnmount()

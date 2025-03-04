@@ -51,6 +51,7 @@ export function ImageManager (props) {
                 id={id}
                 attachmentType='image'
                 onSuccess={attachment => addAttachment(type, id, attachment)}
+                allowMultiple
               >
                 <div className={classes.addImage}>+</div>
               </UploadAttachmentButton>)}

@@ -6,7 +6,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import { alabaster, amaranth, capeCod, rhino40, rhino80 } from 'style/colors'
 
-export default function GroupSettingsWebView ({ path: pathProp, route}) {
+export default function GroupSettingsWebView ({ path: pathProp, route }) {
   const webViewRef = useRef()
   const { groupSlug, originalLinkingPath, settingsArea: routeSettingsArea } = useRouteParams()
   const [, queryGroup] = useGroup({ groupSlug, useQueryArgs: { requestPolicy: 'network-only', pause: true } })
@@ -34,7 +34,7 @@ export default function GroupSettingsWebView ({ path: pathProp, route}) {
     //   queryCurrentUser()
     //   return false
     // }
-    if (!url.match(/\/groups\/([^\/]+)settings/)) {
+    if (!url.match(/\/groups\/([^/]+)settings/)) {
       webViewRef.current?.goBack()
       return false
     }

@@ -1,7 +1,7 @@
 import 'react-native'
 import React from 'react'
 import ReactShallowRenderer from 'react-test-renderer/shallow'
-import Comment, { CommentMenu } from './Comment'
+import Comment from './Comment'
 import { TestRoot } from 'util/testing'
 
 it('renders correctly', () => {

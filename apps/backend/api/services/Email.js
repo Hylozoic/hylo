@@ -103,6 +103,10 @@ module.exports = {
     sendEmailWithOptions('tem_tP6JzrYzvvDXhgTNmtkxuW',
       Object.assign({ version: 'v2' }, opts)),
 
+  sendChatDigest: opts =>
+    sendEmailWithOptions('tem_rpHJjcbDQQmCFQvGqYFx3g73',
+      Object.assign({ version: 'v1' }, opts)),
+
   postReplyAddress: function (postId, userId) {
     const plaintext = format('%s%s|%s', process.env.INBOUND_EMAIL_SALT, postId, userId)
     return format('reply-%s@%s', PlayCrypto.encrypt(plaintext), process.env.INBOUND_EMAIL_DOMAIN)

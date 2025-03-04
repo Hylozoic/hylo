@@ -26,6 +26,33 @@ export default {
       // => @media (min-width: 1536px) { ... }
     },
     extend: {
+      keyframes: {
+        'slide-up': {
+          '0%': {
+            transform: 'translateY(10px)',
+            opacity: '0',
+            visibility: 'hidden'
+          },
+          '1%': {
+            visibility: 'visible'
+          },
+          '100%': {
+            transform: 'translateY(0)',
+            opacity: '1',
+            visibility: 'visible'
+          }
+        }
+      },
+      animation: {
+        'slide-up': 'slide-up 0.15s ease-out forwards var(--delay, 0ms)',
+        'fill-forwards': 'forwards'
+      },
+      animationDelay: {
+        ...Array.from({ length: 20 }, (_, i) => i * 50).reduce((acc, delay) => ({
+          ...acc,
+          [delay]: `${delay}ms`
+        }), {})
+      },
       spacing: {
         190: '190px',
         280: '280px',

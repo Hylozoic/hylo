@@ -22,6 +22,7 @@ exports.en = {
   recentActivityFrom: (name) => `Recent activity from ${name}`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} approved your request to join ${groupName}`,
   textForAnnouncement: ({ person, postName, groupName }) => `${person} sent an announcement "${postName}" to ${groupName}`,
+  textForChatPost: ({ firstTag, groupName, person, postName }) => `${person} chatted "${postName}" in ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
   textForCommentImage: person => `${person} sent an image`,
   textForCommentMention: ({ person, blurb, postName }) => `${person} mentioned you: "${blurb}" (in "${postName}")`,
   textForComment: ({ person, blurb, postName }) => `${person}: "${blurb}" (in "${postName}")`,

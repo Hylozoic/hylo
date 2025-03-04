@@ -42,7 +42,7 @@ export default function EmojiRow (props) {
     return accum
   }, {})
   return (
-    <div className={cn('bg-black/20 p-2 rounded-lg mr-2 hover:bg-black/30 transition-all', className)} onClick={onClick}>
+    <div className={cn('hover:scale-105 transition-all hover:z-10 mr-4', className)} onClick={onClick}>
       {entityReactions && (
         <div className='transition-all duration-250 ease-in-out flex relative items-center flex-wrap'>
           {Object.values(usersReactions).map(reaction => (

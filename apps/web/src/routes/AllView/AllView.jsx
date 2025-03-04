@@ -26,7 +26,7 @@ import PostSelector from 'components/PostSelector'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from 'components/ui/command'
 import { Input } from 'components/ui/input'
-import { Button } from 'components/ui/button'
+import Button from 'components/ui/button'
 import { Label } from 'components/ui/label'
 import {
   Select,
@@ -95,7 +95,8 @@ export default function AllViews () {
       if (!isEditing && !widget.view && !widget.customView && widget.type !== 'chat') return false
       // When editing only show widgets that have not already been added
       if (isEditing && widget.order) return false
-      if (widget.visibility === 'admin' && !canAdminister) return false
+      // Hide widgets that are not visible to the user
+      if (widget.visibility === 'none' || (widget.visibility === 'admin' && !canAdminister)) return false
       return true
     })
       .map(widget => ContextWidgetPresenter(widget))

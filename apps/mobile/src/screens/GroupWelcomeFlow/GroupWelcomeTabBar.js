@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Keyboard, Alert } from 'react-native'
+import { View, Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import isEmpty from 'lodash/isEmpty'
@@ -27,12 +27,7 @@ export default function GroupWelcomeTabBar ({
 
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup: group }] = useCurrentGroup()
-  const {
-    currentStepIndex,
-    decrementCurrentStepIndex,
-    incrementCurrentStepIndex,
-    workflowOptions
-  } = useGroupWelcomeStore()
+  const { currentStepIndex, decrementCurrentStepIndex, incrementCurrentStepIndex } = useGroupWelcomeStore()
   const currentMemberships = currentUser?.memberships
   const currentMembership = currentMemberships && currentMemberships.find(m => m.group.id === group.id)
 
@@ -41,7 +36,6 @@ export default function GroupWelcomeTabBar ({
   const nextStepScreenName = routeNames[currentStepIndex + 1]
   const currentStepName = routeNames[currentStepIndex]
 
-  const disableContinue = !!workflowOptions?.disableContinue
   const [completeButtonDisabled, setCompleteButtonDisabled] = useState(false)
 
   const onAgreementStepButNotReady = currentStepName === GROUP_WELCOME_AGREEMENTS && !acceptedAllAgreements
@@ -116,7 +110,6 @@ export default function GroupWelcomeTabBar ({
           text={t('Continue')}
           onPress={(onAgreementStepButNotReady || onJoinQuestionStepButNotReady) ? handleBackOut : gotoNextStep}
           style={styles.continueButton}
-          disabled={disableContinue}
         />
       )}
       {!nextStepScreenName && (

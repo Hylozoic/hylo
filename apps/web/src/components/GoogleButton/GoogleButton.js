@@ -18,7 +18,9 @@ export default function GoogleButton ({
       className={cn(classes.googleButton, className)}
       onClick={onClick}
     >
-      <div className={classes.googleIcon}><img src='assets/btn_google_light_normal_ios.svg' /></div>
+      <div className={classes.googleIcon}>
+        <img src='assets/btn_google_light_normal_ios.svg' className='m-0' />
+      </div>
       {label}
     </a>
   )

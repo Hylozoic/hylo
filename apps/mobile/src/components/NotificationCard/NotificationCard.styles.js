@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native'
 
-import { capeCod, nevada, persimmon, rhino, rhino05, rhino30, rhino60 } from 'style/colors'
+import { persimmon, rhino, rhino30, rhino60 } from 'style/colors'
 
 export default StyleSheet.create({
   avatar: {

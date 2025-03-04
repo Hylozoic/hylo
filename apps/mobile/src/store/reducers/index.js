@@ -2,8 +2,6 @@ import { combineReducers } from 'redux'
 import pending from './pending'
 import resetStore from './resetStore'
 import { SET_STATE } from 'store/constants'
-// Local store
-import CreateGroupFlow from 'screens/CreateGroupFlow/CreateGroupFlow.store'
 
 export const composeReducers = (...reducers) => (state, action) =>
   reducers.reduce((newState, reducer) => reducer(newState, action), state)
@@ -12,10 +10,7 @@ export const handleSetState = (state = {}, { type, payload }) =>
   type === SET_STATE ? payload : state
 
 export const createCombinedReducers = () => combineReducers({
-  // Global store
-  pending,
-  // Local store (Component)
-  CreateGroupFlow
+  pending
 })
 
 export default function createRootReducer () {

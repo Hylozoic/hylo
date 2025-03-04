@@ -144,7 +144,7 @@ module.exports = {
       } else if (!isEmpty(groupSlug)) {
         const tags = post.relations.tags
         const firstTopic = tags && tags.first()?.get('name')
-        if (firstTopic && (post.get('type') === Post.Type.CHAT || group.hasChatFor(firstTopic))) {
+        if (firstTopic && (post.get('type') === Post.Type.CHAT || group.hasChatFor(tags.first()))) {
           return url(`/groups/${groupSlug}/chat/${firstTopic}?postId=${post.id}&${extraParams}`)
         } else {
           groupUrl = `/groups/${groupSlug}` + (firstTopic ? `/topics/${firstTopic}` : '')

@@ -22,7 +22,7 @@ export default {
     paddingHorizontal: 20
   },
 
-  // 
+  //
   title: {
     color: 'white',
     fontSize: 20,
@@ -35,7 +35,7 @@ export default {
     fontFamily: 'Circular-Book'
   },
 
-  // 
+  //
   bottomBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -54,7 +54,7 @@ export default {
     ...buttonStyle,
     width: 100,
     color: white,
-    backgroundColor: white40onCaribbeanGreen,
+    backgroundColor: white40onCaribbeanGreen
   },
   continueButton: {
     ...buttonStyle,
@@ -66,7 +66,7 @@ export default {
     disabledBackgroundColor: rhino30
   },
 
-  // 
+  //
   headerStyle: {
     backgroundColor: caribbeanGreen,
     shadowColor: 'transparent'

@@ -229,7 +229,6 @@
       "Question",
       "Queue",
       "Reaction",
-      "RedisClient",
       "RequestValidation",
       "Responsibility",
       "RichText",

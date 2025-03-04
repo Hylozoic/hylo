@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { useLocation, useParams } from 'react-router-dom'
-import { Button } from 'components/ui/button'
+import Button from 'components/ui/button'
 // import GroupsSelector from 'components/GroupsSelector'
 import Icon from 'components/Icon'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
@@ -185,7 +185,8 @@ function CreateGroup () {
     }
   }
 
-  const { accessibility, avatarUrl, bannerUrl, nameCharacterCount, edited, errors, name, parentGroups, slug, visibility } = state
+  // Parent groups are not used in the CreateGroup component -- we will add them back in the future -- add 'parentGroups' to the state object
+  const { accessibility, avatarUrl, bannerUrl, nameCharacterCount, edited, errors, name, slug, visibility } = state
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {

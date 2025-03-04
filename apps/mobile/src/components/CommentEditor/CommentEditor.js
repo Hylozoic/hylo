@@ -109,8 +109,7 @@ export const CommentEditor = React.forwardRef(({
               )
             : (
               <SendHorizonal size={32} style={[styles.submitButton, hasContent && styles.activeButton]} />
-              )
-            }
+              )}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardFriendlyView>

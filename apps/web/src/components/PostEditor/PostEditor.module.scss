@@ -200,6 +200,10 @@
   }
 }
 
+.section-groups {
+  width: 100%;
+}
+
 .accept-contributions {
   display: flex;
   align-items: center;
@@ -308,6 +312,8 @@
   width: 100%;
   outline: none;
   border: none;
+  background-color: transparent;
+  padding-left: 2px;
   &:disabled {
     color: $color-rhino-80;
   }

@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import TextareaAutosize from 'react-textarea-autosize'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import CheckBox from 'components/CheckBox'
 import Icon from 'components/Icon'
 import MultiSelect from 'components/MultiSelect'
@@ -111,7 +111,7 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
               onChange={value => setAnonymous(value)}
               labelClass={classes.anonLabel}
             />
-            <Button className={classes.submitBtn} onClick={submit} disabled={!isValid()} dataTip={t('Select an agreement and add an explanation for why you are flagging this post')} dataFor='flagging-submit-tt'>
+            <Button variant='secondary' onClick={submit} disabled={!isValid()} dataTip={t('Select an agreement and add an explanation for why you are flagging this post')} dataFor='flagging-submit-tt'>
               {t('Submit')}
             </Button>
             <Tooltip

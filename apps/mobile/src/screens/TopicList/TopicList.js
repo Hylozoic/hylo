@@ -2,10 +2,8 @@ import React from 'react'
 import { Text, View, StyleSheet } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { isEmpty } from 'lodash/fp'
-import PropTypes from 'prop-types'
 import TopicRow from './TopicRow'
 import { useTranslation } from 'react-i18next'
-
 
 const TopicList = ({ topics, touchAction }) => {
   const { t } = useTranslation()

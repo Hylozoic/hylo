@@ -84,7 +84,6 @@ export const postCardLinearGradientColors = [
   'rgba(225, 229, 233, 0)'
 ]
 
-
 export function fakeAlpha (color, alpha, background = '#ffffff') {
   const fg = tinycolor(color).toRgb()
   const bg = tinycolor(background).toRgb()

@@ -36,7 +36,7 @@ export default function SignupRegistration ({ navigation, route }) {
   const confirmPasswordControlRef = useRef()
   const [loading, setLoading] = useState()
   // TODO: Display response error somewhere on page
-  const [error, setError] = useState()
+  const [error, setError] = useState() // eslint-disable-line no-unused-vars
 
   const saveAndNext = async () => {
     try {

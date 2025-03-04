@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
@@ -26,7 +26,6 @@ const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
   const [{ currentGroup }] = useCurrentGroup()
   const initialURL = useOpenInitialURL()
-
   useReturnToOnAuthPath()
 
   const navigatorProps = {
