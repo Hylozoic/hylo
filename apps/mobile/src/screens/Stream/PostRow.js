@@ -6,7 +6,7 @@ import PostCard from 'components/PostCard'
 import { useNavigation } from '@react-navigation/native'
 import useGoToTopic from 'hooks/useGoToTopic'
 import useChangeToGroup from 'hooks/useChangeToGroup'
-
+import { modalScreenName } from 'hooks/useIsModalScreen'
 export default function PostRow ({ context, post, forGroupId, showGroups }) {
   const navigation = useNavigation()
   const [, respondToEvent] = useMutation(respondToEventMutation)
@@ -15,7 +15,7 @@ export default function PostRow ({ context, post, forGroupId, showGroups }) {
 
   if (!post) return null
 
-  const handleOnPress = () => navigation.navigate('Post Details', { id: post?.id })
+  const handleOnPress = () => navigation.navigate(modalScreenName('Post Details'), { id: post?.id })
   const handleRespondToEvent = response => respondToEvent({ id: post.id, response })
   const groupIds = post.groups.map(group => group.id)
   const isChildPost = (

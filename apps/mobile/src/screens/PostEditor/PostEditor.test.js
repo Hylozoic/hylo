@@ -108,7 +108,7 @@ describe('PostEditor', () => {
               />
             )}
           </Stack.Screen>
-          <Stack.Screen name='Post Details' component={PostDetails} />
+          <Stack.Screen name={modalScreenName('Post Details')} component={PostDetails} />
         </Stack.Navigator>
       </TestRoot>
     )

@@ -25,6 +25,7 @@ import CreationOptions from 'screens/CreationOptions'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
 import LoadingScreen from 'screens/LoadingScreen'
 import MemberProfile from 'screens/MemberProfile'
+import MemberDetails from 'screens/MemberProfile/MemberDetails'
 import PostDetails from 'screens/PostDetails'
 import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
@@ -169,6 +170,10 @@ export default function AuthRootNavigator () {
           <AuthRoot.Screen
             name={modalScreenName('Member')} component={MemberProfile}
             options={{ title: 'Member' }}
+          />
+          <AuthRoot.Screen
+            name={modalScreenName('Member Details')} component={MemberDetails}
+            options={{ title: 'Member Details' }}
           />
           <AuthRoot.Screen
             name={modalScreenName('Group Explore')} component={GroupExploreWebView}

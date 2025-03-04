@@ -83,17 +83,17 @@ export default function GroupExploreWebView () {
 
       switch (type) {
         case 'post': {
-          navigation.navigate('Post Details', { id })
+          navigation.navigate(modalScreenName('Post Details'), { id })
           break
         }
         case 'members': {
-          navigation.navigate('Member', { id })
+          navigation.navigate(modalScreenName('Member'), { id })
           break
         }
       }
     },
     '/groups/:groupSlug': ({ routeParams }) => {
-      navigation.navigate(modalScreenName('Group Explore'), routeParams)
+      navigation.navigate(modalScreenName('Group Explore'), routeParams) // TODO redesign: this screen has been cooked
     },
     '(.*)': () => {
       openURL(pathname + search)

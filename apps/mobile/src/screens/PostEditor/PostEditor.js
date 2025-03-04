@@ -50,9 +50,9 @@ import ProjectMembersSummary from 'components/ProjectMembersSummary'
 import Topics from 'components/Topics'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
+import { modalScreenName } from 'hooks/useIsModalScreen'
 import styles from './PostEditor.styles'
 import { caribbeanGreen, rhino30, rhino80 } from 'style/colors'
-
 export const MAX_TITLE_LENGTH = 50
 
 const titlePlaceholders = {
@@ -237,7 +237,7 @@ export default function PostEditor (props) {
 
         const id = data[Object.keys(data)[0]].id
 
-        navigation.navigate('Post Details', { id })
+        navigation.navigate(modalScreenName('Post Details'), { id })
       } catch (e) {
         console.log('!!!! error saving post', e)
         setIsSaving(false)

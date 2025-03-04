@@ -142,7 +142,7 @@ export default function MemberStream ({ id, header }) {
   }, [hasMore, fetching])
 
   const changeToGroup = useChangeToGroup()
-  const showMember = id => navigation.navigate('Member', { id })
+  const showMember = id => navigation.navigate(modalScreenName('Member'), { id })
   const showPost = id => navigation.navigate(modalScreenName('Post Details'), { id })
   const showTopic = topicName => navigation.navigate('Stream', { topicName })
 

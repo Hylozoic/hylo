@@ -36,7 +36,7 @@ export default function PostCard ({
   const locationText = useMemo(() => LocationHelpers.generalLocationString(post.locationObject, post.location), [post])
   const isFlagged = useMemo(() => post.flaggedGroups && post.flaggedGroups.includes(groupId), [post])
   const [{ currentUser }] = useCurrentUser()
-  const handleShowMember = id => navigation.navigate('Member', { id })
+  const handleShowMember = id => navigation.navigate(modalScreenName('Member'), { id })
 
   return (
     <>

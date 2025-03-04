@@ -22,11 +22,11 @@ export default function ChatRoomWebView () {
 
       switch (type) {
         case 'post': {
-          navigation.navigate('Post Details', { id })
+          navigation.navigate(modalScreenName('Post Details'), { id })
           break
         }
         case 'members': {
-          navigation.navigate('Member', { id })
+          navigation.navigate(modalScreenName('Member'), { id })
           break
         }
       }
@@ -35,7 +35,7 @@ export default function ChatRoomWebView () {
       navigation.navigate('Edit Post', { id: routeParams.postId })
     },
     '(.*)/group/:groupSlug([a-zA-Z0-9-]+)': ({ routeParams }) => {
-      navigation.navigate(modalScreenName('Group Explore'), routeParams)
+      navigation.navigate(modalScreenName('Group Explore'), routeParams) // TODO redesign: this screen has been cooked
     }
   })
 

@@ -5,10 +5,10 @@ import { useTranslation } from 'react-i18next'
 import { get, find, filter, isEmpty, sortBy } from 'lodash/fp'
 import LinearGradient from 'react-native-linear-gradient'
 import { RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
+import { modalScreenName } from 'hooks/useIsModalScreen'
 import Avatar from 'components/Avatar'
 import PeopleListModal from 'components/PeopleListModal'
 import { postCardLinearGradientColors, rhino40 } from 'style/colors'
-
 export default function PostFooter ({
   commenters,
   commentersTotal,
@@ -23,7 +23,7 @@ export default function PostFooter ({
   const { t } = useTranslation()
   const navigation = useNavigation()
   const peopleListRef = useRef()
-  const goToMember = person => navigation.navigate('Member', { id: person.id })
+  const goToMember = person => navigation.navigate(modalScreenName('Member'), { id: person.id })
   const eventAttendees = filter(ei => ei?.response === RESPONSES.YES, eventInvitations)
   const showPeopleList = () => peopleListRef.current.show()
 
