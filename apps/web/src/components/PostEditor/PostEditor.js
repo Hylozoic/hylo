@@ -25,6 +25,7 @@ import SliderInput from 'components/SliderInput/SliderInput'
 import Dropdown from 'components/Dropdown/Dropdown'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
+import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import fetchMyMemberships from 'store/actions/fetchMyMemberships'
 import {
   PROPOSAL_ADVICE,
@@ -349,6 +350,8 @@ function PostEditor ({
         pathname: urlLocation.pathname,
         search: setQuerystringParam('newPostType', type, urlLocation)
       }, { replace: true })
+    } else {
+      dispatch(changeQuerystringParam(location, 'newPostType', null, null, true))
     }
 
     setCurrentPost({ ...currentPost, type })
