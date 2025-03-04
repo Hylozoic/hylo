@@ -1,6 +1,6 @@
 import { get } from 'lodash/fp'
 import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut, Users } from 'lucide-react'
-import React, { useMemo, useState, useCallback } from 'react'
+import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
@@ -34,6 +34,8 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
 import classes from './ContextMenu.module.scss'
+
+let previousWidgets = []
 
 export default function ContextMenu (props) {
   const {
@@ -83,6 +85,19 @@ export default function ContextMenu (props) {
   const [isDragging, setIsDragging] = useState(false)
   const [activeWidget, setActiveWidget] = useState(null)
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
+
+  let newWidget = previousWidgets.length > 0 ? orderedWidgets.find(widget => previousWidgets.indexOf(widget.id) === -1) : null
+  previousWidgets = orderedWidgets.map(widget => widget.id)
+  const newWidgetRef = useRef()
+
+  useEffect(() => {
+    if (newWidget && newWidgetRef.current) {
+      const element = newWidgetRef.current
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // TODO: animate element to draw attention to it
+      newWidget = null
+    }
+  }, [newWidget])
 
   const handleDragStart = ({ active }) => {
     setIsDragging(true)
@@ -154,6 +169,8 @@ export default function ContextMenu (props) {
                 rootPath={rootPath}
                 canAdminister={canAdminister}
                 activeWidget={activeWidget}
+                newWidget={newWidget}
+                newWidgetRef={newWidgetRef}
                 group={group}
               />
             </div>
@@ -185,13 +202,16 @@ export default function ContextMenu (props) {
   )
 }
 
-function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditing, isDragging, activeWidget, group }) {
+function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditing, isDragging, activeWidget, newWidget, newWidgetRef, group }) {
   const navigate = useNavigate()
   const location = useLocation()
 
   const handlePositionedAdd = ({ widget, addToEnd, parentId }) => {
     navigate(addQuerystringToPath(location.pathname, { addview: 'yes', cme: 'yes', parentId: widget?.parentId || parentId, orderInFrontOfWidgetId: widget?.id || null }))
   }
+
+  const itemProps = {}
+  if (newWidget) itemProps[newWidget.id] = { ref: newWidgetRef }
 
   return (
     <ul className='m-2 p-0 mb-6'>
@@ -202,7 +222,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
           </DropZone>
         </div>}
       {contextWidgets.map((widget, index) => (
-        <li className='mb-2 items-start animate-slide-up invisible' style={{ '--delay': `${index * 35}ms` }} key={widget.id}>
+        <li className='mb-2 items-start animate-slide-up invisible' style={{ '--delay': `${index * 35}ms` }} key={widget.id} {...itemProps[widget.id]}>
           <ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} />
         </li>
       ))}
