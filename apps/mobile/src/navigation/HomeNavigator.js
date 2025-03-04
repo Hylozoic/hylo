@@ -16,7 +16,6 @@ import AllViews from 'screens/AllViews'
 import Groups from 'screens/Groups'
 import GroupWelcomeLanding from 'screens/GroupWelcomeFlow/GroupWelcomeLanding'
 import MembersComponent from 'screens/Members'
-import PostDetails from 'screens/PostDetails'
 import ProjectMembers from 'screens/ProjectMembers/ProjectMembers'
 import MapWebView from 'screens/MapWebView/MapWebView'
 

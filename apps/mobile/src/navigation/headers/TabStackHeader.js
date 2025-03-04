@@ -3,11 +3,10 @@ import { StyleSheet, View } from 'react-native'
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native'
 import { Header, HeaderBackButton, getHeaderTitle } from '@react-navigation/elements'
 import FastImage from 'react-native-fast-image'
+import { ChevronLeft } from 'lucide-react-native'
 import { isIOS } from 'util/platform'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
-import Icon from 'components/Icon'
 import { white, rhino80 } from 'style/colors'
 
 // For now this list needs to be kept in sync with the names of the initial
@@ -90,10 +89,7 @@ export function MenuButton ({ canGoBack, onPress }) {
       labelVisible={false}
       backImage={() => (
         <View style={styles.container}>
-          <Icon name='Hamburger' style={styles.menuIcon} />
-          {/* {!canGoBack
-            ? <Icon name='Hamburger' style={styles.menuIcon} />
-            : <Icon name='ArrowBack' style={styles.backIcon} />} */}
+          <ChevronLeft style={styles.menuIcon} size={32} />
           <FastImage source={{ uri: avatarUrl }} style={styles.avatar} />
         </View>
       )}
