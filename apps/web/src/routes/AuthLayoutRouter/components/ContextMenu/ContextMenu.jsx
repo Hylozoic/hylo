@@ -395,7 +395,7 @@ function GrabMe ({ children, ...props }) {
   )
 }
 
-function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false, children, removalDropZone }) {
+function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false, children, removalDropZone, isDragging = false }) {
   const { setNodeRef, isOver } = useDroppable(droppableParams)
 
   if (hide || !isDroppable) {
@@ -406,15 +406,15 @@ function DropZone ({ droppableParams, isDroppable = true, height = '', hide = fa
     <div
       ref={setNodeRef}
       className={cn(
-        'transition-all duration-200 rounded-lg bg-foreground/20 mb-2',
-        height,
-        isOver && !removalDropZone && 'bg-selected/70 border-foreground p-5',
-        !isOver && !removalDropZone && 'bg-transparent border-transparent p-0',
-        isOver && removalDropZone && 'bg-destructive/70 border-foreground p-5',
-        !isOver && removalDropZone && 'bg-destructive/40 border-transparent p-2'
+        'transition-all duration-200 rounded-lg overflow-hidden',
+        !isDragging && 'h-0',
+        isDragging && !isOver && 'h-[8px] mb-1 bg-selected/10 hover:bg-foreground/20',
+        isOver && !removalDropZone && 'bg-selected/70 p-5 min-h-[40px]',
+        isOver && removalDropZone && 'bg-destructive/70 border-2 border-foreground p-5 min-h-[40px]',
+        isDragging && !isOver && removalDropZone && 'bg-destructive/20 hover:bg-destructive/30'
       )}
     >
-      {children}
+      {isOver && children}
     </div>
   )
 }
