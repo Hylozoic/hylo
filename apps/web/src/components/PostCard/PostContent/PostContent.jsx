@@ -41,14 +41,14 @@ export default function PostContent ({
 
   return (
     <Highlight {...highlightProps}>
-      <div onClick={onClick} className={cn(classes.postDetails, { [classes.constrained]: constrained })}>
+      <div onClick={onClick} className={cn('p-0', { [classes.constrained]: constrained })}>
         <div className={classes.fade} />
         {linkPreview?.url && linkPreviewFeatured && isVideo && (
           <Feature url={linkPreview.url} />
         )}
         {details && (
           <ClickCatcher groupSlug={slug}>
-            <HyloHTML className={classes.details} html={details} />
+            <HyloHTML html={details} />
           </ClickCatcher>
         )}
         {editedTimestamp && (
@@ -59,7 +59,7 @@ export default function PostContent ({
         {linkPreview && !linkPreviewFeatured && (
           <LinkPreview {...pick(['title', 'description', 'url', 'imageUrl'], linkPreview)} />
         )}
-        {fileAttachments && (
+        {fileAttachments && fileAttachments.length > 0 && (
           <CardFileAttachments attachments={fileAttachments} />
         )}
         <Tooltip

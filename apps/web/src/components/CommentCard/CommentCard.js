@@ -41,8 +41,8 @@ export default function CommentCard ({
               <RoundImage url={creator.avatarUrl} medium />
               <Highlight {...highlightProps}>
                 <div className='font-bold ml-2'>
-                  <span>{creator.name}</span> {t('commented on')}{' '}
-                  <span>{postTitle}</span>
+                  <span className='font-bold font-md text-base'>{creator.name}</span> {t('commented on')}{' '}
+                  <span className='text-base'>{postTitle}</span>
                 </div>
               </Highlight>
             </div>

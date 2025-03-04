@@ -718,7 +718,14 @@ function PostEditor ({
   }
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-xl')}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative')}>
+      <div
+        className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent' 
+        style={{
+          maskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)'
+        }}
+      />
       <div className={cn('PostEditorHeader relative', { 'my-1 pb-2': !isChat })}>
         <PostTypeSelect
           disabled={loading}

@@ -21,7 +21,7 @@ export default function PostTitle ({
   return (
     <Highlight {...highlightProps}>
       <>
-        <div onClick={onClick} className={cn(classes.title, { [classes.constrained]: constrained }, 'hdr-headline')}>{title}</div>
+        <div onClick={onClick} className={cn('text-xl font-bold', { [classes.constrained]: constrained }, 'hdr-headline')}>{title}</div>
         {type !== 'event' && location && (
           <div className={cn(classes.headerLocation, { [classes.constrained]: constrained })}>
             <Icon name='Location' className={classes.locationIcon} dataTestId='icon-Location' />
