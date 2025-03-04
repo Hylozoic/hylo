@@ -94,7 +94,12 @@ export default function ContextMenu (props) {
     if (newWidget && newWidgetRef.current) {
       const element = newWidgetRef.current
       element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      // TODO: animate element to draw attention to it
+      element.classList.remove('animate-slide-up')
+      element.classList.remove('invisible')
+      element.classList.add('animate-bounce')
+      setTimeout(() => {
+        element.classList.remove('animate-bounce')
+      }, 2500)
       newWidget = null
     }
   }, [newWidget])
