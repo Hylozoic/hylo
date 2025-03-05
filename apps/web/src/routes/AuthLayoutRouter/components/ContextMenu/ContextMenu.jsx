@@ -1,7 +1,7 @@
 import { get } from 'lodash/fp'
 import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut, Users } from 'lucide-react'
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
-import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
+import { useNavigate, useLocation, Routes, Route, useSearchParams } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -35,7 +35,9 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
 import classes from './ContextMenu.module.scss'
 
+// Track all previous widgets and their children to detect new views
 let previousWidgets = []
+let previousChildItems = []
 
 export default function ContextMenu (props) {
   const {
@@ -49,6 +51,7 @@ export default function ContextMenu (props) {
   const location = useLocation()
   const currentUser = useSelector(getMe)
   const { t } = useTranslation()
+  const [searchParams] = useSearchParams()
 
   const group = useSelector(state => currentGroup || getGroupForSlug(state, routeParams.groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
@@ -86,22 +89,215 @@ export default function ContextMenu (props) {
   const [activeWidget, setActiveWidget] = useState(null)
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
 
+  // Track the newly added top-level widget
   const newWidget = previousWidgets.length > 0 ? orderedWidgets.find(widget => previousWidgets.indexOf(widget.id) === -1) : null
   previousWidgets = orderedWidgets.map(widget => widget.id)
   const newWidgetRef = useRef()
 
+  // Enhanced detection using multiple methods
+  const [newViewId, setNewViewId] = useState(null)
+  const newViewRef = useRef()
+  const wasRecentlyAddingView = useRef(false)
+  
+  // Check URL param and localStorage for widget ID
   useEffect(() => {
-    if (newWidgetRef.current) {
-      const element = newWidgetRef.current
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      element.classList.remove('animate-slide-up')
-      element.classList.remove('invisible')
-      element.classList.add('animate-bounce')
-      setTimeout(() => {
-        element.classList.remove('animate-bounce')
-      }, 2500)
+    const newWidgetIdFromUrl = searchParams.get('newWidgetId')
+    
+    if (newWidgetIdFromUrl) {
+      console.log('Found new widget ID in URL:', newWidgetIdFromUrl)
+      setNewViewId(newWidgetIdFromUrl)
+      
+      // Remove from URL once detected
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('newWidgetId')
+      navigate(`${location.pathname}?${newParams.toString()}`, { replace: true })
+    } else {
+      // Check localStorage as backup
+      const storedWidgetId = localStorage.getItem('hylo:last-created-widget')
+      const timestamp = parseInt(localStorage.getItem('hylo:last-created-timestamp') || '0')
+      
+      // Only use stored ID if it's recent (within last 5 seconds)
+      if (storedWidgetId && Date.now() - timestamp < 5000) {
+        console.log('Found new widget ID in localStorage:', storedWidgetId)
+        setNewViewId(storedWidgetId)
+        localStorage.removeItem('hylo:last-created-widget')
+        localStorage.removeItem('hylo:last-created-timestamp')
+      }
     }
-  }, [newWidget])
+  }, [searchParams, location])
+  
+  // Listen for custom events
+  useEffect(() => {
+    const handleNewWidgetEvent = (event) => {
+      if (event.detail?.widgetId) {
+        console.log('Received new widget event:', event.detail.widgetId)
+        setNewViewId(event.detail.widgetId)
+      }
+    }
+    
+    window.addEventListener('hylo:new-widget-added', handleNewWidgetEvent)
+    return () => {
+      window.removeEventListener('hylo:new-widget-added', handleNewWidgetEvent)
+    }
+  }, [])
+
+  // Gather all child items from all widgets to detect new views
+  const allItems = useMemo(() => {
+    let items = []
+    // Collect items from child widgets
+    contextWidgets.forEach(widget => {
+      if (widget.childWidgets && widget.childWidgets.length > 0) {
+        items = items.concat(widget.childWidgets.map(child => child.id))
+      }
+    })
+    return items
+  }, [contextWidgets])
+
+  // Check for new views (including child views)
+  useEffect(() => {
+    if (previousChildItems.length > 0) {
+      const newItem = allItems.find(id => previousChildItems.indexOf(id) === -1)
+      if (newItem) {
+        setNewViewId(newItem)
+      }
+    }
+    previousChildItems = [...allItems]
+  }, [allItems])
+
+  /**
+   * Effect to handle scrolling to and highlighting newly added widgets or views
+   * 
+   * Waits for new elements to appear in the DOM, then scrolls precisely to their position
+   * while applying visual animations (faster bounce + border flash) for feedback.
+   */
+  useEffect(() => {
+    // Target element could be either a new top-level widget or a new child view
+    const elementId = newWidget ? newWidget.id : newViewId
+    if (!elementId) return
+    
+    // Initial delay to let React finish rendering
+    const initialTimer = setTimeout(() => {
+      // Function to find, reveal, and scroll to the target element
+      const findAndScrollToElement = (retryCount = 0) => {
+        // Try multiple selectors to find the element
+        const targetElement = 
+          newWidget ? newWidgetRef.current : null ||
+          document.querySelector(`[data-view-id="${elementId}"]`) ||
+          document.getElementById(`widget-${elementId}`) ||
+          document.querySelector(`[data-widget-id="${elementId}"]`)
+        
+        if (!targetElement && retryCount < 5) {
+          console.log('Element not found yet, retrying...', elementId)
+          // Retry after a short delay if element not found
+          setTimeout(() => findAndScrollToElement(retryCount + 1), 100 * (retryCount + 1))
+          return
+        }
+        
+        if (!targetElement) {
+          console.log('Failed to find element after multiple attempts:', elementId)
+          return
+        }
+        
+        console.log('Found element for scrolling:', elementId)
+        
+        // First make the element visible
+        targetElement.classList.remove('animate-slide-up')
+        targetElement.classList.remove('invisible')
+        
+        // Short delay to let visibility change take effect
+        setTimeout(() => {
+          // Get the scrollable container
+          const scrollContainer = document.querySelector('.ContextMenu')
+          if (!scrollContainer) return
+          
+          // Calculate element's position relative to the scroll container
+          const containerRect = scrollContainer.getBoundingClientRect()
+          const elementRect = targetElement.getBoundingClientRect()
+          
+          // Determine if element is currently visible in the viewport
+          const isFullyVisible = 
+            elementRect.top >= containerRect.top && 
+            elementRect.bottom <= containerRect.bottom
+          
+          if (!isFullyVisible) {
+            // Calculate the scroll position to center the element
+            const scrollTop = scrollContainer.scrollTop
+            const elementOffsetTop = elementRect.top - containerRect.top + scrollTop
+            const centerPosition = elementOffsetTop - (containerRect.height / 2) + (elementRect.height / 2)
+
+            console.log('Scrolling to position:', {
+              element: elementId,
+              elementOffsetTop,
+              centerPosition,
+              currentScroll: scrollTop
+            })
+
+            // Scroll to the calculated position
+            scrollContainer.scrollTo({
+              top: centerPosition,
+              behavior: 'smooth'
+            })
+          } else {
+            console.log('Element already visible, no scrolling needed')
+          }
+          // Find all links or buttons within the target element to apply border effects
+          const targetLinks = targetElement.querySelectorAll('a, button, .border-2')
+
+          // Apply bounce animation (faster, 1.2 seconds instead of 2.5)
+          targetElement.classList.add('animate-bounce')
+          // Apply border flash effect
+          targetLinks.forEach(link => {
+            // Store original border class for restoration
+            const originalBorderClass = Array.from(link.classList)
+              .find(cls => cls.includes('border-foreground'))
+
+            // Add highlighted border
+            if (originalBorderClass) {
+              link.classList.remove(originalBorderClass)
+            }
+            link.classList.add('border-foreground/100')
+
+            // Create pulsing effect with multiple flashes
+            let flashCount = 0
+            const maxFlashes = 3
+            const flashInterval = setInterval(() => {
+              flashCount++
+
+              if (flashCount >= maxFlashes) {
+                clearInterval(flashInterval)
+                // Restore original border after flashing completes
+                link.classList.remove('border-foreground/100')
+                if (originalBorderClass) {
+                  link.classList.add(originalBorderClass)
+                } else {
+                  link.classList.add('border-foreground/20')
+                }
+              } else {
+                // Toggle border visibility for flash effect
+                link.classList.toggle('border-foreground/100')
+                link.classList.toggle('border-foreground/20')
+              }
+            }, 250) // Flash every 250ms
+          })
+
+          // Remove bounce animation after 1.2 seconds
+          setTimeout(() => {
+            targetElement.classList.remove('animate-bounce')
+          }, 1200)
+
+          // Clear the newViewId if applicable
+          if (newViewId) {
+            setNewViewId(null)
+          }
+        }, 50)
+      }
+
+      // Start the find-and-scroll process
+      findAndScrollToElement()
+    }, 100)
+
+    return () => clearTimeout(initialTimer)
+  }, [newWidget, newViewId])
 
   const handleDragStart = ({ active }) => {
     setIsDragging(true)
@@ -306,7 +502,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
       <DropZone isDragging={isDragging} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }}>
         &nbsp;
       </DropZone>
-      <div key={widget.id} ref={setDraggableNodeRef} style={style}>
+      <div key={widget.id} ref={setDraggableNodeRef} style={style} data-view-id={widget.id}>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
         {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (
@@ -439,7 +635,12 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
       <DropZone hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
         &nbsp;
       </DropZone>
-      <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center animate-slide-up invisible'>
+      <li 
+        ref={setItemDraggableNodeRef} 
+        style={itemStyle} 
+        className='flex justify items-center content-center animate-slide-up invisible'
+        data-view-id={item.id}
+      >
         {(() => {
           if (item.type === 'chat') {
             return (

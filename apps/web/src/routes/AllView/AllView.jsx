@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useEffect } from 'react'
+import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -197,6 +197,11 @@ function AddOption ({ title, onClick, description, disabled = false }) {
   )
 }
 
+/**
+ * Dialog for adding new views to the context menu
+ * Handles the creation process and communicates with ContextMenu component
+ * for proper scrolling and highlighting of newly created items
+ */
 function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, parentWidget }) {
   const { t } = useTranslation()
   const location = useLocation()
@@ -212,12 +217,22 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
   const [widgetData, setWidgetData] = useState({ title: '', visibility: 'all' })
   const [isCreating, setIsCreating] = useState(false)
 
+  // Store the widget ID between renders
+  const createdWidgetIdRef = useRef(null)
+
   const handleReset = () => {
     setAddChoice(null)
     setSelectedItem(null)
     setWidgetData({ title: '', visibility: 'all' })
   }
 
+  /**
+   * Creates a new context widget and communicates its ID to the ContextMenu component
+   * Uses multiple communication channels for reliability:
+   * 1. URL parameters - Main method for direct communication
+   * 2. LocalStorage - Backup in case URL params get cleared
+   * 3. Custom events - For real-time notification
+   */
   const handleCreate = useCallback(async ({ widgetData, selectedItem, addChoice }) => {
     setIsCreating(true)
     let groupTopic
@@ -234,7 +249,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
       visibility: widgetData.visibility === 'all' ? null : widgetData.visibility,
       type: addChoice === CHAT ? CHAT : null, // The default is for type to be null unless there is a specific need
       title: widgetData.title === '' ? null : widgetData.title,
-      icon: null, // TODO CONTEXT: what is required for icons?
+      icon: null,
       viewGroupId: addChoice === GROUP ? selectedItem.id : null,
       viewPostId: addChoice === POST ? selectedItem.id : null,
       customViewInput: addChoice === CUSTOM_VIEW ? cleanCustomView(selectedItem) : null,
@@ -244,17 +259,55 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
       orderInFrontOfWidgetId
     }
 
-    // Widget will be inserted into the menu as a 'loading' widget, and then properly inserted when returned from the db
     try {
-      await dispatch(createContextWidget({ data: contextWidgetInput, groupId: group.id }))
-      handleReset()
-      navigate(addQuerystringToPath(location.pathname, { cme: 'yes' }))
+      const result = await dispatch(createContextWidget({ data: contextWidgetInput, groupId: group.id }))
+
+      // Extract the new widget ID from the response
+      const newWidgetId = result?.payload?.data?.createContextWidget?.id
+
+      if (newWidgetId) {
+        // Save the ID in our ref for post-navigation use
+        createdWidgetIdRef.current = newWidgetId
+
+        // Method 1: Store in localStorage as a backup communication method (expires after 5 seconds)
+        localStorage.setItem('hylo:last-created-widget', newWidgetId)
+        localStorage.setItem('hylo:last-created-timestamp', Date.now().toString())
+
+        // Method 2: Dispatch event for immediate notification
+        window.dispatchEvent(new CustomEvent('hylo:new-widget-added', {
+          detail: { widgetId: newWidgetId, timestamp: Date.now() }
+        }))
+
+        // Create redirect URL with the widget ID
+        const baseGroupUrl = baseUrl({ groupSlug: group.slug, view: null })
+
+        // Method 3: Include widget ID in URL parameters
+        const urlParams = new URLSearchParams()
+        urlParams.set('newWidgetId', newWidgetId)
+
+        // First, reset the current dialog state
+        handleReset()
+
+        // Then navigate to the group page with the new widget ID in URL
+        navigate(`${baseGroupUrl}?${urlParams.toString()}`)
+
+        // Dispatch the event again after a delay to handle component remounts during navigation
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('hylo:new-widget-added', {
+            detail: { widgetId: newWidgetId, timestamp: Date.now() }
+          }))
+        }, 500)
+      } else {
+        handleReset()
+        navigate(baseUrl({ groupSlug: group.slug, view: null }))
+      }
     } catch (error) {
       console.error('Failed to create context widget:', error)
+      handleReset()
     } finally {
       setIsCreating(false)
     }
-  }, [])
+  }, [dispatch, group.id, group.slug, navigate, orderInFrontOfWidgetId, parentId])
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
