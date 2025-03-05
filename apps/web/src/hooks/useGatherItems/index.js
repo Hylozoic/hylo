@@ -9,12 +9,20 @@ export default function useGatherItems ({ widget, groupSlug }) {
   const [loading, setLoading] = useState(true)
   const dispatch = useDispatch()
 
-  // TODO: how to get the widget to update but not fetchMemberData? or only update the widget we want to update?
+  // XXX: I had to split this up into two use effects otherwise any time any widget updated it would re-fetch the member data for the members widget
   useEffect(() => {
     if (widget.childWidgets && widget.childWidgets.length > 0) {
       setListItems(widget.childWidgets)
       setLoading(false)
-    } else if (widget.type === 'members') {
+    } else if (widget.type !== 'members') {
+      setListItems([])
+      setLoading(false)
+    }
+  }, [widget])
+
+  // XXX: Now this one only happens the first time the members widget is loaded
+  useEffect(() => {
+    if (widget.type === 'members') {
       const fetchMembersData = async () => {
         setLoading(true)
         dispatch(fetchGroupMembers({ slug: groupSlug, first: 4 })).then(
@@ -28,11 +36,8 @@ export default function useGatherItems ({ widget, groupSlug }) {
         )
       }
       fetchMembersData()
-    } else {
-      setListItems([])
-      setLoading(false)
     }
-  }, [widget])
+  }, [])
 
   return { listItems, loading }
 }

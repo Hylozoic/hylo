@@ -247,6 +247,12 @@ export function addQuerystringToPath (path, querystringParams) {
   return `${path}${!isEmpty(querystringParams) ? '?' + qs.stringify(querystringParams) : ''}`
 }
 
+export function removePostEditorFromUrl (url) {
+  const matchForCreateRegex = '/create/post/*'
+  const matchForEditRegex = `/post/${POST_ID_MATCH}(/.*)?`
+  return url.replace(new RegExp(matchForCreateRegex), '').replace(new RegExp(matchForEditRegex))
+}
+
 export function removePostFromUrl (url) {
   const matchForReplaceRegex = `/post/${POST_ID_MATCH}(/.*)?`
   return url.replace(new RegExp(matchForReplaceRegex), '')

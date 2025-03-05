@@ -235,7 +235,7 @@ export default function ChatRoom (props) {
           }
         })
     }
-  }, [])
+  }, [topicName])
 
   const resetInitialPostToScrollTo = useCallback(() => {
     if (loadedPast && loadedFuture) {
@@ -272,7 +272,7 @@ export default function ChatRoom (props) {
     return () => {
       socket.off('newPost', handleNewPostReceived)
     }
-  }, [])
+  }, [topicName])
 
   useEffect(() => {
     // New chat room loaded, reset everything

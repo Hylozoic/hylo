@@ -140,13 +140,6 @@ const HyloEditor = React.forwardRef(({
     content: contentHTML,
     extensions,
     onCreate: ({ editor }) => {
-      // Only log in development
-      if (process.env.NODE_ENV === 'development') {
-        console.debug('HyloEditor onCreate:', {
-          hasEditor: !!editor,
-          content: editor?.getHTML()
-        })
-      }
       if (onCreate) onCreate({ editor })
     },
     onUpdate: ({ editor }) => {
