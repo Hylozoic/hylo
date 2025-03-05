@@ -1,21 +1,12 @@
 /* eslint-disable react/no-unstable-nested-components */
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import {
-  Alert,
-  KeyboardAvoidingView,
-  ScrollView,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { Alert, KeyboardAvoidingView, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { useQuery, useMutation } from 'urql'
-import { get, uniqBy, isEmpty } from 'lodash/fp'
+import { get } from 'lodash/fp'
 import { useNavigation } from '@react-navigation/native'
-import { Validators, TextHelpers } from '@hylo/shared'
+import { Validators } from '@hylo/shared'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
@@ -23,21 +14,21 @@ import useFindOrCreateLocationObject from '@hylo/hooks/useFindOrCreateLocationOb
 import createPostMutation from '@hylo/graphql/mutations/createPostMutation'
 import createProjectMutation from '@hylo/graphql/mutations/createProjectMutation'
 import updatePostMutation from '@hylo/graphql/mutations/updatePostMutation'
-import uploadAction from 'store/actions/upload'
+import peopleAutocompleteQuery from '@hylo/graphql/queries/peopleAutocompleteQuery'
 import postQuery from '@hylo/graphql/queries/postQuery'
-import PostPresenter from '@hylo/presenters/PostPresenter'
+import topicsForGroupIdQuery from '@hylo/graphql/queries/topicsForGroupIdQuery'
+import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 import { isIOS } from 'util/platform'
+import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
 import useRouteParams from 'hooks/useRouteParams'
+import uploadAction from 'store/actions/upload'
+import { usePostEditorStore } from './PostEditor.store'
 // Components
 import DatePickerWithLabel from './DatePickerWithLabel'
 import TypeSelector from './TypeSelector'
 import ItemSelectorModal from 'components/ItemSelectorModal'
 import LocationSelectorModal from 'components/LocationSelectorModal'
 import TopicRow from 'screens/TopicList/TopicRow'
-// ProjectMembers Chooser
-import peopleAutocompleteQuery from '@hylo/graphql/queries/peopleAutocompleteQuery'
-// Topics Picker
-import topicsForGroupIdQuery from '@hylo/graphql/queries/topicsForGroupIdQuery'
 import GroupsList from 'components/GroupsList'
 import Button from 'components/Button'
 import FileSelector, { showFilePicker as fileSelectorShowFilePicker } from './FileSelector'
@@ -49,7 +40,6 @@ import Loading from 'components/Loading'
 import ProjectMembersSummary from 'components/ProjectMembersSummary'
 import Topics from 'components/Topics'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
-import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
 import styles from './PostEditor.styles'
 import { caribbeanGreen, rhino30, rhino80 } from 'style/colors'
 
@@ -71,11 +61,16 @@ export default function PostEditor (props) {
   const navigation = useNavigation()
   const scrollViewRef = useRef(null)
   const detailsEditorRef = useRef(null)
+  const [, createNewPost] = useMutation(createPostMutation)
+  const [, createNewProject] = useMutation(createProjectMutation)
+  const [, updateSelectedPost] = useMutation(updatePostMutation)
+  const [, findOrCreateLocation] = useFindOrCreateLocationObject()
+  const upload = useCallback(params => dispatch(uploadAction(params)), [dispatch])
+  const confirmDiscardChanges = useConfirmDiscardChanges()
+
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
-  const confirmDiscardChanges = useConfirmDiscardChanges()
   const hasResponsibility = useHasResponsibility({ forCurrentUser: true })
-
   const {
     id: selectedPostId,
     lat: mapCoordinateLat,
@@ -83,60 +78,48 @@ export default function PostEditor (props) {
     topicName: selectedTopicName,
     type: providedType
   } = useRouteParams()
-  const [editingPost] = useState(selectedPostId)
-  const [{
-    data: selectedPostData,
-    fetching: selectedPostLoading
-  }] = useQuery({ query: postQuery, variables: { id: selectedPostId }, pause: !editingPost })
-  const [post, setPost] = useState({
-    type: providedType || 'discussion',
-    title: null,
-    details: null,
-    topics: selectedTopicName ? [{ name: selectedTopicName }] : [],
-    members: { items: [] },
-    startTime: null,
-    endTime: null,
-    groups: currentGroup ? [currentGroup] : [],
-    location: null,
-    locationObject: null,
-    donationsLink: null,
-    projectManagementLink: null,
-    isPublic: false,
-    announcement: false,
-    attachments: [],
-    images: [],
-    files: [],
-    postMemberships: []
+  const editingPost = !!selectedPostId
+  const [{ data: selectedPostData, fetching: selectedPostLoading }] = useQuery({
+    query: postQuery, variables: { id: selectedPostId }, pause: !editingPost
   })
+  const {
+    post,
+    updatePost,
+    resetPost,
+    isValid,
+    preparePostData,
+    togglePublicPost,
+    toggleAnnouncement,
+    addGroup,
+    removeGroup,
+    updateLocation,
+    addTopic,
+    removeTopic,
+    addAttachment,
+    removeAttachment
+  } = usePostEditorStore()
+
+  useEffect(() => { resetPost() }, [])
+
+  useEffect(() => {
+    updatePost({
+      type: providedType || post.type,
+      topics: selectedTopicName ? [{ name: selectedTopicName }] : post.topics,
+      groups: currentGroup && !isContextGroupSlug(currentGroup?.slug) ? [currentGroup] : post.groups
+    })
+  }, [updatePost, providedType, selectedTopicName, currentGroup])
+
+  useEffect(() => {
+    if (selectedPostData?.post) {
+      updatePost(selectedPostData.post)
+    }
+  }, [selectedPostData?.post])
+
   const canAdminister = hasResponsibility(RESP_ADMINISTRATION, {
     groupIds: post?.groups && post.groups.map(group => group.id)
   })
 
-  const updatePost = useCallback(postUpdates => setPost(prevPost => {
-    prevPost.announcement = !canAdminister && prevPost.announcement
-    const newPost = PostPresenter(({ ...prevPost, ...postUpdates }))
-    return newPost
-  }), [setPost, canAdminister])
-
-  // Actions
-  const [, createNewPost] = useMutation(createPostMutation)
-  const [, createNewProject] = useMutation(createProjectMutation)
-  const [, updateSelectedPost] = useMutation(updatePostMutation)
-  const [, findOrCreateLocation] = useFindOrCreateLocationObject()
-  const upload = useCallback(params => dispatch(uploadAction(params)), [dispatch])
   const canHaveTimeframe = useMemo(() => post.type !== 'discussion', [post])
-
-  // UI State
-  const isValid = useMemo(() => {
-    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink } = post
-    const attachmentsLoading = post.attachments.some(attachment => !attachment?.url)
-    return title && title.length >= 1 &&
-      !attachmentsLoading &&
-      !isEmpty(groups) &&
-      (type !== 'event' || (startTime && endTime)) &&
-      (!donationsLink || TextHelpers.sanitizeURL(donationsLink)) &&
-      (!projectManagementLink || TextHelpers.sanitizeURL(projectManagementLink))
-  }, [post])
   const titleLengthWarning = useMemo(() => post?.title && post.title.length >= MAX_TITLE_LENGTH, [post])
   const groupOptions = useMemo(() => currentUser?.memberships.map(m => m.group) || [], [currentUser])
   const mapCoordinate = useMemo(() => {
@@ -152,7 +135,7 @@ export default function PostEditor (props) {
       upload,
       type: 'post',
       id: post?.id,
-      onAdd: attachment => handleAddAttachment('file', attachment),
+      onAdd: attachment => addAttachment('file', attachment),
       onError: (errorMessage, attachment) => {
         setFilePickerPending(true)
         handleAttachmentUploadError('file', errorMessage, attachment)
@@ -163,12 +146,6 @@ export default function PostEditor (props) {
   }
 
   useEffect(() => {
-    if (selectedPostData?.post) {
-      setPost(PostPresenter(selectedPostData.post))
-    }
-  }, [selectedPostData?.post])
-
-  useEffect(() => {
     if (!editingPost && mapCoordinate) {
       findOrCreateLocation({
         fullText: `${mapCoordinate.lat},${mapCoordinate.lng}`,
@@ -177,7 +154,7 @@ export default function PostEditor (props) {
           lng: parseFloat(mapCoordinate.lng)
         }
       }).then(({ locationObject }) => {
-        handleUpdateLocation(locationObject)
+        updateLocation(locationObject)
       })
     }
 
@@ -196,35 +173,15 @@ export default function PostEditor (props) {
   }, [editingPost, mapCoordinate, findOrCreateLocation, navigation, t])
 
   const handleSave = useCallback(async () => {
-    if (!detailsEditorRef?.current) {
-      return
-    }
+    if (!detailsEditorRef?.current) return
 
     const doSave = async () => {
       setIsSaving(true)
 
-      const postData = {
-        id: post.id,
-        type: post.type,
+      const postData = preparePostData({
         details: detailsEditorRef.current.getHTML(),
-        groups: post.groups,
-        groupIds: post.groups.map(c => c.id),
-        memberIds: post.members.items.map(m => m.id),
-        fileUrls: post.filesUrls,
-        imageUrls: post.imageUrls,
-        isPublic: post.isPublic,
-        title: post.title,
-        sendAnnouncement: post.announcement,
-        topicNames: post.topics.map(t => t.name),
-        startTime: !canHaveTimeframe ? null : post.startTime && post.startTime.getTime().valueOf(),
-        endTime: !canHaveTimeframe ? null : post.endTime && post.endTime.getTime().valueOf(),
-        location: post.location,
-        projectManagementLink: TextHelpers.sanitizeURL(post.projectManagementLink),
-        donationsLink: TextHelpers.sanitizeURL(post.donationsLink),
-        locationId: post?.locationObject?.id || null,
-        linkPreviewId: post?.linkPreview && post?.linkPreview.id,
-        linkPreviewFeatured: post?.linkPreviewFeatured
-      }
+        canHaveTimeframe
+      })
 
       try {
         const saveAction = postData.id ? updateSelectedPost : postData.type === 'project' ? createNewProject : createNewPost
@@ -256,7 +213,7 @@ export default function PostEditor (props) {
     } else {
       doSave()
     }
-  }, [post, detailsEditorRef])
+  }, [post, canHaveTimeframe, detailsEditorRef])
 
   const header = useMemo(() => {
     const headerRightButtonLabel = isSaving
@@ -281,7 +238,7 @@ export default function PostEditor (props) {
           />
           <Button
             style={styles.headerSaveButton}
-            disabled={isSaving || !isValid}
+            disabled={isSaving || !isValid()}
             onPress={handleSave}
             text={headerRightButtonLabel}
           />
@@ -294,63 +251,23 @@ export default function PostEditor (props) {
     navigation.setOptions({ headerShown: true, header })
   }, [header])
 
-  const handleTogglePublicPost = () => {
-    updatePost({ isPublic: !post.isPublic })
-  }
-
-  const handleToggleAnnouncement = () => {
-    updatePost({ announcement: !post.announcement })
-  }
-
-  const handleAddGroup = group => {
-    updatePost({
-      groups: uniqBy(c => c.id, [...post.groups, group])
-    })
-  }
-
-  const handleRemoveGroup = groupSlug => {
-    updatePost({
-      groups: post.groups.filter(group => group.slug !== groupSlug)
-    })
-  }
-
-  const handleUpdateLocation = locationObject => {
-    updatePost({
-      location: locationObject.fullText,
-      locationObject: locationObject?.id && locationObject
-    })
-  }
-
   const handleAddTopic = (providedTopic, picked) => {
     const ignoreHash = name => name[0] === '#' ? name.slice(1) : name
     const topic = { ...providedTopic, name: ignoreHash(providedTopic.name) }
 
     if (Validators.validateTopicName(topic.name) === null) {
       if (picked !== undefined) setTopicsPicked(picked)
-      console.log(uniqBy((t) => t.name, [...post.topics, topic]).slice(0, 3))
-      updatePost({ topics: uniqBy((t) => t.name, [...post.topics, topic]).slice(0, 3) })
+      addTopic(topic)
     }
   }
 
   const handleRemoveTopic = topic => {
-    updatePost({ topics: post.topics.filter(t => t.id !== topic.id) })
+    removeTopic(topic)
     setTopicsPicked(true)
   }
 
-  const handleAddAttachment = (type, attachment) => {
-    updatePost({ attachments: [...post.attachments, { type, url: attachment.remote, ...attachment }] })
-  }
-
-  const handleRemoveAttachment = (type, attachmentToRemove) => {
-    updatePost({
-      attachments: post.attachments.filter(attachment =>
-        !(attachment.local === attachmentToRemove.local && attachment.type === type)
-      )
-    })
-  }
-
   const handleAttachmentUploadError = (type, errorMessage, attachment) => {
-    handleRemoveAttachment(type, attachment)
+    removeAttachment(type, attachment)
     Alert.alert(errorMessage)
   }
 
@@ -359,8 +276,15 @@ export default function PostEditor (props) {
   const locationSelectorModalRef = useRef(null)
   const projectMembersSelectorModalRef = useRef(null)
 
-  const renderForm = () => {
-    return (
+  if (selectedPostLoading) return null
+
+  return (
+    <KeyboardAvoidingView
+      className='bg-background'
+      style={styles.formWrapper}
+      behavior={isIOS ? 'padding' : null}
+      keyboardVerticalOffset={isIOS ? 110 : 80}
+    >
       <View className='bg-background' style={styles.formWrapper}>
         <ScrollView
           ref={scrollViewRef}
@@ -535,7 +459,7 @@ export default function PostEditor (props) {
                     )
                   )}
                   chosenItems={post.groups}
-                  onItemPress={handleAddGroup}
+                  onItemPress={addGroup}
                   searchPlaceholder={t('Search for group by name')}
                 />
                 <GroupsList
@@ -544,7 +468,7 @@ export default function PostEditor (props) {
                   groups={post.groups}
                   columns={1}
                   onPress={() => groupSelectorModalRef.current.show()}
-                  onRemove={handleRemoveGroup}
+                  onRemove={removeGroup}
                   RemoveIcon={() => (
                     <Icon className='text-muted' name='Ex' style={styles.groupRemoveIcon} />
                   )}
@@ -558,7 +482,7 @@ export default function PostEditor (props) {
               >
                 <LocationSelectorModal
                   ref={locationSelectorModalRef}
-                  onItemPress={handleUpdateLocation}
+                  onItemPress={updateLocation}
                   initialSearchTerm={post?.location || post?.locationObject?.fullText}
                 />
                 <View style={styles.pressSelection}>
@@ -617,7 +541,7 @@ export default function PostEditor (props) {
             <TouchableOpacity
               className='border-border'
               style={[styles.pressSelectionSection, post.isPublic && styles.pressSelectionSectionPublicSelected]}
-              onPress={handleTogglePublicPost}
+              onPress={togglePublicPost}
             >
               <View style={styles.pressSelection}>
                 <View style={styles.pressSelectionLeft}>
@@ -631,7 +555,7 @@ export default function PostEditor (props) {
                 <View style={styles.pressSelectionRightNoBorder}>
                   <Switch
                     trackColor={{ true: caribbeanGreen, false: rhino80 }}
-                    onValueChange={handleTogglePublicPost}
+                    onValueChange={togglePublicPost}
                     style={styles.pressSelectionSwitch}
                     value={post.isPublic}
                   />
@@ -643,7 +567,7 @@ export default function PostEditor (props) {
               <TouchableOpacity
                 className='border-border'
                 style={[styles.pressSelectionSection, post?.announcement && styles.pressSelectionSectionPublicSelected]}
-                onPress={handleToggleAnnouncement}
+                onPress={toggleAnnouncement}
               >
                 <View style={styles.pressSelection}>
                   <View style={styles.pressSelectionLeft}>
@@ -657,7 +581,7 @@ export default function PostEditor (props) {
                   <View style={styles.pressSelectionRightNoBorder}>
                     <Switch
                       trackColor={{ true: caribbeanGreen, false: rhino80 }}
-                      onValueChange={handleToggleAnnouncement}
+                      onValueChange={toggleAnnouncement}
                       style={styles.pressSelectionSwitch}
                       value={post?.announcement}
                     />
@@ -684,7 +608,7 @@ export default function PostEditor (props) {
                     type='post'
                     id={post?.id}
                     selectionLimit={10}
-                    onChoice={attachment => handleAddAttachment('image', attachment)}
+                    onChoice={attachment => addAttachment('image', attachment)}
                     onError={(errorMessage, attachment) => handleAttachmentUploadError('image', errorMessage, attachment)}
                     renderPicker={loading => {
                       if (!loading) {
@@ -705,8 +629,8 @@ export default function PostEditor (props) {
               </View>
               <ImageSelector
                 images={post.images}
-                onRemove={attachment => handleRemoveAttachment('image', attachment)}
-                style={[styles.imageSelector]}
+                onRemove={attachment => removeAttachment('image', attachment)}
+                style={[styles.imageSelector, { padding: 10 }]}
                 type='post'
               />
             </TouchableOpacity>
@@ -740,24 +664,13 @@ export default function PostEditor (props) {
                 </View>
               </View>
               <FileSelector
-                onRemove={attachment => handleRemoveAttachment('file', attachment)}
+                onRemove={attachment => removeAttachment('file', attachment)}
                 files={post.files}
               />
             </TouchableOpacity>
           </View>
         </ScrollView>
       </View>
-    )
-  }
-
-  return (
-    <KeyboardAvoidingView
-      className='bg-background'
-      style={styles.formWrapper}
-      behavior={isIOS ? 'padding' : null}
-      keyboardVerticalOffset={isIOS ? 110 : 80}
-    >
-      {renderForm()}
     </KeyboardAvoidingView>
   )
 }

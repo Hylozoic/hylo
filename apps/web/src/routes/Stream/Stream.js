@@ -87,9 +87,10 @@ export default function Stream (props) {
   const defaultSortBy = systemView?.defaultSortBy || get('settings.streamSortBy', currentUser) || 'created'
   const defaultViewMode = systemView?.defaultViewMode || get('settings.streamViewMode', currentUser) || 'cards'
   const defaultPostType = systemView?.defaultPostType || get('settings.streamPostType', currentUser) || undefined
+  const defaultActivePostsOnly = systemView?.defaultActivePostsOnly || get('settings.activePostsOnly', currentUser) || false
   const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || systemView?.defaultChildPostInclusion || 'yes'
 
-  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe'], location)
+  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly'], location)
 
   const search = querystringParams.search
   let sortBy = querystringParams.s || customView?.defaultSort || defaultSortBy
@@ -100,26 +101,17 @@ export default function Stream (props) {
     sortBy = 'start_time'
   }
   const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
+  const activePostsOnly = querystringParams.activeOnly === 'true' || (customView?.type === 'stream' && customView.activePostsOnly) || defaultActivePostsOnly
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
 
-  // TODO: merge this and getTypes
-  const determinePostTypeFilter = useCallback(() => {
-    switch (view) {
-      case 'projects': return 'project'
-      case 'proposals': return 'proposal'
-      case 'events': return 'event'
-      default: return querystringParams.t || defaultPostType
-    }
-  }, [querystringParams, defaultPostType, view])
-
-  const postTypeFilter = determinePostTypeFilter()
-
-  const getTypes = useCallback(({ customView }) => {
+  const postTypesAvailable = useMemo(() => {
     if (customView?.type === 'stream') return customView?.postTypes
     if (systemView) return systemView?.postTypes
     return null
-  }, [systemView])
+  }, [customView, systemView])
+
+  const postTypeFilter = useMemo(() => querystringParams.t || postTypesAvailable?.[defaultPostType] ? defaultPostType : undefined, [querystringParams, defaultPostType])
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
@@ -130,7 +122,7 @@ export default function Stream (props) {
 
   const fetchPostsParam = useMemo(() => {
     const params = {
-      activePostsOnly: customView?.type === 'stream' ? customView?.activePostsOnly : false,
+      activePostsOnly,
       childPostInclusion,
       context,
       filter: postTypeFilter,
@@ -139,7 +131,7 @@ export default function Stream (props) {
       slug: groupSlug,
       sortBy,
       topics,
-      types: getTypes({ customView, view })
+      types: postTypesAvailable
     }
 
     if (isCalendarViewMode) {
@@ -157,7 +149,7 @@ export default function Stream (props) {
       dispatch(dropPostResults(params))
     }
     return params
-  }, [calendarDate, isCalendarViewMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view])
+  }, [activePostsOnly, calendarDate, isCalendarViewMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view])
 
   let name = customView?.name || systemView?.name || ''
   let icon = customView?.icon || systemView?.iconName
@@ -219,9 +211,9 @@ export default function Stream (props) {
     }
   }, [fetchPostsParam])
 
-  const changeTab = useCallback(tab => {
-    dispatch(updateUserSettings({ settings: { streamPostType: tab || '' } }))
-    dispatch(changeQuerystringParam(location, 't', tab, 'all'))
+  const changePostTypeFilter = useCallback(postType => {
+    dispatch(updateUserSettings({ settings: { streamPostType: postType || '' } }))
+    dispatch(changeQuerystringParam(location, 't', postType, 'all'))
   }, [location])
 
   const changeSort = useCallback(sort => {
@@ -231,7 +223,11 @@ export default function Stream (props) {
 
   const changeView = useCallback(view => {
     dispatch(updateUserSettings({ settings: { streamViewMode: view } }))
-    dispatch(changeQuerystringParam(location, 'v', view, 'all'))
+    dispatch(changeQuerystringParam(location, 'v', view, 'cards'))
+  }, [location])
+
+  const changeActivePostsOnly = useCallback(v => {
+    dispatch(changeQuerystringParam(location, 'activeOnly', v, false))
   }, [location])
 
   const changeChildPostInclusion = useCallback(childPostsBool => {
@@ -308,15 +304,15 @@ export default function Stream (props) {
             newPost={newPost}
             querystringParams={querystringParams}
             routeParams={routeParams}
-            type={postTypeFilter}
+            postTypesAvailable={postTypesAvailable}
           />
         )}
         <ViewControls
-          routeParams={routeParams} view={view} customPostTypes={customView?.type === 'stream' ? customView?.postTypes : null} customViewType={customView?.type}
-          postTypeFilter={postTypeFilter} sortBy={sortBy} viewMode={viewMode} searchValue={search}
-          changeTab={changeTab} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
+          routeParams={routeParams} view={view} postTypeFilter={postTypeFilter} postTypesAvailable={postTypesAvailable} customViewType={customView?.type}
+          sortBy={sortBy} viewMode={viewMode} searchValue={search}
+          changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
-          changeTimeframe={changeTimeframe} timeframe={timeframe}
+          changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
         />
         {!isCalendarViewMode && (
           <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>

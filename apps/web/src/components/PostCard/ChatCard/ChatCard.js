@@ -34,8 +34,12 @@ export default function ChatCard ({
           </Highlight>
           <span className={classes.date}>{DateTime.fromISO(post.createdAt).toFormat('yyyy t')}</span>
         </div>
-        <CardImageAttachments attachments={post.attachments} linked className={classes.postImages} />
-        <CardFileAttachments attachments={post.attachments} className={classes.postFiles} />
+        {post.attachments && post.attachments.length > 0 && (
+          <>
+            <CardImageAttachments attachments={post.attachments} linked className={classes.postImages} />
+            <CardFileAttachments attachments={post.attachments} className={classes.postFiles} />
+          </>
+        )}
         <ClickCatcher groupSlug={slug}>
           <Highlight {...highlightProps}>
             <HyloHTML className={classes.postBody} html={post.details} />

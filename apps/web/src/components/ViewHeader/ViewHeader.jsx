@@ -23,7 +23,7 @@ const ViewHeader = () => {
   const { backButton, title, icon, info, search } = headerDetails
 
   return (
-    <header className='flex flex-row items-center z-10 p-2 bg-midground/50 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
+    <header className='flex flex-row items-center z-10 p-2 bg-white/5 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
       {!isWebView() && (
         <>
           <ChevronLeft
@@ -44,7 +44,7 @@ const ViewHeader = () => {
       <h2 className='text-foreground m-0 whitespace-nowrap'>{title}</h2>
       {info && <InfoButton content={info} className='ml-2' />}
       {search && (
-        <div className='flex-1 flex justify-center relative'>
+        <div className='flex-1 flex justify-end relative'>
           <div className='relative flex items-center'>
             <Icon name='Search' className='left-2 absolute opacity-50' />
             <input
