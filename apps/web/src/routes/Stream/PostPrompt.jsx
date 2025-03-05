@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import RoundImage from 'components/RoundImage'
 import { cn } from 'util/index'
 import { createPostUrl } from 'util/navigation'
 
 export default function PostPrompt (props) {
-  const { avatarUrl, className, firstName = '', querystringParams = {}, postTypesAvailable, routeParams = {} } = props
+  const { className, firstName = '', querystringParams = {}, postTypesAvailable, routeParams = {} } = props
   const { t } = useTranslation()
 
   const type = useMemo(() => postTypesAvailable && postTypesAvailable.length === 1 ? postTypesAvailable[0] : 'default', [postTypesAvailable])
@@ -27,8 +27,8 @@ export default function PostPrompt (props) {
   return (
     <div>
       <Link to={createPostUrl(routeParams, { ...querystringParams, newPostType: postTypesAvailable?.[0] })}>
-        <div className={cn('rounded-sm h-14 flex items-center mx-auto cursor-pointer bg-white border border-foreground/10 text-muted-foreground shadow-sm hover:shadow-md transition-shadow duration-200', className)}>
-          <RoundImage url={avatarUrl} small className='mr-2 ml-4' />
+        <div className={cn('border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-2 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex items-center gap-2', className)}>
+          <Plus className='w-4 h-4' />
           {postPromptString}
         </div>
       </Link>
