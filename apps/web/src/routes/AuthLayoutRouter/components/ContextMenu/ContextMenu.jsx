@@ -344,7 +344,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                 <div className='flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground'>
                   <SpecialTopElementRenderer widget={widget} group={group} />
                   <ul className='px-1 pt-1 pb-2'>
-                    {loading && <li key='loading'>Loading...</li>}
+                    {loading && presentedlistItems.length === 0 && <li key='loading'>Loading...</li>}
                     {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                   </ul>
                 </div>}
