@@ -52,6 +52,7 @@ export default function ContextMenu (props) {
   const currentUser = useSelector(getMe)
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   const group = useSelector(state => currentGroup || getGroupForSlug(state, routeParams.groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
@@ -96,17 +97,15 @@ export default function ContextMenu (props) {
 
   // Enhanced detection using multiple methods
   const [newViewId, setNewViewId] = useState(null)
-  const newViewRef = useRef()
-  const wasRecentlyAddingView = useRef(false)
-  
+
   // Check URL param and localStorage for widget ID
   useEffect(() => {
     const newWidgetIdFromUrl = searchParams.get('newWidgetId')
-    
+
     if (newWidgetIdFromUrl) {
       console.log('Found new widget ID in URL:', newWidgetIdFromUrl)
       setNewViewId(newWidgetIdFromUrl)
-      
+
       // Remove from URL once detected
       const newParams = new URLSearchParams(searchParams)
       newParams.delete('newWidgetId')
@@ -115,7 +114,7 @@ export default function ContextMenu (props) {
       // Check localStorage as backup
       const storedWidgetId = localStorage.getItem('hylo:last-created-widget')
       const timestamp = parseInt(localStorage.getItem('hylo:last-created-timestamp') || '0')
-      
+
       // Only use stored ID if it's recent (within last 5 seconds)
       if (storedWidgetId && Date.now() - timestamp < 5000) {
         console.log('Found new widget ID in localStorage:', storedWidgetId)
@@ -124,8 +123,8 @@ export default function ContextMenu (props) {
         localStorage.removeItem('hylo:last-created-timestamp')
       }
     }
-  }, [searchParams, location])
-  
+  }, [searchParams, location, navigate])
+
   // Listen for custom events
   useEffect(() => {
     const handleNewWidgetEvent = (event) => {
@@ -134,7 +133,7 @@ export default function ContextMenu (props) {
         setNewViewId(event.detail.widgetId)
       }
     }
-    
+
     window.addEventListener('hylo:new-widget-added', handleNewWidgetEvent)
     return () => {
       window.removeEventListener('hylo:new-widget-added', handleNewWidgetEvent)
@@ -166,7 +165,7 @@ export default function ContextMenu (props) {
 
   /**
    * Effect to handle scrolling to and highlighting newly added widgets or views
-   * 
+   *
    * Waits for new elements to appear in the DOM, then scrolls precisely to their position
    * while applying visual animations (faster bounce + border flash) for feedback.
    */
@@ -174,51 +173,51 @@ export default function ContextMenu (props) {
     // Target element could be either a new top-level widget or a new child view
     const elementId = newWidget ? newWidget.id : newViewId
     if (!elementId) return
-    
+
     // Initial delay to let React finish rendering
     const initialTimer = setTimeout(() => {
       // Function to find, reveal, and scroll to the target element
       const findAndScrollToElement = (retryCount = 0) => {
         // Try multiple selectors to find the element
-        const targetElement = 
-          newWidget ? newWidgetRef.current : null ||
-          document.querySelector(`[data-view-id="${elementId}"]`) ||
-          document.getElementById(`widget-${elementId}`) ||
-          document.querySelector(`[data-widget-id="${elementId}"]`)
-        
+        const targetElement = newWidget
+          ? newWidgetRef.current
+          : document.querySelector(`[data-view-id="${elementId}"]`) ||
+            document.getElementById(`widget-${elementId}`) ||
+            document.querySelector(`[data-widget-id="${elementId}"]`)
+
         if (!targetElement && retryCount < 5) {
           console.log('Element not found yet, retrying...', elementId)
           // Retry after a short delay if element not found
           setTimeout(() => findAndScrollToElement(retryCount + 1), 100 * (retryCount + 1))
           return
         }
-        
+
         if (!targetElement) {
           console.log('Failed to find element after multiple attempts:', elementId)
           return
         }
-        
+
         console.log('Found element for scrolling:', elementId)
-        
+
         // First make the element visible
         targetElement.classList.remove('animate-slide-up')
         targetElement.classList.remove('invisible')
-        
+
         // Short delay to let visibility change take effect
         setTimeout(() => {
           // Get the scrollable container
           const scrollContainer = document.querySelector('.ContextMenu')
           if (!scrollContainer) return
-          
+
           // Calculate element's position relative to the scroll container
           const containerRect = scrollContainer.getBoundingClientRect()
           const elementRect = targetElement.getBoundingClientRect()
-          
+
           // Determine if element is currently visible in the viewport
-          const isFullyVisible = 
-            elementRect.top >= containerRect.top && 
+          const isFullyVisible =
+            elementRect.top >= containerRect.top &&
             elementRect.bottom <= containerRect.bottom
-          
+
           if (!isFullyVisible) {
             // Calculate the scroll position to center the element
             const scrollTop = scrollContainer.scrollTop
@@ -635,9 +634,9 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
       <DropZone hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
         &nbsp;
       </DropZone>
-      <li 
-        ref={setItemDraggableNodeRef} 
-        style={itemStyle} 
+      <li
+        ref={setItemDraggableNodeRef}
+        style={itemStyle}
         className='flex justify items-center content-center animate-slide-up invisible'
         data-view-id={item.id}
       >

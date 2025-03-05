@@ -149,7 +149,7 @@ export default function AllViews () {
         </div>
       )
       return (
-        <div key={widget.id} onClick={() => url ? navigate(url) : null} className={`p-4 border border-background rounded-md shadow-sm ${url ? 'cursor-pointer' : ''}`}>
+        <div key={widget.id} onClick={() => url ? navigate(url) : null} className={`cursor-pointer relative flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 hover:z-50 hover:scale-105 duration-400 rounded-lg h-full ${url ? 'cursor-pointer' : ''}`}>
           <div className='block text-center text-foreground'>
             {cardContent}
           </div>
@@ -170,12 +170,12 @@ export default function AllViews () {
 
   return (
     <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4'>
-      <div onClick={() => navigate(addQuerystringToPath(location.pathname, { addview: 'yes', cme: 'yes' }))} className='p-4 border border-gray-300 rounded-md shadow-sm cursor-pointer'>
+      <div onClick={() => navigate(addQuerystringToPath(location.pathname, { addview: 'yes', cme: 'yes' }))} className='border-2 flex items-center justify-center border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative'>
         <div className='block text-center'>
           <div>
-            <h3 className='text-lg font-semibold  text-foreground'>{t('Add View')}</h3>
+            <h3 className='text-lg font-semibold  text-foreground m-0'>{t('Add View')}</h3>
             <span className='text-sm text-gray-600 block'>
-              <Icon name='Plus' style={{ fontSize: 30 }} />
+              <Icon name='Plus' style={{ fontSize: 30 }} className='text-foreground' />
             </span>
           </div>
         </div>
