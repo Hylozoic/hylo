@@ -438,10 +438,10 @@ function PostEditor ({
     pollingFetchLinkPreview(dispatch, url)
   })
 
-  const handleAddTopic = useCallback((topic) => {
+  const handleAddTopic = useEventCallback((topic) => {
     const { topics } = currentPost
-
     if (topics?.length >= MAX_POST_TOPICS) return
+
     setCurrentPost({ ...currentPost, topics: [...topics, topic] })
     setIsDirty(true)
   }, [currentPost])
@@ -723,7 +723,7 @@ function PostEditor ({
   return (
     <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative')}>
       <div
-        className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent' 
+        className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
         style={{
           maskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)',
           WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)'
