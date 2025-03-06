@@ -1,7 +1,6 @@
 import { get, intersection, debounce } from 'lodash/fp'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft } from 'lucide-react'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
 import { useLocation } from 'react-router-dom'
@@ -211,13 +210,13 @@ function PersonCard ({ person, showPerson, highlightProps }) {
   ))
 
   return (
-    <div className={classes.personCard} onClick={() => showPerson(person.id)}>
+    <div className='rounded-xl cursor-pointer p-2 flex transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 relative hover:z-50 hover:scale-105 duration-400'>
       <RoundImage url={person.avatarUrl} className={classes.personImage} large />
-      <div className={classes.personDetails}>
+      <div className='text-foreground'>
         <Highlight {...highlightProps}>
-          <div className={classes.personName}>{person.name}</div>
+          <div className='text-lg font-bold text-base'>{person.name}</div>
         </Highlight>
-        <div className={classes.personLocation}>{person.location}</div>
+        <div className='text-sm text-foreground/50'>{person.location}</div>
       </div>
       {matchingSkill && <Pill label={matchingSkill} className={classes.personSkill} small />}
     </div>
