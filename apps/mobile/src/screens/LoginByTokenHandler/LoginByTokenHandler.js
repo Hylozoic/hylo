@@ -49,7 +49,7 @@ export default function LoginByTokenHandler () {
     if (navigationRef.canGoBack()) {
       navigationRef.dispatch(StackActions.pop())
     } else if (isAuthorized) {
-      openURL('/', true)
+      openURL('/', { reset: true })
     }
   }, [isAuthorized])
 
