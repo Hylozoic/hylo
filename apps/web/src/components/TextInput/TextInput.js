@@ -57,6 +57,7 @@ const TextInput = forwardRef(({
         onFocus={onFocus}
         onChange={onChange}
         aria-label={label || internalLabel}
+        value={value}
         id={id}
         {...otherProps}
       />

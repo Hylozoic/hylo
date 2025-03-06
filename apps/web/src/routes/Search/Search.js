@@ -175,7 +175,7 @@ function SearchResult ({
   }
 
   const highlightProps = {
-    terms: term.split(' '),
+    terms: [], // term.split(' '),
     highlightClassName: classes.highlight
   }
 
