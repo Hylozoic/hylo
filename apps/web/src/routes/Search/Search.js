@@ -1,6 +1,5 @@
-import { cn } from 'util/index'
 import { get, intersection, debounce } from 'lodash/fp'
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
@@ -16,17 +15,14 @@ import Pill from 'components/Pill'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import {
   fetchSearchResults,
-  getSearchTerm,
   FETCH_SEARCH,
-  setSearchTerm,
-  setSearchFilter,
-  getSearchFilter,
   getSearchResults,
   getHasMoreSearchResults
 } from './Search.store'
 import { personUrl } from 'util/navigation'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import { cn } from 'util/index'
 
 import classes from './Search.module.scss'
 
@@ -37,8 +33,8 @@ export default function Search (props) {
   const location = useLocation()
   const { t } = useTranslation()
   const searchFromQueryString = getQuerystringParam('t', location) || ''
-  const searchForInput = useSelector(state => getSearchTerm(state, props))
-  const filter = useSelector(state => getSearchFilter(state, props))
+  const [searchForInput, setSearchForInput] = useState(searchFromQueryString)
+  const [filter, setFilter] = useState('all')
   const queryResultProps = { search: searchForInput, type: filter }
   const searchResults = useSelector(state => getSearchResults(state, queryResultProps))
   const hasMore = useSelector(state => getHasMoreSearchResults(state, queryResultProps))
@@ -47,8 +43,6 @@ export default function Search (props) {
   const updateQueryParam = debounce(500, search =>
     dispatch(changeQuerystringParam(location, 't', search, null, true)))
 
-  const setSearchTermAction = search => dispatch(setSearchTerm(search))
-  const setSearchFilterAction = filter => dispatch(setSearchFilter(filter))
   const showPerson = personId => dispatch(push(personUrl(personId)))
 
   const fetchSearchResultsDebounced = debounce(500, opts => dispatch(fetchSearchResults(opts)))
@@ -62,9 +56,6 @@ export default function Search (props) {
     : () => {}
 
   useEffect(() => {
-    if (!searchForInput && searchFromQueryString) {
-      setSearchTermAction(searchFromQueryString)
-    }
     if (searchFromQueryString) {
       fetchSearchResultsAction()
     }
@@ -84,13 +75,12 @@ export default function Search (props) {
   }, [])
 
   return (
-    <div className={classes.search}>
+    <div className='w-max flex flex-col gap-2 m-2 max-w-[750px] mx-auto'>
       <SearchBar
         searchForInput={searchForInput}
-        searchFromQueryString={searchFromQueryString}
-        setSearchTerm={setSearchTermAction}
+        setSearchTerm={setSearchForInput}
         updateQueryParam={updateQueryParam}
-        setSearchFilter={setSearchFilterAction}
+        setSearchFilter={setFilter}
         filter={filter}
       />
       <div
@@ -113,25 +103,26 @@ export default function Search (props) {
 
 function SearchBar ({
   searchForInput,
-  searchFromQueryString,
   setSearchTerm,
   updateQueryParam,
   setSearchFilter,
   filter
 }) {
   const { t } = useTranslation()
+
   const onSearchChange = event => {
     const { value } = event.target
     setSearchTerm(value) // no debounce
     updateQueryParam(value) // debounced
   }
+
   return (
     <div className={classes.searchBar}>
       <TabBar setSearchFilter={setSearchFilter} filter={filter} />
       <TextInput
         theme={classes}
         inputRef={x => x && x.focus()}
-        value={searchForInput || searchFromQueryString}
+        value={searchForInput}
         placeholder={t('Search by keyword for people, posts and groups')}
         onChange={onSearchChange}
       />
@@ -175,7 +166,7 @@ function SearchResult ({
   }
 
   const highlightProps = {
-    terms: term.split(' '),
+    terms: [], // term.split(' '),
     highlightClassName: classes.highlight
   }
 
