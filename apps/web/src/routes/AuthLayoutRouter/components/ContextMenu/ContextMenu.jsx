@@ -241,11 +241,11 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
   return (
     <ul className='m-2 p-0 mb-6'>
       {isEditing &&
-        <div>
+        <li>
           <DropZone removalDropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
             Drag here to remove from menu
           </DropZone>
-        </div>}
+        </li>}
       {contextWidgets.map((widget, index) => (
         <li
           className={`items-start animate-slide-up invisible ${
@@ -262,9 +262,11 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
         </li>
       ))}
       {isEditing && (
-        <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
-          <Icon name='Plus' />Add new view
-        </button>
+        <li>
+          <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+            <Icon name='Plus' />Add new view
+          </button>
+        </li>
       )}
     </ul>
   )
