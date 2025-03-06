@@ -84,7 +84,7 @@ export default function Search (props) {
   }, [])
 
   return (
-    <div className={classes.search}>
+    <div className='w-max flex flex-col gap-2 m-2 max-w-[750px] mx-auto'>
       <SearchBar
         searchForInput={searchForInput}
         searchFromQueryString={searchFromQueryString}
