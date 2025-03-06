@@ -27,7 +27,6 @@ import PostEditor from 'components/PostEditor/PostEditor.store'
 import AuthLayoutRouter from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import RelatedGroups from 'routes/GroupSettings/RelatedGroupsTab/RelatedGroupsTab.store'
 import SavedSearches from 'routes/UserSettings/UserSettings.store'
-import Search from 'routes/Search/Search.store'
 import SkillsSection from 'components/SkillsSection/SkillsSection.store'
 import SkillsToLearnSection from 'components/SkillsToLearnSection/SkillsToLearnSection.store'
 import TopicsSettings from 'routes/GroupSettings/TopicsSettingsTab/TopicsSettingsTab.store'
@@ -61,7 +60,6 @@ export const createCombinedReducers = routerReducer => combineReducers({
   PostEditor,
   RelatedGroups,
   SavedSearches,
-  Search,
   SkillsSection,
   SkillsToLearnSection,
   TopicsSettings,

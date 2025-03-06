@@ -25,6 +25,7 @@ import SliderInput from 'components/SliderInput/SliderInput'
 import Dropdown from 'components/Dropdown/Dropdown'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
+import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import fetchMyMemberships from 'store/actions/fetchMyMemberships'
 import {
   PROPOSAL_ADVICE,
@@ -95,7 +96,7 @@ const getMyAdminGroups = createSelector(
 /**
  * PostEditor component for creating and editing various post types (discussions, events, projects, proposals, etc.)
  * @param {Object} props - Component props
- * @param {string} props.context - Context for the post (e.g., 'public')
+ * @param {string} props.context - the overall route context (e.g., 'my', 'groups')
  * @param {boolean} props.modal - Whether the editor is displayed in a modal
  * @param {Object} props.post - Post data when editing an existing post
  * @param {boolean} props.editing - Whether we're editing an existing post
@@ -349,6 +350,8 @@ function PostEditor ({
         pathname: urlLocation.pathname,
         search: setQuerystringParam('newPostType', type, urlLocation)
       }, { replace: true })
+    } else {
+      dispatch(changeQuerystringParam(location, 'newPostType', null, null, true))
     }
 
     setCurrentPost({ ...currentPost, type })
@@ -435,10 +438,10 @@ function PostEditor ({
     pollingFetchLinkPreview(dispatch, url)
   })
 
-  const handleAddTopic = useCallback((topic) => {
+  const handleAddTopic = useEventCallback((topic) => {
     const { topics } = currentPost
-
     if (topics?.length >= MAX_POST_TOPICS) return
+
     setCurrentPost({ ...currentPost, topics: [...topics, topic] })
     setIsDirty(true)
   }, [currentPost])
@@ -718,7 +721,14 @@ function PostEditor ({
   }
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-xl')}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative')}>
+      <div
+        className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
+        style={{
+          maskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)'
+        }}
+      />
       <div className={cn('PostEditorHeader relative', { 'my-1 pb-2': !isChat })}>
         <PostTypeSelect
           disabled={loading}
@@ -1127,6 +1137,7 @@ function PostEditor ({
         groupCount={get('groups', currentPost).length}
         groups={currentPost.groups}
         invalidMessage={invalidMessage}
+        isEditing={isEditing}
         loading={loading}
         myAdminGroups={myAdminGroups}
         doSave={doSave}

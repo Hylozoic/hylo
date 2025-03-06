@@ -235,7 +235,7 @@ export default function ChatRoom (props) {
           }
         })
     }
-  }, [])
+  }, [topicName])
 
   const resetInitialPostToScrollTo = useCallback(() => {
     if (loadedPast && loadedFuture) {
@@ -272,7 +272,7 @@ export default function ChatRoom (props) {
     return () => {
       socket.off('newPost', handleNewPostReceived)
     }
-  }, [])
+  }, [topicName])
 
   useEffect(() => {
     // New chat room loaded, reset everything
@@ -332,8 +332,15 @@ export default function ChatRoom (props) {
   )
 
   const updateLastReadPost = debounce(200, (lastPost) => {
-    if (topicFollow?.id && lastPost?.id && (!topicFollow?.lastReadPostId || lastPost.id > topicFollow?.lastReadPostId)) {
-      dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: lastPost.id }))
+    // Add additional checks to ensure all required values exist
+    if (topicFollow?.id && lastPost?.id &&
+        (!topicFollow?.lastReadPostId ||
+        (parseInt(lastPost.id) > parseInt(topicFollow?.lastReadPostId)))) {
+      try {
+        dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: lastPost.id }))
+      } catch (error) {
+        console.error('Error updating last read post:', error)
+      }
     }
   })
 
@@ -343,8 +350,11 @@ export default function ChatRoom (props) {
   }, [topicFollow?.id])
 
   const onRenderedDataChange = useCallback((data) => {
-    const lastPost = data[data.length - 1]
-    updateLastReadPost(lastPost)
+    // Only attempt to update if we have data and a valid lastPost
+    if (data && data.length > 0) {
+      const lastPost = data[data.length - 1]
+      updateLastReadPost(lastPost)
+    }
   }, [topicFollow?.id, topicFollow?.lastReadPostId])
 
   const onAddReaction = useCallback((post, emojiFull) => {
@@ -432,7 +442,7 @@ export default function ChatRoom (props) {
           : (
             <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
               <VirtuosoMessageList
-                style={{ height: '100%', width: '100%', marginTop: 'auto', marginBottom: '5px' }}
+                style={{ height: '100%', width: '100%', marginTop: 'auto', paddingBottom: '10px' }}
                 ref={messageListRef}
                 context={{
                   currentUser,

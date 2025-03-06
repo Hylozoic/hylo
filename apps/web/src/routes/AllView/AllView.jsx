@@ -5,6 +5,8 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash/fp'
 import ContextWidgetPresenter, { humanReadableTypeResolver, isValidChildWidget, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import { addQuerystringToPath, baseUrl, widgetUrl } from 'util/navigation'
+import fetchContextWidgets from 'store/actions/fetchContextWidgets'
+import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADMINISTRATION } from 'store/constants'
@@ -64,7 +66,7 @@ export default function AllViews () {
 
   // Access the current group and its contextWidgets
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
-  const contextWidgets = group?.contextWidgets?.items || []
+  const contextWidgets = useSelector(state => getContextWidgets(state, group))
 
   const parentWidget = parentId ? contextWidgets.find(widget => widget.id === parentId) : null
 
@@ -73,6 +75,10 @@ export default function AllViews () {
 
   // Check if the user can administer the group
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
+
+  useEffect(() => {
+    dispatch(fetchContextWidgets(group.id))
+  }, [group.id])
 
   const handleWidgetHomePromotion = useCallback((widget) => {
     if (window.confirm(t('Are you sure you want to set this widget as the home/default widget for this group?'))) {
@@ -115,7 +121,7 @@ export default function AllViews () {
             <span className='ml-2'>{translateTitle(widget.title, t)}</span>
           </h3>
           {widget.humanReadableType && (
-            <span className='text-sm  text-foreground'>
+            <span className='text-sm text-foreground'>
               {t('Type')}: {t(capitalize(widget.humanReadableType))}
             </span>
           )}
@@ -149,7 +155,7 @@ export default function AllViews () {
         </div>
       )
       return (
-        <div key={widget.id} onClick={() => url ? navigate(url) : null} className={`p-4 border border-background rounded-md shadow-sm ${url ? 'cursor-pointer' : ''}`}>
+        <div key={widget.id} onClick={() => url ? navigate(url) : null} className={`cursor-pointer relative flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 hover:z-50 hover:scale-105 duration-400 rounded-lg h-full items-center justify-center ${url ? 'cursor-pointer' : ''}`}>
           <div className='block text-center text-foreground'>
             {cardContent}
           </div>
@@ -170,13 +176,10 @@ export default function AllViews () {
 
   return (
     <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4'>
-      <div onClick={() => navigate(addQuerystringToPath(location.pathname, { addview: 'yes', cme: 'yes' }))} className='p-4 border border-gray-300 rounded-md shadow-sm cursor-pointer'>
+      <div onClick={() => navigate(addQuerystringToPath(location.pathname, { addview: 'yes', cme: 'yes' }))} className='border-2 flex items-center justify-center border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative'>
         <div className='block text-center'>
           <div>
-            <h3 className='text-lg font-semibold  text-foreground'>{t('Add View')}</h3>
-            <span className='text-sm text-gray-600 block'>
-              <Icon name='Plus' style={{ fontSize: 30 }} />
-            </span>
+            <h3 className='text-lg font-semibold  text-foreground m-0'><Icon name='Plus' style={{ fontSize: 30 }} className='text-foreground ml-2' /> {t('Add View')}</h3>
           </div>
         </div>
       </div>
@@ -191,7 +194,6 @@ function AddOption ({ title, onClick, description, disabled = false }) {
     <div onClick={disabled ? null : onClick} className={`p-4 border border-gray-300 rounded-md shadow-sm cursor-pointer hover:bg-gray-50 ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}>
       <div className='flex flex-col'>
         <h3 className='text-lg font-semibold'>{title}</h3>
-        {description && <p className='text-sm font-normal text-gray-500'>{description}</p>}
       </div>
     </div>
   )

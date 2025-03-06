@@ -10,7 +10,7 @@ export default function PostPresenter (post, { forGroupId } = {}) {
   // if remote exists set url to remote, if not do the following
   const attachments = post.attachments.map(attachment => {
     const url = attachment?.url || attachment?.remote
-    return { ...attachment, url, local: url }
+    return { ...attachment, url, local: attachment.local || url }
   })
   const images = attachments.filter(attachment => attachment.type === 'image')
   const files = attachments.filter(attachment => attachment.type === 'file')

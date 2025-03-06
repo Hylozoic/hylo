@@ -1,7 +1,6 @@
 /* eslint-disable camelcase */
 import React, { useState, useRef, useImperativeHandle, useCallback } from 'react'
-import { Dimensions, Text, TouchableOpacity, View } from 'react-native'
-import { FlashList } from '@shopify/flash-list'
+import { Text, TouchableOpacity, View, SectionList } from 'react-native'
 import { useQuery } from 'urql'
 import { isIOS } from 'util/platform'
 import postCommentsQuery from '@hylo/graphql/queries/postCommentsQuery'
@@ -14,26 +13,49 @@ export const Comments = React.forwardRef(({
   groupId,
   postId,
   header: providedHeader = null,
+  style = {},
   showMember,
   panHandlers,
   onSelect
 }, ref) => {
-  const commentsListRef = useRef()
   const [{ data, fetching }] = useQuery({ query: postCommentsQuery, variables: { postId } })
   const post = data?.post
   const commentsQuerySet = post?.comments
   const comments = commentsQuerySet?.items || []
+
   const [highlightedComment, setHighlightedComment] = useState()
+  const commentsListRef = useRef()
+  const sections = comments?.map((comment, index) => {
+    return ({
+      comment,
+      data: comment?.childComments?.items || []
+    })
+  })
 
   const scrollToComment = useCallback((comment, viewPosition = 0.2) => {
-    const parentCommentId = comment?.parentComment?.id || comment.id
-    const parentCommentIndex = comments.findIndex(comment => parentCommentId === comment.id)
+    const parentCommentId = comment.parentComment?.id || comment.id
+    const childCommentId = comment.parentComment ? comment.id : null
+    const parentCommentIndex = sections.findIndex(s => parentCommentId === s.comment.id)
+    const childCommentIndex = sections[parentCommentIndex].data.findIndex(childComment => childCommentId === childComment.id)
+    const hasChildComments = sections[parentCommentIndex].data.length > 0
+    const lastItemIndex = sections[parentCommentIndex].data.length - 1
 
-    commentsListRef?.current.scrollToIndex({
-      index: parentCommentIndex === -1 ? 0 : parentCommentIndex,
+    // NOTE: The logic below is a bit convoluted due to inverted SectionList, but it works.
+    let itemIndex
+    if (childCommentId) {
+      itemIndex = childCommentIndex + 1
+    } else if (hasChildComments && !childCommentId) {
+      itemIndex = lastItemIndex + 1
+    } else {
+      itemIndex = 1
+    }
+
+    commentsListRef?.current.scrollToLocation({
+      sectionIndex: parentCommentIndex === -1 ? 0 : parentCommentIndex,
+      itemIndex,
       viewPosition
     })
-  }, [comments])
+  }, [sections])
 
   const selectComment = useCallback(comment => {
     setHighlightedComment(comment)
@@ -47,6 +69,7 @@ export const Comments = React.forwardRef(({
     clearHighlightedComment: () => setHighlightedComment(null)
   }), [setHighlightedComment, scrollToComment])
 
+  // Comment rendering (parent)
   const Header = () => (
     <>
       {providedHeader}
@@ -59,19 +82,17 @@ export const Comments = React.forwardRef(({
     </>
   )
 
-  const renderItem = ({ item: comment }) => {
+  // Comment rendering (parent)
+  const SectionFooter = ({ section: { comment } }) => {
     if (!comment) return null
-    // Inverted flat list so comments will render in reverse order, but child comments
-    // here will not, and the query is setup to query in desc order. Could be changed to "asc"
-    // but going to keep it has been for now.
-    const reversedChildComments = [...comment.childComments.items].reverse()
     return (
       <>
+        <ShowMore postOrComment={comment} style={styles.childCommentsShowMore} />
         <Comment
           clearHighlighted={() => setHighlightedComment(null)}
           comment={comment}
           groupId={groupId}
-          highlighted={comment.id === highlightedComment?.id}
+          highlighted={comment?.id === highlightedComment?.id}
           onReply={selectComment}
           postTitle={post?.title}
           scrollTo={viewPosition => scrollToComment(comment, viewPosition)}
@@ -79,23 +100,27 @@ export const Comments = React.forwardRef(({
           showMember={showMember}
           key={comment.id}
         />
-        <ShowMore postOrComment={comment} style={styles.childCommentsShowMore} />
-        {reversedChildComments.map(childComment => (
-          <Comment
-            clearHighlighted={() => setHighlightedComment(null)}
-            comment={childComment}
-            groupId={groupId}
-            highlighted={childComment.id === highlightedComment?.id}
-            onReply={selectComment}
-            postTitle={post?.title}
-            scrollTo={viewPosition => scrollToComment(childComment, viewPosition)}
-            setHighlighted={() => setHighlightedComment(childComment)}
-            showMember={showMember}
-            style={styles.childComment}
-            key={childComment.id}
-          />
-        ))}
       </>
+    )
+  }
+
+  // comment.childComments rendering
+  const Item = ({ item: comment }) => {
+    if (!comment) return null
+    return (
+      <Comment
+        clearHighlighted={() => setHighlightedComment(null)}
+        comment={comment}
+        groupId={groupId}
+        highlighted={comment.id === highlightedComment?.id}
+        onReply={selectComment}
+        postTitle={post?.title}
+        scrollTo={viewPosition => scrollToComment(comment, viewPosition)}
+        setHighlighted={() => setHighlightedComment(comment)}
+        showMember={showMember}
+        style={styles.childComment}
+        key={comment.id}
+      />
     )
   }
 
@@ -104,30 +129,21 @@ export const Comments = React.forwardRef(({
   }
 
   return (
-    <FlashList
+    <SectionList
+      style={style}
+      contentContainerStyle={styles.contentContainerStyle}
       ref={commentsListRef}
-      // TODO: Make height fill screen so it starts at top when content size is < screen size.
-      // Haven't been able to arrive at a solution yet, but the below methods are the keys to
-      // getting there. The fallback to to use a FlatList here again instead of FlashList, as we
-      // previously had a functioning hack for FlatList for this case.
-      // onLoad={() => {}}
-      // onLayout={({ nativeEvent }) => { nativeEvent.layout.height }}
-      // onContentSizeChange={(width, height) => {}}
       // Footer is Header, etc.
       inverted
       ListFooterComponent={Header}
-      renderItem={renderItem}
-      data={comments}
-      // This means that FlashList will re-render anytime this/these values change
-      extraData={highlightedComment}
-      estimatedItemSize={100}
-      estimatedListSize={Dimensions.get('screen')}
+      renderSectionFooter={SectionFooter}
+      renderItem={Item}
+      sections={sections}
       keyExtractor={comment => comment.id}
+      initialScrollIndex={0}
+      // keyboardShouldPersistTaps='handled'
       keyboardShouldPersistTaps='never'
-      // TODO: Bring back "interactive" dismiss mode for iOS once we have a better
-      // keyboard avoiding scroll view control added, without the interactive scroll
-      // is out-of-sync and on-drag is better.
-      keyboardDismissMode={isIOS ? 'on-drag' : 'on-drag'}
+      keyboardDismissMode={isIOS ? 'interactive' : 'on-drag'}
       {...panHandlers}
     />
   )
