@@ -45,6 +45,7 @@ export default function EmojiRow (props) {
     <div className={cn('hover:scale-105 transition-all hover:z-10 mr-4', className)} onClick={onClick}>
       {entityReactions && (
         <div className='transition-all duration-250 ease-in-out flex relative items-center flex-wrap'>
+          {currentUser ? <EmojiPicker handleReaction={handleReaction} myEmojis={myEmojis} handleRemoveReaction={handleRemoveReaction} /> : ''}
           {Object.values(usersReactions).map(reaction => (
             <EmojiPill
               onClick={currentUser ? reaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
@@ -55,7 +56,6 @@ export default function EmojiRow (props) {
               toolTip={reaction.userList.join('<br>')}
             />
           ))}
-          {currentUser ? <EmojiPicker handleReaction={handleReaction} myEmojis={myEmojis} handleRemoveReaction={handleRemoveReaction} /> : ''}
         </div>
       )}
     </div>

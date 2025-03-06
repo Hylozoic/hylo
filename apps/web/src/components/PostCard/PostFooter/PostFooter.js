@@ -34,14 +34,17 @@ class PostFooter extends React.PureComponent {
     const tooltipId = 'postfooter-tt-' + postId
 
     return (
-      <div onClick={onClick} className={cn('w-full text-foreground flex p-2', { [classes.constrained]: constrained })} data-testid='post-footer'>
+      <div onClick={onClick} className={cn('w-full text-foreground flex p-2 items-center', { [classes.constrained]: constrained })} data-testid='post-footer'>
         <EmojiRow
           post={post}
           currentUser={currentUser}
           onAddReaction={onAddReaction}
           onRemoveReaction={onRemoveReaction}
         />
-        <PeopleInfo constrained={constrained} people={commenters} peopleTotal={commentersTotal} excludePersonId={get('id', currentUser)} />
+
+        <div className='bg-black/10 rounded-lg py-2 px-3 h-[40px] items-center justify-center flex'>
+          <PeopleInfo constrained={constrained} people={commenters} peopleTotal={commentersTotal} excludePersonId={get('id', currentUser)} />
+        </div>
         <Tooltip
           delay={550}
           id={tooltipId}

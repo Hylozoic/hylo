@@ -106,7 +106,7 @@ export default function Search (props) {
     <div className='w-full flex flex-col gap-2 m-2 max-w-[750px] mx-auto'>
       <TabBar setSearchFilter={setFilter} filter={filter} />
       <div
-        className={classes.searchResults}
+        className='w-full'
         id={SEARCH_RESULTS_ID}
       >
         {searchResults.map(sr =>
@@ -137,7 +137,7 @@ function TabBar ({ filter, setSearchFilter }) {
       {tabs.map(({ id, label }) => (
         <span
           key={id}
-          className={cn('border-2 border-foreground/20 rounded-lg px-2 py-1', { 'border-selected bg-selected': id === filter })}
+          className={cn('border-2 border-foreground/20 rounded-lg px-2 py-1 hover:cursor-pointer transition-all hover:border-foreground/100 hover:scale-105', { 'border-selected bg-selected': id === filter })}
           onClick={() => setSearchFilter(id)}
         >
           {label}
