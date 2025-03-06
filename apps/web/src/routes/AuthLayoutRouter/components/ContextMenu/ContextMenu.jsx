@@ -197,7 +197,7 @@ export default function ContextMenu (props) {
                 group={group}
               />
             </div>
-            <DragOverlay wrapperElement='ul'>
+            <DragOverlay wrapperElement='ul' dropAnimation={null}>
               {activeWidget && !activeWidget.parentId && (
                 <ContextMenuItem widget={activeWidget} isOverlay group={group} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing} isDragging={isDragging} />
               )}
