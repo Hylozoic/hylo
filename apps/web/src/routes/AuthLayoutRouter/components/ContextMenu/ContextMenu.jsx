@@ -99,7 +99,7 @@ export default function ContextMenu (props) {
   useEffect(() => {
     if (isEditing) {
       const element = document.querySelector('.ContextMenu')
-      element.scrollTop = element.scrollHeight + 1000
+      element.scrollTop = element.scrollHeight
     }
   }, [isEditing])
 
