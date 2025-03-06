@@ -11,7 +11,7 @@ import RootRouter from 'routes/RootRouter'
 import isWebView from 'util/webView'
 
 if (isWebView()) {
-  window.ReactNativeWebView.reactRouterHistory = history
+  window.addHyloWebViewListener(history)
 }
 
 // same configuration you would create for the Rollbar.js SDK
