@@ -45,6 +45,7 @@ const TextInput = forwardRef(({
     <div className={cn(theme.wrapperStyle || styles.wrapper, theme.wrapper || className)}>
       <input
         ref={ref}
+        value={value}
         type='text'
         className={cn(
           styles[theme.inputStyle] || styles.input,
