@@ -29,7 +29,6 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const collapseTimeout = useRef(null)
 
   const startCollapseTimer = () => {
-    console.log('startCollapseTimer')
     clearTimeout(collapseTimeout.current)
     collapseTimeout.current = setTimeout(() => {
       setIsExpanded(false)

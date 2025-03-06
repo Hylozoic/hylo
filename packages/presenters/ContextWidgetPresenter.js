@@ -311,5 +311,5 @@ export const COMMON_VIEWS = {
   welcome: {
     name: 'Welcome',
     iconName: 'Hand'
-  },
+  }
 }
