@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import LocaleDropdown from 'routes/AuthLayoutRouter/components/GlobalNav/LocaleDropdown/LocaleDropdown'
+import LocaleDropdown from 'routes/AuthLayout/components/GlobalNav/LocaleDropdown/LocaleDropdown'
 import { localeToFlagEmoji, localeLocalStorageSync } from 'util/locale'
 
 export default function LocaleTab ({ currentUser }) {

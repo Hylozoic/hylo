@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash/fp'
-import { formatError } from 'routes/NonAuthLayoutRouter/util'
+import { formatError } from 'routes/NonAuthLayout/util'
 import Button from 'components/Button'
+import parentClasses from 'routes/NonAuthLayout/NonAuthLayout.module.scss'
 import classes from './Consent.module.scss'
 
 export default function Consent (props) {
@@ -28,10 +29,10 @@ export default function Consent (props) {
     })
   }
 
-  const { appName, className, missingOIDCClaims, missingOIDCScopes, missingResourceScopes, offlineAccessRequested, previousAuthsOnly } = props
+  const { appName, missingOIDCClaims, missingOIDCScopes, missingResourceScopes, offlineAccessRequested, previousAuthsOnly } = props
 
   return (
-    <div className={className}>
+    <div className={parentClasses.form}>
       <div className={classes.formWrapper}>
         <h1 className={classes.title}>{t('{{appName}} wants access to your Hylo account', { appName })}</h1>
         {error && formatError(error, 'Login')}

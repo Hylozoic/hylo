@@ -5,8 +5,8 @@ import { Route, Routes } from 'react-router-dom'
 import config, { isProduction, isTest } from 'config/index'
 import Loading from 'components/Loading'
 import NavigateWithParams from 'components/NavigateWithParams'
-import AuthLayoutRouter from 'routes/AuthLayoutRouter'
-import NonAuthLayoutRouter from 'routes/NonAuthLayoutRouter'
+import AuthLayout from 'routes/AuthLayout'
+import NonAuthLayout from 'routes/NonAuthLayout'
 import OAuthLogin from 'routes/OAuth/Login'
 import PublicLayoutRouter from 'routes/PublicLayoutRouter'
 import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
@@ -47,10 +47,10 @@ export default function RootRouter () {
         {/* If authenticated and need to ask for oAuth consent again do so */}
         <Route
           path='/oauth/consent/:uid'
-          element={<NonAuthLayoutRouter skipAuthCheck />}
+          element={<NonAuthLayout skipAuthCheck />}
         />
 
-        <Route path='*' element={<AuthLayoutRouter />} />
+        <Route path='*' element={<AuthLayout />} />
       </Routes>
     )
   }
@@ -80,10 +80,10 @@ export default function RootRouter () {
         <Route path='/groups/:groupSlug/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
         <Route path='/groups/:groupSlug/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
         {/* XXX: sending join page to non-auth layout router, before all other group pages go to the public group detail */}
-        <Route path='/groups/:groupSlug/join/:accessCode/*' element={<NonAuthLayoutRouter />} />
+        <Route path='/groups/:groupSlug/join/:accessCode/*' element={<NonAuthLayout />} />
         <Route path='/groups/:groupSlug/*' element={<PublicGroupDetail />} />
 
-        <Route path='*' element={<NonAuthLayoutRouter />} />
+        <Route path='*' element={<NonAuthLayout />} />
       </Routes>
     )
   }

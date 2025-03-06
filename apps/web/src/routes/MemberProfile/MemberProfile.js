@@ -168,6 +168,8 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     component: CurrentContentComponent
   } = contentDropDownItems.find(contentItem => contentItem.id === currentTabState)
 
+  // TODO: check if isSingleColumn is needed still, is it always single column?
+
   return (
     <div className='h-full overflow-auto flex flex-col items-center' ref={setContainer}>
       <div className={cn('w-full', styles.memberProfile, { [styles.isSingleColumn]: isSingleColumn })}>

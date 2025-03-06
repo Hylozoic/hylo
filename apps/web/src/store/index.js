@@ -1,26 +1,21 @@
 import { createStore } from 'redux'
 import createMiddleware from './middleware'
-import { createBrowserHistory } from 'history'
-import { createReduxHistoryContext } from 'redux-first-history'
+// import { createEnhancer, reducer as routerReducer } from 'redux-data-router'
 import createRootReducer, { createCombinedReducers } from './reducers'
-
-const {
-  createReduxHistory,
-  routerMiddleware,
-  routerReducer
-} = createReduxHistoryContext({ history: createBrowserHistory() })
+import router from '../router'
 
 export function getEmptyState () {
-  const combinedReducers = createCombinedReducers(routerReducer)
+  // const combinedReducers = createCombinedReducers(routerReducer)
+  const combinedReducers = createCombinedReducers({})
   return combinedReducers({}, { type: '' })
 }
 
 const store = createStore(
-  createRootReducer(routerReducer),
+  // createRootReducer(routerReducer),
+  createRootReducer(null),
   getEmptyState(),
-  createMiddleware(routerMiddleware)
+  // createMiddleware(createEnhancer(router))
+  createMiddleware(null)
 )
-
-export const history = createReduxHistory(store)
 
 export default store

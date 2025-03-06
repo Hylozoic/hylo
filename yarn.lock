@@ -31095,6 +31095,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"redux-data-router@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "redux-data-router@npm:1.0.1"
+  checksum: 10/c73433c7966c96578c4ff27ec540286848506ecf59aaa073fc7b9303588202be130a0f1c673d9e3c2541334e1d61310e87d3d02477f0242f5cbda38e43f0cc70
+  languageName: node
+  linkType: hard
+
 "redux-first-history@npm:^5.2.0":
   version: 5.2.0
   resolution: "redux-first-history@npm:5.2.0"
@@ -36587,6 +36594,7 @@ __metadata:
     react-use-intercom: "npm:^5.4.1"
     react-verification-input: "npm:^4.1.2"
     redux: "npm:^4.0.5"
+    redux-data-router: "npm:^1.0.1"
     redux-first-history: "npm:^5.2.0"
     redux-logger: "npm:^3.0.6"
     redux-mock-store: "npm:^1.5.4"

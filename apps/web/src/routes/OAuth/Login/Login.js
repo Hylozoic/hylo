@@ -1,18 +1,23 @@
 import { push } from 'redux-first-history'
 import React, { useEffect, useState } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { formatError } from 'routes/NonAuthLayoutRouter/util'
+import { formatError } from 'routes/NonAuthLayout/util'
 import TextInput from 'components/TextInput'
 import Button from 'components/Button'
+import { getAuthenticated } from 'store/selectors/getAuthState'
 import { login } from './Login.store'
+
+import parentClasses from 'routes/NonAuthLayout/NonAuthLayout.module.scss'
 import classes from './Login.module.scss'
 
 export default function Login (props) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const params = useParams()
+
+  const isAuthenticated = useSelector(getAuthenticated)
 
   const oauthUID = params.uid
 
@@ -22,7 +27,7 @@ export default function Login (props) {
 
   useEffect(() => {
     // If already authenticated then do the oAuth login with current session user
-    if (props.authenticated) {
+    if (isAuthenticated) {
       submit()
     }
   }, [])
@@ -55,11 +60,10 @@ export default function Login (props) {
     setPassword(e.target.value)
   }
 
-  const { authenticated, className } = props
-  return authenticated
+  return isAuthenticated
     ? <div>{t('Already logged in, redirecting...')}</div>
     : (
-      <div className={className}>
+      <div className={parentClasses.form}>
         <div className={classes.formWrapper}>
           <h1 className={classes.title}>{t('Sign in to Hylo')}</h1>
           {error && formatError(error, 'Login')}

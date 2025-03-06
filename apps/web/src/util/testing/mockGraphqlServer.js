@@ -28,7 +28,7 @@ const mockGraphqlServer = setupServer(...handlers)
 
 export default mockGraphqlServer
 
-// AuthLayoutRouter empty handlers for reference; to reduce boilerplace
+// AuthLayout empty handlers for reference; to reduce boilerplace
 // possibly pre-polulate these on each test load
 //
 // graphql.query('MeQuery', ({ query, variables }) => {

@@ -170,6 +170,8 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
         // Add to the future posts in a chat room (future because of order: 'asc')
         { context: 'groups', slug: group.slug, sortBy: 'id', order: 'asc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
       )
+
+      // TODO: also support topics stream?
     }
 
     return reduce((innerMemo, params) => {

@@ -188,6 +188,7 @@
     "react-use-intercom": "^5.4.1",
     "react-verification-input": "^4.1.2",
     "redux": "^4.0.5",
+    "redux-data-router": "^1.0.1",
     "redux-first-history": "^5.2.0",
     "redux-logger": "^3.0.6",
     "redux-mock-store": "^1.5.4",
