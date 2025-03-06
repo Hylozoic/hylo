@@ -105,14 +105,14 @@ export default function ContextMenu (props) {
 
   useEffect(() => {
     if (newWidgetRef.current) {
+      const element = newWidgetRef.current
+
       if (!isAddingChildWidget) {
-        const element = newWidgetRef.current
         element.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
       isAddingChildWidget = false
 
       // animate the new widget to draw attention to it
-      const element = newWidgetRef.current
       element.classList.remove('animate-slide-up')
       element.classList.remove('invisible')
       element.classList.add('animate-pulsate')
