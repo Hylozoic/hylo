@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
+import Loading from 'components/Loading'
 import checkLogin from 'store/actions/checkLogin'
 
 // const App = React.lazy(() => import('./App'))
@@ -9,10 +10,23 @@ import checkLogin from 'store/actions/checkLogin'
 
 export default function Root () {
   const dispatch = useDispatch()
+  const [loading, setLoading] = useState(true)
 
+  // This should be the only place we check for a session from the API.
+  // Routes will not be available until this check is complete.
   useEffect(() => {
-    dispatch(checkLogin())
-  }, [])
+    (async function () {
+      setLoading(true)
+      await dispatch(checkLogin())
+      setLoading(false)
+    }())
+  }, [dispatch, setLoading])
+
+  if (loading) {
+    return (
+      <Loading type='fullscreen' />
+    )
+  }
 
   // if (authenticated && !me) {
   //   // If we are requiring auth and we are not logged in, redirect to the login page
