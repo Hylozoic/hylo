@@ -1,6 +1,7 @@
 import { get, intersection, debounce } from 'lodash/fp'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ChevronLeft } from 'lucide-react'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
 import { useLocation } from 'react-router-dom'
@@ -70,7 +71,7 @@ export default function Search (props) {
   // Create a component that will auto-focus itself when mounted
   const SearchInput = React.useCallback(() => {
     return (
-      <div className='w-full flex justify-center'>
+      <div className='w-full flex justify-center relative'>
         <div className='relative flex items-center'>
           <Icon name='Search' className='left-2 absolute opacity-50' />
           <TextInput
@@ -96,6 +97,7 @@ export default function Search (props) {
     setHeaderDetails({
       title: <SearchInput />,
       centered: true,
+      backButton: true,
       icon: undefined,
       search: false
     })
