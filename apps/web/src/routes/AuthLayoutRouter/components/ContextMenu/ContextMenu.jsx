@@ -6,6 +6,7 @@ import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import Icon from 'components/Icon'
@@ -182,7 +183,7 @@ export default function ContextMenu (props) {
             <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
           </Routes>
 
-          <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
+          <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners} modifiers={[restrictToVerticalAxis]}>
             <div className='w-full'>
               <ContextWidgetList
                 isDragging={isDragging}
