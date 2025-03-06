@@ -35,7 +35,12 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
 import classes from './ContextMenu.module.scss'
 
-let previousWidgets = []
+let previousWidgetIds = []
+let isAddingChildWidget = false
+
+const widgetIdsToArray = (widgets) => {
+  return widgets.map(widget => [widget.id, widget.childWidgets?.map(childWidget => childWidget.id)]).flat().flat()
+}
 
 export default function ContextMenu (props) {
   const {
@@ -86,8 +91,9 @@ export default function ContextMenu (props) {
   const [activeWidget, setActiveWidget] = useState(null)
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
 
-  const newWidget = previousWidgets.length > 0 ? orderedWidgets.find(widget => previousWidgets.indexOf(widget.id) === -1) : null
-  previousWidgets = orderedWidgets.map(widget => widget.id)
+  const currentWidgetIds = widgetIdsToArray(orderedWidgets)
+  const newWidgetId = previousWidgetIds.length > 0 ? currentWidgetIds.find(widgetId => previousWidgetIds.indexOf(widgetId) === -1) : null
+  previousWidgetIds = currentWidgetIds
   const newWidgetRef = useRef()
 
   useEffect(() => {
@@ -99,16 +105,22 @@ export default function ContextMenu (props) {
 
   useEffect(() => {
     if (newWidgetRef.current) {
+      if (!isAddingChildWidget) {
+        const element = newWidgetRef.current
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      isAddingChildWidget = false
+
+      // TODO: animate when a new child widget is added
       const element = newWidgetRef.current
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
       element.classList.remove('animate-slide-up')
       element.classList.remove('invisible')
-      element.classList.add('animate-bounce')
+      element.classList.add('animate-pulsate')
       setTimeout(() => {
-        element.classList.remove('animate-bounce')
+        element.classList.remove('animate-pulsate')
       }, 2500)
     }
-  }, [newWidget])
+  }, [newWidgetId])
 
   const handleDragStart = ({ active }) => {
     setIsDragging(true)
@@ -180,7 +192,7 @@ export default function ContextMenu (props) {
                 rootPath={rootPath}
                 canAdminister={canAdminister}
                 activeWidget={activeWidget}
-                newWidget={newWidget}
+                newWidgetId={newWidgetId}
                 newWidgetRef={newWidgetRef}
                 group={group}
               />
@@ -213,16 +225,17 @@ export default function ContextMenu (props) {
   )
 }
 
-function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditing, isDragging, activeWidget, newWidget, newWidgetRef, group }) {
+function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditing, isDragging, activeWidget, newWidgetId, newWidgetRef, group }) {
   const navigate = useNavigate()
   const location = useLocation()
 
   const handlePositionedAdd = ({ widget, addToEnd, parentId }) => {
+    isAddingChildWidget = true
     navigate(addQuerystringToPath(location.pathname, { addview: 'yes', cme: 'yes', parentId: widget?.parentId || parentId, orderInFrontOfWidgetId: widget?.id || null }))
   }
 
   const itemProps = {}
-  if (newWidget) itemProps[newWidget.id] = { ref: newWidgetRef }
+  if (newWidgetId) itemProps[newWidgetId] = { ref: newWidgetRef }
 
   return (
     <ul className='m-2 p-0 mb-6'>
