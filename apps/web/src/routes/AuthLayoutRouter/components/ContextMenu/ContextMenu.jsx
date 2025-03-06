@@ -202,7 +202,16 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
           </DropZone>
         </div>}
       {contextWidgets.map((widget, index) => (
-        <li className='mb-2 items-start animate-slide-up invisible' style={{ '--delay': `${index * 35}ms` }} key={widget.id}>
+        <li
+          className={`items-start animate-slide-up invisible ${
+            widget.childWidgets?.length > 0 ||
+            ['container', 'home', 'chats', 'members'].includes(widget.type)
+              ? 'mb-6 mt-6'
+              : 'mb-0'
+          }`}
+          style={{ '--delay': `${index * 35}ms` }}
+          key={widget.id}
+        >
           <ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} />
         </li>
       ))}
@@ -324,7 +333,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                     'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditing && widget.type !== 'home'
                   })}
                 >
-                  <SpecialTopElementRenderer widget={widget} group={group} />
+                  <SpecialTopElementRenderer widget={widget} group={group} isEditing={isEditing} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
                     {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
@@ -342,7 +351,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                 </div>}
               {widget.type === 'members' &&
                 <div className='flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground'>
-                  <SpecialTopElementRenderer widget={widget} group={group} />
+                  <SpecialTopElementRenderer widget={widget} group={group} isEditing={isEditing} />
                   <ul className='px-1 pt-1 pb-2'>
                     {loading && presentedlistItems.length === 0 && <li key='loading'>Loading...</li>}
                     {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
@@ -382,15 +391,15 @@ function DropZone ({ droppableParams, isDroppable = true, height = '', hide = fa
     <div
       ref={setNodeRef}
       className={cn(
-        'transition-all duration-200 rounded-lg bg-foreground/20 mb-2',
-        height,
-        isOver && !removalDropZone && 'bg-selected/70 border-foreground p-5',
-        !isOver && !removalDropZone && 'bg-transparent border-transparent p-0',
-        isOver && removalDropZone && 'bg-destructive/70 border-foreground p-5',
-        !isOver && removalDropZone && 'bg-destructive/40 border-transparent p-2'
+        'transition-all duration-200 rounded-lg overflow-hidden',
+        !isOver && 'h-0',
+        isOver && !removalDropZone && 'h-[8px] mb-1 bg-selected/10 hover:bg-foreground/20',
+        isOver && removalDropZone && 'bg-destructive/70 border-2 border-foreground p-5 min-h-[40px]',
+        isOver && !removalDropZone && 'bg-selected/70 p-5 min-h-[40px]',
+        isOver && removalDropZone && 'bg-destructive/20 hover:bg-destructive/30'
       )}
     >
-      {children}
+      {isOver && children}
     </div>
   )
 }
@@ -467,18 +476,15 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
   )
 }
 
-function SpecialTopElementRenderer ({ widget, group }) {
+function SpecialTopElementRenderer ({ widget, group, isEditing }) {
   const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
   const { t } = useTranslation()
 
   if (widget.type === 'members' && canAddMembers) {
     return (
       <div className='relative'>
-        <div className='absolute -top-10 right-0  border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
-          <MenuLink
-            to={groupUrl(group.slug, 'members')}
-            className='flex items-center gap-2 px-2 py-1 text-foreground/50 hover:text-foreground/100 transition-all'
-          >
+        <div className={cn('absolute -top-10 right-0 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100', isEditing && 'right-8')}>
+          <MenuLink to={groupUrl(group.slug, 'members')} className='flex items-center gap-2 px-2 py-1 text-foreground/50 hover:text-foreground/100 transition-all'>
             <Users className='w-4 h-4' />
             <span>{group.memberCount || 0}</span>
           </MenuLink>
