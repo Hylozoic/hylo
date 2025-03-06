@@ -24,7 +24,10 @@ export default function TabStackHeader ({
 
   const props = {
     headerBackTitleVisible: false,
-    title: getFocusedRouteNameFromRoute(route) || getHeaderTitle(options, route.name),
+    // NOTE: The previous default TabStackheader was as follows, which is likely near the
+    // the React Navigation default:
+    // getFocusedRouteNameFromRoute(route) || getHeaderTitle(options, route.name),
+    title: currentGroup?.name,
     headerTitle: options.headerTitle,
     headerTitleContainerStyle: {
       // Follow: https://github.com/react-navigation/react-navigation/issues/7057#issuecomment-593086348
@@ -47,7 +50,7 @@ export default function TabStackHeader ({
           ? navigation.goBack
           : navigation.openDrawer
       }
-
+console.log()
       return (
         <>
           <FocusAwareStatusBar />
@@ -56,7 +59,7 @@ export default function TabStackHeader ({
             labelVisible={false}
             backImage={() => (
               <View style={styles.container}>
-                <ChevronLeft style={styles.backIcon} size={32} />
+                <ChevronLeft style={styles.backIcon} />
                 <FastImage source={{ uri: avatarUrl }} style={styles.avatar} />
               </View>
             )}
