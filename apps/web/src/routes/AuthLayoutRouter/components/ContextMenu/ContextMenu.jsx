@@ -111,7 +111,7 @@ export default function ContextMenu (props) {
       }
       isAddingChildWidget = false
 
-      // TODO: animate when a new child widget is added
+      // animate the new widget to draw attention to it
       const element = newWidgetRef.current
       element.classList.remove('animate-slide-up')
       element.classList.remove('invisible')
