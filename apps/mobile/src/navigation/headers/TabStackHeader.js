@@ -1,16 +1,15 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 import FastImage from 'react-native-fast-image'
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native'
+import { getFocusedRouteNameFromRoute, useNavigation } from '@react-navigation/native'
 import { Header, HeaderBackButton, getHeaderTitle } from '@react-navigation/elements'
 import { ChevronLeft } from 'lucide-react-native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { isIOS } from 'util/platform'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
-import { white } from 'style/colors'
+import { black, white } from 'style/colors'
 
 export default function TabStackHeader ({
-  navigation,
   route,
   options,
   back,
@@ -18,6 +17,7 @@ export default function TabStackHeader ({
   headerRight,
   ...otherProps
 }) {
+  const navigation = useNavigation()
   const [{ currentGroup }] = useCurrentGroup()
   const avatarUrl = currentGroup?.headerAvatarUrl ||
     currentGroup?.avatarUrl
@@ -50,17 +50,17 @@ export default function TabStackHeader ({
           ? navigation.goBack
           : navigation.openDrawer
       }
-console.log()
+
       return (
         <>
           <FocusAwareStatusBar />
           <HeaderBackButton
             onPress={onPress}
             labelVisible={false}
-            backImage={() => (
+            backImage={({ tintColor }) => (
               <View style={styles.container}>
-                <ChevronLeft style={styles.backIcon} />
-                <FastImage source={{ uri: avatarUrl }} style={styles.avatar} />
+                <ChevronLeft style={styles.backIcon} color={tintColor} size={30} />
+                <FastImage style={styles.avatar} source={{ uri: avatarUrl }} />
               </View>
             )}
           />
