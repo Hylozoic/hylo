@@ -13,6 +13,7 @@ export default async function createPost (userId, params) {
           { children: params.requests, transacting }
         ))))
       .then(function (inserts) {
+        inserts.setLocalId(params.localId)
         return inserts
       }).catch(function (error) {
         throw error

@@ -368,6 +368,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         commentersTotal: p => p.getCommentersTotal(userId),
         details: p => p.details(userId),
         isAnonymousVote: p => p.get('anonymous_voting') === 'true',
+        localId: p => p.getLocalId(),
         myReactions: p => userId ? p.reactionsForUser(userId).fetch() : [],
         // clickthrough: p => p.pivot && p.pivot.get('clickthrough'), // TODO COMOD: does not seem to work
         clickthrough: p => p.checkClickthrough(userId),

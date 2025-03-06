@@ -141,6 +141,7 @@ const postFieldsFragment = (withComments) => `
     url
   }
   linkPreviewFeatured
+  localId
   location
   locationObject {
     id

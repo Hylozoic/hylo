@@ -48,9 +48,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
   requireFetch: false,
   hasTimestamps: true,
 
+  _localId: null,  // Used to store the localId of the post coming from the client and passed back to the client, for optimistic updates
+
   // Instance Methods
 
   // Simple attribute getters
+
+  getLocalId: function () {
+    return this._localId
+  },
+
+  setLocalId: function (value) {
+    this._localId = value
+    return this
+  },
 
   // This should be always used when accessing this attribute
   details: function (forUserId) {
