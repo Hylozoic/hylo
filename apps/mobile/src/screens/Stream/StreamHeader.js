@@ -45,9 +45,9 @@ export function PostPrompt ({ forGroup, currentType, currentTopicName }) {
   }
 
   return (
-    <TouchableOpacity className='flex-row rounded-lg p-2 bg-primary m-1' style={styles.postPrompt} onPress={handleOpenPostEditor}>
-      <Plus style={{ color: rhino }} />
-      <Text style={{ marginRight: 5 }} className='text-xl'>Create</Text>
+    <TouchableOpacity className='flex-row rounded-lg p-2 bg-primary opacity-90' style={styles.postPrompt} onPress={handleOpenPostEditor}>
+      <Plus style={{ color: rhino }} size={20} />
+      <Text style={{ marginRight: 5 }} className='text-l'>Create</Text>
     </TouchableOpacity>
   )
 }
@@ -80,10 +80,10 @@ const styles = StyleSheet.create({
   image: {
     height: '100%',
     width: '100%',
-    position: 'absolute'
+    position: 'absolute',
+    opacity: 0.8
   },
   gradient: {
-    // height: 142,
     width: '100%',
     position: 'absolute'
   },
