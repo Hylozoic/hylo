@@ -4,7 +4,6 @@ import { useNavigation } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { isIOS } from 'util/platform'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { modalScreenName } from 'hooks/useIsModalScreen'
 import HomeNavigator from 'navigation/HomeNavigator'
 import Icon from 'components/Icon'
 import MessagesNavigator from 'navigation/MessagesNavigator'
@@ -64,7 +63,7 @@ export default function TabsNavigator () {
         component={DummyComponent}
         listeners={{
           tabPress: (e) => {
-            navigation.navigate(modalScreenName('Notifications'))
+            navigation.navigate('Notifications')
             e.preventDefault()
           }
         }}

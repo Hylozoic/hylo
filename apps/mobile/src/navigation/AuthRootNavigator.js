@@ -153,32 +153,31 @@ export default function AuthRootNavigator () {
     <HyloHTMLConfigProvider>
       <AuthRoot.Navigator {...navigatorProps}>
         <AuthRoot.Screen name='Drawer' component={DrawerNavigator} options={{ headerShown: false }} />
-        <AuthRoot.Screen
-          name='Create Group' component={CreateGroupTabsNavigator}
-          options={{ headerShown: false }}
-        />
+        <AuthRoot.Screen name='Create Group' component={CreateGroupTabsNavigator} options={{ headerShown: false }} />
+        <AuthRoot.Screen name='Loading' component={LoadingScreen} options={{ headerShown: false, animationEnabled: false }} />
+        {/*
+          == Modals ==
+          modelScreenName is used to differentiated screen names from ones that have a non-model counterpart
+          and simply appends '- Modal`
+        */}
         <AuthRoot.Group screenOptions={{ presentation: 'modal', header: ModalHeader }}>
           <AuthRoot.Screen
-            name={modalScreenName('Post Details')} component={PostDetails}
-            options={{ title: 'Post Details' }}
-          />
-          <AuthRoot.Screen
-            name={modalScreenName('Creation')} component={CreationOptions}
-            options={{ title: 'Create' }}
-          />
-          <AuthRoot.Screen
-            name={modalScreenName('Member')} component={MemberProfile}
-            options={{ title: 'Member' }}
-          />
-          <AuthRoot.Screen
-            name={modalScreenName('Group Explore')} component={GroupExploreWebView}
-            options={{ title: 'Explore' }}
+            name='Creation'
+            component={CreationOptions}
+            options={{
+              title: 'Create',
+              presentation: 'transparentModal',
+              headerShown: false,
+              cardStyle: { backgroundColor: 'transparent' }
+            }}
           />
           <AuthRoot.Screen name='Edit Post' component={PostEditor} options={{ headerShown: false }} />
+          <AuthRoot.Screen name={modalScreenName('Group Explore')} component={GroupExploreWebView} options={{ title: 'Explore' }} />
+          <AuthRoot.Screen name={modalScreenName('Member')} component={MemberProfile} options={{ title: 'Member' }} />
+          <AuthRoot.Screen name='Notifications' component={NotificationsList} />
+          <AuthRoot.Screen name={modalScreenName('Post Details')} component={PostDetails} options={{ title: 'Post Details' }} />
           <AuthRoot.Screen name={modalScreenName('Thread')} component={Thread} />
-          <AuthRoot.Screen name={modalScreenName('Notifications')} component={NotificationsList} />
         </AuthRoot.Group>
-        <AuthRoot.Screen name='Loading' component={LoadingScreen} options={{ headerShown: false, animationEnabled: false }} />
       </AuthRoot.Navigator>
     </HyloHTMLConfigProvider>
   )
