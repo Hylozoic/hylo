@@ -81,7 +81,7 @@ export default function NonAuthLayout (props) {
         </div>
 
         {/* The below-container content for each route */}
-        <Routes>
+        {/* <Routes>
           <Route
             path='signup/*'
             element={
@@ -134,7 +134,7 @@ export default function NonAuthLayout (props) {
               </div>
             }
           />
-        </Routes>
+        </Routes> */}
         <div className={classes.belowContainer}>
           <a href='https://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms of Service')}</a> +&nbsp;
           <a href='https://hylo.com/terms/privacy' target='_blank' rel='noreferrer'>{t('Privacy Policy')}</a>
