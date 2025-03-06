@@ -9,7 +9,7 @@ import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 import { widgetUrl as makeWidgetUrl, groupUrl } from 'util/navigation'
 import useLogout from 'hooks/useLogout'
-import { openURL } from 'hooks/useOpenURL'
+import useOpenURL from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import WidgetIconResolver from 'components/WidgetIconResolver'
@@ -18,6 +18,7 @@ export default function ContextMenu () {
   const insets = useSafeAreaInsets()
   const navigation = useNavigation()
   const { t } = useTranslation()
+  const openURL = useOpenURL()
   const [{ currentGroup, fetching }] = useCurrentGroup()
   const widgets = useMemo(() =>
     orderContextWidgetsForContextMenu(currentGroup?.contextWidgets || []),
@@ -25,7 +26,7 @@ export default function ContextMenu () {
 
   useEffect(() => {
     if ((!fetching && currentGroup?.shouldWelcome)) {
-      navigation.navigate('Group Welcome')
+      navigation.replace('Group Welcome')
     }
   }, [fetching, currentGroup])
 
@@ -37,7 +38,8 @@ export default function ContextMenu () {
       },
       rootPath: `/groups/${currentGroup?.slug}`,
       groupSlug: currentGroup?.slug
-    })
+    }),
+    { replace: true }
   )
 
   if (!currentGroup) return null
@@ -75,6 +77,7 @@ export default function ContextMenu () {
 function MenuItem ({ widget, groupSlug, rootPath, group }) {
   const { t } = useTranslation()
   const { listItems, loading } = useContextWidgetChildren({ widget, groupSlug })
+  const openURL = useOpenURL()
   const logout = useLogout()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
@@ -93,7 +96,7 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
 
   const handleWidgetPress = widget => {
     const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.slug })
-    openURL(linkingPath)
+    openURL(linkingPath, { replace: true })
   }
 
   if (isHiddenInContextMenuResolver(widget)) return null
@@ -182,13 +185,14 @@ function ChildWidget ({ widget, handleWidgetPress, rootPath, groupSlug, parentUr
 function TopElements ({ widget, group }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
+  const openURL = useOpenURL()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAddMembers = hasResponsibility(RESP_ADD_MEMBERS)
 
   if (widget.type === 'members' && canAddMembers) {
     return (
       <TouchableOpacity
-        onPress={() => navigation.navigate('Group Settings', { groupSlug: group?.slug, screen: 'invite' })}
+        onPress={() => navigation.replace('Group Settings', { groupSlug: group?.slug, screen: 'invite' })}
         className='px-4 py-2 bg-primary rounded-md'
       >
         <Text className='text-sm font-medium text-white'>{t('Add Members')}</Text>
@@ -209,7 +213,7 @@ function TopElements ({ widget, group }) {
     const settingsUrl = groupUrl(group.slug, 'settings') + '/details'
     const ListItem = ({ title, url }) => (
       <TouchableOpacity
-        onPress={() => openURL(url)}
+        onPress={() => openURL(url, { replace: true })}
         className='w-full'
       >
         <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
@@ -221,7 +225,7 @@ function TopElements ({ widget, group }) {
     return (
       <View className='w-full mb-2'>
         <TouchableOpacity
-          onPress={() => navigation.navigate('Group Settings', { groupSlug: group?.slug })}
+          onPress={() => navigation.replace('Group Settings', { groupSlug: group?.slug })}
           className='w-full'
         >
           <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>

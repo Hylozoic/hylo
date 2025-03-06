@@ -9,7 +9,7 @@ import { clsx } from 'clsx'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup, { useContextGroups } from '@hylo/hooks/useCurrentGroup'
 import { widgetUrl as makeWidgetUrl } from 'util/navigation'
-import { openURL } from 'hooks/useOpenURL'
+import useOpenURL from 'hooks/useOpenURL'
 import useChangeToGroup from 'hooks/useChangeToGroup'
 import { black, white } from 'style/colors'
 
@@ -17,6 +17,7 @@ const STAY_EXPANDED_DURATION = 1500
 
 export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const insets = useSafeAreaInsets()
+  const openURL = useOpenURL()
   const changeToGroup = useChangeToGroup()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
@@ -52,7 +53,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
       widget: context?.homeWidget,
       groupSlug: context?.slug
     })
-    if (homePath) openURL(homePath)
+    if (homePath) openURL(homePath, { replace: true })
   }
 
   return (
