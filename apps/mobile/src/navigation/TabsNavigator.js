@@ -3,7 +3,6 @@ import { StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { isIOS } from 'util/platform'
-import { get } from 'lodash/fp'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import HomeNavigator from 'navigation/HomeNavigator'
@@ -18,7 +17,9 @@ const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
   const [{ currentUser }] = useCurrentUser()
   const navigation = useNavigation()
-  const showNotificationBadge = !!get('newNotificationCount', currentUser)
+  const notificationsBadgeCount = currentUser?.newNotificationCount > 0
+    ? currentUser?.newNotificationCount
+    : null
   const messagesBadgeCount = currentUser?.unseenThreadCount > 0
     ? currentUser?.unseenThreadCount
     : null
@@ -68,7 +69,7 @@ export default function TabsNavigator () {
           }
         }}
         options={{
-          tabBarBadge: showNotificationBadge
+          tabBarBadge: notificationsBadgeCount
         }}
       />
     </Tabs.Navigator>
