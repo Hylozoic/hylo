@@ -35,27 +35,25 @@ export default function HomeNavigator ({ navigation }) {
 
   // === initialURL ===
   // If the app was launched via navigation to a URL this hook retrieves
-  // that path and navigates to it. The value is cleared is then cleared
-  // from memory but kept here temporarily to use as a flag to disable
-  // initial animations to make navigation to the destination to make it
-  // happen more seamlessly.
+  // that path and navigates to it. The value is then cleared from memory,
+  // but kept here temporarily to use as a flag to disable initial animations
+  // for a more seamless initial loading experience.
   const initialURL = useOpenInitialURL()
 
   // === returnToOnAuth ===
   // When the app is launched or brought into focus via navigation to
   // a path which requires auth, and the user is not authorized, that
   // path is stored for later use in a zustand global store and then
-  // navigated to here if it existed (as we're always auth'd), and
-  // then cleared from memory.
+  // navigated to here now that we're auth'd. The memory is then cleared.
+  // Generally good UX, but especially important for handling of JoinGroup.
   useReturnToOnAuthPath()
 
-  // === context and groupSlug ===
-  // The context and groupSlug are retrieved from the screens params
-  // added by any link that has those named params. They are used here
-  // to switch to the home tab to that context/group while the remaining
-  // route params from the matched link are handled in the final
-  // component in the screen path (e.g. id for a post/:id path is retrieved
-  // in the PostDetails component).
+  // === :context and :groupSlug path match handling ===
+  // The context and groupSlug are retrieved from the screen params added by
+  // any link that has those named params. They are used here to set that
+  // context/group as current. The remaining route params from the matched link
+  // are handled in the final component in the screen path (e.g. id for a
+  // post/:id path match is retrieved in the PostDetails component).
   useEffect(() => {
     if (context === 'groups' && groupSlug) {
       changeToGroup(groupSlug, false)
