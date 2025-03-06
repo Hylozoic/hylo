@@ -20,11 +20,13 @@ const ViewHeader = () => {
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const currentUser = useSelector(getMe)
   const { headerDetails } = useViewHeader()
-  const { backButton, title, icon, info, search } = headerDetails
+  const { backButton, title, icon, info, search, centered } = headerDetails
 
   return (
-    <header className='flex flex-row items-center z-10 p-2 bg-white/5 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
-      {!isWebView() && (
+    <header className={cn('flex flex-row items-center z-10 p-2 bg-white/5 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+      'justify-center': centered
+    })}>
+      {!isWebView() && !centered && (
         <>
           <ChevronLeft
             className={cn('sm:hidden w-6 h-6 mr-3 cursor-pointer', { 'sm:block': backButton })}
@@ -40,10 +42,10 @@ const ViewHeader = () => {
                   : null}
           </div>
         </>)}
-      {icon && <Icon name={icon} className='mr-3 text-lg' />}
+      {!centered && icon && <Icon name={icon} className='mr-3 text-lg' />}
       <h2 className='text-foreground m-0 whitespace-nowrap'>{title}</h2>
-      {info && <InfoButton content={info} className='ml-2' />}
-      {search && (
+      {!centered && info && <InfoButton content={info} className='ml-2' />}
+      {!centered && search && (
         <div className='flex-1 flex justify-end relative'>
           <div className='relative flex items-center'>
             <Icon name='Search' className='left-2 absolute opacity-50' />
