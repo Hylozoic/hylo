@@ -12,6 +12,8 @@ import MessagesNavigator from 'navigation/MessagesNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
 import { alabaster, black10OnCaribbeanGreen, gainsboro, gunsmoke, white } from 'style/colors'
 
+const DummyComponent = () => {}
+
 const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
   const [{ currentUser }] = useCurrentUser()
@@ -58,7 +60,7 @@ export default function TabsNavigator () {
       <Tabs.Screen name='Search Tab' component={SearchNavigator} />
       <Tabs.Screen
         name='Notifications Tab'
-        component={() => {}}
+        component={DummyComponent}
         listeners={{
           tabPress: (e) => {
             navigation.navigate(modalScreenName('Notifications'))
