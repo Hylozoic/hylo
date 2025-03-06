@@ -44,6 +44,8 @@ type Query {
 
   # Query for groups
   groups(
+    # Whether to only return groups that are allowed to be shown in public
+    allowedInPublic: Boolean,
     # Search for groups who's name starts with the autcomplete string
     autocomplete: String,
     # Find only groups in this geographic bounding box

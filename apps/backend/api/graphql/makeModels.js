@@ -694,8 +694,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         typeDescriptorPlural: g => g.get('type_descriptor_plural') || (g.get('type') ? pluralize(startCase(g.get('type'))) : 'Groups')
       },
       filter: nonAdminFilter(apiFilter(groupFilter(userId))),
-      fetchMany: ({ autocomplete, boundingBox, context, farmQuery, filter, first, groupIds, groupType, nearCoord, offset, onlyMine, order, parentSlugs, search, sortBy, visibility }) =>
+      fetchMany: ({ allowedInPublic, autocomplete, boundingBox, context, farmQuery, filter, first, groupIds, groupType, nearCoord, offset, onlyMine, order, parentSlugs, search, sortBy, visibility }) =>
         searchQuerySet('groups', {
+          allowedInPublic,
           autocomplete,
           boundingBox,
           currentUserId: userId,
