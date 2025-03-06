@@ -91,6 +91,13 @@ export default function ContextMenu (props) {
   const newWidgetRef = useRef()
 
   useEffect(() => {
+    if (isEditing) {
+      const element = document.querySelector('.ContextMenu')
+      element.scrollTop = element.scrollHeight + 1000
+    }
+  }, [isEditing])
+
+  useEffect(() => {
     if (newWidgetRef.current) {
       const element = newWidgetRef.current
       element.scrollIntoView({ behavior: 'smooth', block: 'center' })
