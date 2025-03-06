@@ -29,7 +29,7 @@ export default function TabStackHeader ({
     headerTitleContainerStyle: {
       // Follow: https://github.com/react-navigation/react-navigation/issues/7057#issuecomment-593086348
       alignItems: 'left',
-      marginLeft: isIOS ? 10 : 10
+      marginLeft: isIOS ? 10 : 20
     },
     headerTitleStyle: {
       fontFamily: 'Circular-Bold',

@@ -119,6 +119,10 @@ export default function Stream () {
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
 
+  useEffect(() => {
+    navigation.setOptions({ title: currentGroup?.name })
+  }, [currentGroup?.name])
+
   const title = useMemo(() => {
     if (myHome) {
       return capitalize(t(myHome))
@@ -137,12 +141,8 @@ export default function Stream () {
       return capitalize(t(streamType))
     }
 
-    return currentGroup?.name
+    return t('Stream')
   }, [navigation, currentGroup?.id, myHome, streamType, context])
-
-  useEffect(() => {
-    navigation.setOptions({ title })
-  }, [title])
 
   // TODO: URQL - Can this be simplified? Also, does this perhaps follow the same logic as
   // group(updateLastViewed: true) and could we combine this? Currently that extra
@@ -230,13 +230,12 @@ export default function Stream () {
             <StreamHeader
               image={currentGroup.bannerUrl ? { uri: currentGroup.bannerUrl } : null}
               icon={customView?.icon}
-              name={customView?.name || myHome || currentGroup.name}
+              name={title}
               currentGroup={currentGroup}
-              streamType={streamType}
+              streamType={streamQueryVariables.filter}
               customView={customView}
               postPrompt
             />
-
             {!streamType && (
               <View className='bg-card flex-row justify-between items-center px-2.5 py-2'>
                 <ListControl selected={sortBy} onChange={setSortBy} options={sortOptions} />
