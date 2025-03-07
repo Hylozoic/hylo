@@ -33,7 +33,7 @@ export default function StreamHeader ({ image, icon, name, postPrompt = false, c
 
 export function PostPrompt ({ forGroup, currentType, currentTopicName }) {
   const navigation = useNavigation()
-  const { t } = useTranslation
+  const { t } = useTranslation()
   const [{ currentUser }] = useCurrentUser()
 
   if (!currentUser) return null
