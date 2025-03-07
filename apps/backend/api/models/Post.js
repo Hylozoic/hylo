@@ -277,8 +277,26 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return Object.assign({},
       refineOne(
         this,
-        ['created_at', 'description', 'id', 'name', 'num_people_reacts', 'timezone', 'type', 'updated_at', 'num_votes', 'votingMethod', 'proposalStatus', 'proposalOutcome'],
-        { description: 'details', name: 'title', num_people_reacts: 'peopleReactedTotal', num_votes: 'votesTotal' }
+        [
+          'announcement',
+          'created_at',
+          'description',
+          'end_time',
+          'id',
+          'is_public',
+          'location',
+          'name',
+          'num_people_reacts',
+          'num_votes',
+          'proposalStatus',
+          'proposalOutcome',
+          'start_time',
+          'timezone',
+          'type',
+          'updated_at',
+          'votingMethod'
+        ],
+        { name: 'title', num_people_reacts: 'peopleReactedTotal', num_votes: 'votesTotal' }
       ),
       {
         attachments: refineMany(media, [ 'id', 'type', 'url' ]),
