@@ -39,6 +39,7 @@ export default function ChatPost ({
   className,
   group,
   highlightProps,
+  highlighted,
   post,
   showHeader = true,
   onAddReaction = () => {},
@@ -224,10 +225,16 @@ export default function ChatPost ({
   return (
     <Highlight {...highlightProps}>
       <div
-        className={cn('rounded-lg pl-[20px] relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer', className, styles.container, {
-          [styles.longPressed]: isLongPress,
-          [styles.hovered]: isHovered
-        })}
+        className={cn(
+          'ChatPost_container rounded-lg pl-[20px] relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer mb-1',
+          className,
+          styles.container,
+          {
+            [styles.longPressed]: isLongPress,
+            [styles.hovered]: isHovered,
+            'bg-accent/30': highlighted
+          }
+        )}
         ref={ref}
         {...bindLongPress()}
         onMouseEnter={handleMouseEnter}

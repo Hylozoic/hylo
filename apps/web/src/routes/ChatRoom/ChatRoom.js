@@ -26,15 +26,17 @@ import {
   SelectItem,
   SelectTrigger
 } from '@/components/ui/select'
-import { useViewHeader } from 'contexts/ViewHeaderContext'
 import ChatPost from './ChatPost'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
-import { FETCH_TOPIC_FOLLOW } from 'store/constants'
+import { FETCH_TOPIC_FOLLOW, FETCH_POSTS } from 'store/constants'
+import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import orm from 'store/models'
 import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import presentPost from 'store/presenters/presentPost'
+import { makeDropQueryResults } from 'store/reducers/queryResults'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -66,6 +68,8 @@ const getPosts = ormCreateSelector(
       .map(p => presentPost(p))
   }
 )
+
+const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
 // Hack to fix focusing on editor after it unmounts/remounts
 EditorView.prototype.updateState = function updateState (state) {
@@ -115,7 +119,7 @@ export default function ChatRoom (props) {
   const topicFollowLoading = useSelector(state => isPendingFor([FETCH_TOPIC_FOLLOW], state))
   const querystringParams = getQuerystringParam(['search', 'postId'], location)
   const search = querystringParams?.search
-  const postIdToStartAt = querystringParams?.postId // TODO: remove from the querystring so pressing back doesn't take you to the same post?
+  const [postIdToStartAt, setPostIdToStartAt] = useState(querystringParams?.postId)
 
   const [container, setContainer] = React.useState(null)
   const editorRef = useRef()
@@ -173,19 +177,14 @@ export default function ChatRoom (props) {
     return (postsPast || []).concat(postsFuture || [])
   }, [postsPast, postsFuture])
 
-  const fetchPostsPast = useCallback((offset) => {
-    if (loadingPast || hasMorePostsPast === false) return Promise.resolve()
+  const fetchPostsPast = useCallback((offset, extraParams = {}, force = false) => {
+    if ((loadingPast || hasMorePostsPast === false) && !force) return Promise.resolve()
     setLoadingPast(true)
-    return dispatch(fetchPosts({ offset, ...fetchPostsPastParams }))
+    return dispatch(fetchPosts({ ...fetchPostsPastParams, offset, ...extraParams }))
       .then((action) => {
         const posts = action.payload?.data?.group?.posts?.items
         // Always reset loading state
         setLoadingPast(false)
-        // Handle empty posts case - clear the list or do other necessary resets
-        if (!posts?.length) {
-          messageListRef.current?.data.clear()
-          return
-        }
         // Process posts only if they exist
         if (posts?.length) {
           messageListRef.current?.data.prepend(posts.reverse() || [])
@@ -194,14 +193,14 @@ export default function ChatRoom (props) {
       .catch(() => setLoadingPast(false))
   }, [fetchPostsPastParams, loadingPast, hasMorePostsPast])
 
-  const fetchPostsFuture = useCallback((offset) => {
-    if (loadingFuture || hasMorePostsFuture === false) return Promise.resolve()
+  const fetchPostsFuture = useCallback((offset, extraParams = {}, force = false) => {
+    if ((loadingFuture || hasMorePostsFuture === false) && !force) return Promise.resolve()
     setLoadingFuture(true)
-    return dispatch(fetchPosts({ ...fetchPostsFutureParams, offset })).then((action) => {
+    return dispatch(fetchPosts({ ...fetchPostsFutureParams, offset, ...extraParams })).then((action) => {
       setLoadingFuture(false)
       const newPosts = action.payload?.data?.group?.posts?.items || []
       if (offset === 0) {
-        messageListRef.current?.data.replace(newPosts || [], { index: 'LAST', align: 'end' })
+        messageListRef.current?.data.append(newPosts || [], { index: 'LAST', align: 'end' })
       } else {
         messageListRef.current?.data.append(newPosts || [])
       }
@@ -210,6 +209,7 @@ export default function ChatRoom (props) {
 
   const handleNewPostReceived = useCallback((data) => {
     if (!data.topics?.find(t => t.name === topicName)) return
+
     data.imageAttachments = data.attachments.filter(a => a.type === 'image')
     data.fileAttachments = data.attachments.filter(a => a.type === 'file')
 
@@ -239,16 +239,17 @@ export default function ChatRoom (props) {
 
   const resetInitialPostToScrollTo = useCallback(() => {
     if (loadedPast && loadedFuture) {
-      if (!topicFollow?.lastReadPostId || postsForDisplay.length === 0) {
+      // Set initial scroll to the passed in post to scroll to, otherwise to the last read post
+      const postToScrollTo = postIdToStartAt || topicFollow?.lastReadPostId
+      if (!postToScrollTo || postsForDisplay.length === 0) {
         setInitialPostToScrollTo(0)
-      } else if (topicFollow?.lastReadPostId > postsForDisplay[postsForDisplay.length - 1].id) {
+      } else if (postToScrollTo > postsForDisplay[postsForDisplay.length - 1].id) {
         // XXX: We set the lastReadPostId to the largest post id as a hack to bring people to the most recent post when they join a chat room
         setInitialPostToScrollTo(postsForDisplay.length - 1)
       } else {
-        // Set initial scroll to the last read post
-        const lastReadPostIndex = postsForDisplay.findIndex(post => post.id === topicFollow?.lastReadPostId)
-        if (lastReadPostIndex !== -1) {
-          setInitialPostToScrollTo(lastReadPostIndex)
+        const postToScrollToIndex = postsForDisplay.findIndex(post => post.id === postToScrollTo)
+        if (postToScrollToIndex !== -1) {
+          setInitialPostToScrollTo(postToScrollToIndex)
         } else {
           // XXX: When joining a room we set the lastReadPostId to the largest post id in the database as a hack to bring people to the most recent post when they join a chat room
           // But more posts could have been added since we did this, so we if we can't find the last read post id, we scroll to the most recent post
@@ -258,7 +259,7 @@ export default function ChatRoom (props) {
     } else {
       setInitialPostToScrollTo(null)
     }
-  }, [loadedPast, loadedFuture, postsPast, postsFuture])
+  }, [loadedPast, loadedFuture, postsPast, postsFuture, postIdToStartAt])
 
   useEffect(() => {
     // Load TopicFollow
@@ -268,7 +269,6 @@ export default function ChatRoom (props) {
   useEffect(() => {
     socket.on('newPost', handleNewPostReceived)
 
-    // On component unmount clear link preview and images attachments from redux
     return () => {
       socket.off('newPost', handleNewPostReceived)
     }
@@ -317,6 +317,40 @@ export default function ChatRoom (props) {
       return () => clearTimeout(timer)
     }
   }, [loadedPast, loadedFuture, initialAnimationComplete])
+
+  useEffect(() => {
+    if (querystringParams?.postId) {
+      setPostIdToStartAt(querystringParams?.postId)
+      const index = postsForDisplay.findIndex(post => post.id === querystringParams?.postId)
+      if (index !== -1) {
+        messageListRef.current?.scrollToItem({ index, align: 'end', behavior: 'auto' })
+      } else if (loadedFuture && loadedPast) {
+        // Can't find the post in the list, so we need to load a new set of posts around the one we want to scroll to
+        // Basically just reset the list
+
+        // Drop post results from Redux store (only need to call once)
+        dispatch(dropPostResults(fetchPostsFutureParams))
+        dispatch(dropPostResults(fetchPostsPastParams))
+
+        // Reset loading states
+        setLoadedFuture(false)
+        setLoadedPast(false)
+
+        // Load new data centered around the target post
+        Promise.all([
+          fetchPostsFuture(0, { cursor: querystringParams?.postId }, true)
+            .then(() => setLoadedFuture(true)),
+          fetchPostsPast(0, { cursor: parseInt(querystringParams?.postId) + 1 }, true)
+            .then(() => setLoadedPast(true))
+        ]).then(() => {
+          resetInitialPostToScrollTo()
+        })
+      }
+
+      // Remove the scroll to post from the url so we can click on a notification to scroll to it again
+      dispatch(changeQuerystringParam(location, 'postId', null, null, true))
+    }
+  }, [querystringParams?.postId])
 
   const onScroll = useMemo(
     () => debounce(200, (location) => {
@@ -395,7 +429,7 @@ export default function ChatRoom (props) {
   }, [notificationsSetting])
 
   const onRemovePost = useCallback((postId) => {
-    messageListRef.current?.data.findAndDelete((item) => { console.log(item); return postId === item.id })
+    messageListRef.current?.data.findAndDelete((item) => postId === item.id)
   }, [currentUser])
 
   const { setHeaderDetails } = useViewHeader()
@@ -446,18 +480,18 @@ export default function ChatRoom (props) {
                 ref={messageListRef}
                 context={{
                   currentUser,
-                  loadingPast,
-                  loadingFuture,
-                  selectedPostId,
                   group,
+                  initialAnimationComplete,
                   latestOldPostId,
-                  onAddReaction,
-                  onRemoveReaction,
-                  onRemovePost,
-                  topicName,
-                  numPosts: postsForDisplay.length,
+                  loadingFuture,
+                  loadingPast,
                   newPostCount: topicFollow?.newPostCount,
-                  initialAnimationComplete
+                  numPosts: postsForDisplay.length,
+                  onAddReaction,
+                  onRemovePost,
+                  onRemoveReaction,
+                  postIdToStartAt,
+                  topicName
                 }}
                 initialData={postsForDisplay}
                 initialLocation={{ index: initialPostToScrollTo, align: initialPostToScrollTo === 0 ? 'start' : 'end' }}
@@ -568,12 +602,12 @@ const StickyFooter = ({ context }) => {
 
 const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   const expanded = context.selectedPostId === post.id
+  const highlighted = post.id && context.postIdToStartAt === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
   const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
   const currentDay = DateTime.fromISO(post.createdAt)
   const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
-  const showHeader = !prevData || firstUnread || !!displayDay || createdTimeDiff > MAX_MINS_TO_BATCH || prevData.creator.id !== post.creator.id || prevData.commentersTotal > 0 || prevData.type !== 'chat'
   /* Display the author header if
   * There was no previous post
   * Or this post is the first unread post
@@ -583,6 +617,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   * Or the last post had any comments on it
   * Or the last past was a non chat type post
   */
+  const showHeader = !prevData || firstUnread || !!displayDay || createdTimeDiff > MAX_MINS_TO_BATCH || prevData.creator.id !== post.creator.id || prevData.commentersTotal > 0 || prevData.type !== 'chat'
   // Only calculate delay for initial load near bottom
   const isInitialLoad = context.numPosts > 0 && index > context.numPosts - 20
   const delay = isInitialLoad ? Math.min((context.numPosts - index - 1) * 35, 2000) : 0
@@ -590,7 +625,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   // Only animate during initial load, never animate after initial animation is complete
   const shouldAnimate = !post.pending && !context.initialAnimationComplete && isInitialLoad
   const animationClass = shouldAnimate ? 'animate-slide-up invisible' : ''
-  const style = shouldAnimate ? { '--delay': `${delay}ms` } : {}
+  const animationStyle = shouldAnimate ? { '--delay': `${delay}ms` } : {}
 
   return (
     <>
@@ -614,12 +649,13 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
       {post.type === 'chat'
         ? (
           <div
-            className={`mx-auto px-4 max-w-[750px] ${animationClass}`}
-            style={style}
+            className={cn('mx-auto max-w-[750px]', animationClass)}
+            style={animationStyle}
           >
             <ChatPost
               expanded={expanded}
               group={context.group}
+              highlighted={highlighted}
               showHeader={showHeader}
               post={post}
               onAddReaction={context.onAddReaction}
@@ -629,12 +665,13 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
           </div>)
         : (
           <div
-            className={`mx-auto px-4 max-w-[750px] ${animationClass}`}
-            style={style}
+            className={`mx-auto max-w-[750px] mt-2 ${animationClass}`}
+            style={animationStyle}
           >
             <PostCard
               group={context.group}
               expanded={expanded}
+              highlighted={highlighted}
               post={post}
               onAddReaction={context.onAddReaction}
               onRemoveReaction={context.onRemoveReaction}
