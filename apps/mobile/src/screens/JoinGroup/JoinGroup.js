@@ -47,7 +47,7 @@ export default function JoinGroup (props) {
               await refetchCurrentUser()
 
               if (groupSlug) {
-                changeToGroup(groupSlug, false)
+                changeToGroup(groupSlug)
                 navigation.goBack()
               } else {
                 throw new Error('Join group was unsuccessful', error)

@@ -7,8 +7,7 @@ import {
   visibilityDescription, accessibilityDescription,
   visibilityIcon, accessibilityIcon
 } from '@hylo/presenters/GroupPresenter'
-import { useCreateGroupStore } from './CreateGroupFlow.store'
-import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
+import { useCreateGroupStore } from './CreateGroup.store'
 import RoundCheckbox from 'components/RoundCheckBox'
 import Icon from 'components/Icon'
 
@@ -41,34 +40,32 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
   }, [visibility, accessibility]))
 
   return (
-    <KeyboardFriendlyView className='bg-background p-5 flex-1'>
-      <ScrollView>
-        <View>
-          <View className='mb-6'>
-            <Text className='text-foreground text-xl font-bold mb-2.5'>{t('Who can see this group?')}</Text>
-            {groupVisibilityOptions.map(option => (
-              <GroupPrivacyOption
-                option={option}
-                chosen={option.value === visibility.value}
-                onPress={setVisibility}
-                key={option.value}
-              />
-            ))}
-          </View>
-          <View className='mb-6'>
-            <Text className='text-foreground text-xl font-bold mb-2.5'>{t('Who can join this group?')}</Text>
-            {groupAccessibilityOptions.map(option => (
-              <GroupPrivacyOption
-                option={option}
-                chosen={option.value === accessibility.value}
-                onPress={setAccessibility}
-                key={option.value}
-              />
-            ))}
-          </View>
+    <>
+      <View>
+        <View className='mb-6'>
+          <Text className='text-foreground text-xl font-bold mb-2.5'>{t('Who can see this group?')}</Text>
+          {groupVisibilityOptions.map(option => (
+            <GroupPrivacyOption
+              option={option}
+              chosen={option.value === visibility.value}
+              onPress={setVisibility}
+              key={option.value}
+            />
+          ))}
         </View>
-      </ScrollView>
-    </KeyboardFriendlyView>
+        <View className='mb-6'>
+          <Text className='text-foreground text-xl font-bold mb-2.5'>{t('Who can join this group?')}</Text>
+          {groupAccessibilityOptions.map(option => (
+            <GroupPrivacyOption
+              option={option}
+              chosen={option.value === accessibility.value}
+              onPress={setAccessibility}
+              key={option.value}
+            />
+          ))}
+        </View>
+      </View>
+    </>
   )
 }
 

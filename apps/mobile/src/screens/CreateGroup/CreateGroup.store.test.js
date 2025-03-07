@@ -6,7 +6,7 @@ import reducer,
   CLEAR_CREATE_GROUP_STORE,
   initialState
 }
-  from './CreateGroupFlow.store'
+  from './CreateGroup.store'
 
 const name = 'group name'
 const slug = 'group_name'

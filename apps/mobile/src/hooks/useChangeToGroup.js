@@ -31,12 +31,11 @@ export default function useChangeToGroup () {
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroupSlug, setCurrentGroupSlug }] = useCurrentGroupSlug()
-  const myMemberships = currentUser?.memberships
 
-  const changeToGroup = useCallback((groupSlug, confirm = true) => {
+  const changeToGroup = useCallback((groupSlug, { confirm = false, skipCanViewCheck = false } = {}) => {
     if (groupSlug === currentGroupSlug) return
 
-    const canViewGroup = myMemberships.find(m => m.group.slug === groupSlug) || isContextGroupSlug(groupSlug)
+    const canViewGroup = currentUser?.memberships.find(m => m.group.slug === groupSlug) || isContextGroupSlug(groupSlug) || skipCanViewCheck
 
     if (canViewGroup) {
       const goToGroup = () => setCurrentGroupSlug(groupSlug)
@@ -50,7 +49,7 @@ export default function useChangeToGroup () {
     } else {
       navigation.navigate(modalScreenName('Group Explore'), { groupSlug })
     }
-  }, [navigation, currentUser, currentGroupSlug, myMemberships])
+  }, [navigation, currentUser, currentUser?.memberships, currentGroupSlug, setCurrentGroupSlug])
 
   return changeToGroup
 }

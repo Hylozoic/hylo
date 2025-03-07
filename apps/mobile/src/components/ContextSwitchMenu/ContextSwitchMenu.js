@@ -47,7 +47,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const handleOnPress = context => {
     clearTimeout(collapseTimeout.current)
     setIsExpanded(false)
-    changeToGroup(context?.slug, false)
+    changeToGroup(context?.slug)
     const homePath = context && makeWidgetUrl({
       widget: context?.homeWidget,
       groupSlug: context?.slug
