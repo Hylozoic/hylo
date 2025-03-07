@@ -576,7 +576,11 @@ function PostEditor ({
     } = currentPost
     const details = editorRef.current.getHTML()
     const topicNames = topics?.map((t) => t.name)
-    const memberIds = members && members.map((m) => m.id)
+    const memberIds = members?.map((m) => m.id) || []
+    if (type === 'project') {
+      // Add the current user to the project members
+      memberIds.push(currentUser.id)
+    }
     const eventInviteeIds =
       eventInvitations && eventInvitations.map((m) => m.id)
     const imageUrls =
@@ -635,7 +639,7 @@ function PostEditor ({
     const savedPost = await dispatch(saveFunc(postToSave))
     if (afterSave) afterSave(savedPost.payload.data.createPost)
     reset()
-  }, [afterSave, announcementSelected, currentPost, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
+  }, [afterSave, announcementSelected, currentPost, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
 
   /**
    * Initiates the save process with validation and confirmation checks
