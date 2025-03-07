@@ -21,7 +21,7 @@ export default function PostGridItem ({
     title,
     details,
     creator,
-    createdTimestampForGrid,
+    createdTimestamp,
     attachments
   } = post
 
@@ -84,7 +84,7 @@ export default function PostGridItem ({
               {creator.name}
             </div>
             <span className={classes.timestamp}>
-              {createdTimestampForGrid}
+              {createdTimestamp}
             </span>
           </div>
         </div>
