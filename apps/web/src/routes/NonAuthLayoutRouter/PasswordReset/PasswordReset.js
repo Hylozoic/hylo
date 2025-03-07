@@ -14,7 +14,7 @@ function PasswordReset ({ className, sendPasswordReset }) {
 
   useEffect(() => {
     setTimeout(() => {
-      emailRef.current.focus()
+      emailRef.current?.focus()
     }, 100)
   }, [])
 
