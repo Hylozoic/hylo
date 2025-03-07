@@ -1950,6 +1950,8 @@ type Post {
   isStrictProposal: Boolean
   # Whether LinkPreview appears full size above post or smaller below
   linkPreviewFeatured: Boolean
+  # Temporary id passed in from the client to identify the post when it is created, and passed back to the client, for optimistically creating posts
+  localId: String
   # Full location string
   location: String
   # Object with geocoded location deatils
