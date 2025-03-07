@@ -19,7 +19,7 @@ module.exports = {
     return Group.query(qb => {
       if (opts.nearCoord) {
         qb.with('nearest_groups', bookshelf.knex.raw(`
-        SELECT groups.id, ST_Distance(t.x, locations.center) AS nearest 
+        SELECT groups.id, ST_Distance(t.x, locations.center) AS nearest
          FROM (SELECT ST_GeographyFromText('SRID=4326;POINT(${opts.nearCoord.lng} ${opts.nearCoord.lat})')) AS t(x), groups
          INNER JOIN locations
          ON groups.location_id = locations.id
@@ -56,6 +56,10 @@ module.exports = {
         qb.join('group_relationships', 'groups.id', '=', 'group_relationships.child_group_id')
         qb.join('groups as parent_groups', 'parent_groups.id', '=', 'group_relationships.parent_group_id')
         qb.whereIn('parent_groups.slug', opts.parentSlugs)
+      }
+
+      if (typeof opts.allowedInPublic === 'boolean') {
+        qb.where('groups.allow_in_public', opts.allowedInPublic)
       }
 
       if (opts.farmQuery && (opts.farmQuery.productCategories !== '' || opts.farmQuery.farmType !== '' || opts.farmQuery.certOrManagementPlan !== '')) {

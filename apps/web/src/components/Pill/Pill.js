@@ -34,7 +34,7 @@ const Pill = forwardRef(({
   return (
     <div
       className={cn(
-        'text-foreground text-baseline bg-black/10 rounded-lg inline-block m-1 py-2 px-3 opacity-80 hover:opacity-100 scale-100 hover:scale-105 transition-all hover:cursor-pointer hover:bg-selected/50 z-0 hover:z-50',
+        'text-foreground text-baseline bg-black/10 rounded-lg inline-block m-1 py-2 px-3 h-[40px] items-center justify-center flex opacity-100 hover:opacity-100 scale-100 hover:scale-105 transition-all hover:cursor-pointer hover:bg-selected/50 z-0 hover:z-50',
         className
       )}
       onMouseLeave={mouseOut}

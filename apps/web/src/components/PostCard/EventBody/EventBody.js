@@ -30,6 +30,7 @@ function EventBody (props) {
   const attachmentType = firstAttachment?.type
 
   const eventAttendees = filter(ei => ei.response === RESPONSES.YES, eventInvitations)
+  const isPastEvent = endTime && new Date(endTime) < new Date()
 
   return (
     <div>
@@ -40,30 +41,24 @@ function EventBody (props) {
         </div>}
 
       <div className={cn(classes.body, classes.eventBody, { [classes.smallMargin]: !expanded, [classes.eventImage]: attachmentType === 'image', [classes.constrained]: constrained }, className)}>
-        <div className={classes.eventTop}>
-          <div className={cn(classes.calendarDate)} onClick={onClick}>
-            <EventDate {...event} />
-          </div>
-          {currentUser && (
-            <div className={classes.eventResponseTop}>
-              <div className={classes.rsvp}>
-                <EventRSVP {...event} respondToEvent={respondToEvent} />
-              </div>
-              <Button label={t('Invite')} onClick={toggleInviteDialog} narrow small color='green-white' className={classes.inviteButton} />
-            </div>
-          )}
-        </div>
-
         <div className={cn(classes.eventBodyColumn, { [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !event.clickthrough })}>
-          <PostTitle {...event} constrained={constrained} onClick={onClick} />
-          <div className={cn(classes.eventData, { [classes.constrained]: constrained })} onClick={onClick}>
-            <Icon name='Clock' className={classes.icon} /> {TextHelpers.formatDatePair(startTime, endTime)}
-          </div>
-          {!!location && (
-            <div className={cn(classes.eventData, classes.eventLocation)} onClick={onClick}>
-              <Icon name='Location' className={classes.icon} /> {location}
+          <div className='flex flex-row gap-5 items-center justify-start mb-4'>
+            <EventDate {...event} />
+            <div className='flex flex-col gap-0'>
+              <div className={cn('text-xs text-foreground/50')} onClick={onClick}>
+                {TextHelpers.formatDatePair(startTime, endTime)}
+                {isPastEvent && (
+                  <span className={cn('text-sm text-foreground/50 ml-2 px-2 inline-block p-1 rounded-md bg-foreground/10 text-xs')}>{t('Event ended')}</span>
+                )}
+              </div>
+              <PostTitle {...event} constrained={constrained} onClick={onClick} />
+              {!!location && (
+                <div className={cn('text-xs text-foreground/50')} onClick={onClick}>
+                  <Icon name='Location' className='w-4 h-4' /> {location}
+                </div>
+              )}
             </div>
-          )}
+          </div>
           <div className={cn(classes.eventDetails, { [classes.constrained]: constrained })}>
             <PostContent
               {...event}
@@ -75,8 +70,8 @@ function EventBody (props) {
           </div>
         </div>
 
-        <div className={classes.eventAttendance}>
-          <div className={classes.people} onClick={onClick}>
+        <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative text-center'>
+          <div onClick={onClick}>
             <div className={classes.fade} />
             <PeopleInfo
               people={eventAttendees}
@@ -84,15 +79,15 @@ function EventBody (props) {
               excludePersonId={get('id', currentUser)}
               onClick={currentUser && togglePeopleDialog}
               phrases={{
-                emptyMessage: t('No one is attending yet'),
-                phraseSingular: t('is attending'),
-                mePhraseSingular: t('are attending'),
-                pluralPhrase: t('attending')
+                emptyMessage: isPastEvent ? t('No one attended') : t('No one is attending yet'),
+                phraseSingular: isPastEvent ? t('attended') : t('is attending'),
+                mePhraseSingular: isPastEvent ? t('attended') : t('are attending'),
+                pluralPhrase: isPastEvent ? t('attended') : t('attending')
               }}
             />
           </div>
 
-          {currentUser && (
+          {currentUser && !isPastEvent && (
             <div className={classes.eventResponse}>
               <div className={classes.rsvp}>
                 <EventRSVP {...event} respondToEvent={respondToEvent} />
