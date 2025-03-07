@@ -250,7 +250,7 @@ export function addQuerystringToPath (path, querystringParams) {
 export function removePostEditorFromUrl (url) {
   const matchForCreateRegex = '/create/post/*'
   const matchForEditRegex = `/post/${POST_ID_MATCH}(/.*)?`
-  return url.replace(new RegExp(matchForCreateRegex), '').replace(new RegExp(matchForEditRegex))
+  return url.replace(new RegExp(matchForCreateRegex), '').replace(new RegExp(matchForEditRegex), '')
 }
 
 export function removePostFromUrl (url) {
