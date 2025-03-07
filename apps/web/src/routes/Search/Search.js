@@ -5,6 +5,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
 import { useLocation } from 'react-router-dom'
 import TextInput from 'components/TextInput'
+import Icon from 'components/Icon'
 import ScrollListener from 'components/ScrollListener'
 import PostCard from 'components/PostCard'
 import CommentCard from 'components/CommentCard'
@@ -39,6 +40,7 @@ export default function Search (props) {
   const searchResults = useSelector(state => getSearchResults(state, queryResultProps))
   const hasMore = useSelector(state => getHasMoreSearchResults(state, queryResultProps))
   const pending = useSelector(state => !!state.pending[FETCH_SEARCH])
+  const inputRef = React.useRef(null)
 
   const updateQueryParam = debounce(500, search =>
     dispatch(changeQuerystringParam(location, 't', search, null, true)))
@@ -65,26 +67,46 @@ export default function Search (props) {
     fetchSearchResultsAction()
   }, [searchForInput, filter])
 
+  // Create a component that will auto-focus itself when mounted
+  const SearchInput = React.useCallback(() => {
+    return (
+      <div className='w-full flex justify-center relative'>
+        <div className='relative flex items-center'>
+          <Icon name='Search' className='left-2 absolute opacity-50' />
+          <TextInput
+            inputClassName='border-2 border-transparent transition-all duration-200 focus:border-focus w-full max-w-[750px] bg-black/20 rounded-lg text-foreground placeholder-foreground/40 py-1 pl-7 outline-none'
+            inputRef={inputRef}
+            value={searchForInput || searchFromQueryString}
+            placeholder={t('Search by keyword for people, posts and groups')}
+            autoFocus
+            onChange={event => {
+              const { value } = event.target
+              setSearchForInput(value)
+              updateQueryParam(value)
+            }}
+          />
+        </div>
+      </div>
+    )
+  }, [searchForInput, searchFromQueryString, t])
+
   const { setHeaderDetails } = useViewHeader()
+
   useEffect(() => {
     setHeaderDetails({
-      title: t('Search'),
-      icon: 'Search',
+      title: <SearchInput />,
+      centered: true,
+      backButton: true,
+      icon: undefined,
       search: false
     })
-  }, [])
+  }, [SearchInput])
 
   return (
-    <div className='w-max flex flex-col gap-2 m-2 max-w-[750px] mx-auto'>
-      <SearchBar
-        searchForInput={searchForInput}
-        setSearchTerm={setSearchForInput}
-        updateQueryParam={updateQueryParam}
-        setSearchFilter={setFilter}
-        filter={filter}
-      />
+    <div className='w-full flex flex-col gap-2 m-2 max-w-[750px] mx-auto'>
+      <TabBar setSearchFilter={setFilter} filter={filter} />
       <div
-        className={classes.searchResults}
+        className='w-full'
         id={SEARCH_RESULTS_ID}
       >
         {searchResults.map(sr =>
@@ -101,35 +123,6 @@ export default function Search (props) {
   )
 }
 
-function SearchBar ({
-  searchForInput,
-  setSearchTerm,
-  updateQueryParam,
-  setSearchFilter,
-  filter
-}) {
-  const { t } = useTranslation()
-
-  const onSearchChange = event => {
-    const { value } = event.target
-    setSearchTerm(value) // no debounce
-    updateQueryParam(value) // debounced
-  }
-
-  return (
-    <div className={classes.searchBar}>
-      <TabBar setSearchFilter={setSearchFilter} filter={filter} />
-      <TextInput
-        theme={classes}
-        inputRef={x => x && x.focus()}
-        value={searchForInput}
-        placeholder={t('Search by keyword for people, posts and groups')}
-        onChange={onSearchChange}
-      />
-    </div>
-  )
-}
-
 function TabBar ({ filter, setSearchFilter }) {
   const { t } = useTranslation()
   const tabs = [
@@ -140,11 +133,11 @@ function TabBar ({ filter, setSearchFilter }) {
   ]
 
   return (
-    <div className={classes.tabs}>
+    <div className='flex gap-2 justify-center items-center rounded-lg bg-black/10 p-2'>
       {tabs.map(({ id, label }) => (
         <span
           key={id}
-          className={cn(classes.tab, { [classes.tabActive]: id === filter })}
+          className={cn('border-2 border-foreground/20 rounded-lg px-2 py-1 hover:cursor-pointer transition-all hover:border-foreground/100 hover:scale-105', { 'border-selected bg-selected': id === filter })}
           onClick={() => setSearchFilter(id)}
         >
           {label}
@@ -202,7 +195,7 @@ function SearchResult ({
   }
   if (!component) return null
   return (
-    <div className={classes.searchResult}>
+    <div>
       {component}
     </div>
   )
@@ -217,13 +210,16 @@ function PersonCard ({ person, showPerson, highlightProps }) {
   ))
 
   return (
-    <div className={classes.personCard} onClick={() => showPerson(person.id)}>
+    <div
+      className='rounded-xl cursor-pointer p-2 flex transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 relative hover:z-50 hover:scale-105 duration-400 items-center'
+      onClick={() => showPerson(person.id)}
+    >
       <RoundImage url={person.avatarUrl} className={classes.personImage} large />
-      <div className={classes.personDetails}>
+      <div className='text-foreground'>
         <Highlight {...highlightProps}>
-          <div className={classes.personName}>{person.name}</div>
+          <div className='text-lg font-bold text-base'>{person.name}</div>
         </Highlight>
-        <div className={classes.personLocation}>{person.location}</div>
+        <div className='text-sm text-foreground/50'>{person.location}</div>
       </div>
       {matchingSkill && <Pill label={matchingSkill} className={classes.personSkill} small />}
     </div>

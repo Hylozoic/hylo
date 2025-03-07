@@ -54,6 +54,7 @@ export default function CardImageAttachments ({
               <img
                 src={firstImageUrl}
                 alt='Attached image 1'
+                className='rounded-xl shadow-2xl'
                 data-index={0}
                 onClick={toggleModal}
                 data-testid='first-image'

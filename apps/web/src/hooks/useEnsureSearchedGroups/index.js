@@ -6,18 +6,18 @@ import { FETCH_GROUPS, SORT_NEAREST } from 'store/constants'
 
 export default function useEnsureSearchedGroups ({ sortBy, search, offset, nearCoord, visibility, groupType, farmQuery }) {
   const useNearCoord = sortBy === SORT_NEAREST ? nearCoord : null
-  const groups = useSelector(state => getGroups(state, { sortBy, search, nearCoord: useNearCoord, visibility, groupType, farmQuery }))
+  const groups = useSelector(state => getGroups(state, { sortBy, search, nearCoord: useNearCoord, visibility, groupType, farmQuery, allowedInPublic: true }))
   const pending = useSelector(state => isPendingFor(FETCH_GROUPS, state))
-  const hasMore = useSelector(state => getHasMoreGroups(state, { sortBy, search, nearCoord: useNearCoord, visibility, groupType, farmQuery }))
+  const hasMore = useSelector(state => getHasMoreGroups(state, { sortBy, search, nearCoord: useNearCoord, visibility, groupType, farmQuery, allowedInPublic: true }))
   const dispatch = useDispatch()
 
   useEffect(() => {
-    dispatch(fetchGroups({ sortBy, search, offset: 0, nearCoord: useNearCoord, visibility, groupType, farmQuery }))
+    dispatch(fetchGroups({ sortBy, search, offset: 0, nearCoord: useNearCoord, visibility, groupType, farmQuery, allowedInPublic: true }))
   }, [dispatch, search, sortBy, groupType, farmQuery])
 
   const fetchMoreGroups = (offset) => {
     if (pending || groups.length === 0 || !hasMore) return
-    dispatch(fetchGroups({ sortBy, search, offset, nearCoord: useNearCoord, visibility, groupType, farmQuery }))
+    dispatch(fetchGroups({ sortBy, search, offset, nearCoord: useNearCoord, visibility, groupType, farmQuery, allowedInPublic: true }))
   }
 
   return { groups, pending, hasMore, fetchMoreGroups }
