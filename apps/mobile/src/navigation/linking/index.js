@@ -59,7 +59,8 @@ export const routingConfig = {
   // This route isn't correct; no such screen exists. And its not to be confused with the Group Explore screen.
   '/:context(public)/groups':                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explorer`,
   '/:context(public)/map':                                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
-  '/:context(public)/:groupSlug/post/:postId':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Detail`,
+  // TODO: Is this a valid route? / Ever used?
+  '/:context(public)/:groupSlug/post/:id':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
   '/:context(public)/topics/:topicName':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(public)/stream':                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(public)/:streamType(discussions)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
@@ -112,11 +113,11 @@ export const routingConfig = {
   // /groups Routes
   '/:context(groups)/:groupSlug/about':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Detail`,
   '/:context(groups)/:groupSlug/all-views':                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/All Views`,
-  '/:context(groups)/:groupSlug/post/:postId':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Detail`,
+  '/:context(groups)/:groupSlug/post/:id':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
   '/:context(groups)/:groupSlug/post/:id/edit':                           `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   '/:context(groups)/:groupSlug/chat/:topicName':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
   // TODO: Routing - should probably go to Post Modal for now, or let it through and it will go to PostDetail in Webview, same for topics variant below
-  '/:context(groups)/:groupSlug/chat/:topicName/post/:postId':            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
+  '/:context(groups)/:groupSlug/chat/:topicName/post/:id':                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
   '/:context(groups)/:groupSlug/create':                                  `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   '/:context(groups)/:groupSlug/explore':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explore`,
   '/:context(groups)/:groupSlug/groups':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Relationships`,
@@ -126,7 +127,7 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/members/:id':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member`,
   // TODO: Routing -- Actually legacy redirection, consider creating or adding to a redirect mapper
   '/:context(groups)/:groupSlug/topics/:topicName':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
-  '/:context(groups)/:groupSlug/topics/:topicName/post/:postId'         : `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
+  '/:context(groups)/:groupSlug/topics/:topicName/post/:id':              `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
   '/:context(groups)/:groupSlug/custom/:customViewId':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/settings/:settingsArea':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
   '/:context(groups)/:groupSlug/settings':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
@@ -147,7 +148,7 @@ export const routingConfig = {
   '/messages':                                                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Messages Tab/Messages`,
 
   // Miscellaneous Routes
-  '/notifications':                                                       `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Notifications')}`,
+  '/notifications':                                                       `${AUTH_ROOT_SCREEN_NAME}/Notifications`,
   '/search':                                                              `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Search Tab`,
 
   // Catch-Alls and Safeties
@@ -159,7 +160,7 @@ export const routingConfig = {
   ':unmatchedBasePath(.*)/post/:id/comments/:commentId':                  `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
   ':unmatchedBasePath(.*)/create/group':                                  `${AUTH_ROOT_SCREEN_NAME}/Create Group`,
   ':unmatchedBasePath(.*)/create/post':                                   `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-  ':unmatchedBasePath(.*)/create':                                        `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Creation')}`,
+  ':unmatchedBasePath(.*)/create':                                        `${AUTH_ROOT_SCREEN_NAME}/Creation`,
   ':unmatchedBasePath(.*)/post/:id/edit':                                 `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   ...unknownRouteMatch
 }

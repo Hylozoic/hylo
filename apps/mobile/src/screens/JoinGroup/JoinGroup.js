@@ -55,9 +55,9 @@ export default function JoinGroup (props) {
             } else {
               if (isValidInvite) {
                 setReturnToOnAuthPath(originalLinkingPath)
-                openURL('/signup?message=Signup or login to join this group.', true)
+                openURL('/signup?message=Signup or login to join this group.', { reset: true })
               } else {
-                openURL('/signup?error=invite-expired', true)
+                openURL('/signup?error=invite-expired', { reset: true })
               }
             }
           } catch (error) {
