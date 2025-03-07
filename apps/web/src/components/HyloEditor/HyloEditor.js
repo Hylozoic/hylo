@@ -99,7 +99,6 @@ const HyloEditor = React.forwardRef(({
 
                 try {
                   const url = new URL(href)
-
                   element.innerHTML = `${url.hostname}${url.pathname !== '/' ? url.pathname : ''}`
                   return element
                 } catch (e) {
@@ -118,11 +117,12 @@ const HyloEditor = React.forwardRef(({
           ...this.parent?.(),
           openOnClick: false,
           autolink: true,
+          defaultProtocol: 'https',
           HTMLAttributes: {
             target: null
           },
-          validate: href => {
-            onAddLink && onAddLink(href)
+          isAllowedUri: (url, ctx) => {
+            onAddLink && onAddLink(url)
             return true
           }
         }
