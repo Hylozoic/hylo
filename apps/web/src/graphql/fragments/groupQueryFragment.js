@@ -65,41 +65,6 @@ export default function groupQueryFragment () {
     visibility
     websiteUrl
     welcomePage
-    activeProjects: posts(filter: "project", sortBy: "updated", order: "desc", first: 4) {
-      items {
-        id
-        title
-        createdAt
-        updatedAt
-        creator {
-          id
-          name
-        }
-        members {
-          items {
-            id
-            avatarUrl
-            name
-          }
-        }
-      }
-    }
-    announcements: posts(isAnnouncement: true, sortBy: "created", order: "desc", first: 3) {
-      hasMore
-      items {
-        id
-        title
-        createdAt
-        creator {
-          id
-          name
-        }
-        attachments(type: "image") {
-          position
-          url
-        }
-      }
-    }
     childGroups {
       items {
         id
@@ -207,14 +172,6 @@ export default function groupQueryFragment () {
       neighborhood
       region
     }
-    members(first: 8, sortBy: "last_active_at", order: "desc") {
-      items {
-        id
-        avatarUrl
-        lastActiveAt
-        name
-      }
-    }
     stewards {
       items {
         id
@@ -247,19 +204,6 @@ export default function groupQueryFragment () {
         }
       }
     }
-    openOffersAndRequests: posts(types: ["offer", "request"], isFulfilled: false, first: 4) {
-      items {
-        id
-        title
-        type
-        creator {
-          id
-          name
-          avatarUrl
-        }
-        commentsTotal
-      }
-    }
     parentGroups {
       items {
         id
@@ -284,23 +228,6 @@ export default function groupQueryFragment () {
           showWelcomePage
         }
         type
-      }
-    }
-    upcomingEvents: posts(afterTime: "${new Date().toISOString()}", filter: "event", sortBy: "start_time", order: "asc", first: 4) {
-      hasMore
-      items {
-        id
-        title
-        startTime
-        endTime
-        location
-        members {
-          items {
-            id
-            avatarUrl
-            name
-          }
-        }
       }
     }
     contextWidgets {
@@ -361,19 +288,6 @@ export default function groupQueryFragment () {
         viewChat {
           id
           name
-        }
-      }
-    }
-    widgets {
-      items {
-        id
-        name
-        isVisible
-        order
-        context
-        settings {
-          text
-          title
         }
       }
     }
