@@ -1,6 +1,7 @@
 import { trim } from 'lodash'
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import Button from 'components/ui/button'
 import SuggestedSkills from 'components/SuggestedSkills'
 import { DEFAULT_AVATAR, DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, accessibilityString, accessibilityDescription, visibilityIcon, visibilityString, visibilityDescription } from 'store/models/Group'
 import { cn } from 'util/index'
@@ -95,16 +96,16 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
         </div>
       )
       )}
-      <div className={classes.center}>
-        <div
-          className={cn('cursor-pointer text-foreground shadow-md', { [classes.disabledButton]: !allQuestionsAnswered })}
-          onClick={allQuestionsAnswered ? () => joinGroup(group.id, questionAnswers) : () => {}}
-          data-tooltip-content={!allQuestionsAnswered ? t('You must answer all the questions to join') : ''}
-          data-tooltip-id='join-tip'
-        >
-          {joinText}
-        </div>
-      </div>
+      <Button
+        variant='secondary'
+        className={cn('GroupDetail-JoinSection-joinButton w-full')}
+        disabled={!allQuestionsAnswered}
+        onClick={() => joinGroup(group.id, questionAnswers)}
+        data-tooltip-content={!allQuestionsAnswered ? t('You must answer all the questions to join') : ''}
+        data-tooltip-id='join-tip'
+      >
+        {joinText}
+      </Button>
     </div>
   )
 }

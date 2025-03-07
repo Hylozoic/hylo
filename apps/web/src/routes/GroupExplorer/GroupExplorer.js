@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import ExplorerBanner from './ExplorerBanner'
 import GroupViewFilter from './GroupViewFilter'
 import GroupSearch from './GroupSearch'
@@ -12,6 +13,11 @@ export default function GroupExplorer ({
   const [viewFilter, setViewFilter] = useState(ALL_VIEW)
 
   const handleChangeViewFilter = (value) => setViewFilter(value)
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({ title: '', icon: '', info: '', search: false })
+  }, [])
 
   return (
     <>
