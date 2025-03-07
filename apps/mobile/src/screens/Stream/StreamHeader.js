@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import LinearGradient from 'react-native-linear-gradient'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -32,6 +33,7 @@ export default function StreamHeader ({ image, icon, name, postPrompt = false, c
 
 export function PostPrompt ({ forGroup, currentType, currentTopicName }) {
   const navigation = useNavigation()
+  const { t } = useTranslation
   const [{ currentUser }] = useCurrentUser()
 
   if (!currentUser) return null
@@ -47,7 +49,7 @@ export function PostPrompt ({ forGroup, currentType, currentTopicName }) {
   return (
     <TouchableOpacity className='flex-row rounded-lg p-2 bg-primary opacity-90' style={styles.postPrompt} onPress={handleOpenPostEditor}>
       <Plus style={{ color: rhino }} size={20} />
-      <Text style={{ marginRight: 5 }} className='text-l'>Create</Text>
+      <Text style={{ marginRight: 5 }} className='text-l'>{t('Create')}</Text>
     </TouchableOpacity>
   )
 }
