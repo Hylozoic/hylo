@@ -6,19 +6,21 @@ import { DndContext } from '@dnd-kit/core'
 import Loading from 'components/Loading'
 import { ImagePreview } from './ImagePreview'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
-import { moveAttachment } from './AttachmentManager.store'
+import { moveAttachment, removeAttachment } from './AttachmentManager.store'
 
 import classes from './AttachmentManager.module.scss'
 
 export function ImageManager (props) {
   const { t } = useTranslation()
   const {
-    type, id, attachments, addAttachment, removeAttachment,
+    type, id, attachments, addAttachment,
     uploadAttachmentPending, showLoading, showAddButton, showLabel
   } = props
 
   const dispatch = useDispatch()
   const switchImages = useCallback((position1, position2) => dispatch(moveAttachment(type, id, 'image', position1, position2)), [type, id])
+
+  const handleRemoveAttachment = useCallback((attachment) => dispatch(removeAttachment(type, id, attachment)), [type, id])
 
   const handleDragEnd = useCallback(({ active, over }) => {
     if (active.id !== over.id) {
@@ -40,7 +42,7 @@ export function ImageManager (props) {
             {images.map((attachment, i) =>
               <ImagePreview
                 attachment={attachment}
-                removeImage={() => removeAttachment(type, id, attachment)}
+                removeImage={() => handleRemoveAttachment(attachment)}
                 index={i}
                 key={i}
               />)}

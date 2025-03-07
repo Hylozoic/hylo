@@ -1,15 +1,20 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch } from 'react-redux'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { FilePreview } from './FilePreview'
+import { removeAttachment } from './AttachmentManager.store'
 
 import classes from './AttachmentManager.module.scss'
 
 export function FileManager ({
-  type, id, attachments, addAttachment, removeAttachment,
+  type, id, attachments, addAttachment,
   uploadAttachmentPending, showLoading, showAddButton, showLabel
 }) {
   const { t } = useTranslation()
+
+  const dispatch = useDispatch()
+  const handleRemoveAttachment = useCallback((attachment) => dispatch(removeAttachment(type, id, attachment)), [type, id])
 
   return (
     <div className={classes.fileManager}>
@@ -18,7 +23,7 @@ export function FileManager ({
         {attachments.map((attachment, i) =>
           <FilePreview
             attachment={attachment}
-            removeFile={() => removeAttachment(type, id, attachment)}
+            removeFile={() => handleRemoveAttachment(attachment)}
             key={i}
           />)}
         {showLoading && uploadAttachmentPending && <div className={classes.loadingFile}>{t('Loading...')}</div>}
