@@ -107,11 +107,15 @@ export default function PostCard (props) {
           />
         </div>
         <div onClick={onClick}>
-          <CardImageAttachments
-            attachments={post.attachments || []}
-            className='post-card'
-            isFlagged={isFlagged && !post.clickthrough}
-          />
+          {post.attachments?.length > 0 && (
+            <div className='mb-4'>
+              <CardImageAttachments
+                attachments={post.attachments || []}
+                className='post-card'
+                isFlagged={isFlagged && !post.clickthrough}
+              />
+            </div>
+          )}
         </div>
         {isEvent && (
           <EventBody

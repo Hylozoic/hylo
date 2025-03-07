@@ -1,6 +1,5 @@
 import React from 'react'
 import { DateTime } from 'luxon'
-import classes from './EventDate.module.scss'
 
 export default function EventDate ({ startTime }) {
   if (!startTime) return null

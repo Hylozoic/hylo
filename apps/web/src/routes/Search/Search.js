@@ -210,7 +210,7 @@ function PersonCard ({ person, showPerson, highlightProps }) {
   ))
 
   return (
-    <div 
+    <div
       className='rounded-xl cursor-pointer p-2 flex transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 relative hover:z-50 hover:scale-105 duration-400 items-center'
       onClick={() => showPerson(person.id)}
     >
