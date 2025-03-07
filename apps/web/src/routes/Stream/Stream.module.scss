@@ -31,13 +31,6 @@
   border: 1px solid red;
 }
 
-.card-item {
-  box-shadow: 0 4px 10px rgba(35, 65, 91, .2);
-
-  &:hover {
-    box-shadow: 0 4px 10px rgba(35, 65, 91, .3);
-  }
-}
 .expanded {
   margin: 0 $space-2x $space-6x;
   box-shadow: 0 4px 15px rgba(35, 65, 91, .3);
