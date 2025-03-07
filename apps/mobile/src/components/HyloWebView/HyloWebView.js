@@ -16,20 +16,22 @@ const handledWebRoutesJavascriptCreator = loadedPath => allowRoutesParam => {
   const handledWebRoutesRegExpsLiteralString = JSON.parse(JSON.stringify(handledWebRoutesRegExps.map(a => a.toString())))
 
   return `
-    if (window.ReactNativeWebView.reactRouterHistory) {
-      window.ReactNativeWebView.reactRouterHistory.block(({ pathname, search }) => {
-        const handledWebRoutesRegExps = [${handledWebRoutesRegExpsLiteralString}]
-        const handled = handledWebRoutesRegExps.some(allowedRoutePathRegExp => {
-          return allowedRoutePathRegExp.test(pathname)
+    function addHyloWebViewListener (history) {
+      if (history) {
+        history.listen(({ location: { pathname, search } }) => {
+          const handledWebRoutesRegExps = [${handledWebRoutesRegExpsLiteralString}]
+          const handled = handledWebRoutesRegExps.some(allowedRoutePathRegExp => {
+            return allowedRoutePathRegExp.test(pathname);
+          })
+
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: '${WebViewMessageTypes.NAVIGATION}',
+            data: { handled, pathname, search }
+          }))
+
+          history.back();
         })
-
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: '${WebViewMessageTypes.NAVIGATION}',
-          data: { handled, pathname, search }
-        }))
-
-        return handled
-      })
+      }
     }
   `
 }
@@ -103,7 +105,6 @@ const HyloWebView = React.forwardRef(({
     <AutoHeightWebView
       customScript={`
         window.HyloWebView = true;
-
         ${pathProp && handledWebRoutesJavascriptCreator(pathProp)(handledWebRoutes)}
       `}
       geolocationEnabled

@@ -3,20 +3,22 @@ import { StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { isIOS } from 'util/platform'
-import { get } from 'lodash/fp'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { modalScreenName } from 'hooks/useIsModalScreen'
 import HomeNavigator from 'navigation/HomeNavigator'
 import Icon from 'components/Icon'
 import MessagesNavigator from 'navigation/MessagesNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
 import { alabaster, black10OnCaribbeanGreen, gainsboro, gunsmoke, white } from 'style/colors'
 
+const DummyComponent = () => {}
+
 const Tabs = createBottomTabNavigator()
 export default function TabsNavigator () {
   const [{ currentUser }] = useCurrentUser()
   const navigation = useNavigation()
-  const showNotificationBadge = !!get('newNotificationCount', currentUser)
+  const notificationsBadgeCount = currentUser?.newNotificationCount > 0
+    ? currentUser?.newNotificationCount
+    : null
   const messagesBadgeCount = currentUser?.unseenThreadCount > 0
     ? currentUser?.unseenThreadCount
     : null
@@ -58,15 +60,15 @@ export default function TabsNavigator () {
       <Tabs.Screen name='Search Tab' component={SearchNavigator} />
       <Tabs.Screen
         name='Notifications Tab'
-        component={() => {}}
+        component={DummyComponent}
         listeners={{
           tabPress: (e) => {
-            navigation.navigate(modalScreenName('Notifications'))
+            navigation.navigate('Notifications')
             e.preventDefault()
           }
         }}
         options={{
-          tabBarBadge: showNotificationBadge
+          tabBarBadge: notificationsBadgeCount
         }}
       />
     </Tabs.Navigator>

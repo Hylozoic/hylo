@@ -32,7 +32,7 @@ export default function MapWebView ({ navigation }) {
       title: screenTitle(group),
       // Disables going back by pull right on this screen
       gestureEnabled: false,
-      headerLeftOnPress: canGoBack ? webViewRef.current.goBack : navigation.goBack
+      headerLeftOnPress: canGoBack ? webViewRef.current.goBack : undefined
     })
 
     // Disables swipeEnabled on DrawerNavigator
