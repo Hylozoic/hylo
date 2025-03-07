@@ -182,12 +182,12 @@ export default function ChatRoom (props) {
     setLoadingPast(true)
     return dispatch(fetchPosts({ ...fetchPostsPastParams, offset, ...extraParams }))
       .then((action) => {
-        const posts = action.payload?.data?.group?.posts?.items
+        const posts = action.payload?.data?.group?.posts?.items || []
+        const newPosts = posts.map(p => presentPost(p, group.id))
         // Always reset loading state
         setLoadingPast(false)
-        // Process posts only if they exist
-        if (posts?.length) {
-          messageListRef.current?.data.prepend(posts.reverse() || [])
+        if (posts?.length > 0) {
+          messageListRef.current?.data.prepend(newPosts.reverse())
         }
       })
       .catch(() => setLoadingPast(false))
@@ -198,7 +198,7 @@ export default function ChatRoom (props) {
     setLoadingFuture(true)
     return dispatch(fetchPosts({ ...fetchPostsFutureParams, offset, ...extraParams })).then((action) => {
       setLoadingFuture(false)
-      const newPosts = action.payload?.data?.group?.posts?.items || []
+      const newPosts = action.payload?.data?.group?.posts?.items.map(p => presentPost(p, group.id)) || []
       if (offset === 0) {
         messageListRef.current?.data.append(newPosts || [], { index: 'LAST', align: 'end' })
       } else {
@@ -209,15 +209,13 @@ export default function ChatRoom (props) {
 
   const handleNewPostReceived = useCallback((data) => {
     if (!data.topics?.find(t => t.name === topicName)) return
-
-    data.imageAttachments = data.attachments.filter(a => a.type === 'image')
-    data.fileAttachments = data.attachments.filter(a => a.type === 'file')
+    const post = presentPost(data, group.id)
 
     let updateExisting = false
     messageListRef.current?.data.map((item) => {
-      if (item.pending && (data.id === item.id || (data.localId && data.localId === item.localId))) {
+      if (item.pending && (post.id === item.id || (post.localId && post.localId === item.localId))) {
         updateExisting = true
-        return data
+        return post
       } else {
         return item
       }
@@ -225,7 +223,7 @@ export default function ChatRoom (props) {
 
     if (!updateExisting) {
       messageListRef.current?.data.append(
-        [data],
+        [post],
         ({ atBottom, scrollInProgress }) => {
           if (atBottom || scrollInProgress) {
             return 'smooth'
@@ -416,7 +414,8 @@ export default function ChatRoom (props) {
   // Create a new chat post
   const onCreate = useCallback((postToSave) => {
     // Optimistic add new post, which will be replaced with the real post from the server
-    messageListRef.current?.data.append([postToSave], ({ scrollInProgress, atBottom }) => {
+    const post = presentPost(postToSave, group.id)
+    messageListRef.current?.data.append([post], ({ scrollInProgress, atBottom }) => {
       if (atBottom || scrollInProgress) {
         return 'smooth'
       } else {
@@ -426,7 +425,8 @@ export default function ChatRoom (props) {
     return true
   }, [])
 
-  const afterCreate = useCallback(async (post) => {
+  const afterCreate = useCallback(async (postData) => {
+    const post = presentPost(postData, group.id)
     messageListRef.current?.data.map((item) => post.localId && item.localId && post.localId === item.localId ? post : item)
     updateLastReadPost(post)
     if (!notificationsSetting) {

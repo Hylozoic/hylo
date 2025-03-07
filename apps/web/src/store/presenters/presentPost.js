@@ -5,46 +5,49 @@ import { TextHelpers } from '@hylo/shared'
 export default function presentPost (post, groupId) {
   if (!post) return null
 
-  const postMembership = post.postMemberships.toRefArray().find(p =>
-    Number(p.group) === Number(groupId))
-  const pinned = postMembership && postMembership.pinned
-  const createdAtHumanDate = TextHelpers.humanDate(post.createdAt)
-  const editedAtHumanDate = TextHelpers.humanDate(post.editedAt)
+  // Raw posts came directly from the API, not processed through the model extractor
+  // Used in the chat room
+  const rawPost = !post.ref
 
-  return {
-    ...post.ref,
-    creator: post.creator,
-    linkPreview: post.linkPreview,
-    location: post.location,
-    isPublic: post.isPublic,
-    clickthrough: post.clickthrough,
-    commenters: post.commenters.toModelArray(),
-    groups: post.groups.toModelArray(),
-    attachments: post.attachments
-      .orderBy('position').toModelArray(),
-    imageAttachments: post.attachments
-      .orderBy('position').filter(a => a.type === 'image').toRefArray(),
-    fileAttachments: post.attachments
-      .orderBy('position').filter(a => a.type === 'file').toModelArray(),
-    pinned,
-    topics: post.topics.toModelArray().map(topic => presentTopic(topic, {})),
-    members: post.members.toModelArray().map(person => {
-      return {
-        ...person.ref,
-        skills: person.skills.toRefArray()
-      }
-    }),
-    eventInvitations: post.eventInvitations.toModelArray().map(eventInvitation => {
-      return {
-        response: eventInvitation.response,
-        ...eventInvitation.person.ref
-      }
-    }),
-    proposalOptions: post.proposalOptions?.toModelArray() || [],
-    createdTimestampForGrid: createdAtHumanDate,
-    createdTimestamp: `${createdAtHumanDate}`,
-    editedTimestamp: post.editedAt ? `Edited ${editedAtHumanDate}` : null,
-    exactCreatedTimestamp: DateTime.fromISO(post.createdAt).toFormat('D t ZZZZ'),
-    exactEditedTimestamp: DateTime.fromISO(post.editedAt).toFormat('D t ZZZZ')
+  try {
+    const postMembership = post.postMemberships && (rawPost ? post.postMemberships.items || [] : post.postMemberships.toRefArray()).find(p =>
+      Number(p.group) === Number(groupId))
+    const pinned = postMembership && postMembership.pinned
+    const createdAtHumanDate = TextHelpers.humanDate(post.createdAt)
+    const editedAtHumanDate = TextHelpers.humanDate(post.editedAt)
+
+    const finalPost = {
+      ...(rawPost ? post : post.ref),
+      attachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).sort((a, b) => a.position - b.position),
+      createdTimestamp: createdAtHumanDate,
+      creator: post.creator, // needed to load the creator object
+      commenters: (rawPost ? post.commenters?.items || [] : post.commenters.toModelArray()),
+      editedTimestamp: post.editedAt ? `Edited ${editedAtHumanDate}` : null,
+      eventInvitations: (rawPost ? post.eventInvitations?.items || [] : post.eventInvitations.toModelArray()).map(eventInvitation => {
+        return {
+          response: eventInvitation.response,
+          ...(rawPost ? eventInvitation.person : eventInvitation.person.ref)
+        }
+      }),
+      exactCreatedTimestamp: DateTime.fromISO(post.createdAt).toFormat('D t ZZZZ'),
+      exactEditedTimestamp: DateTime.fromISO(post.editedAt).toFormat('D t ZZZZ'),
+      fileAttachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).filter(a => a.type === 'file').sort((a, b) => a.position - b.position),
+      imageAttachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).filter(a => a.type === 'image').sort((a, b) => a.position - b.position),
+      groups: (rawPost ? post.groups?.items || [] : post.groups.toModelArray()),
+      linkPreview: post.linkPreview, // needed to load the link preview object
+      location: post.location, // needed to load the location object
+      members: (rawPost ? post.members?.items || [] : post.members.toModelArray()).map(person => {
+        return {
+          ...(rawPost ? person : person.ref),
+          skills: (rawPost ? person.skills?.items || [] : person.skills.toModelArray())
+        }
+      }),
+      pinned,
+      proposalOptions: (rawPost ? post.proposalOptions?.items || [] : post.proposalOptions.toModelArray()),
+      topics: (rawPost ? post.topics?.items || [] : post.topics.toModelArray()).map(topic => presentTopic(topic, {}))
+    }
+    return finalPost
+  } catch (e) {
+    console.log('error', e)
   }
 }
