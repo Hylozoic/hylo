@@ -17,7 +17,7 @@ import Tooltip from 'components/Tooltip'
 
 import classes from './FlagGroupContent.module.scss'
 
-const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
+const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const { id, slug } = linkData || {}
@@ -65,6 +65,9 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
 
   const submit = () => {
     dispatch(createModerationAction({ text: explanation, postId: id, groupId: group.id, agreements: agreementsSelected, platformAgreements: platformAgreementsSelected, anonymous }))
+    if (onFlag) {
+      onFlag({ postId: id, groupId: group.id })
+    }
     closeModal()
     return true
   }
@@ -111,7 +114,7 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
               onChange={value => setAnonymous(value)}
               labelClass={classes.anonLabel}
             />
-            <Button variant='secondary' onClick={submit} disabled={!isValid()} dataTip={t('Select an agreement and add an explanation for why you are flagging this post')} dataFor='flagging-submit-tt'>
+            <Button variant='secondary' onClick={submit} disabled={!isValid()} data-tooltip-content={t('Select an agreement and add an explanation for why you are flagging this post')} data-tooltip-id='flagging-submit-tt'>
               {t('Submit')}
             </Button>
             <Tooltip

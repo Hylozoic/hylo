@@ -43,6 +43,7 @@ export default function ChatPost ({
   post,
   showHeader = true,
   onAddReaction = () => {},
+  onFlagPost = () => {},
   onRemoveReaction = () => {},
   onRemovePost = () => {}
 }) {
@@ -262,6 +263,7 @@ export default function ChatPost ({
               type='post'
               linkData={{ id, slug: group.slug, type: 'post' }}
               onClose={() => setFlaggingVisible(false)}
+              onFlag={() => onFlagPost({ post })}
             />
           )}
         </div>

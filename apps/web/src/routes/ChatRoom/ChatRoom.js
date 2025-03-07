@@ -406,6 +406,13 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
+  const onFlagPost = useCallback(({ post }) => {
+    const flaggedGroups = post.flaggedGroups || []
+    const optimisticUpdate = { flaggedGroups: [...flaggedGroups, group.id] }
+    const newPost = { ...post, ...optimisticUpdate }
+    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
+  }, [group.id])
+
   // Create a new chat post
   const onCreate = useCallback((postToSave) => {
     // Optimistic add new post, which will be replaced with the real post from the server
@@ -488,9 +495,11 @@ export default function ChatRoom (props) {
                   newPostCount: topicFollow?.newPostCount,
                   numPosts: postsForDisplay.length,
                   onAddReaction,
+                  onFlagPost,
                   onRemovePost,
                   onRemoveReaction,
                   postIdToStartAt,
+                  selectedPostId,
                   topicName
                 }}
                 initialData={postsForDisplay}
@@ -659,6 +668,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
               showHeader={showHeader}
               post={post}
               onAddReaction={context.onAddReaction}
+              onFlagPost={context.onFlagPost}
               onRemoveReaction={context.onRemoveReaction}
               onRemovePost={context.onRemovePost}
             />
