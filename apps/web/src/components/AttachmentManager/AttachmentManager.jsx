@@ -18,7 +18,8 @@ function AttachmentManager (props) {
     type,
     id = ID_FOR_NEW,
     attachmentType,
-    showLoading
+    showLoading,
+    onChange
   } = props
 
   const dispatch = useDispatch()
@@ -55,9 +56,9 @@ function AttachmentManager (props) {
   return (
     <>
       {showImages &&
-        <ImageManager {...props} showLoading={showLoading} attachments={imageAttachments} />}
+        <ImageManager {...props} showLoading={showLoading} attachments={imageAttachments} onChange={onChange} />}
       {showFiles &&
-        <FileManager {...props} showLoading={showLoading} attachments={fileAttachments} />}
+        <FileManager {...props} showLoading={showLoading} attachments={fileAttachments} onChange={onChange} />}
     </>
   )
 }
@@ -68,7 +69,8 @@ AttachmentManager.propTypes = {
   attachmentType: PropTypes.string,
   showAddButton: PropTypes.bool,
   showLabel: PropTypes.bool,
-  showLoading: PropTypes.bool
+  showLoading: PropTypes.bool,
+  onChange: PropTypes.func
 }
 
 export default AttachmentManager

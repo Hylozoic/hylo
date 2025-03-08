@@ -26,6 +26,7 @@ export default function ActionsBar ({
   setShowLocation,
   doSave, // Pops up announcement modal first if announcement is selected
   save, // Does actual save
+  setIsDirty,
   showAnnouncementModal,
   showLocation,
   showFiles,
@@ -45,7 +46,10 @@ export default function ActionsBar ({
           type='post'
           id={id}
           attachmentType='image'
-          onSuccess={(attachment) => dispatch(addAttachment('post', id, attachment))}
+          onSuccess={(attachment) => {
+            dispatch(addAttachment('post', id, attachment))
+            setIsDirty(true)
+          }}
           allowMultiple
           disable={showImages}
         >
@@ -59,7 +63,10 @@ export default function ActionsBar ({
           type='post'
           id={id}
           attachmentType='file'
-          onSuccess={(attachment) => dispatch(addAttachment('post', id, attachment))}
+          onSuccess={(attachment) => {
+            dispatch(addAttachment('post', id, attachment))
+            setIsDirty(true)
+          }}
           allowMultiple
           disable={showFiles}
         >
@@ -79,7 +86,10 @@ export default function ActionsBar ({
             <Icon
               dataTestId='announcement-icon'
               name='Announcement'
-              onClick={() => setAnnouncementSelected(!announcementSelected)}
+              onClick={() => {
+                setAnnouncementSelected(!announcementSelected)
+                setIsDirty(true)
+              }}
               className={cn(styles.actionIcon, {
                 [styles.highlightIcon]: announcementSelected
               })}

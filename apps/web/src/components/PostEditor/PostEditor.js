@@ -195,7 +195,7 @@ function PostEditor ({
 
   const [currentPost, setCurrentPost] = useState(initialPost)
   const [invalidMessage, setInvalidMessage] = useState('')
-  const [hasDescription, setHasDescription] = useState(false) // TODO: an optimization to not run isValid no every character changed in the description
+  const [hasDescription, setHasDescription] = useState(initialPost.details?.length > 0) // TODO: an optimization to not run isValid no every character changed in the description
   const [announcementSelected, setAnnouncementSelected] = useState(false)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
@@ -822,6 +822,7 @@ function PostEditor ({
           showAddButton
           showLabel
           showLoading
+          onChange={() => setIsDirty(true)}
         />
         <AttachmentManager
           type='post'
@@ -830,6 +831,7 @@ function PostEditor ({
           showAddButton
           showLabel
           showLoading
+          onChange={() => setIsDirty(true)}
         />
       </div>
       {currentPost.type === 'project' && (
@@ -1147,6 +1149,7 @@ function PostEditor ({
         doSave={doSave}
         save={save}
         setAnnouncementSelected={setAnnouncementSelected}
+        setIsDirty={setIsDirty}
         setShowLocation={setShowLocation}
         showAnnouncementModal={showAnnouncementModal}
         showFiles={showFiles}
