@@ -21,7 +21,7 @@ export function insaneOptions (providedInsaneOptions) {
       allowedAttributes: providedInsaneOptions?.allowedAttributes || {
         a: [
           'class', 'target', 'href',
-          'data-type', 'data-id','data-label',
+          'data-type', 'data-id', 'data-label',
           'data-user-id', 'data-entity-type', 'data-search'
         ],
         span: [
@@ -155,13 +155,15 @@ export function humanDate (date, short) {
 }
 
 export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
-  const start = DateTime.fromISO(startTime, {zone: timezone || DateTime.now().zoneName || 'UTC'})
-  const end = DateTime.fromISO(endTime, {zone: timezone || DateTime.now().zoneName || 'UTC'})
+  const parseFunction = typeof startTime === 'object' ? DateTime.fromJSDate : DateTime.fromISO
+  const start = parseFunction(startTime, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+  const end = endTime ? parseFunction(endTime, { zone: timezone || DateTime.now().zoneName || 'UTC' }) : null
+
   const now = DateTime.now()
 
   const isPastYear = start.get('year') < now.get('year')
-  const isSameDay = end && start.get('day') === end.get('day') && 
-                    start.get('month') === end.get('month') && 
+  const isSameDay = end && start.get('day') === end.get('day') &&
+                    start.get('month') === end.get('month') &&
                     start.get('year') === end.get('year')
 
   let to = ''
@@ -186,7 +188,7 @@ export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
       // Otherwise just month, day and time
       to = end.toFormat("MMM d '•' t")
     }
-    
+
     to = returnAsObj ? to : ' - ' + to
   }
 
@@ -194,7 +196,7 @@ export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
 }
 
 export function isDateInTheFuture (date) {
-  return typeof(date) === 'string' ? DateTime.fromISO(date) : DateTime.fromJSDate(date) > DateTime.now()
+  return typeof date === 'string' ? DateTime.fromISO(date) : DateTime.fromJSDate(date) > DateTime.now()
 }
 
 /**
@@ -204,11 +206,11 @@ export function isDateInTheFuture (date) {
  * @param {string} timezone - Optional timezone (defaults to local timezone)
  * @returns {string} Month name
  */
-export function getMonthFromDate(date, short = false, timezone) {
-  const dateTime = typeof(date) === 'string' 
-    ? DateTime.fromISO(date, {zone: timezone || DateTime.now().zoneName || 'UTC'})
-    : DateTime.fromJSDate(date, {zone: timezone || DateTime.now().zoneName || 'UTC'})
-  
+export function getMonthFromDate (date, short = false, timezone) {
+  const dateTime = typeof date === 'string'
+    ? DateTime.fromISO(date, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+    : DateTime.fromJSDate(date, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+
   return dateTime.toFormat(short ? 'MMM' : 'MMMM')
 }
 
@@ -218,11 +220,11 @@ export function getMonthFromDate(date, short = false, timezone) {
  * @param {string} timezone - Optional timezone (defaults to local timezone)
  * @returns {number} Day of month (1-31)
  */
-export function getDayFromDate(date, timezone) {
-  const dateTime = typeof(date) === 'string' 
-    ? DateTime.fromISO(date, {zone: timezone || DateTime.now().zoneName || 'UTC'})
-    : DateTime.fromJSDate(date, {zone: timezone || DateTime.now().zoneName || 'UTC'})
-  
+export function getDayFromDate (date, timezone) {
+  const dateTime = typeof date === 'string'
+    ? DateTime.fromISO(date, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+    : DateTime.fromJSDate(date, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+
   return dateTime.day
 }
 
@@ -233,10 +235,10 @@ export function getDayFromDate(date, timezone) {
  * @param {string} timezone - Optional timezone (defaults to local timezone)
  * @returns {string} Formatted hour (with AM/PM if use24Hour is false)
  */
-export function getHourFromDate(date, use24Hour = false, timezone) {
-  const dateTime = typeof(date) === 'string' 
-    ? DateTime.fromISO(date, {zone: timezone || DateTime.now().zoneName || 'UTC'})
-    : DateTime.fromJSDate(date, {zone: timezone || DateTime.now().zoneName || 'UTC'})
-  
+export function getHourFromDate (date, use24Hour = false, timezone) {
+  const dateTime = typeof date === 'string'
+    ? DateTime.fromISO(date, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+    : DateTime.fromJSDate(date, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+
   return dateTime.toFormat(use24Hour ? 'HH' : 'h a')
 }
