@@ -43,6 +43,12 @@ export default function useRouteParams () {
     params.memberId = params.context === 'groups' ? pathParts[4] : pathParts[3]
   }
 
+  // Set chat topicName
+  if (params.view === 'chat') {
+    // XXX: this should only ever be in a group
+    params.topicName = pathParts[4]
+  }
+
   // Mix query params and path params into one object, query params take precedence
   return useMemo(() => {
     return {

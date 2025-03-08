@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react'
-import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useResizeDetector } from 'react-resize-detector'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -27,6 +27,7 @@ import NotFound from 'components/NotFound'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
 import ProjectContributions from './ProjectContributions'
 import PostPeopleDialog from 'components/PostPeopleDialog'
+import useRouteParams from 'hooks/useRouteParams'
 import fetchPost from 'store/actions/fetchPost'
 import joinProject from 'store/actions/joinProject'
 import leaveProject from 'store/actions/leaveProject'
@@ -52,11 +53,10 @@ function PostDetail () {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const postId = routeParams.postId || getQuerystringParam('fromPostId', location)
   const { groupSlug, view } = routeParams
   const commentId = getQuerystringParam('commentId', location) || routeParams.commentId
-
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   const postSelector = useSelector(state => getPost(state, postId))
   const post = useMemo(() => {
@@ -209,7 +209,7 @@ function PostDetail () {
       <PostHeader
         className={classes.header}
         post={post}
-        routeParams={{ groupSlug, postId, commentId, view }}
+        routeParams={routeParams}
         close={onClose}
         expanded
         isFlagged={isFlagged}
@@ -221,7 +221,7 @@ function PostDetail () {
             className={classes.header}
             currentUser={currentUser}
             post={post}
-            routeParams={{ groupSlug, postId, commentId, view }}
+            routeParams={routeParams}
             close={onClose}
             isFlagged={isFlagged}
           />
@@ -247,7 +247,7 @@ function PostDetail () {
           currentUser={currentUser}
           className={classes.body}
           expanded
-          routeParams={{ groupSlug, postId, commentId }}
+          routeParams={routeParams}
           slug={groupSlug}
           isFlagged={isFlagged}
           {...post}
