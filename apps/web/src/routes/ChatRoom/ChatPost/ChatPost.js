@@ -187,7 +187,6 @@ export default function ChatPost ({
   })
 
   const actionItems = filter(item => isFunction(item.onClick), [
-    // { icon: 'Pin', label: pinned ? 'Unpin' : 'Pin', onClick: pinPost },
     // { icon: 'Copy', label: 'Copy Link', onClick: copyLink },
     { icon: 'Replies', label: 'Reply', onClick: showPost },
     // TODO: Edit disabled in mobile environments due to issue with keyboard management and autofocus of field
