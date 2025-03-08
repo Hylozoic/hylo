@@ -469,7 +469,7 @@ export default function ChatRoom (props) {
     })
   }, [topicName, notificationsSetting])
 
-  if (topicFollowLoading) return <Loading />
+  if (initialPostToScrollTo === null || topicFollowLoading) return <Loading />
 
   return (
     <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
