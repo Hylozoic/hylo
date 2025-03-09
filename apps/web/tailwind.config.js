@@ -41,11 +41,23 @@ export default {
             opacity: '1',
             visibility: 'visible'
           }
+        },
+        glow: {
+          '0%': {
+            'box-shadow': '0 0 10px 2px green'
+          },
+          '100%': {
+            'box-shadow': '0 0 10px 2px green'
+          },
+          '50%': {
+            'box-shadow': 'none'
+          }
         }
       },
       animation: {
         'slide-up': 'slide-up 0.15s ease-out forwards var(--delay, 0ms)',
-        'fill-forwards': 'forwards'
+        'fill-forwards': 'forwards',
+        pulsate: 'glow 0.75s ease-in-out infinite'
       },
       animationDelay: {
         ...Array.from({ length: 20 }, (_, i) => i * 50).reduce((acc, delay) => ({

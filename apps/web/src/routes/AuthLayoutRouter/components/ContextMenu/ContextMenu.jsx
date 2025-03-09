@@ -1,11 +1,12 @@
 import { get } from 'lodash/fp'
-import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut, Users} from 'lucide-react'
-import React, { useMemo, useState, useCallback } from 'react'
+import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut, Users } from 'lucide-react'
+import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import Icon from 'components/Icon'
@@ -34,6 +35,13 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
 import classes from './ContextMenu.module.scss'
+
+let previousWidgetIds = []
+let isAddingChildWidget = false
+
+const widgetIdsToArray = (widgets) => {
+  return widgets.map(widget => [widget.id, widget.childWidgets?.map(childWidget => childWidget.id)]).flat().flat()
+}
 
 export default function ContextMenu (props) {
   const {
@@ -83,6 +91,37 @@ export default function ContextMenu (props) {
   const [isDragging, setIsDragging] = useState(false)
   const [activeWidget, setActiveWidget] = useState(null)
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
+
+  const currentWidgetIds = widgetIdsToArray(orderedWidgets)
+  const newWidgetId = previousWidgetIds.length > 0 ? currentWidgetIds.find(widgetId => previousWidgetIds.indexOf(widgetId) === -1) : null
+  previousWidgetIds = currentWidgetIds
+  const newWidgetRef = useRef()
+
+  useEffect(() => {
+    if (isEditing) {
+      const element = document.querySelector('.ContextMenu')
+      element.scrollTop = element.scrollHeight
+    }
+  }, [isEditing])
+
+  useEffect(() => {
+    if (newWidgetRef.current) {
+      const element = newWidgetRef.current
+
+      if (!isAddingChildWidget) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      isAddingChildWidget = false
+
+      // animate the new widget to draw attention to it
+      element.classList.remove('animate-slide-up')
+      element.classList.remove('invisible')
+      element.classList.add('animate-pulsate')
+      setTimeout(() => {
+        element.classList.remove('animate-pulsate')
+      }, 2500)
+    }
+  }, [newWidgetId])
 
   const handleDragStart = ({ active }) => {
     setIsDragging(true)
@@ -144,7 +183,7 @@ export default function ContextMenu (props) {
             <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
           </Routes>
 
-          <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
+          <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners} modifiers={[restrictToVerticalAxis]}>
             <div className='w-full'>
               <ContextWidgetList
                 isDragging={isDragging}
@@ -154,10 +193,12 @@ export default function ContextMenu (props) {
                 rootPath={rootPath}
                 canAdminister={canAdminister}
                 activeWidget={activeWidget}
+                newWidgetId={newWidgetId}
+                newWidgetRef={newWidgetRef}
                 group={group}
               />
             </div>
-            <DragOverlay wrapperElement='ul'>
+            <DragOverlay wrapperElement='ul' dropAnimation={null}>
               {activeWidget && !activeWidget.parentId && (
                 <ContextMenuItem widget={activeWidget} isOverlay group={group} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing} isDragging={isDragging} />
               )}
@@ -185,22 +226,26 @@ export default function ContextMenu (props) {
   )
 }
 
-function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditing, isDragging, activeWidget, group }) {
+function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditing, isDragging, activeWidget, newWidgetId, newWidgetRef, group }) {
   const navigate = useNavigate()
   const location = useLocation()
 
   const handlePositionedAdd = ({ widget, addToEnd, parentId }) => {
+    isAddingChildWidget = true
     navigate(addQuerystringToPath(location.pathname, { addview: 'yes', cme: 'yes', parentId: widget?.parentId || parentId, orderInFrontOfWidgetId: widget?.id || null }))
   }
+
+  const itemProps = {}
+  if (newWidgetId) itemProps[newWidgetId] = { ref: newWidgetRef }
 
   return (
     <ul className='m-2 p-0 mb-6'>
       {isEditing &&
-        <div>
+        <li>
           <DropZone removalDropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
             Drag here to remove from menu
           </DropZone>
-        </div>}
+        </li>}
       {contextWidgets.map((widget, index) => (
         <li
           className={`items-start animate-slide-up invisible ${
@@ -211,14 +256,17 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
           }`}
           style={{ '--delay': `${index * 35}ms` }}
           key={widget.id}
+          {...itemProps[widget.id]}
         >
           <ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} />
         </li>
       ))}
       {isEditing && (
-        <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
-          <Icon name='Plus' />Add new view
-        </button>
+        <li>
+          <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+            <Icon name='Plus' />Add new view
+          </button>
+        </li>
       )}
     </ul>
   )
