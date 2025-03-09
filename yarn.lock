@@ -1776,7 +1776,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/preset-typescript@npm:^7.13.0, @babel/preset-typescript@npm:^7.16.0, @babel/preset-typescript@npm:^7.16.7":
+"@babel/preset-typescript@npm:^7.13.0, @babel/preset-typescript@npm:^7.16.0, @babel/preset-typescript@npm:^7.16.7, @babel/preset-typescript@npm:^7.26.0":
   version: 7.26.0
   resolution: "@babel/preset-typescript@npm:7.26.0"
   dependencies:
@@ -36391,6 +36391,7 @@ __metadata:
     "@babel/plugin-transform-runtime": "npm:^7.25.7"
     "@babel/preset-env": "npm:7.25.8"
     "@babel/preset-react": "npm:^7.25.7"
+    "@babel/preset-typescript": "npm:^7.26.0"
     "@deck.gl-community/editable-layers": "npm:9.0.3"
     "@deck.gl-community/layers": "npm:9.0.3"
     "@deck.gl/core": "npm:9.0.35"

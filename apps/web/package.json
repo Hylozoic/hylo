@@ -224,6 +224,7 @@
     "@babel/plugin-transform-runtime": "^7.25.7",
     "@babel/preset-env": "7.25.8",
     "@babel/preset-react": "^7.25.7",
+    "@babel/preset-typescript": "^7.26.0",
     "@eslint/compat": "^1.2.3",
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.14.0",
