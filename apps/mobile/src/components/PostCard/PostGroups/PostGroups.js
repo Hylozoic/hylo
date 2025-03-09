@@ -1,14 +1,14 @@
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { Text, View, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash/fp'
 import { useContextGroups } from '@hylo/hooks/useCurrentGroup'
+import useChangeToGroup from 'hooks/useChangeToGroup'
 import GroupsList from 'components/GroupsList'
 import Icon from 'components/Icon'
 import { caribbeanGreen, rhino40 } from 'style/colors'
 
 export default function PostGroups ({
-  goToGroup,
   groups: providedGroups,
   includePublic,
   style
@@ -34,7 +34,6 @@ export default function PostGroups ({
             <GroupsListSummary
               expandFunc={toggleExpanded}
               groups={groups}
-              goToGroup={goToGroup}
             />
           )}
           <Icon
@@ -44,20 +43,28 @@ export default function PostGroups ({
         </View>
       </TouchableOpacity>
       {expanded && (
-        <GroupsList style={[style, { backgroundColor: 'transparent' }]} groups={groups} onPress={goToGroup} />
+        <GroupsList
+          style={[style, { backgroundColor: 'transparent' }]}
+          groups={groups}
+        />
       )}
     </View>
   )
 }
 
-export function GroupsListSummary ({ groups, goToGroup, expandFunc }) {
+export function GroupsListSummary ({ groups, onPress, expandFunc }) {
   const { t } = useTranslation()
+  const changeToGroup = useChangeToGroup()
+  const changeToFirstGroup = useCallback(
+    slug => changeToGroup(groups[0].slug, { confirm: true }),
+    [groups[0].slug]
+  )
   const moreGroups = groups.length > 1
   const othersText = n => (n === 1 ? t('1 other') : `${n} ${t('others')}`)
 
   return (
     <View style={[styles.groupList, styles.row]}>
-      <TouchableOpacity onPress={() => goToGroup && goToGroup(groups[0].slug)}>
+      <TouchableOpacity onPress={changeToFirstGroup}>
         <Text style={styles.linkText} numberOfLines={1}>
           {groups[0].name}
         </Text>

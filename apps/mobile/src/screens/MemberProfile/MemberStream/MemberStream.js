@@ -6,12 +6,11 @@ import { useMutation, useQuery, gql } from 'urql'
 import { useNavigation } from '@react-navigation/native'
 import { personPostsQuerySetFragment } from '@hylo/graphql/fragments/postsQuerySetFragment'
 import respondToEventMutation from '@hylo/graphql/mutations/respondToEventMutation'
+import { modalScreenName } from 'hooks/useIsModalScreen'
 import PostCard from 'components/PostCard'
 import Comment from 'components/Comment'
 import Loading from 'components/Loading'
 import styles from './MemberStream.styles'
-import useChangeToGroup from 'hooks/useChangeToGroup'
-import { modalScreenName } from 'hooks/useIsModalScreen'
 
 export const personPostsQuery = gql`
   query PersonPostsQuery (
@@ -141,7 +140,6 @@ export default function MemberStream ({ id, header }) {
     }
   }, [hasMore, fetching])
 
-  const changeToGroup = useChangeToGroup()
   const showMember = id => navigation.navigate('Member', { id })
   const showPost = id => navigation.navigate(modalScreenName('Post Details'), { id })
   const showTopic = topicName => navigation.navigate('Stream', { topicName })
@@ -163,7 +161,6 @@ export default function MemberStream ({ id, header }) {
             showPost={showPost}
             showTopic={showTopic}
             showMember={showMember}
-            goToGroup={changeToGroup}
           />
         )}
       />
@@ -213,8 +210,7 @@ export function ContentRow ({
   itemType,
   showPost: providedShowPost,
   showTopic,
-  showMember,
-  goToGroup
+  showMember
 }) {
   const showPost = () => providedShowPost(itemType === 'posts' ? item.id : item.post.id)
   // respondToEventMutation params: id, response
@@ -227,7 +223,6 @@ export function ContentRow ({
           <PostCard
             commenters={item.commenters}
             creator={item.creator}
-            goToGroup={goToGroup}
             groups={item.groups}
             onPress={showPost}
             post={item}

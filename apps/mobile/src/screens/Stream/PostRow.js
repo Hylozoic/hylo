@@ -6,12 +6,10 @@ import respondToEventMutation from '@hylo/graphql/mutations/respondToEventMutati
 import PostCard from 'components/PostCard'
 import { useNavigation } from '@react-navigation/native'
 import useGoToTopic from 'hooks/useGoToTopic'
-import useChangeToGroup from 'hooks/useChangeToGroup'
 
 export default function PostRow ({ context, post, forGroupId, showGroups }) {
   const navigation = useNavigation()
   const [, respondToEvent] = useMutation(respondToEventMutation)
-  const handleGoToGroup = useChangeToGroup()
   const handleShowTopic = useGoToTopic()
 
   if (!post) return null
@@ -35,7 +33,6 @@ export default function PostRow ({ context, post, forGroupId, showGroups }) {
         onPress={handleOnPress}
       >
         <PostCard
-          goToGroup={handleGoToGroup}
           post={post}
           onPress={handleOnPress}
           respondToEvent={handleRespondToEvent}

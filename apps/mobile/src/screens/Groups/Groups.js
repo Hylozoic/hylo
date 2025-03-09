@@ -106,8 +106,6 @@ export default function Groups () {
     setLoading(meMembershipsMemberCountQueryFetching || groupsMemberCountQueryFetching || groupMemberCountQueryFetching)
   }, [meMembershipsMemberCountQueryFetching || groupsMemberCountQueryFetching || groupMemberCountQueryFetching])
 
-  const changeToGroup = useChangeToGroup()
-
   const goToGroupExplore = groupSlug =>
     navigation.navigate(modalScreenName('Group Explore'), { groupSlug })
 
@@ -137,7 +135,6 @@ export default function Groups () {
     <GroupRow
       group={item}
       memberships={memberships}
-      goToGroup={changeToGroup}
       goToGroupExplore={goToGroupExplore}
       addPadding
     />
@@ -176,12 +173,12 @@ export default function Groups () {
   )
 }
 
-export function GroupRow ({ group, memberships, goToGroup, goToGroupExplore }) {
+export function GroupRow ({ group, memberships, goToGroupExplore }) {
   const { t } = useTranslation()
   const { avatarUrl, description, name, memberCount, childGroups } = group
   const childGroupsCount = childGroups?.count()
-  const isMember = memberships.find(m => m.group.id === group.id) || false
-  const onPressFunc = isMember ? goToGroup : goToGroupExplore
+  const changeToGroup = useChangeToGroup()
+  const handleOnPress = () => changeToGroup(group?.slug, { confirm: true })
   const statusText = group.memberStatus === 'member'
     ? t('Member')
     : group.memberStatus === 'requested'
@@ -189,7 +186,7 @@ export function GroupRow ({ group, memberships, goToGroup, goToGroupExplore }) {
       : t('Not a Member')
 
   return (
-    <TouchableOpacity onPress={() => onPressFunc(group?.slug)} style={styles.groupRow}>
+    <TouchableOpacity onPress={handleOnPress} style={styles.groupRow}>
       {!!avatarUrl && (
         <FastImage source={{ uri: avatarUrl }} style={styles.groupAvatar} />
       )}

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { MY_CONTEXT_SLUG } from '@hylo/shared'
 import { useContextGroups } from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import useChangeToGroup from 'hooks/useChangeToGroup'
@@ -6,12 +7,6 @@ import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import useReturnToOnAuthPath from 'hooks/useReturnToOnAuthPath'
 
 export const useHandleLinking = () => {
-  const changeToGroup = useChangeToGroup()
-  const { myContext, publicContext } = useContextGroups()
-  const { context, groupSlug } = useRouteParams()
-
-  // The following 3 steps are the final steps in linking within the app:
-
   // === initialURL ===
   // If the app was launched via navigation to a URL this hook retrieves
   // that path and navigates to it. The value is then cleared from memory,
@@ -33,13 +28,21 @@ export const useHandleLinking = () => {
   // context/group as current. The remaining route params from the matched link
   // are handled in the final component in the screen path (e.g. id for a
   // post/:id path match is retrieved in the PostDetails component).
+  const changeToGroup = useChangeToGroup()
+  const { myContext, publicContext } = useContextGroups()
+  const routeParams = useRouteParams()
+
   useEffect(() => {
-    if (context === 'groups' && groupSlug) {
-      changeToGroup(groupSlug, { skipCanViewCheck: true })
-    } else if ([myContext.slug, publicContext.slug].includes(context)) {
-      changeToGroup(context)
+    if (routeParams.context) {
+      if (routeParams.context === 'groups' && routeParams.groupSlug) {
+        changeToGroup(routeParams.groupSlug, { skipCanViewCheck: true })
+      } else if ([myContext.slug, publicContext.slug].includes(routeParams.context)) {
+        changeToGroup(routeParams.context)
+      } else {
+        changeToGroup(MY_CONTEXT_SLUG)
+      }
     }
-  }, [context, groupSlug])
+  }, [routeParams.context, routeParams.groupSlug])
 
   return { initialURL, returnToOnAuthPath }
 }
