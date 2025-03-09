@@ -106,13 +106,14 @@ jest.mock('react-cool-inview', () => ({
   }))
 }))
 
-window.Intl = {
-  DateTimeFormat: jest.fn().mockImplementation(() => ({
-    resolvedOptions: jest.fn().mockImplementation(() => ({
-      timeZone: 'Etc/GMT'
-    }))
-  }))
-}
+// This broke with luxon, is there a different way to set default timezone?
+// window.Intl = {
+//   DateTimeFormat: jest.fn().mockImplementation(() => ({
+//     resolvedOptions: jest.fn().mockImplementation(() => ({
+//       timeZone: 'Etc/GMT'
+//     }))
+//   }))
+// }
 
 window.matchMedia = jest.fn().mockImplementation(query => {
   return {

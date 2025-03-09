@@ -4,11 +4,11 @@ export default {
   rootDir: paths.rootPath,
   transform: {
     '\\.(gql|graphql)$': 'jest-transform-graphql',
-    '^.+\\.(js|jsx)$': 'babel-jest'
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest'
   },
   transformIgnorePatterns: ['/!node_modules\\/lodash/*'],
   collectCoverageFrom: [
-    '<rootDir>/src/**/*.{js,jsx}'
+    '<rootDir>/src/**/*.{js,jsx,ts,tsx}'
   ],
   coverageReporters: [
     'json',
