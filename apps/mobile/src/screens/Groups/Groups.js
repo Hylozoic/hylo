@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigation, useFocusEffect } from '@react-navigation/native'
+import { useNavigation } from '@react-navigation/native'
 import { gql, useQuery } from 'urql'
 import { View, Text, SectionList, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
@@ -110,10 +110,6 @@ export default function Groups () {
 
   const goToGroupExplore = groupSlug =>
     navigation.navigate(modalScreenName('Group Explore'), { groupSlug })
-
-  useFocusEffect(() => {
-    navigation.setOptions({ title: currentGroup.name })
-  })
 
   if (loading) return <Loading />
 

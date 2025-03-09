@@ -38,9 +38,7 @@ export default function MemberProfile () {
   const [flaggingVisible, setFlaggingVisible] = useState(false)
 
   const setHeader = () => {
-    isModalScreen
-      ? navigation.setOptions(ModalHeaderTransparent({ navigation }))
-      : navigation.setOptions({ title: currentGroup?.name })
+    isModalScreen && navigation.setOptions(ModalHeaderTransparent({ navigation }))
   }
 
   useEffect(() => {

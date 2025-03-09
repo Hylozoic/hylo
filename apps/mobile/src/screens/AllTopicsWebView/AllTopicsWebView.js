@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { useNavigation } from '@react-navigation/native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import HyloWebView from 'components/HyloWebView'
@@ -18,10 +18,6 @@ export default function AllTopicsWebView () {
       navigation.navigate('Chat Room', { topicName })
     }
   })
-
-  useEffect(() => {
-    navigation.setOptions({ title: currentGroup?.name })
-  }, [currentGroup?.name])
 
   return (
     <HyloWebView

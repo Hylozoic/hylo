@@ -33,7 +33,7 @@ export default function GroupExploreWebView () {
   const { groupSlug } = useRouteParams()
   const [, fetchGroupDetails] = useQuery({ query: groupDetailsQueryMaker(), pause: true })
   const [, fetchGroupModerators] = useQuery({ query: groupStewardsQuery, pause: true })
-  const [{ group: currentGroup }] = useGroup({ groupSlug })
+  const [{ group }] = useGroup({ groupSlug })
   const [path, setPath] = useState()
   const [canGoBack, setCanGoBack] = useState(false)
 
@@ -42,7 +42,7 @@ export default function GroupExploreWebView () {
       isModalScreen
         ? navigation.setOptions(ModalHeaderTransparent({ navigation }))
         : navigation.setOptions({
-          title: currentGroup?.name,
+          title: group?.name,
           headerLeftOnPress:
             canGoBack ? webViewRef.current.goBack : navigation.goBack
         })

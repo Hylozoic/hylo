@@ -119,10 +119,6 @@ export default function Stream () {
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
 
-  useEffect(() => {
-    navigation.setOptions({ title: currentGroup?.name })
-  }, [currentGroup?.name])
-
   const title = useMemo(() => {
     if (myHome) {
       return capitalize(t(myHome))
