@@ -39,10 +39,6 @@ import classes from './ContextMenu.module.scss'
 let previousWidgetIds = []
 let isAddingChildWidget = false
 
-const widgetIdsToArray = (widgets) => {
-  return widgets.map(widget => [widget.id, widget.childWidgets?.map(childWidget => childWidget.id)]).flat().flat()
-}
-
 export default function ContextMenu (props) {
   const {
     className,
@@ -92,8 +88,13 @@ export default function ContextMenu (props) {
   const [activeWidget, setActiveWidget] = useState(null)
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
 
-  const currentWidgetIds = widgetIdsToArray(orderedWidgets)
-  const newWidgetId = previousWidgetIds.length > 0 ? currentWidgetIds.find(widgetId => previousWidgetIds.indexOf(widgetId) === -1) : null
+  const currentWidgetIds = useMemo(() => orderedWidgets.map(
+    widget => [widget.id, widget.childWidgets?.map(childWidget => childWidget.id)]).flat().flat(),
+  [orderedWidgets])
+  const newWidgetId = useMemo(() => previousWidgetIds.length > 0
+    ? currentWidgetIds.find(widgetId => previousWidgetIds.indexOf(widgetId) === -1)
+    : null,
+  [currentWidgetIds])
   previousWidgetIds = currentWidgetIds
   const newWidgetRef = useRef()
 
