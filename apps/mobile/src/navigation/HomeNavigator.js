@@ -23,7 +23,6 @@ import MapWebView from 'screens/MapWebView/MapWebView'
 const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
   const [{ currentGroup }] = useCurrentGroup()
-
   const navigatorProps = {
     screenOptions: {
       title: currentGroup?.name || '',
@@ -55,7 +54,7 @@ export default function HomeNavigator ({ navigation }) {
   return (
     <HomeTab.Navigator {...navigatorProps}>
       {/* WebView screens (may link/route internally) */}
-      <HomeTab.Screen name='Chat Room' component={ChatRoomWebView} initialParams={{ topicName: 'home' }} />
+      <HomeTab.Screen name='Chat Room' component={ChatRoomWebView} />
       <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
       <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
       {/* Other screens */}

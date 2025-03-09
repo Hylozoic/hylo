@@ -9,7 +9,7 @@ export default function useStreamQueryVariables ({
   customView,
   filter,
   slug,
-  myHome,
+  view,
   sortBy,
   streamType,
   timeframe,
@@ -22,23 +22,23 @@ export default function useStreamQueryVariables ({
     afterTime: streamType === 'event'
       ? (timeframe === 'future' ? new Date().toISOString() : null)
       : null,
-    announcementsOnly: (myHome === 'announcements') || null,
+    announcementsOnly: (view === 'announcements') || null,
     beforeTime: streamType === 'event'
       ? (timeframe === 'past' ? new Date().toISOString() : null)
       : null,
     childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
     context,
-    createdBy: myHome === 'posts'
+    createdBy: view === 'posts'
       ? [currentUser.id]
       : null,
     filter: filterFromStreamType ||
       filter ||
       currentUser?.settings?.streamPostType,
     forCollection: customView?.collectionId,
-    interactedWithBy: myHome === 'interactions'
+    interactedWithBy: view === 'interactions'
       ? [currentUser.id]
       : null,
-    mentionsOf: myHome === 'mentions'
+    mentionsOf: view === 'mentions'
       ? [currentUser.id]
       : null,
     order: streamType === 'event'
@@ -68,7 +68,7 @@ export default function useStreamQueryVariables ({
     customView?.collectionId,
     customView?.type,
     filter,
-    myHome,
+    view,
     slug,
     sortBy,
     streamType,

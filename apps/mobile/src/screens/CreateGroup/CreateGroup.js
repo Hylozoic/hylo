@@ -1,7 +1,8 @@
 import React from 'react'
-import { Keyboard, KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { X } from 'lucide-react-native'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 import { isIOS } from 'util/platform'
@@ -15,7 +16,6 @@ import CreateGroupVisibilityAccessibility from 'screens/CreateGroup/CreateGroupV
 import CreateGroupParentGroups from 'screens/CreateGroup/CreateGroupParentGroups'
 import CreateGroupReview from 'screens/CreateGroup/CreateGroupReview'
 import ButtonNW from 'components/Button/ButtonNW'
-import { X } from 'lucide-react-native'
 
 export default function CreateGroup ({ navigation }) {
   const { t } = useTranslation()
@@ -55,8 +55,7 @@ export default function CreateGroup ({ navigation }) {
       <View style={[
         styles.header,
         {
-          paddingTop: insets.top,
-          paddingBottom: 10
+          paddingTop: insets.top
         }]
       }>
         <X onPress={handleCancel} />
@@ -71,8 +70,7 @@ export default function CreateGroup ({ navigation }) {
           {
             paddingBottom: keyboardVisible ? 10 : insets.bottom,
             paddingLeft: insets.left + 10,
-            paddingRight: insets.right + 10,
-            paddingTop: 10
+            paddingRight: insets.right + 10
           }
         ]}
       >
@@ -111,11 +109,12 @@ export default function CreateGroup ({ navigation }) {
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingRight: 20,
-    paddingLeft: 10
+    paddingBottom: 10,
+    paddingLeft: 10,
+    paddingRight: 20
   },
   screen: {
     flex: 1,
@@ -123,6 +122,7 @@ const styles = StyleSheet.create({
   },
   workflowNav: {
     flexDirection: 'row',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    paddingTop: 10
   }
 })

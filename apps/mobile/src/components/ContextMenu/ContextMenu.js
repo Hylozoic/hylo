@@ -24,7 +24,7 @@ export default function ContextMenu () {
     orderContextWidgetsForContextMenu(currentGroup?.contextWidgets || []),
   [currentGroup?.contextWidgets])
 
-  // TODO: May be more appropriately put on HomNavigator after useHandleLinking
+  // TODO: May be more appropriately put on AuthRootNavigator after useHandleLinking
   useEffect(() => {
     if ((!fetching && currentGroup?.shouldWelcome)) {
       navigation.replace('Group Welcome')
