@@ -255,7 +255,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
             widget.childWidgets?.length > 0 ||
             ['container', 'home', 'chats', 'members'].includes(widget.type)
               ? 'mb-6 mt-6'
-              : 'mb-0'
+              : (isEditing ? 'mb-2' : 'mb-0')
           }`}
           style={{ '--delay': `${index * 35}ms` }}
           key={widget.id}
