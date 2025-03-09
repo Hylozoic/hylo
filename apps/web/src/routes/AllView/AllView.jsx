@@ -143,19 +143,20 @@ export default function AllViews () {
           )}
           {isEditing && !widget.order && (
             <span className='text-sm text-foreground block'>
-              <Icon
-                name='Plus'
-                onClick={(evt) => {
-                  evt.stopPropagation()
-                  handleWidgetUpdate(widget)
-                }}
-              />
+              <Icon name='Plus' />
             </span>
           )}
         </div>
       )
+      const onClickAction = isEditing
+        ? (evt) => {
+            evt.stopPropagation()
+            handleWidgetUpdate(widget)
+          }
+        : (url ? () => navigate(url) : null)
+
       return (
-        <div key={widget.id} onClick={() => url ? navigate(url) : null} className={`cursor-pointer relative flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 hover:z-50 hover:scale-105 duration-400 rounded-lg h-full items-center justify-center ${url ? 'cursor-pointer' : ''}`}>
+        <div key={widget.id} onClick={onClickAction} className={`cursor-pointer relative flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 hover:z-50 hover:scale-105 duration-400 rounded-lg h-full items-center justify-center ${url ? 'cursor-pointer' : ''}`}>
           <div className='block text-center text-foreground'>
             {cardContent}
           </div>
