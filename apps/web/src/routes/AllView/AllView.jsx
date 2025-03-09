@@ -131,14 +131,14 @@ export default function AllViews () {
             </span>
           )} */}
           {isEditing && widget.isValidHomeWidget && (
-            <span className='text-sm  block text-foreground'>
-              <Icon
-                name='Home'
-                onClick={(evt) => {
-                  evt.stopPropagation()
-                  handleWidgetHomePromotion(widget)
-                }}
-              />
+            <span
+              className='text-sm  block text-foreground'
+              onClick={(evt) => {
+                evt.stopPropagation()
+                handleWidgetHomePromotion(widget)
+              }}
+            >
+              <Icon name='Home' />
             </span>
           )}
           {isEditing && !widget.order && (
