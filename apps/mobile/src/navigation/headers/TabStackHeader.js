@@ -65,7 +65,7 @@ export default function TabStackHeader ({
         </>
       )
     })
-  }), [canGoBack])
+  }), [currentGroup, canGoBack])
 
   return <Header {...props} {...otherProps} />
 }
