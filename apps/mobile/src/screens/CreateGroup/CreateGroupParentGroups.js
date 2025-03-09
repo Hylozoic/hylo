@@ -4,10 +4,9 @@ import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { useCreateGroupStore } from './CreateGroupFlow.store'
+import { useCreateGroupStore } from './CreateGroup.store'
 import Icon from 'components/Icon'
 import ItemSelectorModal from 'components/ItemSelectorModal'
-import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 
 export default function CreateGroupParentGroups ({ navigation }) {
   const { t } = useTranslation()
@@ -40,7 +39,7 @@ export default function CreateGroupParentGroups ({ navigation }) {
   // groupData.parentGroups.filter(parentGroup => parentGroupOptions.find(validGroup => parentGroup.id === validGroup.id))
 
   return (
-    <KeyboardFriendlyView className='bg-background p-5 flex-1'>
+    <>
       <Text className='text-foreground text-xl font-bold pb-2.5'>{t('Is this group a member of other groups?')}</Text>
       <Text className='text-foreground/80 mb-2.5'>{t('Please select below:')}</Text>
 
@@ -82,7 +81,7 @@ export default function CreateGroupParentGroups ({ navigation }) {
       <TouchableOpacity onPress={clearParentGroups}>
         <Text className='text-foreground font-bold mt-2.5 self-end mr-5'>{t('Clear')}</Text>
       </TouchableOpacity>
-    </KeyboardFriendlyView>
+    </>
   )
 }
 

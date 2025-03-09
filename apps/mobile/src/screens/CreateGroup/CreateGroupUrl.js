@@ -1,13 +1,16 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { Text, View, ScrollView, TextInput } from 'react-native'
+import { Text, View, TextInput } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { useQuery } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { debounce } from 'lodash/fp'
 import groupExistsQuery from '@hylo/graphql/queries/groupExistsQuery'
-import { slugValidatorRegex, invalidSlugMessage, formatDomainWithUrl, removeDomainFromURL } from './util'
-import { useCreateGroupStore } from './CreateGroupFlow.store'
+import { useCreateGroupStore } from './CreateGroup.store'
 import ErrorBubble from 'components/ErrorBubble'
+
+export const BASE_STRING = 'hylo.com/groups/'
+export const slugValidatorRegex = /^[0-9a-z-]{2,40}$/
+export const invalidSlugMessage = 'URLs must have between 2 and 40 characters, and can only have lower case letters, numbers, and dashes.'
 
 export default function CreateGroupUrl ({ navigation }) {
   const { t } = useTranslation()
@@ -60,28 +63,38 @@ export default function CreateGroupUrl ({ navigation }) {
   }, [groupExistsCheckResult?.data]))
 
   return (
-    <View className='bg-background p-5 flex-1'>
-      <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
-        <View className='mb-5'>
-          <Text className='text-foreground text-xl font-bold pb-2.5'>{t('Choose an address for your group')}</Text>
-          <Text className='text-foreground/80 mb-1'>{t('Your URL is the address that members will use to access your group online The shorter the better')}</Text>
+    <>
+      <View className='mb-5'>
+        <Text className='text-foreground text-xl font-bold pb-2.5'>{t('Choose an address for your group')}</Text>
+        <Text className='text-foreground/80 mb-1'>{t('Your URL is the address that members will use to access your group online The shorter the better')}</Text>
+      </View>
+      <View>
+        <Text className='text-foreground/90 font-bold'>{t('Whats the address for your group')}</Text>
+        <View className='border-b border-foreground/20 my-4 pb-4' style={{ flexDirection: 'row' }}>
+          <TextInput
+            className='text-lg'
+            style={{ lineHeight: null }}
+            value={BASE_STRING}
+            editable={false}
+            underlineColorAndroid='transparent'
+          />
+          <TextInput
+            className='text-lg'
+            style={{ lineHeight: null, flex: 1 }}
+            onChangeText={slug => setGroupSlug(slug)}
+            value={groupSlug}
+            returnKeyType='next'
+            autoCapitalize='none'
+            autoFocus
+            autoCorrect={false}
+            underlineColorAndroid='transparent'
+            maxLength={40}
+          />
         </View>
-        <View>
-          <View className='mb-4 border-b border-foreground/20'>
-            <Text className='text-foreground/90 font-bold'>{t('Whats the address for your group')}</Text>
-            <TextInput
-              className='text-foreground text-lg font-bold my-2.5'
-              onChangeText={slug => setGroupSlug(removeDomainFromURL(slug))}
-              returnKeyType='next'
-              autoCapitalize='none'
-              value={formatDomainWithUrl(groupSlug)}
-              autoCorrect={false}
-              underlineColorAndroid='transparent'
-            />
-          </View>
-          {error && <View className='mt-[-8]'><ErrorBubble text={error} topArrow /></View>}
-        </View>
-      </ScrollView>
-    </View>
+      </View>
+      {error && (
+        <ErrorBubble text={error} topArrow />
+      )}
+    </>
   )
 }

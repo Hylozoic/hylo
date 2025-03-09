@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useCreateGroupStore } from './CreateGroupFlow.store'
+import { useCreateGroupStore } from './CreateGroup.store'
 import ButtonNW from 'components/Button/ButtonNW'
 
 export default function CreateGroupTabBar ({ state, descriptors, navigation }) {

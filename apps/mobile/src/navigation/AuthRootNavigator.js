@@ -14,12 +14,13 @@ import registerDeviceMutation from '@hylo/graphql/mutations/registerDeviceMutati
 import commonRolesQuery from '@hylo/graphql/queries/commonRolesQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
+import useHandleLinking from 'navigation/linking/useHandleLinking'
 import { isDev } from 'config'
 import { version as hyloAppVersion } from '../../package.json'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import ModalHeader from 'navigation/headers/ModalHeader'
-import CreateGroupTabsNavigator from 'navigation/CreateGroupTabsNavigator'
+import CreateGroup from 'screens/CreateGroup'
 import DrawerNavigator from 'navigation/DrawerNavigator'
 import CreationOptions from 'screens/CreationOptions'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
@@ -78,6 +79,7 @@ export default function AuthRootNavigator () {
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
+  useHandleLinking()
 
   useEffect(() => {
     resetNotificationsCount()
@@ -153,7 +155,7 @@ export default function AuthRootNavigator () {
     <HyloHTMLConfigProvider>
       <AuthRoot.Navigator {...navigatorProps}>
         <AuthRoot.Screen name='Drawer' component={DrawerNavigator} options={{ headerShown: false }} />
-        <AuthRoot.Screen name='Create Group' component={CreateGroupTabsNavigator} options={{ headerShown: false }} />
+        <AuthRoot.Screen name='Create Group' component={CreateGroup} options={{ headerShown: false }} />
         <AuthRoot.Screen name='Loading' component={LoadingScreen} options={{ headerShown: false, animationEnabled: false }} />
         {/*
           == Modals ==

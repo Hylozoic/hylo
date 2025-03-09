@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import { useFocusEffect } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useGroup } from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import { alabaster, amaranth, capeCod, rhino40, rhino80 } from 'style/colors'
 
 export default function GroupSettingsWebView ({ path: pathProp, route }) {
+  const navigation = useNavigation()
   const webViewRef = useRef()
   const { groupSlug, originalLinkingPath, settingsArea: routeSettingsArea } = useRouteParams()
   const [, queryGroup] = useGroup({ groupSlug, useQueryArgs: { requestPolicy: 'network-only', pause: true } })
@@ -15,6 +16,12 @@ export default function GroupSettingsWebView ({ path: pathProp, route }) {
   useEffect(() => {
     setSelectedSettingsArea(routeSettingsArea)
   }, [routeSettingsArea])
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerLeftOnPress: () => selectedSettingsArea ? setSelectedSettingsArea() : undefined
+    })
+  }, [selectedSettingsArea])
 
   // Always re-queries group onBlur
   useFocusEffect(
@@ -65,19 +72,12 @@ export default function GroupSettingsWebView ({ path: pathProp, route }) {
     <View style={[styles.container]}>
       {selectedSettingsArea
         ? (
-          <>
-            <View style={styles.header}>
-              <TouchableOpacity onPress={() => setSelectedSettingsArea(null)} style={styles.backButton}>
-                <Text style={styles.backButtonText}>←</Text>
-              </TouchableOpacity>
-            </View>
-            <HyloWebView
-              ref={webViewRef}
-              key={path}
-              path={path}
-              onNavigationStateChange={handleNavigationStateChange}
-            />
-          </>
+          <HyloWebView
+            ref={webViewRef}
+            key={path}
+            path={path}
+            onNavigationStateChange={handleNavigationStateChange}
+          />
           )
         : (
           <ScrollView contentContainerStyle={styles.menu}>
