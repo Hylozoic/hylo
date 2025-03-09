@@ -19,7 +19,7 @@ describe('mapStateToProps', () => {
       orm: session.state
     }
 
-    const ownProps = { creator: { id: 20 }, routeParams: { groupSlug: 'mygroup' } }
+    const ownProps = { routeParams: { groupSlug: 'mygroup' }, post: { id: 44, creator: { id: 20 } } }
     const { group, currentUser } = mapStateToProps(state, ownProps)
 
     expect(group.id).toBe(33)
@@ -113,7 +113,7 @@ describe('mergeProps', () => {
       const state = {
         orm: session.state
       }
-      const ownProps = { id: 20, routeParams: { groupSlug: 'mygroup' }, creator: { id: 20 } }
+      const ownProps = { routeParams: { groupSlug: 'mygroup' }, post: { id: 44, creator: { id: 20 }}}
       const stateProps = mapStateToProps(state, ownProps)
       const { deletePost, removePost, editPost, canEdit, pinPost } = mergeProps(stateProps, dispatchProps, ownProps)
 
@@ -123,13 +123,13 @@ describe('mergeProps', () => {
       expect(editPost).toBeTruthy()
 
       deletePost('lettuce')
-      expect(dispatchProps.deletePost).toHaveBeenCalledWith(20, 33, 'lettuce')
+      expect(dispatchProps.deletePost).toHaveBeenCalledWith(44, 33, 'lettuce')
 
       editPost()
-      expect(dispatchProps.editPost).toHaveBeenCalledWith(20)
+      expect(dispatchProps.editPost).toHaveBeenCalledWith(44)
 
       pinPost()
-      expect(dispatchProps.pinPost).toHaveBeenCalledWith(20, 33)
+      expect(dispatchProps.pinPost).toHaveBeenCalledWith(44, 33)
     })
 
     it('cannot delete posts but can moderate', () => {
@@ -149,7 +149,7 @@ describe('mergeProps', () => {
         orm: session.state
       }
 
-      const ownProps = { id: 20, routeParams: { groupSlug: 'mygroup' }, creator: { id: 33 } }
+      const ownProps = { routeParams: { groupSlug: 'mygroup' }, post: { id: 44, creator: { id: 33 }}}
       const stateProps = mapStateToProps(state, ownProps)
 
       const { deletePost, removePost, editPost } = mergeProps(stateProps, dispatchProps, ownProps)
@@ -158,8 +158,8 @@ describe('mergeProps', () => {
       expect(editPost).toBeFalsy()
       expect(removePost).toBeTruthy()
 
-      removePost()
-      expect(dispatchProps.removePost).toHaveBeenCalledWith(20)
+      removePost('testing')
+      expect(dispatchProps.removePost).toHaveBeenCalledWith(44, 'testing')
     })
   })
 
@@ -179,7 +179,7 @@ describe('mergeProps', () => {
         orm: session.state
       }
 
-      const ownProps = { id: 20, routeParams: { groupSlug: 'mygroup' }, creator: { id: 20 } }
+      const ownProps = { routeParams: { groupSlug: 'mygroup' }, post: { id: 44, creator: { id: 20 }}}
       const stateProps = mapStateToProps(state, ownProps)
 
       const { deletePost, removePost, editPost, duplicatePost, pinPost } = mergeProps(stateProps, dispatchProps, ownProps)
@@ -191,13 +191,13 @@ describe('mergeProps', () => {
       expect(duplicatePost).toBeTruthy()
 
       deletePost('lettuce')
-      expect(dispatchProps.deletePost).toHaveBeenCalledWith(20, 33, 'lettuce')
+      expect(dispatchProps.deletePost).toHaveBeenCalledWith(44, 33, 'lettuce')
 
       editPost('lettuce')
-      expect(dispatchProps.editPost).toHaveBeenCalledWith(20)
+      expect(dispatchProps.editPost).toHaveBeenCalledWith(44)
 
       duplicatePost('lettuce')
-      expect(dispatchProps.duplicatePost).toHaveBeenCalledWith(20)
+      expect(dispatchProps.duplicatePost).toHaveBeenCalledWith(44)
     })
   })
 
@@ -216,7 +216,7 @@ describe('mergeProps', () => {
       orm: session.state
     }
 
-    const ownProps = { id: 20, routeParams: { groupSlug: 'mygroup' }, creator: { id: 33 } }
+    const ownProps = { routeParams: { groupSlug: 'mygroup' }, post: { id: 44, creator: { id: 33 }}}
     const stateProps = mapStateToProps(state, ownProps)
 
     const { deletePost, removePost, editPost, duplicatePost } = mergeProps(stateProps, dispatchProps, ownProps)

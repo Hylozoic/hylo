@@ -33,7 +33,8 @@ export function transformPathname (pathname) {
     pathname += '/index.html'
   }
 
-  return process.env.PROXY_HOST.replace(/\/$/, '') + pathname
+  // add VITE_PROXY_HOST for tests to run
+  return (process.env.PROXY_HOST || process.env.VITE_PROXY_HOST).replace(/\/$/, '') + pathname
 }
 
 export function getAndStore (url) {
