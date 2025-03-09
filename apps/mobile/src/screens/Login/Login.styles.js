@@ -38,17 +38,6 @@ const mixins = {
     marginTop: 12,
     marginLeft: 55,
     position: 'absolute'
-  },
-  banner: {
-    color: 'white',
-    paddingTop: 50,
-    paddingBottom: 10,
-    textAlign: 'center',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 2
   }
 }
 
@@ -64,6 +53,23 @@ export default {
   },
   localeContents: {
     marginLeft: 10
+  },
+  banner: {
+    color: 'white',
+    paddingTop: 50,
+    paddingBottom: 10,
+    textAlign: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2
+  },
+  bannerError: {
+    backgroundColor: amaranth
+  },
+  bannerMessage: {
+    backgroundColor: caribbeanGreen
   },
   logo: {
     height: 80,
@@ -178,14 +184,6 @@ export default {
   errorMessage: {
     color: 'white',
     textAlign: 'center'
-  },
-  bannerError: {
-    ...mixins.banner,
-    backgroundColor: amaranth
-  },
-  bannerMessage: {
-    ...mixins.banner,
-    backgroundColor: caribbeanGreen
   },
   textInput: {
     height: 38,
