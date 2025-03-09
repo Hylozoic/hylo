@@ -40,7 +40,11 @@ describe('SocketListener.store.ormSessionReducer', () => {
     beforeEach(() => {
       session.Me.create({ id: '2' })
       session.Person.create({ id: '14' })
-      session.Group.create({ id: '1', name: 'place' })
+      session.Group.create({
+        id: '1',
+        name: 'place',
+        contextWidgets: { items: [] }
+      })
       session.Membership.create({ id: '1', group: '1' })
       session.Membership.create({ id: '2', group: '1', person: '14' })
       session.GroupTopic.create({ id: '1', topic: '2', group: '1' })
@@ -50,11 +54,13 @@ describe('SocketListener.store.ormSessionReducer', () => {
         payload: {
           data: {
             post: {
+              id: 44,
               topics: ['2', '7'],
               groupId: '1',
-              creatorId: '4'
+              creator: { id: '4' }
             }
-          }
+          },
+          groupId: '1'
         }
       }
     })
