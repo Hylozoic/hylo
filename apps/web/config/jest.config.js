@@ -56,7 +56,12 @@ export default {
     '^router/(.*)$': '<rootDir>/src/router/$1',
     '^routes/(.*)$': '<rootDir>/src/routes/$1',
     '^store/(.*)$': '<rootDir>/src/store/$1',
-    '^util/(.*)$': '<rootDir>/src/util/$1'
+    '^util/(.*)$': '<rootDir>/src/util/$1',
+    '^@hylo/graphql/(.*)$': '<rootDir>/../../packages/graphql/$1',
+    '^@hylo/shared(.*)$': '<rootDir>/../../packages/shared$1',
+    '^@hylo/hooks/(.*)$': '<rootDir>/../../packages/hooks/$1',
+    '^@hylo/presenters/(.*)$': '<rootDir>/../../packages/presenters/$1',
+    '^@hylo/(.*)$': '<rootDir>/apps/web/$1'
   },
   watchPlugins: [
     'jest-watch-typeahead/filename',
