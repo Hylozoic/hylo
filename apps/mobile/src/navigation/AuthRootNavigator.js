@@ -159,8 +159,10 @@ export default function AuthRootNavigator () {
         <AuthRoot.Screen name='Loading' component={LoadingScreen} options={{ headerShown: false, animationEnabled: false }} />
         {/*
           == Modals ==
-          modelScreenName is used to differentiated screen names from ones that have a non-model counterpart
-          and simply appends '- Modal`
+          modelScreenName is used to differentiate screen names from ones that have a non-model counterpart,
+          it is used to simply consistently appends '- Modal` to then be used by const isModalScreen = useIsModalScreen()
+          in views which have different behavior when opened as a modal. Don't use it if there is no non-modal
+          counterpart to a modal screen.
         */}
         <AuthRoot.Group screenOptions={{ presentation: 'modal', header: ModalHeader }}>
           <AuthRoot.Screen
