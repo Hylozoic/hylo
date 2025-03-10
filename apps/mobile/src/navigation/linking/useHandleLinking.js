@@ -30,19 +30,19 @@ export const useHandleLinking = () => {
   // post/:id path match is retrieved in the PostDetails component).
   const changeToGroup = useChangeToGroup()
   const { myContext, publicContext } = useContextGroups()
-  const routeParams = useRouteParams()
+  const { context, groupSlug } = useRouteParams()
 
   useEffect(() => {
-    if (routeParams.context) {
-      if (routeParams.context === 'groups' && routeParams.groupSlug) {
-        changeToGroup(routeParams.groupSlug, { skipCanViewCheck: true })
-      } else if ([myContext.slug, publicContext.slug].includes(routeParams.context)) {
-        changeToGroup(routeParams.context)
+    if (context) {
+      if (context === 'groups' && groupSlug) {
+        changeToGroup(groupSlug, { skipCanViewCheck: true })
+      } else if ([myContext.slug, publicContext.slug].includes(context)) {
+        changeToGroup(context)
       } else {
         changeToGroup(MY_CONTEXT_SLUG)
       }
     }
-  }, [routeParams.context, routeParams.groupSlug])
+  }, [context, groupSlug])
 
   return { initialURL, returnToOnAuthPath }
 }

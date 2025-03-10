@@ -32,8 +32,8 @@ export default function SignupSetLocation ({ navigation }) {
   const saveAndNext = () => {
     updateUserSettings({
       changes: {
-        location: locationObject.fullText,
-        locationId: locationObject.id,
+        location: locationObject?.fullText,
+        locationId: locationObject?.id,
         settings: { signupInProgress: false }
       }
     })
