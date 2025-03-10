@@ -31,10 +31,7 @@ export default function PostGroups ({
         <View style={styles.row}>
           <Text style={styles.reminderText}>{t('Posted In')} </Text>
           {!expanded && (
-            <GroupsListSummary
-              expandFunc={toggleExpanded}
-              groups={groups}
-            />
+            <GroupsListSummary groups={groups} />
           )}
           <Icon
             name={expanded ? 'ArrowUp' : 'ArrowDown'}
@@ -52,7 +49,7 @@ export default function PostGroups ({
   )
 }
 
-export function GroupsListSummary ({ groups, onPress, expandFunc }) {
+export function GroupsListSummary ({ groups }) {
   const { t } = useTranslation()
   const changeToGroup = useChangeToGroup()
   const changeToFirstGroup = useCallback(
