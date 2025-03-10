@@ -19,7 +19,7 @@ export default function GroupSettingsWebView () {
 
   useEffect(() => {
     navigation.setOptions({
-      headerLeftOnPress: () => selectedSettingsArea ? setSelectedSettingsArea() : undefined
+      headerLeftOnPress: (!routeSettingsArea && selectedSettingsArea) && (() => setSelectedSettingsArea())
     })
   }, [selectedSettingsArea])
 

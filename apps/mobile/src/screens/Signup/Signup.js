@@ -160,7 +160,7 @@ export default function Signup () {
         <SocialAuth onStart={handleSocialAuthStart} onComplete={handleSocialAuthComplete} forSignup />
         <View style={styles.login}>
           <Text style={styles.haveAccount}>{t('Already have an account?')} </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <TouchableOpacity onPress={() => navigation.replace('Login')}>
             <Text style={styles.loginButton}>{t('Log in now')}</Text>
           </TouchableOpacity>
         </View>
