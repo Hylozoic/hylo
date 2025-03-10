@@ -109,7 +109,7 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
         onPress={() => logout()}
         className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md mb-2 gap-2'
       >
-        <WidgetIconResolver widget={widget} className='mr-2' />
+        <WidgetIconResolver widget={widget} className='mr-2' style={{ fontSize: 18 }} />
         <Text className='text-base font-normal text-foreground'>{title}</Text>
       </TouchableOpacity>
     )
@@ -119,11 +119,12 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
     return (
       <TouchableOpacity
         onPress={() => handleWidgetPress(widget)}
-        className={`w-full flex-row items-center p-2 rounded-md mb-0.5 gap-2 ${
-          isActive ? 'bg-selected/10 opacity-100' : ''
-        }`}
+        className={`
+          w-full flex-row items-center p-3 bg-background border-2 rounded-md mb-2 gap-2
+          ${isActive ? 'border-selected bg-selected/10 opacity-100' : 'border-foreground/20'}
+        `}
       >
-        <WidgetIconResolver widget={widget} className='mr-2' />
+        <WidgetIconResolver widget={widget} className='mr-2' style={{ fontSize: 18 }} />
         <Text className={`text-base font-normal ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>{title}</Text>
       </TouchableOpacity>
     )
@@ -171,11 +172,12 @@ function ChildWidget ({ widget, handleWidgetPress, rootPath, groupSlug, parentUr
     <TouchableOpacity
       key={widget.id + widget.title}
       onPress={() => handleWidgetPress(widget)}
-      className={`w-full flex-row items-center p-3 bg-background border-2 rounded-md mb-2 gap-2 ${
-        isActive ? 'border-selected bg-selected/10 opacity-100' : 'border-foreground/20'
-      }`}
+      className={`
+        w-full flex-row items-center p-3 bg-background border-2 rounded-md mb-2 gap-2
+        ${isActive ? 'border-selected bg-selected/10 opacity-100' : 'border-foreground/20'}
+      `}
     >
-      <WidgetIconResolver widget={widget} className='mr-2' />
+      <WidgetIconResolver widget={widget} className='mr-2' style={{ fontSize: 18 }} />
       <Text className={`text-base font-normal ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>
         {translateTitle(widget.title, t)}
       </Text>

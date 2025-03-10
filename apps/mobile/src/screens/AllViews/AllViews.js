@@ -20,8 +20,11 @@ function WidgetCard ({ widget, onPress }) {
       className='p-4 border border-foreground/20 rounded-md shadow-sm bg-background'
     >
       <View className='items-center'>
-        <Text className='text-lg font-semibold text-foreground mb-2'>{translateTitle(widget.title, t)}</Text>
-        {widget.humanReadableType && (
+        <View className='mt-2 flex-row content-center'>
+          <WidgetIconResolver widget={widget} style={{ fontSize: 20, marginRight: 10 }} />
+          <Text className='text-xl font-semibold text-foreground mb-2'>{translateTitle(widget.title, t)}</Text>
+        </View>
+        {/* {widget.humanReadableType && (
           <Text className='text-sm text-foreground/70'>
             {t('Type')}: {t(capitalize(widget?.humanReadableType))}
           </Text>
@@ -30,10 +33,7 @@ function WidgetCard ({ widget, onPress }) {
           <Text className='text-sm text-foreground/70'>
             {t('View')}: {t(capitalize(widget?.view))}
           </Text>
-        )}
-        <View className='mt-2'>
-          <WidgetIconResolver widget={widget} size={24} />
-        </View>
+        )} */}
       </View>
     </TouchableOpacity>
   )
