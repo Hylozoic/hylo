@@ -121,11 +121,11 @@ function ContextRow ({
       }}
       activeOpacity={0.7}
     >
-      {!context?.iconName && !!context?.avatarUrl && (
-        <FastImage source={{ uri: context?.avatarUrl }} style={{ height: 35, width: 35 }} />
-      )}
       {context?.iconName && (
         <LucideIcon name={context.iconName} color={bottomItem ? black : white} size={bottomItem ? 24 : 35} />
+      )}
+      {!context?.iconName && (
+        <FastImage source={{ uri: context?.avatarUrl }} style={{ height: 35, width: 35 }} />
       )}
       {!!newPostCount && (
         <Text>{newPostCount}</Text>
