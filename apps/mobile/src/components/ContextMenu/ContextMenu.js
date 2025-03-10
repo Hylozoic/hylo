@@ -7,7 +7,7 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
-import { widgetUrl as makeWidgetUrl, groupUrl } from 'util/navigation'
+import { widgetUrl as makeWidgetUrl } from 'util/navigation'
 import useLogout from 'hooks/useLogout'
 import useOpenURL from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
@@ -185,7 +185,6 @@ function ChildWidget ({ widget, handleWidgetPress, rootPath, groupSlug, parentUr
 
 function TopElements ({ widget, group }) {
   const { t } = useTranslation()
-  const navigation = useNavigation()
   const openURL = useOpenURL()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAddMembers = hasResponsibility(RESP_ADD_MEMBERS)
@@ -193,7 +192,7 @@ function TopElements ({ widget, group }) {
   if (widget.type === 'members' && canAddMembers) {
     return (
       <TouchableOpacity
-        onPress={() => navigation.replace('Group Settings', { groupSlug: group?.slug, screen: 'invite' })}
+        onPress={() => openURL(`/groups/${group.slug}/settings/invite`, { replace: true })}
         className='px-4 py-2 bg-primary rounded-md'
       >
         <Text className='text-sm font-medium text-white'>{t('Add Members')}</Text>
@@ -211,7 +210,7 @@ function TopElements ({ widget, group }) {
   }
 
   if (widget.type === 'setup') {
-    const settingsUrl = groupUrl(group.slug, 'settings') + '/details'
+    const settingsUrl = `/groups/${group.slug}/settings/details`
     const ListItem = ({ title, url }) => (
       <TouchableOpacity
         onPress={() => openURL(url, { replace: true })}
@@ -226,7 +225,7 @@ function TopElements ({ widget, group }) {
     return (
       <View className='w-full mb-2'>
         <TouchableOpacity
-          onPress={() => navigation.replace('Group Settings', { groupSlug: group?.slug })}
+          onPress={() => openURL(`/groups/${group.slug}/settings`, { replace: true })}
           className='w-full'
         >
           <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
@@ -236,34 +235,23 @@ function TopElements ({ widget, group }) {
 
         <View className='w-full'>
           {!group.avatarUrl && (
-            <ListItem
-              title={t('Add Avatar')}
-              url={settingsUrl}
-            />
+            <ListItem title={t('Add Avatar')} url={settingsUrl} />
           )}
           {!group.bannerUrl && (
-            <ListItem
-              title={t('Add Banner')}
-              url={settingsUrl}
-            />
+            <ListItem title={t('Add Banner')} url={settingsUrl} />
           )}
           {!group.purpose && (
-            <ListItem
-              title={t('Add Purpose')}
-              url={settingsUrl}
-            />
+            <ListItem title={t('Add Purpose')} url={settingsUrl} />
           )}
-          {(!group.description || group.description === 'This is a long-form description of the group' || group.description === '') && (
-            <ListItem
-              title={t('Add Description')}
-              url={settingsUrl}
-            />
+          {(
+            !group.description ||
+            group.description === 'This is a long-form description of the group' ||
+            group.description === ''
+          ) && (
+            <ListItem title={t('Add Description')} url={settingsUrl} />
           )}
           {!group.locationObject && (
-            <ListItem
-              title={t('Add Location')}
-              url={settingsUrl}
-            />
+            <ListItem title={t('Add Location')} url={settingsUrl} />
           )}
         </View>
       </View>
