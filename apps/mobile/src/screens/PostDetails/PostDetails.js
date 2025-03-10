@@ -56,10 +56,6 @@ export default function PostDetails () {
   const [selectedComment, setSelectedComment] = useState(null)
   const groupId = get('groups.0.id', post)
 
-  const setHeader = () => {
-    !isModalScreen && navigation.setOptions({ title: currentGroup?.name })
-  }
-
   const clearSelectedComment = () => {
     setSelectedComment(null)
     commentsRef.current && commentsRef.current.clearHighlightedComment()
@@ -68,8 +64,6 @@ export default function PostDetails () {
   const scrollToSelectedComment = () => {
     commentsRef.current && commentsRef.current.scrollToComment(selectedComment)
   }
-
-  useEffect(() => { setHeader() }, [currentGroup?.slug])
 
   useEffect(() => {
     if (!fetching && !error && post) {

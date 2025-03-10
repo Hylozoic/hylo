@@ -1,16 +1,15 @@
 import React from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import { useMutation } from 'urql'
+import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 import respondToEventMutation from '@hylo/graphql/mutations/respondToEventMutation'
 import PostCard from 'components/PostCard'
 import { useNavigation } from '@react-navigation/native'
 import useGoToTopic from 'hooks/useGoToTopic'
-import useChangeToGroup from 'hooks/useChangeToGroup'
 
 export default function PostRow ({ context, post, forGroupId, showGroups }) {
   const navigation = useNavigation()
   const [, respondToEvent] = useMutation(respondToEventMutation)
-  const handleGoToGroup = useChangeToGroup()
   const handleShowTopic = useGoToTopic()
 
   if (!post) return null
@@ -19,10 +18,10 @@ export default function PostRow ({ context, post, forGroupId, showGroups }) {
   const handleRespondToEvent = response => respondToEvent({ id: post.id, response })
   const groupIds = post.groups.map(group => group.id)
   const isChildPost = (
-    forGroupId !== 'all' &&
-    forGroupId !== 'public' &&
-    context !== 'my' &&
-    forGroupId !== 'my' &&
+    forGroupId !== ALL_GROUPS_CONTEXT_SLUG &&
+    forGroupId !== PUBLIC_CONTEXT_SLUG &&
+    context !== MY_CONTEXT_SLUG &&
+    forGroupId !== MY_CONTEXT_SLUG &&
     !groupIds.includes(forGroupId)
   )
 
@@ -34,7 +33,6 @@ export default function PostRow ({ context, post, forGroupId, showGroups }) {
         onPress={handleOnPress}
       >
         <PostCard
-          goToGroup={handleGoToGroup}
           post={post}
           onPress={handleOnPress}
           respondToEvent={handleRespondToEvent}

@@ -28,8 +28,7 @@ export default {
   },
   content: {
     paddingTop: 20,
-    paddingHorizontal: '5%',
-    backgroundColor: 'white'
+    paddingHorizontal: '5%'
   },
   title: {
     ...loginStyles.title,

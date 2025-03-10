@@ -24,6 +24,7 @@ export default function ContextMenu () {
     orderContextWidgetsForContextMenu(currentGroup?.contextWidgets || []),
   [currentGroup?.contextWidgets])
 
+  // TODO: May be more appropriately put on AuthRootNavigator after useHandleLinking
   useEffect(() => {
     if ((!fetching && currentGroup?.shouldWelcome)) {
       navigation.replace('Group Welcome')
@@ -48,8 +49,8 @@ export default function ContextMenu () {
     <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
       <Header group={currentGroup} />
       <ScrollView className='p-2'>
-        {widgets.map(widget => (
-          <View key={widget.id} className='mb-0.5'>
+        {widgets.map((widget, key) => (
+          <View key={key} className='mb-0.5'>
             <MenuItem
               widget={widget}
               groupSlug={currentGroup.slug}
@@ -140,9 +141,9 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
         <TopElements widget={widget} group={group} />
       </View>
       {loading && <Text className='text-foreground'>{t('Loading...')}</Text>}
-      {listItems.length > 0 && listItems.map(item =>
+      {listItems.length > 0 && listItems.map((item, key) =>
         <ChildWidget
-          key={item.id}
+          key={key}
           widget={item}
           rootPath={rootPath}
           groupSlug={groupSlug}

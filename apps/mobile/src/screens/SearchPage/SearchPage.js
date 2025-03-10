@@ -269,7 +269,6 @@ export function PostCard ({ post, goToPost }) {
         creator={creator}
         showDetails={goToThisPost}
         showMember={goToThisPost}
-        goToGroup={goToThisPost}
         onPress={goToThisPost}
         post={post}
         groups={groups}
@@ -296,7 +295,6 @@ export function CommentCard ({ comment, goToPost }) {
           pinned={post.pinned}
           showMember={goToThisPost}
           showTopic={goToThisPost}
-          goToGroup={goToThisPost}
           announcement={post.announcement}
           hideMenu
           smallAvatar

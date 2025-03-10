@@ -214,7 +214,7 @@ export function MemberSkills ({ skills, editable, goToSkills }) {
 
 export function MemberGroups ({ memberships, editing }) {
   const { t } = useTranslation()
-  const changeToGroup = useChangeToGroup()
+
   if (isEmpty(memberships)) return null
 
   return (
@@ -222,8 +222,9 @@ export function MemberGroups ({ memberships, editing }) {
       <Text style={styles.sectionLabel}>{t('Hylo Communities')}</Text>
       {memberships.map(membership => (
         <GroupRow
-          membership={membership} key={membership.id}
-          goToGroup={changeToGroup} editing={editing}
+          membership={membership}
+          key={membership.id}
+          editing={editing}
         />
       ))}
     </View>
@@ -267,6 +268,7 @@ export function MemberAffiliation ({ affiliation }) {
 
 export function GroupRow ({ membership, editing }) {
   const changeToGroup = useChangeToGroup()
+  const handleOnPress = () => changeToGroup(group.slug, { confirm: true })
   const { group, hasModeratorRole } = membership
   const formatCount = count => {
     if (count < 1000) return `${count}`
@@ -277,7 +279,7 @@ export function GroupRow ({ membership, editing }) {
   return (
     <View style={styles.groupRow}>
       <FastImage source={{ uri: group.avatarUrl }} style={styles.groupAvatar} />
-      <TouchableOpacity onPress={() => changeToGroup(group.slug, { confirm: true })} disabled={editing}>
+      <TouchableOpacity onPress={handleOnPress} disabled={editing}>
         <Text style={styles.groupName}>{group.name}</Text>
       </TouchableOpacity>
       {hasModeratorRole && <Icon name='Star' style={styles.starIcon} />}
