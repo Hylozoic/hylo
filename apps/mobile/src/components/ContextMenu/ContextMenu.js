@@ -47,11 +47,11 @@ export default function ContextMenu () {
 
   return (
     <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
-      <Header group={currentGroup} />
+      <ContextHeader group={currentGroup} />
       <ScrollView className='p-2'>
         {widgets.map((widget, key) => (
           <View key={key} className='mb-0.5'>
-            <MenuItem
+            <ContextItem
               widget={widget}
               groupSlug={currentGroup.slug}
               rootPath={`/groups/${currentGroup.slug}`}
@@ -75,7 +75,29 @@ export default function ContextMenu () {
   )
 }
 
-function MenuItem ({ widget, groupSlug, rootPath, group }) {
+function ContextHeader ({ group, style }) {
+  const { t } = useTranslation()
+  const insets = useSafeAreaInsets()
+
+  if (!group) return null
+
+  return (
+    <View className='w-full relative' style={style}>
+      {!group.isContextGroup && (
+        <GroupMenuHeader group={group} />
+      )}
+      {group.isContextGroup && (
+        <View className='flex flex-col p-2' style={{ paddingTop: insets.top }}>
+          <Text className='text-foreground font-bold text-lg'>
+            {t(group.name)}
+          </Text>
+        </View>
+      )}
+    </View>
+  )
+}
+
+function ContextItem ({ widget, groupSlug, rootPath, group }) {
   const { t } = useTranslation()
   const { listItems, loading } = useContextWidgetChildren({ widget, groupSlug })
   const openURL = useOpenURL()
@@ -139,11 +161,11 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
         <Text className={`text-base font-light opacity-50 ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>{title}</Text>
       </TouchableOpacity>
       <View className='w-full flex flex-col justify-center items-center relative'>
-        <TopElements widget={widget} group={group} />
+        <ContextItemActions widget={widget} group={group} />
       </View>
       {loading && <Text className='text-foreground'>{t('Loading...')}</Text>}
       {listItems.length > 0 && listItems.map((item, key) =>
-        <ChildWidget
+        <ContextItemChild
           key={key}
           widget={item}
           rootPath={rootPath}
@@ -156,7 +178,7 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
   )
 }
 
-function ChildWidget ({ widget, handleWidgetPress, rootPath, groupSlug, parentUrl }) {
+function ContextItemChild ({ widget, handleWidgetPress, rootPath, groupSlug, parentUrl }) {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
   const url = makeWidgetUrl({ widget, rootPath, groupSlug })
@@ -185,28 +207,13 @@ function ChildWidget ({ widget, handleWidgetPress, rootPath, groupSlug, parentUr
   )
 }
 
-function TopElementLink ({ title, path }) {
-  const { t } = useTranslation()
-  const openURL = useOpenURL()
-  return (
-    <TouchableOpacity
-      onPress={() => openURL(path, { replace: true })}
-      className='w-full'
-    >
-      <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
-        <Text className='text-base text-foreground'>{t(title)}</Text>
-      </View>
-    </TouchableOpacity>
-  )
-}
-
-function TopElements ({ widget, group }) {
+function ContextItemActions ({ widget, group }) {
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAddMembers = hasResponsibility(RESP_ADD_MEMBERS)
 
   if (widget.type === 'members' && canAddMembers) {
     return (
-      <TopElementLink title='Add Members' url={`/groups/${group.slug}/settings/invite`} />
+      <ContextItemActionLink title='Add Members' url={`/groups/${group.slug}/settings/invite`} />
     )
   }
 
@@ -223,26 +230,26 @@ function TopElements ({ widget, group }) {
     const settingsDetailsPath = `/groups/${group.slug}/settings/details`
     return (
       <View className='w-full mb-2'>
-        <TopElementLink title='Settings' path={`/groups/${group.slug}/settings`} />
+        <ContextItemActionLink title='Settings' path={`/groups/${group.slug}/settings`} />
         <View className='w-full'>
           {!group.avatarUrl && (
-            <TopElementLink title='Add Avatar' path={settingsDetailsPath} />
+            <ContextItemActionLink title='Add Avatar' path={settingsDetailsPath} />
           )}
           {!group.bannerUrl && (
-            <TopElementLink title='Add Banner' path={settingsDetailsPath} />
+            <ContextItemActionLink title='Add Banner' path={settingsDetailsPath} />
           )}
           {!group.purpose && (
-            <TopElementLink title='Add Purpose' path={settingsDetailsPath} />
+            <ContextItemActionLink title='Add Purpose' path={settingsDetailsPath} />
           )}
           {(
             !group.description ||
             group.description === 'This is a long-form description of the group' ||
             group.description === ''
           ) && (
-            <TopElementLink title='Add Description' path={settingsDetailsPath} />
+            <ContextItemActionLink title='Add Description' path={settingsDetailsPath} />
           )}
           {!group.locationObject && (
-            <TopElementLink title='Add Location' path={settingsDetailsPath} />
+            <ContextItemActionLink title='Add Location' path={settingsDetailsPath} />
           )}
         </View>
       </View>
@@ -250,24 +257,17 @@ function TopElements ({ widget, group }) {
   }
 }
 
-function Header ({ group, style }) {
+function ContextItemActionLink ({ title, path }) {
   const { t } = useTranslation()
-  const insets = useSafeAreaInsets()
-
-  if (!group) return null
-
+  const openURL = useOpenURL()
   return (
-    <View className='w-full relative' style={style}>
-      {!group.isContextGroup && (
-        <GroupMenuHeader group={group} />
-      )}
-      {group.isContextGroup && (
-        <View className='flex flex-col p-2' style={{ paddingTop: insets.top }}>
-          <Text className='text-foreground font-bold text-lg'>
-            {t(group.name)}
-          </Text>
-        </View>
-      )}
-    </View>
+    <TouchableOpacity
+      onPress={() => openURL(path, { replace: true })}
+      className='w-full'
+    >
+      <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
+        <Text className='text-base text-foreground'>{t(title)}</Text>
+      </View>
+    </TouchableOpacity>
   )
 }
