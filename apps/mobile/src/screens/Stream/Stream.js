@@ -122,6 +122,10 @@ export default function Stream () {
   const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
 
   const title = useMemo(() => {
+    if (customView?.name) {
+      return customView?.name
+    }
+
     switch (streamType) {
       case 'event':
         return t('Events')

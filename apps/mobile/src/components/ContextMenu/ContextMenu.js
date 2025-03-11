@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { TextHelpers } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
@@ -47,7 +48,18 @@ export default function ContextMenu () {
 
   return (
     <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
-      <ContextHeader group={currentGroup} />
+      <View className='w-full relative'>
+        {!currentGroup.isContextGroup && (
+          <GroupMenuHeader group={currentGroup} />
+        )}
+        {currentGroup.isContextGroup && (
+          <View className='flex flex-col p-2' style={{ paddingTop: insets.top }}>
+            <Text className='text-foreground font-bold text-lg'>
+              {t(currentGroup.name)}
+            </Text>
+          </View>
+        )}
+      </View>
       <ScrollView className='p-2'>
         {widgets.map((widget, key) => (
           <View key={key} className='mb-0.5'>
@@ -66,7 +78,7 @@ export default function ContextMenu () {
             onPress={handleGoToAllViews}
             className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md gap-2'
           >
-            <WidgetIconResolver widget={{ type: 'all-views' }} className='mr-2' />
+            <WidgetIconResolver widget={{ type: 'all-views' }} />
             <Text className='text-base font-normal text-foreground'>{t('All Views')}</Text>
           </TouchableOpacity>
         </View>
@@ -75,55 +87,32 @@ export default function ContextMenu () {
   )
 }
 
-function ContextHeader ({ group, style }) {
-  const { t } = useTranslation()
-  const insets = useSafeAreaInsets()
-
-  if (!group) return null
-
-  return (
-    <View className='w-full relative' style={style}>
-      {!group.isContextGroup && (
-        <GroupMenuHeader group={group} />
-      )}
-      {group.isContextGroup && (
-        <View className='flex flex-col p-2' style={{ paddingTop: insets.top }}>
-          <Text className='text-foreground font-bold text-lg'>
-            {t(group.name)}
-          </Text>
-        </View>
-      )}
-    </View>
-  )
-}
-
-function ContextItem ({ widget, groupSlug, rootPath, group }) {
+function ContextItem ({ widget, groupSlug }) {
   const { t } = useTranslation()
   const { listItems, loading } = useContextWidgetChildren({ widget, groupSlug })
   const openURL = useOpenURL()
   const logout = useLogout()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
-  const [{ currentGroup }] = useCurrentGroup()
   const routeParams = useRouteParams()
 
+  const rootPath = `/groups/${groupSlug}`
   const title = translateTitle(widget.title, t)
-  const url = makeWidgetUrl({ widget, rootPath, groupSlug })
+  const widgetPath = makeWidgetUrl({ widget, rootPath, groupSlug })
   const isActive = useMemo(() => {
-    if (!url || !routeParams.originalLinkingPath) return false
-    // Remove any trailing slashes for comparison
-    const cleanUrl = url.replace(/\/$/, '')
-    const cleanPath = routeParams.originalLinkingPath.replace(/\/$/, '')
-    return cleanPath === cleanUrl || cleanPath.startsWith(cleanUrl + '/')
-  }, [url, routeParams.originalLinkingPath])
+    const currentPath = routeParams?.originalLinkingPath
+    if (!widgetPath || !currentPath) return false
+    return currentPath === widgetPath || currentPath.startsWith(widgetPath + '/')
+  }, [widgetPath, routeParams.originalLinkingPath])
 
   const handleWidgetPress = widget => {
-    const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.slug })
+    const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug })
     openURL(linkingPath, { replace: true })
   }
 
-  if (isHiddenInContextMenuResolver(widget)) return null
-  if (widget.visibility === 'admin' && !canAdmin) return null
+  if (!widget || isHiddenInContextMenuResolver(widget) || (widget.visibility === 'admin' && !canAdmin)) {
+    return null
+  }
 
   if (widget.type === 'logout') {
     return (
@@ -131,13 +120,13 @@ function ContextItem ({ widget, groupSlug, rootPath, group }) {
         onPress={() => logout()}
         className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md mb-2 gap-2'
       >
-        <WidgetIconResolver widget={widget} className='mr-2' style={{ fontSize: 18 }} />
+        <WidgetIconResolver widget={widget} style={{ fontSize: 18 }} />
         <Text className='text-base font-normal text-foreground'>{title}</Text>
       </TouchableOpacity>
     )
   }
 
-  if (url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))) {
+  if (widgetPath && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))) {
     return (
       <TouchableOpacity
         onPress={() => handleWidgetPress(widget)}
@@ -146,7 +135,7 @@ function ContextItem ({ widget, groupSlug, rootPath, group }) {
           ${isActive ? 'border-selected bg-selected/10 opacity-100' : 'border-foreground/20'}
         `}
       >
-        <WidgetIconResolver widget={widget} className='mr-2' style={{ fontSize: 18 }} />
+        <WidgetIconResolver widget={widget} style={{ fontSize: 18 }} />
         <Text className={`text-base font-normal ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>{title}</Text>
       </TouchableOpacity>
     )
@@ -161,7 +150,7 @@ function ContextItem ({ widget, groupSlug, rootPath, group }) {
         <Text className={`text-base font-light opacity-50 ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>{title}</Text>
       </TouchableOpacity>
       <View className='w-full flex flex-col justify-center items-center relative'>
-        <ContextItemActions widget={widget} group={group} />
+        <ContextItemActions widget={widget} />
       </View>
       {loading && <Text className='text-foreground'>{t('Loading...')}</Text>}
       {listItems.length > 0 && listItems.map((item, key) =>
@@ -171,14 +160,13 @@ function ContextItem ({ widget, groupSlug, rootPath, group }) {
           rootPath={rootPath}
           groupSlug={groupSlug}
           handleWidgetPress={handleWidgetPress}
-          parentUrl={url}
         />
       )}
     </View>
   )
 }
 
-function ContextItemChild ({ widget, handleWidgetPress, rootPath, groupSlug, parentUrl }) {
+function ContextItemChild ({ widget, handleWidgetPress, rootPath, groupSlug }) {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
   const url = makeWidgetUrl({ widget, rootPath, groupSlug })
@@ -199,7 +187,7 @@ function ContextItemChild ({ widget, handleWidgetPress, rootPath, groupSlug, par
         ${isActive ? 'border-selected bg-selected/10 opacity-100' : 'border-foreground/20'}
       `}
     >
-      <WidgetIconResolver widget={widget} className='mr-2' style={{ fontSize: 18 }} />
+      <WidgetIconResolver widget={widget} style={{ fontSize: 18 }} />
       <Text className={`text-base font-normal ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>
         {translateTitle(widget.title, t)}
       </Text>
@@ -207,48 +195,51 @@ function ContextItemChild ({ widget, handleWidgetPress, rootPath, groupSlug, par
   )
 }
 
-function ContextItemActions ({ widget, group }) {
+function ContextItemActions ({ widget }) {
+  const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAddMembers = hasResponsibility(RESP_ADD_MEMBERS)
 
+  if (!currentGroup) return null
+
   if (widget.type === 'members' && canAddMembers) {
     return (
-      <ContextItemActionLink title='Add Members' url={`/groups/${group.slug}/settings/invite`} />
+      <ContextItemActionLink title='Add Members' widget={widget} path={`/groups/${currentGroup.slug}/settings/invite`} />
     )
   }
 
   if (widget.type === 'about') {
     return (
       <View className='mb-4'>
-        <Text className='text-sm text-gray-600 mb-2'>{group.purpose}</Text>
-        <Text className='text-sm text-gray-600'>{group.description}</Text>
+        <Text className='text-sm text-gray-600 mb-2'>{currentGroup.purpose}</Text>
+        <Text className='text-sm text-gray-600'>{TextHelpers.markdown(currentGroup.description)}</Text>
       </View>
     )
   }
 
   if (widget.type === 'setup') {
-    const settingsDetailsPath = `/groups/${group.slug}/settings/details`
+    const settingsDetailsPath = `/groups/${currentGroup.slug}/settings/details`
     return (
       <View className='w-full mb-2'>
-        <ContextItemActionLink title='Settings' path={`/groups/${group.slug}/settings`} />
+        <ContextItemActionLink title='Settings' path={`/groups/${currentGroup.slug}/settings`} />
         <View className='w-full'>
-          {!group.avatarUrl && (
+          {!currentGroup.avatarUrl && (
             <ContextItemActionLink title='Add Avatar' path={settingsDetailsPath} />
           )}
-          {!group.bannerUrl && (
+          {!currentGroup.bannerUrl && (
             <ContextItemActionLink title='Add Banner' path={settingsDetailsPath} />
           )}
-          {!group.purpose && (
+          {!currentGroup.purpose && (
             <ContextItemActionLink title='Add Purpose' path={settingsDetailsPath} />
           )}
           {(
-            !group.description ||
-            group.description === 'This is a long-form description of the group' ||
-            group.description === ''
+            !currentGroup.description ||
+            currentGroup.description === 'This is a long-form description of the group' ||
+            currentGroup.description === ''
           ) && (
             <ContextItemActionLink title='Add Description' path={settingsDetailsPath} />
           )}
-          {!group.locationObject && (
+          {!currentGroup.locationObject && (
             <ContextItemActionLink title='Add Location' path={settingsDetailsPath} />
           )}
         </View>
@@ -257,16 +248,15 @@ function ContextItemActions ({ widget, group }) {
   }
 }
 
-function ContextItemActionLink ({ title, path }) {
+function ContextItemActionLink ({ title, path, widget }) {
   const { t } = useTranslation()
   const openURL = useOpenURL()
+
   return (
-    <TouchableOpacity
-      onPress={() => openURL(path, { replace: true })}
-      className='w-full'
-    >
-      <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
-        <Text className='text-base text-foreground'>{t(title)}</Text>
+    <TouchableOpacity onPress={() => openURL(path, { replace: true })} className='w-full'>
+      <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 gap-2 bg-background flex-row'>
+        <WidgetIconResolver widget={widget} style={{ fontSize: 18 }} />
+        <Text className='text-base text-foreground'>{t(title || widget?.title)}</Text>
       </View>
     </TouchableOpacity>
   )
