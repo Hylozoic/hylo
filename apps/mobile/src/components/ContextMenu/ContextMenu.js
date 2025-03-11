@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { TextHelpers } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
@@ -47,11 +48,26 @@ export default function ContextMenu () {
 
   return (
     <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
-      <Header />
+      <View className='w-full relative'>
+        {!currentGroup.isContextGroup && (
+          <GroupMenuHeader group={currentGroup} />
+        )}
+        {currentGroup.isContextGroup && (
+          <View className='flex flex-col p-2' style={{ paddingTop: insets.top }}>
+            <Text className='text-foreground font-bold text-lg'>
+              {t(currentGroup.name)}
+            </Text>
+          </View>
+        )}
+      </View>
       <ScrollView className='p-2'>
         {widgets.map((widget, key) => (
           <View key={key} className='mb-0.5'>
-            <MenuItem widget={widget} />
+            <ContextWidget
+              widget={widget}
+              groupSlug={currentGroup.slug}
+              rootPath={`/groups/${currentGroup.slug}`}
+            />
           </View>
         ))}
       </ScrollView>
@@ -61,7 +77,7 @@ export default function ContextMenu () {
             onPress={handleGoToAllViews}
             className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md gap-2'
           >
-            <WidgetIconResolver widget={{ type: 'all-views' }} className='mr-2' />
+            <WidgetIconResolver widget={{ type: 'all-views' }} />
             <Text className='text-base font-normal text-foreground'>{t('All Views')}</Text>
           </TouchableOpacity>
         </View>
@@ -70,29 +86,26 @@ export default function ContextMenu () {
   )
 }
 
-function MenuItem ({ widget }) {
+function ContextWidget ({ widget, groupSlug }) {
   const { t } = useTranslation()
-  const [{ currentGroup }] = useCurrentGroup()
-  const { listItems, loading } = useContextWidgetChildren({ widget, groupSlug: currentGroup?.slug })
+  const { listItems: childWidgets, loading } = useContextWidgetChildren({ widget, groupSlug })
   const openURL = useOpenURL()
   const logout = useLogout()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAdmin = hasResponsibility(RESP_ADMINISTRATION)
   const routeParams = useRouteParams()
 
-  const rootPath = `/groups/${currentGroup.slug}`
+  const rootPath = `/groups/${groupSlug}`
   const title = translateTitle(widget.title, t)
-  const url = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.slug })
+  const widgetPath = makeWidgetUrl({ widget, rootPath, groupSlug })
   const isActive = useMemo(() => {
-    if (!url || !routeParams.originalLinkingPath) return false
-    // Remove any trailing slashes for comparison
-    const cleanUrl = url.replace(/\/$/, '')
-    const cleanPath = routeParams.originalLinkingPath.replace(/\/$/, '')
-    return cleanPath === cleanUrl || cleanPath.startsWith(cleanUrl + '/')
-  }, [url, routeParams.originalLinkingPath])
+    const currentPath = routeParams?.originalLinkingPath
+    if (!widgetPath || !currentPath) return false
+    return currentPath === widgetPath || currentPath.startsWith(widgetPath + '/')
+  }, [widgetPath, routeParams.originalLinkingPath])
 
   const handleWidgetPress = widget => {
-    const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.slug })
+    const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug })
     openURL(linkingPath, { replace: true })
   }
 
@@ -106,13 +119,13 @@ function MenuItem ({ widget }) {
         onPress={() => logout()}
         className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md mb-2 gap-2'
       >
-        <WidgetIconResolver widget={widget} className='mr-2' style={{ fontSize: 18 }} />
+        <WidgetIconResolver widget={widget} style={{ fontSize: 18 }} />
         <Text className='text-base font-normal text-foreground'>{title}</Text>
       </TouchableOpacity>
     )
   }
 
-  if (url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))) {
+  if (widgetPath && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))) {
     return (
       <TouchableOpacity
         onPress={() => handleWidgetPress(widget)}
@@ -121,7 +134,7 @@ function MenuItem ({ widget }) {
           ${isActive ? 'border-selected bg-selected/10 opacity-100' : 'border-foreground/20'}
         `}
       >
-        <WidgetIconResolver widget={widget} className='mr-2' style={{ fontSize: 18 }} />
+        <WidgetIconResolver widget={widget} style={{ fontSize: 18 }} />
         <Text className={`text-base font-normal ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>{title}</Text>
       </TouchableOpacity>
     )
@@ -136,15 +149,15 @@ function MenuItem ({ widget }) {
         <Text className={`text-base font-light opacity-50 ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>{title}</Text>
       </TouchableOpacity>
       <View className='w-full flex flex-col justify-center items-center relative'>
-        <TopElements widget={widget} />
+        <ContextWidgetActions widget={widget} />
       </View>
       {loading && <Text className='text-foreground'>{t('Loading...')}</Text>}
-      {listItems.length > 0 && listItems.map((item, key) =>
-        <ChildWidget
+      {childWidgets.length > 0 && childWidgets.map((childWidget, key) =>
+        <ContextWidgetChild
           key={key}
-          widget={item}
+          widget={childWidget}
           rootPath={rootPath}
-          groupSlug={currentGroup?.slug}
+          groupSlug={groupSlug}
           handleWidgetPress={handleWidgetPress}
         />
       )}
@@ -152,7 +165,7 @@ function MenuItem ({ widget }) {
   )
 }
 
-function ChildWidget ({ widget, handleWidgetPress, rootPath, groupSlug }) {
+function ContextWidgetChild ({ widget, handleWidgetPress, rootPath, groupSlug }) {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
   const url = makeWidgetUrl({ widget, rootPath, groupSlug })
@@ -173,7 +186,7 @@ function ChildWidget ({ widget, handleWidgetPress, rootPath, groupSlug }) {
         ${isActive ? 'border-selected bg-selected/10 opacity-100' : 'border-foreground/20'}
       `}
     >
-      <WidgetIconResolver widget={widget} className='mr-2' style={{ fontSize: 18 }} />
+      <WidgetIconResolver widget={widget} style={{ fontSize: 18 }} />
       <Text className={`text-base font-normal ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>
         {translateTitle(widget.title, t)}
       </Text>
@@ -181,29 +194,16 @@ function ChildWidget ({ widget, handleWidgetPress, rootPath, groupSlug }) {
   )
 }
 
-function TopElementLink ({ title, path }) {
-  const { t } = useTranslation()
-  const openURL = useOpenURL()
-  return (
-    <TouchableOpacity
-      onPress={() => openURL(path, { replace: true })}
-      className='w-full'
-    >
-      <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
-        <Text className='text-base text-foreground'>{t(title)}</Text>
-      </View>
-    </TouchableOpacity>
-  )
-}
-
-function TopElements ({ widget }) {
+function ContextWidgetActions ({ widget }) {
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAddMembers = hasResponsibility(RESP_ADD_MEMBERS)
 
+  if (!currentGroup) return null
+
   if (widget.type === 'members' && canAddMembers) {
     return (
-      <TopElementLink title='Add Members' url={`/groups/${currentGroup.slug}/settings/invite`} />
+      <ContextWidgetActionLink title='Add Members' widget={widget} path={`/groups/${currentGroup.slug}/settings/invite`} />
     )
   }
 
@@ -211,7 +211,7 @@ function TopElements ({ widget }) {
     return (
       <View className='mb-4'>
         <Text className='text-sm text-gray-600 mb-2'>{currentGroup.purpose}</Text>
-        <Text className='text-sm text-gray-600'>{currentGroup.description}</Text>
+        <Text className='text-sm text-gray-600'>{TextHelpers.markdown(currentGroup.description)}</Text>
       </View>
     )
   }
@@ -220,26 +220,26 @@ function TopElements ({ widget }) {
     const settingsDetailsPath = `/groups/${currentGroup.slug}/settings/details`
     return (
       <View className='w-full mb-2'>
-        <TopElementLink title='Settings' path={`/groups/${currentGroup.slug}/settings`} />
+        <ContextWidgetActionLink title='Settings' path={`/groups/${currentGroup.slug}/settings`} />
         <View className='w-full'>
           {!currentGroup.avatarUrl && (
-            <TopElementLink title='Add Avatar' path={settingsDetailsPath} />
+            <ContextWidgetActionLink title='Add Avatar' path={settingsDetailsPath} />
           )}
           {!currentGroup.bannerUrl && (
-            <TopElementLink title='Add Banner' path={settingsDetailsPath} />
+            <ContextWidgetActionLink title='Add Banner' path={settingsDetailsPath} />
           )}
           {!currentGroup.purpose && (
-            <TopElementLink title='Add Purpose' path={settingsDetailsPath} />
+            <ContextWidgetActionLink title='Add Purpose' path={settingsDetailsPath} />
           )}
           {(
             !currentGroup.description ||
             currentGroup.description === 'This is a long-form description of the group' ||
             currentGroup.description === ''
           ) && (
-            <TopElementLink title='Add Description' path={settingsDetailsPath} />
+            <ContextWidgetActionLink title='Add Description' path={settingsDetailsPath} />
           )}
           {!currentGroup.locationObject && (
-            <TopElementLink title='Add Location' path={settingsDetailsPath} />
+            <ContextWidgetActionLink title='Add Location' path={settingsDetailsPath} />
           )}
         </View>
       </View>
@@ -247,25 +247,16 @@ function TopElements ({ widget }) {
   }
 }
 
-function Header ({ style }) {
+function ContextWidgetActionLink ({ title, path, widget }) {
   const { t } = useTranslation()
-  const insets = useSafeAreaInsets()
-  const [{ currentGroup }] = useCurrentGroup()
-
-  if (!currentGroup) return null
+  const openURL = useOpenURL()
 
   return (
-    <View className='w-full relative' style={style}>
-      {!currentGroup.isContextGroup && (
-        <GroupMenuHeader group={currentGroup} />
-      )}
-      {currentGroup.isContextGroup && (
-        <View className='flex flex-col p-2' style={{ paddingTop: insets.top }}>
-          <Text className='text-foreground font-bold text-lg'>
-            {t(currentGroup.name)}
-          </Text>
-        </View>
-      )}
-    </View>
+    <TouchableOpacity onPress={() => openURL(path, { replace: true })} className='w-full'>
+      <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 gap-2 bg-background flex-row'>
+        <WidgetIconResolver widget={widget} style={{ fontSize: 18 }} />
+        <Text className='text-base text-foreground'>{t(title || widget?.title)}</Text>
+      </View>
+    </TouchableOpacity>
   )
 }
