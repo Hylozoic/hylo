@@ -63,11 +63,10 @@ export default function ContextMenu () {
       <ScrollView className='p-2'>
         {widgets.map((widget, key) => (
           <View key={key} className='mb-0.5'>
-            <ContextItem
+            <ContextWidget
               widget={widget}
               groupSlug={currentGroup.slug}
               rootPath={`/groups/${currentGroup.slug}`}
-              group={currentGroup}
             />
           </View>
         ))}
@@ -87,9 +86,9 @@ export default function ContextMenu () {
   )
 }
 
-function ContextItem ({ widget, groupSlug }) {
+function ContextWidget ({ widget, groupSlug }) {
   const { t } = useTranslation()
-  const { listItems, loading } = useContextWidgetChildren({ widget, groupSlug })
+  const { listItems: childWidgets, loading } = useContextWidgetChildren({ widget, groupSlug })
   const openURL = useOpenURL()
   const logout = useLogout()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
@@ -150,13 +149,13 @@ function ContextItem ({ widget, groupSlug }) {
         <Text className={`text-base font-light opacity-50 ${isActive ? 'text-selected text-opacity-100' : 'text-foreground'}`}>{title}</Text>
       </TouchableOpacity>
       <View className='w-full flex flex-col justify-center items-center relative'>
-        <ContextItemActions widget={widget} />
+        <ContextWidgetActions widget={widget} />
       </View>
       {loading && <Text className='text-foreground'>{t('Loading...')}</Text>}
-      {listItems.length > 0 && listItems.map((item, key) =>
-        <ContextItemChild
+      {childWidgets.length > 0 && childWidgets.map((childWidget, key) =>
+        <ContextWidgetChild
           key={key}
-          widget={item}
+          widget={childWidget}
           rootPath={rootPath}
           groupSlug={groupSlug}
           handleWidgetPress={handleWidgetPress}
@@ -166,7 +165,7 @@ function ContextItem ({ widget, groupSlug }) {
   )
 }
 
-function ContextItemChild ({ widget, handleWidgetPress, rootPath, groupSlug }) {
+function ContextWidgetChild ({ widget, handleWidgetPress, rootPath, groupSlug }) {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
   const url = makeWidgetUrl({ widget, rootPath, groupSlug })
@@ -195,7 +194,7 @@ function ContextItemChild ({ widget, handleWidgetPress, rootPath, groupSlug }) {
   )
 }
 
-function ContextItemActions ({ widget }) {
+function ContextWidgetActions ({ widget }) {
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAddMembers = hasResponsibility(RESP_ADD_MEMBERS)
@@ -204,7 +203,7 @@ function ContextItemActions ({ widget }) {
 
   if (widget.type === 'members' && canAddMembers) {
     return (
-      <ContextItemActionLink title='Add Members' widget={widget} path={`/groups/${currentGroup.slug}/settings/invite`} />
+      <ContextWidgetActionLink title='Add Members' widget={widget} path={`/groups/${currentGroup.slug}/settings/invite`} />
     )
   }
 
@@ -221,26 +220,26 @@ function ContextItemActions ({ widget }) {
     const settingsDetailsPath = `/groups/${currentGroup.slug}/settings/details`
     return (
       <View className='w-full mb-2'>
-        <ContextItemActionLink title='Settings' path={`/groups/${currentGroup.slug}/settings`} />
+        <ContextWidgetActionLink title='Settings' path={`/groups/${currentGroup.slug}/settings`} />
         <View className='w-full'>
           {!currentGroup.avatarUrl && (
-            <ContextItemActionLink title='Add Avatar' path={settingsDetailsPath} />
+            <ContextWidgetActionLink title='Add Avatar' path={settingsDetailsPath} />
           )}
           {!currentGroup.bannerUrl && (
-            <ContextItemActionLink title='Add Banner' path={settingsDetailsPath} />
+            <ContextWidgetActionLink title='Add Banner' path={settingsDetailsPath} />
           )}
           {!currentGroup.purpose && (
-            <ContextItemActionLink title='Add Purpose' path={settingsDetailsPath} />
+            <ContextWidgetActionLink title='Add Purpose' path={settingsDetailsPath} />
           )}
           {(
             !currentGroup.description ||
             currentGroup.description === 'This is a long-form description of the group' ||
             currentGroup.description === ''
           ) && (
-            <ContextItemActionLink title='Add Description' path={settingsDetailsPath} />
+            <ContextWidgetActionLink title='Add Description' path={settingsDetailsPath} />
           )}
           {!currentGroup.locationObject && (
-            <ContextItemActionLink title='Add Location' path={settingsDetailsPath} />
+            <ContextWidgetActionLink title='Add Location' path={settingsDetailsPath} />
           )}
         </View>
       </View>
@@ -248,7 +247,7 @@ function ContextItemActions ({ widget }) {
   }
 }
 
-function ContextItemActionLink ({ title, path, widget }) {
+function ContextWidgetActionLink ({ title, path, widget }) {
   const { t } = useTranslation()
   const openURL = useOpenURL()
 
