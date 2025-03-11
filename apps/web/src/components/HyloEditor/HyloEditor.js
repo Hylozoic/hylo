@@ -221,7 +221,7 @@ const HyloEditor = React.forwardRef(({
       {showMenu && (
         <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} />
       )}
-      <EditorContent className={cn('HyloEditor_EditorContent text-foreground py-3 px-3', className)} editor={editor} />
+      <EditorContent className={cn('HyloEditor_EditorContent1 global-postContent text-foreground py-3 px-3', className)} editor={editor} />
       {editor && (
         <BubbleMenu
           editor={editor}
