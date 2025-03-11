@@ -296,7 +296,7 @@ export default function ChatPost ({
         {details && !editing && (
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
             <div className={cn(styles.postContentContainer, { [styles.isFlagged]: isFlagged })}>
-              <HyloHTML className={styles.postContent} html={details} />
+              <HyloHTML className={cn(styles.postContent, 'global-postContent')} html={details} />
             </div>
           </ClickCatcher>
         )}

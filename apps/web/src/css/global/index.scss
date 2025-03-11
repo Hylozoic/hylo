@@ -155,4 +155,62 @@
     /* To work around issue with Radix dialog setting pointer-events: none */
     pointer-events: auto;
   }
+
+  .global-postContent {
+    h1, h2, h3, h4, h5, h6 {
+      margin-bottom: 15px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    h4 {
+      font-size: 1.125rem;
+      font-weight: 500;
+    }
+
+    h5 {
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    h6 {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    a {
+      cursor: pointer;
+    }
+
+    ul, ol {
+      margin-top: 0px;
+      margin-bottom: 10px;
+
+      p {
+        margin-top: 0px;
+        margin-bottom: 5px;
+      }
+    }
+
+    ul {
+      list-style-type: disc;
+    }
+
+    ol {
+      list-style-type: decimal;
+    }
+  }
 }
