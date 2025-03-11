@@ -185,20 +185,28 @@ function ChildWidget ({ widget, handleWidgetPress, rootPath, groupSlug, parentUr
   )
 }
 
-function TopElements ({ widget, group }) {
+function TopElementLink ({ title, path }) {
   const { t } = useTranslation()
   const openURL = useOpenURL()
+  return (
+    <TouchableOpacity
+      onPress={() => openURL(path, { replace: true })}
+      className='w-full'
+    >
+      <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
+        <Text className='text-base text-foreground'>{t(title)}</Text>
+      </View>
+    </TouchableOpacity>
+  )
+}
+
+function TopElements ({ widget, group }) {
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canAddMembers = hasResponsibility(RESP_ADD_MEMBERS)
 
   if (widget.type === 'members' && canAddMembers) {
     return (
-      <TouchableOpacity
-        onPress={() => openURL(`/groups/${group.slug}/settings/invite`, { replace: true })}
-        className='px-4 py-2 bg-primary rounded-md'
-      >
-        <Text className='text-sm font-medium text-white'>{t('Add Members')}</Text>
-      </TouchableOpacity>
+      <TopElementLink title='Add Members' url={`/groups/${group.slug}/settings/invite`} />
     )
   }
 
@@ -212,48 +220,29 @@ function TopElements ({ widget, group }) {
   }
 
   if (widget.type === 'setup') {
-    const settingsUrl = `/groups/${group.slug}/settings/details`
-    const ListItem = ({ title, url }) => (
-      <TouchableOpacity
-        onPress={() => openURL(url, { replace: true })}
-        className='w-full'
-      >
-        <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
-          <Text className='text-base text-foreground'>{title}</Text>
-        </View>
-      </TouchableOpacity>
-    )
-
+    const settingsDetailsPath = `/groups/${group.slug}/settings/details`
     return (
       <View className='w-full mb-2'>
-        <TouchableOpacity
-          onPress={() => openURL(`/groups/${group.slug}/settings`, { replace: true })}
-          className='w-full'
-        >
-          <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 bg-background'>
-            <Text className='text-base text-foreground'>{t('Settings')}</Text>
-          </View>
-        </TouchableOpacity>
-
+        <TopElementLink title='Settings' path={`/groups/${group.slug}/settings`} />
         <View className='w-full'>
           {!group.avatarUrl && (
-            <ListItem title={t('Add Avatar')} url={settingsUrl} />
+            <TopElementLink title='Add Avatar' path={settingsDetailsPath} />
           )}
           {!group.bannerUrl && (
-            <ListItem title={t('Add Banner')} url={settingsUrl} />
+            <TopElementLink title='Add Banner' path={settingsDetailsPath} />
           )}
           {!group.purpose && (
-            <ListItem title={t('Add Purpose')} url={settingsUrl} />
+            <TopElementLink title='Add Purpose' path={settingsDetailsPath} />
           )}
           {(
             !group.description ||
             group.description === 'This is a long-form description of the group' ||
             group.description === ''
           ) && (
-            <ListItem title={t('Add Description')} url={settingsUrl} />
+            <TopElementLink title='Add Description' path={settingsDetailsPath} />
           )}
           {!group.locationObject && (
-            <ListItem title={t('Add Location')} url={settingsUrl} />
+            <TopElementLink title='Add Location' path={settingsDetailsPath} />
           )}
         </View>
       </View>
