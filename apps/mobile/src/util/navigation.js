@@ -172,7 +172,6 @@ export function customViewUrl (customViewId, rootPath, opts) {
 
 export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
   if (!widget) return null
-
   const groupSlug = isContextGroupSlug(providedSlug) ? null : providedSlug
   let url = ''
   if (widget.url) return widget.url
@@ -213,10 +212,6 @@ export function removeGroupFromUrl (url) {
   return url.replace(new RegExp(matchForReplaceRegex), '')
 }
 
-export function gotoExternalUrl (url) {
-  return window.open(url, null, 'noopener,noreferrer')
-}
-
 export const origin = () =>
   typeof window !== 'undefined' ? window.location.origin : host
 
@@ -225,3 +220,20 @@ export const origin = () =>
 export function isPublicPath (path) {
   return (path.startsWith('/public'))
 }
+
+export function ensureHttpsForPath (path) {
+  // Check if path is a valid URI path
+  // Regex matches paths that start with a domain name pattern
+  // e.g. example.com, sub.example.com, example.co.uk etc
+  const validPathRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]*(\.[a-zA-Z0-9][a-zA-Z0-9-]*)*\.[a-zA-Z]{2,}(\/.*)?$/
+
+  if (!path || typeof path !== 'string') return null
+
+  // Remove any existing protocol
+  const cleanPath = path.replace(/^https?:\/\//, '')
+
+  if (!validPathRegex.test(cleanPath)) return null
+
+  return `https://${cleanPath}`
+}
+
