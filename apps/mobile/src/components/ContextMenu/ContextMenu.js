@@ -106,17 +106,12 @@ function ContextWidget ({ widget, groupSlug }) {
   }, [widgetPath, routeParams.originalLinkingPath])
 
   const handleWidgetPress = widget => {
-<<<<<<< HEAD
-    
     if (widget?.customView?.externalLink) {
       openURL(TextHelpers.sanitizeURL(widget.customView.externalLink))
       return
     }
-    const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.slug })
-
-=======
     const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug })
->>>>>>> dev
+
     openURL(linkingPath, { replace: true })
   }
 
