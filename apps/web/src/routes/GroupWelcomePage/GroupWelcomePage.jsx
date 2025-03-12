@@ -21,7 +21,7 @@ function GroupWelcomePage () {
   }, [])
 
   return (
-    <div className='p-4'>
+    <div className='p-4 global-postContent'>
       <HyloHTML html={group.welcomePage} />
     </div>
   )
