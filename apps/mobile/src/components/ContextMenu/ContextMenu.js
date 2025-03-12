@@ -7,6 +7,7 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
+import { TextHelpers } from '@hylo/shared'
 import { widgetUrl as makeWidgetUrl, groupUrl, ensureHttpsForPath } from 'util/navigation'
 import useLogout from 'hooks/useLogout'
 import useOpenURL from 'hooks/useOpenURL'
@@ -96,12 +97,10 @@ function MenuItem ({ widget, groupSlug, rootPath, group }) {
   }, [url, routeParams.originalLinkingPath])
 
   const handleWidgetPress = widget => {
+    
     if (widget?.customView?.externalLink) {
-      try {
-        openURL(ensureHttpsForPath(widget.customView.externalLink))
-      } catch (error) {
-        console.log('Error opening external link:', error)
-      }
+      openURL(TextHelpers.sanitizeURL(widget.customView.externalLink))
+      return
     }
     const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.slug })
 

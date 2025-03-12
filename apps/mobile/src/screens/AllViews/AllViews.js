@@ -5,6 +5,7 @@ import { capitalize } from 'lodash/fp'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 import { translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import { TextHelpers } from '@hylo/shared'
 import { widgetUrl as makeWidgetUrl, ensureHttpsForPath } from 'util/navigation'
 import { openURL } from 'hooks/useOpenURL'
 import WidgetIconResolver from 'components/WidgetIconResolver'
@@ -53,12 +54,10 @@ export default function AllViews () {
   }, [widgets, canAdminister])
 
   const handleWidgetPress = widget => {
+    
     if (widget?.customView?.externalLink) {
-      try {
-        openURL(ensureHttpsForPath(widget.customView.externalLink))
-      } catch (error) {
-        console.log('Error opening external link:', error)
-      }
+      openURL(TextHelpers.sanitizeURL(widget.customView.externalLink))
+      return
     }
     const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug: currentGroup?.slug })
 

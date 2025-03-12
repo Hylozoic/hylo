@@ -220,20 +220,3 @@ export const origin = () =>
 export function isPublicPath (path) {
   return (path.startsWith('/public'))
 }
-
-export function ensureHttpsForPath (path) {
-  // Check if path is a valid URI path
-  // Regex matches paths that start with a domain name pattern
-  // e.g. example.com, sub.example.com, example.co.uk etc
-  const validPathRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]*(\.[a-zA-Z0-9][a-zA-Z0-9-]*)*\.[a-zA-Z]{2,}(\/.*)?$/
-
-  if (!path || typeof path !== 'string') return null
-
-  // Remove any existing protocol
-  const cleanPath = path.replace(/^https?:\/\//, '')
-
-  if (!validPathRegex.test(cleanPath)) return null
-
-  return `https://${cleanPath}`
-}
-
