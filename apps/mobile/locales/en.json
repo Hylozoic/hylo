@@ -296,6 +296,7 @@
   "Voting open": "Voting open",
   "Welcome to": "Welcome to",
   "Welcome to Hylo": "Welcome to Hylo",
+  "Welcome Page": "Welcome Page",
   "Were almost done, are you sure you want to cancel signing-up?": "We're almost done, are you sure you want to cancel signing-up?",
   "Were happy youre here": "We’re happy you’re here!",
   "Weve sent a 6 digit code to": "We've sent a 6 digit code to",
@@ -416,6 +417,7 @@
   "widget-setup": "Setup",
   "widget-stream": "Stream",
   "widget-terms-and-conditions": "Terms and Conditions",
+  "widget-welcome": "Welcome",
   "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}": "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}",
   "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)": "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)"
 }

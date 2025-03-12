@@ -294,7 +294,8 @@
   "Voting ended": "La votación terminó",
   "Voting open": "Votación abierta",
   "Welcome to": "Bienvenido a",
-  "Welcome to Hylo": "",
+  "Welcome to Hylo": "Bienvenido a Hylo",
+  "Welcome Page": "Página de Bienvenida",
   "Were almost done, are you sure you want to cancel signing-up?": "Ya casi terminamos, ¿estás seguro de que deseas cancelar el registro?",
   "Were happy youre here": "¡Estamos felices de que estés aquí!",
   "Weve sent a 6 digit code to": "Hemos enviado un código de 6 dígitos a",
@@ -415,6 +416,7 @@
   "widget-setup": "Configuración",
   "widget-stream": "Flujo",
   "widget-terms-and-conditions": "Términos y Condiciones",
+  "widget-welcome": "Bienvenido",
   "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}": "Los grupos {{childGroupsLength}} son parte de {{currentGroupName}}",
   "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)": "{{currentGroupName}} es parte de {{parentGroupsLength}} grupo(s)"
 }
