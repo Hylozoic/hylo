@@ -130,6 +130,7 @@ export const sendPasswordReset = async (_, { email }) => {
 
       Queue.classMethod('Email', 'sendPasswordReset', {
         email: user.get('email'),
+        version: 'Redesign 2025',
         templateData: {
           login_url: Frontend.Route.jwtLogin(user, token, nextUrl)
         }

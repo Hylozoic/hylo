@@ -14,12 +14,12 @@ const SAVED_SEARCH_TEMPLATE_ID = 'tem_GqjMtFKdPHjPHvkqyHBD7C3P'
 
 const timePeriod = type => {
   switch (type) {
-    case 'daily': return 'yesterday'
-    case 'weekly': return 'last week'
+    case 'daily': return 'day'
+    case 'weekly': return 'week'
   }
 }
 
-export const prepareDigestData = (id, type, opts = {}) => {
+export const prepareDigestData = async (id, type, opts = {}) => {
   let startTime = opts.startTime
   let endTime = opts.endTime
   if (!opts.startTime) {
@@ -27,21 +27,22 @@ export const prepareDigestData = (id, type, opts = {}) => {
     startTime = range[0]
     endTime = range[1]
   }
-  return Group.find(id).then(g => {
-    return getPostsAndComments(g, startTime, endTime)
-      .then(formatData(g))
-      .then(data => merge({
-        group_id: g.id,
-        group_name: g.get('name'),
-        group_avatar_url: g.get('avatar_url'),
-        group_url: Frontend.Route.group(g),
-        time_period: timePeriod(type)
-      }, data))
-  })
+  const group = await Group.find(id)
+  const data = await getPostsAndComments(group, startTime, endTime)
+  if (!data) return false
+  const formattedData = await formatData(group, data)
+  return merge({
+    group_id: group.id,
+    group_name: group.get('name'),
+    group_avatar_url: group.get('avatar_url'),
+    group_slug: group.get('slug'),
+    group_url: Frontend.Route.group(group),
+    time_period: timePeriod(type)
+  }, formattedData)
 }
 
 export const sendToUser = (user, type, data, opts = {}) => {
-  const versionName = data.search ? 'Dec 2022' : 'Dec 2022 - With topic chats'
+  const versionName = 'Redesign 2025'
   const templateId = data.search ? SAVED_SEARCH_TEMPLATE_ID : DIGEST_TEMPLATE_ID
   let senderName
   if (data.search) {
@@ -53,14 +54,16 @@ export const sendToUser = (user, type, data, opts = {}) => {
 
   return personalizeData(user, type, data, merge(opts, { versionName }))
     .then(data => {
-      return opts.dryRun ||
-        Email.sendSimpleEmail(user.get('email'), templateId, data, {
+      return opts.dryRun || !data
+        ? false
+        : Email.sendSimpleEmail(user.get('email'), templateId, data, {
           sender: {
-        name: senderName,
-        reply_to: 'DoNotReply@hylo.com'
-      },
-      version_name: versionName
-    })})
+            name: senderName,
+            reply_to: 'DoNotReply@hylo.com'
+          },
+          version_name: versionName
+        })
+    })
 }
 
 export const sendDigest = (id, type, opts = {}) => {
@@ -78,4 +81,4 @@ export const sendAllDigests = (type, opts) =>
       .then(compact))
 
 export const sendSampleData = address =>
-  Email.sendSimpleEmail(address, templateId, sampleData)
+  Email.sendSimpleEmail(address, DIGEST_TEMPLATE_ID, sampleData)
