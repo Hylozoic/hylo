@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { View, Alert } from 'react-native'
-import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import isEmpty from 'lodash/isEmpty'
 import { MY_CONTEXT_SLUG } from '@hylo/shared'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useOpenURL from 'hooks/useOpenURL'
 import { isIOS } from 'util/platform'
 import {
   getRouteNames,
@@ -23,7 +23,7 @@ export default function GroupWelcomeTabBar ({
   allQuestionsAnswered
 }) {
   const { t } = useTranslation()
-  const navigation = useNavigation()
+  const openURL = useOpenURL()
 
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup: group }] = useCurrentGroup()
@@ -52,10 +52,7 @@ export default function GroupWelcomeTabBar ({
     }
     const getOutTitle = enforceAgreements ? t('Exit this Group & Return Home') : t('Skip')
     const getOutFunc = enforceAgreements
-      ? () => {
-          navigation.navigate('Group Navigation', { groupSlug: MY_CONTEXT_SLUG })
-          navigation.navigate('Stream', { initial: false })
-        }
+      ? () => openURL(`/${MY_CONTEXT_SLUG}`, { replace: true })
       : () => completeWorkflow()
     Alert.alert(
       t('Are you sure you want to leave the Group Welcome?'),

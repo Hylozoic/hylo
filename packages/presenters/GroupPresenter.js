@@ -155,7 +155,6 @@ export const DEFAULT_AVATAR = 'https://d3ngex8q79bk55.cloudfront.net/misc/defaul
 const MY_CONTEXT_DATA = {
   id: MY_CONTEXT_SLUG,
   slug: MY_CONTEXT_SLUG,
-  headerAvatarUrl: 'assets/purple-icon.jpg',
   // TODO: After Web considerations, may belong in ContextWidgetPresenter#MY_CONTEXT_WIDGETS
   contextWidgets: { items: [{ type: 'home', url: '/my/posts' }] },
   name: 'My Home',
@@ -166,7 +165,6 @@ const MY_CONTEXT_DATA = {
 const PUBLIC_CONTEXT_DATA = {
   id: PUBLIC_CONTEXT_SLUG,
   slug: PUBLIC_CONTEXT_SLUG,
-  headerAvatarUrl: 'assets/green-icon.jpg',
   iconName: 'Globe',
   name: 'The Commons',
   // TODO: After Web considerations, may belong in ContextWidgetPresenter#PUBLIC_CONTEXT_WIDGETS
