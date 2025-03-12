@@ -5,12 +5,13 @@ import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
+import useOpenURL from 'hooks/useOpenURL'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
-import { openURL } from 'hooks/useOpenURL'
 
 export default function GroupMenuHeader ({ group }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
+  const openURL = useOpenURL()
   const avatarUrl = group.avatarUrl
   const bannerUrl = group.bannerUrl
   const [textColor, setTextColor] = useState('background')
@@ -41,7 +42,7 @@ export default function GroupMenuHeader ({ group }) {
 
       {canAdmin && (
         <View className='self-end mb-5 mr-3'>
-          <TouchableOpacity onPress={() => navigation.replace('Group Settings')}>
+          <TouchableOpacity onPress={() => openURL(`/groups/${group.slug}/settings`)}>
             <View className='w-6 h-6 drop-shadow-md'>
               <Settings color='white' size={24} />
             </View>

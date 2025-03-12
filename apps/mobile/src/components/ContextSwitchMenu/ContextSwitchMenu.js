@@ -3,7 +3,6 @@ import { Text, FlatList, View, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import Intercom from '@intercom/intercom-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { CircleHelp, Globe, Plus } from 'lucide-react-native'
 import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -11,6 +10,7 @@ import useCurrentGroup, { useContextGroups } from '@hylo/hooks/useCurrentGroup'
 import { widgetUrl as makeWidgetUrl } from 'util/navigation'
 import useOpenURL from 'hooks/useOpenURL'
 import useChangeToGroup from 'hooks/useChangeToGroup'
+import LucideIcon from 'components/LucideIcon'
 import { black, white } from 'style/colors'
 
 const STAY_EXPANDED_DURATION = 1500
@@ -62,8 +62,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
     >
       <FlatList
         data={myGroups}
-        keyExtractor={(item) => item.id}
-        on
+        keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <ContextRow
             context={item}
@@ -104,12 +103,9 @@ function ContextRow ({
   onPress
 }) {
   const newPostCount = Math.min(99, context.newPostCount)
-  const CustomIcons = { CircleHelp, Globe, Plus }
-  const CustomIcon = context?.iconName && CustomIcons[context.iconName]
 
   return (
     <TouchableOpacity
-      key={context?.id}
       onPress={() => onPress(context)}
       className={clsx(
         'flex-row rounded-lg p-1.5',
@@ -121,17 +117,19 @@ function ContextRow ({
         justifyContent: isExpanded ? 'flex-start' : 'center',
         alignItems: 'center'
       }}
-      activeOpacity={0.7}
+      activeOpacity={0.5}
     >
-      {!CustomIcon && !!context?.avatarUrl && (
-        <FastImage source={{ uri: context?.avatarUrl }} style={{ height: 35, width: 35 }} />
-      )}
-      {CustomIcon && (
-        <CustomIcon style={{ color: bottomItem ? black : white }} size={bottomItem ? 24 : 35} />
-      )}
-      {!!newPostCount && (
-        <Text>{newPostCount}</Text>
-      )}
+      <View>
+        {context?.iconName && (
+          <LucideIcon name={context.iconName} color={bottomItem ? black : white} size={bottomItem ? 24 : 35} />
+        )}
+        {!context?.iconName && (
+          <FastImage source={{ uri: context?.avatarUrl }} style={{ height: 35, width: 35 }} />
+        )}
+        {!!newPostCount && (
+          <Text>{newPostCount}</Text>
+        )}
+      </View>
       {isExpanded && (
         <Text
           className={clsx(
