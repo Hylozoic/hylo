@@ -202,7 +202,7 @@ export default function Stream () {
   if (!currentUser) return <Loading style={{ flex: 1 }} />
   if (!currentGroup) return null
 
-  if (isEmpty(currentUser?.memberships) && currentGroup?.isPublicContext) {
+  if (isEmpty(currentUser?.memberships) && !currentGroup?.isPublicContext) {
     return (
       <CreateGroupNotice />
     )
