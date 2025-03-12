@@ -52,7 +52,7 @@ export default function GroupWelcomeTabBar ({
     }
     const getOutTitle = enforceAgreements ? t('Exit this Group & Return Home') : t('Skip')
     const getOutFunc = enforceAgreements
-      ? () => openURL(`/groups/${MY_CONTEXT_SLUG}`, { replace: true })
+      ? () => openURL(`/${MY_CONTEXT_SLUG}`, { replace: true })
       : () => completeWorkflow()
     Alert.alert(
       t('Are you sure you want to leave the Group Welcome?'),
