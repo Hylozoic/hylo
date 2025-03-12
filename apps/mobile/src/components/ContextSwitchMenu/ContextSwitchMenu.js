@@ -62,8 +62,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
     >
       <FlatList
         data={myGroups}
-        keyExtractor={(item) => item.id}
-        on
+        keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <ContextRow
             context={item}
@@ -107,7 +106,6 @@ function ContextRow ({
 
   return (
     <TouchableOpacity
-      key={context?.id}
       onPress={() => onPress(context)}
       className={clsx(
         'flex-row rounded-lg p-1.5',
@@ -119,17 +117,19 @@ function ContextRow ({
         justifyContent: isExpanded ? 'flex-start' : 'center',
         alignItems: 'center'
       }}
-      activeOpacity={0.7}
+      activeOpacity={0.5}
     >
-      {context?.iconName && (
-        <LucideIcon name={context.iconName} color={bottomItem ? black : white} size={bottomItem ? 24 : 35} />
-      )}
-      {!context?.iconName && (
-        <FastImage source={{ uri: context?.avatarUrl }} style={{ height: 35, width: 35 }} />
-      )}
-      {!!newPostCount && (
-        <Text>{newPostCount}</Text>
-      )}
+      <View>
+        {context?.iconName && (
+          <LucideIcon name={context.iconName} color={bottomItem ? black : white} size={bottomItem ? 24 : 35} />
+        )}
+        {!context?.iconName && (
+          <FastImage source={{ uri: context?.avatarUrl }} style={{ height: 35, width: 35 }} />
+        )}
+        {!!newPostCount && (
+          <Text>{newPostCount}</Text>
+        )}
+      </View>
       {isExpanded && (
         <Text
           className={clsx(
