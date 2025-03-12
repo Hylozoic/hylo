@@ -83,7 +83,7 @@ const filterMyAndBlockedUserData = async (userId, data) => {
   }
 
   // We don't need to show every chat, only the count of new chats in each room
-  clonedData.topicsWithChats = clonedData.chats.reduce((topics, chat) => {
+  clonedData.topics_with_chats = Object.values(clonedData.chats.reduce((topics, chat) => {
     if (chat.topic_name) {
       if (topics[chat.topic_name]) {
         topics[chat.topic_name].num_new_chats++
