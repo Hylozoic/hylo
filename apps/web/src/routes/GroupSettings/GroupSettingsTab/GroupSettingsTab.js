@@ -146,7 +146,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
   const { locationDisplayPrecision, showSuggestedSkills } = settings
   const editableMapLocation = group?.locationObject || currentUser.locationObject
 
-  t('Show my groups exact location')
+  t('Display exact location')
   t('Display only nearest city and show nearby location on the map')
   t('Display only nearest city and dont show on the map')
 
