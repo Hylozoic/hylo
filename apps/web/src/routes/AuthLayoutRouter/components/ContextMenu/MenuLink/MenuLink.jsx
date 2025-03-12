@@ -17,12 +17,8 @@ export default function MenuLink ({ badgeCount = null, to, children, onClick, ex
   }, [onClick])
 
   if (externalLink) {
-    const url = externalLink.startsWith('http://') || externalLink.startsWith('https://')
-      ? externalLink
-      : `https://${externalLink}`
-
     return (
-      <a href={url} target='_blank' rel='noreferrer' onClick={onClick} className={cn('MenuLink text-foreground text-sm', className, { 'opacity-100 border-selected': isCurrentLocation })}>
+      <a href={externalLink} target='_blank' rel='noreferrer' onClick={onClick} className={cn('MenuLink text-foreground text-sm', className, { 'opacity-100 border-selected': isCurrentLocation })}>
         {children}
       </a>
     )

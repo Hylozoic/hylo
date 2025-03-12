@@ -105,8 +105,9 @@ function ContextWidget ({ widget, groupSlug }) {
   }, [widgetPath, routeParams.originalLinkingPath])
 
   const handleWidgetPress = widget => {
-    const linkingPath = makeWidgetUrl({ widget, rootPath, groupSlug })
-    openURL(linkingPath, { replace: true })
+    widget?.customView?.externalLink
+      ? openURL(widget.customView.externalLink)
+      : openURL(makeWidgetUrl({ widget, rootPath, groupSlug }), { replace: true })
   }
 
   if (!widget || isHiddenInContextMenuResolver(widget) || (widget.visibility === 'admin' && !canAdmin)) {
