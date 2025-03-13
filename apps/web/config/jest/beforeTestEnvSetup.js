@@ -27,32 +27,76 @@ jest.mock('client/rollbar', () => ({
   configure: jest.fn()
 }))
 
-const mockT = (str, params) => {
-  if (!params) return str
-  let result = str
-  Object.entries(params).forEach(([key, value]) => {
-    result = result.replace(`{{${key}}}`, value)
-  })
-  return result
-}
+// replaced with AI, just keeping for reference
+// const mockT = (str, params) => {
+//   if (!params) return str
+//   let result = str
+//   Object.entries(params).forEach(([key, value]) => {
+//     result = result.replace(`{{${key}}}`, value)
+//   })
+//   return result
+// }
+
+// jest.mock('react-i18next', () => ({
+//   ...jest.requireActual('react-i18next'),
+//   withTranslation: () => Component => {
+//     const ComponentWithTranslation = (props) => <Component {...props} t={mockT} />
+//     return ComponentWithTranslation
+//   },
+//   useTranslation: () => {
+//     return {
+//       t: mockT,
+//       i18n: {
+//         changeLanguage: () => new Promise(() => {})
+//       }
+//     }
+//   },
+//   initReactI18next: {
+//     type: '3rdParty',
+//     init: () => {}
+//   }
+// }))
 
 jest.mock('react-i18next', () => ({
   ...jest.requireActual('react-i18next'),
   withTranslation: () => Component => {
-    const ComponentWithTranslation = (props) => <Component {...props} t={mockT} />
-    return ComponentWithTranslation
+    Component.defaultProps = {
+      ...Component.defaultProps,
+      t: (str, params) => {
+        if (params) {
+          return str.replace(/{{([^}]+)}}/g, (_, key) => {
+            const keys = key.split('.')
+            let value = params
+            for (const k of keys) {
+              value = value[k.trim()]
+            }
+            return value
+          })
+        }
+        return str
+      }
+    }
+    return Component
   },
   useTranslation: () => {
     return {
-      t: mockT,
+      t: (str, params) => {
+        if (params) {
+          return str.replace(/{{([^}]+)}}/g, (_, key) => {
+            const keys = key.split('.')
+            let value = params
+            for (const k of keys) {
+              value = value[k.trim()]
+            }
+            return value
+          })
+        }
+        return str
+      },
       i18n: {
         changeLanguage: () => new Promise(() => {})
       }
     }
-  },
-  initReactI18next: {
-    type: '3rdParty',
-    init: () => {}
   }
 }))
 
