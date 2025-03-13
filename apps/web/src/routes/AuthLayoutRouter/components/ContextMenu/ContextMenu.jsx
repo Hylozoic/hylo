@@ -29,7 +29,8 @@ import ContextWidgetPresenter, {
   getStaticMenuWidgets,
   orderContextWidgetsForContextMenu,
   isHiddenInContextMenuResolver,
-  translateTitle
+  translateTitle,
+  allViewsWidget
 } from '@hylo/presenters/ContextWidgetPresenter'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -213,7 +214,7 @@ export default function ContextMenu (props) {
           {(!isMyContext && !isPublicContext && !isAllContext) && (
             <div className='px-2 w-full mb-[0.05em] mt-6'>
               <ContextMenuItem
-                widget={{ title: t('widget-all'), type: 'all-views', view: 'all-views', childWidgets: [] }}
+                widget={allViewsWidget}
                 groupSlug={routeParams.groupSlug}
                 rootPath={rootPath}
                 canAdminister={canAdminister}

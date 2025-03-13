@@ -68,8 +68,7 @@ const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   viewChat: 'Message',
   chat: 'Message',
   viewPost: 'Posticon',
-  about: 'Info',
-  'all-views': 'Grid3x3'
+  about: 'Info'
 }
 function iconNameResolver (widget, type) {
   if (widget?.iconName) return widget.iconName
@@ -239,8 +238,10 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { context: 'my', view: 'account', title: 'widget-my-account', id: 'widget-my-account', order: 7, parentId: 'widget-myself' },
   { context: 'my', view: 'saved-searches', title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', order: 8, parentId: 'widget-myself' },
   { context: 'my', url: TERMS_AND_CONDITIONS_URL, title: 'widget-terms-and-conditions', id: 'widget-terms-and-conditions', order: 9, parentId: 'widget-myself' },
-  { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', order: 4, parentId: null }
+  { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', iconName: 'LogOut', order: 4, parentId: null }
 ]
+
+export const allViewsWidget = ContextWidgetPresenter({ title: 'widget-all', type: 'all-views', view: 'all-views', iconName: 'Grid3x3', childWidgets: [] })
 
 export const COMMON_VIEWS = {
   proposals: {

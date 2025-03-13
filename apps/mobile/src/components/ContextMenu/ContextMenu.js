@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { TextHelpers } from '@hylo/shared'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
+import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver, translateTitle, allViewsWidget } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 import { widgetUrl as makeWidgetUrl } from 'util/navigation'
@@ -54,7 +54,7 @@ export default function ContextMenu () {
       {!currentGroup.isStaticContext && (
         <View className='px-2 mb-2'>
           <ContextWidget
-            widget={{ title: 'All Views', type: 'all-views', view: 'all-views', childWidgets: [] }}
+            widget={allViewsWidget}
             groupSlug={currentGroup.slug}
             rootPath={`/groups/${currentGroup.slug}`}
           />
@@ -83,6 +83,7 @@ function ContextWidget ({ widget, groupSlug }) {
   }, [widgetPath, routeParams.originalLinkingPath])
 
   const handleWidgetPress = widget => {
+    if (widget.type === 'logout') return logout()
     widget?.customView?.externalLink
       ? openURL(widget.customView.externalLink)
       : openURL(makeWidgetUrl({ widget, rootPath, groupSlug }), { replace: true })
@@ -90,18 +91,6 @@ function ContextWidget ({ widget, groupSlug }) {
 
   if (!widget || isHiddenInContextMenuResolver(widget) || (widget.visibility === 'admin' && !canAdmin)) {
     return null
-  }
-
-  if (widget.type === 'logout') {
-    return (
-      <TouchableOpacity
-        onPress={() => logout()}
-        className='flex-row items-center p-3 bg-background border-2 border-foreground/20 rounded-md mb-2 gap-2'
-      >
-        <WidgetIconResolver widget={widget} style={{ fontSize: 18 }} />
-        <Text className='text-base font-normal text-foreground'>{title}</Text>
-      </TouchableOpacity>
-    )
   }
 
   if (widgetPath && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))) {
