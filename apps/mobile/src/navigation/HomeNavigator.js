@@ -12,6 +12,7 @@ import AllTopicsWebView from 'screens/AllTopicsWebView'
 import AllViews from 'screens/AllViews'
 import Groups from 'screens/Groups'
 import GroupWelcomeLanding from 'screens/GroupWelcomeFlow/GroupWelcomeLanding'
+import GroupWelcomePage from 'screens/GroupWelcomePage'
 import MemberDetails from 'screens/MemberProfile/MemberDetails'
 import MemberProfile from 'screens/MemberProfile'
 import MembersComponent from 'screens/Members'
@@ -59,6 +60,7 @@ export default function HomeNavigator ({ navigation }) {
       <HomeTab.Screen name='All Views' component={AllViews} />
       <HomeTab.Screen name='Group Relationships' component={Groups} />
       <HomeTab.Screen name='Group Welcome' component={GroupWelcomeLanding} />
+      <HomeTab.Screen name='Group Welcome Page' component={GroupWelcomePage} />
       <HomeTab.Screen name='Map' component={MapWebView} />
       <HomeTab.Screen name='Member' key='Member' component={MemberProfile} />
       <HomeTab.Screen name='Members' component={MembersComponent} />
