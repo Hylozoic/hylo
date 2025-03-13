@@ -3,17 +3,45 @@ import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
 import LucideIcon, { CustomIcons } from 'components/LucideIcon/LucideIcon'
 
-export function WidgetIconResolver ({ widget, style, className }) {
-  if (!widget) return null
+export function WidgetIconResolver ({
+  className,
+  dimension,
+  iconName: providedIconName,
+  size,
+  style = { fontSize: 18 },
+  widget
+}) {
+  const iconName = widget?.iconName || providedIconName
+
+  if (!widget && !iconName) return null
 
   if (widget?.avatarUrl) {
-    return <Avatar avatarUrl={widget.avatarUrl} name={widget?.displayName} style={style} className={className} />
+    return (
+      <Avatar
+        avatarUrl={widget.avatarUrl}
+        name={widget?.displayName}
+        style={style}
+        className={className}
+        dimension={size || style?.fontSize + 6}
+      />
+    )
   }
 
-  if (widget?.iconName) {
-    return CustomIcons[widget.iconName]
-      ? <LucideIcon name={widget.iconName} style={style} className={className} />
-      : <Icon name={widget.iconName} style={style} className={className} />
+  if (iconName) {
+    return CustomIcons[iconName]
+      ? <LucideIcon
+          className={className}
+          name={iconName}
+          size={style?.fontSize}
+          style={style}
+
+        />
+      : <Icon
+          className={className} 
+          name={iconName}
+          size={size}
+          style={style}
+        />
   }
 
   return null

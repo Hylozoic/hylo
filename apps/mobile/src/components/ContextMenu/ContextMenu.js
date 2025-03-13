@@ -28,12 +28,12 @@ export default function ContextMenu () {
 
   return (
     <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
-      <View className='w-full relative'>
+      <View>
         {!currentGroup.isStaticContext && (
           <GroupMenuHeader group={currentGroup} />
         )}
         {currentGroup.isStaticContext && (
-          <View className='flex flex-col p-2' style={{ paddingTop: insets.top }}>
+          <View className='flex-col p-2' style={{ paddingTop: insets.top }}>
             <Text className='text-foreground font-bold text-lg'>
               {t(currentGroup.name)}
             </Text>
@@ -66,7 +66,7 @@ export default function ContextMenu () {
 
 function ContextWidget ({ widget, groupSlug }) {
   const { t } = useTranslation()
-  const { listItems: childWidgets, loading } = useContextWidgetChildren({ widget, groupSlug })
+  const { contextWidgetChildren: widgetChildren, loading } = useContextWidgetChildren({ widget, groupSlug })
   const openURL = useOpenURL()
   const logout = useLogout()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
@@ -98,37 +98,37 @@ function ContextWidget ({ widget, groupSlug }) {
       <TouchableOpacity
         onPress={() => handleWidgetPress(widget)}
         className={`
-          w-full flex-row items-center p-3 bg-background border-2 rounded-md mb-2 gap-2
+          flex-row items-center p-3 bg-background border-2 rounded-md mb-2 gap-2
           ${isActive ? 'border-selected opacity-100' : 'border-foreground/20'}
         `}
       >
-        <WidgetIconResolver widget={widget} style={{ fontSize: 18 }} />
+        <WidgetIconResolver widget={widget} />
         <Text className='text-base font-normal text-foreground'>{title}</Text>
       </TouchableOpacity>
     )
   }
 
   return (
-    <View className='w-full rounded-md p-2 bg-background mb-0.5'>
+    <View className='rounded-md p-2 bg-background mb-0.5'>
       <TouchableOpacity
         onPress={widget.view && (() => handleWidgetPress(widget))}
-        className='w-full flex-row justify-between items-center'
+        className='flex-row justify-between items-center'
       >
         <Text className='text-base font-light opacity-50 text-foreground'>{title}</Text>
       </TouchableOpacity>
-      <View className='w-full flex flex-col justify-center items-center relative'>
+      <View>
         <ContextWidgetActions widget={widget} />
+        {loading && <Text className='text-foreground'>{t('Loading...')}</Text>}
+        {widgetChildren.map((childWidget, key) =>
+          <ContextWidgetChild
+            key={key}
+            widget={childWidget}
+            rootPath={rootPath}
+            groupSlug={groupSlug}
+            handleWidgetPress={handleWidgetPress}
+          />
+        )}
       </View>
-      {loading && <Text className='text-foreground'>{t('Loading...')}</Text>}
-      {childWidgets.length > 0 && childWidgets.map((childWidget, key) =>
-        <ContextWidgetChild
-          key={key}
-          widget={childWidget}
-          rootPath={rootPath}
-          groupSlug={groupSlug}
-          handleWidgetPress={handleWidgetPress}
-        />
-      )}
     </View>
   )
 }
@@ -147,14 +147,13 @@ function ContextWidgetChild ({ widget, handleWidgetPress, rootPath, groupSlug })
 
   return (
     <TouchableOpacity
-      key={widget.id + widget.title}
       onPress={() => handleWidgetPress(widget)}
       className={`
-        w-full flex-row items-center p-3 bg-background border-2 rounded-md mb-2 gap-2
+        flex-row items-center p-3 bg-background border-2 rounded-md mb-2 gap-2
         ${isActive ? 'border-selected opacity-100' : 'border-foreground/20'}
       `}
     >
-      <WidgetIconResolver widget={widget} style={{ fontSize: 18 }} />
+      <WidgetIconResolver widget={widget} />
       <Text className='text-base font-normal'>
         {translateTitle(widget.title, t)}
       </Text>
@@ -171,7 +170,7 @@ function ContextWidgetActions ({ widget }) {
 
   if (widget.type === 'members' && canAddMembers) {
     return (
-      <ContextWidgetActionLink title='Add Members' widget={widget} path={`/groups/${currentGroup.slug}/settings/invite`} />
+      <ContextWidgetActionLink widget={{ title: 'Add Members', iconName: 'UserPlus' }} path={`/groups/${currentGroup.slug}/settings/invite`} />
     )
   }
 
@@ -187,9 +186,9 @@ function ContextWidgetActions ({ widget }) {
   if (widget.type === 'setup') {
     const settingsDetailsPath = `/groups/${currentGroup.slug}/settings/details`
     return (
-      <View className='w-full mb-2'>
+      <View className='mb-2'>
         <ContextWidgetActionLink title='Settings' path={`/groups/${currentGroup.slug}/settings`} />
-        <View className='w-full'>
+        <View>
           {!currentGroup.avatarUrl && (
             <ContextWidgetActionLink title='Add Avatar' path={settingsDetailsPath} />
           )}
@@ -215,16 +214,17 @@ function ContextWidgetActions ({ widget }) {
   }
 }
 
-function ContextWidgetActionLink ({ title, path, widget }) {
+function ContextWidgetActionLink ({ iconName, title, path, widget }) {
   const { t } = useTranslation()
   const openURL = useOpenURL()
 
   return (
-    <TouchableOpacity onPress={() => openURL(path, { replace: true })} className='w-full'>
-      <View className='w-full border-2 border-foreground/20 rounded-md p-2 mb-2 gap-2 bg-background flex-row'>
-        <WidgetIconResolver widget={widget} style={{ fontSize: 18 }} />
-        <Text className='text-base text-foreground'>{t(title || widget?.title)}</Text>
-      </View>
+    <TouchableOpacity
+      onPress={() => openURL(path, { replace: true })}
+      className='border-2 border-foreground/20 rounded-md p-2 mb-2 gap-2 bg-background flex-row'
+    >
+      <WidgetIconResolver iconName={iconName} widget={widget} />
+      <Text className='text-base text-foreground'>{t(title || widget?.title)}</Text>
     </TouchableOpacity>
   )
 }

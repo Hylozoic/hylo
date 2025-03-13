@@ -204,7 +204,7 @@ export function translateTitle (title, t) {
 export function wrapItemInWidget (item, type) {
   return {
     [type]: item,
-    id: 'fake-id-' + crypto.randomUUID()
+    id: 'fake-id-' + Math.floor(Math.random() * 1e9).toString()
   }
 }
 

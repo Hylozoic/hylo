@@ -3,7 +3,8 @@ import {
   Globe,
   Grid3x3,
   LogOut,
-  Plus
+  Plus,
+  UserPlus
 } from 'lucide-react-native'
 import { black } from 'style/colors'
 
@@ -13,7 +14,8 @@ export const CustomIcons = {
   Globe,
   Grid3x3,
   LogOut,
-  Plus
+  Plus,
+  UserPlus
 }
 
 export default function LucideIcon ({ name, color, size, ...forwardedProps }) {
