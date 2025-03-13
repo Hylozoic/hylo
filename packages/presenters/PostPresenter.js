@@ -4,9 +4,6 @@ import { butterflyBush, caribbeanGreen, fakeAlpha, flushOrange, gold, pictonBlue
 export default function PostPresenter (post, { forGroupId } = {}) {
   if (!post) return post
 
-  const groupPostMembership = post.postMemberships.find(postMembership => {
-    return Number(postMembership.group.id) === Number(forGroupId)
-  })
   // if remote exists set url to remote, if not do the following
   const attachments = post.attachments.map(attachment => {
     const url = attachment?.url || attachment?.remote
@@ -22,7 +19,6 @@ export default function PostPresenter (post, { forGroupId } = {}) {
     files,
     fileUrls: uniq(files.map(file => file.url)),
     imageUrls: uniq(images.map(image => image.url)),
-    pinned: groupPostMembership && groupPostMembership.pinned,
     startTime: post.startTime ? new Date(post.startTime) : post.startTime,
     endTime: post.endTime ? new Date(post.endTime) : post.endTime,
     startTimeRaw: post.startTime,

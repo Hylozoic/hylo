@@ -4,13 +4,13 @@ import { gql, useQuery } from 'urql'
 import { URL } from 'react-native-url-polyfill'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { DEFAULT_APP_HOST } from 'navigation/linking'
+import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
+import useGroup from '@hylo/hooks/useGroup'
 import { openURL } from 'hooks/useOpenURL'
 import useIsModalScreen, { modalScreenName } from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
-import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
-import HyloWebView from 'components/HyloWebView'
 import ModalHeaderTransparent from 'navigation/headers/ModalHeaderTransparent'
-import { useGroup } from '@hylo/hooks/useCurrentGroup'
+import HyloWebView from 'components/HyloWebView'
 
 const groupStewardsQuery = gql`
   query GroupStewardsQuery ($id: ID, $slug: String) {

@@ -17,7 +17,7 @@ import updatePostMutation from '@hylo/graphql/mutations/updatePostMutation'
 import peopleAutocompleteQuery from '@hylo/graphql/queries/peopleAutocompleteQuery'
 import postQuery from '@hylo/graphql/queries/postQuery'
 import topicsForGroupIdQuery from '@hylo/graphql/queries/topicsForGroupIdQuery'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import { isIOS } from 'util/platform'
 import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
 import useRouteParams from 'hooks/useRouteParams'
@@ -105,7 +105,7 @@ export default function PostEditor (props) {
     updatePost({
       type: providedType || post.type,
       topics: selectedTopicName ? [{ name: selectedTopicName }] : post.topics,
-      groups: currentGroup && !isContextGroupSlug(currentGroup?.slug) ? [currentGroup] : post.groups
+      groups: currentGroup && !isStaticContext(currentGroup?.slug) ? [currentGroup] : post.groups
     })
   }, [updatePost, providedType, selectedTopicName, currentGroup])
 

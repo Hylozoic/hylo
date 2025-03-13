@@ -212,13 +212,6 @@ const postFieldsFragment = (withComments) => `
     position
     id
   }
-  postMemberships {
-    id
-    pinned
-    group {
-      id
-    }
-  }
   topics {
     id
     name

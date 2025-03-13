@@ -1,6 +1,5 @@
 import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
-import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
 // Screens
@@ -22,10 +21,10 @@ import MapWebView from 'screens/MapWebView/MapWebView'
 
 const HomeTab = createStackNavigator()
 export default function HomeNavigator ({ navigation }) {
-  const [{ currentGroup }] = useCurrentGroup()
   const navigatorProps = {
     screenOptions: {
-      title: currentGroup?.name || '',
+      header: TabStackHeader,
+      headerMode: 'float',  
       transitionSpec: {
         open: {
           animation: 'spring',
@@ -45,9 +44,7 @@ export default function HomeNavigator ({ navigation }) {
           restDisplacementThreshold: 0.01,
           restSpeedThreshold: 0.01
         }
-      },
-      headerMode: 'float',
-      header: headerProps => <TabStackHeader {...headerProps} />
+      }
     }
   }
 

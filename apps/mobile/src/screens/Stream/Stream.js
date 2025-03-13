@@ -7,11 +7,11 @@ import { gql, useMutation, useQuery } from 'urql'
 import { capitalize, get, isEmpty } from 'lodash/fp'
 import { clsx } from 'clsx'
 import { MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { isStaticContext } from '@hylo/presenters/GroupPresenter'
+import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import useStreamQueryVariables from '@hylo/hooks/useStreamQueryVariables'
-import { isDev } from 'config'
 import useRouteParams from 'hooks/useRouteParams'
 import makeStreamQuery from './makeStreamQuery'
 import CreateGroupNotice from 'components/CreateGroupNotice'
@@ -81,8 +81,6 @@ export default function Stream () {
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
   const routeParams = useRouteParams()
-  // TODO: Keeping logging for now for Stream testing due-diligence
-  if (isDev) console.log('!!! routeParams', routeParams)
   const {
     context,
     customViewId,
@@ -106,12 +104,11 @@ export default function Stream () {
     customView,
     streamType,
     filter,
-    slug: currentGroup?.slug,
+    slug: !isStaticContext(currentGroup?.slug) ? currentGroup?.slug : null,
     view,
     sortBy,
     timeframe
   })
-  if (isDev) console.log('!!!! streamQueryVariables', streamQueryVariables)
   const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...streamQueryVariables, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore
@@ -154,7 +151,7 @@ export default function Stream () {
     if (streamQueryVariables && isFocused && isEmpty(postIds) && hasMore !== false) {
       if (
         currentGroup?.id &&
-        !currentGroup?.isContextGroup &&
+        !currentGroup?.isStaticContext &&
         sortBy === DEFAULT_SORT_BY_ID &&
         !streamQueryVariables.filter
       ) {
@@ -202,7 +199,7 @@ export default function Stream () {
   if (!currentUser) return <Loading style={{ flex: 1 }} />
   if (!currentGroup) return null
 
-  if (isEmpty(currentUser?.memberships) && !currentGroup?.isPublicContext) {
+  if (isEmpty(currentUser?.memberships) && currentGroup?.slug !== PUBLIC_CONTEXT_SLUG) {
     return (
       <CreateGroupNotice />
     )
@@ -220,7 +217,7 @@ export default function Stream () {
             context={streamQueryVariables?.context}
             post={item}
             forGroupId={currentGroup?.id}
-            showGroups={!currentGroup?.id || currentGroup?.isContextGroup}
+            showGroups={!currentGroup?.id || currentGroup?.isStaticContext}
           />
         )}
         onRefresh={refreshPosts}

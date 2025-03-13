@@ -28,6 +28,20 @@ class PostHeader extends PureComponent {
   flagPostFunc = () =>
     this.props.canFlag ? () => { this.setState({ flaggingVisible: true }) } : undefined
 
+  getTypeIcon = (type) => {
+    const typeIconMap = {
+      offer: 'Gift',
+      request: 'HandRaised',
+      resource: 'Resource',
+      project: 'Project',
+      proposal: 'Proposal',
+      event: 'Calendar',
+      post: 'Post',
+      discussion: 'Chat'
+    }
+    return typeIconMap[type] || 'Post' // Default Post icon if type not found
+  }
+
   render () {
     const {
       routeParams,
@@ -39,7 +53,6 @@ class PostHeader extends PureComponent {
       group,
       proposalOutcome,
       proposalStatus,
-      pinned,
       close,
       className,
       constrained,
@@ -47,7 +60,6 @@ class PostHeader extends PureComponent {
       deletePost,
       duplicatePost,
       removePost,
-      pinPost,
       highlightProps,
       moderationActionsGroupUrl = '',
       fulfillPost,
@@ -86,7 +98,6 @@ class PostHeader extends PureComponent {
     }
 
     const dropdownItems = filter([
-      { icon: 'Pin', label: pinned ? t('Unpin') : t('Pin'), onClick: pinPost },
       { icon: 'Edit', label: t('Edit'), onClick: editPost },
       { icon: 'CopyLink', label: t('Copy Link'), onClick: copyLink },
       { icon: 'Flag', label: t('Flag'), onClick: this.flagPostFunc() },
@@ -149,6 +160,10 @@ class PostHeader extends PureComponent {
                 ))}
               </div> */}
               <div className='flex items-center ml-2'>
+                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
+                  <Icon name={this.getTypeIcon(type)} className='text-sm' />
+                  {type}
+                </div>
                 <span className='text-foreground/50 text-2xs whitespace-nowrap' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
                   {createdTimestamp}
                 </span>
@@ -169,7 +184,6 @@ class PostHeader extends PureComponent {
                 delay={250}
                 id='post-header-flag-tt'
               />
-              {pinned && <Icon name='Pin' className='top-1 mr-3 text-xl text-accent font-bold' />}
               {dropdownItems.length > 0 &&
                 <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' />} items={dropdownItems} alignRight />}
               {close &&

@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
 import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 
 export default function useStreamQueryVariables ({
   context,
@@ -44,7 +43,7 @@ export default function useStreamQueryVariables ({
     order: streamType === 'event'
       ? (timeframe === 'future' ? 'asc' : 'desc')
       : null,
-    slug: !isContextGroupSlug(slug) ? slug : null,
+    slug,
     sortBy,
     topic,
     topics: (customView?.type === 'stream' && customView?.topics)

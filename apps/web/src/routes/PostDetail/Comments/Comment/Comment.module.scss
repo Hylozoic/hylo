@@ -136,8 +136,10 @@ $comment-row-padding: 25px;
 }
 
 .text {
-  composes: bdy-lt-sm from 'css/typography.scss';
-  margin-left: $comment-left-margin;
+
+  p {
+    margin-top: 0;
+  }
 
   strong {
     color: rgba(66, 94, 114, 1.0);

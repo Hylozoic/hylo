@@ -42,7 +42,7 @@ export default function GroupMenuHeader ({ group }) {
 
       {canAdmin && (
         <View className='self-end mb-5 mr-3'>
-          <TouchableOpacity onPress={() => openURL(`/groups/${group.slug}/settings`)}>
+          <TouchableOpacity onPress={() => openURL(`/groups/${group.slug}/settings`, { replace: true })}>
             <View className='w-6 h-6 drop-shadow-md'>
               <Settings color='white' size={24} />
             </View>
@@ -84,7 +84,7 @@ export default function GroupMenuHeader ({ group }) {
         </View>
 
         <TouchableOpacity
-          onPress={() => openURL(`/groups/${group.slug}/about`)}
+          onPress={() => openURL(`/groups/${group.slug}/about`, { replace: true })}
           hitSlop={6}
         >
           <View className='cursor-pointer'>

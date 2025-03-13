@@ -1,83 +1,92 @@
-import { useMemo, useEffect } from 'react'
-import { useQuery } from 'urql'
+import { useCallback, useEffect } from 'react'
+import { Alert } from 'react-native'
 import { create } from 'zustand'
-import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
-import mixpanel from 'services/mixpanel'
-import useCurrentUser from './useCurrentUser'
-import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
-import GroupPresenter, { getContextGroup, isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { MY_CONTEXT_SLUG } from '@hylo/shared'
+import { isStaticContext } from '@hylo/presenters/GroupPresenter'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { widgetUrl } from 'util/navigation'
+import useOpenURL from 'hooks/useOpenURL'
+import useGroup from './useGroup'
+import useRouteParams from 'hooks/useRouteParams'
 
-// Zustand store for managing currentGroupSlug
-const useCurrentGroupStore = create((set) => ({
+export const useCurrentGroupStore = create((set) => ({
   currentGroupSlug: null,
-  setCurrentGroupSlug: (slug) => set({ currentGroupSlug: slug })
+  navigateHome: true,
+  setCurrentGroupSlug: currentGroupSlug => set({ currentGroupSlug }),
+  setNavigateHome: navigateHome => set({ navigateHome })
 }))
 
-export function useGroup ({
-  groupSlug,
-  groupId,
-  groupQueryScope = {
-    withJoinQuestions: true,
-    withPrerequisiteGroups: true
-  },
-  useQueryArgs = {}
-} = {}) {
-  const [{ currentUser, fetching: userFetching, error: userError }] = useCurrentUser({ pause: useQueryArgs?.pause || !groupSlug })
-  const contextGroup = useMemo(() => getContextGroup(groupSlug || groupId, { currentUser }), [groupSlug, groupId, currentUser])
-
-  const pause = !!contextGroup || useQueryArgs?.pause || (!groupSlug && !groupId)
-  const [{ data, fetching: groupFetching, error: groupError }, reQuery] = useQuery({
-    ...useQueryArgs,
-    query: groupDetailsQueryMaker(groupQueryScope),
-    variables: { id: groupId, slug: groupSlug },
-    pause
-  })
-
-  const group = useMemo(() => (
-    contextGroup || GroupPresenter(data?.group, { currentUser })
-  ), [contextGroup, data?.group])
-
-  return [{ group, isContextGroupSlug: !!isContextGroupSlug(groupSlug), fetching: userFetching || groupFetching, error: groupError || userError }, contextGroup ? () => {} : reQuery]
-}
-
-export function useContextGroups () {
+/** ✅ When currentGroupSlug not set, set it to lastViewedGroup if available, otherwise to the My context */
+export function useInitCurrentGroupSlug () {
+  const { currentGroupSlug } = useCurrentGroupStore()
+  const { context, groupSlug } = useRouteParams()
   const [{ currentUser }] = useCurrentUser()
+  const changeToGroup = useChangeToGroup()
 
-  return {
-    myContext: getContextGroup(MY_CONTEXT_SLUG, { currentUser }),
-    publicContext: getContextGroup(PUBLIC_CONTEXT_SLUG, { currentUser })
-  }
+  useEffect(() => {
+    if (!currentUser) return
+    if (!currentGroupSlug) {
+      const lastViewedGroupSlug = currentUser?.memberships?.length &&
+        [...currentUser.memberships]
+          .sort((a, b) => new Date(b.lastViewedAt) - new Date(a.lastViewedAt))[0]?.group?.slug
+
+      changeToGroup(lastViewedGroupSlug || MY_CONTEXT_SLUG)
+    }
+  }, [currentUser])
+
+  /** ✅ Updates `currentGroupSlug` when deep linking parameters change */
+  useEffect(() => {
+    if (context) {
+      let newGroupSlug
+
+      if (context === 'groups' && groupSlug) {
+        newGroupSlug = groupSlug
+      } else if (isStaticContext(context)) {
+        newGroupSlug = context
+      }
+
+      if (newGroupSlug) {
+        changeToGroup(newGroupSlug, { navigateHome: false })
+      }
+    }
+  }, [context, groupSlug])
 }
 
-export function useCurrentGroupSlug (setToGroupSlug, useQueryArgs = {}) {
-  const { currentGroupSlug, setCurrentGroupSlug } = useCurrentGroupStore()
-  const [{ currentUser, fetching, error }] = useCurrentUser({ pause: useQueryArgs?.pause || setToGroupSlug || currentGroupSlug })
+export function useNavigateHome () {
+  const { navigateHome, setNavigateHome, currentGroupSlug } = useCurrentGroupStore()
+  const [{ currentGroup, fetching }] = useCurrentGroup()
+  const openURL = useOpenURL()
 
-  // Derive the last viewed group from the user's memberships
-  const lastViewedGroup = useMemo(() => {
-    if (fetching || !currentUser?.memberships) return null
-    const memberships = [...currentUser.memberships]
-    memberships.sort((a, b) => new Date(b.lastViewedAt) - new Date(a.lastViewedAt))
-    return memberships[0]?.group || null
-  }, [currentUser, fetching])
-
-  // Determine the current group slug
-  const groupSlug = useMemo(() => {
-    if (setToGroupSlug) {
-      setCurrentGroupSlug(setToGroupSlug)
-      return setToGroupSlug
+  useEffect(() => {
+    if (!fetching && currentGroup?.homeWidget && navigateHome) {
+      setNavigateHome(false)
+      openURL(widgetUrl({ widget: currentGroup.homeWidget, groupSlug: currentGroup.slug }), { replace: true })
     }
-    if (currentGroupSlug) return currentGroupSlug
-    if (lastViewedGroup?.slug) return lastViewedGroup.slug
+  }, [fetching, currentGroupSlug])
+}
 
-    return MY_CONTEXT_SLUG
-  }, [setToGroupSlug, currentGroupSlug, lastViewedGroup])
+export function useChangeToGroup () {
+  const { setCurrentGroupSlug, setNavigateHome } = useCurrentGroupStore()
+  const changeToGroup = useCallback((groupSlug, {
+    confirm = false,
+    navigateHome = true,
+    // TODO: Re-implement canViewCheck
+    skipCanViewCheck = true
+  } = {}) => {
+    const goToGroup = () => {
+      if (navigateHome) {
+        setNavigateHome(navigateHome)
+      }
+      setCurrentGroupSlug(groupSlug)
+    }
 
-  return [{ currentGroupSlug: groupSlug, setCurrentGroupSlug, fetching, error }]
+    confirm ? confirmNavigate(goToGroup) : goToGroup()
+  }, [setNavigateHome, setCurrentGroupSlug])
+
+  return changeToGroup
 }
 
 export default function useCurrentGroup ({
-  setToGroupSlug,
   groupQueryScope = {
     withJoinQuestions: true,
     withPrerequisiteGroups: true,
@@ -85,23 +94,47 @@ export default function useCurrentGroup ({
   },
   useQueryArgs = {}
 } = {}) {
-  const [{ currentGroupSlug: groupSlug, fetching: slugFetching, error: slugError }] = useCurrentGroupSlug(setToGroupSlug, useQueryArgs)
-  const [{ group, fetching: groupFetching, isContextGroupSlug, error }, reQuery] = useGroup({
-    groupSlug,
-    groupQueryScope,
-    useQueryArgs
-  })
-  const fetching = slugFetching || groupFetching
+  const { currentGroupSlug } = useCurrentGroupStore()
+  const [{ group: currentGroup, fetching, ...rest }] = useGroup({ groupSlug: currentGroupSlug, groupQueryScope, useQueryArgs })
 
-  useEffect(() => {
-    if (!fetching && group && setToGroupSlug) {
-      mixpanel.getGroup('groupId', group.id).set({
-        $location: group.location,
-        $name: group.name,
-        type: group.type
-      })
-    }
-  }, [fetching, group])
-
-  return [{ currentGroup: group, isContextGroupSlug, fetching, error: slugError || error }, reQuery]
+  return [{ currentGroupSlug, currentGroup, fetching, ...rest }]
 }
+
+/** ✅ Handles group switching with confirmation & navigation */
+function confirmNavigate (onConfirm, options = {}) {
+  Alert.alert(
+    options.title || 'Changing Groups',
+    options.confirmationMessage || 'Do you want to switch to this group?',
+    [
+      { text: options.confirmButtonText || 'Yes', onPress: onConfirm },
+      { text: options.cancelButtonText || 'Cancel', style: 'cancel' }
+    ]
+  )
+}
+
+// TODO: Bring back GroupWelcome redirect on changeGroup
+// useEffect(() => {
+//   if ((!fetching && currentGroup?.getShouldWelcome(currentUser))) {
+//     navigation.replace('Group Welcome')
+//   }
+// }, [fetching, currentUser, currentGroup])
+
+// TODO: Bring back mixpanel getGroup identification on changeGroup
+// useEffect(() => {
+//   if (!fetching && group && setToGroupSlug) {
+//     mixpanel.getGroup('groupId', group.id).set({
+//       $location: group.location,
+//       $name: group.name,
+//       type: group.type
+//     })
+//   }
+// }, [fetching, group])
+
+// /** ✅ Async fetch group details */
+// async function asyncFetchGroup (groupSlug, client, currentUser) {
+//   const { data } = await client.query(
+//     groupDetailsQueryMaker({ withContextWidgets: true }),
+//     { slug: groupSlug }
+//   ).toPromise()
+//   return GroupPresenter(data?.group, { currentUser })
+// }

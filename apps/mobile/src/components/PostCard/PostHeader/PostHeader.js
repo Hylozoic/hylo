@@ -22,7 +22,6 @@ export default function PostHeader ({
   date,
   isFlagged,
   hideMenu,
-  pinned,
   postId,
   showMember,
   smallAvatar,
@@ -36,7 +35,6 @@ export default function PostHeader ({
     postId,
     creator,
     title,
-    pinned,
     closeOnDelete,
     setFlaggingVisible
   })
@@ -81,9 +79,6 @@ export default function PostHeader ({
           <TouchableOpacity hitSlop={5} onPress={handleFlagOnPress}>
             <Icon name='Flag' style={styles.flagIcon} />
           </TouchableOpacity>
-        )}
-        {pinned && (
-          <Icon name='Pin' style={styles.pinIcon} />
         )}
         {announcement && (
           <Icon name='Announcement' style={styles.announcementIcon} />

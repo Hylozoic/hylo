@@ -1,37 +1,32 @@
 import { useState, useEffect } from 'react'
-// import { fetchGroupMembers } from 'routes/Members/Members.store'
-import { wrapItemInWidget } from '@hylo/presenters/ContextWidgetPresenter'
+import { take } from 'lodash/fp'
+import ContextWidgetPresenter, { wrapItemInWidget } from '@hylo/presenters/ContextWidgetPresenter'
+import useGroup from './useGroup'
 
-// Different widgets have different sorts of children to display. This function ensures that they are always returned via a consistent interface.
-// This will eventually replace the useGatherItems hook on web
+// Different widgets have different sorts of children to display. This function ensures that
+// they are always returned via a consistent interface. This will eventually replace the
+// useGatherItems hook on web.
 export default function useContextWidgetChildren ({ widget, groupSlug }) {
-  const [listItems, setListItems] = useState([])
+  const [{ group }] = useGroup({ groupSlug })
+  const [contextWidgetChildren, setContextWidgetChildren] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // TODO redesign: need to get this running with the mobile versions of all this
   useEffect(() => {
     if (widget.childWidgets && widget.childWidgets.length > 0) {
-      setListItems(widget.childWidgets)
+      setContextWidgetChildren(widget.childWidgets)
       setLoading(false)
-    // } else if (widget.type === 'members') {
-      // const fetchMembersData = async () => {
-      //   setLoading(true)
-      //   dispatch(fetchGroupMembers({ slug: groupSlug, first: 4 })).then(
-      //     response => {
-      //       const members = response.payload?.data?.group?.members.items
-      //       if (members.length > 0) {
-      //         setListItems(members.map(member => wrapItemInWidget(member, 'viewUser')))
-      //         setLoading(false)
-      //       }
-      //     }
-      //   )
-      // }
-      // fetchMembersData()
+    } else if (widget.type === 'members' && group?.members?.items) {
+      setContextWidgetChildren(
+        take(4, group.members.items).map(
+          member => ContextWidgetPresenter(wrapItemInWidget(member, 'viewUser'))
+        )
+      )
+      setLoading(false)
     } else {
-      setListItems([])
+      setContextWidgetChildren([])
       setLoading(false)
     }
-  }, [widget])
+  }, [widget, group?.members])
 
-  return { listItems, loading }
+  return { contextWidgetChildren, loading }
 }

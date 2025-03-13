@@ -31,7 +31,7 @@ const PostDialog = ({
     <Dialog.Root defaultOpen onOpenChange={handleOpenChange}>
       <Dialog.Portal container={container}>
         <Dialog.Overlay className='PostDialog-Overlay bg-black/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-40 backdrop-blur-sm'>
-          <Dialog.Content onPointerDownOutside={handlePointerDownOutside} className='PostDialog-Content min-w-[300px] w-full bg-card p-3 rounded-md z-50 max-w-[750px] outline-none'>
+          <Dialog.Content onPointerDownOutside={handlePointerDownOutside} className='PostDialog-Content min-w-[300px] w-full bg-background p-3 rounded-md z-50 max-w-[750px] outline-none'>
             <Dialog.Title className='sr-only'>Post Dialog</Dialog.Title>
             <Dialog.Description className='sr-only'>Post Dialog</Dialog.Description>
             <Suspense fallback={<Loading />}>

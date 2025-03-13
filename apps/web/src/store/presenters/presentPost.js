@@ -10,9 +10,6 @@ export default function presentPost (post, groupId) {
   const rawPost = !post.ref
 
   try {
-    const postMembership = post.postMemberships && (rawPost ? post.postMemberships.items || [] : post.postMemberships.toRefArray()).find(p =>
-      Number(p.group) === Number(groupId))
-    const pinned = postMembership && postMembership.pinned
     const createdAtHumanDate = TextHelpers.humanDate(post.createdAt)
     const editedAtHumanDate = TextHelpers.humanDate(post.editedAt)
 
@@ -42,7 +39,6 @@ export default function presentPost (post, groupId) {
           skills: (rawPost ? person.skills?.items || [] : person.skills.toModelArray())
         }
       }),
-      pinned,
       proposalOptions: (rawPost ? post.proposalOptions?.items || [] : post.proposalOptions.toModelArray()),
       topics: (rawPost ? post.topics?.items || [] : post.topics.toModelArray()).map(topic => presentTopic(topic, {}))
     }
