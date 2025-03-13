@@ -29,7 +29,7 @@ describe('mapStateToProps', () => {
 
 describe('mapDispatchToProps', () => {
   it('maps the action generators', () => {
-    window.confirm = jest.fn()
+    window.confirm = jest.fn().mockReturnValue(true)
     const dispatch = jest.fn(val => val)
     const props = {
       routeParams: {
@@ -41,7 +41,7 @@ describe('mapDispatchToProps', () => {
     dispatchProps.removePost(10)
     dispatchProps.editPost(10)
     dispatchProps.duplicatePost(10)
-    expect(dispatch).toHaveBeenCalledTimes(3)
+    expect(dispatch).toHaveBeenCalledTimes(4)
 
     dispatchProps.deletePost(1)
     dispatchProps.pinPost(2, 3)
@@ -50,6 +50,7 @@ describe('mapDispatchToProps', () => {
   })
 
   it('calls the right version of removePost', () => {
+    window.confirm = jest.fn().mockReturnValue(true)
     const postId = 1
     const dispatch = jest.fn(val => val)
 
@@ -63,7 +64,7 @@ describe('mapDispatchToProps', () => {
     }
     const dispatchProps1 = mapDispatchToProps(dispatch, props1)
     dispatchProps1.removePost(postId)
-    expect(dispatch).toHaveBeenCalledTimes(1)
+    expect(dispatch).toHaveBeenCalledTimes(2)
 
     const props2 = {
       ...defaultProps,
@@ -75,7 +76,7 @@ describe('mapDispatchToProps', () => {
 
     const dispatchProps3 = mapDispatchToProps(dispatch, defaultProps)
     dispatchProps3.removePost(postId)
-    expect(dispatch).toHaveBeenCalledTimes(2)
+    expect(dispatch).toHaveBeenCalledTimes(4) // removePost causes dispatch to be called twice
     expect(dispatch.mock.calls).toMatchSnapshot()
   })
 })

@@ -159,7 +159,7 @@ describe('Messages component', () => {
 
     // Wait for the loading state to finish
     await waitFor(() => {
-      expect(screen.getByLabelText('Message Section')).toBeInTheDocument()
+      expect(screen.getByLabelText(/message section/i)).toBeInTheDocument()
     })
   })
 

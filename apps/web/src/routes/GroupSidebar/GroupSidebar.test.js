@@ -79,8 +79,7 @@ describe('MemberSection', () => {
         members={members}
         memberCount={n}
         canInvite
-      />,
-      { wrapper: AllTheProviders() }
+      />
     )
 
     expect(screen.getByText('Members')).toBeInTheDocument()
@@ -93,8 +92,7 @@ describe('MemberSection', () => {
         slug='foo'
         members={members}
         memberCount={5600}
-      />,
-      { wrapper: AllTheProviders() }
+      />
     )
 
     expect(screen.getByText('+5.6k')).toBeInTheDocument()
@@ -107,8 +105,7 @@ describe('MemberSection', () => {
         members={members}
         memberCount={5600}
         canInvite
-      />,
-      { wrapper: AllTheProviders() }
+      />
     )
 
     expect(screen.getByText('Invite People')).toBeInTheDocument()
@@ -120,8 +117,7 @@ describe('GroupStewardsSection', () => {
     const n = 5
     const stewards = fakePerson(n)
     render(
-      <GroupStewardsSection stewards={stewards} descriptor='Wizard' />,
-      { wrapper: AllTheProviders() }
+      <GroupStewardsSection stewards={stewards} descriptor='Wizard' />
     )
 
     // TODO: figure out how to test the translation named values working
@@ -139,8 +135,7 @@ describe('GroupSteward', () => {
       groupRoles: { items: [] }
     }
     render(
-      <GroupSteward steward={steward} />,
-      { wrapper: AllTheProviders() }
+      <GroupSteward steward={steward} />
     )
     expect(await screen.findByText(steward.name)).toBeInTheDocument()
   })

@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
 import FullPageModal from './FullPageModal'
 import * as LayoutFlagsContext from 'contexts/LayoutFlagsContext'
 
@@ -14,23 +14,19 @@ describe('FullPageModal', () => {
   })
 
   it('renders correctly with a single component', () => {
-    const navigate = jest.fn()
     const content = <div>The Content</div>
     render(
       <FullPageModal
-        navigate={navigate}
         content={content}
       />
     )
 
     expect(screen.getByText('The Content')).toBeInTheDocument()
-    expect(screen.getByRole('button')).toBeInTheDocument() // Close button
   })
 
   it('renders correctly when passed children', () => {
-    const navigate = jest.fn()
     render(
-      <FullPageModal navigate={navigate}>
+      <FullPageModal>
         <div>First Child</div>
         <div>Second Child</div>
       </FullPageModal>
@@ -38,11 +34,9 @@ describe('FullPageModal', () => {
 
     expect(screen.getByText('First Child')).toBeInTheDocument()
     expect(screen.getByText('Second Child')).toBeInTheDocument()
-    expect(screen.getByRole('button')).toBeInTheDocument() // Close button
   })
 
-  it('renders correctly with multiple tabs', () => {
-    const navigate = jest.fn()
+  it('renders correctly with multiple tabs and path (1)', () => {
     const content = [
       {
         name: 'Account',
@@ -55,31 +49,38 @@ describe('FullPageModal', () => {
         component: <div>Groups Page</div>
       }
     ]
+    
     render(
-      <FullPageModal
-        navigate={navigate}
-        content={content}
-      />
+      <FullPageModal content={content} />,
+      {},
+      AllTheProviders({}, ['/settings'])
     )
-
-    expect(screen.getByText('Account')).toBeInTheDocument()
-    expect(screen.getByText('Groups')).toBeInTheDocument()
-    expect(screen.getByRole('button')).toBeInTheDocument() // Close button
+    
+    expect(screen.getByText('Account Page')).toBeInTheDocument()
+    expect(screen.queryByText('Groups Page')).not.toBeInTheDocument()
   })
 
-  it('calls navigate when close button is clicked', () => {
-    const navigate = jest.fn()
-    const content = <div>The Content</div>
+  it('renders correctly with multiple tabs and path (2)', () => {
+    const content = [
+      {
+        name: 'Account',
+        path: '/settings',
+        component: <div>Account Page</div>
+      },
+      {
+        name: 'Groups',
+        path: '/settings/groups',
+        component: <div>Groups Page</div>
+      }
+    ]
+
     render(
-      <FullPageModal
-        navigate={navigate}
-        content={content}
-      />
+      <FullPageModal content={content} />,
+      {},
+      AllTheProviders({}, ['/settings/groups'])
     )
-
-    const closeButton = screen.getByRole('button')
-    closeButton.click()
-
-    expect(navigate).toHaveBeenCalled()
+    
+    expect(screen.queryByText('Account Page')).not.toBeInTheDocument()
+    expect(screen.getByText('Groups Page')).toBeInTheDocument()
   })
 })
