@@ -11,6 +11,7 @@ import mixpanel from 'mixpanel-browser'
 import config, { isTest } from 'config/index'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
+import GlobalAlert from 'components/GlobalAlert'
 import GlobalNav from './components/GlobalNav'
 import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
@@ -255,6 +256,21 @@ export default function AuthLayoutRouter (props) {
         </script>
       </Helmet>
 
+      {!isWebView() && new Date(currentUser.createdAt) < new Date('2025-03-15') && !window.localStorage.getItem('new-hylo-alert-seen') && (
+        <GlobalAlert
+          title='Welcome to the new Hylo!'
+          onOpenChange={(open) => {
+            if (!open) {
+              window.localStorage.setItem('new-hylo-alert-seen', true)
+            }
+          }}
+        >
+          <div>
+            <p>Here we goooooooo</p>
+          </div>
+        </GlobalAlert>
+      )}
+
       <Routes>
         {/* Redirects for switching into global contexts, since these pages don't exist yet */}
         <Route path='public/members' element={<Navigate to='/public' replace />} />
@@ -271,6 +287,7 @@ export default function AuthLayoutRouter (props) {
 
             {showTourPrompt && (
               <>
+                <Route path='my/*' element={<SiteTour windowWidth={width} />} />
                 <Route path='all/*' element={<SiteTour windowWidth={width} />} />
                 <Route path='public/*' element={<SiteTour windowWidth={width} />} />
                 <Route path='groups/*' element={<SiteTour windowWidth={width} />} />
