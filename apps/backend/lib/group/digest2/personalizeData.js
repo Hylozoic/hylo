@@ -2,6 +2,7 @@ import { cloneDeep, flatten, merge, pick, values } from 'lodash'
 import { includes, filter, get } from 'lodash/fp'
 import { es } from '../../i18n/es'
 import { en } from '../../i18n/en'
+import { shouldSendData } from './util'
 import * as cheerio from 'cheerio'
 const locales = { en, es }
 
@@ -58,16 +59,17 @@ const filterMyAndBlockedUserData = async (userId, data) => {
 
   const keys = ['discussions', 'requests', 'offers', 'events', 'projects', 'resources', 'chats', 'posts_with_new_comments', 'upcoming', 'ending']
   for (const key of keys) {
-    // Filter out posts by blocked users and by the user themselves
-    clonedData[key] = filter(async (object) => {
+    if (!clonedData[key]) continue
+
+    const filteredItems = await Promise.all(clonedData[key].map(async (object) => {
       // Filter out all posts by blocked users
-      if (includes(get('user.id', object), blockedUserIds)) return false
+      if (includes(get('user.id', object), blockedUserIds)) return null
 
       // Filter out posts by the user themselves except for posts with new comments, upcoming, and ending reminders
-      if (!['posts_with_new_comments', 'upcoming', 'ending'].includes(key) && includes(get('user.id', object), userId)) return false
+      if (!['posts_with_new_comments', 'upcoming', 'ending'].includes(key) && parseInt(object.user.id) === parseInt(userId)) return null
 
       // Filter out posts that no longer have any comments
-      if (key === 'posts_with_new_comments' && object.comments.length === 0) return false
+      if (key === 'posts_with_new_comments' && object.comments.length === 0) return null
 
       // Filter out chats that are older than the most recently read chat in that room by this user
       if (key === 'chats') {
@@ -75,11 +77,13 @@ const filterMyAndBlockedUserData = async (userId, data) => {
           const tag = await Tag.where({ name: object.topic_name }).fetch()
           chatRooms[object.topic_name] = await TagFollow.where({ tag_id: tag.id, group_id: data.group_id, user_id: userId }).fetch()
         }
-        if (object.created_at <= chatRooms[object.topic_name].get('last_read_at')) return false
+        if (object.id <= chatRooms[object.topic_name].get('last_read_post_id')) return null
       }
+      return object
+    }))
 
-      return true
-    }, clonedData[key])
+    // Filter out null values (items that didn't pass our conditions)
+    clonedData[key] = filteredItems.filter(item => item !== null)
   }
 
   // We don't need to show every chat, only the count of new chats in each room
@@ -96,7 +100,7 @@ const filterMyAndBlockedUserData = async (userId, data) => {
       }
     }
     return topics
-  }, [])
+  }, []))
   delete clonedData.chats
 
   return clonedData
@@ -105,6 +109,12 @@ const filterMyAndBlockedUserData = async (userId, data) => {
 const personalizeData = async (user, type, data, opts = {}) => {
   // Don't show me content I created or created by blocked users
   const filteredData = await filterMyAndBlockedUserData(user.id, data)
+
+  // Check again after filtering to make sure we're not sending empty digests
+  if (!(await shouldSendData(filteredData, user.id))) {
+    return null
+  }
+  filteredData.num_sections = Object.keys(filteredData).filter(k => filteredData[k] && filteredData[k].length > 0).length
 
   const locale = user.get('settings').locale || 'en'
   const clickthroughParams = '?' + new URLSearchParams({

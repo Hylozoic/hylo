@@ -28,7 +28,7 @@ export const prepareDigestData = async (id, type, opts = {}) => {
     endTime = range[1]
   }
   const group = await Group.find(id)
-  const data = await getPostsAndComments(group, startTime, endTime)
+  const data = await getPostsAndComments(group, startTime, endTime, type)
   if (!data) return false
   const formattedData = await formatData(group, data)
   return merge({

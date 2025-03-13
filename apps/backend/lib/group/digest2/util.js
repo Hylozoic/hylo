@@ -26,10 +26,10 @@ export const relatedUserColumns = (relationName = 'user') => ({
 
 export const shouldSendData = (data, id) =>
   Promise.resolve(
-    some(some(x => x), pick(['discussions', 'requests', 'offers', 'events', 'projects', 'resources', 'chats', 'topicsWithChats', 'postsWithNewComments', 'upcoming', 'ending'], data))
+    some(some(x => x), pick(['discussions', 'requests', 'offers', 'events', 'projects', 'resources', 'chats', 'topics_with_chats', 'posts_with_new_comments', 'upcoming', 'ending'], data))
   )
 
-export const getPostsAndComments = async (group, startTime, endTime) => {
+export const getPostsAndComments = async (group, startTime, endTime, digestType) => {
   const posts = await Post.createdInTimeRange(group.posts(), startTime, endTime)
     .query(isValidPostType)
     .query(q => {
@@ -50,7 +50,7 @@ export const getPostsAndComments = async (group, startTime, endTime) => {
     })
     .then(get('models'))
 
-  const upcomingPostReminders = await Post.upcomingPostReminders(group.posts(), startTime, endTime)
+  const upcomingPostReminders = await Post.upcomingPostReminders(group.posts(), digestType)
 
   const comments = await Comment.createdInTimeRange(group.comments(), startTime, endTime)
     .query(q => {
