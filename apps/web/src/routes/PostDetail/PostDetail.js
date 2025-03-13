@@ -215,6 +215,12 @@ function PostDetail () {
         isFlagged={isFlagged}
         hasImage={hasImage}
       />
+      <PostGroups
+        isPublic={post.isPublic}
+        groups={post.groups}
+        slug={groupSlug}
+        showBottomBorder
+      />
       {state.atHeader && (
         <div className={cn(classes.headerSticky, { [classes.atActivity]: state.atActivity })} style={headerStyle}>
           <PostHeader
@@ -298,12 +304,6 @@ function PostDetail () {
           processStripeToken={(token, amount) => dispatch(processStripeToken(postId, token, amount))}
         />
       )}
-      <PostGroups
-        isPublic={post.isPublic}
-        groups={post.groups}
-        slug={groupSlug}
-        showBottomBorder
-      />
       <PostFooter {...post} currentUser={currentUser} />
       <div ref={activityHeader} />
       {state.atActivity && (
