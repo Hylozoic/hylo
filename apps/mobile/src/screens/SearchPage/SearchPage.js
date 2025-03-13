@@ -292,7 +292,6 @@ export function CommentCard ({ comment, goToPost }) {
           creator={post.creator}
           date={post.createdAt}
           type={post.type}
-          pinned={post.pinned}
           showMember={goToThisPost}
           showTopic={goToThisPost}
           announcement={post.announcement}
