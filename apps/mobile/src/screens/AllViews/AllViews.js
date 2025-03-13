@@ -45,7 +45,7 @@ export default function AllViews () {
   const widgets = currentGroup?.contextWidgets || []
   const visibleWidgets = useMemo(() => {
     return widgets.filter(widget => {
-      if (widget.visibility === 'admin' && !canAdminister) return false
+      if (widget.visibility === 'none' || widget.visibility === 'admin' && !canAdminister) return false
       if (widget.type === 'home') return false
       return true
     })

@@ -24,6 +24,7 @@ import CreateGroup from 'screens/CreateGroup'
 import DrawerNavigator from 'navigation/DrawerNavigator'
 import CreationOptions from 'screens/CreationOptions'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
+import GroupWelcomePage from 'screens/GroupWelcomePage'
 import LoadingScreen from 'screens/LoadingScreen'
 import MemberProfile from 'screens/MemberProfile'
 import PostDetails from 'screens/PostDetails'
@@ -177,6 +178,7 @@ export default function AuthRootNavigator () {
           />
           <AuthRoot.Screen name='Edit Post' component={PostEditor} options={{ headerShown: false }} />
           <AuthRoot.Screen name={modalScreenName('Group Explore')} component={GroupExploreWebView} options={{ title: 'Explore' }} />
+          <AuthRoot.Screen name={'Group Welcome Page'} component={GroupWelcomePage} options={{ title: 'Welcome' }} />
           <AuthRoot.Screen name={modalScreenName('Member')} component={MemberProfile} options={{ title: 'Member' }} />
           <AuthRoot.Screen name='Notifications' component={NotificationsList} />
           <AuthRoot.Screen name={modalScreenName('Post Details')} component={PostDetails} options={{ title: 'Post Details' }} />
