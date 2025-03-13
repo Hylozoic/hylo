@@ -22,7 +22,7 @@
 
 .send-message-button {
   padding: 0;
-  line-height: 20px;
+  line-height: 24px;
   width: 25px;
   height: 25px;
   text-align: center;
@@ -36,6 +36,7 @@
 
 .prompt {
   display: flex;
+  align-items: center;
   border-radius: 4px;
   width: 100%;
   min-height: 56px;
@@ -53,14 +54,12 @@
   margin-right: 10px;
   margin-left: 15px;
   position: relative;
-  top: 18px;
 }
 
 .anonymous-image {
   margin-right: 10px;
   margin-left: 20px;
   position: relative;
-  top: 20px;
   font-size: 17px;
   cursor: default;
 }
@@ -96,9 +95,7 @@
 .editor {
   width: 90%;
   position: relative;
-  top: 22px;
   padding: 0 0px 30px 0;
-  margin-bottom: 1em;
   overflow-wrap: break-word;
   cursor: text;
 
