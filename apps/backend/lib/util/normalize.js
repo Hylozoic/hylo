@@ -53,7 +53,7 @@ export const normalizeMemberships = (memberships, buckets, final) => {
 }
 
 export const normalizedSinglePostResponse = post => {
-  const data = {groups: [], people: []}
+  const data = { groups: [], people: [] }
   normalizePost(post, data, true)
   return Object.assign(data, post)
 }

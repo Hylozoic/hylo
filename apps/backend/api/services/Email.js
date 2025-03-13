@@ -60,13 +60,14 @@ module.exports = {
       email,
       data,
       locale: mapLocaleToSendWithUS(data.locale) || 'en-US',
-      version: 'Holonic architecture',
+      version: 'Redesign 2025',
       sender: {
         name: `${data.inviter_name} (via Hylo)`,
         reply_to: data.inviter_email
       }
     }),
 
+  // TODO: not used, remove this
   sendTagInvitation: (email, data) =>
     sendEmailWithOptions('tem_tmEEpPvtQ69wGkmf9njCx8', {
       email,
@@ -80,7 +81,6 @@ module.exports = {
     }),
 
   sendPostNotification: sendEmailWithOptions('tem_xMGgjc4cfHCYDr8gWRKwhdXF'),
-  sendNewCommentNotification: sendEmailWithOptions('tem_tP6JzrYzvvDXhgTNmtkxuW'),
   sendPostMentionNotification: sendEmailWithOptions('tem_wXiqtyNzAr8EF4fqBna5WQ'),
   sendJoinRequestNotification: sendEmailWithOptions('tem_9sW4aBxaLi5ve57bp7FGXZ'),
   sendApprovedJoinRequestNotification: sendEmailWithOptions('tem_eMJADwteU3zPyjmuCAAYVK'),
@@ -97,15 +97,15 @@ module.exports = {
 
   sendMessageDigest: opts =>
     sendEmailWithOptions('tem_xwQCfpdRT9K6hvrRFqDdhBRK',
-      Object.assign({ version: 'v2' }, opts)),
+      Object.assign({ version: 'Redesign 2025' }, opts)),
 
   sendCommentDigest: opts =>
     sendEmailWithOptions('tem_tP6JzrYzvvDXhgTNmtkxuW',
-      Object.assign({ version: 'v2' }, opts)),
+      Object.assign({ version: 'Redesign 2025' }, opts)),
 
   sendChatDigest: opts =>
     sendEmailWithOptions('tem_rpHJjcbDQQmCFQvGqYFx3g73',
-      Object.assign({ version: 'v1' }, opts)),
+      Object.assign({ version: 'Redesign 2025' }, opts)),
 
   postReplyAddress: function (postId, userId) {
     const plaintext = format('%s%s|%s', process.env.INBOUND_EMAIL_SALT, postId, userId)

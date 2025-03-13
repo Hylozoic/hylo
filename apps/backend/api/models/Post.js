@@ -2,7 +2,8 @@
 
 import data from '@emoji-mart/data'
 import { init, getEmojiDataFromNative } from 'emoji-mart'
-import { difference, filter, isNull, omitBy, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
+import { difference, filter, get, isNull, omitBy, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
+import { DateTime } from 'luxon'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
 import { TextHelpers } from '@hylo/shared'
@@ -15,6 +16,7 @@ import { refineMany, refineOne } from './util/relations'
 import ProjectMixin from './project/mixin'
 import EventMixin from './event/mixin'
 import * as RichText from '../services/RichText'
+import { defaultTimezone } from '../../lib/group/digest2/util'
 
 init({ data })
 
@@ -326,6 +328,38 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const pu = await this.postUsers()
       .query(q => q.where('user_id', userId)).fetchOne()
     return (pu && pu.get('clickthrough')) || null
+  },
+
+  presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full' }) {
+    const { media, tags, linkPreview, user } = this.relations
+    const slug = group?.get('slug')
+
+    return {
+      id: parseInt(this.id),
+      announcement: this.get('announcement'),
+      comments: [],
+      day: type !== 'oneline' && this.get('start_time') && TextHelpers.getDayFromDate(this.get('start_time'), this.get('timezone')),
+      details: type !== 'oneline' && RichText.qualifyLinks(this.details(), slug),
+      end_time: type === 'oneline' && this.get('end_time') && TextHelpers.formatDatePair(this.get('end_time'), null, false, this.get('timezone')),
+      link_preview: type !== 'oneline' && linkPreview && linkPreview.id &&
+        linkPreview.pick('title', 'description', 'url', 'image_url'),
+      location: type !== 'oneline' && this.get('location'),
+      image_url: type !== 'oneline' && media?.filter(m => m.get('type') === 'image')?.[0]?.get(type === 'full' ? 'url' : 'thumbnail_url'), // Thumbail for digest
+      month: type !== 'oneline' && this.get('start_time') && TextHelpers.getMonthFromDate(this.get('start_time'), this.get('timezone')),
+      topic_name: type !== 'oneline' && this.get('type') === 'chat' ? tags?.first()?.get('name') : '',
+      type: this.get('type'),
+      start_time: type === 'oneline' && this.get('start_time') && TextHelpers.formatDatePair(this.get('start_time'), null, false, this.get('timezone')),
+      title: this.get('name'),
+      unfollow_url: Frontend.Route.unfollow(this, group) + clickthroughParams,
+      user: {
+        id: user.id,
+        name: user.get('name'),
+        avatar_url: user.get('avatar_url'),
+        profile_url: Frontend.Route.profile(user) + clickthroughParams
+      },
+      url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group) + clickthroughParams,
+      when: this.get('start_time') && TextHelpers.formatDatePair(this.get('start_time'), this.get('end_time'), false, this.get('timezone'))
+    }
   },
 
   totalContributions: async function () {
@@ -785,6 +819,41 @@ module.exports = bookshelf.Model.extend(Object.assign({
       qb.whereRaw('posts.created_at between ? and ?', [startTime, endTime])
       qb.where('posts.active', true)
     })
+  },
+
+  upcomingPostReminders: function (collection, digestType) {
+    const startTime = DateTime.now().setZone(defaultTimezone).toISO()
+    // If daily digest show posts that have reminders in the next 2 days
+    // If weekly digest show posts that have reminders in the next 7 days
+    const endTime = digestType === 'daily'
+      ? DateTime.now().setZone(defaultTimezone).plus({ days: 2 }).endOf('day').toISO()
+      : DateTime.now().setZone(defaultTimezone).plus({ days: 7 }).endOf('day').toISO()
+
+    const startingSoon = collection.query(function (qb) {
+      qb.whereRaw('posts.start_time between ? and ?', [startTime, endTime])
+      qb.whereIn('posts.type', ['event', 'offer', 'project', 'proposal', 'resource', 'request'])
+      qb.where('posts.fulfilled_at', null)
+      qb.where('posts.active', true)
+      qb.orderBy('posts.start_time', 'asc')
+    })
+      .fetch({ withRelated: ['user'] })
+      .then(get('models'))
+
+    const endingSoon = collection.query(function (qb) {
+      qb.whereRaw('posts.end_time between ? and ?', [startTime, endTime])
+      qb.whereRaw('start_time < ?', [startTime]) // Only show posts as ending soon that have already started
+      qb.whereIn('posts.type', ['event', 'offer', 'project', 'proposal', 'resource', 'request'])
+      qb.where('posts.fulfilled_at', null)
+      qb.where('posts.active', true)
+      qb.orderBy('posts.end_time', 'asc')
+    })
+      .fetch({ withRelated: ['user'] })
+      .then(get('models'))
+
+    return Promise.all([startingSoon, endingSoon]).then(([startingSoon, endingSoon]) => ({
+      startingSoon,
+      endingSoon
+    }))
   },
 
   newPostAttrs: () => ({
