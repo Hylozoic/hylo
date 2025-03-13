@@ -170,7 +170,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
 
   return (
     <div className='h-full overflow-auto flex flex-col items-center' ref={setContainer}>
-      <div className={cn('w-full', styles.memberProfile, { [styles.isSingleColumn]: isSingleColumn })}>
+      <div className={cn('w-full', styles.memberProfile)}>
         <Helmet>
           <title>{person.name} | Hylo</title>
           <meta name='description' content={`${person.name}: ${t('Member Profile')}`} />

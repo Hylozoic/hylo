@@ -7,7 +7,6 @@ import { DEFAULT_AVATAR } from 'store/models/Group'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import { groupUrl } from 'util/navigation'
 import BadgeEmoji from 'components/BadgeEmoji'
-import Button from 'components/Button'
 import RoundImage from 'components/RoundImage'
 import classes from './Membership.module.scss'
 
@@ -32,7 +31,7 @@ export default function Membership ({ membership, index, archive, rowStyle }) {
           <div>{group.name}</div>
         </Link>
 
-        <div className={cn('ml-2 opacity-20', classes.roles)}>
+        <div className={cn('ml-2 flex flex-row gap-2', classes.roles)}>
           {roles.map(role => (
             <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={membership.id} />
           ))}
