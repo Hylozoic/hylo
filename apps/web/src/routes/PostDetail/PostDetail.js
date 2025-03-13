@@ -198,14 +198,14 @@ function PostDetail () {
   }
 
   return (
-    <div ref={ref} className={cn('max-w-[960px] mx-auto min-w-[350px] bg-card relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
+    <div ref={ref} className={cn('max-w-[960px] mx-auto min-w-[350px] bg-background relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
       <Helmet>
         <title>
           {`${post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 20 })} | Hylo`}
         </title>
         <meta name='description' content={TextHelpers.presentHTMLToText(post.details, { truncate: MAX_DETAILS_LENGTH })} />
       </Helmet>
-      <div className='flex flex-col bg-background rounded-lg shadow-sm'>
+      <div className='flex flex-col bg-card rounded-lg shadow-sm'>
         <ScrollListener elementId={DETAIL_COLUMN_ID} onScroll={handleScroll} />
         <PostHeader
           className={classes.header}
