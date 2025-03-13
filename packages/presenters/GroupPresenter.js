@@ -164,6 +164,6 @@ export const getPublicStaticContext = () => {
 }
 
 export function getStaticContext (contextSlug, currentUser) {
-  if (contextSlug === PUBLIC_CONTEXT_SLUG) return getMyStaticContext(currentUser)
-  if (contextSlug === MY_CONTEXT_SLUG) return getPublicStaticContext(currentUser)
+  if (contextSlug === MY_CONTEXT_SLUG) return getMyStaticContext(currentUser)
+  if (contextSlug === PUBLIC_CONTEXT_SLUG) return getPublicStaticContext(currentUser)
 }
