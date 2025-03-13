@@ -1,9 +1,9 @@
-import React, { useMemo, useEffect } from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { TextHelpers } from '@hylo/shared'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
@@ -17,20 +17,13 @@ import WidgetIconResolver from 'components/WidgetIconResolver'
 
 export default function ContextMenu () {
   const insets = useSafeAreaInsets()
-  const navigation = useNavigation()
   const { t } = useTranslation()
   const openURL = useOpenURL()
-  const [{ currentGroup, fetching }] = useCurrentGroup()
-  const widgets = useMemo(() =>
-    orderContextWidgetsForContextMenu(currentGroup?.contextWidgets || []),
-  [currentGroup?.contextWidgets])
-
-  // TODO: May be more appropriately put on AuthRootNavigator after useHandleLinking
-  useEffect(() => {
-    if ((!fetching && currentGroup?.shouldWelcome)) {
-      navigation.replace('Group Welcome')
-    }
-  }, [fetching, currentGroup])
+  const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroup }] = useCurrentGroup()
+  const widgets = orderContextWidgetsForContextMenu(
+    currentGroup?.getContextWidgets(currentUser) || []
+  )
 
   const handleGoToAllViews = () => openURL(
     makeWidgetUrl({
@@ -49,10 +42,10 @@ export default function ContextMenu () {
   return (
     <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
       <View className='w-full relative'>
-        {!currentGroup.isContextGroup && (
+        {!currentGroup.isStaticContext && (
           <GroupMenuHeader group={currentGroup} />
         )}
-        {currentGroup.isContextGroup && (
+        {currentGroup.isStaticContext && (
           <View className='flex flex-col p-2' style={{ paddingTop: insets.top }}>
             <Text className='text-foreground font-bold text-lg'>
               {t(currentGroup.name)}
@@ -71,7 +64,7 @@ export default function ContextMenu () {
           </View>
         ))}
       </ScrollView>
-      {(!currentGroup.isContextGroup) && (
+      {!currentGroup.isStaticContext && (
         <View className='px-2 mb-2'>
           <TouchableOpacity
             onPress={handleGoToAllViews}
