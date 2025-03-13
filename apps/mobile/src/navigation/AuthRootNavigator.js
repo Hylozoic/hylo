@@ -31,7 +31,6 @@ import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import { white } from 'style/colors'
-import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 
 const updatesSubscription = gql`
   subscription UpdatesSubscription($firstMessages: Int = 1) {
@@ -72,7 +71,6 @@ export default function AuthRootNavigator () {
   // lower in the stack where it may get called in any loops and such.
   const { i18n } = useTranslation()
   const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
-  const [{ fetching: currentGroupFetching }] = useCurrentGroup()
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialize] = useState(true)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
@@ -84,10 +82,9 @@ export default function AuthRootNavigator () {
   usePlatformAgreements()
   useHandleLinking()
 
-  // TODO: This is likely excessive, but most reliable, will work back from here
   useEffect(() => {
-    setLoading(!initialized || !currentUser || currentUserFetching || currentGroupFetching)
-  }, [initialized, currentUser, currentUserFetching, currentGroupFetching])
+    setLoading(!initialized || !currentUser || currentUserFetching)
+  }, [initialized, currentUser, currentUserFetching])
 
   useEffect(() => {
     resetNotificationsCount()
