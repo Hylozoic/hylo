@@ -42,7 +42,7 @@ function EventBody (props) {
         </div>}
 
       <div className={cn(classes.body, classes.eventBody, { [classes.smallMargin]: !expanded, [classes.eventImage]: attachmentType === 'image', [classes.constrained]: constrained }, className)}>
-        <div className={cn(classes.eventBodyColumn, { [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !event.clickthrough })}>
+        <div className={cn('flex flex-col', { [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !event.clickthrough })}>
           <div className='flex flex-row gap-5 items-center justify-start mb-4'>
             <EventDate {...event} />
             <div className='flex flex-col gap-0'>
