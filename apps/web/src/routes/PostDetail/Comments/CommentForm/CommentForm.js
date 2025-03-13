@@ -60,7 +60,7 @@ function CommentForm ({
   const placeholderText = placeholder || t('Add a comment...')
 
   return (
-    <div className={cn(classes.commentForm, className)}>
+    <div className={cn('flex flex-row items-center justify-between bg-input rounded-lg p-2', className)}>
       {currentUser && (
         <AttachmentManager type='comment' id='new' attachmentType='image' />
       )}
