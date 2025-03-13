@@ -4,8 +4,6 @@ import ContextWidgetPresenter, { findHomeWidget, getStaticMenuWidgets } from './
 export default function GroupPresenter (group) {
   if (!group || group?._presented) return group
 
-  const isStaticContext = isStaticContext(group?.slug)
-
   return {
     ...group,
     avatarUrl: group?.avatarUrl || DEFAULT_AVATAR,
@@ -14,7 +12,7 @@ export default function GroupPresenter (group) {
     getContextWidgets: getContextWidgetsResolver(group),
     getShouldWelcome: getShouldWelcomeResolver(group),
     homeWidget: group?.contextWidgets && findHomeWidget(group),
-    isStaticContext,
+    isStaticContext: isStaticContext(group),
 
     _presented: true
   }
@@ -132,8 +130,8 @@ export const LOCATION_PRECISION = {
 export const DEFAULT_BANNER = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_banner.jpg'
 export const DEFAULT_AVATAR = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png'
 
-export const isStaticContext = slug =>
-  [PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(slug)
+export const isStaticContext = contextOrSlug =>
+  [PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(contextOrSlug?.slug || contextOrSlug)
 
 // NOTE: The below "static context" representations of the My and Public areas are
 // used in Mobile. In Web the same things are currently accomplished within the
@@ -152,7 +150,7 @@ export const getMyStaticContext = currentUser => {
   })
 }
 
-export const getPublicStaticContext = currentUser => {
+export const getPublicStaticContext = () => {
   return GroupPresenter({
     id: PUBLIC_CONTEXT_SLUG,
     slug: PUBLIC_CONTEXT_SLUG,

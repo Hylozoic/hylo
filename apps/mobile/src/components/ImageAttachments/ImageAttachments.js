@@ -26,8 +26,9 @@ export default function ImageAttachments ({
         onlyLongPress={onlyLongPress}
         onPress={onPress}
         style={style}
-        renderImages={(pressableHandlersAtIndex) => (
+        renderImages={(pressableHandlersAtIndex, index) => (
           <FastImage
+            key={index}
             style={firstImageStyle}
             imageStyle={[styles.backgroundImage]}
             source={{ uri: images[0]?.uri || images[0]?.url }}
@@ -38,8 +39,7 @@ export default function ImageAttachments ({
                 {images.slice(1).map((image, index) => (
                   <TouchableHighlight
                     {...pressableHandlersAtIndex(index + 1)}
-                    // {...makePressHandlers(showImageAtIndex(index + 1))}
-                    key={image.url}
+                    key={index}
                     style={styles.thumbnailWrapper}
                   >
                     <FastImage
