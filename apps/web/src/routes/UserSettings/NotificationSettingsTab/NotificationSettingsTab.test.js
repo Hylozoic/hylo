@@ -137,21 +137,21 @@ describe('NotificationSettingsTab', () => {
     // Check All Groups settings
     const allGroupsSection = getByText('All Groups').closest('div')
     expect(allGroupsSection).toBeInTheDocument()
-    expect(getByLabelText('All groups email digest frequency')).toHaveTextContent('~ Mixed ~')
-    expect(getByLabelText('All groups post notifications frequency')).toHaveTextContent('~ Mixed ~')
+    expect(getByLabelText(/all groups email digest frequency/i)).toHaveTextContent('~ Mixed ~')
+    expect(getByLabelText(/all groups post notifications frequency/i)).toHaveTextContent('~ Mixed ~')
 
     // Click on Group 2 to expand it
-    const group2Button = getByRole('button', { name: 'Toggle Group 2 settings' })
+    const group2Button = getByRole('button', { name: 'toggle Group 2 settings' })
     fireEvent.click(group2Button)
 
     // Check Group 2 settings
-    const group2Section = getByLabelText('Group 2 notification settings')
+    const group2Section = getByLabelText(/Group 2 notification settings/i)
     expect(group2Section).toBeInTheDocument()
-    expect(getByLabelText('Group 2 email digest frequency')).toHaveTextContent('Weekly')
-    expect(getByLabelText('Group 2 post notifications frequency')).toHaveTextContent('Important Posts')
+    expect(getByLabelText(/Group 2 email digest frequency/i)).toHaveTextContent('Weekly')
+    expect(getByLabelText(/Group 2 post notifications frequency/i)).toHaveTextContent('Important Posts')
 
     // Check chat room notifications
-    expect(getByLabelText('Group 2 general chat notifications frequency')).toHaveTextContent('Important Posts')
+    expect(getByLabelText(/Group 2 general chat notifications frequency/i)).toHaveTextContent('Important Posts')
   })
 
   it('displays correct global notification settings', () => {
@@ -207,7 +207,7 @@ describe('NotificationSettingsTab', () => {
     expect(queryByLabelText('Group 1 post notifications frequency')).not.toBeInTheDocument()
     
     // Click on Group 1
-    const group1Button = getByRole('button', { name: 'Toggle Group 1 settings' })
+    const group1Button = getByRole('button', { name: 'toggle Group 1 settings' })
     fireEvent.click(group1Button)
     
     // Now group settings should be visible

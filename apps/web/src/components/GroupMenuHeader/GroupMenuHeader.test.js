@@ -19,7 +19,7 @@ describe('GroupMenuHeader', () => {
       />
     )
     expect(screen.getByText('Spacebase')).toBeInTheDocument()
-    expect(screen.getByTitle('Group Avatar')).toHaveStyle('background-image: url(avatar.png);')
+    expect(screen.getByLabelText(/group avatar/i)).toHaveStyle('background-image: url(avatar.png);')
     expect(screen.getByText('18 Members')).toBeInTheDocument()
   })
 
@@ -30,8 +30,8 @@ describe('GroupMenuHeader', () => {
         group={groupWithoutImages}
       />
     )
-    expect(screen.getByLabelText('Group Avatar')).toHaveStyle('background-image: url(/default-group-avatar.svg);')
-    expect(screen.getByLabelText('Group Banner Image')).toHaveStyle(`background-image: url(/default-group-banner.svg)`) // Assuming DEFAULT_BANNER is 'default-banner.png'
+    expect(screen.getByLabelText(/group avatar/i)).toHaveStyle('background-image: url(/default-group-avatar.svg);')
+    expect(screen.getByLabelText(/group banner image/i)).toHaveStyle(`background-image: url(/default-group-banner.svg)`) // Assuming DEFAULT_BANNER is 'default-banner.png'
   })
 
   // this requires svg render for the 'i' button
