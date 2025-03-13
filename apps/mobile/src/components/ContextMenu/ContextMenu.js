@@ -5,7 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { TextHelpers } from '@hylo/shared'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import { orderContextWidgetsForContextMenu, isHiddenInContextMenuResolver, translateTitle, allViewsWidget } from '@hylo/presenters/ContextWidgetPresenter'
+import {
+  orderContextWidgetsForContextMenu,
+  isHiddenInContextMenuResolver,
+  translateTitle,
+  allViewsWidget
+} from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 import { widgetUrl as makeWidgetUrl } from 'util/navigation'

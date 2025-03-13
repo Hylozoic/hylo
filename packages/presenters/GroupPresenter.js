@@ -1,5 +1,9 @@
 import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
-import ContextWidgetPresenter, { findHomeWidget, getStaticMenuWidgets } from './ContextWidgetPresenter'
+import ContextWidgetPresenter, {
+  findHomeWidget,
+  MY_CONTEXT_WIDGETS,
+  PUBLIC_CONTEXT_WIDGETS
+} from './ContextWidgetPresenter'
 
 export default function GroupPresenter (group) {
   if (!group || group?._presented) return group
@@ -38,16 +42,10 @@ const getShouldWelcomeResolver = group => {
 
 const getContextWidgetsResolver = group => {
   return currentUser => {
-    if (isStaticContext(group.slug)) {
-      return [
-        ...group.contextWidgets.items,
-        ...getStaticMenuWidgets({
-          isPublicContext: group.slug === PUBLIC_CONTEXT_SLUG,
-          isMyContext: group.slug === MY_CONTEXT_SLUG,
-          profileUrl: `all/members/${currentUser?.id}`
-        })
-      ]
+    if (group?.getContextWidgets) {
+      return group.getContextWidgets(currentUser)
     }
+
     return (group?.contextWidgets?.items || []).map(widget => ContextWidgetPresenter(widget))
   }
 }
@@ -141,10 +139,11 @@ export const getMyStaticContext = currentUser => {
   return GroupPresenter({
     id: MY_CONTEXT_SLUG,
     slug: MY_CONTEXT_SLUG,
-    avatarUrl: currentUser?.avatarUrl,
-    // TODO: After Web considerations, may belong in ContextWidgetPresenter#MY_CONTEXT_WIDGETS
-    contextWidgets: { items: [{ type: 'home', url: '/my/posts' }] },
     name: 'My Home',
+    avatarUrl: currentUser?.avatarUrl,
+    getContextWidgets: currentUser => (
+      MY_CONTEXT_WIDGETS(`all/members/${currentUser?.id}`).map(ContextWidgetPresenter)
+    ),
     parentGroups: { items: [], hasMore: false, total: 0 },
     childGroups: { items: [], hasMore: false, total: 0 }
   })
@@ -154,10 +153,9 @@ export const getPublicStaticContext = () => {
   return GroupPresenter({
     id: PUBLIC_CONTEXT_SLUG,
     slug: PUBLIC_CONTEXT_SLUG,
-    iconName: 'Globe',
     name: 'The Commons',
-    // TODO: After Web considerations, may belong in ContextWidgetPresenter#PUBLIC_CONTEXT_WIDGETS
-    contextWidgets: { items: [{ type: 'home', url: '/public/stream' }] },
+    iconName: 'Globe',
+    getContextWidgets: () => PUBLIC_CONTEXT_WIDGETS.map(ContextWidgetPresenter),
     parentGroups: { items: [], hasMore: false, total: 0 },
     childGroups: { items: [], hasMore: false, total: 0 }
   })
