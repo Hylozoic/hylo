@@ -2,7 +2,6 @@ import { cn } from 'util/index'
 import { set, startCase, trim } from 'lodash'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import Button from 'components/Button'
 import GroupsSelector from 'components/GroupsSelector'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
@@ -18,6 +17,7 @@ import {
   visibilityIcon,
   visibilityString
 } from 'store/models/Group'
+import SaveButton from '../SaveButton'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss'
@@ -151,7 +151,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
       </SettingsSection>
 
       <SettingsSection>
-        <h3>{t('Prerequisite Groups')}</h3>
+        <h3 className='mb-2'>{t('Prerequisite Groups')}</h3>
         <p className={general.detailText}>{t('When you select a prerequisite group, people must join the selected groups before joining')} <strong>{name}</strong>. {t('Only parent groups can be added as prerequisite groups.')}</p>
         <p className={styles.prerequisiteWarning}>
           <strong className={styles.warning}>{t('Warning:')}</strong> {t('If you select a prerequisite group that has a visibility setting of')}
@@ -209,10 +209,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
           )
         : ''}
 
-      <div className={general.saveChanges}>
-        <span className={cn({ [general.settingChanged]: changed })}>{changed ? t('Changes not saved') : t('Current settings up to date')}</span>
-        <Button label={t('Save Changes')} color={changed ? 'green' : 'gray'} onClick={changed ? save : null} className={general.saveButton} />
-      </div>
+      <SaveButton save={save} changed={changed} />
     </div>
   )
 }

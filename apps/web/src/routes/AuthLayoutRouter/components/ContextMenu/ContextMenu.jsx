@@ -612,7 +612,6 @@ const SETTINGS_MENU_ITEMS = [
   { title: 'Responsibilities', url: 'settings/responsibilities' },
   { title: 'Roles & Badges', url: 'settings/roles' },
   { title: 'Privacy & Access', url: 'settings/privacy' },
-  { title: 'Topics', url: 'settings/topics' },
   { title: 'Invitations', url: 'settings/invite' },
   { title: 'Join Requests', url: 'settings/requests' },
   { title: 'Related Groups', url: 'settings/relationships' },

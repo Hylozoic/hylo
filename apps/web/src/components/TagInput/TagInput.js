@@ -177,10 +177,10 @@ class TagInput extends Component {
         <ul className={theme.selected}>
           {selectedItems}
 
-          <li className={cn('text-foreground bg-transparent inline-flex', { tagsEmpty: selectedItems.length === 0 })}>
-            <div className={cn('relative', theme.searchInput)}>
+          <li className={cn('text-foreground bg-transparent inline-flex', theme.searchInputContainer, { tagsEmpty: selectedItems.length === 0 })}>
+            <div className={cn('relative', theme.searchInputContainer)}>
               <input
-                className={cn('text-foreground bg-transparent inline outline-none pt-1 pr-1', { error: maxReached, tagsEmpty: selectedItems.length === 0 })}
+                className={cn('text-foreground bg-transparent inline outline-none pt-1 pr-1', theme.searchInput, { error: maxReached, tagsEmpty: selectedItems.length === 0 })}
                 ref={this.input}
                 type='text'
                 placeholder={placeholder}
