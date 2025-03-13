@@ -31,23 +31,21 @@ export default function AllViews () {
   }
 
   return (
-    <ScrollView className='flex-1 bg-background p-4'>
-      <View className='grid grid-cols-2 gap-4'>
-        {visibleWidgets.map((widget, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={handleWidgetPress}
-            className='p-4 border border-foreground/20 rounded-md shadow-sm bg-background'
-          >
-            <View className='items-center'>
-              <View className='mt-2 flex-row content-center'>
-                <WidgetIconResolver widget={widget} style={{ fontSize: 20, marginRight: 10 }} />
-                <Text className='text-xl font-semibold text-foreground mb-2'>{translateTitle(widget.title, t)}</Text>
-              </View>
+    <ScrollView className='bg-background p-4' contentContainerClassName='gap-4'>
+      {visibleWidgets.map((widget, index) => (
+        <TouchableOpacity
+          key={index}
+          onPress={() => handleWidgetPress(widget)}
+          className='p-4 border border-foreground/20 rounded-md shadow-sm bg-background'
+        >
+          <View className='items-center'>
+            <View className='flex-row items-center content-center'>
+              <WidgetIconResolver widget={widget} style={{ fontSize: 18, marginRight: 10 }} />
+              <Text className='text-xl font-semibold text-foreground'>{translateTitle(widget.title, t)}</Text>
             </View>
-          </TouchableOpacity>
-        ))}
-      </View>
+          </View>
+        </TouchableOpacity>
+      ))}
     </ScrollView>
   )
 }
