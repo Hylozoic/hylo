@@ -6,7 +6,7 @@ process.env.PUBLIC_URL = ''
 // that have already been set.
 // https://github.com/motdotla/dotenv
 import dotenv from 'dotenv'
-dotenv.config({ silent: true })
+dotenv.config({ silent: false }) // to get running times of tests
 
 import jest from 'jest'
 const argv = process.argv.slice(2)
