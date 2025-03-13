@@ -1,6 +1,7 @@
 import { isEmpty, includes } from 'lodash/fp'
 import React, { useState, useEffect, useRef } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
+import { createSelector } from 'reselect'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import {
@@ -52,7 +53,7 @@ const validateRole = ({ name, emoji }) => {
 
 function RolesSettingsTab ({ group, commonRoles }) {
   const dispatch = useDispatch()
-  const suggestions = useSelector(state => state.RoleSettings.map(personId => getPerson(state, { personId })))
+  const suggestions = createSelector([state => state.RoleSettings], state => state.RoleSettings.map(personId => getPerson(state, { personId })))
   const { t } = useTranslation()
 
   const [roles, setRoles] = useState(group?.groupRoles?.items || [])
@@ -224,6 +225,7 @@ function RoleRow ({
   const { t } = useTranslation()
   const isDraftRole = active === ''
   const inactiveStyle = (!active && !isDraftRole && !isCommonRole) ? styles.inactive : ''
+
   return (
     <div className={cn('bg-foreground/5 rounded-lg my-4', inactiveStyle)}>
       {!isCommonRole &&
@@ -262,7 +264,7 @@ function RoleRow ({
   )
 }
 
-function AddMemberToRole ({
+export function AddMemberToRole ({
   groupId,
   roleId,
   memberSuggestions,
@@ -422,7 +424,7 @@ function AddResponsibilityToRoleSection ({
   }
 }
 
-function RoleList ({
+export function RoleList ({
   slug,
   suggestions,
   roleId,

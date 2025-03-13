@@ -181,6 +181,18 @@ export default function AuthLayoutRouter (props) {
     if (centerColumn) centerColumn.scrollTop = 0
   }, [pathMatchParams?.context, pathMatchParams?.groupSlug, pathMatchParams?.view])
 
+  /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
+  useEffect(() => {
+    if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
+      currentGroupMembership.update({ lastViewedAt: (new Date()).toISOString() })
+      if (currentGroup?.settings?.showWelcomePage) {
+        navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
+      } else {
+        navigate(groupHomeUrl({ routeParams: pathMatchParams, group: currentGroup }), { replace: true })
+      }
+    }
+  }, [currentGroupMembership, currentGroup, currentGroupSlug, navigate, pathMatchParams])
+
   if (currentUserLoading) {
     return (
       <div className={classes.container} data-testid='loading-screen'>
@@ -226,17 +238,6 @@ export default function AuthLayoutRouter (props) {
       This redirect replaces the non-accessible groupSlug from the path with '/all', for a better UI experience
     */
     return <Navigate to={postUrl(paramPostId, { context: 'all', groupSlug: null })} />
-  }
-
-  /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
-  // XXX: this is a hack, figure out better way to do this
-  if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
-    currentGroupMembership.update({ lastViewedAt: (new Date()).toISOString() })
-    if (currentGroup?.settings?.showWelcomePage) {
-      navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
-    } else {
-      navigate(groupHomeUrl({ routeParams: pathMatchParams, group: currentGroup }), { replace: true })
-    }
   }
 
   if (currentGroupSlug && !currentGroup && !currentGroupLoading) {

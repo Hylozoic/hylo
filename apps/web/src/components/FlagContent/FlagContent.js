@@ -90,6 +90,7 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
               selected={selectedCategory}
               placeholder={t('Select a reason')}
               options={options}
+              role='combobox'
             />
           </div>
           <TextareaAutosize
@@ -98,8 +99,9 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
             value={explanation}
             onChange={(e) => { setExplanation(e.target.value) }}
             placeholder={subtitle}
+            data-testid='textbox'
           />
-          <Button className={classes.submitBtn} onClick={submit} disabled={isEmpty(selectedCategory)}>{t('Submit')}</Button>
+          <Button className={classes.submitBtn} onClick={submit} disabled={isEmpty(selectedCategory)} name='Submit'>{t('Submit')}</Button>
         </div>
       </div>
     </div>

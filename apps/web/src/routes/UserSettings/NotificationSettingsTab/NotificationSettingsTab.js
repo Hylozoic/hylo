@@ -139,6 +139,7 @@ function NotificationSettingsTab ({
             label={<span className='text-xl'><Icon name='Messages' className='mr-2' />{t('Messages')}</span>}
             settings={getCurrentSettings(me, 'dmNotifications')}
             update={updateUserSetting('dmNotifications')}
+            id='messages'
           />
         </div>
 
@@ -147,10 +148,11 @@ function NotificationSettingsTab ({
             label={<span className='text-xl'><Icon name='Messages' className='mr-2' />{t('Comments on followed posts')}</span>}
             settings={getCurrentSettings(me, 'commentNotifications')}
             update={updateUserSetting('commentNotifications')}
+            id='comments'
           />
         </div>
 
-        <div className='mt-6'>{t('GROUP NOTIFICATIONS')}</div>
+        <div className='mt-6' aria-label='group notifications section'>{t('GROUP NOTIFICATIONS')}</div>
 
         <div className='border border-gray-200 mb-2 py-2'>
           <div className='flex items-center'>
@@ -161,6 +163,7 @@ function NotificationSettingsTab ({
             label={<span className='flex items-center'>Receive group notifications by <InfoButton content='This controls how you receive notifications for all your groups.' /></span>}
             settings={allGroupsSettings}
             update={updateAllGroupsAlert}
+            id='all-groups'
           />
 
           <div className='flex items-center justify-between mt-2'>
@@ -169,7 +172,7 @@ function NotificationSettingsTab ({
               value={allGroupsSettings.postNotifications}
               onValueChange={value => updateAllGroupsAlert({ postNotifications: value })}
             >
-              <SelectTrigger className='inline-flex w-auto'>
+              <SelectTrigger className='inline-flex w-auto' aria-label='all groups post notifications frequency'>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -186,7 +189,7 @@ function NotificationSettingsTab ({
               value={allGroupsSettings.digestFrequency}
               onValueChange={value => updateAllGroupsAlert({ digestFrequency: value })}
             >
-              <SelectTrigger className='inline-flex w-auto'>
+              <SelectTrigger className='inline-flex w-auto' aria-label='all groups email digest frequency'>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

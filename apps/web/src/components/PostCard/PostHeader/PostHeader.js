@@ -169,12 +169,12 @@ class PostHeader extends PureComponent {
                 delay={250}
                 id='post-header-flag-tt'
               />
-              {pinned && <Icon name='Pin' className='top-1 mr-3 text-xl text-accent font-bold' />}
+              {pinned && <Icon name='Pin' className='top-1 mr-3 text-xl text-accent font-bold' tooltipContent='pinned post' tooltipId={`pinned-post-tt-${id}`} />}
               {dropdownItems.length > 0 &&
                 <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' />} items={dropdownItems} alignRight />}
               {close &&
                 <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} onClick={close}>
-                  <Icon name='Ex' className='align-middle' />
+                  <Icon name='Ex' className='align-middle' dataTestId='close' />
                 </a>}
             </div>
           </div>
@@ -242,6 +242,11 @@ class PostHeader extends PureComponent {
         <Tooltip
           delay={550}
           id={`dateTip-${id}`}
+          position='left'
+        />
+        <Tooltip
+          delay={550}
+          id={`pinned-post-tt-${id}`}
           position='left'
         />
       </div>
