@@ -53,7 +53,6 @@ class PostHeader extends PureComponent {
       group,
       proposalOutcome,
       proposalStatus,
-      pinned,
       close,
       className,
       constrained,
@@ -61,7 +60,6 @@ class PostHeader extends PureComponent {
       deletePost,
       duplicatePost,
       removePost,
-      pinPost,
       highlightProps,
       moderationActionsGroupUrl = '',
       fulfillPost,
@@ -100,7 +98,6 @@ class PostHeader extends PureComponent {
     }
 
     const dropdownItems = filter([
-      { icon: 'Pin', label: pinned ? t('Unpin') : t('Pin'), onClick: pinPost },
       { icon: 'Edit', label: t('Edit'), onClick: editPost },
       { icon: 'CopyLink', label: t('Copy Link'), onClick: copyLink },
       { icon: 'Flag', label: t('Flag'), onClick: this.flagPostFunc() },
@@ -187,7 +184,6 @@ class PostHeader extends PureComponent {
                 delay={250}
                 id='post-header-flag-tt'
               />
-              {pinned && <Icon name='Pin' className='top-1 mr-3 text-xl text-accent font-bold' />}
               {dropdownItems.length > 0 &&
                 <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' />} items={dropdownItems} alignRight />}
               {close &&

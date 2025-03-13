@@ -7,10 +7,9 @@ describe('presentPost', () => {
   const session = orm.session(orm.getEmptyState())
 
   const group = session.Group.create({ id: groupId })
-  const postMembership = session.PostMembership.create({ group, pinned: true })
   const person = session.Person.create({ name: 'Mr Person' })
   const eventInvitation = session.EventInvitation.create({ response: 'yes', person, event: postId })
-  session.Post.create({ id: postId, postMemberships: [postMembership], eventInvitations: [eventInvitation] })
+  session.Post.create({ id: postId, eventInvitations: [eventInvitation] })
 
   Date.now = jest.fn(() => new Date(2024, 6, 23, 16, 30))
 
