@@ -11553,6 +11553,7 @@ __metadata:
     sharp: "npm:^0.30.4"
     socket.io-client: "npm:^2.3.1"
     socket.io-emitter: "npm:^3.1.1"
+    standard: "npm:^17.1.2"
     stream-buffers: "npm:^3.0.2"
     stripe: "npm:^6.15.0"
     uuid: "npm:^9.0.0"
