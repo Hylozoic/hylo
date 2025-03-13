@@ -12,7 +12,6 @@ import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettin
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useStreamQueryVariables from '@hylo/hooks/useStreamQueryVariables'
-import { isDev } from 'config'
 import useRouteParams from 'hooks/useRouteParams'
 import makeStreamQuery from './makeStreamQuery'
 import CreateGroupNotice from 'components/CreateGroupNotice'
@@ -82,8 +81,6 @@ export default function Stream () {
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
   const routeParams = useRouteParams()
-  // TODO: Keeping logging for now for Stream testing due-diligence
-  if (isDev) console.log('!!! routeParams', routeParams)
   const {
     context,
     customViewId,
@@ -112,7 +109,6 @@ export default function Stream () {
     sortBy,
     timeframe
   })
-  if (isDev) console.log('!!!! streamQueryVariables', streamQueryVariables)
   const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...streamQueryVariables, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore
