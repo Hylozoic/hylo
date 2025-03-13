@@ -40,7 +40,7 @@ export default function PublicGroupDetail (props) {
     <Div100vh className={classes.publicContainer}>
       <PublicPageHeader />
       <div className={cn(classes.centerColumn, classes.nonMapView)} id={CENTER_COLUMN_ID}>
-        <GroupDetail {...props} />
+        <GroupDetail {...props} context='public' />
       </div>
     </Div100vh>
   )
