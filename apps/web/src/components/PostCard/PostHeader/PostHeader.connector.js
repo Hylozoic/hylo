@@ -70,9 +70,9 @@ export function mapDispatchToProps (dispatch, props) {
     unfulfillPost: postId => props.unfulfillPost
       ? props.unfulfillPost(postId)
       : dispatch(unfulfillPost(postId)),
-    removePost: (postId, text) => {
-      removePostWithConfirm(postId, text)
-    },
+    removePost: (postId, text) => props.removePost
+      ? props.removePost(postId)
+      : removePostWithConfirm(postId, text),
     pinPost: (postId, groupId) => props.pinPost
       ? props.pinPost(postId)
       : dispatch(pinPost(postId, groupId)),
