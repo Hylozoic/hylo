@@ -18,6 +18,7 @@ describe('UserSettings', () => {
     })
     currentUser = ormSession.Me.create({
       id: '1',
+      name: 'Test User',
       hasFeature: () => true,
       blockedUsers: ['2'],
       settings: {}
@@ -79,6 +80,93 @@ describe('UserSettings', () => {
             }
           }
         })
+      }),
+      graphql.query('UserSettingsQuery', () => {
+        return HttpResponse.json({
+          data: {
+            me: {
+              id: '1',
+              affiliations: {
+                items: []
+              },
+              blockedUsers: [
+                {
+                  id: '2',
+                  name: 'a user'
+                }
+              ],
+              memberships: [
+                {
+                  id: '2',
+                  group: {
+                    id: '1',
+                    name: 'Wombats',
+                    chatRooms: {
+                      items: []
+                    }
+                  }
+                },
+                {
+                  id: '3',
+                  group: {
+                    id: '2',
+                    name: 'Beavers',
+                    chatRooms: {
+                      items: []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        })
+      }),
+      graphql.query('fetchUserSettings', () => {
+        return HttpResponse.json({
+          data: {
+            me: {
+              id: '1',
+              name: 'Test User',
+              avatarUrl: null,
+              bannerUrl: null,
+              bio: '',
+              tagline: '',
+              location: null,
+              settings: {}
+            }
+          }
+        })
+      }),
+      graphql.mutation('updateMe', () => {
+        return HttpResponse.json({
+          data: {
+            updateMe: {
+              id: '1'
+            }
+          }
+        })
+      }),
+      graphql.query('savedSearches', () => {
+        return HttpResponse.json({
+          data: {
+            savedSearches: {
+              total: 0,
+              hasMore: false,
+              items: []
+            }
+          }
+        })
+      }),
+      graphql.query('fetchMyInvitesAndRequests', () => {
+        return HttpResponse.json({
+          data: {
+            me: {
+              id: '1',
+              groupInvites: [],
+              pendingGroupRequests: []
+            }
+          }
+        })
       })
     )
   })
@@ -86,39 +174,30 @@ describe('UserSettings', () => {
   it('renders correctly', async () => {
     render(
       <UserSettings />,
-      { wrapper: AllTheProviders(reduxState) }
+      { 
+        wrapper: AllTheProviders(reduxState, ['/edit-profile']),
+        route: '/edit-profile'
+      }
     )
 
     // Check if main sections are rendered
     await waitFor(() => {
-      expect(screen.getByText('Edit Profile')).toBeInTheDocument()
-      expect(screen.getByText('Groups & Affiliations')).toBeInTheDocument()
-      expect(screen.getByText('Invites & Requests')).toBeInTheDocument()
-      expect(screen.getByText('Notifications')).toBeInTheDocument()
-      expect(screen.getByText('Account')).toBeInTheDocument()
-      expect(screen.getByText('Saved Searches')).toBeInTheDocument()
-      expect(screen.getByText('Blocked Users')).toBeInTheDocument()
+      expect(screen.getByText('Banner and Avatar Images')).toBeInTheDocument()
+      expect(screen.getByText('Name')).toBeInTheDocument()
+      expect(screen.getByText('Tagline')).toBeInTheDocument()
+      expect(screen.getByText('About Me')).toBeInTheDocument()
+      expect(screen.getByText('Location')).toBeInTheDocument()
+      expect(screen.getByText('Website')).toBeInTheDocument()
+      expect(screen.getByText('My Skills & Interests')).toBeInTheDocument()
+      expect(screen.getByText('Add a Skill or Interest')).toBeInTheDocument()
+      expect(screen.getByText('What I\'m learning')).toBeInTheDocument()
+      expect(screen.getByText('Add a skill you want to learn')).toBeInTheDocument()
+      expect(screen.getByText('Contact Email')).toBeInTheDocument()
+      expect(screen.getByText('Contact Phone')).toBeInTheDocument()
+      expect(screen.getByText('Social Accounts')).toBeInTheDocument()
+      expect(screen.getByText('Facebook')).toBeInTheDocument()
+      expect(screen.getByText('Twitter')).toBeInTheDocument()
+      expect(screen.getByText('LinkedIn')).toBeInTheDocument()      
     })
   })
-
-  // TODO: Fix this test, cant get it to update the redux state
-  it.skip('does not render Blocked Users tab when user has no blocked users', async() => {
-    // Update the currentUser to have no blocked users
-    ormSession.Me.withId('1').update({ blockedUsers: [] })
-
-    render(
-      <UserSettings />,
-      { wrapper: AllTheProviders({
-          orm: ormSession.state,
-          FullPageModal: { confirm: false },
-          pending: { FETCH_FOR_CURRENT_USER: false }
-        })
-      }
-    )
-
-    await waitFor(() => {
-      expect(screen.queryByText('Blocked Users')).not.toBeInTheDocument()
-    })
-  })
-
 })

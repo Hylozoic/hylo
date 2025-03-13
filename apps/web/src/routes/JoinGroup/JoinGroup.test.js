@@ -72,15 +72,13 @@ it('joins and forwards to group when current user is fully signed-up', async () 
     <>
       <Routes>
         <Route path='/join-group' element={<JoinGroup />} />
-        <Route path='/groups/test-group/explore' element={<div>/groups/test-group/explore</div>} />
+        <Route path='/groups/test-group/chat/home' element={<div>/groups/test-group/chat/home</div>} />
       </Routes>
     </>,
     { wrapper: currentUserProvider(true) }
   )
 
-  await waitFor(() => {
-    expect(screen.getByText('/groups/test-group/explore')).toBeInTheDocument()
-  })
+  expect(await screen.findByText('/groups/test-group/chat/home')).toBeInTheDocument()
 })
 
 it('checks invitation and forwards to expired invite page when invitation is invalid when not logged-in', async () => {

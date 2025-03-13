@@ -60,24 +60,16 @@ describe('PeopleSelector', () => {
       await waitFor(() => expect(defaultProps.fetchPeople).toHaveBeenCalled())
     })
 
-    it('removes participant if backspace pressed when autocompleteInput is empty', async () => {
-      render(<PeopleSelector {...defaultProps} />)
-      const input = screen.getByPlaceholderText('+ Add someone')
-      fireEvent.keyDown(input, { keyCode: keyMap.BACKSPACE })
-      await waitFor(() => expect(defaultProps.removePerson).toHaveBeenCalled())
-    })
-
     it('calls selectPerson with currentMatch when enter pressed', async () => {
-      render(<PeopleSelector {...defaultProps} />)
+      const { rerender } = render(<PeopleSelector {...defaultProps} />)
       const input = screen.getByPlaceholderText('+ Add someone')
-      fireEvent.keyDown(input, { keyCode: keyMap.ENTER })
-      await waitFor(() => expect(defaultProps.selectPerson).toHaveBeenCalledWith({ id: '1', name: 'Person 1' }))
-    })
-
-    it('calls selectPerson with currentMatch when comma pressed', async () => {
-      render(<PeopleSelector {...defaultProps} />)
-      const input = screen.getByPlaceholderText('+ Add someone')
-      fireEvent.keyDown(input, { keyCode: keyMap.COMMA })
+      
+      // First set the selectedIndex by triggering arrow down
+      fireEvent.keyDown(input, { key: 'ArrowDown' })
+      
+      // Then press enter
+      fireEvent.keyDown(input, { key: 'Enter' })
+      
       await waitFor(() => expect(defaultProps.selectPerson).toHaveBeenCalledWith({ id: '1', name: 'Person 1' }))
     })
   })

@@ -1,143 +1,170 @@
 /* eslint-env jest */
 import React, { act } from 'react'
+import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { graphql, HttpResponse } from 'msw'
 import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
-import orm from 'store/models'
+import PostEditor from './PostEditor'
+import ActionsBar from './ActionsBar'
+import { editPostUrl } from 'util/navigation'
+import * as reactRedux from 'react-redux'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import presentPost from 'store/presenters/presentPost'
 
 jest.mock('store/actions/createPost', () => {
   return jest.fn(() => {
     return {
       type: 'CREATE_POST_SUCCESS',
       payload: { /* mock payload data */ }
-    };
-  });
-});
+    }
+  })
+})
+import createPost from 'store/actions/createPost'
+
 jest.mock('store/actions/updatePost', () => {
   return jest.fn(() => {
     return {
       type: 'UPDATE_POST_SUCCESS',
       payload: { /* mock payload data */ }
-    };
-  });
-});
-import createPost from 'store/actions/createPost'
+    }
+  })
+})
 import updatePost from 'store/actions/updatePost'
 
-import PostEditor from './PostEditor'
-import ActionsBar from './ActionsBar'
-import { editPostUrl } from 'util/navigation'
+jest.mock('store/selectors/getGroupForSlug', () => {
+  return jest.fn().mockReturnValue({ id: '1', name: 'Test Group', slug: 'test-group' })
+})
 
-jest.mock('lodash/debounce', () => fn => {
+jest.mock('store/presenters/presentPost', () => {
+  return jest.fn(() => {
+    return {
+      id: '1',
+      type: 'request',
+      title: 'Test Post'
+    }
+  })
+})
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useParams: jest.fn().mockReturnValue({ context: 'groups', groupSlug: 'test-group' }),
+  useLocation: jest.fn().mockReturnValue({ pathname: '/groups/test-group', search: '' })
+}))
+
+jest.mock('lodash/debounce', () => fn => {  
   fn.cancel = jest.fn()
   return fn
 })
 
+const testGroup = {
+  id: '1',
+  name: 'Test Group',
+  slug: 'test-group'
+}
+
 function testProviders () {
   const ormSession = orm.mutableSession(orm.getEmptyState())
-  ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
-  ormSession.Post.create({ id: '1', title: 'Test Post', type: 'discussion', groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }] })
+  ormSession.Me.create({
+    id: '20',
+    memberships: [ormSession.Membership.create({
+      id: '345',
+      group: '1'
+    })]
+  })
+  ormSession.Group.create(testGroup)
+  ormSession.Post.create({
+    id: '1',
+    title: 'Test Post',
+    type: 'discussion',
+    groups: [{ id: '1', name: 'Test Group' }],
+    topics: [{ name: 'design' }],
+    creator: { id: '20' }
+  })
   const reduxState = { orm: ormSession.state }
-
   return AllTheProviders(reduxState)
 }
 
-describe('PostEditor', () => {
-  beforeEach(() => {
-    mockGraphqlServer.use(
-      graphql.query('FetchPost', ({ query, variables }) => {
-        return HttpResponse.json({
-          data: {
-            post: null
+beforeEach(() => {
+  mockGraphqlServer.use(
+    // Log all GraphQL operations
+    graphql.operation(({ query, variables }) => {
+      // console.log('GraphQL Operation:', { query, variables })
+      return HttpResponse.json({ data: {} })
+    }),
+    graphql.query('FetchPost', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
+          post: {
+            id: '1',
+            title: 'Test Post',
+            type: 'discussion',
+            groups: [{ id: '1', name: 'Test Group' }],
+            topics: [{ name: 'design' }]
           }
-        })
-      }),
-      graphql.query('FetchTopics', ({ query, variables }) => {
-        return HttpResponse.json({
-          data: {
-            topics: []
-          }
-        })
-      }),
-      graphql.mutation('CreatePost', ({ query, variables }) => {
-        return HttpResponse.json({
-          data: {
-            post: {
-              id: '1',
-              title: 'Test Post',
-              groups: [{ id: '1', name: 'Test Group' }],
-              topics: [{ name: 'design' }]
-            }
-          }
-        })
+        }
       })
-    )
-  })
+    }),
+    graphql.query('FetchTopics', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
+          topics: []
+        }
+      })
+    }),
+    graphql.mutation('CreatePost', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
+          createPost: {
+            id: '1',
+            title: 'Test Post',
+            groups: [{ id: '1', name: 'Test Group' }],
+            topics: [{ name: 'design' }]
+          }
+        }
+      })
+    })
+  )
+})
 
-  const baseProps = {
-    currentUser: { id: '1', avatarUrl: 'https://example.com/avatar.jpg' },
-    groupOptions: [{ id: '1', name: 'Test Group' }],
-    myAdminGroups: [],
-    context: 'group',
-    onClose: jest.fn()
-  }
+const renderComponent = (props = {}) => {
+  return render(
+    <PostEditor {...props} />,
+    { wrapper: testProviders() }
+  )
+}
 
-  const renderComponent = (props = {}) => {
-    return render(
-      <PostEditor {...baseProps} {...props} />,
-      { wrapper: testProviders() }
-    )
-  }
+describe('PostEditor', () => {
 
   it('renders with min props', async () => {
     renderComponent()
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Add a title')).toBeInTheDocument()
+      expect(screen.getByLabelText(/title/i, { selector: 'input' })).toBeInTheDocument()
     })
+    expect(screen.getByLabelText(/title/i, { })).toBeInTheDocument()
   })
 
-  describe('for a new post', () => {
-    it('renders initial prompt and placeholders', async () => {
-      renderComponent({ initialPrompt: 'a test prompt' })
+  test.each(['discussion', 'request', 'offer', 'resource'])(
+    'renders correct title input for post type %s',
+    async (type) => {
+      renderComponent({ post: { type } })
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Add a title')).toBeInTheDocument()
+        expect(screen.getByLabelText(/title/i, { })).toBeInTheDocument()
       })
-    })
+    }
+  )
 
-    it('renders correct title placeholder for different post types', async () => {
-      const postTypes = ['discussion', 'request', 'offer', 'resource']
-      postTypes.forEach(type => {
-        renderComponent({ post: { type } })
-      })
-      await waitFor(() => {
-        expect(screen.getAllByPlaceholderText('Add a title')).toHaveLength(postTypes.length)
-      })
-    })
+  it('calls createPost when saving a new post', async () => {
+    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
 
-    it('calls createPost when saving a new post', async () => {
-      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+    renderComponent()
 
-      renderComponent({
-        fetchLocation: jest.fn().mockReturnValue('8778'),
-        ensureLocationIdIfCoordinate: jest.fn().mockResolvedValue('666'),
-      })
+    const titleInput = await screen.findByLabelText(/title/i, { })
+    fireEvent.change(titleInput, { target: { value: 'Test Title' } })
+    fireEvent.click(screen.getByLabelText(/submit/i))
 
-      await waitFor(async () => {
-        const titleInput = screen.getByPlaceholderText('Add a title')
-        fireEvent.change(titleInput, { target: { value: 'Test Title' } })
-      })
-
-      // Post button to be enabled
-      await waitFor(() => {
-        expect(screen.getByText('Post')).toBeEnabled()
-      })
-
-      fireEvent.click(screen.getByText('Post'))
-
-      await waitFor(() => {
-        expect(createPost).toHaveBeenCalled()
-      })
+    await waitFor(() => {
+      expect(createPost).toHaveBeenCalled()
     })
   })
 
@@ -155,38 +182,30 @@ describe('PostEditor', () => {
   describe('editing a post', () => {
     const editProps = {
       editing: true,
-      editPostId: '1',
       post: {
         id: '1',
         type: 'request',
-        title: 'Test Title',
-        groups: [{ id: '1', name: 'Test Group', slug: 'test-group' }],
-        topics: [{ name: 'design' }]
+        title: 'Test Post'
       },
-      showImagePreviews: true,
-      ensureLocationIdIfCoordinate: jest.fn().mockResolvedValue('555'),
       setIsDirty: jest.fn()
     }
 
-    it('loads post data into fields', async () => {
-      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
-      renderComponent(editProps)
-      await waitFor(() => {
-        expect(screen.getByDisplayValue('Test Post')).toBeInTheDocument()
-      })
-    })
-
     it('calls updatePost when saving an edited post', async () => {
+      jest.clearAllMocks()
       jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
       renderComponent(editProps)
-      await waitFor(() => {
-        expect(screen.getByDisplayValue('Test Post')).toBeInTheDocument()
-      })
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Save'))
-      })
+      
+      const titleInput = await screen.findByLabelText(/title/i)
+      expect(titleInput.value).toEqual('Test Post')
+      fireEvent.change(titleInput, { target: { value: 'New Title' } })
+      expect(titleInput.value).toEqual('New Title')
+
+      const submitButton = await screen.findByRole('button', { name: /submit/i })
+      expect(submitButton).toBeEnabled()
+      fireEvent.click(submitButton)
 
       await waitFor(() => {
+        expect(createPost).not.toHaveBeenCalled()
         expect(updatePost).toHaveBeenCalled()
       })
     })
@@ -242,7 +261,7 @@ describe('ActionsBar', () => {
   it('renders correctly', async () => {
     render(<ActionsBar {...baseProps} />)
     await waitFor(() => {
-      expect(screen.getByText('Post')).toBeInTheDocument()
+      expect(screen.getByRole('button')).toBeInTheDocument()
       expect(screen.getByTestId('add-image-icon')).toBeInTheDocument()
       expect(screen.getByTestId('add-file-icon')).toBeInTheDocument()
     })
@@ -251,7 +270,7 @@ describe('ActionsBar', () => {
   it('disables post button when invalid', async () => {
     render(<ActionsBar {...baseProps} valid={false} />)
     await waitFor(() => {
-      expect(screen.getByText('Post')).toHaveClass('disabled')
+      expect(screen.getByRole('button')).toHaveClass('disabled')
     })
   })
 

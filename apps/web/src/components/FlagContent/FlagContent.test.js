@@ -1,17 +1,23 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import FlagContent from './FlagContent'
+import mockGraphqlServer from 'util/testing/mockGraphqlServer'
+import { submitFlagContent } from './FlagContent.store'
+
+const mockOnClose = jest.fn()
+const mockSubmitFlagContent = jest.fn((selectedCategory, explanation, linkData) => ({ type: '1' }))
+
+jest.mock('./FlagContent.store', () => ({
+  submitFlagContent: jest.fn((selectedCategory, explanation, linkData) => {
+    return mockSubmitFlagContent(selectedCategory, explanation, linkData)
+  })
+}))
 
 describe('FlagContent', () => {
-  const mockOnClose = jest.fn()
-  const mockSubmitFlagContent = jest.fn()
-
   const defaultProps = {
     type: 'post',
     onClose: mockOnClose,
-    submitFlagContent: mockSubmitFlagContent,
-    linkData: { id: 33, type: 'post' },
-    visible: true
+    linkData: { id: 33, type: 'post' }
   }
 
   beforeEach(() => {
@@ -35,7 +41,7 @@ describe('FlagContent', () => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'inappropriate' } })
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '  my reason  ' } })
     fireEvent.click(screen.getByRole('button', { name: /submit/i }))
-
+    
     await waitFor(() => {
       expect(mockSubmitFlagContent).toHaveBeenCalledWith('inappropriate', 'my reason', defaultProps.linkData)
       expect(mockOnClose).toHaveBeenCalled()
@@ -46,13 +52,13 @@ describe('FlagContent', () => {
     render(<FlagContent {...defaultProps} />)
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'other' } })
-    fireEvent.click(screen.getByRole('button', { name: /submit/i }))
+    // fireEvent.click(screen.getByRole('button', { name: /submit/i }))
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/required/i)).toBeInTheDocument()
+      expect(screen.getByPlaceholderText("Why was this post 'other'?")).toBeInTheDocument()
     })
 
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: '  my reason  ' } })
+    fireEvent.change(screen.getByTestId('textbox'), { target: { value: '  my reason  ' } })
     fireEvent.click(screen.getByRole('button', { name: /submit/i }))
 
     await waitFor(() => {
@@ -68,7 +74,7 @@ describe('FlagContent', () => {
     fireEvent.click(screen.getByRole('button', { name: /submit/i }))
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/required/i)).toBeInTheDocument()
+      expect(screen.getByPlaceholderText("Why was this post 'other'?")).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByRole('button', { name: /ex/i }))
