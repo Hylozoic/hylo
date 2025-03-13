@@ -28,6 +28,20 @@ class PostHeader extends PureComponent {
   flagPostFunc = () =>
     this.props.canFlag ? () => { this.setState({ flaggingVisible: true }) } : undefined
 
+  getTypeIcon = (type) => {
+    const typeIconMap = {
+      offer: 'Gift',
+      request: 'HandRaised',
+      resource: 'Resource',
+      project: 'Project',
+      proposal: 'Proposal',
+      event: 'Calendar',
+      post: 'Post',
+      discussion: 'Chat'
+    }
+    return typeIconMap[type] || 'Post' // Default Post icon if type not found
+  }
+
   render () {
     const {
       routeParams,
@@ -149,6 +163,10 @@ class PostHeader extends PureComponent {
                 ))}
               </div> */}
               <div className='flex items-center ml-2'>
+                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
+                  <Icon name={this.getTypeIcon(type)} className='text-sm' />
+                  {type}
+                </div>
                 <span className='text-foreground/50 text-2xs whitespace-nowrap' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
                   {createdTimestamp}
                 </span>
