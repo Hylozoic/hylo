@@ -10,7 +10,7 @@ const Tooltip = (props) => {
       id={id}
       content={content}
       delayShow={delay || 500}
-      className={cn(classes.tooltip, className)}
+      className={cn('p-2 rounded-md text-xs', className)}
       place={place || position}
     />
   )

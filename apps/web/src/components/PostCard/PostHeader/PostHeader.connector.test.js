@@ -44,7 +44,6 @@ describe('mapDispatchToProps', () => {
     expect(dispatch).toHaveBeenCalledTimes(3)
 
     dispatchProps.deletePost(1)
-    dispatchProps.pinPost(2, 3)
     dispatchProps.duplicatePost(10)
     expect(dispatch.mock.calls).toMatchSnapshot()
   })
@@ -85,8 +84,7 @@ describe('mergeProps', () => {
     removePost: jest.fn(),
     deletePost: jest.fn(),
     duplicatePost: jest.fn(),
-    editPost: jest.fn(),
-    pinPost: jest.fn()
+    editPost: jest.fn()
   }
 
   beforeEach(() => {
@@ -94,7 +92,6 @@ describe('mergeProps', () => {
     dispatchProps.editPost.mockReset()
     dispatchProps.duplicatePost.mockReset()
     dispatchProps.deletePost.mockReset()
-    dispatchProps.pinPost.mockReset()
   })
 
   describe('as moderator', () => {
@@ -115,7 +112,7 @@ describe('mergeProps', () => {
       }
       const ownProps = { id: 20, routeParams: { groupSlug: 'mygroup' }, creator: { id: 20 } }
       const stateProps = mapStateToProps(state, ownProps)
-      const { deletePost, removePost, editPost, canEdit, pinPost } = mergeProps(stateProps, dispatchProps, ownProps)
+      const { deletePost, removePost, editPost, canEdit } = mergeProps(stateProps, dispatchProps, ownProps)
 
       expect(canEdit).toBeTruthy()
       expect(deletePost).toBeTruthy()
@@ -127,9 +124,6 @@ describe('mergeProps', () => {
 
       editPost()
       expect(dispatchProps.editPost).toHaveBeenCalledWith(20)
-
-      pinPost()
-      expect(dispatchProps.pinPost).toHaveBeenCalledWith(20, 33)
     })
 
     it('cannot delete posts but can moderate', () => {
@@ -182,12 +176,11 @@ describe('mergeProps', () => {
       const ownProps = { id: 20, routeParams: { groupSlug: 'mygroup' }, creator: { id: 20 } }
       const stateProps = mapStateToProps(state, ownProps)
 
-      const { deletePost, removePost, editPost, duplicatePost, pinPost } = mergeProps(stateProps, dispatchProps, ownProps)
+      const { deletePost, removePost, editPost, duplicatePost } = mergeProps(stateProps, dispatchProps, ownProps)
 
       expect(editPost).toBeTruthy()
       expect(deletePost).toBeTruthy()
       expect(removePost).toBeFalsy()
-      expect(pinPost).toBeFalsy()
       expect(duplicatePost).toBeTruthy()
 
       deletePost('lettuce')

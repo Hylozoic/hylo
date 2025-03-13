@@ -69,7 +69,7 @@ const every10minutes = now => {
 }
 
 const runJob = Promise.method(name => {
-  const job = {hourly, daily, every10minutes}[name]
+  const job = { hourly, daily, every10minutes }[name]
   if (typeof job !== 'function') {
     throw new Error(`Unknown job name: "${name}"`)
   }

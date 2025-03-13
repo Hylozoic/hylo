@@ -2,6 +2,7 @@
 import HasSettings from './mixins/HasSettings'
 import RedisClient from '../services/RedisClient'
 import { mapLocaleToSendWithUS } from '../../lib/util'
+import { TextHelpers } from '@hylo/shared'
 
 const CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY = 'ChatRoom.digests.lastSentAt'
 
@@ -67,7 +68,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         attrs.settings.notifications = 'all'
 
         // Set last_read_post_id to the most recent post id so when viewing chat room for first time you start at latest post
-        attrs.last_read_post_id = await Post.query(q => q.select(bookshelf.knex.raw("max(posts.id) as max"))).fetch({ transacting }).then(result => result.get('max'))
+        attrs.last_read_post_id = await Post.query(q => q.select(bookshelf.knex.raw('max(posts.id) as max'))).fetch({ transacting }).then(result => result.get('max'))
         attrs.new_post_count = 0
         hasChanged = true
 
@@ -127,7 +128,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       })
   },
 
-  sendDigests: async function() {
+  sendDigests: async function () {
     const redisClient = RedisClient.create()
     let lastSentAt = await redisClient.get(CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY)
     if (lastSentAt) lastSentAt = new Date(parseInt(lastSentAt))
@@ -144,7 +145,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const tagFollowsWithNewPosts = await TagFollow.query(q => {
       q.where('new_post_count', '>', 0)
       q.where('updated_at', '>', lastSentAt) // TODO: This is helpful to filter out ones that don't have any new posts since the last sent time, but also updated_at could be set for reasons other than a new post. Maybe we store the timestamp of the latest post in the tag follow as an extra optimization?
-      q.whereRaw(`(settings->>'notifications' = 'all' OR settings->>'notifications' = 'important')`)
+      q.whereRaw("(settings->>'notifications' = 'all' OR settings->>'notifications' = 'important')")
     }).fetchAll({
       withRelated: ['tag', 'user', 'group']
     })
@@ -172,7 +173,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         continue
       }
 
-      const postData = posts.map(post => {
+      let postData = posts.map(post => {
         const mentions = RichText.getUserMentions(post.details())
         const mentionedMe = mentions.includes(tagFollow.get('user_id'))
         return {
@@ -183,7 +184,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
           creator_avatar_url: post.relations.user.get('avatar_url'),
           images: post.relations.media.filter(m => m.get('type') === Media.Type.IMAGE).map(m => m.pick('url', 'thumbnail_url')),
           mentionedMe,
-          post_url: Frontend.Route.post({ post, group: tagFollow.relations.group })
+          post_url: Frontend.Route.post({ post, group: tagFollow.relations.group }),
+          timestamp: post.get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
         }
       })
 
@@ -196,6 +198,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
       const locale = mapLocaleToSendWithUS(tagFollow.relations.user.get('settings').locale || 'en-US')
       Email.sendChatDigest({
+        version: 'Redesign 2025',
         email: tagFollow.relations.user.get('email'),
         locale,
         data: {
@@ -203,6 +206,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           chat_topic: tagFollow.relations.tag.get('name'),
           // For the overall chat room URL use the URL of the last post in the email digest
           chat_room_url: Frontend.Route.post({ post: posts[posts.length - 1], group: tagFollow.relations.group }),
+          date: TextHelpers.formatDatePair(posts[0].get('created_at'), false, false, posts[0].get('timezone')),
           group_name: tagFollow.relations.group.get('name'),
           group_avatar_url: tagFollow.relations.group.get('avatar_url'),
           posts: postData

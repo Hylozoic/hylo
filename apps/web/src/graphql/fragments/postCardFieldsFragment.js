@@ -118,13 +118,6 @@ const postCardFieldsFragment = `
       name
     }
   }
-  postMemberships {
-    id
-    pinned
-    group {
-      id
-    }
-  }
 `
 
 export default postCardFieldsFragment

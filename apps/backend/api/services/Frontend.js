@@ -1,4 +1,5 @@
 import { isString, isNumber, isEmpty } from 'lodash'
+import { format } from 'util'
 
 /*
 
@@ -79,6 +80,10 @@ module.exports = {
 
     root: () => url('/app'),
 
+    chat: function (group, topic) {
+      return url(`/groups/${getSlug(group)}/chat/${getTopicName(topic)}`)
+    },
+
     comment: function ({ comment, group, post }) {
       const usePost = comment?.relations?.post || post
       return this.post(usePost, group, `commentId=${comment.id}`)
@@ -100,11 +105,11 @@ module.exports = {
       return this.groupSettings(group) + '/requests'
     },
 
-    groupRelationshipInvites: function(group) {
+    groupRelationshipInvites: function (group) {
       return this.groupSettings(group) + '/relationships#invites'
     },
 
-    groupRelationshipJoinRequests: function(group) {
+    groupRelationshipJoinRequests: function (group) {
       return this.groupSettings(group) + '/relationships#join_requests'
     },
 
@@ -124,8 +129,12 @@ module.exports = {
       return url(`${contextUrl}/map/post/${getModelId(post)}`)
     },
 
-    notificationsSettings: function () {
-      return url('/notifications')
+    notificationsSettings: function (clickthroughParams, user) {
+      const loginToken = user.generateJWT({
+        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 30), // 1 month expiration
+        action: 'notification_settings' // To track that this token can only be used for changing notification settings
+      })
+      return url('/notifications' + clickthroughParams + '&expand=account&token=' + loginToken + '&name=' + encodeURIComponent(user.get('name')) + '&u=' + user.id)
     },
 
     profile: function (user, group) {
@@ -195,7 +204,7 @@ module.exports = {
       return url('/h/use-invitation?token=%s&email=%s', token, encodeURIComponent(email))
     },
 
-    verifyEmail: function(email, token) {
+    verifyEmail: function (email, token) {
       return url('/signup/verify-email?email=%s&token=%s', encodeURIComponent(email), token)
     },
 
