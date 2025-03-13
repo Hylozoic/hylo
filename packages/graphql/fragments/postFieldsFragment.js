@@ -136,7 +136,6 @@ export default gql`
     }
     postMemberships {
       id
-      pinned
       group {
         id
       }
