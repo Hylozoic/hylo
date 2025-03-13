@@ -70,7 +70,6 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
         date={post.createdAt}
         editPost={editPost}
         groups={post.groups}
-        pinned={post.pinned}
         postId={post.id}
         showMember={goToMember}
         style={{ paddingVertical: 14 }}

@@ -55,7 +55,6 @@ export default function PostCard ({
           date={post.createdAt}
           hideMenu={hideMenu}
           isFlagged={isFlagged}
-          pinned={post.pinned}
           postId={post.id}
           showMember={handleShowMember}
           title={post.title}
