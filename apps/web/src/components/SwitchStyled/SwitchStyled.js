@@ -13,7 +13,7 @@ function SwitchStyled ({
     onChange(checked, name)
   }
   return (
-    <div className={cn(classes.container, { [classes.containerDisabled]: disabled })} onClick={disabled ? null : handleToggle}>
+    <div className={cn(classes.container, { [classes.containerDisabled]: disabled })} onClick={disabled ? null : handleToggle} role='switch'>
       <input type='hidden' name={name} defaultChecked={checked} />
       <span className={classes.track} style={{ backgroundColor, opacity: checked ? 1 : 0.4 }} />
       <span className={cn(classes.button, { [classes.buttonChecked]: checked })} />

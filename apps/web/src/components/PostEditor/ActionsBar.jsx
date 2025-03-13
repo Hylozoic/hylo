@@ -57,6 +57,7 @@ export default function ActionsBar ({
             name='AddImage'
             className={cn(styles.actionIcon, { [styles.highlightIcon]: showImages })}
             dataTestId='add-image-icon'
+            ariaLabel='attach image'
           />
         </UploadAttachmentButton>
         <UploadAttachmentButton
@@ -74,6 +75,7 @@ export default function ActionsBar ({
             name='Paperclip'
             className={cn(styles.actionIcon, { [styles.highlightIcon]: showFiles })}
             dataTestId='add-file-icon'
+            ariaLabel='attach file'
           />
         </UploadAttachmentButton>
         {type !== 'chat' && !showLocation && (
@@ -93,6 +95,7 @@ export default function ActionsBar ({
               className={cn(styles.actionIcon, {
                 [styles.highlightIcon]: announcementSelected
               })}
+              ariaLabel='make announcement'
             />
             <Tooltip
               effect='solid'
@@ -124,6 +127,7 @@ export default function ActionsBar ({
           className='border-2 border-foreground/30 bg-foreground/30 px-2 py-1 rounded flex items-center'
           dataTipHtml={!valid ? invalidMessage : ''}
           dataFor='submit-tt'
+          label='submit'
         >
           <SendHorizontal className={!valid || loading ? 'text-foreground/30' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
         </Button>

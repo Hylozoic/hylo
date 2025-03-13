@@ -214,7 +214,7 @@ export default class MessageSection extends Component {
     const { showNewMessageButton } = this.state
 
     return (
-      <div id='message-list' className='w-full overflow-y-auto mx-3 relative flex-1' onScroll={this.handleScroll} data-testid='message-section'>
+      <div id='message-list' className='w-full overflow-y-auto mx-3 relative flex-1' onScroll={this.handleScroll} aria-label='message section'>
         {pending && <Loading />}
         {!pending && (
           <>
