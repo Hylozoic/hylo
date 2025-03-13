@@ -8,7 +8,7 @@ import acceptInvitationMutation from '@hylo/graphql/mutations/acceptInvitationMu
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { openURL } from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
-import useChangeToGroup from 'hooks/useChangeToGroup'
+import { useChangeToGroup } from '@hylo/hooks/useCurrentGroup'
 import useLinkingStore from 'navigation/linking/store'
 import LoadingScreen from 'screens/LoadingScreen'
 

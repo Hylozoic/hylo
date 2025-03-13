@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import { useNavigation, useNavigationState } from '@react-navigation/native'
 import { Header, HeaderBackButton } from '@react-navigation/elements'
@@ -17,6 +18,7 @@ export default function TabStackHeader ({
   headerRight,
   ...otherProps
 }) {
+  const { t } = useTranslation()
   const navigation = useNavigation()
   const stackScreenIndex = useNavigationState(state => state.index)
   const canGoBack = stackScreenIndex !== 0
@@ -24,7 +26,7 @@ export default function TabStackHeader ({
 
   const props = useMemo(() => ({
     headerBackTitleVisible: false,
-    title: currentGroup?.name,
+    title: currentGroup?.name || t('Loading...'),
     headerTitle: options.headerTitle,
     headerTitleContainerStyle: {
       // Follow: https://github.com/react-navigation/react-navigation/issues/7057#issuecomment-593086348

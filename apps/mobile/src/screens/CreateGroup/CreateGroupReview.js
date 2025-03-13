@@ -6,7 +6,7 @@ import createGroupMutation from '@hylo/graphql/mutations/createGroupMutation'
 import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
 import { AnalyticsEvents } from '@hylo/shared'
 import mixpanel from 'services/mixpanel'
-import { openURL } from 'hooks/useOpenURL'
+import { useChangeToGroup } from '@hylo/hooks/useCurrentGroup'
 import { useCreateGroupStore } from './CreateGroup.store'
 import { BASE_STRING } from './CreateGroupUrl'
 import { GroupPrivacyOption } from './CreateGroupVisibilityAccessibility'
@@ -26,6 +26,7 @@ export const CreateGroupReview = React.forwardRef((_props, ref) => {
   const { t } = useTranslation()
   const { groupData, getMutationData, clearStore, goToStep, setSubmit, submit } = useCreateGroupStore()
   const client = useClient()
+  const changeToGroup = useChangeToGroup()
   const [, createGroup] = useMutation(createGroupMutation)
   const [error, setError] = useState(null)
 
@@ -43,7 +44,7 @@ export const CreateGroupReview = React.forwardRef((_props, ref) => {
           if (data?.group) {
             mixpanel.track(AnalyticsEvents.GROUP_CREATED)
             clearStore()
-            openURL(`/groups/${data.group.slug}`)
+            changeToGroup(data.group.slug, { skipCanViewCheck: true })
           } else {
             setError('Group may have been created, but there was an error. Please contact Hylo support.', error)
           }

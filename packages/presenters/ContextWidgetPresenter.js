@@ -212,7 +212,7 @@ export function wrapItemInWidget (item, type) {
 const TERMS_AND_CONDITIONS_URL = 'https://hylo-landing.surge.sh/terms'
 
 export const PUBLIC_CONTEXT_WIDGETS = [
-  { type: 'home', url: '/my/posts' },
+  { type: 'home', url: '/public/stream' },
   { context: 'public', view: 'stream', title: 'widget-public-stream', id: 'widget-public-stream', order: 1, parentId: null },
   { context: 'public', view: 'groups', title: 'widget-public-groups', id: 'widget-public-groups', order: 2, parentId: null },
   { context: 'public', view: 'map', title: 'widget-public-map', id: 'widget-public-map', type: 'map', order: 3, parentId: null },
@@ -220,7 +220,7 @@ export const PUBLIC_CONTEXT_WIDGETS = [
 ]
 
 export const MY_CONTEXT_WIDGETS = (profileUrl) => [
-  { type: 'home', url: '/public/stream' },
+  { type: 'home', url: '/my/posts' },
   { title: 'widget-my-groups-content', id: 'widget-my-groups-content', order: 2, parentId: null },
   { context: 'all', view: 'stream', title: 'widget-my-groups-stream', id: 'widget-my-groups-stream', order: 1, parentId: 'widget-my-groups-content' },
   { context: 'all', view: 'map', title: 'widget-my-groups-map', id: 'widget-my-groups-map', type: 'map', order: 2, parentId: 'widget-my-groups-content' },

@@ -46,7 +46,7 @@ const getContextWidgetsResolver = group => {
       return group.getContextWidgets(currentUser)
     }
 
-    return (group?.contextWidgets?.items || []).map(widget => ContextWidgetPresenter(widget))
+    return (group?.contextWidgets?.items || []).map(ContextWidgetPresenter)
   }
 }
 
@@ -140,10 +140,8 @@ export const getMyStaticContext = currentUser => {
     id: MY_CONTEXT_SLUG,
     slug: MY_CONTEXT_SLUG,
     name: 'My Home',
+    contextWidgets: { items: MY_CONTEXT_WIDGETS(`all/members/${currentUser?.id}`) },
     avatarUrl: currentUser?.avatarUrl,
-    getContextWidgets: currentUser => (
-      MY_CONTEXT_WIDGETS(`all/members/${currentUser?.id}`).map(ContextWidgetPresenter)
-    ),
     parentGroups: { items: [], hasMore: false, total: 0 },
     childGroups: { items: [], hasMore: false, total: 0 }
   })
@@ -155,7 +153,7 @@ export const getPublicStaticContext = () => {
     slug: PUBLIC_CONTEXT_SLUG,
     name: 'The Commons',
     iconName: 'Globe',
-    getContextWidgets: () => PUBLIC_CONTEXT_WIDGETS.map(ContextWidgetPresenter),
+    contextWidgets: { items: PUBLIC_CONTEXT_WIDGETS },
     parentGroups: { items: [], hasMore: false, total: 0 },
     childGroups: { items: [], hasMore: false, total: 0 }
   })

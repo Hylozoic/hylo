@@ -31,6 +31,7 @@ import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import { white } from 'style/colors'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 
 const updatesSubscription = gql`
   subscription UpdatesSubscription($firstMessages: Int = 1) {
@@ -70,8 +71,10 @@ export default function AuthRootNavigator () {
   // the only place we should do this with useCurrentUser as it would be expensive
   // lower in the stack where it may get called in any loops and such.
   const { i18n } = useTranslation()
-  const [{ currentUser, fetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
+  const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
+  const [{ fetching: currentGroupFetching }] = useCurrentGroup()
   const [loading, setLoading] = useState(true)
+  const [initialized, setInitialize] = useState(true)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   const [, registerDevice] = useMutation(registerDeviceMutation)
 
@@ -80,6 +83,11 @@ export default function AuthRootNavigator () {
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
   useHandleLinking()
+
+  // TODO: This is likely excessive, but most reliable, will work back from here
+  useEffect(() => {
+    setLoading(!initialized || !currentUser || currentUserFetching || currentGroupFetching)
+  }, [initialized, currentUser, currentUserFetching, currentGroupFetching])
 
   useEffect(() => {
     resetNotificationsCount()
@@ -102,7 +110,7 @@ export default function AuthRootNavigator () {
 
   useEffect(() => {
     (async function () {
-      if (currentUser && !fetching && !error) {
+      if (!initialized && currentUser && !currentUserFetching && !error) {
         const locale = currentUser?.settings?.locale || 'en'
 
         // Locale setup
@@ -132,14 +140,14 @@ export default function AuthRootNavigator () {
           $location: currentUser?.location
         })
 
-        setLoading(false)
+        setInitialize(true)
       }
     })()
 
     return () => {
       OneSignal.User.removeEventListener('change', oneSignalChangeListener)
     }
-  }, [currentUser, fetching, error])
+  }, [initialized, currentUser, currentUserFetching, error])
 
   // TODO: What do we want to happen if there is an error loading the current user?
   if (error) console.error(error)

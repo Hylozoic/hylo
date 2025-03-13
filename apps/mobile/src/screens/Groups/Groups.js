@@ -4,14 +4,13 @@ import { gql, useQuery } from 'urql'
 import { View, Text, SectionList, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import useChangeToGroup from 'hooks/useChangeToGroup'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useCurrentGroup, { useChangeToGroup } from '@hylo/hooks/useCurrentGroup'
 import { visibilityIcon, accessibilityIcon } from '@hylo/presenters/GroupPresenter'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import styles from './Groups.styles'
 import { useTranslation } from 'react-i18next'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 
 // Note: The most reliable query here for getting memberCount
 // was on `me.memberships`. `group(id: x)` nor `groups(groupIds: [x])
