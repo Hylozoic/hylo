@@ -45,7 +45,8 @@ function EventBody (props) {
           <div className='flex flex-row gap-5 items-center justify-start mb-4'>
             <EventDate {...event} />
             <div className='flex flex-col gap-0'>
-              <div className={cn('text-xs text-foreground/50')} onClick={onClick}>
+              <div className={cn('text-xs text-foreground/50 flex flex-row gap-2 items-center')} onClick={onClick}>
+                <div className='bg-accent/10 p-1 rounded-lg text-accent text-xs font-bold flex items-center justify-center inline-block px-2'>Upcoming</div>
                 {TextHelpers.formatDatePair(startTime, endTime)}
                 {isPastEvent && (
                   <span className={cn('text-sm text-foreground/50 ml-2 px-2 inline-block p-1 rounded-md bg-foreground/10 text-xs')}>{t('Event ended')}</span>
