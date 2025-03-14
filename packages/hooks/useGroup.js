@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery } from 'urql'
 import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
-import GroupPresenter, { getStaticContext } from '@hylo/presenters/GroupPresenter'
+import GroupPresenter, { getStaticContext, isStaticContext } from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from './useCurrentUser'
 
 export default function useGroup ({
@@ -13,23 +13,24 @@ export default function useGroup ({
   },
   useQueryArgs = {}
 } = {}) {
-  const [{ currentUser, fetching: userFetching, error: userError }] = useCurrentUser({ pause: useQueryArgs?.pause || !groupSlug })
-  const contextGroup = useMemo(() => getStaticContext(groupSlug || groupId, { currentUser }), [groupSlug, groupId, currentUser])
+  const isStatic = isStaticContext(groupSlug || groupId)
+  const [{ currentUser, ...currentUserRest }] = useCurrentUser({
+    pause: !isStatic || useQueryArgs?.pause || !groupSlug
+  })
 
-  const [{ data, fetching: groupFetching, error: groupError }, reQuery] = useQuery({
+  const [{ data, fetching, error }, reQuery] = useQuery({
     ...useQueryArgs,
     query: groupDetailsQueryMaker(groupQueryScope),
     variables: { id: groupId, slug: groupSlug },
-    pause: !!contextGroup || useQueryArgs?.pause || (!groupSlug && !groupId)
+    pause: isStatic || useQueryArgs?.pause || (!groupSlug && !groupId)
   })
 
-  const group = useMemo(() => (
-    contextGroup || GroupPresenter(data?.group, { currentUser })
-  ), [contextGroup, data?.group, currentUser])
+  if (isStatic) {
+    const group = getStaticContext(groupSlug || groupId, { currentUser })
+    return [{ group, ...currentUserRest }, () => {}]
+  }
 
-  return [{
-    group,
-    fetching: userFetching || groupFetching,
-    error: groupError || userError
-  }, contextGroup ? () => {} : reQuery]
+  const group = useMemo(() => GroupPresenter(data?.group), [data?.group])
+
+  return [{ group, fetching, error }, reQuery]
 }
