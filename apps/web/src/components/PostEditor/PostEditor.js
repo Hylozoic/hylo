@@ -803,6 +803,7 @@ function PostEditor ({
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
               contentHTML={currentPost.details}
+              menuClassName={cn({ 'pr-16': isChat })}
               showMenu
               readOnly={loading}
               ref={editorRef}
