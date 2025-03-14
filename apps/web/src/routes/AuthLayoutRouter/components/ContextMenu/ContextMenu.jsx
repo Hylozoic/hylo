@@ -22,7 +22,7 @@ import useGatherItems from 'hooks/useGatherItems'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import { bgImageStyle, cn } from 'util/index'
-import { widgetUrl, baseUrl, groupUrl, addQuerystringToPath, personUrl } from 'util/navigation'
+import { widgetUrl, baseUrl, groupUrl, groupInviteUrl, addQuerystringToPath, personUrl } from 'util/navigation'
 import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 import ContextWidgetPresenter, {
   isValidChildWidget,
@@ -531,6 +531,22 @@ function SpecialTopElementRenderer ({ widget, group, isEditing }) {
   const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
   const { t } = useTranslation()
 
+  const handleCopyInviteLink = useCallback((e) => {
+    e.preventDefault()
+    navigator.clipboard.writeText(groupInviteUrl(group))
+
+    // Add flash effect
+    const target = e.currentTarget
+    target.classList.add('bg-secondary/30')
+    target.innerText = t('Copied!')
+
+    // Reset after animation
+    setTimeout(() => {
+      target.classList.remove('bg-secondary/30')
+      target.innerText = t('Copy invite link')
+    }, 1500)
+  }, [group])
+
   if (widget.type === 'members' && canAddMembers) {
     return (
       <div className='relative'>
@@ -541,8 +557,15 @@ function SpecialTopElementRenderer ({ widget, group, isEditing }) {
           </MenuLink>
         </div>
         <MenuLink to={groupUrl(group.slug, 'settings/invite')}>
-          <div className='inline-block px-2 py-2 text-base font-medium text-foreground bg-foreground/20 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer animate-slide-up invisible'>
-            <UserPlus className='inline-block h-[20px] mr-1' /> {t('Add Members')}
+          <div className='flex items-center px-2 py-2 text-base font-medium text-foreground bg-foreground/20 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer animate-slide-up invisible'>
+            <UserPlus className='inline-block h-[20px] mr-1' />
+            <span className='flex-1'>{t('Add Members')}</span>
+            <span
+              className='text-xs text-foreground/50 hover:text-foreground/100 transition-all'
+              onClick={handleCopyInviteLink}
+            >
+              {t('Copy invite link')}
+            </span>
           </div>
         </MenuLink>
       </div>
