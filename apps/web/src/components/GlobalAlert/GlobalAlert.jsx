@@ -1,6 +1,7 @@
 import React from 'react'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogTitle,
   DialogPortal,
@@ -9,9 +10,10 @@ import {
 
 const GlobalAlert = ({
   children,
-  title,
+  closeButton,
   description,
-  onOpenChange
+  onOpenChange,
+  title
 }) => {
   return (
     <Dialog
@@ -23,6 +25,11 @@ const GlobalAlert = ({
           <DialogContent className='GlobalAlert-Content'>
             <DialogTitle className=''>{title}</DialogTitle>
             {children}
+            {closeButton && (
+              <DialogClose asChild>
+                {closeButton}
+              </DialogClose>
+            )}
           </DialogContent>
         </DialogOverlay>
       </DialogPortal>

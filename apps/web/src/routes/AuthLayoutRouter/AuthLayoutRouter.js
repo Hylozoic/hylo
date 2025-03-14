@@ -16,6 +16,7 @@ import GlobalNav from './components/GlobalNav'
 import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
+import Button from 'components/ui/button'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
 import getReturnToPath from 'store/selectors/getReturnToPath'
@@ -262,9 +263,11 @@ export default function AuthLayoutRouter (props) {
               window.localStorage.setItem('new-hylo-alert-seen', true)
             }
           }}
+          closeButton={<Button variant='secondary'>Jump in!</Button>}
         >
           <div>
-            <p>Here we goooooooo</p>
+            We just launched a major redesign of Hylo! To learn more about what's new,&nbsp;
+            <a href='https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates' target='_blank' rel='noreferrer'>click here</a>.
           </div>
         </GlobalAlert>
       )}
