@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { flow, filter, map, sortBy } from 'lodash/fp'
 import { translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
@@ -17,12 +18,22 @@ export default function AllViews () {
   const canAdminister = hasResponsibility(RESP_ADMINISTRATION)
   const widgets = currentGroup?.getContextWidgets(currentUser) || []
   const visibleWidgets = useMemo(() => {
-    return widgets.filter(widget => {
-      if (widget.visibility === 'admin' && !canAdminister) return false
-      if (widget.type === 'home') return false
-      return true
-    })
-  }, [widgets, canAdminister])
+    return flow(
+
+      filter(widget =>
+        !(widget.visibility === 'admin' && !canAdminister) &&
+        widget.type !== 'home'
+      ),
+
+      map(widget => ({
+        ...widget,
+        title: translateTitle(widget.title, t)
+      })),
+
+      sortBy('title')
+
+    )(widgets)
+  }, [widgets, canAdminister, t])
 
   const handleWidgetPress = widget => {
     widget?.customView?.externalLink
@@ -41,7 +52,7 @@ export default function AllViews () {
           <View className='items-center'>
             <View className='flex-row items-center content-center'>
               <WidgetIconResolver widget={widget} style={{ fontSize: 18, marginRight: 10 }} />
-              <Text className='text-xl font-semibold text-foreground'>{translateTitle(widget.title, t)}</Text>
+              <Text className='text-xl font-semibold text-foreground'>{widget.title}</Text>
             </View>
           </View>
         </TouchableOpacity>
