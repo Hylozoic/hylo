@@ -257,7 +257,7 @@ export default function AuthLayoutRouter (props) {
         </script>
       </Helmet>
 
-      {!isWebView() && new Date(currentUser.createdAt) < new Date('2025-03-15') && !window.localStorage.getItem('new-hylo-alert-seen') && (
+      {!isWebView() && new Date(currentUser.createdAt) < new Date('2025-03-16') && !window.localStorage.getItem('new-hylo-alert-seen') && (
         <GlobalAlert
           title={t('Welcome to the new Hylo!')}
           onOpenChange={(open) => {
