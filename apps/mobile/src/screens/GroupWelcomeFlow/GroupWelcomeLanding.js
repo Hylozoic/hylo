@@ -9,6 +9,7 @@ import CheckBox from 'react-native-bouncy-checkbox'
 import KeyboardManager, { PreviousNextView } from 'react-native-keyboard-manager'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import {
   getRouteNames,
   useGroupWelcomeStore,
@@ -17,6 +18,7 @@ import {
   GROUP_WELCOME_SUGGESTED_SKILLS
 } from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
 import GroupWelcomeTabBar from 'screens/GroupWelcomeFlow/GroupWelcomeTabBar'
+import HyloHTML from 'components/HyloHTML'
 import Pill from 'components/Pill'
 import styles from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.styles'
 import { caribbeanGreen } from 'style/colors'
@@ -49,6 +51,7 @@ export const updateMembershipMutation = gql`
 export default function GroupWelcomeLanding () {
   const { t } = useTranslation()
   const navigation = useNavigation()
+  const changeToGroup = useChangeToGroup()
   const [, addSkill] = useMutation(addSkillMutation)
   const [, removeSkill] = useMutation(removeSkillMutation)
   const [, updateMembershipSettings] = useMutation(updateMembershipMutation)
@@ -59,7 +62,7 @@ export default function GroupWelcomeLanding () {
   const currentMembership = currentMemberships.find(m => m.group.id === currentGroup?.id)
   const routeNames = getRouteNames(currentGroup, currentMembership)
 
-  const { name, avatarUrl, purpose, bannerUrl, description, agreements, joinQuestions } = currentGroup
+  const { name, avatarUrl, purpose, bannerUrl, description, agreements, joinQuestions, settings, welcomePage } = currentGroup
   const { agreementsAcceptedAt, joinQuestionsAnsweredAt } = currentMembership?.settings || {}
   const imageSource = { uri: avatarUrl }
   const bgImageSource = { uri: bannerUrl }
@@ -110,6 +113,7 @@ export default function GroupWelcomeLanding () {
       groupId: currentGroup?.id,
       data: {
         acceptAgreements: true,
+        lastViewedAt: (new Date()).toISOString(),
         questionAnswers: questionAnswers
           ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))
           : [],
@@ -119,7 +123,7 @@ export default function GroupWelcomeLanding () {
         }
       }
     })
-    navigation.goBack()
+    changeToGroup(currentGroup?.slug)
     return null
   }
 
@@ -152,6 +156,7 @@ export default function GroupWelcomeLanding () {
         <View style={{ flex: 1, gap: 6, paddingLeft: 16, paddingRight: 16 }}>
           {currentStepIndex === 0 && (
             <LandingBodyContent
+              welcomePage={settings?.showWelcomePage && welcomePage}
               description={description}
               purpose={purpose}
               currentStepIndex={currentStepIndex}
@@ -196,12 +201,15 @@ export default function GroupWelcomeLanding () {
   )
 }
 
-function LandingBodyContent ({ description, purpose }) {
+function LandingBodyContent ({ description, purpose, welcomePage }) {
   const { t } = useTranslation()
   const backupText = t('welcome page backup text')
-
   return (
     <>
+      {welcomePage &&
+        <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
+          <HyloHTML html={welcomePage} />
+        </View>}
       {!isEmpty(purpose) &&
         <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
           <Text style={styles.sectionHeading}>{t('Our Purpose')}:</Text>
@@ -210,7 +218,7 @@ function LandingBodyContent ({ description, purpose }) {
       {!isEmpty(description) &&
         <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
           <Text style={styles.sectionHeading}>{t('Description')}:</Text>
-          <Text style={styles.purposeText}>{description}</Text>
+          <HyloHTML html={description} />
         </View>}
       {isEmpty(description) && isEmpty(purpose) &&
         <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
