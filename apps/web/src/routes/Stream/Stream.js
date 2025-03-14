@@ -256,7 +256,7 @@ export default function Stream (props) {
           {customView?.activePostsOnly ? t('Only active') : ''}
         </span>
 
-        {customView?.postTypes.length === 0 ? t('None') : customView?.postTypes.map((p, i) => <span key={i}><PostLabel key={p} type={p} className='align-middle mr-1' />{p}s&nbsp;</span>)}
+        {customView?.postTypes.length === 0 ? t('None') : customView?.postTypes.map((p, i) => <span key={i}><PostLabel key={p} type={p} className='align-middle mr-2' />{p}s&nbsp;</span>)}
         {customView?.topics.length > 0 && <div>{t('filtered by topics:')}</div>}
         {customView?.topics.length > 0 && customView?.topics.map(t => <span key={t.id}>#{t.name}</span>)}
       </div>
