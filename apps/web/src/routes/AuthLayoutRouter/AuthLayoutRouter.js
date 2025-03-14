@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
 import Div100vh from 'react-div-100vh'
+import { useTranslation, Trans } from 'react-i18next'
 import { get, some } from 'lodash/fp'
 import { useResizeDetector } from 'react-resize-detector'
 import { cn } from 'util/index'
@@ -74,6 +75,7 @@ export default function AuthLayoutRouter (props) {
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
+  const { t } = useTranslation()
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()
@@ -257,17 +259,18 @@ export default function AuthLayoutRouter (props) {
 
       {!isWebView() && new Date(currentUser.createdAt) < new Date('2025-03-15') && !window.localStorage.getItem('new-hylo-alert-seen') && (
         <GlobalAlert
-          title='Welcome to the new Hylo!'
+          title={t('Welcome to the new Hylo!')}
           onOpenChange={(open) => {
             if (!open) {
               window.localStorage.setItem('new-hylo-alert-seen', true)
             }
           }}
-          closeButton={<Button variant='secondary'>Jump in!</Button>}
+          closeButton={<Button variant='secondary'>{t('Jump in!')}</Button>}
         >
           <div>
-            We just launched a major redesign of Hylo! To learn more about what's new,&nbsp;
-            <a href='https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates' target='_blank' rel='noreferrer'>click here</a>.
+            <Trans i18nKey='newHyloMessage'>
+              We just launched a major redesign of Hylo! To learn more about what's new, <a href='https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates' target='_blank' rel='noreferrer'>click here</a>.
+            </Trans>
           </div>
         </GlobalAlert>
       )}
