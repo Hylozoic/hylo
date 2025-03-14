@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, TouchableOpacity } from 'react-native'
 import { Header, getHeaderTitle } from '@react-navigation/elements'
 import { ChevronLeft } from 'lucide-react-native'
-import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
+import useConfirmAlert from 'hooks/useConfirmAlert'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 import { black10onRhino, rhino05, rhino80, rhino10, havelockBlue, ghost, rhino } from 'style/colors'
@@ -29,7 +29,7 @@ export default function ModalHeader ({
   },
   ...otherProps
 }) {
-  const confirmDiscardChanges = useConfirmDiscardChanges()
+  const confirmAlert = useConfirmAlert()
   const headerLeftCloseIcon = options.headerLeftCloseIcon ?? providedHeaderLeftCloseIcon
   const headerTitleStyleColor = otherProps.headerTitleStyle?.color || options.headerTitleStyle?.color || black10onRhino
   const headerLeftStyleColor = options?.headerLeftStyle?.color || headerLeftStyle?.color || rhino
@@ -54,7 +54,7 @@ export default function ModalHeader ({
         providedHeaderLeftOnPress ||
         navigation.goBack
       const onPress = headerLeftConfirm
-        ? () => confirmDiscardChanges({ onDiscard: headerLeftOnPress })
+        ? () => confirmAlert({ onDiscard: headerLeftOnPress })
         : headerLeftOnPress
       return (
         <>

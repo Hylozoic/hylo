@@ -73,7 +73,9 @@ export default function GroupWelcomeLanding () {
     (!agreementsAcceptedAt || agreementsAcceptedAt < currentGroup.settings.agreementsLastUpdatedAt)
 
   // Join Questions logic
-  const [questionAnswers, setQuestionAnswers] = useState(joinQuestions.items.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
+  const [questionAnswers, setQuestionAnswers] = useState(
+    joinQuestions?.items && joinQuestions.items.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } })
+  )
   const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!currentGroup?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function GroupWelcomeLanding () {
 
   useEffect(() => {
     if (numAgreements > 0) {
-      setAcceptedAgreements(currentGroup.agreements.items.map(a => a.accepted))
+      setAcceptedAgreements(currentGroup?.agreements && currentGroup.agreements.items.map(a => a.accepted))
     }
   }, [currentGroup?.id])
 
@@ -120,6 +122,8 @@ export default function GroupWelcomeLanding () {
     navigation.goBack()
     return null
   }
+
+  if (!currentGroup || currentGroup?.isStaticContext) return null
 
   return (
     <PreviousNextView style={styles.container}>

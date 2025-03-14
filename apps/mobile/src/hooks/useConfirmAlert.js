@@ -1,9 +1,9 @@
 import { Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
-export default function useConfirmDiscardChanges () {
+export default function useConfirmAlert () {
   const { t } = useTranslation()
-  const confirmDiscardChanges = ({
+  const confirmAlert = ({
     onDiscard,
     hasChanges = true,
     title = 'You have unsaved changes',
@@ -24,5 +24,5 @@ export default function useConfirmDiscardChanges () {
     }
   }
 
-  return confirmDiscardChanges
+  return confirmAlert
 }

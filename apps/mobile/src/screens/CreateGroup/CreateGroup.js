@@ -7,7 +7,7 @@ import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 import { isIOS } from 'util/platform'
 import useKeyboardVisible from 'hooks/useKeyboardVisible'
-import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
+import useConfirmAlert from 'hooks/useConfirmAlert'
 import { useCreateGroupStore } from './CreateGroup.store'
 import CreateGroupName from 'screens/CreateGroup/CreateGroupName'
 import CreateGroupUrl from 'screens/CreateGroup/CreateGroupUrl'
@@ -21,7 +21,7 @@ export default function CreateGroup ({ navigation }) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const keyboardVisible = useKeyboardVisible()
-  const confirmDiscardChanges = useConfirmDiscardChanges()
+  const confirmAlert = useConfirmAlert()
   const { currentStep, goNext, goBack, disableContinue, clearStore, setSubmit } = useCreateGroupStore()
   const [{ currentUser }] = useCurrentUser()
   const memberships = currentUser?.memberships
@@ -47,7 +47,7 @@ export default function CreateGroup ({ navigation }) {
       clearStore()
       navigation.goBack()
     }
-    confirmDiscardChanges({ onDiscard })
+    confirmAlert({ onDiscard })
   }
 
   return (
