@@ -19,13 +19,13 @@ import { cn } from 'util/index'
 //   }
 // }
 
-export default function HyloEditorMenuBar ({ editor, extendedMenu, type, id }) {
+export default function HyloEditorMenuBar ({ className, editor, extendedMenu, type, id }) {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
 
   if (!editor) return null
 
   return (
-    <div className='flex items-center w-full opacity-70 hover:opacity-100 transition-all'>
+    <div className={cn('flex items-center w-full opacity-70 hover:opacity-100 transition-all flex-wrap', className)}>
       {extendedMenu && (
         <HyloEditorMenuBarButton
           Icon={Heading1}
