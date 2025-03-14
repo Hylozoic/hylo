@@ -261,7 +261,7 @@ export const COMMON_VIEWS = {
   events: {
     name: 'Events',
     iconName: 'Calendar',
-    defaultViewMode: 'cards',
+    defaultViewMode: 'calendar',
     postTypes: ['event'],
     defaultSortBy: 'start_time'
   },
