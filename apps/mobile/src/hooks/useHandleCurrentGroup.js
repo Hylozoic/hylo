@@ -86,7 +86,6 @@ export function useChangeToGroup () {
   const changeToGroup = useCallback((groupSlug, {
     confirm = false,
     navigateHome = true,
-    // TODO: Re-implement canViewCheck
     skipCanViewCheck = false
   } = {}) => {
     const canViewGroup = currentUser?.memberships.find(m => m.group.slug === groupSlug) ||
@@ -112,7 +111,7 @@ export function useChangeToGroup () {
     } else {
       navigation.navigate(modalScreenName('Group Explore'), { groupSlug })
     }
-  }, [setNavigateHome, setCurrentGroupSlug])
+  }, [setNavigateHome, setCurrentGroupSlug, currentUser?.memberships])
 
   return changeToGroup
 }
