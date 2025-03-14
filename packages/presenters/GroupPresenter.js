@@ -10,7 +10,11 @@ export default function GroupPresenter (group) {
 
   return {
     ...group,
-    avatarUrl: group?.avatarUrl || DEFAULT_AVATAR,
+    avatarUrl: !group?.avatarUrl
+      ? DEFAULT_AVATAR
+      : group?.avatarUrl === '/default-group-avatar.svg'
+        ? DEFAULT_AVATAR
+        : group?.avatarUrl,
     bannerUrl: group?.bannerUrl || DEFAULT_BANNER,
 
     getContextWidgets: getContextWidgetsResolver(group),

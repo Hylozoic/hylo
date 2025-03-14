@@ -6,7 +6,7 @@ export default function useStaticContexts () {
   const [{ currentUser }] = useCurrentUser()
 
   return {
-    myContext: getStaticContext(MY_CONTEXT_SLUG, { currentUser }),
-    publicContext: getStaticContext(PUBLIC_CONTEXT_SLUG, { currentUser })
+    myContext: getStaticContext(MY_CONTEXT_SLUG, currentUser),
+    publicContext: getStaticContext(PUBLIC_CONTEXT_SLUG, currentUser)
   }
 }

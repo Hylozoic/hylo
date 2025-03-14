@@ -5,6 +5,7 @@ import Intercom from '@intercom/intercom-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
+import GroupPresenter from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup, { useChangeToGroup } from '@hylo/hooks/useCurrentGroup'
 import useStaticContexts from '@hylo/hooks/useStaticContexts'
@@ -23,7 +24,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const { myContext, publicContext } = useStaticContexts()
   const myGroups = [myContext, publicContext].concat(
     sortBy('name', map(m => m.group, currentUser.memberships))
-  )
+  ).map(GroupPresenter)
 
   const collapseTimeout = useRef(null)
 
@@ -46,7 +47,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const handleOnPress = context => {
     clearTimeout(collapseTimeout.current)
     setIsExpanded(false)
-    changeToGroup(context?.slug)
+    changeToGroup(context?.slug, { navigateHome: true })
   }
 
   return (

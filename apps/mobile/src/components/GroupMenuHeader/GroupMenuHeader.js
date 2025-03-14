@@ -29,7 +29,7 @@ export default function GroupMenuHeader ({ group }) {
   }, [bannerUrl])
 
   return (
-    <View className='relative flex flex-col justify-end h-[140px] shadow-md pb-2' testID='group-header'>
+    <View className='relative flex-col justify-end h-[140px] shadow-md pb-2' testID='group-header'>
       <FastImage
         source={{ uri: bannerUrl }}
         style={{
@@ -50,7 +50,7 @@ export default function GroupMenuHeader ({ group }) {
         </View>
       )}
 
-      <View className='relative flex flex-row items-center text-background ml-2 mr-2 gap-1'>
+      <View className='relative flex-row items-center text-background ml-2 mr-2 gap-1'>
         <FastImage
           source={{ uri: avatarUrl }}
           style={{

@@ -217,10 +217,10 @@ export default function PostEditor (props) {
 
   const header = useMemo(() => {
     const headerRightButtonLabel = isSaving
-      ? t('Saving-ellipsis')
+      ? 'Saving-ellipsis'
       : editingPost
-        ? t('Save')
-        : t('Post')
+        ? 'Save'
+        : 'Post'
 
     return () => (
       <View className='border-border bg-background' style={styles.headerContainer}>
@@ -234,13 +234,13 @@ export default function PostEditor (props) {
             disabled={isSaving || post.type === 'proposal'}
             onValueChange={type => updatePost({ type })}
             placeholder={{}}
-            value={post?.type || 'discussion'}
+            value={post?.type}
           />
           <Button
             style={styles.headerSaveButton}
             disabled={isSaving || !isValid()}
             onPress={handleSave}
-            text={headerRightButtonLabel}
+            text={t(headerRightButtonLabel)}
           />
         </View>
       </View>
