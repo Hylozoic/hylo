@@ -13,8 +13,8 @@ describe('MessageThread', () => {
     const session = orm.session(orm.getEmptyState())
     const { MessageThread } = session
 
-    const lastReadAt = new Date('2018-01-01')
-    const updatedAt = new Date('2018-01-02')
+    const lastReadAt = '2018-01-01'
+    const updatedAt = '2018-01-02'
     const thread = MessageThread.create({ id: '1', updatedAt, lastReadAt })
     expect(thread.isUnread()).toBeTruthy()
   })
@@ -22,8 +22,8 @@ describe('MessageThread', () => {
     const session = orm.session(orm.getEmptyState())
     const { MessageThread } = session
 
-    const lastReadAt = new Date('2018-01-02')
-    const updatedAt = new Date('2018-01-01')
+    const lastReadAt = '2018-01-02'
+    const updatedAt = '2018-01-01'
     const thread = MessageThread.create({ id: '1', updatedAt, lastReadAt })
     expect(thread.isUnread()).toBeFalsy()
   })

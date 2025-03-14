@@ -69,15 +69,15 @@ beforeEach(() => {
             ]
           }
         }
-      }),
-      graphql.query('FetchTopics', ({ query, variables }) => {
-        return HttpResponse.json({
-          data: {
-            groupTopics: {
-              items: []
-            }
+      })
+    }),
+    graphql.query('FetchTopics', ({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
+          groupTopics: {
+            items: []
           }
-        })
+        }
       })
     })
   )
@@ -85,7 +85,14 @@ beforeEach(() => {
 
 describe.skip('TopicSelector', () => {
   const defaultProps = {
-    onChange: jest.fn()
+    onChange: jest.fn(),
+    findTopics: jest.fn().mockResolvedValue({
+      payload: {
+        getData: () => ({
+          items: [{ topic: { name: 'test-topic', id: '33', followersTotal: 100, postsTotal: 50 } }]
+        })
+      }
+    })
   }
 
   const renderComponent = (props = {}) => {
@@ -111,9 +118,6 @@ describe.skip('TopicSelector', () => {
   })
 
   it('allows selecting topics', async () => {
-    defaultProps.findTopics.mockResolvedValue({
-      payload: { getData: () => ({ items: [{ topic: { name: 'test-topic', value: 'test-topic' } }] }) }
-    })
     renderComponent()
 
     const input = screen.getByRole('combobox')

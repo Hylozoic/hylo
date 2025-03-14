@@ -222,7 +222,7 @@ export default function GroupWelcomeModal (props) {
             )}
             <Button
               variant='secondary'
-              dataTestId='jump-in'
+              data-testid='jump-in'
               disabled={(page === 1 && !checkedAllAgreements) || (page === 2 && !allQuestionsAnswered)}
               onClick={handleAccept}
             >
