@@ -20,7 +20,6 @@ import ViewHeader from 'components/ViewHeader'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
-import fetchPlatformAgreements from 'store/actions/fetchPlatformAgreements'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchThreads from 'store/actions/fetchThreads'
@@ -133,7 +132,6 @@ export default function AuthLayoutRouter (props) {
       await dispatch(fetchCommonRoles())
       await dispatch(fetchForCurrentUser())
       setCurrentUserLoading(false)
-      dispatch(fetchPlatformAgreements())
       dispatch(fetchThreads())
     })()
   }, [])
