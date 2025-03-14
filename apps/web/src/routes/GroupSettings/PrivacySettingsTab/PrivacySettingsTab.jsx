@@ -1,13 +1,12 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { set, startCase, trim } from 'lodash'
 import React, { useState, useEffect } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import PropTypes from 'prop-types'
-import Button from 'components/Button'
 import GroupsSelector from 'components/GroupsSelector'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import SwitchStyled from 'components/SwitchStyled'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import {
   accessibilityDescription,
   accessibilityIcon,
@@ -18,16 +17,14 @@ import {
   visibilityIcon,
   visibilityString
 } from 'store/models/Group'
+import SaveButton from '../SaveButton'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss'
 import styles from './PrivacySettingsTab.module.scss'
 
-const { object } = PropTypes
-
 function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSettings }) {
   const { t } = useTranslation()
-
   const [state, setState] = useState(defaultEditState())
 
   useEffect(() => {
@@ -49,7 +46,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
         groupToGroupJoinQuestions: groupToGroupJoinQuestions ? groupToGroupJoinQuestions.concat({ text: '' }) : [{ text: '' }],
         joinQuestions: joinQuestions ? joinQuestions.concat({ text: '' }) : [{ text: '' }],
         prerequisiteGroups: prerequisiteGroups || [],
-        settings: typeof settings !== 'undefined' ? settings : {},
+        settings: typeof settings !== 'undefined' ? settings : { },
         visibility: typeof visibility !== 'undefined' ? visibility : GROUP_VISIBILITY.Protected
       },
       changed: false
@@ -78,6 +75,15 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
     setState({ ...state, changed: false })
     updateGroupSettings({ ...state.edits })
   }
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: `${t('Group Settings')} > ${t('Privacy')}`,
+      icon: 'Settings',
+      info: ''
+    })
+  }, [])
 
   if (!group) return <Loading />
 
@@ -127,8 +133,8 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
 
       <SettingsSection>
         <h3>{t('Join Questions')}</h3>
-        <div className={cx(styles.groupQuestions, { [styles.on]: settings?.askJoinQuestions })}>
-          <div className={cx(general.switchContainer, { [general.on]: askJoinQuestions })}>
+        <div className={cn(styles.groupQuestions, { [styles.on]: settings?.askJoinQuestions })}>
+          <div className={cn(general.switchContainer, { [general.on]: askJoinQuestions })}>
             <SwitchStyled
               checked={askJoinQuestions}
               onChange={() => updateSettingDirectly('settings.askJoinQuestions')(!askJoinQuestions)}
@@ -145,7 +151,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
       </SettingsSection>
 
       <SettingsSection>
-        <h3>{t('Prerequisite Groups')}</h3>
+        <h3 className='mb-2'>{t('Prerequisite Groups')}</h3>
         <p className={general.detailText}>{t('When you select a prerequisite group, people must join the selected groups before joining')} <strong>{name}</strong>. {t('Only parent groups can be added as prerequisite groups.')}</p>
         <p className={styles.prerequisiteWarning}>
           <strong className={styles.warning}>{t('Warning:')}</strong> {t('If you select a prerequisite group that has a visibility setting of')}
@@ -165,8 +171,8 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
         <h3>{t('Group Access Questions')}</h3>
         <p className={general.detailText}>{t('What questions are asked when a group requests to join this group?')}</p>
 
-        <div className={cx(styles.groupQuestions, { [styles.on]: askGroupToGroupJoinQuestions })}>
-          <div className={cx(general.switchContainer, { [general.on]: askGroupToGroupJoinQuestions })}>
+        <div className={cn(styles.groupQuestions, { [styles.on]: askGroupToGroupJoinQuestions })}>
+          <div className={cn(general.switchContainer, { [general.on]: askGroupToGroupJoinQuestions })}>
             <SwitchStyled
               checked={askGroupToGroupJoinQuestions}
               onChange={() => updateSettingDirectly('settings.askGroupToGroupJoinQuestions')(!askGroupToGroupJoinQuestions)}
@@ -187,7 +193,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
           <SettingsSection>
             <h3>{t('Hide {{postType}} Data', { postType: startCase(type) })}</h3>
             <p className={styles.dataDetail}>{t('If you don\'t want to display the detailed {{postType}} specific data on your group\'s profile', { postType: type })}</p>
-            <div className={cx(general.switchContainer, { [general.on]: hideExtensionData })}>
+            <div className={cn(general.switchContainer, { [general.on]: hideExtensionData })}>
               <SwitchStyled
                 checked={hideExtensionData}
                 onChange={() => updateSettingDirectly('settings.hideExtensionData')(hideExtensionData === undefined || hideExtensionData === null || !hideExtensionData)}
@@ -210,7 +216,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
             Add your group to the <a href='https://murmurations.network' target='_blank' rel='noopener noreferrer'>Murmurations</a> directory so it can be found and easily added to third-party public maps. You must first set visibility to Public.
           </Trans>
         </p>
-        <div className={cx(general.switchContainer, { [general.on]: visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile })}>
+        <div className={cn(general.switchContainer, { [general.on]: visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile })}>
           <SwitchStyled
             checked={visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile}
             onChange={() => updateSettingDirectly('settings.publishMurmurationsProfile')(!settings.publishMurmurationsProfile)}
@@ -232,30 +238,20 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
         )}
       </SettingsSection>
 
-      <div className={general.saveChanges}>
-        <span className={cx({ [general.settingChanged]: changed })}>{changed ? t('Changes not saved') : t('Current settings up to date')}</span>
-        <Button label={t('Save Changes')} color={changed ? 'green' : 'gray'} onClick={changed ? save : null} className={general.saveButton} />
-      </div>
+      <SaveButton save={save} changed={changed} />
     </div>
   )
 }
 
-PrivacySettingsTab.propTypes = {
-  group: object,
-  fetchPending: object,
-  parentGroups: PropTypes.array,
-  updateGroupSettings: PropTypes.func
-}
-
 function VisibilitySettingRow ({ currentSetting, forSetting, updateSetting, t }) {
   return (
-    <div className={cx(styles.privacySetting, { [styles.on]: currentSetting === forSetting })}>
+    <div className={cn(styles.privacySetting, { [styles.on]: currentSetting === forSetting })}>
       <label>
         <input type='radio' name='Visibility' value={forSetting} onChange={updateSetting('visibility')} checked={currentSetting === forSetting} />
         <Icon name={visibilityIcon(forSetting)} className={styles.settingIcon} />
         <div className={styles.settingDescription}>
           <h4>{t(visibilityString(forSetting))}</h4>
-          <span className={cx(styles.privacyOption, { [styles.disabled]: currentSetting !== forSetting })}>{t(visibilityDescription(forSetting))}</span>
+          <span className={cn(styles.privacyOption, { [styles.disabled]: currentSetting !== forSetting })}>{t(visibilityDescription(forSetting))}</span>
         </div>
       </label>
     </div>
@@ -265,13 +261,13 @@ function VisibilitySettingRow ({ currentSetting, forSetting, updateSetting, t })
 function AccessibilitySettingRow ({ currentSetting, forSetting, updateSetting }) {
   const { t } = useTranslation()
   return (
-    <div className={cx(styles.privacySetting, { [styles.on]: currentSetting === forSetting })}>
+    <div className={cn(styles.privacySetting, { [styles.on]: currentSetting === forSetting })}>
       <label>
         <input type='radio' name='accessibility' value={forSetting} onChange={updateSetting('accessibility')} checked={currentSetting === forSetting} />
         <Icon name={accessibilityIcon(forSetting)} className={styles.settingIcon} />
         <div className={styles.settingDescription}>
           <h4>{t(accessibilityString(forSetting))}</h4>
-          <span className={cx(styles.privacyOption, { [styles.disabled]: currentSetting !== forSetting })}>{t(accessibilityDescription(forSetting))}</span>
+          <span className={cn(styles.privacyOption, { [styles.disabled]: currentSetting !== forSetting })}>{t(accessibilityDescription(forSetting))}</span>
         </div>
       </label>
     </div>
