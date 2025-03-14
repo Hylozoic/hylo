@@ -8,16 +8,16 @@ export default function useConfirmAlert () {
     hasChanges = true,
     title = 'You have unsaved changes',
     confirmMessage = 'Are you sure you want to discard your changes?',
-    discardButtonText = 'Discard',
-    continueButtonText = 'Continue Editing'
+    confirmButtonText = 'Discard',
+    cancelButtonText = 'Continue Editing'
   }) => {
     if (hasChanges) {
       Alert.alert(
         t(title),
         t(confirmMessage),
         [
-          { text: t(discardButtonText), onPress: onConfirm },
-          { text: t(continueButtonText), style: 'cancel' }
+          { text: t(confirmButtonText), onPress: onConfirm },
+          { text: t(cancelButtonText), style: 'cancel' }
         ])
     } else {
       onConfirm()

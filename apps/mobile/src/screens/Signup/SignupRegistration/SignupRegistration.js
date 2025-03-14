@@ -72,8 +72,8 @@ export default function SignupRegistration ({ navigation, route }) {
         confirmAlert({
           title: '',
           confirmMessage: 'Were almost done, are you sure you want to cancel signing-up?',
-          discardButtonText: 'Yes',
-          continueButtonText: 'No',
+          confirmButtonText: 'Yes',
+          cancelButtonText: 'No',
           onConfirm: () => {
             logout()
             navigation.navigate('Login', {})
