@@ -28,8 +28,7 @@ export default function GroupPresenter (group) {
 
 const getShouldWelcomeResolver = group => {
   return currentUser => {
-    if (!group || !currentUser) return false
-    if (isStaticContext(group.slug)) return false
+    if (!group || !currentUser || isStaticContext(group?.slug)) return false
 
     const currentMembership = currentUser?.memberships &&
       currentUser.memberships.find(m => m.group.id === group?.id)
@@ -38,11 +37,12 @@ const getShouldWelcomeResolver = group => {
 
     const numAgreements = group?.agreements?.total || 0
 
-    const agreementsChanged = (!isStaticContext(group?.slug) && numAgreements > 0) &&
-      (!agreementsAcceptedAt || agreementsAcceptedAt < group?.settings?.agreementsLastUpdatedAt)
+    const agreementsChanged = numAgreements > 0 && (
+      !agreementsAcceptedAt || agreementsAcceptedAt < group?.settings?.agreementsLastUpdatedAt
+    )
 
     return (
-      (!isStaticContext(group?.slug) && showJoinForm) ||
+      showJoinForm ||
       agreementsChanged ||
       (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt)
     )
