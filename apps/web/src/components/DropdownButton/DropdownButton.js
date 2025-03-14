@@ -1,6 +1,6 @@
 /**
  * DropdownButton Component
- * 
+ *
  * A reusable dropdown button component that displays a list of selectable options.
  * The component supports custom styling based on the label, positioning options,
  * and callback functions for handling selection.
@@ -78,7 +78,7 @@ export default class DropdownButton extends Component {
         {/* Dropdown menu containing the choices */}
         <div
           className={cn(
-            'flex-col hidden gap-2 w-full scale-0 absolute top-10 shadow-lg bg-background text-foreground text-foreground hover:text-foreground p-1 px-2',
+            'flex-col hidden gap-2 w-max absolute top-10 shadow-lg bg-background text-foreground text-foreground hover:text-foreground p-1 px-2',
             {
               'flex scale-100': expanded,
               [classes.top]: position === 'top'
