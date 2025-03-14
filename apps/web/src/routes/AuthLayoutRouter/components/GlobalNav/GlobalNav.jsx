@@ -142,7 +142,7 @@ export default function GlobalNav (props) {
         <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={isContainerHovered}><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
-              tooltip='Activity'
+              tooltip={t('Activity')}
               className={isVisible(1)}
               showTooltip={isContainerHovered}
               badgeCount={showBadge ? '!' : 0}

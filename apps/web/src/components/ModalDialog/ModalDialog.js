@@ -1,7 +1,7 @@
 import React, { Component, createRef } from 'react'
 import { withTranslation } from 'react-i18next'
 import { bool, func, node, string } from 'prop-types'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import Icon from 'components/Icon'
 import { bgImageStyle, cn } from 'util/index'
 
@@ -154,7 +154,7 @@ class ModalDialog extends Component {
             <div className={classes.controls}>
               {showCancelButton &&
                 <Button
-                  color='green-white-green-border'
+                  variant='primary'
                   className={classes.cancelBtn}
                   onClick={this.cancel}
                 >
@@ -162,6 +162,7 @@ class ModalDialog extends Component {
                 </Button>}
               {showSubmitButton &&
                 <Button
+                  variant='secondary'
                   className={classes.submitBtn}
                   onClick={this.submit}
                   disabled={submitButtonIsDisabled()}
