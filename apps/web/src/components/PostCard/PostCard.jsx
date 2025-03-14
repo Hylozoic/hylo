@@ -162,6 +162,7 @@ export default function PostCard (props) {
           onAddReaction={onAddReaction}
           onRemoveReaction={onRemoveReaction}
           postId={post.id}
+          mapDrawer={mapDrawer}
         />
       </div>
     </>
