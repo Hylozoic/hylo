@@ -65,7 +65,7 @@ export default function ContextMenu (props) {
       return getStaticMenuWidgets({ isPublicContext, isMyContext: isMyContext || isAllContext, profileUrl })
     }
     return getContextWidgets(state, group)
-  }, (a, b) => a.every((widget, index) => widget.id === b[index].id))
+  }, (a, b) => a.length === b.length && a.every((widget, index) => widget.id === b[index].id))
 
   const contextWidgets = useMemo(() => {
     return rawContextWidgets.map(widget => ContextWidgetPresenter(widget))
