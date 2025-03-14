@@ -239,7 +239,7 @@ export default function AuthLayoutRouter (props) {
     }
   }
 
-  if (currentGroupSlug && !currentGroup && !currentGroupLoading) {
+  if (currentGroupSlug && (!currentGroup || !currentGroupMembership) && !currentUserLoading && !currentGroupLoading) {
     return <NotFound />
   }
 
