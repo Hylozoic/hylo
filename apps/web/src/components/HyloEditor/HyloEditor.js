@@ -21,6 +21,7 @@ const HyloEditor = React.forwardRef(({
   // See: https://github.com/Hylozoic/hylo-evo/issues/1318
   groupIds,
   maxSuggestions = 7,
+  menuClassName = '',
   onAddLink,
   onAddMention,
   onAddTopic,
@@ -219,7 +220,7 @@ const HyloEditor = React.forwardRef(({
   return (
     <div className={cn('flex-1', containerClassName)}>
       {showMenu && (
-        <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} />
+        <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} className={menuClassName} />
       )}
       <EditorContent className={cn('HyloEditor_EditorContent1 global-postContent text-foreground py-3 px-3', className)} editor={editor} />
       {editor && (

@@ -1,5 +1,5 @@
 import { get, intersection, debounce } from 'lodash/fp'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
@@ -42,26 +42,30 @@ export default function Search (props) {
   const pending = useSelector(state => !!state.pending[FETCH_SEARCH])
   const inputRef = React.useRef(null)
 
-  const updateQueryParam = debounce(500, search =>
-    dispatch(changeQuerystringParam(location, 't', search, null, true)))
+  const showPerson = useCallback(personId => dispatch(push(personUrl(personId))), [dispatch])
 
-  const showPerson = personId => dispatch(push(personUrl(personId)))
+  const updateQueryParam = useCallback(
+    debounce(500, search => {
+      return dispatch(changeQuerystringParam(location, 't', search, null, true))
+    }),
+    [dispatch, location]
+  )
+  // Move this outside the component or use useCallback to preserve it between renders
+  const fetchSearchResultsDebounced = useCallback(
+    debounce(500, (opts) => {
+      return dispatch(fetchSearchResults(opts))
+    }),
+    [dispatch] // Only recreate if dispatch changes
+  )
 
-  const fetchSearchResultsDebounced = debounce(500, opts => dispatch(fetchSearchResults(opts)))
+  const fetchSearchResultsAction = useCallback(() => {
+    return fetchSearchResultsDebounced({ search: searchForInput, filter })
+  }, [fetchSearchResultsDebounced, searchForInput, filter])
 
-  const fetchSearchResultsAction = () => {
-    return fetchSearchResultsDebounced({ search: searchForInput || searchFromQueryString, filter })
-  }
-
-  const fetchMoreSearchResults = () => hasMore
-    ? fetchSearchResultsDebounced({ search: searchForInput || searchFromQueryString, filter, offset: searchResults.length })
-    : () => {}
-
-  useEffect(() => {
-    if (searchFromQueryString) {
-      fetchSearchResultsAction()
-    }
-  }, [])
+  const fetchMoreSearchResults = useCallback(() => hasMore
+    ? fetchSearchResultsDebounced({ search: searchForInput, filter, offset: searchResults.length })
+    : () => {},
+  [fetchSearchResultsDebounced, hasMore, searchForInput, filter, searchResults.length])
 
   useEffect(() => {
     fetchSearchResultsAction()
@@ -74,10 +78,10 @@ export default function Search (props) {
         <div className='relative flex items-center'>
           <Icon name='Search' className='left-2 absolute opacity-50' />
           <TextInput
-            inputClassName='border-2 border-transparent transition-all duration-200 focus:border-focus w-full max-w-[750px] bg-black/20 rounded-lg text-foreground placeholder-foreground/40 py-1 pl-7 outline-none'
+            inputClassName='border-2 border-transparent transition-all duration-200 focus:border-focus w-full min-w-[360px] max-w-[750px] bg-black/20 rounded-lg text-foreground placeholder-foreground/40 py-1 pl-7 outline-none'
             inputRef={inputRef}
-            value={searchForInput || searchFromQueryString}
-            placeholder={t('Search by keyword for people, posts and groups')}
+            value={searchForInput}
+            placeholder={t('Search for people, posts and comments')}
             autoFocus
             onChange={event => {
               const { value } = event.target
@@ -88,7 +92,7 @@ export default function Search (props) {
         </div>
       </div>
     )
-  }, [searchForInput, searchFromQueryString, t])
+  }, [searchForInput])
 
   const { setHeaderDetails } = useViewHeader()
 

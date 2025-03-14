@@ -114,6 +114,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'email',
         'contact_email',
         'contact_phone',
+        'created_at',
         'email_validated',
         'hasRegistered',
         'intercomHash',
@@ -564,7 +565,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 isFulfilled,
                 order,
                 search,
-                showPinnedFirst: true,
+                showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
                 sortBy,
                 topic,
                 topics,
@@ -615,7 +616,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 isFulfilled,
                 order,
                 search,
-                showPinnedFirst: true,
+                showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
                 sortBy,
                 topic,
                 topics,

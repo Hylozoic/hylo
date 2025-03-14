@@ -1,9 +1,5 @@
 .container {
-  height: 100%;
-  background: rgb(225,229,233);
-  background: url('/network-map-bg.png'); /* fallback */
-  background: url('/network-map-bg.png'), linear-gradient(rgba(255,255,255, 1), rgba(249, 250, 250, 1.00)); /* W3C */
-  border-radius: 0 0 10px 10px;
+
 }
 
 .container svg {
@@ -14,7 +10,6 @@
 
 text {
   cursor: pointer;
-  color: rgba(49, 73, 101, 1.00);
 }
 
 image {

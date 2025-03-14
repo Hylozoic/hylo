@@ -9,8 +9,7 @@ function NotFound ({ className }) {
   const navigate = useNavigate()
 
   const handleGoBack = () => {
-    // If there's more than 2 entries in history, go back, otherwise go home
-    window.history.length > 2 ? navigate(-1) : navigate('/')
+    navigate('/')
   }
 
   return (

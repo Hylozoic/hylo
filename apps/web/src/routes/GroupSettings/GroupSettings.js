@@ -15,7 +15,6 @@ import RolesSettingsTab from './RolesSettingsTab'
 import PrivacySettingsTab from './PrivacySettingsTab'
 import RelatedGroupsTab from './RelatedGroupsTab'
 import ResponsibilitiesTab from './ResponsibilitiesTab'
-import TopicsSettingsTab from './TopicsSettingsTab'
 import ExportDataTab from './ExportDataTab'
 import WelcomePageTab from './WelcomePageTab'
 import Loading from 'components/Loading'
@@ -152,11 +151,11 @@ export default function GroupSettings () {
     )
   }
 
-  const topicsSettings = {
-    name: t('Topics'),
-    path: 'topics',
-    component: <TopicsSettingsTab group={group} />
-  }
+  // const topicsSettings = {
+  //   name: t('Topics'),
+  //   path: 'topics',
+  //   component: <TopicsSettingsTab group={group} />
+  // }
 
   const inviteSettings = {
     name: t('Invite'),
@@ -205,7 +204,7 @@ export default function GroupSettings () {
         canAdminister ? rolesSettings : null,
         canAdminister ? accessSettings : null,
         canAdminister ? customViewsSettings : null,
-        canAdminister ? topicsSettings : null,
+        // canAdminister ? topicsSettings : null, TODO: hide for now, we may want to bring back
         canAddMembers ? inviteSettings : null,
         canAddMembers ? joinRequestSettings : null,
         canAdminister ? relatedGroupsSettings : null,

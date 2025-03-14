@@ -66,7 +66,7 @@ export default function ContextMenu (props) {
       return getStaticMenuWidgets({ isPublicContext, isMyContext: isMyContext || isAllContext, profileUrl })
     }
     return getContextWidgets(state, group)
-  })
+  }, (a, b) => a.length === b.length && a.every((widget, index) => widget.id === b[index].id))
 
   const contextWidgets = useMemo(() => {
     return rawContextWidgets.map(widget => ContextWidgetPresenter(widget))
@@ -176,7 +176,7 @@ export default function ContextMenu (props) {
             : isMyContext
               ? (
                 <div className='flex flex-col p-2'>
-                  <h2 className='text-foreground font-bold leading-3 text-lg'>My Home</h2>
+                  <h2 className='text-foreground font-bold leading-3 text-lg'>{t('My Home')}</h2>
                 </div>
                 )
               : null}
@@ -613,7 +613,6 @@ const SETTINGS_MENU_ITEMS = [
   { title: 'Responsibilities', url: 'settings/responsibilities' },
   { title: 'Roles & Badges', url: 'settings/roles' },
   { title: 'Privacy & Access', url: 'settings/privacy' },
-  { title: 'Topics', url: 'settings/topics' },
   { title: 'Invitations', url: 'settings/invite' },
   { title: 'Join Requests', url: 'settings/requests' },
   { title: 'Related Groups', url: 'settings/relationships' },
@@ -655,7 +654,7 @@ function GroupSettingsMenu ({ group }) {
                   { 'text-secondary border-secondary': location.pathname === groupUrl(group.slug, item.url) }
                 )}
               >
-                {item.title}
+                {t(item.title)}
               </MenuLink>
             </li>
           ))}

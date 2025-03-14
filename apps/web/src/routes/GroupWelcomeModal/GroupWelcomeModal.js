@@ -13,7 +13,7 @@ import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'store/models/Group'
 import { addSkill as addSkillAction, removeSkill as removeSkillAction } from 'components/SkillsSection/SkillsSection.store'
 import { fetchGroupWelcomeData } from './GroupWelcomeModal.store'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import RoundImage from 'components/RoundImage'
@@ -53,7 +53,7 @@ export default function GroupWelcomeModal (props) {
   const showWelcomeModal = currentMembership?.settings?.showJoinForm || agreementsChanged || !joinQuestionsAnsweredAt
 
   useEffect(() => {
-    if (group?.id && currentMembership) dispatch(fetchGroupWelcomeData(group.id, currentUser.id))
+    if (showWelcomeModal && group?.id && currentMembership) dispatch(fetchGroupWelcomeData(group.id, currentUser.id))
   }, [currentMembership?.id])
 
   useEffect(() => {
@@ -214,18 +214,20 @@ export default function GroupWelcomeModal (props) {
           <div className={classes.callToAction}>
             {page === 2 && hasFirstPage && (
               <Button
-                color='purple'
                 className={classes.previousButton}
-                label={t('Previous')}
                 onClick={() => setPage(1)}
-              />
+              >
+                {t('Previous')}
+              </Button>
             )}
             <Button
+              variant='secondary'
               dataTestId='jump-in'
               disabled={(page === 1 && !checkedAllAgreements) || (page === 2 && !allQuestionsAnswered)}
-              label={page === 1 && hasSecondPage ? t('Next') : t('Jump in!')}
               onClick={handleAccept}
-            />
+            >
+              {page === 1 && hasSecondPage ? t('Next') : t('Jump in!')}
+            </Button>
           </div>
         </div>
       </div>
