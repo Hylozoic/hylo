@@ -109,7 +109,7 @@ function GroupDetail ({ popup = false }) {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     if (group) {
-      setHeaderDetails({ title: t('About ') + ' ' + group.name, icon: 'Info', info: '', search: true })
+      setHeaderDetails({ title: t('About {{name}}', { name: group.name }), icon: 'Info', info: '', search: true })
     }
   }, [group?.name])
 

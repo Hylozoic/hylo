@@ -160,22 +160,22 @@ export default function Stream (props) {
   if (context === CONTEXT_MY) {
     switch (view) {
       case VIEW_MENTIONS:
-        name = 'Mentions'
+        name = t('Mentions')
         icon = 'Email'
         fetchPostsParam.mentionsOf = [currentUser.id]
         break
       case VIEW_ANNOUNCEMENTS:
-        name = 'Announcements'
+        name = t('Announcements')
         icon = 'Announcement'
         fetchPostsParam.announcementsOnly = true
         break
       case VIEW_INTERACTIONS:
-        name = 'Interactions'
+        name = t('Interactions')
         icon = 'Support'
         fetchPostsParam.interactedWithBy = [currentUser.id]
         break
       case VIEW_POSTS:
-        name = 'Posts'
+        name = t('Posts')
         icon = 'Posticon'
         fetchPostsParam.createdBy = [currentUser.id]
         break
