@@ -24,7 +24,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const [{ currentGroup }] = useCurrentGroup()
   const { myContext, publicContext } = useStaticContexts()
   const myGroups = [myContext, publicContext].concat(
-    sortBy('name', map(m => m.group, currentUser.memberships))
+    sortBy('name', map(m => m.group, currentUser?.memberships))
   ).map(GroupPresenter)
 
   const collapseTimeout = useRef(null)
