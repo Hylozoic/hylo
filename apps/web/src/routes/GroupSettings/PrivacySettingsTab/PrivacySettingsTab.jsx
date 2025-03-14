@@ -1,8 +1,7 @@
 import { cn } from 'util/index'
 import { set, startCase, trim } from 'lodash'
 import React, { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import Button from 'components/Button'
+import { Trans, useTranslation } from 'react-i18next'
 import GroupsSelector from 'components/GroupsSelector'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
@@ -18,6 +17,7 @@ import {
   visibilityIcon,
   visibilityString
 } from 'store/models/Group'
+import SaveButton from '../SaveButton'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss'
@@ -97,7 +97,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
     visibility
   } = edits
   const { askJoinQuestions, askGroupToGroupJoinQuestions, hideExtensionData } = settings
-  const { name, type } = group
+  const { name, slug, type } = group
 
   return (
     <div className={general.groupSettings}>
@@ -151,7 +151,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
       </SettingsSection>
 
       <SettingsSection>
-        <h3>{t('Prerequisite Groups')}</h3>
+        <h3 className='mb-2'>{t('Prerequisite Groups')}</h3>
         <p className={general.detailText}>{t('When you select a prerequisite group, people must join the selected groups before joining')} <strong>{name}</strong>. {t('Only parent groups can be added as prerequisite groups.')}</p>
         <p className={styles.prerequisiteWarning}>
           <strong className={styles.warning}>{t('Warning:')}</strong> {t('If you select a prerequisite group that has a visibility setting of')}
@@ -209,10 +209,36 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
           )
         : ''}
 
-      <div className={general.saveChanges}>
-        <span className={cn({ [general.settingChanged]: changed })}>{changed ? t('Changes not saved') : t('Current settings up to date')}</span>
-        <Button label={t('Save Changes')} color={changed ? 'green' : 'gray'} onClick={changed ? save : null} className={general.saveButton} />
-      </div>
+      <SettingsSection>
+        <h3>{t('Publish Murmurations Profile')}</h3>
+        <p className={styles.dataDetail}>
+          <Trans i18nKey='murmurationsHeader'>
+            Add your group to the <a href='https://murmurations.network' target='_blank' rel='noopener noreferrer'>Murmurations</a> directory so it can be found and easily added to third-party public maps. You must first set visibility to Public.
+          </Trans>
+        </p>
+        <div className={cn(general.switchContainer, { [general.on]: visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile })}>
+          <SwitchStyled
+            checked={visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile}
+            onChange={() => updateSettingDirectly('settings.publishMurmurationsProfile')(!settings.publishMurmurationsProfile)}
+            backgroundColor={visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile ? '#0DC39F' : '#8B96A4'}
+            disabled={visibility !== GROUP_VISIBILITY.Public}
+          />
+          <span className={general.toggleDescription}>{t('Publish to Murmurations')}</span>
+          <div className={general.onOff}>
+            <div className={general.off}>{t('OFF')}</div>
+            <div className={general.on}>{t('ON')}</div>
+          </div>
+        </div>
+        {visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile && (
+          <p className={styles.dataDetail}>
+            <Trans i18nKey='murmurationsDescription'>
+              Your group is now published to the Murmurations directory. You can find your profile <a href={`/noo/group/${slug}/murmurations`} target='_blank' rel='noopener noreferrer'>here</a>.
+            </Trans>
+          </p>
+        )}
+      </SettingsSection>
+
+      <SaveButton save={save} changed={changed} />
     </div>
   )
 }

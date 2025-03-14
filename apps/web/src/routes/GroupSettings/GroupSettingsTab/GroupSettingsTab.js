@@ -23,6 +23,7 @@ import {
   LOCATION_PRECISION
 } from 'store/models/Group'
 import { bgImageStyle, cn } from 'util/index'
+import SaveButton from '../SaveButton'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss'
@@ -116,15 +117,6 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     }
     updateGroupSettings({ ...state.edits, locationId })
     dispatch(setConfirmBeforeClose(false))
-  }
-
-  function saveButtonContent () {
-    const { changed, error } = state
-    if (!changed) return { color: 'gray', style: '', text: t('Current settings up to date') }
-    if (error) {
-      return { color: 'purple', style: 'general.settingIncorrect', text: error }
-    }
-    return { color: 'green', style: 'general.settingChanged', text: t('Changes not saved') }
   }
 
   const { setHeaderDetails } = useViewHeader()
@@ -301,17 +293,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           </div>
         </div>
       </SettingsSection>
-      <div className={cn(
-        'sticky bottom-4 left-[50%] translate-x-[-50%] w-[60%] bg-background/80 rounded-xl p-4 flex justify-between items-center translate-y-[200px] transition-all opacity-0 scale-0',
-        {
-          'border-2 border-accent border-dashed text-accent translate-y-[0px] opacity-100 scale-100': changed
-        })}
-      >
-        <span className={saveButtonContent().style}>{saveButtonContent().text}</span>
-        <button onClick={changed && !error ? save : null} className='bg-foreground rounded text-background py-1 px-2 text-bold'>
-          {t('Save Changes')}
-        </button>
-      </div>
+      <SaveButton save={save} changed={changed} error={error} />
     </div>
   )
 }

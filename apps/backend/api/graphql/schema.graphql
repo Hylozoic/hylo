@@ -1094,6 +1094,8 @@ type GroupSettings {
   locationDisplayPrecision: LocationDisplayPrecision
   # Whether to display the members of the group to non-members
   publicMemberDirectory: Boolean
+  # Whether to publish this group to the Murmurations Directory via API
+  publishMurmurationsProfile: Boolean
   # Whether to display suggested skills to new members when they join this group
   showSuggestedSkills: Boolean
   # Whether to display the custom Welcome Page when a member joins the group
@@ -3063,6 +3065,8 @@ input GroupSettingsInput {
   locationDisplayPrecision: LocationDisplayPrecision
   # Whether to display the members of the group to non-members
   publicMemberDirectory: Boolean
+  # Whether to publish this group to the Murmurations Directory via API
+  publishMurmurationsProfile: Boolean
   # Whether to display suggested skills to new members when they join this group
   showSuggestedSkills: Boolean
   # Whether to display the custom Welcome Page when a member joins the group

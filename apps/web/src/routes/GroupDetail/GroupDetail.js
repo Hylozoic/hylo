@@ -1,7 +1,7 @@
 import { keyBy } from 'lodash'
 import React, { useCallback, useEffect, useMemo } from 'react'
 import { Helmet } from 'react-helmet'
-import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Tooltip } from 'react-tooltip'
 // import PropTypes from 'prop-types'

@@ -409,7 +409,7 @@ export default function ChatRoom (props) {
     const optimisticUpdate = { flaggedGroups: [...flaggedGroups, group.id] }
     const newPost = { ...post, ...optimisticUpdate }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
-  }, [group.id])
+  }, [group?.id])
 
   // Create a new chat post
   const onCreate = useCallback((postToSave) => {
