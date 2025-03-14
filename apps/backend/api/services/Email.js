@@ -44,16 +44,16 @@ module.exports = {
     sendSimpleEmail(email, 'tem_nt4RmzAfN4KyPZYxFJWpFE', data, extraOptions),
 
   sendPasswordReset: opts =>
-    sendSimpleEmail(opts.email, 'tem_mccpcJNEzS4822mAnDNmGT', opts.templateData, mapLocaleToSendWithUS(opts.locale)),
+    sendSimpleEmail(opts.email, 'tem_mccpcJNEzS4822mAnDNmGT', opts.templateData, { version_name: 'Redesign 2025' }, mapLocaleToSendWithUS(opts.locale)),
 
   sendEmailVerification: opts =>
-    sendSimpleEmail(opts.email, 'tem_tt6gJkFMgjThCHHR6MwpPPrT', opts.templateData, mapLocaleToSendWithUS(opts.locale)),
+    sendSimpleEmail(opts.email, 'tem_tt6gJkFMgjThCHHR6MwpPPrT', opts.templateData, { version_name: 'Redesign 2025' }, mapLocaleToSendWithUS(opts.locale)),
 
   sendFinishRegistration: opts =>
-    sendSimpleEmail(opts.email, 'tem_BcfBCCHdDmkvcvkBSGPWYcjJ', opts.templateData, mapLocaleToSendWithUS(opts.locale)),
+    sendSimpleEmail(opts.email, 'tem_BcfBCCHdDmkvcvkBSGPWYcjJ', opts.templateData, { version_name: 'Redesign 2025' }, mapLocaleToSendWithUS(opts.locale)),
 
   sendModerationAction: ({ email, templateData, locale }) =>
-    sendSimpleEmail(email, 'tem_Bpb3WGd8dbFHXyKcfV4TTmGB', templateData, mapLocaleToSendWithUS(locale)),
+    sendSimpleEmail(email, 'tem_Bpb3WGd8dbFHXyKcfV4TTmGB', templateData, { version_name: 'Redesign 2025' }, mapLocaleToSendWithUS(locale)),
 
   sendInvitation: (email, data) =>
     sendEmailWithOptions('tem_ZXZuvouDYKKhCrdEWYbEp9', {

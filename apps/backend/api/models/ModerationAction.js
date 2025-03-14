@@ -111,7 +111,6 @@ module.exports = bookshelf.Model.extend({
       : `${locales[reporteeLocale].moderationClearedPostEmailContent({ post, group })}`
 
     Queue.classMethod('Email', 'sendModerationAction', {
-      version: 'Redesign 2025',
       email: reporter.get('email'),
       templateData: {
         subject: reporterSubject,
