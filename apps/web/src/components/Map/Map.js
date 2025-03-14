@@ -78,12 +78,13 @@ const Map = forwardRef(({
       ref={r => { mapRef.current = r && r.getMap(); return r }}
       reuseMaps
     >
-      <NavigationControl style={{ 
-        position: 'absolute', 
-        top: 50, 
-        right: 15, 
-        filter: isDarkMode ? 'invert(1)' : 'none' 
-      }} />
+      <NavigationControl style={{
+        position: 'absolute',
+        top: 55,
+        right: 13,
+        filter: isDarkMode ? 'invert(1)' : 'none'
+      }}
+      />
 
       <NativeTerritoriesLayer
         cursorLocation={cursorLocation}
