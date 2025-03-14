@@ -495,7 +495,7 @@ module.exports = bookshelf.Model.extend(merge({
         'organizations_schema-v1.0.0'
       ],
       name: this.get('name'),
-      primary_url: Frontend.Route.group(this),
+      primary_url: this.get('website_url') || Frontend.Route.group(this),
       mission: this.get('purpose') || '',
       description: this.get('description') || '',
       image: this.get('avatar_url') || '',
