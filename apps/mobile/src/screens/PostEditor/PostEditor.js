@@ -161,9 +161,9 @@ export default function PostEditor (props) {
     const removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
       e.preventDefault()
       confirmAlert({
-        onDiscard: () => navigation.dispatch(e.data.action),
+        onConfirm: () => navigation.dispatch(e.data.action),
         title: 'Are you sure?',
-        confirmationMessage: 'If you made changes they will be lost'
+        confirmMessage: 'If you made changes they will be lost'
       })
     })
 

@@ -43,11 +43,12 @@ export default function CreateGroup ({ navigation }) {
   const totalSteps = screens.length
 
   const handleCancel = () => {
-    const onDiscard = () => {
-      clearStore()
-      navigation.goBack()
-    }
-    confirmAlert({ onDiscard })
+    confirmAlert({
+      onConfirm: () => {
+        clearStore()
+        navigation.goBack()
+      }
+    })
   }
 
   return (

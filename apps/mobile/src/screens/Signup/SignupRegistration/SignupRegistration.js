@@ -71,10 +71,10 @@ export default function SignupRegistration ({ navigation, route }) {
       headerLeftOnPress: () => {
         confirmAlert({
           title: '',
-          confirmationMessage: 'Were almost done, are you sure you want to cancel signing-up?',
+          confirmMessage: 'Were almost done, are you sure you want to cancel signing-up?',
           discardButtonText: 'Yes',
           continueButtonText: 'No',
-          onDiscard: () => {
+          onConfirm: () => {
             logout()
             navigation.navigate('Login', {})
           }

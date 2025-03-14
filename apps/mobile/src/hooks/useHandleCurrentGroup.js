@@ -79,7 +79,7 @@ export function useHandleCurrentGroup () {
 
 export function useChangeToGroup () {
   const navigation = useNavigation()
-  const confirmNavigate = useConfirmAlert()
+  const confirmAlert = useConfirmAlert()
   const { setCurrentGroupSlug, setNavigateHome } = useCurrentGroupStore()
   const [{ currentUser }] = useCurrentUser()
 
@@ -99,12 +99,12 @@ export function useChangeToGroup () {
         setCurrentGroupSlug(groupSlug)
       }
       if (confirm) {
-        confirmNavigate({
+        confirmAlert({
           title: 'Changing Groups',
-          confirmationMessage: 'Do you want to switch to this group?',
+          confirmMessage: 'Do you want to switch to this group?',
           discardButtonText: 'Yes',
           continueButtonText: 'Cancel',
-          onDiscard: () => goToGroup()
+          onConfirm: () => goToGroup()
         })
       } else {
         goToGroup()

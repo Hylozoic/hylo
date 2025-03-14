@@ -127,9 +127,9 @@ export default function NewMessage () {
       confirmAlert({
         hasChanges: participants.length > 0 ||
           (messageInputRef.current && messageInputRef.current.getMessageText().length > 0),
-        onDiscard: () => navigation.dispatch(e.data.action),
+        onConfirm: () => navigation.dispatch(e.data.action),
         title: 'Are you sure?',
-        confirmationMessage: 'Your new unsent message will not be saved'
+        confirmMessage: 'Your new unsent message will not be saved'
       })
     })
 

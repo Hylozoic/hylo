@@ -54,7 +54,7 @@ export default function ModalHeader ({
         providedHeaderLeftOnPress ||
         navigation.goBack
       const onPress = headerLeftConfirm
-        ? () => confirmAlert({ onDiscard: headerLeftOnPress })
+        ? () => confirmAlert({ onConfirm: headerLeftOnPress })
         : headerLeftOnPress
       return (
         <>

@@ -97,10 +97,10 @@ export default function MemberDetails () {
             headerRightButtonLabel={t('Logout')}
             headerRightButtonOnPress={() => confirmAlert({
               title: 'Logout',
-              confirmationMessage: 'Are you sure you want to logout?',
+              confirmMessage: 'Are you sure you want to logout?',
               continueButtonText: 'Cancel',
               discardButtonText: 'Yes',
-              onDiscard: logout
+              onConfirm: logout
             })}
           />
       })
