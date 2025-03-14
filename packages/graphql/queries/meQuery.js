@@ -1,4 +1,5 @@
 import { gql } from 'urql'
+import membershipFieldsFragment from '../fragments/membershipFieldsFragment'
 
 export default gql`
   query MeQuery {
@@ -106,42 +107,7 @@ export default gql`
     # For memberships only including only what is needed
     # for initial load in AuthLayoutRouter
     memberships {
-      id
-      lastViewedAt
-      newPostCount
-      hasModeratorRole
-      person {
-        id
-      }
-      settings {
-        agreementsAcceptedAt
-        joinQuestionsAnsweredAt
-        sendEmail
-        sendPushNotifications
-        showJoinForm
-      }
-      group {
-        id
-        agreements {
-          items {
-            id
-            description
-            order
-            title
-          }
-        }
-        avatarUrl
-        bannerUrl
-        name
-        memberCount
-        stewardDescriptor
-        stewardDescriptorPlural
-        settings {
-          showSuggestedSkills
-          showWelcomePage
-        }
-        slug
-      }
+      ...MembershipFieldsFragment
     }
     membershipCommonRoles {
       items {
@@ -158,4 +124,6 @@ export default gql`
       }
     }
   }
+
+  ${membershipFieldsFragment}
 `

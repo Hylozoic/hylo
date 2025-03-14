@@ -1,98 +1,109 @@
 import { DateTime } from 'luxon'
-import PropTypes from 'prop-types'
-import React, { Component } from 'react'
-import { useTranslation, withTranslation } from 'react-i18next'
+import React, { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import { push } from 'redux-first-history'
 import GroupButton from 'components/GroupButton'
 import Loading from 'components/Loading'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { JOIN_REQUEST_STATUS } from 'store/models/JoinRequest'
-import { currentUserSettingsUrl, personUrl } from 'util/navigation'
+import { currentUserSettingsUrl, personUrl, groupUrl } from 'util/navigation'
+import acceptInvitation from 'store/actions/acceptInvitation'
+import { FETCH_MY_REQUESTS_AND_INVITES } from 'store/constants'
+import {
+  cancelJoinRequest,
+  declineInvite,
+  fetchMyInvitesAndRequests,
+  getCanceledJoinRequests,
+  getPendingGroupInvites,
+  getPendingJoinRequests,
+  getRejectedJoinRequests
+} from './ManageInvitesTab.store'
 
 import classes from './ManageInvitesTab.module.scss'
 
-const { array, bool, func } = PropTypes
+function ManageInvitesTab () {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
 
-class ManageInvitesTab extends Component {
-  static propTypes = {
-    acceptInvite: func,
-    canceledJoinRequests: array,
-    cancelJoinRequest: func,
-    loading: bool,
-    pendingGroupInvites: array,
-    pendingJoinRequests: array,
-    rejectedJoinRequests: array
+  const canceledJoinRequests = useSelector(getCanceledJoinRequests)
+  const pendingGroupInvites = useSelector(getPendingGroupInvites)
+  const pendingJoinRequests = useSelector(getPendingJoinRequests)
+  const rejectedJoinRequests = useSelector(getRejectedJoinRequests)
+  const loading = useSelector(state => state.pending[FETCH_MY_REQUESTS_AND_INVITES])
+
+  const acceptInvite = (invitationToken, groupSlug) => {
+    dispatch(acceptInvitation({ invitationToken }))
+      .then(() => dispatch(push(groupUrl(groupSlug))))
   }
 
-  componentDidMount () {
-    this.props.fetchMyInvitesAndRequests()
-  }
+  const handleCancelJoinRequest = (params) => dispatch(cancelJoinRequest(params))
+  const handleDeclineInvite = (inviteId) => dispatch(declineInvite(inviteId))
 
-  render () {
-    const {
-      acceptInvite,
-      canceledJoinRequests,
-      cancelJoinRequest,
-      declineInvite,
-      loading,
-      pendingGroupInvites,
-      pendingJoinRequests,
-      rejectedJoinRequests,
-      t
-    } = this.props
+  useEffect(() => {
+    dispatch(fetchMyInvitesAndRequests())
+  }, [dispatch])
 
-    if (loading) return <Loading />
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Group Invitations & Join Requests'),
+      icon: '',
+      info: '',
+      search: true
+    })
+  }, [setHeaderDetails])
 
-    return (
-      <div className={classes.container}>
-        <h1 className={classes.title}>{t('Group Invitations & Join Requests')}</h1>
+  if (loading) return <Loading />
 
-        <div className={classes.description}>
-          {t('This list contains all open requests and invitations to join groups.')}
-          {t('To view all groups you are a part of go to your')}{' '}<Link to={currentUserSettingsUrl('groups')}>{t('Affiliations')}</Link>.
-        </div>
-
-        <h2 className={classes.subhead}>{t('Invitations to Join New Groups')}</h2>
-        <div className={classes.requestList}>
-          {pendingGroupInvites.map(invite =>
-            <GroupInvite
-              acceptInvite={acceptInvite}
-              declineInvite={declineInvite}
-              invite={invite}
-              key={invite.id}
-            />
-          )}
-        </div>
-
-        <h2 className={classes.subhead}>{t('Your Open Requests to Join Groups')}</h2>
-        <div className={classes.requestList}>
-          {pendingJoinRequests.map((jr) =>
-            <JoinRequest
-              joinRequest={jr}
-              cancelJoinRequest={cancelJoinRequest}
-              key={jr.id}
-            />
-          )}
-        </div>
-
-        <h2 className={classes.subhead}>{t('Declined Invitations & Requests')}</h2>
-        <div className={classes.requestList}>
-          {rejectedJoinRequests.map((jr) =>
-            <JoinRequest
-              joinRequest={jr}
-              key={jr.id}
-            />
-          )}
-          {canceledJoinRequests.map((jr) =>
-            <JoinRequest
-              joinRequest={jr}
-              key={jr.id}
-            />
-          )}
-        </div>
-
+  return (
+    <div className={classes.container}>
+      <div className={classes.description}>
+        {t('This list contains all open requests and invitations to join groups.')}
+        &nbsp;{t('To view all groups you are a part of go to your')}{' '}<Link to={currentUserSettingsUrl('groups')}>{t('Groups & Affiliations')}</Link>.
       </div>
-    )
-  }
+
+      <h2 className={classes.subhead}>{t('Invitations to Join New Groups')}</h2>
+      <div className={classes.requestList}>
+        {pendingGroupInvites.map(invite =>
+          <GroupInvite
+            acceptInvite={acceptInvite}
+            declineInvite={handleDeclineInvite}
+            invite={invite}
+            key={invite.id}
+          />
+        )}
+      </div>
+
+      <h2 className={classes.subhead}>{t('Your Open Requests to Join Groups')}</h2>
+      <div className={classes.requestList}>
+        {pendingJoinRequests.map((jr) =>
+          <JoinRequest
+            joinRequest={jr}
+            cancelJoinRequest={handleCancelJoinRequest}
+            key={jr.id}
+          />
+        )}
+      </div>
+
+      <h2 className={classes.subhead}>{t('Declined Invitations & Requests')}</h2>
+      <div className={classes.requestList}>
+        {rejectedJoinRequests.map((jr) =>
+          <JoinRequest
+            joinRequest={jr}
+            key={jr.id}
+          />
+        )}
+        {canceledJoinRequests.map((jr) =>
+          <JoinRequest
+            joinRequest={jr}
+            key={jr.id}
+          />
+        )}
+      </div>
+    </div>
+  )
 }
 
 function GroupInvite ({ acceptInvite, declineInvite, invite }) {
@@ -157,4 +168,5 @@ function JoinRequest ({ joinRequest, cancelJoinRequest }) {
     </div>
   )
 }
-export default withTranslation()(ManageInvitesTab)
+
+export default ManageInvitesTab

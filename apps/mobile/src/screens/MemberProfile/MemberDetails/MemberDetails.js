@@ -98,8 +98,8 @@ export default function MemberDetails () {
             headerRightButtonOnPress={() => confirmAlert({
               title: 'Logout',
               confirmMessage: 'Are you sure you want to logout?',
-              continueButtonText: 'Cancel',
-              discardButtonText: 'Yes',
+              cancelButtonText: 'Cancel',
+              confirmButtonText: 'Yes',
               onConfirm: logout
             })}
           />

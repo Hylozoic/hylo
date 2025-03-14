@@ -132,9 +132,22 @@ export default {
     },
 
     updateMembership: (result, args, cache, info) => {
-      if (result[info.fieldName].id) {
-        cache.invalidate('Query', 'me')
-      }
+      const updatedMembership = result?.[info.fieldName]
+
+      if (!updatedMembership?.id) return
+
+      cache.updateQuery({ query: meQuery }, ({ me }) => {
+        if (!me) return null
+
+        return {
+          me: {
+            ...me,
+            memberships: me.memberships.map(m =>
+              m.id === updatedMembership.id ? { ...m, ...updatedMembership } : m
+            )
+          }
+        }
+      })
     },
 
     verifyEmail: (result, args, cache, info) => {

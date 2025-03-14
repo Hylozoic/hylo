@@ -83,13 +83,13 @@ export const sendDigests = async () => {
       const presentComment = comment => {
         const presented = {
           id: comment.id,
+          text: comment.text(),
+          image: comment.relations?.media?.first?.()?.pick('url', 'thumbnail_url'),
           name: comment.relations.user.get('name'),
           avatar_url: comment.relations.user.get('avatar_url'),
           timestamp: comment.get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
         }
-        return comment.relations.media.length !== 0
-          ? Object.assign({}, presented, { image: comment.relations.media.first().pick('url', 'thumbnail_url') })
-          : Object.assign({}, presented, { text: comment.text() })
+        return presented
       }
 
       if (post.get('type') === Post.Type.THREAD) {
@@ -124,7 +124,7 @@ export const sendDigests = async () => {
       } else {
         if (!user.enabledNotification(Notification.TYPE.Comment, Notification.MEDIUM.Email)) return
 
-        const commentData = comments.map(presentComment)
+        const commentData = filtered.map(presentComment)
         const hasMention = ({ text }) =>
           RichText.getUserMentions(text).includes(user.id)
 
@@ -133,10 +133,10 @@ export const sendDigests = async () => {
           locale,
           data: {
             count: commentData.length,
-            date: TextHelpers.formatDatePair(comments[0].get('created_at'), false, false, post.get('timezone')),
+            date: TextHelpers.formatDatePair(filtered[0].get('created_at'), false, false, post.get('timezone')),
             post_title: post.summary(),
             post_creator_avatar_url: post.relations.user.get('avatar_url'),
-            thread_url: Frontend.Route.comment({ comment: commentData[0], group: firstGroup, post }),
+            thread_url: Frontend.Route.comment({ comment: filtered[0], group: firstGroup, post }),
             comments: commentData,
             subject_prefix: some(hasMention, commentData)
               ? 'You were mentioned in'

@@ -14,6 +14,8 @@ function DeckGLOverlay (props) {
 const Map = forwardRef(({
   afterViewportUpdate = () => {},
   baseLayerStyle = 'light-v11',
+  darkLayerStyle = 'dark-v11',
+  isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
   children = {},
   hyloLayers,
   isAddingItemToMap,
@@ -61,7 +63,7 @@ const Map = forwardRef(({
       interactiveLayerIds={otherLayers}
       mapboxAccessToken={mapbox.token}
       mapOptions={{ logoPosition: 'bottom-right' }}
-      mapStyle={`mapbox://styles/mapbox/${baseLayerStyle}`}
+      mapStyle={`mapbox://styles/mapbox/${isDarkMode ? darkLayerStyle : baseLayerStyle}`}
       onLoad={(map) => { map.target.resize(); onLoad && onLoad(map) }}
       onMouseEnter={onMouseEnter}
       onMouseDown={onMouseDown}
@@ -76,7 +78,13 @@ const Map = forwardRef(({
       ref={r => { mapRef.current = r && r.getMap(); return r }}
       reuseMaps
     >
-      <NavigationControl style={{ position: 'absolute', top: 50, right: 15 }} />
+      <NavigationControl style={{
+        position: 'absolute',
+        top: 55,
+        right: 13,
+        filter: isDarkMode ? 'invert(1)' : 'none'
+      }}
+      />
 
       <NativeTerritoriesLayer
         cursorLocation={cursorLocation}

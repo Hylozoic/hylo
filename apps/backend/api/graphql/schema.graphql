@@ -1094,6 +1094,8 @@ type GroupSettings {
   locationDisplayPrecision: LocationDisplayPrecision
   # Whether to display the members of the group to non-members
   publicMemberDirectory: Boolean
+  # Whether to publish this group to the Murmurations Directory via API
+  publishMurmurationsProfile: Boolean
   # Whether to display suggested skills to new members when they join this group
   showSuggestedSkills: Boolean
   # Whether to display the custom Welcome Page when a member joins the group
@@ -1387,6 +1389,8 @@ type Me {
   contactEmail: String
   # Phone number made visible on the logged in user's profile to people who can see them
   contactPhone: String
+  # When the logged in user was created
+  createdAt: Date
   # The number of Groups the logged in user is a member of
   groupsTotal: Int
   # The email used to log in (not publicly shared in the app)
@@ -3061,6 +3065,8 @@ input GroupSettingsInput {
   locationDisplayPrecision: LocationDisplayPrecision
   # Whether to display the members of the group to non-members
   publicMemberDirectory: Boolean
+  # Whether to publish this group to the Murmurations Directory via API
+  publishMurmurationsProfile: Boolean
   # Whether to display suggested skills to new members when they join this group
   showSuggestedSkills: Boolean
   # Whether to display the custom Welcome Page when a member joins the group

@@ -1,4 +1,3 @@
-// react functional component that is a locale dropdown menu with two options: English and Spanish
 import React from 'react'
 import { localeLocalStorageSync } from 'util/locale'
 import { useDispatch, useSelector } from 'react-redux'
@@ -9,7 +8,7 @@ import updateUserSettings from 'store/actions/updateUserSettings'
 
 export default function LocaleDropdown ({ renderToggleChildren, className }) {
   const dispatch = useDispatch()
-  const { i18n } = useTranslation()
+  const { i18n, t } = useTranslation()
   const currentUser = useSelector(getMe)
 
   const handleLocaleChange = (locale) => {
@@ -21,18 +20,18 @@ export default function LocaleDropdown ({ renderToggleChildren, className }) {
 
   return (
     <Dropdown
-      className={className}
+      className='bg-foreground/20 border-foreground rounded-md p-2'
       toggleChildren={renderToggleChildren}
       alignRight
       items={[
         {
           key: 'en',
-          label: '🇬🇧 English',
+          label: '🇬🇧 ' + t('English'),
           onClick: () => handleLocaleChange('en')
         },
         {
           key: 'es',
-          label: '🇪🇸 Español',
+          label: '🇪🇸 ' + t('Spanish'),
           onClick: () => handleLocaleChange('es')
         }
       ]}

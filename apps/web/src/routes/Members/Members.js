@@ -10,6 +10,7 @@ import Icon from 'components/Icon'
 import Member from 'components/Member'
 import TextInput from 'components/TextInput'
 import ScrollListener from 'components/ScrollListener'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { RESP_ADD_MEMBERS } from 'store/constants'
 import { queryParamWhitelist } from 'store/reducers/queryResults'
 import { groupUrl } from 'util/navigation'
@@ -63,6 +64,16 @@ function Members (props) {
       fetchMembersAction()
     }
   }, [sortBy, search, fetchMembersAction])
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Member Directory'),
+      icon: '',
+      info: '',
+      search: true
+    })
+  }, [t])
 
   const fetchMore = () => {
     if (pending || members.length === 0 || !hasMore) return

@@ -86,7 +86,6 @@ export function useChangeToGroup () {
   const changeToGroup = useCallback((groupSlug, {
     confirm = false,
     navigateHome = true,
-    // TODO: Re-implement canViewCheck
     skipCanViewCheck = false
   } = {}) => {
     const canViewGroup = currentUser?.memberships.find(m => m.group.slug === groupSlug) ||
@@ -102,8 +101,8 @@ export function useChangeToGroup () {
         confirmAlert({
           title: 'Changing Groups',
           confirmMessage: 'Do you want to switch to this group?',
-          discardButtonText: 'Yes',
-          continueButtonText: 'Cancel',
+          confirmButtonText: 'Yes',
+          cancelButtonText: 'Cancel',
           onConfirm: () => goToGroup()
         })
       } else {
@@ -112,7 +111,7 @@ export function useChangeToGroup () {
     } else {
       navigation.navigate(modalScreenName('Group Explore'), { groupSlug })
     }
-  }, [setNavigateHome, setCurrentGroupSlug])
+  }, [setNavigateHome, setCurrentGroupSlug, currentUser?.memberships])
 
   return changeToGroup
 }

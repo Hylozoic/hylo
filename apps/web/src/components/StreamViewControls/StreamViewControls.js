@@ -107,7 +107,7 @@ const StreamViewControls = ({
 
   return (
     <div className={cn(classes.streamViewContainer, { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
-      <div className='flex w-full flex-row-reverse justify-between'>
+      <div className='flex w-full flex-row-reverse justify-between flex-wrap gap-y-1'>
         <div className={cn('bg-primary px-2 flex items-center rounded transition-all cursor-pointer', { 'bg-selected': searchActive })} onClick={handleSearchToggle}>
           <Icon name='Search' className={cn(classes.toggleIcon, { [classes.active]: searchActive })} />
         </div>

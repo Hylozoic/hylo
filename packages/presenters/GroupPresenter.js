@@ -28,8 +28,7 @@ export default function GroupPresenter (group) {
 
 const getShouldWelcomeResolver = group => {
   return currentUser => {
-    if (!group || !currentUser) return false
-    if (isStaticContext(group.slug)) return false
+    if (!group || !currentUser || isStaticContext(group?.slug)) return false
 
     const currentMembership = currentUser?.memberships &&
       currentUser.memberships.find(m => m.group.id === group?.id)
@@ -38,11 +37,12 @@ const getShouldWelcomeResolver = group => {
 
     const numAgreements = group?.agreements?.total || 0
 
-    const agreementsChanged = (!isStaticContext(group?.slug) && numAgreements > 0) &&
-      (!agreementsAcceptedAt || agreementsAcceptedAt < group?.settings?.agreementsLastUpdatedAt)
+    const agreementsChanged = numAgreements > 0 && (
+      !agreementsAcceptedAt || agreementsAcceptedAt < group?.settings?.agreementsLastUpdatedAt
+    )
 
     return (
-      (!isStaticContext(group?.slug) && showJoinForm) ||
+      showJoinForm ||
       agreementsChanged ||
       (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt) ||
       (group?.settings?.showWelcomePage && !currentMembership?.lastViewedAt)
@@ -50,15 +50,9 @@ const getShouldWelcomeResolver = group => {
   }
 }
 
-const getContextWidgetsResolver = group => {
-  return currentUser => {
-    if (group?.getContextWidgets) {
-      return group.getContextWidgets(currentUser)
-    }
-
-    return (group?.contextWidgets?.items || []).map(ContextWidgetPresenter)
-  }
-}
+const getContextWidgetsResolver = group => currentUser => (
+  (group?.contextWidgets?.items || []).map(ContextWidgetPresenter)
+)
 
 export const GROUP_ACCESSIBILITY = {
   Closed: 0,
@@ -171,5 +165,5 @@ export const getPublicStaticContext = () => {
 
 export function getStaticContext (contextSlug, currentUser) {
   if (contextSlug === MY_CONTEXT_SLUG) return getMyStaticContext(currentUser)
-  if (contextSlug === PUBLIC_CONTEXT_SLUG) return getPublicStaticContext(currentUser)
+  if (contextSlug === PUBLIC_CONTEXT_SLUG) return getPublicStaticContext()
 }
