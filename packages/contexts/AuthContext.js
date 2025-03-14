@@ -49,25 +49,17 @@ export function AuthProvider ({ children }) {
 
   // **Login function**
   const login = useCallback(async ({ email, password }) => {
-    try {
-      const { data } = await executeLogin({ email, password })
-      if (data?.login?.error) throw new Error(data.login.error)
-      await checkAuth() // Refresh auth state
-    } catch (err) {
-      console.error('Login failed:', err.message)
-      throw err
-    }
+    const { data } = await executeLogin({ email, password })
+    if (data?.login?.error) throw new Error(data.login.error)
+    // Refresh auth state
+    await checkAuth()
   }, [executeLogin, checkAuth])
 
   // **Logout function**
   const logout = useCallback(async () => {
-    try {
-      await executeLogout()
-      await checkAuth() // Refresh auth state
-    } catch (err) {
-      console.error('Logout failed:', err.message)
-      throw err
-    }
+    await executeLogout()
+    // Refresh auth state
+    await checkAuth()
   }, [executeLogout, checkAuth])
 
   return (

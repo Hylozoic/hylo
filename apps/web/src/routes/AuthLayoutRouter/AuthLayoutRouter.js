@@ -20,7 +20,6 @@ import ViewHeader from 'components/ViewHeader'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
-import fetchPlatformAgreements from 'store/actions/fetchPlatformAgreements'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchThreads from 'store/actions/fetchThreads'
@@ -133,7 +132,6 @@ export default function AuthLayoutRouter (props) {
       await dispatch(fetchCommonRoles())
       await dispatch(fetchForCurrentUser())
       setCurrentUserLoading(false)
-      dispatch(fetchPlatformAgreements())
       dispatch(fetchThreads())
     })()
   }, [])
@@ -240,7 +238,18 @@ export default function AuthLayoutRouter (props) {
     return <Navigate to={postUrl(paramPostId, { context: 'all', groupSlug: null })} />
   }
 
-  if (currentGroupSlug && !currentGroup && !currentGroupLoading) {
+  /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
+  // XXX: this is a hack, figure out better way to do this
+  if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
+    currentGroupMembership.update({ lastViewedAt: (new Date()).toISOString() })
+    if (currentGroup?.settings?.showWelcomePage) {
+      navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
+    } else {
+      navigate(groupHomeUrl({ routeParams: pathMatchParams, group: currentGroup }), { replace: true })
+    }
+  }
+
+  if (currentGroupSlug && (!currentGroup || !currentGroupMembership) && !currentUserLoading && !currentGroupLoading) {
     return <NotFound />
   }
 
@@ -318,7 +327,7 @@ export default function AuthLayoutRouter (props) {
         <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
       </Routes>
 
-      <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
+      <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
           <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full', { 'flex absolute sm:relative': isNavOpen })}>
             {!withoutNav && (
@@ -351,7 +360,7 @@ export default function AuthLayoutRouter (props) {
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
-                <Route path='members/:personId/*' element={<MemberProfile isSingleColumn={isSingleColumn} />} />
+                <Route path='members/:personId/*' element={<MemberProfile />} />
                 <Route path='all/members/:personId/*' element={<MemberProfile />} />
                 {/* **** All and Public Routes **** */}
                 <Route path='all/stream/*' element={<Stream context='all' />} />

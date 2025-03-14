@@ -32,19 +32,10 @@ export const removePostMutation = gql`
   }
 `
 
-export const pinPostMutation = gql`
-  mutation PinPostMutation ($postId: ID, $groupId: ID) {
-    pinPost(postId: $postId, groupId: $groupId) {
-      success
-    }
-  }
-`
-
 export default function usePostActionSheet ({
   baseHostURL = Config.HYLO_WEB_BASE_URL,
   closeOnDelete,
   creator,
-  pinned,
   postId,
   setFlaggingVisible,
   title
@@ -53,7 +44,6 @@ export default function usePostActionSheet ({
   const navigation = useNavigation()
   const [, deletePost] = useMutation(deletePostMutation)
   const [, removePost] = useMutation(removePostMutation)
-  const [, pinPost] = useMutation(pinPostMutation)
   const { showHyloActionSheet } = useHyloActionSheet()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ currentUser }] = useCurrentUser()
@@ -82,10 +72,6 @@ export default function usePostActionSheet ({
 
     const handleRemovePost = currentGroup && !isCreator && canModerate && !currentGroup.isContextGroup
       ? () => removePost({ postId, slug: currentGroup?.slug })
-      : null
-
-    const handlePinPost = currentGroup && canModerate && !currentGroup.isContextGroup
-      ? () => pinPost({ postId, groupId: currentGroup.id })
       : null
 
     const share = async () => {
@@ -156,9 +142,6 @@ export default function usePostActionSheet ({
       [t('Delete'), deletePostWithConfirm, {
         icon: <FontAwesome5Icon name='trash-alt' style={styles.actionSheetIcon} />,
         destructive: true
-      }],
-      [pinned ? t('Unpin') : t('Pin'), handlePinPost, {
-        icon: <Icon name='Pin' style={[styles.actionSheetIcon, { fontSize: 30 }]} />
       }],
       [t('Remove From Group'), removePostWithConfirm, {
         icon: <FontAwesome5Icon name='trash-alt' style={styles.actionSheetIcon} />,

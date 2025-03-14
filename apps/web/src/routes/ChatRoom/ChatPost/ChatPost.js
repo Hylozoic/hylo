@@ -187,7 +187,6 @@ export default function ChatPost ({
   })
 
   const actionItems = filter(item => isFunction(item.onClick), [
-    // { icon: 'Pin', label: pinned ? 'Unpin' : 'Pin', onClick: pinPost },
     // { icon: 'Copy', label: 'Copy Link', onClick: copyLink },
     { icon: 'Replies', label: 'Reply', onClick: showPost },
     // TODO: Edit disabled in mobile environments due to issue with keyboard management and autofocus of field
@@ -296,7 +295,7 @@ export default function ChatPost ({
         {details && !editing && (
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
             <div className={cn(styles.postContentContainer, { [styles.isFlagged]: isFlagged })}>
-              <HyloHTML className={styles.postContent} html={details} />
+              <HyloHTML className={cn(styles.postContent, 'global-postContent')} html={details} />
             </div>
           </ClickCatcher>
         )}

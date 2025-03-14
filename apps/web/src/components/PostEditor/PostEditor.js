@@ -790,8 +790,9 @@ function PostEditor ({
         'PostEditorContent',
         styles.section,
         'flex flex-col !items-start border-2 border-transparent',
-        'transition-all duration-200',
-        'focus-within:border-2 focus-within:border-focus'
+        'transition-all duration-200 overflow-x-hidden',
+        'focus-within:border-2 focus-within:border-focus',
+        { 'max-h-[300px]': !modal }
       )}
       >
         {currentPost.details === null || loading

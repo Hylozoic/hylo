@@ -92,7 +92,7 @@ Object {
     avatarUrl
     bannerUrl
     postCount
-    
+
   members(sortBy: $sortBy, order: \\"asc\\", boundingBox: $boundingBox, search: $search) {
     items {
       id
@@ -201,7 +201,7 @@ Object {
     avatarUrl
     bannerUrl
     postCount
-    
+
 posts: viewPosts(
   activePostsOnly: $activePostsOnly,
   afterTime: $afterTime,
@@ -224,7 +224,7 @@ posts: viewPosts(
   hasMore
   total
   items {
-    
+
   id
   announcement
   clickthrough
@@ -290,6 +290,9 @@ posts: viewPosts(
     name
     slug
   }
+  commentersTotal
+  commentsTotal
+
   linkPreview {
     description
     id
@@ -343,11 +346,47 @@ posts: viewPosts(
       name
     }
   }
-  postMemberships {
+  groups {
     id
-    pinned
-    group {
+    name
+    slug
+  }
+  attachments {
+    type
+    url
+    position
+    id
+  }
+  topics {
+    id
+    name
+  }
+  members {
+    total
+    hasMore
+    items {
       id
+      name
+      avatarUrl
+      bio
+      tagline
+      location
+    }
+  }
+  eventInvitations {
+    total
+    hasMore
+    items {
+      id
+      response
+      person {
+        id
+        name
+        avatarUrl
+        bio
+        tagline
+        location
+      }
     }
   }
 

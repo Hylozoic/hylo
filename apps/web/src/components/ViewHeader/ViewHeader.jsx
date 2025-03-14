@@ -59,7 +59,7 @@ const ViewHeader = () => {
             <input
               type='text'
               placeholder='Search'
-              className='bg-black/20 rounded-lg text-foreground placeholder-foreground/40 w-[90px] py-1 pl-7 focus:w-[200px] transition-all outline-none focus:outline-focus focus:outline-2'
+              className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-[90px] py-1 pl-7 focus:w-[200px] transition-all outline-none focus:outline-focus focus:outline-2'
               onKeyDown={onEnter((e) => navigate(`/search?t=${e.target.value}`))}
             />
           </div>

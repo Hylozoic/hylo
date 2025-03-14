@@ -2,8 +2,11 @@ import React from 'react'
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { X } from 'lucide-react-native'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
+import { isIOS } from 'util/platform'
+import useKeyboardVisible from 'hooks/useKeyboardVisible'
 import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
 import { useCreateGroupStore } from './CreateGroup.store'
 import CreateGroupName from 'screens/CreateGroup/CreateGroupName'
@@ -13,12 +16,11 @@ import CreateGroupVisibilityAccessibility from 'screens/CreateGroup/CreateGroupV
 import CreateGroupParentGroups from 'screens/CreateGroup/CreateGroupParentGroups'
 import CreateGroupReview from 'screens/CreateGroup/CreateGroupReview'
 import ButtonNW from 'components/Button/ButtonNW'
-import { X } from 'lucide-react-native'
-import { isIOS } from 'util/platform'
 
 export default function CreateGroup ({ navigation }) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
+  const keyboardVisible = useKeyboardVisible()
   const confirmDiscardChanges = useConfirmDiscardChanges()
   const { currentStep, goNext, goBack, disableContinue, clearStore, setSubmit } = useCreateGroupStore()
   const [{ currentUser }] = useCurrentUser()
@@ -50,7 +52,12 @@ export default function CreateGroup ({ navigation }) {
 
   return (
     <KeyboardAvoidingView behavior={isIOS ? 'padding' : ''} style={{ flex: 1 }} enabled>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[
+        styles.header,
+        {
+          paddingTop: insets.top
+        }]
+      }>
         <X onPress={handleCancel} />
         <Text>{`${currentStep + 1}/${totalSteps}`}</Text>
       </View>
@@ -60,7 +67,11 @@ export default function CreateGroup ({ navigation }) {
       <View
         style={[
           styles.workflowNav,
-          { paddingBottom: insets.bottom, paddingLeft: insets.left + 10, paddingRight: insets.right + 10 }
+          {
+            paddingBottom: keyboardVisible ? 10 : insets.bottom,
+            paddingLeft: insets.left + 10,
+            paddingRight: insets.right + 10
+          }
         ]}
       >
         <View>
@@ -98,11 +109,12 @@ export default function CreateGroup ({ navigation }) {
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingRight: 20,
-    paddingLeft: 10
+    paddingBottom: 10,
+    paddingLeft: 10,
+    paddingRight: 20
   },
   screen: {
     flex: 1,
@@ -110,6 +122,7 @@ const styles = StyleSheet.create({
   },
   workflowNav: {
     flexDirection: 'row',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    paddingTop: 10
   }
 })

@@ -75,7 +75,6 @@ Object {
   "duplicatePost": [Function],
   "editPost": [Function],
   "fulfillPost": [Function],
-  "pinPost": [Function],
   "removePost": [Function],
   "unfulfillPost": [Function],
   "updateProposalOutcome": [Function],

@@ -1,12 +1,12 @@
 import { isEqual } from 'lodash/fp'
 import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import Button from 'components/Button'
 import HyloEditor from 'components/HyloEditor'
 import Loading from 'components/Loading'
 import SwitchStyled from 'components/SwitchStyled'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { cn } from 'util/index'
+import SaveButton from '../SaveButton'
 import general from '../GroupSettings.module.scss'
 
 function WelcomePageTab ({ group, updateGroupSettings }) {
@@ -67,10 +67,7 @@ function WelcomePageTab ({ group, updateGroupSettings }) {
         />
       </div>
 
-      <div className={general.saveChanges}>
-        <span className={cn({ [general.settingChanged]: changed })}>{changed ? t('Changes not saved') : t('Current settings up to date')}</span>
-        <Button label={t('Save Changes')} color={changed ? 'green' : 'gray'} onClick={changed ? save : null} className={general.saveButton} />
-      </div>
+      <SaveButton save={save} changed={changed} />
     </div>
   )
 }

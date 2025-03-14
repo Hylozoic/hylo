@@ -341,17 +341,6 @@ $drawer-z-index: 51;
   }
 }
 
-.singleColumn .center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  flex: 1;
-  padding-right: 0;
-  height: calc(100vh - 58px);
-  padding-left: 0;
-}
-
 .sidebar {
   // From Bootstrap make-col-ready():
   position: relative;

@@ -46,7 +46,6 @@ describe('MemberDetails', () => {
           t={str => str}
           isFocused
           person={{ id: 1 }}
-          goToGroup={() => {}}
           navigation={navigation}
           route={route}
         />

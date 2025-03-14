@@ -1,26 +1,25 @@
 import React from 'react'
 import { get } from 'lodash/fp'
 import { View, Text } from 'react-native'
-import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import LinearGradient from 'react-native-linear-gradient'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility, { RESP_ADD_MEMBERS } from '@hylo/hooks/useHasResponsibility'
+import useOpenURL from 'hooks/useOpenURL'
 import Button from 'components/Button'
 import MemberList from 'components/MemberList'
 import { bannerlinearGradientColors } from 'style/colors'
 import styles from './Members.styles'
 
 export default function Members ({ isFocused }) {
-  const navigation = useNavigation()
+  const openURL = useOpenURL()
   const [{ currentGroup: group }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canInvite = hasResponsibility(RESP_ADD_MEMBERS)
-
-  const goToInvitePeople = () => navigation.navigate('Group Settings', { groupSlug: group?.slug, settingsArea: 'invite' })
   const showInviteButton = get('allowGroupInvites', group) || canInvite
-  const showMember = id => navigation.navigate('Member', { id })
+  const goToInvitePeople = () => openURL(`/groups/${group?.slug}/settings/invite`)
+  const showMember = id => openURL(`/groups/${group?.slug}/members/${id}`)
 
   return (
     <View style={styles.container}>

@@ -44,7 +44,6 @@ describe('mapDispatchToProps', () => {
     expect(dispatch).toHaveBeenCalledTimes(4)
 
     dispatchProps.deletePost(1)
-    dispatchProps.pinPost(2, 3)
     dispatchProps.duplicatePost(10)
     expect(dispatch.mock.calls).toMatchSnapshot()
   })
@@ -86,8 +85,7 @@ describe('mergeProps', () => {
     removePost: jest.fn(),
     deletePost: jest.fn(),
     duplicatePost: jest.fn(),
-    editPost: jest.fn(),
-    pinPost: jest.fn()
+    editPost: jest.fn()
   }
 
   beforeEach(() => {
@@ -95,7 +93,6 @@ describe('mergeProps', () => {
     dispatchProps.editPost.mockReset()
     dispatchProps.duplicatePost.mockReset()
     dispatchProps.deletePost.mockReset()
-    dispatchProps.pinPost.mockReset()
   })
 
   describe('as moderator', () => {
@@ -116,7 +113,7 @@ describe('mergeProps', () => {
       }
       const ownProps = { routeParams: { groupSlug: 'mygroup' }, post: { id: 44, creator: { id: 20 }}}
       const stateProps = mapStateToProps(state, ownProps)
-      const { deletePost, removePost, editPost, canEdit, pinPost } = mergeProps(stateProps, dispatchProps, ownProps)
+      const { deletePost, removePost, editPost, canEdit } = mergeProps(stateProps, dispatchProps, ownProps)
 
       expect(canEdit).toBeTruthy()
       expect(deletePost).toBeTruthy()
@@ -127,10 +124,7 @@ describe('mergeProps', () => {
       expect(dispatchProps.deletePost).toHaveBeenCalledWith(44, 33, 'lettuce')
 
       editPost()
-      expect(dispatchProps.editPost).toHaveBeenCalledWith(44)
-
-      pinPost()
-      expect(dispatchProps.pinPost).toHaveBeenCalledWith(44, 33)
+      expect(dispatchProps.editPost).toHaveBeenCalledWith(20)
     })
 
     it('cannot delete posts but can moderate', () => {
@@ -183,12 +177,11 @@ describe('mergeProps', () => {
       const ownProps = { routeParams: { groupSlug: 'mygroup' }, post: { id: 44, creator: { id: 20 }}}
       const stateProps = mapStateToProps(state, ownProps)
 
-      const { deletePost, removePost, editPost, duplicatePost, pinPost } = mergeProps(stateProps, dispatchProps, ownProps)
+      const { deletePost, removePost, editPost, duplicatePost } = mergeProps(stateProps, dispatchProps, ownProps)
 
       expect(editPost).toBeTruthy()
       expect(deletePost).toBeTruthy()
       expect(removePost).toBeFalsy()
-      expect(pinPost).toBeFalsy()
       expect(duplicatePost).toBeTruthy()
 
       deletePost('lettuce')

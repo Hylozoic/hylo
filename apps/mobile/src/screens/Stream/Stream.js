@@ -6,6 +6,7 @@ import { FlashList } from '@shopify/flash-list'
 import { gql, useMutation, useQuery } from 'urql'
 import { capitalize, get, isEmpty } from 'lodash/fp'
 import { clsx } from 'clsx'
+import { MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
@@ -85,11 +86,12 @@ export default function Stream () {
   const {
     context,
     customViewId,
-    myHome,
+    view: providedView,
     streamType
   } = routeParams
+  const view = (context === MY_CONTEXT_SLUG && !providedView && !streamType) ? 'posts' : providedView
 
-  const customView = currentGroup?.customViews?.items?.find(view => view.id === customViewId)
+  const customView = currentGroup?.customViews?.items?.find(customView => customView.id === customViewId)
   const [filter, setFilter] = useState()
   const [sortBy, setSortBy] = useState(
     get('settings.streamSortBy', currentUser) ||
@@ -105,7 +107,7 @@ export default function Stream () {
     streamType,
     filter,
     slug: currentGroup?.slug,
-    myHome,
+    view,
     sortBy,
     timeframe
   })
@@ -119,13 +121,9 @@ export default function Stream () {
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
 
-  useEffect(() => {
-    navigation.setOptions({ title: currentGroup?.name })
-  }, [currentGroup?.name])
-
   const title = useMemo(() => {
-    if (myHome) {
-      return capitalize(t(myHome))
+    if (customView?.name) {
+      return customView?.name
     }
 
     switch (streamType) {
@@ -141,8 +139,12 @@ export default function Stream () {
       return capitalize(t(streamType))
     }
 
+    if (context === MY_CONTEXT_SLUG && view) {
+      return capitalize(t(view))
+    }
+
     return t('Stream')
-  }, [navigation, currentGroup?.id, myHome, streamType, context])
+  }, [navigation, currentGroup?.id, view, streamType, context])
 
   // TODO: URQL - Can this be simplified? Also, does this perhaps follow the same logic as
   // group(updateLastViewed: true) and could we combine this? Currently that extra
@@ -200,7 +202,7 @@ export default function Stream () {
   if (!currentUser) return <Loading style={{ flex: 1 }} />
   if (!currentGroup) return null
 
-  if (isEmpty(currentUser?.memberships) && currentGroup?.isPublicContext) {
+  if (isEmpty(currentUser?.memberships) && !currentGroup?.isPublicContext) {
     return (
       <CreateGroupNotice />
     )
@@ -240,7 +242,7 @@ export default function Stream () {
               <View className='bg-card flex-row justify-between items-center px-2.5 py-2'>
                 <ListControl selected={sortBy} onChange={setSortBy} options={sortOptions} />
                 <View className='flex-row items-center gap-2'>
-                  {!['my', 'public'].includes(streamQueryVariables?.context) &&
+                  {![MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG].includes(streamQueryVariables?.context) &&
                     <TouchableOpacity onPress={handleChildPostToggle}>
                       <View className={clsx(
                         'w-8 h-8 rounded items-center justify-center',

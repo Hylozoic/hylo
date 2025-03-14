@@ -68,7 +68,7 @@ export default function SignupEmailValidation () {
 
       if (responseError) {
         if (responseError === 'invalid-link') {
-          navigation.navigate('Signup Intro', { bannerError: errorMessages(responseError) })
+          navigation.replace('Signup Intro', { bannerError: errorMessages(responseError) })
           return
         }
         setError(responseError)
@@ -85,12 +85,12 @@ export default function SignupEmailValidation () {
 
   useFocusEffect(
     useCallback(() => {
-      if (!email) navigation.navigate('Signup')
+      if (!email) navigation.replace('Signup')
       if (token) submit()
 
       navigation.setOptions({
         headerLeftOnPress: () => {
-          navigation.navigate('Signup Intro', { email })
+          navigation.replace('Signup Intro', { email })
         }
       })
     }, [token, email])

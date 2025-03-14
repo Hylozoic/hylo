@@ -8,7 +8,6 @@ import removePost from 'store/actions/removePost'
 import {
   unfulfillPost,
   fulfillPost,
-  pinPost,
   getGroup,
   updateProposalOutcome
 } from './PostHeader.store'
@@ -70,12 +69,9 @@ export function mapDispatchToProps (dispatch, props) {
     unfulfillPost: postId => props.unfulfillPost
       ? props.unfulfillPost(postId)
       : dispatch(unfulfillPost(postId)),
-    removePost: (postId, text) => props.removePost
-      ? props.removePost(postId)
-      : removePostWithConfirm(postId, text),
-    pinPost: (postId, groupId) => props.pinPost
-      ? props.pinPost(postId)
-      : dispatch(pinPost(postId, groupId)),
+    removePost: (postId, text) => {
+      removePostWithConfirm(postId, text)
+    },
     updateProposalOutcome: (postId, proposalOutcome) => dispatch(updateProposalOutcome(postId, proposalOutcome))
   }
 }
@@ -83,7 +79,7 @@ export function mapDispatchToProps (dispatch, props) {
 export function mergeProps (stateProps, dispatchProps, ownProps) {
   const { currentUser, group, responsibilities, connectorGetRolesForGroup } = stateProps
   const { id, creator } = ownProps.post
-  const { deletePost, editPost, duplicatePost, fulfillPost, unfulfillPost, removePost, pinPost, updateProposalOutcome } = dispatchProps
+  const { deletePost, editPost, duplicatePost, fulfillPost, unfulfillPost, removePost, updateProposalOutcome } = dispatchProps
   const isCreator = currentUser && creator && currentUser.id === creator.id
   const canEdit = isCreator
   return {
@@ -96,7 +92,6 @@ export function mergeProps (stateProps, dispatchProps, ownProps) {
     fulfillPost: isCreator ? () => fulfillPost(id) : undefined,
     unfulfillPost: isCreator ? () => unfulfillPost(id) : undefined,
     canFlag: !isCreator,
-    pinPost: (responsibilities.includes(RESP_MANAGE_CONTENT)) && group ? () => pinPost(id, group.id) : undefined,
     removePost: !isCreator && (responsibilities.includes(RESP_MANAGE_CONTENT)) ? (text) => removePost(id, text) : undefined,
     roles: creator && connectorGetRolesForGroup(creator.id),
     updateProposalOutcome: isCreator ? (proposalOutcome) => updateProposalOutcome(id, proposalOutcome) : undefined,

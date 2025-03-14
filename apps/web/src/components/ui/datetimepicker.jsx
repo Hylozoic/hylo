@@ -517,7 +517,7 @@ const DateTimePicker = React.forwardRef(({ locale = getLocaleAsString(), default
   return (
     <Popover>
       <PopoverTrigger asChild disabled={disabled}>
-        <Button variant='outline' className={cn('w-full justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
+        <Button variant='outline' className={cn('justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />
           {displayDate
             ? (DateTime.fromJSDate(displayDate).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12, {

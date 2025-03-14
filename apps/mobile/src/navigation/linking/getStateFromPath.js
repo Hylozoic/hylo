@@ -1,5 +1,5 @@
 import { getStateFromPath as getStateFromPathDefault } from '@react-navigation/native'
-import { isEmpty } from 'lodash/fp'
+import { isEmpty, isFunction } from 'lodash/fp'
 import { match } from 'path-to-regexp'
 import { URL } from 'react-native-url-polyfill'
 import queryString from 'query-string'
@@ -15,8 +15,7 @@ import {
 
 // This is a very custom way of handling deep links in React Navigation
 export default function getStateFromPath (providedPath) {
-  // Not sure this trim is ever necessary, has been
-  // historically been there so keeping it for now
+  // This trim may be unnecessary, keeping it for now
   const groomedPath = providedPath.trim()
   const routeMatch = getRouteMatchForPath(groomedPath)
   const authState = useAuthStore.getState()
@@ -24,6 +23,12 @@ export default function getStateFromPath (providedPath) {
 
   // 404 handling
   if (!routeMatch) return null
+
+  // Currently only for redirectTo (defined and applied in linking/index)
+  if (isFunction(routeMatch.screenPath)) {
+    routeMatch.screenPath(routeMatch.search)
+    return null
+  }
 
   const { path, screenPath } = addParamsToScreenPath(routeMatch, routingConfig)
 
@@ -83,6 +88,7 @@ export function addParamsToScreenPath (routeMatch) {
     if (!isEmpty(search)) routeParams.push(search.substring(1))
     if (!isEmpty(pathMatch.params)) routeParams.push(queryString.stringify(pathMatch.params))
     if (!isEmpty(pathMatcher)) routeParams.push(queryString.stringify({ pathMatcher }))
+
     // Needed for JoinGroup
     routeParams.push(`originalLinkingPath=${encodeURIComponent(pathname + search)}`)
 

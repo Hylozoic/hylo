@@ -6,7 +6,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import { alabaster, amaranth, capeCod, rhino40, rhino80 } from 'style/colors'
 
-export default function GroupSettingsWebView ({ path: pathProp, route }) {
+export default function GroupSettingsWebView () {
   const navigation = useNavigation()
   const webViewRef = useRef()
   const { groupSlug, originalLinkingPath, settingsArea: routeSettingsArea } = useRouteParams()
@@ -19,7 +19,7 @@ export default function GroupSettingsWebView ({ path: pathProp, route }) {
 
   useEffect(() => {
     navigation.setOptions({
-      headerLeftOnPress: () => selectedSettingsArea ? setSelectedSettingsArea() : undefined
+      headerLeftOnPress: (!routeSettingsArea && selectedSettingsArea) && (() => setSelectedSettingsArea())
     })
   }, [selectedSettingsArea])
 

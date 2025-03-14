@@ -87,6 +87,7 @@ enableScreens()
 // ref. https://github.com/douglasjunior/react-native-keyboard-manager/tree/main
 if (Platform.OS === 'ios') {
   KeyboardManager.setEnable(false)
+  KeyboardManager.setEnableAutoToolbar(false)
   KeyboardManager.setLayoutIfNeededOnUpdate(true)
   KeyboardManager.setShouldResignOnTouchOutside(true)
 }

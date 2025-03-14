@@ -9,12 +9,12 @@ import { AnalyticsEvents } from '@hylo/shared'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import sendEmailVerificationMutation from '@hylo/graphql/mutations/sendEmailVerificationMutation'
 import mixpanel from 'services/mixpanel'
-import { openURL } from 'hooks/useOpenURL'
+import useOpenURL from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
-import FormattedError from 'components/FormattedError'
 import Button from 'components/Button'
+import FormattedError from 'components/FormattedError'
 import SocialAuth from 'components/SocialAuth'
-import providedStyles from './Signup.styles'
+import styles from './Signup.styles'
 
 const backgroundImage = require('assets/signin_background.png')
 const merkabaImage = require('assets/merkaba_white.png')
@@ -56,9 +56,10 @@ function useSignupWorkflow () {
 
 export default function Signup () {
   const { t } = useTranslation()
+  const insets = useSafeAreaInsets()
   const navigation = useNavigation()
-  const safeAreaInsets = useSafeAreaInsets()
   const { email: routeEmail, error: routeError, bannerError: routeBannerError } = useRouteParams()
+  const openURL = useOpenURL()
   const { fetching } = useSignupWorkflow()
   const [, sendEmailVerification] = useMutation(sendEmailVerificationMutation)
   const [email, providedSetEmail] = useState(routeEmail)
@@ -111,29 +112,26 @@ export default function Signup () {
     }
   }
 
-  const styles = {
-    ...providedStyles,
-    background: {
-      ...providedStyles.background,
-      height: providedStyles.background.height + safeAreaInsets.top
-    },
-    backgroundImage: {
-      ...providedStyles.backgroundImage,
-      height: providedStyles.backgroundImage.height + safeAreaInsets.top
-    }
-  }
-
   if (fetching) return null
 
   return (
-    <ScrollView>
-      {signingUp && <Text style={styles.bannerMessage}>{t('SIGNING UP')}</Text>}
-      {bannerError && <Text style={styles.bannerError}>{bannerError}</Text>}
+    <ScrollView style={styles.container}>
+      {bannerError && (
+        <Text style={[styles.banner, styles.bannerError, { paddingTop: insets.top }]}>
+          {bannerError}
+        </Text>
+      )}
+
+      {(!bannerError && signingUp) && (
+        <Text style={[styles.banner, styles.bannerMessage, { paddingTop: insets.top }]}>
+          {t('SIGNING UP')}
+        </Text>
+      )}
 
       <ImageBackground
         source={backgroundImage}
-        style={styles.background}
-        imageStyle={styles.backgroundImage}
+        style={[styles.background, { height: styles.background.height + insets.top }]}
+        imageStyle={[styles.backgroundImage, { height: styles.backgroundImage.height + insets.top }]}
       >
         <Image source={merkabaImage} style={styles.merkabaImage} />
         <Text style={styles.title}>{t('Welcome to Hylo')}</Text>
@@ -162,7 +160,7 @@ export default function Signup () {
         <SocialAuth onStart={handleSocialAuthStart} onComplete={handleSocialAuthComplete} forSignup />
         <View style={styles.login}>
           <Text style={styles.haveAccount}>{t('Already have an account?')} </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <TouchableOpacity onPress={() => navigation.replace('Login')}>
             <Text style={styles.loginButton}>{t('Log in now')}</Text>
           </TouchableOpacity>
         </View>
