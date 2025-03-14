@@ -1,5 +1,5 @@
 import React from 'react'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import Pill from 'components/Pill'
 
 import classes from './EmojiPill.module.scss'
@@ -13,10 +13,11 @@ export default function EmojiPill ({ emojiFull, onClick = () => {}, count, userL
         key={emojiFull}
         label={`${emojiFull} ${count}`}
         onClick={onClick ? () => onClick(emojiFull) : null}
-        className={cx(classes.tagPill, { [classes.selected]: selected })}
+        className={cn(classes.tagPill, {
+          'bg-selected': selected
+        })}
         tooltipContent={toolTip}
       />
     </div>
-
   )
 }

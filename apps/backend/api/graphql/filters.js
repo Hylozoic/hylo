@@ -25,8 +25,6 @@ export const groupFilter = userId => relation => {
     // non authenticated queries can only see public groups
     if (!userId) {
       q.where('groups.visibility', Group.Visibility.PUBLIC)
-      // Only show groups that are allowed to be show in public
-      q.andWhere('groups.allow_in_public', true)
     } else {
       // the effect of using `where` like this is to wrap everything within its
       // callback in parentheses -- this is necessary to keep `or` from "leaking"
@@ -54,8 +52,6 @@ export const groupFilter = userId => relation => {
         // + all public groups
         q2.orWhere(q5 => {
           q5.where('groups.visibility', Group.Visibility.PUBLIC)
-          // Only show groups that are allowed to be show in public
-          q5.andWhere('groups.allow_in_public', true)
         })
       })
     }
@@ -70,6 +66,7 @@ export function groupTopicFilter (userId, {
   visibility
 }) {
   return q => {
+    q.distinct('groups_tags.tag_id')
     if (groupId) {
       q.where('groups_tags.group_id', groupId)
     }

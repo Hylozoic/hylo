@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { keyBy } from 'lodash'
@@ -23,8 +23,8 @@ export default function FarmOpenToPublic ({ group }) {
   return (
     openToPublic
       ? (
-        <div className={cx(classes.farmOpenToPublicContainer)}>
-          <div className={cx(classes.openingHours)}>{t('Open', { openingHours })}</div>
+        <div className={cn(classes.farmOpenToPublicContainer)}>
+          <div className={cn(classes.openingHours)}>{t('Open', { openingHours })}</div>
           {getFarmAddressLine1(group) &&
             <div className={classes.address}>
               <div className={classes.addressLine}>{getFarmAddressLine1(group)}</div>

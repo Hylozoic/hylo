@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { useSelector } from 'react-redux'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
@@ -75,8 +75,8 @@ export default function GroupSearch ({ viewFilter }) {
         {viewFilter === FARM_VIEW
           ? (
             <div className={classes.filterContainer} onClick={() => setFilterToggle(!filterToggle)}>
-              <Icon name='Filter' green={filterToggle} className={cx(classes.filterIcon, { [classes.filterOpen]: filterToggle })} />
-              <b className={cx({ [classes.filterOpen]: filterToggle })}>{t('Filters')}</b>
+              <Icon name='Filter' green={filterToggle} className={cn(classes.filterIcon, { [classes.filterOpen]: filterToggle })} />
+              <b className={cn({ [classes.filterOpen]: filterToggle })}>{t('Filters')}</b>
               {filterToggle && <Icon name='Ex' className={classes.removeButton} />}
             </div>
             )
@@ -107,7 +107,7 @@ export default function GroupSearch ({ viewFilter }) {
           return (
             <GroupCard
               memberships={membershipGroupIds}
-              className={cx(classes.cardItem, { [classes.expanded]: expanded })}
+              className={cn(classes.cardItem, { [classes.expanded]: expanded })}
               expanded={expanded}
               group={group}
               key={group.id}
@@ -143,7 +143,7 @@ const makeDropdown = ({ selected, options, onChange, filterLabel = '', isFilter 
   return (
     <Dropdown
       alignRight={!isFilter}
-      className={cx(classes.dropdown, { [classes.filterDropdown]: isFilter })}
+      className={cn(classes.dropdown, { [classes.filterDropdown]: isFilter })}
       toggleChildren={
         <span className={isFilter ? classes.filterDropdownLabel : classes.dropdownLabel}>
           {!isFilter && <Icon name='ArrowDown' />}

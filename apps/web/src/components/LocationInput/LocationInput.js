@@ -8,7 +8,7 @@ import { withTranslation } from 'react-i18next'
 
 class LocationInput extends Component {
   static propTypes = {
-    inputClass: PropTypes.string,
+    className: PropTypes.string,
     locationObject: PropTypes.object,
     location: PropTypes.string,
     onChange: PropTypes.func,
@@ -19,7 +19,7 @@ class LocationInput extends Component {
 
   static defaultProps = {
     mapboxToken: mapbox.token,
-    inputClass: styles.input,
+    className: 'bg-black/20 rounded-lg text-foreground placeholder-foreground/40 w-full p-4',
     locationObject: null,
     location: '',
     onChange: null,
@@ -54,11 +54,11 @@ class LocationInput extends Component {
   handleSuggest = e => { }
 
   render () {
-    const { id, inputClass, locationObject, location, placeholder = this.props.t('Search for a location...'), mapboxToken } = this.props
+    const { id, locationObject, location, placeholder = this.props.t('Search for a location...'), mapboxToken, className } = this.props
     const centerAt = (locationObject && locationObject.center) || this.state.browserLocation
 
     return (
-      <div className={styles.wrapper}>
+      <div className='w-full text-foreground'>
         <Geocoder
           id={id}
           accessToken={mapboxToken}
@@ -68,7 +68,7 @@ class LocationInput extends Component {
           onSuggest={this.handleSuggest}
           source='mapbox.places'
           endpoint='https://api.tiles.mapbox.com'
-          inputClass={inputClass}
+          className={className}
           inputPlaceholder={placeholder}
           resultClass={styles.result}
           resultsClass={styles.suggestions}

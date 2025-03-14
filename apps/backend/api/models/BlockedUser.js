@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLError } from 'graphql'
 
 /* eslint-disable camelcase */
 module.exports = bookshelf.Model.extend({
@@ -18,34 +18,33 @@ module.exports = bookshelf.Model.extend({
 
   create: function (userId, blockedUserId) {
     if (blockedUserId === User.AXOLOTL_ID) {
-      throw new GraphQLYogaError('cannot block Hylo the Axolotl')
+      throw new GraphQLError('cannot block Hylo the Axolotl')
     }
 
     if (userId === blockedUserId) {
-      throw new GraphQLYogaError('blocked_user_id cannot equal user_id')
+      throw new GraphQLError('blocked_user_id cannot equal user_id')
     }
 
     if (!userId || !blockedUserId) {
-      throw new GraphQLYogaError('must provide a user_id and blocked_user_id')
+      throw new GraphQLError('must provide a user_id and blocked_user_id')
     }
 
     return this.find(userId, blockedUserId)
-    .then(existing => {
-      if (existing) return existing
+      .then(existing => {
+        if (existing) return existing
 
-      return new BlockedUser({
-        user_id: userId,
-        blocked_user_id: blockedUserId,
-        created_at: new Date(),
-        updated_at: new Date()
+        return new BlockedUser({
+          user_id: userId,
+          blocked_user_id: blockedUserId,
+          created_at: new Date(),
+          updated_at: new Date()
+        }).save()
       })
-      .save()
-    })
   },
 
   find: function (user_id, blocked_user_id) {
-    if (!user_id) throw new GraphQLYogaError('Parameter user_id must be supplied.')
-    return BlockedUser.where({user_id, blocked_user_id}).fetch()
+    if (!user_id) throw new GraphQLError('Parameter user_id must be supplied.')
+    return BlockedUser.where({ user_id, blocked_user_id }).fetch()
   },
 
   blockedFor: function (userId) {

@@ -8,12 +8,13 @@ export async function setSessionCookie (resp) {
   if (!header) return Promise.resolve()
 
   const newCookies = parseCookies(header)
+  const str = await getSessionCookie()
+  const oldCookies = parseCookies(str)
+  const merged = omitBy({ ...oldCookies, ...newCookies }, invalidPair)
+  const cookie = serializeCookie(merged)
+  await AsyncStorage.setItem(Config.SESSION_COOKIE_KEY, cookie)
 
-  return getSessionCookie().then(str => {
-    const oldCookies = parseCookies(str)
-    const merged = omitBy({ ...oldCookies, ...newCookies }, invalidPair)
-    return AsyncStorage.setItem(Config.SESSION_COOKIE_KEY, serializeCookie(merged))
-  })
+  return cookie
 }
 
 export async function getSessionCookie () {

@@ -1,19 +1,18 @@
 import React from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
+import { useMutation } from 'urql'
 import { useNavigation } from '@react-navigation/native'
-import { find, get } from 'lodash/fp'
+import { find } from 'lodash/fp'
 import { LocationHelpers } from '@hylo/shared'
 import { DEFAULT_APP_HOST } from 'navigation/linking'
 import { openURL } from 'hooks/useOpenURL'
-import useChangeToGroup from 'hooks/useChangeToGroup'
+import recordClickthroughMutation from '@hylo/graphql/mutations/recordClickthroughMutation'
+import respondToEventMutation from '@hylo/graphql/mutations/respondToEventMutation'
+import joinProjectMutation from '@hylo/graphql/mutations/joinProjectMutation'
+import leaveProjectMutation from '@hylo/graphql/mutations/leaveProjectMutation'
 import useGoToMember from 'hooks/useGoToMember'
 import useGoToTopic from 'hooks/useGoToTopic'
-import getMe from 'store/selectors/getMe'
-import joinProjectAction from 'store/actions/joinProject'
-import leaveProjectAction from 'store/actions/leaveProject'
-import respondToEventAction from 'store/actions/respondToEvent'
-import { recordClickthrough } from 'store/actions/moderationActions'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import Button from 'components/Button'
 import Files from 'components/Files'
 import Icon from 'components/Icon'
@@ -22,7 +21,7 @@ import PostBody from 'components/PostCard/PostBody'
 import PostFooter from 'components/PostCard/PostFooter'
 import PostGroups from 'components/PostCard/PostGroups'
 import PostHeader from 'components/PostCard/PostHeader'
-import ProjectMembersSummary from 'components/ProjectMembersSummary'
+// import ProjectMembersSummary from 'components/ProjectMembersSummary'
 import Topics from 'components/Topics'
 import styles from 'components/PostCard/PostCard.styles'
 import { SvgUri } from 'react-native-svg'
@@ -30,10 +29,13 @@ import { useTranslation } from 'react-i18next'
 
 export default function PostCardForDetails ({ post, showGroups = true, groupId }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const navigation = useNavigation
-  const currentUser = useSelector(getMe)
-  const changeToGroup = useChangeToGroup()
+  const [, recordClickthrough] = useMutation(recordClickthroughMutation)
+  const [, respondToEvent] = useMutation(respondToEventMutation)
+  const [, providedJoinProject] = useMutation(joinProjectMutation)
+  const [, providedLeaveProject] = useMutation(leaveProjectMutation)
+
+  const navigation = useNavigation()
+  const [{ currentUser }] = useCurrentUser()
   const goToMember = useGoToMember()
   const goToTopic = useGoToTopic()
 
@@ -47,16 +49,15 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
   const donationServiceSvgUri = donationServiceMatch &&
     `${DEFAULT_APP_HOST}/assets/payment-services/${donationServiceMatch[0]}.svg`
 
-  const handleRespondToEvent = response => dispatch(respondToEventAction(post, response))
-  const joinProject = () => dispatch(joinProjectAction(post.id))
-  const leaveProject = () => dispatch(leaveProjectAction(post.id))
+  const handleRespondToEvent = response => respondToEvent({ id: post.id, response })
+  const joinProject = () => providedJoinProject({ id: post.id })
+  const leaveProject = () => providedLeaveProject({ id: post.id })
   const editPost = () => navigation.navigate('Edit Post', { id: post.id })
-  const openProjectMembersModal = () => navigation.navigate('Project Members', { id: post.id, members: get('members', post) })
 
-  const isProject = get('type', post) === 'project'
-  const isProjectMember = find(member => member.id === currentUser.id, post.members)
+  // TODO: URQL - Move some or all of the below to PostPresenter
+  const isProject = post?.type === 'project'
+  const isProjectMember = find(member => member.id === currentUser.id, post.members?.items)
   const locationText = LocationHelpers.generalLocationString(post.locationObject, post.location)
-  const images = post.imageUrls && post.imageUrls.map(uri => ({ uri }))
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(groupId)
 
   return (
@@ -68,27 +69,25 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
         creator={post.creator}
         date={post.createdAt}
         editPost={editPost}
-        goToGroup={changeToGroup}
         groups={post.groups}
-        pinned={post.pinned}
         postId={post.id}
         showMember={goToMember}
         style={{ paddingVertical: 14 }}
         title={post.title}
         type={post.type}
       />
-      {(!images || images.length === 0) && (
+      {(post.images.length === 0) && (
         <Topics
           topics={post.topics}
           onPress={t => goToTopic(t.name)}
           style={styles.topics}
         />
       )}
-      {(images && images.length > 0) && !(isFlagged && !post.clickthrough) && (
+      {(post.images.length > 0) && !(isFlagged && !post.clickthrough) && (
         <ImageAttachments
           creator={post.creator}
           isFlagged={isFlagged}
-          images={images}
+          images={post.images}
           style={styles.images}
           title={post.title}
         >
@@ -104,7 +103,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
           <Text style={styles.clickthroughText}>{t('clickthroughExplainer')}</Text>
           <TouchableOpacity
             style={styles.clickthroughButton}
-            onPress={() => dispatch(recordClickthrough({ postId: post.id }))}
+            onPress={() => recordClickthrough({ postId: post.id })}
           >
             <Text style={styles.clickthroughButtonText}>{t('View post')}</Text>
           </TouchableOpacity>
@@ -118,27 +117,31 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
       )}
       <PostBody
         details={post.details}
-        endTime={post.endTime}
+        endTime={post.endTimeRaw}
         linkPreview={post.linkPreview}
         linkPreviewFeatured={post.linkPreviewFeatured}
         myEventResponse={post.myEventResponse}
         respondToEvent={handleRespondToEvent}
         isFlagged={isFlagged && !post.clickthrough}
-        startTime={post.startTime}
+        startTime={post.startTimeRaw}
         title={post.title}
         type={post.type}
         post={post}
         currentUser={currentUser}
       />
       <Files urls={post.fileUrls} style={styles.files} />
-      {isProject && (
-        <ProjectMembersSummary
-          dimension={34}
-          members={post.members}
-          onPress={openProjectMembersModal}
-          style={styles.projectMembersContainer}
-        />
-      )}
+      {/*
+        NOTE: Replaced by PeopleListModal in Footer for Project Members and Commenters...
+        but this could still be better, put in the footer
+        {isProject && (
+          <ProjectMembersSummary
+            dimension={34}
+            members={post.members.items}
+            onPress={openProjectMembersModal}
+            style={styles.projectMembersContainer}
+          />
+        )}
+      */}
       {isProject && post.projectManagementLink && (
         <View style={styles.donationsLink}>
           {projectManagementLinkSvgUri && (
@@ -190,7 +193,6 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
       )}
       {showGroups && (
         <PostGroups
-          goToGroup={changeToGroup}
           groups={post.groups}
           includePublic={post.isPublic}
           style={[styles.groups]}
@@ -203,7 +205,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
         eventInvitations={post.eventInvitations}
         forDetails
         postId={post.id}
-        members={post.members}
+        members={post.members?.items}
         peopleReactedTotal={post.peopleReactedTotal}
         style={styles.postFooter}
         type={post.type}

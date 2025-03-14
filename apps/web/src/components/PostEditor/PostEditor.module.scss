@@ -3,35 +3,17 @@
 .section-label {
   color: $color-rhino-80;
   white-space: nowrap;
-  margin-right: 28px;
+  margin-right: 16px;
   font-size: 14px;
 }
 
 // Overall wrapper
 
-$wrapperBorderRadius: 8px;
-
-.wrapper {
-  display: flex;
-  flex-direction: column;
-  list-style: none;
-  border: solid 1px rgb(0,0,0);
-  border-radius: $wrapperBorderRadius;
-  border: 1px solid $color-cape-cod-10;
-  background: $color-white;
-}
-
 .wrapper-scrollable-inner {
-  max-height: 360px;
   overflow: scroll;
 }
 
 // Header area
-
-.header {
-  padding: 10px;
-  position: relative;
-}
 
 .initial {
   display: flex;
@@ -94,12 +76,11 @@ $wrapperBorderRadius: 8px;
   font-size: 11px;
   letter-spacing: 1.2px;
   width: 130px;
-  line-height: 40px;
   display: inline-block;
   margin: 0;
   border-bottom: 1px solid rgba(240, 241, 243, 1.00);
   border-radius: 5px;
-  padding: 0 10px;
+  padding: 5px 10px;
 
   &-discussion {
     &.selectable:hover, &:active, &.active {
@@ -164,7 +145,6 @@ $wrapperBorderRadius: 8px;
 // Body area
 
 .body {
-  padding: 0 $space-5x 0 $space-4x;
   display: flex;
   flex-direction: row;
   &-column:last-child {
@@ -181,7 +161,6 @@ $wrapperBorderRadius: 8px;
 
 .titleInput {
   composes: hdr-headline from 'css/typography.scss';
-  margin-bottom: $space-2x;
   padding: 0;
   height: $space-9x;
   width: 100%;
@@ -195,27 +174,15 @@ $wrapperBorderRadius: 8px;
   }
 }
 
-.editor {
-  padding: 5px;
-  min-height: 100px;
-  max-height: 200px;
-  color: $color-rhino-80;
-  overflow: auto;
-}
-
-// Footer area
-
-.footer {
-  padding: 0;
-}
-
-.footerSection {
-  min-height: 3rem;
-  border-top: solid 1px $color-ghost-30;
-  padding: 0 $space-4x;
-  line-height: 1;
+.section {
   display: flex;
+  width: 100%;
   align-items: center;
+  background: hsl(var(--input));
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  padding: .25rem;
+
   &-prompt {
     color: $color-rhino-30;
     font-weight: bold;
@@ -226,17 +193,15 @@ $wrapperBorderRadius: 8px;
     color: $color-grey-keyline;
     text-transform: uppercase;
     font-size: 14px;
-    margin: 0 15px;
+    margin: 0 12px;
   }
   &-label {
     composes: section-label;
   }
-  &-topics {
-    width: 100%;
-  }
-  &-groups {
-    width: 100%;
-  }
+}
+
+.section-groups {
+  width: 100%;
 }
 
 .accept-contributions {
@@ -266,10 +231,8 @@ $wrapperBorderRadius: 8px;
 .actionsBar {
   display: flex;
   flex-wrap: nowrap;
-  background-color: $color-athens-gray;
   flex-direction: row;
-  padding: $space-3x 18px;
-  border-radius: $wrapperBorderRadius;
+  border-radius: 8px;
   align-items: center;
   border-top: solid 1px $color-ghost-30;
 }
@@ -295,6 +258,9 @@ $wrapperBorderRadius: 8px;
 
 .postButton {
   margin-left: auto;
+  padding: 0 1rem;
+  border-radius: 8px 8px;
+  line-height: 2rem;
 }
 
 .hide {
@@ -346,6 +312,8 @@ $wrapperBorderRadius: 8px;
   width: 100%;
   outline: none;
   border: none;
+  background-color: transparent;
+  padding-left: 2px;
   &:disabled {
     color: $color-rhino-80;
   }
@@ -494,11 +462,11 @@ $wrapperBorderRadius: 8px;
 }
 
 @media screen and (max-width: 425px) {
-  .footerSection-topics, .footerSection-groups {
+  .section-topics, .section-groups {
     font-size: 14px;
   }
 
-  .section-label, .footerSection-label, .section-label.footerSection-label {
+  .section-label {
     margin-right: 15px;
     font-size: 10px;
     text-transform: uppercase;
@@ -520,7 +488,7 @@ $wrapperBorderRadius: 8px;
 }
 
 @media screen and (max-width: 340px) {
-  .footerSection-helper {
+  .section-helper {
     margin: 0 5px;
     font-size: 10px;
   }

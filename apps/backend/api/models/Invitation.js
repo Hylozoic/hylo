@@ -51,14 +51,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
       await GroupMembership.forPair(user, group).fetch({ transacting }) ||
       await user.joinGroup(group, { role, fromInvitation: true, transacting })
 
+    // TODO: we are not using this right now, but we could use to invite to a chat room
     if (!this.isUsed() && this.get('tag_id')) {
       try {
-        await TagFollow.add({
+        await TagFollow.findOrCreate({
           tagId: this.get('tag_id'),
           userId,
           groupId: this.get('group_id'),
-          transacting
-        })
+        }, { transacting})
       } catch (err) {
         // do nothing if the tag follow already exists
         if (!err.message || !err.message.includes('duplicate key value')) {
@@ -87,13 +87,16 @@ module.exports = bookshelf.Model.extend(Object.assign({
       const email = this.get('email')
 
       const data = {
+        version: 'Redesign 2025',
         subject: this.get('subject'),
         message: this.get('message'),
+        inviter_avatar_url: creator.get('avatar_url'),
         inviter_name: creator.get('name'),
         inviter_email: creator.get('email'),
         locale: creator.get('settings').locale || 'en',
-        // TODO: change this data name in the email
         group_name: group.get('name'),
+        group_avatar_url: group.get('avatar_url'),
+        group_url: Frontend.Route.group(group),
         invite_link: Frontend.Route.useInvitation(this.get('token'), email),
         tracking_pixel_url: Analytics.pixelUrl('Invitation', {
           recipient: email,

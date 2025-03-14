@@ -1,22 +1,23 @@
-import { createSelector } from 'reselect'
-import { createSelector as ormCreateSelector } from 'redux-orm'
-import { get, find, pick } from 'lodash/fp'
+import { gql } from 'urql'
+import { find, pick } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
-import orm from 'store/models'
-import { makeGetQueryResults } from 'store/reducers/queryResults'
-import { modalScreenName } from 'hooks/useIsModalScreen'
-import {
-  ACTION_NEW_COMMENT,
-  ACTION_TAG,
-  ACTION_JOIN_REQUEST,
-  ACTION_APPROVED_JOIN_REQUEST,
-  ACTION_MENTION,
-  ACTION_COMMENT_MENTION,
-  ACTION_ANNOUNCEMENT,
-  ACTION_NEW_POST
-} from 'store/models/Notification'
-import gql from 'graphql-tag'
+import { openURL } from 'hooks/useOpenURL'
 
+export const ACTION_ANNOUNCEMENT = 'announcement'
+export const ACTION_APPROVED_JOIN_REQUEST = 'approvedJoinRequest'
+export const ACTION_COMMENT_MENTION = 'commentMention'
+export const ACTION_DONATION_TO = 'donation to'
+export const ACTION_DONATION_FROM = 'donation from'
+export const ACTION_EVENT_INVITATION = 'eventInvitation'
+export const ACTION_GROUP_CHILD_GROUP_INVITE = 'groupChildGroupInvite'
+export const ACTION_GROUP_CHILD_GROUP_INVITE_ACCEPTED = 'groupChildGroupInviteAccepted'
+export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST = 'groupParentGroupJoinRequest'
+export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED = 'groupParentGroupJoinRequestAccepted'
+export const ACTION_JOIN_REQUEST = 'joinRequest'
+export const ACTION_MENTION = 'mention'
+export const ACTION_NEW_POST = 'newPost'
+export const ACTION_NEW_COMMENT = 'newComment'
+export const ACTION_TAG = 'tag'
 export const NOTIFICATIONS_WHITELIST = [
   ACTION_NEW_COMMENT,
   ACTION_TAG,
@@ -27,164 +28,55 @@ export const NOTIFICATIONS_WHITELIST = [
   ACTION_ANNOUNCEMENT,
   ACTION_NEW_POST
 ]
+
 export const NOTIFICATION_TEXT_MAX = 76
-export const MODULE_NAME = 'NotificationsList'
-export const FETCH_NOTIFICATIONS = `${MODULE_NAME}/FETCH_NOTIFICATIONS`
-export const MARK_ACTIVITY_READ = `${MODULE_NAME}/MARK_ACTIVITY_READ`
-export const MARK_ALL_ACTIVITIES_READ = `${MODULE_NAME}/MARK_ALL_ACTIVITIES_READ`
-export const UPDATE_NEW_NOTIFICATION_COUNT = `${MODULE_NAME}/UPDATE_NEW_NOTIFICATION_COUNT`
-export const UPDATE_NEW_NOTIFICATION_COUNT_PENDING = `${UPDATE_NEW_NOTIFICATION_COUNT}_PENDING`
 
-export function fetchNotifications (first = 20, offset = 0) {
-  return {
-    type: FETCH_NOTIFICATIONS,
-    graphql: {
-      query: gql`
-        query ($first: Int, $offset: Int) {
-          notifications (first: $first, offset: $offset, order: "desc") {
-            total
-            hasMore
-            items {
-              id
-              createdAt
-              activity {
-                id
-                actor {
-                  id
-                  name
-                  avatarUrl
-                }
-                comment {
-                  id
-                  text
-                }
-                post {
-                  id
-                  title
-                  details
-                  groups {
-                    id
-                    slug
-                  }  
-                }
-                group {
-                  id
-                  name
-                  slug
-                }
-                meta {
-                  reasons
-                }
-                action
-                unread
-              }
-            }
-          }
-        }
-      `,
-      variables: { first, offset }
-    },
-    meta: {
-      afterInteractions: true,
-      extractModel: 'Notification',
-      extractQueryResults: {
-        getItems: get('payload.data.notifications')
-      },
-      resetCount: true
+export const markActivityReadMutation = gql`
+  mutation ($id: ID) {
+    markActivityRead(id: $id) {
+      id
+      unread
     }
   }
-}
+`
 
-export function markActivityRead (id) {
-  return {
-    type: MARK_ACTIVITY_READ,
-    graphql: {
-      query: gql`
-        mutation ($id: ID) {
-          markActivityRead(id: $id) {
-            id
-          }
-        }
-      `,
-      variables: { id }
-    },
-    meta: {
-      id,
-      optimistic: true
+export const markAllActivitiesReadMutation = gql`
+  mutation {
+    markAllActivitiesRead {
+      success
     }
   }
-}
-
-export function markAllActivitiesRead () {
-  return {
-    type: MARK_ALL_ACTIVITIES_READ,
-    graphql: {
-      query: gql`
-        mutation {
-          markAllActivitiesRead {
-            success
-          }
-        }
-      `
-    },
-    meta: {
-      optimistic: true
-    }
-  }
-}
-
-export function updateNewNotificationCount () {
-  return {
-    type: UPDATE_NEW_NOTIFICATION_COUNT,
-    graphql: {
-      query: gql`
-        mutation ($changes: MeInput) {
-          updateMe(changes: $changes) {
-            id
-          }
-        }
-      `,
-      variables: {
-        changes: {
-          newNotificationCount: 0
-        }
-      }
-    },
-    meta: {
-      optimistic: true
-    }
-  }
-}
+`
 
 export const truncateHTML = html => TextHelpers.presentHTMLToText(html, { truncate: NOTIFICATION_TEXT_MAX }).replace(/\n/g, ' ')
 
 export const truncateText = text => TextHelpers.truncateText(text, NOTIFICATION_TEXT_MAX)
 
-export function refineActivity ({ action, actor, comment, group, post, meta }, { navigate }) {
+export function refineActivity ({ action, actor, comment, group, post, meta }) {
   switch (action) {
     case ACTION_COMMENT_MENTION:
       return {
         body: `wrote: ${truncateHTML(comment.text)}`,
         header: 'mentioned you in a comment on',
         nameInHeader: true,
-        onPress: () => navigate(modalScreenName('Post Details'), { id: post.id }),
-        title: post.title
+        title: post.title,
+        onPress: () => openURL(`/post/${post.id}`)
       }
 
     case ACTION_NEW_COMMENT:
       return {
         body: `wrote: "${truncateHTML(comment.text)}"`,
         header: 'New Comment on',
-        onPress: () => navigate(modalScreenName('Post Details'), { id: post.id }),
-        title: post.title
+        title: post.title,
+        onPress: () => openURL(`/post/${post.id}`)
       }
 
     case ACTION_MENTION:
       return {
         body: `wrote: "${truncateHTML(post.details)}"`,
         header: 'mentioned you',
-        onPress: () => navigate(modalScreenName('Post Details'), { id: post.id }),
-        nameInHeader: true
+        nameInHeader: true,
+        onPress: () => openURL(`/post/${post.id}`)
       }
 
     case ACTION_TAG: {
@@ -193,10 +85,8 @@ export function refineActivity ({ action, actor, comment, group, post, meta }, {
       return {
         body: `wrote: "${truncateHTML(post.details)}"`,
         header: 'New Post in',
-        onPress: () => {
-          navigate('Chat', { topicName: topic, postId: post.id })
-        },
-        objectName: topic
+        objectName: topic,
+        onPress: () => openURL(`/post/${post.id}/chat/${topic}?postId=${post.id}`)
       }
     }
 
@@ -204,8 +94,8 @@ export function refineActivity ({ action, actor, comment, group, post, meta }, {
       return {
         body: `wrote: "${truncateHTML(post.details)}"`,
         header: 'New Post in',
-        onPress: () => navigate(modalScreenName('Post Details'), { id: post.id }),
-        objectName: group.name
+        objectName: group.name,
+        onPress: () => openURL(`/post/${post.id}`)
       }
     }
 
@@ -215,12 +105,7 @@ export function refineActivity ({ action, actor, comment, group, post, meta }, {
         group: group.name,
         header: 'New join request',
         nameInHeader: true,
-        onPress: () => navigate('Group Settings', {
-          screen: 'Join Requests',
-          params: {
-            groupId: group.id, groupSlug: group.slug
-          }
-        })
+        onPress: () => openURL(`/groups/${group?.slug}/settings/requests`)
       }
 
     case ACTION_APPROVED_JOIN_REQUEST:
@@ -228,19 +113,19 @@ export function refineActivity ({ action, actor, comment, group, post, meta }, {
         body: 'approved your request to join',
         group: group.name,
         header: 'Join Request Approved',
-        onPress: () => navigate('Stream', { groupId: group.id })
+        onPress: () => openURL(`/groups/${group?.slug}/stream`)
       }
     case ACTION_ANNOUNCEMENT:
       return {
         body: `wrote: "${truncateText(post.title)}"`,
         header: 'posted an announcement',
-        onPress: () => navigate(modalScreenName('Post Details'), { id: post.id }),
-        nameInHeader: true
+        nameInHeader: true,
+        onPress: () => openURL(`/post/${post.id}/edit`),
       }
   }
 }
 
-export function refineNotification (navigation) {
+export function refineNotification () {
   return ({ activity, createdAt, id }, i, notifications) => {
     const { actor, meta, unread } = activity
     // Only show separator between read and unread notifications
@@ -255,30 +140,20 @@ export function refineNotification (navigation) {
       actor: pick(['avatarUrl', 'name'], actor),
       avatarSeparator,
       createdAt: TextHelpers.humanDate(createdAt),
-      ...refineActivity(activity, navigation),
+      ...refineActivity(activity),
       unread,
       reasons: meta.reasons
     }
   }
 }
 
-const getNotificationsResults = makeGetQueryResults(FETCH_NOTIFICATIONS)
+export const refineNotifications = (notifications) => {
+  if (!notifications) return []
 
-export const getHasMoreNotifications = createSelector(
-  getNotificationsResults,
-  get('hasMore')
-)
-
-export const getNotifications = ormCreateSelector(
-  orm,
-  (_, { navigation }) => navigation,
-  (session, navigation) => session.Notification
-    .all()
-    .orderBy(m => Number(m.id), 'desc')
-    .toModelArray()
-    .map(refineNotification(navigation))
+  return notifications
+    .map(refineNotification())
     .filter(n => n.reasons.every(r => reasonInWhitelist(r, NOTIFICATIONS_WHITELIST)))
-)
+}
 
 export function reasonInWhitelist (reason, whitelist) {
   const reasonSubstring = reason.indexOf(':') === -1 ? reason : reason.substring(0, reason.indexOf(':'))

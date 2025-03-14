@@ -16,10 +16,8 @@ export default function updateUserSettings (changes) {
             name
             settings {
               alreadySeenTour
-              digestFrequency
               dmNotifications
               commentNotifications
-              postNotifications
               signupInProgress
               streamChildPosts
               streamViewMode

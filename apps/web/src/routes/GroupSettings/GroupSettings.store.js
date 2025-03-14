@@ -10,6 +10,7 @@ export const REMOVE_POST_FROM_COLLECTION = `${MODULE_NAME}/REMOVE_POST_FROM_COLL
 export const REORDER_POST_IN_COLLECTION = `${MODULE_NAME}/REORDER_POST_IN_COLLECTION`
 export const UPDATE_GROUP_SETTINGS = `${MODULE_NAME}/UPDATE_GROUP_SETTINGS`
 export const UPDATE_GROUP_SETTINGS_PENDING = UPDATE_GROUP_SETTINGS + '_PENDING'
+export const TRANSITION_GROUP_TO_NEW_MENU = 'TRANSITION_GROUP_TO_NEW_MENU'
 
 export function orderFromSort (sortBy) {
   if (sortBy === 'name') return 'asc'
@@ -60,6 +61,7 @@ export function fetchGroupSettings (slug) {
             publicMemberDirectory
             publishMurmurationsProfile
             showSuggestedSkills
+            showWelcomePage
           }
           type
           slug

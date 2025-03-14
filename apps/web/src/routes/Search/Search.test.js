@@ -19,13 +19,9 @@ const mockSearchResults = [
 
 // mock getSearchResults
 jest.mock('./Search.store', () => ({
-  getSearchTerm: jest.fn(() => 'cat'),
   getSearchResults: jest.fn(() => mockSearchResults),
   fetchSearchResults: jest.fn(),
   FETCH_SEARCH: 'FETCH_SEARCH',
-  setSearchTerm: jest.fn(),
-  setSearchFilter: jest.fn(),
-  getSearchFilter: jest.fn(() => 'person'),
   getHasMoreSearchResults: jest.fn(() => false)
 }))
 

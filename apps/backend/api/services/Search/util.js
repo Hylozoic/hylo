@@ -1,6 +1,6 @@
-import { GraphQLYogaError } from '@graphql-yoga/node'
+import { GraphQLError } from 'graphql'
 import { chain, curry, includes, isEmpty, values } from 'lodash'
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import addTermToQueryBuilder from './addTermToQueryBuilder'
 
 export const filterAndSortPosts = curry((opts, q) => {
@@ -37,7 +37,7 @@ export const filterAndSortPosts = curry((opts, q) => {
 
   const sort = sortColumns[sortBy] || values(sortColumns).find(v => v === 'posts.' + sortBy || v === sortBy)
   if (!sort) {
-    throw new GraphQLYogaError(`Cannot sort by "${sortBy}"`)
+    throw new GraphQLError(`Cannot sort by "${sortBy}"`)
   }
 
   if (cursor) {
@@ -51,19 +51,19 @@ export const filterAndSortPosts = curry((opts, q) => {
   const { CHAT, DISCUSSION, REQUEST, OFFER, PROJECT, EVENT, RESOURCE, PROPOSAL } = Post.Type
 
   if (isAnnouncement) {
-    q.where('announcement', true).andWhere('posts.created_at', '>=', moment().subtract(1, 'month').toDate())
+    q.where('announcement', true).andWhere('posts.created_at', '>=', DateTime.now().minus({months: 1}).toISODate())
   }
 
   if (isFulfilled === true) {
     q.where(q2 => {
       q2.whereNotNull('posts.fulfilled_at')
-      .orWhere('posts.end_time', '<', moment().toDate())
+      .orWhere('posts.end_time', '<', DateTime.now().toISODate())
     })
   } else if (isFulfilled === false) {
     q.whereNull('posts.fulfilled_at')
     .andWhere(q2 => {
       q2.whereNull('posts.end_time')
-      .orWhere('posts.end_time', '>=', moment().toDate())
+      .orWhere('posts.end_time', '>=', DateTime.now().toISODate())
     })
   }
 
@@ -71,21 +71,21 @@ export const filterAndSortPosts = curry((opts, q) => {
     q.whereNull('posts.fulfilled_at')
     .andWhere(q2 => {
       q2.whereNull('posts.end_time')
-      .orWhere('posts.end_time', '>=', moment().toDate())
+      .orWhere('posts.end_time', '>=', DateTime.now().toISODate())
     })
   }
 
+  // NB: ongoing posts are returned in both cases
+  // NB: calendarView needs WHERE post.start_time < beforeTime AND post.end_time >= afterTime
   if (afterTime) {
     q.where(q2 =>
-      q2.where('posts.start_time', '>=', afterTime)
-      .orWhere('posts.end_time', '>=', afterTime)
+      q2.where('posts.end_time', '>=', afterTime)
     )
   }
-
+  
   if (beforeTime) {
     q.where(q2 =>
       q2.where('posts.start_time', '<', beforeTime)
-      .andWhere('posts.end_time', '<', beforeTime)
     )
   }
 
@@ -109,7 +109,7 @@ export const filterAndSortPosts = curry((opts, q) => {
     q.whereIn('posts.type', [DISCUSSION, REQUEST, OFFER, PROJECT, PROPOSAL, EVENT, RESOURCE])
   } else {
     if (!includes(values(Post.Type), type)) {
-      throw new GraphQLYogaError(`unknown post type: "${type}"`)
+      throw new GraphQLError(`unknown post type: "${type}"`)
     }
     q.where({'posts.type': type})
   }
@@ -186,11 +186,11 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
   }
 
   if (sortBy && !['name', 'location', 'join', 'last_active_at'].includes(sortBy)) {
-    throw new GraphQLYogaError(`Cannot sort by "${sortBy}"`)
+    throw new GraphQLError(`Cannot sort by "${sortBy}"`)
   }
 
   if (order && !['asc', 'desc'].includes(order.toLowerCase())) {
-    throw new GraphQLYogaError(`Cannot use sort order "${order}"`)
+    throw new GraphQLError(`Cannot use sort order "${order}"`)
   }
 
   if (sortBy === 'join') {

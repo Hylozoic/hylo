@@ -1,4 +1,4 @@
-import { nevada, rhino, white80 } from 'style/colors';
+import { nevada, rhino, white80 } from 'style/colors'
 
 export const baseStyle = {
   color: nevada,

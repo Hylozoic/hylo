@@ -9,8 +9,8 @@ import { Validators } from '@hylo/shared'
 
 export const tagsInText = (text = '') => {
   const re = /(?:^| |>)#([A-Za-z][\w_-]+)/g
-  var match
-  var tags = []
+  let match
+  const tags = []
   while ((match = re.exec(text)) != null) {
     tags.push(match[1])
   }
@@ -19,7 +19,7 @@ export const tagsInText = (text = '') => {
 
 const addToTaggable = (taggable, name, userId, opts) => {
   let association, getGroups
-  let isPost = taggable.tableName === 'posts'
+  const isPost = taggable.tableName === 'posts'
   if (isPost) {
     // taggable is a post
     association = 'groups'
@@ -33,28 +33,28 @@ const addToTaggable = (taggable, name, userId, opts) => {
   const findTag = () => Tag.find({ name }, opts)
   return taggable.load(association, opts).then(findTag)
   // create the tag -- if creation fails, find the existing one
-  .then(tag => tag ||
-    new Tag({name, created_at}).save({}, opts).catch(findTag))
-  .tap(tag =>
-    taggable.tags().attach(omitBy(isUndefined, {
-      tag_id: tag.id,
-      created_at
-    }), opts)
-    // userId here is the id of the user making the edit, which is not always
-    // the same as the user who created the taggable. we add the tag only to
-    // those communities of which the user making the edit is a member.
-    .then(() => userId && Group.pluckIdsForMember(userId))
-    .then(groupIds => {
-      if (!groupIds) return
-      const groups = filter(c => includes(groupIds, c.id),
-        getGroups(taggable).models)
-      return Promise.map(groups, com => Tag.addToGroup({
-        group_id: com.id,
+    .then(tag => tag ||
+      new Tag({ name: name.toLowerCase(), created_at }).save({}, opts).catch(findTag))
+    .tap(tag =>
+      taggable.tags().attach(omitBy(isUndefined, {
         tag_id: tag.id,
-        user_id: taggable.get('user_id'),
-        isSubscribing: true
-      }, opts))
-    }))
+        created_at
+      }), opts)
+      // userId here is the id of the user making the edit, which is not always
+      // the same as the user who created the taggable. we add the tag only to
+      // those groups of which the user making the edit is a member.
+        .then(() => userId && Group.pluckIdsForMember(userId))
+        .then(groupIds => {
+          if (!groupIds) return
+          const groups = filter(c => includes(groupIds, c.id),
+            getGroups(taggable).models)
+          return Promise.map(groups, g => Tag.addToGroup({
+            group_id: g.id,
+            tag_id: tag.id,
+            user_id: taggable.get('user_id'),
+            isSubscribing: true
+          }, opts))
+        }))
 }
 
 const removeFromTaggable = (taggable, tag, opts) => {
@@ -62,12 +62,13 @@ const removeFromTaggable = (taggable, tag, opts) => {
 }
 
 const updateForTaggable = ({ taggable, tagNames, userId, transacting }) => {
+  const lowerTagNames = tagNames.map(name => name.toLowerCase())
   return taggable.load('tags', {transacting})
-  .then(() => {
-    const toRemove = taggable.relations.tags.models
-    return Promise.map(toRemove, tag => removeFromTaggable(taggable, tag, {transacting}))
-    .then(() => Promise.map(uniq(tagNames), name => addToTaggable(taggable, name, userId, {transacting})))
-  })
+    .then(() => {
+      const toRemove = taggable.relations.tags.models
+      return Promise.map(toRemove, tag => removeFromTaggable(taggable, tag, {transacting}))
+        .then(() => Promise.map(uniq(lowerTagNames), name => addToTaggable(taggable, name, userId, {transacting})))
+    })
 }
 
 module.exports = bookshelf.Model.extend({
@@ -75,32 +76,32 @@ module.exports = bookshelf.Model.extend({
   requireFetch: false,
   hasTimestamps: true,
 
-  memberships: function () {
+  memberships() {
     return this.hasMany(GroupTag)
   },
 
-  groups: function () {
+  groups() {
     return this.belongsToMany(Group).through(GroupTag)
-    .withPivot(['user_id', 'description'])
+      .withPivot(['user_id', 'description'])
   },
 
-  groupTags: function () {
+  groupTags() {
     return this.hasMany(GroupTag)
   },
 
-  posts: function () {
+  posts() {
     return this.belongsToMany(Post).through(PostTag).withPivot('selected')
   },
 
-  comments: function () {
+  comments() {
     return this.belongsToMany(Comment).through(GroupTag)
   },
 
-  follows: function () {
+  follows() {
     return this.hasMany(TagFollow)
   },
 
-  followForUserAndGroup: function (userId, groupId) {
+  followForUserAndGroup(userId, groupId) {
     return this.hasOne(TagFollow).query({where: {
       user_id: userId,
       group_id: groupId
@@ -108,31 +109,30 @@ module.exports = bookshelf.Model.extend({
   }
 
 }, {
-  addToGroup: ({ group_id, tag_id, user_id, description, is_default, isSubscribing }, opts) =>
-    GroupTag.where({group_id, tag_id}).fetch(opts)
-    .tap(groupTag => groupTag ||
-      GroupTag.create({group_id, tag_id, user_id, description, is_default}, opts)
-      .catch(() => {}))
+  addToGroup: ({ group_id, tag_id, user_id, description, is_default, isSubscribing }, opts) => {
+    return GroupTag.where({ group_id, tag_id }).fetch(opts)
+      .tap(groupTag => groupTag ||
+        GroupTag.create({ group_id, tag_id, user_id, description, is_default }, opts)
+          .catch(() => {}))
       // the catch above is for the case where another user just created the
       // GroupTag (race condition): the save fails, but we don't care about
       // the result
-    .then(groupTag => groupTag && groupTag.save({updated_at: new Date(), is_default}))
-    .then(() => user_id && isSubscribing &&
-      TagFollow.where({group_id, tag_id, user_id}).fetch(opts)
-      .then(follow => follow ||
-        TagFollow.create({group_id, tag_id, user_id}, opts))),
+      .then(groupTag => groupTag && groupTag.save({updated_at: new Date(), is_default}))
+      .then(() => user_id && isSubscribing &&
+        TagFollow.findOrCreate({ groupId: group_id, tagId: tag_id, userId: user_id, isSubscribing }, opts))
+  },
 
-  isValidTag: function (text) {
+  isValidTag(text) {
     return !Validators.validateTopicName(text)
   },
 
-  validate: function (text) {
+  validate(text) {
     return Validators.validateTopicName(text)
   },
 
   tagsInText,
 
-  find: function ({ id, name }, options) {
+  find({ id, name }, options) {
     if (id) {
       return Tag.where({ id }).fetch(options)
     }
@@ -143,15 +143,15 @@ module.exports = bookshelf.Model.extend({
     return Promise.resolve(null)
   },
 
-  findOrCreate: function (name, options) {
+  findOrCreate (name, options) {
     return Tag.find({ name }, options)
-    .then(tag => {
-      if (tag) return tag
-      return new Tag({name}).save(null, options)
-    })
+      .then(tag => {
+        if (tag) return tag
+        return new Tag({ name: name.toLowerCase() }).save(null, options)
+      })
   },
 
-  updateForPost: function (post, tagNames, userId, trx) {
+  updateForPost(post, tagNames, userId, trx) {
     return updateForTaggable({
       taggable: post,
       tagNames,
@@ -170,7 +170,7 @@ module.exports = bookshelf.Model.extend({
         update('groups_tags', ['group_id']),
         update('tag_follows', ['group_id', 'user_id'])
       )
-      .then(() => trx('tags').where('id', id2).del())
+        .then(() => trx('tags').where('id', id2).del())
     })
   },
 
@@ -178,7 +178,7 @@ module.exports = bookshelf.Model.extend({
     return bookshelf.transaction(trx => {
       const tables = ['tag_follows', 'groups_tags', 'posts_tags']
       return Promise.all(tables.map(t => trx(t).where('tag_id', id).del()))
-      .then(() => trx('tags').where('id', id).del())
+        .then(() => trx('tags').where('id', id).del())
     })
   },
 
@@ -242,16 +242,16 @@ module.exports = bookshelf.Model.extend({
     const sameTag = name => row => row.name.toLowerCase() === name.toLowerCase()
 
     return Tag.query().whereIn('name', names)
-    .join('groups_tags', 'groups_tags.tag_id', 'tags.id')
-    .whereIn('group_id', groupIds)
-    .select(['tags.name', 'group_id'])
-    .then(rows => {
-      return names.reduce((m, n) => {
-        const matching = filter(sameTag(n), rows)
-        const missing = filter(id => !some(isGroup(id), matching), groupIds)
-        if (missing.length > 0) m[n] = missing
-        return m
-      }, {})
-    })
+      .join('groups_tags', 'groups_tags.tag_id', 'tags.id')
+      .whereIn('group_id', groupIds)
+      .select(['tags.name', 'group_id'])
+      .then(rows => {
+        return names.reduce((m, n) => {
+          const matching = filter(sameTag(n), rows)
+          const missing = filter(id => !some(isGroup(id), matching), groupIds)
+          if (missing.length > 0) m[n] = missing
+          return m
+        }, {})
+      })
   }
 })

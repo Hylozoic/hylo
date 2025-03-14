@@ -1,21 +1,19 @@
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity } from 'react-native'
-import { useSelector } from 'react-redux'
 import { get } from 'lodash/fp'
+import { View, Text, TouchableOpacity } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import { useNavigation } from '@react-navigation/native'
 import { TextHelpers } from '@hylo/shared'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useRolesForGroup from '@hylo/hooks/useRolesForGroup'
+import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
 import usePostActionSheet from 'hooks/usePostActionSheet'
 import CondensingBadgeRow from 'components/CondensingBadgeRow'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import Avatar from 'components/Avatar'
 import FlagContent from 'components/FlagContent'
 import FlagGroupContent from 'components/FlagGroupContent'
 import Icon from 'components/Icon'
 import styles, { labelStyles } from './PostHeader.styles'
-import { useTranslation } from 'react-i18next'
-import { RESP_ADMINISTRATION } from 'store/constants'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import getRolesForGroup from 'store/selectors/getRolesForGroup'
-import { useNavigation } from '@react-navigation/native'
 
 export default function PostHeader ({
   announcement,
@@ -24,7 +22,6 @@ export default function PostHeader ({
   date,
   isFlagged,
   hideMenu,
-  pinned,
   postId,
   showMember,
   smallAvatar,
@@ -38,17 +35,29 @@ export default function PostHeader ({
     postId,
     creator,
     title,
-    pinned,
     closeOnDelete,
     setFlaggingVisible
   })
-  const currentGroup = useSelector(getCurrentGroup)
-  const { avatarUrl, name } = creator
+  const [{ currentGroup }] = useCurrentGroup()
   const handleShowMember = () => showMember && showMember(creator.id)
 
-  const currentGroupId = currentGroup?.id
-  const badges = useSelector(state => getRolesForGroup(state, { person: creator, groupId: currentGroupId }))
-  const creatorIsSteward = useSelector(state => hasResponsibilityForGroup(state, { person: creator, responsibility: null, groupId: currentGroupId }))
+  const creatorHasResponsibility = useHasResponsibility({ person: creator, forCurrentGroup: true })
+  // // TODO: URQL - Steward case? -- https://terrans.slack.com/archives/G01HM5VHD8X/p1732263229830789
+  // if (responsibility === null) {
+  //   // TODO: Shouldn't the '1', etc values be taken from constants?
+  //   return responsibilities.some(r => ['1', '3', '4'].includes(r.id))
+  // }
+  const creatorIsSteward = creatorHasResponsibility(null)
+  const badges = useRolesForGroup(currentGroup?.id, creator)
+  const { avatarUrl, name } = creator
+  const handleFlagOnPress = () => navigation.navigate('Moderation', {
+    streamType: 'moderation',
+    initial: false,
+    options: {
+      title: 'Moderation'
+    }
+  })
+
   return (
     <View style={[styles.container, style]}>
       <View style={styles.avatarSpacing}>
@@ -62,17 +71,14 @@ export default function PostHeader ({
             <Text style={styles.name}>{name}</Text>
           )}
         </TouchableOpacity>
-        <CondensingBadgeRow badges={badges} creatorIsSteward={creatorIsSteward} currentGroup={currentGroup} postId={postId} />
+        <CondensingBadgeRow badges={badges || []} creatorIsSteward={creatorIsSteward} currentGroup={currentGroup} postId={postId} />
         <Text style={styles.date}>{TextHelpers.humanDate(date)}</Text>
       </View>
       <View style={styles.upperRight}>
         {isFlagged && (
-          <TouchableOpacity hitSlop={5} onPress={() => navigation.navigate('Decisions', { streamType: 'moderation', initial: false, options: { title: 'Moderation' } })}>
+          <TouchableOpacity hitSlop={5} onPress={handleFlagOnPress}>
             <Icon name='Flag' style={styles.flagIcon} />
           </TouchableOpacity>
-        )}
-        {pinned && (
-          <Icon name='Pin' style={styles.pinIcon} />
         )}
         {announcement && (
           <Icon name='Announcement' style={styles.announcementIcon} />
@@ -88,7 +94,7 @@ export default function PostHeader ({
             <Icon name='More' style={styles.moreIcon} />
           </TouchableOpacity>
         )}
-        {flaggingVisible && !currentGroupId && (
+        {flaggingVisible && !currentGroup?.id && (
           <FlagContent
             type='post'
             linkData={{
@@ -99,7 +105,7 @@ export default function PostHeader ({
             onClose={() => setFlaggingVisible(false)}
           />
         )}
-        {flaggingVisible && currentGroupId && (
+        {flaggingVisible && currentGroup?.id && (
           <FlagGroupContent
             type='post'
             linkData={{

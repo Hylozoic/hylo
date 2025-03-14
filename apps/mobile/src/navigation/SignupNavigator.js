@@ -6,21 +6,22 @@ import SignupEmailValidation from 'screens/Signup/SignupEmailValidation'
 import SignupRegistration from 'screens/Signup/SignupRegistration'
 import SignupUploadAvatar from 'screens/Signup/SignupUploadAvatar'
 import SignupSetLocation from 'screens/Signup/SignupSetLocation'
-import ItemChooser from 'screens/ItemChooser'
 import { white, white20onCaribbeanGreen } from 'style/colors'
 
 const Signup = createStackNavigator()
 export default function SignupNavigator () {
   const navigatorProps = {
     screenOptions: {
-      cardStyle: { backgroundColor: white },
+      // cardStyle: { backgroundColor: white },
       header: headerProps => {
         // Hmmm, maybe should clear current user session...
         const close = () => headerProps.navigation.navigate('Signup Intro')
         return (
           <WorkflowModalHeader
             headerLeftCloseIcon
+            headerLeftStyle={{ color: white }}
             headerLeftOnPress={close}
+            headerTitleStyle={{ color: white }}
             style={{ backgroundColor: white20onCaribbeanGreen }}
             {...headerProps}
           />
@@ -50,9 +51,6 @@ export default function SignupNavigator () {
       <Signup.Screen
         name='SignupSetLocation' component={SignupSetLocation}
         options={{ title: 'STEP 3/3' }}
-      />
-      <Signup.Screen
-        name='ItemChooser' component={ItemChooser}
       />
     </Signup.Navigator>
   )

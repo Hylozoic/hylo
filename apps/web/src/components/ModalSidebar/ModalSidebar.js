@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { bgImageStyle } from 'util/index'
@@ -20,10 +20,10 @@ export default function ModalSidebar ({
 
   return (
     <div className={classes.sidebar}>
-      <p className={cx(classes.grayText, classes.closeButton)} onClick={onClick}>{t('CLOSE')}</p>
-      <p className={cx(theme.sidebarHeader || classes.sidebarHeader)}>{header}</p>
-      <p className={cx(theme.sidebarText || classes.grayText, classes.sidebarText)}>{body}</p>
-      {secondParagraph && <p className={cx(theme.sidebarText || classes.grayText, classes.sidebarText)}>{secondParagraph}</p>}
+      <p className={cn(classes.grayText, classes.closeButton)} onClick={onClick}>{t('CLOSE')}</p>
+      <p className={cn(theme.sidebarHeader || classes.sidebarHeader)}>{header}</p>
+      <p className={cn(theme.sidebarText || classes.grayText, classes.sidebarText)}>{body}</p>
+      {secondParagraph && <p className={cn(theme.sidebarText || classes.grayText, classes.sidebarText)}>{secondParagraph}</p>}
       {imageDialogOne && <div className={classes.sidebarDialog}>{imageDialogOne}</div>}
       {imageDialogTwo && <div className={classes.sidebarDialogTwo}>{imageDialogTwo}</div>}
       {imageDialogOne && <div className={classes.dialogLine} />}

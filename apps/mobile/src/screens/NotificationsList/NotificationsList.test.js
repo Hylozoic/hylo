@@ -2,19 +2,16 @@ import React from 'react'
 import { render, screen } from '@testing-library/react-native'
 import { TestRoot } from 'util/testing'
 import NotificationsList from './NotificationsList'
+import { ACTION_NEW_COMMENT } from './NotificationsList.store'
 import MockedScreen from 'util/testing/MockedScreen'
 import extractModelsForTest from 'util/testing/extractModelsFromAction'
 import orm from 'store/models'
-import { ACTION_NEW_COMMENT } from 'store/models/Notification'
-import { FETCH_NOTIFICATIONS } from './NotificationsList.store'
 
 jest.mock('util/platform', () => ({ isIOS: true }))
 
 const ormSession = orm.mutableSession(orm.getEmptyState())
 const reduxState = {
-  pending: {
-    [FETCH_NOTIFICATIONS]: true
-  },
+  pending: {},
   orm: ormSession.state
 }
 

@@ -1,16 +1,16 @@
-/* globals RedisClient */
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import { has, isEmpty, merge, omit, pick, intersectionBy } from 'lodash'
 import fetch from 'node-fetch'
 import { v4 as uuidv4 } from 'uuid'
 import validator from 'validator'
+import { GraphQLError } from 'graphql'
 import { Validators } from '@hylo/shared'
+import RedisClient from '../services/RedisClient'
 import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import MemberCommonRole from './MemberCommonRole'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -168,6 +168,10 @@ module.exports = bookshelf.Model.extend(merge({
   inAppNotifications: function () {
     return this.hasMany(Notification)
       .query({ where: { 'notifications.medium': Notification.MEDIUM.InApp } })
+  },
+
+  isTester: function () {
+    return User.isTester(this.id)
   },
 
   joinRequests: function () {
@@ -363,6 +367,8 @@ module.exports = bookshelf.Model.extend(merge({
         settings: {
           // XXX: A user choosing to join a group has aleady seen/filled out the join questions (enforced on the front-end)
           joinQuestionsAnsweredAt: fromInvitation ? null : new Date(),
+          postNotifications: 'all',
+          digestFrequency: 'daily',
           sendEmail: true,
           sendPushNotifications: true,
           showJoinForm: true
@@ -525,6 +531,11 @@ module.exports = bookshelf.Model.extend(merge({
         if (!isEmpty(changedForTrigger)) {
           Queue.classMethod('User', 'afterUpdate', { userId: this.id, changes: changedForTrigger })
         }
+
+        if (changes.settings && changes.settings.signup_in_progress === false) {
+          // Send welcome email 2 minutes after signup, to make sure that group membership has been setup if they signup after getting invitation from the group
+          Queue.classMethod('User', 'sendWelcomeEmail', { userId: this.id }, 2 * 60 * 1000 )
+        }
       }
       return this
     })
@@ -550,6 +561,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   disableAllNotifications () {
+    // TODO: turn off notifictions for all groups? or do we have a user level setting too?
     return this.addSetting({
       digest_frequency: 'never',
       comment_notifications: 'none',
@@ -620,23 +632,23 @@ module.exports = bookshelf.Model.extend(merge({
   authenticate: Promise.method(function (email, password) {
     const compare = Promise.promisify(bcrypt.compare, bcrypt)
 
-    if (!email) throw new GraphQLYogaError('no email provided')
-    if (!password) throw new GraphQLYogaError('no password provided')
+    if (!email) throw new GraphQLError('no email provided')
+    if (!password) throw new GraphQLError('no password provided')
 
     return User.query('whereRaw', 'lower(email) = lower(?)', email)
       .fetch({ withRelated: ['linkedAccounts'] })
       .then(function (user) {
-        if (!user) throw new GraphQLYogaError('email not found')
+        if (!user) throw new GraphQLError('email not found')
 
         const account = user.relations.linkedAccounts.find(a => a.get('provider_key') === 'password')
 
         if (!account) {
           const keys = user.relations.linkedAccounts.pluck('provider_key')
-          throw new GraphQLYogaError(`password account not found. available: [${keys.join(',')}]`)
+          throw new GraphQLError(`password account not found. available: [${keys.join(',')}]`)
         }
 
         return compare(password, account.get('provider_user_id')).then(function (match) {
-          if (!match) throw new GraphQLYogaError('password does not match')
+          if (!match) throw new GraphQLError('password does not match')
 
           return user
         })
@@ -644,7 +656,7 @@ module.exports = bookshelf.Model.extend(merge({
   }),
 
   clearSessionsFor: async function ({ userId, sessionId }) {
-    const redisClient = await RedisClient.create()
+    const redisClient = RedisClient.create()
     for await (const key of redisClient.scanIterator({ MATCH: `sess:${userId}:*` })) {
       if (key !== 'sess:' + sessionId) {
         await redisClient.del(key)
@@ -660,11 +672,9 @@ module.exports = bookshelf.Model.extend(merge({
       created_at: new Date(),
       updated_at: new Date(),
       settings: {
-        digest_frequency: 'daily',
         signup_in_progress: true,
         dm_notifications: 'both',
-        comment_notifications: 'both',
-        post_notifications: 'all'
+        comment_notifications: 'both'
       },
       active: true
     }, omit(attributes, 'account', 'group', 'role'))
@@ -739,6 +749,11 @@ module.exports = bookshelf.Model.extend(merge({
     return User.query().where({ id }).increment('new_notification_count', 1)
   },
 
+  isTester: function (id) {
+    const testerIds = process.env.HYLO_TESTER_IDS ? process.env.HYLO_TESTER_IDS.split(',') : []
+    return testerIds.includes(id)
+  },
+
   resetNewNotificationCount: function (id) {
     return User.query().where({ id }).update({ new_notification_count: 0 })
   },
@@ -769,12 +784,12 @@ module.exports = bookshelf.Model.extend(merge({
 
   followTags: function (userId, groupId, tagIds, trx) {
     return Promise.each(tagIds, id =>
-      TagFollow.add({
-        userId: userId,
-        groupId: groupId,
+      TagFollow.findOrCreate({
+        userId,
+        groupId,
         tagId: id,
-        transacting: trx
-      })
+        isSubscribing: true
+      }, { transacting: trx })
         .catch(err => {
           if (!err.message.match(/duplicate key value/)) throw err
         })
@@ -847,18 +862,34 @@ module.exports = bookshelf.Model.extend(merge({
         }
       })
     }
+  },
+
+  async sendWelcomeEmail ({ userId }) {
+    const user = await User.find(userId)
+    if (user) {
+      const memberships = await user.memberships().fetch({ withRelated: 'group' })
+      const initialGroup = memberships?.models[0]?.relations?.group
+      Email.sendWelcomeEmail({
+        email: user.get('email'),
+        templateData: {
+          member_name: user.get('name'),
+          group_name: initialGroup?.get('name')
+        }
+      })
+    }
   }
+
 })
 
 function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
   if (has(attrs, 'password')) {
     const invalidReason = Validators.validateUser.password(attrs.password)
-    if (invalidReason) return Promise.reject(new GraphQLYogaError(invalidReason))
+    if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
   }
 
   if (has(attrs, 'name')) {
     const invalidReason = Validators.validateUser.name(attrs.name)
-    if (invalidReason) return Promise.reject(new GraphQLYogaError(invalidReason))
+    if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
   }
 
   // for an existing user, the email field can be omitted.
@@ -866,11 +897,11 @@ function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
   const oldEmail = existingUser ? existingUser.get('email') : null
 
   if (!validator.isEmail(attrs.email)) {
-    return Promise.reject(new GraphQLYogaError('invalid-email'))
+    return Promise.reject(new GraphQLError('invalid-email'))
   }
 
   return User.isEmailUnique(attrs.email, oldEmail, { transacting })
-    .then(unique => unique || Promise.reject(new GraphQLYogaError('duplicate-email')))
+    .then(unique => unique || Promise.reject(new GraphQLError('duplicate-email')))
 }
 
 export function addProtocol (url) {

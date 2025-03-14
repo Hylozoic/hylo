@@ -1,33 +1,44 @@
+import { useCallback } from 'react'
+import { Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { useSelector } from 'react-redux'
-import confirmNavigate from 'util/confirmNavigate'
-import { ALL_GROUP_ID, PUBLIC_GROUP_ID } from 'store/models/Group'
-import { modalScreenName } from 'hooks/useIsModalScreen'
-import getMemberships from 'store/selectors/getMemberships'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
 import { useTranslation } from 'react-i18next'
+import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { useCurrentGroupSlug } from '@hylo/hooks/useCurrentGroup'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { modalScreenName } from 'hooks/useIsModalScreen'
+
+function confirmNavigate (onConfirm, options = {}) {
+  options = {
+    title: 'Changing context',
+    confirmationMessage: 'You sure you want to navigate away from this area?',
+    confirmButtonText: 'Yes',
+    cancelButtonText: 'Stay',
+    ...options
+  }
+
+  Alert.alert(
+    options.title,
+    options.confirmationMessage,
+    [
+      { text: options.confirmButtonText, onPress: onConfirm },
+      { text: options.cancelButtonText, style: 'cancel' }
+    ]
+  )
+}
 
 export default function useChangeToGroup () {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const myMemberships = useSelector(getMemberships)
-  const currentGroup = useSelector(getCurrentGroup)
+  const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroupSlug, setCurrentGroupSlug }] = useCurrentGroupSlug()
 
-  return (groupSlug, confirm = true) => {
-    if (!myMemberships) {
-      throw new Error('Must provide current user memberships as 2nd parameter')
-    }
+  const changeToGroup = useCallback((groupSlug, { confirm = false, skipCanViewCheck = false } = {}) => {
+    if (groupSlug === currentGroupSlug) return
 
-    if (groupSlug === currentGroup?.slug) return
-
-    const canViewGroup = myMemberships.find(m => m.group.slug === groupSlug) ||
-      [PUBLIC_GROUP_ID, ALL_GROUP_ID].includes(groupSlug)
+    const canViewGroup = currentUser?.memberships.find(m => m.group.slug === groupSlug) || isContextGroupSlug(groupSlug) || skipCanViewCheck
 
     if (canViewGroup) {
-      const goToGroup = () => {
-        navigation.navigate('Group Navigation', { groupSlug })
-        navigation.navigate('Stream', { initial: false })
-      }
+      const goToGroup = () => setCurrentGroupSlug(groupSlug)
 
       confirm
         ? confirmNavigate(goToGroup, {
@@ -38,5 +49,7 @@ export default function useChangeToGroup () {
     } else {
       navigation.navigate(modalScreenName('Group Explore'), { groupSlug })
     }
-  }
+  }, [navigation, currentUser, currentUser?.memberships, currentGroupSlug, setCurrentGroupSlug])
+
+  return changeToGroup
 }

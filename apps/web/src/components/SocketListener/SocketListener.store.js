@@ -81,11 +81,16 @@ export function receiveNotification (notification) {
 }
 
 export function ormSessionReducer (session, { meta, type, payload }) {
-  const { MessageThread, Membership, GroupTopic, Me } = session
+  const { Group, MessageThread, Membership, TopicFollow, Me } = session
   let currentUser
 
   switch (type) {
     case RECEIVE_MESSAGE: {
+      currentUser = Me.first()
+      currentUser.update({
+        unseenThreadCount: currentUser.unseenThreadCount + 1
+      })
+
       const id = payload.data.message.messageThread
       if (!MessageThread.idExists(id)) {
         MessageThread.create({
@@ -102,20 +107,29 @@ export function ormSessionReducer (session, { meta, type, payload }) {
     case RECEIVE_POST: {
       currentUser = Me.first()
       const { post } = payload.data
-      if (currentUser && post.creatorId !== currentUser.id) {
+      const groupId = payload.groupId
+      if (currentUser && post.creator.id !== currentUser.id) {
         const increment = obj =>
           obj && obj.update({
             newPostCount: (obj.newPostCount || 0) + 1
           })
 
-        post.topics.forEach(topicId => {
-          increment(GroupTopic.safeGet({
-            topic: topicId, group: post.groupId
-          }))
-        })
+        increment(TopicFollow.filter(tf =>
+          post.topics.some(t => t.id === tf.topic) && tf.group === groupId).first())
 
+        const group = Group.withId(groupId)
+        const contextWidgets = group.contextWidgets.items
+        const newContextWidgets = contextWidgets.map(cw => {
+          if (cw.type === 'chat' && post.topics.some(t => t.id === cw.viewChat?.id)) {
+            return { ...cw, highlightNumber: cw.highlightNumber + 1 }
+          }
+          return cw
+        })
+        group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
+
+        // TODO: is this working?
         increment(Membership.filter(m =>
-          !m.person && m.group === post.groupId).first())
+          !m.person && m.group === groupId).first())
       }
       break
     }

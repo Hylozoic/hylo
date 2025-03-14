@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useState, useEffect, useMemo, useRef, useCallback, useContext } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -15,6 +15,7 @@ import combine from '@turf/combine'
 import { featureCollection, point } from '@turf/helpers'
 import isWebView from 'util/webView'
 import Dropdown from 'components/Dropdown'
+import CreateMenu from 'components/CreateMenu'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import LocationInput from 'components/LocationInput'
@@ -25,6 +26,7 @@ import { createPolygonLayerFromGroups } from 'components/Map/layers/polygonLayer
 import SwitchStyled from 'components/SwitchStyled'
 import Tooltip from 'components/Tooltip'
 import LayoutFlagsContext from 'contexts/LayoutFlagsContext'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { locationObjectToViewport } from 'util/geo'
@@ -36,7 +38,7 @@ import { FETCH_FOR_GROUP } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { personUrl, postUrl, groupDetailUrl, createUrl } from 'util/navigation'
+import { personUrl, postUrl, groupDetailUrl } from 'util/navigation'
 
 import {
   fetchSavedSearches, deleteSearch, saveSearch, viewSavedSearch
@@ -224,6 +226,15 @@ function MapExplorer (props) {
       null
   }, [centerParam, reduxState.centerLocation, group?.locationObject?.center, currentUser?.locationObject?.center, browserLocation])
 
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Map'),
+      icon: 'Globe',
+      info: ''
+    })
+  }, [])
+
   let defaultZoom
   if (centerLocation) {
     defaultZoom = 10
@@ -255,8 +266,6 @@ function MapExplorer (props) {
   const [groupIconLayer, setGroupIconLayer] = useState(null)
   const [polygonLayer, setPolygonLayer] = useState(null)
   const [hoveredObject, setHoveredObject] = useState(null)
-  const [creatingPost, setCreatingPost] = useState(false)
-  // const [coordinates, setCoordinates] = useState(null)
   const [isAddingItemToMap, setIsAddingItemToMap] = useState(false)
   const [pointerCoords, setPointerCoords] = useState([0, 0])
   const [groupsForDrawer, setGroupsForDrawer] = useState(groups || [])
@@ -277,6 +286,14 @@ function MapExplorer (props) {
     bearing: 0,
     pitch: 0
   })
+
+  const [createCreatePopupVisible, setCreatePopupVisible] = useState(false)
+  const [createPopupPosition, setCreatePopupPosition] = useState({ top: 0, left: 0, lat: 0, lng: 0 })
+
+  const showCreatePopup = (point, lngLat) => {
+    setCreatePopupPosition({ top: point.y, left: point.x, lat: lngLat.lat, lng: lngLat.lng })
+    setCreatePopupVisible(true)
+  }
 
   const updateUrlFromStore = useCallback((params, replace) => {
     const querystringParams = getQuerystringParam(['sortBy', 'search', 'hide', 'topics'], location)
@@ -326,17 +343,18 @@ function MapExplorer (props) {
     dispatch(saveSearch(attributes))
   }, [context, currentBoundingBox, currentUser?.id, dispatch, filters, groupSlug])
 
-  const showDetails = useCallback((postId) => dispatch(navigate(postUrl(postId, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location)))), [dispatch, navigate, routeParams, location])
+  const showDetails = useCallback((postId) => navigate(postUrl(postId, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location))), [navigate, routeParams, location])
 
-  const showGroupDetails = useCallback((groupSlug) => dispatch(navigate(groupDetailUrl(groupSlug, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location)))), [dispatch, navigate, routeParams, location])
+  const showGroupDetails = useCallback((groupSlug) => navigate(groupDetailUrl(groupSlug, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location))), [navigate, routeParams, location])
 
-  const showCreateModal = useCallback((location) => dispatch(navigate(createUrl(routeParams, location))), [dispatch, navigate, routeParams])
-
-  const gotoMember = useCallback((memberId) => dispatch(navigate(personUrl(memberId, groupSlug))), [dispatch, groupSlug, navigate])
+  const gotoMember = useCallback((memberId) => navigate(personUrl(memberId, groupSlug)), [dispatch, groupSlug, navigate])
 
   const toggleDrawer = useCallback(() => {
     dispatch(changeQuerystringParam(location, 'hideDrawer', !hideDrawer))
     setHideDrawer(!hideDrawer)
+    setTimeout(() => {
+      mapRef.current.resize()
+    }, 100)
   }, [dispatch, hideDrawer, location])
 
   const doStoreClientFilterParams = useCallback(params => {
@@ -386,6 +404,9 @@ function MapExplorer (props) {
     if (info.objects) {
       if (viewport.zoom >= 20 && hideDrawer) {
         setHideDrawer(false)
+        setTimeout(() => {
+          mapRef.current.resize()
+        }, 100)
       } else {
         const features = featureCollection(info.objects.map(o => point([o.coordinates[0], o.coordinates[1]])))
         const c = center(features)
@@ -416,25 +437,27 @@ function MapExplorer (props) {
     }
   }, [gotoMember, hideDrawer, showDetails, showGroupDetails, viewport])
 
+  const creatingPostRef = useRef(false)
+
   const onMapMouseDown = useCallback((e) => {
     const oneSecondInMs = 1000
-    setCreatingPost(true)
+    setCreatePopupVisible(false)
+    creatingPostRef.current = true
     setTimeout(() => {
-      if (creatingPost) {
-        const newCoordinates = { lng: e.lngLat[0], lat: e.lngLat[1] }
-        // setCoordinates(newCoordinates)
-        const currentParams = Object.fromEntries(new URLSearchParams(location.search))
-        showCreateModal({ ...currentParams, ...newCoordinates })
+      console.log('creatingPost', creatingPostRef.current)
+      if (creatingPostRef.current) {
+        showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
+        console.log('showCreatePopup', e.point, e.lngLat)
       }
     }, isAddingItemToMap ? 0 : oneSecondInMs)
-  }, [isAddingItemToMap, creatingPost, location.search, showCreateModal])
+  }, [isAddingItemToMap, showCreatePopup])
 
   const onMapMouseUp = useCallback(() => {
-    if (creatingPost) {
-      setCreatingPost(false)
+    if (creatingPostRef.current) {
+      creatingPostRef.current = false
       setIsAddingItemToMap(false)
     }
-  }, [creatingPost])
+  }, [])
 
   const updatedMapFeatures = useCallback((boundingBox) => {
     const bbox = bboxPolygon(boundingBox)
@@ -598,7 +621,7 @@ function MapExplorer (props) {
     updatedMapFeatures(newBoundingBox)
   }
 
-  const afterViewportUpdate = useRef(debounce((update) => {
+  const afterViewportUpdate = debounce((update) => {
     let bounds = mapRef.current.getBounds()
     bounds = [bounds._sw.lng, bounds._sw.lat, bounds._ne.lng, bounds._ne.lat]
     updateBoundingBoxQuery(bounds)
@@ -607,8 +630,9 @@ function MapExplorer (props) {
     if (!isEqual(centerLocation, newCenter) || !isEqual(zoom, newZoom)) {
       updateView({ centerLocation: newCenter, zoom: newZoom })
     }
-    setCreatingPost(false)
-  }, 300)).current
+    setCreatePopupVisible(false)
+    creatingPostRef.current = false
+  }, 300)
 
   const toggleFeatureType = useCallback((type, checked) => {
     const newFeatureTypes = { ...filters.featureTypes }
@@ -630,7 +654,7 @@ function MapExplorer (props) {
       }
 
       return (
-        <div className={cx(classes.postTip, classes[type])} style={{ left: pointerCoords[0] + 15, top: pointerCoords[1] }}>
+        <div className={cn(classes.postTip, classes[type])} style={{ left: pointerCoords[0] + 15, top: pointerCoords[1] }}>
           {message}
         </div>
       )
@@ -671,10 +695,8 @@ function MapExplorer (props) {
   const { hideNavLayout } = layoutFlags
   const withoutNav = isWebView() || hideNavLayout
 
-  const locationParams = location !== undefined ? getQuerystringParam(['zoom', 'center', 'lat', 'lng'], location) : null
-
   return (
-    <div className={cx(classes.container, { [classes.noUser]: !currentUser, [classes.withoutNav]: withoutNav })}>
+    <div className={cn(classes.container, { [classes.noUser]: !currentUser, [classes.withoutNav]: withoutNav })}>
       <Helmet>
         <title>Map | {group ? `${group.name} | ` : context === 'public' ? 'Public | ' : ' All My Groups | '}Hylo</title>
       </Helmet>
@@ -699,7 +721,7 @@ function MapExplorer (props) {
       <button
         data-tooltip-id='helpTip'
         data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
-        className={cx(classes.toggleDrawerButton, classes.drawerAdjacentButton, { [classes.drawerOpen]: !hideDrawer })}
+        className={cn(classes.toggleDrawerButton, classes.drawerAdjacentButton, { [classes.drawerOpen]: !hideDrawer })}
         onClick={toggleDrawer}
         data-testid='drawer-toggle-button'
       >
@@ -711,7 +733,6 @@ function MapExplorer (props) {
           changeChildPostInclusion={changeChildPostInclusion}
           childPostInclusion={childPostInclusion}
           context={context}
-          locationParams={locationParams}
           currentUser={currentUser}
           fetchPostsForDrawer={doFetchPostsForDrawer}
           filters={filters}
@@ -729,9 +750,9 @@ function MapExplorer (props) {
         />
       )}
       <div className={classes.searchAutocomplete}>
-        <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} />
+        <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='focus:outline-none' />
       </div>
-      <button className={cx(classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
+      <button className={cn(classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
         {t('Features:')} <strong>{possibleFeatureTypes.filter(t => filters.featureTypes[t]).length}/{possibleFeatureTypes.length}</strong>
       </button>
 
@@ -740,7 +761,7 @@ function MapExplorer (props) {
           <Icon
             name='Heart'
             onClick={toggleSavedSearches}
-            className={cx(classes.savedSearchesButton, { [classes.open]: showSavedSearches })}
+            className={cn(classes.savedSearchesButton, { [classes.open]: showSavedSearches })}
           />
           {showSavedSearches && (
             <SavedSearches
@@ -755,7 +776,7 @@ function MapExplorer (props) {
         </>
       )}
 
-      <div className={cx(classes.featureTypeFilters, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })}>
+      <div className={cn(classes.featureTypeFilters, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })}>
         <h3>{t('What do you want to see on the map?')}</h3>
         {possibleFeatureTypes.map(featureType => {
           const color = FEATURE_TYPES[featureType].primaryColor
@@ -781,12 +802,12 @@ function MapExplorer (props) {
         data-tooltip-id='helpTip'
         data-tooltip-content={showLayersSelector ? null : t('Change Map Layers')}
         onClick={toggleLayersSelector}
-        className={cx(classes.toggleLayersSelectorButton, classes.drawerAdjacentButton, { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, [classes.drawerOpen]: !hideDrawer })}
+        className={cn(classes.toggleLayersSelectorButton, classes.drawerAdjacentButton, { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, [classes.drawerOpen]: !hideDrawer })}
         data-testid='layers-selector-button'
       >
         <Icon name='Stack' />
       </button>
-      <div className={cx(classes.layersSelectorContainer, { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, [classes.drawerOpen]: !hideDrawer })}>
+      <div className={cn(classes.layersSelectorContainer, { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, [classes.drawerOpen]: !hideDrawer })}>
         <h3>{t('Base Layer:')}
           <Dropdown
             className={classes.layersDropdown}
@@ -827,10 +848,10 @@ function MapExplorer (props) {
         <button
           data-tooltip-id='helpTip'
           data-tooltip-content='Add item to map'
-          className={cx(classes.addItemToMapButton, classes.drawerAdjacentButton, { [classes.active]: isAddingItemToMap, [classes.drawerOpen]: !hideDrawer })}
+          className={cn(classes.addItemToMapButton, classes.drawerAdjacentButton, { [classes.active]: isAddingItemToMap, [classes.drawerOpen]: !hideDrawer })}
           onClick={handleAddItemToMap}
         >
-          <Icon name='Plus' className={cx({ [classes.openDrawer]: !hideDrawer, [classes.closeDrawer]: hideDrawer })} />
+          <Icon name='Plus' className={cn({ [classes.openDrawer]: !hideDrawer, [classes.closeDrawer]: hideDrawer })} />
         </button>
       )}
       <Tooltip
@@ -844,6 +865,17 @@ function MapExplorer (props) {
         position='bottom'
         className={classes.helpTipTwo}
       />
+
+      {createCreatePopupVisible && (
+        <div
+          className='absolute w-[200px] bg-background z-50 rounded-md drop-shadow-md p-2'
+          style={{ top: createPopupPosition.top, left: createPopupPosition.left }}
+          onClick={() => setCreatePopupVisible(false)}
+        >
+          <CreateMenu coordinates={{ lat: createPopupPosition.lat, lng: createPopupPosition.lng }} />
+          <button onClick={() => setCreatePopupVisible(false)}>Close</button>
+        </div>
+      )}
     </div>
   )
 }

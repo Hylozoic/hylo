@@ -1,7 +1,6 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { omit } from 'lodash/fp'
-import React, { useState } from 'react'
-
+import React, { useState, forwardRef } from 'react'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import { onEnter } from 'util/textInput'
@@ -15,42 +14,66 @@ import styles from './TextInput.module.scss'
 // https://facebook.github.io/react/docs/refs-and-the-dom.html#exposing-dom-refs-to-parent-components
 //
 
-export default function TextInput (props) {
-  const { theme = {}, onChange, value, inputRef, className, noClearButton, loading, label, internalLabel } = props
+const TextInput = forwardRef(({
+  id,
+  theme = {},
+  onChange,
+  value,
+  inputRef,
+  className,
+  inputClassName,
+  noClearButton,
+  loading,
+  label,
+  internalLabel,
+  ...props
+}, ref) => {
   const onKeyDown = props.onEnter ? onEnter(props.onEnter) : () => {}
-  const otherProps = omit(['onEnter', 'className', 'inputRef', 'theme', 'noClearButton', 'loading', 'label', 'internalLabel'], props)
-  const clear = () => onChange && onChange({ target: { name: props.name, value: '' } })
-
-  const [active, setActive] = useState(false)
-
   const onBlur = () => { props.onBlur && props.onBlur(); setActive(false) }
   const onFocus = () => { props.onFocus && props.onFocus(); setActive(true) }
+
+  const otherProps = omit(['onEnter', 'onBlur', 'onFocus'], props)
+  const clear = () => onChange && onChange({ target: { name, value: '' } })
+
+  const [active, setActive] = useState(false)
 
   const handleAnimation = (e) => {
     setActive(e.animationName === 'onAutoFillStart')
   }
 
   return (
-    <div className={cx(theme.wrapperStyle || styles.wrapper, theme.wrapper || className)}>
+    <div className={cn(theme.wrapperStyle || styles.wrapper, theme.wrapper || className)}>
       <input
-        className={cx(styles[theme.inputStyle] || styles.input, theme.input)}
-        {...{ onKeyDown, ...otherProps }}
-        ref={inputRef}
-        aria-label={label || internalLabel}
+        ref={ref}
+        value={value}
+        type='text'
+        className={cn(
+          inputClassName ? '' : (styles[theme.inputStyle] || styles.input),
+          theme.input,
+          inputClassName
+        )}
         onAnimationStart={handleAnimation}
+        onKeyDown={onKeyDown}
         onBlur={onBlur}
         onFocus={onFocus}
-        id={props.id}
+        onChange={onChange}
+        aria-label={label || internalLabel}
+        id={id}
+        {...otherProps}
       />
       {internalLabel && (
-        <label htmlFor={props.id} className={cx(styles.internalLabel, active || (value && value.length > 0) ? styles.active : '')}>{internalLabel}</label>
+        <label htmlFor={id} className={cn(styles.internalLabel, active || (value && value.length > 0) ? styles.active : '')}>{internalLabel}</label>
       )}
 
       {value && !noClearButton &&
-        <div className={cx(styles.clear, theme.clear)} onClick={clear} role='button' aria-label='clear'>
+        <div className={cn(styles.clear, theme.clear)} onClick={clear} role='button' aria-label='clear'>
           <Icon name='Ex' />
         </div>}
       {loading && <Loading type='inline' className={styles.loading} />}
     </div>
   )
-}
+})
+
+TextInput.displayName = 'TextInput'
+
+export default TextInput

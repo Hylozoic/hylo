@@ -1,11 +1,14 @@
 {
   "name": "@hylo/shared",
+  "installConfig": {
+    "hoistingLimits": "none"
+  },
   "private": true,
   "description": "Code shared across Hylo applications for consistency of results",
   "type": "module",
   "scripts": {
     "test": "jest",
-    "build:cjs": "tsc && find dist/cjs -name '*.js' -exec sh -c 'mv \"$1\" \"${1%.js}.cjs\"' _ {} \\;"
+    "build": "tsc && find dist/cjs -name '*.js' -exec sh -c 'mv \"$1\" \"${1%.js}.cjs\"' _ {} \\;"
   },
   "exports": {
     ".": {
@@ -38,9 +41,11 @@
   "dependencies": {
     "coordinate-parser": "^1.0.7",
     "html-to-text": "^8.1.0",
+    "i18next": "^23.16.5",
+    "intl-pluralrules": "^2.0.1",
     "lodash": "~4.17.21",
+    "luxon": "^3.5.0",
     "marked": "^4.2.1",
-    "moment-timezone": "^0.5.46",
     "pretty-date": "^0.2.0",
     "trunc-html": "^1.1.2",
     "trunc-text": "^1.0.2",
@@ -50,11 +55,11 @@
     "@babel/core": "^7.17.0",
     "@babel/eslint-parser": "^7.17.0",
     "@babel/preset-env": "^7.16.11",
+    "@types/luxon": "^3",
     "babel-jest": "^27.5.0",
     "concurrently": "^7.0.0",
     "eslint": "^8.8.0",
     "jest": "^27.5.0",
-    "standard": "^16.0.4",
     "typescript": "5.0.4"
   }
 }

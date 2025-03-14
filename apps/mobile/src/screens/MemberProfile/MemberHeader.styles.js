@@ -1,6 +1,4 @@
-import {
-  capeCod, rhino80, rhino60, rhino50, amaranth
-} from 'style/colors'
+import { capeCod, rhino80, rhino60 } from 'style/colors'
 
 export default {
   header: {

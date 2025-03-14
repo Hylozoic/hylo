@@ -1,4 +1,4 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLError } from 'graphql'
 import EnsureLoad from './mixins/EnsureLoad'
 
 module.exports = bookshelf.Model.extend(Object.assign({
@@ -50,7 +50,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const user = await User.find(userId, { transacting })
     const fromGroup = await this.fromGroup().fetch({ transacting })
     if (!GroupMembership.hasResponsibility(user, fromGroup, Responsibility.constants.RESP_ADMINISTRATION)) {
-      throw new GraphQLYogaError('Not permitted to do this')
+      throw new GraphQLError('Not permitted to do this')
     }
 
     await this.save({ canceled_by_id: userId, canceled_at: new Date(), status: GroupRelationshipInvite.STATUS.Canceled },
@@ -70,7 +70,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const toGroup = await this.toGroup().fetch({ transacting })
     if (!GroupMembership.hasResponsibility(user, toGroup, Responsibility.constants.RESP_ADMINISTRATION)) {
       // The person trying to process the invite does not have permission
-      throw new GraphQLYogaError('Not permitted to do this')
+      throw new GraphQLError('Not permitted to do this')
     }
     const fromGroup = await this.fromGroup().fetch({ transacting })
     const parentGroup = (this.get('type') === GroupRelationshipInvite.TYPE.ParentToChild) ? fromGroup : toGroup
@@ -200,9 +200,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
       q.whereNull('used_by_id')
       q.whereNull('expired_by_id')
     })
-    .fetchAll({withRelated: ['creator', 'group', 'tag']})
-    .tap(invitations => Promise.map(invitations.models, i => i.send()))
-    .then(invitations => invitations.pluck('id'))
+      .fetchAll({ withRelated: ['creator', 'group', 'tag'] })
+      .tap(invitations => Promise.map(invitations.models, i => i.send()))
+      .then(invitations => invitations.pluck('id'))
   }
 
 })

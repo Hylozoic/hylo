@@ -1,15 +1,5 @@
+import { StyleSheet } from 'react-native'
 import { isIOS } from 'util/platform'
-import { POST_TYPES } from 'store/models/Post'
-import {
-  caribbeanGreen,
-  rhino30,
-  white,
-  rhino80,
-  rhino,
-  amaranth,
-  athensGrayMedium,
-  white80onCaribbeanGreen
-} from 'style/colors'
 
 const typeSelectorIOSDefaults = {
   fontSize: 16,
@@ -17,14 +7,12 @@ const typeSelectorIOSDefaults = {
   letterSpacing: 0.2,
   borderRadius: 5,
   borderWidth: 1,
-  color: white,
   padding: isIOS ? 6 : 2,
   paddingLeft: 8,
   paddingRight: 30,
   marginHorizontal: 0,
   marginBottom: isIOS ? 0 : 0,
   alignItems: 'center'
-  // justifyContent: 'flex-start'
 }
 
 const typeSelectAndroidDefaults = {
@@ -36,28 +24,20 @@ export const typeSelectorStyles = postType => ({
     fontSize: 23,
     marginTop: isIOS ? 6 : 5,
     marginLeft: 0,
-    marginRight: 5,
-    color: POST_TYPES[postType].primaryColor
+    marginRight: 5
   },
   inputIOS: {
-    ...typeSelectorIOSDefaults,
-    backgroundColor: white,
-    borderColor: POST_TYPES[postType].primaryColor,
-    color: POST_TYPES[postType].primaryColor
+    ...typeSelectorIOSDefaults
   },
   inputAndroid: {
-    ...typeSelectAndroidDefaults,
-    backgroundColor: white,
-    borderColor: POST_TYPES[postType].primaryColor,
-    color: POST_TYPES[postType].primaryColor
+    ...typeSelectAndroidDefaults
   }
 })
 
-export default {
+export const styles = StyleSheet.create({
   headerContainer: {
     height: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: rhino30
+    borderBottomWidth: 1
   },
   header: {
     flex: 1,
@@ -75,9 +55,7 @@ export default {
   headerSaveButton: {
     width: '25%',
     height: 39,
-    fontSize: 18,
-    disabledColor: rhino30,
-    disabledBackgroundColor: white
+    fontSize: 18
   },
   typeSelectorWrapper: {
     flex: 1,
@@ -87,28 +65,22 @@ export default {
   formWrapper: {
     flex: 1,
     flexDirection: 'column',
-    justifyContent: 'center',
-    backgroundColor: athensGrayMedium
-
+    justifyContent: 'center'
   },
   formContainer: {
   },
   formTop: {
-    backgroundColor: white,
     paddingTop: 12
   },
   formBottom: {
     paddingBottom: 12
   },
   textInputWrapper: {
-    // paddingVertical: 10,
-    borderBottomWidth: 0.5,
-    borderColor: rhino30
+    borderBottomWidth: 0.5
   },
   textInput: {
     fontSize: 16,
     textAlignVertical: 'top',
-    color: 'rgba(44, 64, 89, 0.7)',
     fontFamily: 'Circular-Book',
     margin: 0,
     padding: 0
@@ -118,30 +90,25 @@ export default {
     paddingHorizontal: 10
   },
   titleInput: {
-    color: rhino,
     fontSize: 19,
     fontFamily: 'Circular-Medium',
     padding: 0
   },
   titleInputError: {
-    fontSize: 14,
-    color: amaranth
+    fontSize: 14
   },
   detailsInputWrapper: {
-    paddingBottom: isIOS ? 10 : 0,
-    paddingHorizontal: 10
+    paddingBottom: isIOS ? 10 : 0
   },
   textInputPlaceholder: {
     fontSize: 16,
-    fontFamily: 'Circular-Book',
-    color: rhino30
+    fontFamily: 'Circular-Book'
   },
   section: {
     marginBottom: 10,
     paddingBottom: 10
   },
   sectionLabel: {
-    color: rhino80,
     fontFamily: 'Circular-Bold'
   },
   topics: {
@@ -163,7 +130,6 @@ export default {
   },
   pressSelectionSection: {
     borderBottomWidth: 0.5,
-    borderColor: rhino30,
     paddingVertical: 10,
     flex: 1,
     justifyContent: 'center'
@@ -175,8 +141,6 @@ export default {
     paddingHorizontal: 10
   },
   pressSelectionSectionPublicSelected: {
-    backgroundColor: white80onCaribbeanGreen,
-    color: caribbeanGreen
   },
   pressSelectionLeft: {
     flexDirection: 'row',
@@ -184,13 +148,11 @@ export default {
     justifyContent: 'flex-start'
   },
   pressSelectionLeftText: {
-    color: rhino80,
     fontFamily: 'Circular-Bold'
   },
   pressSelectionRight: {
     height: 25,
     width: 25,
-    borderColor: caribbeanGreen,
     borderRadius: 100,
     borderWidth: 1,
     display: 'flex',
@@ -205,7 +167,6 @@ export default {
     justifyContent: 'center'
   },
   pressSelectionRightIcon: {
-    color: caribbeanGreen,
     fontSize: 16
   },
   pressSelectionSwitch: {
@@ -218,20 +179,13 @@ export default {
     paddingTop: 10,
     paddingBottom: 5,
     fontSize: 14,
-    color: caribbeanGreen,
     fontFamily: 'Circular-Book'
   },
-  pressDisabled: {
-    color: rhino30,
-    borderColor: rhino30
-  },
   groupRemoveIcon: {
-    color: rhino30,
     fontSize: 20
   },
   imageSelector: {
-    paddingTop: 10,
-    flex: 1
+    paddingTop: 10
   },
   buttonBar: {
     flex: 1,
@@ -239,27 +193,21 @@ export default {
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 10,
-    paddingHorizontal: 10,
-    backgroundColor: athensGrayMedium
+    paddingHorizontal: 10
   },
   buttonBarLeft: {
     flexDirection: 'row'
   },
   buttonBarIcon: {
-    fontSize: 46,
-    color: caribbeanGreen
-  },
-  buttonBarIconLoading: {
-    color: rhino30
+    fontSize: 46
   },
   buttonBarAnnouncement: {
     borderRadius: 10,
     marginTop: -4
   },
-  buttonBarAnnouncementEnabled: {
-    backgroundColor: caribbeanGreen
-  },
   buttonBarAnnouncementIcon: {
     fontSize: 46
   }
-}
+})
+
+export default styles

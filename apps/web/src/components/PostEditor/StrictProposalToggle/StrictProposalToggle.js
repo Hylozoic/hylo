@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import SwitchStyled from 'components/SwitchStyled'
 import Icon from 'components/Icon'
 import styles from './StrictProposalToggle.module.scss'
@@ -22,7 +22,7 @@ class StrictProposalToggle extends Component {
     const { isStrictProposal, toggleStrictProposal, t } = this.props
 
     return (
-      <div className={cx(styles.toggleContainer, { [styles.toggleIsActive]: isStrictProposal })}>
+      <div className={cn(styles.toggleContainer, { [styles.toggleIsActive]: isStrictProposal })}>
         <div className={styles.toggle}>
           <Icon name='Lock' className={styles.toggleIcon} /> {t('Strict Proposal:')}
           <SwitchStyled checked={isStrictProposal} onChange={toggleStrictProposal} backgroundColor={isStrictProposal ? '#0DC39F' : '#8B96A4'} />

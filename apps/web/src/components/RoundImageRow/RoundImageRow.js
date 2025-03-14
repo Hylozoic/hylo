@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import RoundImage from 'components/RoundImage'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import classes from './RoundImageRow.module.scss'
 
 const { array, string, bool } = PropTypes
@@ -48,7 +48,7 @@ export default function RoundImageRow ({
     />)
 
   const plus = (
-    <div className={cx(classes[!inline ? 'plus' : 'plusInline'], classes[blue ? 'blue' : 'green'])} key='plus' style={zIndexStyle(imageUrls.length)}>
+    <div className={cn(classes[!inline ? 'plus' : 'plusInline'], classes[blue ? 'blue' : 'green'])} key='plus' style={zIndexStyle(imageUrls.length)}>
       +{extra}
     </div>
   )

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { View, Text, Platform } from 'react-native'
-import { PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
+import { PROPOSAL_STATUS_COMPLETED } from '@hylo/presenters/PostPresenter'
 
 const QuorumBar = ({ totalVoters, quorum, actualVoters, proposalStatus }) => {
   const { t } = useTranslation()

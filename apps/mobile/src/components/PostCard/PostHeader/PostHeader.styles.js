@@ -1,5 +1,5 @@
-import { POST_TYPES } from 'store/models/Post'
-import {amaranth, rhino30, rhino50, caribbeanGreen, rhino40 } from 'style/colors'
+import { POST_TYPES } from '@hylo/presenters/PostPresenter'
+import { amaranth, rhino30, rhino50, caribbeanGreen, rhino40 } from 'style/colors'
 
 export const styles = {
   container: {
@@ -57,11 +57,6 @@ export const styles = {
   upperRight: {
     flexDirection: 'row',
     alignItems: 'flex-start'
-  },
-  pinIcon: {
-    fontSize: 20,
-    color: rhino50,
-    marginRight: 10
   },
   flagIcon: {
     fontSize: 24,

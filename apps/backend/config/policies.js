@@ -29,10 +29,6 @@ module.exports.policies = {
     '*': true
   },
 
-  NexudusController: {
-    '*': true
-  },
-
   SessionController: {
     createWithJWT: ['checkJWT'],
     '*': true
@@ -76,16 +72,15 @@ module.exports.policies = {
     unsubscribe:            ['isSocket', 'sessionAuth', 'checkAndSetPost'],
     typing:                 ['isSocket', 'sessionAuth', 'checkAndSetPost'],
     createFromEmailForm:    ['checkAndDecodeToken'],
-
-    // FIXME these two should go in UserController
-    subscribeToUpdates:     ['isSocket', 'sessionAuth'],
-    unsubscribeFromUpdates: ['isSocket', 'sessionAuth']
   },
 
   UserController: {
     create: ['checkClientCredentials'],
     getNotificationSettings: true,
-    updateNotificationSettings: true
+    updateNotificationSettings: true,
+
+    subscribeToUpdates:     ['isSocket', 'sessionAuth'],
+    unsubscribeFromUpdates: ['isSocket', 'sessionAuth']
   },
 
   PaymentController: {

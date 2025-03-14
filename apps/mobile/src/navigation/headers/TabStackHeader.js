@@ -1,60 +1,43 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { useSelector } from 'react-redux'
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native'
-import { Header, HeaderBackButton, getHeaderTitle } from '@react-navigation/elements'
 import FastImage from 'react-native-fast-image'
-import { get } from 'lodash/fp'
+import { useNavigation, useNavigationState } from '@react-navigation/native'
+import { Header, HeaderBackButton } from '@react-navigation/elements'
+import { ChevronLeft } from 'lucide-react-native'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { isIOS } from 'util/platform'
-import { modalScreenName } from 'hooks/useIsModalScreen'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
-import getMe from 'store/selectors/getMe'
-import BadgedIcon from 'components/BadgedIcon'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
-import Icon from 'components/Icon'
-import { white, rhino80 } from 'style/colors'
-
-// For now this list needs to be kept in sync with the names of the initial
-// routes for each stack in navigation/TabsNavigator.
-export const TAB_STACK_ROOTS = [
-  'Group Navigation',
-  'Messages Tab',
-  'Search Tab',
-  'Profile Tab',
-  'Group Welcome'
-]
+import LucideIcon from 'components/LucideIcon/LucideIcon'
+import { white } from 'style/colors'
 
 export default function TabStackHeader ({
-  navigation,
-  route,
   options,
   back,
   headerLeft,
   headerRight,
-  // custom
-  rootsScreenNames = TAB_STACK_ROOTS,
   ...otherProps
 }) {
-  const canGoBack = !rootsScreenNames.includes(route?.name)
+  const navigation = useNavigation()
+  const stackScreenIndex = useNavigationState(state => state.index)
+  const canGoBack = stackScreenIndex !== 0
+  const [{ currentGroup }] = useCurrentGroup()
 
-  const props = {
+  const props = useMemo(() => ({
     headerBackTitleVisible: false,
-    title: getFocusedRouteNameFromRoute(route) || getHeaderTitle(options, route.name),
+    title: currentGroup?.name,
     headerTitle: options.headerTitle,
     headerTitleContainerStyle: {
       // Follow: https://github.com/react-navigation/react-navigation/issues/7057#issuecomment-593086348
-      width: isIOS ? '55%' : '45%',
-      alignItems: 'center',
-      marginLeft: isIOS ? 0 : 10
+      alignItems: 'left',
+      marginLeft: isIOS ? 10 : 20
     },
     headerTitleStyle: {
-      color: white,
       fontFamily: 'Circular-Bold',
-      fontSize: 18
+      fontSize: 16
     },
-    headerTitleAlign: 'center',
+    headerTitleAlign: 'left',
     headerStyle: {
-      backgroundColor: rhino80
+      backgroundColor: white
     },
     headerLeft: headerLeft || options.headerLeft || (() => {
       let onPress = options.headerLeftOnPress
@@ -63,103 +46,51 @@ export default function TabStackHeader ({
         onPress = canGoBack
           ? navigation.goBack
           : navigation.openDrawer
-
-        if (canGoBack && !navigation.canGoBack()) {
-          onPress = () => navigation.navigate('Group Navigation')
-        }
       }
 
       return (
         <>
-          <FocusAwareStatusBar barStyle='light-content' backgroundColor={rhino80} />
-          <MenuButton canGoBack={canGoBack} onPress={onPress} />
+          <FocusAwareStatusBar />
+          <HeaderBackButton
+            onPress={onPress}
+            labelVisible={false}
+            backImage={({ tintColor }) => (
+              <View style={styles.container}>
+                <ChevronLeft style={styles.backIcon} color={tintColor} size={30} />
+                {currentGroup?.iconName && (
+                  <LucideIcon size={28} name={currentGroup?.iconName} />
+                )}
+                {!currentGroup?.iconName && currentGroup?.avatarUrl && (
+                  <FastImage style={styles.avatar} source={{ uri: currentGroup?.avatarUrl }} />
+                )}
+              </View>
+            )}
+          />
         </>
       )
-    }),
-    headerRight: headerRight || (() => (
-      <View
-        style={{
-          flex: 1,
-          flexDirection: 'row',
-          alignItems: 'center'
-        }}
-      >
-        <NotificationsIcon showNotifications={() => navigation.navigate(modalScreenName('Notifications'))} />
-      </View>
-    ))
-  }
+    })
+  }), [
+    canGoBack,
+    currentGroup?.name,
+    options?.headerLeft,
+    options?.headerLeftOnPress,
+    options?.headerTitle
+  ])
 
   return <Header {...props} {...otherProps} />
 }
 
-export function NotificationsIcon ({ showNotifications }) {
-  const currentUser = useSelector(getMe)
-  const showBadge = !!get('newNotificationCount', currentUser)
-
-  return (
-    <BadgedIcon
-      name='Notifications'
-      action={showNotifications}
-      showBadge={showBadge}
-      style={styles.headerIcon}
-    />
-  )
-}
-
-export function MenuButton ({ canGoBack, onPress }) {
-  const currentGroup = useSelector(getCurrentGroup)
-  const avatarUrl = currentGroup?.headerAvatarUrl ||
-    currentGroup?.avatarUrl
-
-  return (
-    <HeaderBackButton
-      onPress={onPress}
-      labelVisible={false}
-      backImage={() => (
-        <View style={styles.container}>
-          {!canGoBack
-            ? <Icon name='Hamburger' style={styles.menuIcon} />
-            : <Icon name='ArrowForward' style={styles.backIcon} />}
-          <FastImage source={{ uri: avatarUrl }} style={styles.avatar} />
-        </View>
-      )}
-    />
-  )
-}
-
 export const styles = StyleSheet.create({
-  headerIcon: {
-    opacity: 0.75,
-    color: white,
-    backgroundColor: 'transparent',
-    fontSize: 32,
-    marginRight: 12
-  },
   container: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center'
+    alignItems: 'center'
   },
   backIcon: {
-    transform: [{ scaleX: -1 }],
-    opacity: 0.75,
-    backgroundColor: 'transparent',
-    fontSize: 22,
-    marginLeft: 10,
-    color: 'white',
-    marginRight: 17
-  },
-  menuIcon: {
-    color: 'white',
-    opacity: 0.75,
-    backgroundColor: 'transparent',
-    fontSize: 16,
-    marginLeft: 10,
-    marginRight: 10
+    marginHorizontal: 5
   },
   avatar: {
-    width: 24,
-    height: 24,
+    width: 30,
+    height: 30,
     borderRadius: 4
   }
 })

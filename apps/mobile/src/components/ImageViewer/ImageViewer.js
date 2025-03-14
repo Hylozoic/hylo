@@ -4,10 +4,10 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   TouchableHighlight
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Avatar from 'components/Avatar'
 import ImageView from 'react-native-image-viewing'
 import { rhino30, white } from 'style/colors'
@@ -79,7 +79,7 @@ export default function ImageViewer ({
 }) {
   return (
     <ImageView
-      images={images}
+      images={images.map(image => ({ uri: image?.uri || image?.url }))}
       HeaderComponent={
           ({ imageIndex }) => {
             return (
@@ -104,43 +104,40 @@ export default function ImageViewer ({
 }
 
 const ImageViewerHeader = ({ creator, onRequestClose, title }) => {
+  const insets = useSafeAreaInsets()
   return (
-    <SafeAreaView style={headerStyles.root}>
-      <View style={headerStyles.container}>
-        <View style={headerStyles.postDetails}>
-          <View style={headerStyles.postDetailsTop}>
-            {creator && (
-              <>
-                <Avatar avatarUrl={creator.avatarUrl} dimension={28} />
-                <View style={headerStyles.postDetailsNameAndDate}>
-                  <Text style={headerStyles.postDetailsName}>{creator.name}</Text>
-                  {/* <Text style={headerStyles.postDetailsDate}>3w ago</Text> */}
-                </View>
-              </>
-            )}
-          </View>
-          {title && (
-            <Text style={headerStyles.postDetailsTitle}>{title}</Text>
+    <View style={[headerStyles.container, { paddingTop: insets.top }]}>
+      <View style={headerStyles.postDetails}>
+        <View style={headerStyles.postDetailsTop}>
+          {creator && (
+            <>
+              <Avatar avatarUrl={creator.avatarUrl} dimension={28} />
+              <View style={headerStyles.postDetailsNameAndDate}>
+                <Text style={headerStyles.postDetailsName}>{creator.name}</Text>
+                {/* <Text style={headerStyles.postDetailsDate}>3w ago</Text> */}
+              </View>
+            </>
           )}
         </View>
-        <TouchableOpacity
-          style={headerStyles.closeButton}
-          onPress={onRequestClose}
-          hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
-        >
-          <Text style={headerStyles.closeText}>✕</Text>
-        </TouchableOpacity>
+        {title && (
+          <Text style={headerStyles.postDetailsTitle}>{title}</Text>
+        )}
       </View>
-    </SafeAreaView>
+      <TouchableOpacity
+        style={headerStyles.closeButton}
+        onPress={onRequestClose}
+        hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
+      >
+        <Text style={headerStyles.closeText}>✕</Text>
+      </TouchableOpacity>
+    </View>
   )
 }
 
 const headerStyles = StyleSheet.create({
-  root: {
-    backgroundColor: '#00000077'
-  },
   container: {
     flex: 1,
+    backgroundColor: '#00000077',
     padding: 15,
     paddingBottom: 10,
     paddingTop: 10,
@@ -190,10 +187,11 @@ const headerStyles = StyleSheet.create({
 })
 
 export const ImageViewerFooter = ({ imageIndex, imagesCount }) => {
+  const insets = useSafeAreaInsets()
   if (imagesCount < 2) return null
 
   return (
-    <View style={footerStyles.root}>
+    <View style={[footerStyles.root, { paddingBottom: insets.bottom }]}>
       <Text style={footerStyles.text}>{`${imageIndex + 1} / ${imagesCount}`}</Text>
     </View>
   )

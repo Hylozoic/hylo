@@ -1,8 +1,8 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import classes from './EventRSVP.module.scss'
 import DropdownButton from 'components/DropdownButton'
-import { RESPONSES } from 'store/models/EventInvitation'
 
 export default function EventRSVP ({ myEventResponse, respondToEvent, position }) {
   const { t } = useTranslation()

@@ -1,13 +1,10 @@
 import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import EventBody from './EventBody'
-import moment from 'moment-timezone'
 
 describe('EventBody', () => {
   it('renders event details correctly', () => {
     const event = {
-      startTime: moment('2023-03-06T12:00:00Z'),
-      endTime: moment('2023-03-06T15:00:00Z'),
       location: 'Oakland',
       title: 'Test Event',
       groups: [{ id: '1', name: 'Group 1', slug: 'group1' }]

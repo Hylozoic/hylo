@@ -1,17 +1,13 @@
 import { useState } from 'react'
-import {
-  Alert, Linking, Platform,
-  PermissionsAndroid, ToastAndroid
-} from 'react-native'
+import { Alert, Linking, Platform, PermissionsAndroid, ToastAndroid } from 'react-native'
 import Geolocation from 'react-native-geolocation-service'
 
-// TODO: WIP -- has not been used or tested yet
 export default function useCurrentLocation () {
-  // BEGIN react-native-geolocation-service sample code
-  const [forceLocation, setForceLocation] = useState(true)
-  const [highAccuracy, setHighAccuracy] = useState(true)
-  const [locationDialog, setLocationDialog] = useState(true)
-  const [useLocationManager, setUseLocationManager] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [forceLocation] = useState(true)
+  const [highAccuracy] = useState(true)
+  const [locationDialog] = useState(true)
+  const [useLocationManager] = useState(false)
   const [currentLocation, setCurrentLocation] = useState(null)
 
   const hasPermissionIOS = async () => {
@@ -63,7 +59,7 @@ export default function useCurrentLocation () {
     }
 
     const status = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
     )
 
     if (status === PermissionsAndroid.RESULTS.GRANTED) {
@@ -86,20 +82,30 @@ export default function useCurrentLocation () {
   }
 
   const getLocation = async () => {
+    setLoading(true)
     const hasPermission = await hasLocationPermission()
 
     if (!hasPermission) {
+      setLoading(false)
       return
     }
+
+    let resolvePosition
+    const promise = new Promise((resolve, reject) => {
+      resolvePosition = resolve
+    })
 
     Geolocation.getCurrentPosition(
       (position) => {
         setCurrentLocation(position)
+        setLoading(false)
+        resolvePosition(position)
       },
       (error) => {
         Alert.alert(`Code ${error.code}`, error.message)
         setCurrentLocation(null)
-        console.log(error)
+        setLoading(false)
+        resolvePosition(null)
       },
       {
         accuracy: {
@@ -115,7 +121,9 @@ export default function useCurrentLocation () {
         showLocationDialog: locationDialog
       }
     )
+
+    return promise
   }
 
-  return [currentLocation, getLocation]
+  return [{ currentLocation, fetching: loading }, getLocation]
 }

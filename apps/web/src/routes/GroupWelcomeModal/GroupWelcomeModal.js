@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import { isEmpty, trim } from 'lodash'
 import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,7 +5,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { CSSTransition } from 'react-transition-group'
 import { useParams } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
-import { bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
@@ -15,11 +13,13 @@ import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'store/models/Group'
 import { addSkill as addSkillAction, removeSkill as removeSkillAction } from 'components/SkillsSection/SkillsSection.store'
 import { fetchGroupWelcomeData } from './GroupWelcomeModal.store'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import RoundImage from 'components/RoundImage'
-import { SuggestedSkills } from 'routes/GroupDetail/GroupDetail'
+import SuggestedSkills from 'components/SuggestedSkills'
+import { bgImageStyle, cn } from 'util/index'
+
 import classes from './GroupWelcomeModal.module.scss'
 
 export default function GroupWelcomeModal (props) {
@@ -53,12 +53,14 @@ export default function GroupWelcomeModal (props) {
   const showWelcomeModal = currentMembership?.settings?.showJoinForm || agreementsChanged || !joinQuestionsAnsweredAt
 
   useEffect(() => {
-    if (group?.id && currentMembership) dispatch(fetchGroupWelcomeData(group.id, currentUser.id))
+    if (showWelcomeModal && group?.id && currentMembership) dispatch(fetchGroupWelcomeData(group.id, currentUser.id))
   }, [currentMembership?.id])
 
   useEffect(() => {
     if (numAgreements > 0) {
       setCurrentAgreements(group.agreements.map(ga => membershipAgreements?.find(ma => ma.id === ga.id)?.accepted))
+    } else {
+      setCurrentAgreements([])
     }
   }, [group?.agreements?.length, membershipAgreements?.length])
 
@@ -101,7 +103,7 @@ export default function GroupWelcomeModal (props) {
     await dispatch(updateMembershipSettings(
       group.id,
       { joinQuestionsAnsweredAt: new Date(), showJoinForm: false },
-      true,
+      true, // acceptAgreements
       questionAnswers ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : []
     ))
     return null
@@ -129,7 +131,7 @@ export default function GroupWelcomeModal (props) {
       nodeRef={welcomeModalRef}
     >
       <div className={classes.welcomeModalWrapper} key='welcome-modal' ref={welcomeModalRef}>
-        <div className={cx(classes.welcomeModal, classes[`viewingPage${page}`])}>
+        <div className={cn(classes.welcomeModal, classes[`viewingPage${page}`])}>
           <div style={bgImageStyle(group.bannerUrl || DEFAULT_BANNER)} className={classes.banner}>
             <div className={classes.bannerContent}>
               <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} size='50px' square />
@@ -138,14 +140,14 @@ export default function GroupWelcomeModal (props) {
             </div>
             <div className={classes.fade} />
           </div>
-          <div className={cx(classes.welcomeContent, classes.page1)}>
+          <div className={cn(classes.welcomeContent, classes.page1)}>
             {!isEmpty(group.purpose) &&
               <div>
                 <h2>{t('Our Purpose')}</h2>
                 <p>{group.purpose}</p>
               </div>}
             {group.agreements?.length > 0 && (
-              <div className={cx(classes.agreements, classes.welcomeSection)}>
+              <div className={cn(classes.agreements, classes.welcomeSection)}>
                 <h2>{t('Our Agreements')}</h2>
                 {currentMembership?.settings.agreementsAcceptedAt && agreementsChanged
                   ? <p className={classes.agreementsChanged}>{t('The agreements have changed since you last accepted them. Please review and accept them again.')}</p>
@@ -153,7 +155,7 @@ export default function GroupWelcomeModal (props) {
                 <ol>
                   {group.agreements.map((agreement, i) => {
                     return (
-                      <li className={cx(classes.agreement, { [classes.borderBottom]: group.agreements.length > 1 && i !== (group.agreements.length - 1) })} key={i}>
+                      <li className={cn(classes.agreement, { [classes.borderBottom]: group.agreements.length > 1 && i !== (group.agreements.length - 1) })} key={i}>
                         <h3>{agreement.title}</h3>
                         <div className={classes.agreementDescription}>
                           <ClickCatcher>
@@ -169,7 +171,7 @@ export default function GroupWelcomeModal (props) {
                           onChange={handleCheckAgreement}
                           checked={currentAgreements[i] || false}
                         />
-                        <label htmlFor={'agreement' + agreement.id} className={cx(classes.iAgree, { [classes.accepted]: currentAgreements[i] })}>
+                        <label htmlFor={'agreement' + agreement.id} className={cn(classes.iAgree, { [classes.accepted]: currentAgreements[i] })}>
                           {t('I agree to the above')}
                         </label>
                       </li>
@@ -184,14 +186,14 @@ export default function GroupWelcomeModal (props) {
                       onChange={handleCheckAllAgreements}
                       checked={checkedAllAgreements}
                     />
-                    <label htmlFor='checkAllAgreements' className={cx({ [classes.accepted]: checkedAllAgreements })}>
+                    <label htmlFor='checkAllAgreements' className={cn({ [classes.accepted]: checkedAllAgreements })}>
                       {t('I agree to all of the above')}
                     </label>
                   </div>}
               </div>
             )}
           </div>
-          <div className={cx(classes.welcomeContent, classes.page2)}>
+          <div className={cn(classes.welcomeContent, classes.page2)}>
             {!isEmpty(group.purpose) &&
               <div>
                 <h2>{t('Our Purpose')}</h2>
@@ -212,18 +214,20 @@ export default function GroupWelcomeModal (props) {
           <div className={classes.callToAction}>
             {page === 2 && hasFirstPage && (
               <Button
-                color='purple'
                 className={classes.previousButton}
-                label={t('Previous')}
                 onClick={() => setPage(1)}
-              />
+              >
+                {t('Previous')}
+              </Button>
             )}
             <Button
+              variant='secondary'
               dataTestId='jump-in'
               disabled={(page === 1 && !checkedAllAgreements) || (page === 2 && !allQuestionsAnswered)}
-              label={page === 1 && hasSecondPage ? t('Next') : t('Jump in!')}
               onClick={handleAccept}
-            />
+            >
+              {page === 1 && hasSecondPage ? t('Next') : t('Jump in!')}
+            </Button>
           </div>
         </div>
       </div>

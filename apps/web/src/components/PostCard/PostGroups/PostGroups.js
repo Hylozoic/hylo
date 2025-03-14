@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { useTranslation, withTranslation } from 'react-i18next'
 import { get, isEmpty } from 'lodash/fp'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { Link } from 'react-router-dom'
 import { groupUrl } from 'util/navigation'
 import GroupsList from 'components/GroupsList'
@@ -32,9 +32,9 @@ class PostGroups extends Component {
     if (isEmpty(groups) || (groups.length === 1 && get('0.slug', groups) === slug)) return null
 
     return (
-      <div className={cx(classes.groups, { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })} onClick={expanded ? this.toggleExpanded : undefined}>
+      <div className={cn('bg-black/20 p-2 mx-[8px] rounded-lg mt-0 mb-2', { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })} onClick={expanded ? this.toggleExpanded : undefined}>
         <div className={classes.row}>
-          <span className={classes.label}>{`${this.props.t('Posted In:')} `}</span>
+          <span className={classes.label}>{`${this.props.t('To:')}`}&nbsp;</span>
           {!expanded &&
             <LinkedGroupNameList t={t} groups={groups} maxShown={2} expandFunc={this.toggleExpanded} />}
           <a onClick={this.toggleExpanded} className={classes.expandLink} role='button' aria-label={expanded ? 'collapse' : 'expand'}>

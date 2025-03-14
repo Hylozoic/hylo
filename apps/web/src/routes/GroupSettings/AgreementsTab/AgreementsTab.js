@@ -2,17 +2,19 @@ import { DndContext, DragOverlay } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import update from 'immutability-helper'
+import { Trash } from 'lucide-react'
 import React, { forwardRef, useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import PropTypes from 'prop-types'
-import Button from 'components/Button'
 import Icon, { IconWithRef } from 'components/Icon'
 import Loading from 'components/Loading'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import SettingsControl from 'components/SettingsControl'
 import {
   updateGroupSettings
 } from '../GroupSettings.store'
+import SaveButton from '../SaveButton'
 
 import classes from '../GroupSettings.module.scss'
 import styles from './AgreementsTab.module.scss'
@@ -33,6 +35,15 @@ function AgreementsTab (props) {
   const [dragIndex, setDragIndex] = useState(null)
 
   const { group } = props
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: `${t('Group Settings')} > ${t('Agreements')}`,
+      icon: 'Settings',
+      info: ''
+    })
+  }, [])
 
   useEffect(() => {
     setAgreements(group?.agreements || [])
@@ -123,7 +134,7 @@ function AgreementsTab (props) {
         <div className={classes.groupSettings}>
           <h1>{t('Group Agreements')}</h1>
           <p>{t('groupAgreementsDescription')}</p>
-          <p className={styles.warning}>{t('groupAgreementsWarning')}</p>
+          <p className='text-error mb-8'>{t('groupAgreementsWarning')}</p>
           <div>
             {agreements.map((agreement, i) => (
               <AgreementRowDraggable
@@ -137,22 +148,12 @@ function AgreementsTab (props) {
               />
             ))}
           </div>
-          <div className={styles.addButton} onClick={addAgreement}>
+          <div className='focus:text-foreground text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2' onClick={addAgreement}>
             <h4>{t('Add Agreement')}</h4>
             <Icon name='Circle-Plus' className={styles.addButtonIcon} />
           </div>
 
-          <br />
-
-          <div className={classes.saveChanges}>
-            <span className={saveButtonContent().style}>{saveButtonContent().text}</span>
-            <Button
-              label={t('Save Changes')}
-              color={saveButtonContent().color}
-              onClick={changed && !error ? save : null}
-              className={classes.saveButton}
-            />
-          </div>
+          <SaveButton save={save} changed={changed} error={error} />
         </div>
       </SortableContext>
 
@@ -240,23 +241,21 @@ const AgreementRow = forwardRef(({ children, ...props }, ref) => {
   const viewCount = parseInt(index) + 1
 
   return (
-    <div className={styles.agreementRow} ref={ref} style={style}>
-      <div className={styles.header}>
-        <strong>{viewCount})</strong>
-        <div className={styles.controls}>
-          <IconWithRef name='Draggable' className={styles.dragHandle} {...listeners} {...attributes} ref={setActivatorNodeRef} />
-          <Icon name='Trash' onClick={onDelete} className={styles.deleteButton} />
+    <div className='border-2 border-foreground/20 p-4 background-black/10 rounded-lg border-dashed relative mb-8' ref={ref} style={style}>
+      <div className='text-foreground flex justify-between mb-8'>
+        <strong className='flex justify-center items-center w-[20px] h-[20px] rounded-xl text-sm bg-foreground text-background'>{viewCount}</strong>
+        <div className='flex items-center gap-2'>
+          <Trash onClick={onDelete} className='h-[20px] cursor-pointer' />
+          <IconWithRef name='Draggable' className='h-[20px] cursor-grab' {...listeners} {...attributes} ref={setActivatorNodeRef} />
         </div>
       </div>
       <SettingsControl
-        controlClass={styles.settingsControl}
-        label={t('Title')}
+        label={t('Agreement')}
         onChange={onChange('title')}
         placeholder={exampleText(t)}
         value={title}
       />
       <SettingsControl
-        controlClass={styles.settingsControl}
         label={t('Description')}
         onChange={onChange('description')}
         placeholder={t('Describe the agreement and what the group expects from its members')}

@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [5.11.2] - 2025-01-12
+
+### Fixed
+- Don't allow someone to edit a post and add post in Public, unless at least one of the post's groups has allow_in_public set to true
+
 ## [5.11.1] - 2024-12-24
 
 ### Fixed

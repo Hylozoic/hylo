@@ -1,6 +1,6 @@
 import { string, bool, func } from 'prop-types'
 import React from 'react'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { bgImageStyle } from '../../util/index'
 import classes from './RoundImage.module.scss'
 
@@ -11,6 +11,7 @@ export default function RoundImage ({
   medium,
   large,
   xlarge,
+  xxlarge,
   overlaps,
   overlapsVertical,
   className,
@@ -19,7 +20,7 @@ export default function RoundImage ({
   onClick,
   withBorder = true
 }) {
-  const imageClasses = cx(
+  const imageClasses = cn(
     classes.image,
     {
       [classes.square]: square,
@@ -29,6 +30,7 @@ export default function RoundImage ({
       [classes.medium]: medium,
       [classes.large]: large,
       [classes.xlarge]: xlarge,
+      [classes.xxlarge]: xxlarge,
       [classes.overlapsVertical]: overlapsVertical
     }
   )
@@ -43,7 +45,7 @@ export default function RoundImage ({
     <div
       role='img'
       style={style}
-      className={cx(imageClasses, className)}
+      className={cn(imageClasses, className)}
       onClick={onClick}
     />
   )

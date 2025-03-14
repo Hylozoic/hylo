@@ -1,32 +1,31 @@
-import React, { useCallback } from 'react'
-import cx from 'classnames'
-import Tooltip from 'components/Tooltip'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import { personUrl, postUrl } from 'util/navigation'
+import { personUrl } from 'util/navigation'
 import Avatar from 'components/Avatar'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
+import Tooltip from 'components/Tooltip'
+import useRouteParams from 'hooks/useRouteParams'
+import useViewPostDetails from 'hooks/useViewPostDetails'
+import { cn } from 'util/index'
+
 import classes from './PostGridItem.module.scss'
 
 export default function PostGridItem ({
   childPost,
   currentGroupId,
-  routeParams,
   post,
-  expanded,
-  locationParams,
-  querystringParams
+  expanded
 }) {
   const {
     title,
     details,
     creator,
-    createdTimestampForGrid,
+    createdTimestamp,
     attachments
   } = post
 
-  const navigate = useNavigate()
+  const routeParams = useRouteParams()
 
   const numAttachments = attachments.length || 0
   const firstAttachment = attachments[0] || 0
@@ -37,20 +36,18 @@ export default function PostGridItem ({
   const creatorUrl = personUrl(creator.id, routeParams.slug)
   const unread = false
   // will reintegrate once I have attachment vars
-  /* const startTimeMoment = Moment(post.startTime) */
+  /* const start = DateTime.fromISO(post.startTime) */
 
-  const showDetails = useCallback(() => {
-    navigate(postUrl(post.id, routeParams, { ...locationParams, ...querystringParams }))
-  }, [post.id, routeParams, locationParams, querystringParams])
+  const viewPostDetails = useViewPostDetails()
 
   return (
-    <div className={cx(classes.postGridItemContainer, { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType])} onClick={showDetails}>
+    <div className={cn('h-[160px] w-full bg-background rounded-lg shadow-lg relative hover:scale-105 transition-all overflow-hidden', { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType])} onClick={() => viewPostDetails(post)}>
       <div className={classes.contentSummary}>
         {childPost &&
           <div
-            className={classes.iconContainer}
+            className='bg-primary rounded w-[20px] h-[20px] flex items-center absolute top-1 right-1'
             data-tooltip-content={t('Post from child group')}
-            data-tooltip-id='childgroup-tt'
+            data-tooltip-id={'childgroup-tt' + post.id}
           >
             <Icon
               name='Subgroup'
@@ -58,12 +55,12 @@ export default function PostGridItem ({
             />
             <Tooltip
               delay={250}
-              id='childgroup-tt'
+              id={'childgroup-tt' + post.id}
             />
           </div>}
-        <h3 className={cx(classes.title, { [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</h3>
+        <h3 className={cn('text-base text-foreground m-0 px-2', { [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</h3>
         {attachmentType === 'image'
-          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cx(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} />
+          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cn(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} />
           : attachmentType === 'file'
             ? (
               <div className={classes.fileAttachment}>
@@ -77,7 +74,7 @@ export default function PostGridItem ({
             : ' '}
         {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
 
-        <div className={cx(classes.details, { [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+        <div className={cn('text-foreground text-xs px-2 opacity-75', { [classes.isFlagged]: isFlagged && !post.clickthrough })}>
           <HyloHTML html={details} />
         </div>
         <div className={classes.gridMeta}>
@@ -87,11 +84,11 @@ export default function PostGridItem ({
               {creator.name}
             </div>
             <span className={classes.timestamp}>
-              {createdTimestampForGrid}
+              {createdTimestamp}
             </span>
           </div>
         </div>
-        <div className={classes.gridFade} />
+        <div className='absolute bottom-0 left-0 right-0 h-full bg-gradient-to-t from-background to-transparent' />
       </div>
     </div>
   )

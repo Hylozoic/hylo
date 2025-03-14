@@ -1,80 +1,71 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { ScrollView, View, Text } from 'react-native'
+import React, { useState } from 'react'
+import { View, Text } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
-import { useDispatch, useSelector } from 'react-redux'
+import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { AnalyticsEvents } from '@hylo/shared'
-import useCurrentLocation from 'hooks/useCurrentLocation'
-import getMe from 'store/selectors/getMe'
-import checkLogin from 'store/actions/checkLogin'
-import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
-import updateUserSettings from 'store/actions/updateUserSettings'
+import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import { X } from 'lucide-react-native'
+import mixpanel from 'services/mixpanel'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
+import { LocationSelector } from 'components/LocationSelectorModal/LocationSelectorModal'
 import Button from 'components/Button'
-import SettingControl from 'components/SettingControl'
-import LocationPicker from 'screens/LocationPicker/LocationPicker'
-import styles from './SignupSetLocation.styles'
+import styles from '../SignupFlow.styles'
+import { caribbeanGreen, white, white80onCaribbeanGreen } from 'style/colors'
 
 export default function SignupSetLocation ({ navigation }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const currentUser = useSelector(getMe)
-  const [location, setLocation] = useState(currentUser?.location)
-  const [locationId, setLocationId] = useState(currentUser?.locationId)
-  const [currentLocation, getLocation] = useCurrentLocation()
-  const controlRef = useRef()
-
-  useEffect(() => { getLocation() }, [])
+  const [locationObject, setLocationObject] = useState()
+  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
 
   useFocusEffect(() => {
     navigation.setOptions({
       headerLeftOnPress: () => {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
-        dispatch(updateUserSettings({ settings: { signupInProgress: false } }))
-        dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
+        updateUserSettings({ changes: { settings: { signupInProgress: false } } })
+        mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
       }
     })
   })
 
-  const finish = async () => {
-    controlRef.current && controlRef.current.blur()
-    await dispatch(updateUserSettings({ location, locationId, settings: { signupInProgress: false } }))
-    await dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
-    await dispatch(checkLogin())
-  }
-
-  const showLocationPicker = locationText => {
-    LocationPicker({
-      navigation,
-      currentLocation,
-      initialSearchTerm: locationText,
-      onPick: pickedLocation => {
-        setLocation(pickedLocation?.fullText)
-        pickedLocation?.id !== 'NEW' && setLocationId(pickedLocation?.id)
-      },
-      t
+  const saveAndNext = () => {
+    updateUserSettings({
+      changes: {
+        location: locationObject?.fullText,
+        locationId: locationObject?.id,
+        settings: { signupInProgress: false }
+      }
     })
+    mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
   }
 
   return (
     <KeyboardFriendlyView style={styles.container}>
-      <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
-        <View style={styles.header}>
-          <Text style={styles.title}>{t('Add your location')}</Text>
-          <Text style={styles.subTitle}>
-            {t('Add your location to see more relevant content and find people and projects near you')}.
-          </Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>{t('Add your location')}</Text>
+        <Text style={styles.subTitle}>
+          {t('Add your location to see more relevant content and find people and projects near you')}.
+        </Text>
+      </View>
+      <View style={styles.content}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <Text style={{ fontWeight: 'bold', fontSize: 16, color: white }}>Selected:</Text>
+          {locationObject?.fullText && (
+            <X size={20} style={{ color: white80onCaribbeanGreen }} onPress={() => setLocationObject()} />
+          )}
         </View>
-        <View style={styles.content}>
-          <SettingControl
-            ref={controlRef}
-            label={t('Where do you call home')}
-            value={location}
-            onFocus={() => showLocationPicker(location)}
+        <Text style={{ fontSize: 16, marginBottom: 18, color: white }}>
+          {locationObject?.fullText || '(None selected)'}
+        </Text>
+        {!locationObject?.fullText && (
+          <LocationSelector
+            style={{ flex: 0, padding: 10, backgroundColor: white80onCaribbeanGreen, borderRadius: 20 }}
+            colors={{ text: caribbeanGreen, border: caribbeanGreen }}
+            onItemPress={setLocationObject}
           />
-        </View>
-      </ScrollView>
+        )}
+      </View>
       <View style={styles.bottomBar}>
         <Button
           style={styles.backButton}
@@ -84,7 +75,7 @@ export default function SignupSetLocation ({ navigation }) {
         <Button
           style={styles.continueButton}
           text={t('Finish')}
-          onPress={finish}
+          onPress={saveAndNext}
         />
       </View>
     </KeyboardFriendlyView>

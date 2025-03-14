@@ -1,22 +1,22 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
+import { GraphQLError } from 'graphql'
 
 export async function addGroupResponsibility ({ groupId, title, description, userId }) {
-  if (!userId) throw new GraphQLYogaError('No userId passed into function')
+  if (!userId) throw new GraphQLError('No userId passed into function')
 
   if (groupId && title) {
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
       return Responsibility.forge({ group_id: groupId, title, description, type: 'group' }).save().then((savedGroupResponsibility) => savedGroupResponsibility)
     } else {
-      throw new GraphQLYogaError('User doesn\'t have required privileges to create group responsibility')
+      throw new GraphQLError('User doesn\'t have required privileges to create group responsibility')
     }
   } else {
-    throw new GraphQLYogaError(`Invalid/undefined parameters to create group responsibility: received ${JSON.stringify({ groupId, title })}`)
+    throw new GraphQLError(`Invalid/undefined parameters to create group responsibility: received ${JSON.stringify({ groupId, title })}`)
   }
 }
 
 export async function updateGroupResponsibility ({ responsibilityId, title, description, userId, groupId }) {
-  if (!userId) throw new GraphQLYogaError('No userId passed into function')
+  if (!userId) throw new GraphQLError('No userId passed into function')
   if (responsibilityId) {
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
@@ -30,15 +30,15 @@ export async function updateGroupResponsibility ({ responsibilityId, title, desc
         return groupResponsibility.save(updatedAttributes, { transacting }).then((savedGroupResponsibility) => savedGroupResponsibility)
       })
     } else {
-      throw new GraphQLYogaError('User doesn\'t have required privileges to update a group responsibility')
+      throw new GraphQLError('User doesn\'t have required privileges to update a group responsibility')
     }
   } else {
-    throw new GraphQLYogaError(`Invalid/undefined parameters to update group responsibility: received ${JSON.stringify({ groupId, title, responsibilityId })}`)
+    throw new GraphQLError(`Invalid/undefined parameters to update group responsibility: received ${JSON.stringify({ groupId, title, responsibilityId })}`)
   }
 }
 
 export async function deleteGroupResponsibility ({ responsibilityId, userId, groupId }) {
-  if (!userId) throw new GraphQLYogaError('No userId passed into function')
+  if (!userId) throw new GraphQLError('No userId passed into function')
 
   if (responsibilityId) {
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
@@ -50,29 +50,29 @@ export async function deleteGroupResponsibility ({ responsibilityId, userId, gro
         .fetch()
       return groupRoleResponsibility.destroy()
     } else {
-      throw new GraphQLYogaError('User doesn\'t have required privileges to delete a group responsibility')
+      throw new GraphQLError('User doesn\'t have required privileges to delete a group responsibility')
     }
   } else {
-    throw new GraphQLYogaError(`Invalid/undefined parameters to delete group responsibility: received ${JSON.stringify({ groupId, responsibilityId })}`)
+    throw new GraphQLError(`Invalid/undefined parameters to delete group responsibility: received ${JSON.stringify({ groupId, responsibilityId })}`)
   }
 }
 
 export async function addResponsibilityToRole ({ userId, responsibilityId, roleId, groupId }) {
-  if (!userId) throw new GraphQLYogaError('No userId passed into function')
+  if (!userId) throw new GraphQLError('No userId passed into function')
   if (responsibilityId && roleId && groupId) {
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
       return GroupRoleResponsibility.forge({ group_role_id: roleId, responsibility_id: responsibilityId }).save().then((savedRoleResponsibility) => savedRoleResponsibility)
     } else {
-      throw new GraphQLYogaError('User doesn\'t have required privileges to add responsibility to role')
+      throw new GraphQLError('User doesn\'t have required privileges to add responsibility to role')
     }
   } else {
-    throw new GraphQLYogaError(`Invalid/undefined parameters to add responsibility to role: received ${JSON.stringify({ responsibilityId, roleId, groupId })}`)
+    throw new GraphQLError(`Invalid/undefined parameters to add responsibility to role: received ${JSON.stringify({ responsibilityId, roleId, groupId })}`)
   }
 }
 
 export async function removeResponsibilityFromRole ({ userId, roleResponsibilityId, groupId }) {
-  if (!userId) throw new GraphQLYogaError('No userId passed into function')
+  if (!userId) throw new GraphQLError('No userId passed into function')
 
   if (roleResponsibilityId && groupId) {
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
@@ -83,9 +83,9 @@ export async function removeResponsibilityFromRole ({ userId, roleResponsibility
         .fetch()
       return roleResponsibility.destroy()
     } else {
-      throw new GraphQLYogaError('User doesn\'t have required privileges to remove responsibility from role')
+      throw new GraphQLError('User doesn\'t have required privileges to remove responsibility from role')
     }
   } else {
-    throw new GraphQLYogaError(`Invalid/undefined parameters to remove responsibility from role: received ${JSON.stringify({ roleResponsibilityId, groupId })}`)
+    throw new GraphQLError(`Invalid/undefined parameters to remove responsibility from role: received ${JSON.stringify({ roleResponsibilityId, groupId })}`)
   }
 }

@@ -1,0 +1,136 @@
+.topicNavigation {
+  padding: 32px 12.5px 0 12.5px;
+  color: $color-rhino-60;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  color: $color-rhino-60;
+  margin-bottom: 14px;
+  padding-right: $space-2x;
+
+  a {
+    color: $color-rhino-60;
+    vertical-align: top;
+  }
+
+  a:hover {
+    text-decoration: none;
+  }
+}
+
+.title {
+  flex: 1;
+  vertical-align: top;
+  color: rgba(34, 64, 88, 1.0);
+
+  a, a:hover {
+    color: $color-rhino-60;
+    text-decoration: none;
+  }
+}
+
+.topics {
+  list-style: none;
+  padding: 0 0 0 0;
+  line-height: 27px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: opacity .3s ease;
+  color: $color-rhino-60;
+}
+
+.topics::-webkit-scrollbar {
+  background-color:transparent;
+  width: 5px;
+  border-radius: 5px;
+}
+
+.topics::-webkit-scrollbar-thumb {
+  background-color: rgba(200,200,200,.5   );
+  outline: none;
+  border-radius: 3px;
+}
+
+.topic {
+  position: relative;
+
+  a {
+    font-size: 14.5px;
+    color: $color-rhino-60;
+    text-decoration: none !important;
+  }
+  a:hover, a:active {
+    color: $color-rhino;
+    text-decoration: none !important;
+  }
+}
+
+.topic.pinned {
+  a {
+    color: $color-rhino;
+  }
+}
+
+.topicLink {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.icon {
+  margin-right: 24px;
+}
+
+.pinIcon {
+  color: $color-rhino;
+}
+
+.name {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge {
+  padding-right: 2px;
+  display: flex;
+  width: auto;
+}
+
+.closeIcon {
+  font-size: 14px;
+  margin-right: -1px;
+}
+
+.addTopic {
+  margin-left: 46px;
+  margin-bottom: $space-5x;
+  a, a:hover {
+    color: $color-caribbean-green;
+    text-decoration: none;
+  }
+}
+
+.allTopics {
+  font-size: 12px;
+  border: 1px solid rgba(37, 195, 159, .5);
+  padding: 5px 8px;
+  border-radius: 5px;
+}
+
+:global {
+  a.active-topic-nav-link {
+    padding: 5px 8px;
+    background-color: rgba(0, 118, 223, 0.1);
+    color: rgba(0, 118, 223, 1);
+    font-family: "Circular Bold", sans-serif;
+    border-radius: 5px;
+  }
+}

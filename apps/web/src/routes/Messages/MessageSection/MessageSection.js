@@ -1,12 +1,10 @@
-import cx from 'classnames'
 import { array, bool, func, object } from 'prop-types'
-import React from 'react'
+import React, { Component } from 'react'
 import { throttle, debounce } from 'lodash'
 import { get } from 'lodash/fp'
 import Loading from 'components/Loading'
 import Message from '../Message'
 import ClickCatcher from 'components/ClickCatcher'
-import classes from './MessageSection.module.scss'
 
 // the maximum amount of time in minutes that can pass between messages to still
 // include them under the same avatar and timestamp
@@ -35,23 +33,31 @@ function createMessageList (messages, lastSeenAt) {
   }, [])
 }
 
-export default class MessageSection extends React.Component {
+export default class MessageSection extends Component {
   constructor (props) {
     super(props)
-
     this.state = {
       visible: true,
+      showNewMessageButton: false,
       onNextVisible: null
     }
-    this.list = React.createRef()
   }
 
   componentDidMount () {
-    const { socket, fetchMessages } = this.props
-    this.scrollToBottom()
+    const { socket, fetchMessages, messageThread, updateThreadReadTime } = this.props
     this.reconnectHandler = () => fetchMessages()
     socket && socket.on('reconnect', this.reconnectHandler)
     document && document.addEventListener('visibilitychange', this.handleVisibilityChange)
+    this.setupScrollHandler()
+    // Check if we're already at bottom after initial render
+    setTimeout(() => {
+      this.scrollToBottom()
+      const container = document.querySelector('#message-list')
+      if (container && this.atBottom(container)) {
+        this.markAsRead()
+        if (messageThread) updateThreadReadTime(messageThread.id)
+      }
+    }, 100)
   }
 
   componentWillUnmount () {
@@ -67,10 +73,6 @@ export default class MessageSection extends React.Component {
     const oldMessages = this.props.messages
     const deltaLength = Math.abs(messages.length - oldMessages.length)
 
-    // Note: we write directly to the object here rather than using setState.
-    // This avoids an automatic re-render on scroll, and any inconsistencies
-    // owing to the async nature of setState and/or setState batching.
-
     this.shouldScroll = false
 
     if (deltaLength) {
@@ -80,18 +82,65 @@ export default class MessageSection extends React.Component {
       // Are additional messages old (at the beginning of the sorted array)?
       if (this.props.hasMore && get('id', latest) === get('id', oldLatest)) return
 
+      const messageList = document.querySelector('#message-list')
+      if (messageList) {
+        const isScrolledUp = messageList.scrollTop < (messageList.scrollHeight - messageList.clientHeight - 100)
+        const isFromOtherUser = get('creator.id', latest) !== get('id', currentUser)
+
+        if (isScrolledUp && isFromOtherUser) {
+          this.setState({ showNewMessageButton: true })
+          return
+        }
+      }
+
       // If there's one new message, it's not from currentUser,
       // and we're not already at the bottom, don't scroll
       if (deltaLength === 1 &&
         get('creator.id', latest) !== get('id', currentUser) &&
-        !this.atBottom(this.list.current)) return
+        !this.atBottom(document.querySelector('#message-list'))) return
 
       this.shouldScroll = true
     }
   }
 
   componentDidUpdate (prevProps) {
-    if (this.shouldScroll) this.scrollToBottom()
+    if (this.shouldScroll) setTimeout(() => this.scrollToBottom(), 200)
+
+    const { currentUser, messages, pending, hasMore } = this.props
+    // Skip if loading
+    if (pending) return
+
+    const deltaLength = Math.abs(messages.length - prevProps.messages.length)
+
+    if (deltaLength) {
+      const latest = messages[messages.length - 1]
+      const oldLatest = prevProps.messages[prevProps.messages.length - 1]
+
+      // Are additional messages old (at the beginning of the sorted array)?
+      if (hasMore && get('id', latest) === get('id', oldLatest)) return
+
+      const centerColumn = document.querySelector('#message-list')
+      if (centerColumn) {
+        const isScrolledUp = centerColumn.scrollTop < (centerColumn.scrollHeight - centerColumn.clientHeight - 100)
+        const isFromOtherUser = get('creator.id', latest) !== get('id', currentUser)
+        // If we're at the bottom or the message is from the current user, auto-scroll
+        if (!isScrolledUp || !isFromOtherUser) {
+          centerColumn.scrollTop = centerColumn.scrollHeight
+          this.setState({ showNewMessageButton: false })
+        } else if (isFromOtherUser) {
+          // If we're scrolled up and it's from another user, show the button
+          this.setState({ showNewMessageButton: true })
+        }
+      }
+    }
+
+    // If messages changed (new messages loaded)
+    if (prevProps.messages !== this.props.messages) {
+      const container = document.querySelector('#message-list')
+      if (container && this.atBottom(container)) {
+        this.markAsRead()
+      }
+    }
   }
 
   atBottom = ({ offsetHeight, scrollHeight, scrollTop }) =>
@@ -122,7 +171,10 @@ export default class MessageSection extends React.Component {
   detectScrollExtremes = throttle(target => {
     if (this.props.pending) return
     // Marks entire thread as read if we've seen the last message
-    if (this.atBottom(target)) this.markAsRead()
+    if (this.atBottom(target)) {
+      this.markAsRead()
+      this.setState({ showNewMessageButton: false })
+    }
     if (target.scrollTop <= 150) this.fetchMore()
   }, 500, { trailing: true })
 
@@ -131,12 +183,18 @@ export default class MessageSection extends React.Component {
   }
 
   scrollToBottom = () => {
-    this.list.current.scrollTop = this.list.current.scrollHeight
-    if (this.state.visible) {
-      this.markAsRead()
-    } else {
-      this.setState({ onNextVisible: this.markAsRead })
+    const messageList = document.querySelector('#message-list')
+    if (messageList) {
+      // Set scrollTop to scrollHeight to scroll to the bottom
+      messageList.scrollTop = messageList.scrollHeight
+      if (this.state.visible) {
+        this.markAsRead()
+      } else {
+        this.setState({ onNextVisible: this.markAsRead })
+      }
+      this.setState({ showNewMessageButton: false })
     }
+    this.shouldScroll = false
   }
 
   markAsRead = debounce(() => {
@@ -144,23 +202,39 @@ export default class MessageSection extends React.Component {
     if (messageThread) updateThreadReadTime(messageThread.id)
   }, 2000)
 
+  setupScrollHandler = () => {
+    const centerColumn = document.querySelector('#message-list')
+    if (centerColumn) {
+      centerColumn.addEventListener('scroll', this.handleScroll)
+    }
+  }
+
   render () {
     const { messages, pending, messageThread } = this.props
+    const { showNewMessageButton } = this.state
 
     return (
-      <div
-        className={cx(classes.messagesSection)}
-        ref={this.list}
-        onScroll={this.handleScroll}
-        data-testid='message-section'
-      >
+      <div id='message-list' className='w-full overflow-y-auto mx-3 relative flex-1' onScroll={this.handleScroll} data-testid='message-section'>
         {pending && <Loading />}
-        {!pending &&
-          <div className={cx(classes.messagesSectionInner)}>
-            <ClickCatcher>
-              {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
-            </ClickCatcher>
-          </div>}
+        {!pending && (
+          <>
+            <div className='max-w-[750px] mx-auto pt-[20px] mt-auto flex flex-col justify-end'>
+              <ClickCatcher>
+                {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
+              </ClickCatcher>
+            </div>
+            {showNewMessageButton && (
+              <div className='sticky bottom-20 w-full flex justify-center' style={{ position: '-webkit-sticky' }}>
+                <button
+                  onClick={this.scrollToBottom}
+                  className='bg-primary text-white px-4 py-2 rounded-full shadow-lg hover:bg-primary/90 transition-all z-50'
+                >
+                  New Messages
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     )
   }

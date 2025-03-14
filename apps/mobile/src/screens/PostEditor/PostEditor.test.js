@@ -181,19 +181,10 @@ describe('PostEditor', () => {
         </TestRoot>
       )
     })
-    jest.mock('util/toast', () => ({
-      showToast: jest.fn(),
-      hideToast: jest.fn()
-    }))
     const root = renderer.root
     const component = root.findByType(PostEditor)
     const instance = component.instance
 
-    expect(instance.toast).not.toBeDefined()
-    await act(async () => {
-      await instance.handleToggleAnnouncement()
-    })
-    expect(instance.toast).toBeDefined()
     expect(instance.state.announcementEnabled).toBeTruthy()
     await act(async () => {
       await instance.handleToggleAnnouncement()

@@ -1,17 +1,23 @@
 import React, { useState } from 'react'
 import { ScrollView, Text, TextInput, View, TouchableOpacity } from 'react-native'
-import { useDispatch } from 'react-redux'
+import { gql, useMutation } from 'urql'
 import { useNavigation } from '@react-navigation/native'
-import validator from 'validator'
-import EntypoIcon from 'react-native-vector-icons/Entypo'
-import sendPasswordReset from 'store/actions/sendPasswordReset'
-import styles from './ForgotPassword.styles'
 import { useTranslation } from 'react-i18next'
+import EntypoIcon from 'react-native-vector-icons/Entypo'
+import validator from 'validator'
+import FormattedError from 'components/FormattedError/FormattedError'
+import styles from './ForgotPassword.styles'
 
 export default function ForgotPassword ({ error }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const dispatch = useDispatch()
+  const [, sendPasswordReset] = useMutation(gql`
+    mutation SendPasswordReset ($email: String!) {
+      sendPasswordReset(email: $email) {
+        success
+      }
+    }
+  `)
   const [emailIsValid, setEmailIsValid] = useState(false)
   const [email, providedSetEmail] = useState()
 
@@ -21,7 +27,7 @@ export default function ForgotPassword ({ error }) {
   }
 
   const handleSubmit = async () => {
-    await dispatch(sendPasswordReset(email))
+    await sendPasswordReset(email)
 
     navigation.navigate('Login', {
       bannerMessage: t('A link to reset your password has been sent to you at {{email}}', { email })
@@ -36,7 +42,7 @@ export default function ForgotPassword ({ error }) {
         </Text>
       </View>
       {error && (
-        <FormError />
+        <FormattedError error={error} />
       )}
       {!error && (
         <View style={styles.labelRow}>
@@ -69,20 +75,5 @@ export default function ForgotPassword ({ error }) {
         </TouchableOpacity>
       </View>
     </ScrollView>
-  )
-}
-
-export function FormError () {
-  const { t } = useTranslation()
-  const rowStyle = styles.emailErrorRow
-  const triangleStyle = styles.emailTriangle
-  const message = t('Password is invalid or unknown error')
-  return (
-    <View style={styles.errorView}>
-      <View style={rowStyle}>
-        <Text style={styles.errorMessage}>{message}</Text>
-      </View>
-      <View style={triangleStyle} />
-    </View>
   )
 }

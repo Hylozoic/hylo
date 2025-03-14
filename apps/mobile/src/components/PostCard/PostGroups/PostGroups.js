@@ -1,25 +1,24 @@
-import React, { useState } from 'react'
-import { isEmpty } from 'lodash/fp'
+import React, { useCallback, useState } from 'react'
 import { Text, View, TouchableOpacity } from 'react-native'
-import { PUBLIC_GROUP } from 'store/models/Group'
+import { useTranslation } from 'react-i18next'
+import { isEmpty } from 'lodash/fp'
+import { useContextGroups } from '@hylo/hooks/useCurrentGroup'
+import useChangeToGroup from 'hooks/useChangeToGroup'
 import GroupsList from 'components/GroupsList'
 import Icon from 'components/Icon'
 import { caribbeanGreen, rhino40 } from 'style/colors'
-import { useTranslation } from 'react-i18next'
 
 export default function PostGroups ({
-  goToGroup,
   groups: providedGroups,
   includePublic,
   style
 }) {
   const { t } = useTranslation()
+  const { publicContext } = useContextGroups()
   const [expanded, setExpanded] = useState(false)
   const toggleExpanded = () => setExpanded(!expanded)
 
-  const groups = includePublic
-    ? [...providedGroups, PUBLIC_GROUP]
-    : providedGroups
+  const groups = includePublic ? [...providedGroups, publicContext] : providedGroups
 
   // don't show if there are no groups or there is exactly 1 group and the flag isn't set
   if (isEmpty(groups)) {
@@ -32,11 +31,7 @@ export default function PostGroups ({
         <View style={styles.row}>
           <Text style={styles.reminderText}>{t('Posted In')} </Text>
           {!expanded && (
-            <GroupsListSummary
-              expandFunc={toggleExpanded}
-              groups={groups}
-              goToGroup={goToGroup}
-            />
+            <GroupsListSummary groups={groups} />
           )}
           <Icon
             name={expanded ? 'ArrowUp' : 'ArrowDown'}
@@ -45,20 +40,28 @@ export default function PostGroups ({
         </View>
       </TouchableOpacity>
       {expanded && (
-        <GroupsList style={[style, { backgroundColor: 'transparent' }]} groups={groups} onPress={goToGroup} />
+        <GroupsList
+          style={[style, { backgroundColor: 'transparent' }]}
+          groups={groups}
+        />
       )}
     </View>
   )
 }
 
-export function GroupsListSummary ({ groups, goToGroup, expandFunc }) {
+export function GroupsListSummary ({ groups }) {
   const { t } = useTranslation()
+  const changeToGroup = useChangeToGroup()
+  const changeToFirstGroup = useCallback(
+    slug => changeToGroup(groups[0].slug, { confirm: true }),
+    [groups[0].slug]
+  )
   const moreGroups = groups.length > 1
   const othersText = n => (n === 1 ? t('1 other') : `${n} ${t('others')}`)
 
   return (
     <View style={[styles.groupList, styles.row]}>
-      <TouchableOpacity onPress={() => goToGroup && goToGroup(groups[0].slug)}>
+      <TouchableOpacity onPress={changeToFirstGroup}>
         <Text style={styles.linkText} numberOfLines={1}>
           {groups[0].name}
         </Text>

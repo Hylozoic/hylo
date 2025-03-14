@@ -1,13 +1,13 @@
-import React, { useEffect } from 'react'
-import { useSelector } from 'react-redux'
+import React from 'react'
 import { useNavigation } from '@react-navigation/native'
-import getCurrentGroup from 'store/selectors/getCurrentGroup'
+import { ALL_GROUPS_CONTEXT_SLUG } from '@hylo/shared'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import HyloWebView from 'components/HyloWebView'
 
 export default function AllTopicsWebView () {
   const navigation = useNavigation()
-  const currentGroup = useSelector(getCurrentGroup)
-  const path = currentGroup?.slug === 'all'
+  const [{ currentGroup }] = useCurrentGroup()
+  const path = currentGroup?.slug === ALL_GROUPS_CONTEXT_SLUG
     ? `/${currentGroup?.slug}/topics`
     : `/groups/${currentGroup?.slug}/topics`
 
@@ -16,13 +16,9 @@ export default function AllTopicsWebView () {
       navigation.navigate('Stream', { topicName })
     },
     '(.*)/topics/:topicName': ({ routeParams: { topicName } }) => {
-      navigation.navigate('Chat', { topicName })
+      navigation.navigate('Chat Room', { topicName })
     }
   })
-
-  useEffect(() => {
-    navigation.setOptions({ headerTitle: currentGroup?.name })
-  }, [currentGroup?.name])
 
   return (
     <HyloWebView

@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { groupBy } from 'lodash'
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -59,7 +59,7 @@ export default function FarmMapWidget ({ group, items }) {
       }
 
       return (
-        <div className={cx(classes.postTip, type)} style={{ left: pointerX + 15, top: pointerY }}>
+        <div className={cn(classes.postTip, type)} style={{ left: pointerX + 15, top: pointerY }}>
           {message}
         </div>
       )

@@ -1,7 +1,6 @@
 'use strict'
 
 exports.seed = function (knex, Promise) {
-
   // create records to be loaded
   const responsibilitiesData = [
     {
@@ -44,6 +43,16 @@ exports.seed = function (knex, Promise) {
     }
   ]
 
+  const commonRoleResponsibilitiesData = [
+    { common_role_id: 1, responsibility_id: 1 },
+    { common_role_id: 1, responsibility_id: 2 },
+    { common_role_id: 1, responsibility_id: 3 },
+    { common_role_id: 1, responsibility_id: 4 },
+    { common_role_id: 2, responsibility_id: 3 },
+    { common_role_id: 2, responsibility_id: 4 },
+    { common_role_id: 3, responsibility_id: 2 }
+  ]
+
   const initialStarterGroup = {
     name: 'starter-posts',
     slug: 'starter-posts',
@@ -80,7 +89,7 @@ exports.seed = function (knex, Promise) {
     banner_url: 'https://d3ngex8q79bk55.cloudfront.net/misc/default_user_banner.jpg',
     extra_info: '[www.hylo.com](http://www.hylo.com/)',
     new_notification_count: 0,
-    settings: '{"locale": "en", "digest_frequency": "daily", "dm_notifications": "email", "post_notifications": "important", "comment_notifications": "email"}',
+    settings: '{"locale": "en", "dm_notifications": "email", "comment_notifications": "email"}',
     url: 'http://www.hylo.com/'
   }
 
@@ -109,8 +118,9 @@ exports.seed = function (knex, Promise) {
     .then(() => knex('linked_account').del())
     .then(() => knex('group_memberships').del())
     .then(() => knex('group_widgets').del())
+    .then(() => knex('posts_users').del())
     .then(() => knex('posts').del())
-    .then( async () => {
+    .then(async () => {
       await knex('groups').del()
       await knex.raw('ALTER SEQUENCE groups_id_seq RESTART WITH 1')
       await knex('groups').insert(initialStarterGroup)
@@ -122,6 +132,10 @@ exports.seed = function (knex, Promise) {
       await knex('common_roles').del()
       await knex.raw('ALTER SEQUENCE common_roles_id_seq RESTART WITH 1')
       await knex('common_roles').insert(commonRolesData)
+
+      await knex('common_roles_responsibilities').del()
+      await knex.raw('ALTER SEQUENCE common_roles_responsibilities_id_seq RESTART WITH 1')
+      await knex('common_roles_responsibilities').insert(commonRoleResponsibilitiesData)
 
       await knex('widgets').del()
       await knex.raw('ALTER SEQUENCE widgets_id_seq RESTART WITH 1')

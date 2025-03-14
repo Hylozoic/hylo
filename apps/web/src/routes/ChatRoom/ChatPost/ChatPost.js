@@ -1,20 +1,18 @@
-import cx from 'classnames'
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
-import moment from 'moment-timezone'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { DateTime } from 'luxon'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import ReactPlayer from 'react-player'
 import { useLongPress } from 'use-long-press'
 import Avatar from 'components/Avatar'
-import Button from 'components/Button'
-import BadgeEmoji from 'components/BadgeEmoji'
 import ClickCatcher from 'components/ClickCatcher'
 import CardFileAttachments from 'components/CardFileAttachments'
+import CardImageAttachments from 'components/CardImageAttachments'
 import EmojiRow from 'components/EmojiRow'
 import EmojiPicker from 'components/EmojiPicker'
-import FlagContent from 'components/FlagContent'
+import FlagGroupContent from 'components/FlagGroupContent'
 import Highlight from 'components/Highlight'
 import HyloEditor from 'components/HyloEditor'
 import HyloHTML from 'components/HyloHTML'
@@ -22,17 +20,18 @@ import Icon from 'components/Icon'
 import Feature from 'components/PostCard/Feature'
 import LinkPreview from 'components/LinkPreview'
 import RoundImageRow from 'components/RoundImageRow'
+import Tooltip from 'components/Tooltip'
 import useReactionActions from 'hooks/useReactionActions'
+import useViewPostDetails from 'hooks/useViewPostDetails'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
-import { bgImageStyle } from 'util/index'
 import isWebView from 'util/webView'
 import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
-import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { personUrl, postUrl } from 'util/navigation'
+import { groupUrl, personUrl } from 'util/navigation'
+import { cn } from 'util/index'
 
 import styles from './ChatPost.module.scss'
 
@@ -40,10 +39,13 @@ export default function ChatPost ({
   className,
   group,
   highlightProps,
+  highlighted,
   post,
   showHeader = true,
   onAddReaction = () => {},
-  onRemoveReaction = () => {}
+  onFlagPost = () => {},
+  onRemoveReaction = () => {},
+  onRemovePost = () => {}
 }) {
   const {
     commenters,
@@ -55,7 +57,6 @@ export default function ChatPost ({
     fileAttachments,
     groups, // TODO: why pass this in, why not pull from getGroupFromSlug?
     id,
-    imageAttachments,
     linkPreview,
     linkPreviewFeatured,
     myReactions,
@@ -64,9 +65,6 @@ export default function ChatPost ({
 
   const dispatch = useDispatch()
   const { t } = useTranslation()
-  const routeParams = useParams()
-  const location = useLocation()
-  const querystringParams = new URLSearchParams(location.search)
   const navigate = useNavigate()
   const ref = useRef()
   const editorRef = useRef()
@@ -82,7 +80,7 @@ export default function ChatPost ({
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
 
   const isCreator = currentUser.id === creator.id
-  const creatorRoles = useSelector(state => getRolesForGroup(state, { person: creator, groupId: group.id }))
+  const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.includes(group.id), [group, post.flaggedGroups])
 
   const groupIds = groups.map(g => g.id)
 
@@ -109,9 +107,7 @@ export default function ChatPost ({
 
   const updatePostAction = useCallback((post) => dispatch(updatePost(post)), [])
 
-  const showDetails = useCallback((postId) => {
-    navigate(postUrl(postId, routeParams, { ...location.state, ...querystringParams }))
-  }, [routeParams, location.state, querystringParams])
+  const viewPostDetails = useViewPostDetails()
 
   const bindLongPress = useLongPress(() => {
     setIsLongPress(false)
@@ -121,24 +117,24 @@ export default function ChatPost ({
     }
   })
 
-  const showPost = () => {
-    showDetails(id)
+  const showPost = useCallback(() => {
+    viewPostDetails(post)
     setIsLongPress(false)
-  }
+  }, [post, viewPostDetails])
 
-  const showCreator = event => {
+  const showCreator = useCallback((event) => {
     event.stopPropagation()
-    navigate(personUrl(creator.id))
-  }
+    navigate(personUrl(creator.id, group.slug))
+  }, [creator.id, group.slug])
 
-  const editPost = event => {
+  const editPost = useCallback((event) => {
     setEditing(true)
     setTimeout(() => {
       editorRef.current.focus('end')
     }, 500)
     event.stopPropagation()
     return true
-  }
+  }, [])
 
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
   const handleReaction = (emojiFull) => {
@@ -151,11 +147,11 @@ export default function ChatPost ({
     onRemoveReaction(post, emojiFull)
   }
 
-  const handleEditCancel = () => {
+  const handleEditCancel = useCallback(() => {
     editorRef.current.setContent(details)
     setEditing(false)
     return true
-  }
+  }, [details])
 
   const handleEditSave = contentHTML => {
     if (editorRef.current.isEmpty()) {
@@ -173,23 +169,24 @@ export default function ChatPost ({
   }
 
   const deletePostWithConfirm = useCallback((event) => {
-    if (window.confirm('Are you sure you want to delete this post? You cannot undo this.')) {
+    if (window.confirm(t('Are you sure you want to delete this post? You cannot undo this.'))) {
       dispatch(deletePost(id, group.id))
+      onRemovePost(post.id)
     }
     event.stopPropagation()
     return true
   })
 
   const removePostWithConfirm = useCallback((event) => {
-    if (window.confirm('Are you sure you want to remove this post? You cannot undo this.')) {
+    if (window.confirm(t('Are you sure you want to remove this post? You cannot undo this.'))) {
       dispatch(removePost(id, group.slug))
+      onRemovePost(post.id)
     }
     event.stopPropagation()
     return true
   })
 
   const actionItems = filter(item => isFunction(item.onClick), [
-    // { icon: 'Pin', label: pinned ? 'Unpin' : 'Pin', onClick: pinPost },
     // { icon: 'Copy', label: 'Copy Link', onClick: copyLink },
     { icon: 'Replies', label: 'Reply', onClick: showPost },
     // TODO: Edit disabled in mobile environments due to issue with keyboard management and autofocus of field
@@ -199,9 +196,11 @@ export default function ChatPost ({
     { icon: 'Trash', label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true }
   ])
 
-  const myEmojis = myReactions ? myReactions.map((reaction) => reaction.emojiFull) : []
+  const myEmojis = useMemo(() => myReactions ? myReactions.map((reaction) => reaction.emojiFull) : [], [myReactions])
 
   const commenterAvatarUrls = commenters.map(p => p.avatarUrl)
+
+  const moderationActionsGroupUrl = group && groupUrl(group.slug, 'moderation')
 
   const handleMouseEnter = () => {
     setIsHovered(true)
@@ -226,62 +225,63 @@ export default function ChatPost ({
   return (
     <Highlight {...highlightProps}>
       <div
-        className={cx(className, styles.container, {
-          [styles.longPressed]: isLongPress,
-          [styles.hovered]: isHovered
-        })}
+        className={cn(
+          'ChatPost_container rounded-lg pl-[20px] relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer mb-1',
+          className,
+          styles.container,
+          {
+            [styles.longPressed]: isLongPress,
+            [styles.hovered]: isHovered,
+            'bg-accent/30': highlighted
+          }
+        )}
         ref={ref}
         {...bindLongPress()}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <div className={styles.actionBar}>
+        <div className='flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-theme-background opacity-0 group-hover:opacity-100 delay-300 scale-0 group-hover:scale-100'>
           {actionItems.map(item => (
-            <Button
+            <button
               key={item.label}
-              noDefaultStyles
-              borderRadius='0'
               onClick={item.onClick}
-              className={styles.actionItem}
+              className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
             >
               <Icon name={item.icon} />
-            </Button>
+            </button>
           ))}
           <EmojiPicker
-            className={styles.actionItem}
+            className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
             handleReaction={handleReaction}
             handleRemoveReaction={handleRemoveReaction}
             myEmojis={myEmojis}
             onOpenChange={handleEmojiPickerOpen}
           />
           {flaggingVisible && (
-            <FlagContent
+            <FlagGroupContent
               type='post'
               linkData={{ id, slug: group.slug, type: 'post' }}
               onClose={() => setFlaggingVisible(false)}
+              onFlag={() => onFlagPost({ post })}
             />
           )}
         </div>
 
         {showHeader && (
-          <div className={styles.header} onClick={handleClick}>
-            <div onClick={showCreator} className={styles.author}>
-              <Avatar avatarUrl={creator.avatarUrl} className={styles.avatar} />
-              <div className={styles.name}>{creator.name}</div>
-              <div className={styles.badgeRow}>
-                {creatorRoles.map(role => (
-                  <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={post.id} />
-                ))}
-              </div>
+          <div className='flex justify-between items-center relative z-0' onClick={handleClick}>
+            <div onClick={showCreator} className='flex items-center gap-2 relative -left-[24px]'>
+              <Avatar avatarUrl={creator.avatarUrl} large />
+              <div className='w-full font-bold'>{creator.name}</div>
             </div>
-            <div className={styles.date}>
-              {moment(createdAt).format('h:mm a')}
-              {editedAt && <span>&nbsp;({t('edited')} {moment(editedAt).format('h:mm a')})</span>}
+            <div className='text-xs text-foreground/50'>
+              {DateTime.fromISO(createdAt).toFormat('t')}
+              {editedAt && <span>&nbsp;({t('edited')} {DateTime.fromISO(editedAt).toFormat('t')})</span>}
             </div>
           </div>
         )}
         {details && editing && (
           <HyloEditor
+            containerClassName={styles.postContentContainer}
             contentHTML={details}
             groupIds={groupIds}
             onEscape={handleEditCancel}
@@ -289,36 +289,33 @@ export default function ChatPost ({
             placeholder='Edit Post'
             ref={editorRef}
             showMenu={!isWebView()}
-            className={cx(styles.postContentContainer, styles.editing, styles.postContent)}
+            className={cn(styles.editing, styles.postContent)}
           />
         )}
         {details && !editing && (
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
-            <div className={styles.postContentContainer}>
-              <HyloHTML className={styles.postContent} html={details} />
+            <div className={cn(styles.postContentContainer, { [styles.isFlagged]: isFlagged })}>
+              <HyloHTML className={cn(styles.postContent, 'global-postContent')} html={details} />
             </div>
           </ClickCatcher>
         )}
+        {isFlagged && <Link to={moderationActionsGroupUrl} className='absolute top-[calc(50%-14px)] ml-[50%] text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='flag-tt'><Icon name='Flag' className='text-xl text-accent font-bold' /></Link>}
+        <Tooltip
+          delay={250}
+          id='flag-tt'
+        />
         {linkPreview?.url && linkPreviewFeatured && isVideo && (
           <Feature url={linkPreview.url} />
         )}
         {linkPreview && !linkPreviewFeatured && (
           <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className={styles.linkPreview} />
         )}
-        {!isEmpty(imageAttachments) && (
-          <div className={styles.images} onClick={handleClick}>
-            <div className={styles.imagesInner}>
-              {imageAttachments.map(image =>
-                <a href={image.url} className={styles.image} target='_blank' rel='noreferrer' key={image.url}>
-                  <div className={styles.imageInner} style={bgImageStyle(image.url)} role='img' aria-label={image.url} />
-                </a>)}
-            </div>
-          </div>)}
+        <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} forChatPost />
         {!isEmpty(fileAttachments) && (
           <CardFileAttachments attachments={fileAttachments} />
         )}
         <EmojiRow
-          className={cx(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
+          className={cn(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
           post={post}
           currentUser={currentUser}
           onAddReaction={onAddReaction}

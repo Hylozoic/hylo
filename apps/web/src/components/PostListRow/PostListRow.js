@@ -1,17 +1,21 @@
+import { isEmpty } from 'lodash/fp'
+import { DateTime } from 'luxon'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import cx from 'classnames'
-import Moment from 'moment-timezone'
 
-import { isEmpty } from 'lodash/fp'
-import { personUrl, topicUrl } from 'util/navigation'
 import Avatar from 'components/Avatar'
 import EmojiRow from 'components/EmojiRow'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
+import useRouteParams from 'hooks/useRouteParams'
+import useViewPostDetails from 'hooks/useViewPostDetails'
+import { cn } from 'util/index'
+import { personUrl, topicUrl } from 'util/navigation'
+
 import classes from './PostListRow.module.scss'
+import { sameDay } from 'components/Calendar/calendar-util'
 
 // :SHONK: no idea why React propagates events from child elements but NOT IN OTHER COMPONENTS
 const stopEvent = (e) => e.stopPropagation()
@@ -19,13 +23,12 @@ const stopEvent = (e) => e.stopPropagation()
 const PostListRow = (props) => {
   const {
     childPost,
-    routeParams,
     currentGroupId,
     post,
-    showDetails,
     expanded,
     currentUser
   } = props
+
   const {
     title,
     details,
@@ -36,6 +39,9 @@ const PostListRow = (props) => {
   } = post
 
   const { t } = useTranslation()
+  const routeParams = useRouteParams()
+
+  const viewPostDetails = useViewPostDetails()
 
   if (!creator) { // PostCard guards against this, so it must be important? ;P
     return null
@@ -47,23 +53,28 @@ const PostListRow = (props) => {
   const creatorUrl = personUrl(creator.id, routeParams.slug)
   const numOtherCommentors = commentersTotal - 1
   const unread = false
-  const startTimeMoment = Moment(post.startTime)
+  const start = typeof post.startTime === 'string'
+    ? DateTime.fromISO(post.startTime)
+    : DateTime.fromJSDate(post.startTime)
+  const end = typeof post.endTime === 'string'
+    ? DateTime.fromISO(post.endTime)
+    : DateTime.fromJSDate(post.endTime)
+  const isSameDay = sameDay(start.toJSDate(), end.toJSDate())
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
   return (
-    <div className={cx(classes.postRow, { [classes.unread]: unread, [classes.expanded]: expanded })} onClick={showDetails}>
+    <div className={cn(classes.postRow, { [classes.unread]: unread, [classes.expanded]: expanded })} onClick={() => viewPostDetails(post)}>
       <div className={classes.contentSummary}>
         <div className={classes.typeAuthor}>
           {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
-          <div className={cx(classes.postType, classes[post.type])}>
+          <div className={cn(classes.postType, classes[post.type])}>
             <Icon name={typeName} />
           </div>
           <div className={classes.participants}>
             {post.type === 'event'
               ? (
                 <div className={classes.date}>
-                  <span>{startTimeMoment.format('MMM')}</span>
-                  <span>{startTimeMoment.format('D')}</span>
+                  <span>{isSameDay ? start.toFormat('MMM d') : `${start.toFormat('MMM d')} - ${end.toFormat('MMM d')}`}</span>
                 </div>
                 )
               : (
@@ -93,7 +104,7 @@ const PostListRow = (props) => {
               />
             </div>
           )}
-          <div className={cx(classes.timestamp, { [classes.pushToRight]: !childPost })}>
+          <div className={cn(classes.timestamp, { [classes.pushToRight]: !childPost })}>
             {createdTimestamp}
           </div>
         </div>
@@ -103,8 +114,8 @@ const PostListRow = (props) => {
               <Link className={classes.topic} to={topicUrl(t.name, { groupSlug: routeParams.slug })} key={t.name} onClick={stopEvent}>#{t.name}</Link>)}
           </div>
         )}
-        <div className={cx({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
-          <h3 className={cx(classes.title)}>{title}</h3>
+        <div className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+          <h3 className={cn(classes.title)}>{title}</h3>
           <HyloHTML className={classes.details} html={details} />
         </div>
         <div className={classes.reactions}>

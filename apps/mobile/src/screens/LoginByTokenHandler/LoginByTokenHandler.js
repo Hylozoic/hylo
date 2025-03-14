@@ -1,19 +1,19 @@
 import React, { useCallback, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
+import { StackActions, useFocusEffect, useRoute } from '@react-navigation/native'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import loginByToken from 'store/actions/loginByToken'
 import loginByJWT from 'store/actions/loginByJWT'
-import { getAuthorized } from 'store/selectors/getAuthState'
-import { openURL } from 'hooks/useOpenURL'
-import { StackActions, useFocusEffect, useRoute } from '@react-navigation/native'
-import setReturnToOnAuthPath from 'store/actions/setReturnToOnAuthPath'
-import checkLogin from 'store/actions/checkLogin'
+import useLinkingStore from 'navigation/linking/store'
 import { navigationRef } from 'navigation/linking/helpers'
+import { openURL } from 'hooks/useOpenURL'
 import LoadingScreen from 'screens/LoadingScreen'
 
 export default function LoginByTokenHandler () {
   const route = useRoute()
   const dispatch = useDispatch()
-  const isAuthorized = useSelector(getAuthorized)
+  const { setReturnToOnAuthPath } = useLinkingStore()
+  const [{ isAuthorized, checkAuth }] = useAuth()
   const returnToURLFromLink = decodeURIComponent(route?.params?.n)
   const jwt = decodeURIComponent(route?.params?.token)
   const loginToken = decodeURIComponent(route?.params?.t || route?.params?.loginToken)
@@ -23,7 +23,7 @@ export default function LoginByTokenHandler () {
     useCallback(() => {
       (async function () {
         try {
-          dispatch(setReturnToOnAuthPath(returnToURLFromLink || '/'))
+          setReturnToOnAuthPath(returnToURLFromLink || '/')
 
           if (!isAuthorized) {
             if (jwt) {
@@ -31,7 +31,7 @@ export default function LoginByTokenHandler () {
 
               if (response?.error) throw response.error
 
-              await dispatch(checkLogin())
+              await checkAuth()
             } else if (loginToken && userID) {
               await dispatch(loginByToken(userID, loginToken))
             }
@@ -49,7 +49,7 @@ export default function LoginByTokenHandler () {
     if (navigationRef.canGoBack()) {
       navigationRef.dispatch(StackActions.pop())
     } else if (isAuthorized) {
-      openURL('/', true)
+      openURL('/', { reset: true })
     }
   }, [isAuthorized])
 

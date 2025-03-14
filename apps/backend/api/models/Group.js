@@ -1,6 +1,7 @@
 /* global GroupToGroupJoinQuestion, Location, Slack, Widget */
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
+import { GraphQLError } from 'graphql'
 import { clone, defaults, difference, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
 import mbxGeocoder from '@mapbox/mapbox-sdk/services/geocoding'
 import fetch from 'node-fetch'
@@ -18,8 +19,6 @@ import { whereId } from './group/queryUtils'
 import { es } from '../../lib/i18n/es'
 import { en } from '../../lib/i18n/en'
 
-const { GraphQLYogaError } = require('@graphql-yoga/node')
-
 const locales = { es, en }
 
 export const GROUP_ATTR_UPDATE_WHITELIST = [
@@ -30,8 +29,9 @@ export const GROUP_ATTR_UPDATE_WHITELIST = [
   'active'
 ]
 
-const DEFAULT_BANNER = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_banner.jpg'
-const DEFAULT_AVATAR = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png'
+// For files in the public directory, reference them with the base URL
+const DEFAULT_BANNER = '/default-group-banner.svg'
+const DEFAULT_AVATAR = '/default-group-avatar.svg'
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'groups',
@@ -82,6 +82,10 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
+  chatRooms () {
+    return this.hasMany(ContextWidget).where('type', 'chat')
+  },
+
   childGroups () {
     return this.belongsToMany(Group)
       .through(GroupRelationship, 'parent_group_id', 'child_group_id')
@@ -99,6 +103,10 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
+  contextWidgets () {
+    return this.hasMany(ContextWidget)
+  },
+
   creator: function () {
     return this.belongsTo(User, 'created_by_id')
   },
@@ -113,7 +121,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   groupRelationshipInvitesFrom () {
     return this.hasMany(GroupRelationshipInvite, 'from_group_id')
-      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending } })
+      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending  }})
   },
 
   groupRelationshipInvitesTo () {
@@ -149,7 +157,29 @@ module.exports = bookshelf.Model.extend(merge({
     return process.env.PROTOCOL + '://' + process.env.DOMAIN + '/noo/group/' + this.get('slug') + '/murmurations'
   },
 
-  isHidden () {
+  hasChatFor (topic) {
+    return this.chatRooms().where('view_chat_id', topic.id).fetch()
+  },
+
+  homeWidget () {
+    return ContextWidget.query(q => {
+      q.with('home_widget', qb => {
+        qb.from('context_widgets')
+          .where({
+            group_id: this.id,
+            type: 'home'
+          })
+          .select('id')
+      })
+        .from('context_widgets')
+        .whereRaw('parent_id = (select id from home_widget)')
+        .andWhere('group_id', this.id)
+        .orderBy('order', 'asc')
+        .limit(1)
+    }).fetch()
+  },
+
+  isHidden() {
     return this.get('visibility') === Group.Visibility.HIDDEN
   },
 
@@ -270,14 +300,8 @@ module.exports = bookshelf.Model.extend(merge({
       .query({ where: { 'posts.active': true } })
   },
 
-  postCount: function () {
-    return Post.query(q => {
-      q.select(bookshelf.knex.raw('count(*)'))
-      q.join('groups_posts', 'posts.id', 'groups_posts.post_id')
-      q.where({ 'groups_posts.group_id': this.id, active: true })
-    })
-      .fetch()
-      .then(result => result.get('count'))
+  postCount: function (includeChat) {
+    return Group.postCount(this.id, includeChat)
   },
 
   skills: function () {
@@ -359,6 +383,8 @@ module.exports = bookshelf.Model.extend(merge({
         active: true,
         role: GroupMembership.Role.DEFAULT,
         settings: {
+          postNotifications: 'all',
+          digestFrequency: 'daily',
           sendEmail: true,
           sendPushNotifications: true
         }
@@ -394,6 +420,7 @@ module.exports = bookshelf.Model.extend(merge({
       // Based on the role attribute, add or remove the user to the Coordinator common role
       // TODO: RESP, change this to directly pass in and set commonRoles, instead of the role attribute
       await MemberCommonRole.updateCoordinatorRole({ userId: id, groupId: this.id, role: updatedAttribs.role, transacting })
+
       // Subscribe each user to the default tags in the group
       await User.followTags(id, this.id, defaultTagIds, transacting)
     }
@@ -414,9 +441,9 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   createDefaultTopics: async function (group_id, user_id, transacting) {
-    return Tag.where({ name: 'general' }).fetch({ transacting })
-      .then(generalTag => {
-        return GroupTag.create({ updated_at: new Date(), group_id, tag_id: generalTag.get('id'), user_id, is_default: true }, { transacting })
+    return Tag.where({ name: 'home' }).fetch({ transacting })
+      .then(homeTag => {
+        return GroupTag.create({ updated_at: new Date(), group_id, tag_id: homeTag.get('id'), user_id, is_default: true }, { transacting })
       })
   },
 
@@ -497,18 +524,94 @@ module.exports = bookshelf.Model.extend(merge({
 
     const updatedAttribs = Object.assign(
       {},
-      { settings: {} },
-      pick(omitBy(attrs, isUndefined), GROUP_ATTR_UPDATE_WHITELIST)
+      pick(omitBy(attrs, isUndefined), GROUP_ATTR_UPDATE_WHITELIST),
+      { settings: { joinQuestionsAnsweredAt: null, showJoinForm: true } } // updateAndSave will leave the rest of the settings intact
     )
 
     return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, { transacting }))
+  },
+
+  async setupContextWidgets (trx) {
+    // First check if widgets already exist for this group
+    const existingWidgets = await ContextWidget.where({ group_id: this.id }).fetchAll({ transacting: trx })
+    if (existingWidgets.length > 0) {
+      return // Group already has widgets set up
+    }
+
+    // Create home widget first
+    // TODO: this should be default view instead of home
+    const homeWidget = await ContextWidget.forge({
+      group_id: this.id,
+      type: 'home',
+      title: 'widget-home',
+      order: 1,
+      created_at: new Date(),
+      updated_at: new Date()
+    }).save(null, { transacting: trx })
+
+    // Get home tag id for the home chat
+    const homeTag = await Tag.where({ name: 'home' }).fetch({ transacting: trx })
+
+    // XXX: make sure there is a home tag for every group
+    const homeGroupTag = await GroupTag.where({ group_id: this.id, tag_id: homeTag.id }).fetch({ transacting: trx })
+    if (!homeGroupTag) {
+      await GroupTag.create({ group_id: this.id, tag_id: homeTag.id, user_id: this.get('created_by_id'), is_default: true }, { transacting: trx })
+    }
+
+    // Create home chat widget as child of default view
+    await ContextWidget.forge({
+      group_id: this.id,
+      type: 'chat',
+      view_chat_id: homeTag.id,
+      parent_id: homeWidget.id,
+      order: 1,
+      created_at: new Date(),
+      updated_at: new Date()
+    }).save(null, { transacting: trx })
+
+    // These are displayed in the menu, with the caveat being that the auto-view is hidden until it has child views
+    const orderedWidgets = [
+      { title: 'widget-chats', type: 'chats', order: 2 },
+      { title: 'widget-auto-view', type: 'auto-view', order: 3 },
+      { title: 'widget-members', type: 'members', view: 'members', order: 4 },
+      { title: 'widget-setup', type: 'setup', visibility: 'admin', order: 5 },
+      { title: 'widget-custom-views', type: 'custom-views', order: 6 }
+    ]
+
+    // These are accessible in the all view
+    const unorderedWidgets = [
+      { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
+      { title: 'widget-requests-and-offers', view: 'requests-and-offers' },
+      { title: 'widget-stream', view: 'stream' },
+      { title: 'widget-events', type: 'events', view: 'events' },
+      { title: 'widget-resources', type: 'resources', view: 'resources' },
+      { title: 'widget-projects', type: 'projects', view: 'projects' },
+      { title: 'widget-groups', type: 'groups', view: 'groups' },
+      { title: 'widget-proposals', type: 'proposals', view: 'proposals' },
+      { title: 'widget-about', type: 'about', view: 'about' },
+      { title: 'widget-map', type: 'map', view: 'map' },
+      { title: 'widget-moderation', type: 'moderation', view: 'moderation' }
+    ]
+
+    await Promise.all([
+      ...orderedWidgets,
+      ...unorderedWidgets
+    ].map(widget =>
+      ContextWidget.forge({
+        group_id: this.id,
+        created_at: new Date(),
+        updated_at: new Date(),
+        ...widget
+      }).save(null, { transacting: trx })
+    ))
   },
 
   update: async function (changes, updatedByUserId) {
     const whitelist = [
       'about_video_uri', 'active', 'access_code', 'accessibility', 'avatar_url', 'banner_url',
       'description', 'geo_shape', 'location', 'location_id', 'name', 'purpose', 'settings',
-      'steward_descriptor', 'steward_descriptor_plural', 'type_descriptor', 'type_descriptor_plural', 'visibility'
+      'steward_descriptor', 'steward_descriptor_plural', 'type_descriptor', 'type_descriptor_plural', 'visibility',
+      'welcome_page', 'website_url'
     ]
     const trimAttrs = ['name', 'description', 'purpose']
 
@@ -534,7 +637,6 @@ module.exports = bookshelf.Model.extend(merge({
 
     this.set(saneAttrs)
     await this.validate()
-
     await bookshelf.transaction(async transacting => {
       if (changes.agreements) {
         const currentAgreementIds = (await this.agreements().fetch({ transacting })).pluck('id')
@@ -609,7 +711,7 @@ module.exports = bookshelf.Model.extend(merge({
             ge.set({ data: extData.data })
             await ge.save({}, { transacting })
           } else {
-            throw new GraphQLYogaError('Invalid extension type ' + extData.type)
+            throw new GraphQLError('Invalid extension type ' + extData.type)
           }
         }
       }
@@ -636,6 +738,7 @@ module.exports = bookshelf.Model.extend(merge({
               }
             } else {
               currentView = await CustomView.forge({ ...newView, group_id: this.id }).save({}, { transacting })
+                .tap((currentView) => Queue.classMethod('Group', 'doesMenuUpdate', { customView: currentView, groupIds: [this.id] }))
             }
 
             await currentView.updateTopics(topics, transacting)
@@ -649,9 +752,22 @@ module.exports = bookshelf.Model.extend(merge({
         }
       }
 
+      if (changes.settings && typeof changes.settings.show_welcome_page === 'boolean') {
+        // Add welcome view/widget if it doesn't exist
+        let welcomeWidget = await ContextWidget.where({ group_id: this.id, type: 'welcome' }).fetch({ transacting })
+        if (!welcomeWidget) {
+          welcomeWidget = await ContextWidget.forge({
+            group_id: this.id,
+            type: 'welcome',
+            title: 'widget-welcome',
+            view: 'welcome'
+          }).save({}, { transacting })
+        }
+        // Hide or show it based on the setting
+        await welcomeWidget.save({ visibility: changes.settings.show_welcome_page ? 'all' : 'none' }, { transacting })
+      }
       await this.save({}, { transacting })
     })
-
     // If a new location is being passed in but not a new location_id then we geocode on the server
     if (changes.location && changes.location !== this.get('location') && !changes.location_id) {
       await Queue.classMethod('Group', 'geocodeLocation', { groupId: this.id })
@@ -665,7 +781,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   validate: function () {
     if (!trim(this.get('name'))) {
-      return Promise.reject(new GraphQLYogaError('Name cannot be blank'))
+      return Promise.reject(new GraphQLError('Name cannot be blank'))
     }
 
     return Promise.resolve()
@@ -731,13 +847,29 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
+  // Background task to do additional work/tasks after a new member finished joining a group (after they've accepted agreements and answered join questions)
+  async afterFinishedJoining ({ userId, groupId }) {
+    const group = await Group.find(groupId)
+
+    const moderators = await group.moderators().fetch()
+
+    const activities = moderators.map(moderator => ({
+      actor_id: userId,
+      reader_id: moderator.id,
+      group_id: groupId,
+      reason: 'memberJoinedGroup'
+    }))
+
+    Activity.saveForReasons(activities)
+  },
+
   async create (userId, data) {
     if (!data.slug) {
-      throw new GraphQLYogaError('Missing required field: slug')
+      throw new GraphQLError('Missing required field: slug')
     }
     const existingGroup = await Group.find(data.slug)
     if (existingGroup) {
-      throw new GraphQLYogaError('A group with that URL slug already exists')
+      throw new GraphQLError('A group with that URL slug already exists')
     }
 
     const trimAttrs = ['name', 'purpose']
@@ -778,16 +910,17 @@ module.exports = bookshelf.Model.extend(merge({
             const ge = new GroupExtension({ group_id: group.id, extension_id: ext.id, data: extData.data })
             await ge.save(null, { transacting: trx })
           } else {
-            throw new GraphQLYogaError('Invalid extension type ' + extData.type)
+            throw new GraphQLError('Invalid extension type ' + extData.type)
           }
         }
       }
 
       await group.createStarterPosts(trx)
 
-      await group.createInitialWidgets(trx)
+      // await group.createInitialWidgets(trx)
 
-      await group.createDefaultTopics(group.id, userId, trx)
+      // await group.createDefaultTopics(group.id, userId, trx) // TODO: not sure if this should be here or in setupContextWidgets
+      await group.setupContextWidgets(trx)
 
       await group.addMembers([userId], { role: GroupMembership.Role.MODERATOR }, { transacting: trx })
 
@@ -830,6 +963,155 @@ module.exports = bookshelf.Model.extend(merge({
       await group.save({ active: false }, opts)
       return group.removeMembers(await group.members().fetch(), opts)
     }
+  },
+
+  async doesMenuUpdate ({ groupIds, post, customView, groupRelation = false }) {
+    if (!post && !customView && !groupRelation) return
+    const postType = post?.type
+    // Skip processing if it's a chat post and no other conditions are present
+    if (postType === 'chat' && !customView && !groupRelation) return
+    await bookshelf.transaction(async trx => {
+      for (const groupId of groupIds) {
+        const widgets = await ContextWidget.where({ group_id: groupId }).fetchAll({ transacting: trx })
+        const autoAddWidget = widgets.find(w => w.get('type') === 'auto-view')
+
+        // Handle custom view case
+        if (customView) {
+          const existingWidget = widgets.find(w => w.get('custom_view_id') === customView.id)
+          if (!existingWidget) {
+            await ContextWidget.create({
+              custom_view_id: customView.id,
+              addToEnd: true,
+              group_id: groupId,
+              transacting: trx
+            })
+          }
+        }
+
+        // Handle group relation case
+        if (groupRelation) {
+          const groupsWidget = widgets.find(w => w.get('view') === 'groups')
+          if (groupsWidget && !groupsWidget.get('auto_added')) {
+            await ContextWidget.reorder({
+              id: groupsWidget.get('id'),
+              parentId: autoAddWidget.get('id'),
+              addToEnd: true,
+              trx
+            })
+          }
+        }
+
+        // Handle post cases - multiple conditions can apply
+        if (post) {
+          // Check if it is time to display the stream widget
+          const streamWidget = widgets.find(w => w.get('view') === 'stream')
+          if (streamWidget && !streamWidget.get('order')) {
+            // If there are more than 3 non chat posts, then that stream is flowing
+            const groupPostCount = await Group.postCount(groupId, false)
+            if (groupPostCount > 3) {
+              await ContextWidget.reorder({
+                id: streamWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check discussions
+          if (postType === 'discussion') {
+            const discussionsWidget = widgets.find(w => w.get('view') === 'discussions')
+            if (discussionsWidget && !discussionsWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: discussionsWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check events
+          if (postType === 'event') {
+            const eventsWidget = widgets.find(w => w.get('view') === 'events')
+            // TODO: instead of checking auto_added shouldnt we just check order? to see if it is added anywhere already?
+            if (eventsWidget && !eventsWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: eventsWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check asks and offers
+          if (postType === 'request' || postType === 'offer') {
+            const requestsOffersWidget = widgets.find(w => w.get('view') === 'requests-and-offers')
+            if (requestsOffersWidget && !requestsOffersWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: requestsOffersWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check projects
+          if (postType === 'project') {
+            const projectsWidget = widgets.find(w => w.get('view') === 'projects')
+            if (projectsWidget && !projectsWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: projectsWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check proposals
+          if (postType === 'proposal') {
+            const proposalsWidget = widgets.find(w => w.get('view') === 'proposals')
+            if (proposalsWidget && !proposalsWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: proposalsWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check resources
+          if (postType === 'resources') {
+            const resourcesWidget = widgets.find(w => w.get('view') === 'resources')
+            if (resourcesWidget && !resourcesWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: resourcesWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+
+          // Check location
+          if (post?.location_id) {
+            const mapWidget = widgets.find(w => w.get('view') === 'map')
+            if (mapWidget && !mapWidget.get('auto_added')) {
+              await ContextWidget.reorder({
+                id: mapWidget.get('id'),
+                parentId: autoAddWidget.get('id'),
+                addToEnd: true,
+                trx
+              })
+            }
+          }
+        }
+      }
+    })
   },
 
   find (idOrSlug, opts = {}) {
@@ -951,6 +1233,19 @@ module.exports = bookshelf.Model.extend(merge({
 
   async pluckIdsForMember (userOrId, where) {
     return await this.selectIdsForMember(userOrId, where).pluck('groups.id')
+  },
+
+  postCount: function (groupId, includeChat = true) {
+    return Post.query(q => {
+      q.select(bookshelf.knex.raw('count(*)'))
+      q.join('groups_posts', 'posts.id', 'groups_posts.post_id')
+      q.where({ 'groups_posts.group_id': groupId, active: true })
+      if (!includeChat) {
+        q.where('posts.type', '!=', 'chat')
+      }
+    })
+      .fetch()
+      .then(result => result.get('count'))
   },
 
   queryByAccessCode: function (accessCode) {

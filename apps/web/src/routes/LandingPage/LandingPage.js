@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams } from 'react-router-dom'
-import GroupBanner from 'components/GroupBanner'
+import { useTranslation } from 'react-i18next'
 import Loading from 'components/Loading'
 import Widget from 'components/Widget'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
+import useRouteParams from 'hooks/useRouteParams'
+import fetchGroupForLandingPage from 'store/actions/fetchGroupForLandingPage'
 import fetchPosts from 'store/actions/fetchPosts'
 import presentGroup from 'store/presenters/presentGroup'
 import presentPost from 'store/presenters/presentPost'
@@ -17,7 +19,8 @@ import { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 
 const LandingPage = () => {
   const dispatch = useDispatch()
-  const params = useParams()
+  const params = useRouteParams()
+  const { t } = useTranslation()
 
   const groupSlug = params.groupSlug
   const fetchPostsParam = useMemo(() => ({ slug: groupSlug, context: 'groups', sortBy: 'created' }), [groupSlug])
@@ -38,17 +41,22 @@ const LandingPage = () => {
 
   useEffect(() => {
     dispatch(fetchPosts(fetchPostsParam))
-  }, [dispatch, fetchPostsParam])
+    dispatch(fetchGroupForLandingPage({ slug: groupSlug }))
+  }, [fetchPostsParam, groupSlug])
 
-  if (!group) return <Loading />
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Explore'),
+      icon: 'RaisedHand',
+      info: ''
+    })
+  }, [])
+
+  if (!group || widgets.length === 0) return <Loading />
 
   return (
     <div>
-      <GroupBanner
-        context='groups'
-        group={group}
-      />
-
       {widgets && widgets.map(widget => (
         <Widget
           {...widget}

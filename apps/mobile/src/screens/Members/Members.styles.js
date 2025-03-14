@@ -43,7 +43,7 @@ export default {
     backgroundColor: 'transparent',
     ...hasTextShadow
   },
-  // 
+  //
   inviteButton: {
     width: 110,
     borderColor: 'transparent',

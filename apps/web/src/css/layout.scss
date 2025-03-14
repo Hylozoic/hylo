@@ -7,8 +7,7 @@
   left: 0;
   z-index: 20;
   height: 100vh;
-  top: 56px;
-  height: calc(100vh - 56px);
+  top: 0px;
 }
 
 .modal-content {
@@ -27,7 +26,7 @@
 }
 
 .modal::-webkit-scrollbar-thumb {
-  background-color: rgba(200,200,200,.5   );
+  background-color: rgba(200,200,200,.2   );
   outline: none;
   border-radius: 3px;
 }
@@ -40,7 +39,7 @@ body {
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: rgba(200,200,200,.5   );
+    background-color: rgba(200,200,200,.2   );
     outline: none;
     border-radius: 8px;
   }

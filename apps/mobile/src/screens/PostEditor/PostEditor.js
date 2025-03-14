@@ -1,52 +1,49 @@
 /* eslint-disable react/no-unstable-nested-components */
-import React, { useState } from 'react'
-import {
-  Alert,
-  KeyboardAvoidingView,
-  ScrollView,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native'
-import RNPickerSelect from 'react-native-picker-select'
-import { useIsFocused } from '@react-navigation/native'
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { Alert, KeyboardAvoidingView, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { get, uniq, uniqBy, isEmpty } from 'lodash/fp'
-import moment from 'moment-timezone'
-import { Validators, TextHelpers } from '@hylo/shared'
+import { useDispatch } from 'react-redux'
+import { useQuery, useMutation } from 'urql'
+import { get } from 'lodash/fp'
+import { useNavigation } from '@react-navigation/native'
+import { Validators } from '@hylo/shared'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
+import useFindOrCreateLocationObject from '@hylo/hooks/useFindOrCreateLocationObject'
+import createPostMutation from '@hylo/graphql/mutations/createPostMutation'
+import createProjectMutation from '@hylo/graphql/mutations/createProjectMutation'
+import updatePostMutation from '@hylo/graphql/mutations/updatePostMutation'
+import peopleAutocompleteQuery from '@hylo/graphql/queries/peopleAutocompleteQuery'
+import postQuery from '@hylo/graphql/queries/postQuery'
+import topicsForGroupIdQuery from '@hylo/graphql/queries/topicsForGroupIdQuery'
+import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 import { isIOS } from 'util/platform'
-import { showToast, hideToast } from 'util/toast'
-import { MAX_TITLE_LENGTH } from './PostEditor.store'
-import LocationPicker from 'screens/LocationPicker/LocationPicker'
-// TODO: Convert all 3 of the below to LocationPicker style calls
-// ProjectMembers Chooser
-import scopedFetchPeopleAutocomplete from 'store/actions/scopedFetchPeopleAutocomplete'
-import scopedGetPeopleAutocomplete from 'store/selectors/scopedGetPeopleAutocomplete'
-// Topics Picker
-import fetchTopicsForGroupId from 'store/actions/fetchTopicsForGroupId'
-import getTopicsForAutocompleteWithNew from 'store/selectors/getTopicsForAutocompleteWithNew'
-import TopicRow from 'screens/TopicList/TopicRow'
-// Group Chooser
-import GroupChooserItemRow from 'screens/ItemChooser/GroupChooserItemRow'
-import GroupsList from 'components/GroupsList'
+import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
+import useRouteParams from 'hooks/useRouteParams'
+import uploadAction from 'store/actions/upload'
+import { usePostEditorStore } from './PostEditor.store'
 // Components
-import DatePicker from 'react-native-date-picker'
+import DatePickerWithLabel from './DatePickerWithLabel'
+import TypeSelector from './TypeSelector'
+import ItemSelectorModal from 'components/ItemSelectorModal'
+import LocationSelectorModal from 'components/LocationSelectorModal'
+import TopicRow from 'screens/TopicList/TopicRow'
+import GroupsList from 'components/GroupsList'
 import Button from 'components/Button'
 import FileSelector, { showFilePicker as fileSelectorShowFilePicker } from './FileSelector'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
 import ImagePicker from 'components/ImagePicker'
 import ImageSelector from './ImageSelector'
-import ItemChooserItemRow from 'screens/ItemChooser/ItemChooserItemRow'
 import Loading from 'components/Loading'
 import ProjectMembersSummary from 'components/ProjectMembersSummary'
 import Topics from 'components/Topics'
-import styles, { typeSelectorStyles } from './PostEditor.styles'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
-import { caribbeanGreen, rhino30, rhino80, white } from 'style/colors'
+import styles from './PostEditor.styles'
+import { caribbeanGreen, rhino30, rhino80 } from 'style/colors'
+
+export const MAX_TITLE_LENGTH = 50
 
 const titlePlaceholders = {
   discussion: 'Create a post',
@@ -58,891 +55,622 @@ const titlePlaceholders = {
   event: 'What is your event called?'
 }
 
-export default function (props) {
-  const isFocused = useIsFocused()
+export default function PostEditor (props) {
   const { t } = useTranslation()
-  return <PostEditor {...props} isFocused={isFocused} t={t} />
-}
+  const dispatch = useDispatch()
+  const navigation = useNavigation()
+  const scrollViewRef = useRef(null)
+  const detailsEditorRef = useRef(null)
+  const [, createNewPost] = useMutation(createPostMutation)
+  const [, createNewProject] = useMutation(createProjectMutation)
+  const [, updateSelectedPost] = useMutation(updatePostMutation)
+  const [, findOrCreateLocation] = useFindOrCreateLocationObject()
+  const upload = useCallback(params => dispatch(uploadAction(params)), [dispatch])
+  const confirmDiscardChanges = useConfirmDiscardChanges()
 
-export class PostEditor extends React.Component {
-  constructor (props) {
-    super(props)
-    const { post } = props
-    this.scrollViewRef = React.createRef()
-    this.detailsEditorRef = React.createRef()
-    this.state = {
-      isNewPost: !post?.id,
-      title: post?.title || '',
-      type: post?.type || 'discussion',
-      groups: post?.groups || [],
-      images: post?.imageUrls
-        ? post
-          .imageUrls
-          .map(imageUrl => ({ remote: imageUrl, local: imageUrl }))
-        : [],
-      files: post?.fileUrls
-        ? post
-          .fileUrls
-          .map(fileUrl => ({ remote: fileUrl, local: fileUrl }))
-        : [],
-      topics: post?.topics || [],
-      members: post?.members || [],
-      topicsPicked: false,
-      announcementEnabled: false,
-      detailsFocused: false,
-      details: post?.details,
-      titleLengthError: false,
-      startTime: post?.startTime
-        ? new Date(post.startTime)
-        : null,
-      endTime: post?.endTime
-        ? new Date(post.endTime)
-        : null,
-      location: post?.location,
-      locationObject: post?.locationObject,
-      donationsLink: post?.donationsLink,
-      projectManagementLink: post?.projectManagementLink,
-      isPublic: false,
-      startTimeExpanded: false,
-      endTimeExpanded: false,
-      isValid: post?.id,
-      isSaving: false
+  const [{ currentUser }] = useCurrentUser()
+  const [{ currentGroup }] = useCurrentGroup()
+  const hasResponsibility = useHasResponsibility({ forCurrentUser: true })
+  const {
+    id: selectedPostId,
+    lat: mapCoordinateLat,
+    lng: mapCoordinateLng,
+    topicName: selectedTopicName,
+    type: providedType
+  } = useRouteParams()
+  const editingPost = !!selectedPostId
+  const [{ data: selectedPostData, fetching: selectedPostLoading }] = useQuery({
+    query: postQuery, variables: { id: selectedPostId }, pause: !editingPost
+  })
+  const {
+    post,
+    updatePost,
+    resetPost,
+    isValid,
+    preparePostData,
+    togglePublicPost,
+    toggleAnnouncement,
+    addGroup,
+    removeGroup,
+    updateLocation,
+    addTopic,
+    removeTopic,
+    addAttachment,
+    removeAttachment
+  } = usePostEditorStore()
+
+  useEffect(() => { resetPost() }, [])
+
+  useEffect(() => {
+    updatePost({
+      type: providedType || post.type,
+      topics: selectedTopicName ? [{ name: selectedTopicName }] : post.topics,
+      groups: currentGroup && !isContextGroupSlug(currentGroup?.slug) ? [currentGroup] : post.groups
+    })
+  }, [updatePost, providedType, selectedTopicName, currentGroup])
+
+  useEffect(() => {
+    if (selectedPostData?.post) {
+      updatePost(selectedPostData.post)
     }
+  }, [selectedPostData?.post])
+
+  const canAdminister = hasResponsibility(RESP_ADMINISTRATION, {
+    groupIds: post?.groups && post.groups.map(group => group.id)
+  })
+
+  const canHaveTimeframe = useMemo(() => post.type !== 'discussion', [post])
+  const titleLengthWarning = useMemo(() => post?.title && post.title.length >= MAX_TITLE_LENGTH, [post])
+  const groupOptions = useMemo(() => currentUser?.memberships.map(m => m.group) || [], [currentUser])
+  const mapCoordinate = useMemo(() => {
+    return mapCoordinateLat && mapCoordinateLng ? { lat: mapCoordinateLat, lng: mapCoordinateLng } : null
+  }, [mapCoordinateLat, mapCoordinateLng])
+  const [isSaving, setIsSaving] = useState(false)
+  const [topicsPicked, setTopicsPicked] = useState(false)
+  const [filePickerPending, setFilePickerPending] = useState(false)
+
+  const handleShowFilePicker = async () => {
+    setFilePickerPending(true)
+    await fileSelectorShowFilePicker({
+      upload,
+      type: 'post',
+      id: post?.id,
+      onAdd: attachment => addAttachment('file', attachment),
+      onError: (errorMessage, attachment) => {
+        setFilePickerPending(true)
+        handleAttachmentUploadError('file', errorMessage, attachment)
+      },
+      onComplete: () => setFilePickerPending(false),
+      onCancel: () => setFilePickerPending(false)
+    })
   }
 
-  componentDidMount () {
-    const { isNewPost } = this.state
-    const { fetchPost, pollingFindOrCreateLocation, mapCoordinate, t } = this.props
-    if (!isNewPost) {
-      fetchPost()
-    } else {
-      if (mapCoordinate) {
-        const locationObject = {
-          fullText: `${mapCoordinate.lat},${mapCoordinate.lng}`,
-          center: {
-            lat: parseFloat(mapCoordinate.lat),
-            lng: parseFloat(mapCoordinate.lng)
-          }
+  useEffect(() => {
+    if (!editingPost && mapCoordinate) {
+      findOrCreateLocation({
+        fullText: `${mapCoordinate.lat},${mapCoordinate.lng}`,
+        center: {
+          lat: parseFloat(mapCoordinate.lat),
+          lng: parseFloat(mapCoordinate.lng)
         }
-        pollingFindOrCreateLocation(locationObject, this.handlePickLocation)
-      }
+      }).then(({ locationObject }) => {
+        updateLocation(locationObject)
+      })
     }
 
-    this.removeBeforeRemove = this.props.navigation.addListener('beforeRemove', (e) => {
+    const removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
       e.preventDefault()
       confirmDiscardChanges({
-        onDiscard: () => this.props.navigation.dispatch(e.data.action),
-        title: t('Are you sure?'),
-        confirmationMessage: t('If you made changes they will be lost'),
-        t
+        onDiscard: () => navigation.dispatch(e.data.action),
+        title: 'Are you sure?',
+        confirmationMessage: 'If you made changes they will be lost'
       })
     })
 
-    this.renderReactNavigationHeader()
-  }
-
-  shouldComponentUpdate (nextProps, nextState) {
-    return nextProps.isFocused
-  }
-
-  componentWillUnmount () {
-    this.removeBeforeRemove()
-  }
-
-  save = async () => {
-    if (!this.detailsEditorRef?.current) {
-      this.setIsSaving(false)
-      return
+    return () => {
+      removeBeforeRemove()
     }
-    const {
-      createPost, createProject, updatePost,
-      navigation, post
-    } = this.props
-    const {
-      files, images, title,
-      topics, type, announcementEnabled, members,
-      groups, startTime, endTime, location, isPublic,
-      locationObject, donationsLink, projectManagementLink
-    } = this.state
-    const postData = {
-      id: post.id,
-      type,
-      details: this.detailsEditorRef.current.getHTML(),
-      groups,
-      memberIds: members.map(m => m.id),
-      fileUrls: uniq(files.filter(file => file.remote).map(file => file.remote)),
-      imageUrls: uniq(images.filter(image => image.remote).map(image => image.remote)),
-      isPublic,
-      title,
-      sendAnnouncement: announcementEnabled,
-      topicNames: topics.map(t => t.name),
-      startTime: startTime && startTime.getTime(),
-      endTime: endTime && endTime.getTime(),
-      location,
-      projectManagementLink: TextHelpers.sanitizeURL(projectManagementLink),
-      donationsLink: TextHelpers.sanitizeURL(donationsLink),
-      locationId: (locationObject && locationObject?.id) ? locationObject.id : null
-    }
+  }, [editingPost, mapCoordinate, findOrCreateLocation, navigation, t])
 
-    try {
-      const saveAction = postData.id
-        ? updatePost
-        : postData.type === 'project'
-          ? createProject
-          : createPost
-      const { payload, meta, error } = await saveAction(postData)
+  const handleSave = useCallback(async () => {
+    if (!detailsEditorRef?.current) return
 
-      if (error) {
-        // TODO: handle API errors more appropriately
-        throw new Error('Error submitting post')
+    const doSave = async () => {
+      setIsSaving(true)
+
+      const postData = preparePostData({
+        details: detailsEditorRef.current.getHTML(),
+        canHaveTimeframe
+      })
+
+      try {
+        const saveAction = postData.id ? updateSelectedPost : postData.type === 'project' ? createNewProject : createNewPost
+        const { error, data } = await saveAction(postData)
+
+        if (error) {
+          console.error(error)
+          throw new Error('Error submitting post')
+        }
+
+        const id = data[Object.keys(data)[0]].id
+
+        navigation.navigate('Post Details', { id })
+      } catch (e) {
+        console.log('!!!! error saving post', e)
+        setIsSaving(false)
       }
-
-      const id = meta.extractModel?.getRoot(payload?.data)?.id
-
-      navigation.navigate('Post Details', { id })
-    } catch (e) {
-      console.log('!!!! error saving post', e)
-      this.setIsSaving(false)
     }
-  }
 
-  handleSave = () => {
-    const { announcementEnabled } = this.state
-    const { t } = this.props
-
-    this.setIsSaving(true)
-
-    if (announcementEnabled) {
+    if (post.announcement) {
       Alert.alert(
         t('makeAnAnnouncement'),
         t('announcementExplainer'),
         [
-          {
-            text: t('Send It'),
-            onPress: this.save
-          },
-          {
-            text: t('Go Back'),
-            style: 'cancel',
-            onPress: () => this.setIsSaving(false)
-          }
-        ])
+          { text: t('Send It'), onPress: () => doSave() },
+          { text: t('Go Back'), style: 'cancel', onPress: () => {} }
+        ]
+      )
     } else {
-      this.save()
+      doSave()
     }
-  }
+  }, [post, canHaveTimeframe, detailsEditorRef])
 
-  handleCancel = () => {
-    // Note: Delegated to dismiss event listener
-    this.props.navigation.goBack()
-  }
-
-  setIsSaving = isSaving => {
-    this.setState({ isSaving }, this.setIsValid)
-  }
-
-  setIsValid = (updatedState = {}) => {
-    const {
-      type, title, groups, startTime, endTime, images, files,
-      donationsLink, projectManagementLink
-    } = Object.assign(
-      {},
-      this.state,
-      updatedState
-    )
-    const imagesLoading = images.find(image => !image?.remote)
-    const filesLoading = files.find(file => !file?.remote)
-
-    if (
-      imagesLoading ||
-      filesLoading ||
-      (!title || title.length < 1) ||
-      isEmpty(groups) ||
-      (type === 'event' && (!startTime || !endTime)) ||
-      (donationsLink && !TextHelpers.sanitizeURL(donationsLink)) ||
-      (projectManagementLink && !TextHelpers.sanitizeURL(projectManagementLink))
-
-    ) {
-      this.setState({ isValid: false }, this.renderReactNavigationHeader)
-    } else {
-      this.setState({ isValid: true }, this.renderReactNavigationHeader)
-    }
-  }
-
-  handleUpdateType = type => {
-    this.setState({ type }, this.setIsValid)
-  }
-
-  handleUpdateTitle = title => {
-    switch (title.length >= MAX_TITLE_LENGTH) {
-      case true:
-        this.setState({ titleLengthError: true }, this.setIsValid)
-        break
-      case false:
-        this.setState({ title, titleLengthError: false }, this.setIsValid)
-        break
-    }
-  }
-
-  handleUpdateDetails = details => {
-    this.setState({ details }, this.setIsValid)
-  }
-
-  // Assumptions:
-  // - maximum of three topics per post are allowed
-  // - topics must be unique
-  // - priority is given to topics already on the post (preserve order)
-  handleAddTopic = (providedTopic, picked) => {
-    const topic = { ...providedTopic, name: this.ignoreHash(providedTopic.name) }
-
-    if (Validators.validateTopicName(topic.name) === null) {
-      this.setState({
-        topics: uniqBy(t => t.name, [...this.state.topics, topic]).slice(0, 3),
-        topicsPicked: picked !== undefined ? picked : this.state.topicsPicked
-      })
-    }
-  }
-
-  handleRemoveTopic = topic => {
-    this.setState({
-      topics: this.state.topics.filter(t => t.id !== topic.id),
-      topicsPicked: true
-    })
-  }
-
-  handlePickLocation = locationObject => {
-    this.setState(() => ({
-      location: locationObject.fullText,
-      locationObject: (locationObject && locationObject?.id !== 'NEW') ? locationObject : null
-    }))
-  }
-
-  handleUpdateProjectMembers = members => this.setState(state => ({ members }))
-
-  handleAddGroup = group => {
-    const groups = uniqBy(c => c.id, [...this.state.groups, group])
-
-    this.setState({ groups }, this.setIsValid)
-  }
-
-  handleRemoveGroup = groupSlug => {
-    this.setState(state => ({
-      groups: state.groups.filter(group => group.slug !== groupSlug)
-    }))
-  }
-
-  handleAddAttachmentForKey = key => ({ local, remote }) => {
-    let attachmentsForKey = this.state[key] || []
-    const existingIndex = attachmentsForKey.findIndex(attachment => attachment.local === local)
-
-    if (existingIndex >= 0) {
-      attachmentsForKey[existingIndex].remote = remote
-    } else {
-      attachmentsForKey = [...attachmentsForKey, { local, remote }]
-    }
-
-    // NOTE: `uniqBy` de-duping of local file uploads here won't do
-    // anything at least in iOS, as each file selection is copied into
-    // a unique `tmp` location on the device each time it's selected.
-    this.setState({ [key]: uniqBy('local', attachmentsForKey) }, this.setIsValid)
-  }
-
-  handleRemoveAttachmentForKey = key => ({ local }) => {
-    this.setState({ [key]: this.state[key].filter(attachment => attachment.local !== local) }, this.setIsValid)
-  }
-
-  handleAttachmentUploadErrorForKey = key => (errorMessage, attachment) => {
-    this.handleRemoveAttachmentForKey(key)(attachment)
-    Alert.alert(errorMessage)
-  }
-
-  handleTogglePublicPost = () => {
-    this.setState({ isPublic: !this.state.isPublic })
-  }
-
-  handleShowProjectMembersEditor = () => {
-    const { navigation, t } = this.props
-    const { members } = this.state
-    const screenTitle = t('Project Members')
-    navigation.navigate('ItemChooser', {
-      screenTitle,
-      searchPlaceholder: t('Type in the names of people to add to project'),
-      ItemRowComponent: ItemChooserItemRow,
-      initialItems: members,
-      updateItems: this.handleUpdateProjectMembers,
-      fetchSearchSuggestions: scopedFetchPeopleAutocomplete,
-      getSearchSuggestions: scopedGetPeopleAutocomplete(screenTitle)
-    })
-  }
-
-  handleShowTopicsPicker = () => {
-    const { navigation, t } = this.props
-    const screenTitle = t('Pick a Topic')
-    navigation.navigate('ItemChooser', {
-      screenTitle,
-      searchPlaceholder: t('Search for a topic by name'),
-      ItemRowComponent: TopicRow,
-      pickItem: topic => { this.handleAddTopic(topic, true) },
-      // FIX: Will only find topics for first group
-      fetchSearchSuggestions: fetchTopicsForGroupId(get('[0].id', this.state.groups)),
-      getSearchSuggestions: getTopicsForAutocompleteWithNew
-    })
-  }
-
-  handleShowGroupsEditor = () => {
-    const { navigation, groupOptions, t } = this.props
-    const screenTitle = t('Post in Groups')
-    navigation.navigate('ItemChooser', {
-      screenTitle,
-      searchPlaceholder: t('Search for group by name'),
-      defaultSuggestedItemsLabel: t('Your Groups'),
-      defaultSuggestedItems: groupOptions,
-      ItemRowComponent: GroupChooserItemRow,
-      pickItem: this.handleAddGroup,
-      fetchSearchSuggestions: () => ({ type: 'none' }),
-      getSearchSuggestions: (_, { autocomplete: searchTerm }) =>
-        groupOptions.filter(c => c.name.toLowerCase().match(searchTerm?.toLowerCase()))
-    })
-  }
-
-  handleShowLocationPicker = () => {
-    LocationPicker({
-      navigation: this.props.navigation,
-      initialSearchTerm: this.state?.location,
-      onPick: this.handlePickLocation,
-      t: this.props.t
-    })
-  }
-
-  handleDonationsLink = donationsLink => {
-    this.setState({ donationsLink }, this.setIsValid)
-  }
-
-  handleProjectManagementLink = projectManagementLink => {
-    this.setState({ projectManagementLink }, this.setIsValid)
-  }
-
-  handleShowFilePicker = async () => {
-    this.setState({ filePickerPending: true })
-    await fileSelectorShowFilePicker({
-      upload: this.props.upload,
-      type: 'post',
-      id: this.props?.post?.id,
-      onAdd: this.handleAddAttachmentForKey('files'),
-      onError: () => {
-        this.setState({ filePickerPending: false }, this.setIsValid)
-        this.handleAttachmentUploadErrorForKey('files')
-      },
-      onComplete: () => this.setState({ filePickerPending: false }, this.setIsValid),
-      onCancel: () => this.setState({ filePickerPending: false }, this.setIsValid)
-    })
-  }
-
-  handleToggleAnnouncement = () => {
-    this.toast && hideToast(this.toast)
-    this.toast = showToast(
-      `announcement ${!this.state.announcementEnabled ? 'on' : 'off'}`,
-      { isError: this.state.announcementEnabled }
-    )
-    this.setState({ announcementEnabled: !this.state.announcementEnabled })
-  }
-
-  ignoreHash = name => name[0] === '#' ? name.slice(1) : name
-
-  renderReactNavigationHeader = () => {
-    const { navigation } = this.props
-
-    navigation.setOptions({
-      headerShown: true,
-      header: this.renderHeader
-    })
-  }
-
-  renderHeader = () => {
-    const { t } = this.props
-    const { isValid, isSaving, isNewPost, type } = this.state
+  const header = useMemo(() => {
     const headerRightButtonLabel = isSaving
       ? t('Saving-ellipsis')
-      : isNewPost
-        ? t('Post')
-        : t('Save')
+      : editingPost
+        ? t('Save')
+        : t('Post')
 
-    return (
-      <View style={styles.headerContainer}>
+    return () => (
+      <View className='border-border bg-background' style={styles.headerContainer}>
         <View style={styles.header}>
           <HeaderLeftCloseIcon
             style={styles.headerCloseIcon}
             color={rhino30}
-            onPress={this.handleCancel}
+            onPress={() => navigation.goBack()}
           />
           <TypeSelector
-            disabled={isSaving || type === 'proposal'}
-            onValueChange={this.handleUpdateType}
+            disabled={isSaving || post.type === 'proposal'}
+            onValueChange={type => updatePost({ type })}
             placeholder={{}}
-            value={type}
+            value={post?.type || 'discussion'}
           />
           <Button
             style={styles.headerSaveButton}
-            disabled={isSaving || !isValid}
-            onPress={this.handleSave}
+            disabled={isSaving || !isValid()}
+            onPress={handleSave}
             text={headerRightButtonLabel}
           />
         </View>
       </View>
     )
+  }, [isValid, isSaving, handleSave, post?.type])
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: true, header })
+  }, [header])
+
+  const handleAddTopic = (providedTopic, picked) => {
+    const ignoreHash = name => name[0] === '#' ? name.slice(1) : name
+    const topic = { ...providedTopic, name: ignoreHash(providedTopic.name) }
+
+    if (Validators.validateTopicName(topic.name) === null) {
+      if (picked !== undefined) setTopicsPicked(picked)
+      addTopic(topic)
+    }
   }
 
-  renderForm = () => {
-    const { post, postLoading, t } = this.props
-    const {
-      isSaving, topics, title, type, filePickerPending, announcementEnabled,
-      titleLengthError, members, groups, startTime, endTime, location, donationsLink,
-      locationObject, projectManagementLink, isPublic, topicsPicked, files, images
-    } = this.state
-    const canHaveTimeframe = type !== 'discussion'
-
-    t('Create a post')
-    t('What are you looking for help with?')
-    t('What help can you offer?')
-    t('What resource is available?')
-    t('What would you like to call your project?')
-    t('What is your proposal?')
-    t('What is your event called?')
-
-    return (
-      <View style={styles.formContainer}>
-
-        {/*  Form Top */}
-
-        <View style={styles.formTop}>
-          <View style={[styles.titleInputWrapper]}>
-            <TextInput
-              style={[styles.titleInput]}
-              editable={!isSaving}
-              onChangeText={this.handleUpdateTitle}
-              placeholder={t(titlePlaceholders[type])}
-              placeholderTextColor={rhino30}
-              underlineColorAndroid='transparent'
-              autoCorrect={false}
-              value={title}
-              multiline
-              numberOfLines={2}
-              blurOnSubmit
-              maxLength={MAX_TITLE_LENGTH}
-            />
-            {titleLengthError && (
-              <Text style={styles.titleInputError}>😬 {MAX_TITLE_LENGTH} {t('characters max')}</Text>
-            )}
-          </View>
-
-          <View style={[styles.textInputWrapper, styles.detailsInputWrapper]}>
-            <HyloEditorWebView
-              placeholder={t('Add a description')}
-              contentHTML={post?.details}
-              // groupIds={groupOptions && groupOptions.map(g => g.id)}
-              onChange={this.handleUpdateDetails}
-              onAddTopic={!topicsPicked && this.handleAddTopic}
-              readOnly={postLoading || isSaving}
-              ref={this.detailsEditorRef}
-              widthOffset={0}
-              customEditorCSS={`
-                min-height: 90px;
-              `}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.pressSelectionSection, styles.topics]}
-            onPress={this.handleShowTopicsPicker}
-          >
-            <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeftText}>{t('Topics')}</Text>
-              <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
-            </View>
-            <Topics
-              style={styles.pressSelectionValue}
-              pillStyle={styles.topicPillStyle}
-              textStyle={styles.topicTextStyle}
-              onPress={this.handleShowTopicsPicker}
-              onPressRemove={this.handleRemoveTopic}
-              topics={topics}
-            />
-          </TouchableOpacity>
-
-          {type === 'proposal' && (
-            <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeftText}>{t('Proposal details can be edited in the web-app')}</Text>
-            </View>
-          )}
-
-          {type === 'project' && (
-            <TouchableOpacity style={styles.pressSelectionSection} onPress={this.handleShowProjectMembersEditor}>
-              <View style={styles.pressSelection}>
-                <Text style={styles.pressSelectionLeftText}>{t('Project Members')}</Text>
-                <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
-              </View>
-              {members.length > 0 && <ProjectMembersSummary style={styles.pressSelectionValue} members={members} />}
-            </TouchableOpacity>
-          )}
-
-          {canHaveTimeframe && (
-            <>
-              <DatePickerWithLabel
-                style={styles.pressSelectionSection}
-                label={t('Start Time')}
-                date={startTime}
-                minimumDate={new Date()}
-                onSelect={startTime => this.setState({ startTime }, this.setIsValid)}
-              />
-              <DatePickerWithLabel
-                style={styles.pressSelectionSection}
-                label={t('End Time')}
-                disabled={!startTime}
-                date={endTime}
-                minimumDate={startTime || new Date()}
-                onSelect={endTime => this.setState({ endTime }, this.setIsValid)}
-              />
-            </>
-          )}
-
-          <TouchableOpacity
-            style={[styles.pressSelectionSection, styles.topics]}
-            onPress={this.handleShowLocationPicker}
-          >
-            <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeftText}>{t('Location')}</Text>
-              <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View>
-            </View>
-            {(location || locationObject) && (
-              <Text style={styles.pressSelectionValue}>{location || locationObject.fullText}</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.pressSelectionSection}
-            onPress={this.handleShowGroupsEditor}
-          >
-            <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeftText}>{t('Post In')}</Text>
-              <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
-            </View>
-            <GroupsList
-              style={[styles.pressSelectionValue]}
-              groups={groups}
-              columns={1}
-              onPress={this.handleShowGroupsEditor}
-              onRemove={this.handleRemoveGroup}
-              RemoveIcon={() => (
-                <Icon name='Ex' style={styles.groupRemoveIcon} />
-              )}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.pressSelectionSection, styles.topics]}
-            onPress={this.handleShowLocationPicker}
-          >
-            <View style={styles.pressSelection}>
-              <Text style={styles.pressSelectionLeft}>{t('Location')}</Text>
-              <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View>
-            </View>
-            {(location || locationObject) && (
-              <Text style={styles.pressSelectionValue}>{location || locationObject.fullText}</Text>
-            )}
-          </TouchableOpacity>
-
-          {type === 'project' && (
-            <View style={[styles.pressSelectionSection, styles.topics]}>
-              <View style={styles.pressSelection}>
-                <Text style={styles.pressSelectionLeft}>{t('Donation Link')}</Text>
-                {/* <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View> */}
-              </View>
-              <TextInput
-                style={styles.pressSelectionValue}
-                onChangeText={this.handleDonationsLink}
-                returnKeyType='next'
-                autoCapitalize='none'
-                value={donationsLink}
-                autoCorrect={false}
-                underlineColorAndroid='transparent'
-              />
-            </View>
-          )}
-
-          {type === 'project' && (
-            <View style={[styles.pressSelectionSection, styles.topics]}>
-              <View style={styles.pressSelection}>
-                <Text style={styles.pressSelectionLeft}>{t('Project Management')}</Text>
-              </View>
-              <TextInput
-                style={styles.pressSelectionValue}
-                onChangeText={this.handleProjectManagementLink}
-                returnKeyType='next'
-                autoCapitalize='none'
-                value={projectManagementLink}
-                autoCorrect={false}
-                underlineColorAndroid='transparent'
-              />
-            </View>
-          )}
-        </View>
-
-        {/*  Form Bottom */}
-
-        <View style={styles.formBottom}>
-          <TouchableOpacity
-            style={[styles.pressSelectionSection, isPublic && styles.pressSelectionSectionPublicSelected]}
-            onPress={this.handleTogglePublicPost}
-          >
-            <View style={styles.pressSelection}>
-              <View style={styles.pressSelectionLeft}>
-                <Icon
-                  name='Public'
-                  style={[{ fontSize: 16, marginRight: 10 }, isPublic && styles.pressSelectionSectionPublicSelected]}
-                  color={rhino80}
-                />
-                <Text style={[styles.pressSelectionLeftText, isPublic && styles.pressSelectionSectionPublicSelected]}>{t('Make Public')}</Text>
-              </View>
-              <View style={styles.pressSelectionRightNoBorder}>
-                <Switch
-                  trackColor={{ true: caribbeanGreen, false: rhino80 }}
-                  onValueChange={this.handleTogglePublicPost}
-                  style={styles.pressSelectionSwitch}
-                  value={isPublic}
-                />
-              </View>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.pressSelectionSection, announcementEnabled && styles.pressSelectionSectionPublicSelected]}
-            onPress={this.handleToggleAnnouncement}
-          >
-            <View style={styles.pressSelection}>
-              <View style={styles.pressSelectionLeft}>
-                <Icon
-                  name='Announcement'
-                  style={[{ fontSize: 16, marginRight: 10 }, announcementEnabled && styles.pressSelectionSectionPublicSelected]}
-                  color={rhino80}
-                />
-                <Text style={[styles.pressSelectionLeftText, announcementEnabled && styles.pressSelectionSectionPublicSelected]}>{t('Announcement?')}</Text>
-              </View>
-              <View style={styles.pressSelectionRightNoBorder}>
-                <Switch
-                  trackColor={{ true: caribbeanGreen, false: rhino80 }}
-                  onValueChange={this.handleToggleAnnouncement}
-                  style={styles.pressSelectionSwitch}
-                  value={announcementEnabled}
-                />
-              </View>
-            </View>
-            {!isEmpty(files) && (
-              <View>
-                <FileSelector
-                  onRemove={this.handleRemoveAttachmentForKey('files')}
-                  files={files}
-                />
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.pressSelectionSection}
-          >
-            <View style={styles.pressSelection}>
-              <View style={styles.pressSelectionLeft}>
-                <Icon
-                  name='AddImage'
-                  style={{ padding: 0, margin: 0, fontSize: 24, marginRight: 5 }}
-                  color={rhino80}
-                />
-                <Text style={styles.pressSelectionLeftText}>{t('Images')}</Text>
-              </View>
-              <View style={styles.pressSelectionRight}>
-                <ImagePicker
-                  type='post'
-                  id={post?.id}
-                  selectionLimit={10}
-                  onChoice={this.handleAddAttachmentForKey('images')}
-                  onError={this.handleAttachmentUploadErrorForKey('images')}
-                  renderPicker={loading => {
-                    if (!loading) {
-                      return (
-                        <Icon name='Plus' style={styles.pressSelectionRightIcon} />
-                      )
-                    } else {
-                      return (
-                        <Loading
-                          size={30}
-                          style={[styles.pressSelectionRightIcon, { padding: 8 }, styles.buttonBarIconLoading]}
-                        />
-                      )
-                    }
-                  }}
-                />
-              </View>
-            </View>
-            {!isEmpty(images) && (
-              <ImageSelector
-                onAdd={this.handleAddAttachmentForKey('images')}
-                onRemove={this.handleRemoveAttachmentForKey('images')}
-                images={images}
-                style={[styles.imageSelector]}
-                type='post'
-              />
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.pressSelectionSection}
-            onPress={this.handleShowFilePicker}
-          >
-            <View style={styles.pressSelection}>
-              <View style={styles.pressSelectionLeft}>
-                <Icon
-                  name='Paperclip'
-                  style={{ padding: 0, margin: 0, fontSize: 24, marginRight: 5 }}
-                  color={rhino80}
-                />
-                <Text style={styles.pressSelectionLeftText}>{t('Files')}</Text>
-              </View>
-              <View style={styles.pressSelectionRight}>
-                <TouchableOpacity onPress={this.handleShowFilePicker}>
-                  {filePickerPending && (
-                    <Loading
-                      size={30}
-                      style={[styles.buttonBarIcon, { padding: 8 }, styles.buttonBarIconLoading]}
-                    />
-                  )}
-                  {!filePickerPending && (
-                    <Icon name='Plus' style={styles.pressSelectionRightIcon} />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-            {!isEmpty(files) && (
-              <View>
-                <FileSelector
-                  onRemove={this.handleRemoveAttachmentForKey('files')}
-                  files={files}
-                />
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-    )
+  const handleRemoveTopic = topic => {
+    removeTopic(topic)
+    setTopicsPicked(true)
   }
 
-  render () {
-    return (
-      <KeyboardAvoidingView
-        style={styles.formWrapper}
-        behavior={isIOS ? 'padding' : null}
-        keyboardVerticalOffset={isIOS ? 110 : 80}
-      >
+  const handleAttachmentUploadError = (type, errorMessage, attachment) => {
+    removeAttachment(type, attachment)
+    Alert.alert(errorMessage)
+  }
+
+  const groupSelectorModalRef = useRef(null)
+  const topicSelectorModalRef = useRef(null)
+  const locationSelectorModalRef = useRef(null)
+  const projectMembersSelectorModalRef = useRef(null)
+
+  if (selectedPostLoading) return null
+
+  return (
+    <KeyboardAvoidingView
+      className='bg-background'
+      style={styles.formWrapper}
+      behavior={isIOS ? 'padding' : null}
+      keyboardVerticalOffset={isIOS ? 110 : 80}
+    >
+      <View className='bg-background' style={styles.formWrapper}>
         <ScrollView
-          ref={this.scrollViewRef}
+          ref={scrollViewRef}
           keyboardShouldPersistTaps='never'
           keyboardDismissMode={isIOS ? 'interactive' : 'on-drag'}
           // Avoids a known issue on Android with overscroll and WebViews
           overScrollMode='never'
         >
-          {this.renderForm()}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    )
-  }
-}
+          {selectedPostLoading && <Loading />}
+          {!selectedPostLoading && (
+            <View className='bg-card' style={styles.formTop}>
+              <View style={[styles.titleInputWrapper]}>
+                <TextInput
+                  className='text-foreground'
+                  style={[styles.titleInput]}
+                  editable={!isSaving}
+                  onChangeText={title => updatePost({ title })}
+                  placeholder={t(titlePlaceholders[post.type])}
+                  placeholderTextColor={rhino30}
+                  underlineColorAndroid='transparent'
+                  autoCorrect={false}
+                  value={post.title}
+                  multiline
+                  numberOfLines={2}
+                  blurOnSubmit
+                  maxLength={MAX_TITLE_LENGTH}
+                />
+                {titleLengthWarning && (
+                  <Text className='text-error' style={styles.titleInputError}>😬 {MAX_TITLE_LENGTH} {t('characters max')}</Text>
+                )}
+              </View>
 
-export function TypeSelector (props) {
-  const { t } = useTranslation()
-  // explicit invocation of dynamic labels
-  t('Discussion')
-  t('Request')
-  t('Offer')
-  t('Resource')
-  t('Project')
-  t('Event')
-  return (
-    <View style={styles.typeSelectorWrapper}>
-      <RNPickerSelect
-        {...props}
-        style={typeSelectorStyles(props.value)}
-        useNativeAndroidPickerStyle={false}
-        pickerProps={{ itemStyle: { backgroundColor: white, letterSpacing: 2, fontWeight: 'bold', fontSize: 20 } }}
-        items={
-          ['Discussion', 'Request', 'Offer', 'Resource', 'Project', 'Event'].map(type => ({
-            label: t(type).toUpperCase(),
-            value: type.toLowerCase(),
-            color: typeSelectorStyles(type.toLowerCase()).inputIOS.color
-          }))
-        }
-        Icon={() => (
-          <Icon name='ArrowDown' style={typeSelectorStyles(props.value).icon} />
-        )}
-      />
-    </View>
-  )
-}
+              <View className='border-border' style={[styles.textInputWrapper, styles.detailsInputWrapper]}>
+                <HyloEditorWebView
+                  placeholder={t('Add a description')}
+                  contentHTML={post?.details}
+                  // groupIds={groupOptions && groupOptions.map(g => g.id)}
+                  onChange={details => updatePost({ details })}
+                  onAddTopic={!topicsPicked && handleAddTopic}
+                  readOnly={selectedPostLoading || isSaving}
+                  ref={detailsEditorRef}
+                  widthOffset={0}
+                  customEditorCSS={`
+                    min-height: 90px
+                  `}
+                />
+              </View>
 
-export function DatePickerWithLabel ({
-  date,
-  minimumDate,
-  label,
-  onSelect,
-  disabled,
-  style,
-  styleTemplate = {
-    disabled: styles.pressDisabled,
-    expandIconWrapper: styles.pressSelectionRight,
-    expandIcon: styles.pressSelectionRightIcon,
-    labelText: styles.pressSelectionLeftText,
-    labelWrapper: styles.pressSelection,
-    valueText: styles.pressSelectionValue
-  },
-  dateFormat = 'MM/DD/YYYY LT z'
-}) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const handleOnPress = () => {
-    !disabled && setOpen(true)
-  }
-  const handleOnConfirm = newDate => {
-    onSelect(newDate)
-    setOpen(false)
-  }
-  const handleOnCancel = () => {
-    onSelect(null)
-    setOpen(false)
-  }
+              <TouchableOpacity
+                className='border-border bg-background'
+                style={[styles.pressSelectionSection, styles.topics]}
+                onPress={() => topicSelectorModalRef.current.show()}
+              >
+                <View style={styles.pressSelection}>
+                  <Text className='text-foreground/80' style={styles.pressSelectionLeftText}>{t('Topics')}</Text>
+                  <View className='border-secondary' style={styles.pressSelectionRight}>
+                    <Icon className='text-secondary' name='Plus' style={styles.pressSelectionRightIcon} />
+                  </View>
+                </View>
+                <ItemSelectorModal
+                  ref={topicSelectorModalRef}
+                  title={t('Pick a Topic')}
+                  searchPlaceholder={t('Search for a topic by name')}
+                  onItemPress={topic => handleAddTopic(topic, true)}
+                  itemsUseQueryArgs={({ searchTerm }) => ({
+                    query: topicsForGroupIdQuery,
+                    variables: {
+                      searchTerm,
+                      // Note: Only finds topics for first group
+                      groupId: get('[0].id', post.groups)
+                    }
+                  })}
+                  itemsUseQuerySelector={data =>
+                    data?.group?.groupTopics?.items &&
+                    data?.group?.groupTopics?.items.map(item => item.topic)}
+                  itemsTransform={(items, searchTerm) => {
+                    if (!items.find(item => item.name.match(searchTerm))) {
+                      items.unshift({ id: searchTerm, name: searchTerm })
+                    }
+                    return items
+                  }}
+                  chosenItems={post.topics}
+                  renderItem={TopicRow}
+                />
+                <Topics
+                  className='text-secondary'
+                  style={styles.pressSelectionValue}
+                  pillStyle={styles.topicPillStyle}
+                  textStyle={styles.topicTextStyle}
+                  onPress={() => topicSelectorModalRef.current.show()}
+                  onPressRemove={handleRemoveTopic}
+                  topics={post.topics}
+                />
+              </TouchableOpacity>
 
-  return (
-    <>
-      <TouchableOpacity style={style} onPress={handleOnPress}>
-        <View style={styleTemplate.labelWrapper}>
-          <Text style={[styleTemplate.labelText, disabled && styleTemplate.disabled]}>
-            {label}
-          </Text>
-          <View style={[styleTemplate.expandIconWrapper, disabled && styleTemplate.disabled]}>
-            <Icon name='ArrowDown' style={[styleTemplate.expandIcon, disabled && styleTemplate.disabled]} />
+              {post.type === 'proposal' && (
+                <View style={styles.pressSelection}>
+                  <Text style={styles.pressSelectionLeftText}>{t('Proposal details can be edited in the web-app')}</Text>
+                </View>
+              )}
+
+              {post.type === 'project' && (
+                <TouchableOpacity style={styles.pressSelectionSection} onPress={() => projectMembersSelectorModalRef?.current.show()}>
+                  <View style={styles.pressSelection}>
+                    <Text style={styles.pressSelectionLeftText}>{t('Project Members')}</Text>
+                    <View style={styles.pressSelectionRight}><Icon name='Plus' style={styles.pressSelectionRightIcon} /></View>
+                  </View>
+                  <ItemSelectorModal
+                    ref={projectMembersSelectorModalRef}
+                    itemsUseQueryArgs={({ searchTerm }) => ({
+                      query: peopleAutocompleteQuery,
+                      variables: { autocomplete: searchTerm }
+                    })}
+                    itemsUseQuerySelector={data => data?.people?.items}
+                    title={t('Project Members')}
+                    searchPlaceholder={t('Type in the names of people to add to project')}
+                    chooser
+                    chosenItems={post?.members?.items || []}
+                    onClose={chosenItems => {
+                      chosenItems && updatePost({ members: { items: chosenItems } })
+                    }}
+                  />
+                  {post.members.items.length > 0 && (
+                    <ProjectMembersSummary
+                      style={styles.pressSelectionValue}
+                      members={post.members.items}
+                      onPress={() => projectMembersSelectorModalRef?.current.show()}
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {canHaveTimeframe && (
+                <>
+                  <DatePickerWithLabel
+                    style={styles.pressSelectionSection}
+                    label={t('Start Time')}
+                    date={post.startTime}
+                    minimumDate={new Date()}
+                    onSelect={startTime => updatePost({ startTime })}
+                  />
+                  <DatePickerWithLabel
+                    style={styles.pressSelectionSection}
+                    label={t('End Time')}
+                    disabled={!post.startTime}
+                    date={post.endTime}
+                    minimumDate={post.startTime || new Date()}
+                    onSelect={endTime => updatePost({ endTime })}
+                  />
+                </>
+              )}
+
+              <TouchableOpacity
+                className='border-border bg-background'
+                style={styles.pressSelectionSection}
+                onPress={() => groupSelectorModalRef.current.show()}
+              >
+                <View style={styles.pressSelection}>
+                  <Text className='text-foreground/80' style={styles.pressSelectionLeftText}>{t('Post In')}</Text>
+                  <View className='border-secondary' style={styles.pressSelectionRight}>
+                    <Icon className='text-secondary' name='Plus' style={styles.pressSelectionRightIcon} />
+                  </View>
+                </View>
+                <ItemSelectorModal
+                  ref={groupSelectorModalRef}
+                  title={t('Post in Groups')}
+                  items={groupOptions}
+                  itemsTransform={(items, searchTerm) => (
+                    items.filter(item => searchTerm
+                      ? item.name.toLowerCase().match(searchTerm?.toLowerCase())
+                      : item
+                    )
+                  )}
+                  chosenItems={post.groups}
+                  onItemPress={addGroup}
+                  searchPlaceholder={t('Search for group by name')}
+                />
+                <GroupsList
+                  className='text-secondary'
+                  style={[styles.pressSelectionValue]}
+                  groups={post.groups}
+                  columns={1}
+                  onPress={() => groupSelectorModalRef.current.show()}
+                  onRemove={removeGroup}
+                  RemoveIcon={() => (
+                    <Icon className='text-muted' name='Ex' style={styles.groupRemoveIcon} />
+                  )}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className='border-border bg-background'
+                style={[styles.pressSelectionSection, styles.topics]}
+                onPress={() => locationSelectorModalRef.current.show()}
+              >
+                <LocationSelectorModal
+                  ref={locationSelectorModalRef}
+                  onItemPress={updateLocation}
+                  initialSearchTerm={post?.location || post?.locationObject?.fullText}
+                />
+                <View style={styles.pressSelection}>
+                  <Text className='text-foreground/80' style={styles.pressSelectionLeftText}>{t('Location')}</Text>
+                  <View className='border-secondary' style={styles.pressSelectionRight}>
+                    <Icon className='text-secondary' name='ArrowDown' style={styles.pressSelectionRightIcon} />
+                  </View>
+                </View>
+                {(post.location || post.locationObject) && (
+                  <Text className='text-secondary' style={styles.pressSelectionValue}>
+                    {post.location || post.locationObject.fullText}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              {post.type === 'project' && (
+                <>
+                  <View style={[styles.pressSelectionSection, styles.topics]}>
+                    <View style={styles.pressSelection}>
+                      <Text style={styles.pressSelectionLeft}>{t('Donation Link')}</Text>
+                      {/* <View style={styles.pressSelectionRight}><Icon name='ArrowDown' style={styles.pressSelectionRightIcon} /></View> */}
+                    </View>
+                    <TextInput
+                      style={styles.pressSelectionValue}
+                      onChangeText={donationsLink => updatePost(({ donationsLink }))}
+                      returnKeyType='next'
+                      autoCapitalize='none'
+                      value={post.donationsLink}
+                      autoCorrect={false}
+                      underlineColorAndroid='transparent'
+                    />
+                  </View>
+
+                  <View style={[styles.pressSelectionSection, styles.topics]}>
+                    <View style={styles.pressSelection}>
+                      <Text style={styles.pressSelectionLeft}>{t('Project Management')}</Text>
+                    </View>
+                    <TextInput
+                      style={styles.pressSelectionValue}
+                      onChangeText={projectManagementLink => updatePost(({ projectManagementLink }))}
+                      returnKeyType='next'
+                      autoCapitalize='none'
+                      value={post.projectManagementLink}
+                      autoCorrect={false}
+                      underlineColorAndroid='transparent'
+                    />
+                  </View>
+                </>
+              )}
+            </View>
+          )}
+
+          {/*  Form Bottom */}
+
+          <View className='bg-background' style={styles.formBottom}>
+            <TouchableOpacity
+              className='border-border'
+              style={[styles.pressSelectionSection, post.isPublic && styles.pressSelectionSectionPublicSelected]}
+              onPress={togglePublicPost}
+            >
+              <View style={styles.pressSelection}>
+                <View style={styles.pressSelectionLeft}>
+                  <Icon
+                    name='Public'
+                    style={[{ fontSize: 16, marginRight: 10 }, post.isPublic && styles.pressSelectionSectionPublicSelected]}
+                    color={rhino80}
+                  />
+                  <Text style={[styles.pressSelectionLeftText, post.isPublic && styles.pressSelectionSectionPublicSelected]}>{t('Make Public')}</Text>
+                </View>
+                <View style={styles.pressSelectionRightNoBorder}>
+                  <Switch
+                    trackColor={{ true: caribbeanGreen, false: rhino80 }}
+                    onValueChange={togglePublicPost}
+                    style={styles.pressSelectionSwitch}
+                    value={post.isPublic}
+                  />
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {canAdminister && (
+              <TouchableOpacity
+                className='border-border'
+                style={[styles.pressSelectionSection, post?.announcement && styles.pressSelectionSectionPublicSelected]}
+                onPress={toggleAnnouncement}
+              >
+                <View style={styles.pressSelection}>
+                  <View style={styles.pressSelectionLeft}>
+                    <Icon
+                      name='Announcement'
+                      style={[{ fontSize: 16, marginRight: 10 }, post?.announcement && styles.pressSelectionSectionPublicSelected]}
+                      color={rhino80}
+                    />
+                    <Text style={[styles.pressSelectionLeftText, post?.announcement && styles.pressSelectionSectionPublicSelected]}>{t('Announcement?')}</Text>
+                  </View>
+                  <View style={styles.pressSelectionRightNoBorder}>
+                    <Switch
+                      trackColor={{ true: caribbeanGreen, false: rhino80 }}
+                      onValueChange={toggleAnnouncement}
+                      style={styles.pressSelectionSwitch}
+                      value={post?.announcement}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              className='border-border'
+              style={styles.pressSelectionSection}
+            >
+              <View style={styles.pressSelection}>
+                <View style={styles.pressSelectionLeft}>
+                  <Icon
+                    name='AddImage'
+                    style={{ padding: 0, margin: 0, fontSize: 24, marginRight: 5 }}
+                    color={rhino80}
+                  />
+                  <Text style={styles.pressSelectionLeftText}>{t('Images')}</Text>
+                </View>
+                <View style={styles.pressSelectionRight}>
+                  <ImagePicker
+                    type='post'
+                    id={post?.id}
+                    selectionLimit={10}
+                    onChoice={attachment => addAttachment('image', attachment)}
+                    onError={(errorMessage, attachment) => handleAttachmentUploadError('image', errorMessage, attachment)}
+                    renderPicker={loading => {
+                      if (!loading) {
+                        return (
+                          <Icon name='Plus' style={styles.pressSelectionRightIcon} />
+                        )
+                      } else {
+                        return (
+                          <Loading
+                            size={30}
+                            style={[styles.pressSelectionRightIcon, { padding: 8 }]}
+                          />
+                        )
+                      }
+                    }}
+                  />
+                </View>
+              </View>
+              <ImageSelector
+                images={post.images}
+                onRemove={attachment => removeAttachment('image', attachment)}
+                style={[styles.imageSelector, { padding: 10 }]}
+                type='post'
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className='border-border'
+              style={styles.pressSelectionSection}
+              onPress={handleShowFilePicker}
+            >
+              <View style={styles.pressSelection}>
+                <View style={styles.pressSelectionLeft}>
+                  <Icon
+                    name='Paperclip'
+                    style={{ padding: 0, margin: 0, fontSize: 24, marginRight: 5 }}
+                    color={rhino80}
+                  />
+                  <Text style={styles.pressSelectionLeftText}>{t('Files')}</Text>
+                </View>
+                <View style={styles.pressSelectionRight}>
+                  <TouchableOpacity onPress={handleShowFilePicker}>
+                    {filePickerPending && (
+                      <Loading
+                        size={30}
+                        style={[styles.buttonBarIcon, { padding: 8 }, styles.buttonBarIconLoading]}
+                      />
+                    )}
+                    {!filePickerPending && (
+                      <Icon name='Plus' style={styles.pressSelectionRightIcon} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <FileSelector
+                onRemove={attachment => removeAttachment('file', attachment)}
+                files={post.files}
+              />
+            </TouchableOpacity>
           </View>
-        </View>
-        {date && !open && (
-          <Text style={styleTemplate.valueText}>{moment.tz(date, moment.tz.guess()).format(dateFormat)}</Text>
-        )}
-      </TouchableOpacity>
-      <DatePicker
-        modal
-        open={open}
-        minimumDate={minimumDate}
-        minuteInterval={5}
-        date={date || new Date()}
-        mode='datetime'
-        title={label}
-        confirmText={t('Set')}
-        cancelText={t('Clear')}
-        onConfirm={handleOnConfirm}
-        onCancel={handleOnCancel}
-      />
-    </>
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
   )
 }

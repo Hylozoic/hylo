@@ -1,13 +1,13 @@
-import React, { useState } from 'react'
+import React, { useRef } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import { get, find, filter, isEmpty, sortBy } from 'lodash/fp'
 import LinearGradient from 'react-native-linear-gradient'
-import { RESPONSES } from 'store/models/EventInvitation'
+import { RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import Avatar from 'components/Avatar'
 import PeopleListModal from 'components/PeopleListModal'
 import { postCardLinearGradientColors, rhino40 } from 'style/colors'
-import { useTranslation } from 'react-i18next'
 
 export default function PostFooter ({
   commenters,
@@ -22,11 +22,10 @@ export default function PostFooter ({
 }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const [peopleModalVisible, setPeopleModalVisible] = useState(false)
-  const togglePeopleModal = () => setPeopleModalVisible(!peopleModalVisible)
+  const peopleListRef = useRef()
   const goToMember = person => navigation.navigate('Member', { id: person.id })
-
-  const eventAttendees = filter(ei => ei.response === RESPONSES.YES, eventInvitations)
+  const eventAttendees = filter(ei => ei?.response === RESPONSES.YES, eventInvitations)
+  const showPeopleList = () => peopleListRef.current.show()
 
   let peopleRowResult
 
@@ -76,28 +75,34 @@ export default function PostFooter ({
   return (
     <>
       <View style={styles.dashedBorder} />
-      <LinearGradient style={[styles.container, style]} colors={postCardLinearGradientColors}>
-        <PeopleListModal
-          people={sortedPeople}
-          onPressPerson={goToMember}
-          toggleModal={togglePeopleModal}
-          isVisible={peopleModalVisible}
-        />
-        <TouchableOpacity onPress={onPress} onLongPress={togglePeopleModal} style={styles.comments}>
-          {avatarUrls.slice(0, 3).map((avatarUrl, index) => {
-            return (
-              <Avatar
-                key={index}
-                avatarUrl={avatarUrl}
-                size='small'
-                hasBorder
-                hasOverlap={index > 0}
-                zIndex={3 - index}
-              />
-            )
-          })}
-          <Text style={[styles.commentsText, !isEmpty(avatarUrls) && styles.commentsTextWithAvatars]}>{caption}</Text>
-        </TouchableOpacity>
+      <LinearGradient style={[styles.gradient, style]} colors={postCardLinearGradientColors}>
+        {/*
+          extra view container needed to out-of-date LinearGradient component, ref:
+          https://github.com/react-native-linear-gradient/react-native-linear-gradient/issues/668#issuecomment-2448866210
+        */}
+        <View style={styles.container}>
+          <PeopleListModal
+            ref={peopleListRef}
+            title={t('Commenters')}
+            onItemPress={goToMember}
+            items={sortedPeople}
+          />
+          <TouchableOpacity onPress={showPeopleList} onLongPress={showPeopleList} style={styles.comments}>
+            {avatarUrls.slice(0, 3).map((avatarUrl, index) => {
+              return (
+                <Avatar
+                  key={index}
+                  avatarUrl={avatarUrl}
+                  size='small'
+                  hasBorder
+                  hasOverlap={index > 0}
+                  zIndex={3 - index}
+                />
+              )
+            })}
+            <Text style={[styles.commentsText, !isEmpty(avatarUrls) && styles.commentsTextWithAvatars]}>{caption}</Text>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
       {forDetails && (
         <View style={styles.dashedBorder} />
@@ -150,9 +155,11 @@ export const peopleSetup = (
 }
 
 const styles = {
-  container: {
+  gradient: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center'
+  },
+  container: {
     paddingLeft: 12,
     paddingVertical: 8
   },

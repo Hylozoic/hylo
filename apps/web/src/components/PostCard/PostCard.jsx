@@ -1,15 +1,13 @@
-import cx from 'classnames'
 import { get } from 'lodash/fp'
-import React, { useCallback, useRef } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
 import PropTypes from 'prop-types'
+import React, { useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import CardImageAttachments from 'components/CardImageAttachments'
 import Icon from 'components/Icon'
 import useRouteParams from 'hooks/useRouteParams'
+import useViewPostDetails from 'hooks/useViewPostDetails'
 import { POST_PROP_TYPES } from 'store/models/Post'
-import { postUrl, editPostUrl } from 'util/navigation'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
 import EventBody from './EventBody'
@@ -17,6 +15,7 @@ import PostBody from './PostBody'
 import PostFooter from './PostFooter'
 import PostHeader from './PostHeader'
 import PostGroups from './PostGroups'
+import { cn } from 'util/index'
 
 import classes from './PostCard.module.scss'
 
@@ -29,31 +28,23 @@ export default function PostCard (props) {
     constrained,
     expanded,
     highlightProps,
+    highlighted,
     group,
     mapDrawer,
     post,
-    locationParams,
     onAddReaction = () => {},
-    onRemoveReaction = () => {}
+    onRemoveReaction = () => {},
+    onRemovePost
   } = props
 
   const postCardRef = useRef()
   const { t } = useTranslation()
   const routeParams = useRouteParams()
-  const navigate = useNavigate()
   const dispatch = useDispatch()
-  const location = useLocation()
-  const querystringParams = new URLSearchParams(location.search)
 
   const currentUser = useSelector(getMe)
 
-  const showDetails = useCallback(() => {
-    navigate(postUrl(post.id, routeParams, { ...locationParams, ...querystringParams }))
-  }, [post.id, routeParams, locationParams, querystringParams])
-
-  const editPost = useCallback(() => {
-    navigate(editPostUrl(post.id, routeParams, querystringParams))
-  }, [post.id, routeParams, querystringParams])
+  const viewPostDetails = useViewPostDetails()
 
   const handleRespondToEvent = useCallback((response) => {
     dispatch(respondToEvent(post, response))
@@ -75,8 +66,8 @@ export default function PostCard (props) {
   })
 
   const onClick = useCallback(event => {
-    if (shouldShowDetails(event.target)) showDetails()
-  })
+    if (shouldShowDetails(event.target)) viewPostDetails(post)
+  }, [post, viewPostDetails])
 
   const postType = get('type', post)
   const isEvent = postType === 'event'
@@ -95,33 +86,40 @@ export default function PostCard (props) {
         </div>}
       <div
         ref={postCardRef}
-        className={cx(
-          classes.card,
+        className={cn(
+          'PostCard rounded-xl cursor-pointer p-2 relative flex flex-col transition-all bg-card/50 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-50 hover:scale-105 duration-400 ',
           classes[postType],
-          { [classes.expanded]: expanded },
-          { [classes.constrained]: constrained },
+          {
+            [classes.expanded]: expanded,
+            [classes.constrained]: constrained,
+            'border-accent/50': highlighted
+          },
           className
         )}
         data-testid='post-card'
       >
         <div onClick={onClick}>
           <PostHeader
-            {...post}
+            post={post}
             routeParams={routeParams}
             highlightProps={highlightProps}
             currentUser={currentUser}
-            editPost={editPost}
             isFlagged={isFlagged}
             constrained={constrained}
             hasImage={hasImage}
+            onRemovePost={onRemovePost}
           />
         </div>
         <div onClick={onClick}>
-          <CardImageAttachments
-            attachments={post.attachments || []}
-            className='post-card'
-            isFlagged={isFlagged && !post.clickthrough}
-          />
+          {post.attachments?.length > 0 && (
+            <div className='mb-4'>
+              <CardImageAttachments
+                attachments={post.attachments || []}
+                className='post-card'
+                isFlagged={isFlagged && !post.clickthrough}
+              />
+            </div>
+          )}
         </div>
         {isEvent && (
           <EventBody
@@ -143,27 +141,28 @@ export default function PostCard (props) {
               constrained={constrained}
               currentUser={currentUser}
               isFlagged={isFlagged}
-              onAddReaction={onAddReaction}
-              onRemoveReaction={onRemoveReaction}
               highlightProps={highlightProps}
               mapDrawer={mapDrawer}
             />
           </div>
         )}
-        <div onClick={onClick}>
+        {/* <div onClick={onClick}>
           <PostGroups
             isPublic={post.isPublic}
             groups={post.groups}
             slug={routeParams.groupSlug}
             constrained={constrained}
           />
-        </div>
+        </div> */}
         <PostFooter
           {...post}
-          onClick={onClick}
           constrained={constrained}
           currentUser={currentUser}
+          onClick={onClick}
+          onAddReaction={onAddReaction}
+          onRemoveReaction={onRemoveReaction}
           postId={post.id}
+          mapDrawer={mapDrawer}
         />
       </div>
     </>
@@ -176,6 +175,5 @@ PostCard.propTypes = {
   highlightProps: PropTypes.object,
   expanded: PropTypes.bool,
   constrained: PropTypes.bool,
-  className: PropTypes.string,
-  locationParams: PropTypes.object
+  className: PropTypes.string
 }

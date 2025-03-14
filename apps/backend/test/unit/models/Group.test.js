@@ -185,4 +185,77 @@ describe('Group', function () {
         ${myGroupIdsSqlFragment('42')}`)
     })
   })
+
+  describe('.doesMenuUpdate', function () {
+    let group1, group2, post, customView
+
+    before(async function () {
+      // Create test groups
+      group1 = await factories.group().save()
+      group2 = await factories.group().save()
+
+      // Create project post
+      post = await factories.post().save({
+        type: 'project',
+        name: 'Test Project'
+      })
+
+      // Create custom view
+      customView = await factories.customView().save({
+        group_id: group1.id,
+        order: 1
+      })
+
+      // Setup initial context widgets for both groups
+      await group1.setupContextWidgets()
+      await group2.setupContextWidgets()
+    })
+
+    it('updates groups widget order when groups are related', async function () {
+      // Initial check
+      const initialWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
+      const groupsWidget = initialWidgets.find(w => w.get('view') === 'groups')
+      expect(groupsWidget.get('order')).to.be.null
+
+      // Perform update
+      await Group.doesMenuUpdate({ groupIds: [group1.id, group2.id], groupRelation: true })
+
+      // Check result
+      const updatedWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
+      const updatedGroupsWidget = updatedWidgets.find(w => w.get('view') === 'groups')
+      expect(updatedGroupsWidget.get('order')).to.not.be.null
+    })
+
+    it('updates projects widget order when project post is added', async function () {
+      // Initial check
+      const initialWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
+      const projectsWidget = initialWidgets.find(w => w.get('view') === 'projects')
+      expect(projectsWidget.get('order')).to.be.null
+      console.log('this should be a post', post, 'right?????')
+      // Perform update
+      await Group.doesMenuUpdate({ groupIds: [group1.id], post })
+
+      // Check result
+      const updatedWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
+      const updatedProjectsWidget = updatedWidgets.find(w => w.get('view') === 'projects')
+
+      expect(updatedProjectsWidget.get('order')).to.not.be.null
+    })
+
+    it('creates widget for custom view when added', async function () {
+      // Initial check
+      const initialWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
+      const initialCustomViewWidgets = initialWidgets.filter(w => w.get('custom_view_id'))
+      expect(initialCustomViewWidgets).to.be.empty
+
+      // Perform update
+      await Group.doesMenuUpdate({ groupIds: [group1.id], customView })
+
+      // Check result
+      const updatedWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
+      const customViewWidgets = updatedWidgets.filter(w => w.get('custom_view_id'))
+      expect(customViewWidgets).to.not.be.empty
+      expect(customViewWidgets[0].get('custom_view_id')).to.equal(String(customView.id))
+    })
+  })
 })

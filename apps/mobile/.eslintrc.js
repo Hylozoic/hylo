@@ -20,6 +20,7 @@ module.exports = {
     'prettier/prettier': 'off',
     'react/prop-types': 'off',
     'react/no-children-prop': 'warn',
+    'react/jsx-handler-names': 'off',
     'react/jsx-fragments': 'warn',
     'react/jsx-wrap-multilines': 'warn',
     'import/export': 'off'

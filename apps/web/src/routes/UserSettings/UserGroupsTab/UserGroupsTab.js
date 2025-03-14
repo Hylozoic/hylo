@@ -15,7 +15,7 @@ import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import Membership from 'components/Membership'
 import classes from './UserGroupsTab.module.scss'
-import cx from 'classnames'
+import { cn } from 'util/index'
 
 const { array, func, object, string } = PropTypes
 
@@ -38,8 +38,8 @@ class UserGroupsTab extends Component {
   }
 
   render () {
-    const { action, t } = this.props
-    const { affiliations, memberships, errorMessage, successMessage, showAddAffiliations } = this.state
+    const { action, t, affiliations } = this.props
+    const { memberships, errorMessage, successMessage, showAddAffiliations } = this.state
     const displayMessage = errorMessage || successMessage
     if (!memberships || !affiliations) return <Loading />
 
@@ -104,7 +104,7 @@ class UserGroupsTab extends Component {
 
   leaveGroup = (group) => {
     const { leaveGroup } = this.props
-    let { memberships } = this.state
+    const { memberships } = this.state
 
     leaveGroup(group.id)
       .then(res => {
@@ -113,15 +113,14 @@ class UserGroupsTab extends Component {
         const deletedGroupId = get(res, 'payload.data.leaveGroup')
         if (deletedGroupId) {
           successMessage = `You left ${group.name || 'this group'}.`
-          memberships = memberships.filter((m) => m.group.id !== deletedGroupId)
+          const newMemberships = memberships.filter((m) => m.group.id !== deletedGroupId)
+          this.setState({ memberships: newMemberships, errorMessage, successMessage })
         }
 
         if (isWebView()) {
           // Could be handled better using WebSockets
           sendMessageToWebView(WebViewMessageTypes.LEFT_GROUP, { groupId: deletedGroupId })
         }
-
-        return this.setState({ memberships, errorMessage, successMessage })
       })
   }
 
@@ -216,7 +215,7 @@ export function AddAffiliation ({ close, save }) {
           />
         </div>
 
-        <div className={cx(classes.save, { [classes.disabled]: !canSave })}>
+        <div className={cn(classes.save, { [classes.disabled]: !canSave })}>
           <span onClick={canSave ? () => save({ role, preposition, orgName, url }) : undefined}>{t('Add Affiliation')}</span>
         </div>
 
@@ -227,7 +226,7 @@ export function AddAffiliation ({ close, save }) {
 
 export function Message ({ errorMessage, successMessage, reset }) {
   return (
-    <div className={cx(classes.message, { [classes.error]: errorMessage, [classes.success]: !errorMessage })} onClick={reset}>{errorMessage || successMessage}</div>
+    <div className={cn(classes.message, { [classes.error]: errorMessage, [classes.success]: !errorMessage })} onClick={reset}>{errorMessage || successMessage}</div>
   )
 }
 export default withTranslation()(UserGroupsTab)

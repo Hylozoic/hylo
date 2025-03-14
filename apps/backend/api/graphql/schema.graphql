@@ -21,6 +21,8 @@ type Query {
 
   collection(id: ID): Collection
 
+  contextWidgets(groupId: ID, includeUnordered: Boolean): ContextWidgetQuerySet
+
   # Query for PersonConnections
   connections(
     # Number of PersonConnections to load
@@ -42,6 +44,8 @@ type Query {
 
   # Query for groups
   groups(
+    # Whether to only return groups that are allowed to be shown in public
+    allowedInPublic: Boolean,
     # Search for groups who's name starts with the autcomplete string
     autocomplete: String,
     # Find only groups in this geographic bounding box
@@ -111,6 +115,8 @@ type Query {
     autocomplete: String,
     # Int of GroupTopics to return
     first: Int,
+    # filter by group id
+    groupId: ID
     # If true only return topics that are set to be a default topic in a group that the current logged in user is a member of
     isDefault: Boolean,
     # For pagination, start loading GroupTopics after this offset
@@ -283,6 +289,9 @@ type Query {
   # Find a Topic by ID or by name (text)
   topic(id: ID, name: String): Topic
 
+  # Find one of your TopicFollows by group ID and topic name. Used to store settings related to a chat room.
+  topicFollow(groupId: ID, topicName: String): TopicFollow
+
   # Query for Topics
   topics(
     # Return only topics whose name starts with the autocomplete string
@@ -300,6 +309,20 @@ type Query {
     # Only return topics that are set to this visibility in a group that the current logged in user is a member of: 0 = hidden in the group, 1 = visible, 2 = pinned
     visibility: [Int]
   ): TopicQuerySet
+}
+
+union Update = Message | MessageThread | Notification
+
+type Subscription {
+  # Pushes new comments on the comments key for the given postId or parentCommentId
+  comments(postId: ID, parentCommentId: ID): Comment,
+  # Pushes peopleTyping from peopleTyping mutation for given ID (currently also pushes WebSocket userTyping event)
+  peopleTyping(messageThreadId: ID, postId: ID, commentId: ID): Person
+  # Pushes new Notifications Messages or MessageThreads (see related union Type above and type resolver in graphql/index.js)
+  # in most cases this subscription will be used to indicate new activity in UI state (i.e. badges), but if enough data is
+  # requested in the subscription query it is also where new messages and messageThreads can be received in the UI. See
+  # example usage of this in Mobile.
+  updates: Update
 }
 
 # The meta data associated with an Activity
@@ -526,6 +549,63 @@ type CommonRole {
   responsibilitiesTotal: Int
 }
 
+# A ContextWidget for a Group
+type ContextWidget {
+  id: ID
+  # Whether the widget has been editted or previously added to the menu
+  autoAdded: Boolean
+  # The title of the widget
+  title: String
+  # The type of widget
+  type: String
+  # The display order of the widget
+  order: Int
+  # The visibility settings of the widget
+  visibility: String
+  # View that this widget is pointing at
+  view: String
+  # Icon for the widget
+  icon: String
+  # When this widget was created
+  createdAt: Date
+  # When this widget was last updated
+  updatedAt: Date
+  # Primary highlight number for this widget
+  highlightNumber: Int
+  # Secondary number for this widget
+  secondaryNumber: Int
+  # Parent ID for this widget
+  parentId: ID
+
+  # Relationships
+  # Child widgets if this is a parent widget
+  childWidgets: [ContextWidget]
+  # Custom view this widget is pointing at
+  customView: CustomView
+  # Group Topic this widget is pointing at, for chat rooms
+  groupTopic: GroupTopic
+  # The group that owns this widget
+  ownerGroup: Group
+  # Parent widget if this is a child widget
+  parentWidget: ContextWidget
+  # For chat rooms, the topic follow contains the notifications settings for the room for the current user
+  topicFollow: TopicFollow
+  # Chat this widget is pointing at
+  viewChat: Topic
+  # Group this widget is pointing at
+  viewGroup: Group
+  # Post this widget is pointing at
+  viewPost: Post
+  # User this widget is pointing at
+  viewUser: Person
+}
+
+type ContextWidgetQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [ContextWidget]
+}
+
 # A CustomView for a Group
 type CustomView {
   id: ID
@@ -621,6 +701,8 @@ type Group {
   description: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
   geoShape: JSON
+  # home widget
+  homeWidget: ContextWidget
   # The current invite link for this group
   invitePath: String
   # A string describing the physical location of this group in the world
@@ -655,6 +737,10 @@ type Group {
   typeDescriptor: String
   # Word used to describe this type of groups. Defaults to Groups, or if type is set then defaults to the type (e.g. Farms)
   typeDescriptorPlural: String
+  # The primary website for the group
+  websiteUrl: String
+  # The content for the group welcome page
+  welcomePage: String
   # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
   visibility: Int
 
@@ -677,6 +763,8 @@ type Group {
   # The agreements required to participate in this Group
   agreements: AgreementQuerySet
 
+  chatRooms: ContextWidgetQuerySet
+
   # Child groups of this group
   childGroups(
     # Return groups whose names start with the autocomplete string
@@ -694,6 +782,9 @@ type Group {
     # Return groups where the search text matches in the name, description or location
     search: String
   ): GroupQuerySet
+
+  # ContextWidgets for this group
+  contextWidgets: ContextWidgetQuerySet
 
   # CustomViews for this group
   customViews: CustomViewQuerySet
@@ -1007,6 +1098,8 @@ type GroupSettings {
   publishMurmurationsProfile: Boolean
   # Whether to display suggested skills to new members when they join this group
   showSuggestedSkills: Boolean
+  # Whether to display the custom Welcome Page when a member joins the group
+  showWelcomePage: Boolean
 }
 
 # A relationship between two Groups
@@ -1426,6 +1519,14 @@ type Me {
     # Number of skills to load
     first: Int
   ): SkillQuerySet
+
+  # The topics/chat rooms I subscribe to
+  topicFollows(
+    # Start loading topics after this ID
+    cursor: ID,
+    # Load this number of topics
+    first: Int
+  ): TopicFollowQuerySet
 }
 
 # A user's group membership
@@ -1454,6 +1555,7 @@ type Membership {
   # 0: default, 1: moderator. TODO: deprecated, remove once mobile app has been updated to use new roles
   role: Int
   settings: MembershipSettings
+  topicFollows: TopicFollowQuerySet
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -1526,8 +1628,12 @@ type MembershipGroupRoleQuerySet {
 type MembershipSettings {
   # When the member last accepted the agreements of the group
   agreementsAcceptedAt: Date
+  # How often this person wants to receive the email digest about new posts and comments in this group: daily, weekly, or never
+  digestFrequency: String
   # When the member filled out the join questions
   joinQuestionsAnsweredAt: Date
+  # How this person wants to receive notifications for post in this group: none, important, or all
+  postNotifications: String
   # Whether the user wants to get email notifications from this group
   sendEmail: Boolean
   # Whether this user has yet seen the form that appears when first joining a new group
@@ -1846,6 +1952,8 @@ type Post {
   isStrictProposal: Boolean
   # Whether LinkPreview appears full size above post or smaller below
   linkPreviewFeatured: Boolean
+  # Temporary id passed in from the client to identify the post when it is created, and passed back to the client, for optimistically creating posts
+  localId: String
   # Full location string
   location: String
   # Object with geocoded location deatils
@@ -2130,6 +2238,8 @@ type Topic {
     offset: Int
     # Filter by visibility: 0: hidden in the group, 1: visible, 2: pinned
     visibility: [Int]
+    # groupId to narrow query to one group
+    groupId: ID
   ): GroupTopicQuerySet
 }
 
@@ -2140,14 +2250,41 @@ type TopicQuerySet {
   items: [Topic]
 }
 
+type TopicFollow {
+  id: ID
+  createdAt: Date
+  # The group that the topic is in
+  group: Group
+  # The last post id that the user has read in this group
+  lastReadPostId: ID
+  # The number of new posts since the last post the user has read in this group
+  newPostCount: Int
+  # The settings for the topic follow
+  settings: TopicFollowSettings
+  # The topic that is being followed
+  topic: Topic
+  updatedAt: Date
+  # The user that is following the topic
+  user: Person
+}
+
+type TopicFollowQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [TopicFollow]
+}
+
+type TopicFollowSettings {
+  # The notifications for the topic follow: 'none', 'important', or 'all'
+  notifications: String
+}
+
 # Current user's personal settings
 type UserSettings {
   # Has this person seen the tour that displays the first time someone logs in
   alreadySeenTour: Boolean
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
   commentNotifications: String
-  # How often this person wants to receive the email digest about new posts and comments: daily, weekly, or never
-  digestFrequency: String
   # How this person wants to receive notifications about Direct Messages: email, push, both, or none
   dmNotifications: String
   # When person wants last viewed their Direct Messages
@@ -2282,6 +2419,8 @@ type Mutation {
   createCollection(data: CollectionInput): Collection
   # Add a comment to a Post
   createComment(data: CommentInput): Comment
+  # Create a new context widget
+  createContextWidget(data: ContextWidgetInput, groupId: ID): ContextWidget
   # Create a new Group
   createGroup(
     data: GroupInput,
@@ -2372,10 +2511,14 @@ type Mutation {
   markActivityRead(id: ID): Activity
   # Mark all notifications as read
   markAllActivitiesRead: GenericResult
+  # Marks a MessageThread as read
+  markThreadRead(messageThreadId: ID): MessageThread,
   # Send a message to all the stewards of a Group
   messageGroupStewards(groupId: ID): ID
   # Pin a post within a Group. Only a group moderator can call this.
   pinPost(postId: ID, groupId: ID): GenericResult
+  # Called when typing in front end, matches with peopleTyping subscription
+  peopleTyping(messageThreadId: ID, postId: ID, commentId: ID): GenericResult,
   # NOT USED RIGHT NOW
   processStripeToken(postId: ID, token: String, amount: Int): GenericResult
   # react to a post or comment
@@ -2396,6 +2539,8 @@ type Mutation {
   registerStripeAccount(authorizationCode: String): GenericResult
   # Reject a Group's invite or request to connect to one of your groups. Only a group steward can call this.
   rejectGroupRelationshipInvite(groupRelationshipInviteId: ID): GenericResult
+  # Remove a context widget from a menu
+  removeWidgetFromMenu(contextWidgetId: ID, groupId: ID): GenericResult
   # Remove a Person from a Group. Only a group Moderator can call this.
   removeMember(personId: ID, groupId: ID): Group
   # Remove a moderator from a Group.
@@ -2430,6 +2575,16 @@ type Mutation {
     questionAnswers: [QuestionAnswerInput],
     parentId: ID
   ): CreatedGroupRelationshipInvite
+  # Change a context widget's order/position
+  reorderContextWidget(
+    contextWidgetId: ID,
+    # Change the parent of the widget
+    parentId: ID,
+    # Move the widget in front of this widget
+    orderInFrontOfWidgetId: ID,
+    # Add the widget to the end of the parent
+    addToEnd: Boolean
+  ): ContextWidget
   # Change a post's order/position in a Collection to newOrderIndex (0 indexed)
   reorderPostInCollection(
     collectionId: ID,
@@ -2452,6 +2607,8 @@ type Mutation {
   sendPasswordReset(email: String!): GenericResult,
   # set options for a proposal
   setProposalOptions(postId: ID, options: [ProposalOptionInput]): [ProposalOption]
+  # Set the Home widget for a Group
+  setHomeWidget(contextWidgetId: ID, groupId: ID): GenericResult
   # Subscribe or unsubscribe to a Topic in a Group
   subscribe(groupId: ID, topicId: ID, isSubscribing: Boolean): GenericResult
   # Swap votes on a proposal
@@ -2462,8 +2619,12 @@ type Mutation {
   unblockUser(blockedUserId: ID): GenericResult
   # Mark a post as unfulfilled/uncompleted
   unfulfillPost(postId: ID): GenericResult
+  # Update settings for all your group memberships at once
+  updateAllMemberships(data: MembershipInput): GenericResult
   # Edit a comment
   updateComment(id: ID, data: CommentInput): Comment
+  # Update a context widget
+  updateContextWidget(contextWidgetId: ID, data: ContextWidgetInput): ContextWidget
   # Update a Group's settings. Only a group steward can call this.
   updateGroupSettings(id: ID, changes: GroupInput): Group
   # Update a Group's settings. Only can be called via API key.
@@ -2495,8 +2656,8 @@ type Mutation {
   ): GroupRole
   # Update settings related a Topic in a Group. Only a group steward can call this.
   updateGroupTopic(id: ID, data: GroupTopicInput): GenericResult
-  # Update settings related to a Person following a Topic in a Group
-  updateGroupTopicFollow(id: ID, data: GroupTopicFollowInput): GenericResult
+  # Update settings related to a Person following a Topic in a Group. DEPRECATED, use updateTopicFollow instead
+  updateGroupTopicFollow(id: ID, data: TopicFollowInput): GenericResult
   # Update your settings or profile information
   updateMe(changes: MeInput): Me
   # Update settings related to your relationship to a particular group by Group ID or slug
@@ -2509,6 +2670,8 @@ type Mutation {
   updateProposalOutcome(postId: ID, proposalOutcome: String): GenericResult
   # NOT USED RIGHT NOW
   updateStripeAccount(accountId: String): GenericResult
+  # Update settings related to a Person following a Topic in a Group
+  updateTopicFollow(id: ID, data: TopicFollowInput): TopicFollow
   # Update settings for a GroupWidget
   updateWidget(id: ID, changes: GroupWidgetInput): GroupWidget
   # Accept an invitation to a Group
@@ -2648,6 +2811,57 @@ input CommentInput {
   postId: String
   # Comment content
   text: String
+}
+
+# Input type for creating or updating a ContextWidget
+input ContextWidgetInput {
+  # The group this widget belongs to
+  ownerGroupId: ID
+
+  # Type: null is default and valid. Only include widget type for special behaviors.
+  type: String
+
+  # The title of the widget
+  title: String
+
+  # The display order of the widget
+  orderInFrontOfWidgetId: ID
+
+  # If true, add this widget to the end of the list. Will be ignored if orderInFrontOfWidgetId is also provided.
+  addToEnd: Boolean
+
+  # If true, remove this widget from the menu.
+  remove: Boolean
+
+  # The visibility settings of the widget. Currently null or admin
+  visibility: String
+
+  # The view that this widget is pointing at
+  view: String
+
+  # Icon for the widget
+  icon: String
+
+  # ID of the parent widget if this is a child widget
+  parentId: ID
+
+  # Group this widget is pointing at
+  viewGroupId: ID
+
+  # Post this widget is pointing at
+  viewPostId: ID
+
+  # Custom view this widget is pointing at
+  customViewId: ID
+
+  # User this widget is pointing at
+  viewUserId: ID
+
+  # Chat this widget is pointing at
+  viewChatId: ID
+
+  # Create a custom view when creating a widget
+  customViewInput: CustomViewInput
 }
 
 # For adding or editing an existing CustomView on a Group
@@ -2796,6 +3010,10 @@ input GroupInput {
   typeDescriptor: String
   # Word used to describe this type of groups. Defaults to Groups, or if type is set then defaults to the type (e.g. Farms)
   typeDescriptorPlural: String
+  # The primary website for the group
+  websiteUrl: String
+  # The content for the group welcome page
+  welcomePage: String
   # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
   visibility: Int
 }
@@ -2816,11 +3034,19 @@ input GroupTopicInput {
 }
 
 # Data related to a Person following a Topic in a Group
-input GroupTopicFollowInput {
+input TopicFollowInput {
   # The most recent post that the user has read in this GroupTopic
   lastReadPostId: ID
   # Set the count of new posts with this Topic in the Group since the Person last looked a the Topic stream
   newPostCount: Int
+  # Settings for this TopicFollow
+  settings: TopicFollowSettingsInput
+}
+
+# Settings for a TopicFollow
+input TopicFollowSettingsInput {
+  # How this person wants to receive notifications for post in this group: none, important, or all
+  notifications: String
 }
 
 # Group settings
@@ -2841,6 +3067,8 @@ input GroupSettingsInput {
   publishMurmurationsProfile: Boolean
   # Whether to display suggested skills to new members when they join this group
   showSuggestedSkills: Boolean
+  # Whether to display the custom Welcome Page when a member joins the group
+  showWelcomePage: Boolean
 }
 
 # Settings for a Widget in a particular Group's explore page
@@ -2935,8 +3163,12 @@ input MembershipInput {
 
 # Personal settings for a User's relationship to a Group
 input MembershipSettingsInput {
+  # How often this person wants to receive the email digest about new posts and comments in this group: daily, weekly, or never
+  digestFrequency: String
   # When the member filled out the join questions
   joinQuestionsAnsweredAt: Date
+  # How this person wants to receive notifications for post in this group: none, important, or all
+  postNotifications: String
   # Whether to receive email notifications for this Group
   sendEmail: Boolean
   # Whether to show the form displayed upon first viewing a Group this Person just joined
@@ -3105,8 +3337,6 @@ input UserSettingsInput {
   alreadySeenTour: Boolean
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
   commentNotifications: String
-  # How often this person wants to receive the email digest about new posts and comments: daily, weekly, or never
-  digestFrequency: String
   # How this person wants to receive notifications about Direct Messages: email, push, both, or none
   dmNotifications: String
   # When person wants last viewed their Direct Messages
@@ -3115,8 +3345,6 @@ input UserSettingsInput {
   locale: String
   # The most recent map base later viewed by this person
   mapBaseLayer: String
-  # How this person wants to receive notifications for each post in their groups. none, important, or all
-  postNotifications: String
   # Whether this person has finished viewing the welcome wizard after first signing up
   signupInProgress: Boolean
   # Include child group posts in user's stream

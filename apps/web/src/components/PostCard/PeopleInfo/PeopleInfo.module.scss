@@ -1,14 +1,4 @@
-.people-container {
-  display: flex;
-  align-items: center;
-}
 
-.people {
-  margin-right: 4px;
-  white-space: nowrap;
-  display: inline-block;
-  vertical-align: middle;
-}
 
 .caption {
   composes: caption-lt-lg from 'css/typography.scss';

@@ -1,11 +1,11 @@
 import React from 'react'
 import { View, Text } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { uniq, merge } from 'lodash/fp'
 import LinkButton from 'components/LinkButton'
 import Triangle from 'react-native-triangle'
 import { amaranth, white } from 'style/colors'
 import errorMessages from 'util/errorMessages'
-import { useTranslation } from 'react-i18next'
 
 export const defaultStyles = {
   errorWrapper: {
@@ -34,6 +34,7 @@ export default function FormattedError ({
   theme = {}
 }) {
   const { t } = useTranslation()
+
   if (!error) return null
 
   const styles = merge(defaultStyles, providedStyles, theme)
@@ -68,7 +69,7 @@ export default function FormattedError ({
   return (
     <Error styles={styles}>
       {errorMessageText && (
-        <Text style={styles.errorText}>{errorMessageText}</Text>
+        <Text style={styles.errorText}>{t(errorMessageText)}</Text>
       )}
     </Error>
   )

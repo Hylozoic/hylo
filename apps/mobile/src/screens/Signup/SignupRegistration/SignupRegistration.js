@@ -1,28 +1,60 @@
 import React, { useRef, useState } from 'react'
 import { ScrollView, View, Text } from 'react-native'
+import { gql, useMutation } from 'urql'
 import { useFocusEffect } from '@react-navigation/native'
-import { useDispatch } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { pickBy, identity } from 'lodash/fp'
-import { Validators } from '@hylo/shared'
-import register from 'store/actions/register'
-import logout from 'store/actions/logout'
+import { AnalyticsEvents, Validators } from '@hylo/shared'
+import meAuthFieldsFragment from '@hylo/graphql/fragments/meAuthFieldsFragment'
+import mixpanel from 'services/mixpanel'
+import useLogout from 'hooks/useLogout'
 import useForm from 'hooks/useForm'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
+import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
 import SettingControl from 'components/SettingControl'
 import Button from 'components/Button'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
 import styles from './SignupRegistration.styles'
-import { useTranslation } from 'react-i18next'
+
+export const registerMutation = gql`
+  mutation RegisterMutation ($name: String!, $password: String!) {
+    register(name: $name, password: $password) {
+      me {
+        ...MeAuthFieldsFragment
+      },
+    }
+    ${meAuthFieldsFragment}
+  }
+`
 
 export default function SignupRegistration ({ navigation, route }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
+  const confirmDiscardChanges = useConfirmDiscardChanges()
+  const [, register] = useMutation(registerMutation)
+  const logout = useLogout({ loadingRedirect: false })
   const passwordControlRef = useRef()
   const confirmPasswordControlRef = useRef()
   const [loading, setLoading] = useState()
-  // WIP: Need to display response error somewhere on page
-  const [error, setError] = useState()
+  // TODO: Display response error somewhere on page
+  const [error, setError] = useState() // eslint-disable-line no-unused-vars
+
+  const saveAndNext = async () => {
+    try {
+      setLoading(true)
+      const response = await register({ name: values.name, password: values.password })
+      const { error: responseError = null } = response?.data
+      if (responseError) {
+        setError(responseError)
+      } else {
+        mixpanel.track(AnalyticsEvents.SIGNUP_REGISTERED)
+        navigation.navigate('SignupUploadAvatar')
+      }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const validator = ({ name, password, confirmPassword }) => {
     return pickBy(identity, {
@@ -32,42 +64,20 @@ export default function SignupRegistration ({ navigation, route }) {
     })
   }
 
-  const saveAndNext = async () => {
-    try {
-      setLoading(true)
-      const response = await dispatch(register(values.name, values.password))
-      const { error: responseError = null } = response.payload.getData()
-
-      if (responseError) {
-        setError(responseError)
-      }
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const {
-    values,
-    errors,
-    handleChange,
-    handleSubmit
-  } = useForm(saveAndNext, validator)
+  const { values, errors, handleChange, handleSubmit } = useForm(saveAndNext, validator)
 
   useFocusEffect(() => {
     navigation.setOptions({
       headerLeftOnPress: () => {
         confirmDiscardChanges({
           title: '',
-          confirmationMessage: t("Were almost done, are you sure you want to cancel signing-up?"),
-          disgardButtonText: t('Yes'),
-          continueButtonText: t('No'),
+          confirmationMessage: 'Were almost done, are you sure you want to cancel signing-up?',
+          discardButtonText: 'Yes',
+          continueButtonText: 'No',
           onDiscard: () => {
-            dispatch(logout())
-            navigation.navigate('Signup Intro')
-          },
-          t
+            logout()
+            navigation.navigate('Login', {})
+          }
         })
       }
     })

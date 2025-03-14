@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import PropTypes from 'prop-types'
 import React from 'react'
 
@@ -12,13 +12,13 @@ export default function CheckBox ({ checked, onChange, className, label, labelCl
   const iconName = checked ? 'Checkmark' : 'Empty'
 
   return (
-    <label className={cx(classes.label, labelClass)}>
+    <label className={cn(classes.label, labelClass)}>
       {labelLeft && label}
-      <Icon name={iconName} className={cx(classes.icon, { [classes.labelLeft]: labelLeft })} dataTestId={`icon-${iconName}`} />
+      <Icon name={iconName} className={cn(classes.icon, { [classes.labelLeft]: labelLeft })} dataTestId={`icon-${iconName}`} />
       {!noInput &&
         <input
           type='checkbox'
-          className={cx(classes.checkbox, className)}
+          className={cn(classes.checkbox, className)}
           checked={!!checked}
           onChange={e => onChange(e.target.checked)}
           disabled={disabled}

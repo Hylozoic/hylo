@@ -40,7 +40,7 @@ $comment-row-padding: 25px;
   top: -16px;
   right: 0;
   height: 32px;
-  background-color: rgba(255,255,255,1);
+  background-color: hsl(var(--popover));
   border-radius: 30px;
   box-shadow: 0 5px 10px rgb(0 0 0 / 20%);
   display: none;
@@ -58,8 +58,17 @@ $comment-row-padding: 25px;
 }
 
 .userName {
-  composes: userName from 'components/PostCard/PostHeader/PostHeader.module.scss';
+  white-space: nowrap;
+  @include font-bold;
+  color: hsl(var(--foreground));
+  display: flex;
+  align-items: center;
+  font-size: 14px;
   margin-right: 7px;
+  &:hover {
+    color: hsl(var(--foreground)/50);
+    text-decoration: none;
+  }
 }
 
 .commented {
@@ -127,8 +136,10 @@ $comment-row-padding: 25px;
 }
 
 .text {
-  composes: bdy-lt-sm from 'css/typography.scss';
-  margin-left: $comment-left-margin;
+
+  p {
+    margin-top: 0;
+  }
 
   strong {
     color: rgba(66, 94, 114, 1.0);
@@ -166,6 +177,7 @@ $comment-row-padding: 25px;
 
 .emojis.hiddenReactions {
   margin-left: 0;
+  margin-right: 0;
 
   &:hover {
     background: $color-picton-blue;

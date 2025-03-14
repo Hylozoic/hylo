@@ -18,7 +18,7 @@ export default function ImageCarousel ({
     infinite: true,
     speed: 500,
     slidesToShow: 1,
-    arrows: true,
+    arrows: imageAttachments.length > 1,
     slidesToScroll: 1,
     adaptiveHeight: true,
     initialSlide: parseInt(initialSlide)

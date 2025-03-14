@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useResizeDetector } from 'react-resize-detector'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import PropTypes from 'prop-types'
 import { get, throttle, find } from 'lodash/fp'
 import { Helmet } from 'react-helmet'
@@ -27,6 +27,7 @@ import NotFound from 'components/NotFound'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
 import ProjectContributions from './ProjectContributions'
 import PostPeopleDialog from 'components/PostPeopleDialog'
+import useRouteParams from 'hooks/useRouteParams'
 import fetchPost from 'store/actions/fetchPost'
 import joinProject from 'store/actions/joinProject'
 import leaveProject from 'store/actions/leaveProject'
@@ -34,6 +35,7 @@ import processStripeToken from 'store/actions/processStripeToken'
 import respondToEvent from 'store/actions/respondToEvent'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { FETCH_POST } from 'store/constants'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
@@ -44,17 +46,17 @@ import { DETAIL_COLUMN_ID, position } from 'util/scrolling'
 import classes from './PostDetail.module.scss'
 
 // the height of the header plus the padding-top
-const STICKY_HEADER_SCROLL_OFFSET = 70
+const STICKY_HEADER_SCROLL_OFFSET = 44
 const MAX_DETAILS_LENGTH = 144
 
 function PostDetail () {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const postId = routeParams.postId || getQuerystringParam('fromPostId', location)
-  const { groupSlug, commentId } = routeParams
-
+  const { groupSlug, view } = routeParams
+  const commentId = getQuerystringParam('commentId', location) || routeParams.commentId
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   const postSelector = useSelector(state => getPost(state, postId))
   const post = useMemo(() => {
@@ -62,7 +64,6 @@ function PostDetail () {
   }, [postSelector, currentGroup])
   const currentUser = useSelector(getMe)
   const pending = useSelector(state => state.pending[FETCH_POST])
-  const isProjectMember = find(({ id }) => id === get('id', currentUser), get('members', post))
 
   const [state, setState] = useState({
     atHeader: false,
@@ -81,7 +82,19 @@ function PostDetail () {
     onPostIdChange()
   }, [postId])
 
-  const handleSetComponentPositions = () => {
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    if (view === 'post') {
+      setHeaderDetails({
+        title: t('Post'),
+        icon: '',
+        info: '',
+        search: false
+      })
+    }
+  }, [])
+
+  const handleSetComponentPositions = useCallback(() => {
     const container = document.getElementById(DETAIL_COLUMN_ID)
     if (!container) return
     const element = activityHeader.current
@@ -91,11 +104,11 @@ function PostDetail () {
       activityWidth: element ? element.offsetWidth : 0,
       activityScrollOffset: element ? position(element, container).y - STICKY_HEADER_SCROLL_OFFSET : 0
     }))
-  }
+  }, [])
 
   const { ref } = useResizeDetector({ handleHeight: false, onResize: handleSetComponentPositions })
 
-  const onPostIdChange = () => {
+  const onPostIdChange = useCallback(() => {
     if (!pending) {
       dispatch(fetchPost(postId))
     }
@@ -109,7 +122,7 @@ function PostDetail () {
         type: post.type
       }))
     }
-  }
+  }, [postId, post, pending])
 
   const handleScroll = throttle(100, event => {
     const { scrollTop } = event.target
@@ -126,35 +139,56 @@ function PostDetail () {
     }))
   })
 
-  const togglePeopleDialog = () => setState(prevState => ({ ...prevState, showPeopleDialog: !prevState.showPeopleDialog }))
+  const togglePeopleDialog = useCallback(() => setState(prevState => ({ ...prevState, showPeopleDialog: !prevState.showPeopleDialog })), [])
 
-  const onClose = () => {
+  const onClose = useCallback(() => {
     const closeLocation = {
       ...location,
       pathname: removePostFromUrl(location.pathname) || '/'
     }
     navigate(closeLocation)
-  }
+  }, [location])
 
-  if (!post && !pending) return <NotFound />
-  if (pending) return <Loading />
+  const scrollToBottom = useCallback(() => {
+    const detail = document.getElementById(DETAIL_COLUMN_ID)
+    detail.scrollTop = detail.scrollHeight
+  }, [])
 
-  const isProject = get('type', post) === 'project'
-  const isEvent = get('type', post) === 'event'
+  const isProject = useMemo(() => get('type', post) === 'project', [post])
+  const isProjectMember = useMemo(() => isProject && find(({ id }) => id === get('id', currentUser), get('members', post)), [currentUser, post])
+  const isEvent = useMemo(() => get('type', post) === 'event', [post])
+
   // TODO: if not in a group should show as flagged if flagged in any of my groups
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroup?.id)
+  const isFlagged = useMemo(() => post?.flaggedGroups && post.flaggedGroups.includes(currentGroup?.id), [post, currentGroup])
 
-  const m = post.projectManagementLink ? post.projectManagementLink.match(/(asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho)/) : null
-  const projectManagementTool = m ? m[1] : null
+  const projectManagementTool = useMemo(() => {
+    const m = post?.projectManagementLink ? post.projectManagementLink.match(/(asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho)/) : null
+    return m ? m[1] : null
+  }, [post?.projectManagementLink])
 
-  const d = post.donationsLink ? post.donationsLink.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/) : null
+  const d = post?.donationsLink ? post.donationsLink.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/) : null
   const donationService = d ? d[1] : null
 
   const { acceptContributions, totalContributions } = post || {}
-  const scrollToBottom = () => {
-    const detail = document.getElementById(DETAIL_COLUMN_ID)
-    detail.scrollTop = detail.scrollHeight
+
+  let people, postPeopleDialogTitle
+
+  if (isProject) {
+    people = post?.members
+    postPeopleDialogTitle = t('Project Members')
+  } else if (isEvent) {
+    people = post?.eventInvitations
+    postPeopleDialogTitle = t('Responses')
   }
+
+  const hasImage = useMemo(() => post?.attachments.find(a => a.type === 'image') || false, [post])
+  const hasPeople = useMemo(() => people && people.length > 0, [people])
+  const showPeopleDialog = hasPeople && state.showPeopleDialog
+  const handleTogglePeopleDialog = hasPeople && togglePeopleDialog ? togglePeopleDialog : undefined
+
+  if (!post && !pending) return <NotFound />
+  if (!post && pending) return <Loading />
+
   const headerStyle = {
     width: state.headerWidth + 'px'
   }
@@ -163,140 +197,122 @@ function PostDetail () {
     marginTop: STICKY_HEADER_SCROLL_OFFSET + 'px'
   }
 
-  let people, postPeopleDialogTitle
-
-  if (isProject) {
-    people = post.members
-    postPeopleDialogTitle = t('Project Members')
-  } else if (isEvent) {
-    people = post.eventInvitations
-    postPeopleDialogTitle = t('Responses')
-  }
-
-  const detailHasImage = post.attachments.find(a => a.type === 'image') || false
-  const hasPeople = people && people.length > 0
-  const showPeopleDialog = hasPeople && state.showPeopleDialog
-  const handleTogglePeopleDialog = hasPeople && togglePeopleDialog ? togglePeopleDialog : undefined
-
-  const postFooter = (
-    <PostFooter
-      {...post}
-      currentUser={currentUser}
-    />
-  )
-
   return (
-    <div ref={ref} className={cx(classes.post, { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
+    <div ref={ref} className={cn('max-w-[960px] mx-auto min-w-[350px] bg-background relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
       <Helmet>
         <title>
           {`${post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 20 })} | Hylo`}
         </title>
         <meta name='description' content={TextHelpers.presentHTMLToText(post.details, { truncate: MAX_DETAILS_LENGTH })} />
       </Helmet>
-      <ScrollListener elementId={DETAIL_COLUMN_ID} onScroll={handleScroll} />
-      <PostHeader
-        className={classes.header}
-        {...post}
-        routeParams={{ groupSlug, postId, commentId }}
-        close={onClose}
-        expanded
-        isFlagged={isFlagged}
-        detailHasImage={detailHasImage}
-      />
-      {state.atHeader && (
-        <div className={cx(classes.headerSticky, { [classes.atActivity]: state.atActivity })} style={headerStyle}>
-          <PostHeader
-            className={classes.header}
-            currentUser={currentUser}
-            {...post}
-            routeParams={{ groupSlug, postId, commentId }}
-            close={onClose}
-            isFlagged={isFlagged}
-          />
-        </div>
-      )}
-      <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
-      {isEvent && (
-        <EventBody
-          className={classes.body}
+      <div className='flex flex-col bg-card rounded-lg shadow-sm'>
+        <ScrollListener elementId={DETAIL_COLUMN_ID} onScroll={handleScroll} />
+        <PostHeader
+          className={classes.header}
+          post={post}
+          routeParams={routeParams}
+          close={onClose}
           expanded
-          currentUser={currentUser}
-          slug={groupSlug}
-          event={post}
-          respondToEvent={(response) => dispatch(respondToEvent(post, response))}
-          togglePeopleDialog={handleTogglePeopleDialog}
           isFlagged={isFlagged}
+          hasImage={hasImage}
         />
-      )}
-      {!isEvent && (
-        <PostBody
-          currentUser={currentUser}
-          className={classes.body}
-          expanded
-          routeParams={{ groupSlug, postId, commentId }}
+        <PostGroups
+          isPublic={post.isPublic}
+          groups={post.groups}
           slug={groupSlug}
-          isFlagged={isFlagged}
-          {...post}
+          showBottomBorder
         />
-      )}
-      {isProject && currentUser && (
-        <div className={classes.projectActionsWrapper}>
-          <div className={classes.joinProjectButtonContainer}>
-            <JoinProjectSection
+        {state.atHeader && (
+          <div className={cn(classes.headerSticky, { [classes.atActivity]: state.atActivity })} style={headerStyle}>
+            <PostHeader
+              className={classes.header}
               currentUser={currentUser}
-              joinProject={() => dispatch(joinProject(postId))}
-              leaveProject={() => dispatch(leaveProject(postId))}
-              leaving={isProjectMember}
-              members={post.members}
-              togglePeopleDialog={handleTogglePeopleDialog}
+              post={post}
+              routeParams={routeParams}
+              close={onClose}
+              isFlagged={isFlagged}
             />
           </div>
-          {post.projectManagementLink && projectManagementTool && (
-            <div className={classes.projectManagementTool}>
-              <div>{t('This project is being managed on')} <img src={`/assets/pm-tools/${projectManagementTool}.svg`} /></div>
-              <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
+        )}
+        {post.attachments && post.attachments.length > 0 && (
+          <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
+        )}
+        {isEvent && (
+          <EventBody
+            className={classes.body}
+            expanded
+            currentUser={currentUser}
+            slug={groupSlug}
+            event={post}
+            respondToEvent={(response) => dispatch(respondToEvent(post, response))}
+            togglePeopleDialog={handleTogglePeopleDialog}
+            isFlagged={isFlagged}
+          />
+        )}
+        {!isEvent && (
+          <PostBody
+            currentUser={currentUser}
+            className={classes.body}
+            expanded
+            routeParams={routeParams}
+            slug={groupSlug}
+            isFlagged={isFlagged}
+            {...post}
+          />
+        )}
+        {isProject && currentUser && (
+          <div className={classes.projectActionsWrapper}>
+            <div className={classes.joinProjectButtonContainer}>
+              <JoinProjectSection
+                currentUser={currentUser}
+                joinProject={() => dispatch(joinProject(postId))}
+                leaveProject={() => dispatch(leaveProject(postId))}
+                leaving={isProjectMember}
+                members={post.members}
+                togglePeopleDialog={handleTogglePeopleDialog}
+              />
             </div>
-          )}
-          {post.projectManagementLink && !projectManagementTool && (
-            <div className={classes.projectManagementTool}>
-              <div>{t('View project management tool')}</div>
-              <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
-            </div>
-          )}
-          {post.donationsLink && donationService && (
-            <div className={classes.donate}>
-              <div>{t('Support this project on')} <img src={`/assets/payment-services/${donationService}.svg`} /></div>
-              <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
-            </div>
-          )}
-          {post.donationsLink && !donationService && (
-            <div className={classes.donate}>
-              <div>{t('Support this project')}</div>
-              <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
-            </div>
-          )}
-        </div>
-      )}
-      {isProject && acceptContributions && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
-        <ProjectContributions
-          postId={post.id}
-          totalContributions={totalContributions}
-          processStripeToken={(token, amount) => dispatch(processStripeToken(postId, token, amount))}
-        />
-      )}
-      <PostGroups
-        isPublic={post.isPublic}
-        groups={post.groups}
-        slug={groupSlug}
-        showBottomBorder
-      />
-      {postFooter}
-      <div ref={activityHeader} />
-      {state.atActivity && (
-        <div className={classes.activitySticky} style={activityStyle}>
-          {postFooter}
-        </div>
-      )}
+            {post.projectManagementLink && projectManagementTool && (
+              <div className={classes.projectManagementTool}>
+                <div>{t('This project is being managed on')} <img src={`/assets/pm-tools/${projectManagementTool}.svg`} /></div>
+                <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
+              </div>
+            )}
+            {post.projectManagementLink && !projectManagementTool && (
+              <div className={classes.projectManagementTool}>
+                <div>{t('View project management tool')}</div>
+                <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
+              </div>
+            )}
+            {post.donationsLink && donationService && (
+              <div className={classes.donate}>
+                <div>{t('Support this project on')} <img src={`/assets/payment-services/${donationService}.svg`} /></div>
+                <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
+              </div>
+            )}
+            {post.donationsLink && !donationService && (
+              <div className={classes.donate}>
+                <div>{t('Support this project')}</div>
+                <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
+              </div>
+            )}
+          </div>
+        )}
+        {isProject && acceptContributions && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
+          <ProjectContributions
+            postId={post.id}
+            totalContributions={totalContributions}
+            processStripeToken={(token, amount) => dispatch(processStripeToken(postId, token, amount))}
+          />
+        )}
+        <PostFooter {...post} currentUser={currentUser} />
+        <div ref={activityHeader} />
+        {state.atActivity && (
+          <div className={classes.activitySticky} style={activityStyle}>
+            <PostFooter {...post} currentUser={currentUser} />
+          </div>
+        )}
+      </div>
       <Comments
         post={post}
         slug={groupSlug}

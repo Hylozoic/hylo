@@ -38,7 +38,6 @@ export const PeopleMentions = ({ groupIds, onSelection, suggestionsThemeName }) 
           loading: false,
           groupIds,
           onSelection
-
         }
       },
       onUpdate ({ transaction }) {
@@ -59,7 +58,7 @@ export const PeopleMentions = ({ groupIds, onSelection, suggestionsThemeName }) 
         class: 'mention'
       },
       renderHTML: ({ options, node }) => {
-        return ['span', { class: 'topic' }, node.attrs.label ?? node.attrs.id]
+        return ['span', { class: 'mention', ...options.HTMLAttributes }, node.attrs.label ?? node.attrs.id]
       },
       suggestion: {
         char: '@',

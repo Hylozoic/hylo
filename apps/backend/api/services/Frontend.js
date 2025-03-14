@@ -1,4 +1,5 @@
 import { isString, isNumber, isEmpty } from 'lodash'
+import { format } from 'util'
 
 /*
 
@@ -79,19 +80,13 @@ module.exports = {
 
     root: () => url('/app'),
 
-    // Just using the regular url for chats in mobile will keep directing to a mobile UI with poor UX, so we need a specific url to flag it as a chat early
-    chatPostForMobile: function (post, group, topic) {
-      const groupSlug = getSlug(group)
-      if (isEmpty(groupSlug) || !topic) return this.post(post) // fallback but all chats ought to have a group
-      const groupUrl = `/groups/${groupSlug}/topics/${topic}`
-      return url(`${groupUrl}/?postId=${getModelId(post)}`)
+    chat: function (group, topic) {
+      return url(`/groups/${getSlug(group)}/chat/${getTopicName(topic)}`)
     },
 
-    comment: function ({ comment, groupSlug, post }) {
-      const groupUrl = isEmpty(groupSlug) ? '/all' : `/groups/${groupSlug}`
-
-      const postId = comment?.relations?.post?.id || post.id
-      return url(`${groupUrl}/post/${postId}/comments/${comment.id}`)
+    comment: function ({ comment, group, post }) {
+      const usePost = comment?.relations?.post || post
+      return this.post(usePost, group, `commentId=${comment.id}`)
     },
 
     group: function (group) {
@@ -110,11 +105,11 @@ module.exports = {
       return this.groupSettings(group) + '/requests'
     },
 
-    groupRelationshipInvites: function(group) {
+    groupRelationshipInvites: function (group) {
       return this.groupSettings(group) + '/relationships#invites'
     },
 
-    groupRelationshipJoinRequests: function(group) {
+    groupRelationshipJoinRequests: function (group) {
       return this.groupSettings(group) + '/relationships#join_requests'
     },
 
@@ -134,8 +129,12 @@ module.exports = {
       return url(`${contextUrl}/map/post/${getModelId(post)}`)
     },
 
-    notificationsSettings: function () {
-      return url('/notifications')
+    notificationsSettings: function (clickthroughParams, user) {
+      const loginToken = user.generateJWT({
+        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 30), // 1 month expiration
+        action: 'notification_settings' // To track that this token can only be used for changing notification settings
+      })
+      return url('/notifications' + clickthroughParams + '&expand=account&token=' + loginToken + '&name=' + encodeURIComponent(user.get('name')) + '&u=' + user.id)
     },
 
     profile: function (user, group) {
@@ -145,16 +144,22 @@ module.exports = {
       return url(`/members/${getModelId(user)}`)
     },
 
-    post: function (post, group, isPublic, topic) {
+    post: function (post, group, extraParams = '') {
       const groupSlug = getSlug(group)
       let groupUrl = '/all'
 
-      if (isPublic) {
+      if (!group) {
         groupUrl = '/public'
       } else if (!isEmpty(groupSlug)) {
-        groupUrl = `/groups/${groupSlug}` + (topic ? `/topics/${topic}` : '')
+        const tags = post.relations.tags
+        const firstTopic = tags && tags.first()?.get('name')
+        if (firstTopic && (post.get('type') === Post.Type.CHAT || group.hasChatFor(tags.first()))) {
+          return url(`/groups/${groupSlug}/chat/${firstTopic}?postId=${post.id}&${extraParams}`)
+        } else {
+          groupUrl = `/groups/${groupSlug}` + (firstTopic ? `/topics/${firstTopic}` : '')
+        }
       }
-      return url(`${groupUrl}/post/${getModelId(post)}`)
+      return url(`${groupUrl}/post/${getModelId(post)}?${extraParams}`)
     },
 
     signup: (error) => {
@@ -199,7 +204,7 @@ module.exports = {
       return url('/h/use-invitation?token=%s&email=%s', token, encodeURIComponent(email))
     },
 
-    verifyEmail: function(email, token) {
+    verifyEmail: function (email, token) {
       return url('/signup/verify-email?email=%s&token=%s', encodeURIComponent(email), token)
     },
 

@@ -14,8 +14,6 @@ import {
   setSearch
 } from './SkillsToLearnSection.store'
 
-import { setSearchTerm } from '../../routes/Search/Search.store'
-
 export function mapStateToProps (state, props) {
   const person = getPerson(state, props)
   const currentUser = getMe(state, props)
@@ -39,7 +37,6 @@ export function mapDispatchToProps (dispatch) {
     fetchMemberSkills: (id, limit) => dispatch(fetchMemberSkills(id, limit)),
     setSearch: search => dispatch(setSearch(search)),
     searchForSkill: (skill) => {
-      dispatch(setSearchTerm(skill))
       dispatch(push('/search?t=' + skill))
     }
   }

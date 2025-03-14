@@ -1,6 +1,6 @@
-/* globals RedisClient */
-var socketIoEmitter = require('socket.io-emitter')
-const crypto = require('crypto')
+import crypto from 'crypto'
+import socketIoEmitter from 'socket.io-emitter'
+import RedisClient from '../api/services/RedisClient'
 
 module.exports = {
 

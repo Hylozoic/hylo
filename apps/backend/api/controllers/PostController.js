@@ -1,7 +1,8 @@
+import { GraphQLError } from 'graphql'
+import RedisPubSub from '../services/RedisPubSub'
 import { includes } from 'lodash'
 import createPost from '../models/post/createPost'
 import { joinRoom, leaveRoom } from '../services/Websockets'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 const PostController = {
   createFromEmailForm: function (req, res) {
@@ -15,7 +16,7 @@ const PostController = {
 
     const type = req.param('type')
     if (!includes(Object.keys(namePrefixes), type)) {
-      return res.serverError(new GraphQLYogaError(`invalid type: ${type}`))
+      return res.serverError(new GraphQLError(`invalid type: ${type}`))
     }
 
     const attributes = {
@@ -77,17 +78,12 @@ const PostController = {
     const { post } = res.locals
     const { body: { isTyping }, socket } = req
 
+    // NOTE: Assumes MessageThread
+    RedisPubSub.publish(`peopleTyping:messageThreadId:${post.id}`, { user: { id: req.session.userId } })
+
     return User.find(req.session.userId)
       .then(user => post.pushTypingToSockets(user.id, user.get('name'), isTyping, socket))
       .then(() => res.ok({}))
-  },
-
-  subscribeToUpdates: function (req, res) {
-    joinRoom(req, res, 'user', req.session.userId)
-  },
-
-  unsubscribeFromUpdates: function (req, res) {
-    leaveRoom(req, res, 'user', req.session.userId)
   }
 }
 

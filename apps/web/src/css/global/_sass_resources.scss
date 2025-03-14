@@ -38,7 +38,6 @@ $topnav-height: 56px;
 $content-width: 80rem;
 $map-content-width: 90rem;
 $center-column-width: 47%;
-$center-column-full-width: calc(83% - 30px);
 $detail-column-width: 49%;
 $layout-spacing: 70px;
 $messages-header-height: 80px;
@@ -231,17 +230,18 @@ $color-badge-special-border: #ffd192;
 
 // Fonts
 @mixin font-regular {
-  font-family: 'Circular Book', sans-serif;
-  font-weight: normal;
+  font-family:  'Onest', 'Circular Book';
+  font-weight: 300;
 }
 
 @mixin font-medium {
-  font-family: 'Circular Medium', sans-serif;
-  font-weight: normal;
+  font-family:  'Onest', 'Circular Medium';
+  font-weight: 900;
 }
 
 @mixin font-bold {
-  font-family: 'Circular bold', sans-serif;
+  font-family: 'Onest', 'Circular Bold';
+  font-weight: 1300 !important;
 }
 
 // Utilities

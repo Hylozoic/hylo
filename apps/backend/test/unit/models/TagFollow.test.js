@@ -72,7 +72,7 @@ describe('TagFollow', () => {
         tag_id: tag.id,
         num_followers: 5
       }).save()
-      .then(() => TagFollow.add({
+      .then(() => TagFollow.findOrCreate({
         tagId: tag.id,
         userId: user.id,
         groupId: group.id

@@ -1,8 +1,7 @@
-import cx from 'classnames'
 import React from 'react'
 import Icon from 'components/Icon'
 import Button from 'components/Button'
-import { inflectedTotal, bgImageStyle } from 'util/index'
+import { cn, inflectedTotal, bgImageStyle } from 'util/index'
 import { DEFAULT_BANNER } from 'store/models/Group'
 
 import classes from './TopicFeedHeader.module.scss'
@@ -38,8 +37,8 @@ export default function TopicFeedHeader ({
           </div>
         </div>
         {toggleSubscribe && (
-          <Button className={cx(classes[buttonStyle])} onClick={toggleSubscribe}>
-            <Icon name='Star' className={cx(classes[iconStyle])} />
+          <Button className={cn(classes[buttonStyle])} onClick={toggleSubscribe}>
+            <Icon name='Star' className={cn(classes[iconStyle])} />
             <div className={classes.subscribeLabel}>{buttonText}</div>
           </Button>)}
         <div className={classes.fade}><div className={classes.fade2} /></div>

@@ -79,9 +79,13 @@ export default {
             return
           }
 
-          popup[0].setProps({
-            getReferenceClientRect: props.clientRect
-          })
+          if (!popup[0].state.isDestroyed) {
+            setTimeout(() => {
+              popup[0].setProps({
+                getReferenceClientRect: props.clientRect
+              })
+            }, 100)
+          }
         }
       },
 

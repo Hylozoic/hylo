@@ -232,8 +232,8 @@ describe('User', function () {
         group,
         account: {type: 'password', password: 'password'}
       })
-      .then(user => expect.fail())
-      .catch(err => expect(err.message).to.equal('invalid-email'))
+        .then(user => expect.fail())
+        .catch(err => expect(err.message).to.equal('invalid-email'))
     })
 
     it('works with a password', function () {
@@ -242,27 +242,26 @@ describe('User', function () {
         account: {type: 'password', password: 'password!'},
         name: 'foo bar'
       })
-      .then(async function (user) {
-        await group.addMembers([user.id])
-        expect(user.id).to.exist
-        expect(user.get('active')).to.be.true
-        expect(user.get('name')).to.equal('foo bar')
-        expect(user.get('avatar_url')).to.equal(User.gravatar('foo@bar.com'))
-        expect(user.get('created_at').getTime()).to.be.closeTo(new Date().getTime(), 2000)
-        expect(user.get('settings').digest_frequency).to.equal('daily')
-        expect(user.get('settings').dm_notifications).to.equal('both')
-        expect(user.get('settings').comment_notifications).to.equal('both')
+        .then(async function (user) {
+          await group.addMembers([user.id])
+          expect(user.id).to.exist
+          expect(user.get('active')).to.be.true
+          expect(user.get('name')).to.equal('foo bar')
+          expect(user.get('avatar_url')).to.equal(User.gravatar('foo@bar.com'))
+          expect(user.get('created_at').getTime()).to.be.closeTo(new Date().getTime(), 2000)
+          expect(user.get('settings').dm_notifications).to.equal('both')
+          expect(user.get('settings').comment_notifications).to.equal('both')
 
-        return Promise.join(
-          LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {
-            expect(account).to.exist
-            expect(account.get('provider_key')).to.equal('password')
-            expect(bcrypt.compareSync('password!', account.get('provider_user_id'))).to.be.true
-          }),
-          GroupMembership.forPair(user, group).fetch()
-          .then(membership => expect(membership).to.exist)
-        )
-      })
+          return Promise.join(
+            LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {
+              expect(account).to.exist
+              expect(account.get('provider_key')).to.equal('password')
+              expect(bcrypt.compareSync('password!', account.get('provider_user_id'))).to.be.true
+            }),
+            GroupMembership.forPair(user, group).fetch()
+              .then(membership => expect(membership).to.exist)
+          )
+        })
     })
 
     it('works with google', function () {
@@ -277,7 +276,6 @@ describe('User', function () {
         expect(user.id).to.exist
         expect(user.get('active')).to.be.true
         expect(user.get('name')).to.equal('foo2 moo2 wow')
-        expect(user.get('settings').digest_frequency).to.equal('daily')
 
         return Promise.join(
           LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {
@@ -309,7 +307,6 @@ describe('User', function () {
         expect(user.get('active')).to.be.true
         expect(user.get('facebook_url')).to.equal('http://www.facebook.com/foo')
         expect(user.get('avatar_url')).to.equal('https://graph.facebook.com/foo/picture?type=large&access_token=186895474801147|zzzzzz')
-        expect(user.get('settings').digest_frequency).to.equal('daily')
 
         return Promise.join(
           LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {
@@ -318,7 +315,7 @@ describe('User', function () {
             expect(account.get('provider_user_id')).to.equal('foo')
           }),
           GroupMembership.forPair(user, group).fetch()
-          .then(membership => expect(membership).to.exist)
+            .then(membership => expect(membership).to.exist)
         )
       })
     })
@@ -344,7 +341,6 @@ describe('User', function () {
         expect(user.get('active')).to.be.true
         expect(user.get('linkedin_url')).to.equal('https://www.linkedin.com/in/foobar')
         expect(user.get('avatar_url')).to.equal(catPic)
-        expect(user.get('settings').digest_frequency).to.equal('daily')
 
         return Promise.join(
           LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {

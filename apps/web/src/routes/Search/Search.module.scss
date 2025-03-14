@@ -4,6 +4,7 @@
   display: flex;
   flex-direction: column;
   padding-bottom: 0 !important;
+  padding: 5px;
 }
 
 .search-results {
@@ -33,7 +34,6 @@
 // SearchBar
 .search-bar {
   align-items: center;
-  margin-top: -40px;
 }
 
 // TextInput Theme

@@ -10,12 +10,15 @@ import {
   CREATE_MESSAGE,
   CREATE_MESSAGE_PENDING,
   CREATE_MODERATION_ACTION_PENDING,
+  CREATE_POST_PENDING,
+  CREATE_PROJECT_PENDING,
+  CREATE_CONTEXT_WIDGET,
+  CREATE_CONTEXT_WIDGET_PENDING,
   DELETE_COMMENT_PENDING,
   DELETE_GROUP_RELATIONSHIP,
   DELETE_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_MESSAGES_PENDING,
-  FETCH_POSTS_PENDING,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   JOIN_PROJECT_PENDING,
   LEAVE_GROUP,
@@ -32,17 +35,22 @@ import {
   REQUEST_FOR_CHILD_TO_JOIN_PARENT_GROUP,
   RESET_NEW_POST_COUNT_PENDING,
   RESPOND_TO_EVENT_PENDING,
+  REMOVE_WIDGET_FROM_MENU_PENDING,
   SWAP_PROPOSAL_VOTE_PENDING,
+  SET_HOME_WIDGET_PENDING,
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
   UPDATE_GROUP_TOPIC_PENDING,
+  UPDATE_TOPIC_FOLLOW,
+  UPDATE_TOPIC_FOLLOW_PENDING,
   UPDATE_POST,
   UPDATE_POST_PENDING,
   UPDATE_THREAD_READ_TIME,
   UPDATE_USER_SETTINGS_PENDING as UPDATE_USER_SETTINGS_GLOBAL_PENDING,
   UPDATE_WIDGET,
   USE_INVITATION,
-  UPDATE_PROPOSAL_OUTCOME_PENDING
+  UPDATE_PROPOSAL_OUTCOME_PENDING,
+  UPDATE_CONTEXT_WIDGET_PENDING
 } from 'store/constants'
 import {
   UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING,
@@ -85,6 +93,7 @@ import clearCacheFor from './clearCacheFor'
 import { find, get, values } from 'lodash/fp'
 import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
+import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
 
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
@@ -109,14 +118,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     PostCommenter,
     ProjectMember,
     Skill,
-    Topic
+    Topic,
+    TopicFollow
   } = session
 
   if (payload && !isPromise(payload) && meta && meta.extractModel) {
     extractModelsFromAction(action, session)
   }
 
-  let me, membership, group, person, post, comment, groupTopic, childGroup
+  let me, membership, group, person, post, comment, groupTopic, childGroup, topicFollow
 
   switch (type) {
     case ACCEPT_GROUP_RELATIONSHIP_INVITE: {
@@ -255,6 +265,82 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case CREATE_PROJECT_PENDING:
+    case CREATE_POST_PENDING: {
+      const postType = meta?.type
+      if (!postType) break
+      if (postType === 'chat') break
+
+      const groupIds = Array.isArray(meta.groupIds) ? meta.groupIds : [meta.groupId]
+
+      groupIds.forEach(groupId => {
+        const group = Group.withId(groupId)
+        if (!group) return
+
+        const allWidgets = group.contextWidgets.items
+        const autoViewWidget = allWidgets.find(w => w.type === 'auto-view')
+        if (!autoViewWidget) return
+
+        let widgetToMove = null
+
+        if (postType === 'request' || postType === 'offer') {
+          widgetToMove = allWidgets.find(w => w.view === 'requests-and-offers')
+        } else if (postType === 'discussion') {
+          widgetToMove = allWidgets.find(w => w.view === 'discussions')
+        } else if (postType === 'project') {
+          widgetToMove = allWidgets.find(w => w.view === 'projects')
+        } else if (postType === 'proposal') {
+          widgetToMove = allWidgets.find(w => w.view === 'proposals')
+        } else if (postType === 'event') {
+          widgetToMove = allWidgets.find(w => w.view === 'events')
+        } else if (postType === 'resource') {
+          widgetToMove = allWidgets.find(w => w.view === 'resources')
+        }
+
+        if (widgetToMove && !widgetToMove.autoAdded) {
+          const newWidgetPosition = {
+            ...widgetToMove,
+            parentId: autoViewWidget.id,
+            addToEnd: true
+          }
+
+          const reorderedWidgets = reorderTree({
+            widgetToBeMovedId: widgetToMove.id,
+            newWidgetPosition,
+            allWidgets
+          })
+
+          group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
+        }
+      })
+      break
+    }
+
+    case CREATE_CONTEXT_WIDGET_PENDING: {
+      const group = Group.withId(meta.groupId)
+      const allWidgets = group.contextWidgets.items
+
+      const newWidgetPosition = {
+        id: 'creating',
+        addToEnd: meta.data.addToEnd
+      }
+
+      allWidgets.push(newWidgetPosition)
+      const reorderedWidgets = reorderTree({ widgetToBeMovedId: 'creating', newWidgetPosition, allWidgets })
+      group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
+      break
+    }
+
+    case CREATE_CONTEXT_WIDGET: {
+      const group = Group.withId(meta.groupId)
+      const allWidgets = group.contextWidgets.items
+      const reorderedWidgets = allWidgets.filter(widget => widget.id !== 'creating')
+      reorderedWidgets.push(payload.data.createContextWidget)
+      group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
+
+      break
+    }
+
     case DELETE_COMMENT_PENDING: {
       comment = Comment.withId(meta.id)
       comment.delete()
@@ -321,20 +407,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         // this is so that after websocket reconnect events, pagination
         // of messages works as expected
         Message.filter({ messageThread: meta.id }).delete()
-      }
-      break
-    }
-
-    case FETCH_POSTS_PENDING: {
-      // When looking at group for first time, immediately set lastViewedAt so we know first view has happened
-      // This is so that we can go to /explore page on first view then every time after go to regular home page
-      if (meta.slug) {
-        group = Group.safeGet({ slug: meta.slug })
-        me = Me.first()
-        if (!me) break
-        membership = Membership.safeGet({ group: group.id, person: me.id })
-        if (!membership) break
-        membership && membership.update({ lastViewedAt: (new Date()).toISOString() }) // now non-members can possibly see the posts of a group, so in that instance, don't update
       }
       break
     }
@@ -472,6 +544,14 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case REMOVE_WIDGET_FROM_MENU_PENDING: {
+      group = Group.withId(meta.groupId)
+      const contextWidgets = group.contextWidgets.items
+      const newContextWidgets = reorderTree({ widgetToBeMovedId: meta.contextWidgetId, newWidgetPosition: { remove: true }, allWidgets: contextWidgets })
+      group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
+      break
+    }
+
     case REQUEST_FOR_CHILD_TO_JOIN_PARENT_GROUP: {
       const newGroupRelationship = payload.data.requestToAddGroupToParent.groupRelationship
       if (newGroupRelationship) {
@@ -488,12 +568,12 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case RESET_NEW_POST_COUNT_PENDING: {
-      if (meta.type === 'GroupTopic') {
-        session.GroupTopic.withId(meta.id).update({ newPostCount: 0 })
+      if (meta.type === 'TopicFollow') {
+        session.TopicFollow.withId(meta.id).update({ newPostCount: meta.count })
       } else if (meta.type === 'Membership') {
         me = Me.first()
         const membership = Membership.safeGet({ group: meta.id, person: me.id })
-        membership && membership.update({ newPostCount: 0 })
+        membership && membership.update({ newPostCount: meta.count })
       }
       break
     }
@@ -501,6 +581,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case RESPOND_TO_EVENT_PENDING: {
       const event = Post.withId(meta.id)
       event.update({ myEventResponse: meta.response })
+      break
+    }
+
+    case SET_HOME_WIDGET_PENDING: {
+      group = Group.withId(meta.groupId)
+      const contextWidgets = group.contextWidgets.items
+
+      const newWidgets = replaceHomeWidget({ widgets: contextWidgets, newHomeWidgetId: meta.contextWidgetId })
+      group.update({ contextWidgets: { items: structuredClone(newWidgets) } })
       break
     }
 
@@ -544,6 +633,22 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case UPDATE_COMMENT_PENDING: {
       comment = Comment.withId(meta.id)
       comment.update(meta.data)
+      break
+    }
+
+    case UPDATE_CONTEXT_WIDGET_PENDING: {
+      const group = Group.withId(meta.groupId)
+      const allWidgets = group.contextWidgets.items
+
+      const widgetToBeMoved = allWidgets.find(widget => widget.id === meta.contextWidgetId)
+      const newWidgetPosition = {
+        id: meta.contextWidgetId,
+        addToEnd: meta.data.addToEnd,
+        orderInFrontOfWidgetId: meta.data.orderInFrontOfWidgetId,
+        parentId: meta.data.parentId || null
+      }
+      const reorderedWidgets = reorderTree({ widgetToBeMovedId: widgetToBeMoved.id, newWidgetPosition, allWidgets })
+      Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
       break
     }
 
@@ -593,6 +698,33 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case UPDATE_TOPIC_FOLLOW_PENDING: {
+      if (meta.data.lastReadPostId) {
+        topicFollow = TopicFollow.withId(meta.id)
+        topicFollow.update({ lastReadPostId: meta.data.lastReadPostId })
+        clearCacheFor(TopicFollow, meta.id)
+      }
+      break
+    }
+
+    case UPDATE_TOPIC_FOLLOW: {
+      const data = payload.data.updateTopicFollow
+      if (typeof data.newPostCount === 'number') {
+        group = Group.withId(data.group.id)
+        const contextWidgets = group.contextWidgets?.items
+        if (contextWidgets) {
+          const newContextWidgets = contextWidgets.map(cw => {
+            if (cw.type === 'chat' && cw.viewChat?.id === data.topic.id) {
+              return { ...cw, highlightNumber: data.newPostCount }
+            }
+            return cw
+          })
+          group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
+        }
+      }
+      break
+    }
+
     case UPDATE_MEMBERSHIP_SETTINGS_PENDING: {
       me = Me.first()
       membership = Membership.safeGet({ group: meta.groupId, person: me.id })
@@ -632,6 +764,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case UPDATE_THREAD_READ_TIME: {
+      me = Me.first()
+      me.update({
+        unseenThreadCount: Math.max(0, me.unseenThreadCount - 1)
+      })
       MessageThread.withId(meta.id).markAsRead()
       break
     }

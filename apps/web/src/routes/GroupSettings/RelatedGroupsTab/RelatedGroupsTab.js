@@ -3,12 +3,12 @@ import { useSelector, useDispatch } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { get } from 'lodash/fp'
-import cx from 'classnames'
-import { bgImageStyle } from 'util/index'
+import { bgImageStyle, cn } from 'util/index'
 import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import RoundImage from 'components/RoundImage'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { GROUP_RELATIONSHIP_TYPE } from 'store/models/GroupRelationshipInvite'
@@ -105,6 +105,15 @@ function RelatedGroupsTab () {
       }
     ]
   }
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: `${t('Group Settings')} > ${t('Related Groups')}`,
+      icon: 'Settings',
+      info: ''
+    })
+  }, [])
 
   return (
     <div className={classes.container}>
@@ -315,7 +324,7 @@ export function GroupCard ({ actionMenu, thisGroup, group, questionAnswers, type
     <div className={classes.groupCardWrapper}>
       <div className={classes.groupCard}>
         <div className={classes.groupDetails}>
-          <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} className={cx(classes.groupImage, classes.square)} size='30px' />
+          <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} className={cn(classes.groupImage, classes.square)} size='30px' />
           <Link to={groupUrl(group.slug)}><span className={classes.groupName}>{group.name}</span></Link>
         </div>
         {actionMenu}
@@ -364,18 +373,18 @@ function RequestToJoinModal ({ group, hideRequestToJoinModal, parentGroup, reque
       <div className={classes.requestModalBg}>
         <div className={classes.requestModal}>
           <div className={classes.requestTop}>
-            <span className={cx(classes.modalCloseButton)} onClick={hideRequestToJoinModal}><Icon name='Ex' /></span>
+            <span className={cn(classes.modalCloseButton)} onClick={hideRequestToJoinModal}><Icon name='Ex' /></span>
             <span className={classes.requestMessage}>{t('You are requesting that')}{' '}<strong>{group.name}</strong>{' '}{t('become a member of')}{' '}<strong>{parentGroup.name}</strong></span>
             <div className={classes.joinExample}>
-              <div className={cx(classes.requestingGroup)} style={bgImageStyle(group.bannerUrl)}>
-                <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} className={cx(classes.groupImage)} size='30px' square />
+              <div className={cn(classes.requestingGroup)} style={bgImageStyle(group.bannerUrl)}>
+                <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} className={cn(classes.groupImage)} size='30px' square />
                 <h4>{group.name}</h4>
               </div>
               <div className={classes.requestingIcon}>
                 <Icon name='Handshake' />
               </div>
-              <div className={cx(classes.requestedParentGroup)} style={bgImageStyle(parentGroup.bannerUrl)}>
-                <RoundImage url={parentGroup.avatarUrl || DEFAULT_AVATAR} className={cx(classes.groupImage)} size='30px' square />
+              <div className={cn(classes.requestedParentGroup)} style={bgImageStyle(parentGroup.bannerUrl)}>
+                <RoundImage url={parentGroup.avatarUrl || DEFAULT_AVATAR} className={cn(classes.groupImage)} size='30px' square />
                 <h4>{parentGroup.name}</h4>
               </div>
             </div>
