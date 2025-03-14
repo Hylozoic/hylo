@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { TextHelpers } from '@hylo/shared'
-import Button from 'components/Button'
 import EventInviteDialog from 'components/EventInviteDialog'
 import EventDate from '../EventDate'
 import EventRSVP from '../EventRSVP'
@@ -72,7 +71,7 @@ function EventBody (props) {
           </div>
         </div>
 
-        <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative text-center'>
+        <div className='border-2 mt-2 justify-between flex border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative text-center'>
           <div onClick={onClick}>
             <div className={classes.fade} />
             <PeopleInfo
@@ -90,11 +89,13 @@ function EventBody (props) {
           </div>
 
           {currentUser && !isPastEvent && (
-            <div className={classes.eventResponse}>
+            <div className='flex flex-row gap-2'>
               <div className={classes.rsvp}>
                 <EventRSVP {...event} respondToEvent={respondToEvent} />
               </div>
-              <Button label={t('Invite')} onClick={toggleInviteDialog} narrow small color='green-white' className={classes.inviteButton} />
+              <button onClick={toggleInviteDialog} className='flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground p-1 px-2'>
+                {t('Invite')}
+              </button>
             </div>
           )}
         </div>
