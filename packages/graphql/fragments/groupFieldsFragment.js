@@ -91,7 +91,7 @@ export default gql`
       neighborhood
       region
     }
-    members(first: 4, sortBy: "last_active_at", order: "asc") {
+    members(first: 4, sortBy: "last_active_at", order: "desc") {
       items {
         id
         name
