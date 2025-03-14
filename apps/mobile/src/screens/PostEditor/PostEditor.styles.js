@@ -26,6 +26,9 @@ export const typeSelectorStyles = postType => ({
     marginLeft: 0,
     marginRight: 5
   },
+  // Temporary fix, can be removed after pending update to react-native-picker-select, see:
+  // https://github.com/lawnstarter/react-native-picker-select/issues/636#issuecomment-2486312112
+  inputIOSContainer: { pointerEvents: 'none' },
   inputIOS: {
     ...typeSelectorIOSDefaults
   },

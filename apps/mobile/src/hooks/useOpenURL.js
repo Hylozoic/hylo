@@ -8,7 +8,7 @@ import { navigationRef } from 'navigation/linking/helpers'
 import { isDev } from 'config'
 
 // DEBUG is always false in production
-const DEBUG = isDev && true
+const DEBUG = isDev && false
 
 export default function useOpenURL () {
   const navigation = useNavigation()

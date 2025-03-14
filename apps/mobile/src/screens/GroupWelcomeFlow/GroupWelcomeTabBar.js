@@ -5,7 +5,7 @@ import isEmpty from 'lodash/isEmpty'
 import { MY_CONTEXT_SLUG } from '@hylo/shared'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import useOpenURL from 'hooks/useOpenURL'
+import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import { isIOS } from 'util/platform'
 import {
   getRouteNames,
@@ -23,7 +23,7 @@ export default function GroupWelcomeTabBar ({
   allQuestionsAnswered
 }) {
   const { t } = useTranslation()
-  const openURL = useOpenURL()
+  const changeToGroup = useChangeToGroup()
 
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup: group }] = useCurrentGroup()
@@ -52,7 +52,7 @@ export default function GroupWelcomeTabBar ({
     }
     const getOutTitle = enforceAgreements ? t('Exit this Group & Return Home') : t('Skip')
     const getOutFunc = enforceAgreements
-      ? () => openURL(`/${MY_CONTEXT_SLUG}`, { replace: true })
+      ? () => changeToGroup(MY_CONTEXT_SLUG)
       : () => completeWorkflow()
     Alert.alert(
       t('Are you sure you want to leave the Group Welcome?'),

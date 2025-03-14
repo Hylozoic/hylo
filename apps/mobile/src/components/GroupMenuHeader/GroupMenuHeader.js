@@ -3,14 +3,12 @@ import { Settings, Users, ChevronRight } from 'lucide-react-native'
 import { View, Text, TouchableOpacity } from 'react-native'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
-import { useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
 import useOpenURL from 'hooks/useOpenURL'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 
 export default function GroupMenuHeader ({ group }) {
   const { t } = useTranslation()
-  const navigation = useNavigation()
   const openURL = useOpenURL()
   const avatarUrl = group.avatarUrl
   const bannerUrl = group.bannerUrl
@@ -29,7 +27,7 @@ export default function GroupMenuHeader ({ group }) {
   }, [bannerUrl])
 
   return (
-    <View className='relative flex flex-col justify-end h-[140px] shadow-md pb-2' testID='group-header'>
+    <View className='relative flex-col justify-end h-[140px] shadow-md pb-2' testID='group-header'>
       <FastImage
         source={{ uri: bannerUrl }}
         style={{
@@ -50,7 +48,7 @@ export default function GroupMenuHeader ({ group }) {
         </View>
       )}
 
-      <View className='relative flex flex-row items-center text-background ml-2 mr-2 gap-1'>
+      <View className='relative flex-row items-center text-background ml-2 mr-2 gap-1'>
         <FastImage
           source={{ uri: avatarUrl }}
           style={{
@@ -71,7 +69,7 @@ export default function GroupMenuHeader ({ group }) {
           </Text>
 
           <TouchableOpacity
-            onPress={() => navigation.replace('Members', { groupSlug: group.slug })}
+            onPress={() => openURL(`/groups/${group.slug}/members`, { replace: true })}
             className='flex-row items-center'
           >
             <View className='w-4 h-4 mr-1 align-bottom'>

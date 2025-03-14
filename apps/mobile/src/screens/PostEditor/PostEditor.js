@@ -19,7 +19,7 @@ import postQuery from '@hylo/graphql/queries/postQuery'
 import topicsForGroupIdQuery from '@hylo/graphql/queries/topicsForGroupIdQuery'
 import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import { isIOS } from 'util/platform'
-import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
+import useConfirmAlert from 'hooks/useConfirmAlert'
 import useRouteParams from 'hooks/useRouteParams'
 import uploadAction from 'store/actions/upload'
 import { usePostEditorStore } from './PostEditor.store'
@@ -66,7 +66,7 @@ export default function PostEditor (props) {
   const [, updateSelectedPost] = useMutation(updatePostMutation)
   const [, findOrCreateLocation] = useFindOrCreateLocationObject()
   const upload = useCallback(params => dispatch(uploadAction(params)), [dispatch])
-  const confirmDiscardChanges = useConfirmDiscardChanges()
+  const confirmAlert = useConfirmAlert()
 
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
@@ -160,10 +160,10 @@ export default function PostEditor (props) {
 
     const removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
       e.preventDefault()
-      confirmDiscardChanges({
-        onDiscard: () => navigation.dispatch(e.data.action),
+      confirmAlert({
+        onConfirm: () => navigation.dispatch(e.data.action),
         title: 'Are you sure?',
-        confirmationMessage: 'If you made changes they will be lost'
+        confirmMessage: 'If you made changes they will be lost'
       })
     })
 
@@ -217,10 +217,10 @@ export default function PostEditor (props) {
 
   const header = useMemo(() => {
     const headerRightButtonLabel = isSaving
-      ? t('Saving-ellipsis')
+      ? 'Saving-ellipsis'
       : editingPost
-        ? t('Save')
-        : t('Post')
+        ? 'Save'
+        : 'Post'
 
     return () => (
       <View className='border-border bg-background' style={styles.headerContainer}>
@@ -234,13 +234,13 @@ export default function PostEditor (props) {
             disabled={isSaving || post.type === 'proposal'}
             onValueChange={type => updatePost({ type })}
             placeholder={{}}
-            value={post?.type || 'discussion'}
+            value={post?.type}
           />
           <Button
             style={styles.headerSaveButton}
             disabled={isSaving || !isValid()}
             onPress={handleSave}
-            text={headerRightButtonLabel}
+            text={t(headerRightButtonLabel)}
           />
         </View>
       </View>

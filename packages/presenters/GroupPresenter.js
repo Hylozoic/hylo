@@ -10,7 +10,11 @@ export default function GroupPresenter (group) {
 
   return {
     ...group,
-    avatarUrl: group?.avatarUrl || DEFAULT_AVATAR,
+    avatarUrl: !group?.avatarUrl
+      ? DEFAULT_AVATAR
+      : group?.avatarUrl === '/default-group-avatar.svg'
+        ? DEFAULT_AVATAR
+        : group?.avatarUrl,
     bannerUrl: group?.bannerUrl || DEFAULT_BANNER,
 
     getContextWidgets: getContextWidgetsResolver(group),
@@ -26,6 +30,7 @@ const getShouldWelcomeResolver = group => {
   return currentUser => {
     if (!group || !currentUser) return false
     if (isStaticContext(group.slug)) return false
+
     const currentMembership = currentUser?.memberships &&
       currentUser.memberships.find(m => m.group.id === group?.id)
 
@@ -36,7 +41,11 @@ const getShouldWelcomeResolver = group => {
     const agreementsChanged = (!isStaticContext(group?.slug) && numAgreements > 0) &&
       (!agreementsAcceptedAt || agreementsAcceptedAt < group?.settings?.agreementsLastUpdatedAt)
 
-    return ((!isStaticContext(group?.slug) && showJoinForm) || agreementsChanged || (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt))
+    return (
+      (!isStaticContext(group?.slug) && showJoinForm) ||
+      agreementsChanged ||
+      (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt)
+    )
   }
 }
 

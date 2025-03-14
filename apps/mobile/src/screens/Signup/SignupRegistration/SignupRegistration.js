@@ -9,7 +9,7 @@ import meAuthFieldsFragment from '@hylo/graphql/fragments/meAuthFieldsFragment'
 import mixpanel from 'services/mixpanel'
 import useLogout from 'hooks/useLogout'
 import useForm from 'hooks/useForm'
-import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
+import useConfirmAlert from 'hooks/useConfirmAlert'
 import SettingControl from 'components/SettingControl'
 import Button from 'components/Button'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
@@ -29,7 +29,7 @@ export const registerMutation = gql`
 
 export default function SignupRegistration ({ navigation, route }) {
   const { t } = useTranslation()
-  const confirmDiscardChanges = useConfirmDiscardChanges()
+  const confirmAlert = useConfirmAlert()
   const [, register] = useMutation(registerMutation)
   const logout = useLogout({ loadingRedirect: false })
   const passwordControlRef = useRef()
@@ -69,12 +69,12 @@ export default function SignupRegistration ({ navigation, route }) {
   useFocusEffect(() => {
     navigation.setOptions({
       headerLeftOnPress: () => {
-        confirmDiscardChanges({
+        confirmAlert({
           title: '',
-          confirmationMessage: 'Were almost done, are you sure you want to cancel signing-up?',
+          confirmMessage: 'Were almost done, are you sure you want to cancel signing-up?',
           discardButtonText: 'Yes',
           continueButtonText: 'No',
-          onDiscard: () => {
+          onConfirm: () => {
             logout()
             navigation.navigate('Login', {})
           }

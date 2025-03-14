@@ -1,11 +1,7 @@
-import { useInitCurrentGroupSlug, useNavigateHome } from '@hylo/hooks/useCurrentGroup'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
 import useReturnToOnAuthPath from 'hooks/useReturnToOnAuthPath'
 
 export const useHandleLinking = () => {
-  useInitCurrentGroupSlug()
-  useNavigateHome()
-
   // === initialURL ===
   // If the app was launched via navigation to a URL this hook retrieves
   // that path and navigates to it. The value is then cleared from memory,
