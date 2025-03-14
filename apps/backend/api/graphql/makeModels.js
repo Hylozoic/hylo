@@ -114,6 +114,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'email',
         'contact_email',
         'contact_phone',
+        'created_at',
         'email_validated',
         'hasRegistered',
         'intercomHash',

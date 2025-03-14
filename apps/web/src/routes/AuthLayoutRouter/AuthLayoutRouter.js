@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
 import Div100vh from 'react-div-100vh'
+import { useTranslation, Trans } from 'react-i18next'
 import { get, some } from 'lodash/fp'
 import { useResizeDetector } from 'react-resize-detector'
 import { cn } from 'util/index'
@@ -11,10 +12,12 @@ import mixpanel from 'mixpanel-browser'
 import config, { isTest } from 'config/index'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
+import GlobalAlert from 'components/GlobalAlert'
 import GlobalNav from './components/GlobalNav'
 import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
+import Button from 'components/ui/button'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
 import getReturnToPath from 'store/selectors/getReturnToPath'
@@ -72,6 +75,7 @@ export default function AuthLayoutRouter (props) {
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
+  const { t } = useTranslation()
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()
@@ -253,6 +257,24 @@ export default function AuthLayoutRouter (props) {
         </script>
       </Helmet>
 
+      {!isWebView() && new Date(currentUser.createdAt) < new Date('2025-03-16') && !window.localStorage.getItem('new-hylo-alert-seen') && (
+        <GlobalAlert
+          title={t('Welcome to the new Hylo!')}
+          onOpenChange={(open) => {
+            if (!open) {
+              window.localStorage.setItem('new-hylo-alert-seen', true)
+            }
+          }}
+          closeButton={<Button variant='secondary'>{t('Jump in!')}</Button>}
+        >
+          <div>
+            <Trans i18nKey='newHyloMessage'>
+              We just launched a major redesign of Hylo! To learn more about what's new, <a href='https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates' target='_blank' rel='noreferrer'>click here</a>.
+            </Trans>
+          </div>
+        </GlobalAlert>
+      )}
+
       <Routes>
         {/* Redirects for switching into global contexts, since these pages don't exist yet */}
         <Route path='public/members' element={<Navigate to='/public' replace />} />
@@ -269,6 +291,7 @@ export default function AuthLayoutRouter (props) {
 
             {showTourPrompt && (
               <>
+                <Route path='my/*' element={<SiteTour windowWidth={width} />} />
                 <Route path='all/*' element={<SiteTour windowWidth={width} />} />
                 <Route path='public/*' element={<SiteTour windowWidth={width} />} />
                 <Route path='groups/*' element={<SiteTour windowWidth={width} />} />

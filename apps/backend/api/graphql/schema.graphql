@@ -1389,6 +1389,8 @@ type Me {
   contactEmail: String
   # Phone number made visible on the logged in user's profile to people who can see them
   contactPhone: String
+  # When the logged in user was created
+  createdAt: Date
   # The number of Groups the logged in user is a member of
   groupsTotal: Int
   # The email used to log in (not publicly shared in the app)
