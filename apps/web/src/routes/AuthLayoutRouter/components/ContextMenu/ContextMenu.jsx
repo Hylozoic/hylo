@@ -66,7 +66,7 @@ export default function ContextMenu (props) {
       return getStaticMenuWidgets({ isPublicContext, isMyContext: isMyContext || isAllContext, profileUrl })
     }
     return getContextWidgets(state, group)
-  }, (a, b) => a.length === b.length && a.every((widget, index) => widget.id === b[index].id && widget.highlightNumber === b[index].highlightNumber))
+  })
 
   const contextWidgets = useMemo(() => {
     return rawContextWidgets.map(widget => ContextWidgetPresenter(widget))
@@ -79,7 +79,9 @@ export default function ContextMenu (props) {
     return false
   }, [group, isMyContext, isPublicContext, isAllContext])
 
-  const orderedWidgets = useMemo(() => orderContextWidgetsForContextMenu(contextWidgets), [contextWidgets])
+  const orderedWidgets = useMemo(() => {
+    return orderContextWidgetsForContextMenu(contextWidgets)
+  }, [contextWidgets])
 
   const isEditing = getQuerystringParam('cme', location) === 'yes' && canAdminister
 
@@ -138,9 +140,12 @@ export default function ContextMenu (props) {
 
   const handleDragEnd = (event) => {
     const { active, over } = event
+
     setIsDragging(false)
+
     if (over && over.id !== active.id && over.id !== 'remove') {
       const orderInFrontOfWidget = over.data?.current?.widget
+
       dispatch(updateContextWidget({
         contextWidgetId: active.id,
         groupId: group.id,
@@ -152,9 +157,11 @@ export default function ContextMenu (props) {
         }
       }))
     }
-    if (over.id === 'remove') {
+
+    if (over && over.id === 'remove') {
       dispatch(removeWidgetFromMenu({ contextWidgetId: active.id, groupId: group.id }))
     }
+
     setActiveWidget(null)
   }
 
@@ -473,7 +480,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
 
   const isActive = item.viewUser?.lastActiveAt ? new Date(parseInt(item.viewUser.lastActiveAt)) > new Date(Date.now() - 1000 * 60 * 4) : false
   return (
-    <React.Fragment key={item.id + itemTitle}>
+    <React.Fragment key={item.id}>
       <DropZone hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
         &nbsp;
       </DropZone>
