@@ -30,9 +30,7 @@ export default function useStreamQueryVariables ({
     createdBy: view === 'posts'
       ? [currentUser.id]
       : null,
-    filter: filterFromStreamType ||
-      filter ||
-      currentUser?.settings?.streamPostType,
+    filter: filterFromStreamType || filter || null,
     forCollection: customView?.collectionId,
     interactedWithBy: view === 'interactions'
       ? [currentUser.id]
