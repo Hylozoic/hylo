@@ -68,8 +68,7 @@ const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   viewChat: 'Message',
   chat: 'Message',
   viewPost: 'Posticon',
-  about: 'Info',
-  'all-views': 'Grid3x3'
+  about: 'Info'
 }
 function iconNameResolver (widget, type) {
   if (widget?.iconName) return widget.iconName
@@ -205,21 +204,23 @@ export function translateTitle (title, t) {
 export function wrapItemInWidget (item, type) {
   return {
     [type]: item,
-    id: 'fake-id-' + crypto.randomUUID()
+    id: 'fake-id-' + Math.floor(Math.random() * 1e9).toString()
   }
 }
 
 // Static widgets and widget data
 const TERMS_AND_CONDITIONS_URL = 'https://hylo-landing.surge.sh/terms'
 
-const PUBLIC_CONTEXT_WIDGETS = [
+export const PUBLIC_CONTEXT_WIDGETS = [
+  { type: 'home', url: '/public/stream' },
   { context: 'public', view: 'stream', title: 'widget-public-stream', id: 'widget-public-stream', order: 1, parentId: null },
   { context: 'public', view: 'groups', title: 'widget-public-groups', id: 'widget-public-groups', order: 2, parentId: null },
   { context: 'public', view: 'map', title: 'widget-public-map', id: 'widget-public-map', type: 'map', order: 3, parentId: null },
   { context: 'public', view: 'events', title: 'widget-public-events', id: 'widget-public-events', order: 4, parentId: null }
 ]
 
-const MY_CONTEXT_WIDGETS = (profileUrl) => [
+export const MY_CONTEXT_WIDGETS = (profileUrl) => [
+  { type: 'home', url: '/my/posts' },
   { title: 'widget-my-groups-content', id: 'widget-my-groups-content', order: 2, parentId: null },
   { context: 'all', view: 'stream', title: 'widget-my-groups-stream', id: 'widget-my-groups-stream', order: 1, parentId: 'widget-my-groups-content' },
   { context: 'all', view: 'map', title: 'widget-my-groups-map', id: 'widget-my-groups-map', type: 'map', order: 2, parentId: 'widget-my-groups-content' },
@@ -236,11 +237,14 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { context: 'my', view: 'invitations', title: 'widget-my-invites', id: 'widget-my-invites', order: 4, parentId: 'widget-myself' },
   { context: 'my', view: 'notifications', title: 'widget-my-notifications', id: 'widget-my-notifications', order: 5, parentId: 'widget-myself' },
   { context: 'my', view: 'locale', title: 'widget-my-locale', id: 'widget-my-locale', order: 6, parentId: 'widget-myself' },
-  { context: 'my', view: 'account', title: 'widget-my-account', id: 'widget-my-account', order: 7, parentId: 'widget-myself' },
+  { context: 'my', view: 'blocked-users', title: 'widget-my-blocked-users', id: 'widget-my-blocked-users', order: 7, parentId: 'widget-myself' },
   { context: 'my', view: 'saved-searches', title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', order: 8, parentId: 'widget-myself' },
-  { context: 'my', url: TERMS_AND_CONDITIONS_URL, title: 'widget-terms-and-conditions', id: 'widget-terms-and-conditions', order: 9, parentId: 'widget-myself' },
-  { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', order: 4, parentId: null }
+  { context: 'my', view: 'account', title: 'widget-my-account', id: 'widget-my-account', order: 9, parentId: 'widget-myself' },
+  { context: 'my', url: TERMS_AND_CONDITIONS_URL, title: 'widget-terms-and-conditions', id: 'widget-terms-and-conditions', order: 10, parentId: 'widget-myself' },
+  { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', iconName: 'LogOut', order: 11, parentId: null }
 ]
+
+export const allViewsWidget = ContextWidgetPresenter({ title: 'widget-all', type: 'all-views', view: 'all-views', iconName: 'Grid3x3', childWidgets: [] })
 
 export const COMMON_VIEWS = {
   proposals: {
@@ -260,7 +264,7 @@ export const COMMON_VIEWS = {
   events: {
     name: 'Events',
     iconName: 'Calendar',
-    defaultViewMode: 'cards',
+    defaultViewMode: 'calendar',
     postTypes: ['event'],
     defaultSortBy: 'start_time'
   },

@@ -8,19 +8,20 @@ export const REMOVE_MEMBER = 'REMOVE_MEMBER'
 export const REMOVE_MEMBER_PENDING = REMOVE_MEMBER + '_PENDING'
 
 export const groupMembersQuery = `
-query FetchGroupMembers ($slug: String, $first: Int, $sortBy: String, $offset: Int, $search: String) {
+query FetchGroupMembers ($slug: String, $first: Int, $sortBy: String, $order: String, $offset: Int, $search: String) {
   group (slug: $slug) {
     id
     name
     avatarUrl
     memberCount
-    members (first: $first, sortBy: $sortBy, offset: $offset, search: $search) {
+    members (first: $first, sortBy: $sortBy, order: $order, offset: $offset, search: $search) {
       items {
         id
         name
         avatarUrl
         location
         tagline
+        lastActiveAt
         groupRoles {
           items {
             id
@@ -58,12 +59,12 @@ query FetchGroupMembers ($slug: String, $first: Int, $sortBy: String, $offset: I
   }
 }`
 
-export function fetchGroupMembers ({ slug, sortBy, offset, search, first = 20 }) {
+export function fetchGroupMembers ({ slug, sortBy, order, offset, search, first = 20 }) {
   return {
     type: FETCH_MEMBERS,
     graphql: {
       query: groupMembersQuery,
-      variables: { slug, first, offset, sortBy, search }
+      variables: { slug, first, offset, sortBy, order, search }
     },
     meta: {
       extractModel: 'Group',

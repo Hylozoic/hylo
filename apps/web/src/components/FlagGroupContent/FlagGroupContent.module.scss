@@ -7,9 +7,17 @@
   right: 0;
   bottom: 0;
   margin: auto;
-  background-color: rgba(0,0,0, 0.5);
   z-index: 200000;
 }
+.bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0, 0.5);
+}
+
 .popup-inner {
   position: relative;
   width: 500px;
@@ -20,6 +28,7 @@
   overflow: auto;
   height: 87%;
   border-radius: 10px;
+  z-index: 200001;
 
   h1 {
     font-size: 24px;

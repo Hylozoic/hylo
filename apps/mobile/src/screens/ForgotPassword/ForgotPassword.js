@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
 import validator from 'validator'
+import FormattedError from 'components/FormattedError/FormattedError'
 import styles from './ForgotPassword.styles'
 
 export default function ForgotPassword ({ error }) {
@@ -41,7 +42,7 @@ export default function ForgotPassword ({ error }) {
         </Text>
       </View>
       {error && (
-        <FormError />
+        <FormattedError error={error} />
       )}
       {!error && (
         <View style={styles.labelRow}>
@@ -74,20 +75,5 @@ export default function ForgotPassword ({ error }) {
         </TouchableOpacity>
       </View>
     </ScrollView>
-  )
-}
-
-export function FormError () {
-  const { t } = useTranslation()
-  const rowStyle = styles.emailErrorRow
-  const triangleStyle = styles.emailTriangle
-  const message = t('Password is invalid or unknown error')
-  return (
-    <View style={styles.errorView}>
-      <View style={rowStyle}>
-        <Text style={styles.errorMessage}>{message}</Text>
-      </View>
-      <View style={triangleStyle} />
-    </View>
   )
 }

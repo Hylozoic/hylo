@@ -115,7 +115,8 @@ module.exports = bookshelf.Model.extend({
       templateData: {
         subject: reporterSubject,
         body: reporterMessageContent +
-        `${link}\n\n`
+        `${link}\n\n`,
+        post_url: link
       },
       locale: reporterLocale
     })

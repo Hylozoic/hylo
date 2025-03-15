@@ -6,9 +6,9 @@ import { useAuth } from '@hylo/contexts/AuthContext'
 import checkInvitationQuery from '@hylo/graphql/queries/checkInvitationQuery'
 import acceptInvitationMutation from '@hylo/graphql/mutations/acceptInvitationMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import { openURL } from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
-import useChangeToGroup from 'hooks/useChangeToGroup'
 import useLinkingStore from 'navigation/linking/store'
 import LoadingScreen from 'screens/LoadingScreen'
 
@@ -47,8 +47,7 @@ export default function JoinGroup (props) {
               await refetchCurrentUser()
 
               if (groupSlug) {
-                changeToGroup(groupSlug)
-                navigation.goBack()
+                changeToGroup(groupSlug, { skipCanViewCheck: true })
               } else {
                 throw new Error('Join group was unsuccessful', error)
               }

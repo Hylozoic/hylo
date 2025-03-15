@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react'
-import { useNavigation, useFocusEffect } from '@react-navigation/native'
+import { useNavigation } from '@react-navigation/native'
 import { gql, useQuery } from 'urql'
 import { View, Text, SectionList, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import useChangeToGroup from 'hooks/useChangeToGroup'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import { visibilityIcon, accessibilityIcon } from '@hylo/presenters/GroupPresenter'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import styles from './Groups.styles'
 import { useTranslation } from 'react-i18next'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 
 // Note: The most reliable query here for getting memberCount
 // was on `me.memberships`. `group(id: x)` nor `groups(groupIds: [x])
@@ -106,14 +106,8 @@ export default function Groups () {
     setLoading(meMembershipsMemberCountQueryFetching || groupsMemberCountQueryFetching || groupMemberCountQueryFetching)
   }, [meMembershipsMemberCountQueryFetching || groupsMemberCountQueryFetching || groupMemberCountQueryFetching])
 
-  const changeToGroup = useChangeToGroup()
-
   const goToGroupExplore = groupSlug =>
     navigation.navigate(modalScreenName('Group Explore'), { groupSlug })
-
-  useFocusEffect(() => {
-    navigation.setOptions({ title: currentGroup.name })
-  })
 
   if (loading) return <Loading />
 
@@ -141,7 +135,6 @@ export default function Groups () {
     <GroupRow
       group={item}
       memberships={memberships}
-      goToGroup={changeToGroup}
       goToGroupExplore={goToGroupExplore}
       addPadding
     />
@@ -180,12 +173,12 @@ export default function Groups () {
   )
 }
 
-export function GroupRow ({ group, memberships, goToGroup, goToGroupExplore }) {
+export function GroupRow ({ group, memberships, goToGroupExplore }) {
   const { t } = useTranslation()
   const { avatarUrl, description, name, memberCount, childGroups } = group
   const childGroupsCount = childGroups?.count()
-  const isMember = memberships.find(m => m.group.id === group.id) || false
-  const onPressFunc = isMember ? goToGroup : goToGroupExplore
+  const changeToGroup = useChangeToGroup()
+  const handleOnPress = () => changeToGroup(group?.slug, { confirm: true })
   const statusText = group.memberStatus === 'member'
     ? t('Member')
     : group.memberStatus === 'requested'
@@ -193,7 +186,7 @@ export function GroupRow ({ group, memberships, goToGroup, goToGroupExplore }) {
       : t('Not a Member')
 
   return (
-    <TouchableOpacity onPress={() => onPressFunc(group?.slug)} style={styles.groupRow}>
+    <TouchableOpacity onPress={handleOnPress} style={styles.groupRow}>
       {!!avatarUrl && (
         <FastImage source={{ uri: avatarUrl }} style={styles.groupAvatar} />
       )}

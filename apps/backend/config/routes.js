@@ -70,8 +70,9 @@ module.exports.routes = {
   'POST   /noo/post/:postId/unsubscribe':                 'PostController.unsubscribe', // from comments
   'POST   /noo/post/:postId/typing':                      'PostController.typing',
 
+  'GET    /noo/group/:groupSlug/murmurations':            'MurmurationsController.group',
+
   'POST   /noo/upload':                                   'UploadController.create',
 
   'GET    /noo/export/group':                             'ExportController.groupData'
-
 }

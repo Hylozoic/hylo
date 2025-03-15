@@ -135,41 +135,6 @@
   // BDY-LT-LG and BDY-LT-SM
   @include font-regular;
   color: hsl(var(--text-foreground));
-  font-size: 16px;
-  line-height: 24px;
-
-  h1, h2, h3 {
-    font-family: 'Circular Bold';
-    color: rgba(35, 65, 91, 1.0);
-  }
-
-  h1 {
-    font-size: 24px;
-  }
-
-  h2 {
-    font-size: 18px;
-  }
-
-  h3, h4, h5 {
-    font-size: 16px;
-  }
-
-  ul {
-    list-style-type: disc;
-  }
-
-  ol {
-    list-style-type: decimal;
-  }
-
-  p {
-    margin: 3px 0;
-  }
-
-  ul p, ol p {
-    margin: 0;
-  }
 
   &.editing {
     padding: 10px;

@@ -328,8 +328,7 @@ $drawer-z-index: 51;
   min-height: 1px; // Prevent collapsing
   height: 100%;
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   // transition: all .45s ease; // Took this out because it was causing issues with the width of the map
 
   &.full-width {
@@ -339,17 +338,6 @@ $drawer-z-index: 51;
     padding-bottom: 0;
     height: 100vh;
   }
-}
-
-.singleColumn .center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  flex: 1;
-  padding-right: 0;
-  height: calc(100vh - 58px);
-  padding-left: 0;
 }
 
 .sidebar {
@@ -533,13 +521,6 @@ $drawer-z-index: 51;
 
   .detailOpen, .detailOpen .center, .detailOpen .main {
     overflow: hidden;
-  }
-
-  .center {
-    overflow-y: scroll;
-  }
-  .center.full-width {
-    overflow-y: auto;
   }
 
   .tourWrapper .tourPrompt .tourGuide {

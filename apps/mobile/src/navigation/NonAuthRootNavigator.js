@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { useNavigation } from '@react-navigation/native'
 import { createStackNavigator } from '@react-navigation/stack'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import useOpenInitialURL from 'hooks/useOpenInitialURL'
@@ -6,7 +7,6 @@ import ModalHeader from 'navigation/headers/ModalHeader'
 import Login from 'screens/Login'
 import ForgotPassword from 'screens/ForgotPassword'
 import SignupNavigator from 'navigation/SignupNavigator'
-import { useNavigation } from '@react-navigation/native'
 import { white } from 'style/colors'
 
 const NonAuthRoot = createStackNavigator()

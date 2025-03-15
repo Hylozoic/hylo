@@ -171,9 +171,9 @@ export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
 
   // Format the start date - only include year if it's in the past
   if (isPastYear) {
-    from = start.toFormat("MMM d, yyyy '•' t")
+    from = start.toFormat("ccc MMM d, yyyy '•' t")
   } else {
-    from = start.toFormat("MMM d '•' t")
+    from = start.toFormat("ccc MMM d '•' t")
   }
 
   // Format the end date/time if provided

@@ -363,6 +363,8 @@ export default function ChatRoom (props) {
     [hasMorePostsPast, hasMorePostsFuture, loadingPast, loadingFuture]
   )
 
+  // TODO: don't know why we need a debounce of 900. there is a bug where we update last read right after creating post and it errors out on backend.
+  //   so we have to wait longer befoer doing it. maybe we get the new post back with an id before its really committed to the db?
   const updateLastReadPost = debounce(200, (lastPost) => {
     // Add additional checks to ensure all required values exist
     if (topicFollow?.id && lastPost?.id &&
@@ -385,7 +387,9 @@ export default function ChatRoom (props) {
     // Only attempt to update if we have data and a valid lastPost
     if (data && data.length > 0) {
       const lastPost = data[data.length - 1]
-      updateLastReadPost(lastPost)
+      if (lastPost.id) {
+        updateLastReadPost(lastPost)
+      }
     }
   }, [topicFollow?.id, topicFollow?.lastReadPostId])
 
@@ -409,7 +413,7 @@ export default function ChatRoom (props) {
     const optimisticUpdate = { flaggedGroups: [...flaggedGroups, group.id] }
     const newPost = { ...post, ...optimisticUpdate }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
-  }, [group.id])
+  }, [group?.id])
 
   // Create a new chat post
   const onCreate = useCallback((postToSave) => {
@@ -428,6 +432,7 @@ export default function ChatRoom (props) {
   const afterCreate = useCallback(async (postData) => {
     const post = presentPost(postData, group.id)
     messageListRef.current?.data.map((item) => post.localId && item.localId && post.localId === item.localId ? post : item)
+    // TODO: probably dont need this, backend should set last_read_post on the chat room when a chat is created
     updateLastReadPost(post)
     if (!notificationsSetting) {
       // If the user has not set a notification setting for this chat room, we set it to all on the backend when creating a post so update the UI to match
@@ -483,7 +488,7 @@ export default function ChatRoom (props) {
           : (
             <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
               <VirtuosoMessageList
-                style={{ height: '100%', width: '100%', marginTop: 'auto', paddingBottom: '10px' }}
+                style={{ height: '100%', width: '100%', marginTop: 'auto', paddingBottom: '10px', overflowX: 'hidden' }}
                 ref={messageListRef}
                 context={{
                   currentUser,

@@ -62,6 +62,10 @@ module.exports.policies = {
     unsubscribe: ['isSocket', 'sessionAuth', 'checkAndSetMembership']
   },
 
+  MurmurationsController: {
+    group: true
+  },
+
   PostController: {
     updateLastRead:         ['sessionAuth', 'checkAndSetPost'],
     subscribe:              ['isSocket', 'sessionAuth', 'checkAndSetPost'],

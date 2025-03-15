@@ -1,7 +1,7 @@
 {
   "name": "web",
   "description": "Hylo Frontend",
-  "version": "5.11.4",
+  "version": "6.0.0",
   "private": true,
   "license": "Apache-2.0",
   "author": "Hylo <hello@hylo.com>",
@@ -160,7 +160,6 @@
     "raf": "^3.4.1",
     "react": "^18.3.0",
     "react-app-polyfill": "^3.0.0",
-    "react-cookie-consent": "^9.0.0",
     "react-cool-inview": "^3.0.1",
     "react-copy-to-clipboard": "^5.1.0",
     "react-datetime": "^3.2.0",

@@ -7,18 +7,19 @@
   margin-bottom: 10px;
   font-size: 14px;
   padding-right: 10px;
+  border-radius: 10px;
 
   &.rowStyle {
     display: flex;
-    padding: 5px 0px;
+    padding: 5px 10px;
     margin-bottom: 0;
 
     &.even {
-      background-color: $color-athens-gray;
+      background-color: hsl(var(--background));
     }
 
     &.odd {
-      background-color: $color-white;
+      background-color: hsl(var(--background/50));
     }
   }
 

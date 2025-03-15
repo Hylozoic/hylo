@@ -1,7 +1,7 @@
 import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
 import qs from 'query-string'
 import { host } from 'config/index'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import { findHomeWidget } from '@hylo/presenters/ContextWidgetPresenter'
 import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 
@@ -211,7 +211,7 @@ export function customViewUrl (customViewId, rootPath, opts) {
 export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
   if (!widget) return null
 
-  const groupSlug = isContextGroupSlug(providedSlug) ? null : providedSlug
+  const groupSlug = isStaticContext(providedSlug) ? null : providedSlug
   let url = ''
   if (widget.url) return widget.url
   if (widget.view === 'about') {

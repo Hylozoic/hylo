@@ -160,22 +160,22 @@ export default function Stream (props) {
   if (context === CONTEXT_MY) {
     switch (view) {
       case VIEW_MENTIONS:
-        name = 'Mentions'
+        name = t('Mentions')
         icon = 'Email'
         fetchPostsParam.mentionsOf = [currentUser.id]
         break
       case VIEW_ANNOUNCEMENTS:
-        name = 'Announcements'
+        name = t('Announcements')
         icon = 'Announcement'
         fetchPostsParam.announcementsOnly = true
         break
       case VIEW_INTERACTIONS:
-        name = 'Interactions'
+        name = t('Interactions')
         icon = 'Support'
         fetchPostsParam.interactedWithBy = [currentUser.id]
         break
       case VIEW_POSTS:
-        name = 'Posts'
+        name = t('Posts')
         icon = 'Posticon'
         fetchPostsParam.createdBy = [currentUser.id]
         break
@@ -256,7 +256,7 @@ export default function Stream (props) {
           {customView?.activePostsOnly ? t('Only active') : ''}
         </span>
 
-        {customView?.postTypes.length === 0 ? t('None') : customView?.postTypes.map((p, i) => <span key={i}><PostLabel key={p} type={p} className='align-middle mr-1' />{p}s&nbsp;</span>)}
+        {customView?.postTypes.length === 0 ? t('None') : customView?.postTypes.map((p, i) => <span key={i}><PostLabel key={p} type={p} className='align-middle mr-2' />{p}s&nbsp;</span>)}
         {customView?.topics.length > 0 && <div>{t('filtered by topics:')}</div>}
         {customView?.topics.length > 0 && customView?.topics.map(t => <span key={t.id}>#{t.name}</span>)}
       </div>

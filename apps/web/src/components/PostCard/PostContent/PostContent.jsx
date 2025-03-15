@@ -41,7 +41,7 @@ export default function PostContent ({
 
   return (
     <Highlight {...highlightProps}>
-      <div onClick={onClick} className={cn('p-0', { [classes.constrained]: constrained })}>
+      <div onClick={onClick} className={cn('p-0 global-postContent', { [classes.constrained]: constrained })}>
         <div className={classes.fade} />
         {linkPreview?.url && linkPreviewFeatured && isVideo && (
           <Feature url={linkPreview.url} />

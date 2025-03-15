@@ -26,7 +26,7 @@ export default function FullPageModal ({
     )
   } else {
     return (
-      <div className={cn('bg-midground h-full')}>
+      <div className={cn('bg-midground h-full overflow-y-auto')}>
         {multipleTabs && (
           <div className={cn('w-full max-w-[750px] mx-auto px-8 py-8')}>
             <Routes>

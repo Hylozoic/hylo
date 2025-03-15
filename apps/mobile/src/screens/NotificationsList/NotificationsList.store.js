@@ -1,7 +1,7 @@
 import { gql } from 'urql'
 import { find, pick } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
-import { modalScreenName } from 'hooks/useIsModalScreen'
+import { openURL } from 'hooks/useOpenURL'
 
 export const ACTION_ANNOUNCEMENT = 'announcement'
 export const ACTION_APPROVED_JOIN_REQUEST = 'approvedJoinRequest'
@@ -52,31 +52,31 @@ export const truncateHTML = html => TextHelpers.presentHTMLToText(html, { trunca
 
 export const truncateText = text => TextHelpers.truncateText(text, NOTIFICATION_TEXT_MAX)
 
-export function refineActivity ({ action, actor, comment, group, post, meta }, { navigate }) {
+export function refineActivity ({ action, actor, comment, group, post, meta }) {
   switch (action) {
     case ACTION_COMMENT_MENTION:
       return {
         body: `wrote: ${truncateHTML(comment.text)}`,
         header: 'mentioned you in a comment on',
         nameInHeader: true,
-        onPress: () => navigate(modalScreenName('Post Details'), { id: post.id }),
-        title: post.title
+        title: post.title,
+        onPress: () => openURL(`/post/${post.id}`)
       }
 
     case ACTION_NEW_COMMENT:
       return {
         body: `wrote: "${truncateHTML(comment.text)}"`,
         header: 'New Comment on',
-        onPress: () => navigate(modalScreenName('Post Details'), { id: post.id }),
-        title: post.title
+        title: post.title,
+        onPress: () => openURL(`/post/${post.id}`)
       }
 
     case ACTION_MENTION:
       return {
         body: `wrote: "${truncateHTML(post.details)}"`,
         header: 'mentioned you',
-        onPress: () => navigate(modalScreenName('Post Details'), { id: post.id }),
-        nameInHeader: true
+        nameInHeader: true,
+        onPress: () => openURL(`/post/${post.id}`)
       }
 
     case ACTION_TAG: {
@@ -85,10 +85,8 @@ export function refineActivity ({ action, actor, comment, group, post, meta }, {
       return {
         body: `wrote: "${truncateHTML(post.details)}"`,
         header: 'New Post in',
-        onPress: () => {
-          navigate('Chat Room', { topicName: topic, postId: post.id })
-        },
-        objectName: topic
+        objectName: topic,
+        onPress: () => openURL(`/post/${post.id}/chat/${topic}?postId=${post.id}`)
       }
     }
 
@@ -96,8 +94,8 @@ export function refineActivity ({ action, actor, comment, group, post, meta }, {
       return {
         body: `wrote: "${truncateHTML(post.details)}"`,
         header: 'New Post in',
-        onPress: () => navigate(modalScreenName('Post Details'), { id: post.id }),
-        objectName: group.name
+        objectName: group.name,
+        onPress: () => openURL(`/post/${post.id}`)
       }
     }
 
@@ -107,12 +105,7 @@ export function refineActivity ({ action, actor, comment, group, post, meta }, {
         group: group.name,
         header: 'New join request',
         nameInHeader: true,
-        onPress: () => navigate('Group Settings', {
-          screen: 'Join Requests',
-          params: {
-            groupId: group.id, groupSlug: group.slug
-          }
-        })
+        onPress: () => openURL(`/groups/${group?.slug}/settings/requests`)
       }
 
     case ACTION_APPROVED_JOIN_REQUEST:
@@ -120,19 +113,19 @@ export function refineActivity ({ action, actor, comment, group, post, meta }, {
         body: 'approved your request to join',
         group: group.name,
         header: 'Join Request Approved',
-        onPress: () => navigate('Stream', { groupId: group.id })
+        onPress: () => openURL(`/groups/${group?.slug}/stream`)
       }
     case ACTION_ANNOUNCEMENT:
       return {
         body: `wrote: "${truncateText(post.title)}"`,
         header: 'posted an announcement',
-        onPress: () => navigate(modalScreenName('Post Details'), { id: post.id }),
-        nameInHeader: true
+        nameInHeader: true,
+        onPress: () => openURL(`/post/${post.id}/edit`),
       }
   }
 }
 
-export function refineNotification (navigation) {
+export function refineNotification () {
   return ({ activity, createdAt, id }, i, notifications) => {
     const { actor, meta, unread } = activity
     // Only show separator between read and unread notifications
@@ -147,20 +140,18 @@ export function refineNotification (navigation) {
       actor: pick(['avatarUrl', 'name'], actor),
       avatarSeparator,
       createdAt: TextHelpers.humanDate(createdAt),
-      ...refineActivity(activity, navigation),
+      ...refineActivity(activity),
       unread,
       reasons: meta.reasons
     }
   }
 }
 
-export const refineNotifications = (notifications, navigation) => {
+export const refineNotifications = (notifications) => {
   if (!notifications) return []
 
   return notifications
-    // TODO: The extra sort is probably not necessary now that we're on URQL, confirm this and then remove
-    // .sort((a, b) => Number(a.id) - Number(b.id))
-    .map(refineNotification(navigation))
+    .map(refineNotification())
     .filter(n => n.reasons.every(r => reasonInWhitelist(r, NOTIFICATIONS_WHITELIST)))
 }
 

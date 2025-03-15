@@ -113,13 +113,6 @@ export default {
       cache.invalidate({ __typename: 'Post', id: args.postId })
     },
 
-    pinPost: (result, args, cache, info) => {
-      if (result[info.fieldName].success) {
-        // Note: Any Post invalidation will result in the full Group/Stream query being re-fetched.
-        cache.invalidate(cache.keyOfEntity({ __typename: 'Post', id: args.postId }), 'postMemberships')
-      }
-    },
-
     // See note on these updaters in the file these are imported from
     reactOn,
     deleteReaction,
@@ -139,9 +132,22 @@ export default {
     },
 
     updateMembership: (result, args, cache, info) => {
-      if (result[info.fieldName].id) {
-        cache.invalidate('Query', 'me')
-      }
+      const updatedMembership = result?.[info.fieldName]
+
+      if (!updatedMembership?.id) return
+
+      cache.updateQuery({ query: meQuery }, ({ me }) => {
+        if (!me) return null
+
+        return {
+          me: {
+            ...me,
+            memberships: me.memberships.map(m =>
+              m.id === updatedMembership.id ? { ...m, ...updatedMembership } : m
+            )
+          }
+        }
+      })
     },
 
     verifyEmail: (result, args, cache, info) => {

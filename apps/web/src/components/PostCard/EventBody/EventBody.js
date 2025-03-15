@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { TextHelpers } from '@hylo/shared'
-import Button from 'components/Button'
 import EventInviteDialog from 'components/EventInviteDialog'
 import EventDate from '../EventDate'
 import EventRSVP from '../EventRSVP'
@@ -31,6 +30,7 @@ function EventBody (props) {
 
   const eventAttendees = filter(ei => ei.response === RESPONSES.YES, eventInvitations)
   const isPastEvent = endTime && new Date(endTime) < new Date()
+  const isUpcoming = startTime && (new Date(startTime) - new Date()) <= 72 * 60 * 60 * 1000 // 72 hours in milliseconds
 
   return (
     <div>
@@ -41,11 +41,12 @@ function EventBody (props) {
         </div>}
 
       <div className={cn(classes.body, classes.eventBody, { [classes.smallMargin]: !expanded, [classes.eventImage]: attachmentType === 'image', [classes.constrained]: constrained }, className)}>
-        <div className={cn(classes.eventBodyColumn, { [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !event.clickthrough })}>
+        <div className={cn('flex flex-col', { [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !event.clickthrough })}>
           <div className='flex flex-row gap-5 items-center justify-start mb-4'>
             <EventDate {...event} />
             <div className='flex flex-col gap-0'>
-              <div className={cn('text-xs text-foreground/50')} onClick={onClick}>
+              <div className={cn('text-xs text-foreground/50 flex flex-row gap-2 items-center')} onClick={onClick}>
+                {isUpcoming && <div className='bg-accent/10 p-1 rounded-lg text-accent text-xs font-bold flex items-center justify-center inline-block px-2'>Upcoming</div>}
                 {TextHelpers.formatDatePair(startTime, endTime)}
                 {isPastEvent && (
                   <span className={cn('text-sm text-foreground/50 ml-2 px-2 inline-block p-1 rounded-md bg-foreground/10 text-xs')}>{t('Event ended')}</span>
@@ -70,7 +71,7 @@ function EventBody (props) {
           </div>
         </div>
 
-        <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative text-center'>
+        <div className='border-2 mt-2 justify-between flex border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative text-center'>
           <div onClick={onClick}>
             <div className={classes.fade} />
             <PeopleInfo
@@ -88,11 +89,13 @@ function EventBody (props) {
           </div>
 
           {currentUser && !isPastEvent && (
-            <div className={classes.eventResponse}>
+            <div className='flex flex-row gap-2'>
               <div className={classes.rsvp}>
                 <EventRSVP {...event} respondToEvent={respondToEvent} />
               </div>
-              <Button label={t('Invite')} onClick={toggleInviteDialog} narrow small color='green-white' className={classes.inviteButton} />
+              <button onClick={toggleInviteDialog} className='flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground p-1 px-2'>
+                {t('Invite')}
+              </button>
             </div>
           )}
         </div>

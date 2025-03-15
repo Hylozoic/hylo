@@ -3,14 +3,16 @@ import { useNavigation, useIsFocused } from '@react-navigation/native'
 import { View, TouchableOpacity, Dimensions } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { FlashList } from '@shopify/flash-list'
-import { gql, useMutation, useQuery } from 'urql'
+import { useMutation, useQuery } from 'urql'
 import { capitalize, get, isEmpty } from 'lodash/fp'
 import { clsx } from 'clsx'
+import { MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { isStaticContext } from '@hylo/presenters/GroupPresenter'
+import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import updateMembershipMutation from '@hylo/graphql/mutations/updateMembershipMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import useStreamQueryVariables from '@hylo/hooks/useStreamQueryVariables'
-import { isDev } from 'config'
 import useRouteParams from 'hooks/useRouteParams'
 import makeStreamQuery from './makeStreamQuery'
 import CreateGroupNotice from 'components/CreateGroupNotice'
@@ -55,23 +57,6 @@ export const EVENT_STREAM_TIMEFRAME_OPTIONS = [
 export const DEFAULT_SORT_BY_ID = 'updated'
 export const DEFAULT_TIMEFRAME_ID = 'future'
 
-// Currently unused
-export const resetGroupTopicNewPostCountMutation = gql`
-  mutation ResetGroupTopicNewPostCountMutation($id: ID) {
-    updateGroupTopicFollow(id: $id, data: { newPostCount: 0 }) {
-      success
-    }
-  }
-`
-
-export const resetGroupNewPostCountMutation = gql`
-  mutation ResetGroupNewPostCountMutation ($id: ID) {
-    updateMembership(groupId: $id, data: { newPostCount: 0 }) {
-      id
-    }
-  }
-`
-
 export default function Stream () {
   const ref = useRef(null)
   const { t } = useTranslation()
@@ -80,16 +65,15 @@ export default function Stream () {
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
   const routeParams = useRouteParams()
-  // TODO: Keeping logging for now for Stream testing due-diligence
-  if (isDev) console.log('!!! routeParams', routeParams)
   const {
     context,
     customViewId,
-    myHome,
+    view: providedView,
     streamType
   } = routeParams
+  const view = (context === MY_CONTEXT_SLUG && !providedView && !streamType) ? 'posts' : providedView
 
-  const customView = currentGroup?.customViews?.items?.find(view => view.id === customViewId)
+  const customView = currentGroup?.customViews?.items?.find(customView => customView.id === customViewId)
   const [filter, setFilter] = useState()
   const [sortBy, setSortBy] = useState(
     get('settings.streamSortBy', currentUser) ||
@@ -104,12 +88,11 @@ export default function Stream () {
     customView,
     streamType,
     filter,
-    slug: currentGroup?.slug,
-    myHome,
+    slug: !isStaticContext(currentGroup?.slug) ? currentGroup?.slug : null,
+    view,
     sortBy,
     timeframe
   })
-  if (isDev) console.log('!!!! streamQueryVariables', streamQueryVariables)
   const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...streamQueryVariables, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
   const hasMore = postsQuerySet?.hasMore
@@ -117,15 +100,11 @@ export default function Stream () {
   const postIds = posts?.map(p => p.id)
 
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
-  const [, resetGroupNewPostCount] = useMutation(resetGroupNewPostCountMutation)
-
-  useEffect(() => {
-    navigation.setOptions({ title: currentGroup?.name })
-  }, [currentGroup?.name])
+  const [, resetGroupNewPostCount] = useMutation(updateMembershipMutation)
 
   const title = useMemo(() => {
-    if (myHome) {
-      return capitalize(t(myHome))
+    if (customView?.name) {
+      return customView?.name
     }
 
     switch (streamType) {
@@ -141,8 +120,12 @@ export default function Stream () {
       return capitalize(t(streamType))
     }
 
+    if (context === MY_CONTEXT_SLUG && view) {
+      return capitalize(t(view))
+    }
+
     return t('Stream')
-  }, [navigation, currentGroup?.id, myHome, streamType, context])
+  }, [navigation, currentGroup?.id, view, streamType, context])
 
   // TODO: URQL - Can this be simplified? Also, does this perhaps follow the same logic as
   // group(updateLastViewed: true) and could we combine this? Currently that extra
@@ -152,11 +135,11 @@ export default function Stream () {
     if (streamQueryVariables && isFocused && isEmpty(postIds) && hasMore !== false) {
       if (
         currentGroup?.id &&
-        !currentGroup?.isContextGroup &&
+        !currentGroup?.isStaticContext &&
         sortBy === DEFAULT_SORT_BY_ID &&
         !streamQueryVariables.filter
       ) {
-        resetGroupNewPostCount({ id: currentGroup?.id })
+        resetGroupNewPostCount({ groupId: currentGroup?.id, data: { newPostCount: 0} })
       }
     }
   }, [currentGroup?.id, streamQueryVariables?.filter, streamQueryVariables?.context, hasMore, isFocused, postIds])
@@ -200,7 +183,7 @@ export default function Stream () {
   if (!currentUser) return <Loading style={{ flex: 1 }} />
   if (!currentGroup) return null
 
-  if (isEmpty(currentUser?.memberships) && currentGroup?.isPublicContext) {
+  if (isEmpty(currentUser?.memberships) && currentGroup?.slug !== PUBLIC_CONTEXT_SLUG) {
     return (
       <CreateGroupNotice />
     )
@@ -218,7 +201,7 @@ export default function Stream () {
             context={streamQueryVariables?.context}
             post={item}
             forGroupId={currentGroup?.id}
-            showGroups={!currentGroup?.id || currentGroup?.isContextGroup}
+            showGroups={!currentGroup?.id || currentGroup?.isStaticContext}
           />
         )}
         onRefresh={refreshPosts}
@@ -240,7 +223,7 @@ export default function Stream () {
               <View className='bg-card flex-row justify-between items-center px-2.5 py-2'>
                 <ListControl selected={sortBy} onChange={setSortBy} options={sortOptions} />
                 <View className='flex-row items-center gap-2'>
-                  {!['my', 'public'].includes(streamQueryVariables?.context) &&
+                  {![MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG].includes(streamQueryVariables?.context) &&
                     <TouchableOpacity onPress={handleChildPostToggle}>
                       <View className={clsx(
                         'w-8 h-8 rounded items-center justify-center',

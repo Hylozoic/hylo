@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
@@ -38,10 +38,6 @@ export default function ChatRoomWebView () {
       navigation.navigate(modalScreenName('Group Explore'), routeParams)
     }
   })
-
-  useEffect(() => {
-    navigation.setOptions({ title: currentGroup?.name })
-  }, [fetching, currentGroup?.name])
 
   if (fetching) return null
 

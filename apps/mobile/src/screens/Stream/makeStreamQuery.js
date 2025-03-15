@@ -1,5 +1,5 @@
 import { gql } from 'urql'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import postsQuerySetFragment from '@hylo/graphql/fragments/postsQuerySetFragment'
 import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 
@@ -30,7 +30,7 @@ export const makeStreamQuery = ({
   types
 }) => {
   return {
-    query: isContextGroupSlug(context)
+    query: isStaticContext(context)
       ? postsQuery
       : makeGroupPostsQuery(childPostInclusion === 'yes'),
     variables: {

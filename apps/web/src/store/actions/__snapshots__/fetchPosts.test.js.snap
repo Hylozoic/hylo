@@ -36,7 +36,7 @@ Object {
     avatarUrl
     bannerUrl
     postCount
-    
+
 posts: viewPosts(
   activePostsOnly: $activePostsOnly,
   afterTime: $afterTime,
@@ -59,7 +59,7 @@ posts: viewPosts(
   hasMore
   total
   items {
-    
+
   id
   announcement
   title
@@ -115,7 +115,7 @@ posts: viewPosts(
   }
   commentersTotal
   commentsTotal
-  
+
   linkPreview {
     description
     id
@@ -193,13 +193,6 @@ posts: viewPosts(
     url
     position
     id
-  }
-  postMemberships {
-    id
-    pinned
-    group {
-      id
-    }
   }
   topics {
     id
@@ -302,7 +295,7 @@ Object {
   $topics: [ID],
   $types: [String]
 ) {
-  
+
 posts(
   activePostsOnly: $activePostsOnly,
   afterTime: $afterTime,
@@ -331,7 +324,7 @@ posts(
   hasMore
   total
   items {
-    
+
   id
   announcement
   title
@@ -387,7 +380,7 @@ posts(
   }
   commentersTotal
   commentsTotal
-  
+
   linkPreview {
     description
     id
@@ -465,13 +458,6 @@ posts(
     url
     position
     id
-  }
-  postMemberships {
-    id
-    pinned
-    group {
-      id
-    }
   }
   topics {
     id

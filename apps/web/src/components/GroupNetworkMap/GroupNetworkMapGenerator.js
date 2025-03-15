@@ -1,6 +1,7 @@
 import { groupUrl } from 'util/navigation'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import * as d3 from 'd3'
+import { cn } from 'util/index'
 
 export function runForceGraph (
   container,
@@ -67,11 +68,11 @@ export function runForceGraph (
   const simulation = d3
     .forceSimulation(nodes)
     .force('link', d3.forceLink(links).id(d => d.id))
-    .force('charge', d3.forceManyBody().strength(-1000))
-    .force('collide', d3.forceCollide().radius(60))
+    .force('charge', d3.forceManyBody().strength(-600))
+    .force('collide', d3.forceCollide().radius(52))
     .force('center', d3.forceCenter(0, 0))
-    .force('x', d3.forceX(width / 4).strength(0.4))
-    .force('y', d3.forceY(height / 4).strength(0.6))
+    .force('x', d3.forceX(width / 4).strength(0.5))
+    .force('y', d3.forceY(height / 4).strength(0.7))
 
   const svg = d3
     .select(container)
@@ -131,8 +132,22 @@ export function runForceGraph (
     .attr('width', 40)
     .call(drag(simulation))
 
+  // Get computed colors from the document
+  const getComputedColor = (colorVar) => {
+    // Create a temporary element to compute the style
+    const tempEl = document.createElement('div')
+    tempEl.className = colorVar
+    document.body.appendChild(tempEl)
+    const color = window.getComputedStyle(tempEl).color
+    document.body.removeChild(tempEl)
+    return color
+  }
+
+  // Get the foreground colors
+  const foregroundColor = getComputedColor('text-foreground')
+  const foregroundColorMuted = getComputedColor('text-foreground/50')
+
   const label = svg.append('g')
-    .attr('class', 'labels')
     .selectAll('text')
     .data(nodes)
     .enter()
@@ -142,10 +157,16 @@ export function runForceGraph (
     .attr('text-anchor', 'middle')
     .attr('y', d => 35)
     .text(d => { return d.name })
-    .style('font-size', d => d.index === 0 ? '16px' : '11px')
-    .style('font-weight', d => d.index === 0 ? 'bold' : 'regular')
-    .style('fill', d => d.index === 0 ? '#2A4059' : '#808C9B')
-    .attr('class', 'shadow')
+    .attr('class', d => {
+      return cn(
+        'drop-shadow',
+        d.index === 0
+          ? 'text-base font-bold'
+          : 'text-xs font-normal'
+      )
+    })
+    // Use the computed colors
+    .style('fill', d => d.index === 0 ? foregroundColor : foregroundColorMuted)
     .call(wrap, 150)
     .call(drag(simulation))
 

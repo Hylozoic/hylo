@@ -2,6 +2,7 @@ import { modalScreenName } from 'hooks/useIsModalScreen'
 import getStateFromPath from 'navigation/linking/getStateFromPath'
 import getInitialURL from 'navigation/linking/getInitialURL'
 import { isDev, isTest } from 'config'
+import { openURL } from 'hooks/useOpenURL'
 
 /*
 
@@ -24,6 +25,8 @@ React Router (web)
 
 export const AUTH_ROOT_SCREEN_NAME = 'AuthRoot'
 export const NON_AUTH_ROOT_SCREEN_NAME = 'NonAuthRoot'
+
+export const redirectTo = redirectPath => search => openURL(redirectPath)
 
 // Handling of unknown routes, when in dev directs to "Unknown" screen/component for inspection
 // but in Production and in Tests simply does the default of nothing when a route isn't matched.
@@ -70,10 +73,10 @@ export const routingConfig = {
   '/:context(public)':                                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
 
   // /my context routes
-  '/:context(my)/:myHome(announcements)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(my)/:myHome(interactions)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(my)/:myHome(mentions)':                                      `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(my)/:myHome(posts)':                                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(my)/:view(announcements)':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(my)/:view(interactions)':                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(my)/:view(mentions)':                                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(my)/:view(posts)':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/:settingsArea(account)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(blocked-users)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(edit-profile)':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
@@ -93,6 +96,7 @@ export const routingConfig = {
   // TODO routing: As of 21 Feb 2025, these two routes only exists on mobile but it is an example of how we could shift the web routes.
   '/:context(my)/stream':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/map':                                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
+  '/:context(my)':                                                         redirectTo('/my/posts'),
 
   // /all  routes -- NOTE: the "all" context is re-mapped to "my" by addParamsToScreenPath in getStateFromPath)
   '/:context(all)/map':                                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,

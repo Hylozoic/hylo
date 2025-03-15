@@ -106,6 +106,7 @@ export default function AllViews () {
       return true
     })
       .map(widget => ContextWidgetPresenter(widget))
+      .map(widget => ({ ...widget, title: translateTitle(widget.title, t) }))
       .sort((a, b) => a.title.localeCompare(b.title))
   }, [contextWidgets, isEditing])
 
@@ -118,13 +119,13 @@ export default function AllViews () {
         <div>
           <h3 className='text-lg font-semibold text-foreground'>
             <WidgetIconResolver widget={widget} />
-            <span className='ml-2'>{translateTitle(widget.title, t)}</span>
+            <span className='ml-2'>{widget.title}</span>
           </h3>
-          {widget.humanReadableType && (
+          {/* {widget.humanReadableType && (
             <span className='text-sm text-foreground'>
               {t('Type')}: {t(capitalize(widget.humanReadableType))}
             </span>
-          )}
+          )} */}
           {/* {widget?.view && (
             <span className='text-sm block text-foreground'>
               {t('View')}: {t(capitalize(widget.view))}

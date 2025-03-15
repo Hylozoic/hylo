@@ -58,11 +58,6 @@ export const styles = {
     flexDirection: 'row',
     alignItems: 'flex-start'
   },
-  pinIcon: {
-    fontSize: 20,
-    color: rhino50,
-    marginRight: 10
-  },
   flagIcon: {
     fontSize: 24,
     color: amaranth,

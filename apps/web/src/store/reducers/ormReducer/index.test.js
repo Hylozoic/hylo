@@ -16,9 +16,6 @@ import {
   REMOVE_POST_PENDING
 } from 'store/constants'
 import {
-  PIN_POST_PENDING
-} from 'components/PostCard/PostHeader/PostHeader.store'
-import {
   UPDATE_MEMBERSHIP_SETTINGS_PENDING,
   UPDATE_USER_SETTINGS_PENDING,
   UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING
@@ -274,38 +271,6 @@ describe('on REMOVE_POST_PENDING', () => {
     expect(post1Groups.length).toEqual(1)
     expect(post1Groups[0].id).toEqual('1')
     expect(newSession.Post.withId('2').groups.toModelArray().length).toEqual(2)
-  })
-})
-
-describe('on PIN_POST_PENDING', () => {
-  const session = orm.session(orm.getEmptyState())
-  const group = session.Group.create({ id: '1', slug: 'foo' })
-  const postId = 123
-  const postMembership = session.PostMembership.create({
-    pinned: false,
-    group
-  })
-
-  session.Post.create({
-    id: postId,
-    groups: [group],
-    postMemberships: [postMembership]
-  })
-
-  const action = {
-    type: PIN_POST_PENDING,
-    meta: {
-      postId,
-      groupId: group.id
-    }
-  }
-
-  it('updates the postMembership', () => {
-    const newState = ormReducer(session.state, action)
-    const newSession = orm.session(newState)
-
-    const postMembership = newSession.Post.withId(postId).postMemberships.toModelArray()[0]
-    expect(postMembership.pinned).toEqual(true)
   })
 })
 

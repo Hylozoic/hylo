@@ -17,7 +17,6 @@ import Topics from 'components/Topics'
 import { useNavigation } from '@react-navigation/native'
 
 export default function PostCard ({
-  goToGroup,
   hideDetails,
   groupId,
   hideMenu,
@@ -56,7 +55,6 @@ export default function PostCard ({
           date={post.createdAt}
           hideMenu={hideMenu}
           isFlagged={isFlagged}
-          pinned={post.pinned}
           postId={post.id}
           showMember={handleShowMember}
           title={post.title}
@@ -122,7 +120,6 @@ export default function PostCard ({
         <Files urls={post.fileUrls} className='mx-4 mb-2' />
         {showGroups && (
           <PostGroups
-            goToGroup={goToGroup}
             groups={post.groups}
             includePublic={post.isPublic}
             className='mx-4 mb-2'

@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { Text, View, ImageBackground, ScrollView, TouchableOpacity, TextInput } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useNavigation } from '@react-navigation/native'
 import { gql, useMutation } from 'urql'
 import { isEmpty, trim } from 'lodash'
 import FastImage from 'react-native-fast-image'
 import CheckBox from 'react-native-bouncy-checkbox'
 import KeyboardManager, { PreviousNextView } from 'react-native-keyboard-manager'
+import updateMembershipMutation from '@hylo/graphql/mutations/updateMembershipMutation'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import {
   getRouteNames,
   useGroupWelcomeStore,
@@ -37,18 +38,9 @@ export const removeSkillMutation = gql`
     }
   }
 `
-
-export const updateMembershipMutation = gql`
-  mutation UpdateMembershipMutation ($groupId: ID, $data: MembershipInput) {
-    updateMembership(groupId: $groupId, data: $data) {
-      id
-    }
-  }
-`
-
 export default function GroupWelcomeLanding () {
   const { t } = useTranslation()
-  const navigation = useNavigation()
+  const changeToGroup = useChangeToGroup()
   const [, addSkill] = useMutation(addSkillMutation)
   const [, removeSkill] = useMutation(removeSkillMutation)
   const [, updateMembershipSettings] = useMutation(updateMembershipMutation)
@@ -73,7 +65,9 @@ export default function GroupWelcomeLanding () {
     (!agreementsAcceptedAt || agreementsAcceptedAt < currentGroup.settings.agreementsLastUpdatedAt)
 
   // Join Questions logic
-  const [questionAnswers, setQuestionAnswers] = useState(joinQuestions.items.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
+  const [questionAnswers, setQuestionAnswers] = useState(
+    joinQuestions?.items && joinQuestions.items.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } })
+  )
   const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!currentGroup?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
 
   useEffect(() => {
@@ -85,7 +79,7 @@ export default function GroupWelcomeLanding () {
 
   useEffect(() => {
     if (numAgreements > 0) {
-      setAcceptedAgreements(currentGroup.agreements.items.map(a => a.accepted))
+      setAcceptedAgreements(currentGroup?.agreements && currentGroup.agreements.items.map(a => a.accepted))
     }
   }, [currentGroup?.id])
 
@@ -117,9 +111,11 @@ export default function GroupWelcomeLanding () {
         }
       }
     })
-    navigation.goBack()
+    changeToGroup(currentGroup.slug, { navigateHome: true, skipCanViewCheck: true })
     return null
   }
+
+  if (!currentGroup || currentGroup?.isStaticContext) return null
 
   return (
     <PreviousNextView style={styles.container}>

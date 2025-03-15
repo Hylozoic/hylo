@@ -95,6 +95,8 @@ export default function GlobalNav (props) {
   }, [])
 
   const isVisible = (index) => {
+    // Special case for index 0-3 (profile, notifications, messages, the commons) - always visible with full opacity
+    if (index === 0 || index === 1 || index === 2 || index === 3) return 'opacity-100'
     return index < visibleCount ? '' : 'opacity-0'
   }
 
@@ -120,11 +122,11 @@ export default function GlobalNav (props) {
   }
 
   return (
-    <div className={cn('globalNavContainer flex flex-col bg-theme-background h-[100vh] z-50 items-center pb-0 pt-2')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
+    <div className={cn('globalNavContainer flex flex-col bg-theme-background h-[100vh] z-50 items-center pb-0')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
       <div
         ref={navContainerRef}
         className={cn(
-          'pt-2 flex flex-col items-center pl-5 pr-3 relative z-10 overflow-x-visible overflow-y-scroll grow',
+          'pt-4 flex flex-col items-center pl-5 pr-3 relative z-10 overflow-x-visible overflow-y-auto grow',
           styles.globalNavContainer
         )}
         onMouseEnter={handleContainerMouseEnter}
@@ -140,11 +142,12 @@ export default function GlobalNav (props) {
         <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={isContainerHovered}><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
-              tooltip='Activity'
+              tooltip={t('Activity')}
               className={isVisible(1)}
               showTooltip={isContainerHovered}
+              badgeCount={showBadge ? '!' : 0}
             >
-              <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' showBadge={showBadge} />
+              <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' />
             </GlobalNavItem>}
           />
         </Suspense>
@@ -154,8 +157,9 @@ export default function GlobalNav (props) {
           url='/messages'
           className={isVisible(2)}
           showTooltip={isContainerHovered}
+          badgeCount={currentUser.unseenThreadCount || 0}
         >
-          <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' showBadge={currentUser.unseenThreadCount && currentUser.unseenThreadCount > 0} />
+          <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' />
         </GlobalNavItem>
 
         <GlobalNavItem
@@ -193,7 +197,7 @@ export default function GlobalNav (props) {
           }
         )}
         style={{
-          background: 'linear-gradient(to right, rgba(var(--theme-background)/1) 20%, rgba(var(--theme-background)/0) 100%)',
+          background: 'linear-gradient(to right, rgba(0,0,0,.7) 20%, rgba(0,0,0,0) 100%)',
           maxWidth: '600px',
           maskImage: 'linear-gradient(to right, rgba(0,0,0,1) calc(100% - 150px), rgba(0,0,0,0) 100%)',
           WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) calc(100% - 130px), rgba(0,0,0,0) 100%)'

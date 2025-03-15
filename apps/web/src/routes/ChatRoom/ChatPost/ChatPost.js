@@ -187,7 +187,6 @@ export default function ChatPost ({
   })
 
   const actionItems = filter(item => isFunction(item.onClick), [
-    // { icon: 'Pin', label: pinned ? 'Unpin' : 'Pin', onClick: pinPost },
     // { icon: 'Copy', label: 'Copy Link', onClick: copyLink },
     { icon: 'Replies', label: 'Reply', onClick: showPost },
     // TODO: Edit disabled in mobile environments due to issue with keyboard management and autofocus of field
@@ -296,7 +295,7 @@ export default function ChatPost ({
         {details && !editing && (
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
             <div className={cn(styles.postContentContainer, { [styles.isFlagged]: isFlagged })}>
-              <HyloHTML className={styles.postContent} html={details} />
+              <HyloHTML className={cn(styles.postContent, 'global-postContent')} html={details} />
             </div>
           </ClickCatcher>
         )}
@@ -323,9 +322,9 @@ export default function ChatPost ({
           onRemoveReaction={onRemoveReaction}
         />
         {commentsTotal > 0 && (
-          <span className={styles.commentsContainer}>
+          <span className='bg-card/50 rounded-lg p-2 flex items-center gap-2 w-[120px] justify-center relative left-6'>
             <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
-            <span className={styles.commentsCaption} onClick={handleClick}>
+            <span className='text-sm text-foreground/50' onClick={handleClick}>
               {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
             </span>
           </span>

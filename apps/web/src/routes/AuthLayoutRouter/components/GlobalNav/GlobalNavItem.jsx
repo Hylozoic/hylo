@@ -13,7 +13,7 @@ import { cn } from 'util/index'
  * GlobalNavItem component renders a navigation item with tooltip and hover animations
  * @param {ReactNode} children - Content to render inside the nav item
  * @param {string} className - Additional CSS classes
- * @param {number} badgeCount - Number to show in badge (if > 0)
+ * @param {string} badgeCount - Number to show in badge (if > 0)
  * @param {string} img - URL of image to show as background
  * @param {string} tooltip - Text to show in tooltip
  * @param {string} url - URL to navigate to when clicked
@@ -131,7 +131,7 @@ export default function GlobalNavItem ({
               'scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl',
               {
                 'border-3 border-selected opacity-100 scale-110 hover:scale-110': selected,
-                'border-3 border-accent opacity-80 scale-100': badgeCount > 0
+                'border-3 border-accent opacity-100 scale-100': badgeCount > 0 || badgeCount === '!'
               },
               className
             )}
@@ -139,8 +139,9 @@ export default function GlobalNavItem ({
             role='button'
           >
             {children}
-            {img === DEFAULT_AVATAR && <span className='GlobalNavItemDefaultAvatarText text-center text-foreground text-2xl drop-shadow-md'>{tooltip?.split(' ').slice(0, 2).map(word => word[0]?.toUpperCase()).join('')}</span>}
+            {img === DEFAULT_AVATAR && <span className='GlobalNavItemDefaultAvatarText text-center text-white text-2xl drop-shadow-md'>{tooltip?.split(' ').slice(0, 2).map(word => word[0]?.toUpperCase()).join('')}</span>}
             {badgeCount > 0 && <Badge number={badgeCount} className='absolute -top-2 -left-2' expanded />}
+            {badgeCount === '!' && <Badge number='!' className='absolute -top-2 -left-2' expanded />}
           </div>
         </TooltipTrigger>
         {tooltip && (

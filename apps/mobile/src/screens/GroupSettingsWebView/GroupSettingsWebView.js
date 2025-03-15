@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
-import { useGroup } from '@hylo/hooks/useCurrentGroup'
+import useGroup from '@hylo/hooks/useGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import { alabaster, amaranth, capeCod, rhino40, rhino80 } from 'style/colors'
 
-export default function GroupSettingsWebView ({ path: pathProp, route }) {
+export default function GroupSettingsWebView () {
   const navigation = useNavigation()
   const webViewRef = useRef()
   const { groupSlug, originalLinkingPath, settingsArea: routeSettingsArea } = useRouteParams()
@@ -19,7 +19,7 @@ export default function GroupSettingsWebView ({ path: pathProp, route }) {
 
   useEffect(() => {
     navigation.setOptions({
-      headerLeftOnPress: () => selectedSettingsArea ? setSelectedSettingsArea() : undefined
+      headerLeftOnPress: (!routeSettingsArea && selectedSettingsArea) && (() => setSelectedSettingsArea())
     })
   }, [selectedSettingsArea])
 

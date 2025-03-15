@@ -5,7 +5,7 @@
   "author": "Hylo <hello@hylo.com>",
   "license": "Apache-2.0",
   "private": true,
-  "version": "5.11.2",
+  "version": "6.0.0",
   "nyc": {
     "sourceMap": false,
     "instrument": false,
@@ -55,7 +55,8 @@
     "nock": "^13.5.5",
     "nodemon": "^1.12.1",
     "nyc": "^10.0",
-    "socket.io-client": "^2.3.1"
+    "socket.io-client": "^2.3.1",
+    "standard": "^17.1.2"
   },
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
@@ -153,6 +154,9 @@
     "ignore": [
       "node_modules/**"
     ],
+    "rules": {
+      "camelcase": "off"
+    },
     "global": [
       "after",
       "afterEach",
@@ -239,6 +243,7 @@
       "TagFollow",
       "Thank",
       "TokenAuth",
+      "TopicFollow",
       "User",
       "UserConnection",
       "UserExternalData",

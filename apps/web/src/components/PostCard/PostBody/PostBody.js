@@ -43,14 +43,16 @@ export default function PostBody (props) {
           />
         )}
 
-        <PostContent
-          {...post}
-          slug={slug}
-          highlightProps={highlightProps}
-          expanded={expanded}
-          constrained={constrained}
-          onClick={onClick}
-        />
+        {!mapDrawer && (
+          <PostContent
+            {...post}
+            slug={slug}
+            highlightProps={highlightProps}
+            expanded={expanded}
+            constrained={constrained}
+            onClick={onClick}
+          />
+        )}
       </div>
       {post.type === 'proposal' && !mapDrawer && <PostBodyProposal {...post} isFlagged={isFlagged && !post.clickthrough} currentUser={currentUser} />}
     </div>

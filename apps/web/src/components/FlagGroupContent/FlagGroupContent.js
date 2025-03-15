@@ -1,5 +1,5 @@
 import { isEmpty } from 'lodash'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import TextareaAutosize from 'react-textarea-autosize'
@@ -7,6 +7,7 @@ import Button from 'components/ui/button'
 import CheckBox from 'components/CheckBox'
 import Icon from 'components/Icon'
 import MultiSelect from 'components/MultiSelect'
+import fetchPlatformAgreements from 'store/actions/fetchPlatformAgreements'
 import { createModerationAction } from 'store/actions/moderationActions'
 import { agreementsURL } from 'store/constants'
 import presentGroup from 'store/presenters/presentGroup'
@@ -21,6 +22,10 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const { id, slug } = linkData || {}
+
+  useEffect(() => {
+    dispatch(fetchPlatformAgreements())
+  }, [])
 
   const platformAgreements = useSelector(getPlatformAgreements)
   const currentGroup = useSelector(state => getGroupForDetail(state, { slug }))
@@ -74,6 +79,7 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
 
   return (
     <div className={classes.popup} onClick={(e) => e.stopPropagation()}>
+      <div className={classes.bg} onClick={closeModal} />
       <div className={classes.popupInner}>
         <h1>{t('Explanation for Flagging')}</h1>
         <span onClick={closeModal} className={classes.closeBtn}>

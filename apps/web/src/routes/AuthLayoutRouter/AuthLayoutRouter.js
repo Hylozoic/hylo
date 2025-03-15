@@ -4,23 +4,24 @@ import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
 import Div100vh from 'react-div-100vh'
+import { useTranslation, Trans } from 'react-i18next'
 import { get, some } from 'lodash/fp'
-import { useResizeDetector } from 'react-resize-detector'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
 import config, { isTest } from 'config/index'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
+import GlobalAlert from 'components/GlobalAlert'
 import GlobalNav from './components/GlobalNav'
 import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
+import Button from 'components/ui/button'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
-import fetchPlatformAgreements from 'store/actions/fetchPlatformAgreements'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchThreads from 'store/actions/fetchThreads'
@@ -58,7 +59,6 @@ import Moderation from 'routes/Moderation'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
-import SiteTour from 'routes/AuthLayoutRouter/components/SiteTour'
 import ThreadList from 'routes/Messages/ThreadList'
 
 import UserSettings from 'routes/UserSettings'
@@ -69,10 +69,10 @@ import isWebView from 'util/webView'
 
 export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
-  const { width } = useResizeDetector({ handleHeight: false, targetRef: resizeRef })
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
+  const { t } = useTranslation()
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()
@@ -133,7 +133,6 @@ export default function AuthLayoutRouter (props) {
       await dispatch(fetchCommonRoles())
       await dispatch(fetchForCurrentUser())
       setCurrentUserLoading(false)
-      dispatch(fetchPlatformAgreements())
       dispatch(fetchThreads())
     })()
   }, [])
@@ -198,15 +197,6 @@ export default function AuthLayoutRouter (props) {
     userId: currentUser.id
   }
   const showMenuBadge = some(m => m.newPostCount > 0, memberships)
-  const isSingleColumn = (currentGroupSlug && !currentGroupMembership) ||
-    matchPath({ path: '/members/:personId' }, location.pathname)
-  // When joining a group by invitation Group Welcome Modal (join form)
-  const showTourPrompt = !signupInProgress &&
-    !get('settings.alreadySeenTour', currentUser) &&
-    // Show group welcome modal before tour
-    !get('settings.showJoinForm', currentGroupMembership) &&
-    // Don't show tour on non-member group details page
-    !isSingleColumn
 
   if (!signupInProgress && returnToPath) {
     const returnToPathName = new URL(returnToPath, 'https://hylo.com')?.pathname
@@ -239,7 +229,7 @@ export default function AuthLayoutRouter (props) {
     }
   }
 
-  if (currentGroupSlug && !currentGroup && !currentGroupLoading) {
+  if (currentGroupSlug && (!currentGroup || !currentGroupMembership) && !currentUserLoading && !currentGroupLoading) {
     return <NotFound />
   }
 
@@ -255,6 +245,24 @@ export default function AuthLayoutRouter (props) {
         </script>
       </Helmet>
 
+      {!isWebView() && new Date(currentUser.createdAt) < new Date('2025-03-15') && !window.localStorage.getItem('new-hylo-alert-seen') && (
+        <GlobalAlert
+          title={t('Welcome to the new Hylo!')}
+          onOpenChange={(open) => {
+            if (!open) {
+              window.localStorage.setItem('new-hylo-alert-seen', true)
+            }
+          }}
+          closeButton={<Button variant='secondary'>{t('Jump in!')}</Button>}
+        >
+          <div>
+            <Trans i18nKey='newHyloMessage'>
+              We just launched a major redesign of Hylo! To learn more about what's new, <a href='https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates' target='_blank' rel='noreferrer'>click here</a>.
+            </Trans>
+          </div>
+        </GlobalAlert>
+      )}
+
       <Routes>
         {/* Redirects for switching into global contexts, since these pages don't exist yet */}
         <Route path='public/members' element={<Navigate to='/public' replace />} />
@@ -268,13 +276,6 @@ export default function AuthLayoutRouter (props) {
         {!isWebView() && (
           <>
             <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
-
-            {showTourPrompt && (
-              <>
-                <Route path='all/*' element={<SiteTour windowWidth={width} />} />
-                <Route path='public/*' element={<SiteTour windowWidth={width} />} />
-                <Route path='groups/*' element={<SiteTour windowWidth={width} />} />
-              </>)}
           </>
         )}
       </Routes>
@@ -317,7 +318,7 @@ export default function AuthLayoutRouter (props) {
         <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
       </Routes>
 
-      <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.singleColumn]: isSingleColumn, [classes.detailOpen]: hasDetail })}>
+      <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
           <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full', { 'flex absolute sm:relative': isNavOpen })}>
             {!withoutNav && (
@@ -350,7 +351,7 @@ export default function AuthLayoutRouter (props) {
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
-                <Route path='members/:personId/*' element={<MemberProfile isSingleColumn={isSingleColumn} />} />
+                <Route path='members/:personId/*' element={<MemberProfile />} />
                 <Route path='all/members/:personId/*' element={<MemberProfile />} />
                 {/* **** All and Public Routes **** */}
                 <Route path='all/stream/*' element={<Stream context='all' />} />

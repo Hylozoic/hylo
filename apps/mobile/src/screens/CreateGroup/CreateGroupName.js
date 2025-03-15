@@ -36,7 +36,7 @@ export default function CreateGroupName ({ route }) {
   }, [groupName]))
 
   useFocusEffect(useCallback(() => {
-    if (!edited && !currentGroup?.isContextGroup) {
+    if (!edited && !currentGroup?.isStaticContext) {
       updateGroupData({ parentGroups: [currentGroup] })
     }
   }, [edited, currentGroup?.id]))

@@ -1,33 +1,32 @@
 import React, { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
-import { getFocusedRouteNameFromRoute, useNavigation } from '@react-navigation/native'
-import { Header, HeaderBackButton, getHeaderTitle } from '@react-navigation/elements'
+import { useNavigation, useNavigationState } from '@react-navigation/native'
+import { Header, HeaderBackButton } from '@react-navigation/elements'
 import { ChevronLeft } from 'lucide-react-native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { isIOS } from 'util/platform'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
-import { black, white } from 'style/colors'
+import LucideIcon from 'components/LucideIcon/LucideIcon'
+import { white } from 'style/colors'
 
 export default function TabStackHeader ({
-  route,
   options,
   back,
   headerLeft,
   headerRight,
   ...otherProps
 }) {
+  const { t } = useTranslation()
   const navigation = useNavigation()
+  const stackScreenIndex = useNavigationState(state => state.index)
+  const canGoBack = stackScreenIndex !== 0
   const [{ currentGroup }] = useCurrentGroup()
-  const avatarUrl = currentGroup?.headerAvatarUrl ||
-    currentGroup?.avatarUrl
 
-  const props = {
+  const props = useMemo(() => ({
     headerBackTitleVisible: false,
-    // NOTE: The previous default TabStackheader was as follows, which is likely near the
-    // the React Navigation default:
-    // getFocusedRouteNameFromRoute(route) || getHeaderTitle(options, route.name),
-    title: currentGroup?.name,
+    title: currentGroup?.name || t('Loading...'),
     headerTitle: options.headerTitle,
     headerTitleContainerStyle: {
       // Follow: https://github.com/react-navigation/react-navigation/issues/7057#issuecomment-593086348
@@ -46,7 +45,7 @@ export default function TabStackHeader ({
       let onPress = options.headerLeftOnPress
 
       if (!onPress) {
-        onPress = navigation.canGoBack()
+        onPress = canGoBack
           ? navigation.goBack
           : navigation.openDrawer
       }
@@ -60,14 +59,25 @@ export default function TabStackHeader ({
             backImage={({ tintColor }) => (
               <View style={styles.container}>
                 <ChevronLeft style={styles.backIcon} color={tintColor} size={30} />
-                <FastImage style={styles.avatar} source={{ uri: avatarUrl }} />
+                {currentGroup?.iconName && (
+                  <LucideIcon size={28} name={currentGroup?.iconName} />
+                )}
+                {!currentGroup?.iconName && currentGroup?.avatarUrl && (
+                  <FastImage style={styles.avatar} source={{ uri: currentGroup?.avatarUrl }} />
+                )}
               </View>
             )}
           />
         </>
       )
     })
-  }
+  }), [
+    canGoBack,
+    currentGroup?.name,
+    options?.headerLeft,
+    options?.headerLeftOnPress,
+    options?.headerTitle
+  ])
 
   return <Header {...props} {...otherProps} />
 }
@@ -81,8 +91,8 @@ export const styles = StyleSheet.create({
     marginHorizontal: 5
   },
   avatar: {
-    width: 24,
-    height: 24,
+    width: 30,
+    height: 30,
     borderRadius: 4
   }
 })
