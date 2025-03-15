@@ -365,7 +365,7 @@ export default function ChatRoom (props) {
 
   // TODO: don't know why we need a debounce of 900. there is a bug where we update last read right after creating post and it errors out on backend.
   //   so we have to wait longer befoer doing it. maybe we get the new post back with an id before its really committed to the db?
-  const updateLastReadPost = useCallback(debounce(1000, (lastPost) => {
+  const updateLastReadPost = debounce(200, (lastPost) => {
     // Add additional checks to ensure all required values exist
     if (topicFollow?.id && lastPost?.id &&
         (!topicFollow?.lastReadPostId ||
@@ -376,7 +376,7 @@ export default function ChatRoom (props) {
         console.error('Error updating last read post:', error)
       }
     }
-  }), [topicFollow?.id, topicFollow?.lastReadPostId])
+  })
 
   const updateNotificationsSetting = useCallback((value) => {
     setNotificationsSetting(value)

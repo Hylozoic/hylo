@@ -788,7 +788,7 @@ function PostEditor ({
       <div className={cn(
         'PostEditorContent',
         styles.section,
-        'flex flex-col !items-start border-2 border-transparent',
+        'flex flex-col !items-start border-2 border-transparent shadow-md',
         'transition-all duration-200 overflow-x-hidden',
         'focus-within:border-2 focus-within:border-focus',
         { 'max-h-[300px]': !modal }
