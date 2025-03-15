@@ -1,3 +1,4 @@
+import { House, Plus } from 'lucide-react'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -132,31 +133,32 @@ export default function AllViews () {
             </span>
           )} */}
           {isEditing && widget.isValidHomeWidget && (
-            <span className='text-sm  block text-foreground'>
-              <Icon
-                name='Home'
-                onClick={(evt) => {
-                  evt.stopPropagation()
-                  handleWidgetHomePromotion(widget)
-                }}
-              />
+            <span
+              className='text-sm inline-block text-foreground'
+              onClick={(evt) => {
+                evt.stopPropagation()
+                handleWidgetHomePromotion(widget)
+              }}
+            >
+              <House />
             </span>
           )}
           {isEditing && !widget.order && (
-            <span className='text-sm text-foreground block'>
-              <Icon
-                name='Plus'
-                onClick={(evt) => {
-                  evt.stopPropagation()
-                  handleWidgetUpdate(widget)
-                }}
-              />
+            <span className='ml-3 text-sm text-foreground inline-block'>
+              <Plus />
             </span>
           )}
         </div>
       )
+      const onClickAction = isEditing
+        ? (evt) => {
+            evt.stopPropagation()
+            handleWidgetUpdate(widget)
+          }
+        : (url ? () => navigate(url) : null)
+
       return (
-        <div key={widget.id} onClick={() => url ? navigate(url) : null} className={`cursor-pointer relative flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 hover:z-50 hover:scale-105 duration-400 rounded-lg h-full items-center justify-center ${url ? 'cursor-pointer' : ''}`}>
+        <div key={widget.id} onClick={onClickAction} className={`cursor-pointer relative flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 hover:z-50 hover:scale-105 duration-400 rounded-lg h-full items-center justify-center ${url ? 'cursor-pointer' : ''}`}>
           <div className='block text-center text-foreground'>
             {cardContent}
           </div>
