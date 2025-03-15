@@ -26,6 +26,10 @@ export default {
       // => @media (min-width: 1536px) { ... }
     },
     extend: {
+      scale: {
+        '101': '1.01',
+        '102': '1.02',
+      },
       keyframes: {
         'slide-up': {
           '0%': {
