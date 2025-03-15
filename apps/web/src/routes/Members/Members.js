@@ -14,7 +14,6 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { RESP_ADD_MEMBERS } from 'store/constants'
 import { queryParamWhitelist } from 'store/reducers/queryResults'
 import { groupUrl } from 'util/navigation'
-import { CENTER_COLUMN_ID } from 'util/scrolling'
 import { FETCH_MEMBERS, fetchMembers, getMembers, getHasMoreMembers, removeMember } from './Members.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -85,7 +84,7 @@ function Members (props) {
   const sortKeys = sortKeysFactory(context) // You might need to adjust this based on your needs
 
   return (
-    <div>
+    <div className='h-full overflow-y-auto' id='members-page'>
       <Helmet>
         <title>{t('Members')} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
@@ -145,7 +144,7 @@ function Members (props) {
       </div>
       <ScrollListener
         onBottom={fetchMore}
-        elementId={CENTER_COLUMN_ID}
+        elementId='members-page'
       />
     </div>
   )
