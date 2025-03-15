@@ -10,12 +10,18 @@ export default function GroupPresenter (group) {
 
   return {
     ...group,
+
+    // TODO: A patch for now. Sort-out why default banner URLS diverge and fix.
     avatarUrl: !group?.avatarUrl
       ? DEFAULT_AVATAR
-      : group?.avatarUrl === '/default-group-avatar.svg'
+      : group.avatarUrl === '/default-group-avatar.svg'
         ? DEFAULT_AVATAR
         : group?.avatarUrl,
-    bannerUrl: group?.bannerUrl || DEFAULT_BANNER,
+    bannerUrl: !group?.bannerUrl
+      ? DEFAULT_BANNER
+      : group.bannerUrl === '/default-group-banner.svg'
+        ? DEFAULT_BANNER
+        : group.bannerUrl,
 
     getContextWidgets: getContextWidgetsResolver(group),
     getShouldWelcome: getShouldWelcomeResolver(group),

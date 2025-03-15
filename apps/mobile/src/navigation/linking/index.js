@@ -113,7 +113,7 @@ export const routingConfig = {
   '/:context(all)/:streamType(resources)':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
 
   // /groups Routes
-  '/:context(groups)/:groupSlug/about':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Detail`,
+  '/:context(groups)/:groupSlug/about':                                   `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(groups)/:groupSlug/all-views':                               `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/All Views`,
   '/:context(groups)/:groupSlug/post/:id':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
   '/:context(groups)/:groupSlug/post/:id/edit':                           `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
