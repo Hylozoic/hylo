@@ -126,7 +126,7 @@ export default function GlobalNav (props) {
       <div
         ref={navContainerRef}
         className={cn(
-          'pt-4 flex flex-col items-center pl-5 pr-3 relative z-10 overflow-x-visible overflow-y-scroll grow',
+          'pt-4 flex flex-col items-center pl-5 pr-3 relative z-10 overflow-x-visible overflow-y-auto grow',
           styles.globalNavContainer
         )}
         onMouseEnter={handleContainerMouseEnter}
@@ -197,7 +197,7 @@ export default function GlobalNav (props) {
           }
         )}
         style={{
-          background: 'linear-gradient(to right, rgba(var(--theme-background)/1) 20%, rgba(var(--theme-background)/0) 100%)',
+          background: 'linear-gradient(to right, rgba(0,0,0,.7) 20%, rgba(0,0,0,0) 100%)',
           maxWidth: '600px',
           maskImage: 'linear-gradient(to right, rgba(0,0,0,1) calc(100% - 150px), rgba(0,0,0,0) 100%)',
           WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) calc(100% - 130px), rgba(0,0,0,0) 100%)'

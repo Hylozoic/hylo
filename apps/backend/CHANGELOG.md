@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.0.0] - 2025-03-14
+
+Major Hylo redesign! After 6 months of work, we've redesigned the entire app more reliable, more functional,and easier to use.
+There are many improvements across the board. A full CHANGELOG is coming soon, for now you can see the summary of all the changes here: [https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates](https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates)
+
 ## [5.11.2] - 2025-01-12
 
 ### Fixed

@@ -17,20 +17,25 @@ export default function useGroup ({
   const [{ currentUser, ...currentUserRest }] = useCurrentUser({
     pause: !isStatic || useQueryArgs?.pause || !groupSlug
   })
+  const staticGroup = useMemo(
+    () => getStaticContext(groupSlug || groupId, { currentUser }),
+    [groupId, groupSlug, currentUser]
+  )
 
-  const [{ data, fetching, error }, reQuery] = useQuery({
+  const [{ data, ...groupReset }, reQuery] = useQuery({
     ...useQueryArgs,
     query: groupDetailsQueryMaker(groupQueryScope),
     variables: { id: groupId, slug: groupSlug },
     pause: isStatic || useQueryArgs?.pause || (!groupSlug && !groupId)
   })
-
-  const group = useMemo(() => GroupPresenter(data?.group), [data?.group])
+  const group = useMemo(
+    () => GroupPresenter(data?.group), [data?.group],
+    [data?.group]
+  )
 
   if (isStatic) {
-    const staticGroup = getStaticContext(groupSlug || groupId, { currentUser })
     return [{ group: staticGroup, ...currentUserRest }, () => {}]
   }
 
-  return [{ group, fetching, error }, reQuery]
+  return [{ group, ...groupReset }, reQuery]
 }

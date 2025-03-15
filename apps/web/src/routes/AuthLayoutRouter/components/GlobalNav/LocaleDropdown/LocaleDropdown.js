@@ -20,7 +20,7 @@ export default function LocaleDropdown ({ renderToggleChildren, className }) {
 
   return (
     <Dropdown
-      className='bg-foreground/20 border-foreground rounded-md p-2'
+      className='bg-foreground/20 border-foreground rounded-md p-2 text-sm h-9'
       toggleChildren={renderToggleChildren}
       alignRight
       items={[

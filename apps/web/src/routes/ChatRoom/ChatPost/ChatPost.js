@@ -322,9 +322,9 @@ export default function ChatPost ({
           onRemoveReaction={onRemoveReaction}
         />
         {commentsTotal > 0 && (
-          <span className={styles.commentsContainer}>
+          <span className='bg-card/50 rounded-lg p-2 flex items-center gap-2 w-[120px] justify-center relative left-6'>
             <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
-            <span className={styles.commentsCaption} onClick={handleClick}>
+            <span className='text-sm text-foreground/50' onClick={handleClick}>
               {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
             </span>
           </span>
