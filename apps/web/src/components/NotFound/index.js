@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -9,12 +9,11 @@ function NotFound ({ className }) {
   const navigate = useNavigate()
 
   const handleGoBack = () => {
-    // If there's more than 2 entries in history, go back, otherwise go home
-    window.history.length > 2 ? navigate(-1) : navigate('/')
+    navigate('/')
   }
 
   return (
-    <div className={cx(classes.container, className)}>
+    <div className={cn(classes.container, className)}>
       <h3>{t('Oops, there\'s nothing to see here.')}</h3>
       <a className={classes.goBack} onClick={handleGoBack}>{t('Go back')}</a>
       <div className={classes.axolotl} />

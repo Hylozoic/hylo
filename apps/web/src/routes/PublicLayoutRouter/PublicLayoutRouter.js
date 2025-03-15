@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React from 'react'
 import { useParams, useLocation, useNavigate, Navigate, Route, Routes } from 'react-router-dom'
 import Div100vh from 'react-div-100vh'
@@ -18,7 +18,7 @@ export default function PublicLayoutRouter (props) {
   const isMapView = routeParams?.view === 'map'
 
   return (
-    <Div100vh className={cx(classes.publicContainer, { [classes.mapView]: isMapView })}>
+    <Div100vh className={cn(classes.publicContainer, { [classes.mapView]: isMapView })}>
       <PublicPageHeader />
       <Routes>
         <Route path='map/*' element={<MapExplorerLayoutRouter />} />
@@ -37,7 +37,7 @@ function MapExplorerLayoutRouter (props) {
 
   return (
     <>
-      <div className={cx(classes.centerColumn, classes.mapView)} id={CENTER_COLUMN_ID}>
+      <div className={cn(classes.centerColumn, classes.mapView)} id={CENTER_COLUMN_ID}>
         <MapExplorer {...props} navigate={navigate} />
       </div>
       <Routes>
@@ -53,7 +53,7 @@ function MapExplorerLayoutRouter (props) {
           path={GROUP_DETAIL_MATCH}
           element={
             <div className={classes.detail} id={DETAIL_COLUMN_ID}>
-              <GroupDetail />
+              <GroupDetail context='public' />
             </div>
           }
         />
@@ -65,7 +65,7 @@ function MapExplorerLayoutRouter (props) {
 function GroupExplorerLayoutRouter () {
   return (
     <>
-      <div className={cx(classes.centerColumn, classes.nonMapView)} id={CENTER_COLUMN_ID}>
+      <div className={cn(classes.centerColumn, classes.nonMapView)} id={CENTER_COLUMN_ID}>
         <div>
           <GroupExplorer />
         </div>
@@ -75,7 +75,7 @@ function GroupExplorerLayoutRouter () {
           path={GROUP_DETAIL_MATCH}
           element={
             <div className={classes.detail} id={DETAIL_COLUMN_ID}>
-              <GroupDetail />
+              <GroupDetail context='public' />
             </div>
           }
         />

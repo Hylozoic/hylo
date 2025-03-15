@@ -4,7 +4,7 @@ module.exports = bookshelf.Model.extend({
   tableName: 'saved_searches',
   hasTimestamps: true,
 
-  boundingBox: async function() {
+  boundingBox: async function () {
     const st = knexPostgis(bookshelf.knex)
     const data = await bookshelf.knex('saved_searches').where({ id: this.id }).select(st.asGeoJSON('bounding_box', 4326))
     const coordinates = JSON.parse(data[0].bounding_box).coordinates[0]
@@ -25,7 +25,7 @@ module.exports = bookshelf.Model.extend({
     return result.rows || []
   },
 
-  newPosts: async function() {
+  newPosts: async function () {
     const searchId = this.id
     const topics = await this.topics()
     const searchText = this.get('search_text')
@@ -48,15 +48,19 @@ module.exports = bookshelf.Model.extend({
     select p.id from posts_with_locations p
     where ST_Within(p.location, (select bounding_box from search limit 1))=true
     and p.id > (select last_post_id from search)
-    ${searchText ? `and (p.name ilike (select search_text from search) or p.description ilike (select search_text from search))` : ''}
-    ${topics.length > 0 ? `and p.tag_ids && (select tag_ids from search)` : ''}
+    ${searchText ? 'and (p.name ilike (select search_text from search) or p.description ilike (select search_text from search))' : ''}
+    ${topics.length > 0 ? 'and p.tag_ids && (select tag_ids from search)' : ''}
     and CONCAT('{',p.type,'}')::varchar[] && (select post_types from search)
     ${contextQuery}
     order by p.id desc
     `
     const result = await bookshelf.knex.raw(query)
     const postIds = (result.rows || []).map(p => p.id)
-    const posts = await Post.query().where('id', 'in', postIds)
+    const posts = await Post.query(q => {
+      q.where('id', 'in', postIds)
+    }).fetchAll({
+      withRelated: ['user', 'linkPreview']
+    })
     return posts
   },
 

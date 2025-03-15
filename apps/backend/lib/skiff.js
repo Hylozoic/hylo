@@ -21,8 +21,14 @@ usage:
   })
 
 */
+const dotenv = require('dotenv')
 
-require('dotenv').load()
+if (process.env.NODE_ENV === 'test') {
+  dotenv.config({ path: '.env.test' })
+} else {
+  dotenv.config()
+}
+
 const { blue, green, red, yellow } = require('chalk')
 
 require('./rollbar') // must require this to initialize Rollbar

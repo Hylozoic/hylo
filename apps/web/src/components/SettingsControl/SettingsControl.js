@@ -2,11 +2,11 @@ import React from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import LocationInput from 'components/LocationInput'
 import IconSelector from 'components/IconSelector'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import classes from './SettingsControl.module.scss'
 
 export default function SettingsControl (props) {
-  const { id, helpText, label, value = '', onChange, renderControl, type, error, controlClass, ...otherProps } = props
+  const { id, helpText, label, value = '', onChange, renderControl, type, error, controlClass, inputStyle, ...otherProps } = props
   let control
 
   if (renderControl) {
@@ -15,16 +15,18 @@ export default function SettingsControl (props) {
     switch (type) {
       case 'textarea':
         control = (
-          <TextareaAutosize
-            id={id}
-            minRows={1}
-            maxRows={100}
-            onChange={onChange}
-            readOnly={!onChange}
-            className={classes.controlInput}
-            value={value}
-            {...otherProps}
-          />
+          <div>
+            <TextareaAutosize
+              id={id}
+              minRows={1}
+              maxRows={100}
+              onChange={onChange}
+              readOnly={!onChange}
+              className='bg-black/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2'
+              value={value}
+              {...otherProps}
+            />
+          </div>
         )
         break
       case 'icon-selector':
@@ -44,7 +46,7 @@ export default function SettingsControl (props) {
             autoCorrect='off'
             onChange={onChange}
             spellCheck='off'
-            className={classes.controlInput}
+            className='bg-black/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2'
             type='password'
             value={value}
             readOnly={!onChange}
@@ -58,6 +60,7 @@ export default function SettingsControl (props) {
             id={id}
             onChange={onChange}
             readOnly={!onChange}
+            className='bg-black/20 rounded-lg text-foreground placeholder-foreground/40 w-full p-4 outline-none focus:outline-focus focus:outline-2'
             saveLocationToDB
             {...otherProps}
           />
@@ -69,8 +72,9 @@ export default function SettingsControl (props) {
             id={id}
             onChange={onChange}
             readOnly={!onChange}
-            className={classes.controlInput}
+            className='bg-black/20 rounded-lg text-foreground placeholder-foreground/40  w-full p-4 outline-none focus:outline-focus focus:outline-2'
             type='text'
+            style={inputStyle}
             value={value}
             {...otherProps}
           />
@@ -80,8 +84,8 @@ export default function SettingsControl (props) {
   }
 
   return (
-    <div className={cx(classes.control, { [classes.error]: error }, controlClass)}>
-      <label className={cx(classes.controlLabel, { [classes.error]: error })} htmlFor={id}>
+    <div className={cn('w-full bg-transparent text-foreground mb-2', { [classes.error]: error }, controlClass)}>
+      <label className={cn('w-full text-foreground/50 text-sm mb-2 block', { [classes.error]: error })} htmlFor={id}>
         {label}
         {helpText
           ? <div className={classes.help}>?<div className={classes.helpTooltip}>{helpText}</div></div>

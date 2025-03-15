@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
@@ -26,7 +26,7 @@ class OffersAndRequestsWidget extends Component {
             <div className={classes.item}>
               <div className={classes.meta}>
                 <span className={classes.type}>{t(p.type)}</span>{' '}{t('from')}{' '}{p.creator.name}
-                <span className={cx(classes.numComments, classes[p.type])}>{p.commentsTotal} <div className={classes.tail} /></span>
+                <span className={cn(classes.numComments, classes[p.type])}>{p.commentsTotal} <div className={classes.tail} /></span>
               </div>
               <div className={classes.title}>{p.title}</div>
               <RoundImage url={p.creator.avatarUrl} className={classes.authorImage} />
@@ -35,7 +35,7 @@ class OffersAndRequestsWidget extends Component {
         ))}
         {items.length < 3 && isMember
           ? (
-            <div className={cx(classes.item, classes.createOfferRequest)}>
+            <div className={cn(classes.item, classes.createOfferRequest)}>
               <div className={classes.meta}>
                 <span className={classes.type}>{t('Create a request or offer!')}</span>
               </div>

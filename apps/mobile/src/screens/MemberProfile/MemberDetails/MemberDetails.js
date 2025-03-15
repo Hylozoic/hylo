@@ -1,17 +1,25 @@
-import React, { useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   Text,
   View,
   TouchableOpacity,
   ScrollView
 } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import { useMutation, useQuery } from 'urql'
+import { useNavigation, useRoute } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
-import { useIsFocused } from '@react-navigation/native'
-import { debounce, find, isEmpty, pick } from 'lodash/fp'
+import { debounce, get, isEmpty, pick } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
-import useChangeToGroup from 'hooks/useChangeToGroup'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
+import useLogout from 'hooks/useLogout'
+import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import personQuery from '@hylo/graphql/queries/personQuery'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
+import useRouteParams from 'hooks/useRouteParams'
+import useConfirmAlert from 'hooks/useConfirmAlert'
 import { openURL } from 'hooks/useOpenURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import TabStackHeader from 'navigation/headers/TabStackHeader'
@@ -20,33 +28,48 @@ import Loading from 'components/Loading'
 import MemberHeader from 'screens/MemberProfile/MemberHeader'
 import Control from 'screens/MemberProfile/Control'
 import styles from './MemberDetails.styles'
-import { useTranslation } from 'react-i18next'
 
-export default function (props) {
+export default function MemberDetails () {
   const { t } = useTranslation()
-  const isFocused = useIsFocused()
-  return <MemberDetails {...props} isFocused={isFocused} t={t} />
-}
+  const navigation = useNavigation()
+  const route = useRoute()
+  const logout = useLogout()
+  const confirmAlert = useConfirmAlert()
+  const { id, editing: editingParam } = useRouteParams()
+  const [{ currentGroup }] = useCurrentGroup()
+  const [{ currentUser }] = useCurrentUser()
+  const [{ data }] = useQuery({ query: personQuery, variables: { id }, pause: !id })
+  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
+  const [changed, setChanged] = useState(false)
+  const [editing, setEditing] = useState(editingParam)
+  const [errors, setError] = useState({})
 
-export function editableFields (person) {
-  return pick(['name', 'location', 'tagline', 'bio'], person)
-}
+  const selectedPerson = id ? data?.person : currentUser
+  const isMe = Number(get('id', currentUser)) === Number(get('id', selectedPerson))
+  const [person, setPerson] = useState(pick(['name', 'location', 'tagline', 'bio'], selectedPerson || {}))
 
-export class MemberDetails extends React.Component {
-  constructor (props) {
-    super(props)
-    const { editing, person } = props
-    this.state = {
-      editing,
-      changed: false,
-      person: editableFields(person),
-      errors: {}
+  const goToSkills = () => openURL('/settings')
+
+  const validate = debounce(500, () => {
+    setError({
+      name: Validators.validateUser.name(person.name)
+    })
+  })
+
+  const updateSetting = (setting, value) => {
+    setPerson(person => ({ ...person, [setting]: value }))
+    setChanged(true)
+  }
+
+  const saveChanges = async () => {
+    if (this.isValid()) {
+      await updateUserSettings({ changes: person })
+      setEditing(false)
+      setChanged(false)
     }
   }
 
-  setHeader = () => {
-    const { editing, changed } = this.state
-    const { navigation, route, currentGroup, logout, t } = this.props
+  const setHeader = () => {
     const title = editing
       ? t('Edit Your Profile')
       : currentGroup?.name
@@ -72,13 +95,12 @@ export class MemberDetails extends React.Component {
             headerLeftOnPress={() => navigation.navigate('Home Tab')}
             headerLeftConfirm={changed}
             headerRightButtonLabel={t('Logout')}
-            headerRightButtonOnPress={() => confirmDiscardChanges({
-              title: t('Logout'),
-              confirmationMessage: t('Are you sure you want to logout?'),
-              continueButtonText: t('Cancel'),
-              disgardButtonText: t('Yes'),
-              onDiscard: logout,
-              t
+            headerRightButtonOnPress={() => confirmAlert({
+              title: 'Logout',
+              confirmMessage: 'Are you sure you want to logout?',
+              cancelButtonText: 'Cancel',
+              confirmButtonText: 'Yes',
+              onConfirm: logout
             })}
           />
       })
@@ -91,99 +113,47 @@ export class MemberDetails extends React.Component {
     }
   }
 
-  componentDidMount () {
-    this.props.fetchPerson()
-    this.setHeader()
-  }
+  useEffect(() => {
+    setHeader()
+  }, [person, currentGroup, currentUser, changed, editing])
 
-  componentDidUpdate (prevProps) {
-    this.setHeader()
-  }
+  useEffect(() => {
+    validate()
+  }, [person])
 
-  // Errors are strings, or null
-  isValid = (errors = this.state.errors) => !find(e => e !== null, errors)
+  if (isEmpty(person)) return <Loading />
 
-  shouldComponentUpdate (nextProps) {
-    return nextProps.isFocused
-  }
-
-  validate = debounce(500, () => {
-    this.setState({
-      errors: {
-        // TODO: validate more fields!
-        name: Validators.validateUser.name(this.state.person.name)
-      }
-    })
-  })
-
-  editProfile = () => {
-    this.setState({ editing: true })
-  }
-
-  updateSetting = (setting, value) => {
-    this.setState({
-      person: {
-        ...this.state.person,
-        [setting]: value
-      },
-      changed: true
-    }, this.validate)
-  }
-
-  saveChanges = async () => {
-    if (this.isValid()) {
-      await this.props.updateUserSettings(this.state.person)
-      this.setState(() => ({ editing: false, changed: false }))
-    }
-  }
-
-  render () {
-    const {
-      goToEdit, goToEditAccount, goToManageNotifications, goToBlockedUsers,
-      goToSkills, isMe, person, onPressMessages, navigation
-    } = this.props
-    const { editing, errors } = this.state
-    const personEdits = this.state.person
-
-    if (isEmpty(personEdits)) return <Loading />
-
-    return (
-      <ScrollView contentContainerStyle={styles.container}>
-        <MemberHeader
-          person={personEdits}
-          isMe={isMe}
-          onPressMessages={onPressMessages}
-          goToManageNotifications={goToManageNotifications}
-          goToBlockedUsers={goToBlockedUsers}
-          goToEdit={goToEdit}
-          goToEditAccount={goToEditAccount}
-          saveChanges={this.saveChanges}
-          editable={editing}
-          updateSetting={this.updateSetting}
-          errors={errors}
-          navigation={navigation}
-        />
-        <MemberBio
-          person={personEdits}
-          editable={editing}
-          updateSetting={this.updateSetting}
-          isMe={isMe}
-        />
-        <MemberSkills
-          skills={person.skills.toRefArray()}
-          editable={editing}
-          goToSkills={goToSkills}
-        />
-        <MemberGroups
-          memberships={person.memberships.toModelArray()}
-          editing={editing}
-        />
-        <MemberAffiliations
-          affiliations={person.affiliations?.items}
-        />
-      </ScrollView>
-    )
-  }
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <MemberHeader
+        person={person}
+        currentUser={currentUser}
+        isMe={isMe}
+        saveChanges={saveChanges}
+        editable={editing}
+        updateSetting={updateSetting}
+        errors={errors}
+      />
+      <MemberBio
+        person={person}
+        editable={editing}
+        updateSetting={updateSetting}
+        isMe={isMe}
+      />
+      <MemberSkills
+        skills={person?.skills?.items}
+        editable={editing}
+        goToSkills={goToSkills}
+      />
+      <MemberGroups
+        memberships={person?.memberships}
+        editing={editing}
+      />
+      <MemberAffiliations
+        affiliations={person.affiliations?.items}
+      />
+    </ScrollView>
+  )
 }
 
 export function MemberBio (props) {
@@ -244,7 +214,7 @@ export function MemberSkills ({ skills, editable, goToSkills }) {
 
 export function MemberGroups ({ memberships, editing }) {
   const { t } = useTranslation()
-  const changeToGroup = useChangeToGroup()
+
   if (isEmpty(memberships)) return null
 
   return (
@@ -252,8 +222,9 @@ export function MemberGroups ({ memberships, editing }) {
       <Text style={styles.sectionLabel}>{t('Hylo Communities')}</Text>
       {memberships.map(membership => (
         <GroupRow
-          membership={membership} key={membership.id}
-          goToGroup={changeToGroup} editing={editing}
+          membership={membership}
+          key={membership.id}
+          editing={editing}
         />
       ))}
     </View>
@@ -297,6 +268,7 @@ export function MemberAffiliation ({ affiliation }) {
 
 export function GroupRow ({ membership, editing }) {
   const changeToGroup = useChangeToGroup()
+  const handleOnPress = () => changeToGroup(group.slug, { confirm: true })
   const { group, hasModeratorRole } = membership
   const formatCount = count => {
     if (count < 1000) return `${count}`
@@ -307,7 +279,7 @@ export function GroupRow ({ membership, editing }) {
   return (
     <View style={styles.groupRow}>
       <FastImage source={{ uri: group.avatarUrl }} style={styles.groupAvatar} />
-      <TouchableOpacity onPress={() => changeToGroup(group.slug)} disabled={editing}>
+      <TouchableOpacity onPress={handleOnPress} disabled={editing}>
         <Text style={styles.groupName}>{group.name}</Text>
       </TouchableOpacity>
       {hasModeratorRole && <Icon name='Star' style={styles.starIcon} />}

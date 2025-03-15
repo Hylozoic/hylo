@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useEffect, useState } from 'react'
 import Div100vh from 'react-div-100vh'
 import { useDispatch } from 'react-redux'
@@ -39,8 +39,8 @@ export default function PublicGroupDetail (props) {
   return (
     <Div100vh className={classes.publicContainer}>
       <PublicPageHeader />
-      <div className={cx(classes.centerColumn, classes.nonMapView)} id={CENTER_COLUMN_ID}>
-        <GroupDetail {...props} />
+      <div className={cn(classes.centerColumn, classes.nonMapView)} id={CENTER_COLUMN_ID}>
+        <GroupDetail {...props} context='public' />
       </div>
     </Div100vh>
   )

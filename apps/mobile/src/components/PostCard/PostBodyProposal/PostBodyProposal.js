@@ -1,12 +1,18 @@
 import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
-import { useDispatch } from 'react-redux'
-import { PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED, PROPOSAL_STATUS_DISCUSSION, PROPOSAL_STATUS_VOTING, VOTING_METHOD_MULTI_UNRESTRICTED, VOTING_METHOD_SINGLE } from 'store/models/Post'
-import { addProposalVote, removeProposalVote, swapProposalVote } from 'store/actions/proposals'
+import { useMutation, gql } from 'urql'
 import QuorumBar from 'components/QuorumBar/QuorumBar'
 import Icon from 'components/Icon'
 import Avatar from 'components/Avatar'
 import { useTranslation } from 'react-i18next'
+import {
+  PROPOSAL_STATUS_CASUAL,
+  PROPOSAL_STATUS_COMPLETED,
+  PROPOSAL_STATUS_DISCUSSION,
+  PROPOSAL_STATUS_VOTING,
+  VOTING_METHOD_MULTI_UNRESTRICTED,
+  VOTING_METHOD_SINGLE
+} from '@hylo/presenters/PostPresenter'
 
 const calcNumberOfVoters = (votes) => {
   return votes.reduce((acc, vote) => {
@@ -53,6 +59,33 @@ const calcHighestVotedOptions = (votes) => {
 
 const isVotingOpen = (proposalStatus) => proposalStatus === PROPOSAL_STATUS_VOTING || proposalStatus === PROPOSAL_STATUS_CASUAL
 
+const addProposalVoteMutation = gql`
+  mutation AddProposalVoteMutation ($optionId: ID, $postId: ID) {
+    addProposalVote (optionId: $optionId, postId: $postId) {
+      success
+      error
+    }
+  }
+`
+
+const removeProposalVoteMutation = gql`
+  mutation RemoveProposalVoteMutation ($optionId: ID, $postId: ID) {
+    removeProposalVote (optionId: $optionId, postId: $postId) {
+      success
+      error
+    }
+  }
+`
+
+const swapProposalVoteMutation = gql`
+  mutation SwapProposalVoteMutation ($addOptionId: ID, $removeOptionId: ID, $postId: ID) {
+    swapProposalVote (addOptionId: $addOptionId, removeOptionId: $removeOptionId, postId: $postId) {
+      success
+      error
+    }
+  }
+`
+
 export default function PostBodyProposal ({
   currentUser,
   fulfilledAt,
@@ -70,8 +103,12 @@ export default function PostBodyProposal ({
   id
 }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
 
+  const [{ fetching: addProposalVoteFetching }, addProposalVote] = useMutation(addProposalVoteMutation)
+  const [{ fetching: removeProposalVoteFetching }, removeProposalVote] = useMutation(removeProposalVoteMutation)
+  const [{ fetching: swapProposalVoteFetching }, swapProposalVote] = useMutation(swapProposalVoteMutation)
+
+  const isVoting = addProposalVoteFetching || removeProposalVoteFetching || swapProposalVoteFetching
   const proposalOptionsArray = useMemo(() => proposalOptions?.items || [], [proposalOptions])
   const proposalVotesArray = useMemo(() => proposalVotes?.items || [], [proposalVotes])
 
@@ -83,35 +120,50 @@ export default function PostBodyProposal ({
 
   const votingComplete = proposalStatus === PROPOSAL_STATUS_COMPLETED || fulfilledAt
 
-  // const votePrompt = votingMethod === VOTING_METHOD_SINGLE ? t('select one option') : t('select one or more options')
-  const votePrompt = votingMethod === VOTING_METHOD_SINGLE ? 'Select one' : 'Select one or more'
+  const votePrompt = votingMethod === VOTING_METHOD_SINGLE ? t('select one option') : t('select one or more options')
 
   function handleVote (optionId) {
+    if (isVoting) return null
     if (votingMethod === VOTING_METHOD_SINGLE) {
       if (currentUserVotesOptionIds.includes(optionId)) {
-        dispatch(removeProposalVote({ optionId, postId: id }))
+        removeProposalVote({ optionId, postId: id })
       } else if (currentUserVotesOptionIds.length === 0) {
-        dispatch(addProposalVote({ optionId, postId: id }))
+        addProposalVote({ optionId, postId: id })
       } else {
         const removeOptionId = currentUserVotesOptionIds[0]
-        dispatch(swapProposalVote({ postId: id, addOptionId: optionId, removeOptionId }))
+        swapProposalVote({ postId: id, addOptionId: optionId, removeOptionId })
       }
     }
     if (votingMethod === VOTING_METHOD_MULTI_UNRESTRICTED) {
       if (currentUserVotesOptionIds.includes(optionId)) {
-        dispatch(removeProposalVote({ optionId, postId: id }))
+        removeProposalVote({ optionId, postId: id })
       } else {
-        dispatch(addProposalVote({ optionId, postId: id }))
+        addProposalVote({ optionId, postId: id })
       }
     }
   }
 
   return (
-    <View style={[styles.proposalBodyContainer, proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, votingComplete && styles.completed]}>
+    <View
+      style={[
+        styles.proposalBodyContainer,
+        proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion,
+        proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting,
+        proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual,
+        votingComplete && styles.completed
+      ]}
+    >
       <View style={styles.proposalStatus}>
         {/* {isAnonymousVote && <Icon name='Hidden' styleName='anonymous-voting' dataTip={t('Anonymous voting')} dataTipFor='anon-tt' />} */}
         {isAnonymousVote && <Icon name='Hidden' styleName='anonymous-voting' dataTip='Anonymous voting' dataTipFor='anon-tt' />}
-        <Text style={[proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, votingComplete && styles.completed]}>
+        <Text
+          style={[
+            proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion,
+            proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting,
+            proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual,
+            votingComplete && styles.completed
+          ]}
+        >
           {proposalStatus === PROPOSAL_STATUS_DISCUSSION && t('Discussion in progress')}
           {votingComplete && t('Voting ended')}
           {proposalStatus === PROPOSAL_STATUS_VOTING && votePrompt}
@@ -119,7 +171,14 @@ export default function PostBodyProposal ({
         </Text>
       </View>
       <View style={styles.proposalTiming}>
-        <Text style={[proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, votingComplete && styles.completed]}>
+        <Text
+          style={[
+            proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion,
+            proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting,
+            proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual,
+            votingComplete && styles.completed
+          ]}
+        >
           {startTime && proposalStatus !== PROPOSAL_STATUS_COMPLETED && `${new Date(startTime).toLocaleDateString()} - ${new Date(endTime).toLocaleDateString()}`}
           {startTime && votingComplete && `${new Date(endTime).toLocaleDateString()}`}
         </Text>
@@ -127,8 +186,22 @@ export default function PostBodyProposal ({
       {!isFlagged && proposalOptionsArray && proposalOptionsArray.map((option, i) => {
         const optionVotes = proposalVotesArray.filter(vote => vote.optionId === option.id)
         const avatarUrls = optionVotes.map(vote => vote.user.avatarUrl)
+        const votingPermitted = isVotingOpen(proposalStatus) && !isVoting && !votingComplete
         return (
-          <TouchableOpacity key={`${option.id}+${currentUserVotesOptionIds.includes(option.id)}`} style={[styles.proposalOption, votingComplete && styles.completed, proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, currentUserVotesOptionIds.includes(option.id) && styles.selected, votingComplete && styles.completed, votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote]} onPress={isVotingOpen(proposalStatus) && !votingComplete ? () => handleVote(option.id) : () => {}}>
+          <TouchableOpacity
+            key={`${option.id}+${currentUserVotesOptionIds.includes(option.id)}`}
+            style={[
+              styles.proposalOption,
+              votingComplete && styles.completed,
+              proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion,
+              proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting,
+              proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual,
+              currentUserVotesOptionIds.includes(option.id) && styles.selected,
+              votingComplete && styles.completed,
+              votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote
+            ]}
+            onPress={votingPermitted ? () => handleVote(option.id) : () => {}}
+          >
             <View style={styles.proposalOptionTextContainer}>
               <View style={styles.proposalOptionEmoji}>
                 <Text>
@@ -136,7 +209,17 @@ export default function PostBodyProposal ({
                 </Text>
               </View>
               <View style={styles.proposalOptionText}>
-                <Text style={[votingComplete && styles.completed, proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, votingComplete && styles.completed, currentUserVotesOptionIds.includes(option.id) && styles.selected, votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote]}>
+                <Text
+                  style={[
+                    votingComplete && styles.completed,
+                    proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion,
+                    proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting,
+                    proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual,
+                    votingComplete && styles.completed,
+                    currentUserVotesOptionIds.includes(option.id) && styles.selected,
+                    votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote
+                  ]}
+                >
                   {option.text}
                 </Text>
               </View>
@@ -146,7 +229,17 @@ export default function PostBodyProposal ({
             <View style={styles.proposalOptionVotesContainer}>
               <View style={styles.proposalOptionVoteCount}>
                 {(!isAnonymousVote || votingComplete) &&
-                  <Text style={[votingComplete && styles.completed, proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion, proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting, proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual, votingComplete && styles.completed, currentUserVotesOptionIds.includes(option.id) && styles.selected, votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote]}>
+                  <Text
+                    style={[
+                      votingComplete && styles.completed,
+                      proposalStatus === PROPOSAL_STATUS_DISCUSSION && styles.discussion,
+                      proposalStatus === PROPOSAL_STATUS_VOTING && styles.voting,
+                      proposalStatus === PROPOSAL_STATUS_CASUAL && styles.casual,
+                      votingComplete && styles.completed,
+                      currentUserVotesOptionIds.includes(option.id) && styles.selected,
+                      votingComplete && highestVotedOptions.includes(option.id) && styles.highestVote
+                    ]}
+                  >
                     {optionVotes.length}
                   </Text>}
               </View>
@@ -190,7 +283,7 @@ const styles = {
   },
   completed: {
     borderColor: '#C0C5CD',
-    color: '#C0C5CD',
+    color: '#C0C5CD'
   },
   selected: {
     backgroundColor: '#0DC39F',
@@ -198,7 +291,7 @@ const styles = {
   },
   highestVote: {
     backgroundColor: '#0074D8',
-    color: 'white',
+    color: 'white'
   },
   people: {
     whiteSpace: 'nowrap'

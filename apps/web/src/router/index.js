@@ -1,14 +1,17 @@
 import React from 'react'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
 import { Provider } from 'react-redux'
+import { ThemeProvider } from 'components/ThemeProvider'
+import { TooltipProvider } from 'components/ui/tooltip'
 // import { Provider as RollbarProvider, ErrorBoundary } from '@rollbar/react'
 import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
-import isWebView from 'util/webView'
+import { ViewHeaderProvider } from 'contexts/ViewHeaderContext/ViewHeaderProvider'
 import store, { history } from '../store'
 import RootRouter from 'routes/RootRouter'
+import isWebView from 'util/webView'
 
 if (isWebView()) {
-  window.ReactNativeWebView.reactRouterHistory = history
+  window.addHyloWebViewListener(history)
 }
 
 // same configuration you would create for the Rollbar.js SDK
@@ -35,9 +38,15 @@ export default function App () {
   return (
     <LayoutFlagsProvider>
       <Provider store={store}>
-        <Router history={history}>
-          <RootRouter />
-        </Router>
+        <ThemeProvider>
+          <TooltipProvider delayDuration={0}>
+            <ViewHeaderProvider>
+              <Router history={history}>
+                <RootRouter />
+              </Router>
+            </ViewHeaderProvider>
+          </TooltipProvider>
+        </ThemeProvider>
       </Provider>
     </LayoutFlagsProvider>
   )

@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import PropTypes from 'prop-types'
 import React, { useState, useRef, forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,7 +9,6 @@ import { onEnterNoShift } from 'util/textInput'
 import { STARTED_TYPING_INTERVAL } from 'util/constants'
 import RoundImage from 'components/RoundImage'
 import Icon from 'components/Icon'
-import Loading from 'components/Loading'
 import styles from './MessageForm.module.scss'
 
 const MessageForm = forwardRef((props, ref) => {
@@ -22,12 +21,17 @@ const MessageForm = forwardRef((props, ref) => {
     if (event) event.preventDefault()
     startTyping.cancel()
     props.sendIsTyping(false)
-    props.updateMessageText()
+    props.updateMessageText('')
+    // Clear the text but maintain focus
     props.onSubmit()
+    // Maintain focus after submit
+    if (textareaRef.current) {
+      textareaRef.current.focus()
+    }
   }
 
-  const handleOnChange = event => {
-    props.updateMessageText(event.target.value)
+  const handleOnChange = e => {
+    props.updateMessageText(e.target.value)
   }
 
   const handleKeyDown = event => {
@@ -43,41 +47,46 @@ const MessageForm = forwardRef((props, ref) => {
     props.sendIsTyping(true)
   }, STARTED_TYPING_INTERVAL)
 
-  const {
-    className,
-    currentUser,
-    messageText,
-    onFocus,
-    pending,
-    placeholder = t('Write something...')
-  } = props
-
-  if (pending) return <Loading />
   return (
     <form
-      className={cx(styles.messageForm, className, { [styles.hasFocus]: hasFocus })}
+      className={cn('w-full max-w-[750px] mx-auto flex gap-3 px-2 shadow-md p-2 border-2 border-foreground/15 shadow-xlg rounded-t-xl bg-card pb-4 transition-all', props.className, { 'border-focus': hasFocus })}
       onSubmit={handleSubmit}
     >
-      <RoundImage url={get('avatarUrl', currentUser)} className={styles.userImage} medium />
+      <RoundImage url={get('avatarUrl', props.currentUser)} medium />
       <TextareaAutosize
-        autoFocus
-        value={messageText}
-        className={styles.messageTextarea}
-        ref={(tag) => (textareaRef.current = tag)}
+        value={props.messageText}
+        className='text-foreground bg-transparent w-full my-2 focus:outline-none mt-0'
+        ref={textareaRef}
         minRows={1}
         maxRows={8}
         onChange={handleOnChange}
         onKeyDown={handleKeyDown}
-        onFocus={() => { setHasFocus(true); onFocus() }}
-        onBlur={() => setHasFocus(false)}
-        placeholder={placeholder}
+        onFocus={(e) => {
+          setHasFocus(true)
+          if (props.onFocus) props.onFocus(e)
+        }}
+        onBlur={() => {
+          setHasFocus(false)
+        }}
+        placeholder={props.placeholder || t('Write something...')}
+        disabled={props.pending || props.disabled}
       />
-      <button className={styles.sendButton} data-testid='send-button'>
-        <Icon name='Reply' className={styles.replyIcon} />
-      </button>
+      {props.pending
+        ? (
+          <div className='flex items-center text-sm text-foreground/50'>
+            Sending...
+          </div>
+          )
+        : (
+          <button className={styles.sendButton} data-testid='send-button'>
+            <Icon name='Reply' className={styles.replyIcon} />
+          </button>
+          )}
     </form>
   )
 })
+
+MessageForm.displayName = 'MessageForm'
 
 MessageForm.propTypes = {
   className: PropTypes.string,

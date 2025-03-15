@@ -12,6 +12,7 @@ export default gql`
     isAdmin
     name
     avatarUrl
+    createdAt
     hasRegistered
     newNotificationCount
     unseenThreadCount
@@ -49,16 +50,10 @@ export default gql`
     hasDevice
     intercomHash
     hasStripeAccount
-    blockedUsers {
-      id
-      name
-    }
     settings {
       alreadySeenTour
-      digestFrequency
       dmNotifications
       commentNotifications
-      postNotifications
       locale
       mapBaseLayer
       signupInProgress
@@ -66,18 +61,6 @@ export default gql`
       streamViewMode
       streamSortBy
       streamPostType
-    }
-    affiliations {
-      items {
-        id
-        role
-        preposition
-        orgName
-        url
-        createdAt
-        updatedAt
-        isActive
-      }
     }
     joinRequests(status: 0) {
       items {
@@ -116,7 +99,9 @@ export default gql`
       }
       settings {
         agreementsAcceptedAt
+        digestFrequency
         joinQuestionsAnsweredAt
+        postNotifications
         sendEmail
         sendPushNotifications
         showJoinForm
@@ -131,6 +116,7 @@ export default gql`
         stewardDescriptorPlural
         settings {
           showSuggestedSkills
+          showWelcomePage
         }
         slug
       }

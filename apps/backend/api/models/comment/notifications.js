@@ -1,14 +1,13 @@
 /* eslint-disable camelcase */
-/* globals RedisClient */
-import { parse } from 'url'
+import { URL } from 'url'
 import { compact, some, sum, uniq } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import { mapLocaleToSendWithUS } from '../../../lib/util'
-
+import RedisClient from '../../services/RedisClient'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
 
 export async function notifyAboutMessage ({ commentId }) {
-  const comment = await Comment.find(commentId, {withRelated: ['media']})
+  const comment = await Comment.find(commentId, { withRelated: ['media'] })
   const post = await Post.find(comment.get('post_id'))
   const followers = await post.followers().fetch()
 
@@ -18,7 +17,7 @@ export async function notifyAboutMessage ({ commentId }) {
   const alert = comment.relations.media.length !== 0
     ? `${user.get('name')} sent an image`
     : `${user.get('name')}: ${TextHelpers.presentHTMLToText(comment.text(), { truncate: MAX_PUSH_NOTIFICATION_LENGTH })}`
-  const path = parse(Frontend.Route.thread({id: post_id})).path
+  const path = new URL(Frontend.Route.thread({ id: post_id })).pathname
 
   return Promise.map(recipients, async user => {
     // don't notify if the user has read the thread recently and respect the
@@ -34,7 +33,7 @@ export async function notifyAboutMessage ({ commentId }) {
 }
 
 export const sendDigests = async () => {
-  const redisClient = await RedisClient.create()
+  const redisClient = RedisClient.create()
   const now = new Date()
   const fallbackTime = () => new Date(now - 10 * 60000)
 
@@ -84,12 +83,13 @@ export const sendDigests = async () => {
       const presentComment = comment => {
         const presented = {
           id: comment.id,
+          text: comment.text(),
+          image: comment.relations?.media?.first?.()?.pick('url', 'thumbnail_url'),
           name: comment.relations.user.get('name'),
-          avatar_url: comment.relations.user.get('avatar_url')
+          avatar_url: comment.relations.user.get('avatar_url'),
+          timestamp: comment.get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
         }
-        return comment.relations.media.length !== 0
-          ? Object.assign({}, presented, {image: comment.relations.media.first().pick('url', 'thumbnail_url')})
-          : Object.assign({}, presented, {text: comment.text()})
+        return presented
       }
 
       if (post.get('type') === Post.Type.THREAD) {
@@ -101,14 +101,16 @@ export const sendDigests = async () => {
 
         const otherAvatarUrls = others.map(other => other.get('avatar_url'))
 
-        const participantNames = otherNames.slice(0, otherNames.length - 1).join(', ') +
-        ' & ' + otherNames[otherNames.length - 1]
+        const participantNames = otherNames.length === 1
+          ? otherNames[0]
+          : otherNames.slice(0, otherNames.length - 1).join(', ') + ' & ' + otherNames[otherNames.length - 1]
 
         return Email.sendMessageDigest({
           email: user.get('email'),
           locale,
           data: {
             count: filtered.length,
+            date: TextHelpers.formatDatePair(filtered[0].get('created_at'), false, false),
             participant_avatars: otherAvatarUrls[0],
             participant_names: participantNames,
             other_names: otherNames,
@@ -122,7 +124,7 @@ export const sendDigests = async () => {
       } else {
         if (!user.enabledNotification(Notification.TYPE.Comment, Notification.MEDIUM.Email)) return
 
-        const commentData = comments.map(presentComment)
+        const commentData = filtered.map(presentComment)
         const hasMention = ({ text }) =>
           RichText.getUserMentions(text).includes(user.id)
 
@@ -131,9 +133,10 @@ export const sendDigests = async () => {
           locale,
           data: {
             count: commentData.length,
+            date: TextHelpers.formatDatePair(filtered[0].get('created_at'), false, false, post.get('timezone')),
             post_title: post.summary(),
             post_creator_avatar_url: post.relations.user.get('avatar_url'),
-            thread_url: Frontend.Route.comment({ comment: commentData[0], groupSlug: firstGroup?.get('slug'), post }),
+            thread_url: Frontend.Route.comment({ comment: filtered[0], group: firstGroup, post }),
             comments: commentData,
             subject_prefix: some(hasMention, commentData)
               ? 'You were mentioned in'

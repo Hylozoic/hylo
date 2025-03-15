@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import Pill from 'components/Pill'
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { capitalize, keyBy } from 'lodash'
 import { animalCountToRange, areaToRange } from 'store/presenters/presentFarmData'
 import {
@@ -68,7 +68,7 @@ export default function FarmDetailsWidget ({ group }) {
 
   return (
     <>
-      <div className={cx(classes.farmDetailsContainer, { [classes.showless]: !showMore })}>
+      <div className={cn(classes.farmDetailsContainer, { [classes.showless]: !showMore })}>
         <div className={classes.groupTags}>
           {overviewLabels.map((attribute, index) => (
             <Pill

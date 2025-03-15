@@ -83,55 +83,6 @@ export function fetchSearchResults ({ search, offset = 0, filter, query = search
   }
 }
 
-// Reducer
-
-const defaultState = {
-  search: '',
-  filter: 'all'
-}
-
-export default function reducer (state = defaultState, action) {
-  const { error, type, payload } = action
-  if (error) return state
-
-  switch (type) {
-    case SET_SEARCH_TERM:
-      return {
-        ...state,
-        search: payload
-      }
-    case SET_SEARCH_FILTER:
-      return {
-        ...state,
-        filter: payload
-      }
-    default:
-      return state
-  }
-}
-
-export function setSearchTerm (search) {
-  return {
-    type: SET_SEARCH_TERM,
-    payload: search
-  }
-}
-
-export function setSearchFilter (filter) {
-  return {
-    type: SET_SEARCH_FILTER,
-    payload: filter
-  }
-}
-
-export function getSearchTerm (state) {
-  return state[MODULE_NAME].search
-}
-
-export function getSearchFilter (state) {
-  return state[MODULE_NAME].filter
-}
-
 // Selectors
 
 const getSearchResultResults = makeGetQueryResults(FETCH_SEARCH)

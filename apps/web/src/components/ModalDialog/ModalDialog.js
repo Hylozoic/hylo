@@ -1,11 +1,9 @@
 import React, { Component, createRef } from 'react'
 import { withTranslation } from 'react-i18next'
 import { bool, func, node, string } from 'prop-types'
-import cx from 'classnames'
-
-import { bgImageStyle } from 'util/index'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import Icon from 'components/Icon'
+import { bgImageStyle, cn } from 'util/index'
 
 import classes from './ModalDialog.module.scss'
 
@@ -142,7 +140,7 @@ class ModalDialog extends Component {
             {useNotificationFormat &&
               <Icon green name={notificationIconName} className={classes.notificationIcon} dataTestId={'icon-' + notificationIconName} />}
             {showModalTitle && (
-              <h1 className={cx({ [classes.notificationTitle]: useNotificationFormat })}>
+              <h1 className={cn({ [classes.notificationTitle]: useNotificationFormat })}>
                 {modalTitle}
               </h1>
             )}
@@ -156,7 +154,7 @@ class ModalDialog extends Component {
             <div className={classes.controls}>
               {showCancelButton &&
                 <Button
-                  color='green-white-green-border'
+                  variant='primary'
                   className={classes.cancelBtn}
                   onClick={this.cancel}
                 >
@@ -164,6 +162,7 @@ class ModalDialog extends Component {
                 </Button>}
               {showSubmitButton &&
                 <Button
+                  variant='secondary'
                   className={classes.submitBtn}
                   onClick={this.submit}
                   disabled={submitButtonIsDisabled()}

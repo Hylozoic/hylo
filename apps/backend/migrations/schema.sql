@@ -62,38 +62,6 @@ COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial
 -- Name: delete_user(integer); Type: PROCEDURE; Schema: public; Owner: -
 --
 
--- CREATE PROCEDURE public.delete_user(IN uid integer)
---     LANGUAGE sql
---     AS $$;
--- update groups set created_by_id = null where created_by_id = uid;
--- update comments set deactivated_by_id = null where deactivated_by_id = uid;
--- update follows set added_by_id = null where added_by_id = uid;
--- update groups_tags set user_id = null where user_id = uid;
--- delete from thanks where comment_id in (select id from comments where user_id = uid);
--- delete from notifications where activity_id in (select id from activities where reader_id = uid);
--- delete from notifications where activity_id in (select id from activities where actor_id = uid);
--- delete from comments where user_id = uid;
--- delete from contributions where user_id = uid;
--- delete from devices where user_id = uid;
--- delete from group_invites where used_by_id = uid;
--- delete from group_invites where invited_by_id = uid;
--- delete from group_memberships where user_id = uid;
--- delete from linked_account where user_id = uid;
--- delete from skills_users where user_id = uid;
--- delete from posts_about_users where user_id = uid;
--- delete from posts_users where user_id = uid;
--- delete from tag_follows where user_id = uid;
--- delete from thanks where thanked_by_id = uid;
--- delete from user_connections where user_id = uid;
--- delete from user_external_data where user_id = uid;
--- delete from user_post_relevance where user_id = uid;
--- delete from activities where actor_id = uid;
--- delete from activities where reader_id = uid;
--- delete from join_request_question_answers where join_request_id in (select id from join_requests where user_id = uid);
--- delete from join_requests where user_id = uid;
--- delete from votes where user_id = uid;
--- delete from users where id = uid;
--- $$;
 
 
 SET default_tablespace = '';
@@ -529,6 +497,75 @@ CREATE SEQUENCE public.community_invite_seq
 
 
 --
+-- Name: context_widgets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.context_widgets (
+    id bigint NOT NULL,
+    title character varying(255),
+    group_id bigint,
+    type character varying(255),
+    "order" integer,
+    visibility character varying(255),
+    parent_id bigint,
+    view character varying(255),
+    icon character varying(255),
+    view_group_id bigint,
+    view_post_id bigint,
+    custom_view_id bigint,
+    view_user_id bigint,
+    view_chat_id bigint,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    auto_added boolean DEFAULT false,
+    CONSTRAINT single_view_reference CHECK (((((((
+CASE
+    WHEN (view_group_id IS NOT NULL) THEN 1
+    ELSE 0
+END +
+CASE
+    WHEN (view_post_id IS NOT NULL) THEN 1
+    ELSE 0
+END) +
+CASE
+    WHEN (view IS NOT NULL) THEN 1
+    ELSE 0
+END) +
+CASE
+    WHEN (custom_view_id IS NOT NULL) THEN 1
+    ELSE 0
+END) +
+CASE
+    WHEN (view_user_id IS NOT NULL) THEN 1
+    ELSE 0
+END) +
+CASE
+    WHEN (view_chat_id IS NOT NULL) THEN 1
+    ELSE 0
+END) <= 1))
+);
+
+
+--
+-- Name: context_widgets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.context_widgets_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: context_widgets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.context_widgets_id_seq OWNED BY public.context_widgets.id;
+
+
+--
 -- Name: contributor_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -822,7 +859,8 @@ CREATE TABLE public.tag_follows (
     updated_at timestamp with time zone,
     new_post_count integer DEFAULT 0,
     group_id bigint NOT NULL,
-    last_read_post_id bigint
+    last_read_post_id bigint,
+    settings jsonb DEFAULT '{}'::jsonb
 );
 
 
@@ -1720,11 +1758,11 @@ CREATE TABLE public.moderation_actions (
     text text,
     reporter_id bigint NOT NULL,
     post_id bigint NOT NULL,
-    group_id bigint,
     status text,
     anonymous text,
     created_at timestamp with time zone,
-    updated_at timestamp with time zone
+    updated_at timestamp with time zone,
+    group_id bigint
 );
 
 
@@ -1909,39 +1947,6 @@ ALTER SEQUENCE public.networks_users_id_seq OWNED BY public.networks_users.id;
 
 
 --
--- Name: nexudus_accounts; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.nexudus_accounts (
-    id integer NOT NULL,
-    community_id bigint,
-    space_id character varying(255),
-    username character varying(255),
-    password character varying(255),
-    autoupdate boolean
-);
-
-
---
--- Name: nexudus_accounts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.nexudus_accounts_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: nexudus_accounts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.nexudus_accounts_id_seq OWNED BY public.nexudus_accounts.id;
-
-
---
 -- Name: notification_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -2034,7 +2039,8 @@ CREATE SEQUENCE public.org_seq
 
 CREATE TABLE public.platform_agreements (
     id integer NOT NULL,
-    text text
+    text text,
+    type text
 );
 
 
@@ -3214,6 +3220,13 @@ ALTER TABLE ONLY public.communities_users ALTER COLUMN id SET DEFAULT nextval('p
 
 
 --
+-- Name: context_widgets id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.context_widgets ALTER COLUMN id SET DEFAULT nextval('public.context_widgets_id_seq'::regclass);
+
+
+--
 -- Name: custom_view_topics id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3456,13 +3469,6 @@ ALTER TABLE ONLY public.networks_posts ALTER COLUMN id SET DEFAULT nextval('publ
 --
 
 ALTER TABLE ONLY public.networks_users ALTER COLUMN id SET DEFAULT nextval('public.networks_users_id_seq'::regclass);
-
-
---
--- Name: nexudus_accounts id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.nexudus_accounts ALTER COLUMN id SET DEFAULT nextval('public.nexudus_accounts_id_seq'::regclass);
 
 
 --
@@ -3758,6 +3764,14 @@ ALTER TABLE ONLY public.common_roles_responsibilities
 
 ALTER TABLE ONLY public.groups_tags
     ADD CONSTRAINT communities_tags_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: context_widgets context_widgets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.context_widgets
+    ADD CONSTRAINT context_widgets_pkey PRIMARY KEY (id);
 
 
 --
@@ -4126,14 +4140,6 @@ ALTER TABLE ONLY public.networks
 
 ALTER TABLE ONLY public.networks_users
     ADD CONSTRAINT networks_users_pkey PRIMARY KEY (id);
-
-
---
--- Name: nexudus_accounts nexudus_accounts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.nexudus_accounts
-    ADD CONSTRAINT nexudus_accounts_pkey PRIMARY KEY (id);
 
 
 --
@@ -4613,6 +4619,20 @@ ALTER TABLE ONLY public.zapier_triggers
 --
 
 CREATE INDEX communities_tags_community_id_visibility_index ON public.groups_tags USING btree (community_id, visibility);
+
+
+--
+-- Name: context_widgets_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX context_widgets_group_id_index ON public.context_widgets USING btree (group_id);
+
+
+--
+-- Name: context_widgets_parent_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX context_widgets_parent_id_index ON public.context_widgets USING btree (parent_id);
 
 
 --
@@ -5199,6 +5219,62 @@ ALTER TABLE ONLY public.communities
 
 
 --
+-- Name: context_widgets context_widgets_custom_view_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.context_widgets
+    ADD CONSTRAINT context_widgets_custom_view_id_foreign FOREIGN KEY (custom_view_id) REFERENCES public.custom_views(id) ON DELETE CASCADE;
+
+
+--
+-- Name: context_widgets context_widgets_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.context_widgets
+    ADD CONSTRAINT context_widgets_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: context_widgets context_widgets_parent_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.context_widgets
+    ADD CONSTRAINT context_widgets_parent_id_foreign FOREIGN KEY (parent_id) REFERENCES public.context_widgets(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: context_widgets context_widgets_view_chat_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.context_widgets
+    ADD CONSTRAINT context_widgets_view_chat_id_foreign FOREIGN KEY (view_chat_id) REFERENCES public.tags(id) ON DELETE CASCADE;
+
+
+--
+-- Name: context_widgets context_widgets_view_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.context_widgets
+    ADD CONSTRAINT context_widgets_view_group_id_foreign FOREIGN KEY (view_group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: context_widgets context_widgets_view_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.context_widgets
+    ADD CONSTRAINT context_widgets_view_post_id_foreign FOREIGN KEY (view_post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: context_widgets context_widgets_view_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.context_widgets
+    ADD CONSTRAINT context_widgets_view_user_id_foreign FOREIGN KEY (view_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: custom_view_topics custom_view_topics_custom_view_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5396,6 +5472,15 @@ ALTER TABLE ONLY public.media
 
 ALTER TABLE ONLY public.groups_posts
     ADD CONSTRAINT fk_post_community_community_02 FOREIGN KEY (community_id) REFERENCES public.communities(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: groups_posts fk_post_community_post_01; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups_posts
+    ADD CONSTRAINT fk_post_community_post_01 FOREIGN KEY (post_id) REFERENCES public.posts(id) DEFERRABLE INITIALLY DEFERRED;
+
 
 --
 -- Name: posts fk_post_creator_11; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -5770,7 +5855,7 @@ ALTER TABLE ONLY public.groups
 --
 
 ALTER TABLE ONLY public.groups
-    ADD CONSTRAINT groups_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) DEFERRABLE INITIALLY DEFERRED;
+    ADD CONSTRAINT groups_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -5910,6 +5995,14 @@ ALTER TABLE ONLY public.moderation_actions_agreements
 
 
 --
+-- Name: moderation_actions moderation_actions_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.moderation_actions
+    ADD CONSTRAINT moderation_actions_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
 -- Name: moderation_actions_platform_agreements moderation_actions_platform_agreements_moderation_action_id_for; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5974,14 +6067,6 @@ ALTER TABLE ONLY public.networks_users
 
 
 --
--- Name: nexudus_accounts nexudus_accounts_community_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.nexudus_accounts
-    ADD CONSTRAINT nexudus_accounts_community_id_foreign FOREIGN KEY (community_id) REFERENCES public.communities(id);
-
-
---
 -- Name: notifications notifications_activity_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6034,7 +6119,7 @@ ALTER TABLE ONLY public.posts_about_users
 --
 
 ALTER TABLE ONLY public.posts
-    ADD CONSTRAINT posts_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id);
+    ADD CONSTRAINT posts_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -6282,7 +6367,7 @@ ALTER TABLE ONLY public.users_groups_agreements
 --
 
 ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) DEFERRABLE INITIALLY DEFERRED;
+    ADD CONSTRAINT users_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
 
 
 --

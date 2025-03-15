@@ -1,9 +1,0 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
-
-exports[`getPerson returns the person 1`] = `
-SessionBoundModel {
-  "_fields": {
-    "id": 31,
-  },
-}
-`;

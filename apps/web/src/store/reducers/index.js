@@ -15,7 +15,6 @@ import AllTopics from 'routes/AllTopics/AllTopics.store'
 import AttachmentManager from 'components/AttachmentManager/AttachmentManager.store'
 import CreateGroup from 'components/CreateGroup/CreateGroup.store'
 import CreateTopic from 'components/CreateTopic/CreateTopic.store'
-import Events from 'routes/Events/Events.store'
 import FullPageModal from 'routes/FullPageModal/FullPageModal.store'
 import MapExplorer from 'routes/MapExplorer/MapExplorer.store'
 import Messages from 'routes/Messages/Messages.store'
@@ -28,7 +27,6 @@ import PostEditor from 'components/PostEditor/PostEditor.store'
 import AuthLayoutRouter from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import RelatedGroups from 'routes/GroupSettings/RelatedGroupsTab/RelatedGroupsTab.store'
 import SavedSearches from 'routes/UserSettings/UserSettings.store'
-import Search from 'routes/Search/Search.store'
 import SkillsSection from 'components/SkillsSection/SkillsSection.store'
 import SkillsToLearnSection from 'components/SkillsToLearnSection/SkillsToLearnSection.store'
 import TopicsSettings from 'routes/GroupSettings/TopicsSettingsTab/TopicsSettingsTab.store'
@@ -50,7 +48,6 @@ export const createCombinedReducers = routerReducer => combineReducers({
   AttachmentManager,
   CreateGroup,
   CreateTopic,
-  Events,
   FullPageModal,
   MembershipRequests,
   MapExplorer,
@@ -63,7 +60,6 @@ export const createCombinedReducers = routerReducer => combineReducers({
   PostEditor,
   RelatedGroups,
   SavedSearches,
-  Search,
   SkillsSection,
   SkillsToLearnSection,
   TopicsSettings,

@@ -34,7 +34,7 @@ export const TopicMentions = ({ groupIds, maxSuggestions, onSelection, suggestio
         class: 'topic'
       },
       renderHTML: ({ options, node }) => {
-        return ['span', { class: 'topic', 'data-id': node.attrs.id }, node.attrs.label ?? node.attrs.id]
+        return ['span', { class: 'topic', ...options.HTMLAttributes }, node.attrs.label ?? node.attrs.id]
       },
       suggestion: {
         char: '#',
@@ -47,7 +47,7 @@ export const TopicMentions = ({ groupIds, maxSuggestions, onSelection, suggestio
 
           const findTopicsGraphql = findTopics({
             autocomplete: query,
-            groupIds: editor.extensionStorage.topic.groupIds,
+            groupIds: editor.extensionStorage.topic.groupIds, // TODO BUG: this doesn't seem to be a valid param
             maxItems: maxSuggestions
           }).graphql
           const matchedTopics = await queryHyloAPI(findTopicsGraphql)

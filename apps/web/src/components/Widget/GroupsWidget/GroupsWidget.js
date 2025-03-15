@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
@@ -62,7 +62,7 @@ GroupsWidget.propTypes = {
 export function GroupCard ({ group, routeParams, className }) {
   const { t } = useTranslation()
   return (
-    <div className={cx(classes.group, className)} key={group.id}>
+    <div className={cn(classes.group, className)} key={group.id}>
       <div>
         <div className={classes.content}>
           <div className={classes.groupAvatar}><img src={group.avatarUrl || DEFAULT_AVATAR} /></div>
@@ -81,7 +81,7 @@ export function GroupCard ({ group, routeParams, className }) {
               : <div className={classes.isntMember}><Link to={groupDetailUrl(group.slug, routeParams)}><span>{t('View')}</span><span className={classes.visit}>{t('View')}</span></Link></div>}
         </div>
       </div>
-      <div className={cx(classes.background)} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}><div className={classes.fade} /></div>
+      <div className={cn(classes.background)} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}><div className={classes.fade} /></div>
     </div>
   )
 }

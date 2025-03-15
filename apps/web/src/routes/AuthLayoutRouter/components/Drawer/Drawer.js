@@ -1,10 +1,7 @@
-import cx from 'classnames'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { bgImageStyle } from 'util/index'
-import { baseUrl, createGroupUrl, groupUrl } from 'util/navigation'
 import {
   ALL_GROUPS_ID, ALL_GROUPS_AVATAR_PATH, DEFAULT_AVATAR,
   PUBLIC_CONTEXT_ID, PUBLIC_CONTEXT_AVATAR_PATH, GROUP_EXPLORER_ID, GROUP_EXPLORER_AVATAR_PATH, PUBLIC_MAP_ID, PUBLIC_MAP_AVATAR_PATH, MY_HOME_AVATAR_PATH, MY_HOME_ID
@@ -17,6 +14,8 @@ import Icon from 'components/Icon'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
+import { bgImageStyle, cn } from 'util/index'
+import { baseUrl, createGroupUrl, groupUrl } from 'util/navigation'
 
 // import s from './Drawer.module.scss' // eslint-disable-line no-unused-vars
 import s from './Drawer.module.scss'
@@ -90,8 +89,8 @@ export default function Drawer (props) {
   }
 
   return (
-    <div className={cx(className, s.groupDrawer)}>
-      <div className={cx(s.drawerHeader, { [s.currentGroup]: group !== null })} style={bgImageStyle(bannerUrl)}>
+    <div className={cn(className, s.groupDrawer)}>
+      <div className={cn(s.drawerHeader, { [s.currentGroup]: group !== null })} style={bgImageStyle(bannerUrl)}>
         <div className={s.drawerBanner}>
           <div className={s.hyloLogoBar}>
             <img src='/hylo.svg' width='50px' height='36px' />
@@ -111,13 +110,13 @@ export default function Drawer (props) {
           <ContextRow currentLocation={currentLocation} group={myHome} explicitPath={myHome.explicitPath} />
         </ul>
         <ul className={s.groupsList}>
-          <li className={cx(s.sectionTitle, s.sectionTitleSeparator)}>{t('Public')}</li>
+          <li className={cn(s.sectionTitle, s.sectionTitleSeparator)}>{t('Public')}</li>
           {defaultContexts && defaultContexts.map(context =>
             <ContextRow currentLocation={currentLocation} group={context} key={context.id} explicitPath={context.explicitPath} />
           )}
         </ul>
         <ul className={s.groupsList}>
-          <li className={cx(s.sectionTitle, s.sectionTitleSeparator)}>{t('My Groups')}</li>
+          <li className={cn(s.sectionTitle, s.sectionTitleSeparator)}>{t('My Groups')}</li>
           <ContextRow currentLocation={currentLocation} group={allMyGroups} />
           {groups.map(group =>
             <ContextRow currentLocation={currentLocation} group={group} key={group.id} />
@@ -146,7 +145,7 @@ export function ContextRow ({
   const showBadge = newPostCount > 0
   const path = explicitPath || baseUrl({ context, groupSlug: slug })
   return (
-    <li className={cx(s.contextRow, { [s.currentContext]: currentLocation?.pathname === path || (path.includes(myPath) && currentLocation?.pathname.includes(myPath)) })}>
+    <li className={cn(s.contextRow, { [s.currentContext]: currentLocation?.pathname === path || (path.includes(myPath) && currentLocation?.pathname.includes(myPath)) })}>
       <Link to={path} className={s.contextRowLink} title={name}>
         <div className={s.contextRowAvatar} style={imageStyle} />
         <span className={s.groupName}>{name}</span>

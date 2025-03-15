@@ -8,7 +8,7 @@ import Comment from './Comment'
 import CommonRole from './CommonRole'
 import CustomView from './CustomView'
 import EventInvitation from './EventInvitation'
-import Group, { GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
+import Group, { ChatRoom, GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
 import GroupRelationshipInvite, { GroupToGroupJoinRequestQuestionAnswer } from './GroupRelationshipInvite'
 import GroupTopic from './GroupTopic'
 import Invitation from './Invitation'
@@ -29,6 +29,7 @@ import PostMembership from './PostMembership'
 import SearchResult from './SearchResult'
 import Skill from './Skill'
 import Topic from './Topic'
+import TopicFollow from './TopicFollow'
 import Widget from './Widget'
 
 export const orm = new ORM({ stateSelector: state => state.orm })
@@ -37,6 +38,7 @@ orm.register(
   Activity,
   Agreement,
   Attachment,
+  ChatRoom,
   Collection,
   CollectionPost,
   Comment,
@@ -82,6 +84,7 @@ orm.register(
   SearchResult,
   Skill,
   Topic,
+  TopicFollow,
   Widget
 )
 

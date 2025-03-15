@@ -112,7 +112,6 @@ exports[`MemberDetails matches the last snapshot 1`] = `
   }
 >
   <MemberDetails
-    goToGroup={[Function]}
     isFocused={true}
     navigation={
       {

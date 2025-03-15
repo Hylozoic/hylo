@@ -2,6 +2,8 @@
 import { host } from 'config'
 import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
 import qs from 'query-string'
+import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
+import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
@@ -16,18 +18,18 @@ export const OPTIONAL_GROUP_MATCH = ':detail(group)?/(:detailGroupSlug)?'
 
 // Fundamental URL paths
 
-export function allGroupsUrl () {
-  return '/all'
+export function publicContextUrl () {
+  return '/public'
 }
 
-export function publicGroupsUrl () {
-  return '/public'
+export function myContextUrl () {
+  return '/my'
 }
 
 export function baseUrl ({
   context,
   customViewId,
-  defaultUrl = allGroupsUrl(),
+  defaultUrl = myContextUrl(),
   groupSlug,
   memberId, personId, // TODO: switch to one of these?
   topicName,
@@ -43,10 +45,10 @@ export function baseUrl ({
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
   } else if (groupSlug) {
     return groupUrl(groupSlug)
-  } else if (context === 'all') {
-    return allGroupsUrl()
-  } else if (context === 'public') {
-    return publicGroupsUrl()
+  } else if (context === PUBLIC_CONTEXT_SLUG) {
+    return publicContextUrl()
+  } else if (context === MY_CONTEXT_SLUG) {
+    return myContextUrl()
   } else {
     return defaultUrl
   }
@@ -72,9 +74,9 @@ export function viewUrl (view, { context, groupSlug, defaultUrl, customViewId })
 }
 
 // Group URLS
-export function groupUrl (slug, view = '', defaultUrl = allGroupsUrl()) {
-  if (slug === 'public') { // TODO: remove this?
-    return publicGroupsUrl()
+export function groupUrl (slug, view = '', defaultUrl = myContextUrl()) {
+  if (slug === PUBLIC_CONTEXT_SLUG) { // TODO: remove this?
+    return publicContextUrl()
   } else if (slug) {
     return `/groups/${slug}` + (view ? '/' + view : '')
   } else {
@@ -147,13 +149,50 @@ export function personUrl (id, groupSlug) {
   return `${base}/members/${id}`
 }
 
-// Topics URLs
-export function topicsUrl (opts, defaultUrl = allGroupsUrl()) {
+// Topics and Chat URLs
+export function topicsUrl (opts, defaultUrl = myContextUrl()) {
   return baseUrl({ ...opts, view: 'topics' }, defaultUrl)
 }
 
 export function topicUrl (topicName, opts) {
   return `${topicsUrl(opts)}/${topicName}`
+}
+
+export function chatUrl (chatName, { context, groupSlug }) {
+  return `${baseUrl({ context, groupSlug })}/chat/${chatName}`
+}
+
+// CustomView urls
+
+export function customViewUrl (customViewId, rootPath, opts) {
+  return `${rootPath}/custom/${customViewId}`
+}
+
+// Widget urls
+
+export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
+  if (!widget) return null
+
+  const groupSlug = isStaticContext(providedSlug) ? null : providedSlug
+  let url = ''
+  if (widget.url) return widget.url
+  if (widget.view === 'about') {
+    url = groupDetailUrl(groupSlug, { rootPath, groupSlug, context })
+  } else if (widget.view) {
+    url = viewUrl(widget.view, { groupSlug, context: widget.context || context })
+  } else if (widget.viewGroup) {
+    url = groupUrl(widget.viewGroup.slug)
+  } else if (widget.viewUser) {
+    url = personUrl(widget.viewUser.id, groupSlug)
+  } else if (widget.viewPost) {
+    url = postUrl(widget.viewPost.id, { groupSlug, context })
+  } else if (widget.viewChat) {
+    url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
+  } else if (widget.customView) {
+    url = customViewUrl(widget.customView.id, groupUrl(groupSlug))
+  }
+
+  return url
 }
 
 // URL utility functions

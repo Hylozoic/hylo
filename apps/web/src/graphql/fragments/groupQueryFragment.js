@@ -40,6 +40,7 @@ export default function groupQueryFragment () {
     }
     description
     geoShape
+    invitePath
     location
     memberCount
     stewardDescriptor
@@ -55,47 +56,15 @@ export default function groupQueryFragment () {
       locationDisplayPrecision
       publicMemberDirectory
       showSuggestedSkills
+      showWelcomePage
     }
     slug
     type
     typeDescriptor
     typeDescriptorPlural
     visibility
-    activeProjects: posts(filter: "project", sortBy: "updated", order: "desc", first: 4) {
-      items {
-        id
-        title
-        createdAt
-        updatedAt
-        creator {
-          id
-          name
-        }
-        members {
-          items {
-            id
-            avatarUrl
-            name
-          }
-        }
-      }
-    }
-    announcements: posts(isAnnouncement: true, sortBy: "created", order: "desc", first: 3) {
-      hasMore
-      items {
-        id
-        title
-        createdAt
-        creator {
-          id
-          name
-        }
-        attachments(type: "image") {
-          position
-          url
-        }
-      }
-    }
+    websiteUrl
+    welcomePage
     childGroups {
       items {
         id
@@ -119,6 +88,7 @@ export default function groupQueryFragment () {
           locationDisplayPrecision
           publicMemberDirectory
           showSuggestedSkills
+          showWelcomePage
         }
       }
     }
@@ -202,14 +172,6 @@ export default function groupQueryFragment () {
       neighborhood
       region
     }
-    members(first: 8, sortBy: "last_active_at", order: "desc") {
-      items {
-        id
-        avatarUrl
-        lastActiveAt
-        name
-      }
-    }
     stewards {
       items {
         id
@@ -242,19 +204,6 @@ export default function groupQueryFragment () {
         }
       }
     }
-    openOffersAndRequests: posts(types: ["offer", "request"], isFulfilled: false, first: 4) {
-      items {
-        id
-        title
-        type
-        creator {
-          id
-          name
-          avatarUrl
-        }
-        commentsTotal
-      }
-    }
     parentGroups {
       items {
         id
@@ -276,37 +225,69 @@ export default function groupQueryFragment () {
           locationDisplayPrecision
           publicMemberDirectory
           showSuggestedSkills
+          showWelcomePage
         }
         type
       }
     }
-    upcomingEvents: posts(afterTime: "${new Date().toISOString()}", filter: "event", sortBy: "start_time", order: "asc", first: 4) {
-      hasMore
+    contextWidgets {
       items {
         id
+        autoAdded
         title
-        startTime
-        endTime
-        location
-        members {
-          items {
+        type
+        order
+        visibility
+        view
+        icon
+        highlightNumber
+        secondaryNumber
+        parentId
+        viewGroup {
+          id
+          avatarUrl
+          bannerUrl
+          name
+          memberCount
+          visibility
+          accessibility
+          slug
+        }
+        viewPost {
+          id
+          announcement
+          title
+          details
+          type
+          createdAt
+          startTime
+          endTime
+          isPublic
+        }
+        customView {
+          id
+          groupId
+          collectionId
+          externalLink
+          isActive
+          icon
+          name
+          order
+          postTypes
+          topics {
             id
-            avatarUrl
             name
           }
+          type
         }
-      }
-    }
-    widgets {
-      items {
-        id
-        name
-        isVisible
-        order
-        context
-        settings {
-          text
-          title
+        viewUser {
+          id
+          name
+          avatarUrl
+        }
+        viewChat {
+          id
+          name
         }
       }
     }

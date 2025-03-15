@@ -1,0 +1,303 @@
+.topNavWrapper {
+  width: 100%;
+  z-index: 21;
+  position: fixed;
+  top: 0;
+
+  &:hover {
+    z-index: 80;
+  }
+}
+
+.topNav {
+  // Notes from Bootstrap make-col-ready(): Prevent columns from becoming too
+  // narrow when at smaller grid tiers by always setting `width: 100%;`. This
+  // works because we use `flex` values later on to override this initial width.
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  height: $topnav-height; // Prevent collapsing
+  display: flex;
+  justify-content: flex-start;
+  background-color: white;
+  align-items: center;
+  z-index: 50;
+  padding-left: $space-5x;
+  padding-right: $space-5x;
+  box-shadow: 0px 4px 25px 0px rgba(35, 65, 91, .30);
+}
+
+.drawerToggle {
+  margin-left: 0px;
+  margin-right: 0px;
+  transition: all .25s ease;
+  position: relative;
+
+  .drawerToggleButton {
+    width: 30px;
+    height: 30px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
+    margin-right: 10px;
+    border: none;
+    outline: none;
+    background-color: rgba(255, 255, 255, 1);
+    border-radius: 5px;
+    transition: all .25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .menuIcon {
+      font-size: 16px;
+      color: rgba(49, 73, 101, 1.00);
+      transition: all .25s ease;
+    }
+
+    &:hover {
+      background-color: rgba(42, 201, 167, 1.00);
+      cursor: pointer;
+
+      .menuIcon {
+        color: rgba(255, 255, 255, 1);
+      }
+    }
+  }
+}
+
+.image {
+  @include image(30px);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+
+  > span {
+    transition: all .25s ease;
+    opacity: 0;
+    background-color: rgba(42, 201, 167, 1.00);
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .homeLink {
+    color: rgba(255, 255, 255, 1);
+  }
+
+  .closeGroupMenu {
+    display: none;
+  }
+}
+
+a.current-context {
+  position: relative;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+
+  .title {
+    max-width: calc(100vw - 270px);
+
+    .groupName {
+      width: auto;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .groupName {
+    width: 100px;
+  }
+
+  &:hover, &:active, &:focus {
+    text-decoration: none;
+
+    .image > span {
+      opacity: 1;
+    }
+  }
+}
+
+.logoBadge {
+  position: absolute;
+  top: -8px;
+  left: 19px;
+}
+
+.title {
+  padding-left: 10px;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.label {
+  composes: tag from 'css/typography.scss';
+  text-transform: uppercase;
+}
+
+.groupName {
+  composes: hdr-subheadline from 'css/typography.scss';
+  font-size: 16px !important;
+  position: relative;
+  top: -2px;
+}
+
+.navIcons {
+  margin-left: auto;
+  display: inline-block;
+
+  > * {
+    vertical-align: middle;
+    margin-right: 15px;
+    display: inline-block;
+    height: 28px;
+    margin-right: 15px;
+    text-decoration: none;
+    cursor: pointer !important;
+
+    &:hover {
+      text-decoration: none;
+    }
+  }
+}
+
+.support-menu {
+  top: 2px;
+}
+
+.icon {
+  position: relative;
+  font-size: 22px;
+  cursor: pointer !important;
+}
+
+.icon:hover {
+  color: $color-rhino;
+}
+
+.nav-menu {
+  cursor: pointer;
+  li {
+    display: block;
+    padding: 8px 20px;
+    border-bottom: 1px solid $color-athens-gray;
+  }
+
+  li > a, li > span {
+    &, &:not([href]) {
+      color: $color-rhino-60;
+      cursor: pointer;
+    }
+    &:hover {
+      text-decoration: none;
+    }
+  }
+}
+
+.user-menu li span.isMobileDevice {
+  display: block;
+}
+
+.user-menu li span.isntMobileDevice {
+  display: none;
+}
+
+.user-menu {
+  margin-right: 0 !important;
+
+  &:hover > span > div {
+    border: solid 2px #eeeeee;
+  }
+}
+
+.locale {
+  @include font-regular;
+  color: $color-rhino-60;
+  cursor: pointer;
+  background-color: white;
+}
+
+.locale-dropdown {
+  z-index: 1000;
+}
+
+@media screen and (max-width: 600px) {
+  .nav-menu > div {
+    bottom: 30px;
+  }
+
+  a.current-context {
+    outline: none;
+    border: none;
+    background-color: transparent;
+    padding: 0;
+    text-align: left;
+
+    &:active, &:focus {
+      outline: none;
+      border: none;
+    }
+
+    .title {
+      max-width: calc(100vw - 120px);
+    }
+
+    .groupName {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 0;
+    }
+  }
+
+  a.current-context.groupMenuOpen {
+
+    .title {
+      max-width: calc(100vw - 62px);
+      transition: all .25s ease;
+    }
+    .image > span {
+      opacity: 1;
+
+      .homeLink {
+        display: none;
+      }
+
+      .closeGroupMenu {
+        display: block;
+        color: rgba(255, 255, 255, 1);
+      }
+    }
+
+  }
+
+  .topNavWrapper {
+    z-index: 80;
+  }
+
+
+  .topNav.groupMenuOpen .drawerToggle {
+    margin-left: -65px;
+    margin-right: 17px;
+  }
+
+  .navIcons {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    height: 50px;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 50px;
+    box-shadow: 0px 4px 15px 0px rgba(42, 64, 89, .3);
+  }
+}

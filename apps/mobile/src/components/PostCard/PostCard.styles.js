@@ -1,4 +1,4 @@
-import { POST_TYPES } from 'store/models/Post'
+import { POST_TYPES } from '@hylo/presenters/PostPresenter'
 import { capeCod10, rhino60, caribbeanGreen, white, regent, mangoYellow, black } from 'style/colors'
 
 export default {
@@ -133,13 +133,13 @@ export default {
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
-    elevation: 5,
+    elevation: 5
   },
   clickthroughText: {
     color: regent,
     fontSize: 14,
     lineHeight: 20,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   clickthroughButton: {
     marginTop: 6,

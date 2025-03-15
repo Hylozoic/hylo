@@ -1,8 +1,7 @@
-import cx from 'classnames'
-import { keyBy, map, trim } from 'lodash'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { keyBy } from 'lodash'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import { Helmet } from 'react-helmet'
-import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Tooltip } from 'react-tooltip'
 // import PropTypes from 'prop-types'
@@ -17,8 +16,9 @@ import Icon from 'components/Icon'
 import SocketSubscriber from 'components/SocketSubscriber'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
-import Pillbox from 'components/Pillbox'
 import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
+import JoinSection from './JoinSection'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupDetails from 'store/actions/fetchGroupDetails'
 import { FETCH_GROUP_DETAILS, RESP_ADMINISTRATION } from 'store/constants'
 import {
@@ -27,7 +27,6 @@ import {
   accessibilityString,
   DEFAULT_BANNER,
   DEFAULT_AVATAR,
-  GROUP_ACCESSIBILITY,
   GROUP_TYPES,
   visibilityDescription,
   visibilityIcon,
@@ -36,12 +35,13 @@ import {
 import presentGroup from 'store/presenters/presentGroup'
 import getMe from 'store/selectors/getMe'
 import { useGetJoinRequests } from 'hooks/useGetJoinRequests'
+import useRouteParams from 'hooks/useRouteParams'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
-import { inIframe } from 'util/index'
-import { groupDetailUrl, groupUrl, personUrl, removeGroupFromUrl } from 'util/navigation'
+import { cn, inIframe } from 'util/index'
+import { groupUrl, personUrl, removeGroupFromUrl } from 'util/navigation'
 import isWebView, { sendMessageToWebView } from 'util/webView'
 
 import {
@@ -55,18 +55,18 @@ import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable
 
 const MAX_DETAILS_LENGTH = 144
 
-function GroupDetail () {
+function GroupDetail ({ popup = false }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
   const groupSelector = useSelector(state => getGroupForSlug(state, routeParams.detailGroupSlug || routeParams.groupSlug))
   const group = useMemo(() => presentGroup(groupSelector), [groupSelector])
   const slug = routeParams.detailGroupSlug || routeParams.groupSlug
-  const isAboutCurrentGroup = routeParams.groupSlug === routeParams.detailGroupSlug
+  const isAboutCurrentGroup = !routeParams.detailGroupSlug || routeParams.groupSlug === routeParams.detailGroupSlug
   const myMemberships = useSelector(state => getMyMemberships(state))
   const isMember = useMemo(() => group && currentUser ? myMemberships.find(m => m.group.id === group.id) : false, [group, currentUser, myMemberships])
   const joinRequests = useGetJoinRequests()
@@ -104,7 +104,14 @@ function GroupDetail () {
     navigate(newUrl)
   }
 
-  const fullPage = !routeParams.detailGroupSlug
+  const fullPage = !routeParams.detailGroupSlug && !popup
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    if (group) {
+      setHeaderDetails({ title: t('About {{name}}', { name: group.name }), icon: 'Info', info: '', search: true })
+    }
+  }, [group?.name])
 
   if (!group && !pending) return <NotFound />
   if (pending) return <Loading />
@@ -112,42 +119,44 @@ function GroupDetail () {
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
 
   return (
-    <div className={cx({ [g.group]: true, [g.fullPage]: fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
+    <div className={cn('bg-background relative', { [g.fullPage]: fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
       <Helmet>
         <title>{group.name} | Hylo</title>
         <meta name='description' content={TextHelpers.truncateHTML(group.description, MAX_DETAILS_LENGTH)} />
       </Helmet>
 
-      <div className={g.groupDetailHeader} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
-        {!fullPage && (
-          <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
-        )}
-        <div className={g.groupTitleContainer}>
-          <img src={group.avatarUrl || DEFAULT_AVATAR} className={g.groupAvatar} />
-          <div>
-            <div className={g.groupTitle}>{isAboutCurrentGroup && <span>{t('About')}</span>} {group.name}</div>
-            <div className={g.groupContextInfo}>
-              <div>
-                <span className={g.groupPrivacy}>
-                  <Icon name={visibilityIcon(group.visibility)} className={g.privacyIcon} />
-                  <div className={g.privacyTooltip}>
-                    <div>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</div>
-                  </div>
-                </span>
-                <span className={g.groupPrivacy}>
-                  <Icon name={accessibilityIcon(group.accessibility)} className={g.privacyIcon} />
-                  <div className={g.privacyTooltip}>
-                    <div>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</div>
-                  </div>
-                </span>
-                <span className={g.memberCount}>{group.memberCount} {group.memberCount > 1 ? t('Members') : t('Member')}</span>
+      {!isAboutCurrentGroup && (
+        <div className={g.groupDetailHeader} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
+          {!fullPage && (
+            <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
+          )}
+          <div className={g.groupTitleContainer}>
+            <img src={group.avatarUrl || DEFAULT_AVATAR} className={g.groupAvatar} />
+            <div>
+              <div className='text-background text-lg ml-4'>{isAboutCurrentGroup && <span>{t('About')}</span>} {group.name}</div>
+              <div className={g.groupContextInfo}>
+                <div>
+                  <span className={g.groupPrivacy}>
+                    <Icon name={visibilityIcon(group.visibility)} className={g.privacyIcon} />
+                    <div className={g.privacyTooltip}>
+                      <div>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</div>
+                    </div>
+                  </span>
+                  <span className={g.groupPrivacy}>
+                    <Icon name={accessibilityIcon(group.accessibility)} className={g.privacyIcon} />
+                    <div className={g.privacyTooltip}>
+                      <div>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</div>
+                    </div>
+                  </span>
+                  <span className={g.memberCount}>{group.memberCount} {group.memberCount > 1 ? t('Members') : t('Member')}</span>
+                </div>
+                <span className={g.groupLocation}>{group.location}</span>
               </div>
-              <span className={g.groupLocation}>{group.location}</span>
             </div>
           </div>
+          <div className={g.headerBackground} />
         </div>
-        <div className={g.headerBackground} />
-      </div>
+      )}
 
       <div className={g.groupDetailBody}>
         {group.type === GROUP_TYPES.default && defaultGroupBody({ group, isAboutCurrentGroup, t, responsibilityTitles })}
@@ -161,7 +170,7 @@ function GroupDetail () {
               <div className={g.stewards}>
                 {stewards.map(p => (
                   <Link to={personUrl(p.id, group.slug)} key={p.id} className={g.steward}>
-                    <Avatar avatarUrl={p.avatarUrl} medium />
+                    <Avatar avatarUrl={p.avatarUrl} medium className='mx-1' />
                     <span>{p.name}</span>
                   </Link>
                 ))}
@@ -182,7 +191,7 @@ function GroupDetail () {
         </div>
         {group.agreements?.length > 0
           ? (
-            <div className={cx(g.agreements, g.detailSection)}>
+            <div className={cn(g.agreements, g.detailSection)}>
               <h2>{t('Agreements')}</h2>
               {group.agreements.map((agreement, i) => {
                 return (
@@ -259,15 +268,15 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
         ? (
           <div className={g.noDescription}>
             <div>
-              <h4>{t('Your group doesn\'t have a description')}</h4>
-              <p>{t('Add a description, location, suggested topics and more in your group settings')}</p>
+              <h4>{t('Your group doesn\'t have a purpose or description')}</h4>
+              <p>{t('Add a purpose, description, location, and more in your group settings')}</p>
               <Link to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
             </div>
           </div>
           )
-        : group.purpose || group.description
+        : group.purpose || group.description || group.websiteUrl
           ? (
-            <div className={cx(g.groupDescription, g.detailSection)}>
+            <div className={cn(g.groupDescription, g.detailSection)}>
               {group.purpose
                 ? (
                   <>
@@ -288,140 +297,18 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
                   </>
                   )
                 : ''}
+              {group.websiteUrl
+                ? (
+                  <>
+                    <h3>{t('Website')}</h3>
+                    <a href={TextHelpers.sanitizeURL(group.websiteUrl)} target='_blank' rel='noopener noreferrer'>{group.websiteUrl}</a>
+                  </>
+                  )
+                : ''}
             </div>
             )
           : ''}
     </>
-  )
-}
-
-export function JoinSection ({ addSkill, currentUser, fullPage, group, groupsWithPendingRequests, joinGroup, requestToJoinGroup, removeSkill, routeParams, t }) {
-  const hasPendingRequest = groupsWithPendingRequests[group.id]
-
-  return (
-    <div className={g.requestBar}>
-      {group.suggestedSkills && group.suggestedSkills.length > 0 &&
-        <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
-      {group.prerequisiteGroups && group.prerequisiteGroups.length > 0
-        ? (
-          <div className={g.prerequisiteGroups}>
-            {group.prerequisiteGroups.length === 1 ? <h4>{group.name}{' '}{t('is only accessible to members of')}{' '}{group.prerequisiteGroups.map(prereq => <span key={prereq.id}>{prereq.name}</span>)}</h4> : <h4>{t('{{group.name}} is only accessible to members of the following groups:', { group })}</h4>}
-            {group.prerequisiteGroups.map(prereq => (
-              <div key={prereq.id} className={g.prerequisiteGroup}>
-                <Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={cx(g.groupDetailHeader, g.prereqHeader)} style={{ backgroundImage: `url(${prereq.bannerUrl || DEFAULT_BANNER})` }}>
-                  <div className={g.groupTitleContainer}>
-                    <img src={prereq.avatarUrl || DEFAULT_AVATAR} height='50px' width='50px' />
-                    <div>
-                      <div className={g.groupTitle}>{prereq.name}</div>
-                      <div className={g.groupContextInfo}>
-                        <span className={g.groupPrivacy}>
-                          <Icon name={visibilityIcon(prereq.visibility)} className={g.privacyIcon} />
-                          <div className={g.privacyTooltip}>
-                            <div>{t(visibilityString(prereq.visibility))} - {t(visibilityDescription(prereq.visibility))}</div>
-                          </div>
-                        </span>
-                        <span className={g.groupPrivacy}>
-                          <Icon name={accessibilityIcon(prereq.accessibility)} className={g.privacyIcon} />
-                          <div className={g.privacyTooltip}>
-                            <div>{t(accessibilityString(prereq.accessibility))} - {t(accessibilityDescription(prereq.accessibility))}</div>
-                          </div>
-                        </span>
-                        {prereq.location}
-                      </div>
-                    </div>
-                  </div>
-                  <div className={g.headerBackground} />
-                </Link>
-                <div className={g.cta}>
-                  {t('To join')}{' '}{group.name} <Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={g.prereqVisitLink}>{t('visit')} {prereq.name}</Link>{' '}{t('and become a member')}
-                </div>
-              </div>
-            ))}
-          </div>
-          )
-        : group.numPrerequisitesLeft
-          ? t('This group has prerequisite groups you cannot see, you cannot join this group at this time')
-          : group.accessibility === GROUP_ACCESSIBILITY.Open
-            ? <JoinQuestionsAndButtons group={group} joinGroup={joinGroup} joinText={t('Join {{group.name}}', { group })} t={t} />
-            : group.accessibility === GROUP_ACCESSIBILITY.Restricted
-              ? hasPendingRequest
-                ? <div className={g.requestPending}>{t('Request to join pending')}</div>
-                : <JoinQuestionsAndButtons group={group} joinGroup={requestToJoinGroup} joinText={t('Request Membership in {{group.name}}', { group })} t={t} />
-              : ''}
-    </div>
-  )
-}
-
-export function SuggestedSkills ({ addSkill, currentUser, group, removeSkill }) {
-  const [selectedSkills, setSelectedSkills] = useState(currentUser.skills ? currentUser.skills.toRefArray().map(s => s.id) : [])
-  const { t } = useTranslation()
-
-  const pills = map(group.suggestedSkills, skill => ({
-    ...skill,
-    label: skill.name,
-    className: selectedSkills.find(s => s === skill.id) ? g.selectedSkill : ''
-  }))
-
-  const handleClick = (skillId) => {
-    const hasSkill = selectedSkills.includes(skillId)
-    if (hasSkill) {
-      removeSkill(skillId)
-      setSelectedSkills(selectedSkills.filter(s => s !== skillId))
-    } else {
-      addSkill(group.suggestedSkills.find(s => s.id === skillId).name)
-      setSelectedSkills(selectedSkills.concat(skillId))
-    }
-  }
-
-  return (
-    <div className={g.joinQuestion}>
-      <h4>{t('Which of the following skills & interests are relevant to you?')}</h4>
-      <div className={g.skillPills}>
-        <Pillbox
-          pills={pills}
-          handleClick={handleClick}
-          editable={false}
-        />
-      </div>
-    </div>
-  )
-}
-
-function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
-  const [questionAnswers, setQuestionAnswers] = useState(group.joinQuestions.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
-  const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!group.settings.askJoinQuestions || questionAnswers.length === 0)
-
-  const setAnswer = (index) => (event) => {
-    const answerValue = event.target.value
-    setQuestionAnswers(prevAnswers => {
-      const newAnswers = [...prevAnswers]
-      newAnswers[index].answer = answerValue
-      setAllQuestionsAnswered(newAnswers.every(a => trim(a.answer).length > 0))
-      return newAnswers
-    })
-  }
-
-  return (
-    <div className={g.requestOption}>
-      {group.settings.askJoinQuestions && questionAnswers.length > 0 && <div>{t('Please answer the following to join')}:</div>}
-      {group.settings.askJoinQuestions && questionAnswers.map((q, index) => (
-        <div className={g.joinQuestion} key={index}>
-          <h3>{q.text}</h3>
-          <textarea name={`question_${q.questionId}`} onChange={setAnswer(index)} value={q.answer} placeholder={t('Type your answer here...')} />
-        </div>
-      )
-      )}
-      <div className={g.center}>
-        <div
-          className={cx(g.requestButton, { [g.disabledButton]: !allQuestionsAnswered })}
-          onClick={allQuestionsAnswered ? () => joinGroup(group.id, questionAnswers) : () => {}}
-          data-tooltip-content={!allQuestionsAnswered ? t('You must answer all the questions to join') : ''}
-          data-tooltip-id='join-tip'
-        >
-          {joinText}
-        </div>
-      </div>
-    </div>
   )
 }
 

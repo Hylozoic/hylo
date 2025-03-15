@@ -1,13 +1,12 @@
 import React from 'react'
-import { withTranslation } from 'react-i18next'
+import { useTranslation, withTranslation } from 'react-i18next'
 import { filter, get } from 'lodash/fp'
-import cx from 'classnames'
-import { bgImageStyle } from 'util/index'
 import ModalDialog from 'components/ModalDialog'
 import TextInput from 'components/TextInput'
 import Member from 'components/Member'
 import classes from './PostPeopleDialog.module.scss'
-import { humanResponse } from 'store/models/EventInvitation'
+import { humanResponse } from '@hylo/presenters/EventInvitationPresenter'
+import { bgImageStyle, cn } from 'util/index'
 
 class PostPeopleDialog extends React.PureComponent {
   constructor (props) {
@@ -84,17 +83,18 @@ class PostPeopleDialog extends React.PureComponent {
 }
 
 function MemberRow ({ member, selected, onClick }) {
+  const { t } = useTranslation()
   const { name, avatarUrl, response } = member
 
   return (
-    <div className={cx(classes.row, { [classes.selected]: selected })} onClick={onClick}>
+    <div className={cn(classes.row, { [classes.selected]: selected })} onClick={onClick}>
       <div className={classes.col}>
         <div className={classes.avatar} style={bgImageStyle(avatarUrl)} />
       </div>
       <div className={classes.col}>
         {name}
       </div>
-      {response && <div className={cx(classes.col, classes.response)}>{humanResponse(response)}</div>}
+      {response && <div className={cn(classes.col, classes.response)}>{t(humanResponse(response))}</div>}
     </div>
   )
 }

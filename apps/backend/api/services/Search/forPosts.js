@@ -86,7 +86,7 @@ export default function forPosts (opts) {
       search: opts.term,
       sortBy: opts.sort,
       // Sort pinned posts first only when looking at a single group and not looking at chat room
-      showPinnedFirst: opts.type !== 'chat' && get(opts.groupIds, 'length') === 1
+      showPinnedFirst: false // XXX: we have removed pinning for now, but plan to bring back. opts.type !== 'chat' && get(opts.groupIds, 'length') === 1
     }), qb)
 
     if (opts.omit) {

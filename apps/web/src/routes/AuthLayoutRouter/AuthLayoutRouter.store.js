@@ -11,11 +11,11 @@ export const MODULE_NAME = 'AuthLayoutRouter'
 
 const TOGGLE_DRAWER = `${MODULE_NAME}/TOGGLE_DRAWER`
 
-const TOGGLE_GROUP_MENU = `${MODULE_NAME}/TOGGLE_GROUP_MENU`
+const TOGGLE_NAV_MENU = `${MODULE_NAME}/TOGGLE_NAV_MENU`
 
 export const initialState = {
   isDrawerOpen: false,
-  isGroupMenuOpen: false
+  isNavOpen: false
 }
 
 export default function reducer (state = initialState, action) {
@@ -25,12 +25,12 @@ export default function reducer (state = initialState, action) {
     return { ...state, isDrawerOpen: !state.isDrawerOpen }
   }
 
-  if (action.type === TOGGLE_GROUP_MENU) {
-    return { ...state, isGroupMenuOpen: !state.isGroupMenuOpen }
+  if (action.type === TOGGLE_NAV_MENU) {
+    return { ...state, isNavOpen: action.value !== undefined ? action.value : !state.isNavOpen }
   }
 
   if (action.type === LOCATION_CHANGE) {
-    return { ...state, isDrawerOpen: false, isGroupMenuOpen: false }
+    return { ...state, isDrawerOpen: false }
   }
 
   // Links current user to rollbar config
@@ -56,9 +56,10 @@ export function toggleDrawer () {
   }
 }
 
-export function toggleGroupMenu () {
+export function toggleNavMenu (value) {
   return {
-    type: TOGGLE_GROUP_MENU
+    type: TOGGLE_NAV_MENU,
+    value
   }
 }
 

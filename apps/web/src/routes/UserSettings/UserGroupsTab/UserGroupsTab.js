@@ -1,156 +1,188 @@
-import PropTypes from 'prop-types'
-import React, { Component, useState } from 'react'
-import { withTranslation, useTranslation } from 'react-i18next'
 import get from 'lodash/get'
+import React, { useCallback, useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { createSelector as ormCreateSelector } from 'redux-orm'
+import { useDispatch, useSelector } from 'react-redux'
 import { WebViewMessageTypes } from '@hylo/shared'
-import isWebView, { sendMessageToWebView } from 'util/webView'
-import {
-  CREATE_AFFILIATION,
-  DELETE_AFFILIATION,
-  LEAVE_GROUP
-} from 'store/constants'
 import Affiliation from 'components/Affiliation'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import Membership from 'components/Membership'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
+import {
+  CREATE_AFFILIATION,
+  DELETE_AFFILIATION,
+  LEAVE_GROUP
+} from 'store/constants'
+import orm from 'store/models'
+import { cn } from 'util/index'
+import isWebView, { sendMessageToWebView } from 'util/webView'
+
+import { createAffiliation, deleteAffiliation, leaveGroup } from './UserGroupsTab.store'
+import getMyMemberships from 'store/selectors/getMyMemberships'
+
 import classes from './UserGroupsTab.module.scss'
-import cx from 'classnames'
 
-const { array, func, object, string } = PropTypes
-
-class UserGroupsTab extends Component {
-  static propTypes = {
-    action: string,
-    affiliations: object,
-    memberships: array,
-    leaveGroup: func,
-    createAffiliation: func,
-    deleteAffiliation: func
+export const getCurrentUserAffiliations = ormCreateSelector(
+  orm,
+  session => {
+    const me = session.Me.first()
+    // TODO post-redesign: this was being weird; affiliations aren't on the User Model
+    if (!me) return {}
+    console.log('me', me, me.affiliations)
+    return me?.affiliations?.items
   }
+)
 
-  state = {
-    affiliations: this.props.affiliations,
-    memberships: this.props.memberships,
-    errorMessage: undefined,
-    successMessage: undefined,
-    showAddAffiliations: undefined
-  }
+function UserGroupsTab () {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
 
-  render () {
-    const { action, t } = this.props
-    const { affiliations, memberships, errorMessage, successMessage, showAddAffiliations } = this.state
-    const displayMessage = errorMessage || successMessage
-    if (!memberships || !affiliations) return <Loading />
+  // Get state from Redux
+  const action = useSelector(state => get(state, 'UserGroupsTab.action'))
+  const reduxAffiliations = useSelector(getCurrentUserAffiliations)
+  const reduxMemberships = useSelector(getMyMemberships).sort((a, b) =>
+    a.group.name.localeCompare(b.group.name))
 
-    return (
-      <div className={classes.container}>
-        <h1 className={classes.title}>{t('Your affiliations with organizations')}</h1>
+  // Local state
+  const [affiliations, setAffiliations] = useState(reduxAffiliations || [])
+  const [memberships, setMemberships] = useState(reduxMemberships || [])
+  const [errorMessage, setErrorMessage] = useState(undefined)
+  const [successMessage, setSuccessMessage] = useState(undefined)
+  const [showAddAffiliations, setShowAddAffiliations] = useState(false)
 
-        <div className={classes.description}>{t('This list automatically shows which groups on Hylo you are a part of. You can also share your affiliations with organizations that are not currently on Hylo.')}</div>
+  useEffect(() => {
+    setAffiliations(reduxAffiliations || [])
+  }, [reduxAffiliations])
 
-        <h2 className={classes.subhead}>{t('Hylo Groups')}</h2>
-        {action === LEAVE_GROUP && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={this.resetMessage} />}
-        {memberships.map((m, index) =>
-          <Membership
-            membership={m}
-            archive={this.leaveGroup}
-            key={m.id}
-            index={index}
-            rowStyle
-          />)}
+  useEffect(() => {
+    setMemberships(reduxMemberships || [])
+  }, [reduxMemberships])
 
-        <h2 className={classes.subhead}>{t('Other Affiliations')}</h2>
-        {action === DELETE_AFFILIATION && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={this.resetMessage} />}
-        {affiliations && affiliations.items.length > 0 && affiliations.items.map((a, index) =>
-          <Affiliation
-            affiliation={a}
-            archive={this.deleteAffiliation}
-            key={a.id}
-            index={index}
-          />
-        )}
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Groups and Affiliations'),
+      icon: '',
+      info: '',
+      search: false
+    })
+  }, [])
 
-        {action === CREATE_AFFILIATION && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={this.resetMessage} />}
+  const displayMessage = errorMessage || successMessage
 
-        {showAddAffiliations
-          ? <AddAffiliation close={this.toggleAddAffiliations} save={this.saveAffiliation} />
-          : (
-            <div className={classes.addAffiliation} onClick={this.toggleAddAffiliations}>
-              <div className={classes.plus}>+</div>
-              <div>{t('Add new affiliation')}</div>
-            </div>
-            )}
-      </div>
-    )
-  }
+  const resetMessage = useCallback(() => {
+    setErrorMessage(undefined)
+    setSuccessMessage(undefined)
+  }, [])
 
-  deleteAffiliation = (affiliationId) => {
-    const { deleteAffiliation } = this.props
-    const { affiliations } = this.state
+  const toggleAddAffiliations = useCallback(() => {
+    setShowAddAffiliations(!showAddAffiliations)
+  }, [showAddAffiliations])
 
-    deleteAffiliation(affiliationId)
+  const deleteAffiliationHandler = useCallback((affiliationId) => {
+    dispatch(deleteAffiliation(affiliationId))
       .then(res => {
-        let errorMessage, successMessage
-        if (res.error) errorMessage = 'Error deleting this affiliation.'
+        if (res.error) {
+          setErrorMessage(t('Error deleting this affiliation.'))
+          return
+        }
+
         const deletedAffiliationId = get(res, 'payload.data.deleteAffiliation')
         if (deletedAffiliationId) {
-          successMessage = 'Your affiliation was deleted.'
-          affiliations.items = affiliations.items.filter((a) => a.id !== deletedAffiliationId)
+          setSuccessMessage(t('Your affiliation was deleted'))
+          const updatedItems = affiliations.filter((a) => a.id !== deletedAffiliationId)
+          setAffiliations([...updatedItems])
         }
-        return this.setState({ affiliations, errorMessage, successMessage })
       })
-  }
+  }, [affiliations])
 
-  leaveGroup = (group) => {
-    const { leaveGroup } = this.props
-    let { memberships } = this.state
-
-    leaveGroup(group.id)
+  const leaveGroupHandler = useCallback((group) => {
+    dispatch(leaveGroup(group.id))
       .then(res => {
-        let errorMessage, successMessage
-        if (res.error) errorMessage = `Error leaving ${group.name || 'this group'}.`
+        if (res.error) {
+          setErrorMessage(t('Error leaving {{group_name}}', { group_name: group.name || 'this group' }))
+          return
+        }
+
         const deletedGroupId = get(res, 'payload.data.leaveGroup')
         if (deletedGroupId) {
-          successMessage = `You left ${group.name || 'this group'}.`
-          memberships = memberships.filter((m) => m.group.id !== deletedGroupId)
+          setSuccessMessage(t('You left {{group_name}}', { group_name: group.name || 'this group' }))
+          const newMemberships = memberships.filter((m) => m.group.id !== deletedGroupId)
+          setMemberships(newMemberships)
         }
 
         if (isWebView()) {
           // Could be handled better using WebSockets
           sendMessageToWebView(WebViewMessageTypes.LEFT_GROUP, { groupId: deletedGroupId })
         }
-
-        return this.setState({ memberships, errorMessage, successMessage })
       })
-  }
+  }, [memberships])
 
-  saveAffiliation = ({ role, preposition, orgName, url }) => {
-    const { affiliations } = this.state
-    this.props.createAffiliation({ role, preposition, orgName, url })
+  const saveAffiliation = useCallback(({ role, preposition, orgName, url }) => {
+    dispatch(createAffiliation({ role, preposition, orgName, url }))
       .then(res => {
-        let successMessage
         const affiliation = get(res, 'payload.data.createAffiliation')
         if (affiliation) {
-          successMessage = 'Your affiliation was added'
-          affiliations.items.push(affiliation)
+          setSuccessMessage(t('Your affiliation was added'))
+          const updatedItems = [...affiliations, affiliation]
+          setAffiliations(updatedItems)
+          setShowAddAffiliations(false)
+          setErrorMessage('')
         }
-        return this.setState({ affiliations, successMessage, errorMessage: '', showAddAffiliations: false })
-      }).catch((e) => this.setState({ errorMessage: e.message, showAddAffiliations: true }))
-  }
+      })
+      .catch((e) => {
+        setErrorMessage(e.message)
+        setShowAddAffiliations(true)
+      })
+  }, [affiliations])
 
-  resetMessage = () => {
-    this.setState({ action: undefined, errorMessage: undefined, successMessage: undefined })
-  }
+  if (!memberships && !affiliations) return <Loading />
 
-  toggleAddAffiliations = () => {
-    this.setState({ showAddAffiliations: !this.state.showAddAffiliations })
-  }
+  return (
+    <div className={classes.container}>
+      <div className={classes.description}>{t('This list shows which groups on Hylo you are a part of. You can also share your affiliations with organizations that are not currently on Hylo, which will appear on your profile.')}</div>
+
+      <h2 className={classes.subhead}>{t('Hylo Groups')}</h2>
+      {action === LEAVE_GROUP && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={resetMessage} />}
+      {memberships.map((m, index) =>
+        <Membership
+          membership={m}
+          archive={leaveGroupHandler}
+          key={m.id}
+          index={index}
+          rowStyle
+        />)}
+
+      <h2 className={classes.subhead}>{t('Other Affiliations')}</h2>
+      {action === DELETE_AFFILIATION && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={resetMessage} />}
+      {affiliations && affiliations.length > 0 && affiliations.map((a, index) =>
+        <Affiliation
+          affiliation={a}
+          archive={deleteAffiliationHandler}
+          key={a.id}
+          index={index}
+        />
+      )}
+
+      {action === CREATE_AFFILIATION && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={resetMessage} />}
+
+      {showAddAffiliations
+        ? <AddAffiliation close={toggleAddAffiliations} save={saveAffiliation} />
+        : (
+          <div className={classes.addAffiliation} onClick={toggleAddAffiliations}>
+            <div className={classes.plus}>+</div>
+            <div>{t('Add new affiliation')}</div>
+          </div>
+          )}
+    </div>
+  )
 }
 
 export function AddAffiliation ({ close, save }) {
   const { t } = useTranslation()
-  const PREPOSITIONS = ['of', 'at', 'for']
+  const PREPOSITIONS = [t('of'), t('at'), t('for')]
   const [role, setRole] = useState('')
   const [preposition, setPreposition] = useState(PREPOSITIONS[0])
   const [orgName, setOrgName] = useState('')
@@ -216,7 +248,7 @@ export function AddAffiliation ({ close, save }) {
           />
         </div>
 
-        <div className={cx(classes.save, { [classes.disabled]: !canSave })}>
+        <div className={cn(classes.save, { [classes.disabled]: !canSave })}>
           <span onClick={canSave ? () => save({ role, preposition, orgName, url }) : undefined}>{t('Add Affiliation')}</span>
         </div>
 
@@ -227,7 +259,8 @@ export function AddAffiliation ({ close, save }) {
 
 export function Message ({ errorMessage, successMessage, reset }) {
   return (
-    <div className={cx(classes.message, { [classes.error]: errorMessage, [classes.success]: !errorMessage })} onClick={reset}>{errorMessage || successMessage}</div>
+    <div className={cn(classes.message, { [classes.error]: errorMessage, [classes.success]: !errorMessage })} onClick={reset}>{errorMessage || successMessage}</div>
   )
 }
-export default withTranslation()(UserGroupsTab)
+
+export default UserGroupsTab

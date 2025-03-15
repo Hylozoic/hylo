@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React from 'react'
 import classes from './Loading.module.scss'
 
@@ -23,7 +23,7 @@ export default function Loading ({ type, className, size }) {
   }
 
   return (
-    <div className={cx(loadingClass, className)} data-testid='loading-container'>
+    <div className={cn(loadingClass, className)} data-testid='loading-container'>
       <SvgLoader size={finalSize} />
     </div>
   )

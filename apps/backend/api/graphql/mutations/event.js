@@ -1,21 +1,19 @@
-const { GraphQLYogaError } = require('@graphql-yoga/node')
-
+import { GraphQLError } from 'graphql'
 import { values, includes } from 'lodash/fp'
 
-export async function respondToEvent(userId, eventId, response) {
-
+export async function respondToEvent (userId, eventId, response) {
   if (!includes(response, values(EventInvitation.RESPONSE))) {
-    throw new GraphQLYogaError(`response must be one of ${values(EventInvitation.RESPONSE)}. received ${response}`)
+    throw new GraphQLError(`response must be one of ${values(EventInvitation.RESPONSE)}. received ${response}`)
   }
 
   const event = await Post.find(eventId)
-  if(!event) {
-    throw new GraphQLYogaError('Event not found')
+  if (!event) {
+    throw new GraphQLError('Event not found')
   }
 
-  var eventInvitation = await EventInvitation.find({userId, eventId})
+  const eventInvitation = await EventInvitation.find({ userId, eventId })
   if (eventInvitation) {
-    await eventInvitation.save({response})
+    await eventInvitation.save({ response })
   } else {
     await EventInvitation.create({
       userId,
@@ -24,24 +22,22 @@ export async function respondToEvent(userId, eventId, response) {
       response
     })
   }
-  return {success: true}
+  return { success: true }
 }
 
 export async function invitePeopleToEvent (userId, eventId, inviteeIds) {
   inviteeIds.forEach(async inviteeId => {
-    var eventInvitation = await EventInvitation.find({userId: inviteeId, eventId})
+    let eventInvitation = await EventInvitation.find({ userId: inviteeId, eventId })
     if (!eventInvitation) {
-
       await EventInvitation.create({
         userId: inviteeId,
         inviterId: userId,
         eventId
       })
-  
     }
   })
-  
-  const event = await Post.find(eventId)  
+
+  const event = await Post.find(eventId)
 
   await event.createInviteNotifications(userId, inviteeIds)
 

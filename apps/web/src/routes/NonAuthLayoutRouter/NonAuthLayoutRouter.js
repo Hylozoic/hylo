@@ -9,7 +9,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import { getAuthenticated } from 'store/selectors/getAuthState'
 import particlesjsConfig from './particlesjsConfig'
-import LocaleDropdown from 'routes/AuthLayoutRouter/components/TopNav/LocaleDropdown/LocaleDropdown'
+import LocaleDropdown from 'routes/AuthLayoutRouter/components/GlobalNav/LocaleDropdown/LocaleDropdown'
 import Button from 'components/Button'
 import HyloCookieConsent from 'components/HyloCookieConsent'
 import JoinGroup from 'routes/JoinGroup'
@@ -45,6 +45,8 @@ export default function NonAuthLayoutRouter (props) {
   const thisApplicationText = t('this application')
   const locale = localeLocalStorageSync()
   const localeDisplay = localeToFlagEmoji(locale)
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const logoSrc = isDarkMode ? '/hylo-logo-light-horizontal.svg' : '/hylo-logo-dark-horizontal.svg'
 
   useEffect(() => {
     if (returnToPath && returnToPath !== '/') {
@@ -70,11 +72,11 @@ export default function NonAuthLayoutRouter (props) {
         <div className={classes.particlesBackgroundWrapper}>
           <Particles options={particlesjsConfig} style={particlesStyle} />
         </div>
-        <div className={classes.topRow}>
+        <div className='flex justify-between items-center w-full px-4 absolute top-0 w-full'>
           <a href='/'>
-            <img className={classes.logo} src='/assets/hylo.svg' alt={t('Hylo logo')} />
+            <img className='h-10' src={logoSrc} alt={t('Hylo logo')} />
           </a>
-          <LocaleDropdown renderToggleChildren={<span className={classes.locale}>{t('Locale')}: {locale} {localeDisplay}</span>} />
+          <LocaleDropdown renderToggleChildren={<span className='text-foreground'>{t('Locale')}: {locale} {localeDisplay}</span>} />
         </div>
         <div className={classes.signupRow}>
           <Routes>

@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import DeckGL from '@deck.gl/react'
 import {
   EditableGeoJsonLayer,
@@ -13,8 +13,6 @@ import Icon from 'components/Icon'
 import { mapbox } from 'config/index'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
-
-import classes from './EditableMap.module.scss'
 
 export default function EditableMap (props) {
   const { locationObject, polygon, savePolygon, toggleModal } = props
@@ -132,28 +130,28 @@ export default function EditableMap (props) {
   }
 
   const drawTools = (
-    <div className='mapboxgl-ctrl-top-left'>
-      <div className={cx('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
+    <div className='absolute top-0 left-0 flex flex-col gap-2 p-2'>
+      <div className='relative'>
         <button
-          className={cx(classes.mapboxGlGrawPolygon, { active: mode === DrawPolygonMode })}
+          className={cn('w-[40px] h-[40px] rounded-lg shadow-lg bg-background text-foreground', { 'bg-focus': mode === DrawPolygonMode })}
           title='New Polygon'
           onClick={toggleMode}
         >
           <Icon name='Drawing' />
         </button>
       </div>
-      <div className={cx('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
+      <div className='relative'>
         <button
-          className={classes.mapboxGlDrawCircleEx}
+          className='w-[40px] h-[40px] rounded-lg shadow-lg bg-background text-foreground'
           title='Delete selected polygon, click polygon to select'
           onClick={onDelete}
           disabled={selectedFeatureIndexes.length === 0}
         >
-          <Icon name='CircleEx' />
+          <Icon name='CircleEx' className='text-foregroun h-[20px]' />
         </button>
       </div>
       {/* We may implement this later
-       <div className={cx('mapboxgl-ctrl-group mapboxgl-ctrl', classes.mapControl)}>
+       <div className={cn('mapboxgl-ctrl-group mapboxgl-ctrl', classes.mapControl)}>
         <button
           className={classes.mapboxGlDrawReset}
           title='Reset Drawing'
@@ -164,37 +162,33 @@ export default function EditableMap (props) {
   )
 
   const zoomTools = (
-    <div className='mapboxgl-ctrl-top-right'>
-      <div className={cx('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
-        <button
-          className={classes.mapboxGlDrawPlus}
-          title='Zoom In'
-          onClick={zoomIn}
-        >
-          <Icon name='Plus' />
-        </button>
-        <button
-          className={classes.mapboxGlDrawMinus}
-          title='Zoom Out'
-          onClick={zoomOut}
-        >
-          <Icon name='Minus' />
-        </button>
-      </div>
+    <div className='absolute top-0 right-0 flex flex-col gap-2 p-2'>
+      <button
+        className='w-[40px] h-[40px] rounded-lg shadow-lg bg-background text-foreground'
+        title='Zoom In'
+        onClick={zoomIn}
+      >
+        <Icon name='Plus' />
+      </button>
+      <button
+        className='w-[40px] h-[40px] rounded-lg shadow-lg bg-background text-foreground'
+        title='Zoom Out'
+        onClick={zoomOut}
+      >
+        <Icon name='Minus' />
+      </button>
     </div>
   )
 
   const expandTools = (
-    <div className='mapboxgl-ctrl-bottom-left'>
-      <div className={cx('mapboxgl-ctrl-group', 'mapboxgl-ctrl', classes.mapControl)}>
-        <button
-          className={classes.mapboxGlExpand}
-          title='Expand'
-          onClick={expand}
-        >
-          <Icon name='Expand' />
-        </button>
-      </div>
+    <div className='absolute left-0 bottom-0 p-2'>
+      <button
+        className='w-[40px] h-[40px] rounded-lg shadow-lg bg-background text-foreground'
+        title='Expand'
+        onClick={expand}
+      >
+        <Icon name='Expand' />
+      </button>
     </div>
   )
 

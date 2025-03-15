@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import CheckBox from '@react-native-community/checkbox'
 import PropTypes from 'prop-types'
 
+// TODO: Consider adopting ItemSelector to replace this component's use
 const MultiSelect = ({ items, selected = [], hideAfter, handleSelect }) => {
   const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)
@@ -63,9 +64,7 @@ MultiSelect.propTypes = {
 }
 
 const styles = StyleSheet.create({
-  multiSelect: {
-    // Styles for multiSelec
-  },
+  multiSelect: {},
   item: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -76,12 +75,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
     flex: 1
-  },
-  itemText: {
-    fontSize: 14,
-    flex: 1,
-    marginRight: 10,
-    overflow: 'hidden'
   },
   itemText: {
     fontSize: 14

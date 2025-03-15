@@ -1,6 +1,6 @@
 .container {
   position: relative;
-  height: calc(100vh - 56px);
+  height: 100%;
   overflow: hidden;
   display: flex;
 
@@ -93,7 +93,7 @@
   }
 
   &.drawerOpen {
-    right: calc(40% + 20px);
+    right: 520px
   }
 
   &:hover {
@@ -170,23 +170,9 @@
 }
 
 button.toggleFeatureFiltersButton {
-  cursor: pointer;
-  position: absolute;
-  bottom: 40px;
-  left: 20px;
-  color: rgba(125, 140, 157, 1.000);
-  background-color: rgba(255,255,255,1);
-  border: none;
-  outline: none !important;
-  border-radius: 5px;
-  height: 30px;
-  text-align: center;
-  box-shadow: $box-shadow-default;
-  padding: 0 10px;
 
   &.open {
-    color: rgba(255,255,255,1);
-    background-color: $color-caribbean-green;
+    
   }
 }
 
@@ -257,7 +243,7 @@ button.toggleFeatureFiltersButton {
   z-index: 1000;
 
   &.drawerOpen {
-    right: calc(40% + 70px);
+    right: 520px;
   }
 
   &.open {

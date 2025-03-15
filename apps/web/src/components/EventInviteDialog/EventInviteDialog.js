@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import cx from 'classnames'
-import { bgImageStyle } from 'util/index'
 import ModalDialog from 'components/ModalDialog'
 import CheckBox from 'components/CheckBox'
 import Button from 'components/Button'
-import { humanResponse } from 'store/models/EventInvitation'
+import { humanResponse } from '@hylo/presenters/EventInvitationPresenter'
 import TextInput from 'components/TextInput'
 import { useInView } from 'react-cool-inview'
 import Loading from 'components/Loading'
+import { bgImageStyle, cn } from 'util/index'
 
 import styles from './EventInviteDialog.module.scss'
 
@@ -94,8 +93,8 @@ const EventInviteDialog = ({
             selected={invitedIds.includes(invitee.id)}
             onClick={() => toggleInvite(invitee.id)}
                                                            />)}
-          <div className={cx(styles.row)}>
-            <div className={cx(styles.col)} style={{ height: '40px' }}>
+          <div className={cn(styles.row)}>
+            <div className={cn(styles.col)} style={{ height: '40px' }}>
               {pending && <div><Loading /></div>}
             </div>
           </div>
@@ -123,10 +122,11 @@ const EventInviteDialog = ({
 }
 
 export const InviteeRow = React.forwardRef((props, ref) => {
+  const { t } = useTranslation()
   const { person, selected, showResponse, onClick } = props
   const { name, avatarUrl, response } = person
   return (
-    <div ref={ref} className={cx(styles.row)} onClick={onClick}>
+    <div ref={ref} className={cn(styles.row)} onClick={onClick}>
       <div className={styles.col}>
         <div className={styles.avatar} style={bgImageStyle(avatarUrl)} />
       </div>
@@ -134,13 +134,13 @@ export const InviteeRow = React.forwardRef((props, ref) => {
         {name}
       </div>
       {!showResponse && (
-        <div className={cx(styles.col, styles.check)}>
+        <div className={cn(styles.col, styles.check)}>
           <CheckBox checked={selected} noInput />
         </div>
       )}
       {showResponse && response && (
-        <div className={cx(styles.col, styles.response)}>
-          {humanResponse(response)}
+        <div className={cn(styles.col, styles.response)}>
+          {t(humanResponse(response))}
         </div>
       )}
     </div>

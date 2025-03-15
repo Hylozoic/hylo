@@ -1,5 +1,5 @@
-import cx from 'classnames'
-import moment from 'moment-timezone'
+import { cn } from 'util/index'
+import { DateTime } from 'luxon'
 import React, { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { filter, isFunction, isEmpty } from 'lodash/fp'
@@ -102,7 +102,7 @@ function Comment ({
   }, [])
 
   const { id, creator, createdAt, editedAt, text, attachments } = comment
-  const timestamp = t('commented') + ' ' + TextHelpers.humanDate(createdAt)
+  const timestamp = TextHelpers.humanDate(createdAt)
   const editedTimestamp = (editedAt || edited) ? t('edited') + ' ' + TextHelpers.humanDate(editedAt) : false
   const isCreator = currentUser && (comment.creator.id === currentUser.id)
   const profileUrl = personUrl(creator.id, slug)
@@ -116,28 +116,32 @@ function Comment ({
   return (
     <div
       ref={commentRef}
-      className={cx(styles.commentContainer, { [styles.selectedComment]: selectedCommentId === comment.id })}
+      className={cn('commentContainer px-4 pb-2', { [styles.selectedComment]: selectedCommentId === comment.id })}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => { if (!isEmojiPickerOpen) { setShowActions(false) } }}
     >
-      <div className={styles.header}>
-        <Avatar avatarUrl={creator.avatarUrl} url={profileUrl} className={styles.avatar} />
-        <Link to={profileUrl} className={styles.userName}>{creator.name}</Link>
-        <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={moment(createdAt).format('llll')}>
-          {timestamp}
-        </span>
-        {(editedTimestamp) && (
-          <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={moment(editedAt).format('llll')}>
-            ({editedTimestamp})
+      <div className='flex flex-row items-center justify-between w-full'>
+        <div className='flex flex-row items-center'>
+          <Avatar avatarUrl={creator.avatarUrl} url={profileUrl} medium />
+          <Link to={profileUrl} className='text-sm font-bold ml-2 text-foreground'>{creator.name}</Link>
+        </div>
+        <div>
+          <span className='text-xs text-foreground/50 pl-2' data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(createdAt).toFormat('D t ZZZZ')}>
+            {timestamp}
           </span>
-        )}
+          {(editedTimestamp) && (
+            <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(editedAt).toFormat('D t ZZZZ')}>
+              ({editedTimestamp})
+            </span>
+          )}
+        </div>
         <div className={styles.upperRight}>
           {editing && (
             <Icon name='Ex' className={styles.cancelIcon} onClick={handleEditCancel} />
           )}
           {currentUser && (
-            <div className={cx(styles.commentActions, { [styles.showActions]: showActions })}>
-              <div className={cx(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
+            <div className={cn(styles.commentActions, { [styles.showActions]: showActions })}>
+              <div className={cn(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
                 <Icon name='Replies' />
               </div>
               {dropdownItems.map(item => (
@@ -146,7 +150,7 @@ function Comment ({
                 </div>
               ))}
               <EmojiRow
-                className={cx(styles.emojis, styles.hiddenReactions)}
+                className={cn(styles.emojis, styles.hiddenReactions)}
                 comment={comment}
                 currentUser={currentUser}
                 post={post}
@@ -173,10 +177,10 @@ function Comment ({
       {!editing && (
         <>
           <ClickCatcher groupSlug={slug}>
-            <HyloHTML className={styles.text} html={text} />
+            <HyloHTML className={cn('ml-[36px]', styles.text)} html={text} />
           </ClickCatcher>
           <EmojiRow
-            className={cx(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}
+            className={cn(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}
             comment={comment}
             currentUser={currentUser}
             post={post}
@@ -240,10 +244,10 @@ export default function CommentWithReplies (props) {
   }
 
   return (
-    <div className={styles.comment}>
+    <div className='commentContainer px-4 pb-2'>
       <Comment {...props} onReplyComment={onReplyComment} />
       {childComments && (
-        <div className={styles.subreply}>
+        <div className='ml-6'>
           <div className={styles.moreWrap}>
             <ShowMore
               commentsLength={childComments.length}

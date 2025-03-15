@@ -1,35 +1,45 @@
 import React from 'react'
-import { FlatList, Text, View } from 'react-native'
+import { Text, View, StyleSheet } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { isEmpty } from 'lodash/fp'
-import { array, func } from 'prop-types'
 import TopicRow from './TopicRow'
-import styles from './TopicList.styles'
-import { withTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 
-class TopicList extends React.Component {
-  static propTypes = {
-    touchAction: func,
-    topics: array
-  }
+const TopicList = ({ topics, touchAction }) => {
+  const { t } = useTranslation()
 
-  renderTopicRow = ({ item }) => <TopicRow item={item} onPress={this.props.touchAction} />
+  const renderTopicRow = ({ item }) => (
+    <TopicRow item={item} onPress={touchAction} />
+  )
 
-  render () {
-    const { topics, t } = this.props
-
-    return (
-      <View style={styles.topicList}>
-        {isEmpty(topics)
-          ? <Text style={styles.emptyList}>{t('No topics match your search')}</Text>
-          : <FlatList
-              data={topics}
-              renderItem={this.renderTopicRow}
-              keyboardShouldPersistTaps='handled'
-              keyExtractor={i => i.id}
-            />}
-      </View>
-    )
-  }
+  return (
+    <View style={styles.topicList}>
+      {isEmpty(topics)
+        ? (
+          <Text style={styles.emptyList}>{t('No topics match your search')}</Text>
+          )
+        : (
+          <FlashList
+            data={topics}
+            estimatedItemSize={50}
+            renderItem={renderTopicRow}
+            keyboardShouldPersistTaps='handled'
+            keyExtractor={(item) => item.id}
+          />
+          )}
+    </View>
+  )
 }
 
-export default withTranslation()(TopicList)
+const styles = StyleSheet.create({
+  topicList: {
+    paddingVertical: 10,
+    paddingHorizontal: 15
+  },
+  emptyList: {
+    fontFamily: 'Circular-Book',
+    fontSize: 16
+  }
+})
+
+export default TopicList

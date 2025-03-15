@@ -1,7 +1,7 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
+import { SmilePlus } from 'lucide-react'
 import Picker from '@emoji-mart/react'
 import React, { useState, useEffect } from 'react'
-import Icon from 'components/Icon'
 import {
   Popover,
   PopoverContent,
@@ -33,6 +33,12 @@ export default function EmojiPicker (props) {
     return true
   }
 
+  const stopPropagation = (evt) => {
+    evt.preventDefault()
+    evt.stopPropagation()
+    return false
+  }
+
   const toggleModalOpen = (evt) => {
     setModalOpen(!modalOpen)
     evt.preventDefault()
@@ -42,29 +48,29 @@ export default function EmojiPicker (props) {
 
   return forReactions
     ? (
-      <div className={cx(classes.emojiPickerContainer, props.className)}>
+      <div onClick={stopPropagation} className={cn(classes.emojiPickerContainer, props.className)}>
         <Popover onOpenChange={handleOpenChange} open={modalOpen}>
           <PopoverTrigger asChild>
             <div className={classes.emojiPickerToggle} onClick={toggleModalOpen}>
-              <Icon name='Smiley' className={classes.pickerIcon} />
+              <SmilePlus className='h-[20px]' />
             </div>
           </PopoverTrigger>
           <PopoverContent className='w-auto p-0' hideWhenDetached sideOffset={0}>
             <div>
-              <EmojiPickerContent {...props} onClickOutside={toggleModalOpen} onEmojiSelect={handleSelection} />
+              <EmojiPickerContent {...props} onEmojiSelect={handleSelection} />
             </div>
           </PopoverContent>
         </Popover>
       </div>
       )
     : (
-      <div onClick={toggleModalOpen} className={cx(classes.emojiPickerContainer, props.className)}>
+      <div onClick={stopPropagation} className={cn(classes.emojiPickerContainer, props.className)}>
         <Popover onOpenChange={handleOpenChange} open={modalOpen}>
           <PopoverTrigger asChild>
-            <span>{emoji || '?'}</span>
+            <span onClick={toggleModalOpen}>{emoji || '?'}</span>
           </PopoverTrigger>
           <PopoverContent className='w-auto p-0' hideWhenDetached sideOffset={0}>
-            <EmojiPickerContent {...props} onClickOutside={toggleModalOpen} onEmojiSelect={handleSelection} />
+            <EmojiPickerContent {...props} onEmojiSelect={handleSelection} />
           </PopoverContent>
         </Popover>
       </div>

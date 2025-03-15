@@ -7,6 +7,8 @@ project = Xcodeproj::Project.open(project_path)
 min_ios_version_supported = project.build_configurations.first.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
 ######
 
+ENV['RCT_NEW_ARCH_ENABLED'] = "1"
+
 # Resolve react_native_pods.rb with node to allow for hoisting
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
@@ -31,6 +33,9 @@ target 'HyloReactNative' do
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
+
+  # See: https://github.com/douglasjunior/react-native-keyboard-manager
+  pod 'IQKeyboardManagerSwift', :git => 'https://github.com/douglasjunior/IQKeyboardManager.git', :branch => 'react-native-keyboard-manager'
 
   target 'HyloReactNativeTests' do
     inherit! :complete

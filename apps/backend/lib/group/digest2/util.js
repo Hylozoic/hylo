@@ -1,23 +1,23 @@
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import { includes } from 'lodash'
 import { get, pick, some } from 'lodash/fp'
 
 export const defaultTimezone = 'America/Los_Angeles'
 
 export const defaultTimeRange = type => {
-  const today = moment.tz(defaultTimezone).startOf('day').add(12, 'hours')
+  const today = DateTime.now().setZone(defaultTimezone).startOf('day').plus({ hours: 12 })
   switch (type) {
     case 'daily':
-      return [today.clone().subtract(1, 'day'), today]
+      return [today.minus({ day: 1 }), today]
     case 'weekly':
-      return [today.clone().subtract(7, 'day'), today]
+      return [today.minus({ day: 7 }), today]
   }
 }
 
 export const isValidPostType = q =>
   q.where(function () {
     this.whereNotIn('posts.type', ['welcome'])
-    .orWhere('posts.type', null)
+      .orWhere('posts.type', null)
   })
 
 export const relatedUserColumns = (relationName = 'user') => ({
@@ -26,38 +26,58 @@ export const relatedUserColumns = (relationName = 'user') => ({
 
 export const shouldSendData = (data, id) =>
   Promise.resolve(
-    some(some(x => x), pick(['discussions', 'requests', 'offers', 'events', 'projects', 'resources', 'topicsWithChats', 'postsWithNewComments'], data))
+    some(some(x => x), pick(['discussions', 'requests', 'offers', 'events', 'projects', 'resources', 'chats', 'topics_with_chats', 'posts_with_new_comments', 'upcoming', 'ending'], data))
   )
 
-export const getPostsAndComments = (group, startTime, endTime) =>
-  Promise.props({
-    posts: Post.createdInTimeRange(group.posts(), startTime, endTime)
-      .query(isValidPostType)
-      .fetch({
-        withRelated: [
-          'tags',
-          relatedUserColumns(),
-          'children',
-          'linkPreview'
-        ]
+export const getPostsAndComments = async (group, startTime, endTime, digestType) => {
+  const posts = await Post.createdInTimeRange(group.posts(), startTime, endTime)
+    .query(isValidPostType)
+    .query(q => {
+      // Only show posts that are not fulfilled and not past end time
+      q.whereRaw('posts.fulfilled_at IS NULL')
+      q.where(q2 => {
+        q2.whereRaw('posts.end_time is NULL')
+          .orWhereRaw('posts.end_time > NOW()')
       })
-      .then(get('models')),
+    })
+    .fetch({
+      withRelated: [
+        'tags',
+        relatedUserColumns(),
+        'linkPreview',
+        'media'
+      ]
+    })
+    .then(get('models'))
 
-    comments: Comment.createdInTimeRange(group.comments(), startTime, endTime)
-      .query(q => {
-        isValidPostType(q)
-        q.join('posts', 'posts.id', 'comments.post_id')
-        q.where('posts.active', true)
-        q.orderBy('id', 'asc')
-      })
-      .fetch({withRelated: [
+  const upcomingPostReminders = await Post.upcomingPostReminders(group.posts(), digestType)
+
+  const comments = await Comment.createdInTimeRange(group.comments(), startTime, endTime)
+    .query(q => {
+      isValidPostType(q)
+      q.join('posts', 'posts.id', 'comments.post_id')
+      q.where('posts.active', true)
+      q.orderBy('id', 'asc')
+    })
+    .fetch({
+      withRelated: [
         'post',
         relatedUserColumns(),
         relatedUserColumns('post.user')
-      ]})
-      .then(get('models'))
+      ]
+    })
+    .then(get('models'))
 
-  })
+  if (posts.length === 0 && comments.length === 0 && upcomingPostReminders.length === 0) {
+    return false
+  }
+
+  return {
+    posts,
+    comments,
+    upcomingPostReminders
+  }
+}
 
 export async function getRecipients (groupId, type) {
   if (!includes(['daily', 'weekly'], type)) {
@@ -66,9 +86,10 @@ export async function getRecipients (groupId, type) {
 
   const group = await Group.find(groupId)
   const recipients = await group.members().query(q => {
-    q.whereRaw(`users.settings->>'digest_frequency' = '${type}'`)
-    q.whereRaw(`(group_memberships.settings->>'sendEmail')::boolean = true`)
+    q.whereRaw(`group_memberships.settings->>'digestFrequency' = '${type}'`)
+    q.whereRaw('(group_memberships.settings->>\'sendEmail\')::boolean = true')
   }).fetch().then(get('models'))
 
-  return recipients
+  // If email notifications are disabled, only send to testers
+  return recipients.filter(recipient => process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || recipient.isTester())
 }

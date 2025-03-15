@@ -132,3 +132,9 @@ window.ResizeObserver = jest.fn().mockImplementation(() => ({
 
 window.alert = jest.fn()
 window.confirm = jest.fn().mockReturnValue(true)
+
+window.CSS = {
+  Transform: {
+    toString: jest.fn()
+  }
+}

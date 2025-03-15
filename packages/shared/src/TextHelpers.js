@@ -2,7 +2,7 @@ import { convert as convertHtmlToText } from 'html-to-text'
 import { isURL } from 'validator'
 import { marked } from 'marked'
 import merge from 'lodash/fp/merge'
-import moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 import prettyDate from 'pretty-date'
 import truncHTML from 'trunc-html'
 import truncText from 'trunc-text'
@@ -21,7 +21,7 @@ export function insaneOptions (providedInsaneOptions) {
       allowedAttributes: providedInsaneOptions?.allowedAttributes || {
         a: [
           'class', 'target', 'href',
-          'data-type', 'data-id','data-label',
+          'data-type', 'data-id', 'data-label',
           'data-user-id', 'data-entity-type', 'data-search'
         ],
         span: [
@@ -132,53 +132,63 @@ export function humanDate (date, short) {
     ? prettyDate.format(isString ? new Date(date) : date)
     : ''
 
+  // Always return 'now' for very recent timestamps
+  if (ret === 'just now') {
+    return 'now'
+  }
+
   if (short) {
     ret = ret.replace(' ago', '')
   } else {
-    // this workaround prevents a "React attempted to use reuse markup" error
-    // which happens if the timestamp is less than 1 minute ago, because the
-    // server renders "N seconds ago", but by the time React is loaded on the
-    // client side, it's "N+1 seconds ago"
-    const match = ret.match(/(\d+) seconds? ago/)
-    if (match) {
-      if (Number(match[1]) >= 50) return '1m ago'
-      return 'just now'
+    if (ret.match(/(\d+) seconds? ago/)) {
+      return 'now'
     }
   }
 
-  return ret.replace(/ minutes?/, 'm')
+  return ret.replace(/ seconds?/, 's')
+    .replace(/ minutes?/, 'm')
     .replace(/ hours?/, 'h')
     .replace(/ days?/, 'd')
     .replace(/ weeks?/, 'w')
+    .replace(/ years?/, 'y')
     .replace(/ month(s?)/, ' mo$1')
 }
 
 export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
-  const start = moment.tz(startTime, timezone || moment.tz.guess() || 'UTC')
-  const end = moment.tz(endTime, timezone || moment.tz.guess() || 'UTC')
+  const parseFunction = typeof startTime === 'object' ? DateTime.fromJSDate : DateTime.fromISO
+  const start = parseFunction(startTime, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+  const end = endTime ? parseFunction(endTime, { zone: timezone || DateTime.now().zoneName || 'UTC' }) : null
 
-  const now = moment()
-  const isThisYear = start.year() === now.year() && end.year() === now.year()
+  const now = DateTime.now()
+
+  const isPastYear = start.get('year') < now.get('year')
+  const isSameDay = end && start.get('day') === end.get('day') &&
+                    start.get('month') === end.get('month') &&
+                    start.get('year') === end.get('year')
 
   let to = ''
   let from = ''
 
-  if (isThisYear) {
-    from = endTime ? start.format('ddd, MMM D [at] h:mmA') : start.format('ddd, MMM D [at] h:mmA z')
+  // Format the start date - only include year if it's in the past
+  if (isPastYear) {
+    from = start.toFormat("ccc MMM d, yyyy '•' t")
   } else {
-    from = endTime ? start.format('ddd, MMM D, YYYY [at] h:mmA') : start.format('ddd, MMM D, YYYY [at] h:mmA z')
+    from = start.toFormat("ccc MMM d '•' t")
   }
 
+  // Format the end date/time if provided
   if (endTime) {
-    if (end.year() !== start.year()) {
-      to = end.format('ddd, MMM D, YYYY [at] h:mmA z')
-    } else if (end.month() !== start.month() ||
-               end.day() !== start.day() ||
-               end <= now) {
-      to = end.format('ddd, MMM D [at] h:mmA z')
+    if (isSameDay) {
+      // If same day, only show the end time
+      to = end.toFormat('t')
+    } else if (end.get('year') < now.get('year')) {
+      // If end date is in a past year, include the year
+      to = end.toFormat("MMM d, yyyy '•' t")
     } else {
-      to = end.format('h:mmA z')
+      // Otherwise just month, day and time
+      to = end.toFormat("MMM d '•' t")
     }
+
     to = returnAsObj ? to : ' - ' + to
   }
 
@@ -186,5 +196,49 @@ export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
 }
 
 export function isDateInTheFuture (date) {
-  return moment(date).isAfter(moment())
+  return typeof date === 'string' ? DateTime.fromISO(date) : DateTime.fromJSDate(date) > DateTime.now()
+}
+
+/**
+ * Returns the month name from a date string or Date object
+ * @param {string|Date} date - Date string or Date object
+ * @param {boolean} short - Whether to return short month name (e.g. 'Jan' vs 'January')
+ * @param {string} timezone - Optional timezone (defaults to local timezone)
+ * @returns {string} Month name
+ */
+export function getMonthFromDate (date, short = false, timezone) {
+  const dateTime = typeof date === 'string'
+    ? DateTime.fromISO(date, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+    : DateTime.fromJSDate(date, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+
+  return dateTime.toFormat(short ? 'MMM' : 'MMMM')
+}
+
+/**
+ * Returns the day number from a date string or Date object
+ * @param {string|Date} date - Date string or Date object
+ * @param {string} timezone - Optional timezone (defaults to local timezone)
+ * @returns {number} Day of month (1-31)
+ */
+export function getDayFromDate (date, timezone) {
+  const dateTime = typeof date === 'string'
+    ? DateTime.fromISO(date, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+    : DateTime.fromJSDate(date, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+
+  return dateTime.day
+}
+
+/**
+ * Returns the hour from a date string or Date object
+ * @param {string|Date} date - Date string or Date object
+ * @param {boolean} use24Hour - Whether to use 24-hour format (default: false)
+ * @param {string} timezone - Optional timezone (defaults to local timezone)
+ * @returns {string} Formatted hour (with AM/PM if use24Hour is false)
+ */
+export function getHourFromDate (date, use24Hour = false, timezone) {
+  const dateTime = typeof date === 'string'
+    ? DateTime.fromISO(date, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+    : DateTime.fromJSDate(date, { zone: timezone || DateTime.now().zoneName || 'UTC' })
+
+  return dateTime.toFormat(use24Hour ? 'HH' : 'h a')
 }

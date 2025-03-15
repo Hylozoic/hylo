@@ -1,21 +1,40 @@
-import cx from 'classnames'
-import PropTypes from 'prop-types'
-import React, { Component, useEffect, useState } from 'react'
-import { withTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
-import KeyControlledItemList from 'components/KeyControlledList/KeyControlledItemList'
-import RemovableListItem from 'components/RemovableListItem'
-import Icon from 'components/Icon'
 import { isEmpty, includes } from 'lodash/fp'
-import { removeResponsibilityFromRole, addResponsibilityToRole, fetchResponsibilitiesForGroupRole, fetchResponsibilitiesForGroup, fetchResponsibilitiesForCommonRole } from 'store/actions/responsibilities'
-import { keyMap } from 'util/textInput'
-import { personUrl } from 'util/navigation'
-import SettingsControl from 'components/SettingsControl'
+import React, { useState, useEffect, useRef } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import PropTypes from 'prop-types'
+import { useTranslation } from 'react-i18next'
+import {
+  addGroupRole,
+  addRoleToMember,
+  fetchMembersForGroupRole,
+  fetchMembersForCommonRole,
+  removeRoleFromMember,
+  updateGroupRole
+} from '../../../store/actions/roles'
+import {
+  removeResponsibilityFromRole,
+  addResponsibilityToRole,
+  fetchResponsibilitiesForGroupRole,
+  fetchResponsibilitiesForGroup,
+  fetchResponsibilitiesForCommonRole
+} from 'store/actions/responsibilities'
+import {
+  fetchStewardSuggestions,
+  clearStewardSuggestions
+} from './RolesSettingsTab.store'
+import getPerson from 'store/selectors/getPerson'
 import SettingsSection from '../SettingsSection'
 import EmojiPicker from 'components/EmojiPicker'
-import styles from './RolesSettingsTab.module.scss'
+import SettingsControl from 'components/SettingsControl'
+import Icon from 'components/Icon'
+import RemovableListItem from 'components/RemovableListItem'
+import KeyControlledItemList from 'components/KeyControlledList/KeyControlledItemList'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { keyMap } from 'util/textInput'
+import { cn } from 'util/index'
+import { personUrl } from 'util/navigation'
 
-const { array, func, string, object, bool } = PropTypes
+import styles from './RolesSettingsTab.module.scss'
 
 const emptyRole = {
   color: '',
@@ -31,195 +50,164 @@ const validateRole = ({ name, emoji }) => {
   return true
 }
 
-class RolesSettingsTab extends Component {
-  static propTypes = {
-    addGroupRole: func,
-    addRoleToMember: func,
-    commonRoles: array,
-    group: object,
-    removeRoleFromMember: func,
-    slug: string,
-    updateGroupRole: func
-  }
+function RolesSettingsTab ({ group, commonRoles }) {
+  const dispatch = useDispatch()
+  const suggestions = useSelector(state => state.RoleSettings.map(personId => getPerson(state, { personId })))
+  const { t } = useTranslation()
 
-  constructor (props) {
-    super(props)
-    this.state = this.defaultEditState()
-  }
+  const [roles, setRoles] = useState(group?.groupRoles?.items || [])
+  const { setHeaderDetails } = useViewHeader()
 
-  state = {
-    modalVisible: false
-  }
-
-  componentDidUpdate (prevProps, prevState) {
-    if (!prevProps.group?.groupRoles && this.props.group?.groupRoles) {
-      this.setState(this.defaultEditState())
+  useEffect(() => {
+    if (group?.groupRoles) {
+      setRoles(group.groupRoles.items || [])
     }
-  }
+  }, [group])
 
-  componentWillUnmount () {
-    this.props.clearStewardSuggestions()
-  }
-
-  defaultEditState () {
-    const { group } = this.props
-
-    if (!group) return { roles: [], valid: false }
-
-    const roles = group?.groupRoles?.items
-
-    return {
-      roles: roles || [],
-      error: null,
-      modalVisible: false
-    }
-  }
-
-  handleAddRole = () => {
-    this.setState({
-      roles: [...this.state.roles].concat({ ...emptyRole })
+  useEffect(() => {
+    setHeaderDetails({
+      title: `${t('Group Settings')} > ${t('Roles & Badges')}`,
+      icon: 'Settings',
+      info: ''
     })
+
+    return () => {
+      dispatch(clearStewardSuggestions())
+    }
+  }, [])
+
+  const handleAddRole = () => {
+    setRoles([...roles, { ...emptyRole }])
   }
 
-  deleteUnsavedRole = (i) => () => {
-    const { t } = this.props
+  const deleteUnsavedRole = (i) => () => {
     if (window.confirm(t('Are you sure you want to delete this unsaved role/badge?'))) {
-      const newRoles = [...this.state.roles]
+      const newRoles = [...roles]
       newRoles.splice(i, 1)
-      this.setState({
-        roles: newRoles
-      })
+      setRoles(newRoles)
     }
   }
 
-  toggleRoleActivation = (i) => () => {
-    const { t } = this.props
-    const roles = [...this.state.roles]
+  const toggleRoleActivation = (i) => () => {
     const role = roles[i]
     if (window.confirm(`${t('Are you sure you want to ')}${role.active ? t('deactivate') : t('reactivate')} ${t('this role/badge?')}`)) {
-      this.props.updateGroupRole({ active: !role.active, groupId: this.props?.group?.id, groupRoleId: role.id }).then((response) => {
-        roles[i] = { ...response.payload.data.updateGroupRole }
-        this.setState({ roles })
+      dispatch(updateGroupRole({ active: !role.active, groupId: group?.id, groupRoleId: role.id })).then((response) => {
+        const updatedRoles = [...roles]
+        updatedRoles[i] = { ...response.payload.data.updateGroupRole }
+        setRoles(updatedRoles)
       })
     }
   }
 
-  updateLocalRole = (i) => (key) => (v) => {
+  const updateLocalRole = (i) => (key) => (v) => {
     const value = typeof (v.target) !== 'undefined' ? v.target.value : v
-    const role = { ...this.state.roles[i] }
+    const role = { ...roles[i] }
     if (role.changed !== true) role.originalState = { ...role }
     role[key] = value
     role.changed = true
-    const roles = [...this.state.roles]
-    roles[i] = role
-    this.setState({ roles })
+    const updatedRoles = [...roles]
+    updatedRoles[i] = role
+    setRoles(updatedRoles)
   }
 
-  saveRole = (i) => () => {
-    const { t } = this.props
-    const role = { ...this.state.roles[i] }
+  const saveRole = (i) => () => {
+    const role = { ...roles[i] }
     if (validateRole(role)) {
-      this.props.addGroupRole({ ...role, groupId: this.props?.group?.id }).then((response) => {
-        const roles = this.state.roles
-        roles[i] = { ...response.payload.data.addGroupRole }
-        this.setState({ roles })
+      dispatch(addGroupRole({ ...role, groupId: group?.id })).then((response) => {
+        const updatedRoles = roles
+        updatedRoles[i] = { ...response.payload.data.addGroupRole }
+        setRoles(updatedRoles)
       })
     } else {
       window.alert(t('A role must have a valid emoji and name to be saved'))
     }
   }
 
-  resetRole = (i) => () => {
-    const role = { ...this.state.roles[i] }
-    const roles = [...this.state.roles]
-    roles[i] = { ...role.originalState }
-    this.setState({ roles })
+  const resetRole = (i) => () => {
+    const role = { ...roles[i] }
+    const updatedRoles = [...roles]
+    updatedRoles[i] = { ...role.originalState }
+    setRoles(updatedRoles)
   }
 
-  updateRole = (i) => () => {
-    const { t } = this.props
-    const role = { ...this.state.roles[i] }
+  const updateRole = (i) => () => {
+    const role = { ...roles[i] }
     if (validateRole(role)) {
-      this.props.updateGroupRole({ ...role, groupId: this.props?.group?.id, groupRoleId: role.id }).then((response) => {
-        const roles = this.state.roles
-        roles[i] = { ...response.payload.data.updateGroupRole }
-        this.setState({ roles })
+      dispatch(updateGroupRole({ ...role, groupId: group?.id, groupRoleId: role.id })).then((response) => {
+        const updatedRoles = roles
+        updatedRoles[i] = { ...response.payload.data.updateGroupRole }
+        setRoles(updatedRoles)
       })
     } else {
       window.alert(t('A role must have a valid emoji and name to be updated'))
     }
   }
 
-  render () {
-    const {
-      commonRoles,
-      group = {},
-      t
-    } = this.props
+  const unsavedRolePresent = roles.length > 0 ? roles[roles.length - 1]?.active === '' : false
 
-    const {
-      roles
-    } = this.state
-
-    const unsavedRolePresent = roles.length > 0 ? roles[roles.length - 1]?.active === '' : false
-
-    return (
-      <>
-        <SettingsSection>
-          <h3>{t('Common Roles')}</h3>
-          <div className={styles.helpText}>{t('adminRolesHelpText')}</div>
-          {commonRoles.map((role, i) => (
-            <RoleRow
-              {...this.props}
-              group={group}
-              key={i}
-              index={i}
-              {...role}
-              isCommonRole
-            />
-          ))}
-        </SettingsSection>
-        <SettingsSection>
-          <h3>{t('Custom Roles & Badges')}</h3>
-          <div className={styles.helpText}>{t('Create additional roles or badges for your group')}</div>
-          {roles.map((role, i) => (
-            <RoleRow
-              {...this.props}
-              group={group}
-              key={i}
-              index={i}
-              {...role}
-              onChange={this.updateLocalRole(i)}
-              onSave={this.saveRole(i)}
-              onUpdate={this.updateRole(i)}
-              onToggleActivation={this.toggleRoleActivation(i)}
-              onDelete={this.deleteUnsavedRole(i)}
-              onReset={this.resetRole(i)}
-            />
-          ))}
-          {!unsavedRolePresent && (
-            <div className={styles.addRole} onClick={this.handleAddRole}>
-              <h4>{t('Create new role/badge')}</h4>
-              <Icon name='Circle-Plus' className={styles.newRole} />
-            </div>
-          )}
-        </SettingsSection>
-        <br />
-      </>
-    )
-  }
+  return (
+    <>
+      <SettingsSection>
+        <h2 className='text-foreground'>{t('Common Roles')}</h2>
+        <div className='text-foreground text-sm'>{t('adminRolesHelpText')}</div>
+        {commonRoles.map((role, i) => (
+          <RoleRow
+            group={group}
+            suggestions={suggestions}
+            key={i}
+            index={i}
+            {...role}
+            isCommonRole
+          />
+        ))}
+      </SettingsSection>
+      <SettingsSection>
+        <h3>{t('Custom Roles & Badges')}</h3>
+        <div className={styles.helpText}>{t('Create additional roles or badges for your group')}</div>
+        {roles.map((role, i) => (
+          <RoleRow
+            group={group}
+            suggestions={suggestions}
+            key={i}
+            index={i}
+            {...role}
+            onChange={updateLocalRole(i)}
+            onSave={saveRole(i)}
+            onUpdate={updateRole(i)}
+            onToggleActivation={toggleRoleActivation(i)}
+            onDelete={deleteUnsavedRole(i)}
+            onReset={resetRole(i)}
+          />
+        ))}
+        {!unsavedRolePresent && (
+          <div className={styles.addRole} onClick={handleAddRole}>
+            <h4>{t('Create new role/badge')}</h4>
+            <Icon name='Circle-Plus' className={styles.newRole} />
+          </div>
+        )}
+      </SettingsSection>
+      <br />
+    </>
+  )
 }
 
-function RoleRowUntranslated ({
+RolesSettingsTab.propTypes = {
+  addGroupRole: PropTypes.func,
+  addRoleToMember: PropTypes.func,
+  commonRoles: PropTypes.array,
+  group: PropTypes.object,
+  removeRoleFromMember: PropTypes.func,
+  slug: PropTypes.string,
+  updateGroupRole: PropTypes.func
+}
+
+function RoleRow ({
   active,
   addRoleToMember,
   changed,
   isCommonRole,
-  clearStewardSuggestions,
   description,
   emoji,
-  fetchStewardSuggestions,
-  fetchMembersForGroupRole,
   fetchMembersForCommonRole,
   group,
   id,
@@ -231,13 +219,13 @@ function RoleRowUntranslated ({
   onSave,
   onUpdate,
   suggestions = [],
-  removeRoleFromMember,
-  t
+  removeRoleFromMember
 }) {
+  const { t } = useTranslation()
   const isDraftRole = active === ''
   const inactiveStyle = (!active && !isDraftRole && !isCommonRole) ? styles.inactive : ''
   return (
-    <div className={cx(styles.roleContainer, inactiveStyle)}>
+    <div className={cn('bg-foreground/5 rounded-lg my-4', inactiveStyle)}>
       {!isCommonRole &&
         <div className={styles.actionContainer}>
           {isDraftRole && (<span onClick={onDelete} className={styles.action}><Icon name='Trash' /> {t('Delete')}</span>)}
@@ -245,244 +233,219 @@ function RoleRowUntranslated ({
           {!isDraftRole && changed && (<span className={styles.action} onClick={onReset}><Icon name='Back' /> {t('Revert')}</span>)}
           {!isDraftRole && !changed && (<span className={styles.action} onClick={onToggleActivation}><Icon name={active ? 'CircleEx' : 'CircleArrow'} /> {active ? t('Deactivate') : t('Reactivate')}</span>)}
         </div>}
-      <div className={styles.roleRow}>
-        <EmojiPicker forReactions={false} emoji={emoji} handleReaction={onChange('emoji')} className={styles.emojiPicker} />
-        <div className={styles.roleStack}>
-          <SettingsControl label='Name' controlClass={styles.settingsControl} onChange={onChange('name')} value={name} />
-          <SettingsControl label='Description' controlClass={styles.settingsControl} onChange={onChange('description')} value={description} type='textarea' />
-        </div>
+      <div className='flex flex-col relative w-full p-2'>
+        <EmojiPicker forReactions={false} emoji={emoji} handleReaction={onChange('emoji')} className='absolute top-[2.7rem] left-[1rem] w-[40px] h-[40px] bg-foreground/5 rounded flex items-center justify-center cursor-pointer hover:bg-foreground/10 hover:shadow-xl border-2 border-foreground/50 hover:border-foreground/100 transition-all' />
+        <SettingsControl label='Name & Badge' onChange={onChange('name')} value={name} inputStyle={{ paddingLeft: '3.5rem' }} />
+      </div>
+      <div className='p-2'>
+        <SettingsControl label='Description' onChange={onChange('description')} value={description} type='textarea' />
       </div>
       {
         isDraftRole
           ? (
-            <div className={cx(styles.roleRow, styles.reverseFlex)}>
+            <div className={cn(styles.roleRow, styles.reverseFlex)}>
               <div className={styles.createButton} onClick={onSave}>{t('Create Role')}</div>
             </div>
             )
           : (active || isCommonRole) && (
-            <SettingsSection>
-              <RoleList
-                {...{ addRoleToMember, suggestions, clearStewardSuggestions, fetchMembersForGroupRole, fetchMembersForCommonRole, fetchStewardSuggestions, removeRoleFromMember, active }}
-                key='grList'
-                group={group}
-                isCommonRole={isCommonRole}
-                roleId={id}
-                t={t}
-                slug={group.slug}
-              />
-            </SettingsSection>
-            )
+            <RoleList
+              {...{ addRoleToMember, suggestions, clearStewardSuggestions, fetchMembersForGroupRole, fetchMembersForCommonRole, fetchStewardSuggestions, removeRoleFromMember, active }}
+              key='grList'
+              group={group}
+              isCommonRole={isCommonRole}
+              roleId={id}
+              t={t}
+              slug={group.slug}
+            />)
       }
     </div>
   )
 }
 
-const RoleRow = withTranslation()(RoleRowUntranslated)
+function AddMemberToRole ({
+  groupId,
+  roleId,
+  memberSuggestions,
+  updateLocalMembersForRole,
+  isCommonRole = false
+}) {
+  const [adding, setAdding] = useState(false)
+  const listRef = useRef()
+  const inputRef = useRef()
+  const dispatch = useDispatch()
+  const { t } = useTranslation()
 
-class AddMemberToRoleUntranslated extends Component {
-  static propTypes = {
-    addRoleToMember: func,
-    clearSuggestions: func,
-    fetchSuggestions: func,
-    roleId: string,
-    memberSuggestions: array,
-    updateLocalMembersForRole: func,
-    isCommonRole: bool
+  const toggle = () => {
+    dispatch(clearStewardSuggestions())
+    setAdding(!adding)
   }
 
-  constructor (props) {
-    super(props)
-    this.state = {
-      adding: false
-    }
-    this.listRef = React.createRef()
-    this.inputRef = React.createRef()
+  const onInputChange = e => {
+    if (e.target.value.length === 0) return dispatch(clearStewardSuggestions())
+    return dispatch(fetchStewardSuggestions(groupId, e.target.value))
   }
 
-  render () {
-    const { fetchSuggestions, addRoleToMember, memberSuggestions, clearSuggestions, roleId, updateLocalMembersForRole, isCommonRole = false, t } = this.props
+  const onChoose = choice => {
+    dispatch(addRoleToMember({ personId: choice.id, roleId, isCommonRole, groupId })).then(() => {
+      updateLocalMembersForRole(choice)
+    })
+    toggle()
+  }
 
-    const { adding } = this.state
+  const chooseCurrentItem = () => {
+    if (!listRef.current) return
+    return listRef.current.handleKeys({
+      keyCode: keyMap.ENTER,
+      preventDefault: () => {}
+    })
+  }
 
-    const toggle = () => {
-      clearSuggestions()
-      this.setState({ adding: !adding })
-    }
-
-    const onInputChange = e => {
-      if (e.target.value.length === 0) return clearSuggestions()
-      return fetchSuggestions(e.target.value)
-    }
-
-    const onChoose = choice => {
-      addRoleToMember({ personId: choice.id, roleId, isCommonRole }).then(() => {
-        updateLocalMembersForRole(choice)
-      })
+  const handleKeys = e => {
+    if (e.key === 'Escape') {
       toggle()
+      return
     }
+    if (!listRef.current) return
+    return listRef.current.handleKeys(e)
+  }
 
-    const chooseCurrentItem = () => {
-      if (!this.listRef.current) return
-      return this.listRef.current.handleKeys({
-        keyCode: keyMap.ENTER,
-        preventDefault: () => {}
-      })
-    }
+  const listWidth = { width: (inputRef?.current?.clientWidth || 0) + 4 }
 
-    const handleKeys = e => {
-      if (e.key === 'Escape') {
-        toggle()
-        return
-      }
-      if (!this.listRef.current) return
-      return this.listRef.current.handleKeys(e)
-    }
-
-    const listWidth = { width: (this.inputRef?.current?.clientWidth || 0) + 4 }
-
-    if (adding) {
-      return (
-        <div className={styles.adding}>
-          <div className={styles.helpText}>{t('Search here for members to grant this role too')}</div>
-          <div className={styles.inputRow}>
-            <input
-              className={styles.input}
-              placeholder='Type...'
-              type='text'
-              onChange={onInputChange}
-              onKeyDown={handleKeys}
-              ref={this.inputRef}
-              data-testid='add-member-input'
+  if (adding) {
+    return (
+      <div className={styles.adding}>
+        <div className={styles.helpText}>{t('Search here for members to grant this role too')}</div>
+        <div className={styles.inputRow}>
+          <input
+            className={styles.input}
+            placeholder='Type...'
+            type='text'
+            onChange={onInputChange}
+            onKeyDown={handleKeys}
+            ref={inputRef}
+            data-testid='add-member-input'
+          />
+          <span className={styles.cancelButton} onClick={toggle}>{t('Cancel')}</span>
+          <span className={styles.addButton} onClick={chooseCurrentItem}>{t('Add')}</span>
+        </div>
+        {!isEmpty(memberSuggestions) && (
+          <div style={listWidth}>
+            <KeyControlledItemList
+              ref={listRef}
+              items={memberSuggestions}
+              onChange={onChoose}
+              theme={styles}
             />
-            <span className={styles.cancelButton} onClick={toggle}>{t('Cancel')}</span>
-            <span className={styles.addButton} onClick={chooseCurrentItem}>{t('Add')}</span>
           </div>
-          {!isEmpty(memberSuggestions) && (
-            <div style={listWidth}>
-              <KeyControlledItemList
-                ref={this.listRef}
-                items={memberSuggestions}
-                onChange={onChoose}
-                theme={styles}
-              />
-            </div>
-          )}
-        </div>
-      )
-    } else {
-      return (
-        <div className={styles.addNew} onClick={toggle} data-testid='add-new'>
-          + {t('Add Member to Role')}
-        </div>
-      )
-    }
+        )}
+      </div>
+    )
+  } else {
+    return (
+      <div className={styles.addNew} onClick={toggle} data-testid='add-new'>
+        + {t('Add Member to Role')}
+      </div>
+    )
   }
 }
 
-export const AddMemberToRole = withTranslation()(AddMemberToRoleUntranslated)
+function AddResponsibilityToRoleSection ({
+  handleAddResponsibilityToRole,
+  roleId,
+  responsibilitySuggestions,
+  group
+}) {
+  const [adding, setAdding] = useState(false)
+  const listRef = useRef()
+  const { t } = useTranslation()
 
-class AddResponsibilityToRoleUntranslated extends Component {
-  static propTypes = {
-    addResponsibilityToRole: func,
-    roleId: string,
-    responsibilitySuggestions: array
+  const toggle = () => {
+    setAdding(!adding)
   }
 
-  constructor (props) {
-    super(props)
-    this.state = {
-      adding: false
-    }
-    this.listRef = React.createRef()
-  }
-
-  render () {
-    const { addResponsibilityToRole, responsibilitySuggestions, roleId, group, t } = this.props
-
-    const { adding } = this.state
-
-    const toggle = () => {
-      this.setState({ adding: !adding })
-    }
-
-    const onChoose = choice => {
-      addResponsibilityToRole({ responsibilityId: choice.id, roleId, groupId: group.id, responsibility: choice })
+  const onChoose = choice => {
+    handleAddResponsibilityToRole({ responsibilityId: choice.id, roleId, groupId: group.id, responsibility: choice }).then(() => {
       toggle()
-    }
+    })
+  }
 
-    const chooseCurrentItem = () => {
-      if (!this.listRef.current) return
-      return this.listRef.current.handleKeys({
-        keyCode: keyMap.ENTER,
-        preventDefault: () => {}
-      })
-    }
+  const chooseCurrentItem = () => {
+    if (!listRef.current) return
+    return listRef.current.handleKeys({
+      keyCode: keyMap.ENTER,
+      preventDefault: () => {}
+    })
+  }
 
-    const handleKeys = e => {
-      if (e.key === 'Escape') {
-        toggle()
-        return
-      }
-      if (!this.listRef.current) return
-      return this.listRef.current.handleKeys(e)
+  const handleKeys = e => {
+    if (e.key === 'Escape') {
+      toggle()
+      return
     }
+    if (!listRef.current) return
+    return listRef.current.handleKeys(e)
+  }
 
-    if (adding) {
-      return (
-        <div className={styles.adding}>
-          <div className={styles.helpText}>{t('Search here for responsibilities to add to this role')}</div>
-          <div className={styles.inputRow}>
-            <input
-              className={styles.input}
-              placeholder='Type...'
-              type='text'
-              onKeyDown={handleKeys}
-              ref={this.inputRef}
+  if (adding) {
+    return (
+      <div className={styles.adding}>
+        <div className={styles.helpText}>{t('Search here for responsibilities to add to this role')}</div>
+        <div className={styles.inputRow}>
+          <input
+            className={styles.input}
+            placeholder='Type...'
+            type='text'
+            onKeyDown={handleKeys}
+            ref={listRef}
+          />
+          <span className={styles.cancelButton} onClick={toggle}>{t('Cancel')}</span>
+          <span className={styles.addButton} onClick={chooseCurrentItem}>{t('Add')}</span>
+        </div>
+        {!isEmpty(responsibilitySuggestions) && (
+          <div>
+            <KeyControlledItemList
+              ref={listRef}
+              items={responsibilitySuggestions}
+              onChange={onChoose}
+              theme={styles}
             />
-            <span className={styles.cancelButton} onClick={toggle}>{t('Cancel')}</span>
-            <span className={styles.addButton} onClick={chooseCurrentItem}>{t('Add')}</span>
           </div>
-          {!isEmpty(responsibilitySuggestions) && (
-            <div>
-              <KeyControlledItemList
-                ref={this.listRef}
-                items={responsibilitySuggestions}
-                onChange={onChoose}
-                theme={styles}
-              />
-            </div>
-          )}
-        </div>
-      )
-    } else {
-      return (
-        <div className={cx(styles.addNew)} onClick={toggle}>
-          + {t('Add Responsibility to Role')}
-        </div>
-      )
-    }
+        )}
+      </div>
+    )
+  } else {
+    return (
+      <div className={cn(styles.addNew)} onClick={toggle}>
+        + {t('Add Responsibility to Role')}
+      </div>
+    )
   }
 }
 
-const AddResponsibilityToRole = withTranslation()(AddResponsibilityToRoleUntranslated)
-
-export function RoleList ({ slug, fetchStewardSuggestions, addRoleToMember, suggestions, clearStewardSuggestions, roleId, fetchMembersForGroupRole, fetchMembersForCommonRole, removeRoleFromMember, group, isCommonRole, t }) {
+function RoleList ({
+  slug,
+  suggestions,
+  roleId,
+  group,
+  isCommonRole
+}) {
+  const { t } = useTranslation()
   const [membersForRole, setMembersForRole] = useState([])
   const [responsibilitiesForRole, setResponsibilitiesForRole] = useState([])
   const [availableResponsibilities, setAvailableResponsibilities] = useState([])
   const dispatch = useDispatch()
   const memberFetcher = isCommonRole ? fetchMembersForCommonRole : fetchMembersForGroupRole
-  const responsbilityFetcher = isCommonRole ? fetchResponsibilitiesForCommonRole : fetchResponsibilitiesForGroupRole
+  const responsibilityFetcher = isCommonRole ? fetchResponsibilitiesForCommonRole : fetchResponsibilitiesForGroupRole
 
   useEffect(() => {
-    memberFetcher({ roleId })
+    dispatch(memberFetcher({ id: group.id, roleId }))
       .then((response) => setMembersForRole(response?.payload?.data?.group?.members?.items || []))
       .catch((e) => { console.error('Error fetching members for role ', e) })
   }, [])
 
   useEffect(() => {
     let isMounted = true
-    dispatch(responsbilityFetcher({ roleId }))
+    dispatch(responsibilityFetcher({ id: group.id, roleId }))
       .then((response) => { if (isMounted) setResponsibilitiesForRole(response?.payload?.data?.responsibilities || []) })
       .catch((e) => { console.error('Error fetching responsibilities for role ', e) })
     return () => { isMounted = false }
@@ -500,7 +463,6 @@ export function RoleList ({ slug, fetchStewardSuggestions, addRoleToMember, sugg
 
   const memberSuggestions = suggestions.filter(person => !includes(person.id, memberRoleIds))
   const groupRoleResponsibilityTitles = responsibilitiesForRole.map(rfr => rfr.title)
-  // TODO: dubious. Need to ensure the above returns responsibilityIds and then change the below off title
   const responsibilitySuggestions = availableResponsibilities.filter(responsibility => !includes(responsibility.title, groupRoleResponsibilityTitles))
 
   const updateLocalMembersForRole = (choice) => {
@@ -514,7 +476,7 @@ export function RoleList ({ slug, fetchStewardSuggestions, addRoleToMember, sugg
   }
 
   const handleRemoveRoleFromMember = (id) => {
-    dispatch(removeRoleFromMember({ personId: id, roleId, isCommonRole })).then(() => {
+    dispatch(removeRoleFromMember({ personId: id, groupId: group.id, roleId, isCommonRole })).then(() => {
       const updatedMembers = membersForRole.filter(member => member.id !== id)
       setMembersForRole(updatedMembers)
     })
@@ -549,9 +511,9 @@ export function RoleList ({ slug, fetchStewardSuggestions, addRoleToMember, sugg
           />)}
       </div>
       {!isCommonRole && (
-        <AddResponsibilityToRole
+        <AddResponsibilityToRoleSection
           fetchSuggestions={() => dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))}
-          addResponsibilityToRole={handleAddResponsibilityToRole}
+          handleAddResponsibilityToRole={handleAddResponsibilityToRole}
           responsibilitySuggestions={responsibilitySuggestions}
           updateLocalResponsibilitiesForRole={updateLocalResponsibilitiesForRole}
           roleId={roleId}
@@ -574,10 +536,11 @@ export function RoleList ({ slug, fetchStewardSuggestions, addRoleToMember, sugg
         clearSuggestions={clearStewardSuggestions}
         updateLocalMembersForRole={updateLocalMembersForRole}
         roleId={roleId}
+        groupId={group.id}
         isCommonRole={isCommonRole}
       />
     </div>
   )
 }
 
-export default withTranslation()(RolesSettingsTab)
+export default RolesSettingsTab

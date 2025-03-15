@@ -1,15 +1,17 @@
+import isMobile from 'ismobilejs'
 import React, { useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { Tooltip } from 'react-tooltip'
-import isMobile from 'ismobilejs'
+import Icon from 'components/Icon'
+import Loading from 'components/Loading'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import getMe from 'store/selectors/getMe'
 import { fetchSavedSearches, deleteSearch as deleteSearchAction } from '../UserSettings.store'
 import { FETCH_SAVED_SEARCHES } from 'store/constants'
 import { formatParams, generateViewParams } from 'util/savedSearch'
-import Icon from 'components/Icon'
-import Loading from 'components/Loading'
+
 import classes from './SavedSearchesTab.module.scss'
 
 export default function SavedSearchesTab () {
@@ -31,11 +33,21 @@ export default function SavedSearchesTab () {
 
   useEffect(() => { dispatch(fetchSavedSearches(currentUser.id)) }, [])
 
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Saved Searches'),
+      icon: '',
+      info: '',
+      search: true
+    })
+  }, [])
+
   if (!searches || loading) return <Loading />
 
   return (
     <div>
-      <div className={classes.title}>{t('Saved Searches')}</div>
+      {searches.length === 0 && <div className={classes.noSearches}>{t('No saved searches. You can set them up in the map')}</div>}
       {searches.map(s =>
         <SearchControl
           key={s.id}

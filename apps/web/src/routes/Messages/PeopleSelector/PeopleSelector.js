@@ -1,12 +1,9 @@
-import cx from 'classnames'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
 import { debounce, throttle } from 'lodash/fp'
-import { getKeyCode, keyMap } from 'util/textInput'
 import PeopleList from './PeopleList'
 import MatchingPeopleListItem from './MatchingPeopleListItem'
-import classes from './PeopleSelector.module.scss'
 
 const invalidPersonName = /[^a-z '-]+/gi
 
@@ -15,9 +12,9 @@ export default function PeopleSelector (props) {
   const [currentText, setCurrentText] = useState('')
   const autocompleteInput = useRef(null)
   const { t } = useTranslation()
+  const [selectedIndex, setSelectedIndex] = useState(-1) // -1 means input is focused
 
   const {
-    focusMessage,
     people,
     setPeopleSearch,
     selectedPeople,
@@ -60,21 +57,6 @@ export default function PeopleSelector (props) {
     props.removePerson(person)
   }
 
-  const arrow = (direction, event) => {
-    if (people) {
-      event.preventDefault()
-      let delta = 0
-      const idx = finalPeopleList.findIndex(m => currentMatch && m.id === currentMatch.id)
-      if (direction === 'up') {
-        if (idx > 0) delta = -1
-      }
-      if (direction === 'down') {
-        if (idx < people.length - 1) delta = 1
-      }
-      setCurrentMatch(finalPeopleList[idx + delta])
-    }
-  }
-
   const autocompleteSearch = throttle(1000, props.fetchPeople)
   const updatePeopleSearch = debounce(200, setPeopleSearch)
 
@@ -88,23 +70,49 @@ export default function PeopleSelector (props) {
     setCurrentText(val.replace(invalidPersonName, ''))
   }
 
-  const onKeyDown = (evt) => {
-    switch (getKeyCode(evt)) {
-      case keyMap.BACKSPACE: return currentText ? null : removePerson()
-      case keyMap.UP: return arrow('up', evt)
-      case keyMap.DOWN: return arrow('down', evt)
-      case keyMap.COMMA:
-      case keyMap.ENTER:
+  const handleKeyDown = (evt) => {
+    if (!finalPeopleList.length) return
+
+    switch (evt.key) {
+      case 'ArrowDown':
         evt.preventDefault()
-        currentText ? setCurrentText('') : selectedPeople.length > 0 && focusMessage()
-        selectPerson(currentMatch)
-        return setPeopleSearch(null)
+        setSelectedIndex(prev => {
+          const nextIndex = prev + 1
+          // Don't go past the end of the list
+          return Math.min(nextIndex, finalPeopleList.length - 1)
+        })
+        setCurrentMatch(finalPeopleList[selectedIndex + 1])
+        break
+
+      case 'ArrowUp':
+        evt.preventDefault()
+        setSelectedIndex(prev => {
+          const nextIndex = prev - 1
+          // -1 means focus back to input
+          return Math.max(nextIndex, -1)
+        })
+        setCurrentMatch(selectedIndex > 0 ? finalPeopleList[selectedIndex - 1] : null)
+        break
+
+      case 'Enter':
+        evt.preventDefault()
+        if (selectedIndex >= 0 && finalPeopleList[selectedIndex]) {
+          selectPerson(finalPeopleList[selectedIndex])
+          setSelectedIndex(-1)
+        }
+        break
+
+      default:
+        // Reset selection when typing
+        setSelectedIndex(-1)
+        break
     }
   }
+
   return (
-    <div className={cx(classes.threadHeader)} tabIndex='0'>
-      <div className={classes.autocompleteControl}>
-        <span className={classes.to}>{t('With:')}</span>
+    <div className='w-full relative' tabIndex='0'>
+      <div className='w-full relative flex flex-wrap gap-1'>
+        <span className='p-2'>{t('With:')}</span>
         {selectedPeople && selectedPeople.map(person =>
           <MatchingPeopleListItem
             avatarUrl={person.avatarUrl}
@@ -113,18 +121,21 @@ export default function PeopleSelector (props) {
             key={person.id}
           />
         )}
-        <div className={classes.selectPeople}>
+        <div className='relative'>
           <input
-            className={classes.autocomplete}
-            autoFocus
+            className='w-[150px] bg-black/20 focus:bg-theme-background rounded p-2 text-foreground placeholder:text-foreground/50 border-2 border-transparent focus:border-focus transition-all outline-none'
             ref={autocompleteInput}
             type='text'
             spellCheck={false}
             onChange={onChange}
-            onKeyDown={onKeyDown}
+            onKeyDown={handleKeyDown}
             placeholder={`+ ${t('Add someone')}`}
-            onFocus={props.onFocus}
+            onFocus={(e) => {
+              setSelectedIndex(-1)
+              props.onFocus?.(e)
+            }}
             value={currentText}
+            autoFocus={props.autoFocus}
           />
 
           {peopleSelectorOpen
@@ -132,7 +143,11 @@ export default function PeopleSelector (props) {
                 people={finalPeopleList}
                 currentMatch={currentMatch}
                 onClick={selectPerson}
-                onMouseOver={setCurrentMatch}
+                onMouseOver={(person) => {
+                  setCurrentMatch(person)
+                  setSelectedIndex(finalPeopleList.findIndex(p => p.id === person.id))
+                }}
+                selectedIndex={selectedIndex}
               />
             : ''}
         </div>

@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
@@ -27,7 +27,6 @@ function MapDrawer ({
   filters,
   group,
   groups = [],
-  locationParams,
   members = [],
   numFetchedPosts,
   numTotalPosts,
@@ -75,10 +74,10 @@ function MapDrawer ({
   }
 
   return (
-    <div className={cx(styles.container, { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} id='mapDrawerWrapper' data-testid='map-drawer'>
-      <div className={styles.header}>
+    <div className={cn('h-full overflow-x-visible overflow-y-hidden min-w-[300px] max-w-[500px] w-full relative z-20 bg-background', { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} id='mapDrawerWrapper' data-testid='map-drawer'>
+      <div className='relative w-full p-4 pb-0'>
         <input
-          className={styles.searchBox}
+          className='bg-input rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none focus:outline-focus focus:outline-2 mb-0'
           type='text'
           onChange={e => setSearch(e.target.value)}
           onFocus={e => setIsSearching(true)}
@@ -139,13 +138,11 @@ function MapDrawer ({
             )
           })}
         </div>
-
-        <TabBar currentTab={currentTab} tabs={tabs} selectTab={setCurrentTab} pendingPostsDrawer={pendingPostsDrawer} />
       </div>
-
+      <TabBar currentTab={currentTab} tabs={tabs} selectTab={setCurrentTab} pendingPostsDrawer={pendingPostsDrawer} />
       {currentTab === localizedTabNames.posts
         ? (
-          <div className={styles.contentWrapper}>
+          <div className='w-full h-[calc(100vh-140px)] bg-midground overflow-y-scroll overflow-x-visible pb-10'>
             <div className={styles.postsHeader}>
               {![CONTEXT_MY, 'all', 'public'].includes(context) && (
                 <>
@@ -156,7 +153,7 @@ function MapDrawer ({
                   >
                     <Icon
                       name='Subgroup'
-                      className={cx(styles.toggleIcon, { [styles.activeToggle]: childPostInclusion === 'yes' })}
+                      className={cn(styles.toggleIcon, { [styles.activeToggle]: childPostInclusion === 'yes' })}
                     />
                   </span>
                   <Tooltip
@@ -183,7 +180,7 @@ function MapDrawer ({
               />
             </div>
 
-            <div className={styles.contentListContainer} id='contentList'>
+            <div className='flex flex-col gap-2 p-2' id='contentList'>
               {posts.map(p => {
                 return (
                   <PostCard
@@ -191,7 +188,6 @@ function MapDrawer ({
                     mapDrawer
                     expanded={false}
                     key={p.id}
-                    locationParams={locationParams}
                     group={group}
                     post={p}
                     className={styles.contentCard}
@@ -209,7 +205,7 @@ function MapDrawer ({
               <div className={styles.contentListContainer} id='contentList'>
                 {members.map(m => (
                   <Member
-                    className={cx(styles.contentCard, styles.member)}
+                    className={cn(styles.contentCard, styles.member)}
                     member={m}
                     key={m.id}
                     group={group}
@@ -254,11 +250,11 @@ export function TabBar ({ currentTab, tabs, selectTab, pendingPostsDrawer }) {
   const { t } = useTranslation()
   const posts = t('Posts')
   return (
-    <ul className={styles.tabBar}>
+    <ul className='flex flex-row gap-2 border-b-4 border-midground '>
       {Object.keys(tabs).map(name =>
         <li
           key={name}
-          className={cx(styles.tab, { [styles.tabActive]: name === currentTab })}
+          className={cn('bg-midground/50 rounded-t-lg px-2 py-1', { 'bg-midground/100': name === currentTab })}
           onClick={() => selectTab(name)}
         >
           {name}&nbsp;

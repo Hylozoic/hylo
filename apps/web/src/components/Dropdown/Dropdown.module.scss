@@ -29,7 +29,7 @@ $dropdown-border-color: $color-box-shadow;
 .wrapper.alignRight {
   left: auto;
   right: 0;
-  z-index: 20;
+  z-index: 30;
 }
 
 .wrapper.menuAbove {
@@ -65,7 +65,7 @@ $dropdown-border-color: $color-box-shadow;
   list-style: none;
   display: none;
   padding: 0;
-  z-index: 10;
+  z-index: 40;
 
   &.active {
     display: block;

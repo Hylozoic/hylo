@@ -1,7 +1,7 @@
+import { GraphQLError } from 'graphql'
 import validatePostData from '../../models/post/validatePostData'
 import underlyingCreatePost from '../../models/post/createPost'
 import underlyingUpdatePost from '../../models/post/updatePost'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export function createPost (userId, data) {
   return convertGraphqlPostData(data)
@@ -13,10 +13,10 @@ export function deletePost (userId, postId) {
   return Post.find(postId)
     .then(post => {
       if (!post) {
-        throw new GraphQLYogaError('Post does not exist')
+        throw new GraphQLError('Post does not exist')
       }
       if (post.get('user_id') !== userId) {
-        throw new GraphQLYogaError("You don't have permission to modify this post")
+        throw new GraphQLError("You don't have permission to modify this post")
       }
       return Post.deactivate(postId)
     })
@@ -33,7 +33,7 @@ export function fulfillPost (userId, postId) {
   return Post.find(postId)
     .then(post => {
       if (post.get('user_id') !== userId) {
-        throw new GraphQLYogaError("You don't have permission to modify this post")
+        throw new GraphQLError("You don't have permission to modify this post")
       }
       return post.fulfill()
     })
@@ -44,7 +44,7 @@ export function unfulfillPost (userId, postId) {
   return Post.find(postId)
     .then(post => {
       if (post.get('user_id') !== userId) {
-        throw new GraphQLYogaError("You don't have permission to modify this post")
+        throw new GraphQLError("You don't have permission to modify this post")
       }
       return post.unfulfill()
     })
@@ -52,77 +52,77 @@ export function unfulfillPost (userId, postId) {
 }
 
 export async function addProposalVote ({ userId, postId, optionId }) {
-  if (!userId || !postId || !optionId) throw new GraphQLYogaError(`Missing required parameters: ${JSON.stringify({ userId, postId, optionId })}`)
+  if (!userId || !postId || !optionId) throw new GraphQLError(`Missing required parameters: ${JSON.stringify({ userId, postId, optionId })}`)
 
   const authorized = await Post.isVisibleToUser(postId, userId)
-  if (!authorized) throw new GraphQLYogaError("You don't have permission to vote on this post")
+  if (!authorized) throw new GraphQLError("You don't have permission to vote on this post")
 
   return Post.find(postId)
     .then(async post => {
-      if (post.get('proposal_status') !== Post.Proposal_Status.VOTING && post.get('proposal_status') !== Post.Proposal_Status.CASUAL) throw new GraphQLYogaError('Cannot vote on a proposal that is in discussion or completed')
+      if (post.get('proposal_status') !== Post.Proposal_Status.VOTING && post.get('proposal_status') !== Post.Proposal_Status.CASUAL) throw new GraphQLError('Cannot vote on a proposal that is in discussion or completed')
       await post.addFollowers([userId])
       return post.addProposalVote({ userId, optionId })
     })
-    .catch((err) => { throw new GraphQLYogaError(`adding of vote failed: ${err}`) })
+    .catch((err) => { throw new GraphQLError(`adding of vote failed: ${err}`) })
     .then(() => ({ success: true }))
 }
 
 export async function removeProposalVote ({ userId, postId, optionId }) {
-  if (!userId || !postId || !optionId) throw new GraphQLYogaError(`Missing required parameters: ${JSON.stringify({ userId, postId, optionId })}`)
+  if (!userId || !postId || !optionId) throw new GraphQLError(`Missing required parameters: ${JSON.stringify({ userId, postId, optionId })}`)
 
   const authorized = await Post.isVisibleToUser(postId, userId)
-  if (!authorized) throw new GraphQLYogaError("You don't have permission to vote on this post")
+  if (!authorized) throw new GraphQLError("You don't have permission to vote on this post")
   return Post.find(postId)
     .then(post => {
-      if (post.get('proposal_status') !== Post.Proposal_Status.VOTING && post.get('proposal_status') !== Post.Proposal_Status.CASUAL) throw new GraphQLYogaError('Cannot vote on a proposal that is in discussion or completed')
+      if (post.get('proposal_status') !== Post.Proposal_Status.VOTING && post.get('proposal_status') !== Post.Proposal_Status.CASUAL) throw new GraphQLError('Cannot vote on a proposal that is in discussion or completed')
       return post.removeProposalVote({ userId, optionId })
     })
-    .catch((err) => { throw new GraphQLYogaError(`removal of vote failed: ${err}`) })
+    .catch((err) => { throw new GraphQLError(`removal of vote failed: ${err}`) })
     .then(() => ({ success: true }))
 }
 
 export async function setProposalOptions ({ userId, postId, options }) {
-  if (!userId || !postId || !options) throw new GraphQLYogaError(`Missing required parameters: ${JSON.stringify({ userId, postId, options })}`)
+  if (!userId || !postId || !options) throw new GraphQLError(`Missing required parameters: ${JSON.stringify({ userId, postId, options })}`)
   const authorized = await Post.isVisibleToUser(postId, userId)
-  if (!authorized) throw new GraphQLYogaError("You don't have permission to modify this post")
+  if (!authorized) throw new GraphQLError("You don't have permission to modify this post")
   return Post.find(postId)
     .then(post => {
-      if (post.get('proposal_status') !== Post.Proposal_Status.DISCUSSION) throw new GraphQLYogaError("Proposal options cannot be changed unless the proposal is in 'discussion'")
+      if (post.get('proposal_status') !== Post.Proposal_Status.DISCUSSION) throw new GraphQLError("Proposal options cannot be changed unless the proposal is in 'discussion'")
       return post.setProposalOptions({ options })
     })
-    .catch((err) => { throw new GraphQLYogaError(`setting of options failed: ${err}`) })
+    .catch((err) => { throw new GraphQLError(`setting of options failed: ${err}`) })
     .then(() => ({ success: true }))
 }
 
 export async function updateProposalOptions ({ userId, postId, options }) {
-  if (!userId || !postId || !options) throw new GraphQLYogaError(`Missing required parameters: ${JSON.stringify({ userId, postId, options })}`)
+  if (!userId || !postId || !options) throw new GraphQLError(`Missing required parameters: ${JSON.stringify({ userId, postId, options })}`)
   const authorized = await Post.isVisibleToUser(postId, userId)
-  if (!authorized) throw new GraphQLYogaError("You don't have permission to modify this post")
+  if (!authorized) throw new GraphQLError("You don't have permission to modify this post")
   return Post.find(postId)
     .then(post => {
-      if (post.get('proposal_status') === Post.Proposal_Status.COMPLETED && post.get('proposal_status') !== Post.Proposal_Status.CASUAL) throw new GraphQLYogaError("Proposal options cannot be changed once a proposal is complete'")
+      if (post.get('proposal_status') === Post.Proposal_Status.COMPLETED && post.get('proposal_status') !== Post.Proposal_Status.CASUAL) throw new GraphQLError("Proposal options cannot be changed once a proposal is complete'")
       return post.updateProposalOptions({ options, userId })
     })
-    .catch((err) => { throw new GraphQLYogaError(`setting of options failed: ${err}`) })
+    .catch((err) => { throw new GraphQLError(`setting of options failed: ${err}`) })
     .then(() => ({ success: true }))
 }
 
 export async function swapProposalVote ({ userId, postId, removeOptionId, addOptionId }) {
-  if (!userId || !postId || !removeOptionId || !addOptionId) throw new GraphQLYogaError(`Missing required parameters: ${JSON.stringify({ userId, postId, removeOptionId, addOptionId })}`)
+  if (!userId || !postId || !removeOptionId || !addOptionId) throw new GraphQLError(`Missing required parameters: ${JSON.stringify({ userId, postId, removeOptionId, addOptionId })}`)
   const authorized = await Post.isVisibleToUser(postId, userId)
-  if (!authorized) throw new GraphQLYogaError("You don't have permission to vote on this post")
-  if (removeOptionId === addOptionId) throw new GraphQLYogaError('You cannot swap a vote for the same option')
+  if (!authorized) throw new GraphQLError("You don't have permission to vote on this post")
+  if (removeOptionId === addOptionId) throw new GraphQLError('You cannot swap a vote for the same option')
 
   const post = await Post.find(postId)
-  if (!post) throw new GraphQLYogaError(`Couldn't find post for ${postId}`)
-  if (post.get('proposal_status') !== Post.Proposal_Status.VOTING && post.get('proposal_status') !== Post.Proposal_Status.CASUAL) throw new GraphQLYogaError('Cannot vote on a proposal that is in discussion or completed')
+  if (!post) throw new GraphQLError(`Couldn't find post for ${postId}`)
+  if (post.get('proposal_status') !== Post.Proposal_Status.VOTING && post.get('proposal_status') !== Post.Proposal_Status.CASUAL) throw new GraphQLError('Cannot vote on a proposal that is in discussion or completed')
 
   try {
     await post.removeProposalVote({ userId, optionId: removeOptionId })
     await post.addProposalVote({ userId, optionId: addOptionId })
     return { success: true }
   } catch (err) {
-    throw new GraphQLYogaError(`swap of vote failed: ${err}`)
+    throw new GraphQLError(`swap of vote failed: ${err}`)
   }
 }
 
@@ -130,7 +130,7 @@ export function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
   return Post.find(postId)
     .then(post => {
       if (post.get('user_id') !== userId) {
-        throw new GraphQLYogaError("You don't have permission to modify this post")
+        throw new GraphQLError("You don't have permission to modify this post")
       }
       return post.updateProposalOutcome(proposalOutcome)
     })
@@ -141,10 +141,10 @@ export async function pinPost (userId, postId, groupId) {
   const group = await Group.find(groupId)
   return GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_CONTENT)
     .then(isModerator => {
-      if (!isModerator) throw new GraphQLYogaError("You don't have permission to modify this group")
+      if (!isModerator) throw new GraphQLError("You don't have permission to modify this group")
       return PostMembership.find(postId, groupId)
         .then(postMembership => {
-          if (!postMembership) throw new GraphQLYogaError("Couldn't find postMembership")
+          if (!postMembership) throw new GraphQLError("Couldn't find postMembership")
           return postMembership.togglePinned()
         })
         .then(() => ({ success: true }))

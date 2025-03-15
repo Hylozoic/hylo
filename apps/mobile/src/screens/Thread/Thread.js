@@ -1,206 +1,179 @@
-import React from 'react'
-import { FlatList } from 'react-native'
-import { throttle, debounce } from 'lodash'
-import { get } from 'lodash/fp'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
+import { Dimensions, StyleSheet, View } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
+import { useTranslation } from 'react-i18next'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
+import { gql, useMutation, useQuery } from 'urql'
+import { debounce } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
-import { getSocket } from 'util/websockets'
+import messageThreadMessagesQuery from '@hylo/graphql/queries/messageThreadMessagesQuery'
+import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useRouteParams from 'hooks/useRouteParams'
 import Loading from 'components/Loading'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
+import NotificationOverlay from 'components/NotificationOverlay'
 import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
-import NotificationOverlay from 'components/NotificationOverlay'
 import PeopleTyping from 'components/PeopleTyping'
-import SocketSubscriber from 'components/SocketSubscriber'
 import ThreadHeaderTitle from './ThreadHeaderTitle'
-import styles from './Thread.styles'
-import { rhino10 } from 'style/colors'
-import { withTranslation } from 'react-i18next'
+import { alabaster, caribbeanGreen } from 'style/colors'
 
 const BOTTOM_THRESHOLD = 10
+const MESSAGE_PAGE_SIZE = 20
+const BATCH_LIMIT_MS = 2 * 60 * 1000 // 2 minutes in milliseconds
 
-class Thread extends React.Component {
-  constructor (props) {
-    super(props)
-    this.state = {
-      newMessages: 0,
-      notify: false
-    }
-    this.messageListRef = React.createRef()
-
-    // NOTE: we write directly to the object rather than using setState.
-    // This avoids an automatic re-render on scroll, and any inconsistencies
-    // owing to the async nature of setState and/or setState batching.
-    this.yOffset = 0
-  }
-
-  setHeader () {
-    const { navigation, thread, currentUserId } = this.props
-
-    navigation.setOptions({
-      headerTitleStyle: { color: rhino10 },
-      headerTitle: () => (
-        <ThreadHeaderTitle
-          thread={thread}
-          currentUserId={currentUserId}
-          navigation={navigation}
-        />
-      )
-    })
-  }
-
-  async componentDidMount () {
-    const { fetchMessages, reconnectFetchMessages } = this.props
-    const socket = await getSocket()
-    socket.on('reconnect', reconnectFetchMessages)
-    this.scrollToBottom()
-    await fetchMessages()
-    this.markAsRead()
-    this.setHeader()
-  }
-
-  UNSAFE_componentWillUpdate (nextProps) {
-    const { currentUserId, messages } = nextProps
-
-    const oldMessages = this.props.messages
-    const deltaLength = Math.abs(messages.length - oldMessages.length)
-
-    this.shouldScroll = false
-
-    if (deltaLength) {
-      const latest = messages[0]
-      const oldLatest = oldMessages[0]
-
-      // Are additional messages old (at the beginning of the sorted array)?
-      if (get('id', latest) === get('id', oldLatest)) {
-        // Stops NotificationOverlay showing on infinite scroll
-        if (this.state.notify) this.setState({ notify: false })
-        return
-      }
-
-      // If there's one new message, it's not from currentUser,
-      // and we're not already at the bottom, don't scroll
-      if (
-        deltaLength === 1 && !this.atBottom() &&
-        latest?.creator?.id !== currentUserId
-      ) {
-        this.setState({
-          newMessages: this.state.newMessages + 1,
-          notify: true
-        })
-        return
-      }
-
-      this.shouldScroll = true
+const markThreadReadMutation = gql`
+  mutation MarkThreadReadMutation ($messageThreadId: ID) {
+    markThreadRead(messageThreadId: $messageThreadId) {
+      id
+      unreadCount
     }
   }
+`
 
-  componentDidUpdate (prevProps) {
-    const { id, messages: { length } } = this.props
-
-    if (this.shouldScroll) this.scrollToBottom()
-
-    if (prevProps.id !== id) {
-      this.markAsRead()
-    } else if (this.atBottom() && prevProps.messages.length + 1 === length) {
-      // if you're at the bottom and a new message comes in, consider it read
-      // immediately so we don't try to send you a push notification about it.
-      this.markAsRead()
-    }
-
-    this.setHeader()
-  }
-
-  async componentWillUnmount () {
-    const { reconnectFetchMessages } = this.props
-    const socket = await getSocket()
-    socket.off('reconnect', reconnectFetchMessages)
-  }
-
-  atBottom = () => this.yOffset < BOTTOM_THRESHOLD
-
-  handleSubmit = text => this.props.createMessage(TextHelpers.markdown(text))
-
-  fetchMore = throttle(() => {
-    const { fetchMessages, hasMore, messages, pending } = this.props
-    if (pending || !hasMore) return
-    fetchMessages(messages[messages.length - 1].id)
-  }, 2000)
-
-  markAsRead = debounce(() => this.props.updateThreadReadTime(), 1000)
-
-  renderItem = ({ item }) => {
-    return (
-      <MessageCard message={item} showTopic={this.props.showTopic} />
-    )
-  }
-
-  handleScroll = ({ nativeEvent: { contentOffset } }) => {
-    this.yOffset = contentOffset.y
-    if (contentOffset.y < BOTTOM_THRESHOLD) this.markAsRead()
-  }
-
-  // NOTE: This scrolls to the 'perceived' (by the user) bottom of the thread,
-  // which is actually the top! Confused? Inverted lists are fun.
-  scrollToBottom = () => {
-    this.messageListRef.current.scrollToOffset({ offset: 0 })
-    this.setState({
-      newMessages: 0,
-      notify: false
-    })
-    this.markAsRead()
-  }
-
-  render () {
-    const {
-      id,
-      messages,
-      pending,
-      sendIsTyping,
-      isConnected,
-      t
-    } = this.props
-    const { newMessages, notify } = this.state
-    const showNotificationOverlay = notify // || !isConnected
-    const overlayMessage = !isConnected
-      ? '' // 'RECONNECTING...'
-      : `${newMessages} ${t('NEW MESSAGE')}${newMessages > 1 ? 'S' : ''}`
-
-    return (
-      <KeyboardFriendlyView style={styles.container}>
-        {pending && <Loading />}
-        <FlatList
-          style={styles.messageList}
-          data={messages}
-          inverted
-          keyExtractor={item => item.id}
-          onEndReached={() => this.fetchMore()}
-          onEndReachedThreshold={0.3}
-          onScroll={this.handleScroll}
-          ref={this.messageListRef}
-          refreshing={!!pending}
-          renderItem={this.renderItem}
-        />
-        <MessageInput
-          blurOnSubmit={false}
-          multiline
-          onSubmit={this.handleSubmit}
-          sendIsTyping={sendIsTyping}
-          placeholder={t('Write something')}
-        />
-        <PeopleTyping />
-        {showNotificationOverlay && (
-          <NotificationOverlay
-            position='bottom'
-            type={isConnected ? 'info' : 'error'}
-            permanent={!isConnected}
-            message={overlayMessage}
-            onPress={() => this.scrollToBottom()}
-          />
-        )}
-        <SocketSubscriber type='post' id={id} />
-      </KeyboardFriendlyView>
-    )
-  }
+const isWithinBatchLimit = (timestamp1, timestamp2) => {
+  return Math.abs(new Date(timestamp1) - new Date(timestamp2)) <= BATCH_LIMIT_MS
 }
 
-export default withTranslation()(Thread)
+const refineMessages = messages => {
+  return messages.map((msg, i, arr) => {
+    const prev = arr[i + 1]
+    const next = arr[i - 1]
+
+    // Precompute human-readable date for current message
+    const msgHumanDate = TextHelpers.humanDate(msg.createdAt)
+    const nextHumanDate = next ? TextHelpers.humanDate(next.createdAt) : null
+
+    const suppressCreator = prev && msg.creator.id === prev.creator.id
+    const suppressDate =
+      suppressCreator &&
+      next &&
+      msg.creator.id === next.creator.id &&
+      isWithinBatchLimit(next.createdAt, msg.createdAt) &&
+      msgHumanDate === nextHumanDate // Avoid redundant dates
+
+    return {
+      ...msg,
+      suppressCreator,
+      displayDate: !suppressDate && msgHumanDate
+    }
+  })
+}
+
+export default function Thread () {
+  const { t } = useTranslation()
+  const navigation = useNavigation()
+  const messageListRef = useRef()
+  const peopleTypingRef = useRef()
+  const [{ currentUser }] = useCurrentUser()
+  const { id: threadId } = useRouteParams()
+
+  const [, createMessage] = useMutation(createMessageMutation)
+  const [cursor, setCursor] = useState(null)
+  const [{ data, fetching }] = useQuery({
+    query: messageThreadMessagesQuery,
+    variables: { id: threadId, first: MESSAGE_PAGE_SIZE, cursor }
+  })
+  const messages = data?.messageThread?.messages?.items || []
+  const [, providedMarkAsRead] = useMutation(markThreadReadMutation)
+  const markAsRead = debounce(1000, () => { providedMarkAsRead({ messageThreadId: threadId }) })
+
+  // Not currently used, but once we have subscription applied we can turn it back on
+  const [newMessages] = useState()
+  const [yOffset, setYOffset] = useState(0)
+  const atBottom = useMemo(() => yOffset < BOTTOM_THRESHOLD, [yOffset])
+
+  const fetchMore = () => {
+    if (!fetching && messages && messages?.length) {
+      setCursor(messages[messages.length - 1].id)
+    }
+  }
+
+  const handleScroll = ({ nativeEvent: { contentOffset } }) => {
+    setYOffset(contentOffset.y)
+    if (contentOffset.y < BOTTOM_THRESHOLD) markAsRead()
+  }
+
+  const handleScrollToBottom = () => {
+    messageListRef?.current?.scrollToOffset({ offset: 0 })
+  }
+
+  const handleSendTyping = () => peopleTypingRef?.current?.sendTyping()
+
+  const handleSubmit = (text) => {
+    createMessage({
+      messageThreadId: threadId,
+      text: TextHelpers.markdown(text)
+    })
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      navigation.setOptions({
+        headerLeftStyle: { color: caribbeanGreen },
+        headerTitle: () => (
+          <ThreadHeaderTitle thread={data?.messageThread} currentUserId={currentUser?.id} />
+        )
+      })
+      markAsRead()
+    }, [data?.messageThread])
+  )
+
+  // New message indicator disabled for now, needs more thought
+  // useEffect(() => {
+  //   if (messages.length && atBottom) {
+  //     setNewMessages(1)
+  //   }
+  // }, [messages, atBottom])
+
+  return (
+    <KeyboardFriendlyView style={styles.container}>
+      <FlashList
+        style={styles.messageList}
+        data={refineMessages(messages)}
+        estimatedListSize={Dimensions.get('screen')}
+        estimatedItemSize={60}
+        inverted
+        keyExtractor={(item) => item.id}
+        keyboardDismissMode='on-drag'
+        keyboardShouldPersistTaps
+        refreshing={fetching}
+        onEndReached={fetchMore}
+        onEndReachedThreshold={0.3}
+        onScroll={handleScroll}
+        ref={messageListRef}
+        renderItem={({ item }) => (
+          <MessageCard message={item} />
+        )}
+        ListFooterComponent={fetching && <Loading />}
+        ListHeaderComponent={
+          <View>
+            {!!(newMessages && !atBottom) && (
+              <NotificationOverlay
+                position='bottom'
+                message={t('New messages')}
+                onPress={handleScrollToBottom}
+              />
+            )}
+            <MessageInput
+              blurOnSubmit={false}
+              multiline
+              sendIsTyping={handleSendTyping}
+              onSubmit={handleSubmit}
+              placeholder={t('Write something')}
+            />
+            <PeopleTyping messageThreadId={threadId} ref={peopleTypingRef} />
+          </View>
+        }
+      />
+    </KeyboardFriendlyView>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: alabaster
+  }
+})

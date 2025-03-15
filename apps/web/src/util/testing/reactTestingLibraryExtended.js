@@ -9,6 +9,7 @@ import { getEmptyState } from 'store'
 import createRootReducer from 'store/reducers'
 import createMiddleware from 'store/middleware'
 import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
+import { TooltipProvider } from 'components/ui/tooltip'
 
 // Note: This is ran by default via `customRender` below, but it's necessary to manually
 // generate the store when pre-populating the ReduxORM in a test. Search across tests to
@@ -35,21 +36,23 @@ export const AllTheProviders = (providedState, initialEntries = []) => ({ childr
   return (
     <LayoutFlagsProvider>
       <Provider store={generateStore(providedState)}>
-        {initialEntries.length > 0
-          ? (
-            <MemoryRouter initialEntries={initialEntries}>
-              <Routes>
-                <Route path='*' element={children} />
-              </Routes>
-            </MemoryRouter>
-            )
-          : (
-            <BrowserRouter>
-              <Routes>
-                <Route path='*' element={children} />
-              </Routes>
-            </BrowserRouter>
-            )}
+        <TooltipProvider>
+          {initialEntries.length > 0
+            ? (
+              <MemoryRouter initialEntries={initialEntries}>
+                <Routes>
+                  <Route path='*' element={children} />
+                </Routes>
+              </MemoryRouter>
+              )
+            : (
+              <BrowserRouter>
+                <Routes>
+                  <Route path='*' element={children} />
+                </Routes>
+              </BrowserRouter>
+              )}
+        </TooltipProvider>
       </Provider>
     </LayoutFlagsProvider>
   )

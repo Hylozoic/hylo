@@ -72,6 +72,8 @@ module.exports = bookshelf.Model.extend({
     const groupName = group.get('name')
 
     switch (version) {
+      case 'chat':
+        return locales[locale].textForChatPost({ groupName, person, postName })
       case 'mention':
         return locales[locale].textForPostMention({ groupName, person, postName })
       case 'voteReset':
@@ -158,5 +160,9 @@ module.exports = bookshelf.Model.extend({
 
     const amount = contribution.get('amount') / 100
     return locales[locale].textForDonationFrom({actor, postName, amount})
+  },
+
+  textForMemberJoinedGroup: function (group, actor, locale) {
+    return locales[locale].textForMemberJoinedGroup({group, actor})
   }
 })

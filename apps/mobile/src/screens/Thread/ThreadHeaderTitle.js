@@ -1,25 +1,27 @@
-import React, { useState } from 'react'
-import { Text, TouchableOpacity, View } from 'react-native'
+import React, { useRef } from 'react'
+import { Text, TouchableOpacity, View, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import { useNavigation } from '@react-navigation/native'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import { firstName } from 'store/models/Person'
+import { firstName } from '@hylo/presenters/PersonPresenter'
 import Avatar from 'components/Avatar'
 import PeopleListModal from 'components/PeopleListModal'
-import { rhino10 } from 'style/colors'
-import { useTranslation } from 'react-i18next'
+import { rhino } from 'style/colors'
 
-export default function ThreadHeaderTitle ({ thread, currentUserId, navigation }) {
-  const [modalIsVisible, setModalIsVisible] = useState(false)
-  const toggleModalIsVisible = () => setModalIsVisible(!modalIsVisible)
+export default function ThreadHeaderTitle ({ thread, currentUserId }) {
+  const navigation = useNavigation()
+  const { t } = useTranslation()
+  const peoplePopupRef = useRef()
 
   if (!thread) return null
 
-  const otherParticipants = thread.participants.filter(p => p.id !== currentUserId).toRefArray()
+  const otherParticipants = thread.participants.filter(p => p.id !== currentUserId)
   const avatarUrls = otherParticipants.map(p => p.avatarUrl)
   const names = otherParticipants.length > 1 ? otherParticipants.map(firstName) : [otherParticipants[0]?.name || 'Deleted User']
   const goToParticipant = ({ id }) => navigation.navigate(modalScreenName('Member'), { id })
   const handleOnPress = () => {
     otherParticipants.length > 1
-      ? toggleModalIsVisible()
+      ? peoplePopupRef?.current.show()
       : otherParticipants[0] && goToParticipant(otherParticipants[0])
   }
 
@@ -40,27 +42,26 @@ export default function ThreadHeaderTitle ({ thread, currentUserId, navigation }
                 />
               )
             })}
-            <Text style={styles.participantNames}>{participantNamesSummary(names)}</Text>
+            <Text style={styles.participantNames}>{participantNamesSummary(names, t)}</Text>
           </View>
         </TouchableOpacity>
         <PeopleListModal
-          people={otherParticipants}
-          onPressPerson={goToParticipant}
-          isVisible={modalIsVisible}
-          toggleModal={toggleModalIsVisible}
+          ref={peoplePopupRef}
+          title={t('Participants')}
+          onItemPress={goToParticipant}
+          items={otherParticipants}
         />
       </View>
     </>
   )
 }
 
-export function participantNamesSummary (names) {
-  const { t } = useTranslation()
+export function participantNamesSummary (names, t) {
   if (names.length < 3) return names.join(' & ')
   return `${names[0]} & ${names.length - 1} ${t('others')}`
 }
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -73,8 +74,8 @@ const styles = {
   },
   participantNames: {
     paddingLeft: 10,
-    color: rhino10,
+    color: rhino,
     fontSize: 18,
     fontFamily: 'Circular-Bold'
   }
-}
+})

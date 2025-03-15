@@ -1,5 +1,5 @@
+import { GraphQLError } from 'graphql'
 import { isEmpty, mapKeys, pick, snakeCase } from 'lodash'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export async function updateMembership (userId, { groupId, data, data: { settings } }) {
   const whitelist = mapKeys(pick(data, [
@@ -11,7 +11,9 @@ export async function updateMembership (userId, { groupId, data, data: { setting
 
   return bookshelf.transaction(async transacting => {
     const membership = await GroupMembership.forIds(userId, groupId).fetch({ transacting })
-    if (!membership) throw new GraphQLYogaError("Couldn't find membership for group with id", groupId)
+    if (!membership) throw new GraphQLError(`Couldn't find membership for group with id ${groupId}`)
+    const previouslyJoinedGroup = !membership.getSetting('showJoinForm')
+
     if (!isEmpty(settings)) membership.addSetting(settings)
     if (!isEmpty(whitelist)) membership.set(whitelist)
     if (data.acceptAgreements) {
@@ -22,7 +24,18 @@ export async function updateMembership (userId, { groupId, data, data: { setting
         await GroupJoinQuestionAnswer.forge({ group_id: groupId, question_id: qa.questionId, answer: qa.answer, user_id: userId }).save()
       }
     }
+    if (!previouslyJoinedGroup && settings?.showJoinForm === false) {
+      // First time a person finishes joining the group we do some additional stuff
+      Queue.classMethod('Group', 'afterFinishedJoining', { userId, groupId })
+    }
     if (membership.changed) await membership.save({}, { transacting })
     return membership
   })
+}
+
+export function updateAllMemberships (userId, { data: { settings } }) {
+  const whitelist = pick(settings, ['postNotifications', 'digestFrequency'])
+  if (isEmpty(whitelist)) return Promise.resolve(null)
+  const whitelistString = Object.entries(whitelist).map(([key, value]) => `'${key}', '${value}'`).join(', ')
+  return bookshelf.knex.raw('update group_memberships set settings = settings || jsonb_build_object(' + whitelistString + ') where user_id = ' + userId)
 }

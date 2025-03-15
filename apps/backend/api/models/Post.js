@@ -2,7 +2,8 @@
 
 import data from '@emoji-mart/data'
 import { init, getEmojiDataFromNative } from 'emoji-mart'
-import { difference, filter, isNull, omitBy, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
+import { difference, filter, get, isNull, omitBy, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
+import { DateTime } from 'luxon'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
 import { TextHelpers } from '@hylo/shared'
@@ -15,6 +16,7 @@ import { refineMany, refineOne } from './util/relations'
 import ProjectMixin from './project/mixin'
 import EventMixin from './event/mixin'
 import * as RichText from '../services/RichText'
+import { defaultTimezone } from '../../lib/group/digest2/util'
 
 init({ data })
 
@@ -48,9 +50,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
   requireFetch: false,
   hasTimestamps: true,
 
+  _localId: null,  // Used to store the localId of the post coming from the client and passed back to the client, for optimistic updates
+
   // Instance Methods
 
   // Simple attribute getters
+
+  getLocalId: function () {
+    return this._localId
+  },
+
+  setLocalId: function (value) {
+    this._localId = value
+    return this
+  },
 
   // This should be always used when accessing this attribute
   details: function (forUserId) {
@@ -257,7 +270,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   // TODO: if we were in a position to avoid duplicating the graphql layer
   // here, that'd be grand.
   getNewPostSocketPayload: function () {
-    const { groups, linkPreview, tags, user, proposalOptions } = this.relations
+    const { media, groups, linkPreview, tags, user, proposalOptions } = this.relations
 
     const creator = refineOne(user, [ 'id', 'name', 'avatar_url' ])
     const topics = refineMany(tags, [ 'id', 'name' ])
@@ -266,24 +279,39 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return Object.assign({},
       refineOne(
         this,
-        ['created_at', 'description', 'id', 'name', 'num_people_reacts', 'timezone', 'type', 'updated_at', 'num_votes', 'votingMethod', 'proposalStatus', 'proposalOutcome'],
-        { description: 'details', name: 'title', num_people_reacts: 'peopleReactedTotal', num_votes: 'votesTotal' }
+        [
+          'announcement',
+          'created_at',
+          'description',
+          'end_time',
+          'id',
+          'is_public',
+          'location',
+          'name',
+          'num_people_reacts',
+          'num_votes',
+          'proposalStatus',
+          'proposalOutcome',
+          'start_time',
+          'timezone',
+          'type',
+          'updated_at',
+          'votingMethod'
+        ],
+        { name: 'title', num_people_reacts: 'peopleReactedTotal', num_votes: 'votesTotal' }
       ),
       {
+        attachments: refineMany(media, [ 'id', 'type', 'url' ]),
         // Shouldn't have commenters immediately after creation
         commenters: [],
-        proposalVotes: [],
         commentsTotal: 0,
+        creator,
         details: this.details(),
         groups: refineMany(groups, [ 'id', 'name', 'slug' ]),
-        creator,
         linkPreview: refineOne(linkPreview, [ 'id', 'image_url', 'title', 'description', 'url' ]),
-        topics,
         proposalOptions,
-
-        // TODO: Once legacy site is decommissioned, these are no longer required.
-        creatorId: creator.id,
-        tags: topics
+        proposalVotes: [],
+        topics
       }
     )
   },
@@ -300,6 +328,38 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const pu = await this.postUsers()
       .query(q => q.where('user_id', userId)).fetchOne()
     return (pu && pu.get('clickthrough')) || null
+  },
+
+  presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full' }) {
+    const { media, tags, linkPreview, user } = this.relations
+    const slug = group?.get('slug')
+
+    return {
+      id: parseInt(this.id),
+      announcement: this.get('announcement'),
+      comments: [],
+      day: type !== 'oneline' && this.get('start_time') && TextHelpers.getDayFromDate(this.get('start_time'), this.get('timezone')),
+      details: type !== 'oneline' && RichText.qualifyLinks(this.details(), slug),
+      end_time: type === 'oneline' && this.get('end_time') && TextHelpers.formatDatePair(this.get('end_time'), null, false, this.get('timezone')),
+      link_preview: type !== 'oneline' && linkPreview && linkPreview.id &&
+        linkPreview.pick('title', 'description', 'url', 'image_url'),
+      location: type !== 'oneline' && this.get('location'),
+      image_url: type !== 'oneline' && media?.filter(m => m.get('type') === 'image')?.[0]?.get(type === 'full' ? 'url' : 'thumbnail_url'), // Thumbail for digest
+      month: type !== 'oneline' && this.get('start_time') && TextHelpers.getMonthFromDate(this.get('start_time'), this.get('timezone')),
+      topic_name: type !== 'oneline' && this.get('type') === 'chat' ? tags?.first()?.get('name') : '',
+      type: this.get('type'),
+      start_time: type === 'oneline' && this.get('start_time') && TextHelpers.formatDatePair(this.get('start_time'), null, false, this.get('timezone')),
+      title: this.get('name'),
+      unfollow_url: Frontend.Route.unfollow(this, group) + clickthroughParams,
+      user: {
+        id: user.id,
+        name: user.get('name'),
+        avatar_url: user.get('avatar_url'),
+        profile_url: Frontend.Route.profile(user) + clickthroughParams
+      },
+      url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group) + clickthroughParams,
+      when: this.get('start_time') && TextHelpers.formatDatePair(this.get('start_time'), this.get('end_time'), false, this.get('timezone'))
+    }
   },
 
   totalContributions: async function () {
@@ -422,11 +482,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // Execute the insert query for options passed in
     if (options.length > 0) {
-      const insertQuery = `
-        INSERT INTO proposal_options (post_id, text, color, emoji)
-        VALUES ${options.map(option => `(${this.id}, '${option.text}', '${option.color}', '${option.emoji}')`).join(', ')};
-      `
-      await bookshelf.knex.raw(insertQuery).transacting(opts.transacting)
+      await bookshelf.knex('proposal_options').insert(options.map(option => {
+        return { ...option, post_id: this.id }
+      })).transacting(opts.transacting)
     }
 
     // Return a resolved promise
@@ -454,30 +512,69 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   createActivities: async function (trx) {
-    await this.load(['groups', 'tags'], {transacting: trx})
+    await this.load(['groups', 'tags'], { transacting: trx })
     const { tags, groups } = this.relations
-
-    const tagFollows = await TagFollow.query(qb => {
-      qb.whereIn('tag_id', tags.map('id'))
-      qb.whereIn('group_id', groups.map('id'))
-    })
-    .fetchAll({withRelated: ['tag'], transacting: trx})
-
-    const tagFollowers = tagFollows.map(tagFollow => ({
-      reader_id: tagFollow.get('user_id'),
-      post_id: this.id,
-      actor_id: this.get('user_id'),
-      group_id: tagFollow.get('group_id'),
-      reason: `tag: ${tagFollow.relations.tag.get('name')}`
-    }))
+    let activitiesToCreate = []
 
     const mentions = RichText.getUserMentions(this.details())
-    const mentioned = mentions.map(userId => ({
+    let mentioned = mentions.map(userId => ({
       reader_id: userId,
       post_id: this.id,
       actor_id: this.get('user_id'),
       reason: 'mention'
     }))
+    activitiesToCreate = activitiesToCreate.concat(mentioned)
+
+    // Activities get created for every chat or post, and then we decide whether to send notifications for them in Activity.generateNotificationMedia
+    if (this.get('type') === Post.Type.CHAT) {
+      const tagFollows = await TagFollow.query(qb => {
+        qb.join('group_memberships', 'group_memberships.group_id', 'tag_follows.group_id')
+        qb.where('group_memberships.active', true)
+        qb.whereRaw('group_memberships.user_id = tag_follows.user_id')
+        qb.whereIn('tag_id', tags.map('id'))
+        qb.whereIn('tag_follows.group_id', groups.map('id'))
+      })
+      .fetchAll({ withRelated: ['tag'], transacting: trx })
+
+      const tagFollowers = tagFollows.map(tagFollow => ({
+        reader_id: tagFollow.get('user_id'),
+        post_id: this.id,
+          actor_id: this.get('user_id'),
+          group_id: tagFollow.get('group_id'),
+          reason: `chat: ${tagFollow.relations.tag.get('name')}`
+        }))
+
+      activitiesToCreate = activitiesToCreate.concat(tagFollowers)
+    } else {
+      // Non-chat posts are sent to all members of the groups the post is in
+      let members = await Promise.all(groups.map(async group => {
+        const userIds = await group.members().fetch().then(u => u.pluck('id'))
+        const newPosts = userIds.map(userId => ({
+          reader_id: userId,
+          post_id: this.id,
+          actor_id: this.get('user_id'),
+          group_id: group.id,
+          reason: `newPost: ${group.id}`
+        }))
+
+        // TODO: RESP. moderators can also make announcements?
+        const hasAdministration = await GroupMembership.hasResponsibility(this.get('user_id'), group, Responsibility.constants.RESP_ADMINISTRATION)
+        if (this.get('announcement') && hasAdministration) {
+          const announcees = userIds.map(userId => ({
+            reader_id: userId,
+            post_id: this.id,
+            actor_id: this.get('user_id'),
+            group_id: group.id,
+            reason: `announcement: ${group.id}`
+          }))
+          return newPosts.concat(announcees)
+        }
+
+        return newPosts
+      }))
+
+      activitiesToCreate = activitiesToCreate.concat(flatten(members))
+    }
 
     const eventInvitations = await EventInvitation.query(qb => {
       qb.where('event_id', this.id)
@@ -490,39 +587,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
       actor_id: eventInvitation.get('inviter_id'),
       reason: 'eventInvitation'
     }))
+    activitiesToCreate = activitiesToCreate.concat(invitees)
 
-    let members = await Promise.all(groups.map(async group => {
-      const userIds = await group.members().fetch().then(u => u.pluck('id'))
-      const newPosts = userIds.map(userId => ({
-        reader_id: userId,
-        post_id: this.id,
-        actor_id: this.get('user_id'),
-        group_id: group.id,
-        reason: `newPost: ${group.id}`
-      }))
+    activitiesToCreate = filter(r => r.reader_id !== this.get('user_id'), activitiesToCreate)
 
-      // TODO: RESP. moderators can also make announcements?
-      const hasAdministration = await GroupMembership.hasResponsibility(this.get('user_id'), group, Responsibility.constants.RESP_ADMINISTRATION)
-      if (this.get('announcement') && hasAdministration) {
-        const announcees = userIds.map(userId => ({
-          reader_id: userId,
-          post_id: this.id,
-          actor_id: this.get('user_id'),
-          group_id: group.id,
-          reason: `announcement: ${group.id}`
-        }))
-        return newPosts.concat(announcees)
-      }
-
-      return newPosts
-    }))
-
-    members = flatten(members)
-
-    const readers = filter(r => r.reader_id !== this.get('user_id'),
-      mentioned.concat(members).concat(tagFollowers).concat(invitees))
-
-    return Activity.saveForReasons(readers, trx)
+    return Activity.saveForReasons(activitiesToCreate, trx)
   },
 
   createVoteResetActivities: async function (trx) {
@@ -752,6 +821,41 @@ module.exports = bookshelf.Model.extend(Object.assign({
     })
   },
 
+  upcomingPostReminders: function (collection, digestType) {
+    const startTime = DateTime.now().setZone(defaultTimezone).toISO()
+    // If daily digest show posts that have reminders in the next 2 days
+    // If weekly digest show posts that have reminders in the next 7 days
+    const endTime = digestType === 'daily'
+      ? DateTime.now().setZone(defaultTimezone).plus({ days: 2 }).endOf('day').toISO()
+      : DateTime.now().setZone(defaultTimezone).plus({ days: 7 }).endOf('day').toISO()
+
+    const startingSoon = collection.query(function (qb) {
+      qb.whereRaw('posts.start_time between ? and ?', [startTime, endTime])
+      qb.whereIn('posts.type', ['event', 'offer', 'project', 'proposal', 'resource', 'request'])
+      qb.where('posts.fulfilled_at', null)
+      qb.where('posts.active', true)
+      qb.orderBy('posts.start_time', 'asc')
+    })
+      .fetch({ withRelated: ['user'] })
+      .then(get('models'))
+
+    const endingSoon = collection.query(function (qb) {
+      qb.whereRaw('posts.end_time between ? and ?', [startTime, endTime])
+      qb.whereRaw('start_time < ?', [startTime]) // Only show posts as ending soon that have already started
+      qb.whereIn('posts.type', ['event', 'offer', 'project', 'proposal', 'resource', 'request'])
+      qb.where('posts.fulfilled_at', null)
+      qb.where('posts.active', true)
+      qb.orderBy('posts.end_time', 'asc')
+    })
+      .fetch({ withRelated: ['user'] })
+      .then(get('models'))
+
+    return Promise.all([startingSoon, endingSoon]).then(([startingSoon, endingSoon]) => ({
+      startingSoon,
+      endingSoon
+    }))
+  },
+
   newPostAttrs: () => ({
     created_at: new Date(),
     updated_at: new Date(),
@@ -865,8 +969,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
   zapierTriggers: async ({ postId }) => {
     const post = await Post.find(postId, { withRelated: ['groups', 'tags', 'user'] })
     if (!post) return
-    const tags = post.relations.tags
-    const firstTag = tags && tags.first()?.get('name')
 
     const groupIds = post.relations.groups.map(g => g.id)
     const zapierTriggers = await ZapierTrigger.forTypeAndGroups('new_post', groupIds).fetchAll()
@@ -877,9 +979,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           continue
         }
 
-        const entityUrl = (post.get('type') === Post.Type.CHAT && post.relations.groups.length > 0 && firstTag)
-          ? Frontend.Route.chatPostForMobile(post, post.relations.groups[0], firstTag)
-          : Frontend.Route.post(post, post.relations.groups[0])
+        const entityUrl = Frontend.Route.post(post, post.relations.groups[0])
 
         const creator = post.relations.user
         const response = await fetch(trigger.get('target_url'), {

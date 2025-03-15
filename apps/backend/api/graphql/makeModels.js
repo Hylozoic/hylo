@@ -1,5 +1,6 @@
 import { camelCase, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
+import { TextHelpers } from '@hylo/shared'
 import searchQuerySet from './searchQuerySet'
 import {
   commentFilter,
@@ -60,6 +61,49 @@ export default function makeModels (userId, isAdmin, apiClient) {
       fetchMany: () => CommonRole.fetchAll()
     },
 
+    ContextWidget: {
+      model: ContextWidget,
+      attributes: [
+        'id',
+        'auto_added',
+        'title',
+        'type',
+        'order',
+        'visibility',
+        'view',
+        'icon',
+        'created_at',
+        'parent_id',
+        'updated_at',
+        'secondaryNumber'
+      ],
+      relations: [
+        'customView',
+        'ownerGroup',
+        'parentWidget',
+        { children: { alias: 'childWidgets', querySet: true } },
+        'viewGroup',
+        'viewPost',
+        'viewUser',
+        'viewChat'
+      ],
+      getters: {
+        // XXX: has to be a getter not a relation because belongsTo doesn't support multiple keys
+        groupTopic: cw => cw.groupTopic().fetch(),
+        highlightNumber: cw => cw.highlightNumber(userId),
+        topicFollow: cw => cw.topicFollow(userId).fetch()
+      },
+      fetchMany: ({ groupId, includeUnordered }) => {
+        return ContextWidget.collection().query(q => {
+          q.where({ group_id: groupId })
+          if (!includeUnordered) {
+            q.whereNotNull('order')
+          }
+          q.orderBy('order', 'asc')
+        })
+      }
+    },
+
     Me: {
       model: User,
       attributes: [
@@ -70,6 +114,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'email',
         'contact_email',
         'contact_phone',
+        'created_at',
         'email_validated',
         'hasRegistered',
         'intercomHash',
@@ -116,7 +161,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
             }
           }
         },
-        { messageThreads: { typename: 'MessageThread', querySet: true } }
+        { messageThreads: { typename: 'MessageThread', querySet: true } },
+        { tagFollows: { alias: 'topicFollows', querySet: true } }
       ],
       getters: {
         blockedUsers: u => u.blockedUsers().fetch(),
@@ -138,7 +184,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { user: { alias: 'person' } },
         { commonRoles: { querySet: true } },
         { membershipCommonRoles: { querySet: true } },
-        { joinQuestionAnswers: { querySet: true } }
+        { joinQuestionAnswers: { querySet: true } },
+        { tagFollows: { alias: 'topicFollows', querySet: true } }
       ],
       getters: {
         settings: m => mapKeys(camelCase, m.get('settings')),
@@ -323,6 +370,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         commentersTotal: p => p.getCommentersTotal(userId),
         details: p => p.details(userId),
         isAnonymousVote: p => p.get('anonymous_voting') === 'true',
+        localId: p => p.getLocalId(),
         myReactions: p => userId ? p.reactionsForUser(userId).fetch() : [],
         // clickthrough: p => p.pivot && p.pivot.get('clickthrough'), // TODO COMOD: does not seem to work
         clickthrough: p => p.checkClickthrough(userId),
@@ -339,7 +387,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'locationObject',
         { members: { querySet: true } },
         { eventInvitations: { querySet: true } },
-        { moderationActions: { querySet: true} },
+        { moderationActions: { querySet: true } },
         { proposalOptions: { querySet: true } },
         { proposalVotes: { querySet: true } },
         'linkPreview',
@@ -426,6 +474,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'banner_url',
         'created_at',
         'description',
+        'homeWidget',
         'location',
         'geo_shape',
         'memberCount',
@@ -433,13 +482,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'postCount',
         'purpose',
         'slug',
+        'type',
         'visibility',
-        'type'
+        'website_url',
+        'welcome_page'
       ],
       relations: [
         { activeMembers: { querySet: true } },
         { agreements: { querySet: true } },
+        { chatRooms: { querySet: true } },
         { childGroups: { querySet: true } },
+        { contextWidgets: { querySet: true } },
         { customViews: { querySet: true } },
         { groupRelationshipInvitesFrom: { querySet: true } },
         { groupRelationshipInvitesTo: { querySet: true } },
@@ -448,11 +501,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
           groupTags: {
             querySet: true,
             alias: 'groupTopics',
-            filter: (relation, { autocomplete, subscribed }) =>
+            filter: (relation, { autocomplete, subscribed, groupId }) =>
               relation.query(groupTopicFilter(userId, {
                 autocomplete,
                 subscribed,
-                groupId: relation.relatedData.parentId
+                groupId: relation.relatedData.parentId || groupId
               }))
           }
         },
@@ -512,7 +565,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 isFulfilled,
                 order,
                 search,
-                showPinnedFirst: true,
+                showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
                 sortBy,
                 topic,
                 topics,
@@ -563,7 +616,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 isFulfilled,
                 order,
                 search,
-                showPinnedFirst: true,
+                showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
                 sortBy,
                 topic,
                 topics,
@@ -577,8 +630,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       getters: {
         // commonRoles: async g => g.commonRoles(),
+        homeWidget: g => g.homeWidget(),
         invitePath: g =>
-          GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
+          userId && GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
             .then(canInvite => canInvite ? Frontend.Route.invitePath(g) : null),
         location: async (g) => {
           // If location obfuscation is on then non group stewards see a display string that only includes city, region & country
@@ -606,7 +660,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           const precision = g.getSetting('location_display_precision') || LOCATION_DISPLAY_PRECISION.Precise
           if (precision === LOCATION_DISPLAY_PRECISION.Precise ||
                 (userId && await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION))) {
-                  // TODO: add RESP for this
+            // TODO: add RESP for this
             return g.locationObject().fetch()
           } else if (precision === LOCATION_DISPLAY_PRECISION.Near) {
             // For near only include region, city, country columns, and move the exact location around every load
@@ -643,8 +697,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         typeDescriptorPlural: g => g.get('type_descriptor_plural') || (g.get('type') ? pluralize(startCase(g.get('type'))) : 'Groups')
       },
       filter: nonAdminFilter(apiFilter(groupFilter(userId))),
-      fetchMany: ({ autocomplete, boundingBox, context, farmQuery, filter, first, groupIds, groupType, nearCoord, offset, onlyMine, order, parentSlugs, search, sortBy, visibility }) =>
+      fetchMany: ({ allowedInPublic, autocomplete, boundingBox, context, farmQuery, filter, first, groupIds, groupType, nearCoord, offset, onlyMine, order, parentSlugs, search, sortBy, visibility }) =>
         searchQuerySet('groups', {
+          allowedInPublic,
           autocomplete,
           boundingBox,
           currentUserId: userId,
@@ -738,7 +793,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'collection_id',
         'default_sort',
         'default_view_mode',
-        'external_link',
         'group_id',
         'icon',
         'is_active',
@@ -748,6 +802,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'type',
         'search_text'
       ],
+      getters: {
+        externalLink: customView => TextHelpers.sanitizeURL(customView.get('external_link'))
+      },
       relations: [
         'collection',
         'group',
@@ -1015,9 +1072,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         groupTags: {
           alias: 'groupTopics',
           querySet: true,
-          filter: (relation, { autocomplete, subscribed, isDefault, visibility }) =>
+          filter: (relation, { autocomplete, subscribed, isDefault, visibility, groupId }) =>
             relation.query(groupTopicFilter(userId, {
               autocomplete,
+              groupId,
               isDefault,
               subscribed,
               visibility
@@ -1027,6 +1085,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
       }],
       fetchMany: ({ groupSlug, name, isDefault, visibility, autocomplete, first, offset = 0, sortBy }) =>
         searchQuerySet('tags', { userId, groupSlug, name, autocomplete, isDefault, visibility, limit: first, offset, sort: sortBy })
+    },
+
+    TopicFollow: {
+      model: TagFollow,
+      attributes: ['created_at', 'last_read_post_id', 'new_post_count', 'settings', 'updated_at' ],
+      relations: [
+        'group',
+        { tag: { alias: 'topic' } },
+        'user'
+      ],
+      fetchMany: args => TagFollow.query()
     },
 
     Notification: {

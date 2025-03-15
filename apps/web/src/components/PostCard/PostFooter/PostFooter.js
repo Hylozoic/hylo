@@ -1,6 +1,7 @@
 import React from 'react'
 import { withTranslation } from 'react-i18next'
-import cx from 'classnames'
+import { cn } from 'util/index'
+import EmojiRow from 'components/EmojiRow'
 import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import PeopleInfo from '../PeopleInfo'
@@ -24,14 +25,27 @@ class PostFooter extends React.PureComponent {
       commentersTotal,
       constrained,
       onClick,
-      postId
+      onAddReaction = () => {},
+      onRemoveReaction = () => {},
+      postId,
+      mapDrawer,
+      ...post
     } = this.props
 
     const tooltipId = 'postfooter-tt-' + postId
 
     return (
-      <div onClick={onClick} className={cx(classes.footer, { [classes.constrained]: constrained })} data-testid='post-footer'>
-        <PeopleInfo constrained={constrained} people={commenters} peopleTotal={commentersTotal} excludePersonId={get('id', currentUser)} />
+      <div onClick={onClick} className={cn('w-full text-foreground flex flex-wrap p-2 items-center', { [classes.constrained]: constrained }, { 'flex-col justify-start items-start gap-2': mapDrawer })} data-testid='post-footer'>
+        <EmojiRow
+          post={post}
+          currentUser={currentUser}
+          onAddReaction={onAddReaction}
+          onRemoveReaction={onRemoveReaction}
+        />
+
+        <div className='bg-black/10 rounded-lg py-2 px-3 h-[40px] items-center justify-center flex'>
+          <PeopleInfo constrained={constrained} people={commenters} peopleTotal={commentersTotal} excludePersonId={get('id', currentUser)} />
+        </div>
         <Tooltip
           delay={550}
           id={tooltipId}

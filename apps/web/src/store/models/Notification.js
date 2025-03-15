@@ -2,14 +2,16 @@ import { attr, fk, Model } from 'redux-orm'
 import { find, get } from 'lodash/fp'
 import { t as translate } from 'i18next'
 import { TextHelpers } from '@hylo/shared'
+import presentPost from 'store/presenters/presentPost'
 import {
-  postCommentUrl,
-  postUrl,
-  groupUrl
+  primaryPostUrl,
+  groupUrl,
+  personUrl
 } from 'util/navigation'
 
 export const ACTION_ANNOUNCEMENT = 'announcement'
 export const ACTION_APPROVED_JOIN_REQUEST = 'approvedJoinRequest'
+export const ACTION_CHAT = 'chat'
 export const ACTION_COMMENT_MENTION = 'commentMention'
 export const ACTION_DONATION_TO = 'donation to'
 export const ACTION_DONATION_FROM = 'donation from'
@@ -19,12 +21,13 @@ export const ACTION_GROUP_CHILD_GROUP_INVITE_ACCEPTED = 'groupChildGroupInviteAc
 export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST = 'groupParentGroupJoinRequest'
 export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED = 'groupParentGroupJoinRequestAccepted'
 export const ACTION_JOIN_REQUEST = 'joinRequest'
+export const ACTION_MEMBER_JOINED_GROUP = 'memberJoinedGroup'
 export const ACTION_MENTION = 'mention'
 export const ACTION_NEW_COMMENT = 'newComment'
-export const ACTION_TAG = 'tag'
 export const ACTION_NEW_POST = 'newPost'
+export const ACTION_TAG = 'tag'
 
-export function urlForNotification ({ activity: { action, post, comment, group, meta: { reasons }, otherGroup } }) {
+export function urlForNotification ({ id, activity: { action, actor, post, comment, group, meta: { reasons }, otherGroup } }) {
   const groupSlug = get('slug', group) ||
     // 2020-06-03 - LEJ
     // Some notifications (i.e. new comment and comment mention)
@@ -35,14 +38,15 @@ export function urlForNotification ({ activity: { action, post, comment, group, 
     get('0.slug', post.groups.toRefArray())
 
   const otherGroupSlug = get('slug', otherGroup)
+  post = presentPost(post)
 
   switch (action) {
     case ACTION_ANNOUNCEMENT:
-      return postUrl(post.id, { groupSlug })
+      return primaryPostUrl(post, { groupSlug })
     case ACTION_APPROVED_JOIN_REQUEST:
       return groupUrl(groupSlug)
     case ACTION_EVENT_INVITATION:
-      return postUrl(post.id, { groupSlug })
+      return primaryPostUrl(post, { groupSlug })
     case ACTION_GROUP_CHILD_GROUP_INVITE:
       return groupUrl(groupSlug, 'settings/relationships')
     case ACTION_GROUP_CHILD_GROUP_INVITE_ACCEPTED:
@@ -55,28 +59,32 @@ export function urlForNotification ({ activity: { action, post, comment, group, 
       return groupUrl(groupSlug, 'settings/requests')
     case ACTION_NEW_COMMENT:
     case ACTION_COMMENT_MENTION:
-      return postCommentUrl({ postId: post.id, commentId: comment.id, groupSlug })
+      return primaryPostUrl(post, { commentId: comment.id, groupSlug })
+    case ACTION_CHAT:
     case ACTION_NEW_POST:
     case ACTION_MENTION: {
-      let topicName
-      if (post.type === 'chat') {
-        // If the mention is in a chat room, go to the chat room
-        const tagReason = find(r => r.startsWith('tag: '), reasons)
-        topicName = tagReason.split(': ')[1]
-      }
-      return postUrl(post.id, { groupSlug, topicName })
+      return primaryPostUrl(post, { groupSlug })
     }
+    case ACTION_MEMBER_JOINED_GROUP:
+      return personUrl(actor.id, groupSlug)
     case ACTION_TAG: {
-      // Put this one first so clicking on a chat notification always goes to that chat room, even if there was also a mention in the same post
-      const tagReason = find(r => r.startsWith('tag: '), reasons)
-      const topicName = tagReason.split(': ')[1]
-      return postUrl(post.id, { groupSlug, topicName })
+      return primaryPostUrl(post, { groupSlug })
     }
   }
 }
 
 const NOTIFICATION_TEXT_MAX = 76
 export const truncateHTML = html => TextHelpers.presentHTMLToText(html, { truncate: NOTIFICATION_TEXT_MAX })
+
+export function imageForNotification (notification) {
+  const { activity: { action, actor, group } } = notification
+  switch (action) {
+    case ACTION_MEMBER_JOINED_GROUP:
+      return group.avatarUrl
+    default:
+      return actor.avatarUrl
+  }
+}
 
 export function titleForNotification (notification, trans) {
   // XXX: Need the imported option for the electron notifications in SocketListener.store to work, but doesn't actually have the translations available
@@ -90,11 +98,16 @@ export function titleForNotification (notification, trans) {
 
   switch (action) {
     case ACTION_NEW_COMMENT:
-      return t('New comment on "<strong>{{postSummary}}</strong>"', { postSummary })
+      return t('New comment on "<strong>{{postSummary}}</strong>" in {{groupName}}', { postSummary, groupName: group?.name })
+    case ACTION_CHAT: {
+      const topicReason = find(r => r.startsWith('chat: '), reasons)
+      const topic = topicReason.split(': ')[1]
+      return t('New chat in {{groupName}} <strong>#{{name}}</strong>', { groupName: group?.name, name: topic })
+    }
     case ACTION_TAG: {
       const tagReason = find(r => r.startsWith('tag: '), reasons)
       const tag = tagReason.split(': ')[1]
-      return t('New post in <strong>{{name}}</strong>', { name: '#' + tag })
+      return t('New post in {{groupName}} <strong>{{name}}</strong>', { groupName: group?.name, name: '#' + tag })
     }
     case ACTION_NEW_POST:
       return t('New post in <strong>{{name}}</strong>', { name: group.name })
@@ -122,6 +135,8 @@ export function titleForNotification (notification, trans) {
       return t('Group Requesting to Join')
     case ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED:
       return t('New Group Joined')
+    case ACTION_MEMBER_JOINED_GROUP:
+      return t('New Member joined <strong>{{groupName}}</strong>', { groupName: group.name })
     default:
       return null
   }
@@ -143,6 +158,7 @@ export function bodyForNotification (notification, trans) {
       const text = truncateHTML(comment.text)
       return t('<strong>{{name}}</strong> wrote: "{{text}}"', { name, text })
     }
+    case ACTION_CHAT:
     case ACTION_TAG:
     case ACTION_NEW_POST:
     case ACTION_ANNOUNCEMENT:
@@ -166,6 +182,8 @@ export function bodyForNotification (notification, trans) {
       return t('<strong>{{groupName}}</strong> has joined <strong>{{otherGroupName}}</strong>', { groupName: group.name, otherGroupName: otherGroup.name })
     case ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST:
       return t('<strong>{{groupName}}</strong> has requested to join <strong>{{otherGroupName}}</strong>', { groupName: group.name, otherGroupName: otherGroup.name })
+    case ACTION_MEMBER_JOINED_GROUP:
+      return t('<strong>{{name}}</strong> joined your group. Time to welcome them in!', { name })
     default:
       return null
   }

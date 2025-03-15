@@ -1,47 +1,60 @@
 /* eslint-disable camelcase */
-import React, { useEffect, useState, useRef, useImperativeHandle, forwardRef, useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import React, { useState, useRef, useImperativeHandle, useCallback } from 'react'
 import { Text, TouchableOpacity, View, SectionList } from 'react-native'
+import { useQuery } from 'urql'
 import { isIOS } from 'util/platform'
+import postCommentsQuery from '@hylo/graphql/queries/postCommentsQuery'
+import childCommentsQuery from '@hylo/graphql/queries/childCommentsQuery'
 import Comment from 'components/Comment'
 import Loading from 'components/Loading'
 import styles from './Comments.styles'
-import { isEmpty, omit } from 'lodash/fp'
-import {
-  getHasMoreComments,
-  getComments,
-  getTotalComments
-} from 'store/selectors/getComments'
-import fetchCommentsAction from 'store/actions/fetchComments'
-import { FETCH_COMMENTS } from 'store/constants'
 
-function Comments ({
+export const Comments = React.forwardRef(({
+  groupId,
   postId,
   header: providedHeader = null,
   style = {},
   showMember,
-  slug,
   panHandlers,
   onSelect
-}, ref) {
-  const dispatch = useDispatch()
-  const comments = useSelector(state => getComments(state, { postId })) || []
-  const pending = useSelector(state => state.pending[FETCH_COMMENTS])
-  const sections = comments.map(comment => ({
-    comment: omit(['subComments'], comment),
-    data: comment.subComments
-  }))
+}, ref) => {
+  const [{ data, fetching }] = useQuery({ query: postCommentsQuery, variables: { postId } })
+  const post = data?.post
+  const commentsQuerySet = post?.comments
+  const comments = commentsQuerySet?.items || []
+
   const [highlightedComment, setHighlightedComment] = useState()
   const commentsListRef = useRef()
+  const sections = comments?.map((comment, index) => {
+    return ({
+      comment,
+      data: comment?.childComments?.items || []
+    })
+  })
 
   const scrollToComment = useCallback((comment, viewPosition = 0.2) => {
-    const parentCommentId = comment.parentComment || comment.id
-    const subCommentId = comment.parentComment ? comment.id : null
-    const section = sections.find(s => parentCommentId === s.comment.id)
-    const sectionIndex = section.comment.sectionIndex
-    const itemIndex = section.data.find(subComment =>
-      subCommentId === subComment.id)?.itemIndex || section.data.length + 1
-    commentsListRef?.current.scrollToLocation({ sectionIndex, itemIndex, viewPosition })
+    const parentCommentId = comment.parentComment?.id || comment.id
+    const childCommentId = comment.parentComment ? comment.id : null
+    const parentCommentIndex = sections.findIndex(s => parentCommentId === s.comment.id)
+    const childCommentIndex = sections[parentCommentIndex].data.findIndex(childComment => childCommentId === childComment.id)
+    const hasChildComments = sections[parentCommentIndex].data.length > 0
+    const lastItemIndex = sections[parentCommentIndex].data.length - 1
+
+    // NOTE: The logic below is a bit convoluted due to inverted SectionList, but it works.
+    let itemIndex
+    if (childCommentId) {
+      itemIndex = childCommentIndex + 1
+    } else if (hasChildComments && !childCommentId) {
+      itemIndex = lastItemIndex + 1
+    } else {
+      itemIndex = 1
+    }
+
+    commentsListRef?.current.scrollToLocation({
+      sectionIndex: parentCommentIndex === -1 ? 0 : parentCommentIndex,
+      itemIndex,
+      viewPosition
+    })
   }, [sections])
 
   const selectComment = useCallback(comment => {
@@ -56,15 +69,12 @@ function Comments ({
     clearHighlightedComment: () => setHighlightedComment(null)
   }), [setHighlightedComment, scrollToComment])
 
-  useEffect(() => {
-    dispatch(fetchCommentsAction({ postId }))
-  }, [dispatch, postId])
-
+  // Comment rendering (parent)
   const Header = () => (
     <>
       {providedHeader}
-      <ShowMore postId={postId} />
-      {pending && (
+      <ShowMore postOrComment={post} style={styles.childCommentsShowMore} />
+      {fetching && (
         <View style={styles.loadingContainer}>
           <Loading style={styles.loading} />
         </View>
@@ -72,40 +82,50 @@ function Comments ({
     </>
   )
 
+  // Comment rendering (parent)
   const SectionFooter = ({ section: { comment } }) => {
+    if (!comment) return null
     return (
       <>
-        <ShowMore commentId={comment.id} style={styles.subCommentsShowMore} forSubcomments />
+        <ShowMore postOrComment={comment} style={styles.childCommentsShowMore} />
         <Comment
           clearHighlighted={() => setHighlightedComment(null)}
           comment={comment}
-          highlighted={comment.id === highlightedComment?.id}
+          groupId={groupId}
+          highlighted={comment?.id === highlightedComment?.id}
           onReply={selectComment}
+          postTitle={post?.title}
           scrollTo={viewPosition => scrollToComment(comment, viewPosition)}
           setHighlighted={() => setHighlightedComment(comment)}
           showMember={showMember}
-          slug={slug}
           key={comment.id}
         />
       </>
     )
   }
 
+  // comment.childComments rendering
   const Item = ({ item: comment }) => {
+    if (!comment) return null
     return (
       <Comment
         clearHighlighted={() => setHighlightedComment(null)}
         comment={comment}
+        groupId={groupId}
         highlighted={comment.id === highlightedComment?.id}
         onReply={selectComment}
+        postTitle={post?.title}
         scrollTo={viewPosition => scrollToComment(comment, viewPosition)}
         setHighlighted={() => setHighlightedComment(comment)}
         showMember={showMember}
-        slug={slug}
-        style={styles.subComment}
+        style={styles.childComment}
         key={comment.id}
       />
     )
+  }
+
+  if (fetching) {
+    return <Loading />
   }
 
   return (
@@ -127,27 +147,32 @@ function Comments ({
       {...panHandlers}
     />
   )
-}
+})
 
-export default forwardRef(Comments)
+export function ShowMore ({ postOrComment, style = {} }) {
+  const forSubcomments = !!postOrComment?.childComments
+  const commentQuerySet = forSubcomments
+    ? postOrComment?.childComments
+    : postOrComment?.comments
+  const cursor = commentQuerySet?.items[commentQuerySet?.items.length - 1]?.id
+  const variables = forSubcomments
+    ? { commentId: postOrComment?.id, cursor }
+    : { postId: postOrComment?.id, cursor }
+  const query = forSubcomments ? childCommentsQuery : postCommentsQuery
+  const [, fetchComments] = useQuery({ query, variables, pause: true })
+  const total = commentQuerySet?.total || 0
+  const hasMore = commentQuerySet?.hasMore
+  const extra = total - commentQuerySet?.items?.length || 0
 
-export function ShowMore ({ postId, commentId, forSubcomments = false, style = {} }) {
-  const queryParams = commentId ? { commentId } : { postId }
-  const dispatch = useDispatch()
-  const fetchComments = () => dispatch(fetchCommentsAction(queryParams, { cursor }))
-  const comments = useSelector(state => getComments(state, queryParams)) || []
-  const cursor = !isEmpty(comments) && comments[comments.length - 1].id
-  const total = useSelector(state => getTotalComments(state, queryParams)) || 0
-  const hasMore = useSelector(state => getHasMoreComments(state, queryParams))
-  const extra = total - comments.length
-
-  if (!hasMore || extra < 1) return null
+  if (!hasMore) return null
 
   return (
     <TouchableOpacity>
-      <Text style={[styles.showMore, style]} onPress={fetchComments}>
-        View {extra} previous {forSubcomments ? 'replies' : `comment${extra > 1 ? 's' : ''}`}
+      <Text style={[styles.showMore, style]} onPress={() => fetchComments()}>
+        View {extra > 0 ? extra : ''} previous {forSubcomments ? 'replies' : `comment${extra > 1 ? 's' : ''}`}
       </Text>
     </TouchableOpacity>
   )
 }
+
+export default Comments

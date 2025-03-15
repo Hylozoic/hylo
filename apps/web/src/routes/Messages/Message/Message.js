@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import PropTypes from 'prop-types'
 import React from 'react'
 import Avatar from 'components/Avatar'
@@ -19,18 +19,18 @@ export default function Message ({ message, isHeader }) {
     : TextHelpers.markdown(message.text)
 
   return (
-    <div className={cx(classes.message, { [classes.messageHeader]: isHeader })} data-message-id={message.id}>
+    <div className={cn('text-foreground w-full flex', { 'pt-2': isHeader })} data-message-id={message.id}>
       <div className={classes.avatar}>
         {isHeader && <Avatar url={personUrl(person.id)} avatarUrl={person.avatarUrl} />}
       </div>
       <div className={classes.content}>
         {isHeader && (
-          <div>
-            <span className={classes.name}>{person.name}</span>
-            <span className={classes.date}>{pending ? 'sending...' : TextHelpers.humanDate(message.createdAt)}</span>
+          <div className='flex justify-between items-center'>
+            <div className='text-foreground font-bold -mb-2'>{person.name}</div>
+            <span className='text-xs text-foreground/50'>{pending ? 'sending...' : TextHelpers.humanDate(message.createdAt)}</span>
           </div>
         )}
-        <div className={classes.text}>
+        <div className='text-foreground'>
           <ClickCatcher>
             <HyloHTML element='span' html={text} />
           </ClickCatcher>

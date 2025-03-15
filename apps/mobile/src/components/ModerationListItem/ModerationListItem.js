@@ -1,19 +1,17 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useSelector } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
-
-import { agreementsURL, RESP_MANAGE_CONTENT } from 'store/constants'
-import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
-import getMe from 'store/selectors/getMe'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { agreementsURL } from 'store/constants'
+import { groupUrl } from 'util/navigation'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useHasResponsibility, { RESP_MANAGE_CONTENT } from '@hylo/hooks/useHasResponsibility'
+import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
 import Avatar from 'components/Avatar'
 import MultiSelect from 'components/MultiSelect'
-import { groupUrl } from 'util/navigation'
 import Button from 'components/Button/Button'
-import { caribbeanGreen, mediumPurple, white } from 'style/colors'
 import PostListRow from 'components/PostListRow'
+import { caribbeanGreen, mediumPurple, white } from 'style/colors'
 
 const ModerationListItem = ({
   moderationAction,
@@ -23,9 +21,10 @@ const ModerationListItem = ({
   group
 }) => {
   const { t } = useTranslation()
-  const currentUser = useSelector(getMe)
   const navigation = useNavigation()
-  const canModerate = useSelector((state) => hasResponsibilityForGroup(state, { groupId: group.id, responsibility: [RESP_MANAGE_CONTENT] }))
+  const [{ currentUser }] = useCurrentUser()
+  const hasResponsibility = useHasResponsibility({ groupId: group.id, forCurrentGroup: true, forCurrentUser: true })
+  const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
 
   const {
     agreements,
@@ -37,9 +36,13 @@ const ModerationListItem = ({
   } = moderationAction
 
   const platformAgreementsIds = moderationAction.platformAgreements.map(agreement => agreement.id)
-  const allPlatformAgreements = useSelector(getPlatformAgreements)
+  const [allPlatformAgreements, platformAgreementsFetching] = usePlatformAgreements()
+
+  if (platformAgreementsFetching) return null
+
   const platformAgreements = allPlatformAgreements.filter(agreement => platformAgreementsIds.includes(agreement.id))
-  const reporterUrl = `/user/${reporter.id}` // TODO COMOD, fix this
+  // TODO:  Currently not implemented
+  // const reporterUrl = `/user/${reporter.id}`
   const groupAgreementsUrl = group ? groupUrl(group.slug) + `/group/${group.slug}` : ''
   const currentUserIsReporter = reporter.id === currentUser.id
   const navigateToReporter = () => {

@@ -53,10 +53,8 @@ export function verifyEmail (email, code, token) {
               name
               settings {
                 alreadySeenTour
-                digestFrequency
                 dmNotifications
                 commentNotifications
-                postNotifications
                 locale
                 signupInProgress
                 streamChildPosts
@@ -105,10 +103,8 @@ export function register (name, password) {
               name
               settings {
                 alreadySeenTour
-                digestFrequency
                 dmNotifications
                 commentNotifications
-                postNotifications
                 signupInProgress
                 locale
                 streamChildPosts

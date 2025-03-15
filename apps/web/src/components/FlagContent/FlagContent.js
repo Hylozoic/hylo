@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cn } from 'util/index'
 import { isEmpty, trim } from 'lodash'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -84,7 +84,7 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
             <Select
               onChange={updateSelected}
               fullWidth
-              className={cx({
+              className={cn({
                 [classes.reasonRequired]: reasonRequired
               })}
               selected={selectedCategory}

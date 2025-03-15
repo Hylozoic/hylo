@@ -41,7 +41,8 @@ module.exports = bookshelf.Model.extend({
   },
 
   async getMessageText ({ group, groupId, anonymous }) {
-    const link = await Frontend.Route.post(this.get('post_id'), group)
+    const post = await this.post().fetch({ withRelated: ['tags'] })
+    const link = await Frontend.Route.post(post, group)
     if (groupId === group.id) {
       const agreements = this.relations.agreements.models.concat(this.relations.platformAgreements.models)
 
@@ -87,9 +88,9 @@ module.exports = bookshelf.Model.extend({
     // email reportee and reporter
     const group = await Group.find(groupId)
     const reporter = await User.find(reporterId)
-    const post = await Post.find(postId, { withRelated: ['user'] })
+    const post = await Post.find(postId, { withRelated: ['user', 'tags'] })
     const reportee = post.relations.user
-    const link = await Frontend.Route.post(postId, group)
+    const link = await Frontend.Route.post(post, group)
     const reporterLocale = reporter.getLocale()
     const reporteeLocale = reportee.getLocale()
 
@@ -114,7 +115,8 @@ module.exports = bookshelf.Model.extend({
       templateData: {
         subject: reporterSubject,
         body: reporterMessageContent +
-        `${link}\n\n`
+        `${link}\n\n`,
+        post_url: link
       },
       locale: reporterLocale
     })

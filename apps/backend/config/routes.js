@@ -52,8 +52,6 @@ module.exports.routes = {
   // 'POST   /noo/access-token':                             'AccessTokenController.create',
   // 'DELETE /noo/access-token/revoke':                      'AccessTokenController.destroy',
 
-  'GET     /noo/nexudus':                                 'NexudusController.create',
-
   'POST    /noo/subscription':                            'SubscriptionController.create',
 
   'GET     /noo/mobile/check-should-update':              'MobileAppController.checkShouldUpdate',
@@ -64,16 +62,17 @@ module.exports.routes = {
   'POST    /noo/payment/registerStripe':                  'PaymentController.registerStripe',
 
   // websockets routes
+  'POST   /noo/user/subscribe':                           'UserController.subscribeToUpdates',
+  'POST   /noo/user/unsubscribe':                         'UserController.unsubscribeFromUpdates',
   'POST   /noo/group/:groupId/subscribe':                 'GroupController.subscribe',
   'POST   /noo/group/:groupId/unsubscribe':               'GroupController.unsubscribe',
   'POST   /noo/post/:postId/subscribe':                   'PostController.subscribe', // to comments
   'POST   /noo/post/:postId/unsubscribe':                 'PostController.unsubscribe', // from comments
   'POST   /noo/post/:postId/typing':                      'PostController.typing',
-  'POST   /noo/threads/subscribe':                        'PostController.subscribeToUpdates',
-  'POST   /noo/threads/unsubscribe':                      'PostController.unsubscribeFromUpdates',
+
+  'GET    /noo/group/:groupSlug/murmurations':            'MurmurationsController.group',
 
   'POST   /noo/upload':                                   'UploadController.create',
 
   'GET    /noo/export/group':                             'ExportController.groupData'
-
 }

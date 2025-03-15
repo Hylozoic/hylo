@@ -1,8 +1,8 @@
+import { GraphQLError } from 'graphql'
 import { flatten, merge, pick, uniq } from 'lodash'
 import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
 import { groupRoom, pushToSockets } from '../../services/Websockets'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export default async function createPost (userId, params) {
   return setupPostAttrs(userId, merge(Post.newPostAttrs(), params), true)
@@ -13,6 +13,7 @@ export default async function createPost (userId, params) {
           { children: params.requests, transacting }
         ))))
       .then(function (inserts) {
+        inserts.setLocalId(params.localId)
         return inserts
       }).catch(function (error) {
         throw error
@@ -80,15 +81,16 @@ export function afterCreatingPost (post, opts) {
     .then(() => post.isProposal() && post.setProposalOptions({ options: opts.proposalOptions || [], userId, opts: trxOpts }))
     .then(() => Tag.updateForPost(post, opts.topicNames, userId, trx))
     .then(() => updateTagsAndGroups(post, opts.localId, trx))
+    .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.get('type'), location_id: post.get('location_id') }, groupIds: opts.group_ids }))
     .then(() => Queue.classMethod('Post', 'createActivities', { postId: post.id }))
     .then(() => Queue.classMethod('Post', 'notifySlack', { postId: post.id }))
     .then(() => Queue.classMethod('Post', 'zapierTriggers', { postId: post.id }))
-    .catch((err) => { throw new GraphQLYogaError(`afterCreatingPost failed: ${err}`) })
+    .catch((err) => { throw new GraphQLError(`afterCreatingPost failed: ${err}`) })
 }
 
 async function updateTagsAndGroups (post, localId, trx) {
   await post.load([
-    'groups', 'linkPreview', 'tags', 'user'
+    'media', 'groups', 'linkPreview', 'tags', 'user'
   ], { transacting: trx })
 
   const { tags, groups } = post.relations
@@ -132,8 +134,8 @@ async function updateTagsAndGroups (post, localId, trx) {
 
   return Promise.all([
     notifySockets,
-    groupTagsQuery.update({updated_at: new Date()}),
-    tagFollowQuery.increment('new_post_count'),
-    groupMembershipQuery.increment('new_post_count')
+    groupTagsQuery.update({ updated_at: new Date() }),
+    tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
+    groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count')
   ])
 }

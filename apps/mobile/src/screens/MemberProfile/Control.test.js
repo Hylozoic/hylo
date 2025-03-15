@@ -1,7 +1,6 @@
 import React from 'react'
 import 'react-native'
 import ReactShallowRenderer from 'react-test-renderer/shallow'
-import ReactTestRenderer from 'react-test-renderer'
 import Control from './Control'
 
 describe('Control', () => {

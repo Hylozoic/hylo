@@ -1,6 +1,6 @@
+import { GraphQLError } from 'graphql'
 import { countTotal } from '../../../lib/util/knex'
 import { filterAndSortUsers } from './util'
-const { GraphQLYogaError } = require('@graphql-yoga/node')
 
 export default function (opts) {
   const { groups } = opts
@@ -13,12 +13,13 @@ export default function (opts) {
       autocomplete: opts.autocomplete,
       boundingBox: opts.boundingBox,
       search: opts.term,
-      sortBy: opts.sort
+      sortBy: opts.sort,
+      order: opts.order
     }, qb)
 
     if (opts.sort === 'join') {
       if (!groups || groups.length !== 1) {
-        throw new GraphQLYogaError('When sorting by join date, you must specify exactly one group.')
+        throw new GraphQLError('When sorting by join date, you must specify exactly one group.')
       }
     }
 

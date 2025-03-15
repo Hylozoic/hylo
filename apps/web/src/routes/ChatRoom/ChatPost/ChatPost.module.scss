@@ -1,7 +1,5 @@
 .container {
-  /* empty */
-  padding-left: 55px;
-  position: relative;
+
 
   .action-bar {
     display: none;
@@ -66,6 +64,10 @@
     }
   }
 
+  &.hovered .action-bar {
+    display: flex;
+  }
+
   // The selectors should maintain the same properties:
   &.long-pressed {
     background: #efefef;
@@ -74,20 +76,6 @@
     .action-bar {
       display: flex;
     }
-  }
-
-  &.hovered {
-    background: #f0f0f0;
-    cursor: pointer;
-
-    .action-bar {
-      display: flex;
-    }
-  }
-
-  p:last-child {
-    margin-bottom: 0;
-    padding-bottom: 5px;
   }
 
   .badgeRow {
@@ -113,7 +101,7 @@
         position: relative;
         font-size: 17px;
         font-family: "Circular Bold";
-        color: #2A4059;
+        color: hsl(var(--text-foreground));
         top: 9px;
       }
     }
@@ -129,7 +117,7 @@
 }
 
 .cardPadding {
-  padding: 0px 10px;
+  padding: 2px 10px;
 }
 
 .avatar {
@@ -138,14 +126,7 @@
 }
 
 .postContentContainer {
-  margin-left: 13px;
-
-  &.editing {
-    // border-radius: 0.5rem;
-    border: 1px solid $color-cape-cod-10;
-    border-radius: 5px;
-    box-shadow: 0 4px 10px rgba(35, 65, 91, .2);
-  }
+  margin-left: 19px;
 }
 
 .postContent {
@@ -153,35 +134,13 @@
   // Extract typography? This one is exactly half way between
   // BDY-LT-LG and BDY-LT-SM
   @include font-regular;
-  color: rgba(44, 64, 89, 0.7);
-  font-size: 16px;
-  line-height: 24px;
-  padding-bottom: 1px;
-
-  h1, h2, h3 {
-    font-family: 'Circular Bold';
-    color: rgba(35, 65, 91, 1.0);
-  }
-
-  h1 {
-    font-size: 24px;
-  }
-
-  h2 {
-    font-size: 18px;
-  }
-
-  h3, h4, h5 {
-    font-size: 16px;
-  }
+  color: hsl(var(--text-foreground));
 
   &.editing {
     padding: 10px;
     overflow-y: auto;
     max-height: 200px;
     cursor: text;
-    background: white;
-    border-radius: 5px;
 
     &:after {
       content: " ";
@@ -189,41 +148,6 @@
       display: block;
     }
   }
-}
-
-.images {
-  display: flex;
-  overflow-x: auto;
-  height: 90px;
-  margin-left: 20px;
-}
-
-.images-inner {
-  display: flex;
-  flex-direction: row;
-  //margin-left: auto;
-}
-
-.image {
-  display: block;
-
-  > div {
-    width: 80px;
-    height: 80px;
-    border-radius: 3px;
-    margin-right: 20px;
-    background-size: cover;
-    border: 1px solid $color-cape-cod-10;
-    box-shadow: 0px 4px 10px rgba(42, 64, 89, 0.3);
-
-    &:hover {
-      filter: brightness(110%);
-    }
-  }
-}
-
-.image-inner {
-  /* empty */
 }
 
 .link-preview {
@@ -265,6 +189,9 @@
   composes: caption-lt-lg from 'css/typography.scss';
 }
 
+.isFlagged {
+  filter: blur(4px);
+}
 
 @media screen and (max-width: 600px) {
   .container {
@@ -294,10 +221,10 @@
     margin-left: 0;
   }
 
-  .postContent {
-    font-size: 14px;
-    line-height: 20px;
-  }
+  // .postContent {
+  //   font-size: 14px;
+  //   line-height: 20px;
+  // }
 
   .avatar div {
     width: 30px;
@@ -307,10 +234,6 @@
   .postContent.cardPadding {
     padding: 0 5px;
     margin: 0;
-
-    p:last-child {
-      margin-bottom: 0;
-    }
   }
 }
 
@@ -318,6 +241,7 @@
 @media screen and (max-width: 425px) {
   .container {
     -webkit-user-select: none; /* disable selection/Copy of UIWebView */
+    user-select: none;
     -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
   }
 }

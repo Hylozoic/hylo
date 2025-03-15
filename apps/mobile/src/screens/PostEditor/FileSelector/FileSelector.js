@@ -1,5 +1,5 @@
 import React from 'react'
-import { last } from 'lodash/fp'
+import { last, isEmpty } from 'lodash/fp'
 import PopupMenuButton from 'components/PopupMenuButton'
 import { Text, View } from 'react-native'
 import Icon from 'components/Icon'
@@ -13,10 +13,14 @@ export function cleanName (url) {
 
 export default function FileSelector (props) {
   const { files = [], onRemove } = props
+  if (isEmpty(files)) return null
 
   return (
+    // TODO: Extra "View" wrapper moved from PostEditor, but may not be necessary. Confirm and remove.
     <View>
-      {files.map((file, index) => renderFileButton(file, index, onRemove))}
+      <View>
+        {files.map((file, index) => renderFileButton(file, index, onRemove))}
+      </View>
     </View>
   )
 }

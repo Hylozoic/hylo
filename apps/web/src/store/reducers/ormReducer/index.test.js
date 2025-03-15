@@ -16,9 +16,6 @@ import {
   REMOVE_POST_PENDING
 } from 'store/constants'
 import {
-  PIN_POST_PENDING
-} from 'components/PostCard/PostHeader/PostHeader.store'
-import {
   UPDATE_MEMBERSHIP_SETTINGS_PENDING,
   UPDATE_USER_SETTINGS_PENDING,
   UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING
@@ -277,38 +274,6 @@ describe('on REMOVE_POST_PENDING', () => {
   })
 })
 
-describe('on PIN_POST_PENDING', () => {
-  const session = orm.session(orm.getEmptyState())
-  const group = session.Group.create({ id: '1', slug: 'foo' })
-  const postId = 123
-  const postMembership = session.PostMembership.create({
-    pinned: false,
-    group
-  })
-
-  session.Post.create({
-    id: postId,
-    groups: [group],
-    postMemberships: [postMembership]
-  })
-
-  const action = {
-    type: PIN_POST_PENDING,
-    meta: {
-      postId,
-      groupId: group.id
-    }
-  }
-
-  it('updates the postMembership', () => {
-    const newState = ormReducer(session.state, action)
-    const newSession = orm.session(newState)
-
-    const postMembership = newSession.Post.withId(postId).postMemberships.toModelArray()[0]
-    expect(postMembership.pinned).toEqual(true)
-  })
-})
-
 describe('on UPDATE_GROUP_SETTINGS_PENDING', () => {
   const id = '1'
   const session = orm.session(orm.getEmptyState())
@@ -412,7 +377,6 @@ describe('on UPDATE_USER_SETTINGS_PENDING', () => {
     location: 'original location',
     tagline: 'old tagline',
     settings: {
-      digestFrequency: 'weekly',
       dmNotifications: 'both'
     }
   })
@@ -423,9 +387,7 @@ describe('on UPDATE_USER_SETTINGS_PENDING', () => {
       changes: {
         tagline: 'new tagline',
         settings: {
-          digestFrequency: 'daily',
-          commentNotifications: 'email',
-          postNotifications: 'important'
+          commentNotifications: 'email'
         }
       }
     }

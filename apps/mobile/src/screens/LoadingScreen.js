@@ -1,12 +1,14 @@
 import React from 'react'
-import { SafeAreaView } from 'react-native'
+import { View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Loading from 'components/Loading'
 
 export default function LoadingScreen () {
+  const insets = useSafeAreaInsets()
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom, paddingTop: insets.top }]}>
       <Loading size='large' />
-    </SafeAreaView>
+    </View>
   )
 }
 

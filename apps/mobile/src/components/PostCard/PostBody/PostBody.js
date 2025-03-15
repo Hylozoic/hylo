@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { isEmpty } from 'lodash/fp'
 import { decode } from 'html-entities'
 import { TextHelpers } from '@hylo/shared'
-import { humanResponse, RESPONSES } from 'store/models/EventInvitation'
+import { humanResponse, RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import HyloHTML from 'components/HyloHTML'
 import EmojiRow from 'components/EmojiRow'
 import LinkPreview from 'components/PostCard/LinkPreview'
@@ -68,15 +68,15 @@ export default function PostBody ({
 export function EventRSVP ({ myEventResponse, respondToEvent }) {
   const { t } = useTranslation()
   const actions = [
-    [humanResponse(RESPONSES.YES, t), () => respondToEvent(RESPONSES.YES)],
-    [humanResponse(RESPONSES.INTERESTED, t), () => respondToEvent(RESPONSES.INTERESTED)],
-    [humanResponse(RESPONSES.NO, t), () => respondToEvent(RESPONSES.NO)]
+    [t(humanResponse(RESPONSES.YES)), () => respondToEvent(RESPONSES.YES)],
+    [t(humanResponse(RESPONSES.INTERESTED)), () => respondToEvent(RESPONSES.INTERESTED)],
+    [t(humanResponse(RESPONSES.NO)), () => respondToEvent(RESPONSES.NO)]
   ]
 
   return (
     <PopupMenuButton actions={actions}>
       <View style={styles.RSVPOption}>
-        <Text style={styles.RSVPOptionText}>{humanResponse(myEventResponse, t)} |</Text>
+        <Text style={styles.RSVPOptionText}>{t(humanResponse(myEventResponse))} |</Text>
         <Icon name='ArrowDown' color={white} style={styles.RSVPOptionText} />
       </View>
     </PopupMenuButton>

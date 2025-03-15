@@ -2,7 +2,7 @@ import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
-import Moment from 'moment-timezone'
+import { DateTime } from 'luxon'
 
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import Avatar from 'components/Avatar'
@@ -39,7 +39,7 @@ const PostListRow = (props) => {
   const creatorUrl = personUrl(creator.id, slug)
   const numOtherCommentors = commentersTotal - 1
   const unread = false
-  const startTimeMoment = Moment(post.startTime)
+  const start = DateTime.fromJSDate(post.startTime)
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
   const { t } = useTranslation()
 
@@ -62,8 +62,8 @@ const PostListRow = (props) => {
             {post.type === 'event'
               ? (
                 <View style={styles.date}>
-                  <Text style={styles.dateText}>{startTimeMoment.format('MMM')}</Text>
-                  <Text style={styles.dateText}>{startTimeMoment.format('D')}</Text>
+                  <Text style={styles.dateText}>{start.toFormat('MMM')}</Text>
+                  <Text style={styles.dateText}>{start.toFormat('D')}</Text>
                 </View>
                 )
               : (

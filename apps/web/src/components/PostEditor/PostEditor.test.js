@@ -24,7 +24,8 @@ jest.mock('store/actions/updatePost', () => {
 import createPost from 'store/actions/createPost'
 import updatePost from 'store/actions/updatePost'
 
-import PostEditor, { ActionsBar } from './PostEditor'
+import PostEditor from './PostEditor'
+import ActionsBar from './ActionsBar'
 import { editPostUrl } from 'util/navigation'
 
 jest.mock('lodash/debounce', () => fn => {

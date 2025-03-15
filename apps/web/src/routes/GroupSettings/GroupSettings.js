@@ -15,8 +15,8 @@ import RolesSettingsTab from './RolesSettingsTab'
 import PrivacySettingsTab from './PrivacySettingsTab'
 import RelatedGroupsTab from './RelatedGroupsTab'
 import ResponsibilitiesTab from './ResponsibilitiesTab'
-import TopicsSettingsTab from './TopicsSettingsTab'
 import ExportDataTab from './ExportDataTab'
+import WelcomePageTab from './WelcomePageTab'
 import Loading from 'components/Loading'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import FullPageModal from 'routes/FullPageModal'
@@ -65,7 +65,6 @@ export default function GroupSettings () {
   const removePostFromCollectionAction = (collectionId, postId) => dispatch(removePostFromCollection(collectionId, postId))
   const reorderPostInCollectionAction = (collectionId, postId, newOrderIndex) => dispatch(reorderPostInCollection(collectionId, postId, newOrderIndex))
   const updateGroupSettingsAction = changes => group && dispatch(updateGroupSettings(group.id, changes))
-
   const deleteGroupAction = () => {
     if (group) {
       dispatch(deleteGroup(group.id)).then(({ error }) => {
@@ -110,6 +109,12 @@ export default function GroupSettings () {
     component: <AgreementsTab group={group} />
   }
 
+  const welcomePageSettings = {
+    name: t('Welcome Page'),
+    path: 'welcome',
+    component: <WelcomePageTab group={group} updateGroupSettings={updateGroupSettingsAction} />
+  }
+
   const responsibilitiesSettings = {
     name: t('Responsibilities'),
     path: 'responsibilities',
@@ -146,11 +151,11 @@ export default function GroupSettings () {
     )
   }
 
-  const topicsSettings = {
-    name: t('Topics'),
-    path: 'topics',
-    component: <TopicsSettingsTab group={group} />
-  }
+  // const topicsSettings = {
+  //   name: t('Topics'),
+  //   path: 'topics',
+  //   component: <TopicsSettingsTab group={group} />
+  // }
 
   const inviteSettings = {
     name: t('Invite'),
@@ -184,7 +189,7 @@ export default function GroupSettings () {
 
   const deleteSettings = {
     name: t('Delete'),
-    path: 'settings/delete',
+    path: 'delete',
     component: <DeleteSettingsTab group={group} deleteGroup={deleteGroupAction} />
   }
 
@@ -194,11 +199,12 @@ export default function GroupSettings () {
       content={compact([
         canAdminister ? overallSettings : null,
         canAdminister ? agreementSettings : null,
+        canAdminister ? welcomePageSettings : null,
         canAdminister ? responsibilitiesSettings : null,
         canAdminister ? rolesSettings : null,
         canAdminister ? accessSettings : null,
         canAdminister ? customViewsSettings : null,
-        canAdminister ? topicsSettings : null,
+        // canAdminister ? topicsSettings : null, TODO: hide for now, we may want to bring back
         canAddMembers ? inviteSettings : null,
         canAddMembers ? joinRequestSettings : null,
         canAdminister ? relatedGroupsSettings : null,
