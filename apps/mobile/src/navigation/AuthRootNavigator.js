@@ -70,8 +70,9 @@ export default function AuthRootNavigator () {
   // the only place we should do this with useCurrentUser as it would be expensive
   // lower in the stack where it may get called in any loops and such.
   const { i18n } = useTranslation()
-  const [{ currentUser, fetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
+  const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
   const [loading, setLoading] = useState(true)
+  const [initialized, setInitialize] = useState(true)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   const [, registerDevice] = useMutation(registerDeviceMutation)
 
@@ -80,6 +81,10 @@ export default function AuthRootNavigator () {
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
   useHandleLinking()
+
+  useEffect(() => {
+    setLoading(!initialized || !currentUser || currentUserFetching)
+  }, [initialized, currentUser, currentUserFetching])
 
   useEffect(() => {
     resetNotificationsCount()
@@ -102,7 +107,7 @@ export default function AuthRootNavigator () {
 
   useEffect(() => {
     (async function () {
-      if (currentUser && !fetching && !error) {
+      if (!initialized && currentUser && !currentUserFetching && !error) {
         const locale = currentUser?.settings?.locale || 'en'
 
         // Locale setup
@@ -132,14 +137,14 @@ export default function AuthRootNavigator () {
           $location: currentUser?.location
         })
 
-        setLoading(false)
+        setInitialize(true)
       }
     })()
 
     return () => {
       OneSignal.User.removeEventListener('change', oneSignalChangeListener)
     }
-  }, [currentUser, fetching, error])
+  }, [initialized, currentUser, currentUserFetching, error])
 
   // TODO: What do we want to happen if there is an error loading the current user?
   if (error) console.error(error)

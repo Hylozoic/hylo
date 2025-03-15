@@ -5,11 +5,12 @@ import Intercom from '@intercom/intercom-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
+import GroupPresenter from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import useCurrentGroup, { useContextGroups } from '@hylo/hooks/useCurrentGroup'
-import { widgetUrl as makeWidgetUrl } from 'util/navigation'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useStaticContexts from '@hylo/hooks/useStaticContexts'
+import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import useOpenURL from 'hooks/useOpenURL'
-import useChangeToGroup from 'hooks/useChangeToGroup'
 import LucideIcon from 'components/LucideIcon'
 import { black, white } from 'style/colors'
 
@@ -21,10 +22,10 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const changeToGroup = useChangeToGroup()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
-  const { myContext, publicContext } = useContextGroups()
+  const { myContext, publicContext } = useStaticContexts()
   const myGroups = [myContext, publicContext].concat(
-    sortBy('name', map(m => m.group, currentUser.memberships))
-  )
+    sortBy('name', map(m => m.group, currentUser?.memberships))
+  ).map(GroupPresenter)
 
   const collapseTimeout = useRef(null)
 
@@ -47,12 +48,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const handleOnPress = context => {
     clearTimeout(collapseTimeout.current)
     setIsExpanded(false)
-    changeToGroup(context?.slug)
-    const homePath = context && makeWidgetUrl({
-      widget: context?.homeWidget,
-      groupSlug: context?.slug
-    })
-    if (homePath) openURL(homePath, { replace: true })
+    changeToGroup(context?.slug, { navigateHome: true })
   }
 
   return (

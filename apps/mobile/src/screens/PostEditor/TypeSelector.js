@@ -8,13 +8,7 @@ import { white } from 'style/colors'
 
 export default function TypeSelector (props) {
   const { t } = useTranslation()
-  // explicit invocation of dynamic labels
-  t('Discussion')
-  t('Request')
-  t('Offer')
-  t('Resource')
-  t('Project')
-  t('Event')
+
   return (
     <View style={styles.typeSelectorWrapper}>
       <RNPickerSelect

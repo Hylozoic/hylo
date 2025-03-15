@@ -17,9 +17,9 @@ import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettin
 import personQuery from '@hylo/graphql/queries/personQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
-import useChangeToGroup from 'hooks/useChangeToGroup'
-import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
+import useConfirmAlert from 'hooks/useConfirmAlert'
 import { openURL } from 'hooks/useOpenURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import TabStackHeader from 'navigation/headers/TabStackHeader'
@@ -34,7 +34,7 @@ export default function MemberDetails () {
   const navigation = useNavigation()
   const route = useRoute()
   const logout = useLogout()
-  const confirmDiscardChanges = useConfirmDiscardChanges()
+  const confirmAlert = useConfirmAlert()
   const { id, editing: editingParam } = useRouteParams()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ currentUser }] = useCurrentUser()
@@ -95,12 +95,12 @@ export default function MemberDetails () {
             headerLeftOnPress={() => navigation.navigate('Home Tab')}
             headerLeftConfirm={changed}
             headerRightButtonLabel={t('Logout')}
-            headerRightButtonOnPress={() => confirmDiscardChanges({
+            headerRightButtonOnPress={() => confirmAlert({
               title: 'Logout',
-              confirmationMessage: 'Are you sure you want to logout?',
-              continueButtonText: 'Cancel',
-              discardButtonText: 'Yes',
-              onDiscard: logout
+              confirmMessage: 'Are you sure you want to logout?',
+              cancelButtonText: 'Cancel',
+              confirmButtonText: 'Yes',
+              onConfirm: logout
             })}
           />
       })

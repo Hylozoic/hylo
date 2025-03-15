@@ -2,8 +2,8 @@ import React, { useCallback, useState } from 'react'
 import { Text, View, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash/fp'
-import { useContextGroups } from '@hylo/hooks/useCurrentGroup'
-import useChangeToGroup from 'hooks/useChangeToGroup'
+import useStaticContexts from '@hylo/hooks/useStaticContexts'
+import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import GroupsList from 'components/GroupsList'
 import Icon from 'components/Icon'
 import { caribbeanGreen, rhino40 } from 'style/colors'
@@ -14,7 +14,7 @@ export default function PostGroups ({
   style
 }) {
   const { t } = useTranslation()
-  const { publicContext } = useContextGroups()
+  const { publicContext } = useStaticContexts()
   const [expanded, setExpanded] = useState(false)
   const toggleExpanded = () => setExpanded(!expanded)
 

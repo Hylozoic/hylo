@@ -1,22 +1,47 @@
 import React from 'react'
-import { Grid3x3 } from 'lucide-react-native'
-import ContextWidgetPresenter from '@hylo/presenters/ContextWidgetPresenter'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
+import LucideIcon, { CustomIcons } from 'components/LucideIcon/LucideIcon'
 
-export function WidgetIconResolver ({ widget: providedWidget, style, className }) {
-  if (!providedWidget) return null
+export function WidgetIconResolver ({
+  className,
+  dimension,
+  iconName: providedIconName,
+  size,
+  style = { fontSize: 18 },
+  widget
+}) {
+  const iconName = widget?.iconName || providedIconName
 
-  const widget = ContextWidgetPresenter(providedWidget)
+  if (!widget && !iconName) return null
 
   if (widget?.avatarUrl) {
-    return <Avatar avatarUrl={widget.avatarUrl} name={widget?.displayName} style={style} className={className} />
+    return (
+      <Avatar
+        avatarUrl={widget.avatarUrl}
+        name={widget?.displayName}
+        style={style}
+        className={className}
+        dimension={size || style?.fontSize + 6}
+      />
+    )
   }
 
-  if (widget?.iconName) {
-    return widget.iconName === 'Grid3x3'
-      ? <Grid3x3 className='h-[16px]' />
-      : <Icon name={widget.iconName} style={style} className={className} />
+  if (iconName) {
+    return CustomIcons[iconName]
+      ? <LucideIcon
+          className={className}
+          name={iconName}
+          size={style?.fontSize}
+          style={style}
+
+        />
+      : <Icon
+          className={className} 
+          name={iconName}
+          size={size}
+          style={style}
+        />
   }
 
   return null

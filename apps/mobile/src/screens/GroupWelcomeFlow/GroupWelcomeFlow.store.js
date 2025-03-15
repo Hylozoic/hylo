@@ -24,7 +24,7 @@ export function getRouteNames (group, currentMembership) {
     routeNames.push(GROUP_WELCOME_AGREEMENTS)
   }
   if (
-    settings.askJoinQuestions &&
+    settings?.askJoinQuestions &&
     !isEmpty(group?.joinQuestions?.items) &&
     !currentMembership?.settings?.joinQuestionsAnsweredAt
   ) {

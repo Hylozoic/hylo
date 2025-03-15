@@ -10,11 +10,11 @@ import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import mixpanel from 'services/mixpanel'
+import { postUrl as postUrlCreator } from 'util/navigation'
 import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import useHasResponsibility, { RESP_MANAGE_CONTENT } from '@hylo/hooks/useHasResponsibility'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import Icon from 'components/Icon'
-import { postUrl as postUrlCreator } from 'util/navigation'
 
 export const deletePostMutation = gql`
   mutation DeletePostMutation ($id: ID) {
@@ -52,7 +52,7 @@ export default function usePostActionSheet ({
 
   const createActionSheetActions = () => {
     const isCreator = currentUser && creator && currentUser.id === creator.id
-    const postUrl = currentGroup?.isContextGroup
+    const postUrl = currentGroup?.isStaticContext
       ? postUrlCreator(postId, { context: currentGroup?.slug })
       : postUrlCreator(postId, { groupSlug: currentGroup?.slug })
     const editPost = isCreator
@@ -70,7 +70,7 @@ export default function usePostActionSheet ({
       }
     }
 
-    const handleRemovePost = currentGroup && !isCreator && canModerate && !currentGroup.isContextGroup
+    const handleRemovePost = currentGroup && !isCreator && canModerate && !currentGroup.isStaticContext
       ? () => removePost({ postId, slug: currentGroup?.slug })
       : null
 
