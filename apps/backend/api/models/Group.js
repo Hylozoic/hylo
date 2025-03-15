@@ -440,6 +440,7 @@ module.exports = bookshelf.Model.extend(merge({
     return updatedMemberships.concat(newMemberships)
   },
 
+  // TODO: remove this, replaced by functionality in setupContextWidgets
   createDefaultTopics: async function (group_id, user_id, transacting) {
     return Tag.where({ name: 'home' }).fetch({ transacting })
       .then(homeTag => {
@@ -455,6 +456,7 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
+  // TODO: remove this, we are not using it right now
   createStarterPosts: function (transacting) {
     const now = new Date()
     const timeShift = { offer: 1, request: 2, resource: 3 }
@@ -488,8 +490,8 @@ module.exports = bookshelf.Model.extend(merge({
   async toMurmurationsObject () {
     const parentGroups = await this.parentGroups().fetch()
     const childrenGroups = await this.childGroups().fetch()
-    const publicParents = parentGroups.filter(g => g.hasMurmurationsProfile()).map(g => ({ object_url: Frontend.Route.group(g), predicate_url: 'https://schema.org/memberOf' }))
-    const publicChildren = childrenGroups.filter(g => g.hasMurmurationsProfile()).map(g => ({ object_url: Frontend.Route.group(g), predicate_url: 'https://schema.org/member' }))
+    const publicParents = parentGroups.filter(g => g.hasMurmurationsProfile()).map(g => ({ object_url: g.get('website_url') || Frontend.Route.group(g), predicate_url: 'https://schema.org/memberOf' }))
+    const publicChildren = childrenGroups.filter(g => g.hasMurmurationsProfile()).map(g => ({ object_url: g.get('website_url') || Frontend.Route.group(g), predicate_url: 'https://schema.org/member' }))
     const profile = {
       linked_schemas: [
         'organizations_schema-v1.0.0'
@@ -915,11 +917,9 @@ module.exports = bookshelf.Model.extend(merge({
         }
       }
 
-      await group.createStarterPosts(trx)
+      // TODO: remove? we arent sure if we are using explore page anymore
+      await group.createInitialWidgets(trx)
 
-      // await group.createInitialWidgets(trx)
-
-      // await group.createDefaultTopics(group.id, userId, trx) // TODO: not sure if this should be here or in setupContextWidgets
       await group.setupContextWidgets(trx)
 
       await group.addMembers([userId], { role: GroupMembership.Role.MODERATOR }, { transacting: trx })

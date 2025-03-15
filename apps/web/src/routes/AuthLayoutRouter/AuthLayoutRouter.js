@@ -6,7 +6,6 @@ import { Helmet } from 'react-helmet'
 import Div100vh from 'react-div-100vh'
 import { useTranslation, Trans } from 'react-i18next'
 import { get, some } from 'lodash/fp'
-import { useResizeDetector } from 'react-resize-detector'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
 import config, { isTest } from 'config/index'
@@ -60,7 +59,6 @@ import Moderation from 'routes/Moderation'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
-import SiteTour from 'routes/AuthLayoutRouter/components/SiteTour'
 import ThreadList from 'routes/Messages/ThreadList'
 
 import UserSettings from 'routes/UserSettings'
@@ -71,7 +69,6 @@ import isWebView from 'util/webView'
 
 export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
-  const { width } = useResizeDetector({ handleHeight: false, targetRef: resizeRef })
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
@@ -200,15 +197,6 @@ export default function AuthLayoutRouter (props) {
     userId: currentUser.id
   }
   const showMenuBadge = some(m => m.newPostCount > 0, memberships)
-  const isSingleColumn = (currentGroupSlug && !currentGroupMembership) ||
-    matchPath({ path: '/members/:personId' }, location.pathname)
-  // When joining a group by invitation Group Welcome Modal (join form)
-  const showTourPrompt = !signupInProgress &&
-    !get('settings.alreadySeenTour', currentUser) &&
-    // Show group welcome modal before tour
-    !get('settings.showJoinForm', currentGroupMembership) &&
-    // Don't show tour on non-member group details page
-    !isSingleColumn
 
   if (!signupInProgress && returnToPath) {
     const returnToPathName = new URL(returnToPath, 'https://hylo.com')?.pathname
@@ -257,7 +245,7 @@ export default function AuthLayoutRouter (props) {
         </script>
       </Helmet>
 
-      {!isWebView() && new Date(currentUser.createdAt) < new Date('2025-03-16') && !window.localStorage.getItem('new-hylo-alert-seen') && (
+      {!isWebView() && new Date(currentUser.createdAt) < new Date('2025-03-15') && !window.localStorage.getItem('new-hylo-alert-seen') && (
         <GlobalAlert
           title={t('Welcome to the new Hylo!')}
           onOpenChange={(open) => {
@@ -288,14 +276,6 @@ export default function AuthLayoutRouter (props) {
         {!isWebView() && (
           <>
             <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
-
-            {showTourPrompt && (
-              <>
-                <Route path='my/*' element={<SiteTour windowWidth={width} />} />
-                <Route path='all/*' element={<SiteTour windowWidth={width} />} />
-                <Route path='public/*' element={<SiteTour windowWidth={width} />} />
-                <Route path='groups/*' element={<SiteTour windowWidth={width} />} />
-              </>)}
           </>
         )}
       </Routes>
