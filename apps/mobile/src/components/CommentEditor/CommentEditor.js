@@ -13,7 +13,7 @@ import mixpanel from 'services/mixpanel'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import { white, rhino80, gunsmoke, rhino10, amaranth, alabaster, caribbeanGreen } from 'style/colors'
+import { rhino80, gunsmoke, rhino10, amaranth, caribbeanGreen, twBackground } from 'style/colors'
 
 export const CommentEditor = React.forwardRef(({
   isModal,
@@ -120,7 +120,7 @@ export default CommentEditor
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: alabaster
+    backgroundColor: twBackground
   },
 
   editor: {
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
 
   htmlEditor: {
     minHeight: 44,
-    backgroundColor: white,
+    backgroundColor: twBackground,
     borderWidth: 1,
     borderColor: '#CCC',
     borderRadius: 10

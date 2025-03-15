@@ -280,12 +280,11 @@ export default function PostEditor (props) {
 
   return (
     <KeyboardAvoidingView
-      className='bg-background'
       style={styles.formWrapper}
       behavior={isIOS ? 'padding' : null}
       keyboardVerticalOffset={isIOS ? 110 : 80}
     >
-      <View className='bg-background' style={styles.formWrapper}>
+      <View style={styles.formWrapper}>
         <ScrollView
           ref={scrollViewRef}
           keyboardShouldPersistTaps='never'
@@ -295,7 +294,7 @@ export default function PostEditor (props) {
         >
           {selectedPostLoading && <Loading />}
           {!selectedPostLoading && (
-            <View className='bg-card' style={styles.formTop}>
+            <View style={styles.formTop}>
               <View style={[styles.titleInputWrapper]}>
                 <TextInput
                   className='text-foreground'
@@ -326,9 +325,9 @@ export default function PostEditor (props) {
                   onAddTopic={!topicsPicked && handleAddTopic}
                   readOnly={selectedPostLoading || isSaving}
                   ref={detailsEditorRef}
-                  widthOffset={0}
+                  widthOffset={-20}
                   customEditorCSS={`
-                    min-height: 90px
+                    min-height: 90px;
                   `}
                 />
               </View>
