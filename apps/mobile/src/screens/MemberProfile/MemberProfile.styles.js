@@ -1,6 +1,4 @@
-import {
-  capeCod, caribbeanGreen, alabaster
-} from 'style/colors'
+import { capeCod, caribbeanGreen, twBackground } from 'style/colors'
 
 const screenMargin = 16
 const avatarSize = 112
@@ -74,7 +72,7 @@ export default {
   },
   button: {
     height: 30,
-    backgroundColor: alabaster,
+    backgroundColor: twBackground,
     justifyContent: 'center',
     alignItems: 'center',
     flex: 1,

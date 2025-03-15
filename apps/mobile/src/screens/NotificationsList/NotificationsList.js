@@ -16,12 +16,12 @@ import CreateGroupNotice from 'components/CreateGroupNotice'
 import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
 import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { alabaster } from 'style/colors'
+import { twBackground } from 'style/colors'
 
 const styles = StyleSheet.create({
   notificationsList: {
     flex: 1,
-    backgroundColor: alabaster,
+    backgroundColor: twBackground,
     position: 'relative'
   },
   center: {

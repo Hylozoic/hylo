@@ -6,7 +6,7 @@ import FastImage from 'react-native-fast-image'
 import LinearGradient from 'react-native-linear-gradient'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import Icon from 'components/Icon'
-import { bannerlinearGradientColors, white, rhino, black } from 'style/colors'
+import { bannerlinearGradientColors, white, rhino, black, twBackground } from 'style/colors'
 import { Plus } from 'lucide-react-native'
 
 export default function StreamHeader ({ image, icon, name, postPrompt = false, currentGroup, streamType }) {
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
-    backgroundColor: 'rgb(255, 255, 255)'
+    backgroundColor: twBackground
   },
   image: {
     height: '100%',

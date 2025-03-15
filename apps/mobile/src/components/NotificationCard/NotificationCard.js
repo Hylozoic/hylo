@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Avatar from 'components/Avatar'
-import { alabaster, persimmon, rhino, rhino10, rhino30, rhino60 } from 'style/colors'
+import { persimmon, rhino, rhino10, rhino30, rhino60, twBackground } from 'style/colors'
 
 export default function NotificationCard ({ notification }) {
   const {
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     backgroundColor: rhino10
   },
   unreadContainer: {
-    backgroundColor: alabaster
+    backgroundColor: twBackground
   },
   content: {
     flex: 1,

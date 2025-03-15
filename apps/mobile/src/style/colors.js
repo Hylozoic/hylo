@@ -1,5 +1,9 @@
 import tinycolor from 'tinycolor2'
 
+// below: --midground: 45 28% 94%; (hsl)
+// above: bg-white/5 (rgb(255 255 255 / 0.05))
+export const twBackground = 'rgb(244, 242, 236)'
+
 // when adding a color, use http://chir.ag/projects/name-that-color/ to name it.
 export const athensGray = '#FAFBFC'
 export const athensGrayDark = '#E1E5EA'

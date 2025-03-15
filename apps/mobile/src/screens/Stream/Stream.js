@@ -21,6 +21,7 @@ import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
 import PostRow from './PostRow'
 import StreamHeader from './StreamHeader'
+import { twBackground } from 'style/colors'
 
 /* === CONSTANTS === */
 
@@ -191,7 +192,72 @@ export default function Stream () {
 
   return (
     <View className='bg-background flex-1'>
+      <View
+        style={{
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowRadius: 6,
+          shadowOpacity: 0.1,
+          elevation: 6,
+          backgroundColor: twBackground,
+          zIndex: 10
+        }}
+      >
+        <StreamHeader
+          image={currentGroup.bannerUrl ? { uri: currentGroup.bannerUrl } : null}
+          icon={customView?.icon}
+          name={title}
+          currentGroup={currentGroup}
+          streamType={streamQueryVariables.filter}
+          customView={customView}
+          postPrompt
+        />
+        {!streamType && (
+          <View className='flex-row justify-between items-center px-2.5 py-2'>
+            <ListControl selected={sortBy} onChange={setSortBy} options={sortOptions} />
+            <View className='flex-row items-center gap-2'>
+              {![MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG].includes(streamQueryVariables?.context) &&
+                <TouchableOpacity onPress={handleChildPostToggle}>
+                  <View className={clsx(
+                    'w-8 h-8 rounded items-center justify-center',
+                    streamQueryVariables?.childPostInclusion === 'yes'
+                      ? 'bg-secondary'
+                      : 'bg-background border border-secondary'
+                  )}
+                  >
+                    <Icon
+                      name='Subgroup'
+                      className={clsx(
+                        streamQueryVariables?.childPostInclusion === 'yes'
+                          ? 'text-background'
+                          : 'text-secondary'
+                      )}
+                    />
+                  </View>
+                </TouchableOpacity>}
+              {!streamQueryVariables?.types && (
+                <ListControl
+                  selected={streamQueryVariables.filter}
+                  onChange={setFilter}
+                  options={POST_TYPE_OPTIONS}
+                />
+              )}
+            </View>
+          </View>
+        )}
+
+        {streamType === 'event' && (
+          <View className='px-2.5 py-2'>
+            <ListControl
+              selected={timeframe}
+              onChange={setTimeframe}
+              options={EVENT_STREAM_TIMEFRAME_OPTIONS}
+            />
+          </View>
+        )}
+      </View>
       <FlashList
+        contentContainerStyle={{ paddingTop: 12 }}
         estimatedItemSize={200}
         estimatedListSize={Dimensions.get('screen')}
         ref={ref}
@@ -208,62 +274,6 @@ export default function Stream () {
         refreshing={fetching}
         keyExtractor={item => `post${item.id}`}
         onEndReached={fetchMorePosts}
-        ListHeaderComponent={
-          <View>
-            <StreamHeader
-              image={currentGroup.bannerUrl ? { uri: currentGroup.bannerUrl } : null}
-              icon={customView?.icon}
-              name={title}
-              currentGroup={currentGroup}
-              streamType={streamQueryVariables.filter}
-              customView={customView}
-              postPrompt
-            />
-            {!streamType && (
-              <View className='bg-card flex-row justify-between items-center px-2.5 py-2'>
-                <ListControl selected={sortBy} onChange={setSortBy} options={sortOptions} />
-                <View className='flex-row items-center gap-2'>
-                  {![MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG].includes(streamQueryVariables?.context) &&
-                    <TouchableOpacity onPress={handleChildPostToggle}>
-                      <View className={clsx(
-                        'w-8 h-8 rounded items-center justify-center',
-                        streamQueryVariables?.childPostInclusion === 'yes'
-                          ? 'bg-secondary'
-                          : 'bg-background border border-secondary'
-                      )}
-                      >
-                        <Icon
-                          name='Subgroup'
-                          className={clsx(
-                            streamQueryVariables?.childPostInclusion === 'yes'
-                              ? 'text-background'
-                              : 'text-secondary'
-                          )}
-                        />
-                      </View>
-                    </TouchableOpacity>}
-                  {!streamQueryVariables?.types && (
-                    <ListControl
-                      selected={streamQueryVariables.filter}
-                      onChange={setFilter}
-                      options={POST_TYPE_OPTIONS}
-                    />
-                  )}
-                </View>
-              </View>
-            )}
-
-            {streamType === 'event' && (
-              <View className='bg-card px-2.5 py-2'>
-                <ListControl
-                  selected={timeframe}
-                  onChange={setTimeframe}
-                  options={EVENT_STREAM_TIMEFRAME_OPTIONS}
-                />
-              </View>
-            )}
-          </View>
-        }
         ListFooterComponent={
           fetching ? <Loading className='py-5' /> : null
         }

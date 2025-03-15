@@ -4,7 +4,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import useGroup from '@hylo/hooks/useGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
-import { alabaster, amaranth, capeCod, rhino40, rhino80 } from 'style/colors'
+import { amaranth, capeCod, rhino40, rhino80, twBackground } from 'style/colors'
 
 export default function GroupSettingsWebView () {
   const navigation = useNavigation()
@@ -99,7 +99,7 @@ export default function GroupSettingsWebView () {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: alabaster
+    backgroundColor: twBackground
   },
   header: {
     flexDirection: 'row',
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     fontWeight: 'bold',
-    color: alabaster
+    color: twBackground
   },
   backButton: {
     position: 'absolute',
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: rhino40,
-    backgroundColor: alabaster
+    backgroundColor: twBackground
   },
   menuText: {
     fontSize: 16,

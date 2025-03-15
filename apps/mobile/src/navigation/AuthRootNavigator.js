@@ -30,7 +30,7 @@ import PostDetails from 'screens/PostDetails'
 import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
-import { white } from 'style/colors'
+import { twBackground } from 'style/colors'
 
 const updatesSubscription = gql`
   subscription UpdatesSubscription($firstMessages: Int = 1) {
@@ -152,7 +152,7 @@ export default function AuthRootNavigator () {
 
   const navigatorProps = {
     screenOptions: {
-      cardStyle: { backgroundColor: white }
+      cardStyle: { backgroundColor: twBackground }
     }
   }
 

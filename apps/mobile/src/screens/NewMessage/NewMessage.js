@@ -16,7 +16,7 @@ import ItemSelector from 'components/ItemSelector'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import { capeCod20, pictonBlue, alabaster, amaranth, rhino80, caribbeanGreen, black10onRhino, ghost } from 'style/colors'
+import { capeCod20, pictonBlue, amaranth, rhino80, caribbeanGreen, black10onRhino, ghost, twBackground } from 'style/colors'
 
 export const recentContactsQuery = gql`
   query RecentContactsQuery ($first: Int = 20) {
@@ -217,7 +217,7 @@ export function Participant ({ participant, onPress }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: alabaster,
+    backgroundColor: twBackground,
     position: 'relative',
     flex: 1
   },

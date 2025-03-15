@@ -9,7 +9,7 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { isIOS } from 'util/platform'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
-import { white } from 'style/colors'
+import { twBackground } from 'style/colors'
 
 export default function TabStackHeader ({
   options,
@@ -39,7 +39,7 @@ export default function TabStackHeader ({
     },
     headerTitleAlign: 'left',
     headerStyle: {
-      backgroundColor: white
+      backgroundColor: twBackground
     },
     headerLeft: headerLeft || options.headerLeft || (() => {
       let onPress = options.headerLeftOnPress

@@ -101,7 +101,7 @@ export const styles = StyleSheet.create({
     fontSize: 14
   },
   detailsInputWrapper: {
-    paddingBottom: isIOS ? 10 : 0
+    // paddingBottom: isIOS ? 10 : 0
   },
   textInputPlaceholder: {
     fontSize: 16,
