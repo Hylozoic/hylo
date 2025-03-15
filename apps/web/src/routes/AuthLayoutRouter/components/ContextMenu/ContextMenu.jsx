@@ -1,5 +1,5 @@
 import { get } from 'lodash/fp'
-import { ChevronLeft, GripHorizontal, Pencil, UserPlus, LogOut, Users } from 'lucide-react'
+import { ChevronLeft, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users } from 'lucide-react'
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -547,7 +547,7 @@ function SpecialTopElementRenderer ({ widget, group, isEditing }) {
     // Reset after animation
     setTimeout(() => {
       target.classList.remove('bg-secondary/30')
-      target.innerText = t('Copy invite link')
+      target.innerText = t('Copy Link')
     }, 1500)
   }, [group])
 
@@ -565,10 +565,10 @@ function SpecialTopElementRenderer ({ widget, group, isEditing }) {
             <UserPlus className='inline-block h-[20px] mr-1' />
             <span className='flex-1'>{t('Add Members')}</span>
             <span
-              className='text-xs text-foreground/50 hover:text-foreground/100 transition-all'
+              className='text-xs flex items-center gap-1 text-foreground/50 hover:text-foreground/100 transition-all border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-1 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'
               onClick={handleCopyInviteLink}
             >
-              {t('Copy invite link')}
+              {t('Copy Link')} <Copy className='w-4 h-4' />
             </span>
           </div>
         </MenuLink>
