@@ -103,8 +103,6 @@ export default function ContextMenu (props) {
   previousWidgetIds = currentWidgetIds
   const newWidgetRef = useRef()
 
-  const [forceUpdate, setForceUpdate] = useState({})
-
   useEffect(() => {
     if (isEditing) {
       const element = document.querySelector('.ContextMenu')
@@ -158,9 +156,6 @@ export default function ContextMenu (props) {
           remove: over.id === 'remove'
         }
       }))
-
-      // Force a re-render with a new object reference
-      setForceUpdate({})
     }
 
     if (over && over.id === 'remove') {
@@ -169,10 +164,6 @@ export default function ContextMenu (props) {
 
     setActiveWidget(null)
   }
-
-  useEffect(() => {
-    // This empty dependency array ensures the effect runs when forceUpdate changes
-  }, [forceUpdate])
 
   return (
     <div className={cn('ContextMenu bg-background z-20 overflow-y-auto h-lvh w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
@@ -206,7 +197,6 @@ export default function ContextMenu (props) {
           <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners} modifiers={[restrictToVerticalAxis]}>
             <div className='w-full'>
               <ContextWidgetList
-                key={JSON.stringify(forceUpdate)}
                 isDragging={isDragging}
                 isEditing={isEditing}
                 contextWidgets={orderedWidgets}
@@ -405,7 +395,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <SpecialTopElementRenderer widget={widget} group={group} isEditing={isEditing} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
-                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id + '-' + Date.now()} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
+                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                     {widget.id && isEditing && !['home', 'setup'].includes(widget.type) &&
                       <li>
                         <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
@@ -423,7 +413,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <SpecialTopElementRenderer widget={widget} group={group} isEditing={isEditing} />
                   <ul className='px-1 pt-1 pb-2'>
                     {loading && presentedlistItems.length === 0 && <li key='loading'>Loading...</li>}
-                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id + '-' + Date.now()} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
+                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                   </ul>
                 </div>}
             </div>)}
@@ -490,7 +480,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
 
   const isActive = item.viewUser?.lastActiveAt ? new Date(parseInt(item.viewUser.lastActiveAt)) > new Date(Date.now() - 1000 * 60 * 4) : false
   return (
-    <React.Fragment key={item.id + "-" + Date.now()}>
+    <React.Fragment key={item.id}>
       <DropZone hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
         &nbsp;
       </DropZone>
