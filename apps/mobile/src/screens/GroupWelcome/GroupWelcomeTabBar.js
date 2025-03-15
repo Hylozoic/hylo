@@ -12,7 +12,7 @@ import {
   useGroupWelcomeStore,
   GROUP_WELCOME_AGREEMENTS,
   GROUP_WELCOME_JOIN_QUESTIONS
-} from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
+} from 'screens/GroupWelcome/GroupWelcome.store'
 import Button from 'components/Button'
 import { caribbeanGreen, rhino30, white, white20onCaribbeanGreen, white40onCaribbeanGreen } from 'style/colors'
 
