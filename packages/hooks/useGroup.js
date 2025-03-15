@@ -18,7 +18,7 @@ export default function useGroup ({
     pause: !isStatic || useQueryArgs?.pause || !groupSlug
   })
   const staticGroup = useMemo(
-    () => getStaticContext(groupSlug || groupId, { currentUser }),
+    () => getStaticContext(groupSlug || groupId, currentUser),
     [groupId, groupSlug, currentUser]
   )
 
