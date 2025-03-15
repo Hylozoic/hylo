@@ -328,8 +328,7 @@ $drawer-z-index: 51;
   min-height: 1px; // Prevent collapsing
   height: 100%;
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   // transition: all .45s ease; // Took this out because it was causing issues with the width of the map
 
   &.full-width {
@@ -522,13 +521,6 @@ $drawer-z-index: 51;
 
   .detailOpen, .detailOpen .center, .detailOpen .main {
     overflow: hidden;
-  }
-
-  .center {
-    overflow-y: scroll;
-  }
-  .center.full-width {
-    overflow-y: auto;
   }
 
   .tourWrapper .tourPrompt .tourGuide {
