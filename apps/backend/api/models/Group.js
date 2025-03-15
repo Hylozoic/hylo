@@ -490,8 +490,8 @@ module.exports = bookshelf.Model.extend(merge({
   async toMurmurationsObject () {
     const parentGroups = await this.parentGroups().fetch()
     const childrenGroups = await this.childGroups().fetch()
-    const publicParents = parentGroups.filter(g => g.hasMurmurationsProfile()).map(g => ({ object_url: Frontend.Route.group(g), predicate_url: 'https://schema.org/memberOf' }))
-    const publicChildren = childrenGroups.filter(g => g.hasMurmurationsProfile()).map(g => ({ object_url: Frontend.Route.group(g), predicate_url: 'https://schema.org/member' }))
+    const publicParents = parentGroups.filter(g => g.hasMurmurationsProfile()).map(g => ({ object_url: g.get('website_url') || Frontend.Route.group(g), predicate_url: 'https://schema.org/memberOf' }))
+    const publicChildren = childrenGroups.filter(g => g.hasMurmurationsProfile()).map(g => ({ object_url: g.get('website_url') || Frontend.Route.group(g), predicate_url: 'https://schema.org/member' }))
     const profile = {
       linked_schemas: [
         'organizations_schema-v1.0.0'
