@@ -293,8 +293,9 @@
   "Violations of platform agreements": "Violaciones de acuerdos de plataforma.",
   "Voting ended": "La votación terminó",
   "Voting open": "Votación abierta",
+  "Welcome Page": "Página de Bienvenida",
   "Welcome to": "Bienvenido a",
-  "Welcome to Hylo": "",
+  "Welcome to Hylo": "Bienvenido a Hylo",
   "Were almost done, are you sure you want to cancel signing-up?": "Ya casi terminamos, ¿estás seguro de que deseas cancelar el registro?",
   "Were happy youre here": "¡Estamos felices de que estés aquí!",
   "Weve sent a 6 digit code to": "Hemos enviado un código de 6 dígitos a",
@@ -353,6 +354,7 @@
   "makeAnAnnouncement": "HACER UN ANUNCIO",
   "manyCommentersInTheFooter": "{{firstPerson}}, {{secondPerson}} y {{count}} otro",
   "manyCommentersInTheFooter_plural": "{{firstPerson}}, {{secondPerson}} y {{count}} otros",
+  "noPostsExplanierNewUser": "No hay publicaciones para mostrar. \nÚnase a un grupo existente o inicie un grupo para llevar su comunidad a Hylo.",
   "offer": "oferta",
   "on": "en",
   "other": "otro",
@@ -416,6 +418,7 @@
   "widget-setup": "Configuración",
   "widget-stream": "Flujo",
   "widget-terms-and-conditions": "Términos y Condiciones",
+  "widget-welcome": "Bienvenido",
   "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}": "Los grupos {{childGroupsLength}} son parte de {{currentGroupName}}",
   "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)": "{{currentGroupName}} es parte de {{parentGroupsLength}} grupo(s)"
 }

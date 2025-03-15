@@ -44,7 +44,8 @@ const getShouldWelcomeResolver = group => {
     return (
       showJoinForm ||
       agreementsChanged ||
-      (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt)
+      (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt) ||
+      (group?.settings?.showWelcomePage && !currentMembership?.lastViewedAt)
     )
   }
 }

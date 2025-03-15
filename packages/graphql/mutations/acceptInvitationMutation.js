@@ -18,6 +18,7 @@ export default gql`
             askGroupToGroupJoinQuestions
             publicMemberDirectory
             showSuggestedSkills
+            showWelcomePage
           }
           slug
           visibility

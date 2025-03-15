@@ -55,6 +55,7 @@ export default function GroupSettingsWebView () {
   const settingsOptions = [
     { settingsArea: 'details', label: 'Group Details' },
     { settingsArea: 'agreements', label: 'Agreements' },
+    { settingsArea: 'welcome', label: 'Welcome Page' },
     { settingsArea: 'responsibilities', label: 'Responsibilities' },
     { settingsArea: 'roles', label: 'Roles & Badges' },
     { settingsArea: 'privacy', label: 'Privacy & Access' },
@@ -64,8 +65,6 @@ export default function GroupSettingsWebView () {
     { settingsArea: 'relationships', label: 'Related Groups' },
     { settingsArea: 'export', label: 'Export Data' },
     { settingsArea: 'delete', label: 'Delete', style: { color: amaranth } }
-    // TODO: Routing - Doesn't seem to currently appear on Web so leaving it out here?
-    // { settingsArea: 'views', label: 'Custom Views' }
   ]
 
   return (

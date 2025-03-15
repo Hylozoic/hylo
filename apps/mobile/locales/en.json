@@ -294,6 +294,7 @@
   "Violations of platform agreements": "Violations of platform agreements",
   "Voting ended": "Voting ended",
   "Voting open": "Voting open",
+  "Welcome Page": "Welcome Page",
   "Welcome to": "Welcome to",
   "Welcome to Hylo": "Welcome to Hylo",
   "Were almost done, are you sure you want to cancel signing-up?": "We're almost done, are you sure you want to cancel signing-up?",
@@ -354,6 +355,7 @@
   "makeAnAnnouncement": "MAKE AN ANNOUNCEMENT",
   "manyCommentersInTheFooter": "{{firstPerson}}, {{secondPerson}} and {{count}} other",
   "manyCommentersInTheFooter_plural": "{{firstPerson}}, {{secondPerson}} and {{count}} others",
+  "noPostsExplanierNewUser": "No posts to display. Join an existing group or start a group to bring your community on to Hylo.",
   "offer": "offer",
   "on": "on",
   "other": "other",
@@ -417,6 +419,7 @@
   "widget-setup": "Setup",
   "widget-stream": "Stream",
   "widget-terms-and-conditions": "Terms and Conditions",
+  "widget-welcome": "Welcome",
   "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}": "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}",
   "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)": "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)"
 }
