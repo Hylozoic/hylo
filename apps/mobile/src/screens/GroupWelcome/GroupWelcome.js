@@ -16,11 +16,11 @@ import {
   GROUP_WELCOME_AGREEMENTS,
   GROUP_WELCOME_JOIN_QUESTIONS,
   GROUP_WELCOME_SUGGESTED_SKILLS
-} from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.store'
-import GroupWelcomeTabBar from 'screens/GroupWelcomeFlow/GroupWelcomeTabBar'
+} from 'screens/GroupWelcome/GroupWelcome.store'
+import GroupWelcomeTabBar from 'screens/GroupWelcome/GroupWelcomeTabBar'
 import HyloHTML from 'components/HyloHTML'
 import Pill from 'components/Pill'
-import styles from 'screens/GroupWelcomeFlow/GroupWelcomeFlow.styles'
+import styles from 'screens/GroupWelcome/GroupWelcome.styles'
 import { caribbeanGreen } from 'style/colors'
 
 export const addSkillMutation = gql`
@@ -39,7 +39,7 @@ export const removeSkillMutation = gql`
     }
   }
 `
-export default function GroupWelcomeLanding () {
+export default function GroupWelcome () {
   const { t } = useTranslation()
   const changeToGroup = useChangeToGroup()
   const [, addSkill] = useMutation(addSkillMutation)

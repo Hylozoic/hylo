@@ -83,7 +83,7 @@ AppRegistry.registerComponent(appName, () => App)
 
 enableScreens()
 
-// TODO: Enable and test/fix all keyboard + ScrollView usages currently only used by GroupWelcomeFlow
+// TODO: Enable and test/fix all keyboard + ScrollView usages currently only used by GroupWelcome
 // ref. https://github.com/douglasjunior/react-native-keyboard-manager/tree/main
 if (Platform.OS === 'ios') {
   KeyboardManager.setEnable(false)
