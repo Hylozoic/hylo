@@ -1,3 +1,4 @@
+import { House, Plus } from 'lucide-react'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -133,18 +134,18 @@ export default function AllViews () {
           )} */}
           {isEditing && widget.isValidHomeWidget && (
             <span
-              className='text-sm  block text-foreground'
+              className='text-sm inline-block text-foreground'
               onClick={(evt) => {
                 evt.stopPropagation()
                 handleWidgetHomePromotion(widget)
               }}
             >
-              <Icon name='Home' />
+              <House />
             </span>
           )}
           {isEditing && !widget.order && (
-            <span className='text-sm text-foreground block'>
-              <Icon name='Plus' />
+            <span className='ml-3 text-sm text-foreground inline-block'>
+              <Plus />
             </span>
           )}
         </div>
