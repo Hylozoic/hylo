@@ -3155,6 +3155,8 @@ input MeInput {
 input MembershipInput {
   # Accept or reject all current agreements of the group
   acceptAgreements: Boolean
+  # update the lastViewedAt
+  lastViewedAt: Date
   # Number of new Posts in the Group since you last looked at it
   newPostCount: Int
   # Answers to the join questions for this Group

@@ -34,6 +34,7 @@ export default gql`
       stewardDescriptorPlural
       settings {
         showSuggestedSkills
+        showWelcomePage
       }
       slug
     }

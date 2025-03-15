@@ -24,12 +24,15 @@ export default gql`
       locationDisplayPrecision
       publicMemberDirectory
       showSuggestedSkills
+      showWelcomePage
     }
     slug
     type
     typeDescriptor
     typeDescriptorPlural
     visibility
+    websiteUrl
+    welcomePage
     agreements {
       items {
         id
