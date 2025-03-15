@@ -470,6 +470,7 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
     return null
   }
 
+  const isActive = item.viewUser?.lastActiveAt ? new Date(parseInt(item.viewUser.lastActiveAt)) > new Date(Date.now() - 1000 * 60 * 4) : false
   return (
     <React.Fragment key={item.id + itemTitle}>
       <DropZone hide={hideDropZone || invalidChild || !canDnd} droppableParams={{ id: `${item.id}`, data: { widget: item } }}>
@@ -501,7 +502,10 @@ function ListItemRenderer ({ item, rootPath, groupSlug, canDnd, isOverlay = fals
               >
                 <div>
                   <WidgetIconResolver widget={item} />
-                  <span className='text-base ml-2'>{itemTitle}</span>
+                  <span className='text-base ml-2'>
+                    {itemTitle}
+                    {isActive && <span className='w-2 h-2 ml-2 inline-block rounded-full bg-green-500' />}
+                  </span>
                 </div>
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
               </MenuLink>
