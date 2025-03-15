@@ -3,6 +3,7 @@ import {
   Globe,
   Grid3x3,
   LogOut,
+  MapPin,
   Plus,
   UserPlus
 } from 'lucide-react-native'
@@ -14,6 +15,7 @@ export const CustomIcons = {
   Globe,
   Grid3x3,
   LogOut,
+  MapPin,
   Plus,
   UserPlus
 }

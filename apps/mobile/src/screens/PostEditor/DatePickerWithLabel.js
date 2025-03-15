@@ -13,6 +13,7 @@ export default function DatePickerWithLabel ({
   label,
   onSelect,
   disabled,
+  className,
   style,
   styleTemplate = {
     disabled: styles.pressDisabled,
@@ -40,7 +41,7 @@ export default function DatePickerWithLabel ({
 
   return (
     <>
-      <TouchableOpacity style={style} onPress={handleOnPress}>
+      <TouchableOpacity className={className} style={style} onPress={handleOnPress}>
         <View style={styleTemplate.labelWrapper}>
           <Text style={[styleTemplate.labelText, disabled && styleTemplate.disabled]}>
             {label}
