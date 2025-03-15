@@ -470,7 +470,7 @@ export default function ChatRoom (props) {
       ),
       icon: 'Message',
       info: '',
-      search: true
+      search: !isWebView()
     })
   }, [topicName, notificationsSetting])
 
