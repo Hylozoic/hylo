@@ -117,6 +117,7 @@ function widgetTypeResolver ({ widget }) {
     (widget?.viewUser && 'viewUser') ||
     (widget?.viewChat && 'viewChat') ||
     (widget?.customView && 'customView') ||
+    (widget?.url && 'link') ||
     'container'
   )
 }
