@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native'
+import { twBackground } from 'style/colors'
 import { isIOS } from 'util/platform'
 
 const typeSelectorIOSDefaults = {
@@ -89,8 +90,9 @@ export const styles = StyleSheet.create({
     padding: 0
   },
   titleInputWrapper: {
-    paddingBottom: isIOS ? 10 : 0,
-    paddingHorizontal: 10
+    paddingBottom: isIOS ? 0 : 0,
+    paddingHorizontal: 10,
+    paddingTop: 10
   },
   titleInput: {
     fontSize: 19,
@@ -142,8 +144,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 10
-  },
-  pressSelectionSectionPublicSelected: {
   },
   pressSelectionLeft: {
     flexDirection: 'row',

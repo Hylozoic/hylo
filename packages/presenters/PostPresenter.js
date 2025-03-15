@@ -31,38 +31,51 @@ export default function PostPresenter (post, { forGroupId } = {}) {
 export const POST_TYPES = {
   discussion: {
     primaryColor: pictonBlue,
+    iconName: 'Chat',
     backgroundColor: fakeAlpha(pictonBlue, 0.2),
     map: false
   },
   event: {
     primaryColor: sunsetOrange,
+    iconName: 'Calendar',
     backgroundColor: fakeAlpha(sunsetOrange, 0.2),
     map: true
   },
   offer: {
     primaryColor: caribbeanGreen,
+    iconName: 'Gift',
+    backgroundColor: fakeAlpha(caribbeanGreen, 0.2),
+    map: true
+  },
+  post: {
+    iconName: 'Post'
+  },
+  project: {
+    primaryColor: flushOrange,
+    iconName: 'Project',
+    backgroundColor: fakeAlpha(flushOrange, 0.2),
+    map: false
+  },
+  proposal: {
+    primaryColor: butterflyBush,
+    iconName: 'Proposal',
+    backgroundColor: fakeAlpha(butterflyBush, 0.2),
+    map: true
+  },
+  request: {
+    primaryColor: caribbeanGreen,
+    iconName: 'HandRaised',
     backgroundColor: fakeAlpha(caribbeanGreen, 0.2),
     map: true
   },
   resource: {
     primaryColor: gold,
+    iconName: 'Resource',
     backgroundColor: fakeAlpha(gold, 0.2),
     map: true
   },
-  project: {
-    primaryColor: flushOrange,
-    backgroundColor: fakeAlpha(flushOrange, 0.2),
-    map: false
-  },
-  request: {
-    primaryColor: caribbeanGreen,
-    backgroundColor: fakeAlpha(caribbeanGreen, 0.2),
-    map: true
-  },
-  proposal: {
-    primaryColor: butterflyBush,
-    backgroundColor: fakeAlpha(butterflyBush, 0.2),
-    map: true
+  default: {
+    iconName: 'Post'
   }
 }
 

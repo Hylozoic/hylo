@@ -146,7 +146,7 @@
     border-color: rgba(0, 0, 0, 0) $color-proposals-50;
   }
 
-  body {
+  body:not(.hyloEditorMobileBody) {
     @apply bg-background text-foreground;
     overflow-x: hidden;
   }

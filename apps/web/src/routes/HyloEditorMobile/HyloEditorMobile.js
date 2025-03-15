@@ -87,6 +87,8 @@ export default function HyloEditorMobile (props) {
   }
 
   useEffect(() => {
+    // Used to disable background set on <body> in css/global/index.scss
+    document.body.classList.add('hyloEditorMobileBody')
     // Note: Final `true` parameter is essential for this call
     // to work in both iOS and Android.
     window.addEventListener('message', handleMessage, true)
