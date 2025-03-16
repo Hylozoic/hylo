@@ -197,6 +197,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }
 
       const locale = mapLocaleToSendWithUS(tagFollow.relations.user.get('settings').locale || 'en-US')
+      console.log('xxxsending chat digest to. first post = ', posts[0], " last post = ", posts[posts.length - 1])
       Email.sendChatDigest({
         version: 'Redesign 2025',
         email: tagFollow.relations.user.get('email'),
@@ -206,7 +207,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           chat_topic: tagFollow.relations.tag.get('name'),
           // For the overall chat room URL use the URL of the last post in the email digest
           chat_room_url: Frontend.Route.post({ post: posts[posts.length - 1], group: tagFollow.relations.group }),
-          date: TextHelpers.formatDatePair(posts[0].get('created_at'), false, false, posts[0].get('timezone')),
+          // date: TextHelpers.formatDatePair(posts[0].get('created_at'), false, false, posts[0].get('timezone')),
           group_name: tagFollow.relations.group.get('name'),
           group_avatar_url: tagFollow.relations.group.get('avatar_url'),
           posts: postData
