@@ -126,7 +126,7 @@ export default function GlobalNav (props) {
       <div
         ref={navContainerRef}
         className={cn(
-          'pt-4 flex flex-col items-center pl-5 pr-3 relative z-10 overflow-x-visible overflow-y-auto grow',
+          'pt-4 flex flex-col items-center pl-5 pr-3 relative z-10 overflow-x-visible overflow-y-scroll grow',
           styles.globalNavContainer
         )}
         onMouseEnter={handleContainerMouseEnter}
