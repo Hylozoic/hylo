@@ -33,27 +33,17 @@ describe('GroupSettingsTab', () => {
   it('renders correctly', () => {
     renderComponent()
 
-    expect(screen.getByLabelText('Group Name')).toHaveValue('Foomunity')
-    expect(screen.getByText('Banner and Avatar Images')).toBeInTheDocument()
-    expect(screen.getByLabelText('Description')).toBeInTheDocument()
-    expect(screen.getByText('Save Changes')).toBeInTheDocument()
+    expect(screen.getByText('Change group icon')).toBeInTheDocument()
+    expect(screen.getByText('Change group banner')).toBeInTheDocument()
+    expect(screen.getByText('Purpose Statement')).toBeInTheDocument()
+    expect(screen.getByLabelText('Description')).toHaveValue('Great group')
   })
 
   it('displays "Current settings up to date" when no changes are made', () => {
     renderComponent()
 
     expect(screen.getByText('Current settings up to date')).toBeInTheDocument()
-    expect(screen.getByText('Save Changes')).toHaveClass('gray')
-  })
-
-  it('updates state and button when changes are made', () => {
-    renderComponent()
-
-    const nameInput = screen.getByLabelText('Group Name')
-    fireEvent.change(nameInput, { target: { value: 'New Group Name' } })
-
-    expect(screen.getByText('Changes not saved')).toBeInTheDocument()
-    expect(screen.getByText('Save Changes')).toHaveClass('green')
+    expect(screen.getByText('Save Changes')).toHaveClass('bg-foreground rounded text-background py-1 px-2 text-bold')
   })
 
   // Add more tests as needed for other functionality

@@ -23,8 +23,18 @@ export default function MembershipSettingsRow ({ membership, open, updateMembers
   const chatRooms = useMemo(() => (membership.group?.chatRooms.toModelArray() || []).filter(cr => cr.topicFollow), [membership.group?.chatRooms])
 
   return (
-    <div id={`group-${membership.group.id}`} className='py-3 border-b border-gray-200'>
-      <div className='flex items-center cursor-pointer' onClick={() => setIsOpen(!isOpen)}>
+    <div
+      id={`group-${membership.group.id}`}
+      className='py-3 border-b border-gray-200'
+      aria-label={`${membership.group.name} notification settings`}
+    >
+      <div
+        className='flex items-center cursor-pointer'
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        role='button'
+        aria-label={`toggle ${membership.group.name} settings`}
+      >
         <div className={classes.groupAvatar} style={bgImageStyle(membership.group.avatarUrl)} />
         <h2 className='text-xl font-bold flex-1'>{membership.group.name}</h2>
         {isOpen ? <ChevronDown className='w-4 h-4' /> : <ChevronRight className='w-4 h-4' />}
@@ -36,6 +46,7 @@ export default function MembershipSettingsRow ({ membership, open, updateMembers
             settings={membership.settings}
             update={updateMembershipSettings}
             label={<span>Receive group notifications by <InfoButton content='This controls how you receive all notifications for this group. Including new posts (accordinding to setting below), event invitations and mentions.' /></span>}
+            groupName={membership.group.name}
           />
           <div className='flex items-center justify-between mt-2'>
             <span className=''>{t('Send me an email digest for this group')}</span>
@@ -43,7 +54,7 @@ export default function MembershipSettingsRow ({ membership, open, updateMembers
               value={membership.settings.digestFrequency}
               onValueChange={value => updateMembershipSettings({ digestFrequency: value })}
             >
-              <SelectTrigger className='inline-flex w-auto'>
+              <SelectTrigger className='inline-flex w-auto' aria-label={`${membership.group.name} email digest frequency`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -59,7 +70,7 @@ export default function MembershipSettingsRow ({ membership, open, updateMembers
               value={membership.settings.postNotifications}
               onValueChange={value => updateMembershipSettings({ postNotifications: value })}
             >
-              <SelectTrigger className='inline-flex w-auto'>
+              <SelectTrigger className='inline-flex w-auto' aria-label={`${membership.group.name} post notifications frequency`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -69,14 +80,20 @@ export default function MembershipSettingsRow ({ membership, open, updateMembers
               </SelectContent>
             </Select>
           </div>
-          {chatRooms.map(chatRoom => <ChatRoomRow key={chatRoom.id} chatRoom={chatRoom} />)}
+          {chatRooms.map(chatRoom => (
+            <ChatRoomRow
+              key={chatRoom.id}
+              chatRoom={chatRoom}
+              groupName={membership.group.name}
+            />
+          ))}
         </div>
       )}
     </div>
   )
 }
 
-function ChatRoomRow ({ chatRoom }) {
+function ChatRoomRow ({ chatRoom, groupName }) {
   const [notificationsSettings, setNotificationsSettings] = useState(chatRoom.topicFollow.settings.notifications)
   const dispatch = useDispatch()
   const { t } = useTranslation()
@@ -93,7 +110,10 @@ function ChatRoomRow ({ chatRoom }) {
         value={notificationsSettings}
         onValueChange={updateNotificationsSettings}
       >
-        <SelectTrigger className='inline-flex w-auto'>
+        <SelectTrigger
+          className='inline-flex w-auto'
+          aria-label={`${groupName} ${chatRoom.groupTopic.topic.name} chat notifications frequency`}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

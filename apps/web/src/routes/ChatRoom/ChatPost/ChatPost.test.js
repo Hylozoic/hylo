@@ -32,17 +32,18 @@ describe('ChatPost', () => {
         url: 'https://www.hylo.com/awitp',
         imageUrl: 'foo.png',
       },
-      imageAttachments: [
+      attachments: [
         {
           id: 1,
-          url: 'https://www.hylo.com/awitp.gif'
+          url: 'https://www.hylo.com/awitp.gif',
+          type: 'image'
         },
         {
           id: 2,
-          url: 'http://www.google.com/lalala.png'
+          url: 'http://www.google.com/lalala.png',
+          type: 'image'
         }
       ],
-      fileAttachments: [],
       linkPreviewFeatured: null,
       myReactions: [],
       postReactions: []

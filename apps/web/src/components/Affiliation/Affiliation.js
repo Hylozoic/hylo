@@ -1,7 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { cn } from '../../lib/utils'
 import classes from './Affiliation.module.scss'
+import { cn } from 'util/index'
 
 export default function Affiliation ({ affiliation, index, archive }) {
   const { role, preposition, orgName, url } = affiliation

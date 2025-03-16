@@ -73,7 +73,7 @@ const MessageForm = forwardRef((props, ref) => {
       />
       {props.pending
         ? (
-          <div className='flex items-center text-sm text-foreground/50'>
+          <div className='flex items-center text-sm text-foreground/50' data-testid='loading-indicator'>
             Sending...
           </div>
           )

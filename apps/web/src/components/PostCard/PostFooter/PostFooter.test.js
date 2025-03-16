@@ -19,6 +19,7 @@ describe('PostFooter', () => {
         peopleReactedTotal={3}
         myReactions={[]}
         postReactions={[]}
+        groups={[{ id: '1' }]}
       />
     )
 
@@ -38,6 +39,7 @@ describe('PostFooter', () => {
         postReactions={[]}
         peopleReactedTotal={0}
         type='event'
+        groups={[{ id: '1' }]}
       />
     )
 

@@ -19,7 +19,7 @@ describe('mapStateToProps', () => {
       orm: session.state
     }
 
-    const ownProps = { creator: { id: 20 }, routeParams: { groupSlug: 'mygroup' } }
+    const ownProps = { routeParams: { groupSlug: 'mygroup' }, post: { id: 44, creator: { id: 20 } } }
     const { group, currentUser } = mapStateToProps(state, ownProps)
 
     expect(group.id).toBe(33)
@@ -29,7 +29,7 @@ describe('mapStateToProps', () => {
 
 describe('mapDispatchToProps', () => {
   it('maps the action generators', () => {
-    window.confirm = jest.fn()
+    window.confirm = jest.fn().mockReturnValue(true)
     const dispatch = jest.fn(val => val)
     const props = {
       routeParams: {
@@ -41,7 +41,7 @@ describe('mapDispatchToProps', () => {
     dispatchProps.removePost(10)
     dispatchProps.editPost(10)
     dispatchProps.duplicatePost(10)
-    expect(dispatch).toHaveBeenCalledTimes(3)
+    expect(dispatch).toHaveBeenCalledTimes(4)
 
     dispatchProps.deletePost(1)
     dispatchProps.duplicatePost(10)
@@ -49,6 +49,7 @@ describe('mapDispatchToProps', () => {
   })
 
   it('calls the right version of removePost', () => {
+    window.confirm = jest.fn().mockReturnValue(true)
     const postId = 1
     const dispatch = jest.fn(val => val)
 
@@ -62,7 +63,7 @@ describe('mapDispatchToProps', () => {
     }
     const dispatchProps1 = mapDispatchToProps(dispatch, props1)
     dispatchProps1.removePost(postId)
-    expect(dispatch).toHaveBeenCalledTimes(1)
+    expect(dispatch).toHaveBeenCalledTimes(2)
 
     const props2 = {
       ...defaultProps,
@@ -74,7 +75,7 @@ describe('mapDispatchToProps', () => {
 
     const dispatchProps3 = mapDispatchToProps(dispatch, defaultProps)
     dispatchProps3.removePost(postId)
-    expect(dispatch).toHaveBeenCalledTimes(2)
+    expect(dispatch).toHaveBeenCalledTimes(4) // removePost causes dispatch to be called twice
     expect(dispatch.mock.calls).toMatchSnapshot()
   })
 })
@@ -110,7 +111,7 @@ describe('mergeProps', () => {
       const state = {
         orm: session.state
       }
-      const ownProps = { id: 20, routeParams: { groupSlug: 'mygroup' }, creator: { id: 20 } }
+      const ownProps = { routeParams: { groupSlug: 'mygroup' }, post: { id: 44, creator: { id: 20 }}}
       const stateProps = mapStateToProps(state, ownProps)
       const { deletePost, removePost, editPost, canEdit } = mergeProps(stateProps, dispatchProps, ownProps)
 
@@ -120,7 +121,7 @@ describe('mergeProps', () => {
       expect(editPost).toBeTruthy()
 
       deletePost('lettuce')
-      expect(dispatchProps.deletePost).toHaveBeenCalledWith(20, 33, 'lettuce')
+      expect(dispatchProps.deletePost).toHaveBeenCalledWith(44, 33, 'lettuce')
 
       editPost()
       expect(dispatchProps.editPost).toHaveBeenCalledWith(20)
@@ -143,7 +144,7 @@ describe('mergeProps', () => {
         orm: session.state
       }
 
-      const ownProps = { id: 20, routeParams: { groupSlug: 'mygroup' }, creator: { id: 33 } }
+      const ownProps = { routeParams: { groupSlug: 'mygroup' }, post: { id: 44, creator: { id: 33 }}}
       const stateProps = mapStateToProps(state, ownProps)
 
       const { deletePost, removePost, editPost } = mergeProps(stateProps, dispatchProps, ownProps)
@@ -152,8 +153,8 @@ describe('mergeProps', () => {
       expect(editPost).toBeFalsy()
       expect(removePost).toBeTruthy()
 
-      removePost()
-      expect(dispatchProps.removePost).toHaveBeenCalledWith(20)
+      removePost('testing')
+      expect(dispatchProps.removePost).toHaveBeenCalledWith(44, 'testing')
     })
   })
 
@@ -173,7 +174,7 @@ describe('mergeProps', () => {
         orm: session.state
       }
 
-      const ownProps = { id: 20, routeParams: { groupSlug: 'mygroup' }, creator: { id: 20 } }
+      const ownProps = { routeParams: { groupSlug: 'mygroup' }, post: { id: 44, creator: { id: 20 }}}
       const stateProps = mapStateToProps(state, ownProps)
 
       const { deletePost, removePost, editPost, duplicatePost } = mergeProps(stateProps, dispatchProps, ownProps)
@@ -184,13 +185,13 @@ describe('mergeProps', () => {
       expect(duplicatePost).toBeTruthy()
 
       deletePost('lettuce')
-      expect(dispatchProps.deletePost).toHaveBeenCalledWith(20, 33, 'lettuce')
+      expect(dispatchProps.deletePost).toHaveBeenCalledWith(44, 33, 'lettuce')
 
       editPost('lettuce')
-      expect(dispatchProps.editPost).toHaveBeenCalledWith(20)
+      expect(dispatchProps.editPost).toHaveBeenCalledWith(44)
 
       duplicatePost('lettuce')
-      expect(dispatchProps.duplicatePost).toHaveBeenCalledWith(20)
+      expect(dispatchProps.duplicatePost).toHaveBeenCalledWith(44)
     })
   })
 
@@ -209,7 +210,7 @@ describe('mergeProps', () => {
       orm: session.state
     }
 
-    const ownProps = { id: 20, routeParams: { groupSlug: 'mygroup' }, creator: { id: 33 } }
+    const ownProps = { routeParams: { groupSlug: 'mygroup' }, post: { id: 44, creator: { id: 33 }}}
     const stateProps = mapStateToProps(state, ownProps)
 
     const { deletePost, removePost, editPost, duplicatePost } = mergeProps(stateProps, dispatchProps, ownProps)

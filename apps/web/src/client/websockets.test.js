@@ -18,7 +18,7 @@ describe('sendIsTyping', () => {
 
   it('posts to the correct URL', () => {
     sendIsTyping('42', true)
-    const expectedUrl = `${process.env.SOCKET_HOST}/noo/post/42/typing`
+    const expectedUrl = `${process.env.VITE_SOCKET_HOST}/noo/post/42/typing`
     expect(mockSocket.post).toHaveBeenCalledWith(expectedUrl, { isTyping: true })
   })
 })

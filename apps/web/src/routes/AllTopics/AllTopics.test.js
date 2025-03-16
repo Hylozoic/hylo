@@ -31,7 +31,6 @@ describe('AllTopics', () => {
   beforeEach(() => {
     mockGraphqlServer.use(
       graphql.query('FetchTopics', ({ query, variables }) => {
-        console.log('FetchTopics query', query, variables)
         return HttpResponse.json({
           data: {
             topics: [{ id: '1', name: 'petitions' }]

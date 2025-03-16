@@ -11,9 +11,20 @@ import general from '../GroupSettings.module.scss'
 
 function WelcomePageTab ({ group, updateGroupSettings }) {
   const { t } = useTranslation()
-  const [showWelcomePage, setShowWelcomePage] = useState(group.settings.showWelcomePage)
+  const { setHeaderDetails } = useViewHeader()
+  const [showWelcomePage, setShowWelcomePage] = useState(group?.settings.showWelcomePage ?? false)
   const [changed, setChanged] = useState(false)
   const editorRef = useRef()
+
+  useEffect(() => {
+    setHeaderDetails({
+      title: `${t('Group Settings')} > ${t('Welcome Page')}`,
+      icon: 'Hands',
+      info: ''
+    })
+  }, [])
+
+  if (!group) return <Loading />
 
   const save = async () => {
     setChanged(false)
@@ -25,17 +36,6 @@ function WelcomePageTab ({ group, updateGroupSettings }) {
     setChanged(showWelcomePage === group.settings.showWelcomePage || !isEqual(editorRef.current.getHTML(), group.welcomePage)) // TODO: or content has changed
     setShowWelcomePage(!showWelcomePage)
   }
-
-  const { setHeaderDetails } = useViewHeader()
-  useEffect(() => {
-    setHeaderDetails({
-      title: `${t('Group Settings')} > ${t('Welcome Page')}`,
-      icon: 'Hands',
-      info: ''
-    })
-  }, [])
-
-  if (!group) return <Loading />
 
   return (
     <div className={cn(general.groupSettings, 'h-full !pb-20')}>

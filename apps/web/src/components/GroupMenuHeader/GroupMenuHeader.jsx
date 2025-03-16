@@ -49,8 +49,8 @@ export default function GroupMenuHeader ({
   }, [bannerUrl])
 
   return (
-    <div className='GroupMenuHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md' data-testid='group-header'>
-      <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} />
+    <div className='GroupMenuHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+      <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} aria-label='group banner image' />
       <div className='absolute top-2 left-2'>
         <button onClick={() => { navigate(currentUserSettingsUrl('notifications?group=' + group.id)) }}>
           <Bell className='w-6 h-6 text-foreground drop-shadow-md' />
@@ -64,7 +64,7 @@ export default function GroupMenuHeader ({
         </div>
       )}
       <div className='relative flex flex-row items-center text-background'>
-        <div style={bgImageStyle(avatarUrl)} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' />
+        <div style={bgImageStyle(avatarUrl)} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' aria-label='group avatar' />
         <div className={`flex flex-col flex-1 text-${textColor} drop-shadow-md overflow-hidden`}>
           <h1 className='GroupMenuHeaderName text-xl/5 font-bold m-0 text-white'>{group.name}</h1>
           <span className='text-xs align-middle  text-white'>
