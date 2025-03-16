@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -27,11 +27,23 @@
       android:name="com.onesignal.NotificationServiceExtension"
       android:value="com.hylo.hyloandroid.NotificationServiceExtension" />
     <meta-data
-        android:name="com.onesignal.messaging.default_notification_icon"
-        android:resource="@drawable/ic_stat_onesignal_default" />
+      android:name="com.onesignal.messaging.default_notification_icon"
+      android:resource="@drawable/ic_stat_onesignal_default" />
     <meta-data
-        android:name="com.onesignal.NotificationAccentColor.DEFAULT"
-        android:value="FFFFFF" />
+      android:name="com.onesignal.NotificationAccentColor.DEFAULT"
+      android:value="FFFFFF" />
+    <!-- Trigger Google Play services to install the backported photo picker module. -->
+    <!-- react-native-image-picker requirement for minSdkVersion < 30 -->
+    <service
+      android:name="com.google.android.gms.metadata.ModuleDependencies"
+      android:enabled="false"
+      android:exported="false"
+      tools:ignore="MissingClass">
+      <intent-filter>
+          <action android:name="com.google.android.gms.metadata.MODULE_DEPENDENCIES" />
+      </intent-filter>
+      <meta-data android:name="photopicker_activity:0:required" android:value="" />
+    </service>
     <activity
       android:name=".MainActivity"
       android:label="@string/app_name"

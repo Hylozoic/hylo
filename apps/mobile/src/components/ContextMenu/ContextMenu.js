@@ -13,6 +13,7 @@ import {
 } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
+import { isIOS } from 'util/platform'
 import { widgetUrl as makeWidgetUrl } from 'util/navigation'
 import useLogout from 'hooks/useLogout'
 import useOpenURL from 'hooks/useOpenURL'
@@ -32,13 +33,13 @@ export default function ContextMenu () {
   if (!currentGroup) return null
 
   return (
-    <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
+    <View className='flex-1 bg-background'>
       <View>
         {!currentGroup.isStaticContext && (
           <GroupMenuHeader group={currentGroup} />
         )}
         {currentGroup.isStaticContext && (
-          <View className='flex-col p-2' style={{ paddingTop: insets.top }}>
+          <View className='flex-col p-2' style={{ paddingTop: insets.top + (isIOS ? 0 : 20) }}>
             <Text className='text-foreground font-bold text-lg'>
               {t(currentGroup.name)}
             </Text>
@@ -55,16 +56,17 @@ export default function ContextMenu () {
             />
           </View>
         ))}
+        {!currentGroup.isStaticContext && (
+          <View className='mb-0.5'>
+            <ContextWidget
+              widget={allViewsWidget}
+              groupSlug={currentGroup.slug}
+              rootPath={`/groups/${currentGroup.slug}`}
+            />
+          </View>
+        )}
+        <View style={{ marginBottom: insets.bottom + 20 }} />
       </ScrollView>
-      {!currentGroup.isStaticContext && (
-        <View className='px-2 mb-2'>
-          <ContextWidget
-            widget={allViewsWidget}
-            groupSlug={currentGroup.slug}
-            rootPath={`/groups/${currentGroup.slug}`}
-          />
-        </View>
-      )}
     </View>
   )
 }
@@ -100,16 +102,18 @@ function ContextWidget ({ widget, groupSlug }) {
 
   if (widgetPath && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))) {
     return (
-      <TouchableOpacity
-        onPress={() => handleWidgetPress(widget)}
-        className={`
-          flex-row items-center p-3 bg-background border-2 rounded-md mb-2 gap-2
-          ${isActive ? 'border-selected opacity-100' : 'border-foreground/20'}
-        `}
-      >
-        <WidgetIconResolver widget={widget} />
-        <Text className='text-base font-normal text-foreground'>{title}</Text>
-      </TouchableOpacity>
+      <View className='rounded-md p-2 bg-background mb-0.5'>
+        <TouchableOpacity
+          onPress={() => handleWidgetPress(widget)}
+          className={`
+            flex-row items-center p-3 bg-background border-2 rounded-md mb-2 gap-2
+            ${isActive ? 'border-selected opacity-100' : 'border-foreground/20'}
+          `}
+        >
+          <WidgetIconResolver widget={widget} />
+          <Text className='text-base font-normal text-foreground'>{title}</Text>
+        </TouchableOpacity>
+      </View>
     )
   }
 
@@ -123,7 +127,9 @@ function ContextWidget ({ widget, groupSlug }) {
       </TouchableOpacity>
       <View>
         <ContextWidgetActions widget={widget} />
-        {loading && <Text className='text-foreground'>{t('Loading...')}</Text>}
+        {loading && (
+          <Text className='text-foreground'>{t('Loading...')}</Text>
+        )}
         {widgetChildren.map((childWidget, key) =>
           <ContextWidgetChild
             key={key}

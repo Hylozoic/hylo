@@ -10,6 +10,7 @@ import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useStaticContexts from '@hylo/hooks/useStaticContexts'
 import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
+import { isIOS } from 'util/platform'
 import useOpenURL from 'hooks/useOpenURL'
 import LucideIcon from 'components/LucideIcon'
 import { black, white } from 'style/colors'
@@ -54,7 +55,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   return (
     <View
       className='h-full bg-theme-background z-50'
-      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+      style={{ paddingTop: insets.top + (isIOS ? 0 : 20), paddingBottom: insets.bottom + (isIOS ? 0 : 20) }}
     >
       <FlatList
         data={myGroups}

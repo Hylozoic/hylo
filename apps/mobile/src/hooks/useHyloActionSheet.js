@@ -74,12 +74,11 @@ export default function useHyloActionSheet () {
           // Great options for adding more context (e.g. Title of Post, etc)
           // title: '',
           // message: '',
-          // Above params are compataible with RN iOS ActionSheet
+          // Above params are compatible with RN iOS ActionSheet
           // The following params are specific to `@expo/react-native-action-sheet`
           // and only relevant for Android.
           icons,
           showSeparators: true,
-          autoFocus: true,
           containerStyle: { padding: 10 },
           textStyle: { fontSize: 18 },
           ...overrideParams

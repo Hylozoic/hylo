@@ -16,7 +16,7 @@ const handledWebRoutesJavascriptCreator = loadedPath => allowRoutesParam => {
   const handledWebRoutesRegExpsLiteralString = JSON.parse(JSON.stringify(handledWebRoutesRegExps.map(a => a.toString())))
 
   return `
-    function addHyloWebViewListener (history) {
+    window.addHyloWebViewListener = function (history) {
       if (history) {
         history.listen(({ location: { pathname, search } }) => {
           const handledWebRoutesRegExps = [${handledWebRoutesRegExpsLiteralString}]

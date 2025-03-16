@@ -52,24 +52,28 @@ export default function CreateGroup ({ navigation }) {
   }
 
   return (
-    <KeyboardAvoidingView behavior={isIOS ? 'padding' : ''} style={{ flex: 1 }} enabled>
-      <View style={[
-        styles.header,
-        {
-          paddingTop: insets.top
-        }]
-      }>
+    <KeyboardAvoidingView
+      behavior={isIOS ? 'padding' : ''}
+      className='bg-background'
+      style={{ flex: 1 }}
+      enabled
+    >
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <X onPress={handleCancel} />
         <Text>{`${currentStep + 1}/${totalSteps}`}</Text>
       </View>
-      <ScrollView contentContainerClassName='bg-background' contentContainerStyle={styles.screen} keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
+      <ScrollView
+        contentContainerStyle={styles.screen}
+        keyboardDismissMode='on-drag'
+        keyboardShouldPersistTaps='handled'
+      >
         <CurrentScreen />
       </ScrollView>
       <View
         style={[
           styles.workflowNav,
           {
-            paddingBottom: keyboardVisible ? 10 : insets.bottom,
+            paddingBottom: keyboardVisible ? 10 : insets.bottom + (isIOS ? 0 : 20),
             paddingLeft: insets.left + 10,
             paddingRight: insets.right + 10
           }
@@ -118,7 +122,6 @@ const styles = StyleSheet.create({
     paddingRight: 20
   },
   screen: {
-    flex: 1,
     padding: 20
   },
   workflowNav: {

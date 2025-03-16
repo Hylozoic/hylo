@@ -25442,7 +25442,7 @@ __metadata:
     react-native-fast-image: "npm:^8.6.3"
     react-native-geolocation-service: "npm:^5.3.1"
     react-native-gesture-handler: "npm:^2.22.0"
-    react-native-image-picker: "npm:^7.2.3"
+    react-native-image-picker: "npm:^8.2.0"
     react-native-image-viewing: "npm:^0.2.2"
     react-native-keyboard-manager: "npm:^6.5.16-0"
     react-native-linear-gradient: "npm:^2.8.3"
@@ -30043,13 +30043,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-image-picker@npm:^7.2.3":
-  version: 7.2.3
-  resolution: "react-native-image-picker@npm:7.2.3"
+"react-native-image-picker@npm:^8.2.0":
+  version: 8.2.0
+  resolution: "react-native-image-picker@npm:8.2.0"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 10/62c6cc3c88edb29f2b17b4cdaa098b32efd23a5faf4380171c2ccfb1706c732a50553f2ce447e1df1ea48197dde3af42dd67584c60e2c4577ee1b7769152475d
+  checksum: 10/9dac95436b7ffd714293d0c48b0a2a0520f7c94b3ff18325b5e57c9718f56eca6922836477e07d3c9a2c346a63bb9123d912d9c090495021acf587eb32a1733d
   languageName: node
   linkType: hard
 
