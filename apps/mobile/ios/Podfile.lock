@@ -1359,7 +1359,7 @@ PODS:
     - React-Core
   - react-native-geolocation-service (5.3.1):
     - React
-  - react-native-image-picker (7.2.3):
+  - react-native-image-picker (8.2.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2536,7 +2536,7 @@ SPEC CHECKSUMS:
   react-native-date-picker: 26cdb1a94ec72dbc9210c3379e57ff6ba8bc73f2
   react-native-document-picker: a338165804b1a14c8e408448115dc0edfd7b73ca
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
-  react-native-image-picker: 91f4e8dd458db2acdb278479e960bc224cbf0217
+  react-native-image-picker: 732212151b686ff27ff57a7ea90f5d07d1a0c813
   react-native-onesignal: 1795c532f8bd86c3307a032621c17d85998402d0
   react-native-pager-view: 4ad4883a8288c5207bd432dd3c98bf648b7bc7d7
   react-native-render-html: 5afc4751f1a98621b3009432ef84c47019dcb2bd

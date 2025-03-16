@@ -31,11 +31,11 @@ export default function TabStackHeader ({
     headerTitleContainerStyle: {
       // Follow: https://github.com/react-navigation/react-navigation/issues/7057#issuecomment-593086348
       alignItems: 'left',
-      marginLeft: isIOS ? 10 : 20
+      marginLeft: isIOS ? 10 : 0
     },
     headerTitleStyle: {
       fontFamily: 'Circular-Bold',
-      fontSize: 16
+      fontSize: 18
     },
     headerTitleAlign: 'left',
     headerStyle: {
@@ -88,7 +88,8 @@ export const styles = StyleSheet.create({
     alignItems: 'center'
   },
   backIcon: {
-    marginHorizontal: 5
+    marginLeft: isIOS ? 5 : -8,
+    marginRight: isIOS ? 5 : 5
   },
   avatar: {
     width: 30,

@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react'
 import { Settings, Users, ChevronRight } from 'lucide-react-native'
 import { View, Text, TouchableOpacity } from 'react-native'
 import clsx from 'clsx'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import useOpenURL from 'hooks/useOpenURL'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 
 export default function GroupMenuHeader ({ group }) {
+  const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const openURL = useOpenURL()
   const avatarUrl = group.avatarUrl
@@ -27,7 +29,10 @@ export default function GroupMenuHeader ({ group }) {
   }, [bannerUrl])
 
   return (
-    <View className='relative flex-col justify-end h-[140px] shadow-md pb-2' testID='group-header'>
+    <View
+      styleName={{ paddingTop: insets.top }}
+      className='relative flex-col justify-end h-[140px] shadow-md pb-2'
+    >
       <FastImage
         source={{ uri: bannerUrl }}
         style={{
