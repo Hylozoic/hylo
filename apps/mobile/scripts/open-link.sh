@@ -4,7 +4,7 @@
 # this version just gives us more flexibility, is easier to type, and doesn't require installing
 # uri-scheme globally or having to wait it to download each time
 
-SCHEME="hyloapp://"
+SCHEME="https://www.hylo.com/"
 PLATFORM="ios"
 
 # Function to show usage
@@ -51,5 +51,5 @@ echo "Opening deep link: $DEEP_LINK on $PLATFORM..."
 if [ "$PLATFORM" == "ios" ]; then
   xcrun simctl openurl booted "$DEEP_LINK"
 else
-  adb shell am start -a android.intent.action.VIEW -d "$DEEP_LINK"
+  adb shell am start -W -a android.intent.action.VIEW -d "$DEEP_LINK" com.hylo.hyloandroid
 fi
