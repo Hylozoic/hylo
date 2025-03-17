@@ -87,7 +87,7 @@ export default function PostCard (props) {
       <div
         ref={postCardRef}
         className={cn(
-          'PostCard rounded-xl cursor-pointer p-2 relative flex flex-col transition-all bg-card/50 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-50 hover:scale-101 duration-400 ',
+          'PostCard rounded-xl cursor-pointer p-2 relative flex flex-col transition-all bg-card/50 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 ',
           classes[postType],
           {
             [classes.expanded]: expanded,
