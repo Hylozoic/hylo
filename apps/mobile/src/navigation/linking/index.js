@@ -200,6 +200,7 @@ export const staticPages = [
   '/team',
   '/terms',
   '/terms/privacy',
+  '/privacy',
   '/newapp'
 ]
 

@@ -178,7 +178,7 @@ export default function NonAuthLayoutRouter (props) {
         </Routes>
         <div className={classes.belowContainer}>
           <a href='https://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms of Service')}</a> +&nbsp;
-          <a href='https://hylo.com/terms/privacy' target='_blank' rel='noreferrer'>{t('Privacy Policy')}</a>
+          <a href='https://hylo.com/privacy' target='_blank' rel='noreferrer'>{t('Privacy Policy')}</a>
         </div>
       </div>
       <HyloCookieConsent />
