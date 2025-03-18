@@ -49,7 +49,6 @@ class PostHeader extends PureComponent {
       canEdit,
       expanded,
       isFlagged,
-      hasImage,
       group,
       proposalOutcome,
       proposalStatus,
@@ -78,8 +77,7 @@ class PostHeader extends PureComponent {
       id,
       endTime,
       startTime,
-      fulfilledAt,
-      topics
+      fulfilledAt
     } = post
 
     if (!creator) return null
