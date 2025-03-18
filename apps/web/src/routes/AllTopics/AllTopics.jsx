@@ -4,6 +4,7 @@ import { debounce, get } from 'lodash/fp'
 import { useSelector, useDispatch } from 'react-redux'
 import FullPageModal from 'routes/FullPageModal'
 import ScrollListener from 'components/ScrollListener'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { baseUrl } from 'util/navigation'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -63,7 +64,7 @@ function AllTopics (props) {
   }, [])
 
   useEffect(() => {
-    if (!totalTopicsCached && !totalTopics && totalTopics) {
+    if (!totalTopicsCached && totalTopics) {
       updateTopicsCache()
     }
     if (
@@ -74,6 +75,16 @@ function AllTopics (props) {
       fetchTopicsAction()
     }
   }, [selectedSort, search, groupSlug, totalTopics])
+
+  const { setHeaderDetails } = useViewHeader()
+
+  useEffect(() => {
+    setHeaderDetails({
+      title: 'All Topics',
+      icon: 'Topics',
+      search: true
+    })
+  }, [])
 
   const updateTopicsCache = () => {
     setTotalTopicsCached(totalTopics)
@@ -103,7 +114,6 @@ function AllTopics (props) {
           />
         </div>
         <div className={classes.topicList} id={TOPIC_LIST_ID}>
-          topic list:
           {topics.map(topic => (
             <TopicListItem
               key={topic.id}

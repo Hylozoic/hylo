@@ -313,6 +313,10 @@ export const COMMON_VIEWS = {
     defaultViewMode: 'cards',
     defaultSortBy: 'created'
   },
+  topics: {
+    name: 'All Topics',
+    iconName: 'Topics'
+  },
   welcome: {
     name: 'Welcome',
     iconName: 'Hand'

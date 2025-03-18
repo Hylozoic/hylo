@@ -582,6 +582,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     // These are accessible in the all view
     const unorderedWidgets = [
+      { title: 'widget-topics', type: 'topics', view: 'topics' },
       { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
       { title: 'widget-requests-and-offers', view: 'requests-and-offers' },
       { title: 'widget-stream', view: 'stream' },
@@ -592,7 +593,7 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-proposals', type: 'proposals', view: 'proposals' },
       { title: 'widget-about', type: 'about', view: 'about' },
       { title: 'widget-map', type: 'map', view: 'map' },
-      { title: 'widget-moderation', type: 'moderation', view: 'moderation' }
+      { title: 'widget-moderation', type: 'moderation', view: 'moderation' },
     ]
 
     await Promise.all([
