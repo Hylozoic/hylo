@@ -24,6 +24,8 @@ import {
 } from './AllTopics.store'
 import SearchBar from './SearchBar'
 import TopicListItem from './TopicListItem'
+import { CENTER_COLUMN_ID } from 'util/scrolling'
+
 import classes from './AllTopics.module.scss'
 
 const TOPIC_LIST_ID = 'topic-list'
@@ -101,7 +103,7 @@ function AllTopics (props) {
 
   return (
     <FullPageModal fullWidth goToOnClose={baseUrl({ ...routeParams, view: undefined })}>
-      <div className={classes.allTopics}>
+      <div className={classes.allTopics} id={TOPIC_LIST_ID}>
         <div className={classes.title}>{t('{{groupName}} Topics', { groupName: group ? group.name : all })}</div>
         <div className={classes.subtitle}>{t('{{totalTopicsCached}} Total Topics', { totalTopicsCached })}</div>
         <div className={classes.controls}>
@@ -113,7 +115,7 @@ function AllTopics (props) {
             fetchIsPending={fetchIsPending}
           />
         </div>
-        <div className={classes.topicList} id={TOPIC_LIST_ID}>
+        <div className={classes.topicList}>
           {topics.map(topic => (
             <TopicListItem
               key={topic.id}
@@ -126,7 +128,7 @@ function AllTopics (props) {
           ))}
           <ScrollListener
             onBottom={() => fetchMoreTopics()}
-            elementId={TOPIC_LIST_ID}
+            elementId={CENTER_COLUMN_ID}
           />
         </div>
       </div>
