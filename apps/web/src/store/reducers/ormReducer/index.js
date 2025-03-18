@@ -277,7 +277,9 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         const group = Group.withId(groupId)
         if (!group) return
 
-        const allWidgets = group.contextWidgets.items
+        const allWidgets = group.contextWidgets?.items
+        if (!allWidgets) return
+
         const autoViewWidget = allWidgets.find(w => w.type === 'auto-view')
         if (!autoViewWidget) return
 

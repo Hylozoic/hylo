@@ -32,7 +32,7 @@ class PostGroups extends Component {
     if (isEmpty(groups) || (groups.length === 1 && get('0.slug', groups) === slug)) return null
 
     return (
-      <div className={cn('bg-black/20 p-2 mx-[8px] rounded-lg mt-0 mb-2', { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })} onClick={expanded ? this.toggleExpanded : undefined}>
+      <div className={cn('bg-black/20 p-2 mx-[8px] rounded-lg mt-2 mb-2', { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })} onClick={expanded ? this.toggleExpanded : undefined}>
         <div className={classes.row}>
           <span className={classes.label}>{`${this.props.t('To:')}`}&nbsp;</span>
           {!expanded &&

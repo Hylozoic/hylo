@@ -182,7 +182,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           content: post.details(),
           creator_name: post.relations.user.get('name'),
           creator_avatar_url: post.relations.user.get('avatar_url'),
-          images: post.relations.media.filter(m => m.get('type') === Media.Type.IMAGE).map(m => m.pick('url', 'thumbnail_url')),
+          images: post.relations.media.filter(m => m.get('type') === 'image').map(m => m.pick('url', 'thumbnail_url')),
           mentionedMe,
           post_url: Frontend.Route.post({ post, group: tagFollow.relations.group }),
           timestamp: post.get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
@@ -197,7 +197,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }
 
       const locale = mapLocaleToSendWithUS(tagFollow.relations.user.get('settings').locale || 'en-US')
-      console.log('xxxsending chat digest to. first post = ', posts[0], " last post = ", posts[posts.length - 1])
       Email.sendChatDigest({
         version: 'Redesign 2025',
         email: tagFollow.relations.user.get('email'),
