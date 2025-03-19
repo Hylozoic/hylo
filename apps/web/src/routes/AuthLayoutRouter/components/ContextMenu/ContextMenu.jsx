@@ -36,6 +36,8 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import logout from 'store/actions/logout'
 import classes from './ContextMenu.module.scss'
+import { useContextMenuContext } from './ContextMenuContext'
+import ContextMenuProvider from './ContextMenuProvider'
 
 let previousWidgetIds = []
 let isAddingChildWidget = false
@@ -165,73 +167,75 @@ export default function ContextMenu (props) {
   }
 
   return (
-    <div className={cn('ContextMenu bg-background z-20 overflow-y-auto h-lvh w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
-      <div className='ContextDetails w-full z-20 relative'>
-        {routeParams.context === 'groups'
-          ? <GroupMenuHeader group={group} />
-          : isPublicContext
-            ? (
-              <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.5 }} />
-                {/* <div style={bgImageStyle('/the-commons.jpg')} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' /> */}
-                <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden'>
-                  <h2 className='text-foreground font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
-                </div>
-              </div>
-              )
-            : isMyContext
+    <ContextMenuProvider contextWidgets={contextWidgets} activeWidget={activeWidget}>
+      <div className={cn('ContextMenu bg-background z-20 overflow-y-auto h-lvh w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
+        <div className='ContextDetails w-full z-20 relative'>
+          {routeParams.context === 'groups'
+            ? <GroupMenuHeader group={group} />
+            : isPublicContext
               ? (
-                <div className='flex flex-col p-2'>
-                  <h2 className='text-foreground font-bold leading-3 text-lg'>{t('My Home')}</h2>
+                <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                  <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.5 }} />
+                  {/* <div style={bgImageStyle('/the-commons.jpg')} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' /> */}
+                  <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden'>
+                    <h2 className='text-foreground font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
+                  </div>
                 </div>
                 )
-              : null}
-      </div>
-      {hasContextWidgets && (
-        <div className='relative flex flex-col items-center overflow-hidden z-20'>
-          <Routes>
-            <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
-          </Routes>
-
-          <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel} collisionDetection={closestCorners} modifiers={[restrictToVerticalAxis]}>
-            <div className='w-full'>
-              <ContextWidgetList
-                isEditing={isEditing}
-                contextWidgets={orderedWidgets}
-                groupSlug={routeParams.groupSlug}
-                rootPath={rootPath}
-                canAdminister={canAdminister}
-                activeWidget={activeWidget}
-                newWidgetId={newWidgetId}
-                newWidgetRef={newWidgetRef}
-                group={group}
-              />
-            </div>
-            <DragOverlay wrapperElement='ul' dropAnimation={null}>
-              {activeWidget && !activeWidget.parentId && (
-                <ContextMenuItem widget={activeWidget} isOverlay group={group} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing}  />
-              )}
-              {activeWidget && activeWidget.parentId && (
-                <ListItemRenderer isOverlay item={activeWidget} group={group} rootPath={rootPath} groupSlug={routeParams.groupSlug} canDnd={false} />
-              )}
-            </DragOverlay>
-          </DndContext>
-          {(!isMyContext && !isPublicContext && !isAllContext) && (
-            <div className='px-2 w-full mb-[0.05em] mt-6'>
-              <ContextMenuItem
-                widget={allViewsWidget}
-                groupSlug={routeParams.groupSlug}
-                rootPath={rootPath}
-                canAdminister={canAdminister}
-                allView
-                isEditing={isEditing}
-                group={group}
-              />
-            </div>)}
+              : isMyContext
+                ? (
+                  <div className='flex flex-col p-2'>
+                    <h2 className='text-foreground font-bold leading-3 text-lg'>{t('My Home')}</h2>
+                  </div>
+                  )
+                : null}
         </div>
-      )}
-      {isNavOpen && <div className={cn('ContextMenuCloseBg opacity-50 fixed right-0 top-0 w-full h-full z-10 transition-all duration-250 ease-in-out', { 'sm:block': isNavOpen })} onClick={toggleNavMenuAction} />}
-    </div>
+        {hasContextWidgets && (
+          <div className='relative flex flex-col items-center overflow-hidden z-20'>
+            <Routes>
+              <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
+            </Routes>
+
+            <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel} collisionDetection={closestCorners} modifiers={[restrictToVerticalAxis]}>
+              <div className='w-full'>
+                <ContextWidgetList
+                  isEditing={isEditing}
+                  contextWidgets={orderedWidgets}
+                  groupSlug={routeParams.groupSlug}
+                  rootPath={rootPath}
+                  canAdminister={canAdminister}
+                  activeWidget={activeWidget}
+                  newWidgetId={newWidgetId}
+                  newWidgetRef={newWidgetRef}
+                  group={group}
+                />
+              </div>
+              <DragOverlay wrapperElement='ul' dropAnimation={null}>
+                {activeWidget && !activeWidget.parentId && (
+                  <ContextMenuItem widget={activeWidget} isOverlay group={group} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing}  />
+                )}
+                {activeWidget && activeWidget.parentId && (
+                  <ListItemRenderer isOverlay item={activeWidget} group={group} rootPath={rootPath} groupSlug={routeParams.groupSlug} canDnd={false} />
+                )}
+              </DragOverlay>
+            </DndContext>
+            {(!isMyContext && !isPublicContext && !isAllContext) && (
+              <div className='px-2 w-full mb-[0.05em] mt-6'>
+                <ContextMenuItem
+                  widget={allViewsWidget}
+                  groupSlug={routeParams.groupSlug}
+                  rootPath={rootPath}
+                  canAdminister={canAdminister}
+                  allView
+                  isEditing={isEditing}
+                  group={group}
+                />
+              </div>)}
+          </div>
+        )}
+        {isNavOpen && <div className={cn('ContextMenuCloseBg opacity-50 fixed right-0 top-0 w-full h-full z-10 transition-all duration-250 ease-in-out', { 'sm:block': isNavOpen })} onClick={toggleNavMenuAction} />}
+      </div>
+    </ContextMenuProvider>
   )
 }
 
@@ -461,8 +465,20 @@ function GrabMe ({ children, ...props }) {
 
 function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false, children, removalDropZone }) {
   const { setNodeRef, isOver } = useDroppable(droppableParams)
+  const { contextWidgets, activeWidget } = useContextMenuContext()
+  const activeWidgetIsContainer = ['container', 'home', 'chats', 'members', 'setup'].includes(activeWidget?.type)
+    || activeWidget?.parentId
+    || activeWidget?.childWidgets?.length > 0
+  const isIllegalDrop = droppableParams.id.includes('bottom-of-child-list') && activeWidgetIsContainer
 
-  if (hide || !isDroppable) {
+  if (hide || !isDroppable || isIllegalDrop) {
+    return null
+  }
+
+  // select widget in array with id and ignore if activeWidget is a container over a container (use parentId)
+  const widget = contextWidgets.find(widget => widget.id === droppableParams.id)
+  const widgetIsContainer = widget?.parentId || droppableParams.id.includes('bottom-of-child-list')
+  if (widgetIsContainer && activeWidgetIsContainer) {
     return null
   }
 
