@@ -87,7 +87,6 @@ export default function ContextMenu (props) {
 
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
 
-  const [isDragging, setIsDragging] = useState(false)
   const [activeWidget, setActiveWidget] = useState(null)
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
 
@@ -130,8 +129,6 @@ export default function ContextMenu (props) {
   }, [newWidgetId])
 
   const handleDragStart = ({ active }) => {
-    setIsDragging(true)
-
     const activeId = active.id
     const activeContextWidget = orderedWidgets.find(widget => widget.id === activeId) || contextWidgets.find(widget => widget.id === activeId)
 
@@ -139,14 +136,11 @@ export default function ContextMenu (props) {
   }
 
   const handleDragCancel = (event) => {
-    setIsDragging(false)
     setActiveWidget(null)
   }
 
   const handleDragEnd = (event) => {
     const { active, over } = event
-
-    setIsDragging(false)
 
     if (over && over.id !== active.id && over.id !== 'remove') {
       const orderInFrontOfWidget = over.data?.current?.widget
@@ -202,7 +196,6 @@ export default function ContextMenu (props) {
           <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel} collisionDetection={closestCorners} modifiers={[restrictToVerticalAxis]}>
             <div className='w-full'>
               <ContextWidgetList
-                isDragging={isDragging}
                 isEditing={isEditing}
                 contextWidgets={orderedWidgets}
                 groupSlug={routeParams.groupSlug}
@@ -216,7 +209,7 @@ export default function ContextMenu (props) {
             </div>
             <DragOverlay wrapperElement='ul' dropAnimation={null}>
               {activeWidget && !activeWidget.parentId && (
-                <ContextMenuItem widget={activeWidget} isOverlay group={group} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing} isDragging={isDragging} />
+                <ContextMenuItem widget={activeWidget} isOverlay group={group} groupSlug={routeParams.groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing}  />
               )}
               {activeWidget && activeWidget.parentId && (
                 <ListItemRenderer isOverlay item={activeWidget} group={group} rootPath={rootPath} groupSlug={routeParams.groupSlug} canDnd={false} />
@@ -242,7 +235,7 @@ export default function ContextMenu (props) {
   )
 }
 
-function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditing, isDragging, activeWidget, newWidgetId, newWidgetRef, group }) {
+function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditing, activeWidget, newWidgetId, newWidgetRef, group }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
@@ -259,7 +252,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
     <ul className='m-2 p-0 mb-6'>
       {isEditing &&
         <li>
-          <DropZone removalDropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
+          <DropZone removalDropZone  droppableParams={{ id: 'remove' }}>
             {t('Drag here to remove from menu')}
           </DropZone>
         </li>}
@@ -275,7 +268,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
           key={widget.id}
           {...itemProps[widget.id]}
         >
-          <ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} />
+          <ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing}  activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} />
         </li>
       ))}
       {isEditing && (
@@ -289,7 +282,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
   )
 }
 
-function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditing = false, allView = false, isDragging = false, isOverlay = false, activeWidget, group, handlePositionedAdd }) {
+function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, isEditing = false, allView = false, isOverlay = false, activeWidget, group, handlePositionedAdd }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const { listItems, loading } = useGatherItems({ widget, groupSlug })
@@ -353,7 +346,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
 
   return (
     <>
-      <DropZone isDragging={isDragging} hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }}>
+      <DropZone  hide={hideDropZone} droppableParams={{ id: `${widget.id}`, data: { widget } }}>
         &nbsp;
       </DropZone>
       <div key={widget.id} ref={setDraggableNodeRef} style={style}>
@@ -402,10 +395,10 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <SpecialTopElementRenderer widget={widget} group={group} isEditing={isEditing} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
-                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} group={group} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
+                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} group={group} groupSlug={groupSlug}  canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                     {widget.id && isEditing && !['home', 'setup'].includes(widget.type) &&
                       <li>
-                        <DropZone isDragging={isDragging} hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
+                        <DropZone  hide={hideDropZone || hideBottomDropZone} isDroppable={canDnd && !url} droppableParams={{ id: 'bottom-of-child-list' + widget.id, data: { addToEnd: true, parentId: widget.id } }}>
                           &nbsp;
                         </DropZone>
                         <button onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className={cn('cursor-pointer text-base text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100')}>
@@ -420,7 +413,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                   <SpecialTopElementRenderer widget={widget} group={group} isEditing={isEditing} />
                   <ul className='px-1 pt-1 pb-2'>
                     {loading && presentedlistItems.length === 0 && <li key='loading'>Loading...</li>}
-                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} group={group} groupSlug={groupSlug} isDragging={isDragging} canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
+                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} rootPath={rootPath} group={group} groupSlug={groupSlug}  canDnd={canDnd} activeWidget={activeWidget} invalidChild={isInvalidChild} handlePositionedAdd={handlePositionedAdd} />)}
                   </ul>
                 </div>}
             </div>)}
