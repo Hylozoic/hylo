@@ -49,17 +49,16 @@ export default function GroupExploreWebView () {
     }
   )
 
-  // Fetch stewards for "Opportunities to Connect" / Message to all stewards feature
   useEffect(() => {
     if (groupSlug) {
-      setPath(`/groups/${groupSlug}/explore`)
+      setPath(`/public/groups/group/${groupSlug}`)
+      // Fetch stewards for "Opportunities to Connect" / Message to all stewards feature
       fetchGroupModerators({ slug: groupSlug })
     }
   }, [groupSlug])
 
   const joinGroup = async groupToJoinSlug => {
     await fetchGroupDetails({ slug: groupToJoinSlug })
-
     openURL(`/groups/${groupToJoinSlug}`)
   }
 
@@ -67,14 +66,13 @@ export default function GroupExploreWebView () {
     switch (type) {
       case WebViewMessageTypes.JOINED_GROUP: {
         const { groupSlug } = data
-
         return joinGroup(groupSlug)
       }
     }
   }
 
   const handledWebRoutes = [
-    '(.*)/explore/group/(.*)'
+    // '(.*)/explore/group/(.*)'
   ]
 
   if (!groupSlug) return null
@@ -88,7 +86,6 @@ export default function GroupExploreWebView () {
       // TODO: Consider adding this to the `HyloWebView` standard API
       onNavigationStateChange={({ url, canGoBack: providedCanGoBack }) => {
         const { pathname } = new URL(url, DEFAULT_APP_HOST)
-
         // NOTE: Currently ignores possible changes to querystring (`search`)
         setCanGoBack(providedCanGoBack && pathname !== path)
       }}
