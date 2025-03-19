@@ -6,6 +6,6 @@ exports.seed = function (knex, Promise) {
       {name: 'offer'},
       {name: 'request'},
       {name: 'intention'},
-      {name: 'general'}
+      {name: 'home'}
     ]))
 }
