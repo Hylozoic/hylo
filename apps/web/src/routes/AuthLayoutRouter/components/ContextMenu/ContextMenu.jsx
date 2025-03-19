@@ -470,7 +470,7 @@ function GrabMe ({ children, ...props }) {
   )
 }
 
-function DropZone ({ droppableParams, isDroppable = true, height = '', hide = false, children, removalDropZone }) {
+function DropZone ({ droppableParams, isDroppable = true, hide = false, children, removalDropZone }) {
   const { setNodeRef, isOver } = useDroppable(droppableParams)
   const { contextWidgets, activeWidget } = useContextMenuContext()
   const activeWidgetIsContainer = ['container', 'home', 'chats', 'members', 'setup'].includes(activeWidget?.type)
@@ -495,13 +495,11 @@ function DropZone ({ droppableParams, isDroppable = true, height = '', hide = fa
       className={cn(
         'transition-all duration-200 rounded-lg overflow-hidden',
         !isOver && 'h-0',
-        isOver && !removalDropZone && 'h-[8px] mb-1 bg-selected/10 hover:bg-foreground/20',
-        isOver && removalDropZone && 'bg-destructive/70 border-2 border-foreground p-5 min-h-[40px]',
-        isOver && !removalDropZone && 'bg-selected/70 p-5 min-h-[40px]',
-        isOver && removalDropZone && 'bg-destructive/20 hover:bg-destructive/30'
+        isOver && !removalDropZone && 'min-h-[40px] m-0 mb-2 p-0 bg-selected/70 hover:bg-foreground/20',
+        isOver && removalDropZone && 'min-h-[40px] p-5 border-2 border-foreground bg-destructive/20 hover:bg-destructive/30',
       )}
     >
-      {isOver && children}
+      {children}
     </div>
   )
 }
