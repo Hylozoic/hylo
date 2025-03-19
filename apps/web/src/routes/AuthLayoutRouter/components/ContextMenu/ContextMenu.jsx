@@ -138,6 +138,11 @@ export default function ContextMenu (props) {
     setActiveWidget(activeContextWidget)
   }
 
+  const handleDragCancel = (event) => {
+    setIsDragging(false)
+    setActiveWidget(null)
+  }
+
   const handleDragEnd = (event) => {
     const { active, over } = event
 
@@ -194,7 +199,7 @@ export default function ContextMenu (props) {
             <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
           </Routes>
 
-          <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners} modifiers={[restrictToVerticalAxis]}>
+          <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel} collisionDetection={closestCorners} modifiers={[restrictToVerticalAxis]}>
             <div className='w-full'>
               <ContextWidgetList
                 isDragging={isDragging}
