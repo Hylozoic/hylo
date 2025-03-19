@@ -238,6 +238,7 @@ export default function ContextMenu (props) {
 }
 
 function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister, isEditing, isDragging, activeWidget, newWidgetId, newWidgetRef, group }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -254,7 +255,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
       {isEditing &&
         <li>
           <DropZone removalDropZone isDragging={isDragging} droppableParams={{ id: 'remove' }}>
-            Drag here to remove from menu
+            {t('Drag here to remove from menu')}
           </DropZone>
         </li>}
       {contextWidgets.map((widget, index) => (
@@ -275,7 +276,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
       {isEditing && (
         <li>
           <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
-            <Icon name='Plus' />Add new view
+            <Icon name='Plus' /> {t('Add new view')}
           </button>
         </li>
       )}
@@ -404,7 +405,7 @@ function ContextMenuItem ({ widget, groupSlug, rootPath, canAdminister = false, 
                         </DropZone>
                         <button onClick={() => handlePositionedAdd({ id: 'bottom-of-child-list' + widget.id, addToEnd: true, parentId: widget.id })} className={cn('cursor-pointer text-base text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100')}>
                           <Icon name='Plus' />
-                          {widget.type === 'chats' ? <span>Add new chat </span> : <span>Add new view</span>}
+                          {widget.type === 'chats' ? <span> {t('Add new chat')}</span> : <span> {t('Add new view')}</span>}
                         </button>
                       </li>}
                   </ul>
