@@ -183,7 +183,7 @@ export default function GlobalNav (props) {
           />
         )}
 
-        <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-20'>&nbsp;</div>
+        {isContainerHovered && <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-20'>&nbsp;</div>}
 
       </div>
 
