@@ -61,13 +61,11 @@ function CommentForm ({
 
   return (
     <div className={cn('flex flex-row items-center justify-between bg-input rounded-lg p-2', className)}>
-      {currentUser && (
-        <AttachmentManager type='comment' id='new' attachmentType='image' />
-      )}
       <div className={cn(classes.prompt, { [classes.disabled]: !currentUser })}>
         {currentUser
           ? <RoundImage url={currentUser.avatarUrl} small className={classes.image} />
           : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
+
         <HyloEditor
           contentHTML={editorContent}
           onEnter={handleOnEnter}
@@ -77,6 +75,10 @@ function CommentForm ({
           placeholder={placeholderText}
           ref={editor}
         />
+
+        {currentUser && (
+          <AttachmentManager type='comment' id='new' attachmentType='image' />
+        )}
 
         {!currentUser
           ? (
