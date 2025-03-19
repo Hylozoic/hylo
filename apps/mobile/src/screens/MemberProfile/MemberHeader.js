@@ -72,10 +72,10 @@ export default function MemberHeader ({
     }
   }
 
-  const goToEdit = () => openURL('/settings')
-  const goToEditAccount = () => openURL('/settings/account')
-  const goToManageNotifications = () => openURL('/settings/notifications')
-  const goToBlockedUsers = () => openURL('/settings/blocked-users')
+  const goToEdit = () => openURL('/my/edit-profile')
+  const goToEditAccount = () => openURL('/my/account')
+  const goToManageNotifications = () => openURL('/my/notifications')
+  const goToBlockedUsers = () => openURL('/my/blocked-users')
 
   const handleMessages = useCallback(() => {
     if (!person || currentUser.id === person.id) {
