@@ -276,11 +276,18 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
         </li>
       ))}
       {isEditing && (
-        <li>
-          <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
-            <Icon name='Plus' /> {t('Add new view')}
-          </button>
-        </li>
+        <>
+          <li>
+            <DropZone droppableParams={{ id: 'bottom-of-menu' }}>
+              &nbsp;
+            </DropZone>
+          </li>
+          <li>
+            <button onClick={() => handlePositionedAdd({ id: 'bottom-of-list-' + groupSlug, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+              <Icon name='Plus' /> {t('Add new view')}
+            </button>
+          </li>
+        </>
       )}
     </ul>
   )
