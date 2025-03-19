@@ -474,7 +474,6 @@ function DropZone ({ droppableParams, isDroppable = true, hide = false, children
   const { setNodeRef, isOver } = useDroppable(droppableParams)
   const { contextWidgets, activeWidget } = useContextMenuContext()
   const activeWidgetIsContainer = ['container', 'home', 'chats', 'members', 'setup'].includes(activeWidget?.type)
-    || activeWidget?.parentId
     || activeWidget?.childWidgets?.length > 0
   const isIllegalDrop = droppableParams.id.includes('bottom-of-child-list') && activeWidgetIsContainer
 
