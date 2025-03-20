@@ -173,10 +173,11 @@ export default function ContextMenu (props) {
           : isPublicContext
             ? (
               <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.5 }} />
+                <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.5 }} />
+                <div className='absolute top-0 left-0 w-full h-full bg-theme-background z-0' />
                 {/* <div style={bgImageStyle('/the-commons.jpg')} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' /> */}
-                <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden'>
-                  <h2 className='text-foreground font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
+                <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                  <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
                 </div>
               </div>
               )
