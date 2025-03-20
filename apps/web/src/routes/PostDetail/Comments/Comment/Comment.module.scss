@@ -35,7 +35,7 @@ $comment-row-padding: 25px;
 .commentActions {
   width: auto;
   height: 100%;
-  align-content: center;
+  align-items: center;
   position: absolute;
   top: -16px;
   right: 0;
@@ -44,6 +44,7 @@ $comment-row-padding: 25px;
   border-radius: 30px;
   box-shadow: 0 5px 10px rgb(0 0 0 / 20%);
   display: none;
+  font-size: 20px;
 
   &.showActions {
     display: flex;
@@ -196,7 +197,7 @@ $comment-row-padding: 25px;
   padding-bottom: 0;
 }
 
-.hiddenReactions > div > div:last-child {
+.hiddenReactions > div > div:first-child {
   display: block;
   width: auto;
 }

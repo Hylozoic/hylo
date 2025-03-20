@@ -369,7 +369,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='public/topics/:topicName' element={<Stream context='public' />} />
                 <Route path='all/topics' element={<AllTopics />} />
                 <Route path='all/*' element={<Stream context='my' />} />
-                <Route path='public/*' element={<Stream context='public' />} />
+                <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
                 {/* **** Group Routes **** */}
                 <Route path='create-group/*' element={<CreateGroup />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={<JoinGroup />} />
@@ -381,7 +381,7 @@ export default function AuthLayoutRouter (props) {
                 {currentGroupSlug && !currentGroupMembership && (
                   <Route path='groups/:groupSlug' element={<GroupDetail context='groups' group={currentGroup} />} />
                 )}
-                <Route path='groups/:groupSlug/about/*' element={<GroupDetail context='groups' />} />
+                <Route path='groups/:groupSlug/about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
                 <Route path='groups/:groupSlug/welcome/*' element={<GroupWelcomePage />} />
                 <Route path='groups/:groupSlug/map/*' element={<MapExplorer context='groups' view='map' />} />
                 <Route path='groups/:groupSlug/stream/*' element={<Stream context='groups' view='stream' />} />

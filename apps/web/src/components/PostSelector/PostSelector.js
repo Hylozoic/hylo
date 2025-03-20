@@ -21,7 +21,6 @@ import classes from './PostSelector.module.scss'
 const PAGE_SIZE = 10
 
 export default function PostSelector ({ collection, draggable, group, onRemovePost, onReorderPost, onSelectPost, posts }) {
-  console.log(collection, 'ayyayyayay')
   const dispatch = useDispatch()
   const [autocomplete, setAutocomplete] = useState('')
   const [suggestions, setSuggestions] = useState([])
@@ -52,7 +51,7 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
       })
       setOffset(PAGE_SIZE)
     }
-  }, [debouncedAutcomplete, collection])
+  }, [debouncedAutcomplete, collection?.id])
 
   const { observe } = useInView({
     onEnter: async () => {

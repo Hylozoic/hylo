@@ -30,7 +30,8 @@ class PostHeader extends PureComponent {
 
   getTypeIcon = (type) => {
     const typeIconMap = {
-      offer: 'Gift',
+      chat: 'Messages',
+      offer: 'Offer',
       request: 'HandRaised',
       resource: 'Resource',
       project: 'Project',

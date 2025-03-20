@@ -55,7 +55,7 @@ import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable
 
 const MAX_DETAILS_LENGTH = 144
 
-function GroupDetail ({ popup = false }) {
+function GroupDetail ({ forCurrentGroup = false }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
@@ -66,7 +66,7 @@ function GroupDetail ({ popup = false }) {
   const groupSelector = useSelector(state => getGroupForSlug(state, routeParams.detailGroupSlug || routeParams.groupSlug))
   const group = useMemo(() => presentGroup(groupSelector), [groupSelector])
   const slug = routeParams.detailGroupSlug || routeParams.groupSlug
-  const isAboutCurrentGroup = !routeParams.detailGroupSlug || routeParams.groupSlug === routeParams.detailGroupSlug
+  const isAboutCurrentGroup = forCurrentGroup || routeParams.groupSlug === routeParams.detailGroupSlug
   const myMemberships = useSelector(state => getMyMemberships(state))
   const isMember = useMemo(() => group && currentUser ? myMemberships.find(m => m.group.id === group.id) : false, [group, currentUser, myMemberships])
   const joinRequests = useGetJoinRequests()
@@ -104,7 +104,7 @@ function GroupDetail ({ popup = false }) {
     navigate(newUrl)
   }
 
-  const fullPage = !routeParams.detailGroupSlug && !popup
+  const fullPage = !routeParams.detailGroupSlug || forCurrentGroup
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {

@@ -1,10 +1,11 @@
 import { get } from 'lodash/fp'
-import { ChevronLeft, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House } from 'lucide-react'
+import { ChevronLeft, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House, Trash } from 'lucide-react'
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
+import { createSelector } from 'reselect'
 import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 
@@ -42,6 +43,16 @@ import ContextMenuProvider from './ContextMenuProvider'
 let previousWidgetIds = []
 let isAddingChildWidget = false
 
+const getStaticMenuWidgetsMemoized = createSelector(
+  [
+    (_, params) => params.isPublicContext,
+    (_, params) => params.isMyContext,
+    (_, params) => params.profileUrl
+  ],
+  (isPublicContext, isMyContext, profileUrl) =>
+    getStaticMenuWidgets({ isPublicContext, isMyContext, profileUrl })
+)
+
 export default function ContextMenu (props) {
   const {
     className,
@@ -67,7 +78,11 @@ export default function ContextMenu (props) {
 
   const rawContextWidgets = useSelector(state => {
     if (isMyContext || isPublicContext || isAllContext) {
-      return getStaticMenuWidgets({ isPublicContext, isMyContext: isMyContext || isAllContext, profileUrl })
+      return getStaticMenuWidgetsMemoized(state, {
+        isPublicContext,
+        isMyContext: isMyContext || isAllContext,
+        profileUrl
+      })
     }
     return getContextWidgets(state, group)
   })
@@ -189,10 +204,11 @@ export default function ContextMenu (props) {
             : isPublicContext
               ? (
                 <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                  <div className='absolute inset-0 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.5 }} />
+                  <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.5 }} />
+                  <div className='absolute top-0 left-0 w-full h-full bg-theme-background z-0' />
                   {/* <div style={bgImageStyle('/the-commons.jpg')} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' /> */}
-                  <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden'>
-                    <h2 className='text-foreground font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
+                  <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                    <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
                   </div>
                 </div>
                 )
@@ -268,7 +284,7 @@ function ContextWidgetList ({ newWidgetId, newWidgetRef }) {
               : (isEditing ? 'mb-2' : 'mb-0')
           }`}
           style={{ '--delay': `${index * 35}ms` }}
-          key={widget.id}
+          key={widget.id || index}
           {...itemProps[widget.id]}
         >
           <ContextMenuItem widget={widget} />
@@ -450,16 +466,24 @@ function ActionMenu ({ widget }) {
 
   const dispatch = useDispatch()
 
+  const handleRemoveWidget = useCallback((e) => {
+    e.preventDefault()
+    if (window.confirm(t('Are you sure you want to remove {{name}} from the menu?', { name: translateTitle(widget.title, t) }))) {
+      dispatch(removeWidgetFromMenu({ contextWidgetId: widget.id, groupId: group.id }))
+    }
+  }, [widget.id, group.id])
+
   const handleWidgetHomePromotion = useCallback((e) => {
     e.preventDefault()
 
     if (window.confirm(t('Are you sure you want to set this widget as the home/default widget for this group?'))) {
       dispatch(setHomeWidget({ contextWidgetId: widget.id, groupId: group.id }))
     }
-  }, [t, setHomeWidget, widget.id, group.id])
+  }, [widget.id, group.id])
 
   return (
-    <span className='text-sm font-bold cursor-pointer'>
+    <span className='text-sm font-bold cursor-pointer flex items-center'>
+      <Trash onClick={handleRemoveWidget} />
       <House onClick={handleWidgetHomePromotion} />
     </span>
   )

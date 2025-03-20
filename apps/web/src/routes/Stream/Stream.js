@@ -205,7 +205,7 @@ export default function Stream (props) {
   }, [topicName])
 
   useEffect(() => {
-    if ((!customViewId || customView?.type === 'stream') && (!topicName || topic)) {
+    if ((!customViewId || customView?.type === 'stream' || customView?.type === 'collection') && (!topicName || topic)) {
       // Fetch posts, unless the custom view has not fully loaded yet, or the topic has not fully loaded yet
       fetchPostsFrom(0)
     }
@@ -248,24 +248,28 @@ export default function Stream (props) {
   const ViewComponent = viewComponent[viewMode]
   const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'
 
-  const info = customView?.type === 'stream'
-    ? (
-      <div className='flex flex-row gap-2 items-center'>
-        <span className='text-sm'>
-          {t('Displaying')}:&nbsp;
-          {customView?.activePostsOnly ? t('Only active') : ''}
-        </span>
+  const info = useMemo(() => {
+    if (customView?.type === 'stream') {
+      const topics = customView?.topics?.toModelArray()
+      return (
+        <div className='flex flex-row gap-2 items-center'>
+          <span className='text-sm'>
+            {t('Displaying')}:&nbsp;
+            {customView?.activePostsOnly ? t('Only active') : ''}
+          </span>
 
-        {customView?.postTypes.length === 0 ? t('None') : customView?.postTypes.map((p, i) => <span key={i}><PostLabel key={p} type={p} className='align-middle mr-2' />{p}s&nbsp;</span>)}
-        {customView?.topics.length > 0 && <div>{t('filtered by topics:')}</div>}
-        {customView?.topics.length > 0 && customView?.topics.map(t => <span key={t.id}>#{t.name}</span>)}
-      </div>
+          {customView?.postTypes.length === 0 ? t('None') : customView?.postTypes.map((p, i) => <span key={i}><PostLabel key={p} type={p} className='align-middle mr-2' />{p}s&nbsp;</span>)}
+          {topics.length > 0 && <div>{t('filtered by topics:')}</div>}
+          {topics.length > 0 && topics.map(t => <span key={t.id}>#{t.name}</span>)}
+        </div>
       )
-    : customView?.type === 'collection'
-      ? t('Curated Post Collection')
-      : topicName
-        ? t('Filtered by topic #{{topicName}}', { topicName })
-        : null
+    } else if (customView?.type === 'collection') {
+      return t('Curated Post Collection')
+    } else if (topicName) {
+      return t('Filtered by topic #{{topicName}}', { topicName })
+    }
+    return null
+  }, [customView, topicName])
 
   const noPostsMessage = view === 'events' ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') }) : 'No posts'
 
