@@ -204,8 +204,8 @@ export function chatUrl (chatName, { context, groupSlug }) {
   return `${baseUrl({ context, groupSlug })}/chat/${chatName}`
 }
 
-export function customViewUrl (customViewId, rootPath, opts) {
-  return `${rootPath}/custom/${customViewId}`
+export function customViewUrl (customViewId, rootPath, { context, groupSlug }) {
+  return `${baseUrl({ context, groupSlug })}/custom/${customViewId}`
 }
 
 export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
@@ -227,7 +227,7 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
   } else if (widget.viewChat) {
     url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
   } else if (widget.customView) {
-    url = customViewUrl(widget.customView.id, rootPath, { groupSlug })
+    url = customViewUrl(widget.customView.id, rootPath, { context, groupSlug })
   }
 
   return url
