@@ -160,7 +160,6 @@ export function isValidChildWidget ({ parentWidget, childWidget }) {
   const childWidgetIsContainer = childWidget?.childWidgets?.length > 0
     || ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view'].includes(childWidget?.type)
 
-    // XXX need to go through with Tom
   return !(
     isWrongType
       || parentWidget?.viewGroup?.slug
@@ -174,33 +173,31 @@ export function isValidChildWidget ({ parentWidget, childWidget }) {
   )
 }
 
-export function isValidDropZone ({ overWidget, activeWidget, parentWidget, isOverlay = false, isEditing, droppableParams, isDroppable = true }) {
+export function isValidDropZone ({ overWidget, activeWidget, parentWidget, isOverlay = false, isEditing, droppableParams }) {
   const containerTypes = ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view', 'home']
   const isWrongType = overWidget?.type === 'home'
-  || (parentWidget?.type === 'chats' && !activeWidget?.viewChat?.name)
-  || (parentWidget?.type === 'custom-views' && !activeWidget?.customView?.id)
+    || (parentWidget?.type === 'chats' && !activeWidget?.viewChat?.id)
+    || (parentWidget?.type === 'custom-views' && !activeWidget?.customView?.id)
   const parentWidgetIsContainer = containerTypes.includes(parentWidget?.type)
   const activeWidgetIsContainer = containerTypes.includes(activeWidget?.type)
   
-  const listBottom = droppableParams.id?.includes('bottom-of-child-list')
-  console.log('--------------------------------')
-  console.log('overWidget.title', overWidget?.title + (listBottom ? ' (bottom of list)' : '') )
-  console.log('overWidget.type', overWidget?.type)
-  console.log('droppable.id', droppableParams?.id)
-  console.log('isValidDropZone ==>', (!activeWidgetIsContainer || !parentWidgetIsContainer) && (overWidget?.isDroppable || true) && isDroppable && !isWrongType && !isOverlay && isEditing)
-  console.log('parentWidget.type', parentWidget?.type)
-  console.log('activeWidget.type', activeWidget?.type)
-  console.log('parentWidgetIsContainer', parentWidgetIsContainer)
-  console.log('activeWidgetIsContainer', activeWidgetIsContainer)
-  console.log('overWidget.isDroppable', (overWidget?.isDroppable || true))
-  console.log('isDroppable', isDroppable)
-  console.log('isWrongType', isWrongType)
-  console.log('isOverlay', isOverlay)
-  console.log('isEditing', isEditing)
+  // const listBottom = droppableParams.id?.includes('bottom-of-child-list')
+  // console.log('--------------------------------')
+  // console.log('overWidget.title', overWidget?.title + (listBottom ? ' (bottom of list)' : '') )
+  // console.log('overWidget.type', overWidget?.type)
+  // console.log('droppable.id', droppableParams?.id)
+  // console.log('isValidDropZone ==>', (!activeWidgetIsContainer || !parentWidgetIsContainer) && (overWidget?.isDroppable || true) && isDroppable && !isWrongType && !isOverlay && isEditing)
+  // console.log('parentWidget.type', parentWidget?.type)
+  // console.log('activeWidget.type', activeWidget?.type)
+  // console.log('parentWidgetIsContainer', parentWidgetIsContainer)
+  // console.log('activeWidgetIsContainer', activeWidgetIsContainer)
+  // console.log('overWidget.isDroppable', (overWidget?.isDroppable || true))
+  // console.log('isWrongType', isWrongType)
+  // console.log('isOverlay', isOverlay)
+  // console.log('isEditing', isEditing)
 
   return (!activeWidgetIsContainer || !parentWidgetIsContainer)
     && (overWidget?.isDroppable || true)
-    && isDroppable
     && !isWrongType
     && !isOverlay
     && isEditing

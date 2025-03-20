@@ -275,11 +275,18 @@ function ContextWidgetList ({ newWidgetId, newWidgetRef }) {
         </li>
       ))}
       {isEditing && (
-        <li>
-          <button onClick={() => handlePositionedAdd({ widget: { id: `bottom-of-list-${groupSlug}` }, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
-            <Icon name='Plus' /> {t('Add new view')}
-          </button>
-        </li>
+        <>
+          <li>
+            <button onClick={() => handlePositionedAdd({ widget: { id: `bottom-of-list-${groupSlug}` }, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+              <Icon name='Plus' /> {t('Add new view')}
+            </button>
+          </li>
+          <li>
+            <DropZone droppableParams={{ id: 'bottom-of-menu', data: { addToEnd: true } }}>
+              &nbsp;
+            </DropZone>
+          </li>
+        </>
       )}
     </ul>
   )
@@ -351,9 +358,10 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
 
   return (
     <>
-      <DropZone droppableParams={{ id: `${widget.id}`, data: { widget, isOverlay } }}>
-        &nbsp;
-      </DropZone>
+      {widget.id !== 'all-views' &&
+        <DropZone droppableParams={{ id: widget.id, data: { widget, isOverlay } }}>
+          &nbsp;
+        </DropZone>}
       <div key={widget.id} ref={setDraggableNodeRef} style={style}>
         {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
         {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
@@ -403,12 +411,11 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                     {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} />)}
                     {widget.id && isEditing && !['home', 'setup'].includes(widget.type) &&
                       <li>
-                        <DropZone droppableParams={{ id: `bottom-of-child-list-${widget.id}`, data: { widget, parentWidget: widget, isOverlay, isDroppable: (canDnd && !url), addToEnd: true, parentId: widget.id } }}>
+                        <DropZone droppableParams={{ id: `bottom-of-child-list-${widget.id}`, data: { widget, parentWidget: widget, isOverlay, addToEnd: true, parentId: widget.id } }}>
                           &nbsp;
                         </DropZone>
                         <button onClick={() => handlePositionedAdd({ id: `bottom-of-child-list-${widget.id}`, addToEnd: true, parentId: widget.id })} className={cn('cursor-pointer text-base text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100')}>
                           <Icon name='Plus' />
-                          {/* XXX what about the posts view widget? */}
                           {widget.type === 'chats' ? <span> {t('Add new chat')}</span> : <span> {t('Add new view')}</span>}
                         </button>
                       </li>}
@@ -471,12 +478,12 @@ function DropZone ({ droppableParams, children, removalDropZone }) {
   const { data } = droppableParams
   const { activeWidget, isEditing } = useContextMenuContext()
 
-  if (!activeWidget) {
+  if (!activeWidget || removalDropZone) {
     return null
   }
 
-  const { widget, parentWidget, isOverlay, isDroppable } = data || {}
-  if (!isValidDropZone({ overWidget: widget, activeWidget, parentWidget, isOverlay, isEditing, droppableParams, isDroppable })) {
+  const { widget, parentWidget, isOverlay } = data || {}
+  if (!isValidDropZone({ overWidget: widget, activeWidget, parentWidget, isOverlay, isEditing, droppableParams })) {
     return null
   }
 
@@ -485,9 +492,10 @@ function DropZone ({ droppableParams, children, removalDropZone }) {
       ref={setNodeRef}
       className={cn(
         'transition-all duration-200 rounded-lg overflow-hidden',
-        !isOver && 'h-0',
-        isOver && !removalDropZone && 'min-h-[40px] m-0 mb-2 p-0 bg-selected/70 hover:bg-foreground/20',
-        isOver && removalDropZone && 'min-h-[40px] p-5 border-2 border-foreground bg-destructive/20 hover:bg-destructive/30'
+        !isOver && !removalDropZone && 'h-0',
+        isOver && !removalDropZone && 'h-[8px] min-h-[40px] mb-1 bg-selected/70 hover:bg-foreground/20',
+        !isOver && removalDropZone && 'bg-destructive/20 border-2 border-foreground p-5 min-h-[40px]',
+        isOver && removalDropZone && 'bg-destructive/70 p-5 min-h-[40px]'
       )}
     >
       {children}
@@ -511,7 +519,8 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
   }
 
   // XXX why is this using parseInt? convert to luxon?
-  const isActive = item.viewUser?.lastActiveAt ? new Date(parseInt(item.viewUser.lastActiveAt)) > new Date(Date.now() - 1000 * 60 * 4) : false
+  const minute = 1000 * 60
+  const isActive = item.viewUser?.lastActiveAt ? new Date(parseInt(item.viewUser.lastActiveAt)) > new Date(Date.now() - minute * 4) : false
   return (
     <React.Fragment key={item.id}>
       <DropZone droppableParams={{ id: item.id, data: { widget: item, parentWidget: widget, isOverlay } }}>
