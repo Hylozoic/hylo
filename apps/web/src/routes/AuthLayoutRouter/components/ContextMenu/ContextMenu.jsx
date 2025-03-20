@@ -5,6 +5,7 @@ import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
+import { createSelector } from 'reselect'
 import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 
@@ -40,6 +41,16 @@ import classes from './ContextMenu.module.scss'
 let previousWidgetIds = []
 let isAddingChildWidget = false
 
+const getStaticMenuWidgetsMemoized = createSelector(
+  [
+    (_, params) => params.isPublicContext,
+    (_, params) => params.isMyContext,
+    (_, params) => params.profileUrl
+  ],
+  (isPublicContext, isMyContext, profileUrl) =>
+    getStaticMenuWidgets({ isPublicContext, isMyContext, profileUrl })
+)
+
 export default function ContextMenu (props) {
   const {
     className,
@@ -63,7 +74,11 @@ export default function ContextMenu (props) {
 
   const rawContextWidgets = useSelector(state => {
     if (isMyContext || isPublicContext || isAllContext) {
-      return getStaticMenuWidgets({ isPublicContext, isMyContext: isMyContext || isAllContext, profileUrl })
+      return getStaticMenuWidgetsMemoized(state, {
+        isPublicContext,
+        isMyContext: isMyContext || isAllContext,
+        profileUrl
+      })
     }
     return getContextWidgets(state, group)
   })
@@ -268,7 +283,7 @@ function ContextWidgetList ({ contextWidgets, groupSlug, rootPath, canAdminister
               : (isEditing ? 'mb-2' : 'mb-0')
           }`}
           style={{ '--delay': `${index * 35}ms` }}
-          key={widget.id}
+          key={widget.id || index}
           {...itemProps[widget.id]}
         >
           <ContextMenuItem widget={widget} groupSlug={groupSlug} rootPath={rootPath} canAdminister={canAdminister} isEditing={isEditing} isDragging={isDragging} activeWidget={activeWidget} group={group} handlePositionedAdd={handlePositionedAdd} />
