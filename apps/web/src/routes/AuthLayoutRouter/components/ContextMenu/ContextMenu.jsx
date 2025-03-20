@@ -478,7 +478,7 @@ function DropZone ({ droppableParams, children, removalDropZone }) {
   const { data } = droppableParams
   const { activeWidget, isEditing } = useContextMenuContext()
 
-  if (!activeWidget || removalDropZone) {
+  if (!activeWidget && !removalDropZone) {
     return null
   }
 
