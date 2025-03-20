@@ -653,6 +653,19 @@ function SpecialTopElementRenderer ({ widget }) {
     )
   }
 
+  if (widget.type === 'members' && !canAddMembers) {
+    return (
+      <div className='relative'>
+        <div className={cn('absolute -top-10 right-0 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100', isEditing && 'right-8')}>
+          <MenuLink to={groupUrl(group.slug, 'members')} className='flex items-center gap-2 px-2 py-1 text-foreground/50 hover:text-foreground/100 transition-all'>
+            <Users className='w-4 h-4' />
+            <span>{group.memberCount || 0}</span>
+          </MenuLink>
+        </div>
+      </div>
+    )
+  }
+
   if (widget.type === 'about') {
     return (
       <div className='w-full mb-8'>
