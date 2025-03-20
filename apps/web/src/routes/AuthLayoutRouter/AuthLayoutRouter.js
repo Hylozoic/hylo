@@ -369,7 +369,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='public/topics/:topicName' element={<Stream context='public' />} />
                 <Route path='all/topics' element={<AllTopics />} />
                 <Route path='all/*' element={<Stream context='my' />} />
-                <Route path='public/*' element={<Stream context='public' />} />
+                <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
                 {/* **** Group Routes **** */}
                 <Route path='create-group/*' element={<CreateGroup />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={<JoinGroup />} />

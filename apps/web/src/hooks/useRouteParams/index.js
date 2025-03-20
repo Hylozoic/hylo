@@ -15,7 +15,7 @@ export default function useRouteParams () {
   // if context is not set, then look for the first part of the url to set as the context
   if (!params.context) {
     const firstPart = pathParts[1]
-    if (['groups', 'all', 'public', 'my', 'welcome'].includes(firstPart)) {
+    if (['groups', 'all', 'public', 'my', 'welcome', 'messages'].includes(firstPart)) {
       params.context = firstPart
     } else {
       params.context = 'all'

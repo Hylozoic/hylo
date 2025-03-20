@@ -3,7 +3,7 @@ import qs from 'query-string'
 import { host } from 'config/index'
 import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import { findHomeWidget } from '@hylo/presenters/ContextWidgetPresenter'
-import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { ALL_GROUPS_CONTEXT_SLUG, MESSAGES_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
@@ -59,6 +59,8 @@ export function baseUrl ({
     return publicGroupsUrl()
   } else if (context === MY_CONTEXT_SLUG) {
     return myHomeUrl()
+  } else if (context === MESSAGES_CONTEXT_SLUG) {
+    return messagesUrl()
   } else {
     return defaultUrl
   }
