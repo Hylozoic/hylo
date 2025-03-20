@@ -1,5 +1,3 @@
-$pill-height: 216px;
-
 .header {
   composes: bdy-drk-lg from 'css/typography.scss';
   margin-bottom: $space-1x;
@@ -7,7 +5,6 @@ $pill-height: 216px;
 
 .pill-container {
   position: relative;
-  max-height: $pill-height;
   transition: max-height 0.50s ease-out;
 
   input {
@@ -41,7 +38,6 @@ $pill-height: 216px;
 
 .expanded {
   height: auto;
-  max-height: 1000px;
 }
 
 .expand-button {
