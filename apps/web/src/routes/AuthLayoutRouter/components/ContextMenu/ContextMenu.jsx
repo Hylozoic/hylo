@@ -1,5 +1,5 @@
 import { get } from 'lodash/fp'
-import { ChevronLeft, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House } from 'lucide-react'
+import { ChevronLeft, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House, Trash } from 'lucide-react'
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -454,16 +454,24 @@ function ActionMenu ({ group, widget }) {
 
   const dispatch = useDispatch()
 
+  const handleRemoveWidget = useCallback((e) => {
+    e.preventDefault()
+    if (window.confirm(t('Are you sure you want to remove {{name}} from the menu?', { name: translateTitle(widget.title, t) }))) {
+      dispatch(removeWidgetFromMenu({ contextWidgetId: widget.id, groupId: group.id }))
+    }
+  }, [widget.id, group.id])
+
   const handleWidgetHomePromotion = useCallback((e) => {
     e.preventDefault()
 
     if (window.confirm(t('Are you sure you want to set this widget as the home/default widget for this group?'))) {
       dispatch(setHomeWidget({ contextWidgetId: widget.id, groupId: group.id }))
     }
-  }, [t, setHomeWidget, widget.id, group.id])
+  }, [widget.id, group.id])
 
   return (
-    <span className='text-sm font-bold cursor-pointer'>
+    <span className='text-sm font-bold cursor-pointer flex items-center'>
+      <Trash onClick={handleRemoveWidget} />
       <House onClick={handleWidgetHomePromotion} />
     </span>
   )
