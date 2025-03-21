@@ -1,4 +1,4 @@
-import { House, Plus } from 'lucide-react'
+import { House, Plus, SquareDashed, MessageSquarePlus, FileStack, User, Users, StickyNote } from 'lucide-react'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -192,11 +192,13 @@ export default function AllViews () {
   )
 }
 
-function AddOption ({ title, onClick, description, disabled = false }) {
+function AddOption ({ title, onClick, description, disabled = false, icon }) {
+  const { t } = useTranslation()
   return (
-    <div onClick={disabled ? null : onClick} className={`p-4 border border-gray-300 rounded-md shadow-sm cursor-pointer hover:bg-gray-50 ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}>
-      <div className='flex flex-col'>
-        <h3 className='text-lg font-semibold'>{title}</h3>
+    <div onClick={disabled ? null : onClick} className={`p-2 group border-2 border-foreground/20 rounded-md shadow-sm cursor-pointer hover:border-foreground/100 transition-all ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}>
+      <div className='flex flex-col relative'>
+        <h3 className='text-base text-foreground mb-0 mt-0 relative z-10 flex items-center gap-2'>{icon} {title}</h3>
+        <span className='text-xs text-selected/100 opacity-0 group-hover:opacity-100 z-20 transition-all absolute right-1 rounded-lg bg-selected/30 px-1 py-1'>{t('Add')}</span>
       </div>
     </div>
   )
@@ -263,38 +265,44 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
-      <div className='bg-white rounded-lg shadow-lg p-6 w-full max-w-md'>
+      <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md'>
         <div className='text-lg font-semibold mb-4'>{t('Add {{something}} to Menu', { something: addChoice ? t(capitalize(humanReadableTypeResolver(addChoice))) : 'Something' })}</div>
-        <div className='min-h-[25rem]'>
+        <div>
           {!addChoice &&
-            <div className='grid grid-cols-2 gap-4'>
+            <div className='flex flex-col gap-2'>
               <AddOption
-                title={t('Add Container')}
+                icon={<SquareDashed />}
+                title={t('Container')}
                 onClick={() => setAddChoice(CONTAINER)}
                 disabled={parentWidget?.id}
               />
               <AddOption
+                icon={<MessageSquarePlus />}
                 title={t('Add Chat')}
                 onClick={() => setAddChoice(CHAT)}
                 disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { type: CHAT, viewChat: { id: 'fake-id' } } })}
               />
               <AddOption
+                icon={<FileStack />}
                 title={t('Add Custom View')}
                 onClick={() => setAddChoice(CUSTOM_VIEW)}
                 description={t('addCustomViewDescription')}
                 disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { customView: { id: 'fake-id' } } })}
               />
               <AddOption
+                icon={<User />}
                 title={t('Add Member')}
                 onClick={() => setAddChoice(USER)}
                 disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewUser: { id: 'fake-id' } } })}
               />
               <AddOption
+                icon={<Users />}
                 title={t('Add Group')}
                 onClick={() => setAddChoice(GROUP)}
                 disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewGroup: { id: 'fake-id' } } })}
               />
               <AddOption
+                icon={<StickyNote />}
                 title={t('Add Post')}
                 onClick={() => setAddChoice(POST)}
                 disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewPost: { id: 'fake-id' } } })}
@@ -310,31 +318,33 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
             <ContainerCreator group={group} addChoice={addChoice} widgetData={widgetData} setWidgetData={setWidgetData} />
           )}
         </div>
-        <div className='flex justify-end gap-1 mt-4'>
+        <div className='flex justify-between gap-1 mt-4'>
           {addChoice &&
             <Button
               variant='secondary'
               onClick={() => handleReset()}
-              className='bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600'
+              className='border-2 border-foreground/20 p-2 rounded-md bg-transparent text-foreground hover:border-selected hover:bg-transparent'
             >
               {t('Back')}
             </Button>}
-          <Button
-            variant='secondary'
-            onClick={() => navigate(addQuerystringToPath(location.pathname, { cme: 'yes' }))}
-            className='bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600'
-          >
-            {t('Close')}
-          </Button>
-          {(selectedItem || addChoice === CONTAINER) &&
+          <div className='flex gap-1'>
             <Button
-              variant='primary'
-              disabled={isCreating}
-              onClick={() => handleCreate({ widgetData, selectedItem, addChoice })}
-              className='bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600'
+              variant='secondary'
+              onClick={() => navigate(addQuerystringToPath(location.pathname, { cme: 'yes' }))}
+              className='border-2 border-foreground/20 p-2 rounded-md bg-transparent text-foreground hover:border-accent hover:bg-transparent'
             >
-              {isCreating ? t('Creating...') : t('Create')}
-            </Button>}
+              {t('Cancel')}
+            </Button>
+            {(selectedItem || addChoice === CONTAINER) &&
+              <Button
+                variant='primary'
+                disabled={isCreating}
+                onClick={() => handleCreate({ widgetData, selectedItem, addChoice })}
+                className='border-2 border-foreground/20 p-2 rounded-md bg-transparent text-foreground hover:border-selected hover:bg-transparent'
+              >
+                {isCreating ? t('Creating...') : t('Create')}
+              </Button>}
+          </div>
         </div>
       </div>
     </div>
@@ -474,34 +484,34 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
           <div className='mb-4'>
             {addChoice === USER && (
               <>
-                <h2>
+                <h2 className='text-sm font-semibold text-foreground mb-0 mt-0'>
                   {t('Selected User')}: <span className='font-extrabold'>{selectedItem.name}</span>
                 </h2>
-                <p className='text-sm text-gray-500'>{t('The name of the widget will be the name of the user')}</p>
+                <p className='text-xs text-foreground/60'>{t('The name of the widget will be the name of the user')}</p>
               </>
             )}
             {addChoice === POST && (
               <>
-                <h2>
+                <h2 className='text-sm font-semibold text-foreground mb-0 mt-0'>
                   {t('Selected Post')}: <span className='font-extrabold'>{selectedItem.title}</span> by <span className='font-extrabold'>{selectedItem.creator?.name}</span>
                 </h2>
-                <p className='text-sm text-gray-500'>{t('The name of the widget will be the title of the post')}</p>
+                <p className='text-xs text-foreground/60'>{t('The name of the widget will be the title of the post')}</p>
               </>
             )}
             {addChoice === CHAT && (
               <>
-                <h2>
+                <h2 className='text-sm font-semibold text-foreground mb-0 mt-0'>
                   {t('Selected Chat Topic')}: <span className='font-extrabold'>{selectedItem.name}</span>
                 </h2>
-                <p className='text-sm text-gray-500'>{t('The name of the widget will be the name of the chat topic')}</p>
+                <p className='text-xs text-foreground/60'>{t('The name of the widget will be the name of the chat topic')}</p>
               </>
             )}
             {addChoice === GROUP && (
               <>
-                <h2>
+                <h2 className='text-sm font-semibold text-foreground mb-0 mt-0'>
                   {t('Selected Group')}: <span className='font-extrabold'>{selectedItem.name}</span>
                 </h2>
-                <p className='text-sm text-gray-500'>{t('The name of the widget will be the name of the group')}</p>
+                <p className='text-xs text-foreground/60'>{t('The name of the widget will be the name of the group')}</p>
               </>
             )}
           </div>
@@ -658,7 +668,7 @@ function CustomViewCreator ({ group, selectedItem, setSelectedItem, widgetData, 
 
   return (
     <div>
-      <h3 className='text-lg font-semibold mb-2'>{t('Custom View')}</h3>
+      <h3 className='text-sm font-semibold text-foreground mb-0 mt-0'>{t('Custom View')}</h3>
       <CustomViewRow
         {...customView}
         addPostToCollection={handleAddPostToCollection}
@@ -684,8 +694,8 @@ function ContainerCreator ({ group, addChoice, widgetData, setWidgetData }) {
   const { t } = useTranslation()
   return (
     <div>
-      <h3 className='text-lg font-semibold mb-2'>{t('Container Widget')}</h3>
-      <p className='text-sm text-gray-500 mb-4'>{t('containerWidgetSescription')}</p>
+      <h3 className='text-sm font-semibold text-foreground mb-0 mt-0'>{t('Container Widget')}</h3>
+      <p className='text-xs text-foreground/60 mb-4'>{t('containerWidgetSescription')}</p>
       <WidgetSettings widgetData={widgetData} setWidgetData={setWidgetData} addChoice={addChoice} />
     </div>
   )
