@@ -20,14 +20,14 @@ export const toDateTime = (
   dt : string | Date | DateTime | Object,
   timezone? : string
 ) : DateTime => {
-  const now = DateTime.now()
+  const zone = { zone: timezone || DateTime.now().zoneName || 'UTC' }
   const _dt = dt instanceof DateTime
     ? dt
     : dt instanceof Date
-      ? DateTime.fromJSDate(dt, { zone: timezone || now.zoneName || 'UTC' })
+      ? DateTime.fromJSDate(dt, zone)
       : typeof dt === 'string'
-        ? DateTime.fromISO(dt, { zone: timezone || now.zoneName || 'UTC' })
-        : DateTime.fromObject(dt, { zone: timezone || now.zoneName || 'UTC' })
+        ? DateTime.fromISO(dt, zone)
+        : DateTime.fromObject(dt, zone)
   return _dt.setLocale(getLocaleAsString())
 }
 
