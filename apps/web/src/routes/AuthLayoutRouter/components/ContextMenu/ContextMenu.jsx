@@ -414,7 +414,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                   <h3 className='text-base font-light opacity-50 text-foreground' data-testid={widget.type}>{title}</h3>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
-              {widget.type !== 'members' &&
+              {widget.type !== 'members' && !isOverlay &&
                 <div className={cn('flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground',
                   {
                     'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditing && widget.type !== 'home'
@@ -423,7 +423,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                   <SpecialTopElementRenderer widget={widget} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
-                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} />)}
+                    {presentedlistItems.length > 0 && !isOverlay && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} />)}
                     {widget.id && isEditing && !['home', 'setup'].includes(widget.type) &&
                       <li>
                         <DropZone droppableParams={{ id: `bottom-of-child-list-${widget.id}`, data: { widget, parentWidget: widget, isOverlay, addToEnd: true, parentId: widget.id } }}>
@@ -436,7 +436,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                       </li>}
                   </ul>
                 </div>}
-              {widget.type === 'members' &&
+              {widget.type === 'members' && !isOverlay &&
                 <div className='flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground'>
                   <SpecialTopElementRenderer widget={widget} />
                   <ul className='px-1 pt-1 pb-2'>
