@@ -1,5 +1,5 @@
 import { Interval } from 'luxon'
-import { toDateTime, sameDay } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime, sameDay } from '@hylo/shared/src/DateTimeHelpers'
 import { localeLocalStorageSync } from 'util/locale'
 import { enUS, es } from 'react-day-picker/locale'
 import { HyloPost } from './calendar-types'

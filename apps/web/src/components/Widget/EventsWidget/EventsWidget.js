@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import { toDateTime } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime } from '@hylo/shared/src/DateTimeHelpers'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Icon from 'components/Icon'

@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import { toDateTime } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime } from '@hylo/shared/src/DateTimeHelpers'
 import React from 'react'
 import CardFileAttachments from 'components/CardFileAttachments'
 import CardImageAttachments from 'components/CardImageAttachments'

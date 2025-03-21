@@ -12,7 +12,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
 import { personUrl, topicUrl } from 'util/navigation'
-import { toDateTime, sameDay } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime, sameDay } from '@hylo/shared/src/DateTimeHelpers'
 
 import classes from './PostListRow.module.scss'
 

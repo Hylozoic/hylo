@@ -1,4 +1,4 @@
-import { toDateTime } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime } from '@hylo/shared/src/DateTimeHelpers'
 import presentTopic from 'store/presenters/presentTopic'
 import { TextHelpers } from '@hylo/shared'
 

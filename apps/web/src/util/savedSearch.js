@@ -1,4 +1,4 @@
-import { toDateTime } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime } from '@hylo/shared/src/DateTimeHelpers'
 import { groupUrl } from 'util/navigation'
 
 const parsegroup = group => `Group: ${group.name}`

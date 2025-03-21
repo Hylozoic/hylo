@@ -1,4 +1,4 @@
-import { toDateTime, getLocaleAsString } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime, getLocaleAsString } from '@hylo/shared/src/DateTimeHelpers'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import * as React from 'react'
 import { useImperativeHandle, useRef } from 'react'

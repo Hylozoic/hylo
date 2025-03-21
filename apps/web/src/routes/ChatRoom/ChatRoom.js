@@ -1,6 +1,6 @@
 import { debounce, includes, isEmpty } from 'lodash/fp'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
-import { toDateTime, dateTimeNow } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime, dateTimeNow } from '@hylo/shared/src/DateTimeHelpers'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CopyToClipboard from 'react-copy-to-clipboard'

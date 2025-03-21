@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import { toDateTime } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime } from '@hylo/shared/src/DateTimeHelpers'
 import React, { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { filter, isFunction, isEmpty } from 'lodash/fp'

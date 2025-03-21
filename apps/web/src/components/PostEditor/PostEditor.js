@@ -74,7 +74,7 @@ import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from 'util/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
-import { dateTimeNow, toDateTime } from '@hylo/shared/src/DateTimeHelper'
+import { dateTimeNow, toDateTime } from '@hylo/shared/src/DateTimeHelpers'
 
 import styles from './PostEditor.module.scss'
 

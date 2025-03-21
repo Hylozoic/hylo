@@ -1,5 +1,5 @@
 import React from 'react'
-import { toDateTime } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime } from '@hylo/shared/src/DateTimeHelpers'
 
 export default function EventDate ({ startTime }) {
   if (!startTime) return null

@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import classes from './datePicker.module.scss'
 import Datetime from 'react-datetime'
-import { toDateTime, dateTimeNow } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime, dateTimeNow } from '@hylo/shared/src/DateTimeHelpers'
 import React from 'react'
 
 function isValidDate (current) {

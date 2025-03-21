@@ -1,4 +1,4 @@
-import { toDateTime } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime } from '@hylo/shared/src/DateTimeHelpers'
 import React, { useCallback, useState } from 'react'
 import { cn } from 'util/index'
 import { Link } from 'react-router-dom'

@@ -4,7 +4,7 @@ import { useCalendarContext } from 'components/Calendar/calendar-context'
 import { DateTime, Interval } from 'luxon'
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
 import Tooltip from 'components/Tooltip'
-import { sameDay, sameMonth, toDateTime } from '@hylo/shared/src/DateTimeHelper'
+import { sameDay, sameMonth, toDateTime } from '@hylo/shared/src/DateTimeHelpers'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
 

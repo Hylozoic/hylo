@@ -4,7 +4,7 @@ import Button from '@/components/ui/button'
 import { useCalendarContext } from '../../calendar-context'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { DateTime } from 'luxon'
-import { toDateTime, sameDay, sameWeek, sameMonth } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime, sameDay, sameWeek, sameMonth } from '@hylo/shared/src/DateTimeHelpers'
 import { Mode } from '../../calendar-types'
 
 const formatDate = (luxonDate: DateTime, mode: Mode) => {

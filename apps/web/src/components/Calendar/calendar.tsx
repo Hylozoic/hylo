@@ -8,7 +8,7 @@ import CalendarHeaderActions from './header/actions/calendar-header-actions'
 import CalendarHeaderDateChevrons from './header/date/calendar-header-date-chevrons'
 import CalendarHeaderActionsMode from './header/actions/calendar-header-actions-mode'
 import CalendarProvider from './calendar-provider'
-import { toDateTime } from '@hylo/shared/src/DateTimeHelper'
+import { toDateTime } from '@hylo/shared/src/DateTimeHelpers'
 import { isMultiday } from './calendar-util'
 
 export default function Calendar ({
