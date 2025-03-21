@@ -163,9 +163,8 @@ export default function ContextMenu (props) {
 
   const handleDragEnd = (event) => {
     const { active, over } = event
-
     if (over && over.id !== active.id && over.id !== 'remove') {
-      const orderInFrontOfWidget = over.data?.current?.widget
+      const orderInFrontOfWidget = over.data?.current?.addToEnd ? null : over.data?.current?.widget
 
       dispatch(updateContextWidget({
         contextWidgetId: active.id,
