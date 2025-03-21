@@ -150,21 +150,57 @@ export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl
   if (isMyContext) return MY_CONTEXT_WIDGETS(profileUrl)
 }
 
-// Determines if a child widget is valid inside a parent widget
-export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
+// Determines if a child widget is valid inside the parent widget
+export function isValidChildWidget ({ parentWidget, childWidget }) {
+  const isWrongType = ['home', 'members', 'setup'].includes(parentWidget?.type)
+    || (parentWidget?.type === 'chats' && !childWidget?.viewChat?.name)
+    || (parentWidget?.type === 'custom-views' && !childWidget?.customView?.id)
+  const parentWidgetIsContainer = parentWidget?.childWidgets?.length > 0
+    || ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view'].includes(parentWidget?.type)
+  const childWidgetIsContainer = childWidget?.childWidgets?.length > 0
+    || ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view'].includes(childWidget?.type)
+
   return !(
-    parentWidget?.viewGroup?.id ||
-    parentWidget?.viewUser?.id ||
-    parentWidget?.customView?.id ||
-    parentWidget?.type === 'members' ||
-    parentWidget?.type === 'setup' ||
-    (parentWidget?.type === 'chats' && !childWidget?.viewChat?.id) ||
-    (parentWidget?.type === 'custom-views' && !childWidget?.customView?.id) ||
-    childWidget?.type === 'home' ||
-    childWidget?.id?.startsWith('fake-id') ||
-    childWidget?.id === parentWidget?.id ||
-    childWidget?.type === 'container'
+    isWrongType
+      || parentWidget?.viewGroup?.slug
+      || parentWidget?.viewChat?.name
+      || parentWidget?.viewUser?.id
+      || parentWidget?.viewPost?.id
+      || parentWidget?.customView?.id
+      || childWidget?.id?.includes('fake-id')
+      || childWidget?.id === parentWidget?.id
+      || (childWidgetIsContainer && parentWidgetIsContainer)
   )
+}
+
+export function isValidDropZone ({ overWidget, activeWidget, parentWidget, isOverlay = false, isEditing, droppableParams }) {
+  const containerTypes = ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view', 'home']
+  const isWrongType = overWidget?.type === 'home'
+    || (parentWidget?.type === 'chats' && !activeWidget?.viewChat?.id)
+    || (parentWidget?.type === 'custom-views' && !activeWidget?.customView?.id)
+  const parentWidgetIsContainer = containerTypes.includes(parentWidget?.type)
+  const activeWidgetIsContainer = containerTypes.includes(activeWidget?.type)
+  
+  // const listBottom = droppableParams.id?.includes('bottom-of-child-list')
+  // console.log('--------------------------------')
+  // console.log('overWidget.title', overWidget?.title + (listBottom ? ' (bottom of list)' : '') )
+  // console.log('overWidget.type', overWidget?.type)
+  // console.log('droppable.id', droppableParams?.id)
+  // console.log('isValidDropZone ==>', (!activeWidgetIsContainer || !parentWidgetIsContainer) && (overWidget?.isDroppable || true) && isDroppable && !isWrongType && !isOverlay && isEditing)
+  // console.log('parentWidget.type', parentWidget?.type)
+  // console.log('activeWidget.type', activeWidget?.type)
+  // console.log('parentWidgetIsContainer', parentWidgetIsContainer)
+  // console.log('activeWidgetIsContainer', activeWidgetIsContainer)
+  // console.log('overWidget.isDroppable', (overWidget?.isDroppable || true))
+  // console.log('isWrongType', isWrongType)
+  // console.log('isOverlay', isOverlay)
+  // console.log('isEditing', isEditing)
+
+  return (!activeWidgetIsContainer || !parentWidgetIsContainer)
+    && (overWidget?.isDroppable || true)
+    && !isWrongType
+    && !isOverlay
+    && isEditing
 }
 
 export const orderContextWidgetsForContextMenu = (contextWidgets) => {
@@ -245,7 +281,7 @@ export const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', iconName: 'LogOut', order: 11, parentId: null }
 ]
 
-export const allViewsWidget = ContextWidgetPresenter({ title: 'widget-all', type: 'all-views', view: 'all-views', iconName: 'Grid3x3', childWidgets: [] })
+export const allViewsWidget = ContextWidgetPresenter({ id: 'all-views', title: 'widget-all', type: 'all-views', view: 'all-views', iconName: 'Grid3x3', childWidgets: [] })
 
 export const COMMON_VIEWS = {
   proposals: {
