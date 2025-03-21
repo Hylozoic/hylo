@@ -2,7 +2,7 @@
 import HasSettings from './mixins/HasSettings'
 import RedisClient from '../services/RedisClient'
 import { mapLocaleToSendWithUS } from '../../lib/util'
-import { TextHelpers } from '@hylo/shared'
+// import { DateTimeHelpers } from '@hylo/shared'
 
 const CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY = 'ChatRoom.digests.lastSentAt'
 
@@ -206,7 +206,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           chat_topic: tagFollow.relations.tag.get('name'),
           // For the overall chat room URL use the URL of the last post in the email digest
           chat_room_url: Frontend.Route.post({ post: posts[posts.length - 1], group: tagFollow.relations.group }),
-          // date: TextHelpers.formatDatePair(posts[0].get('created_at'), false, false, posts[0].get('timezone')),
+          // date: DateTimeHelpers.formatDatePair(posts[0].get('created_at'), false, false, posts[0].get('timezone')),
           group_name: tagFollow.relations.group.get('name'),
           group_avatar_url: tagFollow.relations.group.get('avatar_url'),
           posts: postData

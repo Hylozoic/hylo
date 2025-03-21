@@ -5,7 +5,7 @@ import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import { personUrl } from 'util/navigation'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import classes from './Message.module.scss'
 
 export default function Message ({ message, isHeader }) {
@@ -27,7 +27,7 @@ export default function Message ({ message, isHeader }) {
         {isHeader && (
           <div className='flex justify-between items-center'>
             <div className='text-foreground font-bold -mb-2'>{person.name}</div>
-            <span className='text-xs text-foreground/50'>{pending ? 'sending...' : TextHelpers.humanDate(message.createdAt)}</span>
+            <span className='text-xs text-foreground/50'>{pending ? 'sending...' : DateTimeHelpers.humanDate(message.createdAt)}</span>
           </div>
         )}
         <div className='text-foreground'>

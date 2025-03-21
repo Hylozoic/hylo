@@ -8,7 +8,7 @@ import CalendarHeaderActions from './header/actions/calendar-header-actions'
 import CalendarHeaderDateChevrons from './header/date/calendar-header-date-chevrons'
 import CalendarHeaderActionsMode from './header/actions/calendar-header-actions-mode'
 import CalendarProvider from './calendar-provider'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import { isMultiday } from './calendar-util'
 
 export default function Calendar ({
@@ -27,8 +27,8 @@ export default function Calendar ({
   const events = posts.map((post) => {
     return {
       id: post.id,
-      start: DateTime.fromISO(post.startTime).toJSDate(),
-      end: DateTime.fromISO(post.endTime).toJSDate(),
+      start: DateTimeHelpers.toDateTime(post.startTime).toJSDate(),
+      end: DateTimeHelpers.toDateTime(post.endTime).toJSDate(),
       title: post.title,
       type: post.type,
       multiday: isMultiday(post),

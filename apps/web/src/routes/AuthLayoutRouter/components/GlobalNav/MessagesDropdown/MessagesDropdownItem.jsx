@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import RoundImageRow from 'components/RoundImageRow'
 import { isUnread, participantAttributes } from 'store/models/MessageThread'
 import { cn } from 'util/index'
@@ -40,7 +40,7 @@ export default function MessagesDropdownItem ({ thread, onClick, currentUser }) 
       <div className='flex flex-col flex-grow align-start px-3 pt-1'>
         <div className={cn('mb-2 font-bold')}>{names}</div>
         <div className='text-sm'>{displayText}</div>
-        <div className='text-xs text-muted-foreground/50'>{TextHelpers.humanDate(thread.updatedAt)}</div>
+        <div className='text-xs text-muted-foreground/50'>{DateTimeHelpers.humanDate(thread.updatedAt)}</div>
       </div>
     </li>
   )

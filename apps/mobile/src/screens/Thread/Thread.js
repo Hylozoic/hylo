@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { gql, useMutation, useQuery } from 'urql'
 import { debounce } from 'lodash/fp'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import messageThreadMessagesQuery from '@hylo/graphql/queries/messageThreadMessagesQuery'
 import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -42,8 +42,8 @@ const refineMessages = messages => {
     const next = arr[i - 1]
 
     // Precompute human-readable date for current message
-    const msgHumanDate = TextHelpers.humanDate(msg.createdAt)
-    const nextHumanDate = next ? TextHelpers.humanDate(next.createdAt) : null
+    const msgHumanDate = DateTimeHelpers.humanDate(msg.createdAt)
+    const nextHumanDate = next ? DateTimeHelpers.humanDate(next.createdAt) : null
 
     const suppressCreator = prev && msg.creator.id === prev.creator.id
     const suppressDate =

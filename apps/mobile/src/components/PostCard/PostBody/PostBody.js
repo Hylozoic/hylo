@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { isEmpty } from 'lodash/fp'
 import { decode } from 'html-entities'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import { humanResponse, RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import HyloHTML from 'components/HyloHTML'
 import EmojiRow from 'components/EmojiRow'
@@ -38,7 +38,7 @@ export default function PostBody ({
   return (
     <View style={styles.container}>
       {startTime && endTime && (
-        <Text style={styles.resourceEndsAt}>{TextHelpers.formatDatePair(startTime, endTime)}</Text>
+        <Text style={styles.resourceEndsAt}>{DateTimeHelpers.formatDatePair(startTime, endTime)}</Text>
       )}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <PostTitle title={isFlagged ? t('Post flagged') : title} />
