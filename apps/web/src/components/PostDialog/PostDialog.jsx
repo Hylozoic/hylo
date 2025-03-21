@@ -15,7 +15,7 @@ const PostDialog = ({
   const handleOpenChange = useCallback((open) => {
     if (!open) {
       // remove post/:postId from the url
-      navigate(removePostFromUrl(`${location.pathname}`))
+      navigate(removePostFromUrl(location.pathname))
     }
   }, [])
 
