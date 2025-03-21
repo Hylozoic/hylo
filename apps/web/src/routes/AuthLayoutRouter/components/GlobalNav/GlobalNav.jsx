@@ -134,7 +134,7 @@ export default function GlobalNav (props) {
         <GlobalNavItem
           img={get('avatarUrl', currentUser)}
           tooltip={t('Your Profile')}
-          url='/my/posts'
+          url='/my'
           className={isVisible(0)}
           showTooltip={isContainerHovered}
         />
@@ -164,7 +164,7 @@ export default function GlobalNav (props) {
 
         <GlobalNavItem
           tooltip={t('The Commons')}
-          url='/public/stream'
+          url='/public'
           className={isVisible(3)}
           showTooltip={isContainerHovered}
         >

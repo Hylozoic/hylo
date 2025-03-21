@@ -29,15 +29,9 @@ import { getParentGroups } from 'store/selectors/getGroupRelationships'
 import getCommonRoles from 'store/selectors/getCommonRoles'
 import getMe from 'store/selectors/getMe'
 import {
-  FETCH_COLLECTION_POSTS,
   FETCH_GROUP_SETTINGS,
-  addPostToCollection,
-  createCollection,
   deleteGroup,
-  fetchCollectionPosts,
   fetchGroupSettings,
-  removePostFromCollection,
-  reorderPostInCollection,
   updateGroupSettings
 } from './GroupSettings.store'
 
@@ -54,16 +48,10 @@ export default function GroupSettings () {
   const parentGroups = useSelector(state => getParentGroups(state, group))
   const commonRoles = useSelector(getCommonRoles)
   const fetchPending = useSelector(state => state.pending[FETCH_GROUP_SETTINGS])
-  const fetchCollectionPostsPending = useSelector(state => state.pending[FETCH_COLLECTION_POSTS])
 
   // Action creators
-  const addPostToCollectionAction = (collectionId, postId) => dispatch(addPostToCollection(collectionId, postId))
-  const createCollectionAction = (data) => dispatch(createCollection(data))
-  const fetchCollectionPostsAction = id => dispatch(fetchCollectionPosts(id))
   const fetchGroupSettingsAction = () => slug && dispatch(fetchGroupSettings(slug))
   const fetchLocationAction = (location) => dispatch(fetchLocation(location))
-  const removePostFromCollectionAction = (collectionId, postId) => dispatch(removePostFromCollection(collectionId, postId))
-  const reorderPostInCollectionAction = (collectionId, postId, newOrderIndex) => dispatch(reorderPostInCollection(collectionId, postId, newOrderIndex))
   const updateGroupSettingsAction = changes => group && dispatch(updateGroupSettings(group.id, changes))
   const deleteGroupAction = () => {
     if (group) {
@@ -137,17 +125,7 @@ export default function GroupSettings () {
     name: t('Custom Views'),
     path: 'views',
     component: (
-      <CustomViewsTab
-        group={group}
-        addPostToCollection={addPostToCollectionAction}
-        createCollection={createCollectionAction}
-        fetchCollectionPosts={fetchCollectionPostsAction}
-        fetchCollectionPostsPending={fetchCollectionPostsPending}
-        fetchPending={fetchPending}
-        removePostFromCollection={removePostFromCollectionAction}
-        reorderPostInCollection={reorderPostInCollectionAction}
-        updateGroupSettings={updateGroupSettingsAction}
-      />
+      <CustomViewsTab group={group} />
     )
   }
 
