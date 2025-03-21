@@ -1,5 +1,5 @@
 import { filter, isFunction } from 'lodash'
-import { DateTime } from 'luxon'
+import { toDateTime } from '@hylo/shared/src/DateTimeHelper'
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -415,7 +415,7 @@ function Project ({ memberCap, project }) {
     <div className={styles.project} onClick={() => viewPostDetails(project)}>
       <div>
         <div className={styles.title}>{title} </div>
-        <div className={styles.meta}>{creator.name} - {DateTime.fromISO(createdAt).toRelative()} </div>
+        <div className={styles.meta}>{creator.name} - {toDateTime(createdAt).toRelative()} </div>
       </div>
       <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: members.items.length > memberCap })} inline imageUrls={members.items.map(m => m.avatarUrl)} cap={memberCap} />
     </div>
@@ -428,8 +428,8 @@ function Event ({ memberCap, event }) {
   return (
     <div className={styles.event} onClick={() => viewPostDetails(event)}>
       <div className={styles.date}>
-        <div className={styles.month}>{DateTime.fromISO(startTime).toFormat('MMM')}</div>
-        <div className={styles.day}>{DateTime.fromISO(startTime).toFormat('dd')}</div>
+        <div className={styles.month}>{toDateTime(startTime).toFormat('MMM')}</div>
+        <div className={styles.day}>{toDateTime(startTime).toFormat('dd')}</div>
       </div>
       <div className={styles.details}>
         <div className={styles.title}>{title}</div>

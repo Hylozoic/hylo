@@ -1,6 +1,6 @@
 import { debounce, includes, isEmpty } from 'lodash/fp'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
-import { DateTime } from 'luxon'
+import { toDateTime, dateTimeNow } from '@hylo/shared/src/DateTimeHelper'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -94,9 +94,9 @@ const NotificationsIcon = ({ type, ...props }) => {
 }
 
 const getDisplayDay = (date) => {
-  return date.hasSame(DateTime.now(), 'day')
+  return date.hasSame(dateTimeNow(), 'day')
     ? 'Today'
-    : date.hasSame(DateTime.now().minus({ days: 1 }), 'day')
+    : date.hasSame(dateTimeNow().minus({ days: 1 }), 'day')
       ? 'Yesterday'
       : date.toFormat('MMM dd, yyyy')
 }
@@ -564,7 +564,7 @@ const Footer = ({ context }) => {
 
 const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
-  const createdAt = firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt) : null
+  const createdAt = firstItem?.createdAt ? toDateTime(firstItem.createdAt) : null
   const displayDay = createdAt && getDisplayDay(createdAt)
 
   return (
@@ -618,8 +618,8 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
-  const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
-  const currentDay = DateTime.fromISO(post.createdAt)
+  const previousDay = prevData?.createdAt ? toDateTime(prevData.createdAt) : dateTimeNow()
+  const currentDay = toDateTime(post.createdAt)
   const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
   /* Display the author header if

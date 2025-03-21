@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import { DateTime } from 'luxon'
+import { toDateTime } from '@hylo/shared/src/DateTimeHelper'
 import React from 'react'
 import CardFileAttachments from 'components/CardFileAttachments'
 import CardImageAttachments from 'components/CardImageAttachments'
@@ -32,7 +32,7 @@ export default function ChatCard ({
               {!slug && <span>in&nbsp; <span className={classes.groupName}>{firstGroup}</span></span>}
             </div>
           </Highlight>
-          <span className={classes.date}>{DateTime.fromISO(post.createdAt).toFormat('yyyy t')}</span>
+          <span className={classes.date}>{toDateTime(post.createdAt).toFormat('yyyy t')}</span>
         </div>
         {post.attachments && post.attachments.length > 0 && (
           <>

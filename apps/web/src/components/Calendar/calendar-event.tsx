@@ -4,7 +4,7 @@ import { useCalendarContext } from 'components/Calendar/calendar-context'
 import { DateTime, Interval } from 'luxon'
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
 import Tooltip from 'components/Tooltip'
-import { sameDay, sameMonth } from './calendar-util'
+import { sameDay, sameMonth, toDateTime } from '@hylo/shared/src/DateTimeHelper'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
 
@@ -21,10 +21,10 @@ function getOverlappingEvents (
   currentEvent: CalendarEventType,
   events: CalendarEventType[]
 ): CalendarEventType[] {
-  const dt1 = DateTime.fromJSDate(currentEvent.start)
+  const dt1 = toDateTime(currentEvent.start)
   return events.filter((event) => {
     if (event.id === currentEvent.id) return true
-    const dt2 = DateTime.fromJSDate(event.start)
+    const dt2 = toDateTime(event.start)
     const interval = Interval.fromDateTimes(dt1, dt2)
     return Math.abs(interval.length('minutes')) <= 15
   })
@@ -80,9 +80,8 @@ export default function CalendarEvent ({
   const { events, date } =
     useCalendarContext()
   const style = month ? {} : calculateEventPosition(event, events, day)
-  // TODO format for multi-day events
   const timeFormat = { ...DateTime.TIME_SIMPLE, timeZoneName: 'short' as const }
-  const toolTipTitle = `${event.title}<br />${DateTime.fromJSDate(event.start).toLocaleString(timeFormat)} - ${DateTime.fromJSDate(event.end).toLocaleString(timeFormat)}`
+  const toolTipTitle = `${event.title}<br />${toDateTime(event.start).toLocaleString(timeFormat)} - ${toDateTime(event.end).toLocaleString(timeFormat)}`
 
   const viewPostDetails = useViewPostDetails()
 

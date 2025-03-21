@@ -4,7 +4,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import CalendarBodyDayCalendar from './calendar-body-day-calendar'
 import { useCalendarContext } from '../../calendar-context'
-import { includes } from '../../calendar-util'
+import { includes } from '@hylo/shared/src/DateTimeHelper'
 import PostListRow from 'components/PostListRow'
 import styles from 'routes/Stream/Stream.module.scss'
 

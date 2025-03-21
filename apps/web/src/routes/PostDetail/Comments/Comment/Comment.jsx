@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import { DateTime } from 'luxon'
+import { toDateTime } from '@hylo/shared/src/DateTimeHelper'
 import React, { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { filter, isFunction, isEmpty } from 'lodash/fp'
@@ -126,11 +126,11 @@ function Comment ({
           <Link to={profileUrl} className='text-sm font-bold ml-2 text-foreground'>{creator.name}</Link>
         </div>
         <div>
-          <span className='text-xs text-foreground/50 pl-2' data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(createdAt).toFormat('D t ZZZZ')}>
+          <span className='text-xs text-foreground/50 pl-2' data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={toDateTime(createdAt).toFormat('D t ZZZZ')}>
             {timestamp}
           </span>
           {(editedTimestamp) && (
-            <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(editedAt).toFormat('D t ZZZZ')}>
+            <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={toDateTime(editedAt).toFormat('D t ZZZZ')}>
               ({editedTimestamp})
             </span>
           )}

@@ -2,8 +2,7 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
-import { DateTime } from 'luxon'
-import { includes, sameDay } from '../../calendar-util'
+import { toDateTime, sameDay, includes } from '@hylo/shared/src/DateTimeHelper'
 import { cn } from '@/lib/utils'
 import Button from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
@@ -48,7 +47,7 @@ export default function CalendarBodyDayCalendar () {
             const numEvents = events.filter((event) => includes(event.start, date, event.end)).length
             const symbols = '•'.repeat(Math.min(numEvents, maxNumEvents))
             const moreSymbol = numEvents > maxNumEvents
-            return `${DateTime.fromJSDate(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
+            return `${toDateTime(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
           }
         })}
       />

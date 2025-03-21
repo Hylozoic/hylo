@@ -1,22 +1,23 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
-import { DateTime, Interval, Info } from 'luxon'
+import { Interval, Info } from 'luxon'
+import { toDateTime, sameDay, sameMonth, includes, getLocaleAsString } from '@hylo/shared/src/DateTimeHelper'
 import { cn } from '@/lib/utils'
 import CalendarEvent from '../../calendar-event'
 import { AnimatePresence, motion } from 'framer-motion'
-import { eachIntervalDay, getLocaleAsString, includes, sameDay, sameMonth } from '../../calendar-util'
+import { eachIntervalDay } from '../../calendar-util'
 
 export default function CalendarBodyMonth () {
   const { t } = useTranslation()
   const { date, events, setDate, setMode } = useCalendarContext()
-  const luxonDate = DateTime.fromJSDate(date)
+  const luxonDate = toDateTime(date)
   const maxEventsPerDay = 3
 
   // Get the first day of the month
-  const monthStart = luxonDate.startOf('month').setLocale(getLocaleAsString())
+  const monthStart = luxonDate.startOf('month')
   // Get the last day of the month
-  const monthEnd = luxonDate.endOf('month').setLocale(getLocaleAsString())
+  const monthEnd = luxonDate.endOf('month')
 
   // Get the first Monday of the first week (may be in previous month)
   const calendarStart = monthStart.startOf('week', { useLocaleWeeks: true })
@@ -32,8 +33,8 @@ export default function CalendarBodyMonth () {
   // Filter events to only show those within the current month view
   const visibleEvents = events.filter(
     (event) =>
-      interval.contains(DateTime.fromJSDate(event.start)) ||
-      interval.contains(DateTime.fromJSDate(event.end))
+      interval.contains(toDateTime(event.start)) ||
+      interval.contains(toDateTime(event.end))
   ).sort(
     (a, b) => a.multiday && !b.multiday ? -1 : a.start.getTime() - b.start.getTime()
   )
@@ -96,7 +97,7 @@ export default function CalendarBodyMonth () {
                       !isToday && !isCurrentMonth && 'text-gray-600/50'
                     )}
                   >
-                    {DateTime.fromJSDate(day).toFormat('d')}
+                    {toDateTime(day).toFormat('d')}
                   </div>
                   <AnimatePresence mode='wait'>
                     <div className='flex flex-col gap-1'>

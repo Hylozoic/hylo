@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon'
+import { toDateTime, getLocaleAsString } from '@hylo/shared/src/DateTimeHelper'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import * as React from 'react'
 import { useImperativeHandle, useRef } from 'react'
@@ -7,7 +7,7 @@ import Button from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { getLocaleForDayPicker, getLocaleAsString } from '@/components/Calendar/calendar-util'
+import { getLocaleForDayPicker } from '@/components/Calendar/calendar-util'
 import { cn } from '@/lib/utils'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -198,7 +198,7 @@ function display12HourValue (hours) {
 function genMonths (locale) {
   return Array.from({ length: 12 }, (_, i) => ({
     value: i,
-    label: DateTime.fromObject({ year: 2021, month: i + 1 }).toFormat('MMMM', { locale })
+    label: toDateTime({ year: 2021, month: i + 1 }).toFormat('MMMM', { locale })
   }))
 }
 function genYears (yearRange = 50) {
@@ -487,7 +487,7 @@ const DateTimePicker = React.forwardRef(({ locale = getLocaleAsString(), default
     }
     const diff = newDay.getTime() - defaultPopupValue.getTime()
     const diffInDays = diff / (1000 * 60 * 60 * 24)
-    const newDateFull = DateTime.fromJSDate(defaultPopupValue).plus({ days: Math.ceil(diffInDays) }).toJSDate()
+    const newDateFull = toDateTime(defaultPopupValue).plus({ days: Math.ceil(diffInDays) }).toJSDate()
     newDateFull.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
     onMonthChange?.(newDay)
     setMonth(newDateFull)
@@ -520,7 +520,7 @@ const DateTimePicker = React.forwardRef(({ locale = getLocaleAsString(), default
         <Button variant='outline' className={cn('justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />
           {displayDate
-            ? (DateTime.fromJSDate(displayDate).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12, {
+            ? (toDateTime(displayDate).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12, {
                 locale: getLocaleAsString()
               }))
             : (<span>{placeholder}</span>)}

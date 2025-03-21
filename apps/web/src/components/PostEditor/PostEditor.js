@@ -1,6 +1,5 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
-import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
@@ -75,6 +74,7 @@ import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from 'util/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
+import { dateTimeNow, toDateTime } from '@hylo/shared/src/DateTimeHelper'
 
 import styles from './PostEditor.module.scss'
 
@@ -182,7 +182,7 @@ function PostEditor ({
     isPublic: context === 'public',
     locationId: null,
     location: '',
-    timezone: DateTime.now().zoneName,
+    timezone: dateTimeNow().zoneName,
     proposalOptions: [],
     isAnonymousVote: false,
     isStrictProposal: false,
@@ -334,11 +334,11 @@ function PostEditor ({
   const calcEndTime = useCallback((startTime) => {
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      const start = DateTime.fromJSDate(currentPost.startTime)
-      const end = DateTime.fromJSDate(currentPost.endTime)
+      const start = toDateTime(currentPost.startTime)
+      const end = toDateTime(currentPost.endTime)
       msDiff = end.diff(start)
     }
-    return DateTime.fromJSDate(startTime).plus({ milliseconds: msDiff }).toJSDate()
+    return toDateTime(startTime).plus({ milliseconds: msDiff }).toJSDate()
   }, [currentPost.startTime, currentPost.endTime])
 
   const handlePostTypeSelection = useCallback((type) => {
@@ -598,7 +598,7 @@ function PostEditor ({
       id,
       acceptContributions,
       commenters: [], // For optimistic display of the new post
-      createdAt: DateTime.now().toISO(), // For optimistic display of the new post
+      createdAt: dateTimeNow().toISO(), // For optimistic display of the new post
       creator: currentUser, // For optimistic display of the new post
       details,
       donationsLink: sanitizeURL(donationsLink),

@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon'
+import { toDateTime } from '@hylo/shared/src/DateTimeHelper'
 import React, { useCallback, useState } from 'react'
 import { cn } from 'util/index'
 import { Link } from 'react-router-dom'
@@ -45,7 +45,7 @@ export default ({ items = [], group, routeParams }) => {
                 <div>
                   <div className={classes.meta}>
                     <span className={classes.author}>{a.author}</span>
-                    <span className={classes.created}>{DateTime.fromJSDate(a.createdAt).toRelative()}</span>
+                    <span className={classes.created}>{toDateTime(a.createdAt).toRelative()}</span>
                   </div>
                   <div className={classes.title}>{a.title}</div>
                 </div>
