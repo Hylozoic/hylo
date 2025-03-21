@@ -15,19 +15,19 @@ export default function JoinSection ({ addSkill, currentUser, fullPage, group, g
   const hasPendingRequest = groupsWithPendingRequests[group.id]
 
   return (
-    <div className={cn('requestBar bg-white text-accent-foreground align-center flex flex-col p-4 z-20 border-0 justify-center h-auto', { 'w-full max-w-[640px]': fullPage })}>
+    <div className={cn('requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[640px]': fullPage })}>
       {group.suggestedSkills && group.suggestedSkills.length > 0 &&
         <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
       {group.prerequisiteGroups && group.prerequisiteGroups.length > 0
         ? (
-          <div className='w-full mb-[100px] border border-dashed p-3 rounded bg-muted'>
-            <h4 className='text-center text-accent-foreground font-medium text-base leading-6'>
+          <div className='w-full mb-[100px] border border-dashed p-3 rounded bg-midground'>
+            <h4 className='text-center text-foreground/60 font-medium text-base leading-6'>
               {group.prerequisiteGroups.length === 1
                 ? <span>{group.name}{' '}{t('is only accessible to members of')}{' '}{group.prerequisiteGroups.map(prereq => <span key={prereq.id}>{prereq.name}</span>)}</span>
                 : <span>{t('{{group.name}} is only accessible to members of the following groups:', { group })}</span>}
             </h4>
             {group.prerequisiteGroups.map(prereq => (
-              <div key={prereq.id} className='p-3 rounded-lg bg-white shadow mb-4 xs:p-4'>
+              <div key={prereq.id} className='p-3 rounded-lg bg-muted shadow mb-4 xs:p-4'>
                 <Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={cn(classes.groupDetailHeader, classes.prereqHeader)} style={{ backgroundImage: `url(${prereq.bannerUrl || DEFAULT_BANNER})` }}>
                   <div className={classes.groupTitleContainer}>
                     <img src={prereq.avatarUrl || DEFAULT_AVATAR} height='50px' width='50px' />
@@ -53,7 +53,7 @@ export default function JoinSection ({ addSkill, currentUser, fullPage, group, g
                   <div className={classes.headerBackground} />
                 </Link>
                 <div className={classes.cta}>
-                  {t('To join')}{' '}{group.name} <Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={classes.prereqVisitLink}>{t('visit')} {prereq.name}</Link>{' '}{t('and become a member')}
+                  {t('To join')}{' '}{group.name}{' '}{t('visit')}<Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={classes.prereqVisitLink}>{prereq.name}</Link>{' '}{t('and become a member')}
                 </div>
               </div>
             ))}
