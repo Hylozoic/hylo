@@ -4,7 +4,7 @@ import { useCalendarContext } from 'components/Calendar/calendar-context'
 import { DateTime, Interval } from 'luxon'
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
 import Tooltip from 'components/Tooltip'
-import { sameDay, sameMonth, toDateTime } from '@hylo/shared/src/DateTimeHelpers'
+import { DateTimeHelpers } from '@hylo/shared'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
 
@@ -21,10 +21,10 @@ function getOverlappingEvents (
   currentEvent: CalendarEventType,
   events: CalendarEventType[]
 ): CalendarEventType[] {
-  const dt1 = toDateTime(currentEvent.start)
+  const dt1 = DateTimeHelpers.toDateTime(currentEvent.start)
   return events.filter((event) => {
     if (event.id === currentEvent.id) return true
-    const dt2 = toDateTime(event.start)
+    const dt2 = DateTimeHelpers.toDateTime(event.start)
     const interval = Interval.fromDateTimes(dt1, dt2)
     return Math.abs(interval.length('minutes')) <= 15
   })
@@ -49,7 +49,7 @@ function calculateEventPosition (
   let endHour = event.end.getHours()
   let endMinutes = event.end.getMinutes()
 
-  if (!sameDay(event.start, event.end)) {
+  if (!DateTimeHelpers.sameDay(event.start, event.end)) {
     endHour = 23
     endMinutes = 59
   }
@@ -81,12 +81,12 @@ export default function CalendarEvent ({
     useCalendarContext()
   const style = month ? {} : calculateEventPosition(event, events, day)
   const timeFormat = { ...DateTime.TIME_SIMPLE, timeZoneName: 'short' as const }
-  const toolTipTitle = `${event.title}<br />${toDateTime(event.start).toLocaleString(timeFormat)} - ${toDateTime(event.end).toLocaleString(timeFormat)}`
+  const toolTipTitle = `${event.title}<br />${DateTimeHelpers.toDateTime(event.start).toLocaleString(timeFormat)} - ${DateTimeHelpers.toDateTime(event.end).toLocaleString(timeFormat)}`
 
   const viewPostDetails = useViewPostDetails()
 
   // Generate a unique key that includes the current month to prevent animation conflicts
-  const isEventInCurrentMonth = sameMonth(event.start, date)
+  const isEventInCurrentMonth = DateTimeHelpers.sameMonth(event.start, date)
   const animationKey = `${event.id}-${
     isEventInCurrentMonth ? 'current' : 'adjacent'
   }`
@@ -98,9 +98,9 @@ export default function CalendarEvent ({
           className={cn(
             classes[event.type],
             'cursor-pointer transition-all duration-300 border',
-            month && event.multiday && sameDay(event.start, day) && 'rounded-l-md border-r-0',
-            month && event.multiday && sameDay(event.end, day) && 'rounded-r-md border-l-0 mr-1',
-            month && event.multiday && !sameDay(event.start, day) && !sameDay(event.end, day) && 'border-l-0 border-r-0',
+            month && event.multiday && DateTimeHelpers.sameDay(event.start, day) && 'rounded-l-md border-r-0',
+            month && event.multiday && DateTimeHelpers.sameDay(event.end, day) && 'rounded-r-md border-l-0 mr-1',
+            month && event.multiday && !DateTimeHelpers.sameDay(event.start, day) && !DateTimeHelpers.sameDay(event.end, day) && 'border-l-0 border-r-0',
             month && !event.multiday && 'rounded-md mr-1',
             !month && 'absolute',
             className
@@ -147,9 +147,9 @@ export default function CalendarEvent ({
             className={cn(
               'flex flex-col w-full',
               // Note: at this time, css for arrow is same as arrow-start
-              month && event.multiday && sameDay(event.start, day) && 'arrow-start p-0',
-              month && event.multiday && !sameDay(event.start, day) && !sameDay(event.end, day) && 'arrow p-0',
-              month && event.multiday && sameDay(event.end, day) && 'arrow-end p-0',
+              month && event.multiday && DateTimeHelpers.sameDay(event.start, day) && 'arrow-start p-0',
+              month && event.multiday && !DateTimeHelpers.sameDay(event.start, day) && !DateTimeHelpers.sameDay(event.end, day) && 'arrow p-0',
+              month && event.multiday && DateTimeHelpers.sameDay(event.end, day) && 'arrow-end p-0',
               month && event.multiday && event.type,
               month && 'flex-row items-center justify-between pl-1'
             )}

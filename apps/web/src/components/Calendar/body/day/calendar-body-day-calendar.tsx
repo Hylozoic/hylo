@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
-import { toDateTime, sameDay, includes } from '@hylo/shared/src/DateTimeHelpers'
+import { DateTimeHelpers } from '@hylo/shared'
 import { cn } from '@/lib/utils'
 import Button from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
@@ -12,12 +12,12 @@ export default function CalendarBodyDayCalendar () {
   const today = new Date()
   const { date, events, setDate } = useCalendarContext()
 
-  const [hideGoToButton, setHideGoToButton] = useState(sameDay(date, today))
+  const [hideGoToButton, setHideGoToButton] = useState(DateTimeHelpers.sameDay(date, today))
   const [selected, setSelected] = useState<Date>(date)
   const [month, setMonth] = useState(date)
 
   const handleMonthChange = (day : Date) => {
-    setHideGoToButton(sameDay(day, today))
+    setHideGoToButton(DateTimeHelpers.sameDay(day, today))
     setMonth(day)
     setDate(day)
   }
@@ -44,10 +44,10 @@ export default function CalendarBodyDayCalendar () {
         formatters={({
           formatDay: (date, options) => {
             const maxNumEvents = 3
-            const numEvents = events.filter((event) => includes(event.start, date, event.end)).length
+            const numEvents = events.filter((event) => DateTimeHelpers.includes(event.start, date, event.end)).length
             const symbols = '•'.repeat(Math.min(numEvents, maxNumEvents))
             const moreSymbol = numEvents > maxNumEvents
-            return `${toDateTime(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
+            return `${DateTimeHelpers.toDateTime(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
           }
         })}
       />

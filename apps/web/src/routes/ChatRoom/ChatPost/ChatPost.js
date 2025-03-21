@@ -1,5 +1,5 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
-import { toDateTime } from '@hylo/shared/src/DateTimeHelpers'
+import { DateTimeHelpers } from '@hylo/shared'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
@@ -274,8 +274,8 @@ export default function ChatPost ({
               <div className='w-full font-bold'>{creator.name}</div>
             </div>
             <div className='text-xs text-foreground/50'>
-              {toDateTime(createdAt).toFormat('t')}
-              {editedAt && <span>&nbsp;({t('edited')} {toDateTime(editedAt).toFormat('t')})</span>}
+              {DateTimeHelpers.toDateTime(createdAt).toFormat('t')}
+              {editedAt && <span>&nbsp;({t('edited')} {DateTimeHelpers.toDateTime(editedAt).toFormat('t')})</span>}
             </div>
           </div>
         )}

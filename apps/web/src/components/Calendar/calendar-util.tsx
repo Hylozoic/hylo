@@ -1,5 +1,5 @@
 import { Interval } from 'luxon'
-import { toDateTime, sameDay } from '@hylo/shared/src/DateTimeHelpers'
+import { DateTimeHelpers } from '@hylo/shared'
 import { localeLocalStorageSync } from 'util/locale'
 import { enUS, es } from 'react-day-picker/locale'
 import { HyloPost } from './calendar-types'
@@ -31,9 +31,9 @@ export const inWeek = (
   dt2 : Date,
   dt3 : Date
 ) : boolean => {
-  const _dt1 = toDateTime(dt1)
-  const _dt2 = toDateTime(dt2)
-  const _dt3 = toDateTime(dt3)
+  const _dt1 = DateTimeHelpers.toDateTime(dt1)
+  const _dt2 = DateTimeHelpers.toDateTime(dt2)
+  const _dt3 = DateTimeHelpers.toDateTime(dt3)
   const weekStart = _dt2.startOf('week', { useLocaleWeeks: true })
   const weekEnd = _dt2.endOf('week', { useLocaleWeeks: true }).plus({ days: 1 })
   return _dt1 < weekEnd && weekStart <= _dt3

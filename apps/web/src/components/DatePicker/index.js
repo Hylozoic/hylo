@@ -1,12 +1,12 @@
 import { cn } from 'util/index'
 import classes from './datePicker.module.scss'
 import Datetime from 'react-datetime'
-import { toDateTime, dateTimeNow } from '@hylo/shared/src/DateTimeHelpers'
+import { DateTimeHelpers } from '@hylo/shared'
 import React from 'react'
 
 function isValidDate (current) {
-  const yesterday = dateTimeNow().minus({ day: 1 })
-  return toDateTime(current) > yesterday
+  const yesterday = DateTimeHelpers.dateTimeNow().minus({ day: 1 })
+  return DateTimeHelpers.toDateTime(current) > yesterday
 }
 
 function DatePicker (props) {

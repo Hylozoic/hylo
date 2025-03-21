@@ -12,7 +12,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
 import { personUrl, topicUrl } from 'util/navigation'
-import { toDateTime, sameDay } from '@hylo/shared/src/DateTimeHelpers'
+import { DateTimeHelpers } from '@hylo/shared'
 
 import classes from './PostListRow.module.scss'
 
@@ -52,9 +52,9 @@ const PostListRow = (props) => {
   const creatorUrl = personUrl(creator.id, routeParams.slug)
   const numOtherCommentors = commentersTotal - 1
   const unread = false
-  const start = toDateTime(post.startTime)
-  const end = toDateTime(post.endTime)
-  const isSameDay = sameDay(start, end)
+  const start = DateTimeHelpers.toDateTime(post.startTime)
+  const end = DateTimeHelpers.toDateTime(post.endTime)
+  const isSameDay = DateTimeHelpers.sameDay(start, end)
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
   return (
