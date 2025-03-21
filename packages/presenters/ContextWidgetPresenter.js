@@ -180,7 +180,7 @@ export function isValidDropZone ({ overWidget, activeWidget, parentWidget, isOve
     || (parentWidget?.type === 'custom-views' && !activeWidget?.customView?.id)
   const parentWidgetIsContainer = containerTypes.includes(parentWidget?.type)
   const activeWidgetIsContainer = containerTypes.includes(activeWidget?.type)
-  
+  const isDynamicWidget = overWidget?.id?.includes('fake-id')
   // const listBottom = droppableParams.id?.includes('bottom-of-child-list')
   // console.log('--------------------------------')
   // console.log('overWidget.title', overWidget?.title + (listBottom ? ' (bottom of list)' : '') )
@@ -201,6 +201,7 @@ export function isValidDropZone ({ overWidget, activeWidget, parentWidget, isOve
     && !isWrongType
     && !isOverlay
     && isEditing
+    && !isDynamicWidget
 }
 
 export const orderContextWidgetsForContextMenu = (contextWidgets) => {
