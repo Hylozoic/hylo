@@ -2,19 +2,23 @@ import { get } from 'lodash/fp'
 import gql from 'graphql-tag'
 import { FIND_TOPICS } from 'store/constants'
 
-export default function findTopics ({ autocomplete, maxItems = 7, groupId }) {
+export default function findTopics ({ autocomplete, maxItems = 7, groupId, groupSlug }) {
   return {
     type: FIND_TOPICS,
     graphql: {
       query: gql`
-        query FindTopicsQuery ($autocomplete: String, $maxItems: Int, $groupId: ID) {
+        query FindTopicsQuery ($autocomplete: String, $maxItems: Int, $groupId: ID, $groupSlug: String) {
           groupTopics(autocomplete: $autocomplete, first: $maxItems, groupId: $groupId) {
             items {
               topic {
                 id
                 name
-                followersTotal
-                postsTotal
+                followersTotal(
+                  groupSlug: $groupSlug
+                )
+                postsTotal(
+                  groupSlug: $groupSlug
+                )
               }
             }
           }
@@ -23,7 +27,8 @@ export default function findTopics ({ autocomplete, maxItems = 7, groupId }) {
       variables: {
         autocomplete,
         maxItems,
-        groupId
+        groupId,
+        groupSlug
       }
     },
     meta: {

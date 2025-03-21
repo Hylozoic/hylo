@@ -5,10 +5,11 @@ import {
   TooltipContent,
   TooltipTrigger
 } from 'components/ui/tooltip'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import useRouteParams from 'hooks/useRouteParams'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { cn } from 'util/index'
-
+import { baseUrl } from 'util/navigation'
 /**
  * GlobalNavItem component renders a navigation item with tooltip and hover animations
  * @param {ReactNode} children - Content to render inside the nav item
@@ -31,7 +32,8 @@ export default function GlobalNavItem ({
   index = 0
 }) {
   const navigate = useNavigate()
-  const selected = useLocation().pathname.startsWith(url)
+  const routeParams = useRouteParams()
+  const selected = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug }) === url
   const [isHovered, setIsHovered] = useState(false)
   const [open, setOpen] = useState(false)
   const [shouldAnimate, setShouldAnimate] = useState(false)

@@ -1,9 +1,8 @@
 import { omit } from 'lodash/fp'
-import React, { Component, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation, withTranslation } from 'react-i18next'
-import PropTypes from 'prop-types'
 import { cn } from 'util/index'
-import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
@@ -12,10 +11,22 @@ import PostSelector from 'components/PostSelector'
 import SettingsControl from 'components/SettingsControl'
 import SwitchStyled from 'components/SwitchStyled'
 import TopicSelector from 'components/TopicSelector'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { POST_TYPES } from 'store/models/Post'
+import {
+  FETCH_COLLECTION_POSTS,
+  FETCH_GROUP_SETTINGS,
+  addPostToCollection,
+  createCollection,
+  fetchCollectionPosts,
+  removePostFromCollection,
+  reorderPostInCollection,
+  updateGroupSettings
+} from '../GroupSettings.store'
 import { COLLECTION_SORT_OPTIONS, STREAM_SORT_OPTIONS } from 'util/constants'
 import { sanitizeURL } from 'util/url'
 import SettingsSection from '../SettingsSection'
+import SaveButton from '../SaveButton'
 
 import general from '../GroupSettings.module.scss'
 import styles from './CustomViewsTab.module.scss'
@@ -35,114 +46,105 @@ const emptyCustomView = {
   type: 'externalLink'
 }
 
-const { object } = PropTypes
+function CustomViewsTab ({ group }) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
 
-class CustomViewsTab extends Component {
-  static propTypes = {
-    group: object
-  }
+  const [state, setState] = useState(() => defaultEditState(group))
 
-  constructor (props) {
-    super(props)
-    this.state = this.defaultEditState()
-  }
+  function defaultEditState (group) {
+    if (!group) return { customViews: [], changed: false }
 
-  componentDidMount () {
-    this.props.fetchCollectionPosts(this.props.group.id)
-  }
-
-  componentDidUpdate (prevProps, prevState) {
-    if (prevProps.fetchPending && !this.props.fetchPending) {
-      this.setState(this.defaultEditState())
-    }
-
-    if (prevProps.fetchCollectionPostsPending && !this.props.fetchCollectionPostsPending) {
-      // Update collections posts
-      const updatedCustomViews = [...this.state.customViews]
-      this.state.customViews.forEach((cv, i) => {
-        if (cv.type === 'collection') {
-          const collection = { ...cv.collection }
-          collection.posts = this.props.group.customViews[i]?.collection?.posts
-          updatedCustomViews[i].collection = collection
-        }
-      })
-      this.setState({ customViews: updatedCustomViews })
-    }
-  }
-
-  defaultEditState () {
-    const { group } = this.props
-
-    if (!group) return { customViews: [], changed: false, error: null }
-
-    const {
-      customViews
-    } = group
-
+    const { customViews } = group
     return {
       customViews: customViews || [],
-      error: null,
       changed: false,
       postTypesModalOpen: false
     }
   }
 
-  validate = () => {
-    const { t } = this.props
-    const { customViews } = this.state
+  const fetchPending = useSelector(state => state.pending[FETCH_GROUP_SETTINGS])
+  const fetchCollectionPostsPending = useSelector(state => state.pending[FETCH_COLLECTION_POSTS])
 
+  const addPostToCollectionAction = useCallback((collectionId, postId) => dispatch(addPostToCollection(collectionId, postId)), [dispatch])
+  const createCollectionAction = useCallback((data) => dispatch(createCollection(data)), [dispatch])
+  const updateGroupSettingsAction = useCallback(changes => group && dispatch(updateGroupSettings(group.id, changes)), [dispatch, group])
+  const removePostFromCollectionAction = useCallback((collectionId, postId) => dispatch(removePostFromCollection(collectionId, postId)), [dispatch])
+  const reorderPostInCollectionAction = useCallback((collectionId, postId, newOrderIndex) => dispatch(reorderPostInCollection(collectionId, postId, newOrderIndex)), [dispatch])
+
+  useEffect(() => {
+    setState(defaultEditState(group))
+  }, [group.customViews])
+
+  useEffect(() => {
+    dispatch(fetchCollectionPosts(group.id))
+  }, [group.id])
+
+  useEffect(() => {
+    if (fetchPending && !fetchCollectionPostsPending) {
+      setState(defaultEditState(group))
+    }
+
+    if (fetchCollectionPostsPending && !fetchCollectionPostsPending) {
+      // Update collections posts
+      const updatedCustomViews = [...state.customViews]
+      state.customViews.forEach((cv, i) => {
+        if (cv.type === 'collection') {
+          const collection = { ...cv.collection }
+          collection.posts = group.customViews[i]?.collection?.posts
+          updatedCustomViews[i].collection = collection
+        }
+      })
+      setState({ ...state, customViews: updatedCustomViews })
+    }
+  }, [fetchPending, fetchCollectionPostsPending, group])
+
+  const errorString = useMemo(() => {
     let errorString = ''
 
-    customViews.forEach(cv => {
+    state.customViews.forEach(cv => {
       const { externalLink, name, icon } = cv
-      if (externalLink.length > 0) {
+      if (externalLink?.length > 0) {
         if (!sanitizeURL(externalLink)) {
           errorString += t('External link has to be a valid URL.') + ' \n'
         }
       }
 
-      if (name.length < 2) {
+      if (!name || name.length < 2) {
         errorString += t('View name needs to be at least two characters long.') + ' \n'
       }
-      if (icon.length < 1) {
+      if (!icon || icon.length < 1) {
         errorString += t('An icon needs to be selected for the view.') + ' '
       }
     })
-    this.setState({ error: errorString })
-  }
+    return errorString
+  }, [state.customViews])
 
-  save = async () => {
-    this.setState({ changed: false })
-    const customViews = [...this.state.customViews].map(cv => {
+  const save = async () => {
+    setState({ ...state, changed: false })
+    const customViews = [...state.customViews].map(cv => {
       cv.topics = cv.topics.map(t => ({ name: t.name, id: t.id }))
       if (cv.externalLink) cv.externalLink = sanitizeURL(cv.externalLink)
       return omit('collection', cv)
     })
-    this.props.updateGroupSettings({ customViews })
+    updateGroupSettingsAction({ customViews })
   }
 
-  addCustomView = () => {
-    this.setState({
-      customViews: [...this.state.customViews].concat({ ...emptyCustomView })
-    })
+  const addCustomView = () => {
+    setState({ ...state, changed: true, customViews: [...state.customViews].concat({ ...emptyCustomView }) })
   }
 
-  deleteCustomView = (i) => () => {
-    if (window.confirm(this.props.t('Are you sure you want to delete this custom view?'))) {
-      const newViews = [...this.state.customViews]
+  const deleteCustomView = (i) => () => {
+    if (window.confirm(t('Are you sure you want to delete this custom view?'))) {
+      const newViews = [...state.customViews]
       newViews.splice(i, 1)
-      this.setState({
-        changed: true,
-        customViews: newViews
-      }, () => {
-        this.validate()
-      })
+      setState({ ...state, changed: true, customViews: newViews })
     }
   }
 
-  updateCustomView = (i) => (key) => (v) => {
+  const updateCustomView = (i) => (key) => async (v) => {
     let value = typeof (v.target) !== 'undefined' ? v.target.value : v
-    const cv = { ...this.state.customViews[i] }
+    const cv = { ...state.customViews[i] }
 
     if (key === 'topics') {
       value = value.map(t => ({ name: t.name, id: parseInt(t.id) }))
@@ -151,11 +153,10 @@ class CustomViewsTab extends Component {
     if (key === 'type' && value !== cv.type) {
       if (value === 'collection') {
         if (cv.collection) {
-          this.props.fetchCollectionPosts(this.props.group.id)
+          dispatch(fetchCollectionPosts(group.id))
         } else {
-          this.props.createCollection({ name: cv.name, groupId: this.props.group.id }).then((resp) => {
-            this.updateCustomView(i)('collectionId')(resp?.payload?.data?.createCollection?.id)
-          })
+          const resp = await createCollectionAction({ name: cv.name, groupId: group.id })
+          cv.collectionId = resp?.payload?.data?.createCollection?.id
         }
       }
       // Streams can't use manual sort order, so revert to created
@@ -165,61 +166,57 @@ class CustomViewsTab extends Component {
     }
 
     cv[key] = value
-    const customViews = [...this.state.customViews]
+    const customViews = [...state.customViews]
     customViews[i] = cv
-    this.setState({ changed: true, customViews }, () => {
-      this.validate()
+    setState({ ...state, changed: true, customViews })
+  }
+
+  const { setHeaderDetails } = useViewHeader()
+
+  useEffect(() => {
+    setHeaderDetails({
+      title: 'Custom Views',
+      icon: 'Eye',
+      search: true
     })
-  }
+  }, [])
 
-  saveButtonContent () {
-    const { changed, error } = this.state
-    if (!changed) return { color: 'gray', style: '', text: this.props.t('Current settings up to date') }
-    if (error) {
-      return { color: 'purple', style: 'general.settingIncorrect', text: error }
-    }
-    return { color: 'green', style: 'general.settingChanged', text: this.props.t('Changes not saved') }
-  }
+  if (!group) return <Loading />
 
-  render () {
-    const { addPostToCollection, group, removePostFromCollection, reorderPostInCollection, t } = this.props
-    if (!group) return <Loading />
+  const { changed, customViews } = state
 
-    const { changed, customViews, error } = this.state
-
-    return (
-      <div className={general.groupSettings}>
-        <SettingsSection>
-          <h3>{t('Custom Views')}</h3>
-          <div className={styles.helpText}>{t('Add custom links or filtered post views to your group\'s navigation')}</div>
-          {customViews.map((cv, i) => (
-            <CustomViewRow
-              addPostToCollection={addPostToCollection}
-              group={group}
-              key={i}
-              index={i}
-              {...cv}
-              onChange={this.updateCustomView(i)}
-              onDelete={this.deleteCustomView(i)}
-              removePostFromCollection={removePostFromCollection}
-              reorderPostInCollection={reorderPostInCollection}
-            />
-          ))}
-          <div className={styles.addCustomView} onClick={this.addCustomView}>
-            <h4>{t('Create new custom view')}</h4>
-            <Icon name='Circle-Plus' className={styles.newCustomView} />
-          </div>
-        </SettingsSection>
-
-        <br />
-
-        <div className={general.saveChanges}>
-          <span className={this.saveButtonContent().style}>{this.saveButtonContent().text}</span>
-          <Button label={t('Save Changes')} color={this.saveButtonContent().color} onClick={changed && !error ? this.save : null} className={cn('saveButton', general.saveButton)} />
+  return (
+    <div className={general.groupSettings}>
+      <SettingsSection>
+        <div className='text-foreground'>{t('Add custom links or filtered post views to your group\'s navigation')}</div>
+        {customViews.map((cv, i) => (
+          <CustomViewRow
+            addPostToCollection={addPostToCollectionAction}
+            group={group}
+            key={i}
+            index={i}
+            {...cv}
+            onChange={updateCustomView(i)}
+            onDelete={deleteCustomView(i)}
+            removePostFromCollection={removePostFromCollectionAction}
+            reorderPostInCollection={reorderPostInCollectionAction}
+          />
+        ))}
+        <div className={styles.addCustomView} onClick={addCustomView}>
+          <h4>{t('Create new custom view')}</h4>
+          <Icon name='Circle-Plus' className={styles.newCustomView} />
         </div>
-      </div>
-    )
-  }
+      </SettingsSection>
+
+      <br />
+
+      <SaveButton
+        changed={changed}
+        error={errorString}
+        save={save}
+      />
+    </div>
+  )
 }
 
 export function CustomViewRow ({
@@ -403,7 +400,7 @@ export function CustomViewRow ({
                   </div>
 
                   <div className={styles.customViewRow}>
-                    <label className={styles.label}>{t('Include only active posts?')}</label>
+                    <label className={cn(styles.label, 'mr-2')}>{t('Include only active posts?')}</label>
                     <SwitchStyled
                       checked={activePostsOnly}
                       onChange={() => onChange('activePostsOnly')(!activePostsOnly)}
@@ -412,13 +409,13 @@ export function CustomViewRow ({
                   </div>
                   <div className={styles.customViewLastRow}>
                     <label className={styles.label}>{t('Include only posts that match any of these topics:')}</label>
-                    <TopicSelector currentGroup={group} selectedTopics={topics} onChange={onChange('topics')} />
+                    <TopicSelector forGroups={[group]} selectedTopics={topics} onChange={onChange('topics')} />
                   </div>
                 </>)
               : (
                 <>
                   <div className={styles.postTypes}>
-                    <label className={styles.label}>{t('Included Posts')}<span>{collection?.posts?.length || 0}</span> </label>
+                    <label className={styles.label}>{t('Included Posts')}<span> {collection?.posts?.length || 0}</span> </label>
                     <PostSelector
                       collection={collection}
                       group={group}

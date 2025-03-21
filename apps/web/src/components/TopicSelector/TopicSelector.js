@@ -34,7 +34,7 @@ const inputStyles = {
     ...styles,
     backgroundColor: 'transparent'
   }),
-  multiValueRemove: styles => ({ ...styles, cursor: 'pointer' }),
+  multiValueRemove: styles => ({ ...styles, color: 'black', cursor: 'pointer' }),
   clearIndicator: styles => ({ ...styles, cursor: 'pointer' }),
   placeholder: styles => ({ ...styles, color: 'rgb(192, 197, 205)' }),
   dropdownIndicator: styles => ({ display: 'none' }),
@@ -49,9 +49,11 @@ function TopicSelector (props) {
   const dispatch = useDispatch()
   const defaultTopics = useSelector(state => getDefaultTopics(state, { groups: forGroups }))
 
+  const slug = get('forGroups[0].slug', props)
+
   useEffect(() => {
-    dispatch(fetchDefaultTopics({ groupSlug: get('forGroups[0].slug', props) }))
-  }, [forGroups])
+    slug && dispatch(fetchDefaultTopics({ groupSlug: slug }))
+  }, [slug])
 
   useEffect(() => {
     if (topicsEdited) return
@@ -69,7 +71,7 @@ function TopicSelector (props) {
 
     if (selected.length >= MAX_TOPICS || isEmpty(input)) return []
 
-    const response = await dispatch(findTopics({ autocomplete: input }))
+    const response = await dispatch(findTopics({ autocomplete: input, groupSlug: slug }))
     const topicResults = response.payload.getData().items.map(get('topic'))
     const sortedTopicResults = orderBy(
       [t => t.name === input ? -1 : 1, 'followersTotal', 'postsTotal'],
@@ -90,7 +92,7 @@ function TopicSelector (props) {
         options: sortedTopicResults
       }
     ]
-  }, [selected])
+  }, [defaultTopics, selected, slug])
 
   const handleTopicsChange = useCallback(newTopics => {
     const topics = newTopics.filter(t => !Validators.validateTopicName(t.name))

@@ -141,7 +141,7 @@ I'm inviting you to join {{name}} on Hylo.
             <div className='border-2 mt-6 p-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-2 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
               <div className='text-foreground'>
                 <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Public Group Link')}</h2>
-                {t('This group is public. Anyone can find and view it at this link:')}
+                <div className='text-sm'><strong>{t('Use this for people you don\'t know')}</strong> <span className='text-foreground/50'>{t('who you would like ask join questions to vet before they enter the group.')}</span></div>
               </div>
               <div>
                 <CopyToClipboard text={`${window.location.origin}/groups/${group.slug}`} onCopy={onCopy}>
@@ -169,7 +169,7 @@ I'm inviting you to join {{name}} on Hylo.
           <div className='border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
             <div className='text-foreground'>
               <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Share a Join Link')}</h2>
-              {t('Anyone can join')}<span style={{ fontWeight: 'bold' }}> {group.name}</span> {t('with this link')}.{' '}{inviteLink && t('Click or press on it to copy it')}:
+              <div className='text-sm'><strong>{t('Use this link to invite people you know and trust.')}</strong> <span className='text-foreground/50'>{t('They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.')}</span></div>
             </div>
             <div className='flex items-center gap-2'>
               {inviteLink && (
@@ -210,6 +210,7 @@ I'm inviting you to join {{name}} on Hylo.
         <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>
           {t('Send Invites via email')}
         </h2>
+        <span className='text-sm text-foreground/50'>{t('An email invitation link will be sent to each email address, which allows them to bypass the group approval process. They will still be shown any required questions or agreements you may have set.')}</span>
         <p>{t('Enter email addresses separated by commas or new lines')}</p>
         <TextareaAutosize
           minRows={1}

@@ -1,11 +1,10 @@
-import React, { Suspense, useCallback } from 'react'
+import React, { useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 
-import Loading from 'components/Loading/Loading'
 import { removePostFromUrl } from 'util/navigation'
 
-const PostDetail = React.lazy(() => import('routes/PostDetail/PostDetail'))
+import PostDetail from 'routes/PostDetail/PostDetail'
 
 const PostDialog = ({
   container
@@ -35,9 +34,7 @@ const PostDialog = ({
           <Dialog.Content onInteractOutside={handleInteractOutside} className='PostDialog-Content min-w-[300px] w-full bg-background p-3 rounded-md z-[41] max-w-[750px] outline-none'>
             <Dialog.Title className='sr-only'>Post Dialog</Dialog.Title>
             <Dialog.Description className='sr-only'>Post Dialog</Dialog.Description>
-            <Suspense fallback={<Loading />}>
-              <PostDetail />
-            </Suspense>
+            <PostDetail />
           </Dialog.Content>
         </Dialog.Overlay>
       </Dialog.Portal>

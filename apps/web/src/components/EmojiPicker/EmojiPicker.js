@@ -17,7 +17,7 @@ export default function EmojiPicker (props) {
   const handleOpenChange = (isOpen) => {
     setModalOpen(isOpen)
     if (onOpenChange) {
-      onOpenChange(modalOpen)
+      onOpenChange(isOpen)
     }
   }
 
@@ -28,7 +28,7 @@ export default function EmojiPicker (props) {
     } else {
       handleReaction(selectedEmoji)
     }
-    setModalOpen(!modalOpen)
+    handleOpenChange(!modalOpen)
 
     return true
   }
@@ -40,7 +40,7 @@ export default function EmojiPicker (props) {
   }
 
   const toggleModalOpen = (evt) => {
-    setModalOpen(!modalOpen)
+    handleOpenChange(!modalOpen)
     evt.preventDefault()
     evt.stopPropagation()
     return false
