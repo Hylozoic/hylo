@@ -20,7 +20,6 @@ export const toDateTime = (
   dt : string | Date | DateTime | Object,
   timezone? : string
 ) : DateTime => {
-  const locale = getLocaleAsString()
   const now = DateTime.now()
   const _dt = dt instanceof DateTime
     ? dt
@@ -29,7 +28,7 @@ export const toDateTime = (
       : typeof dt === 'string'
         ? DateTime.fromISO(dt, { zone: timezone || now.zoneName || 'UTC' })
         : DateTime.fromObject(dt, { zone: timezone || now.zoneName || 'UTC' })
-  return locale ? _dt.setLocale(locale) : _dt
+  return _dt.setLocale(getLocaleAsString())
 }
 
 const same = (
