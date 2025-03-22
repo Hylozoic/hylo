@@ -29,8 +29,9 @@ function EventBody (props) {
   const attachmentType = firstAttachment?.type
 
   const eventAttendees = filter(ei => ei.response === RESPONSES.YES, eventInvitations)
-  const isPastEvent = endTime && new Date(endTime) < new Date()
-  const isUpcoming = startTime && (new Date(startTime) - new Date()) <= 72 * 60 * 60 * 1000 // 72 hours in milliseconds
+  const now = new Date()
+  const isPastEvent = endTime && new Date(endTime) < now
+  const isUpcoming = startTime && new Date(startTime) > now && (new Date(startTime) - now) <= 72 * 60 * 60 * 1000 // 72 hours in milliseconds
 
   return (
     <div>
