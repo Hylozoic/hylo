@@ -12,7 +12,7 @@ export default function CalendarBodyDay () {
   const { date, events, group } = useCalendarContext()
   const routeParams = useRouteParams()
   const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe'], location)
-  const dayEvents = events.filter((event) => DateTimeHelpers.includes(event.start, date, event.end))
+  const dayEvents = events.filter((event) => DateTimeHelpers.rangeIncludesDate(event.start, date, event.end))
   return (
     <div className='flex flex-grow p-0'>
       <div className='flex flex-col flex-grow'>

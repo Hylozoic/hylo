@@ -45,60 +45,59 @@ const same = (
   return _dt1.hasSame(_dt2, unit)
 }
 
-export const includes = (
-  dt1 : string | Date | DateTime | Object,
-  dt2 : string | Date | DateTime | Object,
-  dt3 : string | Date | DateTime | Object
+export const rangeIncludesDate = (
+  start : string | Date | DateTime | Object,
+  date : string | Date | DateTime | Object,
+  end : string | Date | DateTime | Object
 ) : boolean => {
-  const _dt1 = toDateTime(dt1)
-  const _dt2 = toDateTime(dt2)
-  const _dt3 = toDateTime(dt3)
-  return _dt2.hasSame(_dt1, 'day')
-    || _dt2.hasSame(_dt3, 'day')
-    || (_dt1 <= _dt2 && _dt2 < _dt3)
+  const _start = toDateTime(start)
+  const _date = toDateTime(date)
+  const _end = toDateTime(end)
+  return _date.hasSame(_start, 'day')
+    || _date.hasSame(_end, 'day')
+    || (_start < _date && _date < _end)
 }
 
 export const inWeek = (
-  dt1 : string | Date | DateTime | Object,
-  dt2 : string | Date | DateTime | Object,
-  dt3 : string | Date | DateTime | Object
+  start : string | Date | DateTime | Object,
+  date : string | Date | DateTime | Object,
+  end : string | Date | DateTime | Object
 ) : boolean => {
-  const _dt1 = toDateTime(dt1)
-  const _dt2 = toDateTime(dt2)
-  const _dt3 = toDateTime(dt3)
-  const weekStart = _dt2.startOf('week', { useLocaleWeeks: true })
-  const weekEnd = _dt2.endOf('week', { useLocaleWeeks: true }).plus({ days: 1 })
-  return _dt1 < weekEnd && weekStart <= _dt3
+  const _start = toDateTime(start)
+  const _date = toDateTime(date)
+  const _end = toDateTime(end)
+  const weekStart = _date.startOf('week', { useLocaleWeeks: true })
+  const weekEnd = _date.endOf('week', { useLocaleWeeks: true }).plus({ days: 1 })
+  return _start < weekEnd && weekStart <= _end
 }
 
 export const sameDay = (
-  dt1 : string | Date | DateTime | Object,
-  dt2 : string | Date | DateTime | Object,
-  dt3? : string | Date | DateTime | Object
+  date1 : string | Date | DateTime | Object,
+  date2 : string | Date | DateTime | Object
 ) : boolean => {
-  return dt3 ? includes(dt1, dt2, dt3) : same(dt1, dt2, 'day')
+  return same(date1, date2, 'day')
 }
 
 export const sameWeek = (
-  dt1 : string | Date | DateTime | Object,
-  dt2 : string | Date | DateTime | Object
+  date1 : string | Date | DateTime | Object,
+  date2 : string | Date | DateTime | Object
 ) : boolean => {
-  return same(dt1, dt2, 'week')
+  return same(date1, date2, 'week')
 }
 
 export const sameMonth = (
-  dt1 : string | Date | DateTime | Object,
-  dt2 : string | Date | DateTime | Object
+  date1 : string | Date | DateTime | Object,
+  date2 : string | Date | DateTime | Object
 ) : boolean => {
-  return same(dt1, dt2, 'month')
+  return same(date1, date2, 'month')
 }
 
 export function humanDate (
-  dt : string | Date | DateTime | Object,
+  date : string | Date | DateTime | Object,
   short? : boolean
 ) : string {
-  const _dt = toDateTime(dt)
-  let ret = _dt.invalidReason ? '' : prettyDate.format(_dt.toJSDate())
+  const _date = toDateTime(date)
+  let ret = _date.invalidReason ? '' : prettyDate.format(_date.toJSDate())
 
   // Always return 'now' for very recent timestamps
   if (ret === 'just now') {
@@ -123,42 +122,42 @@ export function humanDate (
 }
 
 export const formatDatePair = (
-  startTime : string | Date | DateTime | Object,
-  endTime : string | Date | DateTime | Object | boolean,
+  start : string | Date | DateTime | Object,
+  end : string | Date | DateTime | Object | boolean,
   returnAsObj? : boolean,
   timezone? : string
 ) : string | { from : string, to : string } => {
-  const start = toDateTime(startTime, timezone)
-  const end = endTime ? toDateTime(endTime, timezone) : null
+  const _start = toDateTime(start, timezone)
+  const _end = end ? toDateTime(end, timezone) : null
 
   const now = dateTimeNow()
 
-  const isPastYear = start.get('year') < now.get('year')
-  const isSameDay = end && start.get('day') === end.get('day') &&
-                    start.get('month') === end.get('month') &&
-                    start.get('year') === end.get('year')
+  const isPastYear = _start.get('year') < now.get('year')
+  const isSameDay = _end && _start.get('day') === _end.get('day') &&
+                    _start.get('month') === _end.get('month') &&
+                    _start.get('year') === _end.get('year')
 
   let to = ''
   let from = ''
 
   // Format the start date - only include year if it's in the past
   if (isPastYear) {
-    from = start.toFormat("ccc MMM d, yyyy '•' t")
+    from = _start.toFormat("ccc MMM d, yyyy '•' t")
   } else {
-    from = start.toFormat("ccc MMM d '•' t")
+    from = _start.toFormat("ccc MMM d '•' t")
   }
 
   // Format the end date/time if provided
-  if (endTime) {
+  if (end) {
     if (isSameDay) {
       // If same day, only show the end time
-      to = end.toFormat('t')
-    } else if (end.get('year') < now.get('year')) {
+      to = _end.toFormat('t')
+    } else if (_end.get('year') < now.get('year')) {
       // If end date is in a past year, include the year
-      to = end.toFormat("MMM d, yyyy '•' t")
+      to = _end.toFormat("MMM d, yyyy '•' t")
     } else {
       // Otherwise just month, day and time
-      to = end.toFormat("MMM d '•' t")
+      to = _end.toFormat("MMM d '•' t")
     }
 
     to = returnAsObj ? to : ' - ' + to

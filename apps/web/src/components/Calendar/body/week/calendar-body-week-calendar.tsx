@@ -62,7 +62,7 @@ export default function CalendarBodyWeekCalendar () {
         formatters={({
           formatDay: (date, options) => {
             const maxNumEvents = 3
-            const numEvents = events.filter((event) => DateTimeHelpers.includes(event.start, date, event.end)).length
+            const numEvents = events.filter((event) => DateTimeHelpers.rangeIncludesDate(event.start, date, event.end)).length
             const symbols = '•'.repeat(Math.min(numEvents, maxNumEvents))
             const moreSymbol = numEvents > maxNumEvents
             return `${DateTimeHelpers.toDateTime(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
