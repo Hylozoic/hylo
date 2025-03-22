@@ -164,7 +164,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         q.where('groups_posts.group_id', tagFollow.get('group_id'))
         q.where('posts_tags.tag_id', tagFollow.get('tag_id'))
       }).fetchAll({
-        withRelated: ['user', 'media']
+        withRelated: ['user', 'media', 'tags']
       })
 
       // If there are no new posts since last digest created by someone other than the tag follow user, then continue to the next tagFollow
@@ -183,7 +183,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           creator_avatar_url: post.relations.user.get('avatar_url'),
           images: post.relations.media.filter(m => m.get('type') === 'image').map(m => m.pick('url', 'thumbnail_url')),
           mentionedMe,
-          post_url: Frontend.Route.post({ post, group: tagFollow.relations.group }),
+          post_url: Frontend.Route.post(post, tagFollow.relations.group),
           timestamp: post.get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
         }
       })
@@ -204,7 +204,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           count: postData.length,
           chat_topic: tagFollow.relations.tag.get('name'),
           // For the overall chat room URL use the URL of the last post in the email digest
-          chat_room_url: Frontend.Route.post({ post: posts[posts.length - 1], group: tagFollow.relations.group }),
+          chat_room_url: Frontend.Route.post(posts.models[posts.models.length - 1], tagFollow.relations.group),
           // date: TextHelpers.formatDatePair(posts[0].get('created_at'), false, false, posts[0].get('timezone')),
           group_name: tagFollow.relations.group.get('name'),
           group_avatar_url: tagFollow.relations.group.get('avatar_url'),
