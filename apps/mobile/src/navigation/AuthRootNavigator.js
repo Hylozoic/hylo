@@ -24,6 +24,7 @@ import CreateGroup from 'screens/CreateGroup'
 import DrawerNavigator from 'navigation/DrawerNavigator'
 import CreationOptions from 'screens/CreationOptions'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
+import HyloWebView from 'components/HyloWebView'
 import LoadingScreen from 'screens/LoadingScreen'
 import MemberProfile from 'screens/MemberProfile'
 import PostDetails from 'screens/PostDetails'
@@ -186,6 +187,7 @@ export default function AuthRootNavigator () {
           <AuthRoot.Screen name='Notifications' component={NotificationsList} />
           <AuthRoot.Screen name={modalScreenName('Post Details')} component={PostDetails} options={{ title: 'Post Details' }} />
           <AuthRoot.Screen name={modalScreenName('Thread')} component={Thread} />
+          <AuthRoot.Screen name={modalScreenName('Web View')} component={HyloWebView} />
         </AuthRoot.Group>
       </AuthRoot.Navigator>
     </HyloHTMLConfigProvider>
