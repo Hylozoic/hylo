@@ -49,7 +49,7 @@ function calculateEventPosition (
   let endHour = event.end.getHours()
   let endMinutes = event.end.getMinutes()
 
-  if (!DateTimeHelpers.sameDay(event.start, event.end)) {
+  if (!DateTimeHelpers.isSameDay(event.start, event.end)) {
     endHour = 23
     endMinutes = 59
   }
@@ -86,7 +86,7 @@ export default function CalendarEvent ({
   const viewPostDetails = useViewPostDetails()
 
   // Generate a unique key that includes the current month to prevent animation conflicts
-  const isEventInCurrentMonth = DateTimeHelpers.sameMonth(event.start, date)
+  const isEventInCurrentMonth = DateTimeHelpers.isSameMonth(event.start, date)
   const animationKey = `${event.id}-${
     isEventInCurrentMonth ? 'current' : 'adjacent'
   }`
@@ -98,9 +98,9 @@ export default function CalendarEvent ({
           className={cn(
             classes[event.type],
             'cursor-pointer transition-all duration-300 border',
-            month && event.multiday && DateTimeHelpers.sameDay(event.start, day) && 'rounded-l-md border-r-0',
-            month && event.multiday && DateTimeHelpers.sameDay(event.end, day) && 'rounded-r-md border-l-0 mr-1',
-            month && event.multiday && !DateTimeHelpers.sameDay(event.start, day) && !DateTimeHelpers.sameDay(event.end, day) && 'border-l-0 border-r-0',
+            month && event.multiday && DateTimeHelpers.isSameDay(event.start, day) && 'rounded-l-md border-r-0',
+            month && event.multiday && DateTimeHelpers.isSameDay(event.end, day) && 'rounded-r-md border-l-0 mr-1',
+            month && event.multiday && !DateTimeHelpers.isSameDay(event.start, day) && !DateTimeHelpers.isSameDay(event.end, day) && 'border-l-0 border-r-0',
             month && !event.multiday && 'rounded-md mr-1',
             !month && 'absolute',
             className
@@ -147,9 +147,9 @@ export default function CalendarEvent ({
             className={cn(
               'flex flex-col w-full',
               // Note: at this time, css for arrow is same as arrow-start
-              month && event.multiday && DateTimeHelpers.sameDay(event.start, day) && 'arrow-start p-0',
-              month && event.multiday && !DateTimeHelpers.sameDay(event.start, day) && !DateTimeHelpers.sameDay(event.end, day) && 'arrow p-0',
-              month && event.multiday && DateTimeHelpers.sameDay(event.end, day) && 'arrow-end p-0',
+              month && event.multiday && DateTimeHelpers.isSameDay(event.start, day) && 'arrow-start p-0',
+              month && event.multiday && !DateTimeHelpers.isSameDay(event.start, day) && !DateTimeHelpers.isSameDay(event.end, day) && 'arrow p-0',
+              month && event.multiday && DateTimeHelpers.isSameDay(event.end, day) && 'arrow-end p-0',
               month && event.multiday && event.type,
               month && 'flex-row items-center justify-between pl-1'
             )}

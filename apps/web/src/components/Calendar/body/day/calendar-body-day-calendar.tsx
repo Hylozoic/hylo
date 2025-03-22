@@ -12,12 +12,12 @@ export default function CalendarBodyDayCalendar () {
   const today = new Date()
   const { date, events, setDate } = useCalendarContext()
 
-  const [hideGoToButton, setHideGoToButton] = useState(DateTimeHelpers.sameDay(date, today))
+  const [hideGoToButton, setHideGoToButton] = useState(DateTimeHelpers.isSameDay(date, today))
   const [selected, setSelected] = useState<Date>(date)
   const [month, setMonth] = useState(date)
 
   const handleMonthChange = (day : Date) => {
-    setHideGoToButton(DateTimeHelpers.sameDay(day, today))
+    setHideGoToButton(DateTimeHelpers.isSameDay(day, today))
     setMonth(day)
     setDate(day)
   }

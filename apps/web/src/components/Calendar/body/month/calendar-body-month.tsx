@@ -73,8 +73,8 @@ export default function CalendarBodyMonth () {
               const dayEvents = visibleEvents.filter((event) =>
                 DateTimeHelpers.rangeIncludesDate(event.start, day, event.end)
               )
-              const isToday = DateTimeHelpers.sameDay(day, today)
-              const isCurrentMonth = DateTimeHelpers.sameMonth(day, date)
+              const isToday = DateTimeHelpers.isSameDay(day, today)
+              const isCurrentMonth = DateTimeHelpers.isSameMonth(day, date)
 
               return (
                 <div

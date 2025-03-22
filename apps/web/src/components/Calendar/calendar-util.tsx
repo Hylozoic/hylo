@@ -35,5 +35,5 @@ export const eachIntervalDay = (
 export const isMultiday = (
   post: HyloPost
 ) : boolean => {
-  return !DateTimeHelpers.sameDay(post.startTime, post.endTime)
+  return !DateTimeHelpers.isSameDay(post.startTime, post.endTime)
 }

@@ -35,7 +35,7 @@ export const toDateTime = (
   return _dt
 }
 
-const same = (
+const isSame = (
   dt1 : string | Date | DateTime | Object,
   dt2 : string | Date | DateTime | Object,
   unit : DateTimeUnit
@@ -71,25 +71,25 @@ export const inWeek = (
   return _start < weekEnd && weekStart <= _end
 }
 
-export const sameDay = (
+export const isSameDay = (
   date1 : string | Date | DateTime | Object,
   date2 : string | Date | DateTime | Object
 ) : boolean => {
-  return same(date1, date2, 'day')
+  return isSame(date1, date2, 'day')
 }
 
-export const sameWeek = (
+export const isSameWeek = (
   date1 : string | Date | DateTime | Object,
   date2 : string | Date | DateTime | Object
 ) : boolean => {
-  return same(date1, date2, 'week')
+  return isSame(date1, date2, 'week')
 }
 
-export const sameMonth = (
+export const isSameMonth = (
   date1 : string | Date | DateTime | Object,
   date2 : string | Date | DateTime | Object
 ) : boolean => {
-  return same(date1, date2, 'month')
+  return isSame(date1, date2, 'month')
 }
 
 export function humanDate (

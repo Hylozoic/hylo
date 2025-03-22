@@ -43,11 +43,11 @@ export default function CalendarHeaderDateChevrons () {
   const shouldHideGoToButton = () => {
     switch (mode) {
       case 'month':
-        return DateTimeHelpers.sameMonth(date, today)
+        return DateTimeHelpers.isSameMonth(date, today)
       case 'week':
-        return DateTimeHelpers.sameWeek(date, today)
+        return DateTimeHelpers.isSameWeek(date, today)
       case 'day':
-        return DateTimeHelpers.sameDay(date, today)
+        return DateTimeHelpers.isSameDay(date, today)
     }
   }
 

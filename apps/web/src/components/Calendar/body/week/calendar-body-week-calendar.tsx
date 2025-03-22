@@ -25,7 +25,7 @@ export default function CalendarBodyWeekCalendar () {
   const { date, events, setDate } = useCalendarContext()
   const today = new Date()
 
-  const [hideGoToButton, setHideGoToButton] = useState(DateTimeHelpers.sameWeek(date, today))
+  const [hideGoToButton, setHideGoToButton] = useState(DateTimeHelpers.isSameWeek(date, today))
   const [selected, setSelected] = useState<Date[]>(selectedWeekDates(date))
   const [month, setMonth] = useState(date)
 
@@ -37,7 +37,7 @@ export default function CalendarBodyWeekCalendar () {
   const handleMonthChange = (day : Date) => {
     setDate(day)
     setMonth(day)
-    setHideGoToButton(DateTimeHelpers.sameWeek(day, today))
+    setHideGoToButton(DateTimeHelpers.isSameWeek(day, today))
   }
 
   const handleGoToButton = () => {

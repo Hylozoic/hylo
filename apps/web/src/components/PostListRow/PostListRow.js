@@ -54,7 +54,7 @@ const PostListRow = (props) => {
   const unread = false
   const start = DateTimeHelpers.toDateTime(post.startTime)
   const end = DateTimeHelpers.toDateTime(post.endTime)
-  const isSameDay = DateTimeHelpers.sameDay(start, end)
+  const isSameDay = DateTimeHelpers.isSameDay(start, end)
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
   return (
