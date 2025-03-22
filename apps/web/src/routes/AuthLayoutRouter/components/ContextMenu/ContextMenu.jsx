@@ -163,9 +163,8 @@ export default function ContextMenu (props) {
 
   const handleDragEnd = (event) => {
     const { active, over } = event
-
     if (over && over.id !== active.id && over.id !== 'remove') {
-      const orderInFrontOfWidget = over.data?.current?.widget
+      const orderInFrontOfWidget = over.data?.current?.addToEnd ? null : over.data?.current?.widget
 
       dispatch(updateContextWidget({
         contextWidgetId: active.id,
@@ -415,7 +414,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                   <h3 className='text-base font-light opacity-50 text-foreground' data-testid={widget.type}>{title}</h3>
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
-              {widget.type !== 'members' &&
+              {widget.type !== 'members' && !isOverlay &&
                 <div className={cn('flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground',
                   {
                     'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditing && widget.type !== 'home'
@@ -424,7 +423,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                   <SpecialTopElementRenderer widget={widget} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
-                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} />)}
+                    {presentedlistItems.length > 0 && !isOverlay && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} />)}
                     {widget.id && isEditing && !['home', 'setup'].includes(widget.type) &&
                       <li>
                         <DropZone droppableParams={{ id: `bottom-of-child-list-${widget.id}`, data: { widget, parentWidget: widget, isOverlay, addToEnd: true, parentId: widget.id } }}>
@@ -437,7 +436,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                       </li>}
                   </ul>
                 </div>}
-              {widget.type === 'members' &&
+              {widget.type === 'members' && !isOverlay &&
                 <div className='flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground'>
                   <SpecialTopElementRenderer widget={widget} />
                   <ul className='px-1 pt-1 pb-2'>
@@ -649,6 +648,19 @@ function SpecialTopElementRenderer ({ widget }) {
             </span>
           </div>
         </MenuLink>
+      </div>
+    )
+  }
+
+  if (widget.type === 'members' && !canAddMembers) {
+    return (
+      <div className='relative'>
+        <div className={cn('absolute -top-10 right-0 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100', isEditing && 'right-8')}>
+          <MenuLink to={groupUrl(group.slug, 'members')} className='flex items-center gap-2 px-2 py-1 text-foreground/50 hover:text-foreground/100 transition-all'>
+            <Users className='w-4 h-4' />
+            <span>{group.memberCount || 0}</span>
+          </MenuLink>
+        </div>
       </div>
     )
   }

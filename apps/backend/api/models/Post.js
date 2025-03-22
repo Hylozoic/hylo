@@ -349,7 +349,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       topic_name: type !== 'oneline' && this.get('type') === 'chat' ? tags?.first()?.get('name') : '',
       type: this.get('type'),
       start_time: type === 'oneline' && this.get('start_time') && TextHelpers.formatDatePair(this.get('start_time'), null, false, this.get('timezone')),
-      title: this.get('name'),
+      title: this.summary(),
       unfollow_url: Frontend.Route.unfollow(this, group) + clickthroughParams,
       user: {
         id: user.id,

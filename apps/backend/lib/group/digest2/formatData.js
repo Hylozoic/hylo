@@ -34,7 +34,7 @@ const formatData = curry((group, data) => {
   })
 
   ret.posts_with_new_comments = sortBy(p => -p.id, postsWithNewComments)
-  ret.num_sections = Object.keys(ret).filter(k => ret[k] && ret[k].length > 0).length
+  ret.num_sections = Object.keys(ret).filter(k => Array.isArray(ret[k]) && ret[k].length > 0).length
   return ret.num_sections > 0 ? ret : null
 })
 

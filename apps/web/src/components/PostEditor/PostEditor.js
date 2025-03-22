@@ -725,7 +725,7 @@ function PostEditor ({
   }
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative')}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative', { 'pb-1': !modal, [styles.noModal]: !modal })}>
       <div
         className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
         style={{
