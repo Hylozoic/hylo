@@ -114,7 +114,7 @@ const personalizeData = async (user, type, data, opts = {}) => {
   if (!(await shouldSendData(filteredData, user.id))) {
     return null
   }
-  filteredData.num_sections = Object.keys(filteredData).filter(k => filteredData[k] && filteredData[k].length > 0).length
+  filteredData.num_sections = Object.keys(filteredData).filter(k => Array.isArray(filteredData[k]) && filteredData[k].length > 0).length
 
   const locale = user.get('settings').locale || 'en'
   const clickthroughParams = '?' + new URLSearchParams({

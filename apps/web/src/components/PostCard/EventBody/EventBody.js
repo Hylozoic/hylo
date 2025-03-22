@@ -32,6 +32,7 @@ function EventBody (props) {
   const now = new Date()
   const isPastEvent = endTime && new Date(endTime) < now
   const isUpcoming = startTime && new Date(startTime) > now && (new Date(startTime) - now) <= 72 * 60 * 60 * 1000 // 72 hours in milliseconds
+  const isHappeningNow = startTime && endTime && new Date(startTime) <= now && now <= new Date(endTime)
 
   return (
     <div>
@@ -47,7 +48,8 @@ function EventBody (props) {
             <EventDate {...event} />
             <div className='flex flex-col gap-0'>
               <div className={cn('text-xs text-foreground/50 flex flex-row gap-2 items-center')} onClick={onClick}>
-                {isUpcoming && <div className='bg-accent/10 p-1 rounded-lg text-accent text-xs font-bold flex items-center justify-center inline-block px-2'>Upcoming</div>}
+                {isHappeningNow && <div className='bg-selected/10 p-1 rounded-lg text-selected text-xs font-bold flex items-center justify-center inline-block px-2'>{t('Happening now!')}</div>}
+                {!isHappeningNow && isUpcoming && <div className='bg-accent/10 p-1 rounded-lg text-accent text-xs font-bold flex items-center justify-center inline-block px-2'>{t('Upcoming')}</div>}
                 {TextHelpers.formatDatePair(startTime, endTime)}
                 {isPastEvent && (
                   <span className={cn('text-sm text-foreground/50 ml-2 px-2 inline-block p-1 rounded-md bg-foreground/10 text-xs')}>{t('Event ended')}</span>
