@@ -2,7 +2,6 @@
 import HasSettings from './mixins/HasSettings'
 import RedisClient from '../services/RedisClient'
 import { mapLocaleToSendWithUS } from '../../lib/util'
-import { TextHelpers } from '@hylo/shared'
 
 const CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY = 'ChatRoom.digests.lastSentAt'
 
@@ -197,7 +196,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }
 
       const locale = mapLocaleToSendWithUS(tagFollow.relations.user.get('settings').locale || 'en-US')
-      Email.sendChatDigest({
+      const result = await Email.sendChatDigest({
         version: 'Redesign 2025',
         email: tagFollow.relations.user.get('email'),
         locale,
@@ -212,7 +211,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
           posts: postData
         }
       })
-      numSent = numSent + 1
+      if (result) {
+        numSent = numSent + 1
+      }
     }
     await redisClient.set(CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY, now.getTime().toString())
     return numSent

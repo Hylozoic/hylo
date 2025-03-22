@@ -3,11 +3,16 @@ import { format } from 'util'
 import { mapLocaleToSendWithUS } from '../../lib/util'
 
 const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
-const Promise = require('bluebird')
 
-const sendEmail = opts =>
-  new Promise((resolve, reject) =>
-    api.send(opts, (err, resp) => err ? reject(err) : resolve(resp)))
+const sendEmail = async opts => {
+  try {
+    await api.send(opts)
+    return true
+  } catch (err) {
+    console.error('Error sending email:', err, ' email opts = ', opts)
+    return false
+  }
+}
 
 const defaultOptions = {
   sender: {
