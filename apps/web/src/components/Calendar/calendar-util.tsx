@@ -26,19 +26,6 @@ export const getHourCycle = () => {
   }
 }
 
-export const inWeek = (
-  dt1 : Date,
-  dt2 : Date,
-  dt3 : Date
-) : boolean => {
-  const _dt1 = DateTimeHelpers.toDateTime(dt1)
-  const _dt2 = DateTimeHelpers.toDateTime(dt2)
-  const _dt3 = DateTimeHelpers.toDateTime(dt3)
-  const weekStart = _dt2.startOf('week', { useLocaleWeeks: true })
-  const weekEnd = _dt2.endOf('week', { useLocaleWeeks: true }).plus({ days: 1 })
-  return _dt1 < weekEnd && weekStart <= _dt3
-}
-
 export const eachIntervalDay = (
   interval: Interval
 ): Date[] => {
