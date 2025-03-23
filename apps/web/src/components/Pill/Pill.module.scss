@@ -23,6 +23,7 @@
 
   &.editable {
     cursor: pointer;
+    padding-right: 1.5rem;
 
     &:hover {
       .remove-label {

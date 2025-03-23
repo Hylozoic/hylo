@@ -12,7 +12,8 @@ export default function SuggestedSkills ({ addSkill, currentUser, group, removeS
   const pills = map(group.suggestedSkills, skill => ({
     ...skill,
     label: skill.name,
-    className: selectedSkills.find(s => s === skill.id) ? styles.selectedSkill : ''
+    className: selectedSkills.find(s => s === skill.id) ? styles.selectedSkill : '',
+    tooltipContent: ''
   }))
 
   const handleClick = (skillId) => {
