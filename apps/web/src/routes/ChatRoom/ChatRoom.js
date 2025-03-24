@@ -31,7 +31,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
-import { FETCH_TOPIC_FOLLOW, FETCH_POSTS } from 'store/constants'
+import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import orm from 'store/models'
 import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
@@ -46,6 +46,7 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { groupInviteUrl, groupUrl } from 'util/navigation'
 import isWebView from 'util/webView'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 
 import styles from './ChatRoom.module.scss'
 
@@ -701,16 +702,22 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
 const HomeChatWelcome = ({ group }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
+
   return (
     <div className='mx-auto px-4 max-w-[500px] flex flex-col items-center justify-center'>
       <img src='/home-chat-welcome.png' alt='Golden Starburst' />
       <h1 className='text-center'>{t('homeChatWelcomeTitle')}</h1>
       <p className='text-center'>{t('homeChatWelcomeDescription', { group_name: group.name })}</p>
       <div className='flex gap-2 items-center justify-center'>
-        <Button onClick={() => navigate(groupUrl(group.slug, 'settings/invite'))}><Send /> {t('Send Invites')}</Button>
-        <CopyToClipboard text={groupInviteUrl(group)}>
-          <Button><Copy /> {t('Copy Invite Link')}</Button>
-        </CopyToClipboard>
+        {canAddMembers && (
+          <>
+            <Button onClick={() => navigate(groupUrl(group.slug, 'settings/invite'))}><Send /> {t('Send Invites')}</Button>
+            <CopyToClipboard text={groupInviteUrl(group)}>
+              <Button><Copy /> {t('Copy Invite Link')}</Button>
+            </CopyToClipboard>
+          </>
+        )}
       </div>
     </div>
   )
