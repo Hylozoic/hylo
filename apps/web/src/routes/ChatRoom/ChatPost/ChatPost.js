@@ -304,8 +304,11 @@ export default function ChatPost ({
           delay={250}
           id='flag-tt'
         />
-        {linkPreview?.url && linkPreviewFeatured && isVideo && (
+        {linkPreview?.url && linkPreviewFeatured && isVideo && !isWebView() && (
           <Feature url={linkPreview.url} />
+        )}
+        {isWebView() && linkPreviewFeatured && (
+          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className={styles.linkPreview} />
         )}
         {linkPreview && !linkPreviewFeatured && (
           <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className={styles.linkPreview} />
