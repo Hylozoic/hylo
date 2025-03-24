@@ -139,7 +139,7 @@ export default function PostBigGridItem ({
           <HyloHTML html={details} onClick={showDetailsTargeted} className='text-foreground/60 text-sm overflow-hidden' style={{ maxHeight: detailsMaxHeight }} />
         </div>
 
-        <div className='absolute bottom-0 rounded-b-lg left-0 right-0 p-2 bg-gradient-to-t from-card/100 to-card/80'>
+        <div className='absolute bottom-0 rounded-b-lg left-0 right-0 p-2 bg-gradient-to-t from-card/100 to-card/80 pb-1'>
           <div className={classes.gridMetaRow1}>
             <h3 className={classes.title} onClick={() => viewPostDetails(post)}>{title}</h3>
             <div className={classes.contentSnippet}>
