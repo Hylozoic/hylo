@@ -21,6 +21,7 @@ import GroupWelcomeTabBar from 'screens/GroupWelcome/GroupWelcomeTabBar'
 import HyloHTML from 'components/HyloHTML'
 import Pill from 'components/Pill'
 import styles from 'screens/GroupWelcome/GroupWelcome.styles'
+import { isIOS } from 'util/platform'
 import { caribbeanGreen } from 'style/colors'
 
 export const addSkillMutation = gql`
@@ -72,9 +73,9 @@ export default function GroupWelcome () {
   const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!currentGroup?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
 
   useEffect(() => {
-    KeyboardManager.setEnable(true)
+    if (isIOS) KeyboardManager.setEnable(true)
     return () => {
-      KeyboardManager.setEnable(false)
+      if (isIOS) KeyboardManager.setEnable(false)
     }
   }, [])
 
