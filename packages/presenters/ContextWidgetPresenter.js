@@ -178,6 +178,7 @@ export function isValidDropZone ({ overWidget, activeWidget, parentWidget, isOve
   const isWrongType = overWidget?.type === 'home'
     || (parentWidget?.type === 'chats' && !activeWidget?.viewChat?.id)
     || (parentWidget?.type === 'custom-views' && !activeWidget?.customView?.id)
+    || (parentWidget?.type === 'home')
   const parentWidgetIsContainer = containerTypes.includes(parentWidget?.type)
   const activeWidgetIsContainer = containerTypes.includes(activeWidget?.type)
   const isDynamicWidget = overWidget?.id?.includes('fake-id')
