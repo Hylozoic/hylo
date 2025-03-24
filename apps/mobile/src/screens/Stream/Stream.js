@@ -76,17 +76,17 @@ export default function Stream () {
 
   const customView = currentGroup?.customViews?.items?.find(customView => customView.id === customViewId)
   const [filter, setFilter] = useState(
-    get('settings.streamPostType', currentUser) ||
     customView?.defaultPostType ||
+    currentUser?.settings?.streamPostType ||
     'all'
   )
   const [sortBy, setSortBy] = useState(
-    get('settings.streamSortBy', currentUser) ||
     customView?.defaultSort ||
+    currentUser?.settings?.streamSortBy ||
     DEFAULT_SORT_BY_ID
   )
   const [childPostInclusion, setChildPostInclusion] = useState(
-    get('settings.streamChildPosts', currentUser) ||
+    currentUser?.settings?.streamChildPosts ||
     'yes'
   )
   const [timeframe, setTimeframe] = useState(DEFAULT_TIMEFRAME_ID)
