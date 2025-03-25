@@ -72,7 +72,7 @@ export const sendDigests = async () => {
       // read time.
       let lastReadAt = user.pivot.get('last_read_at')
       if (lastReadAt) lastReadAt = new Date(lastReadAt)
-      const locale = mapLocaleToSendWithUS(user.get('settings').locale || 'en-US')
+      const locale = mapLocaleToSendWithUS(user.get('settings')?.locale || 'en-US')
 
       const filtered = comments.filter(c =>
         c.get('created_at') > (lastReadAt || 0) &&
