@@ -176,7 +176,11 @@ const HyloWebView = React.forwardRef(({
       originWhitelist={[
         'https://www.hylo*',
         'https://staging.hylo*',
-        'http://localhost*'
+        'http://localhost*',
+        'https://www.youtube.com',
+        'https://*.youtube.com',
+        'https://*.vimeo.com',
+        'https://*.soundcloud.com'
       ]}
       ref={webViewRef}
       scalesPageToFit={false}

@@ -19,6 +19,7 @@ query FetchGroupMembers ($slug: String, $first: Int, $sortBy: String, $order: St
         id
         name
         avatarUrl
+        bannerUrl
         location
         tagline
         lastActiveAt

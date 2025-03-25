@@ -201,11 +201,11 @@ function MapDrawer ({
           )
         : currentTab === localizedTabNames.members
           ? (
-            <div className={styles.contentWrapper}>
-              <div className={styles.contentListContainer} id='contentList'>
+            <div className='overflow-y-scroll pb-10'>
+              <div className='w-full flex flex-col gap-2 p-2 bg-midground' id='contentList'>
                 {members.map(m => (
                   <Member
-                    className={cn(styles.contentCard, styles.member)}
+                    location={m.location}
                     member={m}
                     key={m.id}
                     group={group}
@@ -218,13 +218,12 @@ function MapDrawer ({
           : currentTab === localizedTabNames.groups
             ? (
               <div className={styles.contentWrapper}>
-                <div className={styles.contentListContainer} id='contentList'>
+                <div className='overflow-y-scroll pb-10 bg-midground' id='contentList'>
                   {groups.map(group => (
                     <GroupCard
                       key={group.id}
                       group={group}
                       routeParams={routeParams}
-                      className={styles.groupCard}
                     />
                   ))}
                 </div>
