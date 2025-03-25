@@ -40,11 +40,12 @@ class Member extends React.Component {
       <div className={cn('flex flex-col gap-2 bg-card/100 rounded-lg p-2 shadow-lg hover:bg-card/100 transition-all hover:scale-102 relative overflow-hidden', className)} data-testid='member-card'>
         {(currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)) &&
           <Dropdown
+            alignRight
             className={classes.dropdown}
             toggleChildren={<Icon name='More' />}
             items={[{ icon: 'Trash', label: t('Remove'), onClick: (e) => this.removeOnClick(e, id, name, removeMember) }]}
           />}
-        <div onClick={goToPerson(id, group.slug)} className='flex flex-row gap-2 z-10 relative'>
+        <div onClick={goToPerson(id, group.slug)} className='flex flex-row gap-2 z-10 relative cursor-pointer'>
           <div className='min-w-16 min-h-16 max-h-16 rounded-full bg-cover' style={bgImageStyle(avatarUrl)} />
           <div className='flex flex-col gap-0 justify-center'>
             <div className='text-base whitespace-nowrap flex flex-row gap-1 items-center'>
