@@ -48,8 +48,11 @@ function Members (props) {
     dispatch(changeQuerystringParam(location, 'q', term)), [location])
   const changeSort = useCallback(sort =>
     dispatch(changeQuerystringParam(location, 's', sort, 'name')), [location])
-  const removeMemberAction = useCallback((id) =>
-    dispatch(removeMember(id, group.id)), [dispatch, group.id])
+  const removeMemberAction = useCallback((id) => {
+    // We pass slug and group.id because slug is needed to optimistically update the query results, which are based on slug
+    // TODO: ideally switch removeMember to also use slug so we dont need to pass in group.id too
+    dispatch(removeMember(id, group.id, slug))
+  }, [group.id, slug])
   const fetchMembersAction = useCallback((offset = 0) =>
     dispatch(fetchMembers({ slug, sortBy, offset, search })), [dispatch, slug, sortBy, search])
 

@@ -34,7 +34,7 @@ import {
   FETCH_POSTS_MAP,
   FETCH_POSTS_MAP_DRAWER
 } from 'routes/MapExplorer/MapExplorer.store'
-
+import { FETCH_MEMBERS, REMOVE_MEMBER_PENDING } from 'routes/Members/Members.store'
 // reducer
 
 export default function (state = {}, action) {
@@ -78,6 +78,16 @@ export default function (state = {}, action) {
 
     case RECEIVE_THREAD:
       return matchNewThreadIntoQueryResults(state, payload.data.thread)
+
+    case REMOVE_MEMBER_PENDING:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        if (keyObject.type !== FETCH_MEMBERS || get('params.slug', keyObject) !== meta.slug) return results
+        return {
+          ...results,
+          ids: results.ids.filter(id => id !== meta.personId)
+        }
+      })
 
     case REMOVE_POST_PENDING:
       return mapValues(state, (results, key) => {
