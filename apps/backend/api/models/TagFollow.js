@@ -152,7 +152,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     for (const tagFollow of tagFollowsWithNewPosts) {
       // TODO: check global notification setting once we have it if (!tagFollow.relations.user.enabledNotification(Notification.MEDIUM.Email)) return
       const groupMembership = await tagFollow.groupMembership().fetch()
-      if (!groupMembership.getSetting('sendEmail')) continue
+      if (!groupMembership || !groupMembership.get('active') || !groupMembership.getSetting('sendEmail')) continue
 
       const posts = await Post.query(q => {
         q.join('posts_tags', 'posts.id', 'posts_tags.post_id')
@@ -195,7 +195,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
         }
       }
 
-      const locale = mapLocaleToSendWithUS(tagFollow.relations.user.get('settings').locale || 'en-US')
+      if (!tagFollow.relations.user?.get('email')) continue
+
+      const locale = mapLocaleToSendWithUS(tagFollow.relations.user?.get('settings')?.locale || 'en-US')
       const result = await Email.sendChatDigest({
         version: 'Redesign 2025',
         email: tagFollow.relations.user.get('email'),
