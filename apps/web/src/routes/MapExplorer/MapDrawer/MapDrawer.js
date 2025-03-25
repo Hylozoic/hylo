@@ -218,13 +218,12 @@ function MapDrawer ({
           : currentTab === localizedTabNames.groups
             ? (
               <div className={styles.contentWrapper}>
-                <div className={styles.contentListContainer} id='contentList'>
+                <div className='overflow-y-scroll pb-10 bg-midground' id='contentList'>
                   {groups.map(group => (
                     <GroupCard
                       key={group.id}
                       group={group}
                       routeParams={routeParams}
-                      className={styles.groupCard}
                     />
                   ))}
                 </div>

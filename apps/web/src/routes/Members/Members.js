@@ -132,7 +132,7 @@ function Members (props) {
       </div>
       <ScrollListener
         onBottom={fetchMore}
-        elementId='members-page'
+        elementId='center-column'
       />
     </div>
   )
