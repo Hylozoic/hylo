@@ -784,7 +784,7 @@
   "Saved Views": "Saved Views",
   "Scheduling": "Scheduling",
   "Search": "Search",
-  "Search by name or skills & interests": "Search by name or skills & interests",
+  "Search {{memberCount}} members by name or skills & interests": "Search {{memberCount}} members by name or skills & interests",
   "Search for a location...": "Search for a location...",
   "Search for people, posts and comments": "Search for people, posts and comments",
   "Search for people...": "Search for people...",
