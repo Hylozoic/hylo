@@ -9,6 +9,7 @@ import KeyboardManager, { PreviousNextView } from 'react-native-keyboard-manager
 import updateMembershipMutation from '@hylo/graphql/mutations/updateMembershipMutation'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { isIOS } from 'util/platform'
 import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import {
   getRouteNames,
@@ -72,9 +73,11 @@ export default function GroupWelcome () {
   const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!currentGroup?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
 
   useEffect(() => {
-    KeyboardManager.setEnable(true)
-    return () => {
-      KeyboardManager.setEnable(false)
+    if (isIOS) {
+      KeyboardManager.setEnable(true)
+      return () => {
+        KeyboardManager.setEnable(false)
+      }
     }
   }, [])
 
