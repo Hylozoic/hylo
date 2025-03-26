@@ -640,9 +640,21 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case UPDATE_CONTEXT_WIDGET_PENDING: {
       const group = Group.withId(meta.groupId)
-      const allWidgets = group.contextWidgets.items
+      let allWidgets = group.contextWidgets.items
 
       const widgetToBeMoved = allWidgets.find(widget => widget.id === meta.contextWidgetId)
+
+      if (meta.data.title || meta.data.visibility) {
+        widgetToBeMoved.title = meta.data.title
+        widgetToBeMoved.visibility = meta.data.visibility
+        allWidgets = allWidgets.map(widget => {
+          if (widget.id === widgetToBeMoved.id) {
+            return widgetToBeMoved
+          }
+          return widget
+        })
+      }
+
       const newWidgetPosition = {
         id: meta.contextWidgetId,
         addToEnd: meta.data.addToEnd,
