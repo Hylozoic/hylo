@@ -641,6 +641,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case UPDATE_CONTEXT_WIDGET_PENDING: {
       const group = Group.withId(meta.groupId)
       let allWidgets = group.contextWidgets.items
+      let resultingWidgets = []
 
       const widgetToBeMoved = allWidgets.find(widget => widget.id === meta.contextWidgetId)
 
@@ -654,15 +655,18 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           return widget
         })
       }
-
-      const newWidgetPosition = {
-        id: meta.contextWidgetId,
-        addToEnd: meta.data.addToEnd,
-        orderInFrontOfWidgetId: meta.data.orderInFrontOfWidgetId,
-        parentId: meta.data.parentId || null
+      if (meta.data.addToEnd || meta.data.orderInFrontOfWidgetId) {
+        const newWidgetPosition = {
+          id: meta.contextWidgetId,
+          addToEnd: meta.data.addToEnd,
+          orderInFrontOfWidgetId: meta.data.orderInFrontOfWidgetId,
+          parentId: meta.data.parentId || null
+        }
+        resultingWidgets = reorderTree({ widgetToBeMovedId: widgetToBeMoved.id, newWidgetPosition, allWidgets })
+      } else {
+        resultingWidgets = allWidgets
       }
-      const reorderedWidgets = reorderTree({ widgetToBeMovedId: widgetToBeMoved.id, newWidgetPosition, allWidgets })
-      Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
+      Group.update({ contextWidgets: { items: structuredClone(resultingWidgets) } })
       break
     }
 

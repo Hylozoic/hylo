@@ -1,11 +1,11 @@
-import { House, Plus, SquareDashed, MessageSquarePlus, FileStack, User, Users, StickyNote } from 'lucide-react'
+import { House, Plus, SquareDashed, MessageSquarePlus, FileStack, User, Users, StickyNote, Pencil } from 'lucide-react'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash/fp'
 import ContextWidgetPresenter, { humanReadableTypeResolver, isValidChildWidget, translateTitle, types } from '@hylo/presenters/ContextWidgetPresenter'
-import { addQuerystringToPath, baseUrl, widgetUrl } from 'util/navigation'
+import { addQuerystringToPath, baseUrl, widgetUrl, groupUrl } from 'util/navigation'
 import fetchContextWidgets from 'store/actions/fetchContextWidgets'
 import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -87,6 +87,16 @@ export default function AllViews () {
     }
   }, [t, setHomeWidget])
 
+  const handleEditWidget = (widget) => {
+    if (widget.type === 'customView') {
+      navigate(groupUrl(group.slug, 'settings/views'))
+    } else {
+      const url = window.location.pathname
+      const editWidgetUrl = addQuerystringToPath(url, { 'edit-widget-id': widget.id, cme: 'yes' })
+      navigate(editWidgetUrl)
+    }
+  }
+
   const handleWidgetUpdate = useCallback((widget) => {
     dispatch(updateContextWidget({
       contextWidgetId: widget.id,
@@ -122,6 +132,17 @@ export default function AllViews () {
             <WidgetIconResolver widget={widget} />
             <span className='ml-2'>{widget.title}</span>
           </h3>
+          {isEditing && widget.isEditable && (
+            <span
+              className='text-sm inline-block text-foreground'
+              onClick={(evt) => {
+                evt.stopPropagation()
+                handleEditWidget(widget)
+              }}
+            >
+              <Pencil />
+            </span>
+          )}
           {isEditing && widget.isValidHomeWidget && (
             <span
               className='text-sm inline-block text-foreground'
@@ -134,7 +155,7 @@ export default function AllViews () {
             </span>
           )}
           {isEditing && !widget.order && (
-            <span className='ml-3 text-sm text-foreground inline-block'>
+            <span className='text-sm text-foreground inline-block'>
               <Plus />
             </span>
           )}
