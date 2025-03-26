@@ -350,7 +350,6 @@ function EditViewDialog ({ group, editWidgetId, contextWidgets }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [widgetToEdit, setWidgetToEdit] = useState({})
   const [widgetData, setWidgetData] = useState({ title: '', visibility: 'all' })
-  const [selectedItem, setSelectedItem] = useState(null)
   const widgetType = widgetToEdit?.type || null
 
   useEffect(() => {
@@ -365,19 +364,6 @@ function EditViewDialog ({ group, editWidgetId, contextWidgets }) {
       title: widgetToEdit.title || '',
       visibility: widgetToEdit.visibility || 'all'
     })
-
-    // Set the full object as selectedItem based on widget type
-    if (widgetToEdit.viewUser) {
-      setSelectedItem(widgetToEdit.viewUser)
-    } else if (widgetToEdit.viewGroup) {
-      setSelectedItem(widgetToEdit.viewGroup)
-    } else if (widgetToEdit.viewPost) {
-      setSelectedItem(widgetToEdit.viewPost)
-    } else if (widgetToEdit.viewChat) {
-      setSelectedItem(widgetToEdit.viewChat)
-    } else if (widgetToEdit.customView) {
-      setSelectedItem(widgetToEdit.customView)
-    }
   }, [editWidgetId, contextWidgets])
 
   const isDirty = useMemo(() => {
@@ -396,7 +382,7 @@ function EditViewDialog ({ group, editWidgetId, contextWidgets }) {
 
     const contextWidgetInput = {
       visibility: widgetData.visibility === 'all' ? null : widgetData.visibility,
-      title: widgetData.title === '' ? null : widgetData.title,
+      title: widgetData.title === '' ? null : widgetData.title
     }
 
     try {
@@ -409,15 +395,11 @@ function EditViewDialog ({ group, editWidgetId, contextWidgets }) {
     }
   }, [])
 
-  console.log({ widgetData, widgetType, selectedItem }, 'we did our best')
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
       <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md'>
         <div className='text-lg font-semibold mb-4'>{t('Edit menu item')}</div>
         <div>
-          {widgetType && widgetType === CUSTOM_VIEW && (
-            <CustomViewCreator group={group} widgetType={widgetType} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />
-          )}
           {widgetType && widgetType === CONTAINER && (
             <ContainerCreator group={group} widgetType={widgetType} widgetData={widgetData} setWidgetData={setWidgetData} />
           )}
@@ -439,15 +421,14 @@ function EditViewDialog ({ group, editWidgetId, contextWidgets }) {
             >
               {t('Cancel')}
             </Button>
-            {(selectedItem || widgetType === CONTAINER) &&
-              <Button
-                variant='primary'
-                disabled={isSubmitting || !isDirty}
-                onClick={() => handleEdit({ widgetData, editWidgetId, widgetType })}
-                className='border-2 border-foreground/20 p-2 rounded-md bg-transparent text-foreground hover:border-selected hover:bg-transparent'
-              >
-                {isSubmitting ? t('updatingEllipsis') : t('Update')}
-              </Button>}
+            <Button
+              variant='primary'
+              disabled={isSubmitting || !isDirty}
+              onClick={() => handleEdit({ widgetData, editWidgetId, widgetType })}
+              className='border-2 border-foreground/20 p-2 rounded-md bg-transparent text-foreground hover:border-selected hover:bg-transparent'
+            >
+              {isSubmitting ? t('updatingEllipsis') : t('Update')}
+            </Button>
           </div>
         </div>
       </div>

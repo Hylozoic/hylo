@@ -469,9 +469,14 @@ function ActionMenu ({ widget }) {
 
   const handleEditWidget = useCallback((e) => {
     e.preventDefault()
-    const url = window.location.pathname
-    const editWidgetUrl = addQuerystringToPath(url, { 'edit-widget-id': widget.id, cme: 'yes' })
-    navigate(editWidgetUrl)
+
+    if (widget.type === 'customView') {
+      navigate(groupUrl(group.slug, 'settings/views'))
+    } else {
+      const url = window.location.pathname
+      const editWidgetUrl = addQuerystringToPath(url, { 'edit-widget-id': widget.id, cme: 'yes' })
+      navigate(editWidgetUrl)
+    }
   }, [widget.id, group.id])
 
   const handleRemoveWidget = useCallback((e) => {
