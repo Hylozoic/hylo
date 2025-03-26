@@ -19,6 +19,7 @@ query FetchGroupMembers ($slug: String, $first: Int, $sortBy: String, $order: St
         id
         name
         avatarUrl
+        bannerUrl
         location
         tagline
         lastActiveAt
@@ -75,7 +76,7 @@ export function fetchGroupMembers ({ slug, sortBy, order, offset, search, first 
   }
 }
 
-export function removeMember (personId, groupId) {
+export function removeMember (personId, groupId, slug) {
   return {
     type: REMOVE_MEMBER,
     graphql: {
@@ -88,8 +89,9 @@ export function removeMember (personId, groupId) {
       variables: { personId, groupId }
     },
     meta: {
-      groupId,
-      personId
+      slug,
+      personId,
+      groupId
     }
   }
 }

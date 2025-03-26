@@ -1,29 +1,18 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import { withTranslation } from 'react-i18next'
-import { connect } from 'react-redux'
 import BadgeEmoji from 'components/BadgeEmoji'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import { MapPin } from 'lucide-react'
 import { RESP_REMOVE_MEMBERS } from 'store/constants'
 import { cn, bgImageStyle } from 'util/index'
-import fetchPerson from 'store/actions/fetchPerson'
-import getPerson from 'store/selectors/getPerson'
 
 import classes from './Member.module.scss'
 
-const { object, string, shape, func } = PropTypes
+const { object, string, shape } = PropTypes
 
 class Member extends React.Component {
-  componentDidMount() {
-    // Fetch complete person data when component mounts
-    const { member, fetchPerson } = this.props
-    if (member && member.id) {
-      fetchPerson(member.id)
-    }
-  }
-
   removeOnClick (e, id, name, removeMember) {
     e.preventDefault()
 
@@ -37,7 +26,6 @@ class Member extends React.Component {
       className,
       group,
       member,
-      personFromStore,
       goToPerson,
       removeMember,
       currentUserResponsibilities,
@@ -46,21 +34,18 @@ class Member extends React.Component {
     } = this.props
 
     // Use data from Redux store if available, otherwise fall back to the member prop
-    const personData = personFromStore || member
-    const { id, name, location, tagline, avatarUrl } = member
-
-    // Get bannerUrl from the Redux store data if available
-    const bannerUrl = personData.bannerUrl || ' '
+    const { id, name, location, tagline, avatarUrl, bannerUrl } = member
 
     return (
       <div className={cn('flex flex-col gap-2 bg-card/100 rounded-lg p-2 shadow-lg hover:bg-card/100 transition-all hover:scale-102 relative overflow-hidden', className)} data-testid='member-card'>
         {(currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)) &&
           <Dropdown
+            alignRight
             className={classes.dropdown}
             toggleChildren={<Icon name='More' />}
             items={[{ icon: 'Trash', label: t('Remove'), onClick: (e) => this.removeOnClick(e, id, name, removeMember) }]}
           />}
-        <div onClick={goToPerson(id, group.slug)} className='flex flex-row gap-2 z-10 relative'>
+        <div onClick={goToPerson(id, group.slug)} className='flex flex-row gap-2 z-10 relative cursor-pointer'>
           <div className='min-w-16 min-h-16 max-h-16 rounded-full bg-cover' style={bgImageStyle(avatarUrl)} />
           <div className='flex flex-col gap-0 justify-center'>
             <div className='text-base whitespace-nowrap flex flex-row gap-1 items-center'>
@@ -91,19 +76,7 @@ Member.propTypes = {
     tagline: string,
     avatarUrl: string,
     bannerUrl: string
-  }).isRequired,
-  fetchPerson: func,
-  personFromStore: object
+  }).isRequired
 }
 
-// Map state to props to get the person data from Redux store
-function mapStateToProps(state, ownProps) {
-  return {
-    personFromStore: ownProps.member && ownProps.member.id ? getPerson(state, ownProps.member.id) : null
-  }
-}
-
-export default connect(
-  mapStateToProps,
-  { fetchPerson }
-)(withTranslation()(Member))
+export default withTranslation()(Member)
