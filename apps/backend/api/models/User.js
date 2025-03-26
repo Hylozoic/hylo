@@ -883,9 +883,10 @@ module.exports = bookshelf.Model.extend(merge({
       const initialGroup = memberships?.models[0]?.relations?.group
       Email.sendWelcomeEmail({
         email: user.get('email'),
-        templateData: {
+        data: {
           member_name: user.get('name'),
-          group_name: initialGroup?.get('name')
+          group_name: initialGroup?.get('name'),
+          group_url: initialGroup ? Frontend.Route.group(initialGroup) : null
         }
       })
     }
