@@ -338,6 +338,7 @@ export const queryParamWhitelist = [
   'slug',
   'sortBy',
   'topic',
+  'topics',
   'type', // TODO: why do we have type & filter? should only need one
   'types',
   'page',
