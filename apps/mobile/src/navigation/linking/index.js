@@ -128,8 +128,9 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/members':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Members`,
   '/:context(groups)/:groupSlug/members/:id':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Member`,
   // TODO: Routing -- Actually legacy redirection, consider creating or adding to a redirect mapper
-  '/:context(groups)/:groupSlug/topics/:topicName':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
+  '/:context(groups)/:groupSlug/topics/:topicName':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/topics/:topicName/post/:id':              `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
+  '/:context(groups)/:groupSlug/topics':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/All Topics`,
   '/:context(groups)/:groupSlug/custom/:customViewId':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/settings/:settingsArea':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
   '/:context(groups)/:groupSlug/settings':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
