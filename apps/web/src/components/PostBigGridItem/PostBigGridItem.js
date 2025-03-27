@@ -35,8 +35,6 @@ export default function PostBigGridItem ({
     dispatch(respondToEvent(post, response))
   }, [post])
 
-  if (!post.creator) return null
-
   const {
     title,
     details,
@@ -70,10 +68,6 @@ export default function PostBigGridItem ({
   const d = post.donationsLink ? post.donationsLink.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/) : null
   const donationService = d ? d[1] : null
 
-  const showDetailsTargeted = () => {
-    return attachmentType === 'image' || post.type === 'event' ? viewPostDetails(post.id) : null
-  }
-
   useEffect(() => {
     if (contentSummaryRef.current && detailsRef.current) {
       // Get the position of the details element
@@ -89,6 +83,12 @@ export default function PostBigGridItem ({
       setDetailsMaxHeight(`${Math.max(50, availableHeight)}px`)
     }
   }, [post, expanded, attachmentType])
+
+  const showDetailsTargeted = () => {
+    return attachmentType === 'image' || post.type === 'event' ? viewPostDetails(post.id) : null
+  }
+
+  if (!post.creator) return null
 
   return (
     <div className={cn('w-full h-[400px] bg-card/50 hover:bg-card/100 transition-all rounded-lg shadow-lg relative p-2', { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType], classes[detailClass], classes[post.type])} onClick={attachmentType !== 'image' && post.type !== 'event' ? () => viewPostDetails(post.id) : null}>

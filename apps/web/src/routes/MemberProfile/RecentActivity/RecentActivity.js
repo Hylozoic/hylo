@@ -2,7 +2,6 @@ import React from 'react'
 import Loading from 'components/Loading'
 import PostCard from 'components/PostCard'
 import CommentCard from 'components/CommentCard'
-import classes from './RecentActivity.module.scss'
 
 export default class RecentActivity extends React.Component {
   static defaultProps = {
