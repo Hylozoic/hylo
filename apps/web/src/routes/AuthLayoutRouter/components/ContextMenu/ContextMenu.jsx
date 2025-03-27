@@ -378,7 +378,6 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
           &nbsp;
         </DropZone>}
       <div key={widget.id} ref={setDraggableNodeRef} style={style}>
-        {/* TODO CONTEXT: need to check this display logic for when someone wants a singular view (say, they pull projects out of the all view) */}
         {url && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))
           ? (
             <>
@@ -399,7 +398,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
           : (
             <div>
               {widget.view &&
-                <span className='flex justify-between items-center content-center'>
+                <span className='flex justify-between items-center content-center group'>
                   <MenuLink
                     to={url}
                     externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}
@@ -407,11 +406,13 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                   >
                     <h3 className='text-base font-light opacity-50 text-foreground' data-testid={widget.type}>{title}</h3>
                   </MenuLink>
+                  {canDnd && isDroppable && <div className='hidden group-hover:block'><ActionMenu widget={widget} className={cn('ml-2')} /></div>}
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {!widget.view &&
-                <span className='flex justify-between items-center content-center'>
+                <span className='flex justify-between items-center content-center group'>
                   <h3 className='text-base font-light opacity-50 text-foreground' data-testid={widget.type}>{title}</h3>
+                  {canDnd && isDroppable && <div className='hidden group-hover:block'><ActionMenu widget={widget} className={cn('ml-2')} /></div>}
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {widget.type !== 'members' && !isOverlay &&
@@ -462,8 +463,21 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
 function ActionMenu ({ widget }) {
   const { t } = useTranslation()
   const { group } = useContextMenuContext()
+  const navigate = useNavigate()
 
   const dispatch = useDispatch()
+
+  const handleEditWidget = useCallback((e) => {
+    e.preventDefault()
+
+    if (widget.type === 'customView') {
+      navigate(groupUrl(group.slug, 'settings/views'))
+    } else {
+      const url = window.location.pathname
+      const editWidgetUrl = addQuerystringToPath(url, { 'edit-widget-id': widget.id, cme: 'yes' })
+      navigate(editWidgetUrl)
+    }
+  }, [widget.id, group.id])
 
   const handleRemoveWidget = useCallback((e) => {
     e.preventDefault()
@@ -482,8 +496,9 @@ function ActionMenu ({ widget }) {
 
   return (
     <span className='text-sm font-bold cursor-pointer flex items-center'>
+      {widget.isEditable && <Pencil onClick={handleEditWidget} />}
       <Trash onClick={handleRemoveWidget} />
-      <House onClick={handleWidgetHomePromotion} />
+      {widget.isValidHomeWidget && <House onClick={handleWidgetHomePromotion} />}
     </span>
   )
 }
@@ -581,6 +596,7 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                     {isActive && <span className='w-2 h-2 ml-2 inline-block rounded-full bg-green-500' />}
                   </span>
                 </div>
+                {isItemDraggable && <div className='hidden group-hover:block'><ActionMenu widget={item} className={cn('ml-2')} /></div>}
                 {isItemDraggable && <div className='hidden group-hover:block'><GrabMe {...itemListeners} {...itemAttributes} /></div>}
               </MenuLink>
             )
