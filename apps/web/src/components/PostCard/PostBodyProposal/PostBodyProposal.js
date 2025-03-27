@@ -167,7 +167,7 @@ export default function PostBodyProposal ({
                 </div>}
               {!isAnonymousVote &&
                 <div>
-                  <RoundImageRow imageUrls={avatarUrls.slice(0, 3)} medium className='scale-75' />
+                  <RoundImageRow imageUrls={avatarUrls.slice(0, 3)} className='scale-75' />
                 </div>}
             </div>
           </div>

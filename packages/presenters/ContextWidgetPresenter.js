@@ -12,12 +12,24 @@ export default function ContextWidgetPresenter (widget) {
     humanReadableType: humanReadableTypeResolver(type),
     iconName: iconNameResolver(widget, type),
     isDroppable: isDroppableResolver(widget),
+    isEditable: isEditableResolver(widget),
     isValidHomeWidget: isValidHomeWidgetResolver(widget),
     title: titleResolver(widget),
     type,
     // Protection from double presenting
     _presented: true
   }
+}
+
+/* Constants */
+
+export const types = {
+  GROUP: 'viewGroup',
+  POST: 'viewPost',
+  USER: 'viewUser',
+  CHAT: 'viewChat',
+  CUSTOM_VIEW: 'customView',
+  CONTAINER: 'container'
 }
 
 /* == Attribute Resolvers == */
@@ -83,6 +95,13 @@ function isDroppableResolver (widget) {
   if (widget?.type === 'home') return false
   if (widget?.id?.startsWith('fake-id')) return false
   return true
+}
+
+// Only some widgets can have their titles and visibility edited
+function isEditableResolver (widget) {
+  const type = widgetTypeResolver({ widget })
+  return type === 'customView' ||
+    type === 'container'
 }
 
 // This internal resolver is exported to create mutation data prep in Web AllView#AddViewDialog

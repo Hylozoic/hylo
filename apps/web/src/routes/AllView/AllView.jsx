@@ -1,11 +1,11 @@
-import { House, Plus, SquareDashed, MessageSquarePlus, FileStack, User, Users, StickyNote } from 'lucide-react'
+import { House, Plus, SquareDashed, MessageSquarePlus, FileStack, User, Users, StickyNote, Pencil } from 'lucide-react'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash/fp'
-import ContextWidgetPresenter, { humanReadableTypeResolver, isValidChildWidget, translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
-import { addQuerystringToPath, baseUrl, widgetUrl } from 'util/navigation'
+import ContextWidgetPresenter, { humanReadableTypeResolver, isValidChildWidget, translateTitle, types } from '@hylo/presenters/ContextWidgetPresenter'
+import { addQuerystringToPath, baseUrl, widgetUrl, groupUrl } from 'util/navigation'
 import fetchContextWidgets from 'store/actions/fetchContextWidgets'
 import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -43,14 +43,12 @@ import { CustomViewRow } from 'routes/GroupSettings/CustomViewsTab/CustomViewsTa
 import { createTopic } from 'components/CreateTopic/CreateTopic.store'
 import { cleanCustomView } from 'util'
 
-// TODO: These constants may belong in a "types" object or similar on ContextWidgetPresenter or CustomViewPresenter
-// like ContextWidgetPresenter.types, or as ContextWidgetPresenter, CHAT_TYPE...
-const CHAT = 'chat'
-const POST = 'post'
-const USER = 'user'
-const GROUP = 'group'
-const CUSTOM_VIEW = 'customView'
-const CONTAINER = 'container'
+const CHAT = types.CHAT
+const POST = types.POST
+const USER = types.USER
+const GROUP = types.GROUP
+const CUSTOM_VIEW = types.CUSTOM_VIEW
+const CONTAINER = types.CONTAINER
 
 export default function AllViews () {
   const navigate = useNavigate()
@@ -61,6 +59,8 @@ export default function AllViews () {
 
   const isEditing = getQuerystringParam('cme', location) === 'yes'
   const isAddingView = getQuerystringParam('addview', location) === 'yes'
+  const editWidgetId = getQuerystringParam('edit-widget-id', location)
+  const isEditingView = !!editWidgetId
   const orderInFrontOfWidgetId = getQuerystringParam('orderInFrontOfWidgetId', location)
   const parentId = getQuerystringParam('parentId', location)
   const addToEnd = getQuerystringParam('addToEnd', location)
@@ -86,6 +86,16 @@ export default function AllViews () {
       dispatch(setHomeWidget({ contextWidgetId: widget.id, groupId: group.id }))
     }
   }, [t, setHomeWidget])
+
+  const handleEditWidget = (widget) => {
+    if (widget.type === 'customView') {
+      navigate(groupUrl(group.slug, 'settings/views'))
+    } else {
+      const url = window.location.pathname
+      const editWidgetUrl = addQuerystringToPath(url, { 'edit-widget-id': widget.id, cme: 'yes' })
+      navigate(editWidgetUrl)
+    }
+  }
 
   const handleWidgetUpdate = useCallback((widget) => {
     dispatch(updateContextWidget({
@@ -122,16 +132,17 @@ export default function AllViews () {
             <WidgetIconResolver widget={widget} />
             <span className='ml-2'>{widget.title}</span>
           </h3>
-          {/* {widget.humanReadableType && (
-            <span className='text-sm text-foreground'>
-              {t('Type')}: {t(capitalize(widget.humanReadableType))}
+          {isEditing && widget.isEditable && (
+            <span
+              className='text-sm inline-block text-foreground'
+              onClick={(evt) => {
+                evt.stopPropagation()
+                handleEditWidget(widget)
+              }}
+            >
+              <Pencil />
             </span>
-          )} */}
-          {/* {widget?.view && (
-            <span className='text-sm block text-foreground'>
-              {t('View')}: {t(capitalize(widget.view))}
-            </span>
-          )} */}
+          )}
           {isEditing && widget.isValidHomeWidget && (
             <span
               className='text-sm inline-block text-foreground'
@@ -144,7 +155,7 @@ export default function AllViews () {
             </span>
           )}
           {isEditing && !widget.order && (
-            <span className='ml-3 text-sm text-foreground inline-block'>
+            <span className='text-sm text-foreground inline-block'>
               <Plus />
             </span>
           )}
@@ -187,7 +198,8 @@ export default function AllViews () {
         </div>
       </div>
       {widgetCards}
-      {isAddingView && <AddViewDialog group={group} orderInFrontOfWidgetId={orderInFrontOfWidgetId} parentId={parentId} addToEnd={addToEnd} parentWidget={parentWidget} />}
+      {isAddingView && canAdminister && <AddViewDialog group={group} orderInFrontOfWidgetId={orderInFrontOfWidgetId} parentId={parentId} addToEnd={addToEnd} parentWidget={parentWidget} />}
+      {isEditingView && canAdminister && <EditViewDialog group={group} editWidgetId={editWidgetId} contextWidgets={contextWidgets} />}
     </div>
   )
 }
@@ -351,12 +363,121 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
   )
 }
 
+function EditViewDialog ({ group, editWidgetId, contextWidgets }) {
+  const { t } = useTranslation()
+  const location = useLocation()
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [widgetToEdit, setWidgetToEdit] = useState({})
+  const [widgetData, setWidgetData] = useState({ title: '', visibility: 'all' })
+  const widgetType = widgetToEdit?.type || null
+
+  useEffect(() => {
+    if (!editWidgetId || !contextWidgets) return
+
+    const widgetToEdit = ContextWidgetPresenter(contextWidgets.find(widget => widget.id === editWidgetId))
+    if (!widgetToEdit) return
+    setWidgetToEdit(widgetToEdit)
+
+    // Set basic widget data
+    setWidgetData({
+      title: widgetToEdit.title || '',
+      visibility: widgetToEdit.visibility || 'all'
+    })
+  }, [editWidgetId, contextWidgets])
+
+  const isDirty = useMemo(() => {
+    return widgetData.title !== widgetToEdit.title || (widgetData.visibility !== 'all' && widgetToEdit.visibility !== widgetData.visibility)
+  }, [widgetData, widgetToEdit])
+
+  const handleReset = () => {
+    setWidgetData({
+      title: widgetToEdit.title || '',
+      visibility: widgetToEdit.visibility || 'all'
+    })
+  }
+
+  const handleEdit = useCallback(async ({ widgetData, editWidgetId }) => {
+    setIsSubmitting(true)
+
+    const contextWidgetInput = {
+      visibility: widgetData.visibility === 'all' ? null : widgetData.visibility,
+      title: widgetData.title === '' ? null : widgetData.title
+    }
+
+    try {
+      await dispatch(updateContextWidget({ data: contextWidgetInput, groupId: group.id, contextWidgetId: editWidgetId }))
+      navigate(addQuerystringToPath(location.pathname, { cme: 'yes' }))
+    } catch (error) {
+      console.error('Failed to update context widget:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [])
+
+  return (
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
+      <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md'>
+        <div className='text-lg font-semibold mb-4'>{t('Edit menu item')}</div>
+        <div>
+          {widgetType && widgetType === CONTAINER && (
+            <ContainerCreator group={group} widgetType={widgetType} widgetData={widgetData} setWidgetData={setWidgetData} />
+          )}
+        </div>
+        <div className='flex justify-between gap-1 mt-4'>
+          {widgetType &&
+            <Button
+              variant='secondary'
+              onClick={() => handleReset()}
+              className='border-2 border-foreground/20 p-2 rounded-md bg-transparent text-foreground hover:border-selected hover:bg-transparent'
+            >
+              {t('Reset changes')}
+            </Button>}
+          <div className='flex gap-1'>
+            <Button
+              variant='secondary'
+              onClick={() => navigate(addQuerystringToPath(location.pathname, { cme: 'yes' }))}
+              className='border-2 border-foreground/20 p-2 rounded-md bg-transparent text-foreground hover:border-accent hover:bg-transparent'
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              variant='primary'
+              disabled={isSubmitting || !isDirty}
+              onClick={() => handleEdit({ widgetData, editWidgetId, widgetType })}
+              className='border-2 border-foreground/20 p-2 rounded-md bg-transparent text-foreground hover:border-selected hover:bg-transparent'
+            >
+              {isSubmitting ? t('updatingEllipsis') : t('Update')}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widgetData, setWidgetData }) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [showWhitespaceWarning, setShowWhitespaceWarning] = useState(false)
   const { t } = useTranslation()
   const [items, setItems] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const dispatch = useDispatch()
+
+  const handleSearchChange = (value) => {
+    if (addChoice === CHAT) {
+      // Check if the new value would add whitespace
+      if (/\s/.test(value)) {
+        setShowWhitespaceWarning(true)
+        // Remove whitespace and update the input
+        value = value.replace(/\s/g, '')
+      } else {
+        setShowWhitespaceWarning(false)
+      }
+    }
+    setSearchTerm(value)
+  }
 
   const debouncedSearch = useDebounce(searchTerm, 300)
   const groups = useSelector(getMyGroups)
@@ -430,17 +551,17 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
   }, [debouncedSearch, groups, addChoice])
 
   const textOptions = {
-    chat: {
+    [CHAT]: {
       searchPlaceholder: t('chatTopicSearchPlaceholder'),
       noResults: t('No chat topics found'),
       heading: t('Chat Topics')
     },
-    group: {
+    [GROUP]: {
       searchPlaceholder: t('groupSearchPlaceholder'),
       noResults: t('No groups match'),
       heading: t('Your groups')
     },
-    user: {
+    [USER]: {
       searchPlaceholder: t('user-search-placeholder'),
       noResults: t('No members match'),
       heading: t('Members')
@@ -455,8 +576,13 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
           <CommandInput
             placeholder={textOptions[addChoice].searchPlaceholder}
             value={searchTerm}
-            onValueChange={setSearchTerm}
+            onValueChange={handleSearchChange}
           />
+          {showWhitespaceWarning && (
+            <div className='px-3 py-2 text-sm text-destructive'>
+              {t('Whitespace characters are not allowed in chat topic names')}
+            </div>
+          )}
           <CommandList>
             {isLoading
               ? <CommandEmpty>{t('Loading...')}</CommandEmpty>
@@ -684,26 +810,25 @@ function CustomViewCreator ({ group, selectedItem, setSelectedItem, widgetData, 
         widgetData={widgetData}
         setWidgetData={setWidgetData}
         addChoice={addChoice}
-        a
       />
     </div>
   )
 }
 
-function ContainerCreator ({ group, addChoice, widgetData, setWidgetData }) {
+function ContainerCreator ({ group, addChoice, widgetData, setWidgetData, widgetType }) {
   const { t } = useTranslation()
   return (
     <div>
       <h3 className='text-sm font-semibold text-foreground mb-0 mt-0'>{t('Container Widget')}</h3>
       <p className='text-xs text-foreground/60 mb-4'>{t('containerWidgetSescription')}</p>
-      <WidgetSettings widgetData={widgetData} setWidgetData={setWidgetData} addChoice={addChoice} />
+      <WidgetSettings widgetData={widgetData} setWidgetData={setWidgetData} addChoice={addChoice} widgetType={widgetType} />
     </div>
   )
 }
 
-function WidgetSettings ({ setWidgetData, widgetData, addChoice }) {
+function WidgetSettings ({ setWidgetData, widgetData, addChoice, widgetType }) {
   const { t } = useTranslation()
-  const isContainer = addChoice === CONTAINER
+  const isContainer = addChoice === CONTAINER || widgetType === CONTAINER
   return (
     <div>
       {isContainer &&
