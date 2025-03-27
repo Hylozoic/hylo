@@ -459,10 +459,25 @@ function EditViewDialog ({ group, editWidgetId, contextWidgets }) {
 
 function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widgetData, setWidgetData }) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [showWhitespaceWarning, setShowWhitespaceWarning] = useState(false)
   const { t } = useTranslation()
   const [items, setItems] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const dispatch = useDispatch()
+
+  const handleSearchChange = (value) => {
+    if (addChoice === CHAT) {
+      // Check if the new value would add whitespace
+      if (/\s/.test(value)) {
+        setShowWhitespaceWarning(true)
+        // Remove whitespace and update the input
+        value = value.replace(/\s/g, '')
+      } else {
+        setShowWhitespaceWarning(false)
+      }
+    }
+    setSearchTerm(value)
+  }
 
   const debouncedSearch = useDebounce(searchTerm, 300)
   const groups = useSelector(getMyGroups)
@@ -536,17 +551,17 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
   }, [debouncedSearch, groups, addChoice])
 
   const textOptions = {
-    chat: {
+    [CHAT]: {
       searchPlaceholder: t('chatTopicSearchPlaceholder'),
       noResults: t('No chat topics found'),
       heading: t('Chat Topics')
     },
-    group: {
+    [GROUP]: {
       searchPlaceholder: t('groupSearchPlaceholder'),
       noResults: t('No groups match'),
       heading: t('Your groups')
     },
-    user: {
+    [USER]: {
       searchPlaceholder: t('user-search-placeholder'),
       noResults: t('No members match'),
       heading: t('Members')
@@ -557,33 +572,40 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
     <div>
       {addChoice === POST && !selectedItem && <PostSelector group={group} onSelectPost={setSelectedItem} />}
       {[CHAT, USER, GROUP].includes(addChoice) && !selectedItem && (
-        <Command className='rounded-lg border shadow-md'>
-          <CommandInput
-            placeholder={textOptions[addChoice].searchPlaceholder}
-            value={searchTerm}
-            onValueChange={setSearchTerm}
-          />
-          <CommandList>
-            {isLoading
-              ? <CommandEmpty>{t('Loading...')}</CommandEmpty>
-              : items.length === 0
-                ? <CommandEmpty>{textOptions[addChoice].noResults}</CommandEmpty>
-                : (
-                  <CommandGroup heading={textOptions[addChoice].heading}>
-                    {items.map((item) => (
-                      <CommandItem
-                        key={item.id}
-                        value={item.name}
-                        onSelect={(value) => {
-                          setSelectedItem(item)
-                        }}
-                      >
-                        <span>{item.name}</span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>)}
-          </CommandList>
-        </Command>
+        <>
+          <Command className='rounded-lg border shadow-md'>
+            <CommandInput
+              placeholder={textOptions[addChoice].searchPlaceholder}
+              value={searchTerm}
+              onValueChange={handleSearchChange}
+            />
+            {showWhitespaceWarning && (
+              <div className='px-3 py-2 text-sm text-destructive'>
+                {t('Whitespace characters are not allowed in chat topic names')}
+              </div>
+            )}
+            <CommandList>
+              {isLoading
+                ? <CommandEmpty>{t('Loading...')}</CommandEmpty>
+                : items.length === 0
+                  ? <CommandEmpty>{textOptions[addChoice].noResults}</CommandEmpty>
+                  : (
+                    <CommandGroup heading={textOptions[addChoice].heading}>
+                      {items.map((item) => (
+                        <CommandItem
+                          key={item.id}
+                          value={item.name}
+                          onSelect={(value) => {
+                            setSelectedItem(item)
+                          }}
+                        >
+                          <span>{item.name}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>)}
+            </CommandList>
+          </Command>
+        </>
       )}
       {selectedItem &&
         <div>
