@@ -70,8 +70,10 @@ export default function Stream () {
     context,
     customViewId,
     view: providedView,
-    streamType
+    streamType,
+    topicName
   } = routeParams
+
   const view = (context === MY_CONTEXT_SLUG && !providedView && !streamType) ? 'posts' : providedView
 
   const customView = currentGroup?.customViews?.items?.find(customView => customView.id === customViewId)
@@ -101,7 +103,8 @@ export default function Stream () {
     slug: !isStaticContext(currentGroup?.slug) ? currentGroup?.slug : null,
     view,
     sortBy,
-    timeframe
+    timeframe,
+    topic: topicName
   })
   const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...streamQueryVariables, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
@@ -186,7 +189,7 @@ export default function Stream () {
 
   const handleFilterChange = (filter) => {
     setFilter(filter)
-    updateUserSettings({ changes: { settings: { streamPostType: filter } } })
+    updateUserSettings({ changes: { settings: { streamPostType: filter || null } } })
   }
 
   const handleSortChange = (sortBy) => {

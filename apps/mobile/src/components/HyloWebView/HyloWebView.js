@@ -40,6 +40,9 @@ export const useNativeRouteHandler = () => {
       navigation.navigate('Stream', { topicName })
     },
     '(.*)/topics/:topicName': ({ routeParams: { topicName } }) => {
+      navigation.navigate('Stream', { topicName })
+    },
+    '(.*)/chats/:topicName': ({ routeParams: { topicName } }) => {
       navigation.navigate('Chat Room', { topicName })
     },
     '(.*)': () => {
