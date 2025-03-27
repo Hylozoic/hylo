@@ -56,7 +56,6 @@ export default function HomeNavigator () {
   return (
     <HomeTab.Navigator {...navigatorProps}>
       {/* WebView screens (may link/route internally) */}
-      <HomeTab.Screen name='All Topics' component={HyloWebView} />
       <HomeTab.Screen name='Chat Room' component={ChatRoomWebView} />
       <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
       <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
