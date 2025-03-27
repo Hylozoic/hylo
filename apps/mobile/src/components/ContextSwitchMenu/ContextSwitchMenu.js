@@ -106,7 +106,7 @@ function ContextRow ({
       onPress={() => onPress(context)}
       className={clsx(
         'flex-row rounded-lg p-1.5',
-        selected && 'bg-primary',
+        selected && 'bg-primary m-1.5',
         bottomItem && 'bg-primary m-1',
         className
       )}
