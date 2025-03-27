@@ -105,9 +105,10 @@ function ContextRow ({
     <TouchableOpacity
       onPress={() => onPress(context)}
       className={clsx(
-        'flex-row rounded-lg p-1.5',
-        selected && 'bg-primary m-1.5',
-        bottomItem && 'bg-primary m-1',
+        'flex-row rounded-lg bg-primary m-1.5',
+        !selected && !bottomItem && 'border-1 border-primary opacity-60 p-1',
+        selected && 'border-3 border-selected opacity-100 p-0.5',
+        bottomItem && 'bg-primary m-1 p-1',
         className
       )}
       style={{
@@ -130,8 +131,8 @@ function ContextRow ({
       {isExpanded && (
         <Text
           className={clsx(
-            'text-xl font-medium text-background ml-2',
-            (selected || bottomItem) && 'text-foreground'
+            'text-xl font-medium text-foreground ml-2',
+            // (selected || bottomItem) && 'text-foreground'
           )}
         >
           {context?.name}
