@@ -41,14 +41,14 @@ export default function PostHeader ({
   const [{ currentGroup }] = useCurrentGroup()
   const handleShowMember = () => showMember && showMember(creator.id)
 
-  const creatorHasResponsibility = useHasResponsibility({ person: creator, forCurrentGroup: true })
+  // const creatorHasResponsibility = useHasResponsibility({ person: creator, forCurrentGroup: true })
   // // TODO: URQL - Steward case? -- https://terrans.slack.com/archives/G01HM5VHD8X/p1732263229830789
   // if (responsibility === null) {
   //   // TODO: Shouldn't the '1', etc values be taken from constants?
   //   return responsibilities.some(r => ['1', '3', '4'].includes(r.id))
   // }
-  const creatorIsSteward = creatorHasResponsibility(null)
-  const badges = useRolesForGroup(currentGroup?.id, creator)
+  // const creatorIsSteward = creatorHasResponsibility(null)
+  // const badges = useRolesForGroup(currentGroup?.id, creator)
   const { avatarUrl, name } = creator
   const handleFlagOnPress = () => navigation.navigate('Moderation', {
     streamType: 'moderation',
@@ -71,7 +71,7 @@ export default function PostHeader ({
             <Text style={styles.name}>{name}</Text>
           )}
         </TouchableOpacity>
-        <CondensingBadgeRow badges={badges || []} creatorIsSteward={creatorIsSteward} currentGroup={currentGroup} postId={postId} />
+        {/* <CondensingBadgeRow badges={badges || []} creatorIsSteward={creatorIsSteward} currentGroup={currentGroup} postId={postId} /> */}
         <Text style={styles.date}>{TextHelpers.humanDate(date)}</Text>
       </View>
       <View style={styles.upperRight}>
