@@ -40,8 +40,8 @@ export default function PostCard ({
   return (
     <>
       {childPost && (
-        <View className='border-b border-border'>
-          <View className='flex-row items-center py-2 px-4'>
+        <View className='border-1 border-border'>
+          <View className='flex-row gap-2 items-center py-2 px-2 bg-midground self-start'>
             <Icon name='Subgroup' className='text-foreground/70 mr-1' />
             <Text className='text-foreground/70'>{t('post from child group')}</Text>
           </View>
