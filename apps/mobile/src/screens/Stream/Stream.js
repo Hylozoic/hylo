@@ -184,6 +184,7 @@ export default function Stream () {
 
   const handleChildPostToggle = () => {
     const childPostInclusion = streamQueryVariables?.childPostInclusion === 'yes' ? 'no' : 'yes'
+    setChildPostInclusion(childPostInclusion)
     updateUserSettings({ changes: { settings: { streamChildPosts: childPostInclusion } } })
   }
 
