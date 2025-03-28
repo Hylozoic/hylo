@@ -428,6 +428,8 @@ export default function ChatRoom (props) {
         return 'auto'
       }
     })
+    // Focus back on the chat box
+    editorRef.current?.focus()
     return true
   }, [])
 
