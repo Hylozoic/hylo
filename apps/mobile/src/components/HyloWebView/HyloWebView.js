@@ -110,7 +110,6 @@ const HyloWebView = React.forwardRef(({
   path: pathProp,
   style,
   source,
-  customStyle = '',
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
@@ -176,7 +175,7 @@ const HyloWebView = React.forwardRef(({
         window.HyloWebView = true;
         ${path && handledWebRoutesJavascriptCreator(path)(handledWebRoutes)}
       `}
-      customStyle={`${injectedCSS}${customStyle}`}
+      customStyle={`${injectedCSS}`}
       geolocationEnabled
       onMessage={handleMessage}
       nestedScrollEnabled
