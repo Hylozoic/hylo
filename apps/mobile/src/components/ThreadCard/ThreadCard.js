@@ -1,10 +1,10 @@
 import React from 'react'
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native'
 import { filter, get, map, find, isEmpty } from 'lodash/fp'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import { useTranslation } from 'react-i18next'
-import { rhino30, limedSpruce, nevada, rhino60, rhino, alabaster, rhino10, persimmon } from 'style/colors'
+import { rhino30, limedSpruce, nevada, rhino60, rhino, rhino10, persimmon, twBackground } from 'style/colors'
 
 const MAX_THREAD_PREVIEW_LENGTH = 55
 
@@ -27,7 +27,7 @@ export default function ThreadCard ({ message, currentUser, onPress, participant
       <View style={[styles.messageContent, isLast && styles.lastCard]}>
         <Text style={styles.header}>{names}</Text>
         <Text style={styles.body} numberOfLines={2}>{messageCreatorPrepend}{latestMessagePreview}</Text>
-        <Text style={styles.date}>{TextHelpers.humanDate(message?.createdAt)}</Text>
+        <Text style={styles.date}>{DateTimeHelpers.humanDate(message?.createdAt)}</Text>
       </View>
       {!!unreadCount && (
         <View style={styles.badge}>
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: 8,
-    backgroundColor: alabaster, // flag-messages-background-color
+    backgroundColor: twBackground, // flag-messages-background-color
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: rhino30
   },

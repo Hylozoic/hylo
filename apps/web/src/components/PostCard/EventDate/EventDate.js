@@ -1,15 +1,13 @@
 import React from 'react'
-import { DateTime } from 'luxon'
-import classes from './EventDate.module.scss'
-import { getLocaleAsString } from 'components/Calendar/calendar-util'
+import { DateTimeHelpers } from '@hylo/shared'
 
 export default function EventDate ({ startTime }) {
   if (!startTime) return null
-  const start = DateTime.fromISO(startTime).setLocale(getLocaleAsString())
+  const start = DateTimeHelpers.toDateTime(startTime)
   return (
-    <div className={classes.eventDate}>
-      <span className={classes.month}>{start.toFormat('MMM')}</span>
-      <span className={classes.day}>{start.toFormat('d')}</span>
+    <div className='w-16 h-16 flex items-center flex-col justify-center bg-white rounded-lg'>
+      <div className='bg-error text-white rounded-t-lg h-1/2 w-full uppercase items-center justify-center flex font-bold text-lg'>{start.toFormat('MMM')}</div>
+      <div className='bg-white text-black rounded-b-lg h-1/2 w-full uppercase items-center justify-center flex font-bold text-2xl'>{start.toFormat('d')}</div>
     </div>
   )
 }

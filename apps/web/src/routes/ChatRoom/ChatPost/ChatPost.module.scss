@@ -1,12 +1,5 @@
 .container {
-  /* empty */
-  padding-left: 55px;
-  position: relative;
 
-  &.hovered {
-    background: #d5d5d5;
-    cursor: pointer;
-  }
 
   .action-bar {
     display: none;
@@ -85,11 +78,6 @@
     }
   }
 
-  p:last-child {
-    margin-bottom: 0;
-    padding-bottom: 5px;
-  }
-
   .badgeRow {
     display: flex;
     margin-left: 4px;
@@ -129,7 +117,7 @@
 }
 
 .cardPadding {
-  padding: 0px 10px;
+  padding: 2px 10px;
 }
 
 .avatar {
@@ -138,7 +126,7 @@
 }
 
 .postContentContainer {
-  margin-left: 13px;
+  margin-left: 19px;
 }
 
 .postContent {
@@ -147,38 +135,6 @@
   // BDY-LT-LG and BDY-LT-SM
   @include font-regular;
   color: hsl(var(--text-foreground));
-  font-size: 16px;
-  line-height: 24px;
-  padding-bottom: 1px;
-
-  h1, h2, h3 {
-    font-family: 'Circular Bold';
-    color: rgba(35, 65, 91, 1.0);
-  }
-
-  h1 {
-    font-size: 24px;
-  }
-
-  h2 {
-    font-size: 18px;
-  }
-
-  h3, h4, h5 {
-    font-size: 16px;
-  }
-
-  ul {
-    list-style-type: disc;
-  }
-
-  ol {
-    list-style-type: decimal;
-  }
-
-  ul p, ol p {
-    margin: 0;
-  }
 
   &.editing {
     padding: 10px;
@@ -278,10 +234,6 @@
   .postContent.cardPadding {
     padding: 0 5px;
     margin: 0;
-
-    p:last-child {
-      margin-bottom: 0;
-    }
   }
 }
 

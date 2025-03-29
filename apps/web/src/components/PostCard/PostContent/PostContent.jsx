@@ -41,14 +41,14 @@ export default function PostContent ({
 
   return (
     <Highlight {...highlightProps}>
-      <div onClick={onClick} className={cn(classes.postDetails, { [classes.constrained]: constrained })}>
+      <div onClick={onClick} className={cn('p-0 global-postContent', { [classes.constrained]: constrained })}>
         <div className={classes.fade} />
         {linkPreview?.url && linkPreviewFeatured && isVideo && (
           <Feature url={linkPreview.url} />
         )}
         {details && (
           <ClickCatcher groupSlug={slug}>
-            <HyloHTML className={classes.details} html={details} />
+            <HyloHTML html={details} />
           </ClickCatcher>
         )}
         {editedTimestamp && (
@@ -56,12 +56,14 @@ export default function PostContent ({
             {editedTimestamp}
           </div>
         )}
-        {linkPreview && !linkPreviewFeatured && (
-          <LinkPreview {...pick(['title', 'description', 'url', 'imageUrl'], linkPreview)} />
-        )}
-        {fileAttachments && (
-          <CardFileAttachments attachments={fileAttachments} />
-        )}
+        <div className='flex flex-col gap-4 mt-6'>
+          {linkPreview && !linkPreviewFeatured && (
+            <LinkPreview {...pick(['title', 'description', 'url', 'imageUrl'], linkPreview)} />
+          )}
+          {fileAttachments && fileAttachments.length > 0 && (
+            <CardFileAttachments attachments={fileAttachments} />
+          )}
+        </div>
         <Tooltip
           delay={550}
           id={`editedTip-${expanded ? 'expanded' : 'collapsed'}-${post.id}`}

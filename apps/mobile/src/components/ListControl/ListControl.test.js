@@ -6,7 +6,7 @@ import ListControl from './ListControl'
 const filterOptions = [
   { id: null, label: 'All' },
   { id: 'test', label: 'Test Item 1' },
-  { id: 'test2', label: 'Test Item 2' },
+  { id: 'test2', label: 'Test Item 2' }
 ]
 
 describe('ListControl', () => {

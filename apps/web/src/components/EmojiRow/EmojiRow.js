@@ -12,6 +12,7 @@ export default function EmojiRow (props) {
     onClick,
     post,
     onAddReaction = () => {},
+    onOpenChange = () => {},
     onRemoveReaction = () => {}
   } = props
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
@@ -42,9 +43,10 @@ export default function EmojiRow (props) {
     return accum
   }, {})
   return (
-    <div className={cn('bg-black/20 p-2 rounded-lg mr-2 hover:bg-black/30 transition-all', className)} onClick={onClick}>
+    <div className={cn('hover:scale-105 transition-all hover:z-10 mr-4', className)} onClick={onClick}>
       {entityReactions && (
         <div className='transition-all duration-250 ease-in-out flex relative items-center flex-wrap'>
+          {currentUser ? <EmojiPicker handleReaction={handleReaction} myEmojis={myEmojis} handleRemoveReaction={handleRemoveReaction} onOpenChange={onOpenChange} /> : ''}
           {Object.values(usersReactions).map(reaction => (
             <EmojiPill
               onClick={currentUser ? reaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
@@ -55,7 +57,6 @@ export default function EmojiRow (props) {
               toolTip={reaction.userList.join('<br>')}
             />
           ))}
-          {currentUser ? <EmojiPicker handleReaction={handleReaction} myEmojis={myEmojis} handleRemoveReaction={handleRemoveReaction} /> : ''}
         </div>
       )}
     </div>

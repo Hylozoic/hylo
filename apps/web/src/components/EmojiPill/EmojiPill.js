@@ -13,10 +13,11 @@ export default function EmojiPill ({ emojiFull, onClick = () => {}, count, userL
         key={emojiFull}
         label={`${emojiFull} ${count}`}
         onClick={onClick ? () => onClick(emojiFull) : null}
-        className={cn(classes.tagPill, { [classes.selected]: selected })}
+        className={cn(classes.tagPill, {
+          'bg-selected': selected
+        })}
         tooltipContent={toolTip}
       />
     </div>
-
   )
 }

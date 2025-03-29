@@ -55,10 +55,11 @@ const GroupsSelector = forwardRef(({
     onChange(selected.filter(c => c.id !== group.id))
   }
 
-  const placeholder = placeholderProp || t('Type group name...')
+  const placeholder = placeholderProp || state.suggestions.length === 0 ? t('This group has no parent groups') : t('Type group name...')
 
   return (
     <TagInput
+      t={t}
       groupSettings={groupSettings}
       placeholder={placeholder}
       tags={selected}
@@ -66,7 +67,7 @@ const GroupsSelector = forwardRef(({
       handleInputChange={handleInputChange}
       handleAddition={handleAddition}
       handleDelete={handleDelete}
-      readOnly={readOnly}
+      readOnly={state.suggestions.length === 0}
       tagType='groups'
       theme={styles}
     />

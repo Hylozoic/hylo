@@ -1,11 +1,10 @@
 import { Pressable, StyleSheet, Text, TouchableOpacity } from 'react-native'
 import { Header, getHeaderTitle } from '@react-navigation/elements'
-import { useTranslation } from 'react-i18next'
 import { ChevronLeft } from 'lucide-react-native'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
+import useConfirmAlert from 'hooks/useConfirmAlert'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
-import { black10onRhino, rhino05, rhino80, rhino10, havelockBlue, ghost } from 'style/colors'
+import { black10onRhino, rhino05, rhino80, rhino10, havelockBlue, ghost, rhino } from 'style/colors'
 
 export default function ModalHeader ({
   navigation,
@@ -30,10 +29,10 @@ export default function ModalHeader ({
   },
   ...otherProps
 }) {
-  const { t } = useTranslation()
+  const confirmAlert = useConfirmAlert()
   const headerLeftCloseIcon = options.headerLeftCloseIcon ?? providedHeaderLeftCloseIcon
-  const headerTitleStyleColor = otherProps.headerTitleStyle?.color || (options.headerTitleStyle?.color ?? black10onRhino)
-  const headerLeftStyleColor = options?.headerLeftStyle?.color || headerLeftStyle?.color
+  const headerTitleStyleColor = otherProps.headerTitleStyle?.color || options.headerTitleStyle?.color || black10onRhino
+  const headerLeftStyleColor = options?.headerLeftStyle?.color || headerLeftStyle?.color || rhino
   const props = {
     headerTransparent: typeof options.headerTransparent !== 'undefined' ? options.headerTransparent : headerTransparent,
     headerStatusBarHeight: options.headerStatusBarHeight ?? (options.presentation ? 0 : undefined),
@@ -55,7 +54,7 @@ export default function ModalHeader ({
         providedHeaderLeftOnPress ||
         navigation.goBack
       const onPress = headerLeftConfirm
-        ? () => confirmDiscardChanges({ onDiscard: headerLeftOnPress, t })
+        ? () => confirmAlert({ onConfirm: headerLeftOnPress })
         : headerLeftOnPress
       return (
         <>

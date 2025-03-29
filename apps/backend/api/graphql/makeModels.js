@@ -1,5 +1,6 @@
 import { camelCase, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
+import { TextHelpers } from '@hylo/shared'
 import searchQuerySet from './searchQuerySet'
 import {
   commentFilter,
@@ -113,6 +114,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'email',
         'contact_email',
         'contact_phone',
+        'created_at',
         'email_validated',
         'hasRegistered',
         'intercomHash',
@@ -368,6 +370,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         commentersTotal: p => p.getCommentersTotal(userId),
         details: p => p.details(userId),
         isAnonymousVote: p => p.get('anonymous_voting') === 'true',
+        localId: p => p.getLocalId(),
         myReactions: p => userId ? p.reactionsForUser(userId).fetch() : [],
         // clickthrough: p => p.pivot && p.pivot.get('clickthrough'), // TODO COMOD: does not seem to work
         clickthrough: p => p.checkClickthrough(userId),
@@ -479,8 +482,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'postCount',
         'purpose',
         'slug',
+        'type',
         'visibility',
-        'type'
+        'website_url',
+        'welcome_page'
       ],
       relations: [
         { activeMembers: { querySet: true } },
@@ -560,7 +565,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 isFulfilled,
                 order,
                 search,
-                showPinnedFirst: true,
+                showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
                 sortBy,
                 topic,
                 topics,
@@ -611,7 +616,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 isFulfilled,
                 order,
                 search,
-                showPinnedFirst: true,
+                showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
                 sortBy,
                 topic,
                 topics,
@@ -692,8 +697,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         typeDescriptorPlural: g => g.get('type_descriptor_plural') || (g.get('type') ? pluralize(startCase(g.get('type'))) : 'Groups')
       },
       filter: nonAdminFilter(apiFilter(groupFilter(userId))),
-      fetchMany: ({ autocomplete, boundingBox, context, farmQuery, filter, first, groupIds, groupType, nearCoord, offset, onlyMine, order, parentSlugs, search, sortBy, visibility }) =>
+      fetchMany: ({ allowedInPublic, autocomplete, boundingBox, context, farmQuery, filter, first, groupIds, groupType, nearCoord, offset, onlyMine, order, parentSlugs, search, sortBy, visibility }) =>
         searchQuerySet('groups', {
+          allowedInPublic,
           autocomplete,
           boundingBox,
           currentUserId: userId,
@@ -787,7 +793,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'collection_id',
         'default_sort',
         'default_view_mode',
-        'external_link',
         'group_id',
         'icon',
         'is_active',
@@ -797,6 +802,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'type',
         'search_text'
       ],
+      getters: {
+        externalLink: customView => TextHelpers.sanitizeURL(customView.get('external_link'))
+      },
       relations: [
         'collection',
         'group',
@@ -1081,7 +1089,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
 
     TopicFollow: {
       model: TagFollow,
-      attributes: ['created_at', 'last_read_post_id', 'new_post_count', 'settings', 'updated_at' ],
+      attributes: ['created_at', 'last_read_post_id', 'new_post_count', 'settings', 'updated_at'],
       relations: [
         'group',
         { tag: { alias: 'topic' } },

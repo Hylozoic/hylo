@@ -76,12 +76,10 @@
   padding-bottom: 5px;
 
   label {
-    color: rgba(44, 64, 89, 0.6);
   }
 }
 
 .settings-control input {
-  border: 1px solid rgba(224, 229, 233, 1.0);
   padding: 5px 8px;
   font-size: 16px;
   line-height: 16px;
@@ -141,14 +139,14 @@
   margin-bottom: 0;
   padding-bottom: 5px;
   padding-right: 10px;
+  width: 60px;
 
   label {
-    color: rgba(44, 64, 89, 0.6);
   }
 }
 
 .icon-button > div {
-  border: 1px solid rgba(224, 229, 233, 1.0);
+  border: 2px solid var(--accent);
   border-radius: 5px;
   height: 40px;
   line-height: 40px;

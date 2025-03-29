@@ -1,150 +1,143 @@
-import React from 'react'
-import { Animated, TouchableOpacity, Text, StyleSheet, View, FlatList } from 'react-native'
+import React, { useRef } from 'react'
+import { Text, FlatList, View, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import Intercom from '@intercom/intercom-react-native'
-import { Globe, Plus, CircleHelp } from 'lucide-react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
+import GroupPresenter from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import useCurrentGroup, { useContextGroups } from '@hylo/hooks/useCurrentGroup'
-import { openURL } from 'hooks/useOpenURL'
-import { widgetUrl as makeWidgetUrl } from 'util/navigation'
-import useChangeToGroup from 'hooks/useChangeToGroup'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useStaticContexts from '@hylo/hooks/useStaticContexts'
+import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
+import { isIOS } from 'util/platform'
+import useOpenURL from 'hooks/useOpenURL'
+import LucideIcon from 'components/LucideIcon'
+import { black, white } from 'style/colors'
 
-export default function ContextSwitchMenu () {
+const STAY_EXPANDED_DURATION = 1500
+
+export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
+  const insets = useSafeAreaInsets()
+  const openURL = useOpenURL()
   const changeToGroup = useChangeToGroup()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
-  const { myContext, publicContext } = useContextGroups()
+  const { myContext, publicContext } = useStaticContexts()
   const myGroups = [myContext, publicContext].concat(
-    sortBy('name', map(m => m.group, currentUser.memberships))
-  )
-  const homePath = currentGroup && makeWidgetUrl({
-    widget: currentGroup?.homeWidget,
-    groupSlug: currentGroup?.slug
-  })
+    sortBy('name', map(m => m.group, currentUser?.memberships))
+  ).map(GroupPresenter)
+
+  const collapseTimeout = useRef(null)
+
+  const startCollapseTimer = () => {
+    clearTimeout(collapseTimeout.current)
+    collapseTimeout.current = setTimeout(() => {
+      setIsExpanded(false)
+    }, STAY_EXPANDED_DURATION)
+  }
+
+  const handleScroll = (evt) => {
+    setIsExpanded(true)
+    clearTimeout(collapseTimeout.current)
+  }
+
+  const handleScrollStop = () => {
+    startCollapseTimer()
+  }
 
   const handleOnPress = context => {
-    changeToGroup(context?.slug, false)
-    if (homePath) openURL(homePath)
+    clearTimeout(collapseTimeout.current)
+    setIsExpanded(false)
+    changeToGroup(context?.slug, { navigateHome: true })
   }
 
   return (
-    <Animated.View className='flex-col h-full bg-theme-background z-50 items-center py-2 px-3'>
+    <View
+      className='h-full bg-theme-background z-50'
+      style={{ paddingTop: insets.top + (isIOS ? 0 : 20), paddingBottom: insets.bottom + (isIOS ? 0 : 20) }}
+    >
       <FlatList
         data={myGroups}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <ContextRow
+            context={item}
+            isExpanded={isExpanded}
+            selected={item?.slug === currentGroup?.slug}
             onPress={handleOnPress}
-            item={item}
-            currentGroupSlug={currentGroup?.slug}
           />
         )}
         showsVerticalScrollIndicator={false}
+        onScrollBeginDrag={handleScroll}
+        onScrollEndDrag={handleScrollStop}
+        onMomentumScrollEnd={handleScrollStop}
+        scrollEventThrottle={16}
       />
-      <View className='w-full mt-auto bg-theme-background pt-4'>
-        {/* TODO redesign: A Group or Post Creation option is expected based on Web-parity */}
-        <TouchableOpacity
-          onPress={() => openURL('/create')}
-          style={styles.rowTouchable}
-          activeOpacity={0.7}
-        >
-          <View
-            className={`
-                bg-primary relative flex flex-col text-primary-foreground items-center justify-center
-                w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90
-            `}
-          >
-            <Plus />
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => Intercom.present()}
-          style={styles.rowTouchable}
-          activeOpacity={0.7}
-        >
-          <View className='bg-primary relative flex flex-col text-primary-foreground items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90'>
-            <CircleHelp />
-          </View>
-        </TouchableOpacity>
-      </View>
-    </Animated.View>
+      <ContextRow
+        bottomItem
+        context={{ name: 'Create', iconName: 'Plus' }}
+        isExpanded={isExpanded}
+        onPress={() => openURL('/create')}
+      />
+      <ContextRow
+        bottomItem
+        context={{ name: 'Support', iconName: 'CircleHelp' }}
+        isExpanded={isExpanded}
+        onPress={() => Intercom.present()}
+      />
+    </View>
   )
 }
 
-function ContextRow ({ item, onPress, currentGroupSlug, badgeCount = 0, className }) {
-  const newPostCount = Math.min(99, item.newPostCount)
-  const highlight = item?.slug === currentGroupSlug
+function ContextRow ({
+  badgeCount = 0,
+  bottomItem,
+  className,
+  context,
+  selected,
+  isExpanded,
+  onPress
+}) {
+  const newPostCount = Math.min(99, context.newPostCount)
 
   return (
     <TouchableOpacity
-      key={item?.id}
-      onPress={() => onPress(item)}
-      style={styles.rowTouchable}
-      activeOpacity={0.7}
+      onPress={() => onPress(context)}
+      className={clsx(
+        'flex-row rounded-lg bg-primary m-1.5',
+        !selected && !bottomItem && 'border-1 border-primary opacity-60 p-1',
+        selected && 'border-3 border-selected opacity-100 p-0.5',
+        bottomItem && 'bg-primary m-1 p-1',
+        className
+      )}
+      style={{
+        justifyContent: isExpanded ? 'flex-start' : 'center',
+        alignItems: 'center'
+      }}
+      activeOpacity={0.5}
     >
-      <View
-        className={clsx(
-          'bg-primary relative flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 scale-90',
-          highlight && 'border-3 border-secondary opacity-100 scale-100',
-          badgeCount > 0 && 'border-3 border-accent opacity-100 scale-100',
-          className
+      <View>
+        {context?.iconName && (
+          <LucideIcon name={context.iconName} color={bottomItem ? black : white} size={bottomItem ? 24 : 35} />
         )}
-      >
-        {!!item?.avatarUrl && (
-          <FastImage source={{ uri: item?.avatarUrl }} style={styles.groupAvatar} />
+        {!context?.iconName && (
+          <FastImage source={{ uri: context?.avatarUrl }} style={{ height: 35, width: 35 }} />
         )}
-        {item?.isPublicContext &&
-          <View className='flex items-center w-14 h-14 min-h-10 rounded-lg'>
-            <Globe />
-          </View>}
         {!!newPostCount && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{newPostCount}</Text>
-          </View>
+          <Text>{newPostCount}</Text>
         )}
       </View>
+      {isExpanded && (
+        <Text
+          className={clsx(
+            'text-xl font-medium text-foreground ml-2',
+            // (selected || bottomItem) && 'text-foreground'
+          )}
+        >
+          {context?.name}
+        </Text>
+      )}
     </TouchableOpacity>
   )
 }
-
-const styles = StyleSheet.create({
-  menuContainer: {
-    backgroundColor: '#222',
-    overflow: 'hidden',
-    paddingVertical: 10
-  },
-  groupAvatar: {
-    height: 30,
-    width: 30,
-    borderRadius: 4
-  },
-  expandButton: {
-    paddingVertical: 10,
-    alignItems: 'center',
-    backgroundColor: '#333'
-  },
-  expandButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold'
-  },
-  groupRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 8
-  },
-  groupIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10
-  },
-  groupText: {
-    fontSize: 14,
-    color: 'white',
-    flexShrink: 1
-  }
-})

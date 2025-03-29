@@ -12,12 +12,24 @@ export default function ContextWidgetPresenter (widget) {
     humanReadableType: humanReadableTypeResolver(type),
     iconName: iconNameResolver(widget, type),
     isDroppable: isDroppableResolver(widget),
+    isEditable: isEditableResolver(widget),
     isValidHomeWidget: isValidHomeWidgetResolver(widget),
     title: titleResolver(widget),
     type,
     // Protection from double presenting
     _presented: true
   }
+}
+
+/* Constants */
+
+export const types = {
+  GROUP: 'viewGroup',
+  POST: 'viewPost',
+  USER: 'viewUser',
+  CHAT: 'viewChat',
+  CUSTOM_VIEW: 'customView',
+  CONTAINER: 'container'
 }
 
 /* == Attribute Resolvers == */
@@ -68,8 +80,7 @@ const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   viewChat: 'Message',
   chat: 'Message',
   viewPost: 'Posticon',
-  about: 'Info',
-  'all-views': 'Grid3x3'
+  about: 'Info'
 }
 function iconNameResolver (widget, type) {
   if (widget?.iconName) return widget.iconName
@@ -84,6 +95,13 @@ function isDroppableResolver (widget) {
   if (widget?.type === 'home') return false
   if (widget?.id?.startsWith('fake-id')) return false
   return true
+}
+
+// Only some widgets can have their titles and visibility edited
+function isEditableResolver (widget) {
+  const type = widgetTypeResolver({ widget })
+  return type === 'customView' ||
+    type === 'container'
 }
 
 // This internal resolver is exported to create mutation data prep in Web AllView#AddViewDialog
@@ -118,6 +136,7 @@ function widgetTypeResolver ({ widget }) {
     (widget?.viewUser && 'viewUser') ||
     (widget?.viewChat && 'viewChat') ||
     (widget?.customView && 'customView') ||
+    (widget?.url && 'link') ||
     'container'
   )
 }
@@ -150,21 +169,59 @@ export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl
   if (isMyContext) return MY_CONTEXT_WIDGETS(profileUrl)
 }
 
-// Determines if a child widget is valid inside a parent widget
-export function isValidChildWidget ({ childWidget = {}, parentWidget }) {
+// Determines if a child widget is valid inside the parent widget
+export function isValidChildWidget ({ parentWidget, childWidget }) {
+  const isWrongType = ['home', 'members', 'setup'].includes(parentWidget?.type)
+    || (parentWidget?.type === 'chats' && !childWidget?.viewChat?.name)
+    || (parentWidget?.type === 'custom-views' && !childWidget?.customView?.id)
+  const parentWidgetIsContainer = parentWidget?.childWidgets?.length > 0
+    || ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view'].includes(parentWidget?.type)
+  const childWidgetIsContainer = childWidget?.childWidgets?.length > 0
+    || ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view'].includes(childWidget?.type)
+
   return !(
-    parentWidget?.viewGroup?.id ||
-    parentWidget?.viewUser?.id ||
-    parentWidget?.customView?.id ||
-    parentWidget?.type === 'members' ||
-    parentWidget?.type === 'setup' ||
-    (parentWidget?.type === 'chats' && !childWidget?.viewChat?.id) ||
-    (parentWidget?.type === 'custom-views' && !childWidget?.customView?.id) ||
-    childWidget?.type === 'home' ||
-    childWidget?.id?.startsWith('fake-id') ||
-    childWidget?.id === parentWidget?.id ||
-    childWidget?.type === 'container'
+    isWrongType
+      || parentWidget?.viewGroup?.slug
+      || parentWidget?.viewChat?.name
+      || parentWidget?.viewUser?.id
+      || parentWidget?.viewPost?.id
+      || parentWidget?.customView?.id
+      || childWidget?.id?.includes('fake-id')
+      || childWidget?.id === parentWidget?.id
+      || (childWidgetIsContainer && parentWidgetIsContainer)
   )
+}
+
+export function isValidDropZone ({ overWidget, activeWidget, parentWidget, isOverlay = false, isEditing, droppableParams }) {
+  const containerTypes = ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view', 'home']
+  const isWrongType = overWidget?.type === 'home'
+    || (parentWidget?.type === 'chats' && !activeWidget?.viewChat?.id)
+    || (parentWidget?.type === 'custom-views' && !activeWidget?.customView?.id)
+    || (parentWidget?.type === 'home')
+  const parentWidgetIsContainer = containerTypes.includes(parentWidget?.type)
+  const activeWidgetIsContainer = containerTypes.includes(activeWidget?.type)
+  const isDynamicWidget = overWidget?.id?.includes('fake-id')
+  // const listBottom = droppableParams.id?.includes('bottom-of-child-list')
+  // console.log('--------------------------------')
+  // console.log('overWidget.title', overWidget?.title + (listBottom ? ' (bottom of list)' : '') )
+  // console.log('overWidget.type', overWidget?.type)
+  // console.log('droppable.id', droppableParams?.id)
+  // console.log('isValidDropZone ==>', (!activeWidgetIsContainer || !parentWidgetIsContainer) && (overWidget?.isDroppable || true) && isDroppable && !isWrongType && !isOverlay && isEditing)
+  // console.log('parentWidget.type', parentWidget?.type)
+  // console.log('activeWidget.type', activeWidget?.type)
+  // console.log('parentWidgetIsContainer', parentWidgetIsContainer)
+  // console.log('activeWidgetIsContainer', activeWidgetIsContainer)
+  // console.log('overWidget.isDroppable', (overWidget?.isDroppable || true))
+  // console.log('isWrongType', isWrongType)
+  // console.log('isOverlay', isOverlay)
+  // console.log('isEditing', isEditing)
+
+  return (!activeWidgetIsContainer || !parentWidgetIsContainer)
+    && (overWidget?.isDroppable || true)
+    && !isWrongType
+    && !isOverlay
+    && isEditing
+    && !isDynamicWidget
 }
 
 export const orderContextWidgetsForContextMenu = (contextWidgets) => {
@@ -205,21 +262,23 @@ export function translateTitle (title, t) {
 export function wrapItemInWidget (item, type) {
   return {
     [type]: item,
-    id: 'fake-id-' + crypto.randomUUID()
+    id: 'fake-id-' + Math.floor(Math.random() * 1e9).toString()
   }
 }
 
 // Static widgets and widget data
 const TERMS_AND_CONDITIONS_URL = 'https://hylo-landing.surge.sh/terms'
 
-const PUBLIC_CONTEXT_WIDGETS = [
+export const PUBLIC_CONTEXT_WIDGETS = [
+  { type: 'home', url: '/public/stream' },
   { context: 'public', view: 'stream', title: 'widget-public-stream', id: 'widget-public-stream', order: 1, parentId: null },
   { context: 'public', view: 'groups', title: 'widget-public-groups', id: 'widget-public-groups', order: 2, parentId: null },
   { context: 'public', view: 'map', title: 'widget-public-map', id: 'widget-public-map', type: 'map', order: 3, parentId: null },
   { context: 'public', view: 'events', title: 'widget-public-events', id: 'widget-public-events', order: 4, parentId: null }
 ]
 
-const MY_CONTEXT_WIDGETS = (profileUrl) => [
+export const MY_CONTEXT_WIDGETS = (profileUrl) => [
+  { type: 'home', url: '/my/posts' },
   { title: 'widget-my-groups-content', id: 'widget-my-groups-content', order: 2, parentId: null },
   { context: 'all', view: 'stream', title: 'widget-my-groups-stream', id: 'widget-my-groups-stream', order: 1, parentId: 'widget-my-groups-content' },
   { context: 'all', view: 'map', title: 'widget-my-groups-map', id: 'widget-my-groups-map', type: 'map', order: 2, parentId: 'widget-my-groups-content' },
@@ -236,11 +295,14 @@ const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { context: 'my', view: 'invitations', title: 'widget-my-invites', id: 'widget-my-invites', order: 4, parentId: 'widget-myself' },
   { context: 'my', view: 'notifications', title: 'widget-my-notifications', id: 'widget-my-notifications', order: 5, parentId: 'widget-myself' },
   { context: 'my', view: 'locale', title: 'widget-my-locale', id: 'widget-my-locale', order: 6, parentId: 'widget-myself' },
-  { context: 'my', view: 'account', title: 'widget-my-account', id: 'widget-my-account', order: 7, parentId: 'widget-myself' },
+  { context: 'my', view: 'blocked-users', title: 'widget-my-blocked-users', id: 'widget-my-blocked-users', order: 7, parentId: 'widget-myself' },
   { context: 'my', view: 'saved-searches', title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', order: 8, parentId: 'widget-myself' },
-  { context: 'my', url: TERMS_AND_CONDITIONS_URL, title: 'widget-terms-and-conditions', id: 'widget-terms-and-conditions', order: 9, parentId: 'widget-myself' },
-  { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', order: 4, parentId: null }
+  { context: 'my', view: 'account', title: 'widget-my-account', id: 'widget-my-account', order: 9, parentId: 'widget-myself' },
+  { context: 'my', url: TERMS_AND_CONDITIONS_URL, title: 'widget-terms-and-conditions', id: 'widget-terms-and-conditions', order: 10, parentId: 'widget-myself' },
+  { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', iconName: 'LogOut', order: 11, parentId: null }
 ]
+
+export const allViewsWidget = ContextWidgetPresenter({ id: 'all-views', title: 'widget-all', type: 'all-views', view: 'all-views', iconName: 'Grid3x3', childWidgets: [] })
 
 export const COMMON_VIEWS = {
   proposals: {
@@ -260,7 +322,7 @@ export const COMMON_VIEWS = {
   events: {
     name: 'Events',
     iconName: 'Calendar',
-    defaultViewMode: 'cards',
+    defaultViewMode: 'calendar',
     postTypes: ['event'],
     defaultSortBy: 'start_time'
   },
@@ -292,7 +354,8 @@ export const COMMON_VIEWS = {
     iconName: 'Request',
     defaultViewMode: 'bigGrid',
     postTypes: ['request', 'offer'],
-    defaultSortBy: 'created'
+    defaultSortBy: 'created',
+    defaultActivePostsOnly: true
   },
   resources: {
     name: 'Resources',
@@ -306,5 +369,13 @@ export const COMMON_VIEWS = {
     iconName: 'Stream',
     defaultViewMode: 'cards',
     defaultSortBy: 'created'
+  },
+  topics: {
+    name: 'All Topics',
+    iconName: 'Topics'
+  },
+  welcome: {
+    name: 'Welcome',
+    iconName: 'Hand'
   }
 }

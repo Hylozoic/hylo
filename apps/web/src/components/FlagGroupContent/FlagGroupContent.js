@@ -1,12 +1,13 @@
 import { isEmpty } from 'lodash'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import TextareaAutosize from 'react-textarea-autosize'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import CheckBox from 'components/CheckBox'
 import Icon from 'components/Icon'
 import MultiSelect from 'components/MultiSelect'
+import fetchPlatformAgreements from 'store/actions/fetchPlatformAgreements'
 import { createModerationAction } from 'store/actions/moderationActions'
 import { agreementsURL } from 'store/constants'
 import presentGroup from 'store/presenters/presentGroup'
@@ -17,10 +18,14 @@ import Tooltip from 'components/Tooltip'
 
 import classes from './FlagGroupContent.module.scss'
 
-const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
+const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const { id, slug } = linkData || {}
+
+  useEffect(() => {
+    dispatch(fetchPlatformAgreements())
+  }, [])
 
   const platformAgreements = useSelector(getPlatformAgreements)
   const currentGroup = useSelector(state => getGroupForDetail(state, { slug }))
@@ -65,12 +70,16 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
 
   const submit = () => {
     dispatch(createModerationAction({ text: explanation, postId: id, groupId: group.id, agreements: agreementsSelected, platformAgreements: platformAgreementsSelected, anonymous }))
+    if (onFlag) {
+      onFlag({ postId: id, groupId: group.id })
+    }
     closeModal()
     return true
   }
 
   return (
     <div className={classes.popup} onClick={(e) => e.stopPropagation()}>
+      <div className={classes.bg} onClick={closeModal} />
       <div className={classes.popupInner}>
         <h1>{t('Explanation for Flagging')}</h1>
         <span onClick={closeModal} className={classes.closeBtn}>
@@ -111,7 +120,7 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
               onChange={value => setAnonymous(value)}
               labelClass={classes.anonLabel}
             />
-            <Button className={classes.submitBtn} onClick={submit} disabled={!isValid()} dataTip={t('Select an agreement and add an explanation for why you are flagging this post')} dataFor='flagging-submit-tt'>
+            <Button variant='secondary' onClick={submit} disabled={!isValid()} data-tooltip-content={t('Select an agreement and add an explanation for why you are flagging this post')} data-tooltip-id='flagging-submit-tt'>
               {t('Submit')}
             </Button>
             <Tooltip

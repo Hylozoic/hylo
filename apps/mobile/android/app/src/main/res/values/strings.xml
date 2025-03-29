@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hylo</string>
-    <string name="link_schema">HyloApp</string>
+    <string name="link_schema">hyloapp</string>
     <string name="facebook_app_id">Facebook App ID</string>
     <string name="facebook_client_token">Facebook Client ID</string>
     <string name="onesignal_notification_accent_color">FF0DC39F</string>

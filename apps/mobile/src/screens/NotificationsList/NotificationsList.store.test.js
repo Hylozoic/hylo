@@ -33,7 +33,7 @@ describe('truncateHTML', () => {
 
   it('decodes HTML entities', () => {
     const markup = '&gt;&amp;&quot;'
-    const expected = '>&\"'
+    const expected = '>&"'
     const actual = store.truncateHTML(markup)
     expect(actual).toBe(expected)
   })

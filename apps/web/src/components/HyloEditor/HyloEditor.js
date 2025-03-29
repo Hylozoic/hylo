@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useEditor, EditorContent, Extension, BubbleMenu } from '@tiptap/react'
 import Highlight from '@tiptap/extension-highlight'
 import Placeholder from '@tiptap/extension-placeholder'
+import Image from '@tiptap/extension-image'
 import StarterKit from '@tiptap/starter-kit'
 import { ScanEye } from 'lucide-react'
 import Link from '@tiptap/extension-link'
@@ -20,6 +21,7 @@ const HyloEditor = React.forwardRef(({
   // See: https://github.com/Hylozoic/hylo-evo/issues/1318
   groupIds,
   maxSuggestions = 7,
+  menuClassName = '',
   onAddLink,
   onAddMention,
   onAddTopic,
@@ -31,10 +33,13 @@ const HyloEditor = React.forwardRef(({
   placeholder,
   readOnly,
   showMenu = false,
-  suggestionsThemeName = 'suggestions'
+  extendedMenu = false,
+  suggestionsThemeName = 'suggestions',
+  type = 'post' // Used for the image uploader to know what type of content it's uploading
 }, ref) => {
   const { t } = useTranslation()
   const editorRef = useRef(null)
+  const [initialized, setInitialized] = useState(false)
   const [selectedLink, setSelectedLink] = useState()
 
   const extensions = [
@@ -74,6 +79,13 @@ const HyloEditor = React.forwardRef(({
 
     Placeholder.configure({ placeholder }),
 
+    Image.configure({
+      allowBase64: true,
+      HTMLAttributes: {
+        class: 'w-full h-auto'
+      }
+    }),
+
     Link.extend({
       inclusive: false, // Link doesnt extend as you keep typing text
       // This expands concatenated links back to full href for editing
@@ -88,7 +100,6 @@ const HyloEditor = React.forwardRef(({
 
                 try {
                   const url = new URL(href)
-
                   element.innerHTML = `${url.hostname}${url.pathname !== '/' ? url.pathname : ''}`
                   return element
                 } catch (e) {
@@ -107,11 +118,12 @@ const HyloEditor = React.forwardRef(({
           ...this.parent?.(),
           openOnClick: false,
           autolink: true,
+          defaultProtocol: 'https',
           HTMLAttributes: {
             target: null
           },
-          validate: href => {
-            onAddLink && onAddLink(href)
+          isAllowedUri: (url, ctx) => {
+            onAddLink && onAddLink(url)
             return true
           }
         }
@@ -128,17 +140,21 @@ const HyloEditor = React.forwardRef(({
   const editor = useEditor({
     content: contentHTML,
     extensions,
-    onCreate,
+    onCreate: ({ editor }) => {
+      if (onCreate) onCreate({ editor })
+    },
     onUpdate: ({ editor }) => {
-      if (!onUpdate) return
+      // Don't call onUpdate until the editor is full initialized (including initial content added)
+      if (!onUpdate || !initialized) return
       onUpdate(editor.getHTML())
     }
   })
 
-  // Dynamic setting of initial editor content
+  // Dynamic setting of initial editor content, and setting the initialized state
   useEffect(() => {
     if (editor.isInitialized) {
       editor.commands.setContent(contentHTML)
+      setInitialized(true)
     }
   }, [editor?.isInitialized, contentHTML])
 
@@ -154,11 +170,13 @@ const HyloEditor = React.forwardRef(({
 
   useEffect(() => {
     if (!editor) return
-
     if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
+  }, [groupIds])
 
+  useEffect(() => {
+    if (!editor) return
     editor.setEditable(!readOnly)
-  }, [groupIds, readOnly])
+  }, [readOnly])
 
   useImperativeHandle(ref, () => ({
     blur: () => {
@@ -202,9 +220,9 @@ const HyloEditor = React.forwardRef(({
   return (
     <div className={cn('flex-1', containerClassName)}>
       {showMenu && (
-        <HyloEditorMenuBar editor={editor} />
+        <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} className={menuClassName} />
       )}
-      <EditorContent className={cn('HyloEditor_EditorContent text-foreground py-3 px-3', className)} editor={editor} />
+      <EditorContent className={cn('HyloEditor_EditorContent1 global-postContent text-foreground py-3 px-3', className)} editor={editor} />
       {editor && (
         <BubbleMenu
           editor={editor}

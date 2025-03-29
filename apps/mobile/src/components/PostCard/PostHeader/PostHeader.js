@@ -3,7 +3,7 @@ import { get } from 'lodash/fp'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
-import { TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRolesForGroup from '@hylo/hooks/useRolesForGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
@@ -22,7 +22,6 @@ export default function PostHeader ({
   date,
   isFlagged,
   hideMenu,
-  pinned,
   postId,
   showMember,
   smallAvatar,
@@ -36,7 +35,6 @@ export default function PostHeader ({
     postId,
     creator,
     title,
-    pinned,
     closeOnDelete,
     setFlaggingVisible
   })
@@ -74,16 +72,13 @@ export default function PostHeader ({
           )}
         </TouchableOpacity>
         <CondensingBadgeRow badges={badges || []} creatorIsSteward={creatorIsSteward} currentGroup={currentGroup} postId={postId} />
-        <Text style={styles.date}>{TextHelpers.humanDate(date)}</Text>
+        <Text style={styles.date}>{DateTimeHelpers.humanDate(date)}</Text>
       </View>
       <View style={styles.upperRight}>
         {isFlagged && (
           <TouchableOpacity hitSlop={5} onPress={handleFlagOnPress}>
             <Icon name='Flag' style={styles.flagIcon} />
           </TouchableOpacity>
-        )}
-        {pinned && (
-          <Icon name='Pin' style={styles.pinIcon} />
         )}
         {announcement && (
           <Icon name='Announcement' style={styles.announcementIcon} />

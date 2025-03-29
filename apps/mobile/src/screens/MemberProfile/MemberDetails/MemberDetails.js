@@ -17,9 +17,9 @@ import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettin
 import personQuery from '@hylo/graphql/queries/personQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
-import useChangeToGroup from 'hooks/useChangeToGroup'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
+import useConfirmAlert from 'hooks/useConfirmAlert'
 import { openURL } from 'hooks/useOpenURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import TabStackHeader from 'navigation/headers/TabStackHeader'
@@ -34,6 +34,7 @@ export default function MemberDetails () {
   const navigation = useNavigation()
   const route = useRoute()
   const logout = useLogout()
+  const confirmAlert = useConfirmAlert()
   const { id, editing: editingParam } = useRouteParams()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ currentUser }] = useCurrentUser()
@@ -94,13 +95,12 @@ export default function MemberDetails () {
             headerLeftOnPress={() => navigation.navigate('Home Tab')}
             headerLeftConfirm={changed}
             headerRightButtonLabel={t('Logout')}
-            headerRightButtonOnPress={() => confirmDiscardChanges({
-              title: t('Logout'),
-              confirmationMessage: t('Are you sure you want to logout?'),
-              continueButtonText: t('Cancel'),
-              disgardButtonText: t('Yes'),
-              onDiscard: logout,
-              t
+            headerRightButtonOnPress={() => confirmAlert({
+              title: 'Logout',
+              confirmMessage: 'Are you sure you want to logout?',
+              cancelButtonText: 'Cancel',
+              confirmButtonText: 'Yes',
+              onConfirm: logout
             })}
           />
       })
@@ -214,7 +214,7 @@ export function MemberSkills ({ skills, editable, goToSkills }) {
 
 export function MemberGroups ({ memberships, editing }) {
   const { t } = useTranslation()
-  const changeToGroup = useChangeToGroup()
+
   if (isEmpty(memberships)) return null
 
   return (
@@ -222,8 +222,9 @@ export function MemberGroups ({ memberships, editing }) {
       <Text style={styles.sectionLabel}>{t('Hylo Communities')}</Text>
       {memberships.map(membership => (
         <GroupRow
-          membership={membership} key={membership.id}
-          goToGroup={changeToGroup} editing={editing}
+          membership={membership}
+          key={membership.id}
+          editing={editing}
         />
       ))}
     </View>
@@ -267,6 +268,7 @@ export function MemberAffiliation ({ affiliation }) {
 
 export function GroupRow ({ membership, editing }) {
   const changeToGroup = useChangeToGroup()
+  const handleOnPress = () => changeToGroup(group.slug, { confirm: true })
   const { group, hasModeratorRole } = membership
   const formatCount = count => {
     if (count < 1000) return `${count}`
@@ -277,7 +279,7 @@ export function GroupRow ({ membership, editing }) {
   return (
     <View style={styles.groupRow}>
       <FastImage source={{ uri: group.avatarUrl }} style={styles.groupAvatar} />
-      <TouchableOpacity onPress={() => changeToGroup(group.slug)} disabled={editing}>
+      <TouchableOpacity onPress={handleOnPress} disabled={editing}>
         <Text style={styles.groupName}>{group.name}</Text>
       </TouchableOpacity>
       {hasModeratorRole && <Icon name='Star' style={styles.starIcon} />}

@@ -3,7 +3,7 @@ import { TextInput, TouchableOpacity, View, Alert, StyleSheet } from 'react-nati
 import { useTranslation } from 'react-i18next'
 import { throttle, isEmpty } from 'lodash'
 import Icon from 'components/Icon'
-import { azureRadiance, rhino30, alabaster, rhino } from 'style/colors'
+import { azureRadiance, rhino30, rhino, twBackground } from 'style/colors'
 
 const IS_TYPING_THROTTLE = 3000
 const MAX_INPUT_HEIGHT = 180
@@ -90,18 +90,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alabaster,
+    backgroundColor: twBackground,
     paddingLeft: 10,
     paddingVertical: 5,
     shadowColor: rhino,
     shadowOffset: { width: 2, height: 5 },
     shadowRadius: 10,
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.3,
     elevation: 2 // Android-only
   },
   input: {
     flex: 1,
-    backgroundColor: alabaster,
+    backgroundColor: twBackground,
     maxHeight: MAX_INPUT_HEIGHT,
     padding: 5,
     borderRadius: 10,

@@ -24,25 +24,27 @@ export default function Control ({
         {!editable && !!value && (
           <Text style={style}>{value}</Text>
         )}
-        {editable && (<>
-          <TextInput
-            ref={inputRef}
-            onFocus={onPress}
-            style={[styles.controlInput, style]}
-            value={value}
-            onChangeText={onChangeText}
-            editable={editable}
-            placeholder={isMe ? placeholder : ''}
-            multiline={multiline}
-            numberOfLines={multiline ? 8 : 1}
-            underlineColorAndroid='transparent'
-          />
-          {!hideEditIcon && (
-            <TouchableOpacity onPress={focus} style={styles.editIconWrapper}>
-              <EntypoIcon name='edit' style={styles.editIcon} />
-            </TouchableOpacity>
-          )}
-        </>)}
+        {editable && (
+          <>
+            <TextInput
+              ref={inputRef}
+              onFocus={onPress}
+              style={[styles.controlInput, style]}
+              value={value}
+              onChangeText={onChangeText}
+              editable={editable}
+              placeholder={isMe ? placeholder : ''}
+              multiline={multiline}
+              numberOfLines={multiline ? 8 : 1}
+              underlineColorAndroid='transparent'
+            />
+            {!hideEditIcon && (
+              <TouchableOpacity onPress={focus} style={styles.editIconWrapper}>
+                <EntypoIcon name='edit' style={styles.editIcon} />
+              </TouchableOpacity>
+            )}
+          </>
+        )}
       </View>
       {!!error && (
         <View style={styles.controlError}>

@@ -45,3 +45,4 @@ export const HYLO_URL_REGEX = /^(https?:\/?\/?)?(www\.|staging\.)?(hylo\.com|loc
 export const ALL_GROUPS_CONTEXT_SLUG = 'all'
 export const PUBLIC_CONTEXT_SLUG = 'public'
 export const MY_CONTEXT_SLUG = 'my'
+export const MESSAGES_CONTEXT_SLUG = 'messages'

@@ -1,4 +1,3 @@
-/* globals RedisClient */
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import { has, isEmpty, merge, omit, pick, intersectionBy } from 'lodash'
@@ -7,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 import validator from 'validator'
 import { GraphQLError } from 'graphql'
 import { Validators } from '@hylo/shared'
+import RedisClient from '../services/RedisClient'
 import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
@@ -561,6 +561,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   disableAllNotifications () {
+    // TODO: turn off notifictions for all groups? or do we have a user level setting too?
     return this.addSetting({
       digest_frequency: 'never',
       comment_notifications: 'none',
@@ -656,11 +657,23 @@ module.exports = bookshelf.Model.extend(merge({
 
   clearSessionsFor: async function ({ userId, sessionId }) {
     const redisClient = RedisClient.create()
-    for await (const key of redisClient.scanIterator({ MATCH: `sess:${userId}:*` })) {
-      if (key !== 'sess:' + sessionId) {
-        await redisClient.del(key)
+    let cursor = 0
+    do {
+      const [nextCursor, keys] = await redisClient.scan(
+        cursor,
+        'MATCH',
+        `sess:${userId}:*`,
+        'COUNT',
+        '100'
+      )
+      cursor = parseInt(nextCursor)
+
+      for (const key of keys) {
+        if (key !== 'sess:' + sessionId) {
+          await redisClient.del(key)
+        }
       }
-    }
+    } while (cursor !== 0)
   },
 
   create: function (attributes) {
@@ -870,9 +883,10 @@ module.exports = bookshelf.Model.extend(merge({
       const initialGroup = memberships?.models[0]?.relations?.group
       Email.sendWelcomeEmail({
         email: user.get('email'),
-        templateData: {
+        data: {
           member_name: user.get('name'),
-          group_name: initialGroup?.get('name')
+          group_name: initialGroup?.get('name'),
+          group_url: initialGroup ? Frontend.Route.group(initialGroup) : null
         }
       })
     }

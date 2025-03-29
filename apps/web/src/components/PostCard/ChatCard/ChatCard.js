@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import React from 'react'
 import CardFileAttachments from 'components/CardFileAttachments'
 import CardImageAttachments from 'components/CardImageAttachments'
@@ -33,10 +33,14 @@ export default function ChatCard ({
               {!slug && <span>in&nbsp; <span className={classes.groupName}>{firstGroup}</span></span>}
             </div>
           </Highlight>
-          <span className={classes.date}>{DateTime.fromISO(post.createdAt).setLocale(getLocaleAsString()).toFormat('yyyy t')}</span>
+          <span className={classes.date}>{DateTimeHelpers.toDateTime(post.createdAt).toFormat('yyyy t')}</span>
         </div>
-        <CardImageAttachments attachments={post.attachments} linked className={classes.postImages} />
-        <CardFileAttachments attachments={post.attachments} className={classes.postFiles} />
+        {post.attachments && post.attachments.length > 0 && (
+          <>
+            <CardImageAttachments attachments={post.attachments} linked className={classes.postImages} />
+            <CardFileAttachments attachments={post.attachments} className={classes.postFiles} />
+          </>
+        )}
         <ClickCatcher groupSlug={slug}>
           <Highlight {...highlightProps}>
             <HyloHTML className={classes.postBody} html={post.details} />

@@ -1,6 +1,10 @@
+/* Import Figtree from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Onest:wght@100..900&display=swap');
+
 @font-face {
   font-family: 'Circular Book';
   src: url('/assets/fonts/Circular-Font-Family/lineto-circular-book.ttf') format('truetype');
+  font-display: swap;
 }
 
 @font-face {

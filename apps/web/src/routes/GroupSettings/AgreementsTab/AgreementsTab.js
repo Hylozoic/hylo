@@ -7,7 +7,6 @@ import React, { forwardRef, useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import PropTypes from 'prop-types'
-import Button from 'components/Button'
 import Icon, { IconWithRef } from 'components/Icon'
 import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -15,6 +14,7 @@ import SettingsControl from 'components/SettingsControl'
 import {
   updateGroupSettings
 } from '../GroupSettings.store'
+import SaveButton from '../SaveButton'
 
 import classes from '../GroupSettings.module.scss'
 import styles from './AgreementsTab.module.scss'
@@ -118,14 +118,6 @@ function AgreementsTab (props) {
     setDragIndex(null)
   }, [])
 
-  const saveButtonContent = useCallback(() => {
-    if (!changed) return { color: 'gray', style: '', text: t('Current settings up to date') }
-    if (error) {
-      return { color: 'purple', style: classes.settingIncorrect, text: error }
-    }
-    return { color: 'green', style: classes.settingChanged, text: t('Changes not saved') }
-  }, [changed, error])
-
   if (!group) return <Loading />
 
   return (
@@ -153,15 +145,7 @@ function AgreementsTab (props) {
             <Icon name='Circle-Plus' className={styles.addButtonIcon} />
           </div>
 
-          <div className={classes.saveChanges}>
-            <span className={saveButtonContent().style}>{saveButtonContent().text}</span>
-            <Button
-              label={t('Save Changes')}
-              color={saveButtonContent().color}
-              onClick={changed && !error ? save : null}
-              className={classes.saveButton}
-            />
-          </div>
+          <SaveButton save={save} changed={changed} error={error} />
         </div>
       </SortableContext>
 

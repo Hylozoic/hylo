@@ -1,6 +1,5 @@
 import React from 'react'
-import { View, ImageBackground, ActivityIndicator } from 'react-native'
-import { FlashList } from '@shopify/flash-list'
+import { FlatList, View, ImageBackground, ActivityIndicator } from 'react-native'
 import { isEmpty } from 'lodash/fp'
 import PopupMenuButton from 'components/PopupMenuButton'
 import stylesGenerator from './ImageSelector.styles'
@@ -30,13 +29,12 @@ export default function ImageSelector ({ images = [], onRemove, style }) {
   )
 
   return (
-    <FlashList
+    <FlatList
       data={images}
-      estimatedItemSize={100}
       horizontal
       keyExtractor={(_, index) => index}
       renderItem={renderImage}
-      style={[styles.imageGrid, style]}
+      contentContainerStyle={[styles.imageGrid, style]}
     />
   )
 }

@@ -19,7 +19,7 @@ const lodash = jest.requireActual('lodash/fp')
 lodash.debounce = (_, fn) => fn
 
 jest.mock('@react-navigation/native', () => {
-  const actualNav = jest.requireActual('@react-navigation/native');
+  const actualNav = jest.requireActual('@react-navigation/native')
   return {
     ...actualNav,
     useNavigation: () => ({
@@ -46,7 +46,6 @@ describe('MemberDetails', () => {
           t={str => str}
           isFocused
           person={{ id: 1 }}
-          goToGroup={() => {}}
           navigation={navigation}
           route={route}
         />
@@ -193,24 +192,24 @@ describe('MemberDetails', () => {
     //   expect(props.updateUserSettings).toHaveBeenCalledWith(instance.state.person)
     // })
 
-  //   it("returns false and doesn't call updateUserSettings when validate is false", () => {
-  //     const props = {
-  //       isFocused: true,
-  //       person: {
-  //         id: 1,
-  //         name: 'don',
-  //         location: 'here',
-  //         tagline: 'rock',
-  //         bio: 'stuff',
-  //         omitable: 'should be omitted',
-  //         skills: { toRefArray: jest.fn(() => []) },
-  //         memberships: { toModelArray: jest.fn(() => []) }
-  //       },
-  //       fetchPerson: () => {},
-  //       updateUserSettings: jest.fn(),
-  //       navigation,
-  //       route
-  //     }
+    //   it("returns false and doesn't call updateUserSettings when validate is false", () => {
+    //     const props = {
+    //       isFocused: true,
+    //       person: {
+    //         id: 1,
+    //         name: 'don',
+    //         location: 'here',
+    //         tagline: 'rock',
+    //         bio: 'stuff',
+    //         omitable: 'should be omitted',
+    //         skills: { toRefArray: jest.fn(() => []) },
+    //         memberships: { toModelArray: jest.fn(() => []) }
+    //       },
+    //       fetchPerson: () => {},
+    //       updateUserSettings: jest.fn(),
+    //       navigation,
+    //       route
+    //     }
 
   //     const instance = ReactTestRenderer.create(
   //       <MemberDetails {...props} />

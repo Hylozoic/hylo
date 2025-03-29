@@ -22,8 +22,7 @@ export default function PostGridItem ({
     title,
     details,
     creator,
-    createdTimestampForGrid,
-    exactCreatedTimestamp,
+    createdTimestamp,
     attachments
   } = post
 
@@ -49,7 +48,7 @@ export default function PostGridItem ({
           <div
             className='bg-primary rounded w-[20px] h-[20px] flex items-center absolute top-1 right-1'
             data-tooltip-content={t('Post from child group')}
-            data-tooltip-id='childgroup-tt'
+            data-tooltip-id={'childgroup-tt' + post.id}
           >
             <Icon
               name='Subgroup'
@@ -57,7 +56,7 @@ export default function PostGridItem ({
             />
             <Tooltip
               delay={250}
-              id='childgroup-tt'
+              id={'childgroup-tt' + post.id}
             />
           </div>}
         <h3 className={cn('text-base text-foreground m-0 px-2', { [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</h3>
@@ -85,8 +84,8 @@ export default function PostGridItem ({
               <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />
               {creator.name}
             </div>
-            <span className={classes.timestamp} data-tooltip-id={`dateTip-${post.id}`} data-tooltip-content={exactCreatedTimestamp}>
-              {createdTimestampForGrid}
+            <span className={classes.timestamp}>
+              {createdTimestamp}
             </span>
           </div>
         </div>

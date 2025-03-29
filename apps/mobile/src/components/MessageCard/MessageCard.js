@@ -5,7 +5,7 @@ import { TextHelpers } from '@hylo/shared'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import HyloHTML from 'components/HyloHTML'
 import Avatar from 'components/Avatar'
-import { alabaster, capeCod, rhino30 } from 'style/colors'
+import { capeCod, rhino30, twBackground } from 'style/colors'
 
 export default function MessageCard ({ message }) {
   const navigation = useNavigation()
@@ -14,8 +14,8 @@ export default function MessageCard ({ message }) {
   const { creator, displayDate, suppressCreator, text } = message
   const goToCreator = () => navigation.navigate(modalScreenName('Member'), { id: creator.id })
 
-  // TODO: Markdown is being used on both Web and Mobile as some messages are HTML
-  //       and others are plain text with purposeful linebreaks.
+  // NOTE: Markdown is being used on both Web and Mobile as some messages are HTML
+  // and others are plain text with purposeful linebreaks.
   const messageHTML = TextHelpers.markdown(text)
 
   return (
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
     paddingHorizontal: 10,
-    backgroundColor: alabaster
+    backgroundColor: twBackground
   },
   header: {
     flexDirection: 'row',

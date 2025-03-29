@@ -1,4 +1,4 @@
-import { rhino, rhino50, alabaster } from 'style/colors'
+import { rhino, rhino50, twBackground } from 'style/colors'
 
 const screenMargin = 16
 
@@ -27,7 +27,7 @@ export default {
   chosenOption: {
     ...option,
     color: rhino,
-    backgroundColor: alabaster,
+    backgroundColor: twBackground,
     fontFamily: 'Circular-Bold'
   },
   contentRow: {

@@ -10,7 +10,6 @@ import recordClickthroughMutation from '@hylo/graphql/mutations/recordClickthrou
 import respondToEventMutation from '@hylo/graphql/mutations/respondToEventMutation'
 import joinProjectMutation from '@hylo/graphql/mutations/joinProjectMutation'
 import leaveProjectMutation from '@hylo/graphql/mutations/leaveProjectMutation'
-import useChangeToGroup from 'hooks/useChangeToGroup'
 import useGoToMember from 'hooks/useGoToMember'
 import useGoToTopic from 'hooks/useGoToTopic'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -37,7 +36,6 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
 
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
-  const changeToGroup = useChangeToGroup()
   const goToMember = useGoToMember()
   const goToTopic = useGoToTopic()
 
@@ -71,9 +69,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
         creator={post.creator}
         date={post.createdAt}
         editPost={editPost}
-        goToGroup={changeToGroup}
         groups={post.groups}
-        pinned={post.pinned}
         postId={post.id}
         showMember={goToMember}
         style={{ paddingVertical: 14 }}
@@ -197,7 +193,6 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
       )}
       {showGroups && (
         <PostGroups
-          goToGroup={changeToGroup}
           groups={post.groups}
           includePublic={post.isPublic}
           style={[styles.groups]}

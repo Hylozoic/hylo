@@ -33,7 +33,7 @@ export default function PostBody (props) {
           <div className={classes.clickthroughButton} onClick={() => dispatch(recordClickthrough({ postId: post.id }))}>{t('View post')}</div>
         </div>}
 
-      <div className={cn(classes.body, { [classes.smallMargin]: !expanded, [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !post.clickthrough }, className)}>
+      <div className={cn('p-2', { [classes.smallMargin]: !expanded, [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !post.clickthrough }, className)}>
         {post.type !== 'chat' && (
           <PostTitle
             {...post}
@@ -43,14 +43,16 @@ export default function PostBody (props) {
           />
         )}
 
-        <PostContent
-          {...post}
-          slug={slug}
-          highlightProps={highlightProps}
-          expanded={expanded}
-          constrained={constrained}
-          onClick={onClick}
-        />
+        {!mapDrawer && (
+          <PostContent
+            {...post}
+            slug={slug}
+            highlightProps={highlightProps}
+            expanded={expanded}
+            constrained={constrained}
+            onClick={onClick}
+          />
+        )}
       </div>
       {post.type === 'proposal' && !mapDrawer && <PostBodyProposal {...post} isFlagged={isFlagged && !post.clickthrough} currentUser={currentUser} />}
     </div>

@@ -216,14 +216,6 @@ a.current-context {
   }
 }
 
-.hover-highlight {
-  /* emtpy */
-}
-
-.hover-highlight:hover, .nav-menu li span:hover {
-  color: $color-black;
-}
-
 .locale {
   @include font-regular;
   color: $color-rhino-60;

@@ -1,7 +1,7 @@
 import { keyBy } from 'lodash'
 import React, { useCallback, useEffect, useMemo } from 'react'
 import { Helmet } from 'react-helmet'
-import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Tooltip } from 'react-tooltip'
 // import PropTypes from 'prop-types'
@@ -35,6 +35,7 @@ import {
 import presentGroup from 'store/presenters/presentGroup'
 import getMe from 'store/selectors/getMe'
 import { useGetJoinRequests } from 'hooks/useGetJoinRequests'
+import useRouteParams from 'hooks/useRouteParams'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
@@ -54,18 +55,18 @@ import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable
 
 const MAX_DETAILS_LENGTH = 144
 
-function GroupDetail ({ popup = false }) {
+function GroupDetail ({ forCurrentGroup = false }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
   const groupSelector = useSelector(state => getGroupForSlug(state, routeParams.detailGroupSlug || routeParams.groupSlug))
   const group = useMemo(() => presentGroup(groupSelector), [groupSelector])
   const slug = routeParams.detailGroupSlug || routeParams.groupSlug
-  const isAboutCurrentGroup = popup || routeParams.groupSlug === routeParams.detailGroupSlug
+  const isAboutCurrentGroup = forCurrentGroup || routeParams.groupSlug === routeParams.detailGroupSlug
   const myMemberships = useSelector(state => getMyMemberships(state))
   const isMember = useMemo(() => group && currentUser ? myMemberships.find(m => m.group.id === group.id) : false, [group, currentUser, myMemberships])
   const joinRequests = useGetJoinRequests()
@@ -103,12 +104,12 @@ function GroupDetail ({ popup = false }) {
     navigate(newUrl)
   }
 
-  const fullPage = !routeParams.detailGroupSlug && !popup
+  const fullPage = !routeParams.detailGroupSlug || forCurrentGroup
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     if (group) {
-      setHeaderDetails({ title: t('About ') + ' ' + group.name, icon: 'Info', info: '', search: true })
+      setHeaderDetails({ title: t('About {{name}}', { name: group.name }), icon: 'Info', info: '', search: true })
     }
   }, [group?.name])
 
@@ -169,7 +170,7 @@ function GroupDetail ({ popup = false }) {
               <div className={g.stewards}>
                 {stewards.map(p => (
                   <Link to={personUrl(p.id, group.slug)} key={p.id} className={g.steward}>
-                    <Avatar avatarUrl={p.avatarUrl} medium />
+                    <Avatar avatarUrl={p.avatarUrl} medium className='mx-1' />
                     <span>{p.name}</span>
                   </Link>
                 ))}
@@ -267,13 +268,13 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
         ? (
           <div className={g.noDescription}>
             <div>
-              <h4>{t('Your group doesn\'t have a description')}</h4>
-              <p>{t('Add a description, location, suggested topics and more in your group settings')}</p>
+              <h4>{t('Your group doesn\'t have a purpose or description')}</h4>
+              <p>{t('Add a purpose, description, location, and more in your group settings')}</p>
               <Link to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
             </div>
           </div>
           )
-        : group.purpose || group.description
+        : group.purpose || group.description || group.websiteUrl
           ? (
             <div className={cn(g.groupDescription, g.detailSection)}>
               {group.purpose
@@ -293,6 +294,14 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
                     <ClickCatcher>
                       <HyloHTML element='span' html={TextHelpers.markdown(group.description)} />
                     </ClickCatcher>
+                  </>
+                  )
+                : ''}
+              {group.websiteUrl
+                ? (
+                  <>
+                    <h3>{t('Website')}</h3>
+                    <a href={TextHelpers.sanitizeURL(group.websiteUrl)} target='_blank' rel='noopener noreferrer'>{group.websiteUrl}</a>
                   </>
                   )
                 : ''}

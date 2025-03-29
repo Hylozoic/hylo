@@ -21,13 +21,13 @@
     cursor: pointer;
   }
 
-  &.removable {
+  &.editable {
     cursor: pointer;
+    padding-right: 1.5rem;
 
     &:hover {
       .remove-label {
-        color: inherit;
-        background: #fff;
+        color: hsl(var(--foreground));
       }
     }
   }
@@ -42,7 +42,7 @@
     color: #FFF;
 
     .remove-label {
-      color: #FFF !important;
+      color: hsl(var(--destructive));
       background-color: $color-amaranth !important;
     }
   }
@@ -57,13 +57,12 @@
 }
 
 .remove-label {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: bold;
   content: '\2715';
   cursor: pointer;
   color: transparent;
   position: absolute;
-  top: 1px;
   right: 5px;
   padding: 4px;
   border-radius: 4px;

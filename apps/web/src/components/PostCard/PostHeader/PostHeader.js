@@ -4,7 +4,7 @@ import React, { PureComponent } from 'react'
 import ReactDOM from 'react-dom'
 import { withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
 import Highlight from 'components/Highlight'
@@ -28,6 +28,21 @@ class PostHeader extends PureComponent {
   flagPostFunc = () =>
     this.props.canFlag ? () => { this.setState({ flaggingVisible: true }) } : undefined
 
+  getTypeIcon = (type) => {
+    const typeIconMap = {
+      chat: 'Messages',
+      offer: 'Offer',
+      request: 'HandRaised',
+      resource: 'Resource',
+      project: 'Project',
+      proposal: 'Proposal',
+      event: 'Calendar',
+      post: 'Post',
+      discussion: 'Chat'
+    }
+    return typeIconMap[type] || 'Post' // Default Post icon if type not found
+  }
+
   render () {
     const {
       routeParams,
@@ -35,11 +50,9 @@ class PostHeader extends PureComponent {
       canEdit,
       expanded,
       isFlagged,
-      hasImage,
       group,
       proposalOutcome,
       proposalStatus,
-      pinned,
       close,
       className,
       constrained,
@@ -47,7 +60,6 @@ class PostHeader extends PureComponent {
       deletePost,
       duplicatePost,
       removePost,
-      pinPost,
       highlightProps,
       moderationActionsGroupUrl = '',
       fulfillPost,
@@ -66,8 +78,7 @@ class PostHeader extends PureComponent {
       id,
       endTime,
       startTime,
-      fulfilledAt,
-      topics
+      fulfilledAt
     } = post
 
     if (!creator) return null
@@ -86,7 +97,6 @@ class PostHeader extends PureComponent {
     }
 
     const dropdownItems = filter([
-      { icon: 'Pin', label: pinned ? t('Unpin') : t('Pin'), onClick: pinPost },
       { icon: 'Edit', label: t('Edit'), onClick: editPost },
       { icon: 'CopyLink', label: t('Copy Link'), onClick: copyLink },
       { icon: 'Flag', label: t('Flag'), onClick: this.flagPostFunc() },
@@ -104,13 +114,13 @@ class PostHeader extends PureComponent {
     // If it was completed/fulfilled before it ended, then use that as the end datetime
     const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
 
-    const { from, to } = TextHelpers.formatDatePair(startTime, actualEndTime, true)
+    const { from, to } = DateTimeHelpers.formatDatePair(startTime, actualEndTime, true)
 
     const startString = fulfilledAt
       ? false
-      : TextHelpers.isDateInTheFuture(startTime)
+      : DateTimeHelpers.isDateInTheFuture(startTime)
         ? t('Starts: {{from}}', { from })
-        : TextHelpers.isDateInTheFuture(endTime)
+        : DateTimeHelpers.isDateInTheFuture(endTime)
           ? t('Started: {{from}}', { from })
           : false
 
@@ -118,7 +128,7 @@ class PostHeader extends PureComponent {
     if (fulfilledAt && fulfilledAt <= endTime) {
       endString = t('Completed: {{endTime}}', { endTime: to })
     } else {
-      endString = TextHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: to }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: to }) : false
+      endString = DateTimeHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: to }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: to }) : false
     }
 
     let timeWindow = ''
@@ -131,7 +141,6 @@ class PostHeader extends PureComponent {
       timeWindow = startString
     }
 
-    const showNormal = ((canBeCompleted && canEdit && expanded) && (topics?.length > 0 || (canHaveTimes && timeWindow.length > 0))) || false
     return (
       <div className={cn('relative', { 'mb-0 h-12 px-2': constrained }, className)}>
         <div className='w-full bg-transparent rounded-t-lg'>
@@ -139,7 +148,7 @@ class PostHeader extends PureComponent {
             <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
             <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
               <Highlight {...highlightProps}>
-                <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
+                <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
                   {creator.name}
                 </Link>
               </Highlight>
@@ -149,6 +158,10 @@ class PostHeader extends PureComponent {
                 ))}
               </div> */}
               <div className='flex items-center ml-2'>
+                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
+                  <Icon name={this.getTypeIcon(type)} className='text-sm' />
+                  {t(type)}
+                </div>
                 <span className='text-foreground/50 text-2xs whitespace-nowrap' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
                   {createdTimestamp}
                 </span>
@@ -169,7 +182,6 @@ class PostHeader extends PureComponent {
                 delay={250}
                 id='post-header-flag-tt'
               />
-              {pinned && <Icon name='Pin' className='top-1 mr-3 text-xl text-accent font-bold' />}
               {dropdownItems.length > 0 &&
                 <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' />} items={dropdownItems} alignRight />}
               {close &&
@@ -180,10 +192,10 @@ class PostHeader extends PureComponent {
           </div>
         </div>
 
-        <div className={cn('flex flex-col xs:flex-row justify-between', { 'absolute z-11 w-full': hasImage, relative: showNormal })}>
+        <div className={cn('flex flex-col xs:flex-row justify-between')}>
           {/* {topics?.length > 0 && <TopicsLine topics={topics} slug={routeParams.groupSlug} />} */}
           {canHaveTimes && timeWindow.length > 0 && (
-            <div className={cn('text-xs font-bold text-secondary w-auto text-center border border-border rounded-md bg-card p-2 m-4 xs:m-3', { hidden: constrained })}>
+            <div className={cn('ml-2 -mb-1 bg-secondary/10 p-1 rounded-lg text-secondary text-xs font-bold flex items-center justify-center inline-block px-2', { hidden: constrained })}>
               {timeWindow}
             </div>
           )}

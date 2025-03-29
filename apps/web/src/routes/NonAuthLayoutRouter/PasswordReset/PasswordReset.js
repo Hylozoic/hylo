@@ -13,7 +13,9 @@ function PasswordReset ({ className, sendPasswordReset }) {
   const { t } = useTranslation()
 
   useEffect(() => {
-    emailRef.current.focus()
+    setTimeout(() => {
+      emailRef.current?.focus()
+    }, 100)
   }, [])
 
   const submit = () => {

@@ -3,7 +3,7 @@
   flex-direction: column;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
   padding: 17px 20px;
   height: auto;
   transition: height 0.1s linear;
@@ -76,8 +76,9 @@
   z-index: 1;
 
   span { // icon positioning
-    margin-right: 0.25em;
-    left: -2px;
+    position: relative;
+    top: 1px;
+    margin-left: 0.25em;
     font-size: 16px;
     opacity: .3;
   }

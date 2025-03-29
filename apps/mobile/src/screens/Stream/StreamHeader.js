@@ -1,22 +1,20 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import LinearGradient from 'react-native-linear-gradient'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { firstName as getFirstName } from '@hylo/presenters/PersonPresenter'
-import { isIOS } from 'util/platform'
-import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
-import { bannerlinearGradientColors, capeCod40, capeCod10, white } from 'style/colors'
+import { bannerlinearGradientColors, white, rhino, black, twBackground } from 'style/colors'
+import { Plus } from 'lucide-react-native'
 
 export default function StreamHeader ({ image, icon, name, postPrompt = false, currentGroup, streamType }) {
   return (
-    <View style={[styles.bannerContainer, postPrompt && styles.bannerContainerWithPostPrompt]}>
+    <View style={styles.headerContainer}>
       <FastImage source={image} style={styles.image} />
       <LinearGradient style={styles.gradient} colors={bannerlinearGradientColors} />
-      <View style={styles.titleRow}>
+      <View style={styles.header}>
         <View style={styles.title}>
           {icon && (
             <View style={styles.customViewIconContainer}>
@@ -25,8 +23,10 @@ export default function StreamHeader ({ image, icon, name, postPrompt = false, c
           )}
           <Text style={styles.name} numberOfLines={3}>{name}</Text>
         </View>
+        {postPrompt && (
+          <PostPrompt forGroup={currentGroup} currentType={streamType} />
+        )}
       </View>
-      {postPrompt && <PostPrompt forGroup={currentGroup} currentType={streamType} />}
     </View>
   )
 }
@@ -47,34 +47,11 @@ export function PostPrompt ({ forGroup, currentType, currentTopicName }) {
   }
 
   return (
-    <View style={styles.postPrompt}>
-      <TouchableOpacity onPress={handleOpenPostEditor} style={styles.promptButton}>
-        <Avatar avatarUrl={currentUser.avatarUrl} style={styles.avatar} />
-        <Text style={styles.promptText}>{postPromptString(currentType, currentUser, t)}</Text>
-      </TouchableOpacity>
-    </View>
+    <TouchableOpacity className='flex-row rounded-lg p-2 bg-primary opacity-90' style={styles.postPrompt} onPress={handleOpenPostEditor}>
+      <Plus style={{ color: rhino }} size={20} />
+      <Text style={{ marginRight: 5 }} className='text-l'>{t('Create')}</Text>
+    </TouchableOpacity>
   )
-}
-
-export function postPromptString (type = '', user, t) {
-  const firstName = getFirstName(user)
-  const postPrompts = {
-    offer: t('Hi {{firstName}}, what would you like to share?', { firstName }),
-    request: t('Hi {{firstName}}, what are you looking for?', { firstName }),
-    project: t('Hi {{firstName}}, what would you like to create?', { firstName }),
-    event: t('Hi {{firstName}}, want to create an event?', { firstName }),
-    default: t('Hi {{firstName}}, press here to post', { firstName })
-  }
-  return postPrompts[type] || postPrompts.default
-}
-
-const postPromptShape = {
-  position: 'absolute',
-  height: 52,
-  borderRadius: 2,
-  left: 0,
-  right: 0,
-  bottom: -26
 }
 
 const hasTextShadow = {
@@ -84,16 +61,9 @@ const hasTextShadow = {
 }
 
 const styles = StyleSheet.create({
-  bannerContainer: {
-    zIndex: 10,
-    height: 142,
-    marginBottom: 10,
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    justifyContent: 'flex-end'
-  },
-  bannerContainerWithPostPrompt: {
-    marginBottom: 34
+  headerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   customViewIcon: {
     fontSize: 16,
@@ -107,25 +77,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
-    backgroundColor: 'rgb(255, 255, 255)'
+    backgroundColor: twBackground
   },
   image: {
-    height: 142,
+    height: '100%',
     width: '100%',
-    position: 'absolute'
+    position: 'absolute',
+    opacity: 0.8
   },
   gradient: {
-    height: 142,
     width: '100%',
     position: 'absolute'
   },
-  titleRow: {
-    position: 'absolute',
-    left: 0,
-    bottom: 56,
-    marginHorizontal: 16,
+  header: {
+    padding: 10,
     flexDirection: 'row',
-    alignItems: 'flex-end'
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
   title: {
     flex: 1,
@@ -140,23 +108,9 @@ const styles = StyleSheet.create({
     ...hasTextShadow
   },
   postPrompt: {
-    ...postPromptShape,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: white,
-    borderWidth: isIOS ? 0 : 1,
-    borderColor: capeCod10
-  },
-  promptButton: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  avatar: {
-    marginRight: 10
-  },
-  promptText: {
-    color: capeCod40,
-    fontSize: 14
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    fontColor: black
   }
-})
 
+})

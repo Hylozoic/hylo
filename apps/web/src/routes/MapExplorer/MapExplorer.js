@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { createSelector } from 'reselect'
 import { debounce, get, groupBy, isEqual, isEmpty } from 'lodash'
 import { pick, pickBy } from 'lodash/fp'
+import { Heart } from 'lucide-react'
 import bbox from '@turf/bbox'
 import bboxPolygon from '@turf/bbox-polygon'
 import booleanWithin from '@turf/boolean-within'
@@ -440,6 +441,10 @@ function MapExplorer (props) {
   const creatingPostRef = useRef(false)
 
   const onMapMouseDown = useCallback((e) => {
+    // close all open menus or popups whenever the map is clicked
+    setShowFeatureFilters(false)
+    setShowLayersSelector(false)
+    setShowSavedSearches(false)
     const oneSecondInMs = 1000
     setCreatePopupVisible(false)
     creatingPostRef.current = true
@@ -701,7 +706,7 @@ function MapExplorer (props) {
         <title>Map | {group ? `${group.name} | ` : context === 'public' ? 'Public | ' : ' All My Groups | '}Hylo</title>
       </Helmet>
 
-      <div className={classes.mapContainer} data-testid='map-container'>
+      <div className='flex-1 h-full relative' data-testid='map-container'>
         <Map
           baseLayerStyle={baseLayerStyle}
           hyloLayers={[polygonLayer, groupIconLayer, clusterLayer]}
@@ -721,12 +726,12 @@ function MapExplorer (props) {
       <button
         data-tooltip-id='helpTip'
         data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
-        className={cn(classes.toggleDrawerButton, classes.drawerAdjacentButton, { [classes.drawerOpen]: !hideDrawer })}
+        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs ', { 'right-5': hideDrawer, 'right-[520px]': !hideDrawer })}
         onClick={toggleDrawer}
         data-testid='drawer-toggle-button'
       >
         <Icon name='Hamburger' className={classes.openDrawer} />
-        <Icon name='Ex' className={classes.closeDrawer} />
+        <Icon name='Ex' className={cn({ hidden: hideDrawer, block: !hideDrawer })} />
       </button>
       {!hideDrawer && (
         <MapDrawer
@@ -749,20 +754,21 @@ function MapExplorer (props) {
           topics={filters.topics}
         />
       )}
-      <div className={classes.searchAutocomplete}>
-        <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='focus:outline-none' />
+      <div className='absolute top-5 left-[74px]'>
+        <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground focus:border-focus hover:scale-105' />
       </div>
-      <button className={cn(classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
+      <button className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-10 left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
         {t('Features:')} <strong>{possibleFeatureTypes.filter(t => filters.featureTypes[t]).length}/{possibleFeatureTypes.length}</strong>
       </button>
 
       {currentUser && (
         <>
-          <Icon
-            name='Heart'
+          <button
             onClick={toggleSavedSearches}
-            className={cn(classes.savedSearchesButton, { [classes.open]: showSavedSearches })}
-          />
+            className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs left-5', { 'border-selected/50 text-selected': showSavedSearches })}
+          >
+            <Heart />
+          </button>
           {showSavedSearches && (
             <SavedSearches
               deleteSearch={handleDeleteSearch}
@@ -776,8 +782,8 @@ function MapExplorer (props) {
         </>
       )}
 
-      <div className={cn(classes.featureTypeFilters, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })}>
-        <h3>{t('What do you want to see on the map?')}</h3>
+      <div className={cn('absolute bottom-[80px] left-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col', { flex: showFeatureFilters, [classes.withoutNav]: withoutNav })}>
+        <h3 className='text-sm font-medium mb-2 text-foreground/80'>{t('What do you want to see on the map?')}</h3>
         {possibleFeatureTypes.map(featureType => {
           const color = FEATURE_TYPES[featureType].primaryColor
           return (
@@ -795,20 +801,20 @@ function MapExplorer (props) {
             </div>
           )
         })}
-        <div className={classes.pointer} />
       </div>
 
       <button
         data-tooltip-id='helpTip'
         data-tooltip-content={showLayersSelector ? null : t('Change Map Layers')}
         onClick={toggleLayersSelector}
-        className={cn(classes.toggleLayersSelectorButton, classes.drawerAdjacentButton, { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, [classes.drawerOpen]: !hideDrawer })}
+        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-[80px] right-5 gap-1 text-xs', { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, 'right-[520px]': !hideDrawer })}
         data-testid='layers-selector-button'
       >
         <Icon name='Stack' />
       </button>
-      <div className={cn(classes.layersSelectorContainer, { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, [classes.drawerOpen]: !hideDrawer })}>
-        <h3>{t('Base Layer:')}
+      <div className={cn('absolute bottom-[120px] w-[200px] right-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col', { flex: showLayersSelector, [classes.withoutNav]: withoutNav, 'right-[520px]': !hideDrawer })}>
+        <div className='flex flex-col pb-2 border-b-2 border-foreground/20 mb-2'>
+          <span className='text-sm font-medium text-foreground/60'>{t('Base Layer')}</span>
           <Dropdown
             className={classes.layersDropdown}
             menuAbove
@@ -823,32 +829,32 @@ function MapExplorer (props) {
               onClick: () => updateBaseLayerStyle(id)
             }))}
           />
-        </h3>
+        </div>
 
-        <h3 className={classes.layersHeader}>{t('Other Layers')}</h3>
-        <div className={classes.layersList}>
-          <SwitchStyled
-            backgroundColor='rgb(0, 163, 227)'
-            name={t('Native Territories')}
-            checked={!!otherLayers.native_territories}
-            onChange={(checked, name) => toggleMapLayer('native_territories')}
-          />
-          <span className={classes.layerLabel}>
-            {t('Native Territories')}
+        <div>
+          <span className='text-sm gap-1 font-medium mb-2 text-foreground/60'>{t('Other Layers')}</span>
+          <div className='flex flex-row gap-1'>
+            <SwitchStyled
+              backgroundColor='rgb(0, 163, 227)'
+              name={t('Native Territories')}
+              checked={!!otherLayers.native_territories}
+              onChange={(checked, name) => toggleMapLayer('native_territories')}
+            />
+            <span className={classes.layerLabel}>
+              {t('Native Territories')}
+            </span>
             <a href='https://native-land.ca' target='__blank'>
               <Icon name='Info' tooltipContent='Credit to native-land.ca' tooltipId='helpTipTwo' />
             </a>
-          </span>
+          </div>
         </div>
-
-        <div className={classes.pointer} />
       </div>
 
       {currentUser && (
         <button
           data-tooltip-id='helpTip'
           data-tooltip-content='Add item to map'
-          className={cn(classes.addItemToMapButton, classes.drawerAdjacentButton, { [classes.active]: isAddingItemToMap, [classes.drawerOpen]: !hideDrawer })}
+          className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-10 right-5 gap-1 text-xs', { [classes.active]: isAddingItemToMap, 'right-[520px]': !hideDrawer })}
           onClick={handleAddItemToMap}
         >
           <Icon name='Plus' className={cn({ [classes.openDrawer]: !hideDrawer, [classes.closeDrawer]: hideDrawer })} />

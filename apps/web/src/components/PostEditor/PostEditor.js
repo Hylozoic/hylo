@@ -1,6 +1,5 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
-import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
@@ -25,6 +24,7 @@ import SliderInput from 'components/SliderInput/SliderInput'
 import Dropdown from 'components/Dropdown/Dropdown'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
+import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import fetchMyMemberships from 'store/actions/fetchMyMemberships'
 import {
   PROPOSAL_ADVICE,
@@ -74,6 +74,7 @@ import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from 'util/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
+import { DateTimeHelpers } from '@hylo/shared'
 
 import styles from './PostEditor.module.scss'
 
@@ -91,6 +92,20 @@ const getMyAdminGroups = createSelector(
     return groupOptions.filter(g => hasResponsibilityForGroup(state, { person: currentUser, groupId: g.id, responsibility: RESP_ADMINISTRATION }))
   }
 )
+
+/**
+ * PostEditor component for creating and editing various post types (discussions, events, projects, proposals, etc.)
+ * @param {Object} props - Component props
+ * @param {string} props.context - the overall route context (e.g., 'my', 'groups')
+ * @param {boolean} props.modal - Whether the editor is displayed in a modal
+ * @param {Object} props.post - Post data when editing an existing post
+ * @param {boolean} props.editing - Whether we're editing an existing post
+ * @param {Function} props.setIsDirty - Callback to notify parent when content changes
+ * @param {Function} props.onCancel - Callback when cancel is clicked
+ * @param {Function} props.onSave - Callback when save is clicked
+ * @param {Function} props.afterSave - Callback after post is successfully saved
+ * @param {string} props.selectedLocation - Pre-selected location if any
+ */
 
 function PostEditor ({
   context,
@@ -167,7 +182,7 @@ function PostEditor ({
     isPublic: context === 'public',
     locationId: null,
     location: '',
-    timezone: DateTime.now().zoneName,
+    timezone: DateTimeHelpers.dateTimeNow().zoneName,
     proposalOptions: [],
     isAnonymousVote: false,
     isStrictProposal: false,
@@ -180,7 +195,7 @@ function PostEditor ({
 
   const [currentPost, setCurrentPost] = useState(initialPost)
   const [invalidMessage, setInvalidMessage] = useState('')
-  const [hasDescription, setHasDescription] = useState(false) // TODO: an optimization to not run isValid no every character changed in the description
+  const [hasDescription, setHasDescription] = useState(initialPost.details?.length > 0) // TODO: an optimization to not run isValid no every character changed in the description
   const [announcementSelected, setAnnouncementSelected] = useState(false)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
@@ -193,10 +208,16 @@ function PostEditor ({
 
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
+  /**
+   * Filters the available group options to find only those groups
+   * that are currently selected in the post.
+   * This creates an intersection between all available groups and selected groups,
+   * ensuring we only work with valid, accessible groups that the user has selected.
+   * @returns {Array} Array of group objects that are both available and selected
+   */
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
-    
-    return groupOptions.filter((g) => 
+    return groupOptions.filter((g) =>
       g && currentPost.groups.some((g2) => g2 && g.id === g2.id)
     )
   }, [currentPost?.groups, groupOptions])
@@ -210,12 +231,12 @@ function PostEditor ({
         if (!g) return []
         return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g }]
           .concat((g.chatRooms?.toModelArray() || [])
-            .map((cr) => ({ 
-              id: cr?.groupTopic?.id, 
-              group: g, 
-              name: g.name + ' #' + cr?.groupTopic?.topic?.name, 
-              topic: cr?.groupTopic?.topic, 
-              avatarUrl: g.avatarUrl 
+            .map((cr) => ({
+              id: cr?.groupTopic?.id,
+              group: g,
+              name: g.name + ' #' + cr?.groupTopic?.topic?.name,
+              topic: cr?.groupTopic?.topic,
+              avatarUrl: g.avatarUrl
             }))
             .filter(Boolean)
             .sort((a, b) => a.name.localeCompare(b.name)))
@@ -225,17 +246,16 @@ function PostEditor ({
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
       if (!g) return []
-      
-      const baseOption = [{ 
-        id: `group_${g.id}`, 
-        name: g.name, 
-        avatarUrl: g.avatarUrl, 
-        group: g 
+      const baseOption = [{
+        id: `group_${g.id}`,
+        name: g.name,
+        avatarUrl: g.avatarUrl,
+        group: g
       }]
 
       const chatRoomOptions = g.chatRooms?.toModelArray()
-        ?.filter(cr => 
-          cr?.groupTopic?.topic?.id && 
+        ?.filter(cr =>
+          cr?.groupTopic?.topic?.id &&
           currentPost.topics?.some(t => t?.id === cr.groupTopic.topic.id)
         )
         ?.map(cr => {
@@ -286,6 +306,10 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, topics: [...currentPost.topics, topic] })
   }, [topic])
 
+  /**
+   * Resets the editor to its initial state
+   * Clears form fields, attachments, and link previews
+   */
   const reset = useCallback(() => {
     editorRef.current?.setContent(initialPost.details)
     dispatch(clearLinkPreview())
@@ -302,14 +326,19 @@ function PostEditor ({
     }
   }, [initialPost])
 
+  /**
+   * Calculates an end time based on start time, preserving duration if both times exist
+   * @param {Date} startTime - The new start time
+   * @returns {Date} - The calculated end time
+   */
   const calcEndTime = useCallback((startTime) => {
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      const start = DateTime.fromJSDate(currentPost.startTime)
-      const end = DateTime.fromJSDate(currentPost.endTime)
+      const start = DateTimeHelpers.toDateTime(currentPost.startTime)
+      const end = DateTimeHelpers.toDateTime(currentPost.endTime)
       msDiff = end.diff(start)
     }
-    return DateTime.fromJSDate(startTime).plus({ milliseconds: msDiff }).toJSDate()
+    return DateTimeHelpers.toDateTime(startTime).plus({ milliseconds: msDiff }).toJSDate()
   }, [currentPost.startTime, currentPost.endTime])
 
   const handlePostTypeSelection = useCallback((type) => {
@@ -321,6 +350,8 @@ function PostEditor ({
         pathname: urlLocation.pathname,
         search: setQuerystringParam('newPostType', type, urlLocation)
       }, { replace: true })
+    } else {
+      dispatch(changeQuerystringParam(location, 'newPostType', null, null, true))
     }
 
     setCurrentPost({ ...currentPost, type })
@@ -344,9 +375,13 @@ function PostEditor ({
 
   const handleDetailsChange = useCallback((event) => {
     const details = editorRef.current.getText()
+
+    // Track whether description has content for validation
     setHasDescription(details.length > 0)
+
+    // Mark the form as dirty to enable save functionality
     setIsDirty(true)
-  }, [currentPost])
+  }, [])
 
   const handleToggleContributions = useCallback(() => {
     setCurrentPost({ ...currentPost, acceptContributions: !currentPost.acceptContributions })
@@ -375,6 +410,11 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, projectManagementLink })
   }, [currentPost])
 
+  /**
+   * Validates time inputs to ensure end time is after start time
+   * @param {Date} startTime - The start time to validate
+   * @param {Date} endTime - The end time to validate
+   */
   const validateTimeChange = useCallback((startTime, endTime) => {
     if (endTime) {
       startTime < endTime
@@ -398,10 +438,10 @@ function PostEditor ({
     pollingFetchLinkPreview(dispatch, url)
   })
 
-  const handleAddTopic = useCallback((topic) => {
+  const handleAddTopic = useEventCallback((topic) => {
     const { topics } = currentPost
-
     if (topics?.length >= MAX_POST_TOPICS) return
+
     setCurrentPost({ ...currentPost, topics: [...topics, topic] })
     setIsDirty(true)
   }, [currentPost])
@@ -450,6 +490,10 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, eventInvitations })
   }, [currentPost])
 
+  /**
+   * Determines if the current form state is valid for submission
+   * Checks various conditions based on post type and sets error messages
+   */
   const isValid = useMemo(() => {
     const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions } = currentPost
 
@@ -462,7 +506,7 @@ function PostEditor ({
         }
         break
       case 'project':
-        if (!donationsLink || !sanitizeURL(donationsLink) || !projectManagementLink || !sanitizeURL(projectManagementLink)) {
+        if ((donationsLink?.length > 0 && !sanitizeURL(donationsLink)) || (projectManagementLink?.length > 0 && !sanitizeURL(projectManagementLink))) {
           errorMessages.push(t('Donations and project management links must be valid URLs'))
         }
         break
@@ -501,6 +545,10 @@ function PostEditor ({
   //   }
   // }
 
+  /**
+   * Saves the post to the server
+   * Collects all form data and dispatches the appropriate action (create or update)
+   */
   const save = useCallback(async () => {
     const {
       acceptContributions,
@@ -528,7 +576,11 @@ function PostEditor ({
     } = currentPost
     const details = editorRef.current.getHTML()
     const topicNames = topics?.map((t) => t.name)
-    const memberIds = members && members.map((m) => m.id)
+    const memberIds = members?.map((m) => m.id) || []
+    if (type === 'project') {
+      // Add the current user to the project members
+      memberIds.push(currentUser.id)
+    }
     const eventInviteeIds =
       eventInvitations && eventInvitations.map((m) => m.id)
     const imageUrls =
@@ -546,7 +598,7 @@ function PostEditor ({
       id,
       acceptContributions,
       commenters: [], // For optimistic display of the new post
-      createdAt: DateTime.now().toISO(), // For optimistic display of the new post
+      createdAt: DateTimeHelpers.dateTimeNow().toISO(), // For optimistic display of the new post
       creator: currentUser, // For optimistic display of the new post
       details,
       donationsLink: sanitizeURL(donationsLink),
@@ -587,8 +639,12 @@ function PostEditor ({
     const savedPost = await dispatch(saveFunc(postToSave))
     if (afterSave) afterSave(savedPost.payload.data.createPost)
     reset()
-  }, [afterSave, announcementSelected, currentPost, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
+  }, [afterSave, announcementSelected, currentPost, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
 
+  /**
+   * Initiates the save process with validation and confirmation checks
+   * Shows announcement modal or warning if needed
+   */
   const doSave = useEventCallback(() => {
     if (!isValid || loading) return
 
@@ -620,6 +676,10 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, votingMethod })
   }, [currentPost])
 
+  /**
+   * Applies a proposal template to the current post
+   * @param {string} template - Template identifier
+   */
   const handleUseTemplate = useCallback((template) => {
     const templateData = PROPOSAL_TEMPLATES[template]
     setCurrentPost({
@@ -637,6 +697,10 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, proposalOptions: newOptions })
   }, [currentPost])
 
+  /**
+   * Checks if the current user can make an announcement in all selected groups
+   * @returns {boolean} - True if user has admin rights in all selected groups
+   */
   const canMakeAnnouncement = useCallback(() => {
     const { groups = [] } = currentPost
     const myAdminGroupsSlugs = myAdminGroups.map(group => group.slug)
@@ -652,12 +716,23 @@ function PostEditor ({
   const hasStripeAccount = get('hasStripeAccount', currentUser)
   const isChat = currentPost.type === 'chat'
 
+  /**
+   * Handles the To field container click, focusing the actual ToField
+   * This improves UX by making the entire container clickable
+   */
   const handleToFieldContainerClick = () => {
     toFieldRef.current?.focus() // This will call the focus method on ToField
   }
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-xl')}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative', { 'pb-1': !modal, [styles.noModal]: !modal })}>
+      <div
+        className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
+        style={{
+          maskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)'
+        }}
+      />
       <div className={cn('PostEditorHeader relative', { 'my-1 pb-2': !isChat })}>
         <PostTypeSelect
           disabled={loading}
@@ -710,19 +785,25 @@ function PostEditor ({
           )}
         </div>
       )}
-      <div className={cn('PostEditorContent', styles.section, 'flex flex-col !items-start')}>
+      <div className={cn(
+        'PostEditorContent',
+        styles.section,
+        'flex flex-col !items-start border-2 border-transparent shadow-md',
+        'transition-all duration-200 overflow-x-hidden',
+        'focus-within:border-2 focus-within:border-focus',
+        { 'max-h-[300px]': !modal }
+      )}
+      >
         {currentPost.details === null || loading
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
-              key={currentPost.id}
               placeholder={isChat ? t('Send a chat to #{{topicName}}', { topicName: currentPost?.topics?.[0]?.name }) : t('Add a description')}
               onUpdate={handleDetailsChange}
               onAltEnter={doSave}
-              // Disable edit cancel through escape due to event bubbling issues
-              // onEscape={handleCancel}
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
               contentHTML={currentPost.details}
+              menuClassName={cn({ 'pr-16': isChat })}
               showMenu
               readOnly={loading}
               ref={editorRef}
@@ -743,6 +824,7 @@ function PostEditor ({
           showAddButton
           showLabel
           showLoading
+          onChange={() => setIsDirty(true)}
         />
         <AttachmentManager
           type='post'
@@ -751,6 +833,7 @@ function PostEditor ({
           showAddButton
           showLabel
           showLoading
+          onChange={() => setIsDirty(true)}
         />
       </div>
       {currentPost.type === 'project' && (
@@ -1062,11 +1145,13 @@ function PostEditor ({
         groupCount={get('groups', currentPost).length}
         groups={currentPost.groups}
         invalidMessage={invalidMessage}
+        isEditing={isEditing}
         loading={loading}
         myAdminGroups={myAdminGroups}
         doSave={doSave}
         save={save}
         setAnnouncementSelected={setAnnouncementSelected}
+        setIsDirty={setIsDirty}
         setShowLocation={setShowLocation}
         showAnnouncementModal={showAnnouncementModal}
         showFiles={showFiles}

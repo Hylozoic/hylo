@@ -45,6 +45,8 @@ export default function NonAuthLayoutRouter (props) {
   const thisApplicationText = t('this application')
   const locale = localeLocalStorageSync()
   const localeDisplay = localeToFlagEmoji(locale)
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const logoSrc = isDarkMode ? '/hylo-logo-light-horizontal.svg' : '/hylo-logo-dark-horizontal.svg'
 
   useEffect(() => {
     if (returnToPath && returnToPath !== '/') {
@@ -70,11 +72,11 @@ export default function NonAuthLayoutRouter (props) {
         <div className={classes.particlesBackgroundWrapper}>
           <Particles options={particlesjsConfig} style={particlesStyle} />
         </div>
-        <div className={classes.topRow}>
+        <div className='flex justify-between items-center w-full px-4 absolute top-0 w-full'>
           <a href='/'>
-            <img className={classes.logo} src='/assets/hylo.svg' alt={t('Hylo logo')} />
+            <img className='h-10' src={logoSrc} alt={t('Hylo logo')} />
           </a>
-          <LocaleDropdown renderToggleChildren={<span className={classes.locale}>{t('Locale')}: {locale} {localeDisplay}</span>} />
+          <LocaleDropdown renderToggleChildren={<span className='text-foreground'>{t('Locale')}: {locale} {localeDisplay}</span>} />
         </div>
         <div className={classes.signupRow}>
           <Routes>
@@ -176,7 +178,7 @@ export default function NonAuthLayoutRouter (props) {
         </Routes>
         <div className={classes.belowContainer}>
           <a href='https://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms of Service')}</a> +&nbsp;
-          <a href='https://hylo.com/terms/privacy' target='_blank' rel='noreferrer'>{t('Privacy Policy')}</a>
+          <a href='https://hylo.com/privacy' target='_blank' rel='noreferrer'>{t('Privacy Policy')}</a>
         </div>
       </div>
       <HyloCookieConsent />

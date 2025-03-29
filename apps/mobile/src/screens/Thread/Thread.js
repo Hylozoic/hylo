@@ -1,11 +1,11 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
-import { Dimensions, StyleSheet } from 'react-native'
+import { Dimensions, StyleSheet, View } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { gql, useMutation, useQuery } from 'urql'
 import { debounce } from 'lodash/fp'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import messageThreadMessagesQuery from '@hylo/graphql/queries/messageThreadMessagesQuery'
 import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -17,7 +17,7 @@ import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
 import PeopleTyping from 'components/PeopleTyping'
 import ThreadHeaderTitle from './ThreadHeaderTitle'
-import { alabaster, caribbeanGreen } from 'style/colors'
+import { caribbeanGreen, twBackground } from 'style/colors'
 
 const BOTTOM_THRESHOLD = 10
 const MESSAGE_PAGE_SIZE = 20
@@ -42,8 +42,8 @@ const refineMessages = messages => {
     const next = arr[i - 1]
 
     // Precompute human-readable date for current message
-    const msgHumanDate = TextHelpers.humanDate(msg.createdAt)
-    const nextHumanDate = next ? TextHelpers.humanDate(next.createdAt) : null
+    const msgHumanDate = DateTimeHelpers.humanDate(msg.createdAt)
+    const nextHumanDate = next ? DateTimeHelpers.humanDate(next.createdAt) : null
 
     const suppressCreator = prev && msg.creator.id === prev.creator.id
     const suppressDate =
@@ -61,7 +61,7 @@ const refineMessages = messages => {
   })
 }
 
-export default function Thread() {
+export default function Thread () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const messageListRef = useRef()
@@ -80,7 +80,7 @@ export default function Thread() {
   const markAsRead = debounce(1000, () => { providedMarkAsRead({ messageThreadId: threadId }) })
 
   // Not currently used, but once we have subscription applied we can turn it back on
-  const [newMessages, setNewMessages] = useState()
+  const [newMessages] = useState()
   const [yOffset, setYOffset] = useState(0)
   const atBottom = useMemo(() => yOffset < BOTTOM_THRESHOLD, [yOffset])
 
@@ -129,9 +129,6 @@ export default function Thread() {
 
   return (
     <KeyboardFriendlyView style={styles.container}>
-      {fetching && (
-        <Loading />
-      )}
       <FlashList
         style={styles.messageList}
         data={refineMessages(messages)}
@@ -140,6 +137,7 @@ export default function Thread() {
         inverted
         keyExtractor={(item) => item.id}
         keyboardDismissMode='on-drag'
+        keyboardShouldPersistTaps
         refreshing={fetching}
         onEndReached={fetchMore}
         onEndReachedThreshold={0.3}
@@ -148,22 +146,27 @@ export default function Thread() {
         renderItem={({ item }) => (
           <MessageCard message={item} />
         )}
+        ListFooterComponent={fetching && <Loading />}
+        ListHeaderComponent={
+          <View>
+            {!!(newMessages && !atBottom) && (
+              <NotificationOverlay
+                position='bottom'
+                message={t('New messages')}
+                onPress={handleScrollToBottom}
+              />
+            )}
+            <MessageInput
+              blurOnSubmit={false}
+              multiline
+              sendIsTyping={handleSendTyping}
+              onSubmit={handleSubmit}
+              placeholder={t('Write something')}
+            />
+            <PeopleTyping messageThreadId={threadId} ref={peopleTypingRef} />
+          </View>
+        }
       />
-      {!!(newMessages && !atBottom) && (
-        <NotificationOverlay
-          position='bottom'
-          message={t('New messages')}
-          onPress={handleScrollToBottom}
-        />
-      )}
-      <MessageInput
-        blurOnSubmit={false}
-        multiline
-        sendIsTyping={handleSendTyping}
-        onSubmit={handleSubmit}
-        placeholder={t('Write something')}
-      />
-      <PeopleTyping messageThreadId={threadId} ref={peopleTypingRef} />
     </KeyboardFriendlyView>
   )
 }
@@ -171,6 +174,6 @@ export default function Thread() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: alabaster
+    backgroundColor: twBackground
   }
 })

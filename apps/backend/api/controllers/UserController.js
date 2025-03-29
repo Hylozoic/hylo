@@ -61,7 +61,9 @@ module.exports = {
           templateData: {
             api_client: req.api_client?.name,
             group_name: group && group.get('name'),
-            version: 'with link',
+            group_avatar_url: group && group.get('avatar_url'),
+            group_url: Frontend.Route.group(group),
+            version: 'Redesign 2025',
             verify_url: Frontend.Route.verifyEmail(email, user.generateJWT())
           }
         })
@@ -90,6 +92,8 @@ module.exports = {
     const memberships = await user.memberships().fetch()
     const emailable = filter(memberships.models, mem => mem.getSetting('sendEmail'))
     const pushable = filter(memberships.models, mem => mem.getSetting('sendPushNotifications'))
+
+    // TODO: how to handle shift to groups?
 
     return res.ok({
       digestFrequency: user.get('settings')?.digest_frequency || 'daily',

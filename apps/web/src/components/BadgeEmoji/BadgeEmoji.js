@@ -17,14 +17,14 @@ export default function Badge ({ emoji, expanded, className, common, border, onC
       <span
         className={cn(
           className,
-          expanded ? classes.badge : classes.badgeCollapsed,
-          { [classes.border]: border, [classes.common]: common }
+          expanded ? 'border-2 border-selected/20 p-[1px] rounded-sm bg-selected/10 text-xs hover:cursor-pointer hover:bg-selected/30 hover:border-selected/40 hover:scale-105 transition-all' : classes.badgeCollapsed,
+          { [classes.border]: border, 'bg-focus/10 border-focus/20 hover:bg-focus/30 hover:border-focus/40': common }
         )}
         onClick={onClick}
         data-tooltip-content='hello'
         data-tooltip-id={`${id}-${name}-badge-tt`}
       >
-        <span className={expanded ? classes.badgeSymbol : classes.badgeSymbolCollapsed}>{emoji}</span>
+        <span className={expanded ? 'text-xs' : classes.badgeSymbolCollapsed}>{emoji}</span>
       </span>
       <Tooltip
         delay={150}

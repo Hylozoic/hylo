@@ -1,19 +1,19 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
 import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 
 export default function useStreamQueryVariables ({
+  childPostInclusion,
   context,
   currentUser,
   customView,
   filter,
-  forGroup,
-  myHome,
+  slug,
+  view,
   sortBy,
   streamType,
   timeframe,
-  topicName
+  topic
 }) {
   const filterFromStreamType = COMMON_VIEWS[streamType] ? COMMON_VIEWS[streamType].postTypes[0] : null
 
@@ -22,56 +22,56 @@ export default function useStreamQueryVariables ({
     afterTime: streamType === 'event'
       ? (timeframe === 'future' ? new Date().toISOString() : null)
       : null,
-    announcementsOnly: (myHome === 'announcements') || null,
+    announcementsOnly: (view === 'announcements') || null,
     beforeTime: streamType === 'event'
       ? (timeframe === 'past' ? new Date().toISOString() : null)
       : null,
-    childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
-    collectionToFilterOut: null,
+    childPostInclusion,
     context,
-    createdBy: myHome === 'posts'
+    createdBy: view === 'posts'
       ? [currentUser.id]
       : null,
-    cursor: null,
-    filter: filterFromStreamType ||
-      filter ||
-      currentUser?.settings?.streamPostType,
+    filter: filterFromStreamType || filter || null,
     forCollection: customView?.collectionId,
-    interactedWithBy: myHome === 'interactions'
+    interactedWithBy: view === 'interactions'
       ? [currentUser.id]
       : null,
-    mentionsOf: myHome === 'mentions'
+    mentionsOf: view === 'mentions'
       ? [currentUser.id]
       : null,
     order: streamType === 'event'
       ? (timeframe === 'future' ? 'asc' : 'desc')
       : null,
-    search: null,
-    slug: !isContextGroupSlug(forGroup?.slug) ? forGroup?.slug : null,
+    slug,
     sortBy,
-    topic: topicName,
+    topic,
     topics: (customView?.type === 'stream' && customView?.topics)
       ? customView.topics.map(t => t.id)
       : null,
     types: customView?.type === 'stream'
       ? customView?.postTypes
-      : null
+      : null,
+
+    // Unused or not implemented
+
+    collectionToFilterOut: null,
+    cursor: null,
+    search: null
   }), [
+    childPostInclusion,
     context,
     currentUser?.id,
-    currentUser?.settings?.streamChildPosts,
     customView,
     customView?.activePostsOnly,
     customView?.collectionId,
     customView?.type,
     filter,
-    forGroup,
-    forGroup?.slug,
-    myHome,
+    view,
+    slug,
     sortBy,
     streamType,
     timeframe,
-    topicName
+    topic
   ])
 
   return streamQueryVariables

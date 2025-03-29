@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { filter } from 'lodash/fp'
 import Clipboard from '@react-native-clipboard/clipboard'
 import { TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 import deleteCommentMutation from '@hylo/graphql/mutations/deleteCommentMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useHasResponsibility, { RESP_MANAGE_CONTENT } from '@hylo/hooks/useHasResponsibility'
@@ -39,7 +40,7 @@ export default function Comment ({
   const { reactOnEntity, deleteReactionFromEntity } = useReactOnEntity()
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [{ currentUser }] = useCurrentUser()
-  const hasResponsibility = useHasResponsibility({ forCurrentGroup: !groupId, forCurrentUser: true, groupId  })
+  const hasResponsibility = useHasResponsibility({ forCurrentGroup: !groupId, forCurrentUser: true, groupId })
 
   const canModerate = hasResponsibility(RESP_MANAGE_CONTENT)
   const isCreator = currentUser && (comment.creator.id === currentUser.id)
@@ -126,7 +127,7 @@ export default function Comment ({
             <TouchableOpacity onPress={() => showMember(creator.id)}>
               <Text style={styles.name}>{creator.name}</Text>
             </TouchableOpacity>
-            <Text style={styles.date}>{TextHelpers.humanDate(createdAt)}</Text>
+            <Text style={styles.date}>{DateTimeHelpers.humanDate(createdAt)}</Text>
             {postTitle && (
               <Text style={styles.date}>{t('on')} "{postTitle}"</Text>
             )}

@@ -59,7 +59,9 @@ export function fetchGroupSettings (slug) {
             hideExtensionData
             locationDisplayPrecision
             publicMemberDirectory
+            publishMurmurationsProfile
             showSuggestedSkills
+            showWelcomePage
           }
           type
           slug

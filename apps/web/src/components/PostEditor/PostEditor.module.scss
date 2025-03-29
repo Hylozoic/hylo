@@ -200,6 +200,14 @@
   }
 }
 
+.noModal .section {
+  margin-bottom: 0.5rem;
+}
+
+.section-groups {
+  width: 100%;
+}
+
 .accept-contributions {
   display: flex;
   align-items: center;
@@ -296,6 +304,7 @@
   display: flex;
   justify-content: space-evenly;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .warning {
@@ -308,6 +317,8 @@
   width: 100%;
   outline: none;
   border: none;
+  background-color: transparent;
+  padding-left: 2px;
   &:disabled {
     color: $color-rhino-80;
   }

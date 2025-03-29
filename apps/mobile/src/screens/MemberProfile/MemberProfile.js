@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Text, View, TouchableOpacity } from 'react-native'
-import { useTranslation, withTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from 'urql'
 import { useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
@@ -21,14 +21,13 @@ import defaultBanner from 'assets/default-user-banner.jpg'
 import ModalHeaderTransparent from 'navigation/headers/ModalHeaderTransparent'
 import styles from './MemberProfile.styles'
 
-function MemberProfile ({ isFocused }) {
+export default function MemberProfile () {
   const { id } = useRouteParams()
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ currentUser }] = useCurrentUser()
-
-  const [{ data, fetching, error }] = useQuery({ query: personQuery, variables: { id }, pause: !id })
+  const [{ data, fetching }] = useQuery({ query: personQuery, variables: { id }, pause: !id })
   const person = id ? data?.person : currentUser
   const isMe = Number(get('id', currentUser)) === Number(get('id', person))
   const canFlag = currentUser && id && currentUser.id !== id
@@ -39,9 +38,7 @@ function MemberProfile ({ isFocused }) {
   const [flaggingVisible, setFlaggingVisible] = useState(false)
 
   const setHeader = () => {
-    isModalScreen
-      ? navigation.setOptions(ModalHeaderTransparent({ navigation }))
-      : navigation.setOptions({ title: currentGroup?.name })
+    isModalScreen && navigation.setOptions(ModalHeaderTransparent({ navigation }))
   }
 
   useEffect(() => {
@@ -68,7 +65,6 @@ function MemberProfile ({ isFocused }) {
       <View style={styles.marginContainer}>
         <MemberHeader
           person={person}
-          currentUser={currentUser}
           flagMember={canFlag && (() => setFlaggingVisible(true))}
           isMe={isMe}
         />
@@ -86,6 +82,7 @@ function MemberProfile ({ isFocused }) {
 
   return <MemberStream id={id} header={header} navigation={navigation} />
 }
+
 export function MemberBanner (props) {
   const { t } = useTranslation()
   const { person: { id, avatarUrl, bannerUrl }, isMe } = props
@@ -193,5 +190,3 @@ export function ReadMoreButton ({ goToDetails }) {
     </View>
   )
 }
-
-export default withTranslation()(MemberProfile)

@@ -34,7 +34,7 @@ import {
   FETCH_POSTS_MAP,
   FETCH_POSTS_MAP_DRAWER
 } from 'routes/MapExplorer/MapExplorer.store'
-
+import { FETCH_MEMBERS, REMOVE_MEMBER_PENDING } from 'routes/Members/Members.store'
 // reducer
 
 export default function (state = {}, action) {
@@ -78,6 +78,16 @@ export default function (state = {}, action) {
 
     case RECEIVE_THREAD:
       return matchNewThreadIntoQueryResults(state, payload.data.thread)
+
+    case REMOVE_MEMBER_PENDING:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        if (keyObject.type !== FETCH_MEMBERS || get('params.slug', keyObject) !== meta.slug) return results
+        return {
+          ...results,
+          ids: results.ids.filter(id => id !== meta.personId)
+        }
+      })
 
     case REMOVE_POST_PENDING:
       return mapValues(state, (results, key) => {
@@ -167,7 +177,7 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
 
     for (const topic of topics) {
       queriesToMatch.push(
-        // Add to the future posts in a topic (future because of order: 'asc')
+        // Add to the future posts in a chat room (future because of order: 'asc')
         { context: 'groups', slug: group.slug, sortBy: 'id', order: 'asc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
       )
     }
@@ -328,8 +338,9 @@ export const queryParamWhitelist = [
   'slug',
   'sortBy',
   'topic',
+  'topics',
   'type', // TODO: why do we have type & filter? should only need one
-  // 'types', TODO: add types?
+  'types',
   'page',
   'nearCoord'
 ]

@@ -10,26 +10,28 @@ import useRouteParams from 'hooks/useRouteParams'
 import validator from 'validator'
 import errorMessages from 'util/errorMessages'
 import SocialAuth from 'components/SocialAuth'
+import FormattedError from 'components/FormattedError'
+import LocaleSelector from 'components/LocaleSelector'
 import styles from './Login.styles'
-import LocaleSelector from 'components/LocaleSelector/LocaleSelector'
 
 export default function Login () {
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const navigation = useNavigation()
   const passwordInputRef = useRef()
-  const { login, checkAuth } = useAuth()
+  const { login } = useAuth()
   const [email, providedSetEmail] = useState()
   const [password, providedSetPassword] = useState()
   const [securePassword, setSecurePassword] = useState(true)
   const [emailIsValid, setEmailIsValid] = useState()
   const [bannerError, setBannerError] = useState()
   const [bannerMessage, setBannerMessage] = useState()
-  const [formError, setFormError] = useState()
+  const [formError, providedSetFormError] = useState()
   const { bannerMessage: bannerMessageParam, bannerError: bannerErrorParam } = useRouteParams()
 
-  const setError = errorMessage => {
-    setFormError(errorMessages(errorMessage))
+  const setFormError = error => {
+    const type = error?.message || error
+    providedSetFormError(errorMessages(type))
   }
 
   const setLoggingIn = status => {
@@ -41,7 +43,7 @@ export default function Login () {
   }
 
   const clearErrors = useCallback(() => {
-    setError()
+    setFormError()
     setBannerError()
     setBannerMessage()
   }, [])
@@ -71,7 +73,7 @@ export default function Login () {
       await login({ email, password })
     } catch (err) {
       setLoggingIn(false)
-      setError(err)
+      setFormError(err)
     }
   }
 
@@ -81,7 +83,6 @@ export default function Login () {
 
   const handleSocialAuthComplete = async error => {
     if (error) setBannerError(error)
-    await checkAuth()
     setLoggingIn(false)
   }
 
@@ -102,15 +103,23 @@ export default function Login () {
           </View>
         </View>
 
-        {bannerError && <Text style={styles.bannerError}>{bannerError}</Text>}
-        {(!bannerError && bannerMessage) && <Text style={styles.bannerMessage}>{bannerMessage}</Text>}
+        {bannerError && (
+          <Text style={[styles.banner, styles.bannerError, { paddingTop: insets.top }]}>
+            {bannerError}
+          </Text>
+        )}
+
+        {(!bannerError && bannerMessage) && (
+          <Text style={[styles.banner, styles.bannerMessage, { paddingTop: insets.top }]}>
+            {bannerMessage}
+          </Text>
+        )}
 
         <FastImage
           style={styles.logo}
           source={require('assets/merkaba-green-on-white.png')}
         />
         <Text style={styles.title}>{t('Log in to Hylo')}</Text>
-        <FormError>{formError}</FormError>
         <View style={styles.labelRow}>
           <Text style={styles.labelText}>{t('Email address')}</Text>
         </View>
@@ -165,6 +174,7 @@ export default function Login () {
             </View>
           </View>
         </View>
+        <FormattedError error={formError} action='Login' />
         <View style={styles.paddedRow}>
           <TouchableOpacity onPress={handleLogin} disabled={!emailIsValid} style={styles.loginButton}>
             <Text style={styles.loginText}>{t('Log In')}</Text>
@@ -185,22 +195,6 @@ export function SignupLink ({ goToSignup }) {
       <TouchableOpacity onPress={goToSignup}>
         <Text style={styles.signupLink}>{t('Sign up now')}</Text>
       </TouchableOpacity>
-    </View>
-  )
-}
-
-export function FormError ({ children }) {
-  const rowStyle = styles.emailErrorRow
-  const triangleStyle = styles.emailTriangle
-
-  if (!children) return null
-
-  return (
-    <View style={styles.errorView}>
-      <View style={rowStyle}>
-        <Text style={styles.errorMessage}>{children}</Text>
-      </View>
-      <View style={triangleStyle} />
     </View>
   )
 }

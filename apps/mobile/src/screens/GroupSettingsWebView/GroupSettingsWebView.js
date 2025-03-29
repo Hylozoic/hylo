@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import { useFocusEffect } from '@react-navigation/native'
-import { useGroup } from '@hylo/hooks/useCurrentGroup'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
+import useGroup from '@hylo/hooks/useGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
-import { alabaster, amaranth, capeCod, rhino40, rhino80 } from 'style/colors'
+import { amaranth, capeCod, rhino40, rhino80, twBackground } from 'style/colors'
 
-export default function GroupSettingsWebView ({ path: pathProp, route}) {
+export default function GroupSettingsWebView () {
+  const navigation = useNavigation()
   const webViewRef = useRef()
   const { groupSlug, originalLinkingPath, settingsArea: routeSettingsArea } = useRouteParams()
   const [, queryGroup] = useGroup({ groupSlug, useQueryArgs: { requestPolicy: 'network-only', pause: true } })
@@ -15,6 +16,12 @@ export default function GroupSettingsWebView ({ path: pathProp, route}) {
   useEffect(() => {
     setSelectedSettingsArea(routeSettingsArea)
   }, [routeSettingsArea])
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerLeftOnPress: (!routeSettingsArea && selectedSettingsArea) && (() => setSelectedSettingsArea())
+    })
+  }, [selectedSettingsArea])
 
   // Always re-queries group onBlur
   useFocusEffect(
@@ -34,7 +41,7 @@ export default function GroupSettingsWebView ({ path: pathProp, route}) {
     //   queryCurrentUser()
     //   return false
     // }
-    if (!url.match(/\/groups\/([^\/]+)settings/)) {
+    if (!url.match(/\/groups\/([^/]+)settings/)) {
       webViewRef.current?.goBack()
       return false
     }
@@ -48,6 +55,7 @@ export default function GroupSettingsWebView ({ path: pathProp, route}) {
   const settingsOptions = [
     { settingsArea: 'details', label: 'Group Details' },
     { settingsArea: 'agreements', label: 'Agreements' },
+    { settingsArea: 'welcome', label: 'Welcome Page' },
     { settingsArea: 'responsibilities', label: 'Responsibilities' },
     { settingsArea: 'roles', label: 'Roles & Badges' },
     { settingsArea: 'privacy', label: 'Privacy & Access' },
@@ -57,27 +65,18 @@ export default function GroupSettingsWebView ({ path: pathProp, route}) {
     { settingsArea: 'relationships', label: 'Related Groups' },
     { settingsArea: 'export', label: 'Export Data' },
     { settingsArea: 'delete', label: 'Delete', style: { color: amaranth } }
-    // TODO: Routing - Doesn't seem to currently appear on Web so leaving it out here?
-    // { settingsArea: 'views', label: 'Custom Views' }
   ]
 
   return (
     <View style={[styles.container]}>
       {selectedSettingsArea
         ? (
-          <>
-            <View style={styles.header}>
-              <TouchableOpacity onPress={() => setSelectedSettingsArea(null)} style={styles.backButton}>
-                <Text style={styles.backButtonText}>←</Text>
-              </TouchableOpacity>
-            </View>
-            <HyloWebView
-              ref={webViewRef}
-              key={path}
-              path={path}
-              onNavigationStateChange={handleNavigationStateChange}
-            />
-          </>
+          <HyloWebView
+            ref={webViewRef}
+            key={path}
+            path={path}
+            onNavigationStateChange={handleNavigationStateChange}
+          />
           )
         : (
           <ScrollView contentContainerStyle={styles.menu}>
@@ -99,7 +98,7 @@ export default function GroupSettingsWebView ({ path: pathProp, route}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: alabaster
+    backgroundColor: twBackground
   },
   header: {
     flexDirection: 'row',
@@ -114,7 +113,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     fontWeight: 'bold',
-    color: alabaster
+    color: twBackground
   },
   backButton: {
     position: 'absolute',
@@ -135,7 +134,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: rhino40,
-    backgroundColor: alabaster
+    backgroundColor: twBackground
   },
   menuText: {
     fontSize: 16,

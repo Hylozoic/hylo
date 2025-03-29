@@ -1,8 +1,9 @@
 import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
 import qs from 'query-string'
 import { host } from 'config/index'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
-import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { isStaticContext } from '@hylo/presenters/GroupPresenter'
+import { findHomeWidget } from '@hylo/presenters/ContextWidgetPresenter'
+import { ALL_GROUPS_CONTEXT_SLUG, MESSAGES_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
@@ -58,6 +59,8 @@ export function baseUrl ({
     return publicGroupsUrl()
   } else if (context === MY_CONTEXT_SLUG) {
     return myHomeUrl()
+  } else if (context === MESSAGES_CONTEXT_SLUG) {
+    return messagesUrl()
   } else {
     return defaultUrl
   }
@@ -102,6 +105,10 @@ export function groupDetailUrl (slug, opts = {}, querystringParams = {}) {
 
 export function groupInviteUrl (group) {
   return group.invitePath ? origin() + group.invitePath : ''
+}
+
+export function groupHomeUrl ({ group, routeParams }) {
+  return widgetUrl({ ...routeParams, widget: findHomeWidget(group) })
 }
 
 // Post URLS
@@ -199,14 +206,14 @@ export function chatUrl (chatName, { context, groupSlug }) {
   return `${baseUrl({ context, groupSlug })}/chat/${chatName}`
 }
 
-export function customViewUrl (customViewId, rootPath, opts) {
-  return `${rootPath}/custom/${customViewId}`
+export function customViewUrl (customViewId, rootPath, { context, groupSlug }) {
+  return `${baseUrl({ context, groupSlug })}/custom/${customViewId}`
 }
 
 export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
   if (!widget) return null
 
-  const groupSlug = isContextGroupSlug(providedSlug) ? null : providedSlug
+  const groupSlug = isStaticContext(providedSlug) ? null : providedSlug
   let url = ''
   if (widget.url) return widget.url
   if (widget.view === 'about') {
@@ -222,7 +229,7 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
   } else if (widget.viewChat) {
     url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
   } else if (widget.customView) {
-    url = customViewUrl(widget.customView.id, rootPath, { groupSlug })
+    url = customViewUrl(widget.customView.id, rootPath, { context, groupSlug })
   }
 
   return url
@@ -240,6 +247,12 @@ export function addQuerystringToPath (path, querystringParams) {
   // The weird query needed to ignore empty arrays but allow for boolean values and numbers
   querystringParams = omitBy(x => isEmpty(x) && x !== true && !isNumber(x), querystringParams)
   return `${path}${!isEmpty(querystringParams) ? '?' + qs.stringify(querystringParams) : ''}`
+}
+
+export function removePostEditorFromUrl (url) {
+  const matchForCreateRegex = '/create/post/*'
+  const matchForEditRegex = `/post/${POST_ID_MATCH}(/.*)?`
+  return url.replace(new RegExp(matchForCreateRegex), '').replace(new RegExp(matchForEditRegex), '')
 }
 
 export function removePostFromUrl (url) {

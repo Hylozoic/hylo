@@ -1,5 +1,6 @@
 .icon-selector-container {
   width: 100%;
+  background-color: hsl(var(--background));
 }
 
 .selected-icon {
@@ -19,6 +20,7 @@
   border: 1px solid black;
   padding: 5px;
   box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.15);
+  background-color: hsl(var(--background));
 
   &.open {
     display: block;
@@ -32,6 +34,8 @@
   font-size: 24px;
   display: inline-block;
   text-align: center;
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
 
   &:hover {
     color: #0DC39F;

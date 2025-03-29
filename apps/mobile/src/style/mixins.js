@@ -1,5 +1,3 @@
-import { isIOS } from 'util/platform'
-
 export default {
   allCentered: {
     flex: 1,
@@ -11,5 +9,5 @@ export default {
     color: 'white',
     fontSize: 18,
     lineHeight: 42
-  },
+  }
 }

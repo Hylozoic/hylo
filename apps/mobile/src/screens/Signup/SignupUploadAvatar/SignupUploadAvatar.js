@@ -1,22 +1,23 @@
 import React, { useState } from 'react'
-import { useFocusEffect } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { ScrollView, View, Text, ImageBackground, ActivityIndicator } from 'react-native'
 import { useMutation } from 'urql'
 import { AnalyticsEvents } from '@hylo/shared'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { useAuth } from '@hylo/contexts/AuthContext'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import mixpanel from 'services/mixpanel'
-import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import ImagePicker from 'components/ImagePicker'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
+import ImagePicker from 'components/ImagePicker'
+import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
 import styles from './SignupUploadAvatar.styles'
 
-export default function SignupUploadAvatar ({ navigation }) {
+export default function SignupUploadAvatar () {
   const { t } = useTranslation()
-  const [{ currentUser, fetching }] = useCurrentUser()
+  const navigation = useNavigation()
+  const { currentUser, fetching } = useAuth()
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl)
   const [avatarImageSource, setAvatarImageSource] = useState({ uri: avatarUrl })
@@ -24,15 +25,11 @@ export default function SignupUploadAvatar ({ navigation }) {
 
   useFocusEffect(() => {
     navigation.setOptions({
-      headerLeftOnPress: async () => {
+      headerLeftOnPress: () => {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
-        const { error } = await updateUserSettings({ changes: { settings: { signupInProgress: false } } })
-        if (error) {
-          console.log('!!! Error cancelling signup', error)
-        } else {
-          mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
-        }
+        updateUserSettings({ changes: { settings: { signupInProgress: false } } })
+        mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
       }
     })
   })
@@ -43,8 +40,8 @@ export default function SignupUploadAvatar ({ navigation }) {
   }
 
   const saveAndNext = async () => {
-    const { error } = await updateUserSettings({ changes: { settings: { signupInProgress: false } } })
-    if (!error) navigation.navigate('SignupSetLocation')
+    await updateUserSettings({ changes: { avatarUrl } })
+    navigation.navigate('SignupSetLocation')
   }
 
   if (fetching) {
@@ -61,7 +58,7 @@ export default function SignupUploadAvatar ({ navigation }) {
           <ImagePicker
             type='userAvatar'
             cameraType='front'
-            id={currentUser.id}
+            id={currentUser?.id}
             onChoice={handleAvatarImageUpload}
             onPendingChange={pending => setImagePickerPending(pending)}
           >

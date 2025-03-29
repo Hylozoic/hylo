@@ -7,14 +7,14 @@ import { useNavigation } from '@react-navigation/native'
 import { filter, isEmpty } from 'lodash/fp'
 import Clipboard from '@react-native-clipboard/clipboard'
 import { AnalyticsEvents } from '@hylo/shared'
-import useHyloActionSheet from 'hooks/useHyloActionSheet'
-import useMixpanelTrack from 'hooks/useMixpanelTrack'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import mixpanel from 'services/mixpanel'
+import { postUrl as postUrlCreator } from 'util/navigation'
+import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import useHasResponsibility, { RESP_MANAGE_CONTENT } from '@hylo/hooks/useHasResponsibility'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import Icon from 'components/Icon'
-import { postUrl as postUrlCreator } from 'util/navigation'
 
 export const deletePostMutation = gql`
   mutation DeletePostMutation ($id: ID) {
@@ -32,19 +32,10 @@ export const removePostMutation = gql`
   }
 `
 
-export const pinPostMutation = gql`
-  mutation PinPostMutation ($postId: ID, $groupId: ID) {
-    pinPost(postId: $postId, groupId: $groupId) {
-      success
-    }
-  }
-`
-
 export default function usePostActionSheet ({
   baseHostURL = Config.HYLO_WEB_BASE_URL,
   closeOnDelete,
   creator,
-  pinned,
   postId,
   setFlaggingVisible,
   title
@@ -53,9 +44,7 @@ export default function usePostActionSheet ({
   const navigation = useNavigation()
   const [, deletePost] = useMutation(deletePostMutation)
   const [, removePost] = useMutation(removePostMutation)
-  const [, pinPost] = useMutation(pinPostMutation)
   const { showHyloActionSheet } = useHyloActionSheet()
-  const mixpanelTrack = useMixpanelTrack()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ currentUser }] = useCurrentUser()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
@@ -63,7 +52,7 @@ export default function usePostActionSheet ({
 
   const createActionSheetActions = () => {
     const isCreator = currentUser && creator && currentUser.id === creator.id
-    const postUrl = currentGroup?.isContextGroup
+    const postUrl = currentGroup?.isStaticContext
       ? postUrlCreator(postId, { context: currentGroup?.slug })
       : postUrlCreator(postId, { groupSlug: currentGroup?.slug })
     const editPost = isCreator
@@ -81,12 +70,8 @@ export default function usePostActionSheet ({
       }
     }
 
-    const handleRemovePost = currentGroup && !isCreator && canModerate && !currentGroup.isContextGroup
+    const handleRemovePost = currentGroup && !isCreator && canModerate && !currentGroup.isStaticContext
       ? () => removePost({ postId, slug: currentGroup?.slug })
-      : null
-
-    const handlePinPost = currentGroup && canModerate && !currentGroup.isContextGroup
-      ? () => pinPost({ postId, groupId: currentGroup.id })
       : null
 
     const share = async () => {
@@ -101,7 +86,7 @@ export default function usePostActionSheet ({
           subject: t('shareSubject', { title, name: creator.name })
         })
 
-        mixpanelTrack(AnalyticsEvents.POST_SHARED)
+        mixpanel.track(AnalyticsEvents.POST_SHARED)
       } catch (e) {
         console.log(e)
       }
@@ -157,9 +142,6 @@ export default function usePostActionSheet ({
       [t('Delete'), deletePostWithConfirm, {
         icon: <FontAwesome5Icon name='trash-alt' style={styles.actionSheetIcon} />,
         destructive: true
-      }],
-      [pinned ? t('Unpin') : t('Pin'), handlePinPost, {
-        icon: <Icon name='Pin' style={[styles.actionSheetIcon, { fontSize: 30 }]} />
       }],
       [t('Remove From Group'), removePostWithConfirm, {
         icon: <FontAwesome5Icon name='trash-alt' style={styles.actionSheetIcon} />,

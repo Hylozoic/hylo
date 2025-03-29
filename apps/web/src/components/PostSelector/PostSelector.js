@@ -21,7 +21,6 @@ import classes from './PostSelector.module.scss'
 const PAGE_SIZE = 10
 
 export default function PostSelector ({ collection, draggable, group, onRemovePost, onReorderPost, onSelectPost, posts }) {
-  console.log(collection, 'ayyayyayay')
   const dispatch = useDispatch()
   const [autocomplete, setAutocomplete] = useState('')
   const [suggestions, setSuggestions] = useState([])
@@ -52,7 +51,7 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
       })
       setOffset(PAGE_SIZE)
     }
-  }, [debouncedAutcomplete, collection])
+  }, [debouncedAutcomplete, collection?.id])
 
   const { observe } = useInView({
     onEnter: async () => {
@@ -157,9 +156,10 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
               />)
             )}
           </div>
-          <div className={classes.search}>
+          <div className='relative'>
             <div>
               <input
+                className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-full py-1 px-2 transition-all outline-none focus:outline-focus focus:outline-2'
                 ref={searchBoxRef}
                 type='text'
                 placeholder={t('Search for posts')}
@@ -170,9 +170,9 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
               />
             </div>
             {suggestionsOpen && (pending || !isEmpty(displaySuggestions)) &&
-              <div className={classes.suggestionsWrapper}>
+              <div className='absolute top-full left-0 w-full bg-card rounded-lg shadow-lg p-2'>
                 {pending && <Loading />}
-                <ul className={classes.suggestions}>
+                <ul className='flex flex-col gap-1 max-h-[300px] overflow-y-auto m-0 p-0'>
                   {displaySuggestions.map((s, idx) => (
                     <Suggestion
                       key={s.id}
@@ -251,8 +251,8 @@ const SelectedPost = forwardRef(({ children, ...props }, ref) => {
 function Suggestion ({ item, onSelect, observeRef }) {
   const { id, title, creator } = item
   return (
-    <li key={id || 'blank'} className={classes.suggestion} ref={observeRef}>
-      <a onClick={event => onSelect(item, event)} className={classes.suggestionLink}>
+    <li key={id || 'blank'} className='m-0 p-0 text-sm' ref={observeRef}>
+      <a onClick={event => onSelect(item, event)} className='text-foreground flex flex-row gap-1 items-center p-1 rounded-md hover:bg-selected hover:text-foreground'>
         <RoundImage url={creator?.avatarUrl} className={classes.suggestionAvatar} small />
         <div className={classes.suggestionName}>{title}</div>
       </a>

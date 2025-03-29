@@ -1,24 +1,34 @@
-import React, { Component } from 'react'
-import { useTranslation, withTranslation } from 'react-i18next'
+import React, { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import classes from './BlockedUsersTab.module.scss'
 import Loading from 'components/Loading'
 
-class BlockedUsersTab extends Component {
-  render () {
-    const { blockedUsers, unBlockUser, loading } = this.props
-    if (loading || !blockedUsers) return <Loading />
+function BlockedUsersTab ({ blockedUsers, unBlockUser, loading }) {
+  const { t } = useTranslation()
 
-    return (
-      <div>
-        {blockedUsers.map(blockedUser =>
-          <UnBlockUserControl
-            blockedUser={blockedUser}
-            unBlockUser={unBlockUser}
-            key={blockedUser.id}
-          />)}
-      </div>
-    )
-  }
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Blocked Users'),
+      icon: '',
+      info: '',
+      search: false
+    })
+  }, [])
+
+  if (loading || !blockedUsers) return <Loading />
+
+  return (
+    <div>
+      {blockedUsers.map(blockedUser =>
+        <UnBlockUserControl
+          blockedUser={blockedUser}
+          unBlockUser={unBlockUser}
+          key={blockedUser.id}
+        />)}
+    </div>
+  )
 }
 
 export function UnBlockUserControl ({ blockedUser, unBlockUser }) {
@@ -34,4 +44,5 @@ export function UnBlockUserControl ({ blockedUser, unBlockUser }) {
     </div>
   )
 }
-export default withTranslation()(BlockedUsersTab)
+
+export default BlockedUsersTab

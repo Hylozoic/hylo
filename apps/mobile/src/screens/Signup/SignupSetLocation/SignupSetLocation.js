@@ -1,28 +1,22 @@
-import React, { useRef, useState } from 'react'
-import { ScrollView, View, Text } from 'react-native'
+import React, { useState } from 'react'
+import { View, Text } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { AnalyticsEvents } from '@hylo/shared'
-import mixpanel from 'services/mixpanel'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { useAuth } from '@hylo/contexts/AuthContext'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import { X } from 'lucide-react-native'
+import mixpanel from 'services/mixpanel'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import LocationSelectorModal from 'components/LocationSelectorModal'
+import { LocationSelector } from 'components/LocationSelectorModal/LocationSelectorModal'
 import Button from 'components/Button'
-import SettingControl from 'components/SettingControl'
-import styles from './SignupSetLocation.styles'
+import styles from '../SignupFlow.styles'
+import { caribbeanGreen, white, white80onCaribbeanGreen } from 'style/colors'
 
 export default function SignupSetLocation ({ navigation }) {
   const { t } = useTranslation()
-  const locationSelectorModalRef = useRef()
-  const [{ currentUser }] = useCurrentUser()
-  const [location, setLocation] = useState(currentUser?.location)
-  const [locationId, setLocationId] = useState(currentUser?.locationId)
+  const [locationObject, setLocationObject] = useState()
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
-  const { checkAuth } = useAuth()
-  const controlRef = useRef()
 
   useFocusEffect(() => {
     navigation.setOptions({
@@ -35,49 +29,43 @@ export default function SignupSetLocation ({ navigation }) {
     })
   })
 
-  const finish = async () => {
-    controlRef.current && controlRef.current.blur()
-    await updateUserSettings({
+  const saveAndNext = () => {
+    updateUserSettings({
       changes: {
-        location,
-        locationId,
+        location: locationObject?.fullText,
+        locationId: locationObject?.id,
         settings: { signupInProgress: false }
       }
     })
     mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
-    // This may not be necessary
-    await checkAuth()
-  }
-
-  const showLocationPicker = () => locationSelectorModalRef.current.show()
-
-  const handleUpdateLocation = pickedLocation => {
-    setLocation(pickedLocation?.fullText)
-    pickedLocation?.id !== 'NEW' && setLocationId(pickedLocation?.id)
   }
 
   return (
     <KeyboardFriendlyView style={styles.container}>
-      <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
-        <View style={styles.header}>
-          <Text style={styles.title}>{t('Add your location')}</Text>
-          <Text style={styles.subTitle}>
-            {t('Add your location to see more relevant content and find people and projects near you')}.
-          </Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>{t('Add your location')}</Text>
+        <Text style={styles.subTitle}>
+          {t('Add your location to see more relevant content and find people and projects near you')}.
+        </Text>
+      </View>
+      <View style={styles.content}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <Text style={{ fontWeight: 'bold', fontSize: 16, color: white }}>Selected:</Text>
+          {locationObject?.fullText && (
+            <X size={20} style={{ color: white80onCaribbeanGreen }} onPress={() => setLocationObject()} />
+          )}
         </View>
-        <View style={styles.content}>
-          <LocationSelectorModal
-            ref={locationSelectorModalRef}
-            onItemPress={handleUpdateLocation}
+        <Text style={{ fontSize: 16, marginBottom: 18, color: white }}>
+          {locationObject?.fullText || '(None selected)'}
+        </Text>
+        {!locationObject?.fullText && (
+          <LocationSelector
+            style={{ flex: 0, padding: 10, backgroundColor: white80onCaribbeanGreen, borderRadius: 20 }}
+            colors={{ text: caribbeanGreen, border: caribbeanGreen }}
+            onItemPress={setLocationObject}
           />
-          <SettingControl
-            ref={controlRef}
-            label={t('Where do you call home')}
-            value={location}
-            onFocus={() => showLocationPicker(location)}
-          />
-        </View>
-      </ScrollView>
+        )}
+      </View>
       <View style={styles.bottomBar}>
         <Button
           style={styles.backButton}
@@ -87,7 +75,7 @@ export default function SignupSetLocation ({ navigation }) {
         <Button
           style={styles.continueButton}
           text={t('Finish')}
-          onPress={finish}
+          onPress={saveAndNext}
         />
       </View>
     </KeyboardFriendlyView>

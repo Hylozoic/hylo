@@ -4,7 +4,6 @@ import { convert as convertHtmlToText } from 'html-to-text'
 import { isURL } from 'validator'
 import { marked } from 'marked'
 import merge from 'lodash/fp/merge'
-import { DateTime } from 'luxon'
 import prettyDate from 'pretty-date'
 import truncHTML from 'trunc-html'
 import truncText from 'trunc-text'
@@ -23,7 +22,7 @@ export function insaneOptions (providedInsaneOptions) {
       allowedAttributes: providedInsaneOptions?.allowedAttributes || {
         a: [
           'class', 'target', 'href',
-          'data-type', 'data-id','data-label',
+          'data-type', 'data-id', 'data-label',
           'data-user-id', 'data-entity-type', 'data-search'
         ],
         span: [
@@ -123,57 +122,4 @@ export const sanitizeURL = url => {
   if (isURL(url, { require_protocol: true })) return url
   if (isURL(`https://${url}`)) return `https://${url}`
   return null
-}
-
-// Date string related
-
-export function humanDate (date, short) {
-  const dt = typeof date === 'string' ? DateTime.fromISO(date) : DateTime.fromJSDate(date)
-  if (dt.invalid) return ''
-  let ret = new String(dt.toRelative())
-
-  // Always return 'now' for very recent timestamps
-  if (ret.includes('second')) {
-    return i18n.t('now')
-  }
-
-  ret = dt.setLocale(getLocaleAsString()).toRelative({ style: (short ? 'short' : 'long') })
-
-  return short
-    // TODO solve this problem in the future when we translate loads of languages
-    ? ret.replace(' ago', '').replace('hace ', '')
-    : ret
-}
-
-export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
-  if (!startTime || !endTime) return '(invalid start or end)'
-
-  const locale = getLocaleAsString()
-  const now = DateTime.now().setLocale(locale)
-  timezone ||= now.zoneName
-
-  const start = DateTime.fromISO(startTime, {zone: timezone || 'UTC'}).setLocale(locale)
-  const end = DateTime.fromISO(endTime, {zone: timezone || 'UTC'}).setLocale(locale)
-
-  const isStartThisYear = start.hasSame(now, 'year')
-  const isEndThisYear = end.hasSame(now, 'year')
-  const isSameYear = isStartThisYear && isEndThisYear
-
-  const from = !isSameYear || !isStartThisYear ? start.toFormat('EEE, DD, yyyy, t') : start.toFormat('EEE, DD, t')
-  let to = !isSameYear || !isEndThisYear ? end.toFormat('EEE, DD, yyyy, t ZZZZ') : end.toFormat('EEE, DD, t ZZZZ')
-
-  if (!isSameYear) {
-    to = end.toFormat('EEE, DD, yyyy, t ZZZZ')
-  } else if (!end.hasSame(start, 'month')) {
-    to = end.toFormat('EEE, DD, t ZZZZ')
-  } else if (!end.hasSame(start, 'day')) {
-    to = end.toFormat('EEE, DD, t ZZZZ')
-  } else {
-    to = end.toFormat('t ZZZZ')
-  }
-  return returnAsObj ? { from, to } : `${from} \u2013 ${to}`
-}
-
-export function isDateInTheFuture (date) {
-  return typeof(date) === 'string' ? DateTime.fromISO(date) : DateTime.fromJSDate(date) > DateTime.now()
 }

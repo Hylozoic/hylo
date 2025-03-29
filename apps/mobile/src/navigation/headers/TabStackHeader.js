@@ -1,166 +1,99 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native'
-import { Header, HeaderBackButton, getHeaderTitle } from '@react-navigation/elements'
+import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
-import { get } from 'lodash/fp'
-import { isIOS } from 'util/platform'
-import { modalScreenName } from 'hooks/useIsModalScreen'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { useNavigation, useNavigationState } from '@react-navigation/native'
+import { Header, HeaderBackButton } from '@react-navigation/elements'
+import { ChevronLeft } from 'lucide-react-native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import BadgedIcon from 'components/BadgedIcon'
+import { isIOS } from 'util/platform'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
-import Icon from 'components/Icon'
-import { white, rhino80 } from 'style/colors'
-
-// For now this list needs to be kept in sync with the names of the initial
-// routes for each stack in navigation/TabsNavigator.
-// export const TAB_STACK_ROOTS = [
-//   'Stream',
-//   'Messages Tab',
-//   'Search Tab',
-//   'Profile Tab',
-//   'Group Welcome'
-// ]
+import LucideIcon from 'components/LucideIcon/LucideIcon'
+import { twBackground } from 'style/colors'
 
 export default function TabStackHeader ({
-  navigation,
-  route,
   options,
   back,
   headerLeft,
   headerRight,
-  // custom
-  // rootsScreenNames = TAB_STACK_ROOTS,
   ...otherProps
 }) {
-  // const canGoBack = !rootsScreenNames.includes(route?.name)
+  const { t } = useTranslation()
+  const navigation = useNavigation()
+  const stackScreenIndex = useNavigationState(state => state.index)
+  const canGoBack = stackScreenIndex !== 0
+  const [{ currentGroup }] = useCurrentGroup()
 
-  const props = {
+  const props = useMemo(() => ({
     headerBackTitleVisible: false,
-    title: getFocusedRouteNameFromRoute(route) || getHeaderTitle(options, route.name),
+    title: currentGroup?.name || t('Loading...'),
     headerTitle: options.headerTitle,
     headerTitleContainerStyle: {
       // Follow: https://github.com/react-navigation/react-navigation/issues/7057#issuecomment-593086348
-      width: isIOS ? '55%' : '45%',
-      alignItems: 'center',
-      marginLeft: isIOS ? 0 : 10
+      alignItems: 'left',
+      marginLeft: isIOS ? 10 : 0
     },
     headerTitleStyle: {
-      color: white,
       fontFamily: 'Circular-Bold',
       fontSize: 18
     },
-    headerTitleAlign: 'center',
+    headerTitleAlign: 'left',
     headerStyle: {
-      backgroundColor: rhino80
+      backgroundColor: twBackground
     },
     headerLeft: headerLeft || options.headerLeft || (() => {
       let onPress = options.headerLeftOnPress
 
       if (!onPress) {
-        onPress = navigation.openDrawer
-        // onPress = canGoBack
-        //   ? navigation.goBack
-        //   : navigation.openDrawer
-
-        // if (canGoBack && !navigation.canGoBack()) {
-        //   onPress = () => navigation.navigate('Group Navigation')
-        // }
+        onPress = canGoBack
+          ? navigation.goBack
+          : navigation.openDrawer
       }
 
       return (
         <>
-          <FocusAwareStatusBar barStyle='light-content' backgroundColor={rhino80} />
-          <MenuButton onPress={onPress} />
+          <FocusAwareStatusBar />
+          <HeaderBackButton
+            onPress={onPress}
+            labelVisible={false}
+            backImage={({ tintColor }) => (
+              <View style={styles.container}>
+                <ChevronLeft style={styles.backIcon} color={tintColor} size={30} />
+                {currentGroup?.iconName && (
+                  <LucideIcon size={28} name={currentGroup?.iconName} />
+                )}
+                {!currentGroup?.iconName && currentGroup?.avatarUrl && (
+                  <FastImage style={styles.avatar} source={{ uri: currentGroup?.avatarUrl }} />
+                )}
+              </View>
+            )}
+          />
         </>
       )
-    }),
-    headerRight: headerRight || (() => (
-      <View
-        style={{
-          flex: 1,
-          flexDirection: 'row',
-          alignItems: 'center'
-        }}
-      >
-        <NotificationsIcon showNotifications={() => navigation.navigate(modalScreenName('Notifications'))} />
-      </View>
-    ))
-  }
+    })
+  }), [
+    canGoBack,
+    currentGroup?.name,
+    options?.headerLeft,
+    options?.headerLeftOnPress,
+    options?.headerTitle
+  ])
 
   return <Header {...props} {...otherProps} />
 }
 
-export function NotificationsIcon ({ showNotifications }) {
-  const [{ currentUser }] = useCurrentUser()
-  const showBadge = !!get('newNotificationCount', currentUser)
-
-  return (
-    <BadgedIcon
-      name='Notifications'
-      action={showNotifications}
-      showBadge={showBadge}
-      style={styles.headerIcon}
-    />
-  )
-}
-
-export function MenuButton ({ canGoBack, onPress }) {
-  const [{ currentGroup }] = useCurrentGroup()
-  const avatarUrl = currentGroup?.headerAvatarUrl ||
-    currentGroup?.avatarUrl
-
-  return (
-    <HeaderBackButton
-      onPress={onPress}
-      labelVisible={false}
-      backImage={() => (
-        <View style={styles.container}>
-          <Icon name='Hamburger' style={styles.menuIcon} />
-          {/* {!canGoBack
-            ? <Icon name='Hamburger' style={styles.menuIcon} />
-            : <Icon name='ArrowBack' style={styles.backIcon} />} */}
-          <FastImage source={{ uri: avatarUrl }} style={styles.avatar} />
-        </View>
-      )}
-    />
-  )
-}
-
 export const styles = StyleSheet.create({
-  headerIcon: {
-    opacity: 0.75,
-    color: white,
-    backgroundColor: 'transparent',
-    fontSize: 32,
-    marginRight: 12
-  },
   container: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center'
+    alignItems: 'center'
   },
   backIcon: {
-    transform: [{ scaleX: -1 }],
-    opacity: 0.75,
-    backgroundColor: 'transparent',
-    fontSize: 22,
-    marginLeft: 10,
-    color: 'white',
-    marginRight: 17
-  },
-  menuIcon: {
-    color: 'white',
-    opacity: 0.75,
-    backgroundColor: 'transparent',
-    fontSize: 16,
-    marginLeft: 10,
-    marginRight: 10
+    marginLeft: isIOS ? 5 : -8,
+    marginRight: isIOS ? 5 : 5
   },
   avatar: {
-    width: 24,
-    height: 24,
+    width: 30,
+    height: 30,
     borderRadius: 4
   }
 })

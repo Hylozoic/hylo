@@ -31,6 +31,7 @@ export const ItemSelector = ({
   items: providedItems,
   defaultItems,
   chosenItems: providedChosenItems,
+  className,
   onItemPress,
   renderItem: CustomItem,
   itemsTransform,
@@ -42,6 +43,7 @@ export const ItemSelector = ({
   chooser = false,
   search = true,
   onClose,
+  style = {},
   styles = defaultStyles,
   colors: providedColors = defaultColors
 }) => {
@@ -115,7 +117,7 @@ export const ItemSelector = ({
     return (
       <ItemComponent
         item={item}
-        onPress={() => handleItemPress(item)}
+        onPress={item => handleItemPress(item)}
         chooser={chooser}
         chosen={isChosen(item)}
         toggleChosen={handleToggleChosen}
@@ -126,12 +128,15 @@ export const ItemSelector = ({
   }, [handleItemPress, isChosen, handleToggleChosen])
 
   return (
-    <View style={styles.container}>
+    <View className={className} style={[styles.container, style]}>
       {search && (
         <SearchBar
           style={{
             container: [styles.searchBar, { borderColor: colors.border }],
-            searchInput: { color: colors.text }
+            searchIcon: { color: colors.border },
+            searchInput: { color: colors.text },
+            cancelText: { color: colors.text },
+            cancelButton: { color: colors.border }
           }}
           value={searchTerm}
           onChangeText={setSearchTerm}

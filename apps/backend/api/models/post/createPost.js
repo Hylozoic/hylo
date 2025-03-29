@@ -13,6 +13,7 @@ export default async function createPost (userId, params) {
           { children: params.requests, transacting }
         ))))
       .then(function (inserts) {
+        inserts.setLocalId(params.localId)
         return inserts
       }).catch(function (error) {
         throw error
@@ -134,7 +135,7 @@ async function updateTagsAndGroups (post, localId, trx) {
   return Promise.all([
     notifySockets,
     groupTagsQuery.update({ updated_at: new Date() }),
-    tagFollowQuery.increment('new_post_count'),
-    groupMembershipQuery.increment('new_post_count')
+    tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
+    groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count')
   ])
 }

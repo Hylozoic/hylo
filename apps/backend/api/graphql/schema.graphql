@@ -44,6 +44,8 @@ type Query {
 
   # Query for groups
   groups(
+    # Whether to only return groups that are allowed to be shown in public
+    allowedInPublic: Boolean,
     # Search for groups who's name starts with the autcomplete string
     autocomplete: String,
     # Find only groups in this geographic bounding box
@@ -735,6 +737,10 @@ type Group {
   typeDescriptor: String
   # Word used to describe this type of groups. Defaults to Groups, or if type is set then defaults to the type (e.g. Farms)
   typeDescriptorPlural: String
+  # The primary website for the group
+  websiteUrl: String
+  # The content for the group welcome page
+  welcomePage: String
   # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
   visibility: Int
 
@@ -1088,8 +1094,12 @@ type GroupSettings {
   locationDisplayPrecision: LocationDisplayPrecision
   # Whether to display the members of the group to non-members
   publicMemberDirectory: Boolean
+  # Whether to publish this group to the Murmurations Directory via API
+  publishMurmurationsProfile: Boolean
   # Whether to display suggested skills to new members when they join this group
   showSuggestedSkills: Boolean
+  # Whether to display the custom Welcome Page when a member joins the group
+  showWelcomePage: Boolean
 }
 
 # A relationship between two Groups
@@ -1379,6 +1389,8 @@ type Me {
   contactEmail: String
   # Phone number made visible on the logged in user's profile to people who can see them
   contactPhone: String
+  # When the logged in user was created
+  createdAt: Date
   # The number of Groups the logged in user is a member of
   groupsTotal: Int
   # The email used to log in (not publicly shared in the app)
@@ -1942,6 +1954,8 @@ type Post {
   isStrictProposal: Boolean
   # Whether LinkPreview appears full size above post or smaller below
   linkPreviewFeatured: Boolean
+  # Temporary id passed in from the client to identify the post when it is created, and passed back to the client, for optimistically creating posts
+  localId: String
   # Full location string
   location: String
   # Object with geocoded location deatils
@@ -2998,6 +3012,10 @@ input GroupInput {
   typeDescriptor: String
   # Word used to describe this type of groups. Defaults to Groups, or if type is set then defaults to the type (e.g. Farms)
   typeDescriptorPlural: String
+  # The primary website for the group
+  websiteUrl: String
+  # The content for the group welcome page
+  welcomePage: String
   # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
   visibility: Int
 }
@@ -3047,8 +3065,12 @@ input GroupSettingsInput {
   locationDisplayPrecision: LocationDisplayPrecision
   # Whether to display the members of the group to non-members
   publicMemberDirectory: Boolean
+  # Whether to publish this group to the Murmurations Directory via API
+  publishMurmurationsProfile: Boolean
   # Whether to display suggested skills to new members when they join this group
   showSuggestedSkills: Boolean
+  # Whether to display the custom Welcome Page when a member joins the group
+  showWelcomePage: Boolean
 }
 
 # Settings for a Widget in a particular Group's explore page
@@ -3133,6 +3155,8 @@ input MeInput {
 input MembershipInput {
   # Accept or reject all current agreements of the group
   acceptAgreements: Boolean
+  # update the lastViewedAt
+  lastViewedAt: Date
   # Number of new Posts in the Group since you last looked at it
   newPostCount: Int
   # Answers to the join questions for this Group

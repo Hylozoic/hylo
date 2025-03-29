@@ -1,14 +1,17 @@
-import { Button, buttonVariants } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { getLocaleForDayPicker, getLocaleAsString } from '@/components/Calendar/calendar-util'
-import { cn } from '@/lib/utils'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import * as React from 'react'
 import { useImperativeHandle, useRef } from 'react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DayPicker } from 'react-day-picker'
+import Button from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { getLocaleForDayPicker } from '@/components/Calendar/calendar-util'
+import { cn } from '@/lib/utils'
+
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
 // ---------- utils start ----------
 /**
  * regular expression to check for valid hour format (01-23)
@@ -195,7 +198,7 @@ function display12HourValue (hours) {
 function genMonths () {
   return Array.from({ length: 12 }, (_, i) => ({
     value: i,
-    label: DateTime.fromObject({ year: 2021, month: i + 1 }).setLocale(getLocaleAsString()).toFormat('MMMM')
+    label: DateTimeHelpers.toDateTime({ year: 2021, month: i + 1 }).toFormat('MMMM', { locale })
   }))
 }
 function genYears (yearRange = 50) {
@@ -208,7 +211,7 @@ function genYears (yearRange = 50) {
 // ---------- utils end ----------
 function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 50, ...props }) {
   const MONTHS = React.useMemo(() => {
-    return genMonths()
+    return genMonths(DateTimeHelpers.getLocaleAsString())
   }, [])
   const YEARS = React.useMemo(() => genYears(yearRange), [])
   const disableLeftNavigation = () => {
@@ -463,7 +466,7 @@ const TimePicker = React.forwardRef(({ date, onChange, hourCycle = 24, granulari
   )
 })
 TimePicker.displayName = 'TimePicker'
-const DateTimePicker = React.forwardRef(({ locale = getLocaleAsString(), defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
+const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsString(), defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
   const [month, setMonth] = React.useState(value ?? defaultPopupValue)
   const buttonRef = useRef(null)
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
@@ -484,7 +487,7 @@ const DateTimePicker = React.forwardRef(({ locale = getLocaleAsString(), default
     }
     const diff = newDay.getTime() - defaultPopupValue.getTime()
     const diffInDays = diff / (1000 * 60 * 60 * 24)
-    const newDateFull = DateTime.fromJSDate(defaultPopupValue).plus({ days: Math.ceil(diffInDays) }).toJSDate()
+    const newDateFull = DateTimeHelpers.toDateTime(defaultPopupValue).plus({ days: Math.ceil(diffInDays) }).toJSDate()
     newDateFull.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
     onMonthChange?.(newDay)
     setMonth(newDateFull)
@@ -515,12 +518,16 @@ const DateTimePicker = React.forwardRef(({ locale = getLocaleAsString(), default
   return (
     <Popover>
       <PopoverTrigger asChild disabled={disabled}>
-        <Button variant='outline' className={cn('w-full justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
+        <Button variant='outline' className={cn('justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />
-          {displayDate ? dateFormatted : <span>{placeholder}</span>}
+          {displayDate
+            ? (DateTimeHelpers.toDateTime(displayDate).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12, {
+                locale: DateTimeHelpers.getLocaleAsString()
+              }))
+            : (<span>{placeholder}</span>)}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className='w-auto p-0 z-40'>
+      <PopoverContent className='w-auto p-0 z-[51]'>
         <Calendar
           mode='single' selected={displayDate} month={month} onSelect={(newDate) => {
             if (newDate) {

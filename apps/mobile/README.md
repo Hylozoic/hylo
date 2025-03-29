@@ -73,3 +73,14 @@ Here are the common scenarios in which we should run the `bump-version` command:
 ### Enabling Sentry exception tracking in dev
 
 Sentry error reporting is always on in production, and optionally enabled in dev. To enable it in dev you need to set `SENTRY_DEV_DSN_URL` to be the DSN URL for the Sentry "hyloreactnative-dev" project. This can be found by logging into Sentry and is also available in the Hylo password vault under the Sentry record.
+
+### Debugging, quirks, work-arounds
+
+###### Webview
+
+We use webviews a lot. These allow us to point at pieces of the web app in mobile screens. It is both very cool and has quirks.
+
+You’ll want to get familiar with the tooling for debugging actual WebView loads: https://github.com/react-native-webview/react-native-webview/blob/master/docs/Debugging.md#debugging-webview-contents
+
+###### Urql
+We use urql for most of our graphQL and data fetching/handling needs. Its good to get familiar with the devtools for this. https://github.com/urql-graphql/urql-devtools-exchange#usage

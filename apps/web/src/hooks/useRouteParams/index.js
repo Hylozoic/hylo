@@ -15,7 +15,7 @@ export default function useRouteParams () {
   // if context is not set, then look for the first part of the url to set as the context
   if (!params.context) {
     const firstPart = pathParts[1]
-    if (['groups', 'all', 'public', 'my', 'welcome'].includes(firstPart)) {
+    if (['groups', 'all', 'public', 'my', 'welcome', 'messages'].includes(firstPart)) {
       params.context = firstPart
     } else {
       params.context = 'all'
@@ -27,9 +27,9 @@ export default function useRouteParams () {
     const pathParts = location.pathname.split('/')
     // Correctly track the view
     if (params.context === 'groups') {
-      params.view = !['post', 'group', 'create'].includes(pathParts[3]) ? pathParts[3] : 'stream'
+      params.view = !['create'].includes(pathParts[3]) ? pathParts[3] : 'stream'
     } else {
-      params.view = !['post', 'group', 'create'].includes(pathParts[2]) ? pathParts[2] : 'stream'
+      params.view = !['create'].includes(pathParts[2]) ? pathParts[2] : 'stream'
     }
   }
 
@@ -41,6 +41,12 @@ export default function useRouteParams () {
   // Set memberId
   if (params.view === 'members') {
     params.memberId = params.context === 'groups' ? pathParts[4] : pathParts[3]
+  }
+
+  // Set chat topicName
+  if (params.view === 'chat') {
+    // XXX: this should only ever be in a group
+    params.topicName = pathParts[4]
   }
 
   // Mix query params and path params into one object, query params take precedence

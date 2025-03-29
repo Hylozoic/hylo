@@ -4,13 +4,10 @@ import { butterflyBush, caribbeanGreen, fakeAlpha, flushOrange, gold, pictonBlue
 export default function PostPresenter (post, { forGroupId } = {}) {
   if (!post) return post
 
-  const groupPostMembership = post.postMemberships.find(postMembership => {
-    return Number(postMembership.group.id) === Number(forGroupId)
-  })
   // if remote exists set url to remote, if not do the following
   const attachments = post.attachments.map(attachment => {
     const url = attachment?.url || attachment?.remote
-    return { ...attachment, url, local: url }
+    return { ...attachment, url, local: attachment.local || url }
   })
   const images = attachments.filter(attachment => attachment.type === 'image')
   const files = attachments.filter(attachment => attachment.type === 'file')
@@ -22,7 +19,6 @@ export default function PostPresenter (post, { forGroupId } = {}) {
     files,
     fileUrls: uniq(files.map(file => file.url)),
     imageUrls: uniq(images.map(image => image.url)),
-    pinned: groupPostMembership && groupPostMembership.pinned,
     startTime: post.startTime ? new Date(post.startTime) : post.startTime,
     endTime: post.endTime ? new Date(post.endTime) : post.endTime,
     startTimeRaw: post.startTime,
@@ -35,38 +31,51 @@ export default function PostPresenter (post, { forGroupId } = {}) {
 export const POST_TYPES = {
   discussion: {
     primaryColor: pictonBlue,
+    iconName: 'Chat',
     backgroundColor: fakeAlpha(pictonBlue, 0.2),
     map: false
   },
   event: {
     primaryColor: sunsetOrange,
+    iconName: 'Calendar',
     backgroundColor: fakeAlpha(sunsetOrange, 0.2),
     map: true
   },
   offer: {
     primaryColor: caribbeanGreen,
+    iconName: 'Gift',
+    backgroundColor: fakeAlpha(caribbeanGreen, 0.2),
+    map: true
+  },
+  post: {
+    iconName: 'Post'
+  },
+  project: {
+    primaryColor: flushOrange,
+    iconName: 'Project',
+    backgroundColor: fakeAlpha(flushOrange, 0.2),
+    map: false
+  },
+  proposal: {
+    primaryColor: butterflyBush,
+    iconName: 'Proposal',
+    backgroundColor: fakeAlpha(butterflyBush, 0.2),
+    map: true
+  },
+  request: {
+    primaryColor: caribbeanGreen,
+    iconName: 'HandRaised',
     backgroundColor: fakeAlpha(caribbeanGreen, 0.2),
     map: true
   },
   resource: {
     primaryColor: gold,
+    iconName: 'Resource',
     backgroundColor: fakeAlpha(gold, 0.2),
     map: true
   },
-  project: {
-    primaryColor: flushOrange,
-    backgroundColor: fakeAlpha(flushOrange, 0.2),
-    map: false
-  },
-  request: {
-    primaryColor: caribbeanGreen,
-    backgroundColor: fakeAlpha(caribbeanGreen, 0.2),
-    map: true
-  },
-  proposal: {
-    primaryColor: butterflyBush,
-    backgroundColor: fakeAlpha(butterflyBush, 0.2),
-    map: true
+  default: {
+    iconName: 'Post'
   }
 }
 

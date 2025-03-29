@@ -31,7 +31,7 @@ const WelcomeExplore = ({ currentUser }) => {
             </div>
           </div>
         </Link>
-        <Link to='/public'>
+        <Link to='/public/stream'>
           <div className={classes.finalStep}>
             <div className={cn(classes.stepImage, classes.stream)} style={bgImageStyle('/signup-stream.png')} />
             <div>
@@ -40,7 +40,7 @@ const WelcomeExplore = ({ currentUser }) => {
             </div>
           </div>
         </Link>
-        <Link to={`/public/create/group?closePath=${encodeURIComponent('/public')}`}>
+        <Link to={`/create-group?closePath=${encodeURIComponent('/public')}`}>
           <div className={classes.finalStep}>
             <div className={cn(classes.stepImage, classes.group)} style={bgImageStyle('/signup-group.png')} />
             <div>
@@ -49,7 +49,7 @@ const WelcomeExplore = ({ currentUser }) => {
             </div>
           </div>
         </Link>
-        <Link to='/settings'>
+        <Link to='/my/edit-profile'>
           <div className={classes.finalStep}>
             <div className={cn(classes.stepImage, classes.profile)} style={bgImageStyle(currentAvatarUrl)}>
               <div className={classes.profileCover} />

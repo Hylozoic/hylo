@@ -62,13 +62,14 @@ const every10minutes = now => {
   return [
     FullTextSearch.refreshView(),
     Comment.sendDigests().then(count => sails.log.debug(`Sent ${count} comment/message digests`)),
+    TagFollow.sendDigests().then(count => sails.log.debug(`Sent ${count} chat room digests`)),
     Group.updateAllMemberCounts(),
     Post.updateProposalStatuses()
   ]
 }
 
 const runJob = Promise.method(name => {
-  const job = {hourly, daily, every10minutes}[name]
+  const job = { hourly, daily, every10minutes }[name]
   if (typeof job !== 'function') {
     throw new Error(`Unknown job name: "${name}"`)
   }

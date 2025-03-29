@@ -1,54 +1,48 @@
-import i18n from '../../i18n.mjs'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import presentTopic from 'store/presenters/presentTopic'
-import { TextHelpers } from '@hylo/shared'
-import { getLocaleAsString } from 'components/Calendar/calendar-util'
 
 export default function presentPost (post, groupId) {
   if (!post) return null
 
-  const postMembership = post.postMemberships.toRefArray().find(p =>
-    Number(p.group) === Number(groupId))
-  const pinned = postMembership && postMembership.pinned
-  const createdAtHumanDate = TextHelpers.humanDate(post.createdAt)
-  const createdAtHumanDateShort = TextHelpers.humanDate(post.createdAt, true)
-  const editedAtHumanDate = TextHelpers.humanDate(post.editedAt)
+  // Raw posts came directly from the API, not processed through the model extractor
+  // Used in the chat room
+  const rawPost = !post.ref
 
-  return {
-    ...post.ref,
-    creator: post.creator,
-    linkPreview: post.linkPreview,
-    location: post.location,
-    isPublic: post.isPublic,
-    clickthrough: post.clickthrough,
-    commenters: post.commenters.toModelArray(),
-    groups: post.groups.toModelArray(),
-    attachments: post.attachments
-      .orderBy('position').toModelArray(),
-    imageAttachments: post.attachments
-      .orderBy('position').filter(a => a.type === 'image').toRefArray(),
-    fileAttachments: post.attachments
-      .orderBy('position').filter(a => a.type === 'file').toModelArray(),
-    pinned,
-    topics: post.topics.toModelArray().map(topic => presentTopic(topic, {})),
-    members: post.members.toModelArray().map(person => {
-      return {
-        ...person.ref,
-        skills: person.skills.toRefArray()
-      }
-    }),
-    eventInvitations: post.eventInvitations.toModelArray().map(eventInvitation => {
-      return {
-        response: eventInvitation.response,
-        ...eventInvitation.person.ref
-      }
-    }),
-    proposalOptions: post.proposalOptions?.toModelArray() || [],
-    createdTimestampForGrid: createdAtHumanDateShort,
-    createdTimestamp: `${i18n.t('Posted')} ${createdAtHumanDate}`,
-    createdTimestampForBigGrd: `${i18n.t('Posted')} ${createdAtHumanDateShort}`,
-    editedTimestamp: post.editedAt ? `${i18n.t('Edited')} ${editedAtHumanDate}` : null,
-    exactCreatedTimestamp: DateTime.fromISO(post.createdAt).setLocale(getLocaleAsString()).toFormat('D t ZZZZ'),
-    exactEditedTimestamp: DateTime.fromISO(post.editedAt).setLocale(getLocaleAsString()).toFormat('D t ZZZZ')
+  try {
+    const createdAtHumanDate = DateTimeHelpers.humanDate(post.createdAt)
+    const editedAtHumanDate = DateTimeHelpers.humanDate(post.editedAt)
+
+    const finalPost = {
+      ...(rawPost ? post : post.ref),
+      attachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).sort((a, b) => a.position - b.position),
+      createdTimestamp: createdAtHumanDate,
+      creator: post.creator, // needed to load the creator object
+      commenters: (rawPost ? post.commenters?.items || [] : post.commenters.toModelArray()),
+      editedTimestamp: post.editedAt ? `Edited ${editedAtHumanDate}` : null,
+      eventInvitations: (rawPost ? post.eventInvitations?.items || [] : post.eventInvitations.toModelArray()).map(eventInvitation => {
+        return {
+          response: eventInvitation.response,
+          ...(rawPost ? eventInvitation.person : eventInvitation.person.ref)
+        }
+      }),
+      exactCreatedTimestamp: DateTimeHelpers.toDateTime(post.createdAt).toFormat('D t ZZZZ'),
+      exactEditedTimestamp: DateTimeHelpers.toDateTime(post.editedAt).toFormat('D t ZZZZ'),
+      fileAttachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).filter(a => a.type === 'file').sort((a, b) => a.position - b.position),
+      imageAttachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).filter(a => a.type === 'image').sort((a, b) => a.position - b.position),
+      groups: (rawPost ? post.groups?.items || [] : post.groups.toModelArray()),
+      linkPreview: post.linkPreview, // needed to load the link preview object
+      location: post.location, // needed to load the location object
+      members: (rawPost ? post.members?.items || [] : post.members.toModelArray()).map(person => {
+        return {
+          ...(rawPost ? person : person.ref),
+          skills: (rawPost ? person.skills?.items || [] : person.skills.toModelArray())
+        }
+      }),
+      proposalOptions: (rawPost ? post.proposalOptions?.items || [] : post.proposalOptions.toModelArray()),
+      topics: (rawPost ? post.topics?.items || [] : post.topics.toModelArray()).map(topic => presentTopic(topic, {}))
+    }
+    return finalPost
+  } catch (e) {
+    console.log('error', e)
   }
 }

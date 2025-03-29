@@ -41,7 +41,8 @@ const ModerationListItem = ({
   if (platformAgreementsFetching) return null
 
   const platformAgreements = allPlatformAgreements.filter(agreement => platformAgreementsIds.includes(agreement.id))
-  const reporterUrl = `/user/${reporter.id}` // TODO COMOD, fix this
+  // TODO:  Currently not implemented
+  // const reporterUrl = `/user/${reporter.id}`
   const groupAgreementsUrl = group ? groupUrl(group.slug) + `/group/${group.slug}` : ''
   const currentUserIsReporter = reporter.id === currentUser.id
   const navigateToReporter = () => {

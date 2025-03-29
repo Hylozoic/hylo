@@ -141,6 +141,7 @@ const postFieldsFragment = (withComments) => `
     url
   }
   linkPreviewFeatured
+  localId
   location
   locationObject {
     id
@@ -210,13 +211,6 @@ const postFieldsFragment = (withComments) => `
     url
     position
     id
-  }
-  postMemberships {
-    id
-    pinned
-    group {
-      id
-    }
   }
   topics {
     id

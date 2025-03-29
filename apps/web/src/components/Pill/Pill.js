@@ -4,6 +4,7 @@ import React, { forwardRef, useState } from 'react'
 import { Tooltip } from 'react-tooltip'
 import Icon from 'components/Icon'
 import classes from './Pill.module.scss'
+import { cn } from 'util/index'
 
 const Pill = forwardRef(({
   id,
@@ -32,7 +33,12 @@ const Pill = forwardRef(({
 
   return (
     <div
-      className='text-foreground text-baseline bg-black/10 rounded-lg inline-block m-1 py-2 px-3 opacity-80 hover:opacity-100 scale-100 hover:scale-105 transition-all hover:cursor-pointer hover:bg-black/20'
+      className={cn(
+        'text-foreground text-baseline bg-black/10 rounded-lg m-1 py-2 px-3 h-[40px] items-center justify-center inline-flex opacity-100 hover:opacity-100 scale-100 transition-all hover:cursor-pointer hover:bg-selected/50 z-0 hover:z-50',
+        className,
+        classes.pill,
+        { [classes.removing]: removing, [classes.editable]: editable }
+      )}
       onMouseLeave={mouseOut}
       ref={ref}
     >
@@ -46,10 +52,10 @@ const Pill = forwardRef(({
       </span>
       {editable &&
         <Icon
-          className={classes.removeLabel}
+          className={cn(classes.removeLabel, { [classes.removing]: removing })}
           tooltipContent='Double click to delete'
           tooltipId={tooltipId}
-          name='Ex'
+          name='Trash'
           onClick={deletePill}
           dataTestId='pill-remove-icon'
         />}

@@ -1,5 +1,5 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
-import { capeCod10, rhino60, caribbeanGreen, white, regent, mangoYellow, black } from 'style/colors'
+import { capeCod10, rhino60, caribbeanGreen, regent, mangoYellow, black, twBackground } from 'style/colors'
 
 export default {
   childPost: {
@@ -23,7 +23,7 @@ export default {
     marginRight: 2
   },
   childPostInner: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: twBackground,
     borderWidth: 1,
     borderColor: 'grey',
     borderTopLeftRadius: 6,
@@ -39,7 +39,7 @@ export default {
     fontWeight: 'bold'
   },
   container: {
-    backgroundColor: white,
+    backgroundColor: twBackground,
     borderColor: capeCod10,
     borderRadius: 4,
     borderWidth: 1,
@@ -133,13 +133,13 @@ export default {
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
-    elevation: 5,
+    elevation: 5
   },
   clickthroughText: {
     color: regent,
     fontSize: 14,
     lineHeight: 20,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   clickthroughButton: {
     marginTop: 6,

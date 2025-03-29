@@ -74,10 +74,10 @@ function MapDrawer ({
   }
 
   return (
-    <div className={cn(styles.container, { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} id='mapDrawerWrapper' data-testid='map-drawer'>
-      <div className={styles.header}>
+    <div className={cn('h-full overflow-x-visible overflow-y-hidden min-w-[300px] max-w-[500px] w-full relative z-20 bg-background', { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} data-testid='map-drawer'>
+      <div className='relative w-full p-4 pb-0'>
         <input
-          className={styles.searchBox}
+          className='bg-input rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none focus:outline-focus focus:outline-2 mb-0'
           type='text'
           onChange={e => setSearch(e.target.value)}
           onFocus={e => setIsSearching(true)}
@@ -138,13 +138,11 @@ function MapDrawer ({
             )
           })}
         </div>
-
-        <TabBar currentTab={currentTab} tabs={tabs} selectTab={setCurrentTab} pendingPostsDrawer={pendingPostsDrawer} />
       </div>
-
+      <TabBar currentTab={currentTab} tabs={tabs} selectTab={setCurrentTab} pendingPostsDrawer={pendingPostsDrawer} />
       {currentTab === localizedTabNames.posts
         ? (
-          <div className={styles.contentWrapper}>
+          <div id='mapDrawerWrapper' className='w-full h-[calc(100vh-140px)] bg-midground overflow-y-scroll overflow-x-visible pb-10'>
             <div className={styles.postsHeader}>
               {![CONTEXT_MY, 'all', 'public'].includes(context) && (
                 <>
@@ -182,7 +180,7 @@ function MapDrawer ({
               />
             </div>
 
-            <div className={styles.contentListContainer} id='contentList'>
+            <div className='flex flex-col gap-2 p-2' id='contentList'>
               {posts.map(p => {
                 return (
                   <PostCard
@@ -203,11 +201,11 @@ function MapDrawer ({
           )
         : currentTab === localizedTabNames.members
           ? (
-            <div className={styles.contentWrapper}>
-              <div className={styles.contentListContainer} id='contentList'>
+            <div className='overflow-y-scroll pb-10'>
+              <div className='w-full flex flex-col gap-2 p-2 bg-midground' id='contentList'>
                 {members.map(m => (
                   <Member
-                    className={cn(styles.contentCard, styles.member)}
+                    location={m.location}
                     member={m}
                     key={m.id}
                     group={group}
@@ -220,13 +218,12 @@ function MapDrawer ({
           : currentTab === localizedTabNames.groups
             ? (
               <div className={styles.contentWrapper}>
-                <div className={styles.contentListContainer} id='contentList'>
+                <div className='overflow-y-scroll pb-10 bg-midground' id='contentList'>
                   {groups.map(group => (
                     <GroupCard
                       key={group.id}
                       group={group}
                       routeParams={routeParams}
-                      className={styles.groupCard}
                     />
                   ))}
                 </div>
@@ -252,11 +249,11 @@ export function TabBar ({ currentTab, tabs, selectTab, pendingPostsDrawer }) {
   const { t } = useTranslation()
   const posts = t('Posts')
   return (
-    <ul className={styles.tabBar}>
+    <ul className='flex flex-row gap-2 border-b-4 border-midground '>
       {Object.keys(tabs).map(name =>
         <li
           key={name}
-          className={cn(styles.tab, { [styles.tabActive]: name === currentTab })}
+          className={cn('bg-midground/50 rounded-t-lg px-2 py-1', { 'bg-midground/100': name === currentTab })}
           onClick={() => selectTab(name)}
         >
           {name}&nbsp;

@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
@@ -14,12 +14,9 @@ import ImageAttachments from 'components/ImageAttachments'
 import Files from 'components/Files'
 import Icon from 'components/Icon'
 import Topics from 'components/Topics'
-import styles from 'components/PostCard/PostCard.styles'
 import { useNavigation } from '@react-navigation/native'
-import { clsx } from 'clsx'
 
 export default function PostCard ({
-  goToGroup,
   hideDetails,
   groupId,
   hideMenu,
@@ -43,8 +40,8 @@ export default function PostCard ({
   return (
     <>
       {childPost && (
-        <View className='border-b border-border'>
-          <View className='flex-row items-center py-2 px-4'>
+        <View className='border-1 border-border'>
+          <View className='flex-row gap-2 items-center py-2 px-2 bg-midground self-start'>
             <Icon name='Subgroup' className='text-foreground/70 mr-1' />
             <Text className='text-foreground/70'>{t('post from child group')}</Text>
           </View>
@@ -58,7 +55,6 @@ export default function PostCard ({
           date={post.createdAt}
           hideMenu={hideMenu}
           isFlagged={isFlagged}
-          pinned={post.pinned}
           postId={post.id}
           showMember={handleShowMember}
           title={post.title}
@@ -124,7 +120,6 @@ export default function PostCard ({
         <Files urls={post.fileUrls} className='mx-4 mb-2' />
         {showGroups && (
           <PostGroups
-            goToGroup={goToGroup}
             groups={post.groups}
             includePublic={post.isPublic}
             className='mx-4 mb-2'

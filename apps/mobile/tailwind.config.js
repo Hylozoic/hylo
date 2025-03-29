@@ -1,8 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ['class'],
-  content: ["./src/**/*.{js,jsx,ts,tsx}"],
-  presets: [require("nativewind/preset")],
+  content: ['./src/**/*.{js,jsx,ts,tsx}'],
+  presets: [require('nativewind/preset')],
   theme: {
     extend: {
       spacing: {
@@ -23,6 +23,7 @@ module.exports = {
         background: 'hsl(var(--background) / <alpha-value>)',
         midground: 'hsl(var(--midground) / <alpha-value>)',
         foreground: 'hsl(var(--foreground) / <alpha-value>)',
+        selected: 'hsl(var(--selected) / <alpha-value>)',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
@@ -55,6 +56,7 @@ module.exports = {
           DEFAULT: 'hsl(var(--error))',
           foreground: 'hsl(var(--error-foreground))'
         },
+        focus: 'hsl(var(--focus))',
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -73,5 +75,5 @@ module.exports = {
       }
     }
   },
-  plugins: [],
+  plugins: []
 }

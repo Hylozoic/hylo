@@ -12,14 +12,16 @@ const Signup = createStackNavigator()
 export default function SignupNavigator () {
   const navigatorProps = {
     screenOptions: {
-      cardStyle: { backgroundColor: white },
+      // cardStyle: { backgroundColor: white },
       header: headerProps => {
         // Hmmm, maybe should clear current user session...
         const close = () => headerProps.navigation.navigate('Signup Intro')
         return (
           <WorkflowModalHeader
             headerLeftCloseIcon
+            headerLeftStyle={{ color: white }}
             headerLeftOnPress={close}
+            headerTitleStyle={{ color: white }}
             style={{ backgroundColor: white20onCaribbeanGreen }}
             {...headerProps}
           />

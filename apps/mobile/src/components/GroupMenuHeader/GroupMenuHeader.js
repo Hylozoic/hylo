@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react'
 import { Settings, Users, ChevronRight } from 'lucide-react-native'
 import { View, Text, TouchableOpacity } from 'react-native'
 import clsx from 'clsx'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
-import { useNavigation } from '@react-navigation/native'
 import FastImage from 'react-native-fast-image'
+import useOpenURL from 'hooks/useOpenURL'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
-import { openURL } from 'hooks/useOpenURL'
 
 export default function GroupMenuHeader ({ group }) {
+  const insets = useSafeAreaInsets()
   const { t } = useTranslation()
-  const navigation = useNavigation()
+  const openURL = useOpenURL()
   const avatarUrl = group.avatarUrl
   const bannerUrl = group.bannerUrl
   const [textColor, setTextColor] = useState('background')
@@ -28,7 +29,10 @@ export default function GroupMenuHeader ({ group }) {
   }, [bannerUrl])
 
   return (
-    <View className='relative flex flex-col justify-end h-[140px] shadow-md pb-2' testID='group-header'>
+    <View
+      styleName={{ paddingTop: insets.top }}
+      className='relative flex-col justify-end h-[140px] shadow-md pb-2'
+    >
       <FastImage
         source={{ uri: bannerUrl }}
         style={{
@@ -40,11 +44,8 @@ export default function GroupMenuHeader ({ group }) {
       />
 
       {canAdmin && (
-        <View className='absolute top-2 right-2'>
-          <TouchableOpacity
-            // TODO redesign: make this actually navigate correctly
-            onPress={() => navigation.navigate('Group Settings')}
-          >
+        <View className='self-end mb-5 mr-3'>
+          <TouchableOpacity onPress={() => openURL(`/groups/${group.slug}/settings`, { replace: true })}>
             <View className='w-6 h-6 drop-shadow-md'>
               <Settings color='white' size={24} />
             </View>
@@ -52,7 +53,7 @@ export default function GroupMenuHeader ({ group }) {
         </View>
       )}
 
-      <View className='relative flex flex-row items-center text-background ml-2 mr-2 gap-1'>
+      <View className='relative flex-row items-center text-background ml-2 mr-2 gap-1'>
         <FastImage
           source={{ uri: avatarUrl }}
           style={{
@@ -73,7 +74,7 @@ export default function GroupMenuHeader ({ group }) {
           </Text>
 
           <TouchableOpacity
-            onPress={() => navigation.navigate('Members', { groupSlug: group.slug })}
+            onPress={() => openURL(`/groups/${group.slug}/members`, { replace: true })}
             className='flex-row items-center'
           >
             <View className='w-4 h-4 mr-1 align-bottom'>
@@ -86,7 +87,7 @@ export default function GroupMenuHeader ({ group }) {
         </View>
 
         <TouchableOpacity
-          onPress={() => openURL(`/groups/${group.slug}/about`)}
+          onPress={() => openURL(`/groups/${group.slug}/about`, { replace: true })}
           hitSlop={6}
         >
           <View className='cursor-pointer'>

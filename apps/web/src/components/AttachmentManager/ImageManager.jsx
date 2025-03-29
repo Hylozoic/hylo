@@ -6,19 +6,32 @@ import { DndContext } from '@dnd-kit/core'
 import Loading from 'components/Loading'
 import { ImagePreview } from './ImagePreview'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
-import { moveAttachment } from './AttachmentManager.store'
+import { addAttachment, moveAttachment, removeAttachment } from './AttachmentManager.store'
 
 import classes from './AttachmentManager.module.scss'
 
 export function ImageManager (props) {
   const { t } = useTranslation()
   const {
-    type, id, attachments, addAttachment, removeAttachment,
+    type, id, attachments, onChange,
     uploadAttachmentPending, showLoading, showAddButton, showLabel
   } = props
 
   const dispatch = useDispatch()
-  const switchImages = useCallback((position1, position2) => dispatch(moveAttachment(type, id, 'image', position1, position2)), [type, id])
+  const switchImages = useCallback((position1, position2) => {
+    dispatch(moveAttachment(type, id, 'image', position1, position2))
+    if (onChange) onChange(position1, position2)
+  }, [type, id, onChange])
+
+  const handleRemoveAttachment = useCallback((attachment) => {
+    dispatch(removeAttachment(type, id, attachment))
+    if (onChange) onChange(attachment)
+  }, [type, id, onChange])
+
+  const handleAddAttachment = useCallback((attachment) => {
+    dispatch(addAttachment(type, id, attachment))
+    if (onChange) onChange(attachment)
+  }, [type, id, onChange])
 
   const handleDragEnd = useCallback(({ active, over }) => {
     if (active.id !== over.id) {
@@ -40,7 +53,7 @@ export function ImageManager (props) {
             {images.map((attachment, i) =>
               <ImagePreview
                 attachment={attachment}
-                removeImage={() => removeAttachment(type, id, attachment)}
+                removeImage={() => handleRemoveAttachment(attachment)}
                 index={i}
                 key={i}
               />)}
@@ -50,7 +63,8 @@ export function ImageManager (props) {
                 type={type}
                 id={id}
                 attachmentType='image'
-                onSuccess={attachment => addAttachment(type, id, attachment)}
+                onSuccess={handleAddAttachment}
+                allowMultiple
               >
                 <div className={classes.addImage}>+</div>
               </UploadAttachmentButton>)}

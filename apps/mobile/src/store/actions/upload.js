@@ -31,7 +31,7 @@ const buildResponseObject = (xhr) => {
   return {
     status: xhr.status,
     text: xhr.responseText,
-    headers: headers
+    headers
   }
 }
 
