@@ -232,8 +232,6 @@ const HyloWebView = React.forwardRef(({
       // Recommended setting from AutoHeightWebView docs, with disclaimer about a
       // potential Android issue. It helpfully disables iOS zoom feature.
       viewportContent='width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1'
-      showsHorizontalScrollIndicator={false}
-      showsVerticalScrollIndicator={false}
       {...forwardedProps}
     />
   )
