@@ -110,6 +110,12 @@ export default gql`
       position
       id
     }
+    postMemberships {
+      id
+      group {
+        id
+      }
+    }
     topics {
       id
       name
