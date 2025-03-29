@@ -76,4 +76,11 @@ Sentry error reporting is always on in production, and optionally enabled in dev
 
 ### Debugging, quirks, work-arounds
 
+###### Webview
+
+We use webviews a lot. These allow us to point at pieces of the web app in mobile screens. It is both very cool and has quirks.
+
 You’ll want to get familiar with the tooling for debugging actual WebView loads: https://github.com/react-native-webview/react-native-webview/blob/master/docs/Debugging.md#debugging-webview-contents
+
+###### Urql
+We use urql for most of our graphQL and data fetching/handling needs. Its good to get familiar with the devtools for this. https://github.com/urql-graphql/urql-devtools-exchange#usage
