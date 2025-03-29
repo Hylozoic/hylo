@@ -3,7 +3,7 @@ import { get } from 'lodash/fp'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
-import { TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRolesForGroup from '@hylo/hooks/useRolesForGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
@@ -72,7 +72,7 @@ export default function PostHeader ({
           )}
         </TouchableOpacity>
         <CondensingBadgeRow badges={badges || []} creatorIsSteward={creatorIsSteward} currentGroup={currentGroup} postId={postId} />
-        <Text style={styles.date}>{TextHelpers.humanDate(date)}</Text>
+        <Text style={styles.date}>{DateTimeHelpers.humanDate(date)}</Text>
       </View>
       <View style={styles.upperRight}>
         {isFlagged && (

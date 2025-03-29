@@ -1,5 +1,4 @@
 import { isEmpty } from 'lodash/fp'
-import { DateTime } from 'luxon'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -13,9 +12,9 @@ import useRouteParams from 'hooks/useRouteParams'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
 import { personUrl, topicUrl } from 'util/navigation'
+import { DateTimeHelpers } from '@hylo/shared'
 
 import classes from './PostListRow.module.scss'
-import { sameDay } from 'components/Calendar/calendar-util'
 
 // :SHONK: no idea why React propagates events from child elements but NOT IN OTHER COMPONENTS
 const stopEvent = (e) => e.stopPropagation()
@@ -53,13 +52,9 @@ const PostListRow = (props) => {
   const creatorUrl = personUrl(creator.id, routeParams.slug)
   const numOtherCommentors = commentersTotal - 1
   const unread = false
-  const start = typeof post.startTime === 'string'
-    ? DateTime.fromISO(post.startTime)
-    : DateTime.fromJSDate(post.startTime)
-  const end = typeof post.endTime === 'string'
-    ? DateTime.fromISO(post.endTime)
-    : DateTime.fromJSDate(post.endTime)
-  const isSameDay = sameDay(start.toJSDate(), end.toJSDate())
+  const start = DateTimeHelpers.toDateTime(post.startTime)
+  const end = DateTimeHelpers.toDateTime(post.endTime)
+  const isSameDay = DateTimeHelpers.isSameDay(start, end)
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
   return (
