@@ -118,14 +118,6 @@ function AgreementsTab (props) {
     setDragIndex(null)
   }, [])
 
-  const saveButtonContent = useCallback(() => {
-    if (!changed) return { color: 'gray', style: '', text: t('Current settings up to date') }
-    if (error) {
-      return { color: 'purple', style: classes.settingIncorrect, text: error }
-    }
-    return { color: 'green', style: classes.settingChanged, text: t('Changes not saved') }
-  }, [changed, error])
-
   if (!group) return <Loading />
 
   return (

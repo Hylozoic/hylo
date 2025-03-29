@@ -91,6 +91,7 @@ export function updateContextWidget ({ contextWidgetId, data, groupId }) {
           title
           order
           parentId
+          visibility
         }
       }`,
       variables: { contextWidgetId, data }

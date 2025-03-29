@@ -657,11 +657,23 @@ module.exports = bookshelf.Model.extend(merge({
 
   clearSessionsFor: async function ({ userId, sessionId }) {
     const redisClient = RedisClient.create()
-    for await (const key of redisClient.scanIterator({ MATCH: `sess:${userId}:*` })) {
-      if (key !== 'sess:' + sessionId) {
-        await redisClient.del(key)
+    let cursor = 0
+    do {
+      const [nextCursor, keys] = await redisClient.scan(
+        cursor,
+        'MATCH',
+        `sess:${userId}:*`,
+        'COUNT',
+        '100'
+      )
+      cursor = parseInt(nextCursor)
+
+      for (const key of keys) {
+        if (key !== 'sess:' + sessionId) {
+          await redisClient.del(key)
+        }
       }
-    }
+    } while (cursor !== 0)
   },
 
   create: function (attributes) {
@@ -871,9 +883,10 @@ module.exports = bookshelf.Model.extend(merge({
       const initialGroup = memberships?.models[0]?.relations?.group
       Email.sendWelcomeEmail({
         email: user.get('email'),
-        templateData: {
+        data: {
           member_name: user.get('name'),
-          group_name: initialGroup?.get('name')
+          group_name: initialGroup?.get('name'),
+          group_url: initialGroup ? Frontend.Route.group(initialGroup) : null
         }
       })
     }

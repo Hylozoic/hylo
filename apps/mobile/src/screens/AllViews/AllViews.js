@@ -23,7 +23,11 @@ export default function AllViews () {
       filter(widget =>
         !(widget.visibility === 'admin' && !canAdminister) &&
         widget.visibility !== 'none' &&
-        widget.type !== 'home'
+        widget.type !== 'home' &&
+        widget.type !== 'container' &&
+        widget.type !== 'auto-view' &&
+        widget.type !== 'custom-views' &&
+        widget.type !== 'chats'
       ),
 
       map(widget => ({

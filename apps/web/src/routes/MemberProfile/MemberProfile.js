@@ -216,7 +216,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
               )}
             </div>
           )}
-          <div className='flex flex-col max-w-[720px]'>
+          <div className='flex flex-col max-w-[720px] w-full'>
             {person.skills && person.skills.length > 0
               ? (
                 <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>

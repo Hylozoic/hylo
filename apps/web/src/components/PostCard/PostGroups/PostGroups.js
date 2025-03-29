@@ -32,13 +32,13 @@ class PostGroups extends Component {
     if (isEmpty(groups) || (groups.length === 1 && get('0.slug', groups) === slug)) return null
 
     return (
-      <div className={cn('bg-black/20 p-2 mx-[8px] rounded-lg mt-2 mb-2', { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })} onClick={expanded ? this.toggleExpanded : undefined}>
+      <div className={cn('bg-black/10 p-2 mx-[8px] rounded-lg mt-2 mb-2', { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })} onClick={expanded ? this.toggleExpanded : undefined}>
         <div className={classes.row}>
           <span className={classes.label}>{`${this.props.t('To:')}`}&nbsp;</span>
           {!expanded &&
             <LinkedGroupNameList t={t} groups={groups} maxShown={2} expandFunc={this.toggleExpanded} />}
           <a onClick={this.toggleExpanded} className={classes.expandLink} role='button' aria-label={expanded ? 'collapse' : 'expand'}>
-            <Icon name={expanded ? 'ArrowUp' : 'ArrowDown'} className={classes.expandIcon} />
+            <Icon name={expanded ? 'ArrowUp' : 'ArrowDown'} className='text-foreground/60 hover:text-foreground' />
           </a>
         </div>
 
@@ -69,7 +69,7 @@ export function LinkedGroupNameList ({ groups, maxShown = 2, expandFunc, t }) {
 export function LinkedGroupName ({ group, children }) {
   return (
     <span key={group.id}>
-      <Link to={groupUrl(group.slug)} className={classes.groupLink}>{group.name === 'Public' && <Icon name='Public' className={classes.publicGroupIcon} dataTestId='icon-Public' />} {group.name}</Link>
+      <Link to={groupUrl(group.slug)} className='text-foreground/80 hover:text-selected font-bold group transition-all hover:scale-110'>{group.name === 'Public' && <Icon name='Public' className='text-foreground/80 group-hover:text-selected transition-all' dataTestId='icon-Public' />} {group.name}</Link>
       {children}
     </span>
   )
@@ -95,7 +95,7 @@ export function Others ({ othersCount, expandFunc }) {
   return (
     <>
       <span key='and'> {t('and')} </span>
-      <a key='others' className={classes.groupLink} onClick={expandFunc}>{phrase}</a>
+      <a key='others' className='text-foreground/80 hover:text-selected font-bold transition-all hover:scale-105' onClick={expandFunc}>{phrase}</a>
     </>
   )
 }

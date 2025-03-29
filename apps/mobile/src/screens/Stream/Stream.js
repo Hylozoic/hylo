@@ -70,20 +70,31 @@ export default function Stream () {
     context,
     customViewId,
     view: providedView,
-    streamType
+    streamType,
+    topicName
   } = routeParams
+
   const view = (context === MY_CONTEXT_SLUG && !providedView && !streamType) ? 'posts' : providedView
 
   const customView = currentGroup?.customViews?.items?.find(customView => customView.id === customViewId)
-  const [filter, setFilter] = useState()
+  const [filter, setFilter] = useState(
+    customView?.defaultPostType ||
+    currentUser?.settings?.streamPostType ||
+    'all'
+  )
   const [sortBy, setSortBy] = useState(
-    get('settings.streamSortBy', currentUser) ||
     customView?.defaultSort ||
+    currentUser?.settings?.streamSortBy ||
     DEFAULT_SORT_BY_ID
+  )
+  const [childPostInclusion, setChildPostInclusion] = useState(
+    currentUser?.settings?.streamChildPosts ||
+    'yes'
   )
   const [timeframe, setTimeframe] = useState(DEFAULT_TIMEFRAME_ID)
   const [offset, setOffset] = useState(0)
   const streamQueryVariables = useStreamQueryVariables({
+    childPostInclusion,
     context,
     currentUser,
     customView,
@@ -92,7 +103,8 @@ export default function Stream () {
     slug: !isStaticContext(currentGroup?.slug) ? currentGroup?.slug : null,
     view,
     sortBy,
-    timeframe
+    timeframe,
+    topic: topicName
   })
   const [{ data, fetching }, refetchPosts] = useQuery(makeStreamQuery({ ...streamQueryVariables, offset }))
   const postsQuerySet = data?.posts || data?.group?.posts
@@ -172,13 +184,19 @@ export default function Stream () {
 
   const handleChildPostToggle = () => {
     const childPostInclusion = streamQueryVariables?.childPostInclusion === 'yes' ? 'no' : 'yes'
+    setChildPostInclusion(childPostInclusion)
     updateUserSettings({ changes: { settings: { streamChildPosts: childPostInclusion } } })
   }
 
-  // TODO: Unused. Remove or explain further here in comment
-  // const extraToggleStyles = streamQueryVariables?.childPostInclusion === 'yes'
-  //   ? { backgroundColor: pictonBlue }
-  //   : { backgroundColor: '#FFFFFF' }
+  const handleFilterChange = (filter) => {
+    setFilter(filter)
+    updateUserSettings({ changes: { settings: { streamPostType: filter || null } } })
+  }
+
+  const handleSortChange = (sortBy) => {
+    setSortBy(sortBy)
+    updateUserSettings({ changes: { settings: { streamSortBy: sortBy } } })
+  }
 
   if (!streamQueryVariables) return null
   if (!currentUser) return <Loading style={{ flex: 1 }} />
@@ -214,7 +232,7 @@ export default function Stream () {
         />
         {!streamType && (
           <View className='flex-row justify-between items-center px-2.5 py-2'>
-            <ListControl selected={sortBy} onChange={setSortBy} options={sortOptions} />
+            <ListControl selected={sortBy} onChange={handleSortChange} options={sortOptions} />
             <View className='flex-row items-center gap-2'>
               {![MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG].includes(streamQueryVariables?.context) &&
                 <TouchableOpacity onPress={handleChildPostToggle}>
@@ -238,7 +256,7 @@ export default function Stream () {
               {!streamQueryVariables?.types && (
                 <ListControl
                   selected={streamQueryVariables.filter}
-                  onChange={setFilter}
+                  onChange={handleFilterChange}
                   options={POST_TYPE_OPTIONS}
                 />
               )}

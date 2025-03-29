@@ -1,4 +1,4 @@
-import { cn } from 'util/index'
+import isMobile from 'ismobilejs'
 import { get, isEmpty } from 'lodash/fp'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
@@ -41,7 +41,9 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getHasMorePosts, getPosts } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
+import { cn } from 'util/index'
 import { createPostUrl } from 'util/navigation'
+import isWebView from 'util/webView'
 
 import styles from './Stream.module.scss'
 
@@ -121,11 +123,14 @@ export default function Stream (props) {
   const isCalendarViewMode = viewMode === 'calendar'
 
   const fetchPostsParam = useMemo(() => {
+    const numPostsToLoad = isWebView() || isMobile.any ? 10 : 20
+
     const params = {
       activePostsOnly,
       childPostInclusion,
       context,
       filter: postTypeFilter,
+      first: numPostsToLoad,
       forCollection: customView?.type === 'collection' ? customView?.collectionId : null,
       search,
       slug: groupSlug,

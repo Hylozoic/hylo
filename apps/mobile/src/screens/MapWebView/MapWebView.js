@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import useOpenURL from 'hooks/useOpenURL'
-import { modalScreenName } from 'hooks/useIsModalScreen'
 import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
 import HyloWebView from 'components/HyloWebView'
 
@@ -17,7 +15,6 @@ export default function MapWebView ({ navigation }) {
   const { t } = useTranslation()
   const webViewRef = useRef(null)
   const [{ currentGroup: group }] = useCurrentGroup()
-  const openURL = useOpenURL()
   const [path, setPath] = useState()
   const [canGoBack, setCanGoBack] = useState(false)
 
@@ -52,35 +49,6 @@ export default function MapWebView ({ navigation }) {
   const handledWebRoutes = [
     '(.*)/map/create'
   ]
-  const nativeRouteHandler = () => ({
-    '(.*)/:type(post|members)/:id': ({ routeParams }) => {
-      const { type, id } = routeParams
-
-      switch (type) {
-        case 'post': {
-          navigation.navigate('Post Details', { id })
-          break
-        }
-        case 'members': {
-          navigation.navigate('Member', { id })
-          break
-        }
-      }
-    },
-    '/groups/:groupSlug([a-zA-Z0-9-]+)': ({ routeParams }) => {
-      navigation.replace('Map', routeParams)
-    },
-    '(.*)/group/:groupSlug([a-zA-Z0-9-]+)': ({ routeParams }) => {
-      navigation.navigate(modalScreenName('Group Explore'), routeParams)
-    },
-    '(.*)/create/post': ({ searchParams }) => {
-      webViewRef?.current?.goBack()
-      navigation.navigate('Edit Post', { type: searchParams?.newPostType, ...searchParams })
-    },
-    '(.*)': ({ pathname, search }) => {
-      openURL(pathname + search)
-    }
-  })
 
   return (
     <HyloWebView
@@ -96,9 +64,8 @@ export default function MapWebView ({ navigation }) {
           to 'software' for API < 28'ish API may fix those cases.
 
       */
-      handledWebRoutes={handledWebRoutes}
       androidLayerType='hardware'
-      nativeRouteHandler={nativeRouteHandler}
+      handledWebRoutes={handledWebRoutes}
       onNavigationStateChange={({ url, canGoBack: providedCanGoBack }) => {
         setCanGoBack(providedCanGoBack)
       }}

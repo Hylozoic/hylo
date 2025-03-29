@@ -9,11 +9,11 @@ import GroupSettingsWebView from 'screens/GroupSettingsWebView'
 import ChatRoomWebView from 'screens/ChatRoomWebView'
 import Stream from 'screens/Stream'
 import Moderation from 'screens/Moderation'
-import AllTopicsWebView from 'screens/AllTopicsWebView'
 import AllViews from 'screens/AllViews'
 import Groups from 'screens/Groups'
 import GroupWelcome from 'screens/GroupWelcome'
 import GroupWelcomePage from 'screens/GroupWelcome/GroupWelcomePage'
+import HyloWebView from 'components/HyloWebView'
 import MemberDetails from 'screens/MemberProfile/MemberDetails'
 import MemberProfile from 'screens/MemberProfile'
 import MembersComponent from 'screens/Members'
@@ -59,6 +59,7 @@ export default function HomeNavigator () {
       <HomeTab.Screen name='Chat Room' component={ChatRoomWebView} />
       <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
       <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
+      <HomeTab.Screen name='Web View' component={HyloWebView} />
       {/* Other screens */}
       <HomeTab.Screen name='Stream' component={Stream} />
       <HomeTab.Screen name='All Views' component={AllViews} />
@@ -72,7 +73,6 @@ export default function HomeNavigator () {
       <HomeTab.Screen name='Moderation' component={Moderation} />
       <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
       <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />
-      <HomeTab.Screen name='Topics' component={AllTopicsWebView} />
     </HomeTab.Navigator>
   )
 }

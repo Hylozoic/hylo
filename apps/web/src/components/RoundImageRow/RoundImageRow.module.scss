@@ -1,14 +1,14 @@
 @mixin plus {
   position: relative;
-  width: $space-9x;
-  height: $space-9x;
-  line-height: $space-7x;
+  width: 2rem;
+  height: 2rem;
+  line-height: 2rem;
   border-radius: 50%;
   text-align: center;
   display: inline-block;
 }
 
-.plus { 
+.plus {
   @include plus();
   margin-top: -$space-4x;
   background: $color-caribbean-green;
