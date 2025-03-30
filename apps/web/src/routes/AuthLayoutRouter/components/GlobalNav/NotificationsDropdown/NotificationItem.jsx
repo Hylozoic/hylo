@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 import RoundImage from 'components/RoundImage'
 import { bodyForNotification, titleForNotification, imageForNotification } from 'store/models/Notification'
 
@@ -28,7 +28,7 @@ export default function NotificationItem ({ notification, onClick }) {
             dangerouslySetInnerHTML={{ __html: bodyForNotification(notification, t) }}
           />
         </div>
-        <div className='text-xs text-muted-foreground/50'>{TextHelpers.humanDate(notification.createdAt)}</div>
+        <div className='text-xs text-muted-foreground/50'>{DateTimeHelpers.humanDate(notification.createdAt)}</div>
       </div>
     </li>
   )

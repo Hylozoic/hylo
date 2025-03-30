@@ -1,6 +1,7 @@
+import isMobile from 'ismobilejs'
 import { debounce, includes, isEmpty } from 'lodash/fp'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -54,8 +55,6 @@ import styles from './ChatRoom.module.scss'
 // include them under the same avatar and timestamp
 const MAX_MINS_TO_BATCH = 5
 
-const NUM_POSTS_TO_LOAD = 30
-
 const getPosts = ormCreateSelector(
   orm,
   getPostResults,
@@ -95,9 +94,9 @@ const NotificationsIcon = ({ type, ...props }) => {
 }
 
 const getDisplayDay = (date) => {
-  return date.hasSame(DateTime.now(), 'day')
+  return date.hasSame(DateTimeHelpers.dateTimeNow(), 'day')
     ? 'Today'
-    : date.hasSame(DateTime.now().minus({ days: 1 }), 'day')
+    : date.hasSame(DateTimeHelpers.dateTimeNow().minus({ days: 1 }), 'day')
       ? 'Yesterday'
       : date.toFormat('MMM dd, yyyy')
 }
@@ -141,12 +140,14 @@ export default function ChatRoom (props) {
   // Add this new state to track if initial animation is complete
   const [initialAnimationComplete, setInitialAnimationComplete] = useState(false)
 
+  const numPostsToLoad = isWebView() || isMobile.any ? 18 : 30
+
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
     cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(topicFollow?.lastReadPostId) + 1, // -1 because we want the lastread post id included
     filter: 'chat',
-    first: NUM_POSTS_TO_LOAD,
+    first: numPostsToLoad,
     order: 'desc',
     slug: groupSlug,
     search,
@@ -159,7 +160,7 @@ export default function ChatRoom (props) {
     context,
     cursor: postIdToStartAt || topicFollow?.lastReadPostId,
     filter: 'chat',
-    first: NUM_POSTS_TO_LOAD,
+    first: numPostsToLoad,
     order: 'asc',
     slug: groupSlug,
     search,
@@ -427,6 +428,8 @@ export default function ChatRoom (props) {
         return 'auto'
       }
     })
+    // Focus back on the chat box
+    editorRef.current?.focus()
     return true
   }, [])
 
@@ -565,7 +568,7 @@ const Footer = ({ context }) => {
 
 const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
-  const createdAt = firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt) : null
+  const createdAt = firstItem?.createdAt ? DateTimeHelpers.toDateTime(firstItem.createdAt) : null
   const displayDay = createdAt && getDisplayDay(createdAt)
 
   return (
@@ -619,8 +622,8 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
-  const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
-  const currentDay = DateTime.fromISO(post.createdAt)
+  const previousDay = prevData?.createdAt ? DateTimeHelpers.toDateTime(prevData.createdAt) : DateTimeHelpers.dateTimeNow()
+  const currentDay = DateTimeHelpers.toDateTime(post.createdAt)
   const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
   /* Display the author header if

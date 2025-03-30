@@ -6,7 +6,7 @@ import { difference, filter, get, isNull, omitBy, uniqBy, isEmpty, intersection,
 import { DateTime } from 'luxon'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import fetch from 'node-fetch'
 import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
@@ -338,17 +338,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
       id: parseInt(this.id),
       announcement: this.get('announcement'),
       comments: [],
-      day: type !== 'oneline' && this.get('start_time') && TextHelpers.getDayFromDate(this.get('start_time'), this.get('timezone')),
+      day: type !== 'oneline' && this.get('start_time') && DateTimeHelpers.getDayFromDate(this.get('start_time'), this.get('timezone')),
       details: type !== 'oneline' && RichText.qualifyLinks(this.details(), slug),
-      end_time: type === 'oneline' && this.get('end_time') && TextHelpers.formatDatePair(this.get('end_time'), null, false, this.get('timezone')),
+      end_time: type === 'oneline' && this.get('end_time') && DateTimeHelpers.formatDatePair(this.get('end_time'), null, false, this.get('timezone')),
       link_preview: type !== 'oneline' && linkPreview && linkPreview.id &&
         linkPreview.pick('title', 'description', 'url', 'image_url'),
       location: type !== 'oneline' && this.get('location'),
       image_url: type !== 'oneline' && media?.filter(m => m.get('type') === 'image')?.[0]?.get(type === 'full' ? 'url' : 'thumbnail_url'), // Thumbail for digest
-      month: type !== 'oneline' && this.get('start_time') && TextHelpers.getMonthFromDate(this.get('start_time'), this.get('timezone')),
+      month: type !== 'oneline' && this.get('start_time') && DateTimeHelpers.getMonthFromDate(this.get('start_time'), this.get('timezone')),
       topic_name: type !== 'oneline' && this.get('type') === 'chat' ? tags?.first()?.get('name') : '',
       type: this.get('type'),
-      start_time: type === 'oneline' && this.get('start_time') && TextHelpers.formatDatePair(this.get('start_time'), null, false, this.get('timezone')),
+      start_time: type === 'oneline' && this.get('start_time') && DateTimeHelpers.formatDatePair(this.get('start_time'), null, false, this.get('timezone')),
       title: this.summary(),
       unfollow_url: Frontend.Route.unfollow(this, group) + clickthroughParams,
       user: {
@@ -358,7 +358,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         profile_url: Frontend.Route.profile(user) + clickthroughParams
       },
       url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group) + clickthroughParams,
-      when: this.get('start_time') && TextHelpers.formatDatePair(this.get('start_time'), this.get('end_time'), false, this.get('timezone'))
+      when: this.get('start_time') && DateTimeHelpers.formatDatePair(this.get('start_time'), this.get('end_time'), false, this.get('timezone'))
     }
   },
 
