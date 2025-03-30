@@ -6,15 +6,17 @@ import { CSSTransition } from 'react-transition-group'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import CreateModalChooser from './CreateModalChooser'
 import CreateGroup from 'components/CreateGroup'
+import CreateTrack from 'components/CreateTrack'
 import Icon from 'components/Icon'
 import PostEditor from 'components/PostEditor'
-import { removePostEditorFromUrl } from 'util/navigation'
+import { removeCreateEditModalFromUrl } from 'util/navigation'
 import classes from './CreateModal.module.scss'
 
 const CreateModal = (props) => {
+  console.log('CreateModal', props)
   const location = useLocation()
   const navigate = useNavigate()
-  const previousLocation = useSelector(getPreviousLocation) || removePostEditorFromUrl(`${location.pathname}${location.search}`)
+  const previousLocation = useSelector(getPreviousLocation) || removeCreateEditModalFromUrl(`${location.pathname}${location.search}`)
   const [returnToLocation] = useState(previousLocation)
   const [isDirty, setIsDirty] = useState()
   const { t } = useTranslation()
@@ -29,6 +31,7 @@ const CreateModal = (props) => {
     // `closePath` is currently only passed in the case of arriving here
     // from the `WelcomeModal` when we want to go back on close or cancel.
     const closePathFromParam = querystringParams.get('closePath')
+    console.log('closeModal', closePathFromParam, returnToLocation)
     navigate(closePathFromParam || returnToLocation)
   }
 
@@ -79,6 +82,7 @@ const CreateModal = (props) => {
                   )}
                 />
                 <Route path='group' element={<CreateGroup {...props} />} />
+                <Route path='track' element={<CreateTrack {...props} />} />
                 <Route path='*' element={<CreateModalChooser {...props} />} />
               </Routes>
               )}

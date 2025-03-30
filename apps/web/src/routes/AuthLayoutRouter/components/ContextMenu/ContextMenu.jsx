@@ -747,6 +747,7 @@ const SETTINGS_MENU_ITEMS = [
   { title: 'Invitations', url: 'settings/invite' },
   { title: 'Join Requests', url: 'settings/requests' },
   { title: 'Related Groups', url: 'settings/relationships' },
+  { title: 'Tracks & Actions', url: 'settings/tracks' },
   { title: 'Custom Views', url: 'settings/views' },
   { title: 'Export Data', url: 'settings/export' },
   { title: 'Delete', url: 'settings/delete' }

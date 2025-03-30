@@ -47,25 +47,27 @@ import GroupWelcomePage from 'routes/GroupWelcomePage'
 import Groups from 'routes/Groups'
 import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
-import Stream from 'routes/Stream'
-import MapExplorer from 'routes/MapExplorer'
 import JoinGroup from 'routes/JoinGroup'
 import LandingPage from 'routes/LandingPage'
 import Loading from 'components/Loading'
+import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
 import Messages from 'routes/Messages'
+import ThreadList from 'routes/Messages/ThreadList'
 import Moderation from 'routes/Moderation'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
-import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
-import ThreadList from 'routes/Messages/ThreadList'
-
+import Stream from 'routes/Stream'
+import TrackHome from 'routes/TrackHome'
+import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
+import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { GROUP_TYPES } from 'store/models/Group'
-import classes from './AuthLayoutRouter.module.scss'
 import { localeLocalStorageSync } from 'util/locale'
 import isWebView from 'util/webView'
+
+import classes from './AuthLayoutRouter.module.scss'
 
 export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
@@ -318,6 +320,9 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/chat/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/chat/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
               <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/tracks/:trackId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/settings/:tab/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
@@ -406,6 +411,8 @@ export default function AuthLayoutRouter (props) {
                             <Route path='members/*' element={<Members context='groups' />} />
                             <Route path='topics/:topicName/*' element={<Stream context='groups' />} />
                             <Route path='topics' element={<AllTopics context='groups' />} />
+                            <Route path='tracks/:trackId/*' element={<TrackHome />} />
+                            <Route path='tracks/*' element={<Tracks />} />
                             <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
                             <Route path='all-views' element={<AllView context='groups' />} />

@@ -309,6 +309,8 @@ type Query {
     # Only return topics that are set to this visibility in a group that the current logged in user is a member of: 0 = hidden in the group, 1 = visible, 2 = pinned
     visibility: [Int]
   ): TopicQuerySet
+
+  track(id: ID): Track
 }
 
 union Update = Message | MessageThread | Notification
@@ -967,6 +969,21 @@ type Group {
 
   # Skills suggested to new users joining this group to see if they want to add to their profile
   suggestedSkills: SkillQuerySet
+
+  tracks(
+    # Only return tracks whose name starts with the autocomplete string
+    autocomplete: String,
+    # Only return tracks that the logged in user is enrolled in
+    enrolled: Boolean,
+    # Number of tracks to return
+    first: Int,
+    # For pagination, return tracks after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Sort by 'id', 'name', or 'published_at'
+    sortBy: String
+  ): TrackQuerySet
 
   # Posts to display in this group's stream. This includes posts from child groups that the logged in user is a member of
   viewPosts(
@@ -1927,7 +1944,15 @@ type Post {
   commentersTotal: Int
   # Total number of comments on this post
   commentsTotal: Int
-  # If this post has been flagged, this tracks whether the user has clicked through the flag-screen
+  # The date and time this post was completed by the current user
+  completedAt: Date
+  # The response the current user gave when completing this post
+  completionResponse: JSON
+  # The action that people can take to complete this post. 'button', 'comment', 'reaction', 'selectMultiple', 'selectOne', 'text', 'uploadFile'
+  completionAction: String
+  # The options associated with the completion action. e.g. for 'selectMultiple', this is an array of options
+  completionActionSettings: JSON
+  # If this post has been flagged, this tracks whether the currentuser has clicked through the flag-screen
   clickthrough: Boolean
   createdAt: Date
   # The body of the post
@@ -2281,6 +2306,76 @@ type TopicFollowSettings {
   notifications: String
 }
 
+type Track {
+  id: ID
+  # The word used in this track to describe actions
+  actionsName: String
+  # The URL of the banner image for this track
+  bannerUrl: String
+  # The message shown when a user completes this track
+  completionMessage: String
+  # The emoji shown in the badge for cmopleting this track
+  completionBadgeEmoji: String
+  # The name of the badge for this track
+  completionBadgeName: String
+  # When this track was created
+  createdAt: Date
+  # When this track was deactivated
+  deactivatedAt: Date
+  # The description of this track
+  description: String
+  # Whether the current user has completed this track
+  didComplete: Boolean
+  # The total number of groups this track is a part of
+  groupsTotal: Int
+  # Whether the current user is enrolled in this track
+  isEnrolled: Boolean
+  # The name of this track
+  name: String
+  # The total number of actions in this track
+  numActions: Int
+  # The total number of people enrolled in this track
+  numPeopleEnrolled: Int
+  # The total number of people who have completed this track
+  numPeopleCompleted: Int
+  # The total number of posts in this track
+  postsTotal: Int
+  # When this track was published
+  publishedAt: Date
+  # When this track was updated
+  updatedAt: Date
+  # The settings for the current user in this track
+  userSettings: JSON
+  # The total number of users in this track
+  usersTotal: Int
+  # The welcome message for this track
+  welcomeMessage: String
+  # The groups in this track
+  groups: GroupQuerySet
+  # The posts in this track
+  posts: PostQuerySet
+  # The users in this track
+  users: PersonQuerySet
+}
+
+type TrackQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Track]
+}
+
+type TrackUser {
+  id: ID
+  completedAt: Date
+  createdAt: Date
+  enrolledAt: Date
+  settings: JSON
+  updatedAt: Date
+  group: Group
+  track: Track
+  user: Person
+}
+
 # Current user's personal settings
 type UserSettings {
   # Has this person seen the tour that displays the first time someone logs in
@@ -2415,6 +2510,8 @@ type Mutation {
   cancelJoinRequest(joinRequestId: ID): GenericResult
   # Clear a moderation action; only a 'content manager' or initial reporter can do this.
   clearModerationAction(postId: ID, groupId: ID, moderationActionId: ID): GenericResult
+  # Mark a post as completed
+  completePost(postId: ID, completionResponse: JSON): GenericResult
   # For logged in user to add an Affiliation to their profile
   createAffiliation(data: AffiliationInput): Affiliation
   # Create a new post Collection
@@ -2447,6 +2544,8 @@ type Mutation {
   createSavedSearch(data: SavedSearchInput): SavedSearch
   # Create a new topic within a Group
   createTopic(topicName: String, groupId: ID, isDefault: Boolean, isSubscribing: Boolean): Topic
+  # Create a new track
+  createTrack(data: TrackInput): Track
   # Add a new Zapier trigger (called by Zapier)
   createZapierTrigger(groupIds: [ID], targetUrl: String, type: String, params: JSON): ZapierTrigger
   # Used by current logged in user to deactivate their account
@@ -2481,6 +2580,8 @@ type Mutation {
   deleteSavedSearch(id: ID): ID
   # Delete a Zapier trigger (called by Zapier)
   deleteZapierTrigger(id: ID): Boolean
+  # Enroll in a track
+  enrollInTrack(trackId: ID): GenericResult
   # Set an invitation to join a group as expired. Only a group host can call this.
   expireInvitation(invitationId: ID): GenericResult
   # Look for a link preview of a URL, or if not found create one
@@ -2505,6 +2606,8 @@ type Mutation {
   leaveGroup(id: ID): ID
   # Remove yourself as a member of a project Post
   leaveProject(id: ID): GenericResult
+  # Leave a track
+  leaveTrack(trackId: ID): GenericResult
   # Login to Hylo on current device using email and password. TODO: add more info about errors, sessions, etc.
   login(email: String, password: String): SignupResult
   # Logout from Hylo on the current device
@@ -3219,6 +3322,10 @@ input PostInput {
   acceptContributions: Boolean
   # Was this post marked an announcement by a group moderator?
   announcement: Boolean
+  # The action that people can take to complete this post. 'button', 'comment', 'reaction', 'selectMultiple', 'selectOne', 'text', or 'uploadFile'
+  completionAction: String
+  # The options associated with the completion action. e.g. for 'selectMultiple', this is an array of options
+  completionActionSettings: JSON
   # The body of the post
   details: String
   # Link to a donation page, only used for projects only right now
@@ -3267,7 +3374,9 @@ input PostInput {
   title: String
   # Topics to add to the post
   topicNames: [String]
-  # Post type: 'discussion', 'event', 'offer', 'project', 'proposal', 'request', or 'resource'
+  # The track this post is associated with
+  trackId: ID
+  # Post type: 'action', 'chat', 'discussion', 'event', 'offer', 'project', 'proposal', 'request', or 'resource'
   type: String
 }
 
@@ -3334,6 +3443,31 @@ input SavedSearchInput {
   topicIds: [ID]
   # The user creating the search
   userId: ID
+}
+
+input TrackInput {
+  # The word used in this track to describe actions
+  actionsName: String
+  # The URL of the banner image for this track
+  bannerUrl: String
+  # The message shown when a user completes this track
+  completionMessage: String
+  # The emoji shown in the badge for cmopleting this track
+  completionBadgeEmoji: String
+  # The name of the badge for this track
+  completionBadgeName: String
+  # The description of the track
+  description: String
+  # The groups this track is associated with
+  groupIds: [ID]
+  # The posts (actions) for the track
+  postIds: [ID]
+  # The name of the track
+  name: String
+  # When the track was or will be published, null if not published
+  publishedAt: Date
+  # The welcome message for the track
+  welcomeMessage: String
 }
 
 input UserSettingsInput {

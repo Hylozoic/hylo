@@ -24,6 +24,15 @@ export const PROPOSAL_STATUS_COMPLETED = 'completed'
 
 export const POST_TYPES_SHOW_LOCATION_BY_DEFAULT = ['request', 'offer', 'resource', 'project', 'event']
 
+export const POST_COMPLETION_ACTIONS = [
+  'button',
+  'comment',
+  'reaction',
+  'selectMultiple',
+  'selectOne',
+  'uploadFile'
+]
+
 export class PostFollower extends Model {}
 PostFollower.modelName = 'PostFollower'
 PostFollower.fields = {
@@ -108,6 +117,13 @@ Post.fields = {
 }
 
 export const POST_TYPES = {
+  action: {
+    primaryColor: [0, 163, 227, 255], // $color-picton-blue
+    backgroundColor: 'rgba(0, 163, 227, .2)', // $color-link-water
+    map: false,
+    label: 'Action',
+    description: 'Actions that members can take'
+  },
   chat: {
     primaryColor: [0, 163, 227, 255], // $color-picton-blue
     backgroundColor: 'rgba(0, 163, 227, .2)', // $color-link-water

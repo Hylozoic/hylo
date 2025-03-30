@@ -30,6 +30,7 @@ export default function PostCard (props) {
     highlightProps,
     highlighted,
     group,
+    isCurrentAction,
     mapDrawer,
     post,
     onAddReaction = () => {},
@@ -107,6 +108,7 @@ export default function PostCard (props) {
             routeParams={routeParams}
             highlightProps={highlightProps}
             currentUser={currentUser}
+            isCurrentAction={isCurrentAction}
             isFlagged={isFlagged}
             constrained={constrained}
             hasImage={hasImage}

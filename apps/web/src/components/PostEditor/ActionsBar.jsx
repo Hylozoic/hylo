@@ -1,4 +1,4 @@
-import { MapPin, SendHorizontal } from 'lucide-react'
+import { Eye, EyeOff, MapPin, SendHorizontal } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -42,40 +42,44 @@ export default function ActionsBar ({
   return (
     <div className='w-full flex justify-between'>
       <div className='flex items-center gap-2'>
-        <UploadAttachmentButton
-          type='post'
-          id={id}
-          attachmentType='image'
-          onSuccess={(attachment) => {
-            dispatch(addAttachment('post', id, attachment))
-            setIsDirty(true)
-          }}
-          allowMultiple
-          disable={showImages}
-        >
-          <Icon
-            name='AddImage'
-            className={cn(styles.actionIcon, { [styles.highlightIcon]: showImages })}
-            dataTestId='add-image-icon'
-          />
-        </UploadAttachmentButton>
-        <UploadAttachmentButton
-          type='post'
-          id={id}
-          attachmentType='file'
-          onSuccess={(attachment) => {
-            dispatch(addAttachment('post', id, attachment))
-            setIsDirty(true)
-          }}
-          allowMultiple
-          disable={showFiles}
-        >
-          <Icon
-            name='Paperclip'
-            className={cn(styles.actionIcon, { [styles.highlightIcon]: showFiles })}
-            dataTestId='add-file-icon'
-          />
-        </UploadAttachmentButton>
+        {type !== 'action' && (
+          <UploadAttachmentButton
+            type='post'
+            id={id}
+            attachmentType='image'
+            onSuccess={(attachment) => {
+              dispatch(addAttachment('post', id, attachment))
+              setIsDirty(true)
+            }}
+            allowMultiple
+            disable={showImages}
+          >
+            <Icon
+              name='AddImage'
+              className={cn(styles.actionIcon, { [styles.highlightIcon]: showImages })}
+              dataTestId='add-image-icon'
+            />
+          </UploadAttachmentButton>
+        )}
+        {type !== 'action' && (
+          <UploadAttachmentButton
+            type='post'
+            id={id}
+            attachmentType='file'
+            onSuccess={(attachment) => {
+              dispatch(addAttachment('post', id, attachment))
+              setIsDirty(true)
+            }}
+            allowMultiple
+            disable={showFiles}
+          >
+            <Icon
+              name='Paperclip'
+              className={cn(styles.actionIcon, { [styles.highlightIcon]: showFiles })}
+              dataTestId='add-file-icon'
+            />
+          </UploadAttachmentButton>
+        )}
         {type !== 'chat' && !showLocation && (
           <span data-tooltip-content={t('Add Location')} data-tooltip-id='location-tt' onClick={() => setShowLocation(true)}>
             <MapPin className={styles.actionIcon} />
@@ -110,6 +114,11 @@ export default function ActionsBar ({
             groups={groups}
           />
         )}
+        {/* {type === 'action' && (
+          <span>
+            <Eye className={cn(styles.actionIcon, { [styles.highlightIcon]: showFiles })} />
+          </span>
+        )} */}
       </div>
 
       <div className='flex items-center gap-2'>

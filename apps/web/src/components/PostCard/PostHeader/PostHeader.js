@@ -1,8 +1,8 @@
-import { cn } from 'util/index'
 import { filter, isFunction } from 'lodash'
+import { DateTime } from 'luxon'
 import React, { PureComponent } from 'react'
 import ReactDOM from 'react-dom'
-import { withTranslation } from 'react-i18next'
+import { useTranslation, withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
@@ -14,6 +14,7 @@ import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
+import { cn } from 'util/index'
 import { personUrl, topicUrl } from 'util/navigation'
 
 class PostHeader extends PureComponent {
@@ -49,6 +50,7 @@ class PostHeader extends PureComponent {
       post,
       canEdit,
       expanded,
+      isCurrentAction,
       isFlagged,
       group,
       proposalOutcome,
@@ -81,6 +83,10 @@ class PostHeader extends PureComponent {
       fulfilledAt
     } = post
 
+    if (type === 'action') {
+      return <ActionHeader post={post} isCurrentAction={isCurrentAction} />
+    }
+
     if (!creator) return null
 
     const copyLink = () => {
@@ -105,7 +111,7 @@ class PostHeader extends PureComponent {
       { icon: 'Trash', label: t('Remove From Group'), onClick: removePost ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
     ], item => isFunction(item.onClick))
 
-    const typesWithTimes = ['offer', 'request', 'resource', 'project', 'proposal']
+    const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']
     const canHaveTimes = typesWithTimes.includes(type)
 
     const typesWithCompletion = ['offer', 'request', 'resource', 'project', 'proposal']
@@ -272,6 +278,24 @@ export function TopicsLine ({ topics, slug, newLine }) {
         >
           #{t.name}
         </Link>)}
+    </div>
+  )
+}
+
+function ActionHeader ({ post, isCurrentAction }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className='flex p-2'>
+      <div className='flex-1'>
+        {post.completedAt
+          ? <span className='border border-secondary rounded-md px-2 py-1 flex-1'>{t('Completed')}</span>
+          : isCurrentAction
+            ? <span className='border border-accent rounded-md px-2 py-1 flex-1'>{t('Next Action')}</span>
+            : <span className='border border-primary rounded-md px-2 py-1 flex-1'>{t('Not Completed')}</span>}
+      </div>
+
+      {post.completedAt && <span>{t('Completed {{date}}', { date: DateTime.fromISO(post.completedAt).toFormat('DD') })}</span>}
     </div>
   )
 }

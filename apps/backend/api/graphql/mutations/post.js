@@ -3,6 +3,13 @@ import validatePostData from '../../models/post/validatePostData'
 import underlyingCreatePost from '../../models/post/createPost'
 import underlyingUpdatePost from '../../models/post/updatePost'
 
+export async function completePost (userId, postId, completionResponse) {
+  const post = await Post.find(postId)
+  await post.complete(userId, completionResponse)
+  await post.update({ num_people_completed: post.get('num_people_completed') + 1 })
+  return { success: true }
+}
+
 export function createPost (userId, data) {
   return convertGraphqlPostData(data)
     .tap(convertedData => validatePostData(userId, convertedData))

@@ -5,7 +5,7 @@ import { get, pick, some } from 'lodash/fp'
 export const defaultTimezone = 'America/Los_Angeles'
 
 export const defaultTimeRange = type => {
-  const today = DateTime.now().setZone(defaultTimezone).startOf('day').plus({ hours: 12 })
+  const today = DateTime.now().setZone(defaultTimezone).startOf('day').plus({ hours: 21 })
   switch (type) {
     case 'daily':
       return [today.minus({ day: 1 }), today]

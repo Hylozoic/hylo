@@ -50,9 +50,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
   requireFetch: false,
   hasTimestamps: true,
 
-  _localId: null,  // Used to store the localId of the post coming from the client and passed back to the client, for optimistic updates
+  _localId: null, // Used to store the localId of the post coming from the client and passed back to the client, for optimistic updates
 
   // Instance Methods
+
+  initialize: function () {
+    this._cachedPostUsers = {}
+  },
 
   // Simple attribute getters
 
@@ -183,6 +187,15 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.hasMany(PostUser, 'post_id')
   },
 
+  loadPostInfoForUser: async function (userId) {
+    if (userId && this._cachedPostUsers[userId]) {
+      return this._cachedPostUsers[userId]
+    }
+    const pu = await this.postUsers().query(q => q.where('user_id', userId)).fetchOne()
+    this._cachedPostUsers[userId] = pu
+    return pu
+  },
+
   projectContributions: function () {
     return this.hasMany(ProjectContribution)
   },
@@ -215,6 +228,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   tags: function () {
     return this.belongsToMany(Tag).through(PostTag).withPivot('selected')
+  },
+
+  tracks: function () {
+    return this.belongsToMany(Track, 'tracks_posts')
   },
 
   user: function () {
@@ -255,14 +272,15 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   getCommentersTotal: function (currentUserId) {
+    // TODO: store number of commenters in the post_users table for performance
     return countTotal(User.query(commentersQuery(null, this, currentUserId)).query(), 'users')
-    .then(result => {
-      if (isEmpty(result)) {
-        return 0
-      } else {
-        return result[0].total
-      }
-    })
+      .then(result => {
+        if (isEmpty(result)) {
+          return 0
+        } else {
+          return result[0].total
+        }
+      })
   },
 
   // Emulate the graphql request for a post in the feed so the feed can be
@@ -316,18 +334,28 @@ module.exports = bookshelf.Model.extend(Object.assign({
     )
   },
 
+  async clickthroughForUser (userId) {
+    if (!userId) return null
+    const pu = await this.loadPostInfoForUser(userId)
+    return (pu && pu.get('clickthrough')) || null
+  },
+
   async lastReadAtForUser (userId) {
-    const pu = await this.postUsers()
-      .query(q => q.where('user_id', userId)).fetchOne()
+    if (!userId) return new Date(0)
+    const pu = await this.loadPostInfoForUser(userId)
     return new Date((pu && pu.get('last_read_at')) || 0)
   },
 
-  async checkClickthrough (userId) {
-    if (!userId) return null
+  async completedAtForUser (userId) {
+    if (!userId || this.get('type') !== Post.Type.ACTION) return null
+    const pu = await this.loadPostInfoForUser(userId)
+    return (pu && pu.get('completed_at')) || null
+  },
 
-    const pu = await this.postUsers()
-      .query(q => q.where('user_id', userId)).fetchOne()
-    return (pu && pu.get('clickthrough')) || null
+  async completionResponseForUser (userId) {
+    if (!userId || this.get('type') !== Post.Type.ACTION) return null
+    const pu = await this.loadPostInfoForUser(userId)
+    return (pu && pu.get('completion_response')) || null
   },
 
   presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full' }) {
@@ -491,18 +519,22 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return Promise.resolve()
   },
 
+  async complete (userId, completionResponse) {
+    const pu = await this.loadPostInfoForUser(userId)
+    return pu.save({ completed_at: new Date(), completion_response: completionResponse })
+  },
+
   async markAsRead (userId) {
-    const pu = await this.postUsers()
-      .query(q => q.where('user_id', userId)).fetchOne()
+    const pu = await this.loadPostInfoForUser(userId)
     return pu.save({ last_read_at: new Date() })
   },
 
   pushTypingToSockets: function (userId, userName, isTyping, socketToExclude) {
-    pushToSockets(postRoom(this.id), 'userTyping', {userId, userName, isTyping}, socketToExclude)
+    pushToSockets(postRoom(this.id), 'userTyping', { userId, userName, isTyping }, socketToExclude)
   },
 
   copy: function (attrs) {
-    var that = this.clone()
+    const that = this.clone()
     _.merge(that.attributes, Post.newPostAttrs(), attrs)
     delete that.id
     delete that.attributes.id
@@ -545,8 +577,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
         }))
 
       activitiesToCreate = activitiesToCreate.concat(tagFollowers)
-    } else {
+    } else if (this.get('type') !== Post.Type.ACTION) {
       // Non-chat posts are sent to all members of the groups the post is in
+      // XXX: no notifications sent for Actions right now
       let members = await Promise.all(groups.map(async group => {
         const userIds = await group.members().fetch().then(u => u.pluck('id'))
         const newPosts = userIds.map(userId => ({
@@ -694,6 +727,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   // Class Methods
 
   Type: {
+    ACTION: 'action',
     CHAT: 'chat',
     DISCUSSION: 'discussion',
     EVENT: 'event',

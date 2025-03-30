@@ -323,6 +323,10 @@ module.exports = bookshelf.Model.extend(merge({
     return this.belongsToMany(Tag).through(GroupTag).withPivot(['is_default'])
   },
 
+  tracks () {
+    return this.belongsToMany(Track, 'groups_tracks')
+  },
+
   // The posts to show for a particular user viewing a group's stream or map
   // includes the direct posts to this group + posts to child groups the user is a member of
   viewPosts (userId) {
@@ -344,6 +348,12 @@ module.exports = bookshelf.Model.extend(merge({
         })
       })
     })
+  },
+
+  // Getter to override access to the welcome_page attribute and sanitize the HTML
+  welcomePage () {
+    console.log('welcomePage', this.get('welcome_page'), RichText.processHTML(this.get('welcome_page')))
+    return RichText.processHTML(this.get('welcome_page'))
   },
 
   widgets: function () {
@@ -582,18 +592,19 @@ module.exports = bookshelf.Model.extend(merge({
 
     // These are accessible in the all view
     const unorderedWidgets = [
-      { title: 'widget-topics', type: 'topics', view: 'topics' },
-      { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
-      { title: 'widget-requests-and-offers', view: 'requests-and-offers' },
-      { title: 'widget-stream', view: 'stream' },
-      { title: 'widget-events', type: 'events', view: 'events' },
-      { title: 'widget-resources', type: 'resources', view: 'resources' },
-      { title: 'widget-projects', type: 'projects', view: 'projects' },
-      { title: 'widget-groups', type: 'groups', view: 'groups' },
-      { title: 'widget-proposals', type: 'proposals', view: 'proposals' },
       { title: 'widget-about', type: 'about', view: 'about' },
+      { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
+      { title: 'widget-events', type: 'events', view: 'events' },
+      { title: 'widget-groups', type: 'groups', view: 'groups' },
       { title: 'widget-map', type: 'map', view: 'map' },
       { title: 'widget-moderation', type: 'moderation', view: 'moderation' },
+      { title: 'widget-projects', type: 'projects', view: 'projects' },
+      { title: 'widget-proposals', type: 'proposals', view: 'proposals' },
+      { title: 'widget-requests-and-offers', view: 'requests-and-offers' },
+      { title: 'widget-resources', type: 'resources', view: 'resources' },
+      { title: 'widget-stream', view: 'stream' },
+      { title: 'widget-topics', type: 'topics', view: 'topics' },
+      { title: 'widget-tracks', type: 'tracks', view: 'tracks' }
     ]
 
     await Promise.all([
@@ -966,11 +977,11 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
-  async doesMenuUpdate ({ groupIds, post, customView, groupRelation = false }) {
-    if (!post && !customView && !groupRelation) return
+  async doesMenuUpdate ({ groupIds, post, customView, track, groupRelation = false }) {
+    if (!post && !customView && !groupRelation && !track) return
     const postType = post?.type
     // Skip processing if it's a chat post and no other conditions are present
-    if (postType === 'chat' && !customView && !groupRelation) return
+    if (postType === 'chat' && !customView && !groupRelation && !track) return
     await bookshelf.transaction(async trx => {
       for (const groupId of groupIds) {
         const widgets = await ContextWidget.where({ group_id: groupId }).fetchAll({ transacting: trx })
@@ -995,6 +1006,19 @@ module.exports = bookshelf.Model.extend(merge({
           if (groupsWidget && !groupsWidget.get('auto_added')) {
             await ContextWidget.reorder({
               id: groupsWidget.get('id'),
+              parentId: autoAddWidget.get('id'),
+              addToEnd: true,
+              trx
+            })
+          }
+        }
+
+        // Handle track case
+        if (track) {
+          const tracksWidget = widgets.find(w => w.get('view') === 'tracks')
+          if (tracksWidget && !tracksWidget.get('auto_added')) {
+            await ContextWidget.reorder({
+              id: tracksWidget.get('id'),
               parentId: autoAddWidget.get('id'),
               addToEnd: true,
               trx

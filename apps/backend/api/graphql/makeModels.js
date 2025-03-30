@@ -345,6 +345,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'announcement',
         'anonymous_voting',
         'commentsTotal',
+        'completion_action',
+        'completion_action_settings',
         'created_at',
         'donations_link',
         'edited_at',
@@ -366,14 +368,15 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'updated_at'
       ],
       getters: {
+        clickthrough: p => p.clickthroughForUser(userId),
         commenters: (p, { first }) => p.getCommenters(first, userId),
         commentersTotal: p => p.getCommentersTotal(userId),
+        completedAt: p => p.completedAtForUser(userId),
+        completionResponse: p => p.completionResponseForUser(userId),
         details: p => p.details(userId),
         isAnonymousVote: p => p.get('anonymous_voting') === 'true',
         localId: p => p.getLocalId(),
         myReactions: p => userId ? p.reactionsForUser(userId).fetch() : [],
-        // clickthrough: p => p.pivot && p.pivot.get('clickthrough'), // TODO COMOD: does not seem to work
-        clickthrough: p => p.checkClickthrough(userId),
         myEventResponse: p =>
           userId && p.isEvent()
             ? p.userEventInvitation(userId).then(eventInvitation => eventInvitation ? eventInvitation.get('response') : '')
@@ -601,6 +604,18 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         { suggestedSkills: { querySet: true } },
+        {
+          tracks: {
+            querySet: true,
+            filter: (relation, { enrolled }) =>
+              relation.query(q => {
+                // Only admins can see unpublished tracks
+                if (!GroupMembership.hasResponsibility(userId, relation.relatedData.parentId, Responsibility.constants.RESP_ADMINISTRATION)) {
+                  q.whereNotNull('tracks.published_at')
+                }
+              })
+          }
+        },
         {
           viewPosts: {
             querySet: true,
@@ -1096,6 +1111,49 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'user'
       ],
       fetchMany: args => TagFollow.query()
+    },
+
+    Track: {
+      model: Track,
+      attributes: [
+        'actions_name',
+        'created_at',
+        'banner_url',
+        'completion_badge_emoji',
+        'completion_badge_name',
+        'completion_message',
+        'deactivated_at',
+        'description',
+        'name',
+        'num_actions',
+        'num_people_completed',
+        'num_people_enrolled',
+        'published_at',
+        'updated_at',
+        'welcome_message'
+      ],
+      relations: [
+        { groups: { querySet: true } },
+        { posts: { querySet: true } },
+        'users'
+      ],
+      getters: {
+        isEnrolled: t => t.isEnrolled(userId),
+        didComplete: t => t.didComplete(userId),
+        userSettings: t => t.userSettings(userId)
+      }
+    },
+
+    TrackUser: {
+      model: TrackUser,
+      attributes: [
+        'completed_at',
+        'created_at',
+        'enrolled_at',
+        'settings',
+        'updated_at'
+      ],
+      relations: ['track', 'group', 'user']
     },
 
     Notification: {

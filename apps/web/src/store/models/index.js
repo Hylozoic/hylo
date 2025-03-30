@@ -30,6 +30,7 @@ import SearchResult from './SearchResult'
 import Skill from './Skill'
 import Topic from './Topic'
 import TopicFollow from './TopicFollow'
+import Track from './Track'
 import Widget from './Widget'
 
 export const orm = new ORM({ stateSelector: state => state.orm })
@@ -85,6 +86,7 @@ orm.register(
   Skill,
   Topic,
   TopicFollow,
+  Track,
   Widget
 )
 

@@ -374,6 +374,10 @@ export const COMMON_VIEWS = {
     name: 'All Topics',
     iconName: 'Topics'
   },
+  tracks: {
+    name: 'Tracks',
+    iconName: 'Tracks'
+  },
   welcome: {
     name: 'Welcome',
     iconName: 'Hand'

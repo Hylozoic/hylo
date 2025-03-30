@@ -1,4 +1,3 @@
-/* globals Nexudus */
 require('@babel/register')
 const skiff = require('./lib/skiff') // this must be required first
 const { DateTime } = require('luxon')
@@ -43,10 +42,10 @@ const hourly = now => {
   const tasks = []
 
   switch (now.hour) {
-    case 12:
+    case 21:
       sails.log.debug('Sending daily digests')
       tasks.push(sendAndLogDigests('daily'))
-      tasks.push(sendSavedSearchDigests('daily'))
+      // tasks.push(sendSavedSearchDigests('daily'))
       break
     case 13:
       sails.log.debug('Resending invites')

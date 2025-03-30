@@ -43,6 +43,8 @@ import getPost from 'store/selectors/getPost'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { DETAIL_COLUMN_ID, position } from 'util/scrolling'
 
+import PostCompletion from './PostCompletion'
+
 import classes from './PostDetail.module.scss'
 
 // the height of the header plus the padding-top
@@ -303,6 +305,12 @@ function PostDetail () {
             postId={post.id}
             totalContributions={totalContributions}
             processStripeToken={(token, amount) => dispatch(processStripeToken(postId, token, amount))}
+          />
+        )}
+        {post.completionAction && (
+          <PostCompletion
+            post={post}
+            currentUser={currentUser}
           />
         )}
         <PostFooter {...post} currentUser={currentUser} />
