@@ -1,3 +1,4 @@
+import isMobile from 'ismobilejs'
 import { debounce, includes, isEmpty } from 'lodash/fp'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
 import { DateTime } from 'luxon'
@@ -53,8 +54,6 @@ import styles from './ChatRoom.module.scss'
 // the maximum amount of time in minutes that can pass between messages to still
 // include them under the same avatar and timestamp
 const MAX_MINS_TO_BATCH = 5
-
-const NUM_POSTS_TO_LOAD = 30
 
 const getPosts = ormCreateSelector(
   orm,
@@ -141,12 +140,14 @@ export default function ChatRoom (props) {
   // Add this new state to track if initial animation is complete
   const [initialAnimationComplete, setInitialAnimationComplete] = useState(false)
 
+  const numPostsToLoad = isWebView() || isMobile.any ? 18 : 30
+
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
     cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(topicFollow?.lastReadPostId) + 1, // -1 because we want the lastread post id included
     filter: 'chat',
-    first: NUM_POSTS_TO_LOAD,
+    first: numPostsToLoad,
     order: 'desc',
     slug: groupSlug,
     search,
@@ -159,7 +160,7 @@ export default function ChatRoom (props) {
     context,
     cursor: postIdToStartAt || topicFollow?.lastReadPostId,
     filter: 'chat',
-    first: NUM_POSTS_TO_LOAD,
+    first: numPostsToLoad,
     order: 'asc',
     slug: groupSlug,
     search,
@@ -427,6 +428,8 @@ export default function ChatRoom (props) {
         return 'auto'
       }
     })
+    // Focus back on the chat box
+    editorRef.current?.focus()
     return true
   }, [])
 
