@@ -77,8 +77,11 @@ const handledWebRoutesJavascriptCreator = loadedPath => allowRoutesParam => {
   `
 }
 
-// CSS to inject into WebView to fix scrollbar issues
-const injectedCSS = `
+/* Should probably just be applied to Hylo Web stylesheet 
+  as what this solves is not necessarily WebView specific, 
+  but putting here for now to limit possible untested impact
+  on Hylo Web generally */
+const baseCustomStyle = `
   ::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
@@ -110,12 +113,15 @@ const HyloWebView = React.forwardRef(({
   path: pathProp,
   style,
   source,
+  customStyle: providedCustomStyle = '',
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
   const [uri, setUri] = useState()
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const nativeRouteHandler = nativeRouteHandlerProp || useNativeRouteHandler()
+  
+  const customStyle = `${baseCustomStyle}${providedCustomStyle}`
 
   const path = pathProp || routePath || originalLinkingPath || ''
 
@@ -175,7 +181,7 @@ const HyloWebView = React.forwardRef(({
         window.HyloWebView = true;
         ${path && handledWebRoutesJavascriptCreator(path)(handledWebRoutes)}
       `}
-      customStyle={`${injectedCSS}`}
+      customStyle={customStyle}
       geolocationEnabled
       onMessage={handleMessage}
       nestedScrollEnabled
