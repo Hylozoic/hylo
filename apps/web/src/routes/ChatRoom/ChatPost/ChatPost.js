@@ -226,7 +226,7 @@ export default function ChatPost ({
     <Highlight {...highlightProps}>
       <div
         className={cn(
-          'ChatPost_container rounded-lg pl-[20px] relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer mb-1',
+          'ChatPost_container rounded-lg pr-[15px] relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer mb-1',
           className,
           styles.container,
           {
@@ -269,7 +269,7 @@ export default function ChatPost ({
 
         {showHeader && (
           <div className='flex justify-between items-center relative z-0' onClick={handleClick}>
-            <div onClick={showCreator} className='flex items-center gap-2 relative -left-[24px]'>
+            <div onClick={showCreator} className='flex items-center gap-2 relative -left-8px]'>
               <Avatar avatarUrl={creator.avatarUrl} large />
               <div className='w-full font-bold'>{creator.name}</div>
             </div>
