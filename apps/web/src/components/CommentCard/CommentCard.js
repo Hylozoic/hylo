@@ -2,7 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
 import RoundImage from 'components/RoundImage'
-import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
 import Highlight from 'components/Highlight'
 import HyloHTML from 'components/HyloHTML'
 import ClickCatcher from 'components/ClickCatcher'
@@ -17,7 +17,7 @@ export default function CommentCard ({
   highlightProps
 }) {
   const { creator, post, slug, createdAt, editedAt, attachments } = comment
-  const timestamp = (editedAt ? 'Edited ' : 'Commented ') + DateTimeHelpers.humanDate(editedAt || createdAt)
+  const timestamp = (editedAt ? 'Edited ' : 'Commented ') + TextHelpers.humanDate(editedAt || createdAt)
   const postTitle = post.title
     ? TextHelpers.truncateText(post.title, 25)
     : post.details

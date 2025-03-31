@@ -11,7 +11,7 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
-import { DateTimeHelpers } from '@hylo/shared'
+import { DateTime } from 'luxon'
 import Calendar from 'components/Calendar'
 import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
@@ -140,12 +140,12 @@ export default function Stream (props) {
     }
 
     if (isCalendarViewMode) {
-      const luxonDate = DateTimeHelpers.toDateTime(calendarDate)
+      const luxonDate = DateTime.fromJSDate(calendarDate)
       params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
       params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).plus({ day: 1 }).endOf('day').toISO()
       params.order = 'asc'
     } else if (view === 'events') {
-      const today = DateTimeHelpers.dateTimeNow().toISO()
+      const today = DateTime.now().toISO()
       params.afterTime = timeframe === 'future' ? today : undefined
       params.beforeTime = timeframe === 'past' ? today : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'

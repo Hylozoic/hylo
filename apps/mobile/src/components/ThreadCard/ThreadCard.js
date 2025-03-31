@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native'
 import { filter, get, map, find, isEmpty } from 'lodash/fp'
-import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import { useTranslation } from 'react-i18next'
 import { rhino30, limedSpruce, nevada, rhino60, rhino, rhino10, persimmon, twBackground } from 'style/colors'
@@ -27,7 +27,7 @@ export default function ThreadCard ({ message, currentUser, onPress, participant
       <View style={[styles.messageContent, isLast && styles.lastCard]}>
         <Text style={styles.header}>{names}</Text>
         <Text style={styles.body} numberOfLines={2}>{messageCreatorPrepend}{latestMessagePreview}</Text>
-        <Text style={styles.date}>{DateTimeHelpers.humanDate(message?.createdAt)}</Text>
+        <Text style={styles.date}>{TextHelpers.humanDate(message?.createdAt)}</Text>
       </View>
       {!!unreadCount && (
         <View style={styles.badge}>

@@ -4,7 +4,7 @@ import React, { PureComponent } from 'react'
 import ReactDOM from 'react-dom'
 import { withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { DateTimeHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
 import Highlight from 'components/Highlight'
@@ -114,13 +114,13 @@ class PostHeader extends PureComponent {
     // If it was completed/fulfilled before it ended, then use that as the end datetime
     const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
 
-    const { from, to } = DateTimeHelpers.formatDatePair(startTime, actualEndTime, true)
+    const { from, to } = TextHelpers.formatDatePair(startTime, actualEndTime, true)
 
     const startString = fulfilledAt
       ? false
-      : DateTimeHelpers.isDateInTheFuture(startTime)
+      : TextHelpers.isDateInTheFuture(startTime)
         ? t('Starts: {{from}}', { from })
-        : DateTimeHelpers.isDateInTheFuture(endTime)
+        : TextHelpers.isDateInTheFuture(endTime)
           ? t('Started: {{from}}', { from })
           : false
 
@@ -128,7 +128,7 @@ class PostHeader extends PureComponent {
     if (fulfilledAt && fulfilledAt <= endTime) {
       endString = t('Completed: {{endTime}}', { endTime: to })
     } else {
-      endString = DateTimeHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: to }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: to }) : false
+      endString = TextHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: to }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: to }) : false
     }
 
     let timeWindow = ''

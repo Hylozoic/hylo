@@ -1,23 +1,22 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
-import { Interval, Info } from 'luxon'
-import { DateTimeHelpers } from '@hylo/shared'
+import { DateTime, Interval, Info } from 'luxon'
 import { cn } from '@/lib/utils'
 import CalendarEvent from '../../calendar-event'
 import { AnimatePresence, motion } from 'framer-motion'
-import { eachIntervalDay } from '../../calendar-util'
+import { eachIntervalDay, getLocaleAsString, includes, sameDay, sameMonth } from '../../calendar-util'
 
 export default function CalendarBodyMonth () {
   const { t } = useTranslation()
   const { date, events, setDate, setMode } = useCalendarContext()
-  const luxonDate = DateTimeHelpers.toDateTime(date)
+  const luxonDate = DateTime.fromJSDate(date)
   const maxEventsPerDay = 3
 
   // Get the first day of the month
-  const monthStart = luxonDate.startOf('month')
+  const monthStart = luxonDate.startOf('month').setLocale(getLocaleAsString())
   // Get the last day of the month
-  const monthEnd = luxonDate.endOf('month')
+  const monthEnd = luxonDate.endOf('month').setLocale(getLocaleAsString())
 
   // Get the first Monday of the first week (may be in previous month)
   const calendarStart = monthStart.startOf('week', { useLocaleWeeks: true })
@@ -33,8 +32,8 @@ export default function CalendarBodyMonth () {
   // Filter events to only show those within the current month view
   const visibleEvents = events.filter(
     (event) =>
-      interval.contains(DateTimeHelpers.toDateTime(event.start)) ||
-      interval.contains(DateTimeHelpers.toDateTime(event.end))
+      interval.contains(DateTime.fromJSDate(event.start)) ||
+      interval.contains(DateTime.fromJSDate(event.end))
   ).sort(
     (a, b) => a.multiday && !b.multiday ? -1 : a.start.getTime() - b.start.getTime()
   )
@@ -45,7 +44,7 @@ export default function CalendarBodyMonth () {
         <div className='hidden md:grid grid-cols-7 border-border divide-x divide-border'>
           {[0, 1, 2, 3, 4, 5, 6].map((day) => {
             const luxonDay = (day + 6) % 7
-            const dayName = Info.weekdays('short', { locale: DateTimeHelpers.getLocaleAsString() })[luxonDay]
+            const dayName = Info.weekdays('short', { locale: getLocaleAsString() })[luxonDay]
             return (
               <div
                 key={dayName}
@@ -71,10 +70,10 @@ export default function CalendarBodyMonth () {
           >
             {calendarDays.map((day) => {
               const dayEvents = visibleEvents.filter((event) =>
-                DateTimeHelpers.rangeIncludesDate(event.start, day, event.end)
+                includes(event.start, day, event.end)
               )
-              const isToday = DateTimeHelpers.isSameDay(day, today)
-              const isCurrentMonth = DateTimeHelpers.isSameMonth(day, date)
+              const isToday = sameDay(day, today)
+              const isCurrentMonth = sameMonth(day, date)
 
               return (
                 <div
@@ -97,7 +96,7 @@ export default function CalendarBodyMonth () {
                       !isToday && !isCurrentMonth && 'text-gray-600/50'
                     )}
                   >
-                    {DateTimeHelpers.toDateTime(day).toFormat('d')}
+                    {DateTime.fromJSDate(day).toFormat('d')}
                   </div>
                   <AnimatePresence mode='wait'>
                     <div className='flex flex-col gap-1'>

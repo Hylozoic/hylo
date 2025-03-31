@@ -4,8 +4,8 @@ import Button from '@/components/ui/button'
 import { useCalendarContext } from '../../calendar-context'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { DateTime } from 'luxon'
-import { DateTimeHelpers } from '@hylo/shared'
 import { Mode } from '../../calendar-types'
+import { sameMonth, sameWeek, sameDay, getLocaleAsString } from '../../calendar-util'
 
 const formatDate = (luxonDate: DateTime, mode: Mode) => {
   const weekStart = luxonDate.startOf('week', { useLocaleWeeks: true })
@@ -37,17 +37,17 @@ const formatDate = (luxonDate: DateTime, mode: Mode) => {
 export default function CalendarHeaderDateChevrons () {
   const { t } = useTranslation()
   const { mode, date, setDate } = useCalendarContext()
-  const luxonDate = DateTimeHelpers.toDateTime(date)
+  const luxonDate = DateTime.fromJSDate(date).setLocale(getLocaleAsString())
   const today = new Date()
 
   const shouldHideGoToButton = () => {
     switch (mode) {
       case 'month':
-        return DateTimeHelpers.isSameMonth(date, today)
+        return sameMonth(date, today)
       case 'week':
-        return DateTimeHelpers.isSameWeek(date, today)
+        return sameWeek(date, today)
       case 'day':
-        return DateTimeHelpers.isSameDay(date, today)
+        return sameDay(date, today)
     }
   }
 
