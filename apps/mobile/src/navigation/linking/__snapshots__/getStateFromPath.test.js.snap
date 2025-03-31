@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without expectations) 1`] = `
+exports[`getStateFromPath (isAuthorized) ❌ Snapshot test path resolutions (for paths without expectations) 1`] = `
 {
   "/all/discussions": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
@@ -110,7 +110,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/about": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Detail",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Web View",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -206,13 +206,13 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/post/789": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Post Detail",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Post Details",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
+      "id": "789",
       "originalLinkingPath": "/groups/example-group/post/789",
-      "pathMatcher": "/:context(groups)/:groupSlug/post/:postId",
-      "postId": "789",
+      "pathMatcher": "/:context(groups)/:groupSlug/post/:id",
     },
   },
   "/groups/example-group/projects": {
@@ -394,7 +394,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/topics/technology": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Chat Room",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -422,7 +422,13 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
       "unmatchedBasePath": "/groups/rogue-scholars/discussions",
     },
   },
-  "/h/use-invitation": null,
+  "/h/use-invitation": {
+    "path": "JoinGroup",
+    "routeParams": {
+      "originalLinkingPath": "/h/use-invitation",
+      "pathMatcher": "/h/use-invitation",
+    },
+  },
   "/login": {
     "path": "NonAuthRoot/Login",
     "routeParams": {
@@ -462,9 +468,9 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "routeParams": {
       "context": "my",
       "groupSlug": "my",
-      "myHome": "announcements",
       "originalLinkingPath": "/my/announcements",
-      "pathMatcher": "/:context(my)/:myHome(announcements)",
+      "pathMatcher": "/:context(my)/:view(announcements)",
+      "view": "announcements",
     },
   },
   "/my/discussions": {
@@ -512,9 +518,9 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "routeParams": {
       "context": "my",
       "groupSlug": "my",
-      "myHome": "interactions",
       "originalLinkingPath": "/my/interactions",
-      "pathMatcher": "/:context(my)/:myHome(interactions)",
+      "pathMatcher": "/:context(my)/:view(interactions)",
+      "view": "interactions",
     },
   },
   "/my/invitations": {
@@ -542,9 +548,9 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "routeParams": {
       "context": "my",
       "groupSlug": "my",
-      "myHome": "mentions",
       "originalLinkingPath": "/my/mentions",
-      "pathMatcher": "/:context(my)/:myHome(mentions)",
+      "pathMatcher": "/:context(my)/:view(mentions)",
+      "view": "mentions",
     },
   },
   "/my/notifications": {
@@ -562,9 +568,9 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "routeParams": {
       "context": "my",
       "groupSlug": "my",
-      "myHome": "posts",
       "originalLinkingPath": "/my/posts",
-      "pathMatcher": "/:context(my)/:myHome(posts)",
+      "pathMatcher": "/:context(my)/:view(posts)",
+      "view": "posts",
     },
   },
   "/my/projects": {
@@ -618,7 +624,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/notifications": {
-    "path": "AuthRoot/Notifications - Modal",
+    "path": "AuthRoot/Notifications",
     "routeParams": {
       "originalLinkingPath": "/notifications",
       "pathMatcher": "/notifications",
@@ -679,7 +685,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/public/groups": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Explorer",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Web View",
     "routeParams": {
       "context": "public",
       "groupSlug": "public",
@@ -785,19 +791,13 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/signup/verify-email": {
-    "path": "NonAuthRoot/Signup/SignupEmailValidation",
+    "path": "NonAuthRoot/Signup/Signup Intro",
     "routeParams": {
       "originalLinkingPath": "/signup/verify-email",
-      "pathMatcher": "/signup/:step(verify-email)",
+      "pathMatcher": "/signup/:step?",
       "step": "verify-email",
     },
   },
-  "/welcome": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Welcome",
-    "routeParams": {
-      "originalLinkingPath": "/welcome",
-      "pathMatcher": "/welcome",
-    },
-  },
+  "/welcome": null,
 }
 `;
