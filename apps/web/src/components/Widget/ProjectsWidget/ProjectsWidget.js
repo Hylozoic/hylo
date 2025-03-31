@@ -1,4 +1,4 @@
-import { DateTimeHelpers } from '@hylo/shared'
+import { DateTime } from 'luxon'
 import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
@@ -27,7 +27,7 @@ class ProjectsWidget extends Component {
             <div className={classes.project}>
               <div className={classes.meta}>
                 <div className={classes.title}>{p.title}</div>
-                <div className={classes.lastActivity}>{DateTimeHelpers.toDateTime(p.updatedAt).toRelative()}</div>
+                <div className={classes.lastActivity}>{DateTime.fromJSDate(p.updatedAt).toRelative()}</div>
               </div>
               <div className={classes.createdBy}>
                 <RoundImage url={p.creator.avatarUrl} />

@@ -2,15 +2,13 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
-import { Interval } from 'luxon'
-import { eachIntervalDay } from '../../calendar-util'
-import { DateTimeHelpers } from '@hylo/shared'
+import { DateTime, Interval } from 'luxon'
+import { includes, eachIntervalDay, sameWeek, getLocaleAsString } from '../../calendar-util'
 import { cn } from '@/lib/utils'
 import Button from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
-
 const selectedWeekDates = function (date: Date) {
-  const luxonDate = DateTimeHelpers.toDateTime(date)
+  const luxonDate = DateTime.fromJSDate(date).setLocale(getLocaleAsString())
   // Get the first day of the week
   const weekStart = luxonDate.startOf('week', { useLocaleWeeks: true })
   // Get the last day of the week
@@ -25,7 +23,7 @@ export default function CalendarBodyWeekCalendar () {
   const { date, events, setDate } = useCalendarContext()
   const today = new Date()
 
-  const [hideGoToButton, setHideGoToButton] = useState(DateTimeHelpers.isSameWeek(date, today))
+  const [hideGoToButton, setHideGoToButton] = useState(sameWeek(date, today))
   const [selected, setSelected] = useState<Date[]>(selectedWeekDates(date))
   const [month, setMonth] = useState(date)
 
@@ -37,7 +35,7 @@ export default function CalendarBodyWeekCalendar () {
   const handleMonthChange = (day : Date) => {
     setDate(day)
     setMonth(day)
-    setHideGoToButton(DateTimeHelpers.isSameWeek(day, today))
+    setHideGoToButton(sameWeek(day, today))
   }
 
   const handleGoToButton = () => {
@@ -62,10 +60,10 @@ export default function CalendarBodyWeekCalendar () {
         formatters={({
           formatDay: (date, options) => {
             const maxNumEvents = 3
-            const numEvents = events.filter((event) => DateTimeHelpers.rangeIncludesDate(event.start, date, event.end)).length
+            const numEvents = events.filter((event) => includes(event.start, date, event.end)).length
             const symbols = '•'.repeat(Math.min(numEvents, maxNumEvents))
             const moreSymbol = numEvents > maxNumEvents
-            return `${DateTimeHelpers.toDateTime(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
+            return `${DateTime.fromJSDate(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
           }
         })}
       />

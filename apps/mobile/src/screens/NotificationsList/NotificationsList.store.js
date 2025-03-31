@@ -1,6 +1,6 @@
 import { gql } from 'urql'
 import { find, pick } from 'lodash/fp'
-import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
 import { openURL } from 'hooks/useOpenURL'
 import { personUrl, chatUrl } from 'util/navigation'
 
@@ -162,7 +162,7 @@ export function refineNotification (t) {
       activityId: activity.id,
       actor: pick(['avatarUrl', 'name'], actor),
       avatarSeparator,
-      createdAt: DateTimeHelpers.humanDate(createdAt),
+      createdAt: TextHelpers.humanDate(createdAt),
       ...refineActivity(activity, t),
       unread,
       reasons: meta.reasons
