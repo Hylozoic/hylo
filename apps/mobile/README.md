@@ -66,7 +66,7 @@ Here are the common scenarios in which we should run the `bump-version` command:
   - Upload the APK file downloaded from Bitrise and tested above
   - Add release notes
   - Submit for review/release
-- Once the release is accepted by both the stores run `yarn bump-version version prereleaase` on `dev`, commit the changes, then `git push --tags` to setup the next prerelease build versioning.
+- Once the release is accepted by both the stores run `yarn bump-version prepatch` and commit the changes to `dev` to setup the next patch version in a pre-release state (necessary for Apple to accept beta build after the current version is in production).
 - Open a new Milestone with the current pre-release version:
   - Look to `package.json#version` to get the new version, but leave off the `-0`
 
