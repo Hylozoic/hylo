@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React from 'react'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
@@ -8,7 +8,7 @@ export const DEFAULT_CHAT_TOPIC = 'home'
 
 export default function ChatRoomWebView () {
   const [{ currentGroup, fetching }] = useCurrentGroup()
-  const { topicName: routeTopicName, originalLinkingPath } = useRouteParams()
+  const { topicName: routeTopicName } = useRouteParams()
   const topicName = routeTopicName || DEFAULT_CHAT_TOPIC
   const path = `/groups/${currentGroup?.slug}/chat/${topicName}`
 

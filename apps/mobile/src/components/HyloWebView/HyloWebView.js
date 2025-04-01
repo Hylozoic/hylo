@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
