@@ -253,7 +253,7 @@ export function TabBar ({ currentTab, tabs, selectTab, pendingPostsDrawer }) {
       {Object.keys(tabs).map(name =>
         <li
           key={name}
-          className={cn('bg-midground/50 rounded-t-lg px-2 py-1', { 'bg-midground/100': name === currentTab })}
+          className={cn('flex flex-row items-center gap-2 bg-midground/50 rounded-t-lg px-2 py-1', { 'bg-midground/100': name === currentTab })}
           onClick={() => selectTab(name)}
         >
           {name}&nbsp;
