@@ -9,7 +9,6 @@
   margin: auto;
   background-color: rgba(0,0,0, 0.5);
   z-index: 200000;
-  pointer-events: auto;
 }
 .popup-inner {
   position: relative;
@@ -67,6 +66,8 @@
   .submit-btn {
     align-self: flex-end;
     margin-top: 31px;
+    padding: 10px 10px;
+    border-radius: 4px;
   }
 
   .reason-required {
