@@ -21,7 +21,6 @@ export default function Badge ({ emoji, expanded, className, common, border, onC
           { [classes.border]: border, 'bg-focus/10 border-focus/20 hover:bg-focus/30 hover:border-focus/40': common }
         )}
         onClick={onClick}
-        data-tooltip-content='hello'
         data-tooltip-id={`${id}-${name}-badge-tt`}
       >
         <span className={expanded ? 'text-xs' : classes.badgeSymbolCollapsed}>{emoji}</span>
