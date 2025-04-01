@@ -1,22 +1,22 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 
+export const DEFAULT_CHAT_TOPIC = 'home'
+
 export default function ChatRoomWebView () {
   const [{ currentGroup, fetching }] = useCurrentGroup()
   const { topicName: routeTopicName, originalLinkingPath } = useRouteParams()
-  const topicName = routeTopicName || 'home'
-  const path = originalLinkingPath || `/groups/${currentGroup?.slug}/chat/${topicName}`
-  const handledWebRoutes = [
-    `/groups/${currentGroup?.slug}/chat/:topicName`
-  ]
-  if (fetching) return null
+  const topicName = routeTopicName || DEFAULT_CHAT_TOPIC
+  const path = `/groups/${currentGroup?.slug}/chat/${topicName}`
+
+  if (!currentGroup?.slug || fetching) return null
 
   return (
     <KeyboardFriendlyView style={{ flex: 1 }}>
-      <HyloWebView handledWebRoutes={handledWebRoutes} path={path} />
+      <HyloWebView path={path} />
     </KeyboardFriendlyView>
   )
 }

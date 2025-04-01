@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react'
+import React, { useCallback, useState, useEffect, useMemo } from 'react'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
@@ -51,9 +51,8 @@ export const useNativeRouteHandler = () => {
   })
 }
 
-const handledWebRoutesJavascriptCreator = loadedPath => allowRoutesParam => {
-  const handledWebRoutes = [loadedPath, ...allowRoutesParam]
-  const handledWebRoutesRegExps = handledWebRoutes.map(allowedRoute => pathToRegexp(allowedRoute))
+const handledWebRoutesJavascriptCreator = (handledWebRoutes) => {
+  const handledWebRoutesRegExps = handledWebRoutes.map(handledWebRoute => pathToRegexp(handledWebRoute))
   const handledWebRoutesRegExpsLiteralString = JSON.parse(JSON.stringify(handledWebRoutesRegExps.map(a => a.toString())))
 
   return `
@@ -117,17 +116,12 @@ const HyloWebView = React.forwardRef(({
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
-  const [uri, setUri] = useState()
-  const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const nativeRouteHandler = nativeRouteHandlerProp || useNativeRouteHandler()
-  
-  const customStyle = `${baseCustomStyle}${providedCustomStyle}`
-
+  const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const path = pathProp || routePath || originalLinkingPath || ''
+  const uri = (source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : '')
 
-  useEffect(() => {
-    setUri((source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : ''))
-  }, [source?.uri, pathProp, routePath, originalLinkingPath])
+  const customStyle = `${baseCustomStyle}${providedCustomStyle}`
 
   useFocusEffect(
     useCallback(() => {
@@ -179,7 +173,7 @@ const HyloWebView = React.forwardRef(({
     <AutoHeightWebView
       customScript={`
         window.HyloWebView = true;
-        ${path && handledWebRoutesJavascriptCreator(path)(handledWebRoutes)}
+        ${path && handledWebRoutesJavascriptCreator([path, ...handledWebRoutes])}
       `}
       customStyle={customStyle}
       geolocationEnabled
