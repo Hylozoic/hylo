@@ -66,9 +66,14 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
       : notifications
   }, [notifications, showingUnread])
 
-  const onClick = useCallback((notification) => {
+  const onClick = useCallback((event, notification) => {
     if (notification.activity.unread) dispatch(markActivityRead(notification.activity.id))
-    dispatch(push(urlForNotification(notification)))
+    const url = urlForNotification(notification)
+    if (event.metaKey || event.ctrlKey) {
+      window.open(url, '_blank')
+    } else {
+      dispatch(push(url))
+    }
     setModalOpen(false)
   }, [])
 
