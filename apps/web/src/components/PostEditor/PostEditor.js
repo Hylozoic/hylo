@@ -314,6 +314,7 @@ function PostEditor ({
     editorRef.current?.setContent(initialPost.details)
     dispatch(clearLinkPreview())
     dispatch(clearAttachments('post', 'new', 'image'))
+    dispatch(clearAttachments('post', 'new', 'file'))
     setCurrentPost(initialPost)
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
     setAnnouncementSelected(false)
