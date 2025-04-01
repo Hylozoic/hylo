@@ -1,5 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { useNavigation } from '@react-navigation/native'
+import { useMutation } from 'urql'
+import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup, { getLastViewedGroupSlug, useCurrentGroupStore } from '@hylo/hooks/useCurrentGroup'
@@ -82,6 +84,7 @@ export function useChangeToGroup () {
   const confirmAlert = useConfirmAlert()
   const { setCurrentGroupSlug, setNavigateHome } = useCurrentGroupStore()
   const [{ currentUser }] = useCurrentUser()
+  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
 
   const changeToGroup = useCallback((groupSlug, {
     confirm = false,
@@ -96,6 +99,7 @@ export function useChangeToGroup () {
       const goToGroup = () => {
         if (navigateHome) setNavigateHome(navigateHome)
         setCurrentGroupSlug(groupSlug)
+        updateUserSettings({ changes: { settings: { lastViewedAt: (new Date()).toISOString() } } })
       }
       if (confirm) {
         confirmAlert({
