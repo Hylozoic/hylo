@@ -41,7 +41,15 @@ class MemberSelector extends Component {
   }
 
   render () {
-    const { placeholder = this.props.t('Type persons name...'), readOnly, memberMatches, autocomplete, members = [] } = this.props
+    const {
+      placeholder = this.props.t('Type persons name...'),
+      readOnly,
+      memberMatches,
+      autocomplete,
+      members = [],
+      className,
+      backgroundClassName
+    } = this.props
 
     return (
       <TagInput
@@ -53,7 +61,9 @@ class MemberSelector extends Component {
         handleDelete={this.handleDelete}
         readOnly={readOnly}
         theme={classes}
+        inputClassName={className}
         renderSuggestion={Suggestion}
+        backgroundClassName={backgroundClassName}
       />
     )
   }

@@ -20,14 +20,16 @@ export default function RemovableListItem ({ item, removeItem, skipConfirm = fal
   const title = item.name || item.title
 
   return (
-    <div className={classes.item}>
-      {url && <Link to={url}>{avatar}</Link>}
-      {!url && avatar}
+    <div className='bg-card rounded-lg p-2 flex justify-between items-center'>
+      <div>
+        {url && <Link to={url}>{avatar}</Link>}
+        {!url && avatar}
 
-      {url && <Link to={url} className={classes.name}>{title}</Link>}
-      {!url && <span>{title}</span>}
+        {url && <Link to={url} className='text-foreground/100'>{title}</Link>}
+        {!url && <span>{title}</span>}
+      </div>
 
-      {removeItem && <span onClick={remove} className={classes.removeButton}>{t('Remove')}</span>}
+      {removeItem && <span onClick={remove} className='border-2 border-accent/20 rounded-lg p-1'>{t('Remove')}</span>}
     </div>
   )
 }

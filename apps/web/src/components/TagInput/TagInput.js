@@ -30,7 +30,8 @@ class TagInput extends Component {
     theme: object,
     addLeadingHashtag: bool,
     renderSuggestion: func,
-    tabChooses: bool
+    tabChooses: bool,
+    backgroundClassName: string
   }
 
   static defaultProps = {
@@ -180,7 +181,10 @@ class TagInput extends Component {
           <li className={cn('text-foreground bg-transparent inline-flex', theme.searchInputContainer, { tagsEmpty: selectedItems.length === 0 })}>
             <div className={cn('relative', theme.searchInputContainer)}>
               <input
-                className={cn('text-foreground bg-transparent inline outline-none pt-1 pr-1', theme.searchInput, { error: maxReached, tagsEmpty: selectedItems.length === 0 })}
+                className={cn('text-foreground bg-transparent inline outline-none pr-1 placeholder:text-foreground/50',
+                  theme.searchInput,
+                  { error: maxReached, tagsEmpty: selectedItems.length === 0 }
+                )}
                 ref={this.input}
                 type='text'
                 placeholder={placeholder}
@@ -194,19 +198,20 @@ class TagInput extends Component {
               />
             </div>
             {!isEmpty(suggestionsOrError) &&
-              <div className={theme.suggestions}>
+              <div className='absolute top-full left-0 w-full z-10'>
                 <KeyControlledItemList
                   items={suggestionsOrError}
                   tagType={tagType}
                   renderListItem={renderSuggestion}
                   onChange={maxReached ? this.resetInput : this.select}
                   theme={{
-                    items: theme.suggestions,
-                    item: cn(theme.suggestion, { [styles.error]: maxReached }),
-                    itemActive: theme.suggestionActive
+                    items: 'p-0 m-0 text-foreground',
+                    item: cn('p-2 hover:bg-selected/100 text-foreground m-0 hover:text-foreground rounded-md', { [styles.error]: maxReached }),
+                    itemActive: 'text-foreground'
                   }}
                   ref={this.list}
                   tabChooses={this.props.tabChooses}
+                  backgroundClassName={this.props.backgroundClassName || 'bg-primary'}
                 />
               </div>}
           </li>
