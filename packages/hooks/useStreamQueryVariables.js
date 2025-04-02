@@ -3,6 +3,7 @@ import { isNull, isUndefined, omitBy } from 'lodash/fp'
 import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 
 export default function useStreamQueryVariables ({
+  childPostInclusion,
   context,
   currentUser,
   customView,
@@ -25,7 +26,7 @@ export default function useStreamQueryVariables ({
     beforeTime: streamType === 'event'
       ? (timeframe === 'past' ? new Date().toISOString() : null)
       : null,
-    childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
+    childPostInclusion,
     context,
     createdBy: view === 'posts'
       ? [currentUser.id]
@@ -57,9 +58,9 @@ export default function useStreamQueryVariables ({
     cursor: null,
     search: null
   }), [
+    childPostInclusion,
     context,
     currentUser?.id,
-    currentUser?.settings?.streamChildPosts,
     customView,
     customView?.activePostsOnly,
     customView?.collectionId,

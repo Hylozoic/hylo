@@ -103,10 +103,6 @@ export default function GroupMenuHeader ({
             <h1 ref={groupNameRef} className='GroupMenuHeaderName text-xl/5 font-bold m-0 text-white line-clamp-2'>
               {group.name}
             </h1>
-            {!showMembers &&
-              <Link className='text-foreground text-xs items-center text-foreground bg-white/80 inline-flex w-fit p-[2px] px-1 mr-2 rounded-md ml-1 hover:scale-110 transition-all' to={groupUrl(group.slug, 'members', {})}>
-                <Users className='w-3.5 h-3.5 inline mr-[2px] align-bottom' /> {group.memberCount}
-              </Link>}
           </div>
           {showMembers && (
             <span className='text-xs align-middle text-white'>

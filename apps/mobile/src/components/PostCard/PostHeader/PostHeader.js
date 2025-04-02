@@ -3,7 +3,7 @@ import { get } from 'lodash/fp'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
-import { DateTimeHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRolesForGroup from '@hylo/hooks/useRolesForGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
@@ -41,14 +41,6 @@ export default function PostHeader ({
   const [{ currentGroup }] = useCurrentGroup()
   const handleShowMember = () => showMember && showMember(creator.id)
 
-  const creatorHasResponsibility = useHasResponsibility({ person: creator, forCurrentGroup: true })
-  // // TODO: URQL - Steward case? -- https://terrans.slack.com/archives/G01HM5VHD8X/p1732263229830789
-  // if (responsibility === null) {
-  //   // TODO: Shouldn't the '1', etc values be taken from constants?
-  //   return responsibilities.some(r => ['1', '3', '4'].includes(r.id))
-  // }
-  const creatorIsSteward = creatorHasResponsibility(null)
-  const badges = useRolesForGroup(currentGroup?.id, creator)
   const { avatarUrl, name } = creator
   const handleFlagOnPress = () => navigation.navigate('Moderation', {
     streamType: 'moderation',
@@ -71,8 +63,7 @@ export default function PostHeader ({
             <Text style={styles.name}>{name}</Text>
           )}
         </TouchableOpacity>
-        <CondensingBadgeRow badges={badges || []} creatorIsSteward={creatorIsSteward} currentGroup={currentGroup} postId={postId} />
-        <Text style={styles.date}>{DateTimeHelpers.humanDate(date)}</Text>
+        <Text style={styles.date}>{TextHelpers.humanDate(date)}</Text>
       </View>
       <View style={styles.upperRight}>
         {isFlagged && (
@@ -126,15 +117,6 @@ export function PostLabel ({ type, condensed }) {
   const labelTypeStyle = get(type, labelStyles) || labelStyles.discussion
   const boxStyle = [labelStyles.box, labelTypeStyle.box]
   const textStyle = [labelStyles.text, labelTypeStyle.text]
-
-  // explicit invocations of dynamic content
-  t('discussion')
-  t('event')
-  t('project')
-  t('proposal')
-  t('offer')
-  t('request')
-  t('resource')
 
   return (
     <View style={boxStyle}>

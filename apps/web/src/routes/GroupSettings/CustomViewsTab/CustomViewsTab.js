@@ -74,7 +74,7 @@ function CustomViewsTab ({ group }) {
 
   useEffect(() => {
     setState(defaultEditState(group))
-  }, [group.customViews])
+  }, [group.id])
 
   useEffect(() => {
     dispatch(fetchCollectionPosts(group.id))
@@ -97,7 +97,7 @@ function CustomViewsTab ({ group }) {
       })
       setState({ ...state, customViews: updatedCustomViews })
     }
-  }, [fetchPending, fetchCollectionPostsPending, group])
+  }, [group])
 
   const errorString = useMemo(() => {
     let errorString = ''
@@ -187,8 +187,8 @@ function CustomViewsTab ({ group }) {
 
   return (
     <div className={general.groupSettings}>
+      <h3 className='text-foreground font-bold mb-2'>{t('Add custom links or filtered post views to your group\'s navigation')}</h3>
       <SettingsSection>
-        <div className='text-foreground'>{t('Add custom links or filtered post views to your group\'s navigation')}</div>
         {customViews.map((cv, i) => (
           <CustomViewRow
             addPostToCollection={addPostToCollectionAction}
@@ -283,24 +283,23 @@ export function CustomViewRow ({
 
   const sortOptions = type === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS
   const defaultSortVal = defaultSort || (type === 'collection' ? 'order' : 'created')
-  const viewCount = parseInt(index) + 1
   return (
-    <div className={styles.customViewContainer}>
+    <div className='bg-card p-2 rounded-md text-foreground mb-5'>
       {!menuCreate &&
-        <h4>
-          <div><strong>{t('Custom View')}{' '}#{viewCount}</strong>{' '}{name}</div>
-          <Icon name='Trash' onClick={onDelete} dataTestId='delete-custom-view' />
+        <h4 className='flex flex-row gap-1'>
+          <div className='flex-1'>{name}</div>
+          <Icon name='Trash' onClick={onDelete} dataTestId='delete-custom-view' className='cursor-pointer' />
         </h4>}
-      <div className={styles.customViewRow}>
+      <div className='flex flex-row gap-1'>
         <SettingsControl label={t('Icon')} controlClass={styles.iconButton} onChange={onChange('icon')} value={icon} type='icon-selector' selectedIconClass={styles.selectedIcon} />
         <SettingsControl label={t('Label')} controlClass={styles.settingsControl} onChange={onChange('name')} value={name} id='custom-view-name' />
         <SettingsControl
           label={t('Type')} controlClass={styles.settingsControl} renderControl={(props) => {
             return (
               <Dropdown
-                className={styles.dropdown}
+                className='text-foreground bg-background p-2 rounded-md'
                 toggleChildren={
-                  <span className={styles.dropdownLabel}>
+                  <span className='flex flex-row gap-1 items-center'>
                     {VIEW_TYPES[type || 'externalLink']}
                     <Icon name='ArrowDown' />
                   </span>

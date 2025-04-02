@@ -75,7 +75,7 @@ class AddLocation extends Component {
             <Icon name='Globe' className={styles.globeIcon} />
           </div>
           <div className={cn(styles.center, styles.locationInput)}>
-            <Icon name='Location' className={styles.locationIcon} />
+            {/* <Icon name='Location' className={styles.locationIcon} /> */}
             <LocationInput
               saveLocationToDB
               inputClass={inputClass}

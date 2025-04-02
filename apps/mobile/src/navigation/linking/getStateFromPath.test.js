@@ -1,4 +1,15 @@
+import { useAuthStore } from '@hylo/contexts/AuthContext'
 import getStateFromPath from 'navigation/linking/getStateFromPath'
+
+jest.mock('@hylo/contexts/AuthContext', () => {
+  const actual = jest.requireActual('@hylo/contexts/AuthContext')
+  return {
+    ...actual,
+    useAuthStore: {
+      getState: jest.fn()
+    }
+  }
+})
 
 // // Transcription of "notifications paths" from Web
 // '/my/account',
@@ -39,7 +50,7 @@ const notificationsSamplePaths = [
   ['/login', 'NonAuthRoot/Login'],
   ['/reset-password', 'NonAuthRoot/ForgotPassword'],
   ['/signup', 'NonAuthRoot/Signup/Signup Intro'],
-  ['/signup/verify-email', 'NonAuthRoot/Signup/SignupEmailValidation', { step: 'verify-email' }],
+  ['/signup/verify-email', 'NonAuthRoot/Signup/Signup Intro', { step: 'verify-email' }],
   [
     '/groups/sample-group/join/xyz789', 'JoinGroup', {
       groupSlug: 'sample-group', accessCode: 'xyz789', context: 'groups', originalLinkingPath: '/groups/sample-group/join/xyz789'
@@ -164,7 +175,12 @@ const getDeepestRoute = (route) => {
   return route
 }
 
-describe('getStateFromPath', () => {
+describe('getStateFromPath (isAuthorized)', () => {
+  useAuthStore.getState.mockReturnValue({
+    isAuthorized: true,
+    isAuthenticated: true
+  })
+
   const pendingCases = {}
 
   notificationsSamplePaths.forEach((testCase) => {

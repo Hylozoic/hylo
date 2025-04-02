@@ -19,6 +19,8 @@ module.exports = bookshelf.Model.extend({
     if (!this.get('version')) return
 
     const user = await User.find(this.get('user_id'))
+    if (!user) return // For inactive users, don't try to send push notifications
+
     const count = await User.unseenThreadCount(user.id)
     const push = await PushNotification.forge({
       alert: alert.substring(0, 255),

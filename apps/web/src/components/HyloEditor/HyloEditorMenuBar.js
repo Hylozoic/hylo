@@ -62,15 +62,17 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
         Icon={Strikethrough}
         onClick={() => editor.chain().focus().toggleStrike().run()}
         active={editor.isActive('strike')}
+        hideOnMobile
       />
 
       <HyloEditorMenuBarButton
         Icon={Code}
         onClick={() => editor.chain().focus().toggleCode().run()}
         active={editor.isActive('code')}
+        hideOnMobile
       />
 
-      <div className='relative inline-block'>
+      <div className='relative inline-block hidden xs:block'>
         {editor.isActive('link')
           ? (
             <button
@@ -141,6 +143,7 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
         Icon={SquareCode}
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         active={editor.isActive('codeBlock')}
+        hideOnMobile
       />
 
       <div className={cn('bg-foreground bg-opacity-30 w-px')} />
@@ -165,14 +168,15 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
   )
 }
 
-function HyloEditorMenuBarButton ({ active, Icon, onClick }) {
+function HyloEditorMenuBarButton ({ active, Icon, onClick, hideOnMobile = false }) {
   return (
     <button
       tabIndex='-1'
       onClick={onClick}
       className={cn(
         'text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer',
-        { 'bg-foreground/10': active }
+        { 'bg-foreground/10': active },
+        { 'hidden xs:block': hideOnMobile }
       )}
     >
       <Icon className='text-foreground w-4 h-4' />

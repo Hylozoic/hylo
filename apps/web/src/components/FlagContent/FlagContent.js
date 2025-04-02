@@ -72,7 +72,7 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
   ]
 
   return (
-    <div className={classes.popup}>
+    <div className={classes.popup} onClick={(e) => e.stopPropagation()}>
       <div className={classes.popupInner}>
         <h1>{t('Explanation for Flagging')}</h1>
         <span onClick={closeModal} className={classes.closeBtn} role='button' aria-label='Ex'>

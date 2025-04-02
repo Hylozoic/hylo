@@ -1089,7 +1089,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
 
     TopicFollow: {
       model: TagFollow,
-      attributes: ['created_at', 'last_read_post_id', 'new_post_count', 'settings', 'updated_at' ],
+      attributes: ['created_at', 'last_read_post_id', 'new_post_count', 'settings', 'updated_at'],
       relations: [
         'group',
         { tag: { alias: 'topic' } },

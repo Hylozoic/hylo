@@ -34,7 +34,7 @@ export default function HyloCookieConsent () {
   }
 
   return (
-    <div className={cn('fixed bottom-0 h-16 left-0 w-full flex items-center bg-foreground/30 border-t border-border px-10', { [classes.showCookieInfo]: showCookieInfo })}>
+    <div className={cn('HyloCookieConsent fixed bottom-0 h-16 left-0 w-full flex items-center text-background bg-foreground/60 border-t border-border px-10 z-[1000]', { [classes.showCookieInfo]: showCookieInfo })}>
       <span className='font-bold flex-1'>
         {t('Hylo uses cookies to enhance the experience.')}
         <button className={cn(classes.viewDetails, 'ml-4')} onClick={toggleShowCookieInfo}>{t('View details')}</button>

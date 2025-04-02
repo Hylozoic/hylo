@@ -41,13 +41,13 @@ export default function NotificationsList (props) {
     query: notificationsQuery,
     variables: { offset }
   })
-
+  
   const refreshNotifications = async () => {
     setOffset(0)
     fetchNotifications({ requestPolicy: 'network-only' })
   }
 
-  const notifications = refineNotifications(data?.notifications?.items, navigation)
+  const notifications = refineNotifications(data?.notifications?.items, t)
   const hasMore = data?.notifications?.hasMore
   const memberships = currentUser?.memberships
   const currentUserHasMemberships = !isEmpty(memberships)

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import TextareaAutosize from 'react-textarea-autosize'
 import CopyToClipboard from 'react-copy-to-clipboard'
 import { Tooltip } from 'react-tooltip'
-import { DateTimeHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
 import { isEmpty } from 'lodash'
 import { TransitionGroup, CSSTransition } from 'react-transition-group'
 import Button from 'components/Button'
@@ -177,8 +177,8 @@ I'm inviting you to join {{name}} on Hylo.
                   {!copied && (
                     <>
                       <CopyToClipboard text={inviteLink} onCopy={onCopy}>
-                        <button className='flex items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={t('Click to Copy')} data-tooltip-id='invite-link-tooltip'>
-                          <span className='text-selected truncate w-[80%]'>{inviteLink}</span>
+                        <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={t('Click to Copy')} data-tooltip-id='invite-link-tooltip'>
+                          <span className='text-selected truncate w-[80%] max-w-[450px]'>{inviteLink}</span>
                           <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
                             <Icon name='Copy' /> Copy
                           </div>
@@ -269,7 +269,7 @@ I'm inviting you to join {{name}} on Hylo.
                   <div className='w-full flex justify-between items-center bg-card rounded-lg p-2' key={invite.id} ref={pendingInvitesTransitionRef}>
                     <div style={{ flex: 1 }}>
                       <span>{invite.email}</span>
-                      <span className={classes.inviteDate}>{DateTimeHelpers.humanDate(invite.lastSentAt)}</span>
+                      <span className={classes.inviteDate}>{TextHelpers.humanDate(invite.lastSentAt)}</span>
                     </div>
                     <div className='flex items-center gap-2'>
                       <span className={cn('flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all', classes.expireBtn)} onClick={() => expireOnClick(invite.id)}>{t('Expire')}</span>

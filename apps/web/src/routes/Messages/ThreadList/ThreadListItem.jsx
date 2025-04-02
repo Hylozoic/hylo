@@ -2,7 +2,7 @@ import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
 import Badge from 'components/Badge'
 import RoundImage from 'components/RoundImage'
 import { participantAttributes } from 'store/models/MessageThread'
@@ -27,7 +27,7 @@ export default function ThreadListItem ({
         <div className='w-full flex flex-col justify-center'>
           <div className='flex items-center justify-between w-full'>
             <div className={cn('max-w-[200px] w-full')}><ThreadNames names={names} unreadCount={unreadCount} active={active} /></div>
-            <div className='text-xs text-foreground opacity-70'>{DateTimeHelpers.humanDate(get('createdAt', latestMessage), true)}</div>
+            <div className='text-xs text-foreground opacity-70'>{TextHelpers.humanDate(get('createdAt', latestMessage), true)}</div>
           </div>
           <div className='flex items-center w-full justify-between'>
             <div className={cn('text-sm text-foreground opacity-40 group-hover:opacity-100 break-all leading-4', { 'opacity-100 font-bold': unreadCount > 0 }, { 'opacity-100': active })}>{latestMessagePreview}</div>

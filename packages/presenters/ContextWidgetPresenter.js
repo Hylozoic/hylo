@@ -12,12 +12,24 @@ export default function ContextWidgetPresenter (widget) {
     humanReadableType: humanReadableTypeResolver(type),
     iconName: iconNameResolver(widget, type),
     isDroppable: isDroppableResolver(widget),
+    isEditable: isEditableResolver(widget),
     isValidHomeWidget: isValidHomeWidgetResolver(widget),
     title: titleResolver(widget),
     type,
     // Protection from double presenting
     _presented: true
   }
+}
+
+/* Constants */
+
+export const types = {
+  GROUP: 'viewGroup',
+  POST: 'viewPost',
+  USER: 'viewUser',
+  CHAT: 'viewChat',
+  CUSTOM_VIEW: 'customView',
+  CONTAINER: 'container'
 }
 
 /* == Attribute Resolvers == */
@@ -83,6 +95,13 @@ function isDroppableResolver (widget) {
   if (widget?.type === 'home') return false
   if (widget?.id?.startsWith('fake-id')) return false
   return true
+}
+
+// Only some widgets can have their titles and visibility edited
+function isEditableResolver (widget) {
+  const type = widgetTypeResolver({ widget })
+  return type === 'customView' ||
+    type === 'container'
 }
 
 // This internal resolver is exported to create mutation data prep in Web AllView#AddViewDialog
@@ -178,9 +197,10 @@ export function isValidDropZone ({ overWidget, activeWidget, parentWidget, isOve
   const isWrongType = overWidget?.type === 'home'
     || (parentWidget?.type === 'chats' && !activeWidget?.viewChat?.id)
     || (parentWidget?.type === 'custom-views' && !activeWidget?.customView?.id)
+    || (parentWidget?.type === 'home')
   const parentWidgetIsContainer = containerTypes.includes(parentWidget?.type)
   const activeWidgetIsContainer = containerTypes.includes(activeWidget?.type)
-  
+  const isDynamicWidget = overWidget?.id?.includes('fake-id')
   // const listBottom = droppableParams.id?.includes('bottom-of-child-list')
   // console.log('--------------------------------')
   // console.log('overWidget.title', overWidget?.title + (listBottom ? ' (bottom of list)' : '') )
@@ -201,6 +221,7 @@ export function isValidDropZone ({ overWidget, activeWidget, parentWidget, isOve
     && !isWrongType
     && !isOverlay
     && isEditing
+    && !isDynamicWidget
 }
 
 export const orderContextWidgetsForContextMenu = (contextWidgets) => {

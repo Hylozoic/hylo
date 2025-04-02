@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { DateTimeHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
 import RoundImage from 'components/RoundImage'
 import { bodyForNotification, titleForNotification, imageForNotification } from 'store/models/Notification'
 
@@ -12,7 +12,10 @@ export default function NotificationItem ({ notification, onClick }) {
   return (
     <li
       className={cn('flex items-start cursor-pointer border-b border-border text-sm text-muted-foreground py-3', { 'bg-primary/20 text-foreground': unread })}
-      onClick={() => onClick(notification)}
+      onClick={(event) => {
+        event.stopPropagation()
+        onClick(event, notification)
+      }}
     >
       <div className='my-1 pl-3'>
         <RoundImage url={imageForNotification(notification)} />
@@ -28,7 +31,7 @@ export default function NotificationItem ({ notification, onClick }) {
             dangerouslySetInnerHTML={{ __html: bodyForNotification(notification, t) }}
           />
         </div>
-        <div className='text-xs text-muted-foreground/50'>{DateTimeHelpers.humanDate(notification.createdAt)}</div>
+        <div className='text-xs text-muted-foreground/50'>{TextHelpers.humanDate(notification.createdAt)}</div>
       </div>
     </li>
   )
