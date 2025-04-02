@@ -1,5 +1,4 @@
 import { DateTime, DateTimeUnit } from 'luxon'
-// import { localeLocalStorageSync } from '../../../apps/web/src/util/locale'
 import prettyDate from 'pretty-date'
 
 export const getLocaleAsString = (locale : string ) : string => {

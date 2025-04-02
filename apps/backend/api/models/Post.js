@@ -340,7 +340,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       comments: [],
       day: type !== 'oneline' && this.get('start_time') && DateTimeHelpers.getDayFromDate(this.get('start_time'), this.get('timezone')),
       details: type !== 'oneline' && RichText.qualifyLinks(this.details(), slug),
-      end_time: type === 'oneline' && this.get('end_time') && DateTimeHelpers.formatDatePair(this.get('end_time'), null, false, this.get('timezone')),
+      end_time: type === 'oneline' && this.get('end_time') && DateTimeHelpers.formatDatePair(this.get('end_time'), null, false, this.get('timezone'), locale),
       link_preview: type !== 'oneline' && linkPreview && linkPreview.id &&
         linkPreview.pick('title', 'description', 'url', 'image_url'),
       location: type !== 'oneline' && this.get('location'),
