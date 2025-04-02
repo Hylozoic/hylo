@@ -78,7 +78,6 @@ export const inWeek = (
 }
 
 export const isSameDay = (
-  // TODO datetime: need to check if these dates already have locale set
   date1 : string | Date | DateTime | Object,
   date2 : string | Date | DateTime | Object
 ) : boolean => {
@@ -176,7 +175,6 @@ export const formatDatePair = (
 }
 
 export function isDateInTheFuture (
-  // TODO datetime: need to check if this date already has locale set
   date: string | Date | DateTime | Object,
   locale?: string
 ): boolean {
