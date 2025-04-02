@@ -56,11 +56,10 @@ export const rangeIncludesDate = (
   start: string | Date | DateTime | Object,
   date: string | Date | DateTime | Object,
   end: string | Date | DateTime | Object,
-  locale?: string
 ): boolean => {
-  const _start = toDateTime(start, { locale })
-  const _date = toDateTime(date, { locale })
-  const _end = toDateTime(end, { locale })
+  const _start = toDateTime(start)
+  const _date = toDateTime(date)
+  const _end = toDateTime(end)
   return _date.hasSame(_start, 'day')
     || _date.hasSame(_end, 'day')
     || (_start < _date && _date < _end)
@@ -69,39 +68,36 @@ export const rangeIncludesDate = (
 export const inWeek = (
   start: string | Date | DateTime | Object,
   date: string | Date | DateTime | Object,
-  end: string | Date | DateTime | Object,
-  locale?: string
+  end: string | Date | DateTime | Object
 ): boolean => {
-  const _start = toDateTime(start, { locale })
-  const _date = toDateTime(date, { locale })
-  const _end = toDateTime(end, { locale })
+  const _start = toDateTime(start)
+  const _date = toDateTime(date)
+  const _end = toDateTime(end)
   const weekStart = _date.startOf('week', { useLocaleWeeks: true })
   const weekEnd = _date.endOf('week', { useLocaleWeeks: true }).plus({ days: 1 })
   return _start < weekEnd && weekStart <= _end
 }
 
 export const isSameDay = (
+  // TODO datetime: need to check if these dates already have locale set
   date1 : string | Date | DateTime | Object,
-  date2 : string | Date | DateTime | Object,
-  locale?: string
+  date2 : string | Date | DateTime | Object
 ) : boolean => {
-  return isSame(date1, date2, 'day', locale)
+  return isSame(date1, date2, 'day')
 }
 
 export const isSameWeek = (
   date1 : string | Date | DateTime | Object,
-  date2 : string | Date | DateTime | Object,
-  locale?: string
+  date2 : string | Date | DateTime | Object
 ) : boolean => {
-  return isSame(date1, date2, 'week', locale)
+  return isSame(date1, date2, 'week')
 }
 
 export const isSameMonth = (
   date1 : string | Date | DateTime | Object,
-  date2 : string | Date | DateTime | Object,
-  locale?: string
+  date2 : string | Date | DateTime | Object
 ) : boolean => {
-  return isSame(date1, date2, 'month', locale)
+  return isSame(date1, date2, 'month')
 }
 
 export function humanDate (
@@ -181,6 +177,7 @@ export const formatDatePair = (
 }
 
 export function isDateInTheFuture (
+  // TODO datetime: need to check if this date already has locale set
   date: string | Date | DateTime | Object,
   locale?: string
 ): boolean {
@@ -214,9 +211,8 @@ export function getMonthFromDate (
 export function getDayFromDate (
   date: string | Date | DateTime | Object,
   timezone?: string,
-  locale?: string
 ): number {
-  return toDateTime(date, { timezone, locale }).day
+  return toDateTime(date, { timezone }).day
 }
 
 /**
@@ -230,8 +226,7 @@ export function getDayFromDate (
 export function getHourFromDate (
   date: string | Date | DateTime | Object,
   use24Hour?: boolean,
-  timezone?: string,
-  locale?: string
+  timezone?: string
 ): string {
-  return toDateTime(date, { timezone, locale }).toFormat(use24Hour ? 'HH' : 'h a')
+  return toDateTime(date, { timezone }).toFormat(use24Hour ? 'HH' : 'h a')
 }

@@ -15,8 +15,7 @@ export function toDateTime(
 export function rangeIncludesDate(
   start: string | Date | DateTime | Object,
   date: string | Date | DateTime | Object,
-  end: string | Date | DateTime | Object,
-  locale?: string
+  end: string | Date | DateTime | Object
 ): boolean;
 
 export function inWeek(

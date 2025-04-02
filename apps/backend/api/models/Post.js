@@ -330,7 +330,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return (pu && pu.get('clickthrough')) || null
   },
 
-  presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full' }) {
+  presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full', locale }) {
     const { media, tags, linkPreview, user } = this.relations
     const slug = group?.get('slug')
 
@@ -348,7 +348,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       month: type !== 'oneline' && this.get('start_time') && DateTimeHelpers.getMonthFromDate(this.get('start_time'), this.get('timezone')),
       topic_name: type !== 'oneline' && this.get('type') === 'chat' ? tags?.first()?.get('name') : '',
       type: this.get('type'),
-      start_time: type === 'oneline' && this.get('start_time') && DateTimeHelpers.formatDatePair(this.get('start_time'), null, false, this.get('timezone')),
+      start_time: type === 'oneline' && this.get('start_time') && DateTimeHelpers.formatDatePair(this.get('start_time'), null, false, this.get('timezone'), locale),
       title: this.get('name'),
       unfollow_url: Frontend.Route.unfollow(this, group) + clickthroughParams,
       user: {

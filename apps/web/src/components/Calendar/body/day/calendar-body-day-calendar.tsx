@@ -42,6 +42,7 @@ export default function CalendarBodyDayCalendar () {
           day_button: cn(buttonVariants({ variant: 'ghost' }), 'whitespace-pre-wrap leading-3 items-start h-9 w-9 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md')
         }}
         formatters={({
+          // TODO datetime: need to check what sort of locale is passed in here
           formatDay: (date, options) => {
             const maxNumEvents = 3
             const numEvents = events.filter((event) => DateTimeHelpers.rangeIncludesDate(event.start, date, event.end)).length
