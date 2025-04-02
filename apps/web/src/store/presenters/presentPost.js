@@ -1,5 +1,6 @@
 import { DateTimeHelpers } from '@hylo/shared'
 import presentTopic from 'store/presenters/presentTopic'
+import { localeLocalStorageSync } from 'util/locale'
 
 export default function presentPost (post, groupId) {
   if (!post) return null
@@ -25,8 +26,8 @@ export default function presentPost (post, groupId) {
           ...(rawPost ? eventInvitation.person : eventInvitation.person.ref)
         }
       }),
-      exactCreatedTimestamp: DateTimeHelpers.toDateTime(post.createdAt).toFormat('D t ZZZZ'),
-      exactEditedTimestamp: DateTimeHelpers.toDateTime(post.editedAt).toFormat('D t ZZZZ'),
+      exactCreatedTimestamp: DateTimeHelpers.toDateTime(post.createdAt, { locale: localeLocalStorageSync() }).toFormat('D t ZZZZ'),
+      exactEditedTimestamp: DateTimeHelpers.toDateTime(post.editedAt, { locale: localeLocalStorageSync() }).toFormat('D t ZZZZ'),
       fileAttachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).filter(a => a.type === 'file').sort((a, b) => a.position - b.position),
       imageAttachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).filter(a => a.type === 'image').sort((a, b) => a.position - b.position),
       groups: (rawPost ? post.groups?.items || [] : post.groups.toModelArray()),

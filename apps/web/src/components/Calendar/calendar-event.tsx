@@ -7,6 +7,7 @@ import Tooltip from 'components/Tooltip'
 import { DateTimeHelpers } from '@hylo/shared'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
+import { localeLocalStorageSync } from 'util/locale'
 
 import classes from './calendar.module.scss'
 
@@ -21,10 +22,10 @@ function getOverlappingEvents (
   currentEvent: CalendarEventType,
   events: CalendarEventType[]
 ): CalendarEventType[] {
-  const dt1 = DateTimeHelpers.toDateTime(currentEvent.start)
+  const dt1 = DateTimeHelpers.toDateTime(currentEvent.start, { locale: localeLocalStorageSync() })
   return events.filter((event) => {
     if (event.id === currentEvent.id) return true
-    const dt2 = DateTimeHelpers.toDateTime(event.start)
+    const dt2 = DateTimeHelpers.toDateTime(event.start, { locale: localeLocalStorageSync() })
     const interval = Interval.fromDateTimes(dt1, dt2)
     return Math.abs(interval.length('minutes')) <= 15
   })
@@ -81,7 +82,7 @@ export default function CalendarEvent ({
     useCalendarContext()
   const style = month ? {} : calculateEventPosition(event, events, day)
   const timeFormat = { ...DateTime.TIME_SIMPLE, timeZoneName: 'short' as const }
-  const toolTipTitle = `${event.title}<br />${DateTimeHelpers.toDateTime(event.start).toLocaleString(timeFormat)} - ${DateTimeHelpers.toDateTime(event.end).toLocaleString(timeFormat)}`
+  const toolTipTitle = `${event.title}<br />${DateTimeHelpers.toDateTime(event.start, { locale: localeLocalStorageSync() }).toLocaleString(timeFormat)} - ${DateTimeHelpers.toDateTime(event.end, { locale: localeLocalStorageSync() }).toLocaleString(timeFormat)}`
 
   const viewPostDetails = useViewPostDetails()
 

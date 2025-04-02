@@ -8,6 +8,7 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { getLocaleForDayPicker } from '@/components/Calendar/calendar-util'
+import { localeLocalStorageSync } from 'util/locale'
 import { cn } from '@/lib/utils'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -198,7 +199,7 @@ function display12HourValue (hours) {
 function genMonths (locale) {
   return Array.from({ length: 12 }, (_, i) => ({
     value: i,
-    label: DateTimeHelpers.toDateTime({ year: 2021, month: i + 1 }).toFormat('MMMM', { locale })
+    label: DateTimeHelpers.toDateTime({ year: 2021, month: i + 1 }, { locale }).toFormat('MMMM')
   }))
 }
 function genYears (yearRange = 50) {
@@ -487,7 +488,7 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
     }
     const diff = newDay.getTime() - defaultPopupValue.getTime()
     const diffInDays = diff / (1000 * 60 * 60 * 24)
-    const newDateFull = DateTimeHelpers.toDateTime(defaultPopupValue).plus({ days: Math.ceil(diffInDays) }).toJSDate()
+    const newDateFull = DateTimeHelpers.toDateTime(defaultPopupValue, { locale: localeLocalStorageSync() }).plus({ days: Math.ceil(diffInDays) }).toJSDate()
     newDateFull.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
     onMonthChange?.(newDay)
     setMonth(newDateFull)
@@ -520,9 +521,9 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
         <Button variant='outline' className={cn('justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />
           {displayDate
-            ? (DateTimeHelpers.toDateTime(displayDate).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12, {
+            ? (DateTimeHelpers.toDateTime(displayDate, {
                 locale: DateTimeHelpers.getLocaleAsString()
-              }))
+              }).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12))
             : (<span>{placeholder}</span>)}
         </Button>
       </PopoverTrigger>

@@ -29,6 +29,7 @@ import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
 import { INITIAL_SUBCOMMENTS_DISPLAYED } from 'util/constants'
+import { localeLocalStorageSync } from 'util/locale'
 
 function Comment ({
   comment,
@@ -125,11 +126,11 @@ function Comment ({
           <Link to={profileUrl} className='text-sm font-bold ml-2 text-foreground'>{creator.name}</Link>
         </div>
         <div>
-          <span className='text-xs text-foreground/50 pl-2' data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTimeHelpers.toDateTime(createdAt).toFormat('D t ZZZZ')}>
+          <span className='text-xs text-foreground/50 pl-2' data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTimeHelpers.toDateTime(createdAt, { locale: localeLocalStorageSync() }).toFormat('D t ZZZZ')}>
             {timestamp}
           </span>
           {(editedTimestamp) && (
-            <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTimeHelpers.toDateTime(editedAt).toFormat('D t ZZZZ')}>
+            <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTimeHelpers.toDateTime(editedAt, { locale: localeLocalStorageSync() }).toFormat('D t ZZZZ')}>
               ({editedTimestamp})
             </span>
           )}

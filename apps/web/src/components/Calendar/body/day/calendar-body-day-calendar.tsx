@@ -47,7 +47,7 @@ export default function CalendarBodyDayCalendar () {
             const numEvents = events.filter((event) => DateTimeHelpers.rangeIncludesDate(event.start, date, event.end)).length
             const symbols = '•'.repeat(Math.min(numEvents, maxNumEvents))
             const moreSymbol = numEvents > maxNumEvents
-            return `${DateTimeHelpers.toDateTime(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
+            return `${DateTimeHelpers.toDateTime(date, { locale: options.locale.code }).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
           }
         })}
       />

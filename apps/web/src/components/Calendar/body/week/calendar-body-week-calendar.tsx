@@ -7,10 +7,11 @@ import { eachIntervalDay } from '../../calendar-util'
 import { DateTimeHelpers } from '@hylo/shared'
 import { cn } from '@/lib/utils'
 import Button from '@/components/ui/button'
+import { localeLocalStorageSync } from 'util/locale'
 import { buttonVariants } from '@/components/ui/button-variants'
 
 const selectedWeekDates = function (date: Date) {
-  const luxonDate = DateTimeHelpers.toDateTime(date)
+  const luxonDate = DateTimeHelpers.toDateTime(date, { locale: localeLocalStorageSync() })
   // Get the first day of the week
   const weekStart = luxonDate.startOf('week', { useLocaleWeeks: true })
   // Get the last day of the week
@@ -65,7 +66,7 @@ export default function CalendarBodyWeekCalendar () {
             const numEvents = events.filter((event) => DateTimeHelpers.rangeIncludesDate(event.start, date, event.end)).length
             const symbols = '•'.repeat(Math.min(numEvents, maxNumEvents))
             const moreSymbol = numEvents > maxNumEvents
-            return `${DateTimeHelpers.toDateTime(date).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
+            return `${DateTimeHelpers.toDateTime(date, { locale: options.locale.code }).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
           }
         })}
       />

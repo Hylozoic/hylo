@@ -3,10 +3,11 @@ import classes from './datePicker.module.scss'
 import Datetime from 'react-datetime'
 import { DateTimeHelpers } from '@hylo/shared'
 import React from 'react'
+import { localeLocalStorageSync } from 'util/locale'
 
 function isValidDate (current) {
-  const yesterday = DateTimeHelpers.dateTimeNow().minus({ day: 1 })
-  return DateTimeHelpers.toDateTime(current) > yesterday
+  const yesterday = DateTimeHelpers.dateTimeNow(localeLocalStorageSync()).minus({ day: 1 })
+  return DateTimeHelpers.toDateTime(current, { locale: localeLocalStorageSync() }) > yesterday
 }
 
 function DatePicker (props) {

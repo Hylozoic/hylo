@@ -5,6 +5,7 @@ import { useCalendarContext } from '../../calendar-context'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { DateTimeHelpers } from '@hylo/shared'
+import { localeLocalStorageSync } from 'util/locale'
 import { Mode } from '../../calendar-types'
 
 const formatDate = (luxonDate: DateTime, mode: Mode) => {
@@ -37,7 +38,7 @@ const formatDate = (luxonDate: DateTime, mode: Mode) => {
 export default function CalendarHeaderDateChevrons () {
   const { t } = useTranslation()
   const { mode, date, setDate } = useCalendarContext()
-  const luxonDate = DateTimeHelpers.toDateTime(date)
+  const luxonDate = DateTimeHelpers.toDateTime(date, { locale: localeLocalStorageSync() })
   const today = new Date()
 
   const shouldHideGoToButton = () => {

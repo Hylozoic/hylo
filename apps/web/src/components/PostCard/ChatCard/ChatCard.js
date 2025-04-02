@@ -1,5 +1,6 @@
 import { cn } from 'util/index'
 import { DateTimeHelpers } from '@hylo/shared'
+import { localeLocalStorageSync } from 'util/locale'
 import React from 'react'
 import CardFileAttachments from 'components/CardFileAttachments'
 import CardImageAttachments from 'components/CardImageAttachments'
@@ -32,7 +33,7 @@ export default function ChatCard ({
               {!slug && <span>in&nbsp; <span className={classes.groupName}>{firstGroup}</span></span>}
             </div>
           </Highlight>
-          <span className={classes.date}>{DateTimeHelpers.toDateTime(post.createdAt).toFormat('yyyy t')}</span>
+          <span className={classes.date}>{DateTimeHelpers.toDateTime(post.createdAt, { locale: localeLocalStorageSync() }).toFormat('yyyy t')}</span>
         </div>
         {post.attachments && post.attachments.length > 0 && (
           <>

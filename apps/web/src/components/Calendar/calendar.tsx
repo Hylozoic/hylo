@@ -9,6 +9,7 @@ import CalendarHeaderDateChevrons from './header/date/calendar-header-date-chevr
 import CalendarHeaderActionsMode from './header/actions/calendar-header-actions-mode'
 import CalendarProvider from './calendar-provider'
 import { DateTimeHelpers } from '@hylo/shared'
+import { localeLocalStorageSync } from 'util/locale'
 import { isMultiday } from './calendar-util'
 
 export default function Calendar ({
@@ -27,8 +28,8 @@ export default function Calendar ({
   const events = posts.map((post) => {
     return {
       id: post.id,
-      start: DateTimeHelpers.toDateTime(post.startTime).toJSDate(),
-      end: DateTimeHelpers.toDateTime(post.endTime).toJSDate(),
+      start: DateTimeHelpers.toDateTime(post.startTime, { locale: localeLocalStorageSync() }).toJSDate(),
+      end: DateTimeHelpers.toDateTime(post.endTime, { locale: localeLocalStorageSync() }).toJSDate(),
       title: post.title,
       type: post.type,
       multiday: isMultiday(post),

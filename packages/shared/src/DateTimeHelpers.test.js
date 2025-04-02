@@ -1,4 +1,4 @@
-import * as DateTimeHelpers from '../src/DateTimeHelpers'
+import * as DateTimeHelpers from './DateTimeHelpers'
 import { DateTime } from 'luxon'
 
 describe('formatDatePair', () => {

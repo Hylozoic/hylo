@@ -32,6 +32,7 @@ import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForG
 import { RESP_MANAGE_CONTENT } from 'store/constants'
 import { groupUrl, personUrl } from 'util/navigation'
 import { cn } from 'util/index'
+import { localeLocalStorageSync } from 'util/locale'
 
 import styles from './ChatPost.module.scss'
 
@@ -274,8 +275,8 @@ export default function ChatPost ({
               <div className='w-full font-bold'>{creator.name}</div>
             </div>
             <div className='text-xs text-foreground/50'>
-              {DateTimeHelpers.toDateTime(createdAt).toFormat('t')}
-              {editedAt && <span>&nbsp;({t('edited')} {DateTimeHelpers.toDateTime(editedAt).toFormat('t')})</span>}
+              {DateTimeHelpers.toDateTime(createdAt, { locale: localeLocalStorageSync() }).toFormat('t')}
+              {editedAt && <span>&nbsp;({t('edited')} {DateTimeHelpers.toDateTime(editedAt, { locale: localeLocalStorageSync() }).toFormat('t')})</span>}
             </div>
           </div>
         )}

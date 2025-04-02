@@ -42,6 +42,7 @@ import { getHasMorePosts, getPosts } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { createPostUrl } from 'util/navigation'
+import { localeLocalStorageSync } from 'util/locale'
 
 import styles from './Stream.module.scss'
 
@@ -135,12 +136,12 @@ export default function Stream (props) {
     }
 
     if (isCalendarViewMode) {
-      const luxonDate = DateTimeHelpers.toDateTime(calendarDate)
+      const luxonDate = DateTimeHelpers.toDateTime(calendarDate, { locale: localeLocalStorageSync() })
       params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
       params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).plus({ day: 1 }).endOf('day').toISO()
       params.order = 'asc'
     } else if (view === 'events') {
-      const today = DateTimeHelpers.dateTimeNow().toISO()
+      const today = DateTimeHelpers.dateTimeNow(localeLocalStorageSync()).toISO()
       params.afterTime = timeframe === 'future' ? today : undefined
       params.beforeTime = timeframe === 'past' ? today : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'

@@ -44,6 +44,7 @@ import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
 import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
+import { localeLocalStorageSync } from 'util/locale'
 import { groupInviteUrl, groupUrl } from 'util/navigation'
 import isWebView from 'util/webView'
 
@@ -94,9 +95,9 @@ const NotificationsIcon = ({ type, ...props }) => {
 }
 
 const getDisplayDay = (date) => {
-  return date.hasSame(DateTimeHelpers.dateTimeNow(), 'day')
+  return date.hasSame(DateTimeHelpers.dateTimeNow(localeLocalStorageSync()), 'day')
     ? 'Today'
-    : date.hasSame(DateTimeHelpers.dateTimeNow().minus({ days: 1 }), 'day')
+    : date.hasSame(DateTimeHelpers.dateTimeNow(localeLocalStorageSync()).minus({ days: 1 }), 'day')
       ? 'Yesterday'
       : date.toFormat('MMM dd, yyyy')
 }
@@ -564,7 +565,7 @@ const Footer = ({ context }) => {
 
 const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
-  const createdAt = firstItem?.createdAt ? DateTimeHelpers.toDateTime(firstItem.createdAt) : null
+  const createdAt = firstItem?.createdAt ? DateTimeHelpers.toDateTime(firstItem.createdAt, { locale: localeLocalStorageSync() }) : null
   const displayDay = createdAt && getDisplayDay(createdAt)
 
   return (
@@ -618,8 +619,8 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
-  const previousDay = prevData?.createdAt ? DateTimeHelpers.toDateTime(prevData.createdAt) : DateTimeHelpers.dateTimeNow()
-  const currentDay = DateTimeHelpers.toDateTime(post.createdAt)
+  const previousDay = prevData?.createdAt ? DateTimeHelpers.toDateTime(prevData.createdAt, { locale: localeLocalStorageSync() }) : DateTimeHelpers.dateTimeNow(localeLocalStorageSync())
+  const currentDay = DateTimeHelpers.toDateTime(post.createdAt, { locale: localeLocalStorageSync() })
   const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
   /* Display the author header if

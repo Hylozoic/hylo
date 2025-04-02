@@ -20,6 +20,7 @@ import {
   getPendingJoinRequests,
   getRejectedJoinRequests
 } from './ManageInvitesTab.store'
+import { localeLocalStorageSync } from 'util/locale'
 
 import classes from './ManageInvitesTab.module.scss'
 
@@ -129,7 +130,7 @@ function GroupInvite ({ acceptInvite, declineInvite, invite }) {
           </div>
         </div>
         <div className={classes.invitationResponse}>
-          <span className={classes.createdDate}>{t('Sent')} {DateTimeHelpers.toDateTime(createdAt).toFormat('MM-dd-yyyy')}</span>
+          <span className={classes.createdDate}>{t('Sent')} {DateTimeHelpers.toDateTime(createdAt, { locale: localeLocalStorageSync() }).toFormat('MM-dd-yyyy')}</span>
           <span onClick={decline} className={classes.cancelButton}>{t('Decline')}</span>
           <span onClick={() => acceptInvite(token, group.slug)} className={classes.joinButton}>{t('Join')}</span>
         </div>
@@ -154,7 +155,7 @@ function JoinRequest ({ joinRequest, cancelJoinRequest }) {
         <GroupButton group={group} />
       </div>
       <div className={classes.requestDetail}>
-        <span className={`${classes.createdDate} ${classes.joinRequestDate}`}>{t('Requested')} {DateTimeHelpers.toDateTime(createdAt).toFormat('yyyy-MM-dd')}</span>
+        <span className={`${classes.createdDate} ${classes.joinRequestDate}`}>{t('Requested')} {DateTimeHelpers.toDateTime(createdAt, { locale: localeLocalStorageSync() }).toFormat('yyyy-MM-dd')}</span>
         {joinRequest.status === JOIN_REQUEST_STATUS.Pending && (
           <span onClick={cancel} className={classes.cancelButton}>{t('Cancel')}</span>
         )}

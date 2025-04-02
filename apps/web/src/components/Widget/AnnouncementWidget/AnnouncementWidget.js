@@ -4,6 +4,7 @@ import { cn } from 'util/index'
 import { Link } from 'react-router-dom'
 import Slider from 'react-slick'
 import { postUrl } from 'util/navigation'
+import { localeLocalStorageSync } from 'util/locale'
 import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'
 import classes from './AnnouncementWidget.module.scss'
@@ -45,7 +46,7 @@ export default ({ items = [], group, routeParams }) => {
                 <div>
                   <div className={classes.meta}>
                     <span className={classes.author}>{a.author}</span>
-                    <span className={classes.created}>{DateTimeHelpers.toDateTime(a.createdAt).toRelative()}</span>
+                    <span className={classes.created}>{DateTimeHelpers.toDateTime(a.createdAt, { locale: localeLocalStorageSync() }).toRelative()}</span>
                   </div>
                   <div className={classes.title}>{a.title}</div>
                 </div>

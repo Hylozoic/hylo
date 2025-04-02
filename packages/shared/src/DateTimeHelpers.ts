@@ -1,9 +1,9 @@
 import { DateTime, DateTimeUnit } from 'luxon'
-import { localeLocalStorageSync } from '../../../apps/web/src/util/locale'
+// import { localeLocalStorageSync } from '../../../apps/web/src/util/locale'
 import prettyDate from 'pretty-date'
 
-export const getLocaleAsString = () : string => {
-  switch (localeLocalStorageSync()) {
+export const getLocaleAsString = (locale : string ) : string => {
+  switch (locale) {
     case 'en':
       return 'en-US'
     case 'es':
@@ -13,22 +13,28 @@ export const getLocaleAsString = () : string => {
   }
 }
 
-export const dateTimeNow = () : DateTime => {
-  return DateTime.now().setLocale(getLocaleAsString())
+export const dateTimeNow = (locale?: string) : DateTime => {
+  return DateTime.now().setLocale(getLocaleAsString(locale || ''))
+}
+
+export interface ToDateTimeOptions {
+  timezone?: string;
+  locale?: string;
 }
 
 export const toDateTime = (
-  dt : string | Date | DateTime | Object,
-  timezone? : string
-) : DateTime => {
+  dt: string | Date | DateTime | Object,
+  options?: ToDateTimeOptions
+): DateTime => {
+  const { timezone, locale } = options || {};
   const zoneOption = { zone: timezone || DateTime.now().zoneName || 'UTC' }
   const _dt = dt instanceof DateTime
     ? dt
     : dt instanceof Date
-      ? DateTime.fromJSDate(dt, zoneOption).setLocale(getLocaleAsString())
+      ? DateTime.fromJSDate(dt, zoneOption).setLocale(getLocaleAsString(locale || ''))
       : typeof dt === 'string'
-        ? DateTime.fromISO(dt, zoneOption).setLocale(getLocaleAsString())
-        : DateTime.fromObject(dt, zoneOption).setLocale(getLocaleAsString())
+        ? DateTime.fromISO(dt, zoneOption).setLocale(getLocaleAsString(locale || ''))
+        : DateTime.fromObject(dt, zoneOption).setLocale(getLocaleAsString(locale || ''))
   if (_dt.invalidReason) {
     throw new Error(`Invalid date: ${_dt.invalidReason}`)
   }
@@ -36,36 +42,39 @@ export const toDateTime = (
 }
 
 const isSame = (
-  dt1 : string | Date | DateTime | Object,
-  dt2 : string | Date | DateTime | Object,
-  unit : DateTimeUnit
-) : boolean => {
-  const _dt1 = toDateTime(dt1)
-  const _dt2 = toDateTime(dt2)
+  dt1: string | Date | DateTime | Object,
+  dt2: string | Date | DateTime | Object,
+  unit: DateTimeUnit,
+  locale?: string
+): boolean => {
+  const _dt1 = toDateTime(dt1, { locale })
+  const _dt2 = toDateTime(dt2, { locale })
   return _dt1.hasSame(_dt2, unit)
 }
 
 export const rangeIncludesDate = (
-  start : string | Date | DateTime | Object,
-  date : string | Date | DateTime | Object,
-  end : string | Date | DateTime | Object
-) : boolean => {
-  const _start = toDateTime(start)
-  const _date = toDateTime(date)
-  const _end = toDateTime(end)
+  start: string | Date | DateTime | Object,
+  date: string | Date | DateTime | Object,
+  end: string | Date | DateTime | Object,
+  locale?: string
+): boolean => {
+  const _start = toDateTime(start, { locale })
+  const _date = toDateTime(date, { locale })
+  const _end = toDateTime(end, { locale })
   return _date.hasSame(_start, 'day')
     || _date.hasSame(_end, 'day')
     || (_start < _date && _date < _end)
 }
 
 export const inWeek = (
-  start : string | Date | DateTime | Object,
-  date : string | Date | DateTime | Object,
-  end : string | Date | DateTime | Object
-) : boolean => {
-  const _start = toDateTime(start)
-  const _date = toDateTime(date)
-  const _end = toDateTime(end)
+  start: string | Date | DateTime | Object,
+  date: string | Date | DateTime | Object,
+  end: string | Date | DateTime | Object,
+  locale?: string
+): boolean => {
+  const _start = toDateTime(start, { locale })
+  const _date = toDateTime(date, { locale })
+  const _end = toDateTime(end, { locale })
   const weekStart = _date.startOf('week', { useLocaleWeeks: true })
   const weekEnd = _date.endOf('week', { useLocaleWeeks: true }).plus({ days: 1 })
   return _start < weekEnd && weekStart <= _end
@@ -73,30 +82,34 @@ export const inWeek = (
 
 export const isSameDay = (
   date1 : string | Date | DateTime | Object,
-  date2 : string | Date | DateTime | Object
+  date2 : string | Date | DateTime | Object,
+  locale?: string
 ) : boolean => {
-  return isSame(date1, date2, 'day')
+  return isSame(date1, date2, 'day', locale)
 }
 
 export const isSameWeek = (
   date1 : string | Date | DateTime | Object,
-  date2 : string | Date | DateTime | Object
+  date2 : string | Date | DateTime | Object,
+  locale?: string
 ) : boolean => {
-  return isSame(date1, date2, 'week')
+  return isSame(date1, date2, 'week', locale)
 }
 
 export const isSameMonth = (
   date1 : string | Date | DateTime | Object,
-  date2 : string | Date | DateTime | Object
+  date2 : string | Date | DateTime | Object,
+  locale?: string
 ) : boolean => {
-  return isSame(date1, date2, 'month')
+  return isSame(date1, date2, 'month', locale)
 }
 
 export function humanDate (
-  date : string | Date | DateTime | Object,
-  short? : boolean
-) : string {
-  const _date = toDateTime(date)
+  date: string | Date | DateTime | Object,
+  short?: boolean,
+  locale?: string
+): string {
+  const _date = toDateTime(date, { locale })
   let ret = _date.invalidReason ? '' : prettyDate.format(_date.toJSDate())
 
   // Always return 'now' for very recent timestamps
@@ -122,15 +135,16 @@ export function humanDate (
 }
 
 export const formatDatePair = (
-  start : string | Date | DateTime | Object,
-  end : string | Date | DateTime | Object | boolean,
-  returnAsObj? : boolean,
-  timezone? : string
-) : string | { from : string, to : string } => {
-  const _start = toDateTime(start, timezone)
-  const _end = end ? toDateTime(end, timezone) : null
+  start: string | Date | DateTime | Object,
+  end: string | Date | DateTime | Object | boolean,
+  returnAsObj?: boolean,
+  timezone?: string,
+  locale?: string
+): string | { from: string, to: string } => {
+  const _start = toDateTime(start, { timezone, locale })
+  const _end = end ? toDateTime(end, { timezone, locale }) : null
 
-  const now = dateTimeNow()
+  const now = dateTimeNow(locale)
 
   const isPastYear = _start.get('year') < now.get('year')
   const isSameDay = _end && _start.get('day') === _end.get('day') &&
@@ -148,7 +162,7 @@ export const formatDatePair = (
   }
 
   // Format the end date/time if provided
-  if (end) {
+  if (_end) {
     if (isSameDay) {
       // If same day, only show the end time
       to = _end.toFormat('t')
@@ -167,9 +181,10 @@ export const formatDatePair = (
 }
 
 export function isDateInTheFuture (
-  date : string | Date | DateTime | Object
-) : boolean {
-  return toDateTime(date) > dateTimeNow()
+  date: string | Date | DateTime | Object,
+  locale?: string
+): boolean {
+  return toDateTime(date, { locale }) > dateTimeNow(locale)
 }
 
 /**
@@ -177,27 +192,31 @@ export function isDateInTheFuture (
  * @param {string|Date} date - Date string or Date object
  * @param {boolean} short - Whether to return short month name (e.g. 'Jan' vs 'January')
  * @param {string} timezone - Optional timezone (defaults to local timezone)
+ * @param {string} locale - Optional locale for formatting
  * @returns {string} Month name
  */
 export function getMonthFromDate (
-  date : string | Date | DateTime | Object,
-  short? : boolean,
-  timezone? : string
-) : string {
-  return toDateTime(date, timezone).toFormat(short ? 'MMM' : 'MMMM')
+  date: string | Date | DateTime | Object,
+  short?: boolean,
+  timezone?: string,
+  locale?: string
+): string {
+  return toDateTime(date, { timezone, locale }).toFormat(short ? 'MMM' : 'MMMM')
 }
 
 /**
  * Returns the day number from a date string or Date object
  * @param {string|Date} date - Date string or Date object
  * @param {string} timezone - Optional timezone (defaults to local timezone)
+ * @param {string} locale - Optional locale for formatting
  * @returns {number} Day of month (1-31)
  */
 export function getDayFromDate (
-  date : string | Date | DateTime | Object,
-  timezone? : string
-) : number {
-  return toDateTime(date, timezone).day
+  date: string | Date | DateTime | Object,
+  timezone?: string,
+  locale?: string
+): number {
+  return toDateTime(date, { timezone, locale }).day
 }
 
 /**
@@ -205,12 +224,14 @@ export function getDayFromDate (
  * @param {string|Date} date - Date string or Date object
  * @param {boolean} use24Hour - Whether to use 24-hour format (default: false)
  * @param {string} timezone - Optional timezone (defaults to local timezone)
+ * @param {string} locale - Optional locale for formatting
  * @returns {string} Formatted hour (with AM/PM if use24Hour is false)
  */
 export function getHourFromDate (
-  date : string | Date | DateTime | Object,
-  use24Hour? : boolean,
-  timezone? : string
-) : string {
-  return toDateTime(date, timezone).toFormat(use24Hour ? 'HH' : 'h a')
+  date: string | Date | DateTime | Object,
+  use24Hour?: boolean,
+  timezone?: string,
+  locale?: string
+): string {
+  return toDateTime(date, { timezone, locale }).toFormat(use24Hour ? 'HH' : 'h a')
 }

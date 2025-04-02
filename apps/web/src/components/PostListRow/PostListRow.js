@@ -12,6 +12,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
 import { personUrl, topicUrl } from 'util/navigation'
+import { localeLocalStorageSync } from 'util/locale'
 import { DateTimeHelpers } from '@hylo/shared'
 
 import classes from './PostListRow.module.scss'
@@ -52,8 +53,8 @@ const PostListRow = (props) => {
   const creatorUrl = personUrl(creator.id, routeParams.slug)
   const numOtherCommentors = commentersTotal - 1
   const unread = false
-  const start = DateTimeHelpers.toDateTime(post.startTime)
-  const end = DateTimeHelpers.toDateTime(post.endTime)
+  const start = DateTimeHelpers.toDateTime(post.startTime, { locale: localeLocalStorageSync() })
+  const end = DateTimeHelpers.toDateTime(post.endTime, { locale: localeLocalStorageSync() })
   const isSameDay = DateTimeHelpers.isSameDay(start, end)
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 

@@ -75,6 +75,7 @@ import { setQuerystringParam } from 'util/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
 import { DateTimeHelpers } from '@hylo/shared'
+import { localeLocalStorageSync } from 'util/locale'
 
 import styles from './PostEditor.module.scss'
 
@@ -182,7 +183,7 @@ function PostEditor ({
     isPublic: context === 'public',
     locationId: null,
     location: '',
-    timezone: DateTimeHelpers.dateTimeNow().zoneName,
+    timezone: DateTimeHelpers.dateTimeNow(localeLocalStorageSync()).zoneName,
     proposalOptions: [],
     isAnonymousVote: false,
     isStrictProposal: false,
@@ -334,11 +335,11 @@ function PostEditor ({
   const calcEndTime = useCallback((startTime) => {
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      const start = DateTimeHelpers.toDateTime(currentPost.startTime)
-      const end = DateTimeHelpers.toDateTime(currentPost.endTime)
+      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { locale: localeLocalStorageSync() })
+      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { locale: localeLocalStorageSync() })
       msDiff = end.diff(start)
     }
-    return DateTimeHelpers.toDateTime(startTime).plus({ milliseconds: msDiff }).toJSDate()
+    return DateTimeHelpers.toDateTime(startTime, { locale: localeLocalStorageSync() }).plus({ milliseconds: msDiff }).toJSDate()
   }, [currentPost.startTime, currentPost.endTime])
 
   const handlePostTypeSelection = useCallback((type) => {
@@ -598,7 +599,7 @@ function PostEditor ({
       id,
       acceptContributions,
       commenters: [], // For optimistic display of the new post
-      createdAt: DateTimeHelpers.dateTimeNow().toISO(), // For optimistic display of the new post
+      createdAt: DateTimeHelpers.dateTimeNow(localeLocalStorageSync()).toISO(), // For optimistic display of the new post
       creator: currentUser, // For optimistic display of the new post
       details,
       donationsLink: sanitizeURL(donationsLink),

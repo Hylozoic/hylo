@@ -4,6 +4,7 @@ import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { postUrl, createPostUrl } from 'util/navigation'
+import { localeLocalStorageSync } from 'util/locale'
 import RoundImage from '../../RoundImage'
 
 import classes from './ProjectsWidget.module.scss'
@@ -27,7 +28,7 @@ class ProjectsWidget extends Component {
             <div className={classes.project}>
               <div className={classes.meta}>
                 <div className={classes.title}>{p.title}</div>
-                <div className={classes.lastActivity}>{DateTimeHelpers.toDateTime(p.updatedAt).toRelative()}</div>
+                <div className={classes.lastActivity}>{DateTimeHelpers.toDateTime(p.updatedAt, { locale: localeLocalStorageSync() }).toRelative()}</div>
               </div>
               <div className={classes.createdBy}>
                 <RoundImage url={p.creator.avatarUrl} />
