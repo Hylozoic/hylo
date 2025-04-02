@@ -269,7 +269,7 @@ export default function ChatPost ({
 
         {showHeader && (
           <div className='flex justify-between items-center relative z-0' onClick={handleClick}>
-            <div onClick={showCreator} className='flex items-center gap-2 relative -left-8px]'>
+            <div onClick={showCreator} className='flex items-center gap-2 relative -left-[8px] sm:-left-0'>
               <Avatar avatarUrl={creator.avatarUrl} large />
               <div className='w-full font-bold'>{creator.name}</div>
             </div>
