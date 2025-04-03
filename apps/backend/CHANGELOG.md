@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.0.2] - 2025-04-03
+
+### Added
+- Email settings URL to chat digest and comment digest notification emails
+
 ## [6.0.0] - 2025-03-14
 
 Major Hylo redesign! After 6 months of work, we've redesigned the entire app more reliable, more functional,and easier to use.
