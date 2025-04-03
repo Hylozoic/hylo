@@ -29,7 +29,7 @@ export default function RemovableListItem ({ item, removeItem, skipConfirm = fal
         {!url && <span>{title}</span>}
       </div>
 
-      {removeItem && <span onClick={remove} className='border-2 border-accent/20 rounded-lg p-1'>{t('Remove')}</span>}
+      {removeItem && <span onClick={remove} className='border-2 border-accent/20 rounded-lg p-1 text-xs text-accent/60 hover:text-accent/100 hover:bg-accent/10 hover:border-accent/40 transition-all cursor-pointer'>{t('Remove')}</span>}
     </div>
   )
 }
