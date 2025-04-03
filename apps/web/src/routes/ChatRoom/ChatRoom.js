@@ -1,7 +1,6 @@
-import isMobile from 'ismobilejs'
 import { debounce, includes, isEmpty } from 'lodash/fp'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -32,7 +31,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
-import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
+import { FETCH_TOPIC_FOLLOW, FETCH_POSTS } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import orm from 'store/models'
 import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
@@ -45,15 +44,17 @@ import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
 import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
+import { localeLocalStorageSync } from 'util/locale'
 import { groupInviteUrl, groupUrl } from 'util/navigation'
 import isWebView from 'util/webView'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 
 import styles from './ChatRoom.module.scss'
 
 // the maximum amount of time in minutes that can pass between messages to still
 // include them under the same avatar and timestamp
 const MAX_MINS_TO_BATCH = 5
+
+const NUM_POSTS_TO_LOAD = 30
 
 const getPosts = ormCreateSelector(
   orm,
@@ -94,9 +95,9 @@ const NotificationsIcon = ({ type, ...props }) => {
 }
 
 const getDisplayDay = (date) => {
-  return date.hasSame(DateTime.now(), 'day')
+  return date.hasSame(DateTimeHelpers.dateTimeNow(localeLocalStorageSync()), 'day')
     ? 'Today'
-    : date.hasSame(DateTime.now().minus({ days: 1 }), 'day')
+    : date.hasSame(DateTimeHelpers.dateTimeNow(localeLocalStorageSync()).minus({ days: 1 }), 'day')
       ? 'Yesterday'
       : date.toFormat('MMM dd, yyyy')
 }
@@ -140,14 +141,12 @@ export default function ChatRoom (props) {
   // Add this new state to track if initial animation is complete
   const [initialAnimationComplete, setInitialAnimationComplete] = useState(false)
 
-  const numPostsToLoad = isWebView() || isMobile.any ? 18 : 30
-
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
     cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(topicFollow?.lastReadPostId) + 1, // -1 because we want the lastread post id included
     filter: 'chat',
-    first: numPostsToLoad,
+    first: NUM_POSTS_TO_LOAD,
     order: 'desc',
     slug: groupSlug,
     search,
@@ -160,7 +159,7 @@ export default function ChatRoom (props) {
     context,
     cursor: postIdToStartAt || topicFollow?.lastReadPostId,
     filter: 'chat',
-    first: numPostsToLoad,
+    first: NUM_POSTS_TO_LOAD,
     order: 'asc',
     slug: groupSlug,
     search,
@@ -428,8 +427,6 @@ export default function ChatRoom (props) {
         return 'auto'
       }
     })
-    // Focus back on the chat box
-    editorRef.current?.focus()
     return true
   }, [])
 
@@ -568,7 +565,7 @@ const Footer = ({ context }) => {
 
 const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
-  const createdAt = firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt) : null
+  const createdAt = firstItem?.createdAt ? DateTimeHelpers.toDateTime(firstItem.createdAt, { locale: localeLocalStorageSync() }) : null
   const displayDay = createdAt && getDisplayDay(createdAt)
 
   return (
@@ -622,8 +619,8 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
-  const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
-  const currentDay = DateTime.fromISO(post.createdAt)
+  const previousDay = prevData?.createdAt ? DateTimeHelpers.toDateTime(prevData.createdAt, { locale: localeLocalStorageSync() }) : DateTimeHelpers.dateTimeNow(localeLocalStorageSync())
+  const currentDay = DateTimeHelpers.toDateTime(post.createdAt, { locale: localeLocalStorageSync() })
   const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
   /* Display the author header if
@@ -705,22 +702,16 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
 const HomeChatWelcome = ({ group }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
-
   return (
     <div className='mx-auto px-4 max-w-[500px] flex flex-col items-center justify-center'>
       <img src='/home-chat-welcome.png' alt='Golden Starburst' />
       <h1 className='text-center'>{t('homeChatWelcomeTitle')}</h1>
       <p className='text-center'>{t('homeChatWelcomeDescription', { group_name: group.name })}</p>
       <div className='flex gap-2 items-center justify-center'>
-        {canAddMembers && (
-          <>
-            <Button onClick={() => navigate(groupUrl(group.slug, 'settings/invite'))}><Send /> {t('Send Invites')}</Button>
-            <CopyToClipboard text={groupInviteUrl(group)}>
-              <Button><Copy /> {t('Copy Invite Link')}</Button>
-            </CopyToClipboard>
-          </>
-        )}
+        <Button onClick={() => navigate(groupUrl(group.slug, 'settings/invite'))}><Send /> {t('Send Invites')}</Button>
+        <CopyToClipboard text={groupInviteUrl(group)}>
+          <Button><Copy /> {t('Copy Invite Link')}</Button>
+        </CopyToClipboard>
       </div>
     </div>
   )

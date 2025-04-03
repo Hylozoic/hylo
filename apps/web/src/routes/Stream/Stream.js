@@ -1,4 +1,4 @@
-import isMobile from 'ismobilejs'
+import { cn } from 'util/index'
 import { get, isEmpty } from 'lodash/fp'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
@@ -11,7 +11,7 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import Calendar from 'components/Calendar'
 import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
@@ -41,9 +41,8 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getHasMorePosts, getPosts } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
-import { cn } from 'util/index'
 import { createPostUrl } from 'util/navigation'
-import isWebView from 'util/webView'
+import { localeLocalStorageSync } from 'util/locale'
 
 import styles from './Stream.module.scss'
 
@@ -123,14 +122,11 @@ export default function Stream (props) {
   const isCalendarViewMode = viewMode === 'calendar'
 
   const fetchPostsParam = useMemo(() => {
-    const numPostsToLoad = isWebView() || isMobile.any ? 10 : 20
-
     const params = {
       activePostsOnly,
       childPostInclusion,
       context,
       filter: postTypeFilter,
-      first: numPostsToLoad,
       forCollection: customView?.type === 'collection' ? customView?.collectionId : null,
       search,
       slug: groupSlug,
@@ -140,12 +136,12 @@ export default function Stream (props) {
     }
 
     if (isCalendarViewMode) {
-      const luxonDate = DateTime.fromJSDate(calendarDate)
+      const luxonDate = DateTimeHelpers.toDateTime(calendarDate, { locale: localeLocalStorageSync() })
       params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
       params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).plus({ day: 1 }).endOf('day').toISO()
       params.order = 'asc'
     } else if (view === 'events') {
-      const today = DateTime.now().toISO()
+      const today = DateTimeHelpers.dateTimeNow(localeLocalStorageSync()).toISO()
       params.afterTime = timeframe === 'future' ? today : undefined
       params.beforeTime = timeframe === 'past' ? today : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'

@@ -1,5 +1,5 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
@@ -32,6 +32,7 @@ import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForG
 import { RESP_MANAGE_CONTENT } from 'store/constants'
 import { groupUrl, personUrl } from 'util/navigation'
 import { cn } from 'util/index'
+import { localeLocalStorageSync } from 'util/locale'
 
 import styles from './ChatPost.module.scss'
 
@@ -226,7 +227,7 @@ export default function ChatPost ({
     <Highlight {...highlightProps}>
       <div
         className={cn(
-          'ChatPost_container rounded-lg pr-[15px] relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer mb-1',
+          'ChatPost_container rounded-lg pl-[20px] relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer mb-1',
           className,
           styles.container,
           {
@@ -274,8 +275,8 @@ export default function ChatPost ({
               <div className='w-full font-bold'>{creator.name}</div>
             </div>
             <div className='text-xs text-foreground/50'>
-              {DateTime.fromISO(createdAt).toFormat('t')}
-              {editedAt && <span>&nbsp;({t('edited')} {DateTime.fromISO(editedAt).toFormat('t')})</span>}
+              {DateTimeHelpers.toDateTime(createdAt, { locale: localeLocalStorageSync() }).toFormat('t')}
+              {editedAt && <span>&nbsp;({t('edited')} {DateTimeHelpers.toDateTime(editedAt, { locale: localeLocalStorageSync() }).toFormat('t')})</span>}
             </div>
           </div>
         )}
@@ -322,9 +323,9 @@ export default function ChatPost ({
           onRemoveReaction={onRemoveReaction}
         />
         {commentsTotal > 0 && (
-          <span className='bg-black/10 rounded-lg py-2 px-2 h-[40px] items-center justify-center flex w-[120px]'>
+          <span className='bg-card/50 rounded-lg p-2 flex items-center gap-2 w-[120px] justify-center relative left-6'>
             <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
-            <span className='text-sm text-foreground' onClick={handleClick}>
+            <span className='text-sm text-foreground/50' onClick={handleClick}>
               {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
             </span>
           </span>

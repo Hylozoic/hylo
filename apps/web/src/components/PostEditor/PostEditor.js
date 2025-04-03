@@ -1,6 +1,5 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
-import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
@@ -75,6 +74,8 @@ import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from 'util/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
+import { DateTimeHelpers } from '@hylo/shared'
+import { localeLocalStorageSync } from 'util/locale'
 
 import styles from './PostEditor.module.scss'
 
@@ -182,7 +183,7 @@ function PostEditor ({
     isPublic: context === 'public',
     locationId: null,
     location: '',
-    timezone: DateTime.now().zoneName,
+    timezone: DateTimeHelpers.dateTimeNow(localeLocalStorageSync()).zoneName,
     proposalOptions: [],
     isAnonymousVote: false,
     isStrictProposal: false,
@@ -314,7 +315,6 @@ function PostEditor ({
     editorRef.current?.setContent(initialPost.details)
     dispatch(clearLinkPreview())
     dispatch(clearAttachments('post', 'new', 'image'))
-    dispatch(clearAttachments('post', 'new', 'file'))
     setCurrentPost(initialPost)
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
     setAnnouncementSelected(false)
@@ -335,11 +335,11 @@ function PostEditor ({
   const calcEndTime = useCallback((startTime) => {
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      const start = DateTime.fromJSDate(currentPost.startTime)
-      const end = DateTime.fromJSDate(currentPost.endTime)
+      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { locale: localeLocalStorageSync() })
+      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { locale: localeLocalStorageSync() })
       msDiff = end.diff(start)
     }
-    return DateTime.fromJSDate(startTime).plus({ milliseconds: msDiff }).toJSDate()
+    return DateTimeHelpers.toDateTime(startTime, { locale: localeLocalStorageSync() }).plus({ milliseconds: msDiff }).toJSDate()
   }, [currentPost.startTime, currentPost.endTime])
 
   const handlePostTypeSelection = useCallback((type) => {
@@ -599,7 +599,7 @@ function PostEditor ({
       id,
       acceptContributions,
       commenters: [], // For optimistic display of the new post
-      createdAt: DateTime.now().toISO(), // For optimistic display of the new post
+      createdAt: DateTimeHelpers.dateTimeNow(localeLocalStorageSync()).toISO(), // For optimistic display of the new post
       creator: currentUser, // For optimistic display of the new post
       details,
       donationsLink: sanitizeURL(donationsLink),
@@ -726,7 +726,7 @@ function PostEditor ({
   }
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative', { 'pb-1': !modal, [styles.noModal]: !modal })}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative')}>
       <div
         className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
         style={{
