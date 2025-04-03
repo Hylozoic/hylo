@@ -107,8 +107,7 @@ export const sendDigests = async () => {
 
         const clickthroughParams = '?' + new URLSearchParams({
           ctt: 'message_digest_email',
-          cti: user.id,
-          ctcn: firstGroup.get('name')
+          cti: user.id
         }).toString()
 
         return Email.sendMessageDigest({
@@ -138,7 +137,7 @@ export const sendDigests = async () => {
         const clickthroughParams = '?' + new URLSearchParams({
           ctt: 'comment_digest_email',
           cti: user.id,
-          ctcn: firstGroup.get('name')
+          ctcn: firstGroup?.get('name')
         }).toString()
 
         return Email.sendCommentDigest({
