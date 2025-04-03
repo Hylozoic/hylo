@@ -126,7 +126,10 @@
 }
 
 .postContentContainer {
-  margin-left: 19px;
+  margin-left: 42px;
+  p {
+    margin: 0px;
+  }
 }
 
 .postContent {
@@ -213,10 +216,6 @@
     }
   }
 
-  .postContentContainer {
-    margin-left: 0;
-  }
-
   .comments-container {
     margin-left: 0;
   }
@@ -239,6 +238,10 @@
 
 
 @media screen and (max-width: 425px) {
+  .postContentContainer {
+    margin-left: 39px;
+  }
+
   .container {
     -webkit-user-select: none; /* disable selection/Copy of UIWebView */
     user-select: none;
@@ -247,6 +250,7 @@
 }
 
 @media screen and (max-width: 375px) {
+
   .postContent {
     font-size: 12px;
     line-height: 16px;
