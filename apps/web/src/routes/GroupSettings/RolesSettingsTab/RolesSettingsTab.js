@@ -521,7 +521,7 @@ function RoleList ({
           group={group}
         />)}
       <div className='p-2'>
-        <h4>{t('{{roleName}}s', { roleName: name })}</h4>
+        <h4>{t('Members')}</h4>
         <div className='flex flex-col gap-2'>
           {membersForRole.map(m =>
             <RemovableListItem
