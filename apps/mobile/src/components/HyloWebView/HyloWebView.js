@@ -77,6 +77,35 @@ const handledWebRoutesJavascriptCreator = loadedPath => allowRoutesParam => {
   `
 }
 
+/* Should probably just be applied to Hylo Web stylesheet 
+  as what this solves is not necessarily WebView specific, 
+  but putting here for now to limit possible untested impact
+  on Hylo Web generally */
+const baseCustomStyle = `
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  
+  html, body {
+    overflow: hidden;
+    overflow-y: hidden;
+    overflow-x: hidden;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    width: 100vw !important;
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    max-width: 100% !important;
+  }
+`
+
 const HyloWebView = React.forwardRef(({
   handledWebRoutes = [],
   messageHandler,
@@ -84,12 +113,15 @@ const HyloWebView = React.forwardRef(({
   path: pathProp,
   style,
   source,
+  customStyle: providedCustomStyle = '',
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
   const [uri, setUri] = useState()
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const nativeRouteHandler = nativeRouteHandlerProp || useNativeRouteHandler()
+  
+  const customStyle = `${baseCustomStyle}${providedCustomStyle}`
 
   const path = pathProp || routePath || originalLinkingPath || ''
 
@@ -149,6 +181,7 @@ const HyloWebView = React.forwardRef(({
         window.HyloWebView = true;
         ${path && handledWebRoutesJavascriptCreator(path)(handledWebRoutes)}
       `}
+      customStyle={customStyle}
       geolocationEnabled
       onMessage={handleMessage}
       nestedScrollEnabled
@@ -199,11 +232,12 @@ const HyloWebView = React.forwardRef(({
         // Avoids a known issue which can cause Android crashes
         // ref. https://github.com/iou90/react-native-autoheight-webview/issues/191
         opacity: 0.99,
-        minHeight: 1
+        minHeight: 1,
+        width: '100%' // Ensure the WebView takes full width
       }]}
       // Recommended setting from AutoHeightWebView docs, with disclaimer about a
       // potential Android issue. It helpfully disables iOS zoom feature.
-      viewportContent='width=device-width, user-scalable=no'
+      viewportContent='width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1'
       {...forwardedProps}
     />
   )

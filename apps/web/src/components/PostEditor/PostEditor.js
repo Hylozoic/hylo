@@ -314,6 +314,7 @@ function PostEditor ({
     editorRef.current?.setContent(initialPost.details)
     dispatch(clearLinkPreview())
     dispatch(clearAttachments('post', 'new', 'image'))
+    dispatch(clearAttachments('post', 'new', 'file'))
     setCurrentPost(initialPost)
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
     setAnnouncementSelected(false)
@@ -757,6 +758,7 @@ function PostEditor ({
               ref={toFieldRef}
               onFocus={() => setToFieldFocused(true)}
               onBlur={() => setToFieldFocused(false)}
+              backgroundClassName='bg-midground rounded-lg p-2 shadow-md'
             />
           </div>
         </div>
@@ -837,14 +839,16 @@ function PostEditor ({
         />
       </div>
       {currentPost.type === 'project' && (
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>{t('Project Members')}</div>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 mb-4'>
+          <div className='text-xs text-foreground/50 w-[120px]'>{t('Project Members')}</div>
           <div className={styles.sectionGroups}>
             <MemberSelector
               initialMembers={currentPost.members || []}
               onChange={handleUpdateProjectMembers}
               forGroups={currentPost.groups}
               readOnly={loading}
+              className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50 pt-0'
+              backgroundClassName='bg-midground rounded-lg p-2 shadow-md'
             />
           </div>
         </div>
@@ -1017,9 +1021,9 @@ function PostEditor ({
         />
       )} */}
       {canHaveTimes && (
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-          <div className={styles.datePickerModule}>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+          <div className='flex items-center gap-1'>
             <DateTimePicker
               hourCycle={hourCycle}
               granularity='minute'
@@ -1028,7 +1032,7 @@ function PostEditor ({
               onChange={handleStartTimeChange}
               onMonthChange={() => {}}
             />
-            <div className={styles.sectionHelper}>{t('To')}</div>
+            <div className='text-xs text-foreground/50'>{t('to')}</div>
             <DateTimePicker
               ref={endTimeRef}
               hourCycle={hourCycle}
@@ -1047,32 +1051,34 @@ function PostEditor ({
         </span>
       )}
       {showLocation && (
-        <div className={styles.section}>
-          <div className={cn(styles.sectionLabel, styles.alignedLabel)}>{t('Location')}</div>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 mt-4 mb-2 gap-2'>
+          <div className='text-xs text-foreground/50'>{t('Location')}</div>
           <LocationInput
             saveLocationToDB
             locationObject={currentPost.locationObject}
             location={postLocation}
             onChange={handleLocationChange}
             placeholder={locationPrompt}
+            className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
           />
         </div>
       )}
       {currentPost.type === 'event' && (
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>{t('Invite People')}</div>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 my-2'>
+          <div className='text-xs text-foreground/50 w-[100px]'>{t('Invite People')}</div>
           <div className={styles.sectionGroups}>
             <MemberSelector
               initialMembers={currentPost.eventInvitations || []}
               onChange={handleUpdateEventInvitations}
               forGroups={currentPost.groups}
               readOnly={loading}
+              className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
             />
           </div>
         </div>
       )}
       {currentPost.type === 'project' && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
-        <div className={styles.section}>
+        <div className='flex items-center border-2 border-transparent transition-all'>
           <div className={styles.sectionLabel}>{t('Accept Contributions')}</div>
           {hasStripeAccount && (
             <div
@@ -1108,12 +1114,12 @@ function PostEditor ({
         </div>
       )}
       {currentPost.type === 'project' && (
-        <div className={styles.section}>
-          <div className={cn(styles.sectionLabel, { [styles.warning]: !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 my-4'>
+          <div className={cn('text-xs text-foreground/50 w-[100px]', { [styles.warning]: !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
           <div className={styles.sectionGroups}>
             <input
               type='text'
-              className={styles.textInput}
+              className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
               placeholder={t('Add a donation link (must be valid URL)')}
               value={currentPost.donationsLink || ''}
               onChange={handleDonationsLinkChange}
@@ -1123,12 +1129,12 @@ function PostEditor ({
         </div>
       )}
       {currentPost.type === 'project' && (
-        <div className={styles.section}>
-          <div className={cn(styles.sectionLabel, { [styles.warning]: !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 my-4'>
+          <div className={cn('text-xs text-foreground/50 w-[160px]', { [styles.warning]: !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
           <div className={styles.sectionGroups}>
             <input
               type='text'
-              className={styles.textInput}
+              className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
               placeholder={t('Add a project management link (must be valid URL)')}
               value={currentPost.projectManagementLink || ''}
               onChange={handleProjectManagementLinkChange}

@@ -101,48 +101,50 @@ function MapExplorer (props) {
 
   const mapRef = useRef(null)
 
-  const context = routeParams.context || props.context
-  const groupSlug = routeParams.groupSlug
+  const context = useMemo(() => routeParams.context || props.context, [routeParams.context, props.context])
+  const groupSlug = useMemo(() => routeParams.groupSlug, [routeParams.groupSlug])
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id
   const queryGroupSlugs = getQuerystringParam('group', location)
-  const groupSlugs = group ? (queryGroupSlugs || []).concat(groupSlug) : queryGroupSlugs
+  const groupSlugs = useMemo(() => group ? (queryGroupSlugs || []).concat(groupSlug) : queryGroupSlugs, [groupSlug, queryGroupSlugs])
 
   const currentUser = useSelector(state => getMe(state, { location }))
   const defaultChildPostInclusion = currentUser?.settings?.streamChildPosts || 'yes'
-  const childPostInclusion = getQuerystringParam('c', location) || defaultChildPostInclusion
+  const childPostInclusion = useMemo(() => getQuerystringParam('c', location) || defaultChildPostInclusion, [location])
 
   const [hideDrawer, setHideDrawer] = useState(getQuerystringParam('hideDrawer', location) === 'true')
-  const queryParams = getQuerystringParam(['search', 'sortBy', 'hide', 'topics', 'group'], location)
+  const queryParams = useMemo(() => getQuerystringParam(['search', 'sortBy', 'hide', 'topics', 'group'], location), [location])
 
   const reduxState = useSelector(state => state.MapExplorer)
 
-  const totalBoundingBoxLoaded = reduxState.totalBoundingBoxLoaded
+  const totalBoundingBoxLoaded = useMemo(() => reduxState.totalBoundingBoxLoaded, [reduxState.totalBoundingBoxLoaded])
 
-  const fetchPostsParams = {
+  const fetchPostsParams = useMemo(() => ({
     childPostInclusion,
     boundingBox: totalBoundingBoxLoaded,
     context,
     slug: groupSlug,
     groupSlugs
-  }
+  }), [childPostInclusion, context, groupSlug, groupSlugs, totalBoundingBoxLoaded])
 
   const topicsFromPosts = useSelector(state => getCurrentTopics(state, fetchPostsParams))
 
-  const filters = useMemo(() => ({
-    ...reduxState.clientFilterParams,
-    ...pick(['search', 'sortBy'], queryParams)
-  }), [reduxState.clientFilterParams, queryParams])
+  const filters = useMemo(() => {
+    const filters = {
+      ...reduxState.clientFilterParams,
+      ...pick(['search', 'sortBy'], queryParams)
+    }
+    if (queryParams.hide) {
+      // TODO: track groups and members separately from post types so we dont reload posts when we toggle groups or members
+      filters.featureTypes = Object.keys(filters.featureTypes).reduce((types, type) => { types[type] = !queryParams.hide.includes(type); return types }, {})
+    }
+    if (queryParams.topics) {
+      filters.topics = topicsFromPosts.filter(t => queryParams.topics.includes(t.id))
+    }
+    return filters
+  }, [reduxState.clientFilterParams, queryParams.search, queryParams.sortBy, queryParams.hide, queryParams.topics])
 
-  if (queryParams.hide) {
-    filters.featureTypes = Object.keys(filters.featureTypes).reduce((types, type) => { types[type] = !queryParams.hide.includes(type); return types }, {})
-  }
-
-  if (queryParams.topics) {
-    filters.topics = topicsFromPosts.filter(t => queryParams.topics.includes(t.id))
-  }
-
-  const fetchPostsForDrawerParams = {
+  const fetchPostsForDrawerParams = useMemo(() => ({
     childPostInclusion,
     context,
     slug: groupSlug,
@@ -150,20 +152,20 @@ function MapExplorer (props) {
     ...filters,
     types: !isEmpty(filters.featureTypes) ? Object.keys(filters.featureTypes).filter(ft => filters.featureTypes[ft]) : null,
     currentBoundingBox: filters.currentBoundingBox || totalBoundingBoxLoaded
-  }
+  }), [childPostInclusion, context, groupSlug, groupSlugs, filters, totalBoundingBoxLoaded])
 
-  const fetchGroupParams = {
+  const fetchGroupParams = useMemo(() => ({
     boundingBox: totalBoundingBoxLoaded,
     context,
     parentSlugs: groupSlugs
-  }
+  }), [totalBoundingBoxLoaded, context, groupSlugs])
 
-  const fetchMemberParams = {
+  const fetchMemberParams = useMemo(() => ({
     boundingBox: totalBoundingBoxLoaded,
     context,
     slug: groupSlug,
     sortBy: 'name'
-  }
+  }), [totalBoundingBoxLoaded, context, groupSlug])
 
   const members = useSelector(
     createSelector(
@@ -213,7 +215,7 @@ function MapExplorer (props) {
   }, [])
 
   const centerParam = getQuerystringParam('center', location)
-  let centerLocation = useMemo(() => {
+  const centerLocation = useMemo(() => {
     if (centerParam) {
       const decodedCenter = decodeURIComponent(centerParam).split(',')
       return { lat: parseFloat(decodedCenter[0]), lng: parseFloat(decodedCenter[1]) }
@@ -224,7 +226,7 @@ function MapExplorer (props) {
       group?.locationObject?.center ||
       currentUser?.locationObject?.center ||
       browserLocation ||
-      null
+      { lat: 35.442845, lng: 7.916598 }
   }, [centerParam, reduxState.centerLocation, group?.locationObject?.center, currentUser?.locationObject?.center, browserLocation])
 
   const { setHeaderDetails } = useViewHeader()
@@ -236,13 +238,7 @@ function MapExplorer (props) {
     })
   }, [])
 
-  let defaultZoom
-  if (centerLocation) {
-    defaultZoom = 10
-  } else {
-    defaultZoom = 2
-    centerLocation = { lat: 35.442845, lng: 7.916598 }
-  }
+  const defaultZoom = useMemo(() => (centerLocation ? 10 : 2), [centerLocation])
 
   const zoomParam = getQuerystringParam('zoom', location)
   const zoom = useMemo(() => zoomParam ? parseFloat(zoomParam) : reduxState.zoom || defaultZoom, [zoomParam, reduxState.zoom, defaultZoom])
@@ -253,9 +249,9 @@ function MapExplorer (props) {
     setBaseLayerStyle('light-v11')
   }
 
-  const possibleFeatureTypes = context === 'public'
+  const possibleFeatureTypes = useMemo(() => context === 'public'
     ? ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'group']
-    : ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'member', 'group']
+    : ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'member', 'group'], [context])
 
   const groupPending = useSelector(state => state.pending[FETCH_FOR_GROUP])
   const pendingPostsMap = useSelector(state => state.pending[FETCH_POSTS_MAP])
@@ -528,8 +524,12 @@ function MapExplorer (props) {
     setTotalPostsInView(viewPosts.length)
   }, [members, postsForMap, groups, group, onMapHover, onMapClick, context])
 
-  const updateViewportWithBbox = useCallback((bbox) => {
-    setViewport(locationObjectToViewport(viewport, { bbox }))
+  const updateViewportWithBbox = useCallback((bbox, zoom = false) => {
+    if (zoom) {
+      setViewport({ ...locationObjectToViewport(viewport, { bbox }), zoom })
+    } else {
+      setViewport(locationObjectToViewport(viewport, { bbox }))
+    }
   }, [viewport])
 
   useEffect(() => {
@@ -572,12 +572,27 @@ function MapExplorer (props) {
 
   useEffect(() => {
     if (totalBoundingBoxLoaded) {
-      doFetchPostsForDrawer()
-      dispatch(fetchMembers({ ...fetchMemberParams }))
       dispatch(fetchPostsForMap({ ...fetchPostsParams }))
+    }
+  }, [fetchPostsParams])
+
+  useEffect(() => {
+    if (totalBoundingBoxLoaded) {
+      doFetchPostsForDrawer()
+    }
+  }, [fetchPostsForDrawerParams])
+
+  useEffect(() => {
+    if (totalBoundingBoxLoaded) {
       dispatch(fetchGroups({ ...fetchGroupParams }))
     }
-  }, [totalBoundingBoxLoaded])
+  }, [fetchGroupParams])
+
+  useEffect(() => {
+    if (totalBoundingBoxLoaded) {
+      dispatch(fetchMembers({ ...fetchMemberParams }))
+    }
+  }, [fetchMemberParams])
 
   useEffect(() => {
     if (currentBoundingBox) {
@@ -597,9 +612,24 @@ function MapExplorer (props) {
 
   const handleLocationInputSelection = useCallback((value) => {
     if (value.mapboxId) {
-      value.bbox
-        ? updateViewportWithBbox(value.bbox)
-        : setViewport({ ...viewport, latitude: value.center.lat, longitude: value.center.lng, zoom: 12 })
+      if (value.bbox) {
+        // Calculate zoom based on bounding box size
+        const westLng = value.bbox[0].lng
+        const southLat = value.bbox[0].lat
+        const eastLng = value.bbox[1].lng
+        const northLat = value.bbox[1].lat
+        const longitudeDelta = Math.abs(eastLng - westLng)
+        const latitudeDelta = Math.abs(northLat - southLat)
+
+        // Use the larger of the two deltas to determine zoom
+        const maxDelta = Math.max(longitudeDelta, latitudeDelta)
+        // log2(360 / delta) gives us a rough zoom level where 360 is the total longitude span
+        const zoom = Math.min(Math.log2(360 / maxDelta), 20)
+
+        updateViewportWithBbox(value.bbox, zoom)
+      } else {
+        setViewport({ ...viewport, latitude: value.center.lat, longitude: value.center.lng, zoom: 13 })
+      }
     }
   }, [viewport])
 

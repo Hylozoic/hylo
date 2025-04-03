@@ -45,7 +45,7 @@ const KeyControlledItemList = forwardRef(({
 
   const defaultRenderListItem = item => (
     <li className={theme.item} key={item.id || 'blank'}>
-      <a onClick={event => change(item, event)}>
+      <a className={theme.itemLink} onClick={event => change(item, event)}>
         <div>
           <span>{item.name || item.title}</span>
         </div>

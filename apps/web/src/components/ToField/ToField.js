@@ -13,6 +13,7 @@ const ToField = forwardRef(({
   groupSettings,
   onFocus,
   onBlur,
+  backgroundClassName,
   ...props
 }, ref) => {
   const [suggestions, setSuggestions] = useState([])
@@ -73,6 +74,7 @@ const ToField = forwardRef(({
       placeholder=''
       readOnly={readOnly}
       theme={styles}
+      backgroundClassName={backgroundClassName}
       ref={tagInputRef}
       onFocus={onFocus} // Pass through to parent
       onBlur={onBlur} // Pass through to parent

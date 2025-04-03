@@ -117,7 +117,7 @@
 }
 
 .cardPadding {
-  padding: 2px 10px;
+  padding: 1px 10px;
 }
 
 .avatar {
@@ -126,7 +126,10 @@
 }
 
 .postContentContainer {
-  margin-left: 19px;
+  margin-left: 42px;
+  p {
+    margin: 3px 0;
+  }
 }
 
 .postContent {
@@ -195,7 +198,7 @@
 
 @media screen and (max-width: 600px) {
   .container {
-    padding-left: 33px;
+    padding-left: 15px;
 
     .header {
       .author {
@@ -211,10 +214,6 @@
         margin-right: 5px;
       }
     }
-  }
-
-  .postContentContainer {
-    margin-left: 0;
   }
 
   .comments-container {
@@ -239,6 +238,10 @@
 
 
 @media screen and (max-width: 425px) {
+  .postContentContainer {
+    margin-left: 39px;
+  }
+
   .container {
     -webkit-user-select: none; /* disable selection/Copy of UIWebView */
     user-select: none;
@@ -247,6 +250,7 @@
 }
 
 @media screen and (max-width: 375px) {
+
   .postContent {
     font-size: 12px;
     line-height: 16px;
