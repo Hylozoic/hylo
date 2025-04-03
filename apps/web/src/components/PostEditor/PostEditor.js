@@ -1051,7 +1051,7 @@ function PostEditor ({
         </span>
       )}
       {showLocation && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 mt-4 gap-2'>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 mt-4 mb-2 gap-2'>
           <div className='text-xs text-foreground/50'>{t('Location')}</div>
           <LocationInput
             saveLocationToDB
