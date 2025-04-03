@@ -174,7 +174,7 @@ class TagInput extends Component {
         : [{ name: this.props.t('no more than {{maxTags}} allowed', { maxTags }), isError: true }]
       : suggestions
     return (
-      <div className={cn('w-full relative h-full', { [theme.readOnly]: readOnly }, className)} onClick={this.handleContainerClick}>
+      <div className={cn('TagInput-container w-full relative h-full', { [theme.readOnly]: readOnly }, className)} onClick={this.handleContainerClick}>
         <ul className={theme.selected}>
           {selectedItems}
 
@@ -198,7 +198,7 @@ class TagInput extends Component {
               />
             </div>
             {!isEmpty(suggestionsOrError) &&
-              <div className='absolute top-full left-0 w-full z-10'>
+              <div className='TagInput-suggestions absolute top-full left-0 w-full z-10'>
                 <KeyControlledItemList
                   items={suggestionsOrError}
                   tagType={tagType}
@@ -206,8 +206,9 @@ class TagInput extends Component {
                   onChange={maxReached ? this.resetInput : this.select}
                   theme={{
                     items: 'p-0 m-0 text-foreground',
-                    item: cn('p-2 hover:bg-selected/100 text-foreground m-0 hover:text-foreground rounded-md', { [styles.error]: maxReached }),
-                    itemActive: 'text-foreground'
+                    item: cn('TagInput-KeyControlledList-item p-2 hover:bg-selected/100 text-foreground m-0 hover:text-foreground rounded-md', { [styles.error]: maxReached }),
+                    itemActive: 'text-foreground',
+                    itemLink: 'TagInput-KeyControlledList-itemLink text-foreground hover:text-foreground'
                   }}
                   ref={this.list}
                   tabChooses={this.props.tabChooses}
