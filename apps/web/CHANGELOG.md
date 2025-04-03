@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.0.2] - 2025-04-02
+
+### Added
+- Allow in-app notifications to be cmd/ctrl clicked
+
+### Changed
+- Many tweaks and improvements to the post editor
+- Improved the UI of the Roles and Responsibilites group settings page
+- Fixed and simplified styling of heading tags in global styles
+- Improved padding of chat room and chat posts
+
+### Fixed
+- Added the correct color to the heading tags in hyloeditor
+- Flagging of public content
+- Remove file attachments from post editor after creating a post
+- Fix display of badge names and resonsibilities in member directory
+- If there is already a valid linkPreview, dont flicker the loading spinner for previews
+- Fix display of posts in map drawer
+- Once again reload them after map filters change (like post types)
+- Fix zoom level when jumping to a location on the map
+
 ## [6.0.0] - 2025-03-14
 
 Major Hylo redesign! After 6 months of work, we've redesigned the entire app more reliable, more functional,and easier to use.
