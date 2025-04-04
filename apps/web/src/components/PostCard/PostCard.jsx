@@ -34,7 +34,10 @@ export default function PostCard (props) {
     post,
     onAddReaction = () => {},
     onRemoveReaction = () => {},
-    onRemovePost
+    onRemovePost = () => {},
+    onAddProposalVote = () => {},
+    onRemoveProposalVote = () => {},
+    onSwapProposalVote = () => {}
   } = props
 
   const postCardRef = useRef()
@@ -143,6 +146,9 @@ export default function PostCard (props) {
               isFlagged={isFlagged}
               highlightProps={highlightProps}
               mapDrawer={mapDrawer}
+              onAddProposalVote={onAddProposalVote}
+              onRemoveProposalVote={onRemoveProposalVote}
+              onSwapProposalVote={onSwapProposalVote}
             />
           </div>
         )}

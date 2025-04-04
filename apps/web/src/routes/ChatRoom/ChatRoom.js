@@ -417,7 +417,7 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [group?.id])
 
-  const onAddProposalVote = useCallback((post, optionId) => {
+  const onAddProposalVote = useCallback(({ post, optionId }) => {
     const optimisticUpdate = {
       proposalVotes: {
         ...post.proposalVotes,
@@ -435,8 +435,8 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
-  const onRemoveProposalVote = useCallback((post, optionId) => {
-    const voteIndex = post.proposalVotes.items.findIndex(vote => 
+  const onRemoveProposalVote = useCallback(({ post, optionId }) => {
+    const voteIndex = post.proposalVotes.items.findIndex(vote =>
       vote?.user?.id === currentUser.id && vote.optionId === optionId)
 
     if (voteIndex === -1) return
@@ -455,8 +455,8 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
-  const onSwapProposalVote = useCallback((post, addOptionId, removeOptionId) => {
-    const voteIndex = post.proposalVotes.items.findIndex(vote => 
+  const onSwapProposalVote = useCallback(({ post, addOptionId, removeOptionId }) => {
+    const voteIndex = post.proposalVotes.items.findIndex(vote =>
       vote?.user?.id === currentUser.id && vote.optionId === removeOptionId)
 
     if (voteIndex === -1) return
@@ -760,6 +760,9 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
               onAddReaction={context.onAddReaction}
               onRemoveReaction={context.onRemoveReaction}
               onRemovePost={context.onRemovePost}
+              onAddProposalVote={context.onAddProposalVote}
+              onRemoveProposalVote={context.onRemoveProposalVote}
+              onSwapProposalVote={context.onSwapProposalVote}
             />
           </div>
           )}

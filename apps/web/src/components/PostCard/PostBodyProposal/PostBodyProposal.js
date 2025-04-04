@@ -62,20 +62,13 @@ const isVotingOpen = (proposalStatus) => proposalStatus === PROPOSAL_STATUS_VOTI
 
 export default function PostBodyProposal ({
   currentUser,
-  proposalStatus,
-  votingMethod,
-  proposalOptions,
-  proposalVotes,
-  isAnonymousVote,
   isFlagged,
-  proposalOutcome,
-  startTime,
-  quorum,
-  endTime,
-  fulfilledAt,
-  groups,
-  id
+  onAddProposalVote = () => {},
+  onRemoveProposalVote = () => {},
+  onSwapProposalVote = () => {},
+  post
 }) {
+  const { id, groups, proposalStatus, votingMethod, proposalOptions, proposalVotes, isAnonymousVote, proposalOutcome, startTime, quorum, endTime, fulfilledAt } = post
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const proposalOptionsArray = useMemo(() => proposalOptions || [], [proposalOptions])
@@ -93,18 +86,23 @@ export default function PostBodyProposal ({
     if (votingMethod === VOTING_METHOD_SINGLE) {
       if (currentUserVotesOptionIds.includes(optionId)) {
         dispatch(removeProposalVote({ optionId, postId: id }))
+        onRemoveProposalVote({ post, optionId })
       } else if (currentUserVotesOptionIds.length === 0) {
         dispatch(addProposalVote({ optionId, postId: id }))
+        onAddProposalVote({ post, optionId })
       } else {
         const removeOptionId = currentUserVotesOptionIds[0]
         dispatch(swapProposalVote({ postId: id, addOptionId: optionId, removeOptionId }))
+        onSwapProposalVote({ post, addOptionId: optionId, removeOptionId })
       }
     }
     if (votingMethod === VOTING_METHOD_MULTI_UNRESTRICTED) {
       if (currentUserVotesOptionIds.includes(optionId)) {
         dispatch(removeProposalVote({ optionId, postId: id }))
+        onRemoveProposalVote({ post, optionId })
       } else {
         dispatch(addProposalVote({ optionId, postId: id }))
+        onAddProposalVote({ post, optionId })
       }
     }
   }
@@ -121,7 +119,7 @@ export default function PostBodyProposal ({
       'blur-sm pointer-events-none': isFlagged
     })}
     >
-      <div className='bg-card/50 text-shadow-lg rounded-lg px-2 absolute -top-3'>
+      <div className='bg-card/60 text-shadow-lg rounded-lg px-2 absolute -top-3'>
         {isAnonymousVote && <Icon name='Hidden' className={classes.anonymousVoting} tooltipContent={t('Anonymous voting')} tooltipId={`anon-tt-${id}`} />}
         {proposalStatus === PROPOSAL_STATUS_DISCUSSION && t('Discussion in progress')}
         {proposalStatus === PROPOSAL_STATUS_VOTING && t('Voting open') + ', ' + votePrompt}
