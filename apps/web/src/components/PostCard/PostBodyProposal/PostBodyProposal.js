@@ -112,14 +112,14 @@ export default function PostBodyProposal ({
   const votePrompt = votingMethod === VOTING_METHOD_SINGLE ? t('select one') : t('select one or more options')
 
   return (
-    <div className={cn('border-2 mt-6 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 transition-all flex flex-col gap-2', {
+    <div className={cn('group border-2 mt-6 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 transition-all flex flex-col gap-2', {
       'border-t-foreground/30 border-x-focus/20 border-b-focus/10  hover:border-t-focus/100 hover:border-x-focus/90 hover:border-b-focus/80 text-focus': proposalStatus === PROPOSAL_STATUS_DISCUSSION,
       'border-t-selected/30 border-x-selected/20 border-b-selected/10 hover:border-t-selected/100 hover:border-x-selected/90 hover:border-b-selected/80 text-selected': proposalStatus === PROPOSAL_STATUS_VOTING || proposalStatus === PROPOSAL_STATUS_CASUAL,
       'border-t-foreground/30 border-x-foreground/20 border-b-foreground/10': votingComplete,
       'blur-sm pointer-events-none': isFlagged
     })}
     >
-      <div className='bg-card/60 text-shadow-lg rounded-lg px-2 absolute -top-3'>
+      <div className='group-hover/post-card:bg-card/60 group-hover/post-card:bg-card/40 group-hover:bg-card/90 text-shadow-lg rounded-lg px-2 absolute -top-3'>
         {isAnonymousVote && <Icon name='Hidden' className={classes.anonymousVoting} tooltipContent={t('Anonymous voting')} tooltipId={`anon-tt-${id}`} />}
         {proposalStatus === PROPOSAL_STATUS_DISCUSSION && t('Discussion in progress')}
         {proposalStatus === PROPOSAL_STATUS_VOTING && t('Voting open') + ', ' + votePrompt}
