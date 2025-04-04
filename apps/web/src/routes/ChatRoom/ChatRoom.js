@@ -417,6 +417,68 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [group?.id])
 
+  const onAddProposalVote = useCallback((post, optionId) => {
+    const optimisticUpdate = {
+      proposalVotes: {
+        ...post.proposalVotes,
+        items: [
+          ...post.proposalVotes.items,
+          {
+            postId: post.id,
+            optionId,
+            user: currentUser
+          }
+        ]
+      }
+    }
+    const newPost = { ...post, ...optimisticUpdate }
+    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
+  }, [currentUser])
+
+  const onRemoveProposalVote = useCallback((post, optionId) => {
+    const voteIndex = post.proposalVotes.items.findIndex(vote => 
+      vote?.user?.id === currentUser.id && vote.optionId === optionId)
+
+    if (voteIndex === -1) return
+
+    const newProposalVotes = [...post.proposalVotes.items]
+    newProposalVotes.splice(voteIndex, 1)
+
+    const optimisticUpdate = {
+      proposalVotes: {
+        ...post.proposalVotes,
+        items: newProposalVotes
+      }
+    }
+
+    const newPost = { ...post, ...optimisticUpdate }
+    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
+  }, [currentUser])
+
+  const onSwapProposalVote = useCallback((post, addOptionId, removeOptionId) => {
+    const voteIndex = post.proposalVotes.items.findIndex(vote => 
+      vote?.user?.id === currentUser.id && vote.optionId === removeOptionId)
+
+    if (voteIndex === -1) return
+
+    const newProposalVotes = [...post.proposalVotes.items]
+    newProposalVotes[voteIndex] = {
+      postId: post.id,
+      optionId: addOptionId,
+      user: currentUser
+    }
+
+    const optimisticUpdate = {
+      proposalVotes: {
+        ...post.proposalVotes,
+        items: newProposalVotes
+      }
+    }
+
+    const newPost = { ...post, ...optimisticUpdate }
+    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
+  }, [currentUser])
+
   // Create a new chat post
   const onCreate = useCallback((postToSave) => {
     // Optimistic add new post, which will be replaced with the real post from the server
@@ -507,6 +569,9 @@ export default function ChatRoom (props) {
                   onFlagPost,
                   onRemovePost,
                   onRemoveReaction,
+                  onAddProposalVote,
+                  onRemoveProposalVote,
+                  onSwapProposalVote,
                   postIdToStartAt,
                   selectedPostId,
                   topicName
