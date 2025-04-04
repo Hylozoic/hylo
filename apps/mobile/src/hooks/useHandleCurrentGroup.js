@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useNavigationState } from '@react-navigation/native'
 import { useMutation } from 'urql'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import { isStaticContext } from '@hylo/presenters/GroupPresenter'
@@ -46,6 +46,7 @@ export function useHandleCurrentGroup () {
   const { setNavigateHome, navigateHome } = useCurrentGroupStore()
   const openURL = useOpenURL()
   const navigation = useNavigation()
+  const navigationState = useNavigationState(state => state)
   const [{ currentUser, fetching: fetchingCurrentUser }] = useCurrentUser()
   const [{ currentGroup, fetching: fetchingCurrentGroup }] = useCurrentGroup()
   const loading = fetchingCurrentUser && fetchingCurrentGroup
@@ -63,7 +64,11 @@ export function useHandleCurrentGroup () {
         navigation.replace('Group Welcome')
       } else if (currentGroup?.homeWidget && navigateHome) {
         setNavigateHome(false)
-        openURL(widgetUrl({ widget: currentGroup.homeWidget, groupSlug: currentGroup.slug }), { replace: true })
+        // Only "replace" current HomeNavigator stack if there are mounted screens,
+        // otherwise begins loading the default HomeNavigator screen then replaces
+        // it the homWidget which  creates tow navigation animations
+        const hasMountedScreens = !!navigationState?.routes[0].params
+        openURL(widgetUrl({ widget: currentGroup.homeWidget, groupSlug: currentGroup.slug }), { replace: hasMountedScreens })
       }
     }
   }, [currentGroup, currentUser])

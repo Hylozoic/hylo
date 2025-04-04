@@ -195,10 +195,10 @@ function ContextWidgetActions ({ widget }) {
   }
 
   if (widget.type === 'setup') {
-    const settingsDetailsPath = `/groups/${currentGroup.slug}/settings/details`
+    const settingsDetailsPath = `/groups/${currentGroup.slug}/settings`
     return (
       <View className='mb-2'>
-        <ContextWidgetActionLink title='Settings' path={`/groups/${currentGroup.slug}/settings`} />
+        <ContextWidgetActionLink title='Settings' path={`/groups/${currentGroup.slug}/settings/index`} />
         <View>
           {!currentGroup.avatarUrl && (
             <ContextWidgetActionLink title='Add Avatar' path={settingsDetailsPath} />
