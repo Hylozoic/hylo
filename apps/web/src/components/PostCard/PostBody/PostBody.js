@@ -20,6 +20,9 @@ export default function PostBody (props) {
     isFlagged,
     mapDrawer = false,
     onClick,
+    onAddProposalVote,
+    onRemoveProposalVote,
+    onSwapProposalVote,
     ...post
   } = props
   const dispatch = useDispatch()
@@ -54,7 +57,15 @@ export default function PostBody (props) {
           />
         )}
       </div>
-      {post.type === 'proposal' && !mapDrawer && <PostBodyProposal {...post} isFlagged={isFlagged && !post.clickthrough} currentUser={currentUser} />}
+      {post.type === 'proposal' && !mapDrawer &&
+        <PostBodyProposal
+          post={post}
+          isFlagged={isFlagged && !post.clickthrough}
+          currentUser={currentUser}
+          onAddProposalVote={onAddProposalVote}
+          onRemoveProposalVote={onRemoveProposalVote}
+          onSwapProposalVote={onSwapProposalVote}
+        />}
     </div>
   )
 }
