@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import useGroup from '@hylo/hooks/useGroup'
 import useRouteParams from 'hooks/useRouteParams'
-import HyloWebView from 'components/HyloWebView/HyloWebView'
+import HyloWebView from 'components/HyloWebView'
 import { amaranth, capeCod, rhino40, rhino80, twBackground } from 'style/colors'
 
 export default function GroupSettingsWebView () {
