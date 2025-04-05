@@ -18,6 +18,7 @@ import updatePostMutation from '@hylo/graphql/mutations/updatePostMutation'
 import peopleAutocompleteQuery from '@hylo/graphql/queries/peopleAutocompleteQuery'
 import postQuery from '@hylo/graphql/queries/postQuery'
 import topicsForGroupIdQuery from '@hylo/graphql/queries/topicsForGroupIdQuery'
+import { DEFAULT_POST_TYPE, POST_TYPES } from '@hylo/presenters/PostPresenter'
 import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import { isIOS } from 'util/platform'
 import useConfirmAlert from 'hooks/useConfirmAlert'
@@ -57,6 +58,10 @@ const titlePlaceholders = {
   event: 'What is your event called?'
 }
 
+export const getPostTypeOrDefault = postType => {
+  return Object.prototype.hasOwnProperty.call(POST_TYPES, postType) ? postType : DEFAULT_POST_TYPE
+}
+
 export default function PostEditor (props) {
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
@@ -68,7 +73,7 @@ export default function PostEditor (props) {
   const [, createNewProject] = useMutation(createProjectMutation)
   const [, updateSelectedPost] = useMutation(updatePostMutation)
   const [, findOrCreateLocation] = useFindOrCreateLocationObject()
-  const upload = useCallback(params => dispatch(uploadAction(params)), [dispatch])
+  const upload = useCallback((...params) => dispatch(uploadAction(...params)), [dispatch])
   const confirmAlert = useConfirmAlert()
 
   const [{ currentUser }] = useCurrentUser()
@@ -106,7 +111,7 @@ export default function PostEditor (props) {
 
   useEffect(() => {
     updatePost({
-      type: providedType || post.type,
+      type: getPostTypeOrDefault(providedType || post.type),
       topics: selectedTopicName ? [{ name: selectedTopicName }] : post.topics,
       groups: currentGroup && !isStaticContext(currentGroup?.slug) ? [currentGroup] : post.groups
     })
@@ -652,7 +657,7 @@ export default function PostEditor (props) {
               </View>
             </View>
             <ImageSelector
-              images={post.images}
+              images={post.getImages()}
               onRemove={attachment => removeAttachment('image', attachment)}
               style={[styles.imageSelector, { padding: 10 }]}
               type='post'
@@ -689,7 +694,7 @@ export default function PostEditor (props) {
             </View>
             <FileSelector
               onRemove={attachment => removeAttachment('file', attachment)}
-              files={post.files}
+              files={post.getFiles()}
             />
           </TouchableOpacity>
         </View>

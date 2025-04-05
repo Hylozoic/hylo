@@ -33,13 +33,13 @@ export const usePostEditorStore = create((set, get) => {
   }
 
   return {
-    post: { ...initialState },
+    post: PostPresenter(initialState),
 
     updatePost,
 
     resetPost: () => {
       set(() => ({
-        post: PostPresenter({ ...initialState })
+        post: PostPresenter(initialState)
       }))
     },
 
@@ -60,15 +60,15 @@ export const usePostEditorStore = create((set, get) => {
 
     preparePostData: ({ canHaveTimeframe, details }) => {
       const post = get().post
+      console.log(post)
       return {
         id: post.id,
         type: post.type,
         details,
-        groups: post.groups,
         groupIds: post.groups.map(c => c.id),
         memberIds: post.members.items.map(m => m.id),
-        fileUrls: post.filesUrls,
-        imageUrls: post.imageUrls,
+        fileUrls: post.getFileUrls(),
+        imageUrls: post.getImageUrls(),
         isPublic: post.isPublic,
         title: post.title,
         sendAnnouncement: post.announcement,
