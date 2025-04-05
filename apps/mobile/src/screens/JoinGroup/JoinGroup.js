@@ -7,13 +7,14 @@ import checkInvitationQuery from '@hylo/graphql/queries/checkInvitationQuery'
 import acceptInvitationMutation from '@hylo/graphql/mutations/acceptInvitationMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
-import { openURL } from 'hooks/useOpenURL'
+import useOpenURL from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
 import useLinkingStore from 'navigation/linking/store'
 import LoadingScreen from 'screens/LoadingScreen'
 
 export default function JoinGroup (props) {
   const navigation = useNavigation()
+  const openURL = useOpenURL()
   const { setReturnToOnAuthPath } = useLinkingStore()
   const changeToGroup = useChangeToGroup()
   const [, acceptInvitation] = useMutation(acceptInvitationMutation)

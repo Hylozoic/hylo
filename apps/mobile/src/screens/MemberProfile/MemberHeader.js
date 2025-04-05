@@ -13,7 +13,7 @@ import { AXOLOTL_ID } from '@hylo/presenters/PersonPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import mixpanel from 'services/mixpanel'
 import Control from 'screens/MemberProfile/Control'
-import { openURL } from 'hooks/useOpenURL'
+import useOpenURL from 'hooks/useOpenURL'
 import { useNavigation } from '@react-navigation/native'
 import { useMutation } from 'urql'
 import blockUserMutation from '@hylo/graphql/mutations/blockUserMutation'
@@ -30,6 +30,7 @@ export default function MemberHeader ({
   ...props
 }) {
   const { t } = useTranslation()
+  const openURL = useOpenURL()
   const navigation = useNavigation()
   const [{ currentUser }] = useCurrentUser()
   const [, blockUser] = useMutation(blockUserMutation)

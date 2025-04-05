@@ -3,7 +3,7 @@ import { useWindowDimensions } from 'react-native'
 import { RenderHTMLConfigProvider, RenderHTMLSource } from 'react-native-render-html'
 import WebView from 'react-native-webview'
 import iframe, { iframeModel } from '@native-html/iframe-plugin'
-import { openURL } from 'hooks/useOpenURL'
+import useOpenURL from 'hooks/useOpenURL'
 import useGoToMember from 'hooks/useGoToMember'
 import useGoToTopic from 'hooks/useGoToTopic'
 
@@ -70,6 +70,7 @@ const renderers = {
 }
 
 export function HyloHTMLConfigProvider ({ children }) {
+  const openURL = useOpenURL()
   const handleLinkPress = async (_, href) => openURL(href)
 
   const renderersProps = useMemo(() => ({
