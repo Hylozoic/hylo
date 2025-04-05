@@ -31,7 +31,7 @@ export default function PostCard ({
   const navigation = useNavigation()
   const [, recordClickthrough] = useMutation(recordClickthroughMutation)
   const post = useMemo(() => PostPresenter(providedPost, { forGroupId: groupId }), [providedPost])
-  const images = useMemo(() => post.imageUrls && post.imageUrls.map(uri => ({ uri })), [post])
+  const images = useMemo(() => post.getImageUrls().map(uri => ({ uri })), [post])
   const locationText = useMemo(() => LocationHelpers.generalLocationString(post.locationObject, post.location), [post])
   const isFlagged = useMemo(() => post.flaggedGroups && post.flaggedGroups.includes(groupId), [post])
   const [{ currentUser }] = useCurrentUser()
@@ -117,7 +117,7 @@ export default function PostCard ({
           title={post.title}
           type={post.type}
         />
-        <Files urls={post.fileUrls} className='mx-4 mb-2' />
+        <Files urls={post.getFileUrls()} className='mx-4 mb-2' />
         {showGroups && (
           <PostGroups
             groups={post.groups}
