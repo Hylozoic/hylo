@@ -29,27 +29,7 @@ export default function HomeNavigator () {
   const navigatorProps = {
     screenOptions: {
       header: props => <TabStackHeader {...props} />,
-      headerMode: 'float',
-      transitionSpec: {
-        open: {
-          animation: 'spring',
-          stiffness: 1000,
-          damping: 500,
-          mass: 3,
-          overshootClamping: true,
-          restDisplacementThreshold: 0.01,
-          restSpeedThreshold: 0.01
-        },
-        close: {
-          animation: 'spring',
-          stiffness: 1000,
-          damping: 500,
-          mass: 3,
-          overshootClamping: true,
-          restDisplacementThreshold: 0.01,
-          restSpeedThreshold: 0.01
-        }
-      }
+      headerMode: 'float'
     }
   }
 

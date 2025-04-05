@@ -29,7 +29,6 @@ export async function openURL (
     !staticPages.includes(linkingURL.pathname)
   ) {
     const linkingPath = linkingURL.pathname + linkingURL.search
-
     const stateForPath = getStateFromPath(linkingPath)
 
     if (stateForPath) {
