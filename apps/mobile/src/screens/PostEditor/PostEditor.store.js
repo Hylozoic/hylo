@@ -60,7 +60,6 @@ export const usePostEditorStore = create((set, get) => {
 
     preparePostData: ({ canHaveTimeframe, details }) => {
       const post = get().post
-      console.log(post)
       return {
         id: post.id,
         type: post.type,
