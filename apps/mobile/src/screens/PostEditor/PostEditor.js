@@ -303,6 +303,43 @@ export default function PostEditor (props) {
         {selectedPostLoading && <Loading />}
         {!selectedPostLoading && (
           <View>
+            <TouchableOpacity
+              className='border-foreground/30'
+              style={styles.pressSelectionSection}
+              onPress={() => groupSelectorModalRef.current.show()}
+            >
+              <View style={styles.pressSelection}>
+                <Text style={styles.pressSelectionLeftText}>{t('To:')}</Text>
+                <View style={styles.pressSelectionRight}>
+                  <Icon name='Plus' style={styles.pressSelectionRightIcon} />
+                </View>
+              </View>
+              <ItemSelectorModal
+                ref={groupSelectorModalRef}
+                title={t('Post in Groups')}
+                items={groupOptions}
+                itemsTransform={(items, searchTerm) => (
+                  items.filter(item => searchTerm
+                    ? item.name.toLowerCase().match(searchTerm?.toLowerCase())
+                    : item
+                  )
+                )}
+                chosenItems={post.groups}
+                onItemPress={addGroup}
+                searchPlaceholder={t('Search for group by name')}
+              />
+              <GroupsList
+                style={styles.pressSelectionValue}
+                groups={post.groups}
+                columns={1}
+                onPress={() => groupSelectorModalRef.current.show()}
+                onRemove={removeGroup}
+                RemoveIcon={() => (
+                  <Icon className='text-muted' name='Ex' style={styles.groupRemoveIcon} />
+                )}
+              />
+            </TouchableOpacity>
+
             <View style={[styles.titleInputWrapper]}>
               <TextInput
                 className='text-foreground placeholder:text-foreground/50'
@@ -455,43 +492,6 @@ export default function PostEditor (props) {
                 />
               </>
             )}
-
-            <TouchableOpacity
-              className='border-foreground/30'
-              style={styles.pressSelectionSection}
-              onPress={() => groupSelectorModalRef.current.show()}
-            >
-              <View style={styles.pressSelection}>
-                <Text style={styles.pressSelectionLeftText}>{t('Post In')}</Text>
-                <View style={styles.pressSelectionRight}>
-                  <Icon name='Plus' style={styles.pressSelectionRightIcon} />
-                </View>
-              </View>
-              <ItemSelectorModal
-                ref={groupSelectorModalRef}
-                title={t('Post in Groups')}
-                items={groupOptions}
-                itemsTransform={(items, searchTerm) => (
-                  items.filter(item => searchTerm
-                    ? item.name.toLowerCase().match(searchTerm?.toLowerCase())
-                    : item
-                  )
-                )}
-                chosenItems={post.groups}
-                onItemPress={addGroup}
-                searchPlaceholder={t('Search for group by name')}
-              />
-              <GroupsList
-                style={styles.pressSelectionValue}
-                groups={post.groups}
-                columns={1}
-                onPress={() => groupSelectorModalRef.current.show()}
-                onRemove={removeGroup}
-                RemoveIcon={() => (
-                  <Icon className='text-muted' name='Ex' style={styles.groupRemoveIcon} />
-                )}
-              />
-            </TouchableOpacity>
 
             <TouchableOpacity
               className='border-foreground/30'
