@@ -16,7 +16,10 @@ export default function PostPresenter (post, { forGroupId } = {}) {
     // TODO: Research and reconcile start and endTimeRaw with their incoming values, both are currently
     // used and I don't yet know when to use which. If "raw" values are needed then pass them through
     // as their default name (e.g "startTime" and "endTime") and use get* or some other naming for
-    // the presented values.
+    // the presented values. As per TGW this divergences originated when we transitioned from Luxon to
+    // Moment, so all that may need to be done here is to convert the POJS `new Date()` to Luxon DateTime
+    // or remove the defaulting entirely (they presumably are only used for PostEditor, so the default values)
+    // may only be needed there...
     startTime: post.startTime ? new Date(post.startTime) : post.startTime,
     endTime: post.endTime ? new Date(post.endTime) : post.endTime,
     startTimeRaw: post.startTime,
