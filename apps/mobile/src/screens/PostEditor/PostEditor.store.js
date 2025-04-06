@@ -44,8 +44,8 @@ export const usePostEditorStore = create((set, get) => {
     },
 
     isValid: () => {
-      const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, attachments } = get().post
-      const attachmentsLoading = attachments.some(attachment => !attachment?.url)
+      const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, getAttachments } = get().post
+      const attachmentsLoading = getAttachments().some(attachment => !attachment?.url)
 
       return (
         title &&
