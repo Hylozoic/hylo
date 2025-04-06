@@ -1,9 +1,11 @@
 import React from 'react'
 import { View, TouchableOpacity } from 'react-native'
-import { openURL } from 'hooks/useOpenURL'
+import useOpenURL from 'hooks/useOpenURL'
 import { FileLabel } from 'screens/PostEditor/FileSelector'
 
 export default function Files ({ urls, style, itemStyle }) {
+  const openURL = useOpenURL
+
   if (!urls) return null
 
   return (

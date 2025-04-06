@@ -33,19 +33,19 @@ export const usePostEditorStore = create((set, get) => {
   }
 
   return {
-    post: { ...initialState },
+    post: PostPresenter(initialState),
 
     updatePost,
 
     resetPost: () => {
       set(() => ({
-        post: PostPresenter({ ...initialState })
+        post: PostPresenter(initialState)
       }))
     },
 
     isValid: () => {
-      const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, attachments } = get().post
-      const attachmentsLoading = attachments.some(attachment => !attachment?.url)
+      const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, getAttachments } = get().post
+      const attachmentsLoading = getAttachments().some(attachment => !attachment?.url)
 
       return (
         title &&
@@ -64,11 +64,10 @@ export const usePostEditorStore = create((set, get) => {
         id: post.id,
         type: post.type,
         details,
-        groups: post.groups,
         groupIds: post.groups.map(c => c.id),
         memberIds: post.members.items.map(m => m.id),
-        fileUrls: post.filesUrls,
-        imageUrls: post.imageUrls,
+        fileUrls: post.getFileUrls(),
+        imageUrls: post.getImageUrls(),
         isPublic: post.isPublic,
         title: post.title,
         sendAnnouncement: post.announcement,

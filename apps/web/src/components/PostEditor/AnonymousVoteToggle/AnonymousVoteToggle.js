@@ -21,9 +21,9 @@ class AnonymousVoteToggle extends Component {
     const { isAnonymousVote, toggleAnonymousVote, t } = this.props
 
     return (
-      <div className={cn(classes.toggleContainer, { [classes.toggleIsActive]: isAnonymousVote })}>
-        <div className={classes.toggle}>
-          <Icon name='Hidden' className={classes.toggleIcon} /> {t('Anonymous Vote:')}
+      <div className={cn('border-2 border-transparent transition-all bg-input rounded-md p-2 mb-4 transition-all text-xs', { 'bg-selected': isAnonymousVote })}>
+        <div className='flex items-center gap-2'>
+          <Icon name='Hidden' /><span className='text-foreground/50'> {t('Anonymous Vote:')}</span>
           <SwitchStyled checked={isAnonymousVote} onChange={toggleAnonymousVote} backgroundColor={isAnonymousVote ? '#0DC39F' : '#8B96A4'} />
           <span className={classes.guidance}>{isAnonymousVote ? t('Voting will be anonymous') : t('You can see how people voted')}</span>
         </div>

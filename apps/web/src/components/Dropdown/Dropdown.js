@@ -59,8 +59,8 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
   }
 
   return (
-    <div className={cn(className, classes.dropdown, { [classes.hasTriangle]: triangle })} ref={parentRef}>
-      <span className={cn(classes.dropdownToggle, { [classes.toggled]: active })} onClick={toggle} data-testid='dropdown-toggle'>
+    <div className={cn(className, 'border-2 border-foreground/30 rounded-md p-2 transition-all', { [classes.hasTriangle]: triangle })} ref={parentRef}>
+      <span className={cn('flex items-center gap-2', { [classes.toggled]: active })} onClick={toggle} data-testid='dropdown-toggle'>
         {toggleChildren}
       </span>
       <span className={cn(classes.closeDropdown, { [classes.toggled]: active })} onClick={toggle}><Icon name='Ex' /></span>
