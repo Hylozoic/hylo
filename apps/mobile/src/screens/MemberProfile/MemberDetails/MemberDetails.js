@@ -20,7 +20,7 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import useConfirmAlert from 'hooks/useConfirmAlert'
-import { openURL } from 'hooks/useOpenURL'
+import useOpenURL from 'hooks/useOpenURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import TabStackHeader from 'navigation/headers/TabStackHeader'
 import Icon from 'components/Icon'
@@ -31,6 +31,7 @@ import styles from './MemberDetails.styles'
 
 export default function MemberDetails () {
   const { t } = useTranslation()
+  const openURL = useOpenURL()
   const navigation = useNavigation()
   const route = useRoute()
   const logout = useLogout()
