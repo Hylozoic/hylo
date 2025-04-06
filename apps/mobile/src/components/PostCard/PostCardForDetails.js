@@ -77,18 +77,18 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
         title={post.title}
         type={post.type}
       />
-      {(post.images.length === 0) && (
+      {(post.getImages().length === 0) && (
         <Topics
           topics={post.topics}
           onPress={t => goToTopic(t.name)}
           style={styles.topics}
         />
       )}
-      {(post.images.length > 0) && !(isFlagged && !post.clickthrough) && (
+      {(post.getImages().length > 0) && !(isFlagged && !post.clickthrough) && (
         <ImageAttachments
           creator={post.creator}
           isFlagged={isFlagged}
-          images={post.images}
+          images={post.getImages()}
           style={styles.images}
           title={post.title}
         >
@@ -130,7 +130,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
         post={post}
         currentUser={currentUser}
       />
-      <Files urls={post.fileUrls} style={styles.files} />
+      <Files urls={post.getFileUrls()} style={styles.files} />
       {/*
         NOTE: Replaced by PeopleListModal in Footer for Project Members and Commenters...
         but this could still be better, put in the footer
