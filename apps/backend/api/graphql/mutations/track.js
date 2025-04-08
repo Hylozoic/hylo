@@ -52,7 +52,8 @@ export async function updateTrack (userId, id, data) {
   const attrs = convertGraphqlData(omit(data, 'groupIds', 'publishedAt'))
   attrs.published_at = data.publishedAt ? new Date(Number(data.publishedAt)) : null
   await track.save(attrs)
-  Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: data.groupIds, track })
+  const groups = await track.groups().fetch()
+  Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: groups.pluck('id'), track })
   return track
 }
 

@@ -604,7 +604,7 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-resources', type: 'resources', view: 'resources' },
       { title: 'widget-stream', view: 'stream' },
       { title: 'widget-topics', type: 'topics', view: 'topics' },
-      { title: 'widget-tracks', type: 'tracks', view: 'tracks' }
+      { title: 'widget-tracks', type: 'tracks', view: 'tracks', visibility: 'admin' }
     ]
 
     await Promise.all([
@@ -1014,9 +1014,12 @@ module.exports = bookshelf.Model.extend(merge({
         }
 
         // Handle track case
-        if (track) {
+        if (track && track.published_at) {
+          // Only add tracks widget if it is published
           const tracksWidget = widgets.find(w => w.get('view') === 'tracks')
           if (tracksWidget && !tracksWidget.get('auto_added')) {
+            // Make tracks widget visible to all, not just admins
+            await tracksWidget.save({ visibility: null }, { transacting: trx })
             await ContextWidget.reorder({
               id: tracksWidget.get('id'),
               parentId: autoAddWidget.get('id'),
@@ -1110,7 +1113,7 @@ module.exports = bookshelf.Model.extend(merge({
           }
 
           // Check resources
-          if (postType === 'resources') {
+          if (postType === 'resource') {
             const resourcesWidget = widgets.find(w => w.get('view') === 'resources')
             if (resourcesWidget && !resourcesWidget.get('auto_added')) {
               await ContextWidget.reorder({
