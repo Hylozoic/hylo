@@ -1,5 +1,6 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
+import { TriangleAlert, X } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
@@ -22,7 +23,6 @@ import { DateTimePicker } from 'components/ui/datetimepicker'
 import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
-import Dropdown from 'components/Dropdown/Dropdown'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
@@ -75,6 +75,7 @@ import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from 'util/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from 'components/ui/select'
 
 import styles from './PostEditor.module.scss'
 
@@ -872,67 +873,68 @@ function PostEditor ({
         </div>
       )}
       {currentPost.type === 'proposal' && currentPost.proposalOptions.length === 0 && (
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>{t('Proposal template')}</div>
-          <div className={styles.inputContainer}>
-            <Dropdown
-              className={styles.dropdown}
-              toggleChildren={
-                <span className={styles.dropdownLabel}>
-                  {t('Select a template')}
-                  <Icon name='ArrowDown' blue />
-                </span>
-              }
-              items={[
-                { label: t(PROPOSAL_YESNO), onClick: () => handleUseTemplate(PROPOSAL_YESNO) },
-                { label: t(PROPOSAL_POLL_SINGLE), onClick: () => handleUseTemplate(PROPOSAL_POLL_SINGLE) },
-                { label: t(PROPOSAL_MULTIPLE_CHOICE), onClick: () => handleUseTemplate(PROPOSAL_MULTIPLE_CHOICE) },
-                { label: t(PROPOSAL_ADVICE), onClick: () => handleUseTemplate(PROPOSAL_ADVICE) },
-                { label: t(PROPOSAL_CONSENT), onClick: () => handleUseTemplate(PROPOSAL_CONSENT) },
-                { label: t(PROPOSAL_CONSENSUS), onClick: () => handleUseTemplate(PROPOSAL_CONSENSUS) },
-                { label: t(PROPOSAL_GRADIENT), onClick: () => handleUseTemplate(PROPOSAL_GRADIENT) }
-              ]}
-            />
+        <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2 mb-4'>
+          <div className='text-xs text-foreground/50'>{t('Proposal template')}</div>
+          <div>
+            <Select
+              onValueChange={(template) => handleUseTemplate(template)}
+            >
+              <SelectTrigger className='w-fit border-2 bg-transparent border-foreground/30 rounded-md p-2 text-base'>
+                <SelectValue placeholder={t('Select a template')}>
+                  <span className='flex items-center gap-2'>
+                    {t('Select a template')}
+                  </span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={PROPOSAL_YESNO}>{t(PROPOSAL_YESNO)}</SelectItem>
+                <SelectItem value={PROPOSAL_POLL_SINGLE}>{t(PROPOSAL_POLL_SINGLE)}</SelectItem>
+                <SelectItem value={PROPOSAL_MULTIPLE_CHOICE}>{t(PROPOSAL_MULTIPLE_CHOICE)}</SelectItem>
+                <SelectItem value={PROPOSAL_ADVICE}>{t(PROPOSAL_ADVICE)}</SelectItem>
+                <SelectItem value={PROPOSAL_CONSENT}>{t(PROPOSAL_CONSENT)}</SelectItem>
+                <SelectItem value={PROPOSAL_CONSENSUS}>{t(PROPOSAL_CONSENSUS)}</SelectItem>
+                <SelectItem value={PROPOSAL_GRADIENT}>{t(PROPOSAL_GRADIENT)}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       )}
       {currentPost.type === 'proposal' && currentPost.proposalOptions && (
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>
+        <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2 mb-4'>
+          <div className='text-xs text-foreground/50 w-[130px]'>
             {t('Proposal options')}*
           </div>
-          <div className={styles.optionsContainer}>
+          <div className='flex flex-col gap-2'>
             {currentPost.proposalOptions.map((option, index) => (
-              <div className={styles.proposalOption} key={index}>
-                {/* emojiPicker dropdown */}
-                <Dropdown
-                  className={styles.optionDropdown}
-                  toggleChildren={
-                    <span className={cn(styles.optionDropdownLabel, styles.dropdownLabel)}>
-                      {option.emoji || t('Emoji')}
-                      <Icon name='ArrowDown' blue className={cn(styles.optionDropdownIcon, styles.blue)} />
-                    </span>
-                  }
+              <div className='flex items-center gap-2 relative' key={index}>
+                {/* Replace emoji dropdown with Select */}
+                <Select
+                  value={option.emoji || 'no_emoji'}
+                  onValueChange={(emoji) => {
+                    const newOptions = [...currentPost.proposalOptions]
+                    newOptions[index].emoji = emoji === 'no_emoji' ? '' : emoji
+                    setCurrentPost({ ...currentPost, proposalOptions: newOptions })
+                  }}
                 >
-                  <div className={styles.emojiGrid}>
-                    {emojiOptions.map((emoji, i) => (
-                      <div
-                        key={i}
-                        className={styles.emojiOption}
-                        onClick={() => {
-                          const newOptions = [...currentPost.proposalOptions]
-                          newOptions[index].emoji = emoji
-                          setCurrentPost({ ...currentPost, proposalOptions: newOptions })
-                        }}
-                      >
+                  <SelectTrigger className='w-fit p-2 border-2 border-foreground/30 rounded-md'>
+                    <SelectValue placeholder={t('Emoji')}>
+                      <span className={cn(styles.optionDropdownLabel, styles.dropdownLabel)}>
+                        {option.emoji || t('Emoji')}
+                      </span>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_emoji">{t('No emoji')}</SelectItem>
+                    {emojiOptions.filter(emoji => emoji !== '').map((emoji, i) => (
+                      <SelectItem key={i} value={emoji}>
                         {emoji}
-                      </div>
+                      </SelectItem>
                     ))}
-                  </div>
-                </Dropdown>
+                  </SelectContent>
+                </Select>
                 <input
                   type='text'
-                  className={styles.optionTextInput}
+                  className='w-full rounded-md bg-midground p-2 text-foreground placeholder:text-foreground/50'
                   placeholder={t('Describe option')}
                   value={option.text}
                   onChange={(evt) => {
@@ -942,9 +944,9 @@ function PostEditor ({
                   }}
                   disabled={loading}
                 />
-                <Icon
-                  name='Ex'
-                  className={styles.icon}
+
+                <div
+                  className='absolute right-0 top-[50%] -translate-y-[50%] p-2 hover:cursor-pointer hover:scale-125 transition-all'
                   onClick={() => {
                     const newOptions = currentPost.proposalOptions.filter(element => {
                       if (option.id) return element.id !== option.id
@@ -952,53 +954,57 @@ function PostEditor ({
                     })
 
                     setCurrentPost({ ...currentPost, proposalOptions: newOptions })
-                  }}
-                />
+                  }}>
+                  <X className='w-4 h-4 text-foreground' />
+                </div>
               </div>
             ))}
-            <div className={styles.proposalOption} onClick={() => handleAddOption()}>
-              <Icon name='Plus' className={styles.iconPlus} blue />
+            <div className='border-2 border-foreground/30 rounded-md p-2 flex items-center gap-2' onClick={() => handleAddOption()}>
+              <Icon name='Plus' className='text-foreground' />
               <span className={styles.optionText}>{t('Add an option to vote on...')}</span>
             </div>
             {currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
-              <div className={cn(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
-                <Icon name='Hand' className={styles.iconPlus} />
-                <span className={styles.optionText}>{t('If you save changes to options, all votes will be discarded')}</span>
+              <div className='text-accent text-xs flex items-center gap-2'>
+                <TriangleAlert className='h-5 w-5' />
+                <span>{t('When options are changed, existing votes will be discarded')}</span>
               </div>
             )}
             {currentPost.proposalOptions.length === 0 && (
-              <div className={cn(styles.proposalOption, styles.warning)} onClick={() => handleAddOption()}>
-                <Icon name='Hand' className={styles.iconPlus} />
-                <span className={styles.optionText}>{t('Proposals require at least one option')}</span>
+              <div className='flex items-center gap-2 text-foreground/50 text-xs'>
+                <TriangleAlert className='h-5 w-5' />
+                <span>{t('Proposals require at least one option')}</span>
               </div>
             )}
           </div>
         </div>
       )}
       {currentPost.type === 'proposal' && (
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>{t('Voting method')}</div>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className='text-xs text-foreground/50'>{t('Voting method')}</div>
 
-          <div className={styles.inputContainer}>
-            <Dropdown
-              className={styles.dropdown}
-              toggleChildren={
-                <span className={styles.dropdownLabel}>
-                  {currentPost.votingMethod === VOTING_METHOD_SINGLE ? t('Single vote per person') : t('Multiple votes allowed')}
-                  <Icon name='ArrowDown' blue />
-                </span>
-              }
-              items={[
-                { label: t('Single vote per person'), onClick: () => handleSetProposalType(VOTING_METHOD_SINGLE) },
-                { label: t('Multiple votes allowed'), onClick: () => handleSetProposalType(VOTING_METHOD_MULTI_UNRESTRICTED) }
-              ]}
-            />
+          <div>
+            <Select
+              value={currentPost.votingMethod}
+              onValueChange={handleSetProposalType}
+            >
+              <SelectTrigger className='w-fit border-2 bg-transparent border-foreground/30 rounded-md p-2 text-base'>
+                <SelectValue>
+                  <span className='text-foreground'>
+                    {currentPost.votingMethod === VOTING_METHOD_SINGLE ? t('Single vote per person') : t('Multiple votes allowed')}
+                  </span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={VOTING_METHOD_SINGLE}>{t('Single vote per person')}</SelectItem>
+                <SelectItem value={VOTING_METHOD_MULTI_UNRESTRICTED}>{t('Multiple votes allowed')}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       )}
       {currentPost.type === 'proposal' && (
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>{t('Quorum')} <Icon name='Info' className={cn(styles.quorumTooltip)} data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
+        <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2 mb-4'>
+          <div className='text-xs text-foreground/50 w-[100px]'>{t('Quorum')} <Icon name='Info' className={cn(styles.quorumTooltip)} data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
           <SliderInput percentage={currentPost.quorum || 0} setPercentage={handleSetQuorum} />
           <ReactTooltip
             backgroundColor='rgba(35, 65, 91, 1.0)'

@@ -6,7 +6,7 @@ import { WebViewMessageTypes } from '@hylo/shared'
 import { DEFAULT_APP_HOST } from 'navigation/linking'
 import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
 import useGroup from '@hylo/hooks/useGroup'
-import { openURL } from 'hooks/useOpenURL'
+import useOpenURL from 'hooks/useOpenURL'
 import useIsModalScreen from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
 import ModalHeaderTransparent from 'navigation/headers/ModalHeaderTransparent'
@@ -28,6 +28,7 @@ const groupStewardsQuery = gql`
 `
 export default function GroupExploreWebView () {
   const navigation = useNavigation()
+  const openURL = useOpenURL()
   const isModalScreen = useIsModalScreen()
   const webViewRef = useRef(null)
   const { groupSlug } = useRouteParams()

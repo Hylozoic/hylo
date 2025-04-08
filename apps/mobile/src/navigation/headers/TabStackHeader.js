@@ -79,6 +79,8 @@ export default function TabStackHeader ({
     options?.headerTitle
   ])
 
+  if (!currentGroup) return null
+
   return <Header {...props} {...otherProps} />
 }
 
