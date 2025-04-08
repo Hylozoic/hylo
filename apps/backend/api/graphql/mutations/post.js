@@ -6,7 +6,7 @@ import underlyingUpdatePost from '../../models/post/updatePost'
 export async function completePost (userId, postId, completionResponse) {
   const post = await Post.find(postId)
   await post.complete(userId, completionResponse)
-  await post.update({ num_people_completed: post.get('num_people_completed') + 1 })
+  await post.save({ num_people_completed: post.get('num_people_completed') + 1 })
   return { success: true }
 }
 

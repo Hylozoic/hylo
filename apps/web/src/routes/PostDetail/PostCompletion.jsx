@@ -28,7 +28,7 @@ export default function PostCompletion ({ post, currentUser }) {
   let completionControls, completionButtonText
   switch (completionAction) {
     case 'button':
-      completionControls = <Button />
+      completionControls = null
       completionButtonText = 'Mark as Complete'
       break
     case 'selectMultiple':
