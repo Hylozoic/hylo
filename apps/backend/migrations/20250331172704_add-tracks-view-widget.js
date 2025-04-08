@@ -13,7 +13,7 @@ exports.up = async function (knex) {
          group_id, title, type, view, created_at, updated_at, visibility
        )
        SELECT v.* FROM (VALUES
-         (CAST(? AS bigint), 'widget-tracks', 'tracks', 'tracks', NOW(), NOW(), '')
+         (CAST(? AS bigint), 'widget-tracks', 'tracks', 'tracks', NOW(), NOW(), 'admin')
        ) AS v(group_id, title, type, view, created_at, updated_at, visibility)
        WHERE NOT EXISTS (
          SELECT 1 FROM context_widgets w
