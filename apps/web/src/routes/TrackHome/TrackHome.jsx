@@ -77,7 +77,7 @@ function TrackHome () {
       {(isEnrolled || canEdit) && (
         <div>
           <Button variant={currentTab === 'about' ? 'secondary' : 'primary'} onClick={() => changeTab('about')}>{t('About')}</Button>
-          <Button variant={currentTab === 'actions' ? 'secondary' : 'primary'} onClick={() => changeTab('actions')}>{t('Actions')}</Button>
+          <Button variant={currentTab === 'actions' ? 'secondary' : 'primary'} onClick={() => changeTab('actions')}>{currentTrack.actionsName}</Button>
           {canEdit && (
             <Button variant={currentTab === 'edit' ? 'secondary' : 'primary'} onClick={() => changeTab('edit')}>{t('Edit')}</Button>
           )}
@@ -129,12 +129,11 @@ function AboutTab ({ currentTrack }) {
 }
 
 function ActionsTab ({ currentTrack }) {
-  const { t } = useTranslation()
   const posts = useSelector(state => getPosts(state, currentTrack))
 
   return (
     <>
-      <h1>{t('Actions')}</h1>
+      <h1>{currentTrack.actionsName}</h1>
       {posts.map(post => (
         <PostCard key={post.id} post={post} isCurrentAction={currentTrack.currentAction?.id === post.id} />
       ))}
@@ -154,7 +153,7 @@ function EditTab ({ currentTrack }) {
       {posts.map(post => (
         <PostCard key={post.id} post={post} />
       ))}
-      <Button variant='secondary' onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}>+ {t('Add Action')}</Button>
+      <Button variant='secondary' onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}>+ {t('Add {{actionName}}', { actionName: currentTrack.actionsName.slice(0, -1) })}</Button>
     </>
   )
 }

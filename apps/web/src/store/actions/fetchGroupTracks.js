@@ -18,6 +18,7 @@ query (
       items {
         id
         bannerUrl
+        actionsName
         description
         completionBadgeEmoji
         completionBadgeName

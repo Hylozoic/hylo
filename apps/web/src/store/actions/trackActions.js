@@ -147,6 +147,7 @@ export function fetchTrack (trackId) {
         ) {
           track (id: $id) {
             id
+            actionsName
             bannerUrl
             completionBadgeEmoji
             completionBadgeName

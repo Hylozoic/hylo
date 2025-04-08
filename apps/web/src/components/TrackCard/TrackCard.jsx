@@ -25,7 +25,7 @@ function TrackCard ({ track }) {
     }
   }, [track.id])
 
-  const { name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
+  const { actionsName, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
 
   return (
     <div className='p-4 border rounded-lg'>
@@ -63,7 +63,7 @@ function TrackCard ({ track }) {
           </div>
         )}
         <div className='flex-1' />
-        <span>{t('{{num}} Actions', { num: numActions })}</span>
+        <span>{t('{{num}} {{actionName}}', { num: numActions, actionName: actionsName })}</span>
       </div>
     </div>
   )

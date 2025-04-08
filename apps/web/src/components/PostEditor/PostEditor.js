@@ -747,13 +747,19 @@ function PostEditor ({
         }}
       />
       <div className={cn('PostEditorHeader relative', { 'my-1 pb-2': !isChat })}>
-        <PostTypeSelect
-          disabled={loading}
-          includeChat={!modal}
-          postType={currentPost.type}
-          setPostType={handlePostTypeSelection}
-          className={cn({ 'absolute top-1 right-1 z-10': isChat })}
-        />
+        {currentPost.type !== 'action'
+          ? (
+            <PostTypeSelect
+              disabled={loading}
+              includeChat={!modal}
+              postType={currentPost.type}
+              setPostType={handlePostTypeSelection}
+              className={cn({ 'absolute top-1 right-1 z-10': isChat })}
+            />
+            )
+          : (
+            <div className=''>{t('Add a {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) })}</div>
+            )}
       </div>
       {!isChat && (
         <div
