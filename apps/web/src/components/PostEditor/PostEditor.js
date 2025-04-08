@@ -78,7 +78,6 @@ import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from 'util/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from 'components/ui/select'
 
 import styles from './PostEditor.module.scss'
 
