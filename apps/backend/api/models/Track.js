@@ -65,6 +65,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
     if (!track) {
       throw new GraphQLError('Track not found')
     }
+
+    await track.save({ num_actions: track.get('num_actions') + 1 }, { transacting })
+
     const maxOrder = await TrackPost.query(q => {
       q.where('track_id', track.get('id'))
       q.orderBy('order', 'desc')
