@@ -117,7 +117,8 @@ export {
   createTrack,
   deleteTrack,
   enrollInTrack,
-  leaveTrack
+  leaveTrack,
+  updateTrack
 } from './track'
 export {
   blockUser,

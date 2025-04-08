@@ -3,6 +3,8 @@ export const ENROLL_IN_TRACK = 'ENROLL_IN_TRACK'
 export const ENROLL_IN_TRACK_PENDING = 'ENROLL_IN_TRACK_PENDING'
 export const LEAVE_TRACK = 'LEAVE_TRACK'
 export const LEAVE_TRACK_PENDING = 'LEAVE_TRACK_PENDING'
+export const UPDATE_TRACK = 'UPDATE_TRACK'
+export const UPDATE_TRACK_PENDING = 'UPDATE_TRACK_PENDING'
 
 const CommentFieldsFragment = `
   id
@@ -173,6 +175,30 @@ export function fetchTrack (trackId) {
     },
     meta: {
       extractModel: 'Track'
+    }
+  }
+}
+
+export function updateTrack (trackId, data) {
+  return {
+    type: UPDATE_TRACK,
+    graphql: {
+      query: `
+        mutation ($trackId: ID, $data: TrackInput) {
+          updateTrack(trackId: $trackId, data: $data) {
+            id
+          }
+        }
+      `,
+      variables: {
+        trackId,
+        data
+      }
+    },
+    meta: {
+      trackId,
+      data,
+      optimistic: true
     }
   }
 }

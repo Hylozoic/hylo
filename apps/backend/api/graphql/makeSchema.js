@@ -121,6 +121,7 @@ import {
   updateGroupTopic,
   updateGroupTopicFollow,
   updateTopicFollow,
+  updateTrack,
   updateMe,
   updateMembership,
   updatePost,
@@ -540,6 +541,8 @@ export function makeMutations ({ fetchOne }) {
     updateComment: (root, args, context) => updateComment(context.currentUserId, args, context),
 
     updateStripeAccount: (root, { accountId }, context) => updateStripeAccount(context.currentUserId, accountId),
+
+    updateTrack: (root, { trackId, data }, context) => updateTrack(context.currentUserId, trackId, data),
 
     updateWidget: (root, { id, changes }, context) => updateWidget(id, changes),
 

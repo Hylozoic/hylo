@@ -1,5 +1,5 @@
 import { COMPLETE_POST_PENDING } from 'store/constants'
-import { ENROLL_IN_TRACK_PENDING, LEAVE_TRACK_PENDING } from 'store/actions/trackActions'
+import { ENROLL_IN_TRACK_PENDING, LEAVE_TRACK_PENDING, UPDATE_TRACK_PENDING } from 'store/actions/trackActions'
 
 export function ormSessionReducer (
   { Post, Track },
@@ -22,6 +22,12 @@ export function ormSessionReducer (
       const track = Track.safeGet({ id: meta.trackId })
       if (!track) return
       return track.update({ isEnrolled: false })
+    }
+
+    case UPDATE_TRACK_PENDING: {
+      const track = Track.safeGet({ id: meta.trackId })
+      if (!track) return
+      return track.update(meta.data)
     }
   }
 }
