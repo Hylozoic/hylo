@@ -12,7 +12,7 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import { createTrackUrl } from 'util/navigation'
 import isWebView from 'util/webView'
 
-const postTypes = Object.keys(POST_TYPES).filter(t => t !== 'chat')
+const postTypes = Object.keys(POST_TYPES).filter(t => t !== 'chat' && t !== 'action')
 
 export default function CreateMenu ({ coordinates }) {
   const routeParams = useRouteParams()
