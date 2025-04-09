@@ -22,6 +22,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
+import { bgImageStyle } from 'util/index'
 import { createPostUrl, groupUrl } from 'util/navigation'
 
 const getPosts = ormCreateSelector(
@@ -120,11 +121,16 @@ function TrackHome () {
 function AboutTab ({ currentTrack }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const { name, description, isEnrolled } = currentTrack
+  const { bannerUrl, name, description, isEnrolled } = currentTrack
 
   return (
     <>
-      <h1>{name}</h1>
+      <div
+        className='mt-4 w-[80vw] shadow-2xl max-w-[750px] rounded-xl mx-auto h-[40vh] flex flex-col absolute top-0 z-0 items-center justify-center bg-cover left-[50%] translate-x-[-50%]'
+        style={bannerUrl ? bgImageStyle(bannerUrl) : {}}
+      >
+        <h1 className='text-white text-4xl font-bold'>{name}</h1>
+      </div>
       <HyloHTML html={description} />
 
       {!isEnrolled
