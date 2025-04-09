@@ -1,11 +1,10 @@
 import { isEmpty } from 'lodash/fp'
-import { Shapes } from 'lucide-react'
+import { Shapes, Settings, DoorOpen, Check } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { useNavigate, Routes, Route } from 'react-router-dom'
-import Button from 'components/ui/button'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
@@ -23,7 +22,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
-import { createPostUrl } from 'util/navigation'
+import { createPostUrl, groupUrl } from 'util/navigation'
 
 const getPosts = ormCreateSelector(
   orm,
@@ -130,13 +129,15 @@ function AboutTab ({ currentTrack }) {
 
       {!isEnrolled
         ? (
-          <div>
-            <Button variant='secondary' onClick={() => dispatch(enrollInTrack(currentTrack.id))}>{t('Enroll')}</Button>
+          <div className='flex flex-row gap-2 fixed bottom-0 mx-auto w-full max-w-[750px] px-4 py-2 justify-between items-center bg-input rounded-t-md'>
+            <span>{t('Ready to jump in?')}</span>
+            <button className='bg-selected text-foreground rounded-md p-2 px-4' onClick={() => dispatch(enrollInTrack(currentTrack.id))}>{t('Enroll')}</button>
           </div>
           )
         : (
-          <div>
-            <Button variant='secondary' onClick={() => dispatch(leaveTrack(currentTrack.id))}>{t('Leave Track')}</Button>
+          <div className='flex flex-row gap-2 border-2 border-foreground/20 border-dashed rounded-md p-2 justify-between items-center'>
+            <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
+            <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
           </div>
           )}
     </>
@@ -164,11 +165,14 @@ function EditTab ({ currentTrack }) {
 
   return (
     <>
-      <h1>{t('Edit')}</h1>
+      <button className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center mt-4 mb-4' onClick={() => navigate(groupUrl(routeParams.groupSlug, 'settings/tracks'))}>
+        <Settings className='w-4 h-4' />
+        <span>{t('Open Track Settings', { actionName: currentTrack.actionsName.slice(0, -1) })}</span>
+      </button>
       {posts.map(post => (
         <PostCard key={post.id} post={post} />
       ))}
-      <Button variant='secondary' onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}>+ {t('Add {{actionName}}', { actionName: currentTrack.actionsName.slice(0, -1) })}</Button>
+      <button className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md' onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}>+ {t('Add {{actionName}}', { actionName: currentTrack.actionsName.slice(0, -1) })}</button>
     </>
   )
 }

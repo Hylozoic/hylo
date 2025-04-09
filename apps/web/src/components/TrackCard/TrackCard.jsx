@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Settings } from 'lucide-react'
+import { Eye, EyeOff, Settings, Users, UserCheck } from 'lucide-react'
 import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
@@ -11,6 +11,7 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 import { trackUrl } from 'util/navigation'
 import { cn } from 'util/index'
+import Tooltip from 'components/Tooltip'
 
 function TrackCard ({ track }) {
   const routeParams = useRouteParams()
@@ -70,18 +71,23 @@ function TrackCard ({ track }) {
               )}>{publishedAt ? t('Published') : t('Unpublished')}</span>
             </div>
           )}
-          <div className='flex justify-between items-center'>
-            <div>
-              <span>{numPeopleCompleted}</span>
-              <span className='text-xs'>{t('Completed')}</span>
-            </div>
-            <div>
+          <div className='flex justify-between items-center flex-row gap-2'>
+            <div className='flex flex-row items-center gap-1 border-2 border-focus/20 rounded-md p-1 px-2 hover:border-focus/100 transition-all cursor-pointer' data-tooltip-id='track-card-tooltip' data-tooltip-html={t('Number of people that have enrolled in the track')}>
               <span>{numPeopleEnrolled}</span>
-              <span>{t('Enrolled')}</span>
+              <span><Users className='w-4 h-4' /></span>
+            </div>
+            <div className='flex flex-row items-center gap-1 border-2 border-selected/20 rounded-md p-1 px-2 hover:border-selected/100 transition-all cursor-pointer' data-tooltip-id='track-card-tooltip' data-tooltip-html={t('Number of people that have completed the track')}>
+              <span>{numPeopleCompleted}</span>
+              <span className='text-xs'><UserCheck className='w-4 h-4' /></span>
             </div>
           </div>
         </div>
       </div>
+      <Tooltip
+        delay={0}
+        id='track-card-tooltip'
+        position='bottom'
+      />
     </Link>
   )
 }
