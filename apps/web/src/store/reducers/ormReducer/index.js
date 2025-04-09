@@ -210,6 +210,11 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         text: meta.text,
         creator: Me.first().id
       })
+      // Mark post as complete if the completion action is to comment
+      const post = Post.withId(meta.postId)
+      if (post.completionAction === 'comment') {
+        post.update({ completedAt: new Date().toISOString() })
+      }
       break
     }
 

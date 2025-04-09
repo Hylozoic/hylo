@@ -526,7 +526,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   async markAsRead (userId) {
     const pu = await this.loadPostInfoForUser(userId)
-    return pu.save({ last_read_at: new Date() })
+    // XXX: don't know why we need to save the completion_response here but it errors without
+    return pu.save({ last_read_at: new Date(), completion_response: JSON.stringify(pu.get('completion_response')) })
   },
 
   pushTypingToSockets: function (userId, userName, isTyping, socketToExclude) {
@@ -904,38 +905,46 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   async updateFromNewComment ({ postId, commentId }) {
-    const where = {post_id: postId, 'comments.active': true}
+    const where = { post_id: postId, 'comments.active': true }
     const now = new Date()
 
-    return Promise.all([
-      Comment.query().where(where).orderBy('created_at', 'desc').limit(2)
+    await Comment.query().where(where).orderBy('created_at', 'desc').limit(2)
       .pluck('id').then(ids => Promise.all([
         Comment.query().whereIn('id', ids).update('recent', true),
         Comment.query().whereNotIn('id', ids)
-        .where({recent: true, post_id: postId})
-        .update('recent', false)
-      ])),
+          .where({ recent: true, post_id: postId })
+          .update('recent', false)
+      ]))
 
-      // update num_comments and updated_at (only update the latter when
-      // creating a comment, not deleting one)
-      Aggregate.count(Comment.where(where)).then(count =>
-        Post.query().where('id', postId).update(omitBy(isNull, {
-          num_comments: count,
-          updated_at: commentId ? now : null
-        }))),
+    // update num_comments and updated_at (only update the latter when
+    // creating a comment, not deleting one)
+    const numComments = await Aggregate.count(Comment.where(where))
+    const post = await Post.find(postId)
+    await post.save({
+      num_comments: numComments,
+      updated_at: commentId ? now : null
+    })
 
-      // when creating a comment, mark post as read for the commenter
-      commentId && Comment.where('id', commentId).query().pluck('user_id')
-      .then(([ userId ]) => Post.find(postId)
-        .then(post => post.markAsRead(userId)))
-    ])
+    // when creating a comment, mark post as read for the commenter
+    if (commentId) {
+      const comment = await Comment.find(commentId)
+      const userId = comment.get('user_id')
+      if (userId) {
+        await post.markAsRead(userId)
+        // If the post is an action and the completion action is to comment,
+        // set the completed_at date to now
+        if (post.get('type') === 'action' && post.get('completion_action') === 'comment' && !post.get('completed_at')) {
+          await post.complete(userId, JSON.stringify([comment.get('text')]))
+        }
+      }
+    }
   },
 
   deactivate: postId =>
     bookshelf.transaction(trx =>
       Promise.join(
         Activity.removeForPost(postId, trx),
-        Post.where('id', postId).query().update({active: false}).transacting(trx)
+        Post.where('id', postId).query().update({ active: false }).transacting(trx)
       )),
 
   createActivities: (opts) =>
