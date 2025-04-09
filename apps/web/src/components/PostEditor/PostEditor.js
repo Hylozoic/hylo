@@ -26,6 +26,7 @@ import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
+import useRouteParams from 'hooks/useRouteParams'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import fetchMyMemberships from 'store/actions/fetchMyMemberships'
 import {
@@ -179,7 +180,7 @@ function PostEditor ({
   const initialPost = useMemo(() => ({
     acceptContributions: false,
     completionAction: 'button',
-    completionActionSettings: {},
+    completionActionSettings: { instructions: t('postCompletionActions.button.instructions') },
     details: '',
     groups: currentGroup ? [currentGroup] : [],
     isAnonymousVote: false,
@@ -1202,11 +1203,13 @@ function PostEditor ({
 
 function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
   const { t } = useTranslation()
+  const routeParams = useRouteParams()
+  const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
 
   const { completionAction, completionActionSettings } = currentPost
 
   const handleCompletionActionChange = useCallback((value) => {
-    const completionActionSettings = { instructions: '' }
+    const completionActionSettings = { instructions: t('postCompletionActions.' + value + '.instructions') }
     if (value === 'selectMultiple' || value === 'selectOne') {
       completionActionSettings.options = []
     }
@@ -1222,12 +1225,9 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
     setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, instructions: evt.target.value } })
   }, [completionActionSettings, currentPost, setCurrentPost])
 
-  console.log('completionActionSettings', completionActionSettings)
-  console.log('completionAction', completionAction)
-
   return (
-    <div className='flex flex-col items-center border-2 border-transparent transition-all bg-input rounded-md p-2 mt-4 mb-2 gap-2'>
-      <div className='text-xs text-foreground/50'>{t('How can people complete this action?')}</div>
+    <div className='flex flex-col items-start border-2 border-dashed border-foreground/30 transition-all bg-background rounded-md p-2 mt-4 mb-2 gap-2'>
+      <div className='text-xs text-foreground/50'>{t('How can people complete this {{actionName}}?', { actionName: currentTrack?.actionsName.slice(0, -1) })}</div>
       <div className='w-full'>
         <Select value={completionAction} onValueChange={handleCompletionActionChange}>
           <SelectTrigger className={cn('w-fit py-1 h-8 border-2')}>
@@ -1240,12 +1240,19 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
           </SelectContent>
         </Select>
       </div>
-      <div>
+      <div className='w-full'>
+        <label className='inline-block mb-2'>{t('Completion Instructions')}</label>
+        <textarea
+          className='w-full outline-none border-none bg-input rounded-md p-2 placeholder:text-foreground/50'
+          placeholder={t('Add instructions for completing this {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) })}
+          value={completionActionSettings.instructions}
+          onChange={handleInstructionsChange}
+        />
         {(completionAction === 'selectMultiple' || completionAction === 'selectOne') && (
           <div className={styles.optionsContainer}>
             {completionActionSettings?.options?.map((option, index) => (
               <div className={styles.proposalOption} key={index}>
-                <label className={styles.optionLabel}>{t('Option {{index}}', { index: index + 1 })}</label>
+                <label className='whitespace-nowrap'>{t('Option {{index}}', { index: index + 1 })}</label>
                 <input
                   type='text'
                   className={styles.optionTextInput}
@@ -1277,14 +1284,6 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
             </div>
           </div>
         )}
-        <label className={styles.optionLabel}>{t('Completion Instructions')}</label>
-        <input
-          type='text'
-          className={styles.optionTextInput}
-          placeholder={t('postCompletionActions.' + completionAction + '.instructions')}
-          value={completionActionSettings.instructions || ''}
-          onChange={handleInstructionsChange}
-        />
       </div>
     </div>
   )
