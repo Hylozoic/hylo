@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
-import { TriangleAlert, X } from 'lucide-react'
+import { TriangleAlert, X, Star } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
@@ -917,8 +917,8 @@ function PostEditor ({
       )}
       {currentPost.type === 'proposal' && currentPost.proposalOptions && (
         <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2 mb-4'>
-          <div className='text-xs text-foreground/50 w-[130px]'>
-            {t('Proposal options')}*
+          <div className='text-xs text-foreground/50 w-[100px]'>
+            {t('Proposal options')}
           </div>
           <div className='flex flex-col gap-2'>
             {currentPost.proposalOptions.map((option, index) => (
@@ -960,9 +960,11 @@ function PostEditor ({
                   }}
                   disabled={loading}
                 />
-
+                <div className='flex flex-row gap-2 items-center'>
+                  <Star className='w-4 h-4 text-foreground' />
+                </div>
                 <div
-                  className='absolute right-0 top-[50%] -translate-y-[50%] p-2 hover:cursor-pointer hover:scale-125 transition-all'
+                  className='p-2 hover:cursor-pointer hover:scale-125 transition-all'
                   onClick={() => {
                     const newOptions = currentPost.proposalOptions.filter(element => {
                       if (option.id) return element.id !== option.id
@@ -977,7 +979,7 @@ function PostEditor ({
             ))}
             <div className='border-2 border-foreground/30 rounded-md p-2 flex items-center gap-2' onClick={() => handleAddOption()}>
               <Icon name='Plus' className='text-foreground' />
-              <span className={styles.optionText}>{t('Add an option to vote on...')}</span>
+              <span className='border-2 border-foreground/30 rounded-md p-2'>{t('Add an option to vote on...')}</span>
             </div>
             {currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
               <div className='text-accent text-xs flex items-center gap-2'>
@@ -1226,9 +1228,9 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
   }, [completionActionSettings, currentPost, setCurrentPost])
 
   return (
-    <div className='flex flex-col items-start border-2 border-dashed border-foreground/30 transition-all bg-background rounded-md p-2 mt-4 mb-2 gap-2'>
-      <div className='text-xs text-foreground/50'>{t('How can people complete this {{actionName}}?', { actionName: currentTrack?.actionsName.slice(0, -1) })}</div>
-      <div className='w-full'>
+    <div className='flex flex-col items-start border-2 border-dashed border-foreground/30 transition-all bg-background rounded-md p-3 mt-4 mb-2 gap-2'>
+      <div>{t('How can people complete this {{actionName}}?', { actionName: currentTrack?.actionsName.slice(0, -1) })}</div>
+      <div className='w-full mb-2'>
         <Select value={completionAction} onValueChange={handleCompletionActionChange}>
           <SelectTrigger className={cn('w-fit py-1 h-8 border-2')}>
             <SelectValue />
@@ -1240,7 +1242,7 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
           </SelectContent>
         </Select>
       </div>
-      <div className='w-full'>
+      <div className='w-full p-2 bg-black/20 rounded-md'>
         <label className='inline-block mb-2'>{t('Completion Instructions')}</label>
         <textarea
           className='w-full outline-none border-none bg-input rounded-md p-2 placeholder:text-foreground/50'
@@ -1249,13 +1251,13 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
           onChange={handleInstructionsChange}
         />
         {(completionAction === 'selectMultiple' || completionAction === 'selectOne') && (
-          <div className={styles.optionsContainer}>
+          <div className='w-full flex flex-col gap-2'>
             {completionActionSettings?.options?.map((option, index) => (
-              <div className={styles.proposalOption} key={index}>
-                <label className='whitespace-nowrap'>{t('Option {{index}}', { index: index + 1 })}</label>
+              <div className='flex flex-row gap-2 items-center bg-input rounded-md p-2' key={index}>
+                <label className='whitespace-nowrap font-normal'>{t('Option {{index}}', { index: index + 1 })}</label>
                 <input
                   type='text'
-                  className={styles.optionTextInput}
+                  className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
                   placeholder={t('Add description')}
                   value={option}
                   onChange={(evt) => {
@@ -1267,7 +1269,6 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
                 />
                 <Icon
                   name='Ex'
-                  className={styles.icon}
                   onClick={() => {
                     const newOptions = completionActionSettings?.options?.filter(element => {
                       return element !== option
@@ -1278,9 +1279,9 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
                 />
               </div>
             ))}
-            <div className={styles.proposalOption} onClick={() => handleAddOption()}>
-              <Icon name='Plus' className={styles.iconPlus} blue />
-              <span className={styles.optionText}>{t('Add an option')}</span>
+            <div className='w-full flex flex-row gap-2 items-center border-2 border-foreground/30 rounded-md p-2' onClick={() => handleAddOption()}>
+              <Icon name='Plus' className='text-foreground' />
+              <span>{t('Add an option')}</span>
             </div>
           </div>
         )}
