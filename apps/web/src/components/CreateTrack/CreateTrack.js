@@ -116,9 +116,9 @@ function CreateTrack () {
   const { actionsName, bannerUrl, completionBadgeEmoji, completionBadgeName, completionMessage, description, name, publishedAt, welcomeMessage } = trackState
 
   return (
-    <div className='w-full bg-white rounded-md shadow-sm p-2'>
-      <div className='flex text-center'>
-        <h1 className='p-2 w-full text-center block text-foreground'>{t('Create Track')}</h1>
+    <div className='flex flex-col rounded-lg bg-background p-3 shadow-2xl relative'>
+      <div className='p-0'>
+        <h1 className='w-full text-sm block text-foreground m-0 p-0 mb-4'>{t('Create Track')}</h1>
       </div>
 
       <UploadAttachmentButton
@@ -137,10 +137,11 @@ function CreateTrack () {
         </div>
       </UploadAttachmentButton>
 
-      <div className='bg-background p-2 relative flex items-center'>
+      <div className='mt-3 flex relative border-2 items-center border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-md mb-8'>
+        <div className='text-xs text-foreground/50 px-2 py-1 w-[90px]'>{t('Track name')}</div>
         <input
           autoFocus
-          className='p-1 text-2xl w-full font-xl font-bold border-b border-dashed border-gray-300'
+          className='border-none outline-none bg-transparent placeholder:text-foreground/50 p-2 w-full'
           maxLength='120'
           name='name'
           onChange={updateField('name')}
@@ -151,21 +152,8 @@ function CreateTrack () {
         <span className='absolute right-3 text-sm text-gray-500'>{nameCharacterCount} / 120</span>
       </div>
 
-      <div className='bg-background p-2 relative'>
-        <h3>Actions Term*</h3>
-        <p className='text-sm text-gray-500'>{t('actionsTermHelp')}:</p>
-        <input
-          className='p-1 w-full border-b border-dashed border-gray-300'
-          maxLength='40'
-          name='actionsName'
-          onChange={updateField('actionsName')}
-          value={actionsName}
-          type='text'
-        />
-      </div>
-
-      <div className='relative bg-background p-2'>
-        <h3>Description</h3>
+      <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-tr-md rounded-br-md rounded-bl-md mb-8'>
+        <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>Description</h3>
         <HyloEditor
           key={currentGroup.id}
           containerClassName='mt-2'
@@ -183,13 +171,14 @@ function CreateTrack () {
         />
       </div>
 
-      <div className='bg-background p-2 relative'>
-        <h3>Welcome Message</h3>
+      <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-tr-md rounded-br-md rounded-bl-md mb-8'>
+        <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>
+          {t('Welcome Message')}
+        </h3>
         <HyloEditor
           key={currentGroup.id}
-          containerClassName='mt-2'
           contentHTML={welcomeMessage}
-          className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
+          className='h-full p-2 min-h-20 m-0'
           extendedMenu
           groupIds={[currentGroup.id]}
           onUpdate={(html) => {
@@ -202,29 +191,8 @@ function CreateTrack () {
         />
       </div>
 
-      <div className='bg-background p-2 relative'>
-        <h3>Completion Badge and Name</h3>
-        <div className='flex items-center gap-2'>
-          <EmojiPicker
-            forReactions={false}
-            emoji={completionBadgeEmoji}
-            handleReaction={updateField('completionBadgeEmoji')}
-            className='w-8 h-8 bg-foreground/5 rounded flex items-center justify-center cursor-pointer hover:bg-foreground/10 hover:shadow-xl border-2 border-foreground/50 hover:border-foreground/100 transition-all'
-          />
-          <input
-            className='border-b border-dashed border-gray-300 flex-1'
-            maxLength='40'
-            name='completionBadgeName'
-            onChange={updateField('completionBadgeName')}
-            value={completionBadgeName}
-            placeholder={t('Your track completion badge name here')}
-            type='text'
-          />
-        </div>
-      </div>
-
-      <div className='bg-background p-2 relative'>
-        <h3>Completion Message</h3>
+      <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-tr-md rounded-br-md rounded-bl-md'>
+        <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>Completion Message</h3>
         <HyloEditor
           key={currentGroup.id}
           containerClassName='mt-2'
@@ -242,7 +210,44 @@ function CreateTrack () {
         />
       </div>
 
-      <div className='bg-background p-2 relative'>
+      <div>
+        <h3>Completion badge</h3>
+        <div className='flex flex-row items-center relative border-2 p-1 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-md'>
+          <EmojiPicker
+            forReactions={false}
+            emoji={completionBadgeEmoji}
+            handleReaction={updateField('completionBadgeEmoji')}
+            className='w-8 h-8 bg-foreground/5 rounded flex items-center justify-center cursor-pointer hover:bg-foreground/10 hover:shadow-xl border-2 border-foreground/50 hover:border-foreground/100 transition-all'
+          />
+          <input
+            className='border-none outline-none bg-transparent placeholder:text-foreground/50 p-2 w-full'
+            maxLength='40'
+            name='completionBadgeName'
+            onChange={updateField('completionBadgeName')}
+            value={completionBadgeName}
+            placeholder={t('Name of badge awarded to those who complete the track')}
+            type='text'
+          />
+        </div>
+      </div>
+
+      <div>
+        <h3>Term for track units</h3>
+        <p className='text-xs text-foreground/60'>{t('actionsTermHelp')}:</p>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
+          <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term')}</div>
+          <input
+            className='p-2 border-none bg-transparent w-full'
+            maxLength='40'
+            name='actionsName'
+            onChange={updateField('actionsName')}
+            value={actionsName}
+            type='text'
+          />
+        </div>
+      </div>
+
+      <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
         {/* <span className='mr-2'>Publish At</span>
         <DateTimePicker
           hourCycle={getHourCycle()}
@@ -281,7 +286,7 @@ function CreateTrack () {
           disabled={!edited || !isValid}
           onClick={onSubmit}
         >
-          <Plus className={cn('w-4 h-4 bg-primary text-white', { 'bg-secondary': edited && isValid })} />{t('Create Track')}
+          <Plus className={cn('w-4 h-4 text-white', { 'bg-secondary': edited && isValid })} />{t('Create Track')}
         </Button>
       </div>
     </div>

@@ -53,7 +53,7 @@ const CreateModal = (props) => {
     >
       <div className={classes.createModal} ref={modalRef}>
         <div className={classes.createModalWrapper}>
-          <span className={classes.closeButton} onClick={confirmClose}>
+          <span className='absolute top-6 right-6 p-2 z-10' onClick={confirmClose}>
             <Icon name='Ex' />
           </span>
           {props.editingPost
