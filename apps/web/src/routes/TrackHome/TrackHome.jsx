@@ -73,13 +73,28 @@ function TrackHome () {
   const { isEnrolled } = currentTrack
 
   return (
-    <div className='p-4' ref={setContainer}>
+    <div className='p-4 max-w-[750px] mx-auto' ref={setContainer}>
       {(isEnrolled || canEdit) && (
-        <div>
-          <Button variant={currentTab === 'about' ? 'secondary' : 'primary'} onClick={() => changeTab('about')}>{t('About')}</Button>
-          <Button variant={currentTab === 'actions' ? 'secondary' : 'primary'} onClick={() => changeTab('actions')}>{currentTrack.actionsName}</Button>
+        <div className='flex gap-2 w-full justify-center items-center bg-black/20 rounded-md p-2'>
+          <button
+            className={`py-1 px-4 rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+            onClick={() => changeTab('about')}
+          >
+            {t('About')}
+          </button>
+          <button
+            className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+            onClick={() => changeTab('actions')}
+          >
+            {currentTrack.actionsName}
+          </button>
           {canEdit && (
-            <Button variant={currentTab === 'edit' ? 'secondary' : 'primary'} onClick={() => changeTab('edit')}>{t('Edit')}</Button>
+            <button
+              className={`py-1 px-4 rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'edit' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+              onClick={() => changeTab('edit')}
+            >
+              {t('Edit')}
+            </button>
           )}
         </div>
       )}

@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Settings } from 'lucide-react'
 import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
@@ -27,45 +27,62 @@ function TrackCard ({ track }) {
 
   const { actionsName, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
 
+  const handleButtonClick = (event) => {
+    event.preventDefault(); // Prevents the click event from bubbling up to the Link
+  };
+
   return (
-    <div className='p-4 border rounded-lg'>
-      <div className='flex justify-between items-center'>
-        <Link to={trackUrl(track.id, routeParams)}><h2>{name}</h2></Link>
+    <Link className='text-foreground hover:text-foreground/100' to={`${trackUrl(track.id, routeParams)}`}>
+      <div className='rounded-xl cursor-pointer p-2 flex flex-col transition-all bg-card/50 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-lg relative hover:z-[2] hover:scale-101 duration-400'>
+        <div className='flex justify-between items-center pb-1'>
+          <div className='flex flex-row items-center gap-1'>
+            <h2 className='text-base m-0 p-0 truncate'>{name}</h2>
+            <span className='text-xs text-foreground/60 ml-2'>{t('{{num}} {{actionName}}', { num: numActions, actionName: actionsName })}</span>
+          </div>
+          {canEdit && <Link className='hover:scale-125 transition-all' to={`${trackUrl(track.id, routeParams)}?tab=edit`}><Settings className='w-6 h-6 cursor-pointer text-foreground' /></Link>}
+        </div>
         <div className='flex justify-between items-center'>
-          <span>{t('{{num}} Completed', { num: numPeopleCompleted })}</span> /
-          <span>{t('{{num}} Enrolled', { num: numPeopleEnrolled })}</span>
+          {canEdit && (
+            <div className='flex items-center gap-2 bg-input p-2 rounded-md'>
+              <Button
+                className={cn(
+                  'flex items-center justify-center rounded-md transition-colors w-8 h-8 transition-all',
+                  publishedAt ? 'bg-foreground/10' : 'bg-accent text-white'
+                )}
+                onClick={(e) => { handleButtonClick(e); publishedAt ? handlePublishTrack(null) : null; }}
+                tooltip={publishedAt ? t('Unpublish this track') : null}
+              >
+                <EyeOff className='w-5 h-5' />
+              </Button>
+              <Button
+                className={cn(
+                  'flex items-center justify-center rounded-md transition-colors w-8 h-8 transition-alls',
+                  publishedAt ? 'bg-selected text-white' : 'bg-foreground/10'
+                )}
+                onClick={(e) => { handleButtonClick(e); publishedAt ? null : handlePublishTrack(new Date().toISOString()); }}
+                tooltip={publishedAt ? null : t('Publish this track')}
+              >
+                <Eye className='w-5 h-5' />
+              </Button>
+              <span className={cn(
+                'mr-2 text-xs',
+                publishedAt ? 'text-selected' : 'text-accent'
+              )}>{publishedAt ? t('Published') : t('Unpublished')}</span>
+            </div>
+          )}
+          <div className='flex justify-between items-center'>
+            <div>
+              <span>{numPeopleCompleted}</span>
+              <span className='text-xs'>{t('Completed')}</span>
+            </div>
+            <div>
+              <span>{numPeopleEnrolled}</span>
+              <span>{t('Enrolled')}</span>
+            </div>
+          </div>
         </div>
       </div>
-      <div className='flex justify-between items-center'>
-        {canEdit && (
-          <div className='flex items-center gap-2'>
-            <Button
-              className={cn(
-                'p-2 rounded-md transition-colors',
-                publishedAt ? 'bg-foreground/10' : 'bg-accent text-white'
-              )}
-              onClick={() => publishedAt ? handlePublishTrack(null) : null}
-              tooltip={publishedAt ? t('Unpublish this track') : null}
-            >
-              <EyeOff className='w-5 h-5' />
-            </Button>
-            <Button
-              className={cn(
-                'p-2 rounded-md transition-colors',
-                publishedAt ? 'bg-accent text-white' : 'bg-foreground/10'
-              )}
-              onClick={() => publishedAt ? null : handlePublishTrack(new Date().toISOString())}
-              tooltip={publishedAt ? null : t('Publish this track')}
-            >
-              <Eye className='w-5 h-5' />
-            </Button>
-            <span className='mr-2'>{publishedAt ? t('Published') : t('Unpublished')}</span>
-          </div>
-        )}
-        <div className='flex-1' />
-        <span>{t('{{num}} {{actionName}}', { num: numActions, actionName: actionsName })}</span>
-      </div>
-    </div>
+    </Link>
   )
 }
 

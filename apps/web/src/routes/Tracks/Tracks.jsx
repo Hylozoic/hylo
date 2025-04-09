@@ -31,7 +31,7 @@ function Tracks () {
   }, [])
 
   return (
-    <div className='p-4'>
+    <div className='p-4 max-w-[750px] mx-auto flex flex-col gap-2'>
       {tracks.map(track => (
         <TrackCard key={track.id} track={track} />
       ))}
