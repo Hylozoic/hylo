@@ -376,7 +376,7 @@ export const COMMON_VIEWS = {
   },
   tracks: {
     name: 'Tracks',
-    iconName: 'Tracks'
+    iconName: 'Shapes'
   },
   welcome: {
     name: 'Welcome',
