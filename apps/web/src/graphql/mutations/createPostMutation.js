@@ -64,5 +64,5 @@ export default
     topicNames: $topicNames,
     trackId: $trackId,
     type: $type,
-  }) {${postFieldsFragment(false)}}
+  }) {${postFieldsFragment(false, true)}}
 }`

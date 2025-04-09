@@ -68,7 +68,7 @@ function TrackHome () {
   }, [currentTrack])
 
   if (isLoading) return <Loading />
-  if (!currentTrack) return <NotFound />
+  if (!currentTrack) return <Loading />
 
   const { isEnrolled } = currentTrack
 

@@ -58,7 +58,7 @@ const CommentFieldsFragment = `
   editedAt
 `
 
-const postFieldsFragment = (withComments) => `
+const postFieldsFragment = (withComments, withCompletion) => `
   id
   announcement
   title
@@ -132,6 +132,12 @@ const postFieldsFragment = (withComments) => `
     total
     hasMore
   }`
+: ''}
+  ${withCompletion
+? `completedAt
+   completionAction
+   completionActionSettings
+   completionResponse`
 : ''}
   linkPreview {
     description

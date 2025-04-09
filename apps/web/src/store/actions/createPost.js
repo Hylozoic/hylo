@@ -90,10 +90,12 @@ export default function createPost (postParams) {
         isAnnouncement: sendAnnouncement,
         isPublic,
         topics: topicNames,
+        trackId,
         type
       },
       type,
-      groupIds
+      groupIds,
+      trackId
     }
   }
 }
