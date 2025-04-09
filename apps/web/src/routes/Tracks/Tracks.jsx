@@ -5,8 +5,10 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupTracks from 'store/actions/fetchGroupTracks'
+import { RESP_MANAGE_TRACKS } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getTracks from 'store/selectors/getTracksForGroup'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import TrackCard from 'components/TrackCard'
 
 function Tracks () {
@@ -14,8 +16,9 @@ function Tracks () {
   const { t } = useTranslation()
   const routeParams = useParams()
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const canManageTracks = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_TRACKS, groupId: currentGroup?.id }))
 
-  const tracks = useSelector(state => getTracks(state, { groupId: currentGroup.id }))
+  const tracks = useSelector(state => getTracks(state, { groupId: currentGroup.id }).filter(track => canManageTracks || track.publishedAt))
 
   useEffect(() => {
     dispatch(fetchGroupTracks(currentGroup.id, {}))
