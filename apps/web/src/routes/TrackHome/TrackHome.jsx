@@ -126,7 +126,7 @@ function AboutTab ({ currentTrack }) {
   return (
     <>
       <div
-        className='mt-4 w-[80vw] shadow-2xl max-w-[750px] rounded-xl mx-auto h-[40vh] flex flex-col absolute top-0 z-0 items-center justify-center bg-cover left-[50%] translate-x-[-50%]'
+        className='mt-4 w-full shadow-2xl max-w-[750px] rounded-xl h-[40vh] flex flex-col items-center justify-center bg-cover'
         style={bannerUrl ? bgImageStyle(bannerUrl) : {}}
       >
         <h1 className='text-white text-4xl font-bold'>{name}</h1>
