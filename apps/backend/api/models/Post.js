@@ -682,6 +682,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
         reactions_summary: { ...reactionsSummary, [emojiFull]: reactionCount + 1 }
       }, { transacting: trx })
 
+      if (this.get('type') === 'action' && this.get('completion_action') === 'reaction' && !this.get('completed_at')) {
+        await this.complete(userId, JSON.stringify([emojiFull]))
+      }
+
       return this
     })
   },

@@ -869,6 +869,11 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
       post.update(optimisticUpdate)
 
+      // Mark post as complete if the completion action is to add a reaction
+      if (post.completionAction === 'reaction') {
+        post.update({ completedAt: new Date().toISOString() })
+      }
+
       break
     }
 
