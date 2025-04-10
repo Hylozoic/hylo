@@ -67,7 +67,7 @@ export default function PostCompletion ({ post, currentUser }) {
       completionButtonText = 'Submit'
       break
     case 'text':
-      completionControls = <input type='text' value={completionResponse} onChange={(e) => setCompletionResponse([e.target.value])} />
+      completionControls = <textarea type='text' className='w-full outline-none border-border border-2 bg-input rounded-md p-2' value={completionResponse} onChange={(e) => setCompletionResponse([e.target.value])} />
       completionButtonText = 'Submit'
       break
     case 'upload':

@@ -30,6 +30,7 @@ export const POST_COMPLETION_ACTIONS = [
   'reaction',
   'selectMultiple',
   'selectOne',
+  'text',
   'uploadFile'
 ]
 
