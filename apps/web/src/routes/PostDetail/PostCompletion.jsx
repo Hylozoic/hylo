@@ -93,8 +93,9 @@ export default function PostCompletion ({ post, currentUser }) {
   return (
     <div className='border-2 border-dashed border-foreground/20 rounded-md p-3 m-2'>
       {post.completedAt && (
-        <div className='mb-5'>
-          <p>You already completed this action</p>
+        <div className='mb-1'>
+          <p>You already completed this action. Your response was:</p>
+          {completionResponse?.length > 0 && <p className='font-bold'>{completionResponse.join(', ')}</p>}
         </div>
       )}
       {!post.completedAt && (
