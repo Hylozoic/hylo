@@ -171,7 +171,10 @@ function EditTab ({ currentTrack }) {
 
   return (
     <>
-      <button className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center mt-4 mb-4' onClick={() => navigate(groupUrl(routeParams.groupSlug, 'settings/tracks'))}>
+      <button
+        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center mt-4 mb-4'
+        onClick={() => navigate(groupUrl(routeParams.groupSlug, `tracks/${currentTrack.id}/edit`))}
+      >
         <Settings className='w-4 h-4' />
         <span>{t('Open Track Settings', { actionName: currentTrack.actionsName.slice(0, -1) })}</span>
       </button>

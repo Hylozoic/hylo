@@ -1,6 +1,6 @@
 import { isEqual, trim } from 'lodash/fp'
 import { Eye, EyeOff, ImagePlus, Plus } from 'lucide-react'
-import React, { useCallback, useMemo, useState, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
@@ -11,21 +11,24 @@ import HyloEditor from 'components/HyloEditor'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { cn } from 'util/index'
 import { groupUrl } from 'util/navigation'
-import { createTrack } from './CreateTrack.store'
+import { createTrack, updateTrack } from 'store/actions/trackActions'
 
-function CreateTrack () {
+function TrackEditor (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const routeParams = useParams()
 
   // Selectors
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const editingTrack = useSelector(state => props.editingTrack ? getTrack(state, routeParams.trackId) : null)
+  console.log('editingTrack', editingTrack)
   const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_TRACKS }))
 
-  const [trackState, setTrackState] = useState({
+  const [trackState, setTrackState] = useState(Object.assign({
     actionsName: currentGroup.settings.actionsName || 'Actions',
     bannerUrl: '',
     completionBadgeEmoji: '',
@@ -36,7 +39,8 @@ function CreateTrack () {
     groups: [currentGroup],
     publishedAt: null,
     welcomeMessage: ''
-  })
+  }, editingTrack))
+
   const [edited, setEdited] = useState(false)
   const [errors, setErrors] = useState({})
   const [nameCharacterCount, setNameCharacterCount] = useState(0)
@@ -46,19 +50,20 @@ function CreateTrack () {
 
   const isValid = useMemo(() => {
     return trackState.name?.length > 0 && trackState.actionsName?.length > 0
-  }, [errors])
+  }, [errors, trackState.name, trackState.actionsName])
 
-  // useEffect(() => {
-  //   if (trackState.id) {
-  //     dispatch(fetchTrack(trackState.id))
-  //   }
-  // }, [trackState.id])
+  useEffect(() => {
+    if (editingTrack) {
+      setTrackState(Object.assign(trackState, editingTrack))
+    }
+  }, [editingTrack])
 
   const updateField = (field) => (value) => {
     const newValue = typeof value?.target !== 'undefined' ? value.target.value : value
 
     setTrackState({ ...trackState, [field]: newValue })
     setEdited(true)
+    console.log('newValue', newValue)
 
     const trimmedValue = trim(newValue)
     if (field === 'name') {
@@ -85,8 +90,10 @@ function CreateTrack () {
 
     name = typeof name === 'string' ? trim(name) : name
 
+    const save = editingTrack ? updateTrack : createTrack
+
     if (isValid) {
-      dispatch(createTrack({
+      dispatch(save({
         actionsName,
         bannerUrl,
         completionBadgeEmoji,
@@ -95,6 +102,7 @@ function CreateTrack () {
         description,
         name,
         groupIds: [currentGroup.id],
+        trackId: editingTrack?.id,
         publishedAt,
         welcomeMessage
       }))
@@ -102,7 +110,9 @@ function CreateTrack () {
           if (error) {
             setErrors({ ...errors, general: t('There was an error, please try again.') })
           } else {
-            dispatch(push(groupUrl(currentGroup.slug, 'settings/tracks')))
+            setEdited(false)
+            setErrors({})
+            dispatch(push(editingTrack ? groupUrl(currentGroup.slug, `tracks/${editingTrack.id}/edit`) : groupUrl(currentGroup.slug, 'settings/tracks')))
           }
         })
     }
@@ -115,6 +125,7 @@ function CreateTrack () {
 
   const { actionsName, bannerUrl, completionBadgeEmoji, completionBadgeName, completionMessage, description, name, publishedAt, welcomeMessage } = trackState
 
+  console.log('isValid', isValid, ' isEdited', edited)
   return (
     <div className='flex flex-col rounded-lg bg-background p-3 shadow-2xl relative'>
       <div className='p-0'>
@@ -127,7 +138,7 @@ function CreateTrack () {
         className='w-full group'
       >
         <div
-          className={cn('CreateTrackBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-black/0 hover:bg-black/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
+          className={cn('TrackEditorBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-black/0 hover:bg-black/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
           style={{ backgroundImage: `url(${bannerUrl})` }}
         >
           <div className='flex flex-col items-center justify-center gap-1'>
@@ -286,11 +297,11 @@ function CreateTrack () {
           disabled={!edited || !isValid}
           onClick={onSubmit}
         >
-          <Plus className={cn('w-4 h-4 text-white', { 'bg-secondary': edited && isValid })} />{t('Create Track')}
+          <Plus className={cn('w-4 h-4 text-white', { 'bg-secondary': edited && isValid })} />{editingTrack ? t('Update Track') : t('Create Track')}
         </Button>
       </div>
     </div>
   )
 }
 
-export default CreateTrack
+export default TrackEditor

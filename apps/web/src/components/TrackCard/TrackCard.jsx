@@ -22,7 +22,7 @@ function TrackCard ({ track }) {
 
   const handlePublishTrack = useCallback((publishedAt) => {
     if (confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
-      dispatch(updateTrack(track.id, { publishedAt }))
+      dispatch(updateTrack({ trackId: track.id, publishedAt }))
     }
   }, [track.id])
 

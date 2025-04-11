@@ -262,8 +262,15 @@ export function addQuerystringToPath (path, querystringParams) {
 
 export function removeCreateEditModalFromUrl (url) {
   const matchForCreateRegex = '/create/(post|track)/*'
-  const matchForEditRegex = `/post/${POST_ID_MATCH}(/.*)?`
-  return url.replace(new RegExp(matchForCreateRegex), '').replace(new RegExp(matchForEditRegex), '')
+  const matchForEditRegex = `/post/${HYLO_ID_MATCH}(/.*)?`
+  const matchForEditTrackRegex = `/tracks/${HYLO_ID_MATCH}(/.*)?`
+  return url.replace(new RegExp(matchForCreateRegex), '')
+    .replace(new RegExp(matchForEditRegex), '')
+    .replace(new RegExp(matchForEditTrackRegex), (match) => {
+      // Split the match into parts so we only remove the "edit" part of the url
+      const parts = match.split('/')
+      return parts.slice(0, 3).join('/') // Keep '/tracks/{id}'
+    })
 }
 
 export function removePostFromUrl (url) {

@@ -1,10 +1,14 @@
-export const FETCH_TRACK = 'FETCH_TRACK'
-export const ENROLL_IN_TRACK = 'ENROLL_IN_TRACK'
-export const ENROLL_IN_TRACK_PENDING = 'ENROLL_IN_TRACK_PENDING'
-export const LEAVE_TRACK = 'LEAVE_TRACK'
-export const LEAVE_TRACK_PENDING = 'LEAVE_TRACK_PENDING'
-export const UPDATE_TRACK = 'UPDATE_TRACK'
-export const UPDATE_TRACK_PENDING = 'UPDATE_TRACK_PENDING'
+import { AnalyticsEvents } from '@hylo/shared'
+
+export const MODULE_NAME = 'Tracks'
+export const CREATE_TRACK = `${MODULE_NAME}/CREATE_TRACK`
+export const ENROLL_IN_TRACK = `${MODULE_NAME}/ENROLL_IN_TRACK`
+export const ENROLL_IN_TRACK_PENDING = `${MODULE_NAME}/ENROLL_IN_TRACK_PENDING`
+export const FETCH_TRACK = `${MODULE_NAME}/FETCH_TRACK`
+export const LEAVE_TRACK = `${MODULE_NAME}/LEAVE_TRACK`
+export const LEAVE_TRACK_PENDING = `${MODULE_NAME}/LEAVE_TRACK_PENDING`
+export const UPDATE_TRACK = `${MODULE_NAME}/UPDATE_TRACK`
+export const UPDATE_TRACK_PENDING = `${MODULE_NAME}/UPDATE_TRACK_PENDING`
 
 const CommentFieldsFragment = `
   id
@@ -180,7 +184,49 @@ export function fetchTrack (trackId) {
   }
 }
 
-export function updateTrack (trackId, data) {
+export function createTrack (data) {
+  return {
+    type: CREATE_TRACK,
+    graphql: {
+      query: `mutation CreateTrack($data: TrackInput) {
+        createTrack(data: $data) {
+          id
+          actionsName
+          bannerUrl
+          completionBadgeEmoji
+          completionBadgeName
+          completionMessage
+          description
+          groups {
+            items {
+              id
+              name
+              slug
+            }
+          }
+          name
+          publishedAt
+          welcomeMessage
+        }
+      }
+      `,
+      variables: {
+        data: {
+          ...data,
+          publishedAt: data.publishedAt ? data.publishedAt.valueOf() : null
+        }
+      }
+    },
+    meta: {
+      extractModel: 'Track',
+      ...data,
+      analytics: AnalyticsEvents.TRACK_CREATED
+    }
+  }
+}
+
+export function updateTrack (data) {
+  const { trackId, ...rest } = data
   return {
     type: UPDATE_TRACK,
     graphql: {
@@ -193,12 +239,12 @@ export function updateTrack (trackId, data) {
       `,
       variables: {
         trackId,
-        data
+        data: rest
       }
     },
     meta: {
       trackId,
-      data,
+      data: rest,
       optimistic: true
     }
   }

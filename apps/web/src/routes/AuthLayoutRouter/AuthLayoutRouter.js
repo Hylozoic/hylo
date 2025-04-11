@@ -321,6 +321,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/chat/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
               <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/tracks/:trackId/edit/*' element={<CreateModal context='groups' editingTrack />} />
               <Route path='groups/:groupSlug/tracks/:trackId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
               <Route path='groups/:groupSlug/settings/:tab/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />

@@ -6,7 +6,7 @@ import { CSSTransition } from 'react-transition-group'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import CreateModalChooser from './CreateModalChooser'
 import CreateGroup from 'components/CreateGroup'
-import CreateTrack from 'components/CreateTrack'
+import TrackEditor from 'components/TrackEditor'
 import Icon from 'components/Icon'
 import PostEditor from 'components/PostEditor'
 import { removeCreateEditModalFromUrl } from 'util/navigation'
@@ -53,7 +53,7 @@ const CreateModal = (props) => {
     >
       <div className={classes.createModal} ref={modalRef}>
         <div className={classes.createModalWrapper}>
-          <span className='absolute top-6 right-6 p-2 z-10' onClick={confirmClose}>
+          <span className='absolute top-6 right-6 p-2 z-10 cursor-pointer' onClick={confirmClose}>
             <Icon name='Ex' />
           </span>
           {props.editingPost
@@ -67,25 +67,29 @@ const CreateModal = (props) => {
                 editing={props.editingPost}
               />
               )
-            : (
-              <Routes>
-                <Route
-                  path='post'
-                  element={(
-                    <PostEditor
-                      {...props}
-                      selectedLocation={mapLocation}
-                      afterSave={closeModal}
-                      onCancel={confirmClose}
-                      setIsDirty={setIsDirty}
-                    />
-                  )}
-                />
-                <Route path='group' element={<CreateGroup {...props} />} />
-                <Route path='track' element={<CreateTrack {...props} />} />
-                <Route path='*' element={<CreateModalChooser {...props} />} />
-              </Routes>
-              )}
+            : props.editingTrack
+              ? (
+                <TrackEditor {...props} />
+                )
+              : (
+                <Routes>
+                  <Route
+                    path='post'
+                    element={(
+                      <PostEditor
+                        {...props}
+                        selectedLocation={mapLocation}
+                        afterSave={closeModal}
+                        onCancel={confirmClose}
+                        setIsDirty={setIsDirty}
+                      />
+                    )}
+                  />
+                  <Route path='group' element={<CreateGroup {...props} />} />
+                  <Route path='track' element={<TrackEditor {...props} />} />
+                  <Route path='*' element={<CreateModalChooser {...props} />} />
+                </Routes>
+                )}
         </div>
         <div className={classes.createModalBg} onClick={confirmClose} />
       </div>
