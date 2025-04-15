@@ -114,7 +114,8 @@ Post.fields = {
   timezone: attr(),
   topics: many('Topic'),
   isPublic: attr(),
-  proposalOptions: many('ProposalOption')
+  proposalOptions: many('ProposalOption'),
+  sortOrder: attr() // For actions in a track
 }
 
 export const POST_TYPES = {

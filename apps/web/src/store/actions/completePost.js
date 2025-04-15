@@ -1,7 +1,6 @@
 import { COMPLETE_POST } from 'store/constants'
 
 export default function completePost (id, completionResponse) {
-  console.log('completionResponse', completionResponse)
   return {
     type: COMPLETE_POST,
     graphql: {

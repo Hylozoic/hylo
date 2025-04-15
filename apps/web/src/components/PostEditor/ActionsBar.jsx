@@ -1,4 +1,4 @@
-import { Eye, EyeOff, MapPin, SendHorizontal } from 'lucide-react'
+import { MapPin, SendHorizontal } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -114,11 +114,6 @@ export default function ActionsBar ({
             groups={groups}
           />
         )}
-        {/* {type === 'action' && (
-          <span>
-            <Eye className={cn(styles.actionIcon, { [styles.highlightIcon]: showFiles })} />
-          </span>
-        )} */}
       </div>
 
       <div className='flex items-center gap-2'>

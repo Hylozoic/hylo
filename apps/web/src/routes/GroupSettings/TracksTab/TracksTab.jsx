@@ -72,7 +72,7 @@ function TracksTab ({ group, fetchPending, parentGroups, updateGroupSettings }) 
         <h4 className='font-bold'>{t('Tracks')}</h4>
         <p className='text-sm text-foreground/60'>{t('The default name for the container for a structured activity that people in the group can enroll in. A track has an about page, a chat, and a list of actions. Synonymous with courses, projects, learning journeys, modules, missions, workflows, roadmaps, cohorts, expeditions and curriculums. Anywhere the word “Track” would be used will be replaced with:')}</p>
         <p className='text-foreground'>{t('Your groups term for a track')}</p>
-        <input type='text' className='border-2 border-transparent rounded-md p-2 bg-input shadow-md focus:outline-none focus:border-focus' value='Track'/>
+        <input type='text' className='border-2 border-transparent rounded-md p-2 bg-input shadow-md focus:outline-none focus:border-focus' value='Track' />
       </SettingsSection>
 
       <SettingsSection>

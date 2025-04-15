@@ -1,3 +1,6 @@
+import { DndContext, closestCorners } from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { isEmpty } from 'lodash/fp'
 import { Shapes, Settings, DoorOpen, Check } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
@@ -7,13 +10,12 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import { useNavigate, Routes, Route } from 'react-router-dom'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
-import NotFound from 'components/NotFound'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
-import { enrollInTrack, fetchTrack, FETCH_TRACK, leaveTrack } from 'store/actions/trackActions'
+import { enrollInTrack, fetchTrack, FETCH_TRACK, leaveTrack, updateTrackActionOrder } from 'store/actions/trackActions'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
@@ -25,13 +27,16 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { bgImageStyle } from 'util/index'
 import { createPostUrl, groupUrl } from 'util/navigation'
 
+import PostSummary from './PostSummary'
+
 const getPosts = ormCreateSelector(
   orm,
   (session, currentTrack) => currentTrack.posts,
   (session, posts) => {
     if (isEmpty(posts)) return []
+    // Get all posts in the order specified
     return posts
-      .sort((a, b) => a.order - b.order)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
       .map(p => presentPost(p))
   }
 )
@@ -167,7 +172,20 @@ function EditTab ({ currentTrack }) {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const posts = useSelector(state => getPosts(state, currentTrack))
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event
+    if (over && over.id !== active.id) {
+      const overIndex = over.data.current.sortable.index
+      dispatch(updateTrackActionOrder({
+        postId: active.id,
+        trackId: currentTrack.id,
+        newOrderIndex: overIndex
+      }))
+    }
+  }
 
   return (
     <>
@@ -178,9 +196,17 @@ function EditTab ({ currentTrack }) {
         <Settings className='w-4 h-4' />
         <span>{t('Open Track Settings', { actionName: currentTrack.actionsName.slice(0, -1) })}</span>
       </button>
-      {posts.map(post => (
-        <PostCard key={post.id} post={post} />
-      ))}
+      <DndContext
+        onDragEnd={handleDragEnd}
+        collisionDetection={closestCorners}
+        modifiers={[restrictToVerticalAxis]}
+      >
+        <SortableContext items={posts.map(p => p.id)} strategy={verticalListSortingStrategy}>
+          {posts.map(post => (
+            <PostSummary key={post.id} post={post} />
+          ))}
+        </SortableContext>
+      </DndContext>
       <button className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md' onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}>+ {t('Add {{actionName}}', { actionName: currentTrack.actionsName.slice(0, -1) })}</button>
     </>
   )

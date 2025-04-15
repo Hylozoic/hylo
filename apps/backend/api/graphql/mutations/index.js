@@ -118,7 +118,8 @@ export {
   deleteTrack,
   enrollInTrack,
   leaveTrack,
-  updateTrack
+  updateTrack,
+  updateTrackActionOrder
 } from './track'
 export {
   blockUser,

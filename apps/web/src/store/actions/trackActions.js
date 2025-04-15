@@ -9,6 +9,8 @@ export const LEAVE_TRACK = `${MODULE_NAME}/LEAVE_TRACK`
 export const LEAVE_TRACK_PENDING = `${MODULE_NAME}/LEAVE_TRACK_PENDING`
 export const UPDATE_TRACK = `${MODULE_NAME}/UPDATE_TRACK`
 export const UPDATE_TRACK_PENDING = `${MODULE_NAME}/UPDATE_TRACK_PENDING`
+export const UPDATE_TRACK_ACTION_ORDER = `${MODULE_NAME}/UPDATE_TRACK_ACTION_ORDER`
+export const UPDATE_TRACK_ACTION_ORDER_PENDING = `${MODULE_NAME}/UPDATE_TRACK_ACTION_ORDER_PENDING`
 
 const CommentFieldsFragment = `
   id
@@ -45,16 +47,31 @@ const CommentFieldsFragment = `
 
 const PostFieldsFragment = `
   id
-  title
-  details
-  type
-  createdAt
-  updatedAt
-  startTime
-  endTime
-  timezone
   commentersTotal
   commentsTotal
+  completedAt
+  completionAction
+  completionActionSettings
+  completionResponse
+  createdAt
+  details
+  endTime
+  linkPreviewFeatured
+  location
+  numPeopleCompleted
+  peopleReactedTotal
+  sortOrder
+  startTime
+  timezone
+  title
+  type
+  updatedAt
+  attachments {
+    type
+    url
+    position
+    id
+  }
   comments(first: 10, order: "desc") {
     items {
       ${CommentFieldsFragment}
@@ -72,10 +89,11 @@ const PostFieldsFragment = `
     total
     hasMore
   }
-  completedAt
-  completionAction
-  completionActionSettings
-  completionResponse
+  groups {
+    id
+    name
+    slug
+  }
   linkPreview {
     description
     id
@@ -83,8 +101,6 @@ const PostFieldsFragment = `
     title
     url
   }
-  linkPreviewFeatured
-  location
   locationObject {
     id
     addressNumber
@@ -104,7 +120,6 @@ const PostFieldsFragment = `
     neighborhood
     region
   }
-  peopleReactedTotal
   myReactions {
     emojiFull
     id
@@ -116,12 +131,6 @@ const PostFieldsFragment = `
       id
       name
     }
-  }
-  attachments {
-    type
-    url
-    position
-    id
   }
   topics {
     id
@@ -245,6 +254,31 @@ export function updateTrack (data) {
     meta: {
       trackId,
       data: rest,
+      optimistic: true
+    }
+  }
+}
+
+export function updateTrackActionOrder ({ trackId, postId, newOrderIndex }) {
+  return {
+    type: UPDATE_TRACK_ACTION_ORDER,
+    graphql: {
+      query: `mutation UpdateTrackActionOrder($trackId: ID, $postId: ID, $newOrderIndex: Int) {
+        updateTrackActionOrder(trackId: $trackId, postId: $postId, newOrderIndex: $newOrderIndex) {
+          success
+        }
+      }
+      `,
+      variables: {
+        trackId,
+        postId,
+        newOrderIndex: newOrderIndex + 1 // order in db is 1-indexed
+      }
+    },
+    meta: {
+      trackId,
+      postId,
+      newOrderIndex,
       optimistic: true
     }
   }

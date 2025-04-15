@@ -13,7 +13,6 @@ import { removeCreateEditModalFromUrl } from 'util/navigation'
 import classes from './CreateModal.module.scss'
 
 const CreateModal = (props) => {
-  console.log('CreateModal', props)
   const location = useLocation()
   const navigate = useNavigate()
   const previousLocation = useSelector(getPreviousLocation) || removeCreateEditModalFromUrl(`${location.pathname}${location.search}`)
@@ -31,7 +30,6 @@ const CreateModal = (props) => {
     // `closePath` is currently only passed in the case of arriving here
     // from the `WelcomeModal` when we want to go back on close or cancel.
     const closePathFromParam = querystringParams.get('closePath')
-    console.log('closeModal', closePathFromParam, returnToLocation)
     navigate(closePathFromParam || returnToLocation)
   }
 

@@ -29,8 +29,8 @@ function TrackCard ({ track }) {
   const { actionsName, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
 
   const handleButtonClick = (event) => {
-    event.preventDefault(); // Prevents the click event from bubbling up to the Link
-  };
+    event.preventDefault() // Prevents the click event from bubbling up to the Link
+  }
 
   return (
     <Link className='text-foreground hover:text-foreground/100' to={`${trackUrl(track.id, routeParams)}`}>
@@ -50,7 +50,7 @@ function TrackCard ({ track }) {
                   'flex items-center justify-center rounded-md transition-colors w-8 h-8 transition-all',
                   publishedAt ? 'bg-foreground/10' : 'bg-accent text-white'
                 )}
-                onClick={(e) => { handleButtonClick(e); publishedAt ? handlePublishTrack(null) : null; }}
+                onClick={(e) => { handleButtonClick(e); return publishedAt ? handlePublishTrack(null) : null }}
                 tooltip={publishedAt ? t('Unpublish this track') : null}
               >
                 <EyeOff className='w-5 h-5' />
@@ -60,7 +60,7 @@ function TrackCard ({ track }) {
                   'flex items-center justify-center rounded-md transition-colors w-8 h-8 transition-alls',
                   publishedAt ? 'bg-selected text-white' : 'bg-foreground/10'
                 )}
-                onClick={(e) => { handleButtonClick(e); publishedAt ? null : handlePublishTrack(new Date().toISOString()); }}
+                onClick={(e) => { handleButtonClick(e); return publishedAt ? null : handlePublishTrack(new Date().toISOString()) }}
                 tooltip={publishedAt ? null : t('Publish this track')}
               >
                 <Eye className='w-5 h-5' />
@@ -68,7 +68,9 @@ function TrackCard ({ track }) {
               <span className={cn(
                 'mr-2 text-xs',
                 publishedAt ? 'text-selected' : 'text-accent'
-              )}>{publishedAt ? t('Published') : t('Unpublished')}</span>
+              )}
+              >{publishedAt ? t('Published') : t('Unpublished')}
+              </span>
             </div>
           )}
           <div className='flex justify-between items-center flex-row gap-2'>

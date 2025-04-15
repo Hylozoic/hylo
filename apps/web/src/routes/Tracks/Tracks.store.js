@@ -1,8 +1,8 @@
 import { COMPLETE_POST_PENDING, CREATE_POST } from 'store/constants'
-import { ENROLL_IN_TRACK_PENDING, LEAVE_TRACK_PENDING, UPDATE_TRACK_PENDING } from 'store/actions/trackActions'
+import { ENROLL_IN_TRACK_PENDING, LEAVE_TRACK_PENDING, UPDATE_TRACK_PENDING, UPDATE_TRACK_ACTION_ORDER_PENDING } from 'store/actions/trackActions'
 
 export function ormSessionReducer (
-  { Post, Track },
+  { Post, Track, session },
   { type, meta, payload }
 ) {
   switch (type) {
@@ -41,6 +41,25 @@ export function ormSessionReducer (
       const track = Track.safeGet({ id: meta.trackId })
       if (!track) return
       return track.update(meta.data)
+    }
+
+    case UPDATE_TRACK_ACTION_ORDER_PENDING: {
+      const { trackId, postId, newOrderIndex } = meta
+      const track = Track.safeGet({ id: trackId })
+      if (!track) return
+
+      const posts = track.posts.toModelArray().sort((a, b) => a.sortOrder - b.sortOrder)
+      const postToMove = posts.find(p => p.id === postId)
+      if (!postToMove) return
+
+      // Remove the post to move and reinsert it at the new position
+      const filteredPosts = posts.filter(p => p.id !== postId)
+      filteredPosts.splice(newOrderIndex, 0, postToMove)
+
+      // Update the sortOrder for all posts
+      filteredPosts.forEach((post, index) => {
+        post.update({ sortOrder: index })
+      })
     }
   }
 }

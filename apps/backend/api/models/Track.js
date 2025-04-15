@@ -18,6 +18,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   posts: function () {
     return this.belongsToMany(Post, 'tracks_posts')
+      .withPivot('sort_order')
+      .orderBy('tracks_posts.sort_order', 'asc')
   },
 
   users: function () {
@@ -41,21 +43,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this._trackUserCache[userId]
   },
 
-  isEnrolled: function (userId) {
-    // this._loadTrackUser(userId).then(trackUser => console.log('trackUserxxyyzz1122', userId, trackUser, trackUser.get('enrolled_at')))
-    return this._loadTrackUser(userId).then(trackUser => trackUser && trackUser.get('enrolled_at') !== null)
-  },
-
   didComplete: function (userId) {
     return this._loadTrackUser(userId).then(trackUser => trackUser && trackUser.get('completed_at') !== null)
   },
 
-  userSettings: function (userId) {
-    return this._loadTrackUser(userId).then(trackUser => trackUser && trackUser.get('settings'))
-  },
-
   enrolledCount: function () {
     return this.trackUser().count()
+  },
+
+  isEnrolled: function (userId) {
+    return this._loadTrackUser(userId).then(trackUser => trackUser && trackUser.get('enrolled_at') !== null)
+  },
+
+  userSettings: function (userId) {
+    return this._loadTrackUser(userId).then(trackUser => trackUser && trackUser.get('settings'))
   }
 
 }, HasSettings), {
@@ -70,14 +71,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     const maxOrder = await TrackPost.query(q => {
       q.where('track_id', track.get('id'))
-      q.orderBy('order', 'desc')
+      q.orderBy('sort_order', 'desc')
       q.limit(1)
-    }).fetch().then(tp => (tp ? tp.get('order') : 0))
+    }).fetch().then(tp => (tp ? tp.get('sort_order') : 0))
 
     return TrackPost.create({
       track_id: track.get('id'),
       post_id: postId,
-      order: maxOrder + 1
+      sort_order: maxOrder + 1
     }, { transacting })
   },
 

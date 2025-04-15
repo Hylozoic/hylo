@@ -345,8 +345,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'announcement',
         'anonymous_voting',
         'commentsTotal',
-        'completion_action',
         'completion_action_settings',
+        'completion_action',
         'created_at',
         'donations_link',
         'edited_at',
@@ -356,16 +356,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'is_public',
         'link_preview_featured',
         'location',
+        'num_people_completed',
         'project_management_link',
-        'proposal_status',
-        'voting_method',
         'proposal_outcome',
+        'proposal_status',
         'quorum',
         'reactions_summary',
         'start_time',
         'timezone',
         'type',
-        'updated_at'
+        'updated_at',
+        'voting_method'
       ],
       getters: {
         clickthrough: p => p.clickthroughForUser(userId),
@@ -380,7 +381,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         myEventResponse: p =>
           userId && p.isEvent()
             ? p.userEventInvitation(userId).then(eventInvitation => eventInvitation ? eventInvitation.get('response') : '')
-            : ''
+            : '',
+        sortOrder: p => p.pivot && p.pivot.get('sort_order') // For loading posts in order in a track
       },
       relations: [
         { comments: { querySet: true } },

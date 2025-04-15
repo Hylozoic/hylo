@@ -1989,6 +1989,8 @@ type Post {
   myEventResponse: String
   # The reactions of the logged-in user to this
   myReactions: [Reaction]
+  # The total number of people who have completed this post in a track
+  numPeopleCompleted: Int
   # Number of people that have one or more reactions to a post
   peopleReactedTotal: Int
   # Number of total reactions on the post
@@ -2009,6 +2011,8 @@ type Post {
   reactionsTotal: Int
   # Summary of reactions on the post
   reactionsSummary: JSON
+  # When loading posts for a Track, this is the order of the post in the track
+  sortOrder: Int
   # When this post "starts". Used for events, resources, projects, requests and offers right now
   startTime: Date
   # The timezone of the post
@@ -2779,6 +2783,8 @@ type Mutation {
   updateTopicFollow(id: ID, data: TopicFollowInput): TopicFollow
   # Update a track
   updateTrack(trackId: ID, data: TrackInput): Track
+  # Update the order of an action in a track
+  updateTrackActionOrder(trackId: ID, postId: ID, newOrderIndex: Int): GenericResult
   # Update settings for a GroupWidget
   updateWidget(id: ID, changes: GroupWidgetInput): GroupWidget
   # Accept an invitation to a Group

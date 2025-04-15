@@ -329,7 +329,7 @@ function PostEditor ({
     if (isChat) {
       setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
     } else {
-      toFieldRef.current.reset()
+      toFieldRef?.current?.reset()
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
   }, [initialPost])
@@ -729,6 +729,7 @@ function PostEditor ({
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
   const isChat = currentPost.type === 'chat'
+  const isAction = currentPost.type === 'action'
 
   /**
    * Handles the To field container click, focusing the actual ToField
@@ -748,7 +749,7 @@ function PostEditor ({
         }}
       />
       <div className={cn('PostEditorHeader relative', { 'my-1 pb-2': !isChat })}>
-        {currentPost.type !== 'action'
+        {!isAction
           ? (
             <PostTypeSelect
               disabled={loading}
@@ -759,10 +760,10 @@ function PostEditor ({
             />
             )
           : (
-            <div className=''>{t('Add a {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) })}</div>
+            <div className=''>{isEditing ? t('Edit {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) }) : t('Add a {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) })}</div>
             )}
       </div>
-      {!isChat && (
+      {!isChat && !isAction && (
         <div
           className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, { 'border-2 border-focus': toFieldFocused })}
           onClick={handleToFieldContainerClick}
@@ -940,7 +941,7 @@ function PostEditor ({
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="no_emoji">{t('No emoji')}</SelectItem>
+                    <SelectItem value='no_emoji'>{t('No emoji')}</SelectItem>
                     {emojiOptions.filter(emoji => emoji !== '').map((emoji, i) => (
                       <SelectItem key={i} value={emoji}>
                         {emoji}
@@ -972,7 +973,8 @@ function PostEditor ({
                     })
 
                     setCurrentPost({ ...currentPost, proposalOptions: newOptions })
-                  }}>
+                  }}
+                >
                   <X className='w-4 h-4 text-foreground' />
                 </div>
               </div>
@@ -1074,7 +1076,7 @@ function PostEditor ({
           {t('End Time must be after Start Time')}
         </span>
       )}
-      {currentPost.type === 'action' && (
+      {isAction && (
         <CompletionActionSection
           currentPost={currentPost}
           loading={loading}

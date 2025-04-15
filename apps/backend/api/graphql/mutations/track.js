@@ -57,6 +57,48 @@ export async function updateTrack (userId, id, data) {
   return track
 }
 
+export async function updateTrackActionOrder (userId, trackId, postId, newOrderIndex) {
+  const track = await Track.find(trackId)
+  if (!track) {
+    throw new GraphQLError('Track not found')
+  }
+
+  const trackPost = await TrackPost.where({ track_id: trackId, post_id: postId }).fetch()
+  if (!trackPost) {
+    throw new GraphQLError('Track post not found')
+  }
+
+  if (!canEdit(track, userId)) {
+    throw new GraphQLError('You do not have permission to edit this track')
+  }
+
+  const oldOrder = trackPost.get('sort_order')
+
+  await bookshelf.transaction(async transacting => {
+    if (oldOrder > newOrderIndex) {
+      await TrackPost.query()
+        .select("max('sort_order') as max_order")
+        .where({ track_id: trackId })
+        .andWhere('sort_order', '>=', newOrderIndex)
+        .andWhere('sort_order', '<', oldOrder)
+        .update({ sort_order: bookshelf.knex.raw('?? + 1', ['sort_order']) })
+        .transacting(transacting)
+    } else if (oldOrder < newOrderIndex) {
+      await TrackPost.query()
+        .select("max('sort_order') as max_order")
+        .where({ track_id: trackId })
+        .andWhere('sort_order', '<=', newOrderIndex)
+        .andWhere('sort_order', '>', oldOrder)
+        .update({ sort_order: bookshelf.knex.raw('?? - 1', ['sort_order']) })
+        .transacting(transacting)
+    }
+
+    await trackPost.save({ sort_order: newOrderIndex }, { transacting })
+  })
+
+  return trackPost
+}
+
 // Utility function to check if user can edit the track
 async function canEdit (track, userId) {
   const groupIds = await track.groups().pluck('id')
