@@ -161,7 +161,6 @@ export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
 
   const now = DateTime.now()
 
-  const isPastYear = start.get('year') < now.get('year')
   const isSameDay = end && start.get('day') === end.get('day') &&
                     start.get('month') === end.get('month') &&
                     start.get('year') === end.get('year')
@@ -169,8 +168,8 @@ export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
   let to = ''
   let from = ''
 
-  // Format the start date - only include year if it's in the past
-  if (isPastYear) {
+  // Format the start date - only include year if it's not this year
+  if (start.get('year') !== now.get('year')) {
     from = start.toFormat("ccc MMM d, yyyy '•' t")
   } else {
     from = start.toFormat("ccc MMM d '•' t")
