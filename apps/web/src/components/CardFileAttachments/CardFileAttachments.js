@@ -23,13 +23,13 @@ export function CardFileAttachment ({
 }) {
   return (
     <a
-      className='rounded-lg bg-midground p-2 flex items-center gap-2 shadow-lg transition-all hover:scale-105 hover:shadow-xl text-foreground'
+      className='rounded-lg bg-midground p-2 flex items-center gap-2 shadow-lg transition-all hover:scale-105 hover:shadow-xl text-foreground mb-1'
       href={fileAttachment.url}
       target='_blank'
       key={fileAttachment.id} rel='noreferrer'
     >
       <Icon name='Document' className={classes.fileIcon} />
-      <span className={classes.fileName}>{new URL(fileAttachment.url).pathname.split('/').pop()}</span>
+      <span className={classes.fileName}>{decodeURIComponent(new URL(fileAttachment.url).pathname.split('/').pop())}</span>
     </a>
   )
 }
