@@ -51,8 +51,6 @@ class PostHeader extends PureComponent {
       expanded,
       isFlagged,
       group,
-      proposalOutcome,
-      proposalStatus,
       close,
       className,
       constrained,
@@ -74,6 +72,8 @@ class PostHeader extends PureComponent {
       creator,
       createdTimestamp,
       exactCreatedTimestamp,
+      proposalOutcome,
+      proposalStatus,
       type,
       id,
       endTime,
@@ -218,8 +218,7 @@ class PostHeader extends PureComponent {
                 className='pl-3 h-9 w-full outline-none border-none rounded disabled:text-gray-400 placeholder:text-gray-300'
                 placeholder='Summarize the outcome'
                 value={proposalOutcome || ''}
-                onChange={(value) => updateProposalOutcome(value.target.value)}
-                ref={this.titleInputRef}
+                onChange={e => updateProposalOutcome(e.target.value)}
               />
             </div>
           )
