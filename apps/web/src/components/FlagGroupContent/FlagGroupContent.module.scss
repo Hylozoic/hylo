@@ -22,7 +22,7 @@
   position: relative;
   width: 500px;
   top: 5%;
-  background: hsl(var(--background));
+  background: hsl(var(--popover));
   color: hsl(var(--foreground));
   margin: auto;
   text-align: center;
@@ -92,7 +92,8 @@
     margin-top: 20px;
     padding: 14px;
     border-radius: 2px;
-    color: hsl(var(--background));
+    background-color: hsl(var(--input));
+    color: hsl(var(--foreground));
     font-size: 14px;
 
     &:focus {
