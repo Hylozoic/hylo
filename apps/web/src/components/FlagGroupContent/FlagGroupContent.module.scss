@@ -15,14 +15,15 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0,0,0, 0.5);
+  background-color: hsl(var(--foreground) / 0.3);
 }
 
 .popup-inner {
   position: relative;
   width: 500px;
   top: 5%;
-  background: white;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
   margin: auto;
   text-align: center;
   overflow: auto;
@@ -32,7 +33,7 @@
 
   h1 {
     font-size: 24px;
-    color: #2C405A;
+    color: hsl(var(--foreground));
     margin: 0;
     padding: 16px 0;
     font-weight: normal;
@@ -40,7 +41,7 @@
   }
 
   h3 {
-    color: #2C405A;
+    color: hsl(var(--foreground));
     margin: 0;
     padding: 12px 6px 0 0;
     font-weight: normal;
@@ -48,7 +49,7 @@
   }
 
   h5 {
-    color: #2C405A;
+    color: hsl(var(--foreground));
     margin: 0;
     padding: 8px 4px 0 0;
     font-weight: normal;
@@ -75,7 +76,7 @@
   }
 
   .agreements-link {
-    color: #2C405A;
+    color: hsl(var(--foreground));
     font-size: 14px;
     text-decoration: underline;
     margin-top: 10px;
@@ -87,11 +88,11 @@
 
   .explanation-textbox {
     flex: 1;
-    border: 1px solid $color-ghost;
+    border: 1px solid hsl(var(--foreground) / 0.2);
     margin-top: 20px;
     padding: 14px;
     border-radius: 2px;
-    @include font-regular;
+    color: hsl(var(--background));
     font-size: 14px;
 
     &:focus {
@@ -107,13 +108,13 @@
   }
 
   .anon-label {
-    color: $color-black-60;
+    color: hsl(var(--foreground));
     font-size: 13px;
     margin-right: 10px;
   }
 
   .explainer {
-    color: $color-black-60;
+    color: hsl(var(--foreground) / 0.6);
     font-size: 14px;
     transition: all .25s ease;
     margin-bottom: 5px;
@@ -121,7 +122,7 @@
   }
 
   .reason-required {
-    color: red;
+    color: hsl(var(--error));
   }
 
 }

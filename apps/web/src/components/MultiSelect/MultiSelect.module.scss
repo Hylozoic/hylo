@@ -16,19 +16,19 @@
 }
 
 .item.selected {
-  background-color: #f0f0f0;
+  background-color: hsl(var(--selected) / 0.5);
 }
 
 .show-more {
   cursor: pointer;
   text-align: center;
-  color: $color-caribbean-green;
-  border-top: 2px dashed #ccc;
+  color: hsl(var(--foreground));
+  border-top: 2px dashed hsl(var(--foreground) / 0.2);
 }
 
 .item {
   &.border-bottom {
-    border-bottom: 1px dashed rgba(205, 209, 213, 1.0);
+    border-bottom: 1px dashed hsl(var(--foreground) / 0.2);
     margin-bottom: 15px;
   }
 }
