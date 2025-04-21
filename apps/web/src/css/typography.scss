@@ -1,8 +1,8 @@
 // Global Typography
 
 blockquote {
-  border-left: solid 2px $color-rhino-60;
-  color: $color-rhino-80;
+  border-left: solid 2px hsl(var(--foreground) / 0.6);
+  color: hsl(var(--foreground) / 0.7);
   margin-left: 0.25em;
   padding: 0.5em;
   padding-bottom: 0.25em;
