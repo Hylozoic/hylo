@@ -8,6 +8,7 @@ import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import classes from './GroupSidebar.module.scss'
 
+// TODO REMOVE: This is no longer used. Can it be removed?
 function AboutSection ({ description, purpose }) {
   const [showExpandButton, setShowExpandButton] = useState(false)
   const [expanded, setExpanded] = useState(false)

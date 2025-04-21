@@ -19,6 +19,8 @@ import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForG
 
 import classes from './GroupSidebar.module.scss'
 
+
+// TODO REMOVE: This is no longer used. Can it be axed?
 function GroupSidebar (props) {
   const params = useParams()
   const slug = params.groupSlug
