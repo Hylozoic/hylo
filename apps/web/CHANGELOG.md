@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.0.4] - 2025-04-21
+
+### Fixed
+- New posts immediately appear at the top of the Stream and Events views after being created again.
+- Display of flagging post dialog in dark mode
+- Display of quoted text in posts in dark mode
+- Setting proposal summary once voting is completed
+
 ## [6.0.3] - 2025-04-08
 
 ### Fixed
