@@ -54,7 +54,7 @@ export default function PeopleInfo ({
     } else if (sortedPeople.length === 2) {
       names = t('{{personOne}} and {{personTwo}}', { personOne: firstName(sortedPeople[0]), personTwo: firstName(sortedPeople[1]) })
     } else {
-      names = `${firstName(sortedPeople[0])}, ${firstName(sortedPeople[1])} and ${peopleTotal - 2} other${peopleTotal - 2 > 1 ? 's' : ''}`// TODO: Handle this translation i18n
+      names = t(`{{personOne}}, {{personTwo}} and {{othersTotal}} other${peopleTotal - 2 > 1 ? '_plural' : ''}`, { personOne: firstName(sortedPeople[0]), personTwo: firstName(sortedPeople[1]), othersTotal: peopleTotal - 2 })
     }
     caption = `${names} ${phrase}`
     avatarUrls = people.map(p => p.avatarUrl)

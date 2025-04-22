@@ -3,14 +3,14 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useResizeDetector } from 'react-resize-detector'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { cn } from 'util/index'
 import PropTypes from 'prop-types'
 import { get, throttle, find } from 'lodash/fp'
 import { Helmet } from 'react-helmet'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
-import { removePostFromUrl } from 'util/navigation'
+import Avatar from 'components/Avatar'
 import CardImageAttachments from 'components/CardImageAttachments'
+import ModalDialog from 'components/ModalDialog'
 import {
   PostBody,
   PostFooter,
@@ -21,7 +21,8 @@ import {
 import ScrollListener from 'components/ScrollListener'
 import Comments from './Comments'
 import SocketSubscriber from 'components/SocketSubscriber'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
+import CardFileAttachments from 'components/CardFileAttachments'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
@@ -34,13 +35,16 @@ import leaveProject from 'store/actions/leaveProject'
 import processStripeToken from 'store/actions/processStripeToken'
 import respondToEvent from 'store/actions/respondToEvent'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
-import { FETCH_POST } from 'store/constants'
+import { FETCH_POST, RESP_MANAGE_TRACKS } from 'store/constants'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { cn } from 'util/index'
+import { removePostFromUrl, personUrl } from 'util/navigation'
 import { DETAIL_COLUMN_ID, position } from 'util/scrolling'
 
 import PostCompletion from './PostCompletion'
@@ -60,6 +64,7 @@ function PostDetail () {
   const { groupSlug, view } = routeParams
   const commentId = getQuerystringParam('commentId', location) || routeParams.commentId
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
+  const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_TRACKS }))
   const postSelector = useSelector(state => getPost(state, postId))
   const post = useMemo(() => {
     return postSelector ? presentPost(postSelector, get('id', currentGroup)) : null
@@ -112,7 +117,7 @@ function PostDetail () {
 
   const onPostIdChange = useCallback(() => {
     if (!pending) {
-      dispatch(fetchPost(postId))
+      dispatch(fetchPost(postId, hasTracksResponsibility))
     }
 
     if (post) {
@@ -321,6 +326,12 @@ function PostDetail () {
           </div>
         )}
       </div>
+      {hasTracksResponsibility && (
+        <ActionCompletionsSection
+          post={post}
+          currentUser={currentUser}
+        />
+      )}
       <Comments
         post={post}
         slug={groupSlug}
@@ -370,7 +381,7 @@ export function JoinProjectSection ({ currentUser, members, leaving, joinProject
       <Button
         key='join-project-button'
         onClick={onClick}
-        className={classes.joinProjectButton}
+        variant='secondary'
       >
         {buttonText}
       </Button>
@@ -378,4 +389,110 @@ export function JoinProjectSection ({ currentUser, members, leaving, joinProject
   )
 }
 
+export function ActionCompletionsSection ({ currentUser, post }) {
+  const { t } = useTranslation()
+
+  const [showCompletionResponsesDialog, setShowCompletionResponsesDialog] = useState(false)
+  const toggleCompletionResponsesDialog = () => setShowCompletionResponsesDialog(!showCompletionResponsesDialog)
+
+  const completers = post.completionResponses.map(response => response.user)
+
+  return (
+    <div className='border-border border-2 rounded-lg p-4'>
+      <PeopleInfo
+        people={completers}
+        peopleTotal={completers.length}
+        onClick={toggleCompletionResponsesDialog}
+        excludePersonId={currentUser.id}
+        phrases={{
+          emptyMessage: t('No one has completed this action yet'),
+          phraseSingular: t('has completed this action'),
+          mePhraseSingular: t('have completed this action'),
+          pluralPhrase: t('have completed this action')
+        }}
+      />
+      {post.completionResponses.length > 0 && (
+        <Button
+          onClick={toggleCompletionResponsesDialog}
+          variant='secondary'
+        >
+          {t('View Completion Responses')}
+        </Button>
+      )}
+      {showCompletionResponsesDialog && (
+        <CompletionResponsesDialog
+          post={post}
+          currentUser={currentUser}
+          onClose={toggleCompletionResponsesDialog}
+        />
+      )}
+    </div>
+  )
+}
+
+export function CompletionResponsesDialog ({ post, currentUser, onClose }) {
+  const { t } = useTranslation()
+
+  let title = t('Completions: ')
+  switch (post.completionAction) {
+    case 'button':
+      title += t('By Button')
+      break
+    case 'comment':
+      title += t('By Comment')
+      break
+    case 'reaction':
+      title += t('By Reaction')
+      break
+    case 'selectMultiple':
+      title += t('By Selected Options')
+      break
+    case 'selectOne':
+      title += t('By Selected Option')
+      break
+    case 'text':
+      title += t('By Text Reflection')
+      break
+    case 'uploadFile':
+      title += t('By File Upload')
+      break
+  }
+  return (
+    <ModalDialog
+      key='completion-responses-dialog'
+      closeModal={onClose}
+      modalTitle={title}
+      showCancelButton={false}
+      showSubmitButton={false}
+      style={{ width: '100%', maxWidth: '620px' }}
+    >
+      {post.completionResponses.map(response => (
+        <div key={response.id} className='flex flex-row gap-2'>
+          <span><Avatar url={personUrl(response.user.id)} avatarUrl={response.user.avatarUrl} small /> {response.user.name}</span>
+          <span>{TextHelpers.formatDatePair(response.completedAt)}</span>
+          <span><CompletionResponse action={post.completionAction} response={response.completionResponse} /></span>
+        </div>
+      ))}
+    </ModalDialog>
+  )
+}
+
+export function CompletionResponse ({ action, response }) {
+  switch (action) {
+    case 'selectMultiple':
+      return <p>{response.join(', ')}</p>
+    case 'selectOne':
+      return <p>{response[0]}</p>
+    case 'comment':
+      return <p>{response[0]}</p>
+    case 'reaction':
+      return <p>{response[0]}</p>
+    case 'text':
+      return <p>{response[0]}</p>
+    case 'uploadFile':
+      return <CardFileAttachments attachments={response.map(a => ({ ...a, type: 'file' }))} />
+    default:
+      return null
+  }
+}
 export default PostDetail

@@ -27,7 +27,7 @@ function PostSummary ({ post }) {
 
   return (
     <div
-      className='flex flex-row gap-2 bg-card/50 rounded-lg border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 cursor-pointer'
+      className='PostSummary flex flex-row gap-2 bg-card/50 rounded-lg border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 cursor-pointer'
       ref={setNodeRef}
       style={style}
     >
@@ -35,7 +35,7 @@ function PostSummary ({ post }) {
         <h1>{post.title}</h1>
         <div className='flex flex-row gap-2'>
           <span className='flex flex-row gap-2 bg-selected/50 rounded-lg px-2 py-1 items-center justify-center'>
-            <span className='bg-background rounded-md px-2'>{post.numPeopleCompleted}</span>
+            <span className='bg-background rounded-md px-2'>{post.numPeopleCompleted || 0}</span>
             <span>{t('Completed')}</span>
           </span>
         </div>

@@ -118,14 +118,12 @@ function TrackEditor (props) {
     }
   }, [trackState, isValid])
 
-  console.log('hasTracksResponsibility', hasTracksResponsibility)
   if (!hasTracksResponsibility) {
     return <Navigate to={groupUrl(currentGroup.slug)} />
   }
 
   const { actionsName, bannerUrl, completionBadgeEmoji, completionBadgeName, completionMessage, description, name, publishedAt, welcomeMessage } = trackState
 
-  console.log('isValid', isValid, ' isEdited', edited)
   return (
     <div className='flex flex-col rounded-lg bg-background p-3 shadow-2xl relative'>
       <div className='p-0'>

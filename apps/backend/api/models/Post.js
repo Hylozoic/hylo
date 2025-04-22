@@ -134,6 +134,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.hasMany(CollectionsPost, 'post_id')
   },
 
+  completionResponses: function () {
+    return this.hasMany(PostUser, 'post_id').query(q => {
+      q.where({ active: true })
+      q.whereNotNull('completed_at')
+    })
+  },
+
   contributions: function () {
     return this.hasMany(Contribution, 'post_id')
   },
@@ -397,11 +404,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   unreadCountForUser: function (userId) {
     return this.lastReadAtForUser(userId)
-    .then(date => {
-      if (date > this.get('updated_at')) return 0
-      return Aggregate.count(this.comments().query(q =>
-        q.where('created_at', '>', date)))
-    })
+      .then(date => {
+        if (date > this.get('updated_at')) return 0
+        return Aggregate.count(this.comments().query(q =>
+          q.where('created_at', '>', date)))
+      })
   },
 
   // ****** Setters ******//
@@ -419,11 +426,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const newUserIds = difference(userIds, existingUserIds)
     const updatedFollowers = await this.updateFollowers(existingUserIds, updatedAttribs, { transacting })
     const newFollowers = []
-    for (let id of newUserIds) {
+    for (const id of newUserIds) {
       const follower = await this.postUsers().create(
         Object.assign({}, updatedAttribs, {
           user_id: id,
-          created_at: new Date(),
+          created_at: new Date()
         }), { transacting })
       newFollowers.push(follower)
     }
@@ -677,6 +684,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
         entity_type: 'post',
         emoji_label: emojiObject.shortcodes
       }).save({}, { transacting: trx })
+
+      await this.addFollowers([userId])
 
       await this.save({
         num_people_reacts: this.get('num_people_reacts') + deltaPeople,

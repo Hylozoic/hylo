@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { TextHelpers } from '@hylo/shared'
 import Button from 'components/ui/button'
 import Checkbox from 'components/ui/checkbox'
 import { FileManager } from 'components/AttachmentManager/FileManager'
@@ -13,12 +14,12 @@ import completePost from 'store/actions/completePost'
 export default function PostCompletion ({ post, currentUser }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
-  const [completionResponse, setCompletionResponse] = useState(post.completionResponse)
+  const [completionResponse, setCompletionResponse] = useState(post.completionResponse || [])
   const { completionAction, completionActionSettings } = post
   const { instructions, options } = completionActionSettings
 
   const handleSubmitCompletion = useCallback(() => {
-    if (completionResponse.length > 0) {
+    if (completionAction === 'button' || completionResponse.length > 0) {
       dispatch(completePost(post.id, completionResponse))
     }
   }, [post, completionResponse])
@@ -29,52 +30,60 @@ export default function PostCompletion ({ post, currentUser }) {
 
   if (!completionAction) return null
 
-  let completionControls, completionButtonText
-  let alreadyCompletedMessage = t('You already completed this action. Your response was:')
-  let completionResponseText = <p> {completionResponse.map(a => a.url).join(', ')}</p>
+  const completedAt = post.completedAt ? TextHelpers.formatDatePair(post.completedAt) : null
+  let completionControls, completionButtonText, alreadyCompletedMessage
+  let completionResponseText = <p>{completionResponse.map(r => r).join(', ')}</p>
   switch (completionAction) {
     case 'button':
       completionControls = null
       completionButtonText = 'Mark as Complete'
+      alreadyCompletedMessage = t('You completed this action {{date}}', { date: completedAt })
       break
-    case 'selectMultiple':
+    case 'selectOne':
       completionControls = (
-        <RadioGroup onValueChange={(value) => setCompletionResponse([value])}>
+        <RadioGroup onValueChange={(value) => setCompletionResponse([value])} value={completionResponse[0]}>
           {options.map((option) => (
             <div key={option} className='flex items-center gap-2 mb-2 cursor-pointer'>
-              <RadioGroupItem value={option} />
-              <Label className='cursor-pointer'>{option}</Label>
+              <RadioGroupItem value={option} id={`radio-${option}`} />
+              <Label htmlFor={`radio-${option}`} className='cursor-pointer'>{option}</Label>
             </div>
           ))}
         </RadioGroup>
       )
       completionButtonText = 'Submit'
+      alreadyCompletedMessage = t('You completed this action {{date}}. You selected:', { date: completedAt })
       break
-    case 'selectOne':
+    case 'selectMultiple':
       completionControls = (
-        <div>
+        <ul className='list-none pl-1'>
           {options.map((option) => (
-            <Checkbox
-              key={option}
-              label={option}
-              onCheckedChange={(checked) => {
-                setCompletionResponse((prev) => {
-                  if (checked) {
-                    return [...prev, option]
-                  } else {
-                    return prev.filter(item => item !== option)
-                  }
-                })
-              }}
-            />
+            <li key={option} className='flex items-center gap-2 mb-2 cursor-pointer'>
+              <Checkbox
+                id={`checkbox-${option}`}
+                key={option}
+                checked={completionResponse.includes(option)}
+                onCheckedChange={(checked) => {
+                  setCompletionResponse((prev) => {
+                    if (checked) {
+                      return [...prev, option]
+                    } else {
+                      return prev.filter(item => item !== option)
+                    }
+                  })
+                }}
+              />
+              <Label htmlFor={`checkbox-${option}`} className='cursor-pointer'>{option}</Label>
+            </li>
           ))}
-        </div>
+        </ul>
       )
       completionButtonText = 'Submit'
+      alreadyCompletedMessage = t('You completed this action {{date}}. You selected:', { date: completedAt })
       break
     case 'text':
       completionControls = <textarea type='text' className='w-full outline-none border-border border-2 bg-input rounded-md p-2' value={completionResponse} onChange={(e) => setCompletionResponse([e.target.value])} />
       completionButtonText = 'Submit'
+      alreadyCompletedMessage = t('You completed this action {{date}}. Your response was:', { date: completedAt })
       break
     case 'uploadFile':
       completionControls = (
@@ -108,12 +117,14 @@ export default function PostCompletion ({ post, currentUser }) {
         </>
       )
       completionButtonText = null
-      alreadyCompletedMessage = t('You already completed this action. Your uploaded attachments:')
+      alreadyCompletedMessage = t('You completed this action at {{date}}. Your uploaded attachments:', { date: completedAt })
       completionResponseText = <p><CardFileAttachments attachments={completionResponse.map(a => ({ ...a, type: 'file' }))} /></p>
       break
-    default:
+    case 'comment':
+    case 'reaction':
       completionControls = null
       completionButtonText = null
+      alreadyCompletedMessage = t('You completed this action {{date}}', { date: completedAt })
       break
   }
 

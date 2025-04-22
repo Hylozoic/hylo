@@ -1946,12 +1946,14 @@ type Post {
   commentsTotal: Int
   # The date and time this post was completed by the current user
   completedAt: Date
-  # The response the current user gave when completing this post
-  completionResponse: JSON
   # The action that people can take to complete this post. 'button', 'comment', 'reaction', 'selectMultiple', 'selectOne', 'text', 'uploadFile'
   completionAction: String
   # The options associated with the completion action. e.g. for 'selectMultiple', this is an array of options
   completionActionSettings: JSON
+  # The response the current user gave when completing this post
+  completionResponse: JSON
+  # All the responses from all users who have completed this post - only available to moderators
+  completionResponses: PostUserQuerySet
   # If this post has been flagged, this tracks whether the currentuser has clicked through the flag-screen
   clickthrough: Boolean
   createdAt: Date
@@ -2092,8 +2094,19 @@ type PostMembership {
 # Relationship of a user to a post, indicating "following the post". Created when a user comments on or reacts to a post
 type PostUser {
   id: ID
+  # The date and time this post was completed by the user
+  completedAt: Date
+  # The response the user gave when completing this post
+  completionResponse: JSON
   post: Post
   user: Person
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type PostUserQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [PostUser]
 }
 
 # A geographic point by latitude + longitude

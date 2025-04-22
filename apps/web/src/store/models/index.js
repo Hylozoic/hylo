@@ -24,7 +24,7 @@ import Notification from './Notification'
 import Person, { MembershipCommonRole, PersonSkillsToLearn, Reaction } from './Person'
 import PersonConnection from './PersonConnection'
 import PlatformAgreement from './PlatformAgreement'
-import Post, { PostFollower, PostCommenter, ProjectMember, ProposalOption } from './Post'
+import Post, { PostFollower, PostCommenter, ProjectMember, ProposalOption, PostUser } from './Post'
 import PostMembership from './PostMembership'
 import SearchResult from './SearchResult'
 import Skill from './Skill'
@@ -77,6 +77,7 @@ orm.register(
   PostCommenter,
   PostFollower,
   PostMembership,
+  PostUser,
   ProjectMember,
   ProposalOption,
   Question,
