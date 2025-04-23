@@ -154,7 +154,7 @@ export const isHiddenInContextMenuResolver = (widget) => {
     the needs-to-be-hidden quality of a widget has to wait until things are ordered for this to be accurate.
   */
   return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
-  !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
+  !widget.viewGroup && !widget.viewUser && !widget.viewPost && !widget.viewTrack &&
   !widget.viewChat && !widget.customView)
 }
 
