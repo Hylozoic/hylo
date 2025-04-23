@@ -59,7 +59,6 @@ export const routingConfig = {
 
   // /public context routes
   // TODO:  Routing - some of these need to be available when not auth'd
-  // This route isn't correct; no such screen exists. And its not to be confused with the Group Explore screen.
   '/:context(public)/groups':                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Web View`,
   '/:context(public)/map':                                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
   '/:context(public)/topics/:topicName':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
@@ -77,11 +76,13 @@ export const routingConfig = {
   '/:context(my)/:view(interactions)':                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/:view(mentions)':                                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/:view(posts)':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(my)/:view(tracks)':                                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Tracks`,
   '/:context(my)/:settingsArea(account)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(blocked-users)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(edit-profile)':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(invitations)':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(groups)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
+  '/:context(my)/:settingsArea(tracks)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(locale)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(saved-searches)':                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(notifications)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
@@ -130,6 +131,8 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/topics/:topicName':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/topics/:topicName/post/:id':              `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
   '/:context(groups)/:groupSlug/topics':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Web View`,
+  '/:context(groups)/:groupSlug/tracks/:trackId':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Track Detail`,
+  '/:context(groups)/:groupSlug/tracks':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Tracks`,
   '/:context(groups)/:groupSlug/custom/:customViewId':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/settings/:settingsArea?':                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
   // TODO:  Routing - potentially group these
