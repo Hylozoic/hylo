@@ -312,7 +312,7 @@ function PostDetail () {
             processStripeToken={(token, amount) => dispatch(processStripeToken(postId, token, amount))}
           />
         )}
-        {post.completionAction && (
+        {post.type === 'action' && post.completionAction && (
           <PostCompletion
             post={post}
             currentUser={currentUser}
@@ -326,7 +326,7 @@ function PostDetail () {
           </div>
         )}
       </div>
-      {hasTracksResponsibility && (
+      {post.type === 'action' && hasTracksResponsibility && (
         <ActionCompletionsSection
           post={post}
           currentUser={currentUser}
