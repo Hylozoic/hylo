@@ -43,6 +43,8 @@ export default function HomeNavigator () {
       {/* Other screens */}
       <HomeTab.Screen name='Stream' component={Stream} />
       <HomeTab.Screen name='All Views' component={AllViews} />
+      <HomeTab.Screen name='Tracks' component={Stream} />
+      <HomeTab.Screen name='Track Detail' component={Stream} />
       <HomeTab.Screen name='Group Relationships' component={Groups} />
       <HomeTab.Screen name='Group Welcome' component={GroupWelcome} />
       <HomeTab.Screen name='Group Welcome Page' component={GroupWelcomePage} />
