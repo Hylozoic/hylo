@@ -45,19 +45,6 @@ $dropdown-border-color: $color-box-shadow;
   display: none;
 }
 
-.close-dropdown {
-  display: none;
-  position: relative;
-  top: 0;
-  left: 0;
-  transition: all .25s ease;
-}
-
-.close-dropdown.toggled {
-  display: block;
-  cursor: pointer;
-}
-
 .dropdown-menu {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;

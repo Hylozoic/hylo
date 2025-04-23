@@ -18,7 +18,9 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
     setActive(!active)
   }
 
-  const hide = () => {
+  const hide = (e) => {
+    e.stopPropagation()
+    e.preventDefault()
     if (active) setActive(false)
     return true
   }
@@ -59,11 +61,10 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
   }
 
   return (
-    <div className={cn(className, 'border-2 border-foreground/30 rounded-md p-2 transition-all', { [classes.hasTriangle]: triangle })} ref={parentRef}>
+    <div className={cn(className, 'relative inline-block border-2 border-foreground/30 rounded-md p-2 transition-all', { [classes.hasTriangle]: triangle })} ref={parentRef}>
       <span className={cn('flex items-center cursor-pointer gap-2', { [classes.toggled]: active })} onClick={toggle} data-testid='dropdown-toggle'>
         {toggleChildren}
       </span>
-      <span className={cn(classes.closeDropdown, { [classes.toggled]: active })} onClick={toggle}><Icon name='Ex' /></span>
       <div className={cn(classes.wrapper, { [classes.alignRight]: alignRight, [classes.menuAbove]: menuAbove })}>
         <ul
           className={cn(classes.dropdownMenu, { [classes.active]: active, [classes.alignRight]: alignRight, [classes.noOverflow]: noOverflow })}
