@@ -145,6 +145,14 @@ $comment-row-padding: 25px;
   strong {
     @include font-bold;
   }
+
+  ol {
+    list-style-type: decimal;
+  }
+
+  ul {
+    list-style-type: disc;
+  }
 }
 
 .editing {
