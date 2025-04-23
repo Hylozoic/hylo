@@ -42,10 +42,10 @@ const hourly = now => {
   const tasks = []
 
   switch (now.hour) {
-    case 21:
+    case 12:
       sails.log.debug('Sending daily digests')
       tasks.push(sendAndLogDigests('daily'))
-      // tasks.push(sendSavedSearchDigests('daily'))
+      tasks.push(sendSavedSearchDigests('daily'))
       break
     case 13:
       sails.log.debug('Resending invites')

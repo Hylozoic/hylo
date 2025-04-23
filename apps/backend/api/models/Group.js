@@ -352,7 +352,6 @@ module.exports = bookshelf.Model.extend(merge({
 
   // Getter to override access to the welcome_page attribute and sanitize the HTML
   welcomePage () {
-    console.log('welcomePage', this.get('welcome_page'), RichText.processHTML(this.get('welcome_page')))
     return RichText.processHTML(this.get('welcome_page'))
   },
 
