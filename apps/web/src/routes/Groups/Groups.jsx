@@ -75,33 +75,45 @@ function Groups () {
         <title>Groups | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
 
+      {!groupRelationshipCount && (
+        <div className='w-full max-w-[750px] mx-auto'>
+          <div className='text-foreground border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex items-center gap-2 flex-col'>
+            <div className='text-center'>{t('Your group is not connected to any other groups yet.')}</div>
+          </div>
+        </div>
+      )}
+
       <div className='w-full max-w-[750px] mx-auto'>
         {groupRelationshipCount > 1 &&
           <div className={cn('bg-card rounded-lg relative', classes.networkMap)}>
             <GroupNetworkMap networkData={networkData} />
           </div>}
 
-        <div className='text-foreground border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex items-center gap-2 flex-col'>
-          <div className='text-center'>
-            {parentGroups.length === 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{group.name}} is a part of 1 Group', { group })}</h3> : ''}
-            {parentGroups.length > 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{group.name}} is a part of {{parentGroups.length}} Groups', { group, parentGroups })}</h3> : ''}
+        {parentGroups.length > 0 && (
+          <div className='text-foreground border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex items-center gap-2 flex-col'>
+            <div className='text-center'>
+              {parentGroups.length === 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{group.name}} is a part of 1 Group', { group })}</h3> : ''}
+              {parentGroups.length > 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{group.name}} is a part of {{parentGroups.length}} Groups', { group, parentGroups })}</h3> : ''}
+            </div>
+            <GroupsList
+              groups={parentGroups}
+              routeParams={routeParams}
+            />
           </div>
-          <GroupsList
-            groups={parentGroups}
-            routeParams={routeParams}
-          />
-        </div>
+        )}
 
-        <div className='text-foreground border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex items-center gap-2 flex-col'>
-          <div className='text-center'>
-            {childGroups.length === 1 ? <h3 className='text-foreground text-lg font-bold'>{t('1 Group is a part of {{group.name}}', { group })}</h3> : ''}
-            {childGroups.length > 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{childGroups.length}} groups are a part of {{group.name}}', { childGroups, group })}</h3> : ''}
+        {childGroups.length > 0 && (
+          <div className='text-foreground border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex items-center gap-2 flex-col'>
+            <div className='text-center'>
+              {childGroups.length === 1 ? <h3 className='text-foreground text-lg font-bold'>{t('1 Group is a part of {{group.name}}', { group })}</h3> : ''}
+              {childGroups.length > 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{childGroups.length}} groups are a part of {{group.name}}', { childGroups, group })}</h3> : ''}
+            </div>
+            <GroupsList
+              groups={childGroups}
+              routeParams={routeParams}
+            />
           </div>
-          <GroupsList
-            groups={childGroups}
-            routeParams={routeParams}
-          />
-        </div>
+        )}
       </div>
     </div>
   )
