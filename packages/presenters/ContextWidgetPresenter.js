@@ -29,7 +29,8 @@ export const types = {
   USER: 'viewUser',
   CHAT: 'viewChat',
   CUSTOM_VIEW: 'customView',
-  CONTAINER: 'container'
+  CONTAINER: 'container',
+  TRACK: 'track'
 }
 
 /* == Attribute Resolvers == */
@@ -44,6 +45,7 @@ function titleResolver (widget) {
       widget?.viewPost?.title ||
       widget?.viewChat?.name ||
       widget?.customView?.name ||
+      widget?.viewTrack?.name ||
       ''
   } else {
     title = title
@@ -120,6 +122,8 @@ export function humanReadableTypeResolver (type) {
       return 'chat'
     case type === 'customView' || type === 'customview':
       return 'custom view'
+    case type === 'viewTrack' || type === 'track':
+      return 'track'
     case type === null:
       return 'container'
     default:
@@ -135,6 +139,7 @@ function widgetTypeResolver ({ widget }) {
     (widget?.viewPost && 'viewPost') ||
     (widget?.viewUser && 'viewUser') ||
     (widget?.viewChat && 'viewChat') ||
+    (widget?.viewTrack && 'viewTrack') ||
     (widget?.customView && 'customView') ||
     (widget?.url && 'link') ||
     'container'
@@ -186,6 +191,7 @@ export function isValidChildWidget ({ parentWidget, childWidget }) {
       || parentWidget?.viewUser?.id
       || parentWidget?.viewPost?.id
       || parentWidget?.customView?.id
+      || parentWidget?.viewTrack?.id
       || childWidget?.id?.includes('fake-id')
       || childWidget?.id === parentWidget?.id
       || (childWidgetIsContainer && parentWidgetIsContainer)
