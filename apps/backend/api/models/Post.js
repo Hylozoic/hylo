@@ -163,10 +163,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   comments: function () {
-    return this.hasMany(Comment, 'post_id').query({ where: {
-      'comments.active': true,
-      'comments.comment_id': null
-    }})
+    return this.hasMany(Comment, 'post_id').query({
+      where: {
+        'comments.active': true,
+        'comments.comment_id': null
+      }
+    })
   },
 
   linkPreview: function () {
@@ -297,8 +299,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
   getNewPostSocketPayload: function () {
     const { media, groups, linkPreview, tags, user, proposalOptions } = this.relations
 
-    const creator = refineOne(user, [ 'id', 'name', 'avatar_url' ])
-    const topics = refineMany(tags, [ 'id', 'name' ])
+    const creator = refineOne(user, ['id', 'name', 'avatar_url'])
+    const topics = refineMany(tags, ['id', 'name'])
 
     // TODO: Sanitization -- sanitize details here if not passing through `text` getter
     return Object.assign({},
@@ -326,14 +328,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
         { name: 'title', num_people_reacts: 'peopleReactedTotal', num_votes: 'votesTotal' }
       ),
       {
-        attachments: refineMany(media, [ 'id', 'type', 'url' ]),
+        attachments: refineMany(media, ['id', 'type', 'url']),
         // Shouldn't have commenters immediately after creation
         commenters: [],
         commentsTotal: 0,
         creator,
         details: this.details(),
-        groups: refineMany(groups, [ 'id', 'name', 'slug' ]),
-        linkPreview: refineOne(linkPreview, [ 'id', 'image_url', 'title', 'description', 'url' ]),
+        groups: refineMany(groups, ['id', 'name', 'slug']),
+        linkPreview: refineOne(linkPreview, ['id', 'image_url', 'title', 'description', 'url']),
         proposalOptions,
         proposalVotes: [],
         topics
@@ -558,7 +560,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     let activitiesToCreate = []
 
     const mentions = RichText.getUserMentions(this.details())
-    let mentioned = mentions.map(userId => ({
+    const mentioned = mentions.map(userId => ({
       reader_id: userId,
       post_id: this.id,
       actor_id: this.get('user_id'),
@@ -575,21 +577,21 @@ module.exports = bookshelf.Model.extend(Object.assign({
         qb.whereIn('tag_id', tags.map('id'))
         qb.whereIn('tag_follows.group_id', groups.map('id'))
       })
-      .fetchAll({ withRelated: ['tag'], transacting: trx })
+        .fetchAll({ withRelated: ['tag'], transacting: trx })
 
       const tagFollowers = tagFollows.map(tagFollow => ({
         reader_id: tagFollow.get('user_id'),
         post_id: this.id,
-          actor_id: this.get('user_id'),
-          group_id: tagFollow.get('group_id'),
-          reason: `chat: ${tagFollow.relations.tag.get('name')}`
-        }))
+        actor_id: this.get('user_id'),
+        group_id: tagFollow.get('group_id'),
+        reason: `chat: ${tagFollow.relations.tag.get('name')}`
+      }))
 
       activitiesToCreate = activitiesToCreate.concat(tagFollowers)
     } else if (this.get('type') !== Post.Type.ACTION) {
       // Non-chat posts are sent to all members of the groups the post is in
       // XXX: no notifications sent for Actions right now
-      let members = await Promise.all(groups.map(async group => {
+      const members = await Promise.all(groups.map(async group => {
         const userIds = await group.members().fetch().then(u => u.pluck('id'))
         const newPosts = userIds.map(userId => ({
           reader_id: userId,
@@ -621,7 +623,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const eventInvitations = await EventInvitation.query(qb => {
       qb.where('event_id', this.id)
     })
-    .fetchAll({transacting: trx})
+      .fetchAll({ transacting: trx })
 
     const invitees = eventInvitations.map(eventInvitation => ({
       reader_id: eventInvitation.get('user_id'),
@@ -731,7 +733,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   updateProposalOutcome: function (proposalOutcome) {
-    return Post.where({ id: this.id }).query().update({ proposal_outcome: proposalOutcome})
+    return Post.where({ id: this.id }).query().update({ proposal_outcome: proposalOutcome })
   },
 
   removeFromGroup: function (idOrSlug) {
@@ -787,7 +789,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   countForUser: function (user, type) {
-    const attrs = {user_id: user.id, 'posts.active': true}
+    const attrs = { user_id: user.id, 'posts.active': true }
     if (type) attrs.type = type
     return this.query().count().where(attrs).then(rows => rows[0].count)
   },
@@ -798,13 +800,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
       q.join('tags', 'tags.id', 'posts_tags.tag_id')
       q.whereIn('tags.name', ['request', 'offer', 'resource'])
       q.groupBy('tags.name')
-      q.where({'posts.user_id': user.id, 'posts.active': true})
+      q.where({ 'posts.user_id': user.id, 'posts.active': true })
       q.select('tags.name')
     }).query().count()
-    .then(rows => rows.reduce((m, n) => {
-      m[n.name] = n.count
-      return m
-    }, {}))
+      .then(rows => rows.reduce((m, n) => {
+        m[n.name] = n.count
+        return m
+      }, {}))
   },
 
   havingExactFollowers (userIds) {
@@ -813,7 +815,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       q.join('posts_users', 'posts.id', 'posts_users.post_id')
       q.where('posts_users.active', true)
       q.groupBy('posts.id')
-      q.having(bookshelf.knex.raw(`array_agg(posts_users.user_id order by posts_users.user_id) = ?`, [userIds]))
+      q.having(bookshelf.knex.raw('array_agg(posts_users.user_id order by posts_users.user_id) = ?', [userIds]))
     })
   },
 
@@ -870,7 +872,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     })
   },
 
-  upcomingPostReminders: function (collection, digestType) {
+  upcomingPostReminders: async function (group, digestType) {
     const startTime = DateTime.now().setZone(defaultTimezone).toISO()
     // If daily digest show posts that have reminders in the next 2 days
     // If weekly digest show posts that have reminders in the next 7 days
@@ -878,8 +880,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       ? DateTime.now().setZone(defaultTimezone).plus({ days: 2 }).endOf('day').toISO()
       : DateTime.now().setZone(defaultTimezone).plus({ days: 7 }).endOf('day').toISO()
 
-    const startingSoon = collection.query(function (qb) {
-      qb.whereRaw('posts.start_time between ? and ?', [startTime, endTime])
+    const startingSoon = await group.posts().query(function (qb) {
+      qb.whereRaw('(posts.start_time between ? and ?)', [startTime, endTime])
       qb.whereIn('posts.type', ['event', 'offer', 'project', 'proposal', 'resource', 'request'])
       qb.where('posts.fulfilled_at', null)
       qb.where('posts.active', true)
@@ -888,9 +890,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
       .fetch({ withRelated: ['user'] })
       .then(get('models'))
 
-    const endingSoon = collection.query(function (qb) {
-      qb.whereRaw('posts.end_time between ? and ?', [startTime, endTime])
-      qb.whereRaw('start_time < ?', [startTime]) // Only show posts as ending soon that have already started
+    const endingSoon = await group.posts().query(function (qb) {
+      qb.whereRaw('(posts.end_time between ? and ?)', [startTime, endTime])
+      qb.whereRaw('(posts.start_time < ?)', startTime) // Explicitly cast to timestamp with time zone
       qb.whereIn('posts.type', ['event', 'offer', 'project', 'proposal', 'resource', 'request'])
       qb.where('posts.fulfilled_at', null)
       qb.where('posts.active', true)
@@ -899,10 +901,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
       .fetch({ withRelated: ['user'] })
       .then(get('models'))
 
-    return Promise.all([startingSoon, endingSoon]).then(([startingSoon, endingSoon]) => ({
+    return {
       startingSoon,
       endingSoon
-    }))
+    }
   },
 
   newPostAttrs: () => ({

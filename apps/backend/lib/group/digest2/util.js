@@ -50,7 +50,7 @@ export const getPostsAndComments = async (group, startTime, endTime, digestType)
     })
     .then(get('models'))
 
-  const upcomingPostReminders = await Post.upcomingPostReminders(group.posts(), digestType)
+  const upcomingPostReminders = await Post.upcomingPostReminders(group, digestType)
 
   const comments = await Comment.createdInTimeRange(group.comments(), startTime, endTime)
     .query(q => {
@@ -68,7 +68,7 @@ export const getPostsAndComments = async (group, startTime, endTime, digestType)
     })
     .then(get('models'))
 
-  if (posts.length === 0 && comments.length === 0 && upcomingPostReminders.length === 0) {
+  if (posts.length === 0 && comments.length === 0 && upcomingPostReminders?.startingSoon?.length === 0 && upcomingPostReminders?.endingSoon?.length === 0) {
     return false
   }
 

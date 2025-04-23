@@ -53,8 +53,6 @@ class PostHeader extends PureComponent {
       isCurrentAction,
       isFlagged,
       group,
-      proposalOutcome,
-      proposalStatus,
       close,
       className,
       constrained,
@@ -76,6 +74,8 @@ class PostHeader extends PureComponent {
       creator,
       createdTimestamp,
       exactCreatedTimestamp,
+      proposalOutcome,
+      proposalStatus,
       type,
       id,
       endTime,
@@ -189,7 +189,7 @@ class PostHeader extends PureComponent {
                 id='post-header-flag-tt'
               />
               {dropdownItems.length > 0 &&
-                <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' />} items={dropdownItems} alignRight />}
+                <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer' />} items={dropdownItems} alignRight />}
               {close &&
                 <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} onClick={close}>
                   <Icon name='Ex' className='align-middle' />
@@ -224,8 +224,7 @@ class PostHeader extends PureComponent {
                 className='pl-3 h-9 w-full outline-none border-none rounded disabled:text-gray-400 placeholder:text-gray-300'
                 placeholder='Summarize the outcome'
                 value={proposalOutcome || ''}
-                onChange={(value) => updateProposalOutcome(value.target.value)}
-                ref={this.titleInputRef}
+                onChange={e => updateProposalOutcome(e.target.value)}
               />
             </div>
           )

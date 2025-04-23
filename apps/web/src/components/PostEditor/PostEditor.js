@@ -983,7 +983,7 @@ function PostEditor ({
               <Icon name='Plus' className='text-foreground' />
               <span className='border-2 border-foreground/30 rounded-md p-2'>{t('Add an option to vote on...')}</span>
             </div>
-            {currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
+            {isEditing && currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
               <div className='text-accent text-xs flex items-center gap-2'>
                 <TriangleAlert className='h-5 w-5' />
                 <span>{t('When options are changed, existing votes will be discarded')}</span>
@@ -999,7 +999,7 @@ function PostEditor ({
         </div>
       )}
       {currentPost.type === 'proposal' && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 mb-4'>
           <div className='text-xs text-foreground/50'>{t('Voting method')}</div>
 
           <div>
