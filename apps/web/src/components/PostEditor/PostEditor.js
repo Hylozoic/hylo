@@ -881,7 +881,7 @@ function PostEditor ({
           />
         </div>
       </div> */}
-      {!isChat && (
+      {!isChat && !isAction && (
         <div className={cn('PostEditorPublic', styles.section)}>
           <PublicToggle
             togglePublic={togglePublic}
