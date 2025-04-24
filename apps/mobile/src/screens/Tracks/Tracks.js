@@ -1,28 +1,27 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { View, FlatList, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useRoute } from '@react-navigation/native'
-import { Shapes } from 'lucide-react-native'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
+import useTracks from '@hylo/hooks/useTracks'
 import TrackCard from 'components/TrackCard'
 import StreamHeader from '../Stream/StreamHeader'
+import Loading from 'components/Loading'
 
 function Tracks() {
   const { t } = useTranslation()
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canManageTracks = hasResponsibility(RESP_MANAGE_TRACKS)
-
-  const tracks = []
-  // Replace with useGroupTracks
-
-  // useEffect(() => {
-  //   if (currentGroup?.id) {
-  //     dispatch(fetchGroupTracks(currentGroup.id, {}))
-  //   }
-  // }, [currentGroup?.id])
+  const [tracks, { fetching, error }] = useTracks({ 
+    groupId: currentGroup?.id
+  })
+  if (error) return (
+    <Text className='text-error text-center py-4'>
+      {t('Error loading tracks')}
+    </Text>
+  )
 
   const renderTrack = ({ item: track }) => (
     <TrackCard track={track} />
@@ -38,12 +37,13 @@ function Tracks() {
         postPrompt={false}
         streamType='tracks'
       />
-      {tracks.length === 0 && (
+      {fetching && <Loading />}
+      {tracks.length === 0 && !fetching && (
         <Text className='text-foreground text-center py-4 font-bold text-lg'>
           {t('This group currently does not have any published tracks')}
         </Text>
       )}
-      {tracks.length === 0 && canManageTracks && (
+      {tracks.length === 0 && canManageTracks && !fetching && (
         <Text className='text-foreground text-center py-2 font-bold text-lg'>
           {t('Tracks can be created by admins in the web app for Hylo')}
         </Text>
