@@ -34,6 +34,16 @@ function Tracks() {
 
   return (
     <View className='flex-1 bg-background'>
+      {tracks.length === 0 && (
+        <Text className='text-foreground text-center'>
+          {t('This group currently does not have any published tracks')}
+        </Text>
+      )}
+      {tracks.length === 0 && canManageTracks && (
+        <Text className='text-foreground text-center'>
+          {t('Tracks can be created by admins in the web app for Hylo')}
+        </Text>
+      )}
       <FlatList
         data={tracks}
         renderItem={renderTrack}
