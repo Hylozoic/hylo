@@ -1,21 +1,21 @@
 import React, { useCallback } from 'react'
 import { View, Text, Pressable, Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useNavigation } from '@react-navigation/native'
 import { Eye, EyeOff, Settings, Users, UserCheck } from 'lucide-react-native'
 import clsx from 'clsx'
 import Button from 'components/Button'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
+import useOpenURL from 'hooks/useOpenURL'
+import { groupUrl } from 'util/navigation'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 
-
 function TrackCard({ track }) {
-  const navigation = useNavigation()
   const { t } = useTranslation()
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canEdit = hasResponsibility(RESP_MANAGE_TRACKS)
+  const openURL = useOpenURL()
 
   const handlePublishTrack = useCallback((publishedAt) => {
     Alert.alert(
@@ -39,10 +39,8 @@ function TrackCard({ track }) {
   const { actionsName, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
 
   const navigateToTrack = () => {
-    navigation.navigate('Track', { 
-      trackId: track.id,
-      groupSlug: currentGroup?.slug
-    })
+    const trackUrl = `${groupUrl(currentGroup?.slug, 'tracks')}/${track.id}`
+    openURL(trackUrl)
   }
 
   return (
@@ -81,9 +79,9 @@ function TrackCard({ track }) {
                 )}
               >
                 <Eye className='w-5 h-5' />
-              </Button> */}
+              </Button>
 
-              {/* <Text className={clsx(
+              <Text className={clsx(
                 'text-xs',
                 publishedAt ? 'text-selected' : 'text-accent'
               )}>

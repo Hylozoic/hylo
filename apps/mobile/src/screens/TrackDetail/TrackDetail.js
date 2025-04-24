@@ -1,10 +1,15 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native'
 import { Shapes, Settings, DoorOpen, Check } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
+import useOpenURL from 'hooks/useOpenURL'
+import { groupUrl } from 'util/navigation'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useTracks from '@hylo/hooks/useTracks'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import PostCard from 'components/PostCard'
+import useRouteParams from 'hooks/useRouteParams'
 
 const TabButton = ({ isSelected, onPress, children }) => (
   <TouchableOpacity
@@ -36,38 +41,24 @@ const AboutTab = ({ currentTrack, onEnroll, onLeave }) => {
         <Text className='text-white text-4xl font-bold'>{name}</Text>
       </View>
       
-      <HyloHTML html={description} />
-
-      {!isEnrolled ? (
-        <View className='flex-row gap-2 absolute bottom-0 w-full px-4 py-2 justify-between items-center bg-input rounded-t-md'>
-          <Text>{t('Ready to jump in?')}</Text>
-          <TouchableOpacity 
-            className='bg-selected rounded-md p-2 px-4'
-            onPress={onEnroll}
-          >
-            <Text className='text-foreground'>{t('Enroll')}</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View className='flex-row gap-2 border-2 border-foreground/20 rounded-md p-2 justify-between items-center'>
-          <View className='flex-row gap-2 items-center'>
-            <Check className='w-4 h-4 text-selected' />
-            <Text>{t('You are currently enrolled in this track')}</Text>
-          </View>
-          <TouchableOpacity 
-            className='border-2 border-foreground/20 flex-row gap-2 items-center rounded-md p-2 px-4'
-            onPress={onLeave}
-          >
-            <DoorOpen className='w-4 h-4' />
-            <Text>{t('Leave Track')}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <View className='flex-1'>
+        <ScrollView className='flex-1'>
+          <HyloHTML html={description} />
+          <View className='h-20' />
+        </ScrollView>
+      </View>
     </View>
   )
 }
 
-const ActionsTab = ({ currentTrack, posts = [] }) => {
+const ActionsTab = ({ currentTrack, posts = [], groupSlug }) => {
+  const openURL = useOpenURL()
+  
+  const handlePostPress = (post) => {
+    const postUrl = `${groupUrl(groupSlug, 'tracks')}/${currentTrack.id}/post/${post.id}`
+    openURL(postUrl)
+  }
+
   return (
     <View className='flex-1'>
       <Text className='text-xl font-bold mb-4'>{currentTrack.actionsName}</Text>
@@ -75,7 +66,8 @@ const ActionsTab = ({ currentTrack, posts = [] }) => {
         <PostCard 
           key={post.id} 
           post={post} 
-          isCurrentAction={currentTrack.currentAction?.id === post.id} 
+          isCurrentAction={currentTrack.currentAction?.id === post.id}
+          onPress={() => handlePostPress(post)}
         />
       ))}
     </View>
@@ -111,61 +103,104 @@ const ActionsTab = ({ currentTrack, posts = [] }) => {
 //   )
 // }
 
-function TrackDetail({ 
-  currentTrack,
-  isLoading,
-  canEdit,
-  posts,
-  onEnroll,
-  onLeave,
-  onAddAction,
-  onOpenSettings
-}) {
+function TrackDetail() {
   const { t } = useTranslation()
   const [currentTab, setCurrentTab] = useState('about')
+  const routeParams = useRouteParams()
+  const [{ currentGroup }] = useCurrentGroup()
+  const [tracks, { fetching, error }] = useTracks({ 
+    groupId: currentGroup?.id
+  })
 
-  if (isLoading) return <Loading />
-  if (!currentTrack) return <Loading />
+  const currentTrack = useMemo(() => {
+    if (!tracks || !routeParams.trackId) return null
+    return tracks.find(track => track.id === routeParams.trackId)
+  }, [tracks, routeParams.trackId])
+
+  if (fetching) return <Loading />
+  if (error) return (
+    <Text className='text-error text-center py-4'>
+      {t('Error loading track')}
+    </Text>
+  )
+  if (!currentTrack) return (
+    <Text className='text-error text-center py-4'>
+      {t('Track not found')}
+    </Text>
+  )
 
   const { isEnrolled } = currentTrack
 
   return (
-    <ScrollView className='flex-1 p-4'>
-      <View className='max-w-[750px] mx-auto'>
-        {(isEnrolled || canEdit) && (
-          <View className='flex-row gap-2 w-full justify-center items-center bg-black/20 rounded-md p-2'>
-            <TabButton
-              isSelected={currentTab === 'about'}
-              onPress={() => setCurrentTab('about')}
-            >
-              {t('About')}
-            </TabButton>
+    <View className='flex-1 bg-background'>
+      <View className='flex-1 px-4'>
+        <View className='max-w-[750px] mx-auto flex-1'>
+          {(isEnrolled || false) && (
+            <View className='flex-row gap-2 w-full justify-center items-center bg-black/20 rounded-md p-2'>
+              <TabButton
+                isSelected={currentTab === 'about'}
+                onPress={() => setCurrentTab('about')}
+              >
+                {t('About')}
+              </TabButton>
 
-            <TabButton
-              isSelected={currentTab === 'actions'}
-              onPress={() => setCurrentTab('actions')}
-            >
-              {currentTrack.actionsName}
-            </TabButton>
-          </View>
-        )}
+              <TabButton
+                isSelected={currentTab === 'actions'}
+                onPress={() => setCurrentTab('actions')}
+              >
+                {currentTrack.actionsName}
+              </TabButton>
+            </View>
+          )}
 
-        {currentTab === 'about' && (
-          <AboutTab 
-            currentTrack={currentTrack} 
-            onEnroll={onEnroll}
-            onLeave={onLeave}
-          />
-        )}
+          {currentTab === 'about' && (
+            <AboutTab 
+              currentTrack={currentTrack} 
+              onEnroll={() => {}}
+              onLeave={() => {}}
+            />
+          )}
 
-        {currentTab === 'actions' && (
-          <ActionsTab 
-            currentTrack={currentTrack}
-            posts={posts}
-          />
-        )}
+          {currentTab === 'actions' && (
+            <ActionsTab 
+              currentTrack={currentTrack}
+              posts={[]}
+              groupSlug={currentGroup?.slug}
+            />
+          )}
+        </View>
       </View>
-    </ScrollView>
+
+      {currentTab === 'about' && (
+        <View className='absolute bottom-0 left-0 right-0 bg-background shadow-lg'>
+          {!currentTrack.isEnrolled ? (
+            <View className='flex-row gap-2 w-full px-4 py-2 justify-between items-center bg-input'>
+              <Text>{t('Ready to jump in?')}</Text>
+              <TouchableOpacity 
+                className='bg-selected rounded-md p-2 px-4'
+                onPress={() => {}}
+              >
+                <Text className='text-foreground'>{t('Enroll')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View className='flex-row gap-2 m-4 border-2 border-foreground/20 rounded-md p-2 justify-between items-center'>
+              <View className='flex-row gap-2 items-center'>
+                <Check className='w-4 h-4 text-selected' />
+                <Text>{t('You are currently enrolled in this track')}</Text>
+              </View>
+              <TouchableOpacity 
+                className='border-2 border-foreground/20 flex-row gap-2 items-center rounded-md p-2 px-4'
+                onPress={() => {}}
+              >
+                <DoorOpen className='w-4 h-4' />
+                <Text>{t('Leave Track')}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
+    </View>
   )
 }
 
