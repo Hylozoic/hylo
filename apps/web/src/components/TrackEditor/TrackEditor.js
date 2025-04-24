@@ -42,6 +42,7 @@ function TrackEditor (props) {
   }, editingTrack))
 
   const [edited, setEdited] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [nameCharacterCount, setNameCharacterCount] = useState(0)
   const descriptionEditorRef = useRef(null)
@@ -84,6 +85,12 @@ function TrackEditor (props) {
       publishedAt
     } = trackState
 
+    if (saving || !isValid) {
+      return
+    }
+
+    setSaving(true)
+
     const completionMessage = completionMessageEditorRef.current?.getHTML()
     const description = descriptionEditorRef.current?.getHTML()
     const welcomeMessage = welcomeMessageEditorRef.current?.getHTML()
@@ -92,30 +99,29 @@ function TrackEditor (props) {
 
     const save = editingTrack ? updateTrack : createTrack
 
-    if (isValid) {
-      dispatch(save({
-        actionsName,
-        bannerUrl,
-        completionBadgeEmoji,
-        completionBadgeName,
-        completionMessage,
-        description,
-        name,
-        groupIds: [currentGroup.id],
-        trackId: editingTrack?.id,
-        publishedAt,
-        welcomeMessage
-      }))
-        .then(({ error }) => {
-          if (error) {
-            setErrors({ ...errors, general: t('There was an error, please try again.') })
-          } else {
-            setEdited(false)
-            setErrors({})
-            dispatch(push(editingTrack ? groupUrl(currentGroup.slug, `tracks/${editingTrack.id}/edit`) : groupUrl(currentGroup.slug, 'settings/tracks')))
-          }
-        })
-    }
+    dispatch(save({
+      actionsName,
+      bannerUrl,
+      completionBadgeEmoji,
+      completionBadgeName,
+      completionMessage,
+      description,
+      name,
+      groupIds: [currentGroup.id],
+      trackId: editingTrack?.id,
+      publishedAt,
+      welcomeMessage
+    }))
+      .then(({ error }) => {
+        setSaving(false)
+        if (error) {
+          setErrors({ ...errors, general: t('There was an error, please try again.') })
+        } else {
+          setEdited(false)
+          setErrors({})
+          dispatch(push(editingTrack ? groupUrl(currentGroup.slug, `tracks/${editingTrack.id}/edit`) : groupUrl(currentGroup.slug, 'settings/tracks')))
+        }
+      })
   }, [trackState, isValid])
 
   if (!hasTracksResponsibility) {
@@ -292,7 +298,7 @@ function TrackEditor (props) {
       <div className=''>
         <Button
           variant='secondary'
-          disabled={!edited || !isValid}
+          disabled={!edited || !isValid || saving}
           onClick={onSubmit}
         >
           <Plus className={cn('w-4 h-4 text-white', { 'bg-secondary': edited && isValid })} />{editingTrack ? t('Update Track') : t('Create Track')}
