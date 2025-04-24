@@ -11,6 +11,8 @@ import Stream from 'screens/Stream'
 import Moderation from 'screens/Moderation'
 import AllViews from 'screens/AllViews'
 import Groups from 'screens/Groups'
+import Tracks from 'screens/Tracks'
+import TrackDetail from 'screens/TrackDetail'
 import GroupWelcome from 'screens/GroupWelcome'
 import GroupWelcomePage from 'screens/GroupWelcome/GroupWelcomePage'
 import HyloWebView from 'components/HyloWebView'
@@ -43,8 +45,8 @@ export default function HomeNavigator () {
       {/* Other screens */}
       <HomeTab.Screen name='Stream' component={Stream} />
       <HomeTab.Screen name='All Views' component={AllViews} />
-      <HomeTab.Screen name='Tracks' component={Stream} />
-      <HomeTab.Screen name='Track Detail' component={Stream} />
+      <HomeTab.Screen name='Tracks' component={Tracks} />
+      <HomeTab.Screen name='Track Detail' component={TrackDetail} />
       <HomeTab.Screen name='Group Relationships' component={Groups} />
       <HomeTab.Screen name='Group Welcome' component={GroupWelcome} />
       <HomeTab.Screen name='Group Welcome Page' component={GroupWelcomePage} />

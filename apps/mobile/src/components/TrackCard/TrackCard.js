@@ -1,14 +1,14 @@
 import React, { useCallback } from 'react'
 import { View, Text, Pressable, Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
 import { Eye, EyeOff, Settings, Users, UserCheck } from 'lucide-react-native'
-import Button from 'components/ui/Button'
+import clsx from 'clsx'
+import Button from 'components/Button'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
-import { cn } from 'util/index'
+
 
 function TrackCard({ track }) {
   const navigation = useNavigation()
@@ -63,9 +63,9 @@ function TrackCard({ track }) {
         <View className='flex-row justify-between items-center'>
           {canEdit && (
             <View className='flex-row items-center gap-x-2 bg-input p-2 rounded-md'>
-              <Button
+              {/* <Button
                 onPress={() => publishedAt ? handlePublishTrack(null) : null}
-                className={cn(
+                className={clsx(
                   'w-8 h-8 items-center justify-center rounded-md',
                   publishedAt ? 'bg-foreground/10 text-foreground' : 'bg-accent text-white'
                 )}
@@ -75,20 +75,20 @@ function TrackCard({ track }) {
 
               <Button
                 onPress={() => !publishedAt ? handlePublishTrack(new Date().toISOString()) : null}
-                className={cn(
+                className={clsx(
                   'w-8 h-8 items-center justify-center rounded-md',
                   publishedAt ? 'bg-selected text-white' : 'bg-foreground/10 text-foreground'
                 )}
               >
                 <Eye className='w-5 h-5' />
-              </Button>
+              </Button> */}
 
-              <Text className={cn(
+              {/* <Text className={clsx(
                 'text-xs',
                 publishedAt ? 'text-selected' : 'text-accent'
               )}>
                 {publishedAt ? t('Published') : t('Unpublished')}
-              </Text>
+              </Text> */}
             </View>
           )}
 

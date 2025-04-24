@@ -1,19 +1,15 @@
 import React, { useEffect } from 'react'
-import { View, FlatList } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
+import { View, FlatList, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useRoute } from '@react-navigation/native'
 import { Shapes } from 'lucide-react-native'
-import { useHeaderOptions } from 'navigation/utils'
-import fetchGroupTracks from 'store/actions/fetchGroupTracks'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
-import getTracks from 'store/selectors/getTracksForGroup'
 import TrackCard from 'components/TrackCard'
+import StreamHeader from '../Stream/StreamHeader'
 
 function Tracks() {
-  const dispatch = useDispatch()
   const { t } = useTranslation()
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
@@ -34,13 +30,21 @@ function Tracks() {
 
   return (
     <View className='flex-1 bg-background'>
+      <StreamHeader
+        name={t('Tracks')}
+        image={currentGroup.bannerUrl ? { uri: currentGroup.bannerUrl } : null}
+        iconName='Shapes'
+        currentGroup={currentGroup}
+        postPrompt={false}
+        streamType='tracks'
+      />
       {tracks.length === 0 && (
-        <Text className='text-foreground text-center'>
+        <Text className='text-foreground text-center py-4 font-bold text-lg'>
           {t('This group currently does not have any published tracks')}
         </Text>
       )}
       {tracks.length === 0 && canManageTracks && (
-        <Text className='text-foreground text-center'>
+        <Text className='text-foreground text-center py-2 font-bold text-lg'>
           {t('Tracks can be created by admins in the web app for Hylo')}
         </Text>
       )}
