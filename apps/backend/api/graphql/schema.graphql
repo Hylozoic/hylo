@@ -1546,6 +1546,20 @@ type Me {
     # Load this number of topics
     first: Int
   ): TopicFollowQuerySet
+
+  # The tracks I am enrolled in
+  tracksEnrolledIn(
+    # Search string
+    autocomplete: String,
+    # Load this number of tracks
+    first: Int,
+    # Starting at this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'.
+    order: String,
+    # 'enrolled_at', 'name'
+    sortBy: String
+  ): TrackQuerySet
 }
 
 # A user's group membership

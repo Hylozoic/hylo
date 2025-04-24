@@ -162,7 +162,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         { messageThreads: { typename: 'MessageThread', querySet: true } },
-        { tagFollows: { alias: 'topicFollows', querySet: true } }
+        { tagFollows: { alias: 'topicFollows', querySet: true } },
+        { tracksEnrolledIn: { querySet: true } }
       ],
       getters: {
         blockedUsers: u => u.blockedUsers().fetch(),

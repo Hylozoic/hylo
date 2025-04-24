@@ -253,6 +253,13 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(Thank)
   },
 
+  tracksEnrolledIn: function () {
+    return this.belongsToMany(Track).through(TrackUser).query(q => {
+      q.where('tracks_users.user_id', this.id)
+      q.whereNotNull('tracks_users.enrolled_at')
+    })
+  },
+
   intercomHash: function () {
     return crypto.createHmac('sha256', process.env.INTERCOM_KEY)
       .update(this.id)
@@ -534,7 +541,7 @@ module.exports = bookshelf.Model.extend(merge({
 
         if (changes.settings && changes.settings.signup_in_progress === false) {
           // Send welcome email 2 minutes after signup, to make sure that group membership has been setup if they signup after getting invitation from the group
-          Queue.classMethod('User', 'sendWelcomeEmail', { userId: this.id }, 2 * 60 * 1000 )
+          Queue.classMethod('User', 'sendWelcomeEmail', { userId: this.id }, 2 * 60 * 1000)
         }
       }
       return this
