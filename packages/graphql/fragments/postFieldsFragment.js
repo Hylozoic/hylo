@@ -1,9 +1,9 @@
 import { gql } from 'urql'
 import commentFieldsFragment from './commentFieldsFragment'
 
-// Base fragment that contains all the common fields
-export const postBaseFieldsFragment = gql`
-  fragment PostBaseFieldsFragment on Post {
+// Original fragment that contains all the common fields
+export const postFieldsFragment = gql`
+  fragment PostFieldsFragment on Post {
     id
     announcement
     title
@@ -177,7 +177,7 @@ export const postBaseFieldsFragment = gql`
 // Fragment for posts with comments
 export const postWithCommentsFragment = gql`
   fragment PostWithCommentsFragment on Post {
-    ...PostBaseFieldsFragment
+    ...PostFieldsFragment
     comments(first: 10, order: "desc") {
       items {
         ...CommentFieldsFragment
@@ -196,26 +196,26 @@ export const postWithCommentsFragment = gql`
       hasMore
     }
   }
-  ${postBaseFieldsFragment}
+  ${postFieldsFragment}
   ${commentFieldsFragment}
 `
 
 // Fragment for posts with completion data
 export const postWithCompletionFragment = gql`
   fragment PostWithCompletionFragment on Post {
-    ...PostBaseFieldsFragment
+    ...PostFieldsFragment
     completedAt
     completionAction
     completionActionSettings
     completionResponse
   }
-  ${postBaseFieldsFragment}
+  ${postFieldsFragment}
 `
 
 // Fragment for posts with all completion responses
 export const postWithAllCompletionResponsesFragment = gql`
   fragment PostWithAllCompletionResponsesFragment on Post {
-    ...PostBaseFieldsFragment
+    ...PostFieldsFragment
     completionResponses {
       items {
         id
@@ -229,13 +229,13 @@ export const postWithAllCompletionResponsesFragment = gql`
       }
     }
   }
-  ${postBaseFieldsFragment}
+  ${postFieldsFragment}
 `
 
 // Fragment combining both comments and completion responses
 export const postWithCommentsAndCompletionResponsesFragment = gql`
   fragment PostWithCommentsAndCompletionResponsesFragment on Post {
-    ...PostBaseFieldsFragment
+    ...PostFieldsFragment
     comments(first: 10, order: "desc") {
       items {
         ...CommentFieldsFragment
@@ -268,9 +268,9 @@ export const postWithCommentsAndCompletionResponsesFragment = gql`
       hasMore
     }
   }
-  ${postBaseFieldsFragment}
+  ${postFieldsFragment}
   ${commentFieldsFragment}
 `
 
 // Default export is the base fragment for backward compatibility
-export default postBaseFieldsFragment
+export default postFieldsFragment
