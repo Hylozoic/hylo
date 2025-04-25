@@ -63,8 +63,11 @@ const ActionsTab = ({ trackDetail, posts = [], groupSlug }) => {
   }
 
   return (
-    <View className='flex-1'>
-      <Text className='text-xl font-bold mb-4'>{trackDetail.actionsName}</Text>
+    <ScrollView 
+      className='flex-1'
+      contentContainerClassName='py-4 gap-y-4'
+      showsVerticalScrollIndicator={false}
+    >
       {posts.map(post => (
         <PostCard 
           key={post.id} 
@@ -73,7 +76,8 @@ const ActionsTab = ({ trackDetail, posts = [], groupSlug }) => {
           onPress={() => handlePostPress(post)}
         />
       ))}
-    </View>
+      <View className='h-20' />
+    </ScrollView>
   )
 }
 
@@ -252,7 +256,7 @@ function TrackDetail() {
           ) : (
             <View className='flex-row gap-2 m-4 border-2 border-foreground/20 rounded-md p-2 justify-between items-center'>
               <View className='flex-row gap-2 items-center'>
-                <Check className='w-4 h-4 text-selected' />
+                <Check />
                 <Text>{t('You are currently enrolled in this track')}</Text>
               </View>
               <TouchableOpacity 
