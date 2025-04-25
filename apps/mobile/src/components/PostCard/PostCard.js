@@ -27,7 +27,7 @@ export default function PostCard ({
   showGroups = true,
   childPost,
   showTopic: goToTopic,
-  isCurrentAction
+  isCurrentAction = false
 }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
