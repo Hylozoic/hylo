@@ -1,7 +1,8 @@
 import { gql } from 'urql'
+import trackFieldsFragment from '../fragments/trackFieldsFragment'
 
 export default gql`
-  query TracksQuery(
+  query GroupTracksQuery(
     $id: ID,
     $first: Int = 20,
     $offset: Int = 0,
@@ -21,24 +22,10 @@ export default gql`
         order: $order
       ) {
         items {
-          id
-          bannerUrl
-          actionsName
-          description
-          completionBadgeEmoji
-          completionBadgeName
-          completionMessage
-          didComplete
-          isEnrolled
-          name
-          numActions
-          numPeopleCompleted
-          numPeopleEnrolled
-          publishedAt
-          userSettings
-          welcomeMessage
+          ...TrackFields
         }
       }
     }
   }
+  ${trackFieldsFragment}
 `

@@ -32,11 +32,13 @@ export async function deleteTrack (userId, id) {
 
 export async function enrollInTrack (userId, trackId) {
   // TODO: check if the user can see the track?
-  return Track.enroll(trackId, userId)
+  await Track.enroll(trackId, userId)
+  return Track.find(trackId)
 }
 
 export async function leaveTrack (userId, trackId) {
-  return Track.leave(trackId, userId)
+  await Track.leave(trackId, userId)
+  return Track.find(trackId)
 }
 
 export async function updateTrack (userId, id, data) {

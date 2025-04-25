@@ -1,10 +1,10 @@
 import { useQuery } from 'urql'
-import tracksQuery from '@hylo/graphql/queries/tracksQuery'
+import groupTracksQuery from '@hylo/graphql/queries/groupTracksQuery'
 
 export default function useTracks ({ groupId, groupSlug }, useQueryArgs = {}) {
   const [{ data, fetching, error }, reQuery] = useQuery({
     ...useQueryArgs,
-    query: tracksQuery,
+    query: groupTracksQuery,
     variables: {
       id: groupId,
       // Note: we don't pass both id and slug - if id exists use that, otherwise use slug

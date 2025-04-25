@@ -264,6 +264,8 @@ export const postWithCommentsAndCompletionResponsesFragment = gql`
           avatarUrl
         }
       }
+      total
+      hasMore
     }
   }
   ${postBaseFieldsFragment}
