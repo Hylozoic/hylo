@@ -117,8 +117,8 @@ export default function PostCompletion ({ post, currentUser }) {
         </>
       )
       completionButtonText = null
-      alreadyCompletedMessage = t('You completed this action at {{date}}. Your uploaded attachments:', { date: completedAt })
-      completionResponseText = <p><CardFileAttachments attachments={completionResponse.map(a => ({ ...a, type: 'file' }))} /></p>
+      alreadyCompletedMessage = t('You completed this action {{date}}. Your uploaded attachments:', { date: completedAt })
+      completionResponseText = <CardFileAttachments attachments={completionResponse.map(a => ({ ...a, type: 'file' }))} />
       break
     case 'comment':
     case 'reaction':
