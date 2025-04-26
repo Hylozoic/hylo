@@ -529,9 +529,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   async complete (userId, completionResponse) {
-    const pu = await this.loadPostInfoForUser(userId)
+    let pu = await this.loadPostInfoForUser(userId)
+    if (pu) {
+      pu.save({ completed_at: new Date(), completion_response: completionResponse })
+    } else {
+      pu = await this.postUsers().create({ user_id: userId, created_at: new Date(), completed_at: new Date(), completion_response: completionResponse })
+    }
     this.save({ num_people_completed: this.get('num_people_completed') + 1 })
-    return pu.save({ completed_at: new Date(), completion_response: completionResponse })
+    return pu
   },
 
   async markAsRead (userId) {
