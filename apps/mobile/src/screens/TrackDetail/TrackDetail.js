@@ -7,6 +7,7 @@ import useOpenURL from 'hooks/useOpenURL'
 import { groupUrl } from 'util/navigation'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useTrack from '@hylo/hooks/useTrack'
+import useTracks from '@hylo/hooks/useTracks'
 import useTrackEnrollment from '@hylo/hooks/useTrackEnrollment'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
@@ -69,12 +70,18 @@ const ActionsTab = ({ trackDetail, posts = [], groupSlug }) => {
       showsVerticalScrollIndicator={false}
     >
       {posts.map(post => (
-        <PostCard 
-          key={post.id} 
-          post={post} 
-          isCurrentAction={trackDetail.currentAction?.id === post.id}
+        <TouchableOpacity
+          key={post.id}
+          activeOpacity={0.6}
+          delayPressIn={50}
           onPress={() => handlePostPress(post)}
-        />
+        >
+          <PostCard 
+            post={post} 
+            isCurrentAction={trackDetail.currentAction?.id === post.id}
+            onPress={() => handlePostPress(post)}
+          />
+        </TouchableOpacity>
       ))}
       <View className='h-20' />
     </ScrollView>
@@ -112,12 +119,19 @@ const ActionsTab = ({ trackDetail, posts = [], groupSlug }) => {
 
 function TrackDetail() {
   const { t } = useTranslation()
-  const [currentTab, setCurrentTab] = useState('about')
   const routeParams = useRouteParams()
   const [{ currentGroup }] = useCurrentGroup()
+  const [tracks, { fetching: fetchingTracks }] = useTracks({ 
+    groupId: currentGroup?.id
+  })
   const [trackDetail, { fetching, error }] = useTrack({ 
     trackId: routeParams.trackId
   })
+
+  // Find the track in the tracks list to get early access to isEnrolled
+  const initialTrack = tracks?.find(t => t.id === routeParams.trackId)
+  const [currentTab, setCurrentTab] = useState(initialTrack?.isEnrolled ? 'actions' : 'about')
+  
   const { 
     enrollInTrack, 
     leaveTrack, 
@@ -161,8 +175,6 @@ function TrackDetail() {
     </Text>
   )
 
-  const { isEnrolled, posts } = trackDetail
-
   const handleEnroll = async () => {
     const success = await enrollInTrack(trackDetail.id)
     if (!success) {
@@ -199,7 +211,7 @@ function TrackDetail() {
     <View className='flex-1 bg-background'>
       <View className='flex-1 px-4'>
         <View className='max-w-[750px] mx-auto flex-1 w-full'>
-          {isEnrolled && (
+          {trackDetail?.isEnrolled && (
             <Animated.View 
               style={tabAnimatedStyle}
               className='w-full bg-foreground/20 rounded-md p-2'
@@ -231,7 +243,7 @@ function TrackDetail() {
           {currentTab === 'actions' && (
             <ActionsTab 
               trackDetail={trackDetail}
-              posts={posts?.items || []}
+              posts={trackDetail?.posts?.items || []}
               groupSlug={currentGroup?.slug}
             />
           )}

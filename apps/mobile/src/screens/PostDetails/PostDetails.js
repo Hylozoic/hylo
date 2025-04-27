@@ -7,6 +7,7 @@ import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
+import { postWithCompletionFragment } from '@hylo/graphql/fragments/postFieldsFragment'
 import commentFieldsFragment from '@hylo/graphql/fragments/commentFieldsFragment'
 import PostPresenter from '@hylo/presenters/PostPresenter'
 import mixpanel from 'services/mixpanel'
@@ -17,14 +18,17 @@ import CommentEditor from 'components/CommentEditor'
 import Comments from 'components/Comments'
 import Loading from 'components/Loading'
 import PostCardForDetails from 'components/PostCard/PostCardForDetails'
+import PostCompletion from 'components/PostCompletion'
 
 export const postDetailsQuery = gql`
   query PostDetailsQuery ($id: ID) {
     post(id: $id) {
       ...PostFieldsFragment
+      ...PostWithCompletionFragment
     }
   }
   ${postFieldsFragment}
+  ${postWithCompletionFragment}
 `
 
 export const commentsSubscription = gql`
@@ -98,11 +102,18 @@ export default function PostDetails () {
         groupId={firstGroupSlug}
         postId={post.id}
         header={(
-          <PostCardForDetails
-            post={post}
-            showGroups={showGroups}
-            groupId={groupId}
-          />
+          <>
+            <PostCardForDetails
+              post={post}
+              showGroups={showGroups}
+              groupId={groupId}
+            />
+            {post.type === 'action' && post.completionAction && (
+              <PostCompletion
+                post={post}
+              />
+            )}
+          </>
         )}
         onSelect={setSelectedComment}
         showMember={goToMember}

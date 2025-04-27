@@ -39,6 +39,7 @@ export default {
   PersonQuerySet: () => null,
   Point: () => null,
   PostQuerySet: () => null,
+  PostUserQuerySet: () => null,
   ProposalOptionQuerySet: () => null,
   ProposalVoteQuerySet: () => null,
   ResponsibilityQuerySet: () => null,

@@ -1,9 +1,17 @@
-import { gql } from 'urql'
+import { gql } from '@urql/core'
 
-export default gql`
-  mutation CompletePostMutation($postId: ID, $completionResponse: JSON) {
+export const completePostMutation = gql`
+  mutation CompletePost($postId: ID!, $completionResponse: JSON!) {
     completePost(postId: $postId, completionResponse: $completionResponse) {
-      success
+      id
+      title
+      details
+      completedAt
+      completionResponse
+      completionAction
+      completionActionSettings
     }
   }
 `
+
+export default completePostMutation

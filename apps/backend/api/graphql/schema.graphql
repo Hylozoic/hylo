@@ -2542,7 +2542,7 @@ type Mutation {
   # Clear a moderation action; only a 'content manager' or initial reporter can do this.
   clearModerationAction(postId: ID, groupId: ID, moderationActionId: ID): GenericResult
   # Mark a post as completed
-  completePost(postId: ID, completionResponse: JSON): GenericResult
+  completePost(postId: ID, completionResponse: JSON): Post
   # For logged in user to add an Affiliation to their profile
   createAffiliation(data: AffiliationInput): Affiliation
   # Create a new post Collection
