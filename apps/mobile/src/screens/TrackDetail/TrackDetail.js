@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Animated } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Animated, Platform } from 'react-native'
 import { Shapes, Settings, DoorOpen, Check } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { TextHelpers } from '@hylo/shared'
@@ -34,7 +34,7 @@ const AboutTab = ({ trackDetail }) => {
 
   return (
     <View className='flex-1'>
-      <View className='mt-4 w-full shadow-2xl rounded-xl h-[40vh] items-center justify-center'>
+      <View className={`mt-4 w-full rounded-xl h-[40vh] items-center justify-center bg-foreground/20 ${Platform.OS === 'ios' ? 'shadow-2xl' : ''}`}>
         {bannerUrl && (
           <Image 
             source={{ uri: bannerUrl }} 
