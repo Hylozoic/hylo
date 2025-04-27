@@ -236,6 +236,10 @@ export const postWithAllCompletionResponsesFragment = gql`
 export const postWithCommentsAndCompletionResponsesFragment = gql`
   fragment PostWithCommentsAndCompletionResponsesFragment on Post {
     ...PostFieldsFragment
+    completedAt
+    completionAction
+    completionActionSettings
+    completionResponse
     comments(first: 10, order: "desc") {
       items {
         ...CommentFieldsFragment

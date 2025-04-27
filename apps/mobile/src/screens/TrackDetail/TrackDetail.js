@@ -243,7 +243,7 @@ function TrackDetail() {
           {currentTab === 'actions' && (
             <ActionsTab 
               trackDetail={trackDetail}
-              posts={trackDetail?.posts?.items || []}
+              posts={trackDetail?.posts || []}
               groupSlug={currentGroup?.slug}
             />
           )}

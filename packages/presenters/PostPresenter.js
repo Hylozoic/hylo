@@ -9,6 +9,7 @@ export default function PostPresenter (post, { forGroupId } = {}) {
   return {
     ...post,
     completionResponse: post.completionResponse?.items || [],
+    completionResponses: post.completionResponses?.items || [],
     getAttachments: () => attachmentsResolver(post),
     getImages: () => imagesResolver(post),
     getFiles: () => filesResolver(post),

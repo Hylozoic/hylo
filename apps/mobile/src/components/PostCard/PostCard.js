@@ -39,7 +39,6 @@ export default function PostCard ({
   const [{ currentUser }] = useCurrentUser()
   const handleShowMember = id => navigation.navigate('Member', { id })
   const isAction = post.type === 'action'
-
   return (
     <>
       {childPost && (

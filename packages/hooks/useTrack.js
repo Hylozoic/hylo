@@ -1,5 +1,6 @@
 import { useQuery } from 'urql'
 import fetchTrackQuery from '@hylo/graphql/queries/fetchTrackQuery'
+import TrackPresenter from '@hylo/presenters/TrackPresenter'
 
 export default function useTrack ({ trackId }, useQueryArgs = {}) {
   const [{ data, fetching, error }, reQuery] = useQuery({
@@ -15,5 +16,7 @@ export default function useTrack ({ trackId }, useQueryArgs = {}) {
     return [null, { fetching, error }, reQuery]
   }
 
-  return [data?.track, { fetching, error }, reQuery]
-} 
+  const presentedTrack = TrackPresenter(data?.track)
+
+  return [presentedTrack, { fetching, error }, reQuery]
+}
