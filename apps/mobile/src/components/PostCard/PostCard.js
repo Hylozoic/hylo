@@ -50,24 +50,25 @@ export default function PostCard ({
         </View>
       )}
       <View className={`bg-card border-b border-border ${isCurrentAction ? 'border-l-4 border-l-selected' : ''}`}>
-        <View className='flex-row items-center justify-between px-4 pt-2 mb-2'>
-          {post.completedAt ? (
-            <View className='flex-row items-center gap-2 bg-selected/10 px-3 py-1 rounded-full'>
-              <Check className='w-4 h-4 text-selected' />
-              <Text className='text-selected'>{t('Completed')}</Text>
-            </View>
-          ) : isCurrentAction ? (
-            <View className='flex-row items-center gap-2 bg-selected/10 px-3 py-1 rounded-full'>
-              <Play className='w-4 h-4 text-selected' />
-              <Text className='text-selected'>{t('Current Action')}</Text>
-            </View>
-          ) : (
-            <View className='flex-row items-center gap-2 bg-foreground/5 px-3 py-1 rounded-full'>
-              <Circle className='w-4 h-4 text-foreground/50' />
-              <Text className='text-foreground/50'>{t('Not Complete')}</Text>
-            </View>
-          )}
-        </View>
+        {isAction && (
+          <View className='flex-row items-center justify-between px-4 pt-2 mb-2'>
+            {post.completedAt ? (
+              <View className='flex-row items-center gap-2 bg-selected/10 px-3 py-1 rounded-full'>
+                <Check className='w-4 h-4 text-selected' />
+                <Text className='text-selected'>{t('Completed')}</Text>
+              </View>
+            ) : isCurrentAction ? (
+              <View className='flex-row items-center gap-2 bg-selected/10 px-3 py-1 rounded-full'>
+                <Play className='w-4 h-4 text-selected' />
+                <Text className='text-selected'>{t('Current Action')}</Text>
+              </View>
+            ) : (
+              <View className='flex-row items-center gap-2 bg-foreground/5 px-3 py-1 rounded-full'>
+                <Circle className='w-4 h-4 text-foreground/50' />
+                <Text className='text-foreground/50'>{t('Not Complete')}</Text>
+              </View>
+            )}
+        </View>)}
         {!isAction && (
           <PostHeader
             announcement={post.announcement}

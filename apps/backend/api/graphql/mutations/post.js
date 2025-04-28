@@ -6,7 +6,12 @@ import underlyingUpdatePost from '../../models/post/updatePost'
 export async function completePost (userId, postId, completionResponse) {
   const post = await Post.find(postId)
   if (!post) throw new GraphQLError('Post not found')
-  await post.complete(userId, completionResponse)
+
+  const jsonResponse = typeof completionResponse === 'string'
+    ? completionResponse
+    : JSON.stringify(completionResponse)
+
+  await post.complete(userId, jsonResponse)
   return Post.find(postId)
 }
 
