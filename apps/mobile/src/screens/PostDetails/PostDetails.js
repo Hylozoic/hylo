@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Alert } from 'react-native'
+import { Alert, View } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { gql, useQuery, useSubscription } from 'urql'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
@@ -19,6 +20,7 @@ import Comments from 'components/Comments'
 import Loading from 'components/Loading'
 import PostCardForDetails from 'components/PostCard/PostCardForDetails'
 import PostCompletion from 'components/PostCompletion'
+import { isIOS } from 'util/platform'
 
 export const postDetailsQuery = gql`
   query PostDetailsQuery ($id: ID) {
@@ -41,6 +43,7 @@ export const commentsSubscription = gql`
 `
 
 export default function PostDetails () {
+  const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
@@ -96,7 +99,13 @@ export default function PostDetails () {
   const showGroups = isModalScreen || post?.groups.find(g => g.slug !== currentGroup?.slug)
 
   return (
-    <>
+    <View 
+      className='flex-1 bg-background'
+      style={{ 
+        paddingTop: insets.top + (isIOS ? 0 : 20),
+        paddingBottom: insets.bottom + (isIOS ? 0 : 20)
+      }}
+    >
       <Comments
         ref={commentsRef}
         groupId={firstGroupSlug}
@@ -126,6 +135,6 @@ export default function PostDetails () {
         scrollToReplyingTo={scrollToSelectedComment}
         clearReplyingTo={clearSelectedComment}
       />
-    </>
+    </View>
   )
 }

@@ -1,20 +1,27 @@
 import React, { useCallback, useState } from 'react'
-import { View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native'
+import { View, Text, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useMutation } from 'urql'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { TextHelpers } from '@hylo/shared'
 import completePostMutation from '@hylo/graphql/mutations/completePostMutation'
-import FilePicker from '../ImagePicker/ImagePicker'
 import { useToast } from '../Toast'
-import { Check, Upload } from 'lucide-react-native'
+import { Check, Upload, Loading } from 'lucide-react-native'
 import RoundCheckbox from '../RoundCheckBox'
 import RadioButton from '../RadioButton'
 import CardFileAttachments from '../CardFileAttachments'
+import { useDispatch } from 'react-redux'
+import FileSelector, { showFilePicker } from '../../screens/PostEditor/FileSelector'
+import uploadAction from 'store/actions/upload'
+import { isIOS } from 'util/platform'
 
 export default function PostCompletion({ post }) {
   const { t } = useTranslation()
   const showToast = useToast()
-  console.log('post', post, post.completionResponse, 'asdasdas')
+  const dispatch = useDispatch()
+  const [filePickerPending, setFilePickerPending] = useState(false)
+  const upload = useCallback((...params) => dispatch(uploadAction(...params)), [dispatch])
+
   const [completionResponse, setCompletionResponse] = useState(post.completionResponse || [])
   const [submitting, setSubmitting] = useState(false)
   const { completionAction, completionActionSettings } = post
@@ -26,6 +33,22 @@ export default function PostCompletion({ post }) {
     if (remote) {
       setCompletionResponse(prev => [...prev, { url: remote, localUri: local }])
     }
+  }
+
+  const handleShowFilePicker = async () => {
+    setFilePickerPending(true)
+    await showFilePicker({
+      upload,
+      type: 'post',
+      id: post?.id,
+      onAdd: handleFileChoice,
+      onError: (errorMessage) => {
+        setFilePickerPending(false)
+        Alert.alert(errorMessage)
+      },
+      onComplete: () => setFilePickerPending(false),
+      onCancel: () => setFilePickerPending(false)
+    })
   }
 
   const handleSubmit = async () => {
@@ -62,7 +85,6 @@ export default function PostCompletion({ post }) {
         text2: error
       })
     } finally {
-      console.error('NONONON', 'wowowowowowowo')
       setSubmitting(false)
     }
   }
@@ -155,16 +177,22 @@ export default function PostCompletion({ post }) {
     case 'uploadFile':
       completionControls = (
         <View className='mb-4'>
-          <FilePicker
-            type='postCompletion'
-            onChoice={handleFileChoice}
-            allowMultiple
+          <TouchableOpacity 
+            className='flex-row items-center justify-center border-2 border-dashed border-foreground/20 rounded-md p-4'
+            onPress={handleShowFilePicker}
+            disabled={filePickerPending}
           >
-            <TouchableOpacity className='flex-row items-center justify-center border-2 border-dashed border-foreground/20 rounded-md p-4'>
+            {filePickerPending ? (
+              <Loading size={24} className='mr-2' />
+            ) : (
               <Upload className='w-6 h-6 text-foreground mr-2' />
-              <Text className='text-foreground'>{t('Upload Attachments')}</Text>
-            </TouchableOpacity>
-          </FilePicker>
+            )}
+            <Text className='text-foreground'>{t('Upload Attachments')}</Text>
+          </TouchableOpacity>
+          <FileSelector
+              onRemove={attachment => removeAttachment('file', attachment)}
+              files={completionResponse.map(a => ({ ...a, type: 'file' }))}
+            />
           {completionResponse.length > 0 && (
             <View className='mt-4'>
               <CardFileAttachments attachments={completionResponse.map(a => ({ ...a, type: 'file' }))} />
@@ -187,7 +215,9 @@ export default function PostCompletion({ post }) {
 
   if (post.completedAt) {
     return (
-      <View className='p-4 bg-background-plus rounded-lg mb-4'>
+      <View 
+        className='p-4 bg-background-plus rounded-lg mb-4'
+      >
         <View className='flex-row items-center'>
           <Check className='w-5 h-5 text-success mr-2' />
           <Text className='text-foreground font-medium'>{alreadyCompletedMessage}</Text>
@@ -202,7 +232,9 @@ export default function PostCompletion({ post }) {
   }
 
   return (
-    <View className='p-4 bg-background-plus rounded-lg mb-4'>
+    <SafeAreaView 
+      className='p-4 bg-background rounded-lg mb-4'
+    >
       <Text className='text-foreground font-medium mb-4'>{t('Complete Action')}</Text>
       {instructions && (
         <Text className='font-bold mb-4'>{instructions}</Text>
@@ -225,6 +257,6 @@ export default function PostCompletion({ post }) {
           </Text>
         </TouchableOpacity>
       )}
-    </View>
+    </SafeAreaView>
   )
 } 
