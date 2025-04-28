@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { TextHelpers } from '@hylo/shared'
 import Button from 'components/ui/button'
 import Checkbox from 'components/ui/checkbox'
@@ -9,14 +9,18 @@ import CardFileAttachments from 'components/CardFileAttachments'
 import { Label } from 'components/ui/label'
 import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import useRouteParams from 'hooks/useRouteParams'
 import completePost from 'store/actions/completePost'
+import getTrack from 'store/selectors/getTrack'
 
 export default function PostCompletion ({ post, currentUser }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
+  const routeParams = useRouteParams()
   const [completionResponse, setCompletionResponse] = useState(post.completionResponse || [])
   const { completionAction, completionActionSettings } = post
   const { instructions, options } = completionActionSettings
+  const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
 
   const handleSubmitCompletion = useCallback(() => {
     if (completionAction === 'button' || completionResponse.length > 0) {
@@ -37,7 +41,6 @@ export default function PostCompletion ({ post, currentUser }) {
     case 'button':
       completionControls = null
       completionButtonText = 'Mark as Complete'
-      alreadyCompletedMessage = t('You completed this action {{date}}', { date: completedAt })
       break
     case 'selectOne':
       completionControls = (
@@ -51,7 +54,7 @@ export default function PostCompletion ({ post, currentUser }) {
         </RadioGroup>
       )
       completionButtonText = 'Submit'
-      alreadyCompletedMessage = t('You completed this action {{date}}. You selected:', { date: completedAt })
+      alreadyCompletedMessage = t('You selected:')
       break
     case 'selectMultiple':
       completionControls = (
@@ -78,12 +81,12 @@ export default function PostCompletion ({ post, currentUser }) {
         </ul>
       )
       completionButtonText = 'Submit'
-      alreadyCompletedMessage = t('You completed this action {{date}}. You selected:', { date: completedAt })
+      alreadyCompletedMessage = t('You selected:')
       break
     case 'text':
       completionControls = <textarea type='text' className='w-full outline-none border-border border-2 bg-input rounded-md p-2' value={completionResponse} onChange={(e) => setCompletionResponse([e.target.value])} />
       completionButtonText = 'Submit'
-      alreadyCompletedMessage = t('You completed this action {{date}}. Your response was:', { date: completedAt })
+      alreadyCompletedMessage = t('Your response was:')
       break
     case 'uploadFile':
       completionControls = (
@@ -117,14 +120,13 @@ export default function PostCompletion ({ post, currentUser }) {
         </>
       )
       completionButtonText = null
-      alreadyCompletedMessage = t('You completed this action {{date}}. Your uploaded attachments:', { date: completedAt })
+      alreadyCompletedMessage = t('Your uploaded attachments:')
       completionResponseText = <CardFileAttachments attachments={completionResponse.map(a => ({ ...a, type: 'file' }))} />
       break
     case 'comment':
     case 'reaction':
       completionControls = null
       completionButtonText = null
-      alreadyCompletedMessage = t('You completed this action {{date}}', { date: completedAt })
       break
   }
 
@@ -132,7 +134,7 @@ export default function PostCompletion ({ post, currentUser }) {
     <div className='border-2 border-dashed border-foreground/20 rounded-md p-3 m-2'>
       {post.completedAt && (
         <div className='mb-1'>
-          <p>{alreadyCompletedMessage}</p>
+          <p>{t('You completed this {{actionTerm}} {{date}}.', { date: completedAt, actionTerm: currentTrack?.actionsName.slice(0, -1) })} {alreadyCompletedMessage}</p>
           {completionResponse?.length > 0 && completionResponseText}
         </div>
       )}
