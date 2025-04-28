@@ -99,7 +99,7 @@ export default function PostCompletion ({ post, currentUser }) {
           <UploadAttachmentButton
             className='inline-block'
             type='postCompletion'
-            attachmentType='file'
+            attachmentType='all'
             allowMultiple
             onSuccess={(response) => setCompletionResponse(prev => prev.concat(response))}
           >
