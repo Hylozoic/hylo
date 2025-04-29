@@ -57,9 +57,12 @@ const AboutTab = ({ trackDetail }) => {
 
 const ActionsTab = ({ trackDetail, posts = [], groupSlug }) => {
   const openURL = useOpenURL()
-  
+
   const handlePostPress = (post) => {
-    const postUrl = `${groupUrl(groupSlug, 'tracks')}/${trackDetail.id}/post/${post.id}`
+    const baseUrl = groupUrl(groupSlug, 'tracks')
+    const postUrl = post.completionAction === 'uploadFile'
+      ? `${baseUrl}/${trackDetail.id}/upload-action/${post.id}`
+      : `${baseUrl}/${trackDetail.id}/post/${post.id}`
     openURL(postUrl)
   }
 

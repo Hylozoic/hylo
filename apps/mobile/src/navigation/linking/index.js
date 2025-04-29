@@ -161,6 +161,7 @@ export const routingConfig = {
   ':unmatchedBasePath(.*)/group/:groupSlug':                              `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
   ':unmatchedBasePath(.*)/group/:groupSlug/explore':                      `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
   ':unmatchedBasePath(.*)/members/:id':                                   `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Member')}`,
+  ':unmatchedBasePath(.*)/upload-action/:id':                             `${AUTH_ROOT_SCREEN_NAME}/Upload Action`,
   ':unmatchedBasePath(.*)/post/:id':                                      `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
   ':unmatchedBasePath(.*)/post/:id/comments/:commentId':                  `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
   ':unmatchedBasePath(.*)/create/group':                                  `${AUTH_ROOT_SCREEN_NAME}/Create Group`,

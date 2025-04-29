@@ -35,21 +35,7 @@ export default function PostCompletion({ post }) {
     }
   }
 
-  const handleShowFilePicker = async () => {
-    setFilePickerPending(true)
-    await showFilePicker({
-      upload,
-      type: 'post',
-      id: post?.id,
-      onAdd: handleFileChoice,
-      onError: (errorMessage) => {
-        setFilePickerPending(false)
-        Alert.alert(errorMessage)
-      },
-      onComplete: () => setFilePickerPending(false),
-      onCancel: () => setFilePickerPending(false)
-    })
-  }
+
 
   const handleSubmit = async () => {
     setSubmitting(true)
