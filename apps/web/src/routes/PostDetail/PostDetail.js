@@ -398,7 +398,7 @@ export function ActionCompletionsSection ({ currentUser, post }) {
   const completers = post.completionResponses.map(response => response.user)
 
   return (
-    <div className='border-border border-2 rounded-lg p-4'>
+    <div className='border-border border-2 rounded-lg p-4 flex flex-row gap-2'>
       <PeopleInfo
         people={completers}
         peopleTotal={completers.length}
@@ -416,7 +416,7 @@ export function ActionCompletionsSection ({ currentUser, post }) {
           onClick={toggleCompletionResponsesDialog}
           variant='secondary'
         >
-          {t('View Completion Responses')}
+          {t('View All Responses')}
         </Button>
       )}
       {showCompletionResponsesDialog && (
