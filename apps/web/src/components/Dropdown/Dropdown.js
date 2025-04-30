@@ -26,8 +26,12 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
   }
 
   useEffect(() => {
-    window.addEventListener('click', hide)
-    return () => {
+    if (active) {
+      window.addEventListener('click', hide)
+      return () => {
+        window.removeEventListener('click', hide)
+      }
+    } else {
       window.removeEventListener('click', hide)
     }
   }, [active])
