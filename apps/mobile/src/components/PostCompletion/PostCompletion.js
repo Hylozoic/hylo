@@ -9,7 +9,6 @@ import { useToast } from '../Toast'
 import { Check, Upload, Loading } from 'lucide-react-native'
 import RoundCheckbox from '../RoundCheckBox'
 import RadioButton from '../RadioButton'
-import CardFileAttachments from '../CardFileAttachments'
 import { useDispatch } from 'react-redux'
 import FileSelector, { showFilePicker } from '../../screens/PostEditor/FileSelector'
 import uploadAction from 'store/actions/upload'
@@ -158,37 +157,6 @@ export default function PostCompletion({ post }) {
       )
       completionButtonText = 'Submit'
       alreadyCompletedMessage = t('You completed this action {{date}}. Your response was:', { date: completedAt })
-      break
-
-    case 'uploadFile':
-      completionControls = (
-        <View className='mb-4'>
-          <TouchableOpacity 
-            className='flex-row items-center justify-center border-2 border-dashed border-foreground/20 rounded-md p-4'
-            onPress={handleShowFilePicker}
-            disabled={filePickerPending}
-          >
-            {filePickerPending ? (
-              <Loading size={24} className='mr-2' />
-            ) : (
-              <Upload className='w-6 h-6 text-foreground mr-2' />
-            )}
-            <Text className='text-foreground'>{t('Upload Attachments')}</Text>
-          </TouchableOpacity>
-          <FileSelector
-              onRemove={attachment => removeAttachment('file', attachment)}
-              files={completionResponse.map(a => ({ ...a, type: 'file' }))}
-            />
-          {completionResponse.length > 0 && (
-            <View className='mt-4'>
-              <CardFileAttachments attachments={completionResponse.map(a => ({ ...a, type: 'file' }))} />
-            </View>
-          )}
-        </View>
-      )
-      completionButtonText = completionResponse.length > 0 ? 'Submit Attachments and Complete' : null
-      alreadyCompletedMessage = t('You completed this action at {{date}}. Your uploaded attachments:', { date: completedAt })
-      completionResponseText = <CardFileAttachments attachments={completionResponse.map(a => ({ ...a, type: 'file' }))} />
       break
 
     case 'comment':
