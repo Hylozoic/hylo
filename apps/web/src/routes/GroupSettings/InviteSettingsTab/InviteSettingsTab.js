@@ -269,7 +269,7 @@ I'm inviting you to join {{name}} on Hylo.
                   <div className='w-full flex justify-between items-center bg-card rounded-lg p-2' key={invite.id} ref={pendingInvitesTransitionRef}>
                     <div style={{ flex: 1 }}>
                       <span>{invite.email}</span>
-                      <span className={classes.inviteDate}>{TextHelpers.humanDate(invite.lastSentAt)}</span>
+                      <span className='pl-2 text-foreground/50'>{TextHelpers.humanDate(invite.lastSentAt)}</span>
                     </div>
                     <div className='flex items-center gap-2'>
                       <span className={cn('flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all', classes.expireBtn)} onClick={() => expireOnClick(invite.id)}>{t('Expire')}</span>

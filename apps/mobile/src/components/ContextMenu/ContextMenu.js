@@ -20,6 +20,7 @@ import useOpenURL from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import WidgetIconResolver from 'components/WidgetIconResolver'
+import HyloHTML from 'components/HyloHTML'
 
 export default function ContextMenu () {
   const insets = useSafeAreaInsets()
@@ -188,8 +189,8 @@ function ContextWidgetActions ({ widget }) {
   if (widget.type === 'about') {
     return (
       <View className='mb-4'>
-        <Text className='text-sm text-gray-600 mb-2'>{currentGroup.purpose}</Text>
-        <Text className='text-sm text-gray-600'>{TextHelpers.markdown(currentGroup.description)}</Text>
+        {currentGroup.purpose && <HyloHTML html={TextHelpers.markdown(currentGroup.purpose)} />}
+        {currentGroup.description && <HyloHTML html={TextHelpers.markdown(currentGroup.description)} />}
       </View>
     )
   }
