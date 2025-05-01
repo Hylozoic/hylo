@@ -180,8 +180,6 @@ export default function PostBigGridItem ({
           <div>
             <EmojiRow
               currentUser={currentUser}
-              myReactions={post.myReactions}
-              postReactions={post.postReactions}
               post={post}
             />
           </div>
