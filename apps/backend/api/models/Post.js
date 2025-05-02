@@ -196,11 +196,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.hasMany(PostUser, 'post_id')
   },
 
-  loadPostInfoForUser: async function (userId) {
+  loadPostInfoForUser: async function (userId, opts = {}) {
     if (userId && this._cachedPostUsers[userId]) {
       return this._cachedPostUsers[userId]
     }
-    const pu = await this.postUsers().query(q => q.where('user_id', userId)).fetchOne()
+    const pu = await this.postUsers().query(q => q.where('user_id', userId)).fetchOne(opts)
     this._cachedPostUsers[userId] = pu
     return pu
   },
@@ -528,15 +528,23 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return Promise.resolve()
   },
 
-  async complete (userId, completionResponse) {
-    let pu = await this.loadPostInfoForUser(userId)
-    if (pu) {
-      pu.save({ completed_at: new Date(), completion_response: completionResponse })
-    } else {
-      pu = await this.postUsers().create({ user_id: userId, created_at: new Date(), completed_at: new Date(), completion_response: completionResponse })
-    }
-    this.save({ num_people_completed: this.get('num_people_completed') + 1 })
-    return pu
+  complete (userId, completionResponse) {
+    return bookshelf.transaction(async trx => {
+      let pu = await this.loadPostInfoForUser(userId, { transacting: trx })
+      if (pu) {
+        if (pu.get('completed_at')) {
+          return pu
+        }
+        await pu.save({ completed_at: new Date(), completion_response: completionResponse }, { transacting: trx })
+      } else {
+        pu = await this.postUsers().create({ user_id: userId, created_at: new Date(), completed_at: new Date(), completion_response: completionResponse }, { transacting: trx })
+      }
+      await this.save({ num_people_completed: this.get('num_people_completed') + 1 }, { transacting: trx })
+
+      Queue.classMethod('Post', 'checkCompletedTracks', { userId, postId: this.id })
+
+      return pu
+    })
   },
 
   async markAsRead (userId) {
@@ -971,6 +979,55 @@ module.exports = bookshelf.Model.extend(Object.assign({
   createActivities: (opts) =>
     Post.find(opts.postId).then(post => post &&
       bookshelf.transaction(trx => post.createActivities(trx))),
+
+  // Check if completing this post completed any tracks for the user
+  checkCompletedTracks: async function ({ userId, postId }) {
+    return bookshelf.transaction(async trx => {
+      const post = await Post.find(postId, { transacting: trx })
+      if (!post || post.get('type') !== 'action') return
+
+      const trackPosts = await TrackPost.where({ post_id: postId }).fetchAll({ transacting: trx })
+      const trackIds = trackPosts.pluck('track_id')
+      const tracks = await Track.query(q => q.whereIn('id', trackIds)).fetchAll({ transacting: trx })
+      for (const track of tracks) {
+        const trackActions = await TrackPost.where({ track_id: track.id }).fetchAll({ transacting: trx })
+        const group = await track.groups().fetchOne()
+        const completedActionsCount = await PostUser.query(q => {
+          q.where('user_id', userId)
+          q.whereIn('post_id', trackActions.pluck('post_id'))
+          q.whereNotNull('completed_at')
+        }).count({ transacting: trx })
+
+        // If completed the track
+        if (parseInt(completedActionsCount) === trackActions.length) {
+          const trackUser = await TrackUser.where({ track_id: track.id, user_id: userId }).fetch({ transacting: trx })
+          await trackUser.save({ completed_at: new Date() }, { transacting: trx })
+          await track.save({ num_people_completed: track.get('num_people_completed') + 1 }, { transacting: trx })
+          // See if there is a role/badge for completing the track
+          if (track.get('completion_role_id')) {
+            if (track.get('completion_role_type') === 'common') {
+              await MemberCommonRole.forge({ common_role_id: track.get('completion_role_id'), user_id: userId, group_id: group.id }).save(null, { transacting: trx })
+            } else if (track.get('completion_role_type') === 'group') {
+              await MemberGroupRole.forge({ group_role_id: track.get('completion_role_id'), user_id: userId, active: true, group_id: group.id }).save(null, { transacting: trx })
+            }
+          }
+
+          // Create notification activities for the track's group's track managers
+          const manageTracksResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_TRACKS }).fetch({ transacting: trx })
+          const stewards = await group.membersWithResponsibilities([manageTracksResponsibility.id]).fetch({ transacting: trx })
+          const stewardsIds = stewards.pluck('id')
+          const activities = stewardsIds.map(stewardId => ({
+            reason: 'trackCompleted',
+            actor_id: userId,
+            group_id: group.id,
+            reader_id: stewardId,
+            track_id: track.id
+          }))
+          await Activity.saveForReasons(activities, { transacting: trx })
+        }
+      }
+    })
+  },
 
   // TODO: remove, unused (??)
   fixTypedPosts: () =>

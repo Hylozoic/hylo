@@ -18,5 +18,6 @@ Activity.fields = {
   group: fk('Group'),
   unread: attr(),
   action: attr(),
+  track: fk('Track'),
   meta: attr()
 }

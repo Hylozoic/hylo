@@ -20,9 +20,20 @@ query (
         bannerUrl
         actionsName
         description
-        completionBadgeEmoji
-        completionBadgeName
         completionMessage
+        completionRole {
+          ... on CommonRole {
+            id
+            emoji
+            name
+          }
+          ... on GroupRole {
+            id
+            emoji
+            name
+          }
+        }
+        completionRoleType
         didComplete
         isEnrolled
         name

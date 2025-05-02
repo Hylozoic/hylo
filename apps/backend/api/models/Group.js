@@ -227,41 +227,33 @@ module.exports = bookshelf.Model.extend(merge({
     return this.get('num_members')
   },
 
-  // This returns all members with the manage_content responsbility
-  moderators () {
+  // This returns all members with the given responsibilities
+  membersWithResponsibilities (responsibilityIds) {
     return this.members().query(q => {
       q.whereRaw(`(exists (
         select * from group_memberships_common_roles
         inner join common_roles_responsibilities on common_roles_responsibilities.common_role_id = group_memberships_common_roles.common_role_id
-        where common_roles_responsibilities.responsibility_id = 3
+        where common_roles_responsibilities.responsibility_id IN (${responsibilityIds.join(',')})
           and group_memberships_common_roles.user_id = users.id
           and group_memberships_common_roles.group_id = group_memberships.group_id
       ) or exists (
         select * from group_memberships_group_roles
         inner join group_roles_responsibilities on group_roles_responsibilities.group_role_id = group_memberships_group_roles.group_role_id
-        where group_roles_responsibilities.responsibility_id = 3
+        where group_roles_responsibilities.responsibility_id IN (${responsibilityIds.join(',')})
           and group_memberships_group_roles.user_id = users.id
           and group_memberships_group_roles.group_id = group_memberships.group_id
       ))`)
     })
   },
 
+  // This returns all members with the manage_content responsibility
+  moderators () {
+    return this.membersWithResponsibilities([3])
+  },
+
+  // This returns all members with the administration, manage_content and manage_members responsibilities
   stewards () {
-    return this.members().query(q => {
-      q.whereRaw(`(exists (
-        select * from group_memberships_common_roles
-        inner join common_roles_responsibilities on common_roles_responsibilities.common_role_id = group_memberships_common_roles.common_role_id
-        where common_roles_responsibilities.responsibility_id IN (1, 3, 4)
-          and group_memberships_common_roles.user_id = users.id
-          and group_memberships_common_roles.group_id = group_memberships.group_id
-      ) or exists (
-        select * from group_memberships_group_roles
-        inner join group_roles_responsibilities on group_roles_responsibilities.group_role_id = group_memberships_group_roles.group_role_id
-        where group_roles_responsibilities.responsibility_id IN (1, 3, 4)
-          and group_memberships_group_roles.user_id = users.id
-          and group_memberships_group_roles.group_id = group_memberships.group_id
-      ))`)
-    })
+    return this.membersWithResponsibilities([1, 3, 4])
   },
 
   // Return # of prereq groups userId is not a member of yet

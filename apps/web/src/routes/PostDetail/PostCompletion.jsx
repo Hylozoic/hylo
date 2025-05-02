@@ -2,13 +2,16 @@ import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { TextHelpers } from '@hylo/shared'
-import Button from 'components/ui/button'
-import Checkbox from 'components/ui/checkbox'
 import { FileManager } from 'components/AttachmentManager/FileManager'
 import CardFileAttachments from 'components/CardFileAttachments'
-import { Label } from 'components/ui/label'
+import ClickCatcher from 'components/ClickCatcher'
+import HyloHTML from 'components/HyloHTML'
 import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import Button from 'components/ui/button'
+import Checkbox from 'components/ui/checkbox'
+import * as Dialog from '@radix-ui/react-dialog'
+import { Label } from 'components/ui/label'
 import useRouteParams from 'hooks/useRouteParams'
 import completePost from 'store/actions/completePost'
 import getTrack from 'store/selectors/getTrack'
@@ -18,15 +21,21 @@ export default function PostCompletion ({ post, currentUser }) {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
   const [completionResponse, setCompletionResponse] = useState(post.completionResponse || [])
+  const [showTrackCompletionDialog, setShowTrackCompletionDialog] = useState(false)
   const { completionAction, completionActionSettings } = post
   const { instructions, options } = completionActionSettings
   const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
 
   const handleSubmitCompletion = useCallback(() => {
-    if (completionAction === 'button' || completionResponse.length > 0) {
-      dispatch(completePost(post.id, completionResponse))
+    if (!post.completedAt && (completionAction === 'button' || completionResponse.length > 0)) {
+      // Check if the person has completed all actions in the track
+      const allActionsCompleted = currentTrack?.posts.every(action => action.id === post.id || action.completedAt)
+      if (allActionsCompleted) {
+        setShowTrackCompletionDialog(true)
+      }
+      dispatch(completePost(post.id, completionResponse, currentTrack?.id, allActionsCompleted))
     }
-  }, [post, completionResponse])
+  }, [post, completionResponse, currentTrack?.id])
 
   const handleUploadAttachment = useCallback((attachments) => {
     setCompletionResponse(attachments.map(a => ({ id: a.id, url: a.url })))
@@ -146,6 +155,23 @@ export default function PostCompletion ({ post, currentUser }) {
           {completionButtonText && <Button onClick={handleSubmitCompletion}>{completionButtonText}</Button>}
         </>
       )}
+      <Dialog.Root open={showTrackCompletionDialog} onOpenChange={setShowTrackCompletionDialog}>
+        <Dialog.Portal>
+          <Dialog.Overlay className='CompletedTrackDialog-Overlay bg-black/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[50] backdrop-blur-sm'>
+            <Dialog.Content className='CompletedTrackDialog-Content min-w-[300px] w-full bg-background p-3 rounded-md z-[51] max-w-[750px] outline-none'>
+              <Dialog.Title className='sr-only'>Congratulations!</Dialog.Title>
+              <Dialog.Description className='sr-only'>Congratulations!</Dialog.Description>
+              <h3 className='text-2xl font-bold'>Congratulations, you have completed {currentTrack?.name}!</h3>
+              {currentTrack?.completionMessage && (
+                <ClickCatcher>
+                  <HyloHTML element='p' html={TextHelpers.markdown(currentTrack?.completionMessage)} />
+                </ClickCatcher>
+              )}
+              {currentTrack?.completionRole && <p>You have received a new role/badge: <strong>{currentTrack?.completionRole.emoji} {currentTrack?.completionRole.name}</strong></p>}
+            </Dialog.Content>
+          </Dialog.Overlay>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   )
 }

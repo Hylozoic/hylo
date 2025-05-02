@@ -1,11 +1,12 @@
-import { attr, many, Model } from 'redux-orm'
+import { attr, fk, many, Model } from 'redux-orm'
 
-// export class TrackUser extends Model { }
-// TrackUser.modelName = 'TrackUser'
-// TrackUser.fields = {
-//   track: fk('Track', 'trackusers'),
-//   user: fk('User', 'trackusers')
-// }
+export class Role extends Model { }
+Role.modelName = 'Role'
+Role.fields = {
+  id: attr(),
+  emoji: attr(),
+  name: attr()
+}
 
 class Track extends Model {
   currentAction () {
@@ -24,8 +25,9 @@ Track.modelName = 'Track'
 Track.fields = {
   actionsName: attr(),
   bannerUrl: attr(),
-  completionBadgeEmoji: attr(),
   completionMessage: attr(),
+  completionRole: fk('Role', 'tracks'),
+  completionRoleType: attr(),
   description: attr(),
   groups: many('Group'),
   name: attr(),

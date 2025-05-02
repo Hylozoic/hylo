@@ -32,23 +32,23 @@ function TrackCard ({ track }) {
     }
   }, [track.id])
 
-  const { actionsName, isEnrolled, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
+  const { actionsName, didComplete, isEnrolled, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
 
   const handleButtonClick = (event) => {
     event.preventDefault() // Prevents the click event from bubbling up to the Link
   }
 
   return (
-    <Link className='text-foreground hover:text-foreground/100' to={viewTrackUrl}>
+    <div className='text-foreground hover:text-foreground/100'>
       <div className='rounded-xl cursor-pointer p-2 flex flex-col transition-all bg-card/50 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-lg relative hover:z-[2] hover:scale-101 duration-400'>
         <div className='flex justify-between items-center pb-1'>
-          <div className='flex flex-row items-center gap-1'>
-            <h2 className='text-base m-0 p-0 truncate'>{name}</h2>
+          <Link className='w-full flex flex-row items-center gap-1 text-foreground hover:text-foreground/100 ' to={viewTrackUrl}>
+            <h2 className='m-0 p-0 truncate'>{name}</h2>
             <span className='text-xs text-foreground/60 ml-2'>{numActions} {actionsName}</span>
-          </div>
+          </Link>
           {canEdit && <Link className='hover:scale-125 transition-all' to={`${viewTrackUrl}?tab=edit`}><Settings className='w-6 h-6 cursor-pointer text-foreground' /></Link>}
         </div>
-        <div className='flex justify-between items-center'>
+        <Link className='flex justify-between items-center text-foreground hover:text-foreground/100' to={viewTrackUrl}>
           <div className='flex justify-between items-center flex-row gap-2'>
             <div className='flex flex-row items-center gap-1 border-2 border-focus/20 rounded-md p-1 px-2 hover:border-focus/100 transition-all cursor-pointer' data-tooltip-id='track-card-tooltip' data-tooltip-html={t('Number of people that have enrolled in the track')}>
               <span>{numPeopleEnrolled}</span>
@@ -58,11 +58,19 @@ function TrackCard ({ track }) {
               <span>{numPeopleCompleted}</span>
               <span className='text-xs'><UserCheck className='w-4 h-4' /></span>
             </div>
-            {isEnrolled && (
-              <div>
-                <span>{t('You are enrolled')}</span>
-              </div>
-            )}
+            {didComplete
+              ? (
+                <div>
+                  <span>{t('You completed this track')}</span>
+                </div>
+                )
+              : isEnrolled
+                ? (
+                  <div>
+                    <span>{t('You are enrolled')}</span>
+                  </div>
+                  )
+                : null}
           </div>
           {canEdit && (
             <div className='flex items-center gap-2 bg-input p-2 rounded-md'>
@@ -94,14 +102,14 @@ function TrackCard ({ track }) {
               </span>
             </div>
           )}
-        </div>
+        </Link>
       </div>
       <Tooltip
         delay={0}
         id='track-card-tooltip'
         position='bottom'
       />
-    </Link>
+    </div>
   )
 }
 

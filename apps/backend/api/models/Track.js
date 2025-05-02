@@ -12,6 +12,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
     this._trackUserCache = {}
   },
 
+  completionRole: function () {
+    if (this.get('completion_role_type') === 'common') {
+      return this.belongsTo(CommonRole, 'completion_role_id')
+    } else {
+      return this.belongsTo(GroupRole, 'completion_role_id')
+    }
+  },
+
   groups: function () {
     return this.belongsToMany(Group, 'groups_tracks')
   },
@@ -89,27 +97,37 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   enroll: async function (trackId, userId) {
-    const track = await Track.find(trackId)
-    if (!track || track.get('deactivated_at') !== null) {
-      throw new GraphQLError('Track not found')
-    }
-    if (!track.get('published_at')) {
-      throw new GraphQLError('Track is not published')
-    }
-    return TrackUser.where({ track_id: trackId, user_id: userId })
-      .fetch()
-      .then(trackUser => {
-        if (trackUser) {
-          if (!trackUser.get('enrolled_at')) {
-            track.save({ num_people_enrolled: track.get('num_people_enrolled') + 1 })
-            return trackUser.save({ enrolled_at: new Date() })
-          }
-          return trackUser
-        } else {
-          track.save({ num_people_enrolled: track.get('num_people_enrolled') + 1 })
-          return TrackUser.create({ track_id: trackId, user_id: userId, enrolled_at: new Date() })
-        }
-      })
+    return bookshelf.transaction(async trx => {
+      const track = await Track.find(trackId, { transacting: trx })
+      if (!track || track.get('deactivated_at') !== null) {
+        throw new GraphQLError('Track not found')
+      }
+      if (!track.get('published_at')) {
+        throw new GraphQLError('Track is not published')
+      }
+      let trackUser = await TrackUser.where({ track_id: trackId, user_id: userId }).fetch({ transacting: trx })
+      if (!trackUser) {
+        trackUser = TrackUser.forge({ track_id: trackId, user_id: userId })
+      }
+      if (!trackUser.get('enrolled_at')) {
+        await track.save({ num_people_enrolled: track.get('num_people_enrolled') + 1 }, { transacting: trx })
+        await trackUser.save({ enrolled_at: new Date() }, { transacting: trx })
+
+        const group = await track.groups().fetchOne({ transacting: trx })
+        const manageTracksResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_TRACKS }).fetch({ transacting: trx })
+        const stewards = await group.membersWithResponsibilities([manageTracksResponsibility.id]).fetch({ transacting: trx })
+        const stewardsIds = stewards.pluck('id')
+        const activities = stewardsIds.map(stewardId => ({
+          reason: 'trackEnrollment',
+          actor_id: userId,
+          group_id: group.id,
+          reader_id: stewardId,
+          track_id: track.id
+        }))
+        await Activity.saveForReasons(activities, { transacting: trx })
+      }
+      return trackUser
+    })
   },
 
   find: function (trackId) {

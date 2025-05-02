@@ -1,4 +1,5 @@
 import { AnalyticsEvents } from '@hylo/shared'
+import CommentFieldsFragment from '@graphql/fragments/CommentFieldsFragment'
 
 export const MODULE_NAME = 'Tracks'
 export const CREATE_TRACK = `${MODULE_NAME}/CREATE_TRACK`
@@ -11,39 +12,6 @@ export const UPDATE_TRACK = `${MODULE_NAME}/UPDATE_TRACK`
 export const UPDATE_TRACK_PENDING = `${MODULE_NAME}/UPDATE_TRACK_PENDING`
 export const UPDATE_TRACK_ACTION_ORDER = `${MODULE_NAME}/UPDATE_TRACK_ACTION_ORDER`
 export const UPDATE_TRACK_ACTION_ORDER_PENDING = `${MODULE_NAME}/UPDATE_TRACK_ACTION_ORDER_PENDING`
-
-const CommentFieldsFragment = `
-  id
-  text
-  creator {
-    id
-    name
-    avatarUrl
-  }
-  attachments {
-    id
-    position
-    type
-    url
-  }
-  parentComment {
-    id
-  }
-  myReactions {
-    emojiFull
-    id
-  }
-  commentReactions {
-    emojiFull
-    id
-    user {
-      id
-      name
-    }
-  }
-  createdAt
-  editedAt
-`
 
 const PostFieldsFragment = `
   id
@@ -162,9 +130,20 @@ export function fetchTrack (trackId) {
             id
             actionsName
             bannerUrl
-            completionBadgeEmoji
-            completionBadgeName
             completionMessage
+            completionRole {
+              ... on CommonRole {
+                id
+                emoji
+                name
+              }
+              ... on GroupRole {
+                id
+                emoji
+                name
+              }
+            }
+            completionRoleType
             description
             didComplete
             isEnrolled
@@ -194,6 +173,10 @@ export function fetchTrack (trackId) {
 }
 
 export function createTrack (data) {
+  // We need completionRole in the data for the optimistic update, but only the id in the mutation
+  data = { ...data, completionRoleId: data.completionRole?.id }
+  delete data.completionRole
+
   return {
     type: CREATE_TRACK,
     graphql: {
@@ -202,9 +185,20 @@ export function createTrack (data) {
           id
           actionsName
           bannerUrl
-          completionBadgeEmoji
-          completionBadgeName
           completionMessage
+          completionRole {
+            ... on CommonRole {
+              id
+              emoji
+              name
+            }
+            ... on GroupRole {
+              id
+              emoji
+              name
+            }
+          }
+          completionRoleType
           description
           groups {
             items {
@@ -236,6 +230,14 @@ export function createTrack (data) {
 
 export function updateTrack (data) {
   const { trackId, ...rest } = data
+
+  // We need completionRole in the data for the optimistic update, but only the id in the mutation
+  const dataForUpdate = rest
+  if (rest.completionRole) {
+    dataForUpdate.completionRoleId = rest.completionRole.id
+    delete dataForUpdate.completionRole
+  }
+
   return {
     type: UPDATE_TRACK,
     graphql: {
@@ -248,7 +250,7 @@ export function updateTrack (data) {
       `,
       variables: {
         trackId,
-        data: rest
+        data: dataForUpdate
       }
     },
     meta: {

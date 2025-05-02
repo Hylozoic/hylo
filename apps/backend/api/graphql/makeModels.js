@@ -804,7 +804,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
     GroupRole: {
       model: GroupRole,
       attributes: [
-        'color',
         'emoji',
         'description',
         'group_id',
@@ -1137,8 +1136,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'actions_name',
         'created_at',
         'banner_url',
-        'completion_badge_emoji',
-        'completion_badge_name',
+        'completion_role_type',
         'completion_message',
         'deactivated_at',
         'description',
@@ -1151,6 +1149,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'welcome_message'
       ],
       relations: [
+        'completionRole',
         { groups: { querySet: true } },
         { posts: { querySet: true } },
         'users'
@@ -1205,7 +1204,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'post',
         'comment',
         'group',
-        'otherGroup'
+        'otherGroup',
+        'track'
       ],
       getters: {
         action: a => Notification.priorityReason(a.get('meta').reasons)

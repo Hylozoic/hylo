@@ -6,10 +6,11 @@ import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { useParams, Navigate } from 'react-router-dom'
 import Button from 'components/ui/button'
-import EmojiPicker from 'components/EmojiPicker'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
 import HyloEditor from 'components/HyloEditor'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
+import getCommonRoles from 'store/selectors/getCommonRoles'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -25,14 +26,17 @@ function TrackEditor (props) {
   // Selectors
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const editingTrack = useSelector(state => props.editingTrack ? getTrack(state, routeParams.trackId) : null)
-  console.log('editingTrack', editingTrack)
   const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_TRACKS }))
+
+  const commonRoles = useSelector(getCommonRoles)
+  const groupRoles = useMemo(() => currentGroup?.groupRoles?.items || [], [currentGroup?.groupRoles?.items])
+  const roles = useMemo(() => [...commonRoles.map(role => ({ ...role, type: 'common' })), ...groupRoles.map(role => ({ ...role, type: 'group' }))], [commonRoles, groupRoles])
 
   const [trackState, setTrackState] = useState(Object.assign({
     actionsName: currentGroup.settings.actionsName || 'Actions',
     bannerUrl: '',
-    completionBadgeEmoji: '',
-    completionBadgeName: '',
+    completionRole: null,
+    completionRoleType: '',
     completionMessage: '',
     description: '',
     name: '',
@@ -62,9 +66,12 @@ function TrackEditor (props) {
   const updateField = (field) => (value) => {
     const newValue = typeof value?.target !== 'undefined' ? value.target.value : value
 
-    setTrackState({ ...trackState, [field]: newValue })
+    if (field === 'completionRole') {
+      setTrackState({ ...trackState, completionRole: newValue, completionRoleType: newValue.type })
+    } else {
+      setTrackState({ ...trackState, [field]: newValue })
+    }
     setEdited(true)
-    console.log('newValue', newValue)
 
     const trimmedValue = trim(newValue)
     if (field === 'name') {
@@ -79,8 +86,8 @@ function TrackEditor (props) {
     let {
       actionsName,
       bannerUrl,
-      completionBadgeEmoji,
-      completionBadgeName,
+      completionRole,
+      completionRoleType,
       name,
       publishedAt
     } = trackState
@@ -102,9 +109,9 @@ function TrackEditor (props) {
     dispatch(save({
       actionsName,
       bannerUrl,
-      completionBadgeEmoji,
-      completionBadgeName,
       completionMessage,
+      completionRole,
+      completionRoleType,
       description,
       name,
       groupIds: [currentGroup.id],
@@ -128,7 +135,7 @@ function TrackEditor (props) {
     return <Navigate to={groupUrl(currentGroup.slug)} />
   }
 
-  const { actionsName, bannerUrl, completionBadgeEmoji, completionBadgeName, completionMessage, description, name, publishedAt, welcomeMessage } = trackState
+  const { actionsName, bannerUrl, completionRole, completionMessage, description, name, publishedAt, welcomeMessage } = trackState
 
   return (
     <div className='flex flex-col rounded-lg bg-background p-3 shadow-2xl relative'>
@@ -153,7 +160,7 @@ function TrackEditor (props) {
       </UploadAttachmentButton>
 
       <div className='mt-3 flex relative border-2 items-center border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-md mb-8'>
-        <div className='text-xs text-foreground/50 px-2 py-1 w-[90px]'>{t('Track name')}</div>
+        <div className='text-xs text-foreground/50 px-2 py-1 w-[90px]'>{t('Track name')}*</div>
         <input
           autoFocus
           className='border-none outline-none bg-transparent placeholder:text-foreground/50 p-2 w-full'
@@ -161,7 +168,7 @@ function TrackEditor (props) {
           name='name'
           onChange={updateField('name')}
           value={name}
-          placeholder={t('Your track\'s name*')}
+          placeholder={t('Your track\'s name')}
           type='text'
         />
         <span className='absolute right-3 text-sm text-gray-500'>{nameCharacterCount} / 120</span>
@@ -199,7 +206,7 @@ function TrackEditor (props) {
           onUpdate={(html) => {
             setEdited(!isEqual(html, welcomeMessage))
           }}
-          placeholder={t('Your track welcome message here')}
+          placeholder={t('This message will be shown to members when they enroll in the track')}
           ref={welcomeMessageEditorRef}
           showMenu
           type='trackWelcomeMessage'
@@ -226,23 +233,27 @@ function TrackEditor (props) {
       </div>
 
       <div>
-        <h3>Completion badge</h3>
-        <div className='flex flex-row items-center relative border-2 p-1 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-md'>
-          <EmojiPicker
-            forReactions={false}
-            emoji={completionBadgeEmoji}
-            handleReaction={updateField('completionBadgeEmoji')}
-            className='w-8 h-8 bg-foreground/5 rounded flex items-center justify-center cursor-pointer hover:bg-foreground/10 hover:shadow-xl border-2 border-foreground/50 hover:border-foreground/100 transition-all'
-          />
-          <input
-            className='border-none outline-none bg-transparent placeholder:text-foreground/50 p-2 w-full'
-            maxLength='40'
-            name='completionBadgeName'
-            onChange={updateField('completionBadgeName')}
-            value={completionBadgeName}
-            placeholder={t('Name of badge awarded to those who complete the track')}
-            type='text'
-          />
+        <h3>Completion badge or role</h3>
+        <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus mb-4 rounded-md'>
+          <Select
+            onValueChange={(role) => {
+              updateField('completionRole')(role)
+            }}
+            value={completionRole}
+          >
+            <SelectTrigger className='w-fit border-2 bg-input border-foreground/30 rounded-md p-2 text-base'>
+              <SelectValue>
+                {completionRole ? completionRole.emoji + ' ' + completionRole.name : t('Select a badge or role given to members who complete the track')}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {roles.map((role) => (
+                <SelectItem key={role.id} value={role}>
+                  {role.emoji} {role.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

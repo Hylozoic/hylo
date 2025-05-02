@@ -168,6 +168,11 @@ export default async function makeSchema ({ req }) {
           throw new GraphQLError('Post is the only implemented FeedItemContent type')
         }
       },
+      Role: {
+        __resolveType (data, context, info) {
+          return getTypeForInstance(data, models)
+        }
+      },
       SearchResultContent: {
         __resolveType (data, context, info) {
           return getTypeForInstance(data, models)
