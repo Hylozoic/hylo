@@ -15,7 +15,8 @@ function Tracks() {
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canManageTracks = hasResponsibility(RESP_MANAGE_TRACKS)
   const [tracks, { fetching, error }] = useTracks({ 
-    groupId: currentGroup?.id
+    groupId: currentGroup?.id,
+    hideUnpublished: !canManageTracks
   })
   if (error) return (
     <Text className='text-error text-center py-4'>

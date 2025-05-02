@@ -1,7 +1,7 @@
 import { useQuery } from 'urql'
 import groupTracksQuery from '@hylo/graphql/queries/groupTracksQuery'
 
-export default function useTracks ({ groupId, groupSlug }, useQueryArgs = {}) {
+export default function useTracks ({ groupId, groupSlug, hideUnpublished = false }, useQueryArgs = {}) {
   const [{ data, fetching, error }, reQuery] = useQuery({
     ...useQueryArgs,
     query: groupTracksQuery,
@@ -20,5 +20,7 @@ export default function useTracks ({ groupId, groupSlug }, useQueryArgs = {}) {
   // The tracks are nested under group in the response
   const tracks = data?.group?.tracks?.items || []
 
-  return [tracks, { fetching, error }, reQuery]
+  const filteredTracks = hideUnpublished ? tracks.filter(track => track.publishedAt) : tracks
+
+  return [filteredTracks, { fetching, error }, reQuery]
 }

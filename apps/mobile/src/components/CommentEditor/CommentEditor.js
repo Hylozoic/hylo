@@ -7,6 +7,7 @@ import { isIOS } from 'util/platform'
 import { SendHorizonal } from 'lucide-react-native'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import createCommentMutation from '@hylo/graphql/mutations/createCommentMutation'
+import completePostMutation from '@hylo/graphql/mutations/completePostMutation'
 import { firstName } from '@hylo/presenters/PersonPresenter'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import mixpanel from 'services/mixpanel'
@@ -25,6 +26,7 @@ export const CommentEditor = React.forwardRef(({
   const safeAreaInsets = useSafeAreaInsets()
   const { t } = useTranslation()
   const [, createComment] = useMutation(createCommentMutation)
+  const [, completePost] = useMutation(completePostMutation)
   const [hasContent, setHasContent] = useState()
   const editorRef = useRef()
   const [submitting, setSubmitting] = useState()
@@ -43,6 +45,18 @@ export const CommentEditor = React.forwardRef(({
       const parentCommentId = replyingTo?.parentComment?.id || replyingTo?.id || null
       const postId = post.id
       const { error } = await createComment({ text: commentHTML, parentCommentId, postId })
+      
+      // Rquired check for action posts
+      if (!error && post?.type === 'action' && post?.completionAction === 'comment' && !post?.completedAt) {
+        const { error: completionError, data } = await completePost({ 
+          postId: post.id,
+          completionResponse: ['comment']
+        })
+        if (completionError) {
+          console.error('Failed to complete post:', completionError)
+        }
+      }
+
       mixpanel.track(AnalyticsEvents.COMMENT_CREATED, {
         commentLength: TextHelpers.textLengthHTML(commentHTML),
         groupId: post.groups.map(g => g.id),
@@ -55,7 +69,7 @@ export const CommentEditor = React.forwardRef(({
       if (error) Alert.alert(t('Your comment couldnt be saved please try again'))
       else handleDone()
     }
-  }, [handleDone, post, replyingTo])
+  }, [handleDone, post, replyingTo, completePost])
 
   const setEditorRef = useCallback(newEditorRef => {
     setHasContent(!newEditorRef?.isEmpty)
