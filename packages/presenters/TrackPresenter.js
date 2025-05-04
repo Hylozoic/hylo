@@ -6,6 +6,7 @@ export default function TrackPresenter (track, options = {}) {
   return {
     ...track,
     posts: track.posts?.items?.map(post => PostPresenter(post, options)) || [],
+    groups: track.groups?.items || [],
     _presented: true
   }
 }

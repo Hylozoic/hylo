@@ -10,7 +10,7 @@ import useOpenURL from 'hooks/useOpenURL'
 import { groupUrl } from 'util/navigation'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 
-function TrackCard({ track }) {
+function TrackCard({ track, groupSlug }) {
   const { t } = useTranslation()
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
@@ -39,7 +39,9 @@ function TrackCard({ track }) {
   const { actionsName, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
 
   const navigateToTrack = () => {
-    const trackUrl = `${groupUrl(currentGroup?.slug, 'tracks')}/${track.id}`
+    const trackUrl = `${groupUrl(groupSlug || currentGroup?.slug, 'tracks')}/${track.id}`
+    console.log('groussssspSlug', groupSlug, trackUrl)
+
     openURL(trackUrl)
   }
 
@@ -50,12 +52,10 @@ function TrackCard({ track }) {
     >
       <View className='rounded-xl p-2 flex flex-col bg-card/50 border-2 border-card/30'>
         <View className='flex flex-row justify-between items-center pb-1'>
-          <View className='flex-1 flex-row items-center'>
-            <Text className='text-base text-foreground font-medium' numberOfLines={1}>{name}</Text>
-            <Text className='text-xs text-foreground/60 ml-2'>
-              {t('{{num}} {{actionName}}', { num: numActions, actionName: actionsName })}
-            </Text>
-          </View>
+          <Text className='text-base text-foreground font-medium' numberOfLines={1}>{name}</Text>
+          <Text className='text-xs text-foreground/60 ml-2'>
+            {t('{{num}} {{actionName}}', { num: numActions, actionName: actionsName })}
+          </Text>
         </View>
 
         <View className='flex-row justify-between items-center'>

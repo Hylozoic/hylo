@@ -12,6 +12,7 @@ import Moderation from 'screens/Moderation'
 import AllViews from 'screens/AllViews'
 import Groups from 'screens/Groups'
 import Tracks from 'screens/Tracks'
+import MyTracks from 'screens/MyTracks'
 import TrackDetail from 'screens/TrackDetail'
 import GroupWelcome from 'screens/GroupWelcome'
 import GroupWelcomePage from 'screens/GroupWelcome/GroupWelcomePage'
@@ -46,6 +47,7 @@ export default function HomeNavigator () {
       <HomeTab.Screen name='Stream' component={Stream} />
       <HomeTab.Screen name='All Views' component={AllViews} />
       <HomeTab.Screen name='Tracks' component={Tracks} />
+      <HomeTab.Screen name='My Tracks' component={MyTracks} />
       <HomeTab.Screen name='Track Detail' component={TrackDetail} />
       <HomeTab.Screen name='Group Relationships' component={Groups} />
       <HomeTab.Screen name='Group Welcome' component={GroupWelcome} />

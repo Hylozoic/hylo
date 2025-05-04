@@ -76,13 +76,11 @@ export const routingConfig = {
   '/:context(my)/:view(interactions)':                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/:view(mentions)':                                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(my)/:view(posts)':                                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
-  '/:context(my)/:view(tracks)':                                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Tracks`,
   '/:context(my)/:settingsArea(account)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(blocked-users)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(edit-profile)':                            `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(invitations)':                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(groups)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
-  '/:context(my)/:settingsArea(tracks)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(locale)':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(saved-searches)':                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
   '/:context(my)/:settingsArea(notifications)':                           `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/User Settings`,
@@ -96,6 +94,8 @@ export const routingConfig = {
   '/:context(my)/:streamType(resources)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   // TODO routing: As of 21 Feb 2025, these two routes only exists on mobile but it is an example of how we could shift the web routes.
   '/:context(my)/stream':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(my)/tracks':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/My Tracks`,
+  '/:context(my)/tracks/:trackId':                                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Track Detail`,
   '/:context(my)/map':                                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
   '/:context(my)':                                                         redirectTo('/my/posts'),
 

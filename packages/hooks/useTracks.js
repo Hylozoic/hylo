@@ -1,5 +1,6 @@
 import { useQuery } from 'urql'
 import groupTracksQuery from '@hylo/graphql/queries/groupTracksQuery'
+import TrackPresenter from '@hylo/presenters/TrackPresenter'
 
 export default function useTracks ({ groupId, groupSlug, hideUnpublished = false }, useQueryArgs = {}) {
   const [{ data, fetching, error }, reQuery] = useQuery({
@@ -7,7 +8,7 @@ export default function useTracks ({ groupId, groupSlug, hideUnpublished = false
     query: groupTracksQuery,
     variables: {
       id: groupId,
-      // Note: we don't pass both id and slug - if id exists use that, otherwise use slug
+      // Note: we don't pass both id and slug - if id exists use that, otherwise use slugr
       ...(groupId ? {} : { slug: groupSlug })
     }
   })
@@ -22,5 +23,5 @@ export default function useTracks ({ groupId, groupSlug, hideUnpublished = false
 
   const filteredTracks = hideUnpublished ? tracks.filter(track => track.publishedAt) : tracks
 
-  return [filteredTracks, { fetching, error }, reQuery]
+  return [filteredTracks.map(track => TrackPresenter(track)), { fetching, error }, reQuery]
 }
