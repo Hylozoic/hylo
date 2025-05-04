@@ -45,8 +45,12 @@ describe('TrackEditor', () => {
       description: '<p>Test description</p>',
       welcomeMessage: '<p>Welcome message</p>',
       completionMessage: '<p>Completion message</p>',
-      completionBadgeName: 'Achievement Badge',
-      completionBadgeEmoji: '🏆',
+      completionRole: {
+        id: '1',
+        emoji: '🏆',
+        name: 'Achievement Badge'
+      },
+      completionRoleType: 'group',
       publishedAt: new Date().toISOString()
     }
 

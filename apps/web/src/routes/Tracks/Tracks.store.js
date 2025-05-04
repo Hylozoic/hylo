@@ -2,7 +2,7 @@ import { COMPLETE_POST_PENDING, CREATE_POST } from 'store/constants'
 import { ENROLL_IN_TRACK_PENDING, LEAVE_TRACK_PENDING, UPDATE_TRACK_PENDING, UPDATE_TRACK_ACTION_ORDER_PENDING } from 'store/actions/trackActions'
 
 export function ormSessionReducer (
-  { Post, Track, session },
+  { Post, Track, Role, session },
   { type, meta, payload }
 ) {
   switch (type) {
@@ -40,7 +40,15 @@ export function ormSessionReducer (
     case UPDATE_TRACK_PENDING: {
       const track = Track.safeGet({ id: meta.trackId })
       if (!track) return
-      return track.update(meta.data)
+      const data = meta.data
+      if (data.completionRole) {
+        let role = Role.withId(meta.data.completionRole?.id)
+        if (!role) {
+          role = Role.create(meta.data.completionRole)
+        }
+        data.completionRole = role
+      }
+      return track.update(data)
     }
 
     case UPDATE_TRACK_ACTION_ORDER_PENDING: {

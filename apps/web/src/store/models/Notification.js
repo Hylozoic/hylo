@@ -6,7 +6,8 @@ import presentPost from 'store/presenters/presentPost'
 import {
   primaryPostUrl,
   groupUrl,
-  personUrl
+  personUrl,
+  trackUrl
 } from 'util/navigation'
 
 export const ACTION_ANNOUNCEMENT = 'announcement'
@@ -26,8 +27,10 @@ export const ACTION_MENTION = 'mention'
 export const ACTION_NEW_COMMENT = 'newComment'
 export const ACTION_NEW_POST = 'newPost'
 export const ACTION_TAG = 'tag'
+export const ACTION_TRACK_COMPLETED = 'trackCompleted'
+export const ACTION_TRACK_ENROLLMENT = 'trackEnrollment'
 
-export function urlForNotification ({ id, activity: { action, actor, post, comment, group, meta: { reasons }, otherGroup } }) {
+export function urlForNotification ({ id, activity: { action, actor, post, comment, group, meta: { reasons }, otherGroup, track } }) {
   const groupSlug = get('slug', group) ||
     // 2020-06-03 - LEJ
     // Some notifications (i.e. new comment and comment mention)
@@ -35,7 +38,7 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     // so pulling from the post object for those cases.
     // Once all legacy notifications are purged, or migrated,
     // this line can be removed.
-    get('0.slug', post.groups.toRefArray())
+    get('0.slug', post?.groups?.toRefArray())
 
   const otherGroupSlug = get('slug', otherGroup)
   post = presentPost(post)
@@ -70,6 +73,9 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_TAG: {
       return primaryPostUrl(post, { groupSlug })
     }
+    case ACTION_TRACK_COMPLETED:
+    case ACTION_TRACK_ENROLLMENT:
+      return trackUrl(track.id, { groupSlug })
   }
 }
 
@@ -91,7 +97,7 @@ export function titleForNotification (notification, trans) {
   // TODO: perhaps notification text and translations should happen on the server, or in the electron app itself. should move notification transltions to @hylo/shared?
   const t = trans || translate
 
-  const { activity: { action, actor, post, group, meta: { reasons } } } = notification
+  const { activity: { action, actor, post, group, track, meta: { reasons } } } = notification
 
   const postSummary = post ? (post.title && post.title.length > 0 ? post.title : truncateHTML(post.details)) : null
   const name = actor.name
@@ -137,6 +143,10 @@ export function titleForNotification (notification, trans) {
       return t('New Group Joined')
     case ACTION_MEMBER_JOINED_GROUP:
       return t('New Member joined <strong>{{groupName}}</strong>', { groupName: group.name })
+    case ACTION_TRACK_COMPLETED:
+      return t('Track <strong>{{trackName}}</strong> Completed', { trackName: track.name })
+    case ACTION_TRACK_ENROLLMENT:
+      return t('New Enrollment in Track <strong>{{trackName}}</strong>', { trackName: track.name })
     default:
       return null
   }
@@ -184,6 +194,10 @@ export function bodyForNotification (notification, trans) {
       return t('<strong>{{groupName}}</strong> has requested to join <strong>{{otherGroupName}}</strong>', { groupName: group.name, otherGroupName: otherGroup.name })
     case ACTION_MEMBER_JOINED_GROUP:
       return t('<strong>{{name}}</strong> joined your group. Time to welcome them in!', { name })
+    case ACTION_TRACK_COMPLETED:
+      return t('<strong>{{name}}</strong> completed the track', { name })
+    case ACTION_TRACK_ENROLLMENT:
+      return t('<strong>{{name}}</strong> enrolled in the track', { name })
     default:
       return null
   }

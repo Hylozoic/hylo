@@ -243,7 +243,7 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
 }
 
 export function trackUrl (trackId, opts) {
-  return baseUrl({ ...opts, view: 'tracks' }) + `/${trackId}`
+  return baseUrl({ ...opts, context: 'group', view: 'tracks' }) + `/${trackId}`
 }
 
 // URL utility functions

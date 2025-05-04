@@ -24,7 +24,7 @@ import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import { bgImageStyle, cn } from 'util/index'
 import { widgetUrl, baseUrl, groupUrl, groupInviteUrl, addQuerystringToPath, personUrl } from 'util/navigation'
-import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, TextHelpers } from '@hylo/shared'
 import ContextWidgetPresenter, {
   isValidDropZone,
   getStaticMenuWidgets,
@@ -39,6 +39,7 @@ import logout from 'store/actions/logout'
 import classes from './ContextMenu.module.scss'
 import { useContextMenuContext } from './ContextMenuContext'
 import ContextMenuProvider from './ContextMenuProvider'
+import HyloHTML from 'components/HyloHTML'
 
 let previousWidgetIds = []
 let isAddingChildWidget = false
@@ -684,8 +685,8 @@ function SpecialTopElementRenderer ({ widget }) {
   if (widget.type === 'about') {
     return (
       <div className='w-full mb-8'>
-        {group.purpose && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0 mb-2'>{group.purpose}</p>}
-        {group.description && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0'>{group.description}</p>}
+        {group.purpose && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0 mb-2'><HyloHTML element='span' html={TextHelpers.markdown(group.purpose)} /></p>}
+        {group.description && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0'><HyloHTML element='span' html={TextHelpers.markdown(group.description)} /></p>}
       </div>
     )
   }

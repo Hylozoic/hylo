@@ -143,7 +143,15 @@ $comment-row-padding: 25px;
   }
 
   strong {
-    color: rgba(66, 94, 114, 1.0);
+    @include font-bold;
+  }
+
+  ol {
+    list-style-type: decimal;
+  }
+
+  ul {
+    list-style-type: disc;
   }
 }
 

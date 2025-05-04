@@ -27,10 +27,7 @@ div .post-row:nth-child(1) {
 
   &> div > div {
     padding-bottom: 0px;
-
-    &> div:last-child {
-      display: none;
-    }
+    margin-bottom: 0px;
   }
 }
 

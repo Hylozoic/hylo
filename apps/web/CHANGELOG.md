@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.0.5] - 2025-04-30
+
+### Changed
+- Better UX on groups page when a group has no related groups
+
+### Fixed
+- Issue preventing clicking on links in post details and comments
+- Emoji reactions are now displayed correctly in the post list
+- Display of pending invite timing
+- Issue where clicking stream view child post toggle would go to last view you were on
+- Fix display of lists in comments
+- Fix bold text color in comments
+- Fix dropdowns in custom views settings and everywhere. And remove the unecessary x that appears when they are open
+- Editing posts from custom views
+
 ## [6.0.4] - 2025-04-21
 
 ### Fixed

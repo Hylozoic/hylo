@@ -64,16 +64,13 @@ function TracksTab ({ group, fetchPending, parentGroups, updateGroupSettings }) 
         <h1 className='m-0 p-0'>{t('tracksSettingsHeader')}</h1>
         <p className='m-0 p-0 text-foreground/60'>{t('tracksSettingsDescription')}</p>
       </div>
-      {/* <SettingsSection>
-        <h3>{t('Customize Your Group\'s Terminology')}</h3>
-      </SettingsSection> */}
-      <SettingsSection>
+      {/* TODO: add this back <SettingsSection>
         <h3 className='text-sm absolute -top-[26px] left-3 left-0 bg-midground p-1'>{t('Customize your groups terminology')}</h3>
         <h4 className='font-bold'>{t('Tracks')}</h4>
         <p className='text-sm text-foreground/60'>{t('The default name for the container for a structured activity that people in the group can enroll in. A track has an about page, a chat, and a list of actions. Synonymous with courses, projects, learning journeys, modules, missions, workflows, roadmaps, cohorts, expeditions and curriculums. Anywhere the word “Track” would be used will be replaced with:')}</p>
         <p className='text-foreground'>{t('Your groups term for a track')}</p>
         <input type='text' className='border-2 border-transparent rounded-md p-2 bg-input shadow-md focus:outline-none focus:border-focus' value='Track' />
-      </SettingsSection>
+      </SettingsSection> */}
 
       <SettingsSection>
         <h3 className='text-sm absolute -top-[26px] left-3 left-0 bg-midground p-1'>{t('Tracks')}</h3>

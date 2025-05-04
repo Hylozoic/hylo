@@ -1,6 +1,7 @@
 import { ArrowDownWideNarrow } from 'lucide-react'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useLocation } from 'react-router-dom'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
@@ -70,7 +71,7 @@ const StreamViewControls = ({
   viewMode
 }) => {
   const { t } = useTranslation()
-
+  const location = useLocation()
   const [searchActive, setSearchActive] = useState(!!searchValue)
   const [searchState, setSearchState] = useState('')
 
@@ -98,12 +99,12 @@ const StreamViewControls = ({
 
   const handleClickActivePostsOnly = useCallback(() => {
     changeActivePostsOnly(!activePostsOnly)
-  }, [activePostsOnly])
+  }, [activePostsOnly, location])
 
   const handleChildPostInclusion = useCallback(() => {
     const updatedValue = childPostInclusion === 'yes' ? 'no' : 'yes'
     changeChildPostInclusion(updatedValue)
-  }, [childPostInclusion])
+  }, [childPostInclusion, location]) // Location is needed to get the updated passed in changeChildPostInclusion callback
 
   return (
     <div className={cn(classes.streamViewContainer, { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>

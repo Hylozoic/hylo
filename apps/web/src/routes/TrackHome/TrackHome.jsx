@@ -128,7 +128,7 @@ function TrackHome () {
 function AboutTab ({ currentTrack }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const { bannerUrl, name, description, isEnrolled } = currentTrack
+  const { bannerUrl, didComplete, name, description, isEnrolled } = currentTrack
 
   return (
     <>
@@ -140,19 +140,25 @@ function AboutTab ({ currentTrack }) {
       </div>
       <HyloHTML html={description} />
 
-      {!isEnrolled
+      {didComplete
         ? (
           <div className='flex flex-row gap-2 fixed bottom-0 mx-auto w-full max-w-[750px] px-4 py-2 justify-between items-center bg-input rounded-t-md'>
-            <span>{t('Ready to jump in?')}</span>
-            <button className='bg-selected text-foreground rounded-md p-2 px-4' onClick={() => dispatch(enrollInTrack(currentTrack.id))}>{t('Enroll')}</button>
+            <span>{t('You completed this track')}</span>
           </div>
           )
-        : (
-          <div className='flex flex-row gap-2 border-2 border-foreground/20 border-dashed rounded-md p-2 justify-between items-center'>
-            <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
-            <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
-          </div>
-          )}
+        : isEnrolled
+          ? (
+            <div className='flex flex-row gap-2 border-2 border-foreground/20 border-dashed rounded-md p-2 justify-between items-center'>
+              <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
+              <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
+            </div>
+            )
+          : (
+            <div className='flex flex-row gap-2 fixed bottom-0 mx-auto w-full max-w-[750px] px-4 py-2 justify-between items-center bg-input rounded-t-md'>
+              <span>{t('Ready to jump in?')}</span>
+              <button className='bg-selected text-foreground rounded-md p-2 px-4' onClick={() => dispatch(enrollInTrack(currentTrack.id))}>{t('Enroll')}</button>
+            </div>
+            )}
     </>
   )
 }

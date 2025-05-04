@@ -9,6 +9,7 @@ const getTrack = ormCreateSelector(
     if (track) {
       return {
         ...track.ref,
+        completionRole: track.completionRole,
         currentAction: track.currentAction(),
         posts: track.posts?.toModelArray() || []
       }

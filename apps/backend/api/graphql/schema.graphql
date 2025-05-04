@@ -344,7 +344,9 @@ type ActivityMeta {
       'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
       'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
       'groupParentGroupJoinRequestAccepted' = a parent group accepted one of your groups into it
-    TODO: turn this into it's own Enum?
+      'memberJoinedGroup' = someone joined a group
+      'trackCompleted' = someone completed a track
+      'trackEnrollment' = someone enrolled in a track
   """
   reasons: [String]
 }
@@ -367,7 +369,9 @@ type Activity {
       'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
       'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
       'groupParentGroupJoinRequestAccepted' = a parent group accepted one of your groups into it
-    TODO: turn this into it's own Enum?
+      'memberJoinedGroup' = someone joined a group
+      'trackCompleted' = someone completed a track
+      'trackEnrollment' = someone enrolled in a track
   """
   action: String
   # The Person who carried out this Activity
@@ -384,6 +388,8 @@ type Activity {
   otherGroup: Group
   # If this activity involved a post then this is the Post
   post: Post
+  # If this activity involved a track then this is the Track
+  track: Track
   # Whether the Notification associated with this Activity has been read by the "reader" of this activity
   unread: Boolean
 }
@@ -1164,17 +1170,27 @@ type GroupRelationshipInviteQuerySet {
 
 # Group role
 type GroupRole {
+  # Whether this role is active
   active: Boolean
-  color: String
+  # When this role was created
   createdAt: Date
+  # The description of the role
   description: String
+  # The emoji of the role
   emoji: String
+  # The id of the role
   id: ID
+  # The group that this role belongs to
   group: Group
+  # The id of the group that this role belongs to
   groupId: ID
+  # The name of the role
   name: String
+  # When this role was last updated
   updatedAt: Date
+  # The responsibilities that are part of this role
   responsibilities: ResponsibilityQuerySet
+  # The total number of responsibilities that are part of this role
   responsibilitiesTotal: Int
 }
 
@@ -2206,6 +2222,8 @@ type Responsibility {
   type: String
 }
 
+union Role = CommonRole | GroupRole
+
 # A saved set of search/filter parameters for the map that can be reloaded later by a user
 type SavedSearch {
   id: ID
@@ -2345,10 +2363,10 @@ type Track {
   bannerUrl: String
   # The message shown when a user completes this track
   completionMessage: String
-  # The emoji shown in the badge for cmopleting this track
-  completionBadgeEmoji: String
-  # The name of the badge for this track
-  completionBadgeName: String
+  # The role/badge that is awarded when a user completes this track
+  completionRole: Role
+  # The type of role/badge that is awarded when a user completes this track. Either 'common' or 'group'
+  completionRoleType: String
   # When this track was created
   createdAt: Date
   # When this track was deactivated
@@ -3487,10 +3505,10 @@ input TrackInput {
   bannerUrl: String
   # The message shown when a user completes this track
   completionMessage: String
-  # The emoji shown in the badge for cmopleting this track
-  completionBadgeEmoji: String
-  # The name of the badge for this track
-  completionBadgeName: String
+  # The role/badge that is awarded when a user completes this track
+  completionRoleId: ID
+  # The type of role/badge that is awarded when a user completes this track. Either 'common' or 'group'
+  completionRoleType: String
   # The description of the track
   description: String
   # The groups this track is associated with
