@@ -32,6 +32,7 @@ export const GROUP_ATTR_UPDATE_WHITELIST = [
 // For files in the public directory, reference them with the base URL
 const DEFAULT_BANNER = '/default-group-banner.svg'
 const DEFAULT_AVATAR = '/default-group-avatar.svg'
+const DEFAULT_CHAT_ROOM = 'general'
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'groups',
@@ -442,9 +443,9 @@ module.exports = bookshelf.Model.extend(merge({
 
   // TODO: remove this, replaced by functionality in setupContextWidgets
   createDefaultTopics: async function (group_id, user_id, transacting) {
-    return Tag.where({ name: 'home' }).fetch({ transacting })
-      .then(homeTag => {
-        return GroupTag.create({ updated_at: new Date(), group_id, tag_id: homeTag.get('id'), user_id, is_default: true }, { transacting })
+    return Tag.where({ name: DEFAULT_CHAT_ROOM }).fetch({ transacting })
+      .then(generalTag => {
+        return GroupTag.create({ updated_at: new Date(), group_id, tag_id: generalTag.get('id'), user_id, is_default: true }, { transacting })
       })
   },
 
@@ -551,20 +552,20 @@ module.exports = bookshelf.Model.extend(merge({
       updated_at: new Date()
     }).save(null, { transacting: trx })
 
-    // Get home tag id for the home chat
-    const homeTag = await Tag.where({ name: 'home' }).fetch({ transacting: trx })
+    // Get general tag id for the general chat
+    const generalTag = await Tag.where({ name: DEFAULT_CHAT_ROOM }).fetch({ transacting: trx })
 
-    // XXX: make sure there is a home tag for every group
-    const homeGroupTag = await GroupTag.where({ group_id: this.id, tag_id: homeTag.id }).fetch({ transacting: trx })
-    if (!homeGroupTag) {
-      await GroupTag.create({ group_id: this.id, tag_id: homeTag.id, user_id: this.get('created_by_id'), is_default: true }, { transacting: trx })
+    // XXX: make sure there is a general tag for every group
+    const generalGroupTag = await GroupTag.where({ group_id: this.id, tag_id: generalTag.id }).fetch({ transacting: trx })
+    if (!generalGroupTag) {
+      await GroupTag.create({ group_id: this.id, tag_id: generalTag.id, user_id: this.get('created_by_id'), is_default: true }, { transacting: trx })
     }
 
-    // Create home chat widget as child of default view
+    // Create general chat widget as child of home widget
     await ContextWidget.forge({
       group_id: this.id,
       type: 'chat',
-      view_chat_id: homeTag.id,
+      view_chat_id: generalTag.id,
       parent_id: homeWidget.id,
       order: 1,
       created_at: new Date(),
