@@ -40,7 +40,6 @@ function TrackCard({ track, groupSlug }) {
 
   const navigateToTrack = () => {
     const trackUrl = `${groupUrl(groupSlug || currentGroup?.slug, 'tracks')}/${track.id}`
-    console.log('groussssspSlug', groupSlug, trackUrl)
 
     openURL(trackUrl)
   }
