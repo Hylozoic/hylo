@@ -19,6 +19,7 @@ import {
   DELETE_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_MESSAGES_PENDING,
+  FETCH_MY_MEMBERSHIPS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   JOIN_PROJECT_PENDING,
   LEAVE_GROUP,
@@ -415,6 +416,12 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         // of messages works as expected
         Message.filter({ messageThread: meta.id }).delete()
       }
+      break
+    }
+
+    case FETCH_MY_MEMBERSHIPS: {
+      const me = Me.first()
+      clearCacheFor(Me, me.id)
       break
     }
 

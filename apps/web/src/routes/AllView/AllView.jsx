@@ -1,4 +1,4 @@
-import { House, Plus, SquareDashed, MessageSquarePlus, FileStack, User, Users, StickyNote, Pencil } from 'lucide-react'
+import { House, Plus, SquareDashed, Hash, FileStack, User, Users, StickyNote, Pencil } from 'lucide-react'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -289,7 +289,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
                 disabled={parentWidget?.id}
               />
               <AddOption
-                icon={<MessageSquarePlus />}
+                icon={<Hash />}
                 title={t('Add Chat')}
                 onClick={() => setAddChoice(CHAT)}
                 disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { type: CHAT, viewChat: { id: 'fake-id' } } })}

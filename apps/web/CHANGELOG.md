@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.0.6] - 2025-05-05
+
+### Changed
+- Switch back from "home" as the name of the default chat room for groups to "general". To reduce confusion between home chat and the hpme view for your group
+- Use the # icon for chat rooms instead of a message bubble icon
+
+### Fixed
+- Ensure that chat rooms for groups are always displaying in the To field in the post editor so you can easily send a post to a specific chat room / topic.
+
 ## [6.0.5] - 2025-04-30
 
 ### Changed
