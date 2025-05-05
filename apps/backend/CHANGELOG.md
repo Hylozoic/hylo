@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.0.5] - 2025-05-05
+
+### Changed
+- Switch back from "home" as the name of the default chat room for groups to "general". To reduce confusion between home chat and the hpme view for your group
+
 ## [6.0.4] - 2025-04-17
 
 ### Fixed
