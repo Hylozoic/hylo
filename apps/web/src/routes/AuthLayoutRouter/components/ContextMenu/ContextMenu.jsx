@@ -361,7 +361,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
 
   if (widget.type === 'logout') {
     return (
-      <div key={widget.id} className='ContextMenu ContextWidgetMenuItem mt-6'>
+      <div key={widget.id} className='ContextMenu ContextWidgetMenuItemLogout mt-6'>
         <span className='flex justify-between items-center content-center'>
           <WidgetIconResolver widget={widget} />
           <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex'>
@@ -385,9 +385,9 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
               <MenuLink
                 to={url}
                 externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}
-                className='flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 group'
+                className='ContextWidgetMenuLink flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 group'
               >
-                <div className='flex-1'>
+                <div className='flex-1 flex items-center'>
                   <WidgetIconResolver widget={widget} />
                   <span className='text-base font-normal ml-2'>{title}</span>
                 </div>
@@ -439,7 +439,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                   </ul>
                 </div>}
               {widget.type === 'members' && !isOverlay &&
-                <div className='flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground'>
+                <div className='ContextWidgetMenuItemMembers flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground'>
                   <SpecialTopElementRenderer widget={widget} />
                   <ul className='px-1 pt-1 pb-2'>
                     {loading && presentedlistItems.length === 0 && <li key='loading'>Loading...</li>}
@@ -573,11 +573,11 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 badgeCount={item.highlightNumber}
                 to={itemUrl}
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
-                className='flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between group'
+                className='ContextWidgetMenuItemChat flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between group'
               >
-                <div className='flex-1'>
+                <div className='flex-1 flex items-center'>
                   <WidgetIconResolver widget={item} />
-                  <span className='text-base ml-2'>{itemTitle}</span>
+                  <span className='text-base ml-1'>{itemTitle}</span>
                 </div>
                 {isItemDraggable && <div className='hidden group-hover:block'><ActionMenu widget={item} className={cn('ml-2')} /></div>}
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
@@ -590,7 +590,7 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
                 className='transition-all px-2 py-1 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between group'
               >
-                <div>
+                <div className='flex items-center'>
                   <WidgetIconResolver widget={item} />
                   <span className='text-base ml-2'>
                     {itemTitle}
@@ -606,9 +606,9 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
               <MenuLink
                 to={itemUrl}
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
-                className='flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between group'
+                className='ContextWidgetMenuItem flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between group'
               >
-                <div className='flex-1'>
+                <div className='flex-1 flex items-center'>
                   <WidgetIconResolver widget={item} />
                   <span className='text-base ml-2'>{itemTitle}</span>
                 </div>
