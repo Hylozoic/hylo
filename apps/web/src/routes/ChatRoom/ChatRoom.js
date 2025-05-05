@@ -534,7 +534,7 @@ export default function ChatRoom (props) {
           />
         </span>
       ),
-      icon: 'Message',
+      icon: null,
       info: '',
       search: !isWebView()
     })

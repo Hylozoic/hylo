@@ -78,9 +78,9 @@ function avatarDataResolver (widget) {
 const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   setup: 'Settings',
   'custom-views': 'Stack',
-  chats: 'Message',
-  viewChat: 'Message',
-  chat: 'Message',
+  chats: 'Topics',
+  viewChat: 'Topics',
+  chat: 'Topics',
   viewPost: 'Posticon',
   about: 'Info'
 }
