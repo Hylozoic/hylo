@@ -8,7 +8,7 @@ export default function useTracks ({ groupId, groupSlug, hideUnpublished = false
     query: groupTracksQuery,
     variables: {
       id: groupId,
-      // Note: we don't pass both id and slug - if id exists use that, otherwise use slugr
+      // Note: we don't pass both id and slug - if id exists use that, otherwise use slug
       ...(groupId ? {} : { slug: groupSlug })
     }
   })
