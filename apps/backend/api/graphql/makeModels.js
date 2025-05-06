@@ -85,7 +85,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'viewGroup',
         'viewPost',
         'viewUser',
-        'viewChat'
+        'viewChat',
+        'viewTrack'
       ],
       getters: {
         // XXX: has to be a getter not a relation because belongsTo doesn't support multiple keys
@@ -1155,9 +1156,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'users'
       ],
       getters: {
-        isEnrolled: t => t.isEnrolled(userId),
-        didComplete: t => t.didComplete(userId),
-        userSettings: t => t.userSettings(userId)
+        isEnrolled: t => t && t.isEnrolled(userId),
+        didComplete: t => t && t.didComplete(userId),
+        userSettings: t => t ? t.userSettings(userId) : null
       }
     },
 
