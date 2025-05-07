@@ -1,4 +1,14 @@
 import { once } from 'lodash'
+import {shouldPolyfill} from '@formatjs/intl-locale/should-polyfill'
+async function polyfill() {
+  // This platform already supports Intl.Locale
+  if (shouldPolyfill()) {
+    await import('@formatjs/intl-locale/polyfill')
+  }
+  // Alternatively, force the polyfill regardless of support
+  await import('@formatjs/intl-locale/polyfill-force')
+}
+polyfill()
 
 export const environment = import.meta.env.NODE_ENV || 'development'
 export const isTest = environment === 'test'
