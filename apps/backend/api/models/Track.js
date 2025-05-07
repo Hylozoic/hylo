@@ -51,6 +51,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this._trackUserCache[userId]
   },
 
+  // Getter to override access to the completion_message attribute and sanitize the HTML
+  completionMessage: function () {
+    return RichText.processHTML(this.get('completion_message'))
+  },
+
   didComplete: function (userId) {
     return this._loadTrackUser(userId).then(trackUser => trackUser && trackUser.get('completed_at') !== null)
   },
@@ -65,6 +70,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   userSettings: function (userId) {
     return this._loadTrackUser(userId).then(trackUser => trackUser && trackUser.get('settings'))
+  },
+
+  // Getter to override access to the welcome_message attribute and sanitize the HTML
+  welcomeMessage: function () {
+    return RichText.processHTML(this.get('welcome_message'))
   }
 
 }, HasSettings), {
