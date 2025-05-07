@@ -1,4 +1,5 @@
 import { filter, isFunction } from 'lodash'
+import { Check, Play, CircleDashed } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { PureComponent } from 'react'
 import ReactDOM from 'react-dom'
@@ -285,13 +286,13 @@ function ActionHeader ({ post, isCurrentAction }) {
   const { t } = useTranslation()
 
   return (
-    <div className='flex p-2'>
+    <div className='flex p-2 mb-2'>
       <div className='flex-1'>
         {post.completedAt
-          ? <span className='border border-secondary rounded-md px-2 py-1 flex-1'>{t('Completed')}</span>
+          ? <span className='border-2 border-secondary rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1'><Check className='w-4 h-4 inline' /> {t('Completed')}</span>
           : isCurrentAction
-            ? <span className='border border-accent rounded-md px-2 py-1 flex-1'>{t('Next Action')}</span>
-            : <span className='border border-primary rounded-md px-2 py-1 flex-1'>{t('Not Completed')}</span>}
+            ? <span className='border-2 border-accent rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1'><Play className='w-4 h-4 inline' /> {t('Next Action')}</span>
+            : <span className='border-2 border-foreground/20 text-foreground/70 rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1'><CircleDashed className='w-4 h-4 inline' /> {t('Not Completed')}</span>}
       </div>
 
       {post.completedAt && <span>{t('Completed {{date}}', { date: DateTime.fromISO(post.completedAt).toFormat('DD') })}</span>}

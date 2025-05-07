@@ -68,7 +68,7 @@ function TrackHome () {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: t('Track: {{trackName}}', { trackName: currentTrack?.name || 'loading...' }),
+      title: t('{{trackName}}', { trackName: currentTrack?.name || 'loading...' }),
       search: true,
       icon: <Shapes />
     })
@@ -153,8 +153,10 @@ function TrackHome () {
             : isEnrolled
               ? (
                 <>
-                  <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
-                  <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
+                  <div className='flex flex-row gap-2 items-center justify-between w-full'>
+                    <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
+                    <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4 ' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
+                  </div>
                 </>
                 )
               : (
@@ -178,10 +180,11 @@ function AboutTab ({ currentTrack }) {
   return (
     <>
       <div
-        className='mt-4 w-full shadow-2xl max-w-[750px] rounded-xl h-[40vh] flex flex-col items-center justify-center bg-cover'
+        className='mt-4 w-full shadow-2xl max-w-[750px] rounded-xl h-[40vh] flex flex-col items-center justify-end bg-cover mb-6 pb-6 relative overflow-hidden'
         style={bannerUrl ? bgImageStyle(bannerUrl) : {}}
       >
-        <h1 className='text-white text-4xl font-bold'>{name}</h1>
+        <div className='absolute inset-0 bg-black/40 z-10' />
+        <h1 className='text-white text-4xl font-bold z-20'>{name}</h1>
       </div>
       <HyloHTML html={description} />
     </>
@@ -241,7 +244,7 @@ function EditTab ({ currentTrack }) {
           ))}
         </SortableContext>
       </DndContext>
-      <button className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md' onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}>+ {t('Add {{actionName}}', { actionName: currentTrack.actionsName.slice(0, -1) })}</button>
+      <button className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md mb-4' onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}>+ {t('Add {{actionName}}', { actionName: currentTrack.actionsName.slice(0, -1) })}</button>
     </>
   )
 }
