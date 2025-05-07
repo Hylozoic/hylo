@@ -1,3 +1,5 @@
+import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { get } from 'lodash/fp'
 import { ChevronLeft, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House, Trash } from 'lucide-react'
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
@@ -6,25 +8,7 @@ import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { createSelector } from 'reselect'
-import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 
-import GroupMenuHeader from 'components/GroupMenuHeader'
-import Icon from 'components/Icon'
-import WidgetIconResolver from 'components/WidgetIconResolver'
-import MenuLink from './MenuLink'
-import useRouteParams from 'hooks/useRouteParams'
-import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
-import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
-import getMe from 'store/selectors/getMe'
-import { removeWidgetFromMenu, updateContextWidget, setHomeWidget } from 'store/actions/contextWidgets'
-import useGatherItems from 'hooks/useGatherItems'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
-import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
-import { bgImageStyle, cn } from 'util/index'
-import { widgetUrl, baseUrl, groupUrl, groupInviteUrl, addQuerystringToPath, personUrl } from 'util/navigation'
-import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, TextHelpers } from '@hylo/shared'
 import ContextWidgetPresenter, {
   isValidDropZone,
   getStaticMenuWidgets,
@@ -33,13 +17,32 @@ import ContextWidgetPresenter, {
   translateTitle,
   allViewsWidget
 } from '@hylo/presenters/ContextWidgetPresenter'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, TextHelpers } from '@hylo/shared'
+
+import GroupMenuHeader from 'components/GroupMenuHeader'
+import HyloHTML from 'components/HyloHTML'
+import Icon from 'components/Icon'
+import WidgetIconResolver from 'components/WidgetIconResolver'
+import MenuLink from './MenuLink'
+import useGatherItems from 'hooks/useGatherItems'
+import useRouteParams from 'hooks/useRouteParams'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
+import { removeWidgetFromMenu, updateContextWidget, setHomeWidget } from 'store/actions/contextWidgets'
 import logout from 'store/actions/logout'
-import classes from './ContextMenu.module.scss'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
+import getMe from 'store/selectors/getMe'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { bgImageStyle, cn } from 'util/index'
+import { widgetUrl, baseUrl, groupUrl, groupInviteUrl, addQuerystringToPath, personUrl } from 'util/navigation'
+
 import { useContextMenuContext } from './ContextMenuContext'
 import ContextMenuProvider from './ContextMenuProvider'
-import HyloHTML from 'components/HyloHTML'
+
+import classes from './ContextMenu.module.scss'
 
 let previousWidgetIds = []
 let isAddingChildWidget = false
@@ -277,7 +280,7 @@ function ContextWidgetList ({ newWidgetId, newWidgetRef }) {
         </li>}
       {contextWidgets.map((widget, index) => (
         <li
-          className={`items-start animate-slide-up invisible ${
+          className={`ContextMenuContextWidgetListItem items-start animate-slide-up invisible ${
             widget.childWidgets?.length > 0 ||
             ['container', 'home', 'chats', 'members'].includes(widget.type)
               ? 'mb-6 mt-6'
@@ -389,7 +392,9 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
               >
                 <div className='flex-1 flex items-center'>
                   <WidgetIconResolver widget={widget} />
-                  <span className='text-base font-normal ml-2'>{title}</span>
+                  <span className='text-base font-normal ml-2 flex-1'>{title}</span>
+                  {!widget.viewTrack?.didComplete && widget.viewTrack?.isEnrolled ? <span className='text-sm ml-2'>{t('Enrolled')}</span> : null}
+                  {widget.viewTrack?.didComplete ? <span className='text-sm ml-2'>{t('Completed')}</span> : null}
                 </div>
                 {canDnd && isDroppable && <div className='hidden group-hover:block'><ActionMenu widget={widget} className={cn('ml-2')} /></div>}
                 {canDnd && isDroppable && <div className=''><GrabMe {...listeners} {...attributes} /></div>}

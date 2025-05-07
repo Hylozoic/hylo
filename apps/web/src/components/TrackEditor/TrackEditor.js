@@ -119,14 +119,14 @@ function TrackEditor (props) {
       publishedAt,
       welcomeMessage
     }))
-      .then(({ error }) => {
+      .then((response) => {
         setSaving(false)
-        if (error) {
+        if (response?.error) {
           setErrors({ ...errors, general: t('There was an error, please try again.') })
         } else {
           setEdited(false)
           setErrors({})
-          dispatch(push(editingTrack ? groupUrl(currentGroup.slug, `tracks/${editingTrack.id}/edit`) : groupUrl(currentGroup.slug, 'settings/tracks')))
+          dispatch(push(editingTrack ? groupUrl(currentGroup.slug, `tracks/${editingTrack.id}/edit`) : groupUrl(currentGroup.slug, `tracks/${response.payload.data.createTrack.id}?tab=edit`)))
         }
       })
   }, [trackState, isValid])

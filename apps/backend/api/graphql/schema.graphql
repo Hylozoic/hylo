@@ -604,6 +604,8 @@ type ContextWidget {
   viewGroup: Group
   # Post this widget is pointing at
   viewPost: Post
+  # Track this widget is pointing at
+  viewTrack: Track
   # User this widget is pointing at
   viewUser: Person
 }
@@ -2973,8 +2975,29 @@ input CommentInput {
 
 # Input type for creating or updating a ContextWidget
 input ContextWidgetInput {
+  # If true, add this widget to the end of the list. Will be ignored if orderInFrontOfWidgetId is also provided.
+  addToEnd: Boolean
+
+  # Custom view this widget is pointing at
+  customViewId: ID
+
+  # Create a custom view when creating a widget
+  customViewInput: CustomViewInput
+
+  # Icon for the widget
+  icon: String
+
   # The group this widget belongs to
   ownerGroupId: ID
+
+  # The display order of the widget
+  orderInFrontOfWidgetId: ID
+
+  # ID of the parent widget if this is a child widget
+  parentId: ID
+
+  # If true, remove this widget from the menu.
+  remove: Boolean
 
   # Type: null is default and valid. Only include widget type for special behaviors.
   type: String
@@ -2982,26 +3005,11 @@ input ContextWidgetInput {
   # The title of the widget
   title: String
 
-  # The display order of the widget
-  orderInFrontOfWidgetId: ID
-
-  # If true, add this widget to the end of the list. Will be ignored if orderInFrontOfWidgetId is also provided.
-  addToEnd: Boolean
-
-  # If true, remove this widget from the menu.
-  remove: Boolean
-
-  # The visibility settings of the widget. Currently null or admin
-  visibility: String
-
   # The view that this widget is pointing at
   view: String
 
-  # Icon for the widget
-  icon: String
-
-  # ID of the parent widget if this is a child widget
-  parentId: ID
+  # Chat this widget is pointing at
+  viewChatId: ID
 
   # Group this widget is pointing at
   viewGroupId: ID
@@ -3009,17 +3017,14 @@ input ContextWidgetInput {
   # Post this widget is pointing at
   viewPostId: ID
 
-  # Custom view this widget is pointing at
-  customViewId: ID
+  # Track this widget is pointing at
+  viewTrackId: ID
 
   # User this widget is pointing at
   viewUserId: ID
 
-  # Chat this widget is pointing at
-  viewChatId: ID
-
-  # Create a custom view when creating a widget
-  customViewInput: CustomViewInput
+  # The visibility settings of the widget. Currently null or admin
+  visibility: String
 }
 
 # For adding or editing an existing CustomView on a Group

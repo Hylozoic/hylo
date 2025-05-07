@@ -30,7 +30,7 @@ export const types = {
   CHAT: 'viewChat',
   CUSTOM_VIEW: 'customView',
   CONTAINER: 'container',
-  TRACK: 'track'
+  TRACK: 'viewTrack'
 }
 
 /* == Attribute Resolvers == */
@@ -82,7 +82,8 @@ const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   viewChat: 'Topics',
   chat: 'Topics',
   viewPost: 'Posticon',
-  about: 'Info'
+  about: 'Info',
+  viewTrack: 'Shapes'
 }
 function iconNameResolver (widget, type) {
   if (widget?.iconName) return widget.iconName
