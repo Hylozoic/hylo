@@ -2,7 +2,7 @@ import { DndContext, closestCorners } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { isEmpty } from 'lodash/fp'
-import { Shapes, Settings, DoorOpen, Check } from 'lucide-react'
+import { Shapes, Settings, DoorOpen, Check, Eye } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -10,12 +10,14 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import { useNavigate, Routes, Route } from 'react-router-dom'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
+import NotFound from 'components/NotFound'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
+import Button from 'components/ui/button'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
-import { enrollInTrack, fetchTrack, FETCH_TRACK, leaveTrack, updateTrackActionOrder } from 'store/actions/trackActions'
+import { enrollInTrack, fetchTrack, FETCH_TRACK, leaveTrack, updateTrackActionOrder, updateTrack } from 'store/actions/trackActions'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
@@ -24,7 +26,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
-import { bgImageStyle } from 'util/index'
+import { bgImageStyle, cn } from 'util/index'
 import { createPostUrl, groupUrl } from 'util/navigation'
 
 import PostSummary from './PostSummary'
@@ -72,14 +74,24 @@ function TrackHome () {
     })
   }, [currentTrack])
 
+  const handlePublishTrack = useCallback((publishedAt) => {
+    if (confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
+      dispatch(updateTrack({ trackId: currentTrack.id, publishedAt }))
+    }
+  }, [currentTrack?.id])
+
   if (isLoading) return <Loading />
   if (!currentTrack) return <Loading />
 
-  const { isEnrolled } = currentTrack
+  const { didComplete, isEnrolled, publishedAt } = currentTrack
+
+  if (!canEdit && !publishedAt) {
+    return <NotFound />
+  }
 
   return (
-    <div className='p-4 w-full h-full overflow-y-auto' ref={setContainer}>
-      <div className='max-w-[750px] mx-auto'>
+    <div className='pt-4 px-4 w-full h-full relative overflow-y-auto flex flex-col' ref={setContainer}>
+      <div className='w-full max-w-[750px] mx-auto flex-1'>
         {(isEnrolled || canEdit) && (
           <div className='flex gap-2 w-full justify-center items-center bg-black/20 rounded-md p-2'>
             <button
@@ -118,6 +130,41 @@ function TrackHome () {
         )}
       </div>
 
+      <div className='flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md'>
+        {!publishedAt
+          ? (
+            <>
+              <span>{t('This track is not yet published')}</span>
+              <Button
+                variant='secondary'
+                onClick={(e) => handlePublishTrack(new Date().toISOString())}
+              >
+                <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
+              </Button>
+            </>
+            )
+          : didComplete
+            ? (
+              <>
+                <Check className='w-4 h-4 text-selected' />
+                <span>{t('You completed this track')}</span>
+              </>
+              )
+            : isEnrolled
+              ? (
+                <>
+                  <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
+                  <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
+                </>
+                )
+              : (
+                <>
+                  <span>{t('Ready to jump in?')}</span>
+                  <button className='bg-selected text-foreground rounded-md p-2 px-4' onClick={() => dispatch(enrollInTrack(currentTrack.id))}>{t('Enroll')}</button>
+                </>
+                )}
+      </div>
+
       <Routes>
         <Route path='post/:postId' element={<PostDialog container={container} />} />
       </Routes>
@@ -126,9 +173,7 @@ function TrackHome () {
 }
 
 function AboutTab ({ currentTrack }) {
-  const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const { bannerUrl, didComplete, name, description, isEnrolled } = currentTrack
+  const { bannerUrl, name, description } = currentTrack
 
   return (
     <>
@@ -139,40 +184,21 @@ function AboutTab ({ currentTrack }) {
         <h1 className='text-white text-4xl font-bold'>{name}</h1>
       </div>
       <HyloHTML html={description} />
-
-      {didComplete
-        ? (
-          <div className='flex flex-row gap-2 fixed bottom-0 mx-auto w-full max-w-[750px] px-4 py-2 justify-between items-center bg-input rounded-t-md'>
-            <span>{t('You completed this track')}</span>
-          </div>
-          )
-        : isEnrolled
-          ? (
-            <div className='flex flex-row gap-2 border-2 border-foreground/20 border-dashed rounded-md p-2 justify-between items-center'>
-              <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
-              <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
-            </div>
-            )
-          : (
-            <div className='flex flex-row gap-2 fixed bottom-0 mx-auto w-full max-w-[750px] px-4 py-2 justify-between items-center bg-input rounded-t-md'>
-              <span>{t('Ready to jump in?')}</span>
-              <button className='bg-selected text-foreground rounded-md p-2 px-4' onClick={() => dispatch(enrollInTrack(currentTrack.id))}>{t('Enroll')}</button>
-            </div>
-            )}
     </>
   )
 }
 
 function ActionsTab ({ currentTrack }) {
   const posts = useSelector(state => getPosts(state, currentTrack))
+  const { isEnrolled } = currentTrack
 
   return (
-    <>
+    <div className={cn({ 'pointer-events-none opacity-50': !isEnrolled })}>
       <h1>{currentTrack.actionsName}</h1>
       {posts.map(post => (
         <PostCard key={post.id} post={post} isCurrentAction={currentTrack.currentAction?.id === post.id} />
       ))}
-    </>
+    </div>
   )
 }
 
