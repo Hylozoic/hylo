@@ -255,7 +255,11 @@ function TrackDetail() {
 
       {currentTab === 'about' && (
         <View className='absolute bottom-0 left-0 right-0 bg-background shadow-lg'>
-          {!trackDetail.isEnrolled ? (
+          {trackDetail.didComplete ? (
+            <View className='flex-row gap-2 w-full px-4 py-2 justify-between items-center bg-input'>
+              <Text className='text-foreground'>{t('You completed this track')}</Text>
+            </View>
+          ) : !trackDetail.isEnrolled ? (
             <View className='flex-row gap-2 w-full px-4 py-2 justify-between items-center bg-input'>
               <Text>{t('Ready to jump in?')}</Text>
               <TouchableOpacity 
@@ -264,7 +268,7 @@ function TrackDetail() {
                 disabled={enrolling}
               >
                 <Text className='text-foreground'>
-                  {enrolling ? t('Enrolling...') : t('Enroll')}
+                  {enrolling ? t('Enrolling-ellipsis') : t('Enroll')}
                 </Text>
               </TouchableOpacity>
             </View>

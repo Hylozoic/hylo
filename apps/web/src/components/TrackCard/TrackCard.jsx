@@ -33,7 +33,7 @@ function TrackCard ({ track }) {
   }, [track.id])
 
   const { actionsName, didComplete, isEnrolled, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
-
+  console.log('track', track)
   const handleButtonClick = (event) => {
     event.preventDefault() // Prevents the click event from bubbling up to the Link
   }
