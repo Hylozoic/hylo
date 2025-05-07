@@ -760,7 +760,7 @@ function PostEditor ({
             />
             )
           : (
-            <div className=''>{isEditing ? t('Edit {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) }) : t('Add a {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) })}</div>
+            <div className=''>{isEditing ? t('Edit {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) }) : t('Add {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) })}</div>
             )}
       </div>
       {!isChat && !isAction && (
@@ -1245,7 +1245,7 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
         </Select>
       </div>
       <div className='w-full p-2 bg-black/20 rounded-md'>
-        <label className='inline-block mb-2'>{t('Completion Instructions')}</label>
+        <label className='inline-block mb-2'>{t('Completion Instructions for Members')}</label>
         <textarea
           className='w-full outline-none border-none bg-input rounded-md p-2 placeholder:text-foreground/50'
           placeholder={t('Add instructions for completing this {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) })}
