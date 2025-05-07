@@ -3,12 +3,10 @@ import { once } from 'lodash'
 // add polyfill due to Firefox off-by-one bug https://github.com/moment/luxon/issues/1563
 import {shouldPolyfill} from '@formatjs/intl-locale/should-polyfill'
 async function polyfill() {
-  // This platform already supports Intl.Locale
+  // skip import platform already supports Intl.Locale
   if (shouldPolyfill()) {
     await import('@formatjs/intl-locale/polyfill')
   }
-  // Alternatively, force the polyfill regardless of support
-  await import('@formatjs/intl-locale/polyfill-force')
 }
 polyfill()
 
