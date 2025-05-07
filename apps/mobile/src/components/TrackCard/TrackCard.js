@@ -99,6 +99,16 @@ function TrackCard({ track, groupSlug }) {
               <Text className='text-foreground'>{numPeopleCompleted}</Text>
               <UserCheck className='w-4 h-4 text-foreground' />
             </View>
+
+            {didComplete ? (
+              <View>
+                <Text className='text-foreground'>{t('You completed this track')}</Text>
+              </View>
+            ) : isEnrolled ? (
+              <View>
+                <Text className='text-foreground'>{t('You are enrolled')}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
       </View>
