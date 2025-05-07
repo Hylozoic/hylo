@@ -1,14 +1,7 @@
 import { once } from 'lodash'
 
 // add polyfill due to Firefox off-by-one bug https://github.com/moment/luxon/issues/1563
-import {shouldPolyfill} from '@formatjs/intl-locale/should-polyfill'
-async function polyfill() {
-  // skip import platform already supports Intl.Locale
-  if (shouldPolyfill()) {
-    await import('@formatjs/intl-locale/polyfill')
-  }
-}
-polyfill()
+import('@formatjs/intl-locale/polyfill-force')
 
 export const environment = import.meta.env.NODE_ENV || 'development'
 export const isTest = environment === 'test'
