@@ -5,6 +5,7 @@ import { useMutation } from 'urql'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { TextHelpers } from '@hylo/shared'
 import completePostMutation from '@hylo/graphql/mutations/completePostMutation'
+import useTrack from '@hylo/hooks/useTrack'
 import { useToast } from '../Toast'
 import { Check, Upload, Loading } from 'lucide-react-native'
 import RoundCheckbox from '../RoundCheckBox'
@@ -14,7 +15,7 @@ import FileSelector, { showFilePicker } from '../../screens/PostEditor/FileSelec
 import uploadAction from 'store/actions/upload'
 import { isIOS } from 'util/platform'
 
-export default function PostCompletion({ post }) {
+export default function PostCompletion({ post, trackId }) {
   const { t } = useTranslation()
   const showToast = useToast()
   const dispatch = useDispatch()
@@ -25,18 +26,10 @@ export default function PostCompletion({ post }) {
   const [submitting, setSubmitting] = useState(false)
   const { completionAction, completionActionSettings } = post
   const { instructions, options } = completionActionSettings || {}
-
+  const [currentTrack, { refetch: refetchTrack }] = useTrack({ trackId })
   const [, completePost] = useMutation(completePostMutation)
 
-  const handleFileChoice = ({ local, remote }) => {
-    if (remote) {
-      setCompletionResponse(prev => [...prev, { url: remote, localUri: local }])
-    }
-  }
-
-
-
-  const handleSubmit = async () => {
+  const handleSubmitCompletion = async () => {
     setSubmitting(true)
     try {
       const { data, error } = await completePost({
@@ -49,25 +42,35 @@ export default function PostCompletion({ post }) {
 
         showToast({
           type: 'error',
-          text1: 'Error completing post',
-          text2: error
+          text1: 'Error',
         })
         return
       }
 
       const completedPost = data.completePost
       if (completedPost) {
-        showToast({
-          type: 'success',
-          text1: 'Post completed successfully'
-        })
+        const allActionsCompleted = currentTrack.posts.every(
+          action => action.id === post.id || action.completedAt
+        )
+
+        if (allActionsCompleted) {
+          refetchTrack()
+          showToast({
+            type: 'success',
+            text1: t('You have completed the track: {{trackName}}', { trackName: currentTrack.name }),
+          })
+        } else {
+          showToast({
+            type: 'success',
+            text1: t('Action completed')
+          })
+        }
       }
     } catch (error) {
       console.error('Error completing post', error)
       showToast({
         type: 'error',
-        text1: 'Error completing post',
-        text2: error
+        text1: 'Error',
       })
     } finally {
       setSubmitting(false)
@@ -84,7 +87,7 @@ export default function PostCompletion({ post }) {
 
   switch (completionAction) {
     case 'button':
-      completionButtonText = 'Mark as Complete'
+      completionButtonText = t('Mark as Complete')
       alreadyCompletedMessage = t('You completed this action {{date}}', { date: completedAt })
       break
 
@@ -103,7 +106,7 @@ export default function PostCompletion({ post }) {
           ))}
         </View>
       )
-      completionButtonText = 'Submit'
+      completionButtonText = t('Submit')
       alreadyCompletedMessage = t('You completed this action {{date}}. You selected:', { date: completedAt })
       break
 
@@ -141,7 +144,7 @@ export default function PostCompletion({ post }) {
           ))}
         </View>
       )
-      completionButtonText = 'Submit'
+      completionButtonText = t('Submit')
       alreadyCompletedMessage = t('You completed this action {{date}}. You selected:', { date: completedAt })
       break
 
@@ -155,8 +158,9 @@ export default function PostCompletion({ post }) {
           textAlignVertical='top'
         />
       )
-      completionButtonText = 'Submit'
-      alreadyCompletedMessage = t('You completed this action {{date}}. Your response was:', { date: completedAt })
+      completionButtonText = t('Submit')
+      const completionResponseText = completionResponse[0] || ''
+      alreadyCompletedMessage = t('You completed this action {{date}}. Your response was:', { date: completedAt }) + ' ' + completionResponseText
       break
 
     case 'comment':
@@ -198,7 +202,7 @@ export default function PostCompletion({ post }) {
 
       {completionButtonText && (
         <TouchableOpacity
-          onPress={handleSubmit}
+          onPress={handleSubmitCompletion}
           disabled={submitting}
           className={`p-3 rounded-lg ${submitting ? 'bg-background' : 'bg-primary'}`}
         >

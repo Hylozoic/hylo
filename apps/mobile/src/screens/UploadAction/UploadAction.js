@@ -2,27 +2,30 @@ import React, { useEffect, useMemo, useCallback, useState } from 'react'
 import { Alert, View, KeyboardAvoidingView, Platform, TouchableOpacity, Text, ScrollView } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { gql, useQuery, useMutation } from 'urql'
+import { Upload, Check } from 'lucide-react-native'
+import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 import { get } from 'lodash/fp'
-import { AnalyticsEvents } from '@hylo/shared'
+
+import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 import { postWithCompletionFragment } from '@hylo/graphql/fragments/postFieldsFragment'
 import completePostMutation from '@hylo/graphql/mutations/completePostMutation'
 import PostPresenter from '@hylo/presenters/PostPresenter'
-import mixpanel from 'services/mixpanel'
 import useIsModalScreen from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
+import { isIOS } from 'util/platform'
+import mixpanel from 'services/mixpanel'
 import Loading from 'components/Loading'
 import PostBody from 'components/PostCard/PostBody'
 import FileSelector, { showFilePicker } from '../PostEditor/FileSelector'
-import { Upload, Check } from 'lucide-react-native'
-import { isIOS } from 'util/platform'
-import { useDispatch } from 'react-redux'
 import uploadAction from 'store/actions/upload'
 import { usePostEditorStore } from '../PostEditor/PostEditor.store'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import useTrack from '@hylo/hooks/useTrack'
+import { useToast } from 'components/Toast'
 
 export const postDetailsQuery = gql`
   query PostDetailsQuery ($id: ID) {
@@ -40,7 +43,7 @@ export default function UploadAction () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
-  const { id: postId } = useRouteParams()
+  const { id: postId, trackId } = useRouteParams()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ data, fetching, error }] = useQuery({ query: postDetailsQuery, variables: { id: postId } })
   const dispatch = useDispatch()
@@ -60,8 +63,10 @@ export default function UploadAction () {
 
   const [, completePost] = useMutation(completePostMutation)
   const [{ currentUser }] = useCurrentUser()
+  const showToast = useToast()
+  const [currentTrack, { refetch: refetchTrack }] = useTrack({ trackId })
 
-  // Initialize the editor post with the fetched post data
+  // Initialize the post store with the fetched post data
   useEffect(() => {
     if (data?.post) {
       updatePost(data.post)
@@ -108,7 +113,7 @@ export default function UploadAction () {
     }
   }
 
-  const handleSubmit = async () => {
+  const handleSubmitCompletion = async () => {
     setSubmitting(true)
     try {
       const { data, error } = await completePost({
@@ -118,17 +123,43 @@ export default function UploadAction () {
 
       if (error) {
         console.error('Error completing post', error)
-        Alert.alert(t('Error completing post'), error.message)
+        showToast({
+          type: 'error',
+          text1: t('Error completing action'),
+          text2: error.message
+        })
         return
       }
 
       const completedPost = data.completePost
       if (completedPost) {
-        Alert.alert(t('Success'), t('Post completed successfully'))
+        const allActionsCompleted = currentTrack.posts.every(
+          action => action.id === postId || action.completedAt
+        )
+
+        if (allActionsCompleted) {
+          refetchTrack()
+          showToast({
+            type: 'success',
+            text1: t('You have completed the track: {{trackName}}', { trackName: currentTrack.name }),
+            visibilityTime: 4000
+          })
+        } else {
+          showToast({
+            type: 'success',
+            text1: t('Files uploaded')
+          })
+        }
+
+        navigation.goBack()
       }
     } catch (error) {
       console.error('Error completing post', error)
-      Alert.alert(t('Error completing post'), error.message)
+      showToast({
+        type: 'error',
+        text1: t('Error uploading'),
+        text2: error.message
+      })
     } finally {
       setSubmitting(false)
     }
@@ -163,12 +194,13 @@ export default function UploadAction () {
   const files = post.getFiles()
 
   if (post?.completedAt) {
+    const completedAt = post.completedAt ? TextHelpers.formatDatePair(post.completedAt) : null
     return (
       <View className='p-4 bg-background-plus rounded-lg mb-4'>
         <View className='flex-row items-center'>
           <Check className='w-5 h-5 text-success mr-2' />
           <Text className='text-foreground font-medium'>
-            {t('You completed this action {{date}}', { date: post.completedAt })}
+            {t('You completed this action {{date}}', { date: completedAt })}
           </Text>
         </View>
         <FileSelector
@@ -180,63 +212,39 @@ export default function UploadAction () {
   }
 
   return (
-    <ScrollView>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className='flex-1'
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-      >
-        <View className='p-4'>
-          <PostBody
-            details={post.details}
-            endTime={post.endTimeRaw}
-            linkPreview={post.linkPreview}
-            linkPreviewFeatured={post.linkPreviewFeatured}
-            startTime={post.startTimeRaw}
-            title={post.title}
-            type={post.type}
-            post={post}
-            currentUser={currentUser}
+    <SafeAreaView className='flex-1 bg-background'>
+      <ScrollView className='flex-1 p-4'>
+        <View className='p-4 bg-background-plus rounded-lg mb-4'>
+          <Text className='text-foreground font-medium mb-4'>{t('Upload Files')}</Text>
+          {post.completionActionSettings?.instructions && (
+            <Text className='font-bold mb-4'>{post.completionActionSettings.instructions}</Text>
+          )}
+
+          <FileSelector
+            files={completionResponse}
+            onChange={setCompletionResponse}
+            onUpload={upload}
           />
 
-          <View className='mt-8'>
-            <Text className='text-foreground font-medium mb-4'>{t('Complete Action')}</Text>
-            {instructions && (
-              <Text className='font-bold mb-4'>{instructions}</Text>
-            )}
-            
-            <TouchableOpacity 
-              className='flex-row items-center justify-center border-2 border-dashed border-foreground/20 rounded-md p-4'
-              onPress={handleShowFilePicker}
-              disabled={filePickerPending}
+          <TouchableOpacity
+            onPress={handleSubmitCompletion}
+            disabled={submitting || completionResponse.length === 0}
+            className={`mt-4 p-3 rounded-lg ${
+              submitting || completionResponse.length === 0 ? 'bg-background' : 'bg-primary'
+            }`}
+          >
+            <Text
+              className={`text-center font-medium ${
+                submitting || completionResponse.length === 0
+                  ? 'text-foreground-muted'
+                  : 'text-primary-foreground'
+              }`}
             >
-              {filePickerPending ? (
-                <Loading size={24} className='mr-2' />
-              ) : (
-                <Upload className='w-6 h-6 text-foreground mr-2' />
-              )}
-              <Text className='text-foreground'>{t('Upload Attachments')}</Text>
-            </TouchableOpacity>
-            
-            <FileSelector
-              onRemove={attachment => removeAttachment('file', attachment)}
-              files={post.getFiles()}
-            />
-
-            {completionResponse.length > 0 && (
-              <TouchableOpacity
-                className='mt-4 p-3 rounded-lg bg-primary'
-                onPress={handleSubmit}
-                disabled={submitting}
-              >
-                <Text className='text-center font-medium text-primary-foreground'>
-                  {submitting ? t('Submitting...') : t('Submit Attachments and Complete')}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+              {submitting ? t('Submitting...') : t('Submit Files and Complete')}
+            </Text>
+          </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   )
 } 

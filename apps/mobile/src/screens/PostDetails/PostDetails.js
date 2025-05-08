@@ -11,6 +11,7 @@ import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 import { postWithCompletionFragment } from '@hylo/graphql/fragments/postFieldsFragment'
 import commentFieldsFragment from '@hylo/graphql/fragments/commentFieldsFragment'
 import PostPresenter from '@hylo/presenters/PostPresenter'
+import { getTrackIdFromPath } from '@hylo/navigation'
 import mixpanel from 'services/mixpanel'
 import useGoToMember from 'hooks/useGoToMember'
 import useIsModalScreen from 'hooks/useIsModalScreen'
@@ -47,13 +48,13 @@ export default function PostDetails () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
-  const { id: postId } = useRouteParams()
+  const { id: postId, originalLinkingPath } = useRouteParams()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ data, fetching, error }] = useQuery({ query: postDetailsQuery, variables: { id: postId } })
   const post = useMemo(() => PostPresenter(data?.post, { forGroupId: currentGroup?.id }), [data?.post, currentGroup?.id])
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()
-
+  const trackId = post?.type === 'action' ? getTrackIdFromPath(originalLinkingPath) : null
   useSubscription({
     query: commentsSubscription,
     variables: { postId: post?.id },
@@ -120,6 +121,7 @@ export default function PostDetails () {
             {post.type === 'action' && post.completionAction && (
               <PostCompletion
                 post={post}
+                trackId={trackId}
               />
             )}
           </>

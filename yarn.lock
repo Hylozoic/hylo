@@ -3549,6 +3549,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@hylo/navigation@workspace:*, @hylo/navigation@workspace:packages/navigation":
+  version: 0.0.0-use.local
+  resolution: "@hylo/navigation@workspace:packages/navigation"
+  dependencies:
+    "@babel/runtime": "npm:^7.25.0"
+  languageName: unknown
+  linkType: soft
+
 "@hylo/presenters@workspace:*, @hylo/presenters@workspace:packages/presenters":
   version: 0.0.0-use.local
   resolution: "@hylo/presenters@workspace:packages/presenters"
@@ -25395,6 +25403,7 @@ __metadata:
     "@hylo/contexts": "workspace:*"
     "@hylo/graphql": "workspace:*"
     "@hylo/hooks": "workspace:*"
+    "@hylo/navigation": "workspace:*"
     "@hylo/presenters": "workspace:*"
     "@hylo/shared": "workspace:*"
     "@hylo/urql": "workspace:*"
@@ -36448,6 +36457,7 @@ __metadata:
     "@hylo/contexts": "workspace:*"
     "@hylo/graphql": "workspace:*"
     "@hylo/hooks": "workspace:*"
+    "@hylo/navigation": "workspace:*"
     "@hylo/presenters": "workspace:*"
     "@hylo/shared": "workspace:*"
     "@hylo/urql": "workspace:*"

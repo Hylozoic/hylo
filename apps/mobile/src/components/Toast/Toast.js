@@ -4,7 +4,7 @@ import { Check, AlertCircle, X } from 'lucide-react-native'
 
 const TOAST_TIMEOUT = 4000
 
-export default function Toast ({ message, type = 'default', onHide }) {
+export default function Toast ({ text1, text2, type = 'default', onHide, duration = TOAST_TIMEOUT }) {
   const fadeAnim = useRef(new Animated.Value(0)).current
   const slideAnim = useRef(new Animated.Value(100)).current
 
@@ -35,7 +35,7 @@ export default function Toast ({ message, type = 'default', onHide }) {
           useNativeDriver: true
         })
       ]).start(() => onHide())
-    }, TOAST_TIMEOUT)
+    }, duration)
 
     return () => clearTimeout(timer)
   }, [])
@@ -43,9 +43,9 @@ export default function Toast ({ message, type = 'default', onHide }) {
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <Check className='text-success' size={20} />
+        return <Check className='text-success' size={24} />
       case 'error':
-        return <AlertCircle className='text-destructive' size={20} />
+        return <AlertCircle className='text-destructive' size={24} />
       default:
         return null
     }
@@ -54,7 +54,7 @@ export default function Toast ({ message, type = 'default', onHide }) {
   const getBackgroundColor = () => {
     switch (type) {
       case 'success':
-        return 'bg-success/10'
+        return 'bg-secondary'
       case 'error':
         return 'bg-destructive/10'
       default:
@@ -62,18 +62,30 @@ export default function Toast ({ message, type = 'default', onHide }) {
     }
   }
 
+  const getTextColor = () => {
+    switch (type) {
+      case 'success':
+        return 'text-secondary-foreground'
+      case 'error':
+        return 'text-destructive-foreground'
+      default:
+        return 'text-foreground'
+    }
+  }
+
   return (
     <Animated.View
-      className={`absolute bottom-4 left-4 right-4 ${getBackgroundColor()} rounded-lg p-4 flex-row items-center shadow-sm`}
+      className={`absolute bottom-4 left-4 right-4 ${getBackgroundColor()} rounded-lg p-5 flex-row items-center shadow-sm`}
       style={{
         opacity: fadeAnim,
         transform: [{ translateY: slideAnim }]
       }}
     >
       {getIcon()}
-      <Text className='flex-1 text-foreground ml-2'>{message}</Text>
+      <Text className={`flex-1 ${getTextColor()} ml-3 text-xl font-bold`}>{text1}</Text>
+      <Text className={`flex-1 ${getTextColor()} ml-3 text-xl`}>{text2}</Text>
       <TouchableOpacity onPress={onHide}>
-        <X className='text-foreground' size={20} />
+        <X className='text-foreground' size={24} />
       </TouchableOpacity>
     </Animated.View>
   )

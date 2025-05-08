@@ -36,7 +36,7 @@ function TrackCard({ track, groupSlug }) {
     )
   }, [track.id])
 
-  const { actionsName, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
+  const { actionsName, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt, didComplete, isEnrolled } = track
 
   const navigateToTrack = () => {
     const trackUrl = `${groupUrl(groupSlug || currentGroup?.slug, 'tracks')}/${track.id}`
