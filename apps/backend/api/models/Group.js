@@ -498,6 +498,7 @@ module.exports = bookshelf.Model.extend(merge({
       linked_schemas: [
         'organizations_schema-v1.0.0'
       ],
+      unique_id: 'hylo-group-' + this.id,
       name: this.get('name'),
       primary_url: this.get('website_url') || Frontend.Route.group(this),
       mission: this.get('purpose') || '',
