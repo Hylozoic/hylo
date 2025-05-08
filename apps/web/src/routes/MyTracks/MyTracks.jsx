@@ -40,10 +40,10 @@ function MyTracks () {
   }, [])
 
   return (
-    <div className='p-4 max-w-[750px] mx-auto flex flex-col gap-2'>
+    <div className='p-4 max-w-[750px] mx-auto flex flex-col gap-2 mt-4'>
       {Object.entries(tracksByGroup).map(([groupId, tracks]) => (
-        <div key={groupId} className='mb-4'>
-          <span className='flex items-center gap-2'>
+        <div key={groupId} className='mb-4 border-2 border-dashed border-foreground/20 rounded-md p-4 py-6 flex flex-col gap-4 relative'>
+          <span className='flex items-center gap-2 bg-midground rounded-md p-2 absolute -top-5 left-2'>
             <RoundImage url={tracks[0].groups[0].avatarUrl} small /> {tracks[0].groups[0].name}
           </span>
           {tracks.map(track => (

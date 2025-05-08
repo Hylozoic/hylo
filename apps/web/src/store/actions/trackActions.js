@@ -235,8 +235,8 @@ export function updateTrack (data) {
   const dataForUpdate = rest
   if (rest.completionRole) {
     dataForUpdate.completionRoleId = rest.completionRole.id
-    delete dataForUpdate.completionRole
   }
+  delete dataForUpdate.completionRole // outside the if in case completionRole is null
 
   return {
     type: UPDATE_TRACK,

@@ -126,7 +126,7 @@ function TrackEditor (props) {
         } else {
           setEdited(false)
           setErrors({})
-          dispatch(push(editingTrack ? groupUrl(currentGroup.slug, `tracks/${editingTrack.id}/edit`) : groupUrl(currentGroup.slug, `tracks/${response.payload.data.createTrack.id}?tab=edit`)))
+          dispatch(push(editingTrack ? groupUrl(currentGroup.slug, `tracks/${editingTrack.id}?tab=edit`) : groupUrl(currentGroup.slug, `tracks/${response.payload.data.createTrack.id}?tab=edit`)))
         }
       })
   }, [trackState, isValid])

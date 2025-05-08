@@ -398,14 +398,14 @@ export function ActionCompletionsSection ({ currentUser, post }) {
   const completers = post.completionResponses.map(response => response.user)
 
   return (
-    <div className='border-border border-2 rounded-lg p-4 flex flex-row gap-2'>
+    <div className='border-border border-2 rounded-lg p-4 flex flex-row gap-2 mt-4 w-full justify-between'>
       <PeopleInfo
         people={completers}
         peopleTotal={completers.length}
         onClick={toggleCompletionResponsesDialog}
         excludePersonId={currentUser.id}
         phrases={{
-          emptyMessage: t('No one has completed this action yet'),
+          emptyMessage: t('No one has completed this - be the first!'),
           phraseSingular: t('has completed this action'),
           mePhraseSingular: t('have completed this action'),
           pluralPhrase: t('have completed this action')
@@ -414,7 +414,7 @@ export function ActionCompletionsSection ({ currentUser, post }) {
       {post.completionResponses.length > 0 && (
         <Button
           onClick={toggleCompletionResponsesDialog}
-          variant='secondary'
+          className='border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md bg-transparent'
         >
           {t('View All Responses')}
         </Button>
