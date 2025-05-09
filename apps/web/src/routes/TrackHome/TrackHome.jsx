@@ -2,7 +2,7 @@ import { DndContext, closestCorners } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { isEmpty } from 'lodash/fp'
-import { Shapes, Settings, DoorOpen, Check, Eye } from 'lucide-react'
+import { Shapes, Settings, DoorOpen, Check, Eye, ChevronsRight } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -160,10 +160,10 @@ function TrackHome () {
                 </>
                 )
               : (
-                <>
+                <div className='flex flex-row gap-2 items-center justify-between w-full'>
                   <span>{t('Ready to jump in?')}</span>
-                  <button className='bg-selected text-foreground rounded-md p-2 px-4' onClick={() => dispatch(enrollInTrack(currentTrack.id))}>{t('Enroll')}</button>
-                </>
+                  <button className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center' onClick={() => dispatch(enrollInTrack(currentTrack.id))}><ChevronsRight className='w-4 h-4' /> {t('Enroll')}</button>
+                </div>
                 )}
       </div>
 

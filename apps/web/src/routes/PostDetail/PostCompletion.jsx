@@ -6,6 +6,7 @@ import { FileManager } from 'components/AttachmentManager/FileManager'
 import CardFileAttachments from 'components/CardFileAttachments'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
+import { PartyPopper } from 'lucide-react'
 import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import Button from 'components/ui/button'
@@ -157,17 +158,23 @@ export default function PostCompletion ({ post, currentUser }) {
       )}
       <Dialog.Root open={showTrackCompletionDialog} onOpenChange={setShowTrackCompletionDialog}>
         <Dialog.Portal>
-          <Dialog.Overlay className='CompletedTrackDialog-Overlay bg-black/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[50] backdrop-blur-sm'>
-            <Dialog.Content className='CompletedTrackDialog-Content min-w-[300px] w-full bg-background p-3 rounded-md z-[51] max-w-[750px] outline-none'>
+          <Dialog.Overlay className='CompletedTrackDialog-Overlay bg-black/50 fixed top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[1000] backdrop-blur-sm'>
+            <Dialog.Content className='CompletedTrackDialog-Content min-w-[300px] w-full bg-background p-4 rounded-md z-[51] max-w-[750px] outline-none'>
+              <PartyPopper className='w-10 h-10 text-green-500 mx-auto' />
               <Dialog.Title className='sr-only'>Congratulations!</Dialog.Title>
               <Dialog.Description className='sr-only'>Congratulations!</Dialog.Description>
-              <h3 className='text-2xl font-bold'>Congratulations, you have completed {currentTrack?.name}!</h3>
+              <h3 className='text-2xl font-bold text-center'>Congratulations, you have completed {currentTrack?.name}!</h3>
               {currentTrack?.completionMessage && (
                 <ClickCatcher>
-                  <HyloHTML element='p' html={TextHelpers.markdown(currentTrack?.completionMessage)} />
+                  <HyloHTML element='p' html={TextHelpers.markdown(currentTrack?.completionMessage)} className='text-center text-foreground/70' />
                 </ClickCatcher>
               )}
-              {currentTrack?.completionRole && <p>You have received a new role/badge: <strong>{currentTrack?.completionRole.emoji} {currentTrack?.completionRole.name}</strong></p>}
+              {currentTrack?.completionRole && (
+                <div className='text-center text-foreground border-2 border-selected/20 flex flex-col gap-2 items-center ml-auto mr-auto w-full mt-4 p-4 rounded-md border-dashed'>
+                  <div>You've earned a new role!</div>
+                  <div className='rounded-md bg-selected/50 shadow-xl border-2 border-selected/80 px-2 py-1 bg-selected'>{currentTrack?.completionRole.emoji} {currentTrack?.completionRole.name}</div>
+                </div>
+              )}
             </Dialog.Content>
           </Dialog.Overlay>
         </Dialog.Portal>
