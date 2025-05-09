@@ -468,7 +468,7 @@ export function CompletionResponsesDialog ({ post, currentUser, onClose }) {
       style={{ width: '100%', maxWidth: '620px' }}
     >
       {post.completionResponses.map(response => (
-        <div key={response.id} className='flex flex-row gap-2'>
+        <div key={response.id} className='flex flex-row gap-2 bg-midground rounded-lg p-4'>
           <span><Avatar url={personUrl(response.user.id)} avatarUrl={response.user.avatarUrl} small /> {response.user.name}</span>
           <span>{TextHelpers.formatDatePair(response.completedAt)}</span>
           <span><CompletionResponse action={post.completionAction} response={response.completionResponse} /></span>

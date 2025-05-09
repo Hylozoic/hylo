@@ -47,7 +47,7 @@ export function ImageManager (props) {
   return (
     <DndContext onDragEnd={handleDragEnd}>
       <SortableContext items={images} strategy={horizontalListSortingStrategy}>
-        <div className='flex flex-col gap-2 border-t-2 border-dashed border-foreground/20 pt-2 w-full mx-2'>
+        <div className='flex flex-col gap-2 border-t-2 border-dashed border-foreground/20 pt-4 px-4 w-full mx-2'>
           {showLabel && <div className='text-xs text-foreground/70'>{t('Images')}</div>}
           <div className={classes.imagePreviews}>
             {images.map((attachment, i) =>
