@@ -1,0 +1,14 @@
+{
+  "type": "module",
+  "name": "@hylo/navigation",
+  "installConfig": {
+    "hoistingLimits": "none"
+  },
+  "exports": {
+    "./*": "./*.js",
+    "./*/*": "./*/index.js"
+  },
+  "devDependencies": {
+    "@babel/runtime": "^7.25.0"
+  }
+}

@@ -53,7 +53,6 @@ export async function showFilePicker ({
           }
 
           onAdd && onAdd({ local: document.uri, remote: null })
-
           const { payload, error } = await upload(type, id, file)
 
           if (error) {

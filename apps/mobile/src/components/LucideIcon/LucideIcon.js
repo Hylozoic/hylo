@@ -5,6 +5,7 @@ import {
   LogOut,
   MapPin,
   Plus,
+  Shapes,
   UserPlus
 } from 'lucide-react-native'
 import { black } from 'style/colors'
@@ -17,7 +18,8 @@ export const CustomIcons = {
   LogOut,
   MapPin,
   Plus,
-  UserPlus
+  UserPlus,
+  Shapes
 }
 
 export default function LucideIcon ({ name, color, size, ...forwardedProps }) {

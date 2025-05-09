@@ -35,8 +35,9 @@ async function hasPermission (userId, type, id) {
   if (type.startsWith('post')) {
     if (id === 'new') return Promise.resolve()
     return Post.find(id)
-    .then(post => {
-      if (!post || post.get('user_id') !== userId) throw new GraphQLError('Validation error: Not allowed to edit this post')
-    })
+      .then(post => {
+        // Allow uploads by post followers for action posts
+        if (!post || (post.get('user_id') !== userId && post.get('type') !== 'action')) throw new GraphQLError('Validation error: Not allowed to edit this post')
+      })
   }
 }

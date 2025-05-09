@@ -111,7 +111,6 @@ Request.XMLHttpRequest = XMLHttpRequest
 
 export default function upload (type, id, file) {
   const url = apiHost + '/noo/upload'
-
   const request = Request.create(url, 'POST')
     .set('type', type)
     .set('id', id || 'new')

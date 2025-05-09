@@ -4,7 +4,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 
-export const DEFAULT_CHAT_TOPIC = 'home'
+export const DEFAULT_CHAT_TOPIC = 'general'
 
 export default function ChatRoomWebView () {
   const [{ currentGroup, fetching }] = useCurrentGroup()

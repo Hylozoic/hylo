@@ -1408,7 +1408,7 @@ PODS:
     - React-Core
   - react-native-restart (0.0.27):
     - React-Core
-  - react-native-safe-area-context (5.2.0):
+  - react-native-safe-area-context (5.4.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1421,8 +1421,8 @@ PODS:
     - React-featureflags
     - React-graphics
     - React-ImageManager
-    - react-native-safe-area-context/common (= 5.2.0)
-    - react-native-safe-area-context/fabric (= 5.2.0)
+    - react-native-safe-area-context/common (= 5.4.0)
+    - react-native-safe-area-context/fabric (= 5.4.0)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-rendererdebug
@@ -1431,7 +1431,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-safe-area-context/common (5.2.0):
+  - react-native-safe-area-context/common (5.4.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1452,7 +1452,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-safe-area-context/fabric (5.2.0):
+  - react-native-safe-area-context/fabric (5.4.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2541,7 +2541,7 @@ SPEC CHECKSUMS:
   react-native-pager-view: 4ad4883a8288c5207bd432dd3c98bf648b7bc7d7
   react-native-render-html: 5afc4751f1a98621b3009432ef84c47019dcb2bd
   react-native-restart: 0bc732f4461709022a742bb29bcccf6bbc5b4863
-  react-native-safe-area-context: 5e53e2b0fc3a2994ad0c89a2486e545b6566d8c4
+  react-native-safe-area-context: cd38c1fc5fbaff96bf0999b471d0dcb8610e124d
   react-native-webview: dd55f7d3b8c0dcdf8835a44ffc5bd03303dffb30
   React-nativeconfig: 539ff4de6ce3b694e8e751080568c281c84903ce
   React-NativeModulesApple: 702246817c286d057e23fe4b1302019796e62521

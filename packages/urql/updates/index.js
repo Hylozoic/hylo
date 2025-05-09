@@ -3,6 +3,7 @@ import meQuery from '@hylo/graphql/queries/meQuery'
 import meCheckAuthQuery from '@hylo/graphql/queries/meCheckAuthQuery'
 import makeAppendToPaginatedSetResolver from './makeAppendToPaginatedSetResolver'
 import { reactOn, deleteReaction } from './reactions'
+import { handleReactionPostCompletion } from './sideEffectPostCompletion'
 
 export default {
   Mutation: {
@@ -114,7 +115,12 @@ export default {
     },
 
     // See note on these updaters in the file these are imported from
-    reactOn,
+    reactOn: (result, args, cache, info) => {
+      // Run the original reactOn handler
+      reactOn(result, args, cache, info)
+      // Run the completion handler
+      handleReactionPostCompletion(result, args, cache, info)
+    },
     deleteReaction,
 
     respondToEvent: (result, args, cache, info) => {

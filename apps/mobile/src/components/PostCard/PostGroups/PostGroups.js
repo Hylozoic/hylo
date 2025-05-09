@@ -11,6 +11,7 @@ import { caribbeanGreen, rhino40 } from 'style/colors'
 export default function PostGroups ({
   groups: providedGroups,
   includePublic,
+  className,
   style
 }) {
   const { t } = useTranslation()
@@ -26,7 +27,7 @@ export default function PostGroups ({
   }
 
   return (
-    <View style={[style, expanded && styles.expanded]}>
+    <View className={className} style={[style, expanded && styles.expanded]}>
       <TouchableOpacity onPress={toggleExpanded}>
         <View style={styles.row}>
           <Text style={styles.reminderText}>{t('Posted In')} </Text>

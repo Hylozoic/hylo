@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { LocationHelpers } from '@hylo/shared'
+import { Check, Play, Circle } from 'lucide-react-native'
 import recordClickthroughMutation from '@hylo/graphql/mutations/recordClickthroughMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import PostPresenter from '@hylo/presenters/PostPresenter'
@@ -25,7 +26,8 @@ export default function PostCard ({
   respondToEvent,
   showGroups = true,
   childPost,
-  showTopic: goToTopic
+  showTopic: goToTopic,
+  isCurrentAction = false
 }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
@@ -36,7 +38,7 @@ export default function PostCard ({
   const isFlagged = useMemo(() => post.flaggedGroups && post.flaggedGroups.includes(groupId), [post])
   const [{ currentUser }] = useCurrentUser()
   const handleShowMember = id => navigation.navigate('Member', { id })
-
+  const isAction = post.type === 'action'
   return (
     <>
       {childPost && (
@@ -47,19 +49,40 @@ export default function PostCard ({
           </View>
         </View>
       )}
-      <View className='bg-card border-b border-border'>
-        <PostHeader
-          announcement={post.announcement}
-          creator={post.creator}
-          currentUser={currentUser}
-          date={post.createdAt}
-          hideMenu={hideMenu}
-          isFlagged={isFlagged}
-          postId={post.id}
-          showMember={handleShowMember}
-          title={post.title}
-          type={post.type}
-        />
+      <View className={`bg-card border-b border-border ${isCurrentAction ? 'border-l-4 border-l-selected' : ''}`}>
+        {isAction && (
+          <View className='flex-row items-center justify-between px-4 pt-2 mb-2'>
+            {post.completedAt ? (
+              <View className='flex-row items-center gap-2 bg-selected/10 px-3 py-1 rounded-full'>
+                <Check className='w-4 h-4 text-selected' />
+                <Text className='text-selected'>{t('Completed')}</Text>
+              </View>
+            ) : isCurrentAction ? (
+              <View className='flex-row items-center gap-2 bg-selected/10 px-3 py-1 rounded-full'>
+                <Play className='w-4 h-4 text-selected' />
+                <Text className='text-selected'>{t('Current Action')}</Text>
+              </View>
+            ) : (
+              <View className='flex-row items-center gap-2 bg-foreground/5 px-3 py-1 rounded-full'>
+                <Circle className='w-4 h-4 text-foreground/50' />
+                <Text className='text-foreground/50'>{t('Not Complete')}</Text>
+              </View>
+            )}
+        </View>)}
+        {!isAction && (
+          <PostHeader
+            announcement={post.announcement}
+            creator={post.creator}
+            currentUser={currentUser}
+            date={post.createdAt}
+            hideMenu={hideMenu}
+            isFlagged={isFlagged}
+            postId={post.id}
+            showMember={handleShowMember}
+            title={post.title}
+            type={post.type}
+          />
+        )}
         {isFlagged && !post.clickthrough && (
           <View className='bg-background/5 p-4'>
             <Text className='text-foreground/70'>{t('clickthroughExplainer')}</Text>
@@ -122,7 +145,7 @@ export default function PostCard ({
           <PostGroups
             groups={post.groups}
             includePublic={post.isPublic}
-            className='mx-4 mb-2'
+            className='ml-3 mb-1'
           />
         )}
         <PostFooter

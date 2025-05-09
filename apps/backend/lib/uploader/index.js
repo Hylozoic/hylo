@@ -10,7 +10,6 @@ import { validate } from './validation'
 
 export function upload (args) {
   let { type, id, userId, url, stream, onProgress, filename } = args
-
   return validate(args)
   .then(() => {
     let passthrough, converter, storage, didSetup, sourceHasError

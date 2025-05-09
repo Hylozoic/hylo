@@ -39,10 +39,12 @@ export default {
   PersonQuerySet: () => null,
   Point: () => null,
   PostQuerySet: () => null,
+  PostUserQuerySet: () => null,
   ProposalOptionQuerySet: () => null,
   ProposalVoteQuerySet: () => null,
   ResponsibilityQuerySet: () => null,
   SearchResultQuerySet: () => null,
   SkillQuerySet: () => null,
+  TrackQuerySet: () => null,
   UserSettings: () => null
 }
