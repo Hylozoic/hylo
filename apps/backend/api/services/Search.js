@@ -143,19 +143,40 @@ module.exports = {
     })
   },
 
+  forTracks: function (opts) {
+    return Track.query(qb => {
+      qb.where('tracks.deactivated_at', null)
+
+      if (opts.autocomplete) {
+        qb.whereRaw('tracks.name ilike ?', opts.autocomplete + '%')
+      }
+
+      // if (opts.enrolled) {
+      //   qb.whereIn('tracks.id', TracksUser.pluckIdsForMember(opts.userId))
+      // }
+
+      if (opts.limit) {
+        qb.limit(opts.limit)
+      }
+      if (opts.offset) {
+        qb.offset(opts.offset)
+      }
+      qb.orderBy(opts.sortBy || 'id', opts.order || 'asc')
+    })
+  },
+
   fullTextSearch: function (userId, args) {
     let items, total
     args.limit = args.first
     return fetchAllGroupIds(userId, args)
-    .then(groupIds =>
-      FullTextSearch.searchInGroups(groupIds, args))
+      .then(groupIds =>
+        FullTextSearch.searchInGroups(groupIds, args))
       .then(items_ => {
         items = items_
         total = get('0.total', items)
 
         const ids = transform(items, (ids, item) => {
-          const type = item.post_id ? 'posts'
-            : item.comment_id ? 'comments' : 'people'
+          const type = item.post_id ? 'posts' : item.comment_id ? 'comments' : 'people'
 
           if (!ids[type]) ids[type] = []
           const id = item.post_id || item.comment_id || item.user_id
@@ -170,7 +191,7 @@ module.exports = {
             items.map(presentResult(posts, comments, people))
         )
       })
-      .then(models => ({models, total}))
+      .then(models => ({ models, total }))
   }
 }
 

@@ -15,7 +15,7 @@ export default function JoinSection ({ addSkill, currentUser, fullPage, group, g
   const hasPendingRequest = groupsWithPendingRequests[group.id]
 
   return (
-    <div className={cn('requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[640px]': fullPage })}>
+    <div className={cn('requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[750px]': fullPage })}>
       {group.suggestedSkills && group.suggestedSkills.length > 0 &&
         <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
       {group.prerequisiteGroups && group.prerequisiteGroups.length > 0
@@ -65,7 +65,12 @@ export default function JoinSection ({ addSkill, currentUser, fullPage, group, g
             ? <JoinQuestionsAndButtons group={group} joinGroup={joinGroup} joinText={t('Join {{group.name}}', { group })} t={t} />
             : group.accessibility === GROUP_ACCESSIBILITY.Restricted
               ? hasPendingRequest
-                ? <div className='border border-dashed rounded-md p-2 text-foreground'>{t('Request to join pending')}</div>
+                ? (
+                  <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground mt-4 mb-8'>
+                    <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
+                    <span> {t('You will be sent an email and notified on your device when the request is approved.')}</span>
+                  </div>
+                  )
                 : <JoinQuestionsAndButtons group={group} joinGroup={requestToJoinGroup} joinText={t('Request Membership in {{group.name}}', { group })} t={t} />
               : ''}
     </div>
@@ -87,18 +92,18 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
   }
 
   return (
-    <div className={classes.requestOption}>
-      {group.settings.askJoinQuestions && questionAnswers.length > 0 && <div>{t('Please answer the following to join')}:</div>}
+    <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 w-full mt-4 mb-8'>
+      {group.settings.askJoinQuestions && questionAnswers.length > 0 && <div className='text-foreground/60 font-medium text-base mb-2'>{t('Please answer the following to join')}:</div>}
       {group.settings.askJoinQuestions && questionAnswers.map((q, index) => (
-        <div className={classes.joinQuestion} key={index}>
+        <div className='bg-input rounded-xl p-2 mb-4' key={index}>
           <h3>{q.text}</h3>
-          <textarea name={`question_${q.questionId}`} onChange={setAnswer(index)} value={q.answer} placeholder={t('Type your answer here...')} />
+          <textarea name={`question_${q.questionId}`} className='w-full bg-input rounded-xl p-2' onChange={setAnswer(index)} value={q.answer} placeholder={t('Type your answer here...')} />
         </div>
       )
       )}
       <Button
         variant='secondary'
-        className={cn('GroupDetail-JoinSection-joinButton w-full')}
+        className='border-2 border-selected bg-transparent w-full text-base font-bold rounded-xl p-2'
         disabled={!allQuestionsAnswered}
         onClick={() => joinGroup(group.id, questionAnswers)}
         data-tooltip-content={!allQuestionsAnswered ? t('You must answer all the questions to join') : ''}

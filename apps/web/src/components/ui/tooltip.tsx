@@ -10,7 +10,18 @@ const TooltipTrigger = TooltipPrimitive.Trigger
 
 const TooltipArrow = TooltipPrimitive.Arrow
 
-const TooltipContent = React.forwardRef(({ className, sideOffset = 4, alignOffset = 0, arrow = true, children, ...props }, ref) => (
+interface TooltipContentProps extends React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content> {
+  className?: string
+  sideOffset?: number
+  alignOffset?: number
+  arrow?: boolean
+  children: React.ReactNode
+}
+
+const TooltipContent = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Content>,
+  TooltipContentProps
+>(({ className, sideOffset = 4, alignOffset = 0, arrow = true, children, ...props }, ref) => (
   <TooltipPrimitive.Portal>
     <TooltipPrimitive.Content
       ref={ref}

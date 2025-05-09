@@ -29,3 +29,7 @@ export {
 export {
   ormSessionReducer as manageInvitesReducer
 } from 'routes/UserSettings/ManageInvitesTab/ManageInvitesTab.store'
+
+export {
+  ormSessionReducer as tracksReducer
+} from 'routes/Tracks/Tracks.store'

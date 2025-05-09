@@ -15,6 +15,7 @@ export default function updatePost (userId, id, params) {
       Post.find(id).then(post => {
         if (!post) throw new GraphQLError('Post not found')
         const updatableTypes = [
+          Post.Type.ACTION,
           Post.Type.CHAT,
           Post.Type.DISCUSSION,
           Post.Type.EVENT,

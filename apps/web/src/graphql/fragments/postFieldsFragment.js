@@ -58,7 +58,7 @@ const CommentFieldsFragment = `
   editedAt
 `
 
-const postFieldsFragment = (withComments) => `
+const postFieldsFragment = (withComments, withCompletion = false, withAllCompletionResponses = false) => `
   id
   announcement
   title
@@ -133,6 +133,26 @@ const postFieldsFragment = (withComments) => `
     hasMore
   }`
 : ''}
+  ${withCompletion
+? `completedAt
+   completionAction
+   completionActionSettings
+   completionResponse`
+: ''}
+  ${withAllCompletionResponses
+? `completionResponses {
+    items {
+      id
+      completedAt
+      completionResponse
+      user {
+        id
+        name
+        avatarUrl
+      }
+    }
+  }`
+  : ''}
   linkPreview {
     description
     id

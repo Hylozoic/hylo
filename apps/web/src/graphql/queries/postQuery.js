@@ -1,8 +1,8 @@
 import postFieldsFragment from '../fragments/postFieldsFragment'
 
-export default
+export default (withCompletionResponses = false) =>
 `query FetchPost ($id: ID) {
   post(id: $id) {
-    ${postFieldsFragment(true)}
+    ${postFieldsFragment(true, false, withCompletionResponses)}
   }
 }`

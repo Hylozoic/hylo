@@ -103,6 +103,10 @@ module.exports = bookshelf.Model.extend({
     return this.belongsTo(Group, 'other_group_id')
   },
 
+  track: function () {
+    return this.belongsTo(Track, 'track_id')
+  },
+
   notifications: function () {
     return this.hasMany(Notification)
   },
@@ -158,7 +162,9 @@ module.exports = bookshelf.Model.extend({
     GroupChildGroupInvite: 'groupChildGroupInvite',
     GroupChildGroupInviteAccepted: 'groupChildGroupInviteAccepted',
     GroupParentGroupJoinRequest: 'groupParentGroupJoinRequest',
-    GroupParentGroupJoinRequestAccepted: 'groupParentGroupJoinRequestAccepted'
+    GroupParentGroupJoinRequestAccepted: 'groupParentGroupJoinRequestAccepted',
+    TrackCompleted: 'trackCompleted',
+    TrackEnrollment: 'trackEnrollment'
   },
 
   find: function (id, options) {

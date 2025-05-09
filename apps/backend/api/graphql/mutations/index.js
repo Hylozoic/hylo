@@ -67,6 +67,7 @@ export {
 export { updateAllMemberships, updateMembership } from './membership'
 export { registerDevice } from './mobile'
 export {
+  completePost,
   createPost,
   fulfillPost,
   unfulfillPost,
@@ -112,6 +113,14 @@ export {
   createTopic,
   subscribe
 } from './topic'
+export {
+  createTrack,
+  deleteTrack,
+  enrollInTrack,
+  leaveTrack,
+  updateTrack,
+  updateTrackActionOrder
+} from './track'
 export {
   blockUser,
   deactivateUser,

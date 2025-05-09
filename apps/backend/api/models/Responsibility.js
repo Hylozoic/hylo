@@ -1,7 +1,9 @@
+/* eslint-disable camelcase */
 const RESP_ADMINISTRATION = 'Administration'
 const RESP_ADD_MEMBERS = 'Add Members'
 const RESP_REMOVE_MEMBERS = 'Remove Members'
 const RESP_MANAGE_CONTENT = 'Manage Content'
+const RESP_MANAGE_TRACKS = 'Manage Tracks'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'responsibilities',
@@ -21,17 +23,19 @@ module.exports = bookshelf.Model.extend({
     RESP_ADD_MEMBERS,
     RESP_ADMINISTRATION,
     RESP_MANAGE_CONTENT,
-    RESP_REMOVE_MEMBERS
+    RESP_REMOVE_MEMBERS,
+    RESP_MANAGE_TRACKS
   },
 
   // Users with these responsibilities we show to users in the sidebar of the group
-  IMPORTANT_RESPONSIBILITIES: [RESP_ADMINISTRATION, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT],
+  IMPORTANT_RESPONSIBILITIES: [RESP_ADMINISTRATION, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT, RESP_MANAGE_TRACKS],
 
   Common: {
     RESP_ADMINISTRATION: 1,
     RESP_ADD_MEMBERS: 2,
     RESP_REMOVE_MEMBERS: 3,
-    RESP_MANAGE_CONTENT: 4
+    RESP_MANAGE_CONTENT: 4,
+    RESP_MANAGE_TRACKS: null // XXX: since this was added later we can't know the id for it
   },
 
   fetchAll: function ({ groupId = 0, groupRoleId, commonRoleId }) {

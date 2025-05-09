@@ -86,5 +86,6 @@ Me.fields = {
     relatedName: 'personLearning',
     through: 'MySkillsToLearn',
     throughFields: ['me', 'skillToLearn']
-  })
+  }),
+  tracksEnrolledIn: many('Track')
 }

@@ -178,6 +178,10 @@ module.exports = {
       return url(`/groups/${getSlug(group)}/topics/${getTopicName(topic)}`)
     },
 
+    track: function (track) {
+      return url(`/tracks/${getModelId(track)}`)
+    },
+
     unfollow: function (post, group) {
       return this.post(post, group) + '?action=unfollow'
     },

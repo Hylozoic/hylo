@@ -4,6 +4,8 @@ export default
 `mutation CreatePost (
   $acceptContributions: Boolean,
   $announcement: Boolean,
+  $completionAction: String,
+  $completionActionSettings: JSON,
   $details: String,
   $donationsLink: String,
   $endTime: Date,
@@ -28,11 +30,14 @@ export default
   $timezone: String,
   $title: String,
   $topicNames: [String],
-  $type: String,
+  $trackId: ID,
+  $type: String
 ) {
   createPost(data: {
     acceptContributions: $acceptContributions,
     announcement: $announcement,
+    completionAction: $completionAction,
+    completionActionSettings: $completionActionSettings,
     details: $details,
     donationsLink: $donationsLink,
     endTime: $endTime,
@@ -57,6 +62,7 @@ export default
     timezone: $timezone,
     title: $title,
     topicNames: $topicNames,
+    trackId: $trackId,
     type: $type,
-  }) {${postFieldsFragment(false)}}
+  }) {${postFieldsFragment(false, true)}}
 }`

@@ -5,7 +5,7 @@ import { refineOne, refineMany } from '../util/relations'
 export default async function createComment (commenterId, opts = {}) {
   const { text, post, parentComment } = opts
 
-  let attrs = {
+  const attrs = {
     text,
     created_at: new Date(),
     recent: true,
@@ -16,11 +16,10 @@ export default async function createComment (commenterId, opts = {}) {
     created_from: opts.created_from || null
   }
 
-  let existingFollowers, isThread
   const mentioned = RichText.getUserMentions(text)
 
-  existingFollowers = await post.followers().fetch().then(f => f.pluck('id'))
-  isThread = post.get('type') === Post.Type.THREAD
+  const existingFollowers = await post.followers().fetch().then(f => f.pluck('id'))
+  const isThread = post.get('type') === Post.Type.THREAD
 
   const newFollowers = difference(uniq(mentioned.concat(commenterId)), existingFollowers)
 

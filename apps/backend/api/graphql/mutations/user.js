@@ -160,7 +160,7 @@ export async function reactivateUser ({ userId }) {
 }
 
 export async function deleteUser ({ userId, sessionId }) {
-  const user = await User.find(userId)
+  const user = await User.find(userId, {}, false)
 
   await user.sanelyDeleteUser({ sessionId })
 

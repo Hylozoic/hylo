@@ -17,6 +17,11 @@ export const AnalyticsEvents = {
   SIGNUP_REGISTERED: 'Registered',
   SIGNUP_COMPLETE: 'Signup Complete',
   TOPIC_CREATED: 'Topic Created',
+  TRACK_CREATED: 'Track Created',
+  TRACK_COMPLETED: 'Track Completed',
+  TRACK_ENROLLED: 'Track Enrolled',
+  TRACK_LEFT: 'Track Left',
+  TRACK_PUBLISHED: 'Track Published',
   VOTED_ON_POST: 'Voted on Post', // Remove once mobile has switched to POST_REACTION
   UNBLOCK_USER: 'User Un-Blocked'
 }

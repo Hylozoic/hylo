@@ -69,6 +69,13 @@ export function createContextWidget ({ groupId, data }) {
             id
             name
           }
+          viewTrack {
+            id
+            name
+            didComplete
+            isEnrolled
+            numActions
+          }
         }
       }`,
       variables: { groupId, data }

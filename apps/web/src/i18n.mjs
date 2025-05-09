@@ -18,7 +18,7 @@ i18n
     backend: {
       loadPath: `${process.env.PUBLIC_URL}/locales/{{lng}}.json`
     },
-    debug: true,
+    debug: process.env.NODE_ENV === 'development' || !import.meta.env.PROD,
     detection: {
       caches: ['localStorage'],
       order: ['cookie', 'localStorage', 'sessionStorage', 'navigator', 'htmlTag'],

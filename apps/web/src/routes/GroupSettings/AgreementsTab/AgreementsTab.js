@@ -2,7 +2,7 @@ import { DndContext, DragOverlay } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import update from 'immutability-helper'
-import { Trash } from 'lucide-react'
+import { Trash, TriangleAlert } from 'lucide-react'
 import React, { forwardRef, useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -16,7 +16,6 @@ import {
 } from '../GroupSettings.store'
 import SaveButton from '../SaveButton'
 
-import classes from '../GroupSettings.module.scss'
 import styles from './AgreementsTab.module.scss'
 
 const { object } = PropTypes
@@ -123,10 +122,10 @@ function AgreementsTab (props) {
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <SortableContext items={agreements} strategy={verticalListSortingStrategy}>
-        <div className={classes.groupSettings}>
+        <div className='relative flex flex-col gap-4 p-4 pb-8'>
           <h1>{t('Group Agreements')}</h1>
           <p>{t('groupAgreementsDescription')}</p>
-          <p className='text-error mb-8'>{t('groupAgreementsWarning')}</p>
+          <p className='text-accent mb-8'><TriangleAlert className='w-5 h-5 inline-block' /> {t('groupAgreementsWarning')}</p>
           <div>
             {agreements.map((agreement, i) => (
               <AgreementRowDraggable
@@ -233,8 +232,8 @@ const AgreementRow = forwardRef(({ children, ...props }, ref) => {
   const viewCount = parseInt(index) + 1
 
   return (
-    <div className='border-2 border-foreground/20 p-4 background-black/10 rounded-lg border-dashed relative mb-8' ref={ref} style={style}>
-      <div className='text-foreground flex justify-between mb-8'>
+    <div className='border-2 border-foreground/20 p-4 background-black/10 rounded-lg border-dashed relative mb-4 flex-col gap-4' ref={ref} style={style}>
+      <div className='text-foreground flex justify-between mb-2'>
         <strong className='flex justify-center items-center w-[20px] h-[20px] rounded-xl text-sm bg-foreground text-background'>{viewCount}</strong>
         <div className='flex items-center gap-2'>
           <Trash onClick={onDelete} className='h-[20px] cursor-pointer' />

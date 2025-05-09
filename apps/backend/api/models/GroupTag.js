@@ -5,6 +5,10 @@ module.exports = bookshelf.Model.extend({
   requireFetch: false,
   hasTimestamps: true,
 
+  initialize: function () {
+    this._tagFollowCache = {}
+  },
+
   owner: function () {
     return this.belongsTo(User, 'user_id')
   },
@@ -27,18 +31,24 @@ module.exports = bookshelf.Model.extend({
     })
   },
 
+  // Method to load and cache tagFollow data
+  _loadTagFollow: function (userId) {
+    if (!this._tagFollowCache[userId]) {
+      this._tagFollowCache[userId] = this.tagFollow(userId).fetch()
+    }
+    return this._tagFollowCache[userId]
+  },
+
   isFollowed: function (userId) {
-    return this.tagFollow(userId).count().then(count => Number(count) > 0)
+    return this._loadTagFollow(userId).then(tagFollow => tagFollow !== null)
   },
 
   lastReadPostId: function (userId) {
-    return this.tagFollow(userId).query().select('last_read_post_id')
-      .then(rows => rows.length > 0 ? rows[0].last_read_post_id : null)
+    return this._loadTagFollow(userId).then(tagFollow => tagFollow ? tagFollow.get('last_read_post_id') : null)
   },
 
   newPostCount: function (userId) {
-    return this.tagFollow(userId).query().select('new_post_count')
-    .then(rows => rows.length > 0 ? rows[0].new_post_count : 0)
+    return this._loadTagFollow(userId).then(tagFollow => tagFollow ? tagFollow.get('new_post_count') : 0)
   },
 
   postCount: function () {
@@ -51,17 +61,17 @@ module.exports = bookshelf.Model.extend({
 
   consolidateFollowerCount: function () {
     return this.followerCount()
-    .then(num_followers => {
-      if (num_followers === this.get('num_followers')) return Promise.resolve()
-      return this.save({num_followers})
-    })
+      .then(num_followers => {
+        if (num_followers === this.get('num_followers')) return Promise.resolve()
+        return this.save({ num_followers })
+      })
   }
 
 }, {
 
   create (attrs, { transacting } = {}) {
-    return this.forge(Object.assign({created_at: new Date(), updated_at: new Date()}, attrs))
-    .save({}, {transacting})
+    return this.forge(Object.assign({ created_at: new Date(), updated_at: new Date() }, attrs))
+      .save({}, { transacting })
   },
 
   taggedPostCount (groupId, tagId, afterPostId = false) {
@@ -69,7 +79,7 @@ module.exports = bookshelf.Model.extend({
       .join('posts', 'posts.id', 'posts_tags.post_id')
       .join('groups_posts', 'groups_posts.post_id', 'posts_tags.post_id')
       .where('posts.active', true)
-      .where({group_id: groupId, tag_id: tagId})
+      .where({ group_id: groupId, tag_id: tagId })
 
     if (afterPostId) {
       query.where('posts.id', '>', afterPostId)
@@ -79,7 +89,7 @@ module.exports = bookshelf.Model.extend({
   },
 
   defaults (groupId, trx) {
-    return GroupTag.where({group_id: groupId, is_default: true})
+    return GroupTag.where({ group_id: groupId, is_default: true })
       .fetchAll({ withRelated: 'tag', transacting: trx })
   },
 
@@ -91,5 +101,4 @@ module.exports = bookshelf.Model.extend({
       q.where('tags.name', topicName)
     }).fetch()
   }
-
 })

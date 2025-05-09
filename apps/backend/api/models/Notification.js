@@ -4,6 +4,9 @@ import { refineOne } from './util/relations'
 import rollbar from '../../lib/rollbar'
 import { broadcast, userRoom } from '../services/Websockets'
 import RedisPubSub from '../services/RedisPubSub'
+import { en } from '../../lib/i18n/en'
+import { es } from '../../lib/i18n/es'
+const locales = { en, es }
 
 const TYPE = {
   Mention: 'mention', // you are mentioned in a post or comment
@@ -25,7 +28,9 @@ const TYPE = {
   Message: 'message',
   Announcement: 'announcement',
   DonationTo: 'donation to',
-  DonationFrom: 'donation from'
+  DonationFrom: 'donation from',
+  TrackCompleted: 'trackCompleted',
+  TrackEnrollment: 'trackEnrollment'
 }
 
 const MEDIUM = {
@@ -65,6 +70,10 @@ module.exports = bookshelf.Model.extend({
 
   locale: function () {
     return this.reader().get('settings')?.locale || this.actor().getLocale()
+  },
+
+  track: function () {
+    return this.related('activity').related('track')
   },
 
   send: async function () {
@@ -131,6 +140,10 @@ module.exports = bookshelf.Model.extend({
         return this.sendPostPush()
       case 'chat':
         return this.sendPostPush('chat')
+      case 'trackCompleted':
+        return this.sendTrackCompletedPush()
+      case 'trackEnrollment':
+        return this.sendTrackEnrollmentPush()
       case 'voteReset':
         return this.sendPostPush('voteReset')
       default:
@@ -172,6 +185,22 @@ module.exports = bookshelf.Model.extend({
         const alertText = PushNotification.textForContribution(contribution, version, locale)
         return this.reader().sendPushNotification(alertText, path)
       })
+  },
+
+  sendTrackCompletedPush: async function () {
+    const track = this.track()
+    const locale = this.locale()
+    const path = new URL(Frontend.Route.track(track)).pathname
+    const alertText = PushNotification.textForTrackCompleted(track, this.actor(), locale)
+    return this.reader().sendPushNotification(alertText, path)
+  },
+
+  sendTrackEnrollmentPush: async function () {
+    const track = this.track()
+    const locale = this.locale()
+    const path = new URL(Frontend.Route.track(track)).pathname
+    const alertText = PushNotification.textForTrackEnrollment(track, this.actor(), locale)
+    return this.reader().sendPushNotification(alertText, path)
   },
 
   sendEventInvitationPush: function () {
@@ -355,6 +384,10 @@ module.exports = bookshelf.Model.extend({
       case 'newPost':
       case 'tag':
         return this.sendPostEmail()
+      case 'trackCompleted':
+        return this.sendTrackCompletedEmail()
+      case 'trackEnrollment':
+        return this.sendTrackEnrollmentEmail()
       default:
         return Promise.resolve()
     }
@@ -808,6 +841,60 @@ module.exports = bookshelf.Model.extend({
     })
   },
 
+  sendTrackCompletedEmail: async function () {
+    const reader = this.reader()
+    const actor = this.actor()
+    const track = this.track()
+    const locale = this.locale()
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'track_completed_email',
+      cti: reader.id,
+      ctcn: track.get('name')
+    }).toString()
+
+    return Email.sendTrackCompletedEmail({
+      email: reader.get('email'),
+      locale,
+      sender: { name: locales[locale].theTeamAtHylo },
+      data: {
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        completer_name: actor.get('name'),
+        completer_avatar_url: actor.get('avatar_url'),
+        completer_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
+        track_name: track.get('name'),
+        track_url: Frontend.Route.track(track) + clickthroughParams
+      }
+    })
+  },
+
+  sendTrackEnrollmentEmail: async function () {
+    const reader = this.reader()
+    const actor = this.actor()
+    const track = this.track()
+    const locale = this.locale()
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'track_enrollment_email',
+      cti: reader.id,
+      ctcn: track.get('name')
+    }).toString()
+
+    return Email.sendTrackEnrollmentEmail({
+      email: reader.get('email'),
+      locale,
+      sender: { name: actor.get('name') },
+      data: {
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        enrollee_name: actor.get('name'),
+        enrollee_avatar_url: actor.get('avatar_url'),
+        enrollee_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
+        track_name: track.get('name'),
+        track_url: Frontend.Route.track(track) + clickthroughParams
+      }
+    })
+  },
+
   shouldBeBlocked: async function () {
     if (!this.get('user_id')) return Promise.resolve(false)
 
@@ -818,9 +905,9 @@ module.exports = bookshelf.Model.extend({
     const commentCreatorId = get('relations.activity.relations.comment.relations.user.id', this)
     const actorId = get('relations.activity.relations.actor.id', this)
 
-    if (includes(postCreatorId, blockedUserIds)
-      || includes(commentCreatorId, blockedUserIds)
-      || includes(actorId, blockedUserIds)) {
+    if (includes(postCreatorId, blockedUserIds) ||
+        includes(commentCreatorId, blockedUserIds) ||
+        includes(actorId, blockedUserIds)) {
       return Promise.resolve(true)
     }
     return Promise.resolve(false)
@@ -896,7 +983,8 @@ module.exports = bookshelf.Model.extend({
       'activity.group',
       'activity.otherGroup',
       'activity.reader',
-      'activity.actor'
+      'activity.actor',
+      'activity.track'
     ]})
       .then(ns => ns.length > 0 &&
         Promise.each(ns.models,
@@ -914,7 +1002,7 @@ module.exports = bookshelf.Model.extend({
     const orderedLabels = [
       'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'chat', 'tag',
       'newPost', 'follow', 'followAdd', 'unfollow', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
-      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'memberJoinedGroup'
+      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment'
     ]
 
     const match = label => reasons.some(r => r.match(new RegExp('^' + label)))

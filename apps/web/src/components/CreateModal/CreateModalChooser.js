@@ -6,7 +6,7 @@ import Icon from 'components/Icon'
 import classes from './CreateModal.module.scss'
 import { useTranslation } from 'react-i18next'
 
-const postTypes = Object.keys(POST_TYPES).filter(t => t !== 'chat')
+const postTypes = Object.keys(POST_TYPES).filter(t => t !== 'chat' && t !== 'action')
 
 export default function CreateModalChooser () {
   const location = useLocation()

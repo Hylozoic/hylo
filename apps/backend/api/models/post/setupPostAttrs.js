@@ -12,6 +12,8 @@ export default async function setupPostAttrs (userId, params, create = false) {
     accept_contributions: params.acceptContributions,
     anonymous_voting: params.isAnonymousVote,
     announcement: params.announcement,
+    completion_action: params.completionAction,
+    completion_action_settings: params.completionActionSettings,
     donations_link: params.donationsLink,
     end_time: params.endTime ? new Date(Number(params.endTime)) : null,
     is_public: params.isPublic,

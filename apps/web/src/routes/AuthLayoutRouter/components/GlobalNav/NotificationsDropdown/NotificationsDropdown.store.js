@@ -61,6 +61,10 @@ export function fetchNotifications (first = 20, offset = 0) {
                 name
                 slug
               }
+              track {
+                id
+                name
+              }
               meta {
                 reasons
               }

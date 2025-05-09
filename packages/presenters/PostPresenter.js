@@ -47,6 +47,12 @@ export const filesResolver = post => {
 export const DEFAULT_POST_TYPE = 'discussion'
 
 export const POST_TYPES = {
+  action: {
+    primaryColor: pictonBlue,
+    iconName: 'Chat',
+    backgroundColor: fakeAlpha(pictonBlue, 0.2),
+    map: false
+  },
   discussion: {
     primaryColor: pictonBlue,
     iconName: 'Chat',

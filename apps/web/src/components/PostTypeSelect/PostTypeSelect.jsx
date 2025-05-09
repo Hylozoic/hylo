@@ -7,7 +7,7 @@ import { cn } from 'util/index'
 export default function PostTypeSelect ({ className, includeChat = false, postType, setPostType }) {
   const { t } = useTranslation()
 
-  const postTypes = Object.keys(POST_TYPES)
+  const postTypes = Object.keys(POST_TYPES).filter(t => t !== 'action')
   if (!includeChat) {
     postTypes.splice(postTypes.indexOf('chat'), 1)
   }

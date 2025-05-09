@@ -1,0 +1,41 @@
+import { attr, fk, many, Model } from 'redux-orm'
+
+export class Role extends Model { }
+Role.modelName = 'Role'
+Role.fields = {
+  id: attr(),
+  emoji: attr(),
+  name: attr()
+}
+
+class Track extends Model {
+  currentAction () {
+    return this.posts.toModelArray().find(post => !post.completedAt)
+  }
+
+  toString () {
+    return `Track: ${this.name}`
+  }
+}
+
+export default Track
+
+Track.modelName = 'Track'
+
+Track.fields = {
+  actionsName: attr(),
+  bannerUrl: attr(),
+  completionMessage: attr(),
+  completionRole: fk('Role', 'tracks'),
+  completionRoleType: attr(),
+  description: attr(),
+  groups: many('Group'),
+  name: attr(),
+  numActions: attr(),
+  numPeopleCompleted: attr(),
+  numPeopleEnrolled: attr(),
+  posts: many('Post'),
+  publishedAt: attr(),
+  welcomeMessage: attr(),
+  users: many('Person')
+}
