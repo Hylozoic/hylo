@@ -134,7 +134,7 @@ function TrackHome () {
         {!publishedAt
           ? (
             <>
-              <span>{t('This track is not yet published')}</span>
+              <span className='flex-1'>{t('This track is not yet published')}</span>
               <Button
                 variant='secondary'
                 onClick={(e) => handlePublishTrack(new Date().toISOString())}
