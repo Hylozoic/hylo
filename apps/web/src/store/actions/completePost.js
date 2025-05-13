@@ -6,7 +6,9 @@ export default function completePost (id, completionResponse) {
     graphql: {
       query: `mutation CompletePost ($postId: ID, $completionResponse: JSON) {
         completePost(postId: $postId, completionResponse: $completionResponse) {
-          success
+          id
+          completedAt
+          completionResponse
         }
       }`,
       variables: {
