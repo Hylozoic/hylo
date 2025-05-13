@@ -14,6 +14,7 @@ import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 import { postWithCompletionFragment } from '@hylo/graphql/fragments/postFieldsFragment'
 import completePostMutation from '@hylo/graphql/mutations/completePostMutation'
 import PostPresenter from '@hylo/presenters/PostPresenter'
+import { getTrackIdFromPath } from '@hylo/navigation'
 import useIsModalScreen from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
 import { isIOS } from 'util/platform'
@@ -43,7 +44,8 @@ export default function UploadAction () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
-  const { id: postId, trackId } = useRouteParams()
+  const { id: postId, originalLinkingPath } = useRouteParams()
+  const trackId = getTrackIdFromPath(originalLinkingPath)
   const [{ currentGroup }] = useCurrentGroup()
   const [{ data, fetching, error }] = useQuery({ query: postDetailsQuery, variables: { id: postId } })
   const dispatch = useDispatch()
@@ -53,7 +55,7 @@ export default function UploadAction () {
   const [submitting, setSubmitting] = useState(false)
   const { completionAction, completionActionSettings } = data?.post || {}
   const { instructions, options } = completionActionSettings || {}
-
+  console.log('uploadActions screen: track id shows up', trackId)
   const { 
     post,
     updatePost,
@@ -134,7 +136,7 @@ export default function UploadAction () {
       const completedPost = data.completePost
       if (completedPost) {
         const allActionsCompleted = currentTrack.posts.every(
-          action => action.id === postId || action.completedAt
+          action => action.id === post.id || action.completedAt
         )
 
         if (allActionsCompleted) {
