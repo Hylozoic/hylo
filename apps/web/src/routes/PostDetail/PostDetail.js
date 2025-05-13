@@ -23,6 +23,7 @@ import Comments from './Comments'
 import SocketSubscriber from 'components/SocketSubscriber'
 import Button from 'components/ui/button'
 import CardFileAttachments from 'components/CardFileAttachments'
+import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
@@ -467,7 +468,7 @@ export function CompletionResponsesDialog ({ post, currentUser, onClose }) {
       style={{ width: '100%', maxWidth: '620px' }}
     >
       {post.completionResponses.map(response => (
-        <div key={response.id} className='flex flex-row gap-2'>
+        <div key={response.id} className='flex flex-row gap-2 bg-midground rounded-lg p-4'>
           <span><Avatar url={personUrl(response.user.id)} avatarUrl={response.user.avatarUrl} small /> {response.user.name}</span>
           <span>{TextHelpers.formatDatePair(response.completedAt)}</span>
           <span><CompletionResponse action={post.completionAction} response={response.completionResponse} /></span>
@@ -484,11 +485,11 @@ export function CompletionResponse ({ action, response }) {
     case 'selectOne':
       return <p>{response[0]}</p>
     case 'comment':
-      return <p>{response[0]}</p>
+      return <p><HyloHTML html={response[0]} /></p>
     case 'reaction':
       return <p>{response[0]}</p>
     case 'text':
-      return <p>{response[0]}</p>
+      return <p><HyloHTML html={response[0]} /></p>
     case 'uploadFile':
       return <CardFileAttachments attachments={response.map(a => ({ ...a, type: 'file' }))} />
     default:

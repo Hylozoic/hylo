@@ -724,7 +724,7 @@ function PostEditor ({
     return true
   }, [currentPost, myAdminGroups])
 
-  const canHaveTimes = currentPost.type !== 'discussion' && currentPost.type !== 'chat'
+  const canHaveTimes = currentPost.type !== 'discussion' && currentPost.type !== 'chat' && currentPost.type !== 'action'
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
