@@ -26,7 +26,7 @@ export default function PostCompletion({ post, trackId }) {
   const [submitting, setSubmitting] = useState(false)
   const { completionAction, completionActionSettings } = post
   const { instructions, options } = completionActionSettings || {}
-  const [currentTrack, { refetch: refetchTrack }] = useTrack({ trackId })
+  const [currentTrack, trackQueryInfo, refetchTrack] = useTrack({ trackId })
   const [, completePost] = useMutation(completePostMutation)
 
   const handleSubmitCompletion = async () => {
@@ -211,7 +211,7 @@ export default function PostCompletion({ post, trackId }) {
               submitting ? 'text-foreground-muted' : 'text-primary-foreground'
             }`}
           >
-            {submitting ? t('Submitting...') : t(completionButtonText)}
+            {submitting ? t('Submitting') + '...' : t(completionButtonText)}
           </Text>
         </TouchableOpacity>
       )}

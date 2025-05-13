@@ -55,7 +55,6 @@ export default function UploadAction () {
   const [submitting, setSubmitting] = useState(false)
   const { completionAction, completionActionSettings } = data?.post || {}
   const { instructions, options } = completionActionSettings || {}
-  console.log('uploadActions screen: track id shows up', trackId)
   const { 
     post,
     updatePost,
@@ -66,7 +65,7 @@ export default function UploadAction () {
   const [, completePost] = useMutation(completePostMutation)
   const [{ currentUser }] = useCurrentUser()
   const showToast = useToast()
-  const [currentTrack, { refetch: refetchTrack }] = useTrack({ trackId })
+  const [currentTrack, trackQueryInfo, refetchTrack] = useTrack({ trackId })
 
   // Initialize the post store with the fetched post data
   useEffect(() => {
@@ -228,23 +227,35 @@ export default function UploadAction () {
             onUpload={upload}
           />
 
-          <TouchableOpacity
-            onPress={handleSubmitCompletion}
-            disabled={submitting || completionResponse.length === 0}
-            className={`mt-4 p-3 rounded-lg ${
-              submitting || completionResponse.length === 0 ? 'bg-background' : 'bg-primary'
-            }`}
-          >
-            <Text
-              className={`text-center font-medium ${
-                submitting || completionResponse.length === 0
-                  ? 'text-foreground-muted'
-                  : 'text-primary-foreground'
-              }`}
+          {completionResponse.length === 0 ? (
+            <TouchableOpacity
+              onPress={handleShowFilePicker}
+              disabled={filePickerPending}
+              className={`mt-4 p-3 rounded-lg ${filePickerPending ? 'bg-background' : 'bg-primary'}`}
             >
-              {submitting ? t('Submitting...') : t('Submit Files and Complete')}
-            </Text>
-          </TouchableOpacity>
+              <Text
+                className={`text-center font-medium ${
+                  filePickerPending ? 'text-foreground-muted' : 'text-primary-foreground'
+                }`}
+              >
+                {filePickerPending ? t('Uploading files please wait') + '...' : t('Upload Files')}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={handleSubmitCompletion}
+              disabled={submitting}
+              className={`mt-4 p-3 rounded-lg ${submitting ? 'bg-background' : 'bg-primary'}`}
+            >
+              <Text
+                className={`text-center font-medium ${
+                  submitting ? 'text-foreground-muted' : 'text-primary-foreground'
+                }`}
+              >
+                {submitting ? t('Submitting') + '...' : t('Submit Files and Complete')}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
