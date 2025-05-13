@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { useNavigate, Routes, Route } from 'react-router-dom'
+import { TextHelpers } from '@hylo/shared'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
@@ -68,7 +69,7 @@ function TrackHome () {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: t('{{trackName}}', { trackName: currentTrack?.name || 'loading...' }),
+      title: currentTrack?.name || t('loading...'),
       search: true,
       icon: <Shapes />
     })
@@ -106,6 +107,12 @@ function TrackHome () {
             >
               {currentTrack.actionsName}
             </button>
+            <button
+              className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+              onClick={() => changeTab('people')}
+            >
+              {t('People')}
+            </button>
             {canEdit && (
               <button
                 className={`py-1 px-4 rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'edit' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
@@ -123,6 +130,10 @@ function TrackHome () {
 
         {currentTab === 'actions' && (
           <ActionsTab currentTrack={currentTrack} />
+        )}
+
+        {currentTab === 'people' && (
+          <PeopleTab currentTrack={currentTrack} />
         )}
 
         {currentTab === 'edit' && (
@@ -201,6 +212,37 @@ function ActionsTab ({ currentTrack }) {
       {posts.map(post => (
         <PostCard key={post.id} post={post} isCurrentAction={currentTrack.currentAction?.id === post.id} />
       ))}
+    </div>
+  )
+}
+
+function PeopleTab ({ currentTrack }) {
+  const { t } = useTranslation()
+  const { enrolledUsers } = currentTrack
+
+  return (
+    <div>
+      <h1>{enrolledUsers?.length ? t('{{numPeopleEnrolled}} people enrolled', { numPeopleEnrolled: enrolledUsers?.length }) : t('No one is enrolled in this track')}</h1>
+      {enrolledUsers?.length > 0 && (
+        <table className='w-full'>
+          <tbody>
+            {enrolledUsers?.map(user => (
+              <tr key={user.id}>
+                <td className='flex flex-row gap-2 items-center'>
+                  <img src={user.avatarUrl} alt={user.name} className='w-10 h-10 rounded-full my-2' />
+                  <span>{user.name}</span>
+                </td>
+                <td>
+                  <span>{t('Enrolled {{date}}', { date: user.enrolledAt })}</span>
+                </td>
+                <td>
+                  <span>{user.completedAt ? t('Completed {{date}}', { date: TextHelpers.formatDatePair(user.completedAt) }) : ''}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   )
 }

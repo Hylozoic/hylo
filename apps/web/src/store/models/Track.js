@@ -29,6 +29,7 @@ Track.fields = {
   completionRole: fk('Role', 'tracks'),
   completionRoleType: attr(),
   description: attr(),
+  enrolledUsers: many('Person'),
   groups: many('Group'),
   name: attr(),
   numActions: attr(),
@@ -36,6 +37,5 @@ Track.fields = {
   numPeopleEnrolled: attr(),
   posts: many('Post'),
   publishedAt: attr(),
-  welcomeMessage: attr(),
-  users: many('Person')
+  welcomeMessage: attr()
 }

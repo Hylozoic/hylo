@@ -146,6 +146,15 @@ export function fetchTrack (trackId) {
             completionRoleType
             description
             didComplete
+            enrolledUsers {
+              items {
+                id
+                avatarUrl
+                completedAt
+                enrolledAt
+                name
+              }
+            }
             isEnrolled
             name
             numActions
