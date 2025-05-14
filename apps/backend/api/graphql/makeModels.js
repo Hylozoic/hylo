@@ -285,6 +285,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'tagline'
       ],
       getters: {
+        completedAt: p => p.pivot && p.pivot.get('completed_at'), // When loading through a track this is when they completed the track
+        enrolledAt: p => p.pivot && p.pivot.get('enrolled_at'), // When loading through a track this is when they were enrolled in the track
         messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null)
       },
       relations: [
@@ -1151,9 +1153,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       relations: [
         'completionRole',
+        { enrolledUsers: { querySet: true } },
         { groups: { querySet: true } },
         { posts: { querySet: true } },
-        'users'
+        { users: { querySet: true } }
       ],
       getters: {
         isEnrolled: t => t && t.isEnrolled(userId),

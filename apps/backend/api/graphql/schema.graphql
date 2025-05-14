@@ -1799,10 +1799,14 @@ type Person {
   bannerUrl: String
   # Personal bio
   bio: String
+  # When loading through a track this is when they completed the track
+  completedAt: Date
   # Email address made visible on this person's profile
   contactEmail: String
   # Phone number made visible on this person's profile
   contactPhone: String
+  # When loading through a track this is when they were enrolled in the track
+  enrolledAt: Date
   # The URL to this person's Facebook profile
   facebookUrl: String
   # False for new users who have not completed the registration process
@@ -2377,6 +2381,8 @@ type Track {
   description: String
   # Whether the current user has completed this track
   didComplete: Boolean
+  # The users enrolled in this track
+  enrolledUsers: PersonQuerySet
   # The total number of groups this track is a part of
   groupsTotal: Int
   # Whether the current user is enrolled in this track
@@ -2405,7 +2411,7 @@ type Track {
   groups: GroupQuerySet
   # The posts in this track
   posts: PostQuerySet
-  # The users in this track
+  # The users related to this track
   users: PersonQuerySet
 }
 

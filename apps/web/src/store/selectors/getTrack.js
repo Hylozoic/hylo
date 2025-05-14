@@ -11,6 +11,7 @@ const getTrack = ormCreateSelector(
         ...track.ref,
         completionRole: track.completionRole,
         currentAction: track.currentAction(),
+        enrolledUsers: track.enrolledUsers?.toModelArray() || [],
         posts: track.posts?.toModelArray() || []
       }
     }
