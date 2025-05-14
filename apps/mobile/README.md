@@ -3,15 +3,25 @@
 ## Quick Start
 
 1. Run through the React Native environment setup on the [React Native website](https://reactnative.dev/docs/environment-setup)
-2. `yarn install`
-3. Ask a teammate for a copy of the `.env` file, copy that into the root of this project (also available in Hylo 1Password)
-4. Then run `scripts/configure.sh`
-5. `cd ios`
-6. `bundle install` (** assuming you have a functioning version of Ruby)
-7. `pod install`
-8. `cd ..`
-9. `yarn start`
-10. `yarn run android` or `yarn run ios`
+2. `yarn install` in the monorepo
+3. Run the backend *and* web apps; mobile depends on both of these running to work correctly
+4. Ask a teammate for a copy of the `.env` file, copy that into the root of this project (also available in Hylo 1Password)
+5. Then run `scripts/configure.sh`
+6. `cd ios` (do the next commands inside the apps/mobile/ios folder)
+7. `bundle install` (** assuming you have a functioning version of Ruby)
+8. `pod install`
+9. `cd ..` (leave the ios folder)
+10. `yarn start` (must be within apps/mobile) launches `metro`, the heart of the mobile dev experience
+11. You will see the metro options for launching the different environments and the devtools, and reload
+12. You will also need to run `yarn run android` to open the correct ports for the android emulator to be able to access the backend. Once it opens the ports, you can just cancel the rest of its actions
+
+## Quick debug
+1. Most code changes will hot-reload into the devices; sometimes you need to hit 'r' in the metro terminal instance to reload (what you see afer hitting `yarn start`)
+2. Sometimes iOS or Android devices will disconnect from metro; hit `i` or `a` to rebuild/reconnect
+3. Can't log in? Weird errors about currentUser? Either the backend is down (restart) or the ports for android aren't open (`yarn run android`)
+4. You added a new dependency or pulled in changes with a new mobile dependency? You'll probably have to run `pod install` inside the ios folder.
+5. The builds seem out of sync or not working? If you've already tried restarting metro, you can run `yarn start --reset-cache`
+6. If things are still out of wack, you can `yarn run clean` and selectively reset different parts of the build cache/process
 
 ## Contributions and Code of Conduct
 
@@ -19,7 +29,7 @@ Please review our [Contribution Guide](CONTRIBUTING.md) and [Code of Conduct](CO
 
 ## Additional Docs for Hylo App Dev
 
-## Boot Splash Screen
+### Boot Splash Screen
 
 Currently the splash screen on boot for both iOS and Android is handled by `react-native-boot-splash` and is limited to using only a centered icon with a choice of background color. It can be readily re-generated using the provided cli utility with the library, see: [react-native-bootstrap#asset-generation](https://github.com/zoontek/react-native-bootsplash#assets-generation)
 
@@ -31,7 +41,7 @@ yarn react-native generate-bootsplash ./bootsplash_logo.png \
   --background=0DC39F \
   --logo-width=160
 ```
-#### Versioning
+### Versioning
 
 We use the conventional commits standard for for our versioning, so please brush-up on that here: https://www.conventionalcommits.org/en/v1.0.0. Run `yarn bump-version patch|minor|major|prerelease` to manage the version, which manages setting the version in `package.json` as well as the appropriately places in each of the native app's code. 
 
@@ -45,7 +55,7 @@ Here are the common scenarios in which we should run the `bump-version` command:
    - Current version is "5.4.0-19", running `yarn bump-version premajor` will move the version to "6.0.0-0"
 3) Optional: We want to increment the prereelase number. Current version is "5.4.0-19", running `yarn bump-version prerelease` will move the version to "5.4.0-20". This can be done anytime in development, but is not strictly necessary as the build number is always incremented by bitrise at build and that satisfies the TestFlight unique version test as long as is not an already released `<major>.<minor>.<patch>` version. So generally unnecessary unless pushing iOS builds directly to TestFlight from your own computer via Xcode, or otherwise feels helpful to clarity in development.
 
-#### Release checklist
+### Release checklist
 
 - Merge changes to `dev`
 - Update and commit `CHANGELOG`:
@@ -74,13 +84,13 @@ Here are the common scenarios in which we should run the `bump-version` command:
 
 Sentry error reporting is always on in production, and optionally enabled in dev. To enable it in dev you need to set `SENTRY_DEV_DSN_URL` to be the DSN URL for the Sentry "hyloreactnative-dev" project. This can be found by logging into Sentry and is also available in the Hylo password vault under the Sentry record.
 
-### Debugging, quirks, work-arounds
+## Debugging, quirks, work-arounds
 
-###### Webview
+### Webview
 
 We use webviews a lot. These allow us to point at pieces of the web app in mobile screens. It is both very cool and has quirks.
 
 You’ll want to get familiar with the tooling for debugging actual WebView loads: https://github.com/react-native-webview/react-native-webview/blob/master/docs/Debugging.md#debugging-webview-contents
 
-###### Urql
+### Urql
 We use urql for most of our graphQL and data fetching/handling needs. Its good to get familiar with the devtools for this. https://github.com/urql-graphql/urql-devtools-exchange#usage
