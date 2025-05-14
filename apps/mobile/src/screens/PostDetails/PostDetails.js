@@ -101,7 +101,7 @@ export default function PostDetails () {
 
   return (
     <View 
-      className='flex-1 bg-background'
+      className='flex-1'
       style={{ 
         paddingTop: insets.top + (isIOS ? 0 : 20),
         paddingBottom: insets.bottom + (isIOS ? 0 : 20)

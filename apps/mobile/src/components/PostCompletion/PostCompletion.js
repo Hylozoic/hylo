@@ -197,9 +197,9 @@ export default function PostCompletion({ post, trackId }) {
 
   return (
     <SafeAreaView 
-      className='p-4 bg-background rounded-lg mb-4'
+      className='p-4 bg-midground rounded-lg mb-4'
     >
-      <Text className='text-foreground font-medium mb-4'>{t('Complete Action')}</Text>
+      <Text className='text-foreground font-medium mb-4'>{t('Complete {{actionTerm}}', { actionTerm: currentTrack?.actionsName?.slice(0, -1) || t('action') })}</Text>
       {instructions && (
         <Text className='font-bold mb-4'>{instructions}</Text>
       )}
