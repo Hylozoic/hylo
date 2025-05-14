@@ -72,6 +72,7 @@ const ActionsTab = ({ trackDetail, posts = [], groupSlug }) => {
       contentContainerClassName='py-4 gap-y-4'
       showsVerticalScrollIndicator={false}
     >
+      <Text className='text-xl mb-4'>{trackDetail.actionsName}</Text>
       {posts.map(post => (
         <TouchableOpacity
           key={post.id}

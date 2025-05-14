@@ -178,7 +178,13 @@ export default function PostCompletion({ post, trackId }) {
       >
         <View className='flex-row items-center'>
           <Check className='w-5 h-5 text-success mr-2' />
-          <Text className='text-foreground font-medium'>{alreadyCompletedMessage}</Text>
+          <Text className='text-foreground font-medium'>
+            {t('You completed this {{actionTerm}} {{date}}.', { 
+              date: completedAt, 
+              actionTerm: currentTrack?.actionsName?.slice(0, -1) || t('action')
+            })}
+            {alreadyCompletedMessage && ' ' + alreadyCompletedMessage}
+          </Text>
         </View>
         {completionResponse?.length > 0 && (
           <View className='mt-2'>
