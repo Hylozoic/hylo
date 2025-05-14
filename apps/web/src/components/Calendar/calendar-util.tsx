@@ -68,7 +68,7 @@ export const inWeek = (
   const _dt2 = DateTime.fromJSDate(dt2).setLocale(getLocaleAsString())
   const _dt3 = DateTime.fromJSDate(dt3).setLocale(getLocaleAsString())
   const weekStart = _dt2.startOf('week', { useLocaleWeeks: true })
-  const weekEnd = _dt2.endOf('week', { useLocaleWeeks: true }).plus({ days: 1 })
+  const weekEnd = _dt2.endOf('week', { useLocaleWeeks: true })
   return _dt1 < weekEnd && weekStart <= _dt3
 }
 
