@@ -30,7 +30,7 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { bgImageStyle, cn } from 'util/index'
 import { createPostUrl, groupUrl } from 'util/navigation'
 
-import PostSummary from './PostSummary'
+import ActionSummary from './ActionSummary'
 
 const getPosts = ormCreateSelector(
   orm,
@@ -273,7 +273,7 @@ function EditTab ({ currentTrack }) {
         onClick={() => navigate(groupUrl(routeParams.groupSlug, `tracks/${currentTrack.id}/edit`))}
       >
         <Settings className='w-4 h-4' />
-        <span>{t('Open Track Settings', { actionName: currentTrack.actionsName.slice(0, -1) })}</span>
+        <span>{t('Open Track Settings', { actionName: currentTrack?.actionsName?.slice(0, -1) })}</span>
       </button>
       <DndContext
         onDragEnd={handleDragEnd}
@@ -282,11 +282,16 @@ function EditTab ({ currentTrack }) {
       >
         <SortableContext items={posts.map(p => p.id)} strategy={verticalListSortingStrategy}>
           {posts.map(post => (
-            <PostSummary key={post.id} post={post} />
+            <ActionSummary key={post.id} post={post} />
           ))}
         </SortableContext>
       </DndContext>
-      <button className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md mb-4' onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}>+ {t('Add {{actionName}}', { actionName: currentTrack.actionsName.slice(0, -1) })}</button>
+      <button
+        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md mb-4'
+        onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}
+      >
+        + {t('Add {{actionName}}', { actionName: currentTrack?.actionsName?.slice(0, -1) })}
+      </button>
     </>
   )
 }
