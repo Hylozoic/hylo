@@ -191,6 +191,7 @@
   "No members currently blocked": "No members currently blocked",
   "No notifications here, try creating your own Group!": "No notifications here, try creating your own Group!",
   "No one is attending yet": "No one is attending yet",
+  "No one is enrolled in this track": "No one is enrolled in this track",
   "No project members": "No project members",
   "No topics match your search": "No topics match your search",
   "Not Complete": "Not Complete",
@@ -473,5 +474,6 @@
   "wrote": "wrote:",
   "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}": "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}",
   "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)": "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)",
-  "{{name}} joined your group": "{{name}} joined your group"
+  "{{name}} joined your group": "{{name}} joined your group",
+  "{{numPeopleEnrolled}} people enrolled": "{{numPeopleEnrolled}} people enrolled"
 }

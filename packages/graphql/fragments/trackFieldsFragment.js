@@ -21,6 +21,15 @@ export default gql`
     }
     completionRoleType
     didComplete
+    enrolledUsers {
+      items {
+        id
+        avatarUrl
+        completedAt
+        enrolledAt
+        name
+      }
+    }
     isEnrolled
     name
     numActions

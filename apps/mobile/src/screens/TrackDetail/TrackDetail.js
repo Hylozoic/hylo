@@ -91,6 +91,52 @@ const ActionsTab = ({ trackDetail, posts = [], groupSlug }) => {
   )
 }
 
+const PeopleTab = ({ trackDetail }) => {
+  const { t } = useTranslation()
+  const { enrolledUsers } = trackDetail
+
+  return (
+    <ScrollView 
+      className='flex-1'
+      contentContainerClassName='py-4'
+      showsVerticalScrollIndicator={false}
+    >
+      <Text className='text-xl mb-4'>
+        {enrolledUsers?.length 
+          ? t('{{numPeopleEnrolled}} people enrolled', { numPeopleEnrolled: enrolledUsers?.length }) 
+          : t('No one is enrolled in this track')}
+      </Text>
+      
+      {enrolledUsers?.length > 0 && (
+        <View className='gap-y-4'>
+          {enrolledUsers?.map(user => (
+            <View key={user.id} className='flex-row items-center justify-between p-2 bg-foreground/10 rounded-md'>
+              <View className='flex-row items-center gap-x-2'>
+                <Image 
+                  source={{ uri: user.avatarUrl }} 
+                  className='w-10 h-10 rounded-full'
+                />
+                <Text>{user.name}</Text>
+              </View>
+              <View>
+                <Text className='text-sm text-foreground/60'>
+                  {t('Enrolled {{date}}', { date: TextHelpers.formatDatePair(user.enrolledAt) })}
+                </Text>
+                {user.completedAt && (
+                  <Text className='text-sm text-foreground/60'>
+                    {t('Completed {{date}}', { date: TextHelpers.formatDatePair(user.completedAt) })}
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+      <View className='h-20' />
+    </ScrollView>
+  )
+}
+
 // Might allow publish/unpublish from mobile...
 
 // const EditTab = ({ currentTrack, posts = [], onAddAction, onOpenSettings }) => {
@@ -233,6 +279,13 @@ function TrackDetail() {
                 >
                   {trackDetail.actionsName}
                 </TabButton>
+
+                <TabButton
+                  isSelected={currentTab === 'people'}
+                  onPress={() => setCurrentTab('people')}
+                >
+                  {t('People')}
+                </TabButton>
               </View>
             </Animated.View>
           )}
@@ -248,6 +301,12 @@ function TrackDetail() {
               trackDetail={trackDetail}
               posts={trackDetail?.posts || []}
               groupSlug={currentGroup?.slug}
+            />
+          )}
+
+          {currentTab === 'people' && (
+            <PeopleTab 
+              trackDetail={trackDetail}
             />
           )}
         </View>
