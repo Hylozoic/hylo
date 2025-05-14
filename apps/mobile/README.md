@@ -22,6 +22,7 @@
 4. You added a new dependency or pulled in changes with a new mobile dependency? You'll probably have to run `pod install` inside the ios folder.
 5. The builds seem out of sync or not working? If you've already tried restarting metro, you can run `yarn start --reset-cache`
 6. If things are still out of wack, you can `yarn run clean` and selectively reset different parts of the build cache/process
+7. Routing/linking is weird/confusing? Turn on debugging in `useOpenURL` (boolean at the top of the file)
 
 ## Contributions and Code of Conduct
 
@@ -84,13 +85,33 @@ Here are the common scenarios in which we should run the `bump-version` command:
 
 Sentry error reporting is always on in production, and optionally enabled in dev. To enable it in dev you need to set `SENTRY_DEV_DSN_URL` to be the DSN URL for the Sentry "hyloreactnative-dev" project. This can be found by logging into Sentry and is also available in the Hylo password vault under the Sentry record.
 
-## Debugging, quirks, work-arounds
+## Debugging, how-things-are-set-up, quirks, work-arounds
+
+### Navigation
+Mobile navigation is structured differently from the concepts we are familiar with with the web. This is sad :( Since we have both a web app and a mobile app, we still heavily rely on path/url based navigation and have recently added much more tooling to our mobile app to handle this.
+
+The biggests pieces of this are:
+1. useOpenURL; were we can, we feed paths/urls to this and it handles most of the navigations needs of the app
+2. the [linking/routing table](https://github.com/Hylozoic/hylo/blob/dev/apps/mobile/src/navigation/linking/index.js); this is the backbone that useOpenURL depends on; if a path is wrong here or missing, useOpenURL and external deep links will fail
+3. How we handle 'the current group', with [`useHandleCurrentGroup` and `useHandleCurrentGroupSlug`](https://github.com/Hylozoic/hylo/blob/dev/apps/mobile/src/hooks/useHandleCurrentGroup.js)
+
+Many of views in web and mobile rely on knowing the `currentGroup`; this is much more straightforward in web than mobile, as the required state is consistently available in web paths/urls but that is not always the case for mobile navigation.
+
+Mobile apps have 'navigators', 'stacks' and 'screens', instead of routes, and pages. They aren't direct parallel concepts, so you have to start getting cozy with the mobile way of organizing navigation. Best to review the docs for [React Navigation](https://reactnavigation.org/docs/hello-react-navigation) and see how we have setup things.
+
+##### Our navigation stack
+
+We have a `RootNavigator`, that wraps `AuthRootNavigator` and `NonAuthRootNavigator`. Most of the app is then under the `AuthRootNavigator`, which is where a lot of top-level data-admin happens. `AuthRootNavigator` then wraps the `DrawerNavigator`, which handles most of the navigation menu UI, several of the modal screens and a few other bits and pieces. `DrawerNavigator` then wraps `TabsNavigator`, which handles the UI for the bottom tabs navigation UI and in turn wraps `HomeNavigator`, notifications, search, messages.... And finally HomeNavigator wraps most of the actual content/views/screens of the app.
+
+I'm still quite interested in whether we can optimize our app and all of the nested of the above navigators as suggested in here: https://github.com/react-navigation/react-navigation/discussions/11290
 
 ### Webview
-
 We use webviews a lot. These allow us to point at pieces of the web app in mobile screens. It is both very cool and has quirks.
 
 You’ll want to get familiar with the tooling for debugging actual WebView loads: https://github.com/react-native-webview/react-native-webview/blob/master/docs/Debugging.md#debugging-webview-contents
 
 ### Urql
 We use urql for most of our graphQL and data fetching/handling needs. Its good to get familiar with the devtools for this. https://github.com/urql-graphql/urql-devtools-exchange#usage
+
+#### Subscriptions
+Real-time updates are handled in urql by subscriptions. These are integrated into our app in the [`AuthRootNavigator`](https://github.com/Hylozoic/hylo/blob/dev/apps/mobile/src/navigation/AuthRootNavigator.js)
