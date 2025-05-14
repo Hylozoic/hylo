@@ -150,6 +150,7 @@
   "Are you sure you want to delete your affiliation as {{affiliation.role}} {{affiliation.preposition}} {{affiliation.orgName}}?": "Are you sure you want to delete your affiliation as {{affiliation.role}} {{affiliation.preposition}} {{affiliation.orgName}}?",
   "Are you sure you want to leave {{groupName}}?": "Are you sure you want to leave {{groupName}}?",
   "Are you sure you want to publish this track?": "Are you sure you want to publish this track?",
+  "Are you sure you want to remove this action? You cannot undo this.": "Are you sure you want to remove this action? You cannot undo this.",
   "Are you sure you want to remove this comment?": "Are you sure you want to remove this comment?",
   "Are you sure you want to remove this post? You cannot undo this.": "Are you sure you want to remove this post? You cannot undo this.",
   "Are you sure you want to remove {{item.name}}?": "Are you sure you want to remove {{item.name}}?",
