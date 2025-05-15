@@ -6,6 +6,6 @@ import { rootDomId } from 'client/util'
 export default function ModalDialogPortal (props) {
   return ReactDOM.createPortal(
     <ModalDialog {...props}>{props.children}</ModalDialog>,
-    document.getElementById(rootDomId)
+    document.getElementById(props.portalTarget || rootDomId)
   )
 }

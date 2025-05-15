@@ -206,7 +206,7 @@ function PostDetail () {
   }
 
   return (
-    <div ref={ref} className={cn('max-w-[960px] mx-auto min-w-[350px] bg-background relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
+    <div ref={ref} id={`post-detail-container-${post.id}`} className={cn('PostDetail max-w-[960px] mx-auto min-w-[350px] bg-background relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
       <Helmet>
         <title>
           {`${post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 20 })} | Hylo`}
@@ -463,6 +463,7 @@ export function CompletionResponsesDialog ({ post, currentUser, onClose }) {
       key='completion-responses-dialog'
       closeModal={onClose}
       modalTitle={title}
+      portalTarget={`post-detail-container-${post.id}`}
       showCancelButton={false}
       showSubmitButton={false}
       style={{ width: '100%', maxWidth: '620px' }}
