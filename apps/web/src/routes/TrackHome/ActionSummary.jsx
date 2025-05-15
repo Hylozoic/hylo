@@ -1,18 +1,27 @@
-import { GripHorizontal } from 'lucide-react'
+import { GripHorizontal, EllipsisVertical } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useNavigate } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import { editPostUrl } from 'util/navigation'
+import deletePost from 'store/actions/deletePost'
+import { editPostUrl, trackUrl } from 'util/navigation'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from 'components/ui/dropdown-menu'
 
-function PostSummary ({ post }) {
+function ActionSummary ({ post }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const routeParams = useRouteParams()
   const querystringParams = getQuerystringParam(['tab'], location)
+  const dispatch = useDispatch()
 
   // Sortable setup
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
@@ -24,6 +33,12 @@ function PostSummary ({ post }) {
   })
 
   const style = transform ? { transform: CSS.Transform.toString(transform), transition } : undefined
+
+  const deletePostWithConfirm = (postId) => {
+    if (window.confirm(t('Are you sure you want to remove this action? You cannot undo this.'))) {
+      dispatch(deletePost(postId, null, routeParams.trackId))
+    }
+  }
 
   return (
     <div
@@ -40,6 +55,15 @@ function PostSummary ({ post }) {
           </span>
         </div>
       </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger className='outline-none'><EllipsisVertical /></DropdownMenuTrigger>
+        <DropdownMenuContent sideOffset={-30} align='end'>
+          <DropdownMenuItem onClick={() => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${trackUrl(routeParams.trackId, { groupSlug: routeParams.groupSlug })}/post/${post.id}`)}>
+            {t('Copy Link')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => deletePostWithConfirm(post.id)}>{t('Remove')}</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <div className='flex flex-col justify-center gap-2 bg-foreground/10 p-2 rounded-r-lg'>
         <div className='cursor-grab'><GripHorizontal {...listeners} {...attributes} className='cursor-grab' /></div>
       </div>
@@ -47,4 +71,4 @@ function PostSummary ({ post }) {
   )
 }
 
-export default PostSummary
+export default ActionSummary
