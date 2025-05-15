@@ -57,7 +57,9 @@ export default function PostCompletion({ post, trackId }) {
           refetchTrack()
           showToast({
             type: 'success',
-            text1: t('You have completed the track: {{trackName}}', { trackName: currentTrack.name }),
+            text1: t('You have completed the track: {{trackName}}', { trackName: '' }),
+            text2: currentTrack.name,
+            visibilityTime: 3000
           })
         } else {
           showToast({
@@ -88,7 +90,7 @@ export default function PostCompletion({ post, trackId }) {
   switch (completionAction) {
     case 'button':
       completionButtonText = t('Mark as Complete')
-      alreadyCompletedMessage = t('You completed this action {{date}}', { date: completedAt })
+      alreadyCompletedMessage = t('You completed this {{actionTerm}} {{date}}', { date: completedAt, actionTerm: currentTrack?.actionsName?.slice(0, -1) || t('action') })
       break
 
     case 'selectOne':
@@ -107,7 +109,7 @@ export default function PostCompletion({ post, trackId }) {
         </View>
       )
       completionButtonText = t('Submit')
-      alreadyCompletedMessage = t('You completed this action {{date}}. You selected:', { date: completedAt })
+      alreadyCompletedMessage = t('You completed this {{actionTerm}} {{date}}. You selected:', { date: completedAt, actionTerm: currentTrack?.actionsName?.slice(0, -1) || t('action') })
       break
 
     case 'selectMultiple':
@@ -145,7 +147,7 @@ export default function PostCompletion({ post, trackId }) {
         </View>
       )
       completionButtonText = t('Submit')
-      alreadyCompletedMessage = t('You completed this action {{date}}. You selected:', { date: completedAt })
+      alreadyCompletedMessage = t('You completed this {{actionTerm}} {{date}}. You selected:', { date: completedAt, actionTerm: currentTrack?.actionsName?.slice(0, -1) || t('action') }) + ' ' + completionResponse.map(r => r).join(', ')
       break
 
     case 'text':
@@ -160,14 +162,17 @@ export default function PostCompletion({ post, trackId }) {
       )
       completionButtonText = t('Submit')
       const completionResponseText = completionResponse[0] || ''
-      alreadyCompletedMessage = t('You completed this action {{date}}. Your response was:', { date: completedAt }) + ' ' + completionResponseText
+      alreadyCompletedMessage = t('You completed this {{actionTerm}} {{date}}. Your response was:', { date: completedAt, actionTerm: currentTrack?.actionsName?.slice(0, -1) || t('action') }) + ' ' + completionResponseText
       break
 
     case 'comment':
     case 'reaction':
       completionControls = null
       completionButtonText = null
-      alreadyCompletedMessage = t('You completed this action {{date}}', { date: completedAt })
+      alreadyCompletedMessage = t('You completed this {{actionTerm}} {{date}}.', { 
+        date: completedAt, 
+        actionTerm: currentTrack?.actionsName?.slice(0, -1) || t('action')
+      })
       break
   }
 
@@ -179,11 +184,7 @@ export default function PostCompletion({ post, trackId }) {
         <View className='flex-row items-center'>
           <Check className='w-5 h-5 text-success mr-2' />
           <Text className='text-foreground font-medium'>
-            {t('You completed this {{actionTerm}} {{date}}.', { 
-              date: completedAt, 
-              actionTerm: currentTrack?.actionsName?.slice(0, -1) || t('action')
-            })}
-            {alreadyCompletedMessage && ' ' + alreadyCompletedMessage}
+            {alreadyCompletedMessage}
           </Text>
         </View>
         {completionResponse?.length > 0 && (

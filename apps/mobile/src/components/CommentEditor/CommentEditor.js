@@ -15,6 +15,10 @@ import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import { rhino80, gunsmoke, rhino10, amaranth, caribbeanGreen, twBackground } from 'style/colors'
+import useTrack from '@hylo/hooks/useTrack'
+import { useToast } from 'components/Toast'
+import { getTrackIdFromPath } from '@hylo/navigation'
+import useRouteParams from 'hooks/useRouteParams'
 
 export const CommentEditor = React.forwardRef(({
   isModal,
@@ -30,6 +34,10 @@ export const CommentEditor = React.forwardRef(({
   const [hasContent, setHasContent] = useState()
   const editorRef = useRef()
   const [submitting, setSubmitting] = useState()
+  const showToast = useToast()
+  const { originalLinkingPath } = useRouteParams()
+  const trackId = getTrackIdFromPath(originalLinkingPath)
+  const [currentTrack, trackQueryInfo, refetchTrack] = useTrack({ trackId })
 
   const handleDone = useCallback(() => {
     clearReplyingTo()
@@ -46,7 +54,7 @@ export const CommentEditor = React.forwardRef(({
       const postId = post.id
       const { error } = await createComment({ text: commentHTML, parentCommentId, postId })
       
-      // Rquired check for action posts
+      // Required check for action posts
       if (!error && post?.type === 'action' && post?.completionAction === 'comment' && !post?.completedAt) {
         const { error: completionError, data } = await completePost({ 
           postId: post.id,
@@ -54,6 +62,38 @@ export const CommentEditor = React.forwardRef(({
         })
         if (completionError) {
           console.error('Failed to complete post:', completionError)
+          showToast({
+            type: 'error',
+            text1: t('Error completing action'),
+            text2: completionError.message
+          })
+        } else {
+          // Check if this completion also completes the track
+          if (currentTrack && data.completePost) {
+            const allActionsCompleted = currentTrack.posts.every(
+              action => action.id === post.id || action.completedAt
+            )
+
+            if (allActionsCompleted) {
+              refetchTrack()
+              showToast({
+                type: 'success',
+                text1: t('You have completed the track: {{trackName}}', { trackName: '' }),
+                text2: currentTrack.name,
+                visibilityTime: 3000
+              })
+            } else {
+              showToast({
+                type: 'success',
+                text1: t('Action completed')
+              })
+            }
+          } else {
+            showToast({
+              type: 'success',
+              text1: t('Action completed')
+            })
+          }
         }
       }
 
@@ -66,10 +106,14 @@ export const CommentEditor = React.forwardRef(({
       })
 
       setSubmitting(false)
-      if (error) Alert.alert(t('Your comment couldnt be saved please try again'))
-      else handleDone()
+      if (error) {
+        showToast({
+          type: 'error',
+          text1: t('Your comment couldnt be saved please try again')
+        })
+      } else handleDone()
     }
-  }, [handleDone, post, replyingTo, completePost])
+  }, [handleDone, post, replyingTo, completePost, currentTrack, showToast])
 
   const setEditorRef = useCallback(newEditorRef => {
     setHasContent(!newEditorRef?.isEmpty)
