@@ -528,23 +528,25 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return Promise.resolve()
   },
 
-  complete (userId, completionResponse) {
-    return bookshelf.transaction(async trx => {
-      let pu = await this.loadPostInfoForUser(userId, { transacting: trx })
+  complete (userId, completionResponse, trx) {
+    const runInTransaction = async (transaction) => {
+      let pu = await this.loadPostInfoForUser(userId, { transacting: transaction })
       if (pu) {
         if (pu.get('completed_at')) {
           return pu
         }
-        await pu.save({ completed_at: new Date(), completion_response: completionResponse }, { transacting: trx })
+        await pu.save({ completed_at: new Date(), completion_response: completionResponse }, { transacting: transaction })
       } else {
-        pu = await this.postUsers().create({ user_id: userId, created_at: new Date(), completed_at: new Date(), completion_response: completionResponse }, { transacting: trx })
+        pu = await this.postUsers().create({ user_id: userId, created_at: new Date(), completed_at: new Date(), completion_response: completionResponse }, { transacting: transaction })
       }
-      await this.save({ num_people_completed: this.get('num_people_completed') + 1 }, { transacting: trx })
+      await this.save({ num_people_completed: this.get('num_people_completed') + 1 }, { transacting: transaction })
 
       Queue.classMethod('Post', 'checkCompletedTracks', { userId, postId: this.id })
 
       return pu
-    })
+    }
+
+    return trx ? runInTransaction(trx) : bookshelf.transaction(runInTransaction)
   },
 
   async markAsRead (userId) {
@@ -708,7 +710,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }, { transacting: trx })
 
       if (this.get('type') === 'action' && this.get('completion_action') === 'reaction' && !this.get('completed_at')) {
-        await this.complete(userId, JSON.stringify([emojiFull]))
+        await this.complete(userId, JSON.stringify([emojiFull]), trx)
       }
 
       return this
