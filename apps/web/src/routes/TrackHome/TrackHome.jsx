@@ -233,7 +233,7 @@ function PeopleTab ({ currentTrack }) {
                   <span>{user.name}</span>
                 </td>
                 <td>
-                  <span>{t('Enrolled {{date}}', { date: user.enrolledAt })}</span>
+                  <span>{t('Enrolled {{date}}', { date: TextHelpers.formatDatePair(user.enrolledAt) })}</span>
                 </td>
                 <td>
                   <span>{user.completedAt ? t('Completed {{date}}', { date: TextHelpers.formatDatePair(user.completedAt) }) : ''}</span>
