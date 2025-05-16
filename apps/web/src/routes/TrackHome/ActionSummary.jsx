@@ -1,10 +1,11 @@
 import { GripHorizontal, EllipsisVertical } from 'lucide-react'
-import React from 'react'
+import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
+import ActionCompletionResponsesDialog from 'components/ActionCompletionResponsesDialog'
 import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import deletePost from 'store/actions/deletePost'
@@ -22,7 +23,7 @@ function ActionSummary ({ post }) {
   const routeParams = useRouteParams()
   const querystringParams = getQuerystringParam(['tab'], location)
   const dispatch = useDispatch()
-
+  const [showCompletionResponsesDialog, setShowCompletionResponsesDialog] = useState(false)
   // Sortable setup
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: post.id,
@@ -40,6 +41,12 @@ function ActionSummary ({ post }) {
     }
   }
 
+  const handleShowCompletionResponsesDialog = (e) => {
+    e.stopPropagation()
+    e.preventDefault()
+    setShowCompletionResponsesDialog(true)
+  }
+
   return (
     <div
       className='PostSummary flex flex-row gap-2 bg-card/50 rounded-lg border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 cursor-pointer'
@@ -49,7 +56,7 @@ function ActionSummary ({ post }) {
       <div className='flex flex-col flex-1 gap-2 pt-0 pb-2 px-4' onClick={() => navigate(editPostUrl(post.id, routeParams, querystringParams))}>
         <h1>{post.title}</h1>
         <div className='flex flex-row gap-2'>
-          <span className='flex flex-row gap-2 bg-selected/50 rounded-lg px-2 py-1 items-center justify-center'>
+          <span className='flex flex-row gap-2 bg-selected/50 rounded-lg px-2 py-1 items-center justify-center hover:bg-selected/80 transition-all duration-200 cursor-pointer' onClick={handleShowCompletionResponsesDialog}>
             <span className='bg-background rounded-md px-2'>{post.numPeopleCompleted || 0}</span>
             <span>{t('Completed')}</span>
           </span>
@@ -67,6 +74,12 @@ function ActionSummary ({ post }) {
       <div className='flex flex-col justify-center gap-2 bg-foreground/10 p-2 rounded-r-lg'>
         <div className='cursor-grab'><GripHorizontal {...listeners} {...attributes} className='cursor-grab' /></div>
       </div>
+      {showCompletionResponsesDialog && (
+        <ActionCompletionResponsesDialog
+          post={post}
+          onClose={() => setShowCompletionResponsesDialog(false)}
+        />
+      )}
     </div>
   )
 }
